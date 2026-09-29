@@ -323,7 +323,7 @@ jobs:
           } >> gradle.properties
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4.4.3
+        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
         with:
           # NOT read-only on branches. The default (write only from the default
           # branch) assumes the default branch builds often; this workflow is
