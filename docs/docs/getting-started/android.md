@@ -59,7 +59,8 @@ App Store presence today.
 3. On first launch, enter your server's URL (for example `https://ai.example.com`, or the address
    your self-hosted [web UI](../self-hosting/docker-compose.md#easy-install) runs on).
 
-Requires Android 7.0 or newer.
+Requires Android 7.0 or newer on a 64-bit ARM device (arm64-v8a), which covers practically every
+phone and tablet in use. On a Chromebook, use the web app.
 
 ## Updating
 

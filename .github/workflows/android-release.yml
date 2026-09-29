@@ -369,18 +369,22 @@ jobs:
       - name: Reset ccache statistics
         run: ccache --zero-stats
 
-      # Dev builds an APK for arm64-v8a only. The NDK work is per-ABI, so
-      # building more multiplies the slowest part of the build to produce
-      # binaries nobody installs: every Android phone shipped since roughly
-      # 2019 is arm64-v8a, and a dev APK exists to be side-loaded onto a real
-      # device.
+      # Both channels build for arm64-v8a only. The NDK work is per-ABI, so
+      # every extra ABI multiplies the slowest part of the build, and with one
+      # ABI a release reuses everything a push to main already put in the
+      # ccache. Decided 2026-09-29, for an app that business users run:
+      #   - arm64-v8a is practically every Android phone and tablet in use,
+      #     and it satisfies Google Play's 64-bit requirement;
+      #   - armeabi-v7a (32-bit ARM budget and Android Go phones) is a small,
+      #     shrinking share;
+      #   - x86_64 (Intel/AMD Chromebooks) is better served by the web app;
+      #   - 32-bit x86 is practically extinct.
+      # Adding an ABI back is one entry in `-PreactNativeArchitectures` below
+      # and a new release.
       #
-      # Prod builds only the AAB, for armeabi-v7a, arm64-v8a and x86_64:
-      # Google Play serves older 32-bit ARM phones and x86_64 Chromebooks too.
-      # 32-bit x86 is left out: practically no such Android device is in use,
-      # and it was a quarter of the native work. An APK from this run would be
-      # debug-signed and so of no use to anyone; the one for direct download
-      # comes from Play (see the header).
+      # Prod builds only the AAB. An APK from this run would be debug-signed
+      # and so of no use to anyone; the one for direct download comes from
+      # Play (see the header).
       - name: Build APK
         if: steps.meta.outputs.channel != 'prod'
         working-directory: mobile/android
@@ -409,9 +413,9 @@ jobs:
           NODE_ENV: production
         run: |
           set -euo pipefail
-          echo "::notice::Building the AAB for armeabi-v7a, arm64-v8a, x86_64"
+          echo "::notice::Building the AAB for arm64-v8a"
           ./gradlew --no-daemon bundleRelease \
-            -PreactNativeArchitectures=armeabi-v7a,arm64-v8a,x86_64 \
+            -PreactNativeArchitectures=arm64-v8a \
             --build-cache
 
       # How much the ccache saved, in the log of every run.
