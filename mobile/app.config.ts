@@ -3,10 +3,11 @@
  *
  * Dynamic (`.ts`, not `app.json`) for two reasons the build actually depends on:
  *
- *   1. `versionCode` has to be a monotonically increasing integer, and the only
- *      monotonic thing CI has is the run number. It arrives as
- *      `BEEFLOW_VERSION_CODE`; locally it falls back to 1 so `expo run:android`
- *      works with no env at all.
+ *   1. `versionCode` has to be an integer that never repeats and never goes
+ *      down, across every repository this app is ever built in. CI computes
+ *      it from the build time (see .github/workflows/android-release.yml) and
+ *      passes it as `BEEFLOW_VERSION_CODE`; locally it falls back to 1 so
+ *      `expo run:android` works with no env at all.
  *   2. The default server URL is a BUILD-TIME choice. A self-hoster forks this
  *      repo and builds their own APK against their own host, so it comes from
  *      `BEEFLOW_DEFAULT_SERVER_URL` rather than being hard-coded to beeflow.nl.
@@ -30,7 +31,7 @@ import type { ConfigContext, ExpoConfig } from 'expo/config';
  */
 const minServerBuild = '2026-09-01';
 
-/** CI passes the run number; a local build just wants *something* valid. */
+/** CI passes a time-based code; a local build just wants *something* valid. */
 const versionCode = Number(process.env.BEEFLOW_VERSION_CODE || '1');
 
 /** Marketing version — kept in step with package.json so there is one number. */

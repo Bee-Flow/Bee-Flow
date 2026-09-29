@@ -51,8 +51,8 @@ App Store presence today.
 
 1. Open the [GitHub Releases page](https://github.com/Bee-Flow/Bee-Flow/releases) on your
    phone. Android releases have tags starting with `android-` and are cut on their own cadence,
-   separately from server releases. (If no `android-…` release is listed yet, build the APK
-   yourself — see below.)
+   separately from server releases. (If no `android-…` release with an `.apk` is listed yet,
+   build the APK yourself — see below.)
 2. Download the `.apk` asset and open it. Allow installation from your browser or file manager
    when Android asks. One APK covers all supported devices; the `.aab` asset is for Play Store
    publishing only and cannot be installed directly.
@@ -89,7 +89,7 @@ building to pre-fill your server's address (users can still change it in the app
 and the app asks on first launch.
 
 On a fork, the `.github/workflows/android-release.yml` workflow does the same in CI: every pull
-request touching `mobile/` produces an installable dev APK as a build artifact, and a manual
-`channel=prod` run produces a signed APK, an AAB and a GitHub Release — provided you configure
-your own signing keystore as repository secrets. The details are in
+request touching `mobile/` produces an installable dev APK as a build artifact. That APK is signed
+with the debug key, so it is for trying the app, not for distributing it; to sign a release build
+with your own key, build locally with the Gradle properties described in
 [`mobile/README.md`](https://github.com/Bee-Flow/Bee-Flow/blob/main/mobile/README.md).

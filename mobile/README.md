@@ -51,21 +51,25 @@ Two workflows:
 |---|---|
 | push to `main` (with `mobile/**` changed) | dev APK as a build artifact |
 | Run workflow → `channel=dev` | the same, on demand, from any branch |
-| Run workflow → `channel=prod` (main only) | signed APK + AAB + a GitHub Release |
+| Run workflow → `channel=prod` (main only) | AAB + build provenance + a GitHub Release (`android-…`) |
 
-**Signing is optional.** With no `ANDROID_KEYSTORE_BASE64` secret configured,
-the build still succeeds and produces a debug-signed APK whose artifact name
-ends in `-unsigned` — a contributor on a fork gets something they can install
-and try. The release job refuses to *publish* such a build.
+**No signing key in this repository.** Every build here is signed by Gradle
+with the debug key. A dev APK installs fine for trying a change, and a
+contributor on a fork gets exactly the same, but it is never for distribution.
+A `channel=prod` run publishes the AAB as a GitHub Release. Bee Flow's release
+pipeline then checks it (commit on main, provenance attestation), signs it
+with the upload key and releases it on Google Play. The APK for direct
+download is the universal APK Google Play generates from that bundle, so a
+direct install and a Play install update each other.
 
-To sign properly, set four repository secrets:
+`versionCode` is the number of minutes since 2026-01-01 UTC at build time, not
+the run number. It must never repeat, even when this code moves to another
+repository. See the header of `android-release.yml`.
 
-```
-ANDROID_KEYSTORE_BASE64     base64 -w0 upload.jks
-ANDROID_KEYSTORE_PASSWORD
-ANDROID_KEY_ALIAS
-ANDROID_KEY_PASSWORD
-```
+A self-hoster who wants a release build signed with their own key can do that
+locally: `plugins/withBeeFlowAndroid.js` reads the Gradle properties
+`BEEFLOW_UPLOAD_STORE_FILE`, `BEEFLOW_UPLOAD_STORE_PASSWORD`,
+`BEEFLOW_UPLOAD_KEY_ALIAS` and `BEEFLOW_UPLOAD_KEY_PASSWORD` when they are set.
 
 The `server_url` workflow input bakes a default server into the build. Leave it
 blank and the app asks on first launch, which is the right default for a
