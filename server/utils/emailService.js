@@ -93,7 +93,10 @@ async function disconnectServiceEmail() {
  * `raw` field, using nodemailer's MailComposer (same approach as supportMailer).
  */
 async function _buildRawMessage({ from, to, cc, bcc, replyTo, subject, text, html }) {
-    const MailComposer = require('nodemailer/lib/mail-composer');
+    // nodemailer 10 ships its own declarations with `export default`; the
+    // CommonJS build sets `.default` too, so this is the class at runtime and
+    // for the typecheck alike.
+    const MailComposer = require('nodemailer/lib/mail-composer').default;
     const composer = new MailComposer({
         from, to, cc: cc || undefined, bcc: bcc || undefined, replyTo: replyTo || undefined,
         subject, text: text || undefined, html: html || undefined,

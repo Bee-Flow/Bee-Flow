@@ -89,7 +89,7 @@
     "microsoft-cognitiveservices-speech-sdk": "^1.51.0",
     "multer": "^2.4.0",
     "neo4j-driver": "^5.26.0",
-    "nodemailer": "^8.0.2",
+    "nodemailer": "^10.0.10",
     "occt-import-js": "^0.0.23",
     "openai": "^7.23.0",
     "otplib": "^12.0.1",
