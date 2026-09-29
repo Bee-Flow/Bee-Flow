@@ -32,7 +32,7 @@
     "@e965/xlsx": "^0.20.3",
     "@elevenlabs/elevenlabs-js": "^2.69.0",
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
-    "@google/genai": "^1.43.0",
+    "@google/genai": "^2.24.0",
     "@huggingface/transformers": "^4.3.0",
     "@mistralai/mistralai": "^2.7.0",
     "@modelcontextprotocol/sdk": "^1.30.1",
