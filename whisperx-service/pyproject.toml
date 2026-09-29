@@ -13,7 +13,7 @@ dependencies = [
     # tested CUDA 12.1 combination, and uv.lock records which versions inside
     # them a build actually gets. Raising a ceiling is a deliberate act.
     "numpy<2.0.0",
-    "pyannote.audio>=3.1.0,<3.4.0",
+    "pyannote.audio>=3.1.0,<4.1.0",
     "pydantic-settings==2.15.0",
     "python-multipart==0.0.32",
     "requests==2.34.2",
