@@ -43,7 +43,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-  "pytest>=9,<10",
+  "pytest>=9.1.1,<10",
 ]
 
 # The CPU-only torch build lives on PyTorch's own index; PyPI carries only the
