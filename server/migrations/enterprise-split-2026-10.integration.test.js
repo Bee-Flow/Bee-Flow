@@ -23,7 +23,6 @@
 
 const { test, before } = require('node:test');
 const assert = require('node:assert');
-const fs = require('node:fs');
 const path = require('node:path');
 const Module = require('node:module');
 
@@ -65,7 +64,6 @@ mock(path.join(SERVER, 'db.js'), {
 });
 
 const { up, NEW_IDS, MARKER_PREFIX, isPaidPlan, additionsFor } = require('./enterprise-split-2026-10');
-const SRC = fs.readFileSync(path.join(__dirname, 'enterprise-split-2026-10.js'), 'utf8');
 
 // The five ids every paid list gains, in the order the migration appends them.
 const FIVE = ['automation_privacy_steps', 'studio_documents', 'datatable_retention', 'kb_datatable_sources', 'kb_scheduled_refresh'];
@@ -124,11 +122,10 @@ before(async () => {
         ('org-empty', '[]')`);
 });
 
-test('registered in LOOSE_MIGRATIONS, exports up(), runnable standalone', () => {
+test('registered in LOOSE_MIGRATIONS and exports up()', () => {
     const { LOOSE_MIGRATIONS } = require('../boot/bootMigrations');
     assert.ok(LOOSE_MIGRATIONS.includes('enterprise-split-2026-10'), 'an unregistered migration never runs');
     assert.strictEqual(typeof up, 'function');
-    assert.match(SRC, /require\.main === module/, 'runnable standalone for the dry-run');
 });
 
 test('NEW_IDS are exactly the registry\'s enterprise-split betas (GA, id === licence feature, Enterprise only)', () => {

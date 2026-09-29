@@ -182,8 +182,9 @@ const TIER_FEATURES = {
         // never gated.
         //
         // The privacy steps an author places in an automation: guard ("does
-        // this contain personal data"), tokenize and untokenize. The
-        // org-wide Privacy Shield underneath every run is not affected.
+        // this contain personal data") and tokenize. Untokenize stays free (it
+        // only puts values back); the org-wide Privacy Shield underneath every
+        // run is not affected.
         'automation_privacy_steps',
         // Studio Documents: invoices, quotes, letters and presentations in the
         // organisation's house style, with PDF and .pptx output
