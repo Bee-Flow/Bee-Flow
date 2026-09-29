@@ -31,6 +31,7 @@ const { scheduleFingerprint } = require('../../automation/scheduleSync');
 const { projectForViewer } = require('../../automation/access');
 const { HttpError } = require('../../core/http/errors');
 const { gateRefusal } = require('../../automation/aiActCheck');
+const { stepsNeedingLicence, liveDefinitionOf, licenceRefusal } = require('../../automation/licensedSteps');
 
 /**
  * The checks a DEFINITION must pass before it runs unattended — shared by
@@ -43,8 +44,12 @@ const { gateRefusal } = require('../../automation/aiActCheck');
  * `details.aiAct`); the terminal error handler answers it. `definition` is the copy that is about to run:
  * the working copy for a publish (and for activating a never-live routine),
  * the live copy for re-activating a paused routine that has one.
+ *
+ * `capabilityStates` is injectable for tests (automation/licensedSteps.js
+ * resolveCapabilityStates); the licence gate below is a 403 feature_locked /
+ * feature_disabled with a sentence and one detail per step.
  */
-async function checkBeforeLive(req, a, definition, { agentsFor, kbFindingsFor, permittedApps = null, aiActState = null }) {
+async function checkBeforeLive(req, a, definition, { agentsFor, kbFindingsFor, permittedApps = null, aiActState = null, capabilityStates = null }) {
     // The OWNER's catalog: steps run as them (handoff 5 sharing), so an editor
     // pressing Activate is checked against what the owner may use. The
     // presser's session only stands in when the presser IS the owner.
@@ -197,6 +202,24 @@ async function checkBeforeLive(req, a, definition, { agentsFor, kbFindingsFor, p
         message: `${pinLabel(pin)} serves pinned data instead of running — live runs will use that saved sample, not fresh data.`,
         hint: 'Unpin it if the routine should do this work for real; keep it if serving the sample is deliberate.',
     }));
+
+    // ── Licensed steps (the enterprise split) ───────────────────────────
+    //
+    // Privacy Shield steps (guard, tokenize) and approval steps are plan
+    // features, asked of the OWNER like the catalog above. A privacy step that
+    // is already in the live version keeps its place (re-activating, or a
+    // publish that still carries it, is not widening); an approval step always
+    // counts, because the runner refuses it anyway. Untokenize is never gated.
+    // automation/licensedSteps.js has the reasoning.
+    const licensed = stepsNeedingLicence(def, liveDefinitionOf(a));
+    if (licensed.length) {
+        const refusal = await licenceRefusal(licensed, {
+            userId,
+            orgId: a?.organizationId || null,
+            session: ownSession,
+        }, { stage: 'live', ...(capabilityStates ? { capabilityStates } : {}) });
+        if (refusal) return { ok: false, status: refusal.status, body: refusal.body };
+    }
     // ── AI Act check (handoff 5, owner decision 2) ──────────────────────
     //
     // Only in an organisation with the compliance hub licence

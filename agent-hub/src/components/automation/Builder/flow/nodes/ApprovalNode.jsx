@@ -1,8 +1,10 @@
 import React from 'react';
 import { ShieldCheck, Clock } from 'lucide-react';
+import PlanLockChip from './PlanLockChip';
 import StepNodeBase, { NodeChip } from './StepNodeBase';
 import { approvalSummary, approvalDeadline } from '../nodeSummaries';
 import { nodeDefaultLabel, nodeHelp, nodeTypeLabel } from '../nodeDefs';
+import { usePlanLockReason } from '../usePlanLocks';
 
 /**
  * The human gate: the run stops here until a person decides.
@@ -16,17 +18,24 @@ import { nodeDefaultLabel, nodeHelp, nodeTypeLabel } from '../nodeDefs';
  * No source handles beyond the default one: approval is in the engine's
  * ON_ERROR_FORBIDDEN_SOURCE_TYPES, and a rejection ENDS the run rather than
  * taking a second edge, so there is no branch to draw.
+ *
+ * Approvals are a plan feature: without it the card carries the lock
+ * (PlanLockChip), and the routine cannot go live with this step.
  */
 export default function ApprovalNode({ id, data }) {
     const { step, runStep, issues, onAddAfter } = data;
     const deadline = approvalDeadline(step);
+    const lock = usePlanLockReason('approval');
 
     const badges = (
-        <NodeChip title={deadline === 'No deadline'
-            ? 'This approval waits as long as it needs to.'
-            : `Closed as expired if nobody decides within ${deadline.toLowerCase()}.`}>
-            <Clock size={10} />
-        </NodeChip>
+        <>
+            <PlanLockChip reason={lock} />
+            <NodeChip title={deadline === 'No deadline'
+                ? 'This approval waits as long as it needs to.'
+                : `Closed as expired if nobody decides within ${deadline.toLowerCase()}.`}>
+                <Clock size={10} />
+            </NodeChip>
+        </>
     );
 
     return (

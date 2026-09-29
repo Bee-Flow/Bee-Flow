@@ -24,7 +24,9 @@ import {
     listRuns,
     listTasks,
     previewSchedule,
+    readablePlanRefusal,
     runAutomation,
+    setAutomationActive,
     toggleTask,
 } from './api';
 import { api } from '../../api/client';
@@ -294,5 +296,49 @@ describe('listDirectory', () => {
             users: [{ id: 'u1', username: undefined, displayName: 'Ada', email: 'ada@example.com' }],
             groups: [{ id: 'g1', name: 'Finance' }],
         });
+    });
+});
+
+describe('plan refusals', () => {
+    /** What src/api/client.ts throws for a 403: `error` as the message, the body beside it. */
+    const refusal = (body: Record<string, unknown>) =>
+        Object.assign(new Error(String(body.error)), { status: 403, body });
+    const STEP = 'Step "Scan it" is a Privacy Shield step, and Privacy Shield steps in routines are part of the Enterprise plan.';
+    const DETAILS = [{ code: 'licence.privacy_steps', message: STEP, hint: 'Remove the step, or upgrade to Enterprise.' }];
+
+    it('an activation the plan refuses keeps the server\'s sentence and its details', async () => {
+        const err0 = refusal({ error: "This routine cannot go live on your organisation's plan.", code: 'feature_locked', feature: 'automation_privacy_steps', details: DETAILS });
+        post.mockRejectedValueOnce(err0);
+        const err = await setAutomationActive('auto1', true).catch((e: unknown) => e) as Error & { status?: number; body?: { details?: unknown[] } };
+        expect(err).toBe(err0);
+        expect(err.message).toBe("This routine cannot go live on your organisation's plan.");
+        expect(err.body?.details).toHaveLength(1);
+    });
+
+    it('a bare licence code becomes a sentence, never "feature_locked"', async () => {
+        post.mockRejectedValueOnce(refusal({ error: 'feature_locked', feature: 'automations', required: 'enterprise' }));
+        const err = await setAutomationActive('auto1', true).catch((e: unknown) => e) as Error & { status?: number };
+        expect(err.message).not.toMatch(/feature_/);
+        expect(err.message.length).toBeGreaterThan(20);
+        expect(err.status).toBe(403);
+        const disabled = readablePlanRefusal(refusal({ error: 'feature_disabled', feature: 'approvals' })) as Error;
+        expect(disabled.message).not.toMatch(/feature_/);
+    });
+
+    it('a run refused with a bare code folds the step sentences in', async () => {
+        post.mockRejectedValueOnce(refusal({ error: 'feature_locked', details: DETAILS }));
+        const err = await runAutomation('auto1').catch((e: unknown) => e) as Error;
+        expect(err.message).toContain('"Scan it" is a Privacy Shield step');
+        expect(err.message).not.toMatch(/feature_/);
+    });
+
+    it('every other failure passes through untouched', async () => {
+        const other = Object.assign(new Error('Invalid definition'), { status: 400, body: { error: 'Invalid definition' } });
+        post.mockRejectedValueOnce(other);
+        await expect(setAutomationActive('auto1', true)).rejects.toBe(other);
+        expect(other.message).toBe('Invalid definition');
+        const notMine = Object.assign(new Error('nope'), { status: 403, body: { error: 'Forbidden' } });
+        expect(readablePlanRefusal(notMine)).toBe(notMine);
+        expect(notMine.message).toBe('nope');
     });
 });

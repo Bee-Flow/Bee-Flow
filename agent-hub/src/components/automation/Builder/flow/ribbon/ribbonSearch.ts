@@ -76,6 +76,8 @@ export interface RibbonResult {
     payload: StepPayload;
     disabled?: boolean;
     disabledReason?: string;
+    /** Inert because the plan does not include it (stepPalette.gated): the row shows a lock. */
+    planLocked?: boolean;
     /** 'agent' | 'skill' tints the row in its own colour. */
     tone?: 'agent' | 'skill' | null;
 }

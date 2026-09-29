@@ -28,6 +28,7 @@ import {
 import { seedPositions } from './flow/layout';
 import { applyDeleteNodes, applyDuplicateNode } from './flow/nodeOps';
 import { normalizeDefinitionShape, emptyGraph } from './flow/normalizeDefinition';
+import { withPlanLocks } from './flow/planLockModel';
 import { renameFormField } from './flow/renameFormField';
 import { stepOutputIsArray } from './flow/ribbon/fitsAfter';
 import { isRouteStep, routePorts } from './flow/routeModel';
@@ -37,6 +38,7 @@ import { itemForKey } from './flow/stepPalette';
 import { recordStep, readUsage, readTransitions, topFrequentKeys, scoreSuggestions } from './flow/stepUsage';
 import { defaultTriggerLabel } from './flow/triggerLabels';
 import { useDryRunReplay } from './flow/useDryRunReplay';
+import { usePlanLocks } from './flow/usePlanLocks';
 import { useReducedMotion } from './flow/useReducedMotion';
 import useWaitingFormUrl from './flow/useWaitingFormUrl';
 import FlowletsPanel from './FlowletsPanel';
@@ -162,12 +164,18 @@ export default function BuildTab({
     // The step catalog's labels/descriptions are translatable (routines.node.*);
     // stepPalette is a plain module, so the translator rides in on `scope`.
     const { t } = useTranslation();
-    const [catalog, setCatalog] = useState(null);
+    const [loadedCatalog, setCatalog] = useState(null);
     useEffect(() => {
         let alive = true;
         builderApi.getCatalog().then(c => { if (alive) setCatalog(c); }).catch(() => {});
         return () => { alive = false; };
     }, [builderApi]);
+    // The plan's step locks (Privacy Shield, Approval) ride on the catalog, so
+    // every palette surface below it offers those steps inert with the reason
+    // (flow/planLockModel.ts). The server refuses them anyway; this says so
+    // before the routine is built around one.
+    const planLocks = usePlanLocks();
+    const catalog = useMemo(() => withPlanLocks(loadedCatalog, planLocks), [loadedCatalog, planLocks]);
 
     // ── Expanded flowlets ───────────────────────────────────────────────────
     //

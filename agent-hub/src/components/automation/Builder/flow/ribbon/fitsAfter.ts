@@ -118,7 +118,7 @@ export function fitsAfterCards(
     for (const spec of CARDS[shape]) {
         const item = spec.item();
         if (!item) continue;
-        const g = gated(item, hasFormTrigger) as PaletteItem;
+        const g = gated(item, hasFormTrigger, catalog) as PaletteItem;
         out.push({
             id: `${shape}:${spec.key}`,
             family: spec.family,
@@ -190,7 +190,7 @@ export function resolveFrequent(
         const id = `${it.payload?.kind}:${it.key}:${it.label}`;
         if (seen.has(id)) continue;
         seen.add(id);
-        out.push(gated(it, hasFormTrigger) as FrequentItem);
+        out.push(gated(it, hasFormTrigger, catalog) as FrequentItem);
         if (out.length >= n) break;
     }
     return out;

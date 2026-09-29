@@ -3,6 +3,7 @@ import {
     Pencil, Hourglass, OctagonX, Split, ChevronsDown, Copy, Layers, Sigma, LogOut, Box, Globe,
     ClipboardList, CheckCircle2, ShieldAlert, ShieldCheck, FileText, FileSignature, Table2, StickyNote, BookOpen, ScanText,
     RectangleHorizontal, Presentation } from 'lucide-react';
+import { planLockReason } from './planLockModel';
 import { STEP_ICON_MAP } from './stepIcons';
 import { nodeLabel, nodeDesc, nodeDefaultLabel } from './nodeDefs';
 import {
@@ -265,8 +266,20 @@ export const NEEDS_FORM_TRIGGER_REASON = 'Form steps run on the routine\'s own f
  * Exported so the reco rows ("Suggested next" / "Frequently used"), which are
  * assembled outside buildStepGroups/buildSearchResults, go through the same
  * gate instead of around it.
+ *
+ * `catalog` carries the plan's locks (flow/planLockModel.ts withPlanLocks): a
+ * step the plan does not include (the Privacy Shield entry, Approval) comes
+ * back inert with the plan's sentence, and `planLocked` so a row can show the
+ * lock. Shown rather than dropped, for the BFSF-348 reason above. The plan wins
+ * over the form-trigger rule: adding a trigger would not make it addable.
+ *
+ * @param {any} item
+ * @param {boolean|null|undefined} hasFormTrigger
+ * @param {any} [catalog]
  */
-export function gated(item, hasFormTrigger) {
+export function gated(item, hasFormTrigger, catalog = null) {
+    const lock = planLockReason(item?.payload?.kind, catalog);
+    if (lock) return { ...item, disabled: true, disabledReason: lock, planLocked: true };
     if (!NEEDS_FORM_TRIGGER.has(item?.payload?.kind) || hasFormTrigger !== false) return item;
     return { ...item, disabled: true, disabledReason: NEEDS_FORM_TRIGGER_REASON };
 }
@@ -617,9 +630,9 @@ export function buildStepGroups({ catalog = null, mode = 'step', layers = [], in
         // flowlet-editor boden "Back to the app" aan terwijl de validator hem
         // daar hard weigert.
         { key: 'flow_control', title: t ? t('routines.node.group.flow_control', 'Flow control') : 'Flow control',
-          items: FLOW_CONTROL_ITEMS.filter(it => !inLayer || !NOT_INSIDE_A_LAYER.has(it.payload.kind)).map(it => localised(it, t)) },
+          items: FLOW_CONTROL_ITEMS.filter(it => !inLayer || !NOT_INSIDE_A_LAYER.has(it.payload.kind)).map(it => localised(gated(it, hasFormTrigger, catalog), t)) },
         { key: 'people', title: t ? t('routines.node.group.people', 'People & waiting') : 'People & waiting',
-          items: PEOPLE_ITEMS.filter(it => !inLayer || !NOT_INSIDE_A_LAYER.has(it.payload.kind)).map(it => localised(gated(it, hasFormTrigger), t)) },
+          items: PEOPLE_ITEMS.filter(it => !inLayer || !NOT_INSIDE_A_LAYER.has(it.payload.kind)).map(it => localised(gated(it, hasFormTrigger, catalog), t)) },
         // ONE data section. "Data" and "Lists" sat next to each other with no
         // line an author could draw between them (BFSF-361), so they are one
         // group, ordered records-first then whole-list operations.
@@ -695,7 +708,14 @@ export function itemForKey(key, { catalog = null, layers = [] } = {}) {
         // comes back — otherwise every recorded 'step:tokenize' in the usage
         // history would silently stop resolving and quietly drop out of
         // "Frequently used".
-        if (rest === 'guard' || rest === 'tokenize' || rest === 'untokenize') return asResult(PRIVACY_SHIELD_ITEM);
+        //
+        // Not while the plan locks it (flow/planLockModel.ts): these rows are
+        // shortcuts, and AddStepRibbon's "Frequent" cluster ignores a
+        // `disabled` stamp (see the code step below), so a locked step is left
+        // out here and stays visible-with-its-reason in the palette itself.
+        if (rest === 'guard' || rest === 'tokenize' || rest === 'untokenize') {
+            return planLockReason(PRIVACY_SHIELD_ITEM.payload.kind, catalog) ? null : asResult(PRIVACY_SHIELD_ITEM);
+        }
         // Code is the one static item whose availability the SERVER decides
         // (codeItemFor above: is the sandbox installed). These rows
         // resolved it straight out of ALL_STATIC_ITEMS, with no flag consulted
@@ -719,7 +739,9 @@ export function itemForKey(key, { catalog = null, layers = [] } = {}) {
             const code = codeItemFor(catalog);
             return (!code || code.disabled) ? null : asResult(code);
         }
-        return asResult(ALL_STATIC_ITEMS.find(x => x.id === rest) || ALL_STATIC_ITEMS.find(x => x.payload.kind === rest));
+        const found = ALL_STATIC_ITEMS.find(x => x.id === rest) || ALL_STATIC_ITEMS.find(x => x.payload.kind === rest);
+        // Same rule as the Privacy Shield above, for Approval.
+        return found && planLockReason(found.payload.kind, catalog) ? null : asResult(found);
     }
     if (type === 'layer' && rest === 'create') return asResult(CREATE_LAYER_ITEM);
     if (type === 'flowlet') {
@@ -767,6 +789,7 @@ export function buildSearchResults(query, { catalog = null, mode = 'step', layer
         // Carried through so a result the current graph can't accept renders
         // inert-with-a-reason instead of vanishing from the search.
         ...(it.disabled ? { disabled: true, disabledReason: it.disabledReason } : null),
+        ...(it.planLocked ? { planLocked: true } : null),
     });
 
     if (canAddLayerOutput) pushItem(localised(LAYER_OUTPUT_ITEM, t), 'Flowlet');
@@ -792,7 +815,7 @@ export function buildSearchResults(query, { catalog = null, mode = 'step', layer
     for (const it of COLLECTION_ITEMS) pushItem(localised(it, t), 'Collection');
     for (const it of LOGIC_ITEMS) {
         if (inLayer && NOT_INSIDE_A_LAYER.has(it.payload.kind)) continue;
-        pushItem(localised(gated(it, hasFormTrigger), t), 'Flow');
+        pushItem(localised(gated(it, hasFormTrigger, catalog), t), 'Flow');
     }
     // Same tri-state as the browse groups: addable, inert-with-a-reason (the
     // search already carries `disabled`/`disabledReason` through pushItem), or

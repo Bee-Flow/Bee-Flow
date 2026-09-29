@@ -14,6 +14,21 @@ const { HttpError } = require('../../core/http/errors');
 // Handoff 5 sharing: who may start, test and read the runs of a routine.
 const { makeAutomationAccess } = require('../../automation/access');
 const automationAccess = makeAutomationAccess({ store: automationStore });
+const { refusalForRun } = require('../../automation/licensedSteps');
+
+/**
+ * The plan gate for a run that executes the WORKING copy (a Test, a dry run,
+ * ▶ Execute, or any run of a routine that was never live): a Privacy Shield
+ * step that is not live yet needs `automation_privacy_steps`. A run of the
+ * live copy is never refused (automation/licensedSteps.js). Writes the 403
+ * (or 503) and answers true when it refused. `row` is the store row.
+ */
+async function refuseUnlicensedRun(req, res, row, runOpts) {
+    const refusal = await refusalForRun(row, runOpts, { session: req.session, callerId: req.session?.user?.id || null });
+    if (!refusal) return false;
+    res.status(refusal.status).json(refusal.body);
+    return true;
+}
 
 // ── What a caller may send ──────────────────────────────────────────
 //
@@ -133,14 +148,20 @@ router.post('/:id/run', runTriggerLimiter, validate({ body: RunBody }), async (r
     const isTest = req.body.test === true;
     // The copy this run executes (handoff 5), resolved up front so the
     // trigger lookup and payload synthesis below read the same definition.
-    const a = require('../../core/automationRunner/definitionForRun').automationForRun(
-        await automationStore.getAutomation(req.params.id), { mode: 'live', triggerKind: 'manual', isTest });
+    const runOpts = { mode: 'live', triggerKind: 'manual', isTest };
+    const row = await automationStore.getAutomation(req.params.id);
+    const a = require('../../core/automationRunner/definitionForRun').automationForRun(row, runOpts);
     if (!a) return res.status(404).json({ error: 'Not found' });
     // `run` may start the LIVE version; a Test runs the working copy
     // (unpublished changes), which is an editor's tool and needs `edit`. The
     // run executes AS THE OWNER and records who pressed the button in
     // startedByUserId.
     if (!await automationAccess.guard(req, res, a, isTest ? 'edit' : 'run')) return;
+    // Licensed steps: a run of the working copy with a Privacy Shield step
+    // that is not live yet needs the plan. The STORE ROW is asked, not `a`:
+    // automationForRun's copy of a live run no longer carries the live
+    // definition it came from, and must never read as a draft.
+    if (await refuseUnlicensedRun(req, res, row, runOpts)) return;
     const ownerId = a.userId || userId;
     const runner = require('../../core/automationRunner');
 
@@ -245,6 +266,9 @@ router.post('/:id/dry-run', runTriggerLimiter, validate({ body: RunBody }), asyn
     if (!a) return res.status(404).json({ error: 'Not found' });
     // A dry run previews the WORKING copy: an editor's tool, like a Test.
     if (!await automationAccess.guard(req, res, a, 'edit')) return;
+    // It still scans with the real detector, so a Privacy Shield step that
+    // is not live yet needs the plan here too.
+    if (await refuseUnlicensedRun(req, res, a, { mode: 'dry_run', triggerKind: 'dry_run' })) return;
     const runner = require('../../core/automationRunner');
     const entered = resolveTriggerStepId(a.definition, req.body.triggerStepId);
     if (entered.error) return res.status(400).json({ error: entered.error });
@@ -271,6 +295,12 @@ router.post('/:id/steps/:stepId/run', runTriggerLimiter, validate({ body: Partia
     if (!a) return res.status(404).json({ error: 'Not found' });
     // Executing one step is an editor's tool, not a way to start the routine.
     if (!await automationAccess.guard(req, res, a, 'edit')) return;
+    // 'only' runs this one step, so only this step can need the plan; 'from'
+    // and 'upTo' run a stretch of the flow and are asked about all of it.
+    if (await refuseUnlicensedRun(req, res, a, {
+        triggerKind: 'manual_step',
+        ...(req.body.mode === 'only' ? { onlyStepId: req.params.stepId } : {}),
+    })) return;
     const runner = require('../../core/automationRunner');
     const entered = resolveTriggerStepId(a.definition, req.body.triggerStepId);
     if (entered.error) return res.status(400).json({ error: entered.error });

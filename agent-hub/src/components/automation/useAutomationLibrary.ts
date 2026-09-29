@@ -3,6 +3,7 @@ import type { Dispatch, SetStateAction } from 'react';
 import useAutomationApi from '../../hooks/useAutomationApi';
 import type { AutomationApiError } from '../../hooks/useAutomationApi';
 import { toast } from '../shared/Toast';
+import { planRefusalText } from './planRefusal';
 import {
     duplicateAutomationOnServer,
     invalidateAutomationTrash,
@@ -262,8 +263,11 @@ export default function useAutomationLibrary({
             else await automationApi.activate(a.id);
             await fetchAutomations();
         } catch (err) {
-            console.warn('[AITasksDesigner] toggleAutomation failed:', failureText(err));
-            toast.error(`Could not ${a.isActive ? 'pause' : 'activate'} “${a.title || a.id}”: ${failureText(err)}`);
+            // A plan refusal (a step the plan does not include) reads as its
+            // step sentences rather than as `feature_locked` (planRefusal.ts).
+            const why = planRefusalText(err) || failureText(err);
+            console.warn('[AITasksDesigner] toggleAutomation failed:', why);
+            toast.error(`Could not ${a.isActive ? 'pause' : 'activate'} “${a.title || a.id}”: ${why}`);
         } finally {
             togglePendingRef.current.delete(a.id);
         }

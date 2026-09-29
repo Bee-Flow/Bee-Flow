@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { IntegrationLogo } from './jsComponents';
 import type { KeyboardEvent, RefObject } from 'react';
-import { Search } from 'lucide-react';
+import { Lock, Search } from 'lucide-react';
 import { stepDragProps } from '../stepDrag';
 import useTranslation from '../../../../../hooks/useTranslation';
 import type { RibbonResult } from './ribbonSearch';
@@ -41,7 +41,7 @@ function ResultRow({ id, result: r, active, onHover, onPick }: {
             className={`flex items-start gap-2.5 px-3 py-1.5 cursor-pointer ${active ? 'bg-[var(--bg-secondary)]' : ''} ${r.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
             <span className={`shrink-0 mt-0.5 h-6 w-6 rounded-md bg-[var(--bg-secondary)] grid place-items-center ${tone}`}>
-                {Icon ? <Icon size={14} /> : <IntegrationLogo integrationId={r.integrationId} tool={r.tool} size={14} />}
+                {r.planLocked ? <Lock size={14} aria-hidden /> : Icon ? <Icon size={14} /> : <IntegrationLogo integrationId={r.integrationId} tool={r.tool} size={14} />}
             </span>
             <span className="min-w-0 flex-1">
                 <span className="block text-sm text-[var(--text-primary)] truncate">{r.label}</span>

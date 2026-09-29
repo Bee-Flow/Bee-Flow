@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { Search, ChevronDown, ChevronRight, Plus, Layers } from 'lucide-react';
+import { Search, ChevronDown, ChevronRight, Plus, Layers, Lock } from 'lucide-react';
 import IntegrationLogo from './nodes/IntegrationLogo';
 import { buildStepGroups, buildSearchResults, gated } from './stepPalette';
 import { actionLabelMap, uiDescription } from './appLabels';
@@ -66,7 +66,7 @@ export default function AddStepMenu({ scope = {}, group = null, showSearch, onAd
                 seen.add(id);
                 return true;
             })
-            .map(r => gated(r, scope.hasFormTrigger));
+            .map(r => gated(r, scope.hasFormTrigger, scope.catalog));
 
         const suggested = take(scope.suggested);
         if (suggested.length) out.push({ key: '__suggested', title: 'Suggested next', accent: true, items: suggested });
@@ -183,6 +183,9 @@ function GroupBlock({ group, singleGroup, onAdd }) {
 }
 
 function ItemIcon({ item, size = 18 }) {
+    // A step the plan does not include (stepPalette.gated): the lock says why
+    // it is inert before the reason is even read.
+    if (item?.planLocked) return <Lock size={size} aria-hidden />;
     if (item?.payload?.kind === 'create_layer') {
         return (
             <span className="relative inline-flex">
@@ -405,7 +408,7 @@ function SearchResultRow({ result, q, onAdd }) {
             }`}
         >
             <div className="shrink-0 h-8 w-8 rounded-lg bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--text-secondary)]">
-                {Icon ? <Icon size={16} /> : <IntegrationLogo integrationId={result.integrationId} tool={result.tool} size={16} />}
+                {result.planLocked ? <Lock size={16} aria-hidden /> : Icon ? <Icon size={16} /> : <IntegrationLogo integrationId={result.integrationId} tool={result.tool} size={16} />}
             </div>
             <div className="min-w-0 flex-1">
                 <div className="text-sm text-[var(--text-primary)] truncate">{highlightMatch(result.label, q)}</div>

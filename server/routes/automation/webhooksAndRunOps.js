@@ -12,6 +12,7 @@ const { HttpError } = require('../../core/http/errors');
 // Handoff 5 sharing: what a role may do with a routine and its runs.
 const { makeAutomationAccess, mayReadRun, roleSatisfies } = require('../../automation/access');
 const { isTestRun } = require('../../core/automationRunner/definitionForRun');
+const { refusalForRun } = require('../../automation/licensedSteps');
 const automationAccess = makeAutomationAccess({ store: automationStore });
 
 // The caller's access to the routine behind a RUN, or null after a 403
@@ -338,6 +339,10 @@ router.post('/:id/runs/:runId/retry', runTriggerLimiter, async (req, res) => {
     if (!RETRYABLE_STATUSES.has(journeyStatus)) {
         throw new HttpError(409, 'run_not_finished', 'This run has not finished yet, so it cannot be run again.', { status: journeyStatus || null });
     }
+    // Re-running the WORKING copy needs the plan for a Privacy Shield step that is not live (automation/licensedSteps.js).
+    const again = { triggerKind: original.triggerKind || 'manual', mode: original.mode === 'dry_run' ? 'dry_run' : 'live', isTest: !!original.isTest };
+    const planRefusal = await refusalForRun(a, again, { session: req.session, callerId: userId });
+    if (planRefusal) return res.status(planRefusal.status).json(planRefusal.body);
 
     const runner = require('../../core/automationRunner');
     const RESPONSE_TIMEOUT_MS = 60_000;

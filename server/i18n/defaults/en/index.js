@@ -32,6 +32,7 @@ const NAMESPACES = {
     "app_studio":      require('./app_studio.js'),
     "approvals":       require('./approvals.js'),
     "apps":            require('./apps.js'),
+    "automation":      require('./automation.js'),
     "azure":           require('./azure.js'),
     "billing":         require('./billing.js'),
     "changepw":        require('./changepw.js'),

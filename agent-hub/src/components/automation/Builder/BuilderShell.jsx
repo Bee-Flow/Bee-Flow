@@ -64,9 +64,11 @@ import { readinessStamp } from '../../../api/queries/automation/readiness';
 import useAutomationApi from '../../../hooks/useAutomationApi';
 import useAutomationBuilderStream from '../../../hooks/useAutomationBuilderStream';
 import useFlowletAgentStream from '../../../hooks/useFlowletAgentStream';
+import { useTranslation } from '../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import scopedStorage from '../../../utils/scopedStorage';
 import useConfirm from '../../shared/useConfirm';
+import { planRefusalText } from '../planRefusal';
 
 export default function BuilderShell({ automationId, onBack, onOpenList = null, user, initialChatInput = '', autoSendInput = null, onAutomationIdResolved = null, initialScopeKey = null, onScopeChange = null, mode = 'automation', onPublished = null, initialTab = null, initialRunId = null, initialRunStepId = null, onBuilderStateChange = null, initialAppRef = null,
     // Hosting hooks for a page that DRIVES the builder (Studio Playbooks):
@@ -105,6 +107,10 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
     // BuilderConfirmContext so panels and hooks alike can ask a question
     // without falling back to the browser's own dialog.
     const { confirm, confirmDialog } = useConfirm();
+    // A plan refusal (a step the plan does not include: server/automation/
+    // licensedSteps.js) reads as the step sentences, not as `feature_locked`.
+    const { t } = useTranslation();
+    const failText = (e) => planRefusalText(e, t) || e.message;
     // Node Detail View (NDV) — the focused Input|Parameters|Output editor for
     // ONE step. `ndvStepId` is the step being edited (null = closed). Replaces
     // the old node-anchored peek + multi-pin dock.
@@ -432,7 +438,7 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
             const r = await api.activate(aid);
             setServerAutomation(r.automation);
         }
-        catch (e) { if (!openAiActOnRefusal(e, 'activate')) setError(e.message); }
+        catch (e) { if (!openAiActOnRefusal(e, 'activate')) setError(failText(e)); }
         aiActRetryRef.current = false;
         setBusy(false);
     };
@@ -446,7 +452,7 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
             const r = await publishAutomation(aid, serverAutomation?.version ?? null);
             if (r?.automation) setServerAutomation(r.automation);
         }
-        catch (e) { if (!openAiActOnRefusal(e, 'publish')) setError(e.message); }
+        catch (e) { if (!openAiActOnRefusal(e, 'publish')) setError(failText(e)); }
         aiActRetryRef.current = false;
         setBusy(false);
     };
@@ -484,7 +490,7 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
         // no run record is coming. Left running, `liveRunInFlight` stays true
         // and every ▶ Execute button is disabled for the rest of the session —
         // one of the mechanisms behind BFSF-360 ("Execute does nothing").
-        catch (e) { setError(e.message); settleRun(); }
+        catch (e) { setError(failText(e)); settleRun(); }
         finally { stopWatch(); setBusy(false); }
     };
 
@@ -530,7 +536,7 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
         }
         // Same as onDryRun: settle the live progress stub so a failed run-start
         // can't strand the builder in "running" forever (BFSF-360).
-        catch (e) { setError(e.message); settleRun(); throw e; }
+        catch (e) { setError(failText(e)); settleRun(); throw e; }
         finally { stopWatch(); setBusy(false); }
     };
 

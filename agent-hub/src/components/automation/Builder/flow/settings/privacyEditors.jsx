@@ -1,12 +1,15 @@
 // The Privacy Shield step editor (one node, four modes), extracted verbatim
 // from SettingsForm.jsx.
+import { Lock } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { piiCategoriesLocalized } from '../../../../../config/piiCategories';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../../utils/helpers';
 import PathField from '../../mapping/PathField';
 import AccordionSection from '../AccordionSection';
+import { planLockReason } from '../planLockModel';
 import { readPrivacy, PRIVACY_MODES, modeScans, modeBranches, modeHides, droppedEdgesOnModeChange } from '../privacyModel';
+import { usePlanLocks } from '../usePlanLocks';
 import { FormRow, inputClass } from './formPrimitives';
 
 /**
@@ -47,8 +50,17 @@ function PrivacyShieldFields({ step, draft, set, groups, onFocusField, previewSa
     // edges the new shape has nowhere to put. Ask before that costs wiring —
     // the same stance RouteFields takes when collapsing a router.
     const [modeAsk, setModeAsk] = useState(null);
+    // The plan (flow/planLockModel.ts): without the Privacy Shield steps, a
+    // mode that would turn this step into ANOTHER runtime type the plan locks
+    // (a restore step into a check, a check into a hide) is inert. The step's
+    // own type stays selectable, so an existing, possibly live, step keeps its
+    // editor; "Show real values again" is never locked.
+    const planLocks = usePlanLocks();
+    const lockOf = (m) => (m.type !== step.type ? planLockReason(m.type, { planLocks }) : null);
+    const lockedReason = PRIVACY_MODES.map(lockOf).find(Boolean) || null;
     const chooseMode = (next) => {
         if (next === mode) return;
+        if (lockOf(PRIVACY_MODES.find(m => m.id === next) || {})) return;
         const dropped = droppedEdgesOnModeChange(step, next, stepEdges);
         if (dropped.length) { setModeAsk({ next, dropped }); return; }
         setPrivacy({ mode: next });
@@ -77,21 +89,35 @@ function PrivacyShieldFields({ step, draft, set, groups, onFocusField, previewSa
             <AccordionSection stepType={step.type} sectionKey="config" title="Configuration" defaultOpen forceOpen={errorSections.has('config')}>
                 <FormRow label="What should this step do?">
                     <div className="flex flex-col gap-1">
-                        {PRIVACY_MODES.map((m) => (
-                            <button
-                                key={m.id}
-                                type="button"
-                                onClick={() => chooseMode(m.id)}
-                                aria-pressed={mode === m.id}
-                                className={`text-left px-2.5 py-1.5 rounded border text-xs transition ${mode === m.id
-                                    ? 'bg-[var(--accent)]/15 border-[var(--accent)]/40 text-[var(--accent)]'
-                                    : 'border-[var(--border-default)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
-                            >
-                                <span className="font-semibold">{m.label}</span>
-                                <span className="block text-[11px] text-[var(--text-tertiary)]">{m.blurb}</span>
-                            </button>
-                        ))}
+                        {PRIVACY_MODES.map((m) => {
+                            const lock = lockOf(m);
+                            return (
+                                <button
+                                    key={m.id}
+                                    type="button"
+                                    onClick={() => chooseMode(m.id)}
+                                    aria-pressed={mode === m.id}
+                                    disabled={!!lock}
+                                    title={lock || undefined}
+                                    className={`text-left px-2.5 py-1.5 rounded border text-xs transition disabled:opacity-55 disabled:cursor-not-allowed ${mode === m.id
+                                        ? 'bg-[var(--accent)]/15 border-[var(--accent)]/40 text-[var(--accent)]'
+                                        : 'border-[var(--border-default)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                                >
+                                    <span className="font-semibold inline-flex items-center gap-1">
+                                        {lock && <Lock className="w-3 h-3" aria-hidden />}
+                                        {m.label}
+                                    </span>
+                                    <span className="block text-[11px] text-[var(--text-tertiary)]">{m.blurb}</span>
+                                </button>
+                            );
+                        })}
                     </div>
+                    {lockedReason && (
+                        <p className="mt-1 flex items-center gap-1.5 text-[11px] text-[var(--text-tertiary)]" data-testid="privacy-plan-locked">
+                            <Lock className="w-3 h-3 shrink-0" aria-hidden />
+                            {lockedReason}
+                        </p>
+                    )}
                 </FormRow>
 
                 {modeAsk && (

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Bot, Layers, Zap } from 'lucide-react';
+import { Bot, Layers, Lock, Zap } from 'lucide-react';
 import { actionLabelMap, uiDescription } from '../appLabels';
 import { typeGroupOf } from '../nodeTypeColors';
 import { getIntegrationById } from '../../../../../config/integrationCatalog';
@@ -48,7 +48,9 @@ export function itemRow(item: PaletteItem): RowSpec {
         key: item.id,
         label: item.label,
         desc: item.desc || null,
-        glyph: <FamilyIcon Icon={item.icon || Layers} kind={item.payload.kind} />,
+        glyph: item.planLocked
+            ? <Lock size={14} className="text-[var(--text-tertiary)]" aria-hidden />
+            : <FamilyIcon Icon={item.icon || Layers} kind={item.payload.kind} />,
         payload: item.payload,
         disabled: !!item.disabled,
         disabledReason: item.disabledReason || null,

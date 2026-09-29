@@ -29,6 +29,8 @@ export interface PaletteItem {
     payload: StepPayload;
     disabled?: boolean;
     disabledReason?: string;
+    /** Inert because the plan does not include it (stepPalette.gated): the row shows a lock. */
+    planLocked?: boolean;
 }
 
 /** An app with its actions, as groupAppsByCategory builds it. */

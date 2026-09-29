@@ -1,4 +1,4 @@
-import { Layers } from 'lucide-react';
+import { Layers, Lock } from 'lucide-react';
 import { stepDragProps } from '../stepDrag';
 import { CmdButton } from './jsComponents';
 import useTranslation from '../../../../../hooks/useTranslation';
@@ -24,7 +24,9 @@ export function ItemPill({ item, onAdd, origin = null }: { item: PaletteItem; on
     const { t } = useTranslation();
     return (
         <CmdButton
-            glyph={<FamilyIcon Icon={item.icon || Layers} kind={item.payload.kind} />}
+            glyph={item.planLocked
+                ? <Lock size={14} className="text-[var(--text-tertiary)]" aria-hidden />
+                : <FamilyIcon Icon={item.icon || Layers} kind={item.payload.kind} />}
             label={item.label}
             desc={item.disabled ? item.disabledReason : item.desc}
             tipFooter={item.disabled ? null : t(DRAG_HINT_KEY, DRAG_HINT)}

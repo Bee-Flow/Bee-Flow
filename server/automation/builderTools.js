@@ -522,6 +522,14 @@ async function _applyToolCallRaw(name, args, draftWrap, { sent = args } = {}) {
                 if (hit.id !== draft.trigger?.id) rootStepId = hit.id;
             }
             const automation = await persistDraft(draftWrap);
+            // Same plan gate as the builder's own Dry-run button: a Privacy
+            // Shield step that is not live yet needs automation_privacy_steps
+            // (automation/licensedSteps.js). Said to the model in words, so it
+            // can tell the author instead of retrying.
+            const licensed = require('./licensedSteps');
+            const planRefusal = await licensed.refusalForRun(
+                automation, { mode: 'dry_run', triggerKind: 'dry_run' }, { callerId: draftWrap.userId || null });
+            if (planRefusal) return licensed.refusalAsToolError(planRefusal);
             const runner = require('../core/automationRunner');
             // The run is announced the moment its row exists (the route turns
             // this into a `dryrun_started` SSE event), so the canvas can follow

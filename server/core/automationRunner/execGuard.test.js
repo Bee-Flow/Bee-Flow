@@ -33,6 +33,14 @@ mock('../../db', { pool: {} });
 mock('../aiAgent', { getProviderForModel: async () => null, getAIConfig: async () => ({}) });
 mock('../providers', { getAdapter: () => ({}) });
 mock('../../automation/codeSandbox', { run: async () => ({}) });
+// An organisation WITHOUT automation_privacy_steps. The runner must never ask:
+// a live guard keeps running after a lapse (automation/licensedSteps.js puts
+// the gate on activation and test runs, never here).
+const licenceAsked = [];
+mock('../entitlements/entitlements', {
+    hasCapability: async (id) => { licenceAsked.push(id); return false; },
+    resolveCapabilitySet: async () => { licenceAsked.push('resolveCapabilitySet'); return { degraded: false, has: () => false }; },
+});
 
 // Required by ABSOLUTE path on purpose: requiring '../privacy/piiDetection' relatively
 // from here would populate Node's relative-resolve cache for that exact
@@ -385,4 +393,15 @@ test('a plain check is untouched by any of this', async () => {
     const { output } = await execGuard(guard(), ctx, stateWith(DIRTY), 'live');
     assert.strictEqual(output.text, undefined, 'no onFound.tokenize, no hidden copy');
     assert.strictEqual(ctx.tokenVault.size, 0, 'and nothing minted into the vault');
+});
+
+// ── no licence check at run time ───────────────────────────────────────────
+
+test('without the privacy-steps plan a LIVE guard still scans and routes, and the licence is never asked', async () => {
+    reset();
+    licenceAsked.length = 0;
+    const { output } = await execGuard(guard({ onFound: { tokenize: true } }), { ...ctxWith(), tokenVault: require('./tokenVault').createTokenVault({}) }, stateWith(DIRTY), 'live');
+    assert.strictEqual(output.branch, 'then');
+    assert.strictEqual(output.hasPii, true);
+    assert.deepStrictEqual(licenceAsked, []);
 });

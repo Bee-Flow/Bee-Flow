@@ -55,6 +55,7 @@ import type {
 import { REPEAT_INTERVALS } from './types';
 import { api } from '../../api/client';
 import { field, nullable, pick, shapeListOf, shapeOf } from '../../api/contract';
+import { translate } from '../../i18n';
 
 
 export const automateKeys = {
@@ -402,6 +403,46 @@ export function withSchedule(
     };
 }
 
+/** The licence codes a gate sends (requireCapability, server/automation/licensedSteps.js). */
+const PLAN_CODES = new Set(['feature_locked', 'feature_disabled']);
+
+/**
+ * A plan refusal, made readable.
+ *
+ * Going live with a step the organisation's plan does not include (a new
+ * Privacy Shield step, an approval: server/automation/licensedSteps.js), or
+ * test-running one, answers 403 with the sentence in `error` and the licence
+ * code (`feature_locked` / `feature_disabled`) in `code`, one record per step
+ * in `details`; the client already shows that sentence. A licence gate that
+ * writes no sentence (the `automations` gate on the whole /api/automation
+ * mount) sends the code itself in `error`, and the screen said
+ * "feature_locked". This puts a sentence in its place, on the same error
+ * object (status, body and class stay, so `details` still lists the steps).
+ * `withDetails` folds the step sentences in too, for a screen that shows only
+ * the message.
+ */
+export function readablePlanRefusal(e: unknown, { withDetails = false }: { withDetails?: boolean } = {}): unknown {
+    if (!e || typeof e !== 'object') return e;
+    const err = e as { status?: number; body?: unknown; message?: string };
+    if (err.status !== 403 || !err.body || typeof err.body !== 'object') return e;
+    const body = err.body as { error?: unknown; details?: unknown };
+    // A sentence in `error` is already the message; only the bare machine word needs one.
+    if (typeof body.error !== 'string' || !PLAN_CODES.has(body.error)) return e;
+    const lead = translate('mobile.automate.plan_refused', 'This automation uses a feature your organisation\'s plan does not include.');
+    const steps = withDetails && Array.isArray(body.details)
+        ? body.details
+            .map((d) => (d && typeof d === 'object' && typeof (d as { message?: unknown }).message === 'string'
+                ? (d as { message: string }).message : ''))
+            .filter(Boolean)
+        : [];
+    try {
+        err.message = [lead, ...steps].join(' ');
+    } catch {
+        /* a frozen error keeps the message it came with */
+    }
+    return e;
+}
+
 /**
  * Arm or disarm a routine.
  *
@@ -409,11 +450,17 @@ export function withSchedule(
  * `stage: 'strict'`, checks every tool against the caller's permitted apps,
  * and re-arms `next_run_at` — so a 400 here is a real "this cannot go live"
  * with `details`, and the caller must show them rather than a generic failure.
+ * A 403 for a step the plan does not include carries `details` too, and a
+ * bare licence code is made readable (readablePlanRefusal).
  */
 export async function setAutomationActive(id: string, active: boolean): Promise<Automation | null> {
     const path = `/api/automation/${encodeURIComponent(id)}/${active ? 'activate' : 'deactivate'}`;
-    const res = await api.post<unknown>(path);
-    return nullable(readAutomation)(pick(res, 'automation'));
+    try {
+        const res = await api.post<unknown>(path);
+        return nullable(readAutomation)(pick(res, 'automation'));
+    } catch (e) {
+        throw readablePlanRefusal(e);
+    }
 }
 
 /**
@@ -432,13 +479,21 @@ export async function runAutomation(
     id: string,
     triggerPayload?: unknown,
 ): Promise<RunTriggerResult | null> {
-    return nullable(readRunTriggerResult)(
-        await api.post<unknown>(
-            `/api/automation/${encodeURIComponent(id)}/run`,
-            triggerPayload === undefined ? {} : { triggerPayload },
-            { timeoutMs: 70_000, retry: false },
-        ),
-    );
+    try {
+        return nullable(readRunTriggerResult)(
+            await api.post<unknown>(
+                `/api/automation/${encodeURIComponent(id)}/run`,
+                triggerPayload === undefined ? {} : { triggerPayload },
+                { timeoutMs: 70_000, retry: false },
+            ),
+        );
+    } catch (e) {
+        // A routine that was never live runs its draft, and a draft with a
+        // step the plan does not include is refused; the server's sentence
+        // names the steps. A bare licence code gets one (readablePlanRefusal),
+        // with the steps folded in: the run screen shows only the message.
+        throw readablePlanRefusal(e, { withDetails: true });
+    }
 }
 
 /** Re-fire a run with its original trigger payload; same 200/202 shapes. */

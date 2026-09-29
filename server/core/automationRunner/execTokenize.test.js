@@ -28,6 +28,14 @@ mock('../../db', { pool: {} });
 mock('../aiAgent', { getProviderForModel: async () => null, getAIConfig: async () => ({}) });
 mock('../providers', { getAdapter: () => ({}) });
 mock('../../automation/codeSandbox', { run: async () => ({}) });
+// An organisation WITHOUT automation_privacy_steps. The runner must never ask:
+// a live hide or restore step keeps running after a lapse (the house rule in
+// automation/licensedSteps.js; the gate sits on activation and test runs).
+const licenceAsked = [];
+mock('../entitlements/entitlements', {
+    hasCapability: async (id) => { licenceAsked.push(id); return false; },
+    resolveCapabilitySet: async () => { licenceAsked.push('resolveCapabilitySet'); return { degraded: false, has: () => false }; },
+});
 
 const realPii = require(path.join(__dirname, '..', 'privacy', 'piiDetection'));
 const detector = { fixtures: [], installed: true };
@@ -272,4 +280,20 @@ test('an unbound restore step fails rather than silently doing nothing', async (
             return true;
         },
     );
+});
+
+// ── no licence check at run time ───────────────────────────────────────────
+// The plan gate for Privacy Shield steps is at activation, publishing and test
+// runs (automation/licensedSteps.js). What is live keeps running, and
+// untokenize is never gated at all, so the runner asks nobody.
+
+test('without the privacy-steps plan a LIVE hide and restore still run, and the licence is never asked', async () => {
+    reset();
+    licenceAsked.length = 0;
+    const ctx = ctxWith();
+    const tok = await execTokenize(step(), ctx, stateWith(DIRTY), 'live');
+    assert.strictEqual(tok.output.text, 'mijn email is: [email_1]');
+    const back = await execUntokenize({ id: 'u1', type: 'untokenize', sourceRef: 'steps.t1.output.text' }, ctx, { steps: { t1: { output: { text: tok.output.text } } } });
+    assert.strictEqual(back.output.text, DIRTY);
+    assert.deepStrictEqual(licenceAsked, []);
 });
