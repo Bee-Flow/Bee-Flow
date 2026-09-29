@@ -45,6 +45,6 @@
   },
   "devDependencies": {
     "concurrently": "^9.2.1",
-    "jscpd": "^5.0.12"
+    "jscpd": "^5.3.2"
   }
 }
