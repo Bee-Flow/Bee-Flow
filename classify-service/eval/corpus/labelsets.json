@@ -1,0 +1,60 @@
+{
+  "_doc": "One label set per item kind. Gold labels in items.*.jsonl use the `en` form. `bare` is the article-less phrasing and `nl` the Dutch rendering; both exist for the phrasing probe only. `distractors` are added to a kind's set by the label-set sensitivity probe and never appear as gold.",
+  "email": {
+    "labels": [
+      {"en": "a complaint", "bare": "complaint", "nl": "een klacht"},
+      {"en": "an invoice", "bare": "invoice", "nl": "een factuur"},
+      {"en": "a job application", "bare": "job application", "nl": "een sollicitatie"},
+      {"en": "a question about an order", "bare": "question about an order", "nl": "een vraag over een bestelling"},
+      {"en": "a cancellation", "bare": "cancellation", "nl": "een opzegging"},
+      {"en": "spam or marketing", "bare": "spam or marketing", "nl": "spam of reclame"},
+      {"en": "a meeting request", "bare": "meeting request", "nl": "een verzoek om een afspraak"}
+    ],
+    "distractors": [
+      {"en": "a password reset", "bare": "password reset", "nl": "een wachtwoordherstel"},
+      {"en": "a thank-you note", "bare": "thank-you note", "nl": "een bedankje"}
+    ]
+  },
+  "filename": {
+    "labels": [
+      {"en": "an invoice", "bare": "invoice", "nl": "een factuur"},
+      {"en": "a quote", "bare": "quote", "nl": "een offerte"},
+      {"en": "a CV", "bare": "CV", "nl": "een cv"},
+      {"en": "a contract", "bare": "contract", "nl": "een contract"},
+      {"en": "a photo", "bare": "photo", "nl": "een foto"},
+      {"en": "meeting minutes", "bare": "meeting minutes", "nl": "notulen"}
+    ],
+    "distractors": [
+      {"en": "a presentation", "bare": "presentation", "nl": "een presentatie"},
+      {"en": "a spreadsheet", "bare": "spreadsheet", "nl": "een spreadsheet"}
+    ]
+  },
+  "filecontent": {
+    "labels": [
+      {"en": "an invoice", "bare": "invoice", "nl": "een factuur"},
+      {"en": "a quote", "bare": "quote", "nl": "een offerte"},
+      {"en": "a contract", "bare": "contract", "nl": "een contract"},
+      {"en": "a CV", "bare": "CV", "nl": "een cv"},
+      {"en": "meeting minutes", "bare": "meeting minutes", "nl": "notulen"},
+      {"en": "a delivery note", "bare": "delivery note", "nl": "een pakbon"}
+    ],
+    "distractors": [
+      {"en": "a recipe", "bare": "recipe", "nl": "een recept"},
+      {"en": "a news article", "bare": "news article", "nl": "een nieuwsartikel"}
+    ]
+  },
+  "form": {
+    "labels": [
+      {"en": "a complaint", "bare": "complaint", "nl": "een klacht"},
+      {"en": "a request for a quote", "bare": "request for a quote", "nl": "een offerteaanvraag"},
+      {"en": "a question about an order", "bare": "question about an order", "nl": "een vraag over een bestelling"},
+      {"en": "a cancellation", "bare": "cancellation", "nl": "een opzegging"},
+      {"en": "a technical problem", "bare": "technical problem", "nl": "een technisch probleem"},
+      {"en": "positive feedback", "bare": "positive feedback", "nl": "positieve feedback"}
+    ],
+    "distractors": [
+      {"en": "a donation", "bare": "donation", "nl": "een donatie"},
+      {"en": "a press inquiry", "bare": "press inquiry", "nl": "een persvraag"}
+    ]
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "en": {
+    "compliance.policy_seed_exit_procedure_title": "Exit and data-portability procedure",
+    "compliance.policy_seed_exit_procedure_desc": "How data is handed back and a service is wound down when a customer or supplier leaves — Data Act switching rights, ISO 27001 A.5.29/A.5.30."
+  },
+  "nl": {
+    "compliance.policy_seed_exit_procedure_title": "Exit- en dataportabiliteitsprocedure",
+    "compliance.policy_seed_exit_procedure_desc": "Hoe data wordt teruggegeven en een dienst wordt afgebouwd wanneer een klant of leverancier vertrekt — overstaprechten uit de Data Act, ISO 27001 A.5.29/A.5.30."
+  }
+}

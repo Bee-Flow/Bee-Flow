@@ -1,0 +1,33 @@
+# The pins live here and nowhere else: uv.lock resolves them to exact
+# versions plus hashes, and the Dockerfile installs from that lock, so a
+# rebuild months from now gets the same wheels as this one.
+[project]
+name = "beeflow-whisperx-service"
+version = "0.0.0"
+description = "Audio transcription and diarization on WhisperX"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi==0.141.1",
+    "faster-whisper",
+    # The model stack is bounded rather than pinned: these ceilings are the
+    # tested CUDA 12.1 combination, and uv.lock records which versions inside
+    # them a build actually gets. Raising a ceiling is a deliberate act.
+    "numpy<2.0.0",
+    "pyannote.audio>=3.1.0,<3.4.0",
+    "pydantic-settings==2.15.0",
+    "python-multipart==0.0.32",
+    "requests==2.34.2",
+    "torch>=2.0.0,<2.6.0",
+    "torchaudio>=2.0.0,<2.6.0",
+    "uvicorn[standard]==0.53.0",
+    "whisperx",
+]
+
+[tool.uv]
+# The service is a script on a path, not an installable distribution, so uv
+# resolves the dependencies without trying to build app.py into a wheel.
+package = false
+
+[tool.coverage.run]
+# The tests sit next to the one module they cover; only the module counts.
+omit = ["*/tests/*"]

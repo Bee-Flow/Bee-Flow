@@ -1,0 +1,317 @@
+{
+  "id": "agent-behavior-and-memory",
+  "icon": "🧠",
+  "estMinutes": 9,
+  "title": "What it remembers, and what it may not do",
+  "desc": "The Behavior switches behind the gear: an agent’s own memory bucket, the copy button, and one blanket block on integrations and web search.",
+  "gate": {
+    "permission": "manage_agents"
+  },
+  "learningGoal": "After this lesson you can set an agent’s Behavior switches deliberately — its own memory bucket, whether it also reads your general memory, the copy button, and the blanket block on integrations and web search.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "why",
+      "icon": "🧭",
+      "title": "Three switches nobody clicks by accident",
+      "bodyMd": "Marloes at Van Dijk Groep built **Inkoopassistent**, the agent her purchasing team asks about suppliers and payment terms.\n\nThe **Role** tab decides what it says. The **Can use** tab decides what it may reach. Three more switches decide something else again: what the agent keeps between conversations, whether its answers can be lifted out of the chat, and whether it may touch the outside world at all.\n\nThey sit one click away behind a gear, they are easy to miss, and every one of them changes the agent for everybody who uses it."
+    },
+    {
+      "type": "slide",
+      "id": "drawer",
+      "icon": "⚙️",
+      "title": "Where the switches live",
+      "bodyMd": "Open **Studio → Agents**, click the agent, and stay on the **Role** tab. Beside the action pills is a gear button: **Advanced settings**. A narrow panel slides in from the right. **Behavior** is at the top, followed by **Embed & bubble**, then — on an agent that has been saved — **Version History**, and last **Compliance**. This lesson is about the first section.\n\nUnder **Behavior**, in this order:\n\n- **Memory** — and, once it is on, the sub-toggle **Also read from your general memory**\n- **Allow copying**\n- **Disable integrations & web search**\n\nThere is no Save button in the panel. Flip a switch and the editor header does the saving for you: **Saving…**, then **Saved**."
+    },
+    {
+      "type": "slide",
+      "id": "copy",
+      "icon": "📋",
+      "title": "Allow copying, and what it is not",
+      "bodyMd": "**Allow copying** is on for every new agent. Its help line is plain: “Users can copy message content to clipboard.”\n\nSwitch it off and the copy button under this agent’s answers disappears, together with the export menu next to it. That is the entire effect. The words stay on screen; anyone can still select them, retype them, or take a screenshot.\n\nUse it as a signal — this answer is a working draft, not something to paste into a customer e-mail. Never use it as protection. What an agent may say is decided by its instructions, not by this switch. And it is per agent: other agents keep their copy button."
+    },
+    {
+      "type": "quiz",
+      "id": "q-copy",
+      "question": "Marloes switches **Allow copying** off on the Inkoopassistent so supplier prices cannot leave the tool. What has she actually achieved?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "The copy button and its export menu no longer appear under that agent’s answers.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "The agent now refuses to repeat supplier prices in an answer.",
+          "correct": false,
+          "feedback": "The switch changes the chat surface, not the answer. What the agent may say is set in its instructions."
+        },
+        {
+          "id": "c",
+          "label": "Answers can no longer be selected with the mouse or captured in a screenshot.",
+          "correct": false,
+          "feedback": "Nothing stops selecting or screenshotting text. The switch removes a button, not a possibility — that is why it is a signal, not a control."
+        },
+        {
+          "id": "d",
+          "label": "Everyone at Van Dijk Groep loses the copy button in every chat.",
+          "correct": false,
+          "feedback": "It belongs to this agent’s configuration. Direct chat and every other agent are untouched."
+        }
+      ],
+      "explanation": "Allow copying is a chat-surface nicety: off means the copy button and its export menu are not drawn for this agent. Treat prices that must not circulate as an instructions problem, not a toggle problem."
+    },
+    {
+      "type": "slide",
+      "id": "disable",
+      "icon": "🚫",
+      "title": "One switch that outranks the Can use tab",
+      "bodyMd": "**Disable integrations & web search** — “Block all integration tools and web search for this agent.”\n\nTick it and the agent is assembled with no integration tools at all: no mailbox, no calendar, no supplier portal, no web search. It does not matter which actions you ticked on the **Can use** tab. It does not matter that an attached skill carries its own apps. The block is applied before any of that, and a skill the agent activates halfway through an answer cannot bring tools back in either.\n\nWhat survives: the agent’s instructions and the knowledge bases you linked. Knowledge is not an integration."
+    },
+    {
+      "type": "quiz",
+      "id": "q-web",
+      "question": "The Inkoopassistent is set to search the web when it does not know the answer. Marloes then ticks **Disable integrations & web search**. What happens the next time it does not know?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "It cannot search. The block wins, and the agent is left with a fall-back it has no tool for.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "The search still runs, because the fall-back is part of the agent’s role and is more specific than a blanket switch.",
+          "correct": false,
+          "feedback": "The role text can ask for a search, but it cannot hand out a tool. The tool stack is assembled with web search left out."
+        },
+        {
+          "id": "c",
+          "label": "Only searches a colleague asks for are blocked; the agent’s own fall-back still works.",
+          "correct": false,
+          "feedback": "There is no “who asked” distinction. The tool itself is absent for every turn of every conversation with this agent."
+        },
+        {
+          "id": "d",
+          "label": "The block only filters the apps granted on the Can use tab, so a web search set on the Role tab is unaffected.",
+          "correct": false,
+          "feedback": "It is not a filter over your grants. It drops the whole integration toolbelt before your grants are even read."
+        }
+      ],
+      "explanation": "Two parts of the configuration can contradict each other, and the blanket block always wins. If you tick it, change the fall-back too — for example to answering honestly that it does not know."
+    },
+    {
+      "type": "slide",
+      "id": "memory-off",
+      "icon": "🧠",
+      "title": "With Memory off, it learns into your pool",
+      "bodyMd": "**Memory** is off on every new agent — and off does not mean forgetful.\n\nWhile you chat, a small background step still reads each finished exchange and writes down durable facts. With the switch off, those facts land in **your general memory**: the pool Settings → Memory shows you, the one direct chat uses, and the one other agents read from unless you deliberately shut them off from it.\n\nFor Bas, the buyer, that is usually what you want. “We invoice on the 25th” is worth knowing everywhere. It is the wrong default the moment an agent handles something the rest of your assistant has no business repeating."
+    },
+    {
+      "type": "slide",
+      "id": "memory-on",
+      "icon": "🔐",
+      "title": "With Memory on, it gets its own bucket",
+      "bodyMd": "Switch **Memory** on and the help line states the deal: “When on, this agent saves memories to its own private bucket — not your general memory. Other agents can’t see what’s stored here.”\n\nA sub-toggle appears underneath, on by default: **Also read from your general memory** — “The agent can use facts already saved in your general memory (preferences, context). It still only writes to its own bucket.”\n\nSo reading and writing are two separate decisions. Turn the sub-toggle off and the agent works in a clean room: it recalls only what it learned here.\n\nSwitching Memory on moves nothing. What was learned earlier stays where it was written."
+    },
+    {
+      "type": "sim",
+      "id": "states",
+      "icon": "🧩",
+      "title": "Five states, five different memories",
+      "instruction": "Pair each setting on the left with what the agent actually does. Reading and writing are separate decisions here, and some rows change only one of the two.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "off",
+            "left": "Memory off — how every new agent starts",
+            "right": "Learns into your general memory, the pool direct chat and other agents read from",
+            "note": "Off does not mean forgetful. The facts simply go to the shared personal pool."
+          },
+          {
+            "id": "on-general",
+            "left": "Memory on, with “Also read from your general memory” left on",
+            "right": "Writes only to its own bucket, still recalls your general facts",
+            "note": "This is the pairing you get by default the moment you flip Memory on."
+          },
+          {
+            "id": "on-clean",
+            "left": "Memory on, with “Also read from your general memory” switched off",
+            "right": "Recalls nothing but its own bucket",
+            "note": "A clean room: your general preferences and context stay out of this agent."
+          },
+          {
+            "id": "embed",
+            "left": "Web embed switched on for this agent",
+            "right": "No memory in either direction",
+            "note": "Nothing is recalled and nothing is stored, so private memories can never surface in a chat that anyone with the link can open."
+          },
+          {
+            "id": "paused",
+            "left": "The chat’s own memory switch set to “Memory saving paused”",
+            "right": "Still recalls, but stores nothing new this session",
+            "note": "A pause on writing only. It deletes nothing, and it is remembered per browser, not per account."
+          }
+        ]
+      }
+    },
+    {
+      "type": "quiz",
+      "id": "q-bucket",
+      "question": "Memory is on for the Inkoopassistent, with the sub-toggle left on. Bas tells it that Karin de Wit approves anything above €5.000. Next week he asks a different agent to draft a quotation. What does that other agent know about Karin?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Nothing. That fact was written to the Inkoopassistent’s own bucket, which other agents cannot read.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "It knows, because both agents belong to the same organisation.",
+          "correct": false,
+          "feedback": "Memory is per person and per pool. There is no organisation-wide agent memory to inherit from."
+        },
+        {
+          "id": "c",
+          "label": "It knows, because “Also read from your general memory” was left on.",
+          "correct": false,
+          "feedback": "That sub-toggle lets the Inkoopassistent read your general memory. It never writes into it — the arrow points one way."
+        },
+        {
+          "id": "d",
+          "label": "It knows, because memories are recalled by relevance across every agent you use.",
+          "correct": false,
+          "feedback": "Relevance decides which rows inside a pool are recalled. It never decides which pools are searched."
+        }
+      ],
+      "explanation": "A private bucket is exactly that: written by this agent, read by this agent. If Bas wants that rule everywhere, he adds it himself in Settings → Memory."
+    },
+    {
+      "type": "exercise",
+      "id": "decide",
+      "icon": "🎯",
+      "exerciseId": "ex-agent-behavior-memory-decision",
+      "title": "Your turn: set the three switches on purpose",
+      "instruction": "Pick an agent — one of your own, or the Inkoopassistent of Van Dijk Groep. In three or four sentences, say how you would set each of the three Behavior switches, and why. Name each switch by its label, give it a setting, and for Memory say what you would do with “Also read from your general memory”. Finish with one sentence on what a colleague using the agent would notice.",
+      "placeholder": "e.g. For the Inkoopassistent I turn Memory on, because supplier terms should not follow me into every other chat; I leave “Also read from your general memory” on so it still knows I want short Dutch answers…",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "action",
+      "id": "do",
+      "icon": "🏗️",
+      "checkId": "agent-memory-bucket",
+      "title": "Give one agent its own memory — we’ll verify it",
+      "instruction": "Open an agent you own, stay on the Role tab and click the gear for Advanced settings. Under Behavior, switch Memory on, then decide “Also read from your general memory” deliberately rather than leaving it as it lands. Wait for the header to read Saved.",
+      "launch": {
+        "navigateTo": "studio/agents",
+        "label": "Open Agents"
+      }
+    },
+    {
+      "type": "slide",
+      "id": "wrong",
+      "icon": "🔍",
+      "title": "What goes wrong, and how you notice",
+      "bodyMd": "**The switch is set and nobody feels it.** These toggles are part of the agent’s configuration. Once an agent has been published, colleagues keep getting the last published version until you press **Publish new version**.\n\n**“It forgot.”** Facts learned before you switched Memory on live in your general memory. If you also turned the sub-toggle off, the agent can no longer reach them.\n\n**A fall-back with no tool.** An agent told to search the web when it does not know, with **Disable integrations & web search** ticked, keeps the instruction and loses the means.\n\n**Copy off, then a complaint.** The first sign is a colleague asking where the copy button went."
+    },
+    {
+      "type": "quiz",
+      "id": "q-debug",
+      "question": "Two weeks after Marloes switched Memory on for the Inkoopassistent, Bas says it has forgotten a supplier rule he taught it last month. What is the likeliest explanation?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "That rule was learned before the switch, so it sits in his general memory — and Marloes also turned “Also read from your general memory” off.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Switching Memory on emptied the agent’s memory.",
+          "correct": false,
+          "feedback": "The toggle deletes nothing. It changes where new memories are written, from that moment on."
+        },
+        {
+          "id": "c",
+          "label": "Memories older than 30 days are swept away automatically.",
+          "correct": false,
+          "feedback": "That 30-day clock belongs to the coverage notes a routine writes. A memory learned in a chat stays until someone deletes it."
+        },
+        {
+          "id": "d",
+          "label": "Allow copying was switched off, so the exchange could not be kept.",
+          "correct": false,
+          "feedback": "Allow copying only removes the copy button in the chat. It has nothing to do with what is remembered."
+        }
+      ],
+      "explanation": "Two settings combine here: the bucket only holds what was learned after you switched it on, and the sub-toggle decides whether everything learned before is still within reach."
+    },
+    {
+      "type": "slide",
+      "id": "now",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "- Open **Advanced settings → Behavior** on any agent you own and read the switches as three questions: what may leave the chat, what may this agent reach, and what does it keep.\n- Give an agent its own memory bucket, and choose **Also read from your general memory** on purpose instead of accepting whatever appears.\n- Tell a colleague why **Allow copying** is a signal and **Disable integrations & web search** is a rule — and why a Behavior change on a published agent still needs **Publish new version** before anyone feels it."
+    }
+  ],
+  "rubrics": {
+    "ex-agent-behavior-memory-decision": {
+      "title": "A deliberate Behavior setting",
+      "task": "Name all three Behavior switches for one agent, give each an explicit setting with a reason, say what “Also read from your general memory” would do, and end with what a colleague using the agent would notice.",
+      "criteria": [
+        "Names all three switches by their real labels (Memory, Allow copying, Disable integrations & web search) and gives each an explicit on or off.",
+        "Justifies the Memory choice in terms of pools: the agent’s own private bucket versus the general memory other agents read, and says what the sub-toggle would do.",
+        "States a consequence for the people who use the agent, not only for the builder.",
+        "Claims nothing a switch does not do — for example does not present Allow copying as protection, or Memory as something that moves or deletes existing memories."
+      ],
+      "passScore": 70,
+      "guidance": "Do not pass an answer that lists the labels without a setting and a reason. Do not pass an answer that treats Allow copying as a way to stop information leaving, that says switching Memory on moves or wipes existing memories, or that says the sub-toggle lets the agent write into the general pool. A confident wrong mechanism scores lower than a modest correct one."
+    }
+  },
+  "practiceTopic": {
+    "title": "Agent Behavior switches and the agent memory bucket",
+    "summary": "The Behavior section of an agent’s Advanced settings: its own memory bucket, whether it also reads your general memory, the copy button and the blanket block on integrations and web search.",
+    "facts": [
+      "Behavior sits in the agent’s Advanced settings drawer, opened with the gear on the Role tab; the drawer’s other sections are Embed & bubble, Version History and Compliance.",
+      "Behavior holds Memory (with the sub-toggle “Also read from your general memory”), Allow copying and “Disable integrations & web search”.",
+      "A new agent starts with Memory off; switching it on makes “Also read from your general memory” appear, already on.",
+      "With Memory on, what the agent learns goes to its own private bucket that other agents cannot see; with Memory off, it goes to your general memory.",
+      "With “Also read from your general memory” off, the agent recalls only rows from its own bucket; it never writes into the general pool either way.",
+      "Allow copying is on by default and its help line reads “Users can copy message content to clipboard.”; off removes the copy button and its export menu from that agent’s answers.",
+      "“Disable integrations & web search” blocks all integration tools and web search for the agent, whatever the Can use tab granted and whatever apps an attached skill carries.",
+      "An agent with Web embed on does no memory at all — nothing recalled, nothing stored."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "agent-memory-bucket",
+      "existing": false,
+      "label": "An agent of yours has its own memory bucket",
+      "hint": "Studio → Agents → open your agent → Role tab → gear (Advanced settings) → Behavior → Memory.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/agents",
+          "returns": "array of the caller’s own agent rows; each row carries owner_id and the parsed config object"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "memory-on",
+          "label": "An agent of your own exists",
+          "hint": "Studio → Agents — create one first if you have none. The Memory switch lives in the agent’s own Advanced settings, where this check cannot look; the header reading Saved is your proof.",
+          "rule": "GET /agents → at least one row whose owner_id is the learner (the seeded rows are owned by \"system\"); config.memoryEnabled is per row and not readable by the runtime",
+          "endpoint": "/agents",
+          "expect": {
+            "kind": "rows"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "permissions": {
+    "allow": [
+      "PowerShell",
+      "Bash"
+    ],
+    "ask": [
+      "Bash(git push:*)",
+      "PowerShell(git push:*)",
+      "Bash(npm run push:prd)",
+      "PowerShell(npm run push:prd)",
+      "Bash(npm run build:prd)",
+      "PowerShell(npm run build:prd)",
+      "Bash(kubectl apply:*)",
+      "PowerShell(kubectl apply:*)",
+      "Bash(kubectl delete:*)",
+      "PowerShell(kubectl delete:*)",
+      "Bash(kubectl rollout:*)",
+      "PowerShell(kubectl rollout:*)",
+      "Bash(kubectl scale:*)",
+      "PowerShell(kubectl scale:*)",
+      "Bash(kubectl patch:*)",
+      "PowerShell(kubectl patch:*)",
+      "Bash(./scripts/deploy:*)",
+      "Bash(bash scripts/deploy:*)",
+      "Bash(sh scripts/deploy:*)",
+      "Bash(./selfhost.sh:*)"
+    ],
+    "deny": [
+      "Read(**/.credentials*)",
+      "Edit(**/.credentials*)",
+      "Read(**/deploy/**/.env*)",
+      "Edit(**/deploy/**/.env*)",
+      "Read(**/.env.scaleway*)",
+      "Edit(**/.env.scaleway*)",
+      "Read(**/deploy/**/.rendered/**)",
+      "Edit(**/deploy/**/.rendered/**)",
+      "Read(**/deploy/**/*kubeconfig*)",
+      "Edit(**/deploy/**/*kubeconfig*)",
+      "Bash(rm -rf:*)",
+      "Bash(git push --force:*)",
+      "PowerShell(git push --force:*)",
+      "Bash(git push -f:*)",
+      "PowerShell(git push -f:*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Read|Edit|Write|Grep|Bash|PowerShell|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["$CLAUDE_PROJECT_DIR/.claude/hooks/secret-guard.mjs"],
+            "timeout": 10,
+            "statusMessage": "secret-guard"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["$CLAUDE_PROJECT_DIR/.claude/hooks/pre-commit-secret-scan.mjs"],
+            "timeout": 130,
+            "statusMessage": "secret-scan"
+          },
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["$CLAUDE_PROJECT_DIR/.claude/hooks/push-branch-gate.mjs"],
+            "timeout": 10,
+            "statusMessage": "push-gate"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["$CLAUDE_PROJECT_DIR/.claude/hooks/post-edit-lint.mjs"],
+            "timeout": 30,
+            "statusMessage": "eslint --fix"
+          },
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["$CLAUDE_PROJECT_DIR/.claude/hooks/post-edit-test.mjs"],
+            "timeout": 130,
+            "async": true,
+            "asyncRewake": true,
+            "rewakeSummary": "Sibling test failed",
+            "statusMessage": "sibling tests"
+          }
+        ]
+      }
+    ]
+  }
+}

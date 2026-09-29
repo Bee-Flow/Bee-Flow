@@ -1,0 +1,49 @@
+# Dependencies - these are installed during build
+node_modules
+npm-debug.log*
+
+# Runtime state of a server that ran from this checkout: uploads, saved
+# recordings, the local storage fallback, the model cache (~550 MB in a dev
+# checkout). gitignored, so CI never had it, but a local `docker build` copied
+# all of it into /app/data, where a fresh named volume picks it up as its
+# first contents. Anchored at the context root: migrations/data/ must stay.
+data
+
+# Development files
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+
+# IDE and editor files
+.vscode
+.idea
+*.swp
+*.swo
+
+# Test files, at every depth. Docker anchors a bare pattern at the context
+# root, so `*.test.js` alone kept 6 files out and shipped the other ~1660
+# colocated tests in the image. Nothing the server runs requires a test,
+# a __tests__ file or testUtils/ (checked 2026-09-23); the loaders that
+# scan directories skip tests already.
+**/coverage
+**/*.test.js
+**/*.test.mjs
+**/*.spec.js
+**/__tests__
+testUtils
+# ...except the one test the server reads at run time: the ISO A.5.15
+# check (compliance/checks/iso27001/a5-15-access-control.js) looks for it
+# and reports "warn" in every Compliance Center when it is absent.
+!auth/accessRegistry.drift.test.js
+
+# Documentation
+README.md
+CHANGELOG.md
+docs
+
+# Misc
+.DS_Store
+Thumbs.db
+*.log

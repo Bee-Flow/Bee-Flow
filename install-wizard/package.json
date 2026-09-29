@@ -1,0 +1,25 @@
+{
+  "name": "beeflow-install-wizard",
+  "version": "1.0.0",
+  "description": "BeeFlow Install Wizard — Docker deployment orchestrator",
+  "main": "server.js",
+  "engines": {
+    "node": ">=22.0.0 <23.0.0"
+  },
+  "packageManager": "npm@10.9.0",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test 'lib/*.test.js'",
+    "test:coverage": "c8 node --test 'lib/*.test.js'",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "c8": "^11.0.0",
+    "eslint": "^9.39.5",
+    "globals": "^17.12.0"
+  }
+}

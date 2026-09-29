@@ -1,0 +1,10 @@
+{
+  "en": {
+    "compliance.hdr_pol_published": "{n} published of {total}",
+    "compliance.hdr_dpia_progress": "{n} of {total} agents assessed"
+  },
+  "nl": {
+    "compliance.hdr_pol_published": "{n} van {total} gepubliceerd",
+    "compliance.hdr_dpia_progress": "{n} van {total} agents beoordeeld"
+  }
+}

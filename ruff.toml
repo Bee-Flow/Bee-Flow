@@ -1,0 +1,26 @@
+# Python lint/complexity budgets for the Bee Flow FastAPI services.
+# Run install-free with:
+#   uvx ruff check guard-service pii-service classify-service reranker search-service whisperx-service
+# CI: the python-lint job in .github/workflows/ci.yml runs `ruff check` and
+# `ruff format --check` as a gate. The findings that predate the gate carry a
+# `# noqa`; remove the comment when the function is fixed, never add a new one.
+# Ruff has no per-file line-count rule; use Repomix for "which Python files
+# are too long".
+
+target-version = "py312"
+
+[lint]
+# F = pyflakes (unused imports / undefined names, low-noise); C901 = McCabe
+# complexity; PLR09xx = pylint too-many-{returns,branches,args,statements}.
+# Intentionally NOT selecting the full "E" set — E501 line-length is pure style
+# noise for a complexity/size goal and this repo enforces no line length today.
+select = ["F", "C901", "PLR0911", "PLR0912", "PLR0913", "PLR0915"]
+
+[lint.mccabe]
+max-complexity = 10
+
+[lint.pylint]
+max-statements = 50
+max-branches = 12
+max-args = 5
+max-returns = 6

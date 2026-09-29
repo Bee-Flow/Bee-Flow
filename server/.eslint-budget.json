@@ -1,0 +1,5 @@
+{
+  "_comment": "Highest eslint warning count server may carry. Lower it with `node scripts/eslint-budget.mjs server --update` after a clean-up; raising it is a deliberate edit that belongs in a commit message with a reason.",
+  "_generated": "2026-09-21",
+  "warnings": 0
+}

@@ -1,0 +1,5 @@
+/* Compliance Center — the two keyframes the legacy pages still reference
+   (moved out of the hub's inline <style> in the Sep 2026 redesign). Tokens
+   only; no colours live here. */
+@keyframes spin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+@keyframes dropdownIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }

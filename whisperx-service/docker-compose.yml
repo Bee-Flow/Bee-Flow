@@ -1,0 +1,27 @@
+services:
+  whisperx:
+    build:
+      context: .
+      args:
+        WHISPER_MODEL: large-v3
+    container_name: whisperx-service
+    ports:
+      - "8787:8787"
+    environment:
+      - HF_TOKEN=${HF_TOKEN}
+      - WHISPER_MODEL=large-v3
+      - SERVICES_API_KEY=${SERVICES_API_KEY:-}
+    volumes:
+      - whisperx-cache:/root/.cache
+    # GPU support — comment out the deploy section if running on CPU
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+
+volumes:
+  whisperx-cache:

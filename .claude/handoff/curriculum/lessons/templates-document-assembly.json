@@ -1,0 +1,328 @@
+{
+  "id": "templates-document-assembly",
+  "icon": "📄",
+  "estMinutes": 9,
+  "title": "Your house-style Word document, filled by AI",
+  "desc": "Upload a .docx with {{parameters}} to Templates, feed it meeting notes and knowledge, and let Bee Flow generate the finished document.",
+  "gate": {},
+  "learningGoal": "After this lesson the learner can upload a .docx to Templates, read the parameters Bee Flow detected, give the fill context from meeting notes and knowledge bases, generate the finished document, and tell this apart from a notebook's AI fill.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "why",
+      "icon": "🧭",
+      "title": "The letter is always the same, the facts never are",
+      "bodyMd": "Van Dijk Groep sends the same quote letter every week. The letterhead, the payment clause and the numbering never change. The customer, the delivery date and the price change every single time — and every week someone copies last week's letter and edits it, which is how last week's customer name ends up in this week's quote.\n\n**Templates** in the left sidebar is built for exactly that document. The page is headed **\"Word Templates\"** and says what it wants: *\"Upload .docx templates with {{parameters}} for AI to fill\"*.\n\nThis is document assembly, not research. The chapters before this one found and checked the facts. This one gets them into the document your customer actually receives."
+    },
+    {
+      "type": "slide",
+      "id": "anatomy",
+      "icon": "🧱",
+      "title": "Two halves: your layout, and the blanks",
+      "bodyMd": "A template is one ordinary Word file, plus named blanks.\n\n- **The .docx brings the layout** — letterhead, fonts, tables, the small print your lawyer wrote. Bee Flow never redesigns it.\n- **The blanks bring the facts.** A blank is written `{{klantnaam}}`, or with a hint for the assistant: `{{klantnaam: naam zoals die op de offerte moet staan}}`. The first colon splits the name from the description, and the description shows up on the parameter chip.\n\nUse the same name twice in the letter and it is still one parameter — it is listed once, and you answer it once.\n\nNames are yours to choose. Short, obvious, in the language you think in: `klantnaam`, `leverdatum`, `bedrag_excl_btw`."
+    },
+    {
+      "type": "slide",
+      "id": "upload",
+      "icon": "⬆️",
+      "title": "Getting the file in",
+      "bodyMd": "Click **\"Upload Template\"**, or drag the file straight onto the list. Two limits, both hard:\n\n- **.docx only.** Pick a PDF or an old .doc and you get **\"Please select a .docx file\"** before it even leaves your browser; anything that slips past is refused with *\"Only .docx files are supported\"*.\n- **20 MB** per file.\n\nNext to the button sits a small tick box: **\"Skip AI detection\"**. Leave it alone for now — the next card is about what it switches off.\n\nAlready uploaded something? The list shows each template's name, its file name, when it arrived, and a row of parameter chips (the first eight, then **\"+N more\"**). **\"Search templates...\"** filters by name or file name."
+    },
+    {
+      "type": "quiz",
+      "id": "q-skip",
+      "icon": "❓",
+      "question": "Bart uploads Van Dijk Groep's standard quote letter. It is a finished letter for a real customer, with no {{...}} anywhere in it. He leaves \"Skip AI detection\" unticked. What happens?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Bee Flow reads the text, works out which parts are variable, and writes {{parameters}} into the file for him — the banner reads \"AI is processing your template...\" and it can take up to a minute.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "The upload is refused, because a template without {{parameters}} is not a template.",
+          "correct": false,
+          "feedback": "Nothing refuses a file for having no blanks — a finished document is exactly the case automatic detection exists for. \"No parameters detected in this template\" appears only after detection has run and come back empty."
+        },
+        {
+          "id": "c",
+          "label": "The file is stored as it is, and the Parameters panel stays empty until Bart edits the .docx in Word himself.",
+          "correct": false,
+          "feedback": "That is what ticking \"Skip AI detection\" gets you: your .docx is left exactly as it is and only the {{...}} already in it are counted. Bee Flow still writes a description and builds a knowledge base from the text — the tick box only switches off the rewriting."
+        },
+        {
+          "id": "d",
+          "label": "Bee Flow strips the customer's name out and leaves the rest of the letter untouched.",
+          "correct": false,
+          "feedback": "Too narrow. Detection turns the variable parts into named parameters — dates, amounts, references, not only names — and alongside it Bee Flow writes a description and starting instructions for the template."
+        }
+      ],
+      "explanation": "Uploading kicks off background work on the document's text: a description and custom instructions, a knowledge base built from the document itself, and — unless you ticked \"Skip AI detection\" — the parameterisation that writes the {{...}} into the file. The banner names all three while it runs."
+    },
+    {
+      "type": "slide",
+      "id": "fill-view",
+      "icon": "🛠️",
+      "title": "\"Fill with AI\" opens a small workbench",
+      "bodyMd": "Hover a template in the list and its buttons appear: **\"Fill with AI\"**, download, rename, delete. Open the first one.\n\nThe header line under the template name is the status: **\"Detecting parameters...\"** while the AI is still reading, otherwise something like **\"7 parameters · Offerte-sjabloon.docx\"**.\n\nDown the left is everything the fill knows: **Parameters** (one chip per blank), **Meeting Notes Context**, and the **Description** Bee Flow wrote when you uploaded.\n\nTop right are two tabs — **Chat** and **Settings & Knowledge** — and the button this whole page exists for: **\"Generate Document\"**."
+    },
+    {
+      "type": "sim",
+      "id": "match-context",
+      "icon": "🧩",
+      "title": "Four facts, four places to put them",
+      "instruction": "Bart's quote letter needs four things. Match each one to the place in the fill view that should carry it.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "p1",
+            "left": "The delivery date and price the customer agreed in last Tuesday's call",
+            "right": "Meeting Notes Context",
+            "note": "Tick the note in the left column; what you tick travels with the messages you send after that."
+          },
+          {
+            "id": "p2",
+            "left": "Van Dijk Groep's standard warranty wording, which lives in an internal document",
+            "right": "A knowledge base on Settings & Knowledge",
+            "note": "Attach the base once and it stays attached to this template for every future fill."
+          },
+          {
+            "id": "p3",
+            "left": "Write to customers in formal Dutch, never in English, and use metric units",
+            "right": "Custom Instructions",
+            "note": "A standing rule about how this template is filled, not a fact about one quote."
+          },
+          {
+            "id": "p4",
+            "left": "The reference number of this one quote, which exists nowhere yet",
+            "right": "A message in the Chat tab",
+            "note": "One-off facts belong in the conversation — they are true for this document only."
+          }
+        ]
+      }
+    },
+    {
+      "type": "slide",
+      "id": "context",
+      "icon": "📚",
+      "title": "Setting a template up once",
+      "bodyMd": "The **Settings & Knowledge** tab is where a template stops being a file and starts being yours.\n\n**Custom Instructions** — *\"Add extra context or rules for the AI when filling this template.\"* The box even suggests the shape: *\"Always use formal Dutch language\"*, *\"Company address is ...\"*, *\"Use metric units\"*. It saves the moment you click out of the box; you will see **\"Saving...\"** flash underneath.\n\nUnderneath it is the same knowledge panel an agent has: attach the bases this document should draw on. Note that the upload already built one base from the template's own text, so the letter's fixed wording is searchable before you add anything.\n\nBack on the left, **Meeting Notes Context** searches your notes (**\"Search meeting notes…\"**) and counts what you picked: **\"2 selected\"**."
+    },
+    {
+      "type": "slide",
+      "id": "generate",
+      "icon": "⚙️",
+      "title": "From conversation to .docx",
+      "bodyMd": "The **Chat** tab opens on **\"Fill this template with AI\"** and three ready-made openers: **\"Fill all parameters from context\"**, **\"What parameters need to be filled?\"**, **\"Help me fill this template\"**.\n\nAnswer the assistant's questions, or just point it at the meeting note you ticked. When it comes back with a block of parameter values, Bee Flow does not wait to be asked — it builds the document, downloads it, and leaves a **\"Document generated!\"** line with a download link in the chat.\n\n**\"Generate Document\"** is the manual version of the same thing. It takes the newest set of values in the conversation and writes them into your .docx, saved as your file name with **`_filled`** on the end. If there is no set of values yet, it asks the assistant for one instead of producing a file."
+    },
+    {
+      "type": "quiz",
+      "id": "q-generate",
+      "icon": "❓",
+      "question": "Bart opens \"Fill with AI\", ticks two meeting notes in the left column, and clicks \"Generate Document\" straight away. The button does nothing. Why?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "The button stays disabled until the conversation has at least one message — ticking notes is not asking, so there is nothing to build a document from.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Meeting notes cannot be used as context for a template; they only work inside a notebook.",
+          "correct": false,
+          "feedback": "They can — Meeting Notes Context is a panel of the fill view itself, and what you tick is sent along with your messages. The problem is that Bart never sent a message."
+        },
+        {
+          "id": "c",
+          "label": "The template has no parameters, so there is nothing to fill.",
+          "correct": false,
+          "feedback": "Then the left column would say \"No parameters detected in this template\" and the header would show 0 parameters. That is a real failure, but it looks different from this one."
+        },
+        {
+          "id": "d",
+          "label": "The document is generated, but the browser blocked the download.",
+          "correct": false,
+          "feedback": "Nothing was generated. The button reports its own work — while it runs it reads \"Generating...\", and a finished document leaves a download link in the chat that you can click again."
+        }
+      ],
+      "explanation": "The fill is a conversation, not a form. Context you tick or attach is only the material; the values come out of an exchange with the assistant, and the button needs that exchange to exist."
+    },
+    {
+      "type": "sim",
+      "id": "order-fill",
+      "icon": "🔢",
+      "title": "The order that produces a letter you can send",
+      "instruction": "Put Bart's five moves in the order that gets a correct quote out the other end.",
+      "sim": {
+        "kind": "order",
+        "items": [
+          {
+            "id": "up",
+            "label": "Upload Offerte-sjabloon.docx from the Templates page"
+          },
+          {
+            "id": "wait",
+            "label": "Wait for \"Detecting parameters...\" to finish, then read the Parameters chips"
+          },
+          {
+            "id": "ctx",
+            "label": "Tick last Tuesday's meeting note under Meeting Notes Context"
+          },
+          {
+            "id": "ask",
+            "label": "Ask in the Chat tab: \"Fill all parameters from context\""
+          },
+          {
+            "id": "gen",
+            "label": "Click Generate Document and open the _filled file"
+          }
+        ],
+        "solution": [
+          "up",
+          "wait",
+          "ctx",
+          "ask",
+          "gen"
+        ],
+        "feedback": "Context first, then ask. A note you tick after the assistant has already produced its values was not in front of it when it answered — you would have to ask again. And reading the chips before you start is what tells you a blank is missing, while it is still cheap to fix."
+      }
+    },
+    {
+      "type": "slide",
+      "id": "failures",
+      "icon": "🚨",
+      "title": "What goes wrong, and what it looks like",
+      "bodyMd": "- **\"No parameters detected in this template\"** — detection ran and found nothing to vary. Usually the file is a scan, an almost-empty page, or you ticked \"Skip AI detection\" on a document with no `{{...}}` in it. Fix it in Word: type the blanks yourself and upload again.\n- **The status stops saying \"Detecting parameters...\"** after a minute or so whether or not it found anything. The page stops watching, it does not cancel the work — go back to the list and open the template again to see where it landed.\n- **Wrong file type** — **\"Please select a .docx file\"**.\n- **Deleting** asks once, **\"Delete this template?\"**, and means it.\n\nYour templates are yours alone: the list only ever returns what you uploaded, and someone else's template id simply reads as *Template not found*. A colleague who needs the same letter uploads it too."
+    },
+    {
+      "type": "quiz",
+      "id": "q-diagnose",
+      "icon": "❓",
+      "question": "Fatima writes a memo inside a notebook, clicks \"AI fill\", and gets: \"No {{parameters}} found in the document to fill.\" What is actually wrong?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Her memo contains no {{...}} placeholders — AI fill fills blanks you wrote, it does not invent them.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Her sources are still being indexed, so the fill had nothing to read.",
+          "correct": false,
+          "feedback": "A source that is not ready yet changes what the fill can find, not whether it finds placeholders. That message is only ever about the document in the editor."
+        },
+        {
+          "id": "c",
+          "label": "A notebook document cannot be filled — she has to upload the memo on the Templates page first.",
+          "correct": false,
+          "feedback": "AI fill genuinely works on the notebook document itself. Uploading the memo would not help either, because the file still has no blanks in it."
+        },
+        {
+          "id": "d",
+          "label": "The notebook needs a knowledge base attached before AI fill will run.",
+          "correct": false,
+          "feedback": "AI fill draws on the notebook's own sources; no knowledge base is required, and attaching one would not put placeholders into her text."
+        }
+      ],
+      "explanation": "The two ways an AI fill comes back empty read very differently. \"No {{parameters}} found in the document to fill.\" means you wrote no blanks. \"AI Fill returned no content. Please try again.\" means the blanks were found and the attempt itself produced nothing — worth a retry."
+    },
+    {
+      "type": "slide",
+      "id": "which-one",
+      "icon": "🔀",
+      "title": "Notebook AI fill, or the Templates page?",
+      "bodyMd": "Both fill `{{parameters}}`. They are for different documents.\n\n**AI fill, inside a notebook** — the document you are writing right now, in the notebook editor, filled from that notebook's sources. Use it for a one-off: a briefing where you type the skeleton with `{{afwijkingen}}` and `{{risico}}` in it and let the sources do the rest. It leaves by **Export**, as Word or PDF.\n\n**Templates** — a document you will send a hundred times, whose layout must survive untouched. Upload the .docx once; each fill takes its facts from the chat, the meeting notes you tick and the bases you attached. It leaves as a filled .docx.\n\nRule of thumb: if the layout matters to someone outside the company, it belongs in Templates."
+    },
+    {
+      "type": "exercise",
+      "id": "ex-params",
+      "icon": "🎯",
+      "exerciseId": "ex-templates-document-assembly-params",
+      "title": "Your turn: name the blanks",
+      "instruction": "Take one document your team sends repeatedly — a quote, an assignment confirmation, a site report. List five to seven parameters for it in {{...}} form, write at least one of them in the {{name: description}} style so the assistant knows what you mean, and say after each one where its value will come from: a meeting note, a knowledge base, a custom instruction, or the chat.",
+      "placeholder": "e.g. {{klantnaam: naam zoals die op de offerte moet staan}} — from the meeting note of 12 March; {{leverdatum}} — from the same note; {{garantietermijn}} — from the Voorwaarden knowledge base…",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "action",
+      "id": "do",
+      "icon": "🏗️",
+      "checkId": "template-uploaded",
+      "title": "Upload one template — we will check it",
+      "instruction": "Open Templates in the left sidebar and click \"Upload Template\". Pick a .docx of your own under 20 MB — a quote, a confirmation, any letter you resend. Let \"Detecting parameters...\" finish, then open it with \"Fill with AI\" and read the Parameters chips. We look for one template of your own in the list; the chips you read are your own proof.",
+      "launch": {
+        "navigateTo": "agents",
+        "label": "Open the workspace"
+      }
+    },
+    {
+      "type": "slide",
+      "id": "done",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "- **Turn a finished document into a template.** Upload the .docx, let detection write the `{{parameters}}`, or tick \"Skip AI detection\" and mark the blanks yourself in Word. Only .docx, up to 20 MB.\n- **Set it up once, use it weekly.** Custom Instructions for the standing rules, a knowledge base for the fixed wording, Meeting Notes Context for what was agreed. Then ask, and let \"Generate Document\" write the filled file.\n- **Read the failures.** \"No parameters detected in this template\" is an empty template; \"No {{parameters}} found in the document to fill.\" is a notebook document with no blanks in it.\n\nThat closes the course: you can find the facts, ground them in your own documents, write them up, and now hand them over in the shape your customer expects."
+    }
+  ],
+  "rubrics": {
+    "ex-templates-document-assembly-params": {
+      "title": "A parameter list for a real document",
+      "task": "The learner names five to seven {{parameters}} for a document their team sends repeatedly, uses the {{name: description}} form at least once, and states the source of each value: a meeting note, a knowledge base, a custom instruction, or the chat.",
+      "criteria": [
+        "Five to seven parameters, each written in {{...}} form with a short, specific name rather than a whole sentence",
+        "At least one parameter uses the {{name: description}} form, and the description genuinely explains what should go there",
+        "Every parameter names where its value comes from, and the choices are sensible: standing rules as custom instructions, agreed facts from a meeting note, fixed wording from a knowledge base, one-off facts from the chat",
+        "The parameters are the parts that actually vary between sends, not fixed wording that belongs in the .docx layout"
+      ],
+      "passScore": 70,
+      "guidance": "Do not pass a list of bare topics with no {{...}} syntax, a list where every value is said to come from the chat with no thought behind it, or one that parameterises the letterhead and other fixed text. A learner who names four strong parameters with correct sources is closer to a pass than one who lists seven vague ones."
+    }
+  },
+  "practiceTopic": {
+    "title": "Templates: document assembly from .docx",
+    "summary": "Uploading .docx templates with {{parameters}}, giving the fill context, and generating the finished document.",
+    "facts": [
+      "The Templates page is headed \"Word Templates\" and hints \"Upload .docx templates with {{parameters}} for AI to fill\"; only .docx is accepted, up to 20 MB per file.",
+      "A blank is written {{name}} or {{name: description}} — the first colon splits the name from the description, and the same name used twice is still one parameter.",
+      "\"Skip AI detection\" beside the Upload Template button turns off automatic parameterisation, so only the {{...}} already in the file count.",
+      "Inside \"Fill with AI\" the tabs are Chat and Settings & Knowledge, and \"Generate Document\" stays disabled until the conversation has at least one message.",
+      "The left column of the fill view holds Parameters, Meeting Notes Context (search box \"Search meeting notes…\") and Description; the header reads \"Detecting parameters...\" while the AI is still reading.",
+      "A template with nothing to vary shows \"No parameters detected in this template\"; a notebook document with no blanks shows \"No {{parameters}} found in the document to fill.\"",
+      "Custom Instructions on the Settings & Knowledge tab saves when you click out of the box, and applies to every future fill of that template.",
+      "Templates are private to the person who uploaded them: the list returns only your own, and another person's template id reads as not found."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "template-uploaded",
+      "existing": false,
+      "label": "Upload a Word template",
+      "hint": "Sidebar → Templates → \"Upload Template\", pick a .docx, then open it with \"Fill with AI\".",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/templates",
+          "returns": "{ templates: [...] } — scoped to the calling user; each row has id, name, fileName, description, parameters (array of { name, description }), createdAt, updatedAt. The list query does not select instructions or knowledge_base_ids, so those always read as empty here — fetch a single template if you need them."
+        }
+      ],
+      "criteria": [
+        {
+          "id": "exists",
+          "label": "A Word template of your own is in the list",
+          "hint": "Upload a .docx from the Templates page — the list only ever shows templates you uploaded yourself. The parameter chips are detected inside the file, which this check cannot read.",
+          "rule": "GET /api/templates → templates[] has at least one row (the route is scoped to the calling user)",
+          "endpoint": "/api/templates",
+          "expect": {
+            "kind": "rows",
+            "field": "templates"
+          }
+        }
+      ]
+    }
+  ]
+}

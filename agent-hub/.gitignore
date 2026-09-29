@@ -1,0 +1,6 @@
+# Headless App Studio runtime bundle (npm run build:runtime) — build output,
+# copied into the server image by the deploy step, never committed.
+dist-runtime/
+
+# vitest --shard blob reports (CI merges them into one coverage report)
+.vitest-reports/

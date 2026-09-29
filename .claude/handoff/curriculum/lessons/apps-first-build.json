@@ -1,0 +1,226 @@
+{
+  "id": "apps-first-build",
+  "icon": "🧰",
+  "estMinutes": 10,
+  "title": "Describe it and watch it get built",
+  "desc": "The AI builder: a plan, phases, and the frozen copy everyone else runs.",
+  "gate": {
+    "permission": "manage_apps",
+    "feature": "app_studio"
+  },
+  "learningGoal": "Get a working first version of an app and know what colleagues can see of it.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "what-is-an-app",
+      "icon": "🧱",
+      "title": "An app is a definition, not code",
+      "bodyMd": "Van Dijk Groep keeps its purchase requests in a spreadsheet that four sites edit at once. Two people overwrite each other before lunch, and Nadia at the office retypes whatever survives. That is the kind of job an app replaces.\n\nAn app in Bee Flow is a **structured definition**: screens, the components on them, the actions behind the buttons, the tables it stores rows in, and the roles that decide who sees what. Nobody writes code. You assemble those parts on a canvas — or you describe what you want and the AI builder assembles them for you.\n\nThere is room for **40 screens** and **500 building blocks** in one app (the bands a screen is divided into, plus the components inside them) — far more than purchase requests will ever need."
+    },
+    {
+      "type": "slide",
+      "id": "start-blank",
+      "icon": "✳️",
+      "title": "Create it, then brief it like a colleague",
+      "bodyMd": "Open **Studio → Apps** and click **New app**. The modal offers two tabs: **Start blank** and **From template**. Stay on **Start blank**, type a name — `Inkoopaanvragen` — and click **Create app**.\n\nThe editor opens in three columns: the **AI builder** chat on the left, the canvas in the middle, the **Inspector** on the right. Above the composer sit three shortcuts — **Use my data**, **New screen** and **Fix errors** — and the composer itself says *\"Describe a change, or paste a screenshot…\"*.\n\nNow you brief it, the way you would brief a colleague. A brief the builder can act on answers three things: **what the app is for**, **who uses it**, and **what every record must keep**. \"Something for purchasing\" answers none of them — there is nothing in that sentence to make a table out of, so the AI guesses, and you correct the guess later."
+    },
+    {
+      "type": "exercise",
+      "id": "brief-it",
+      "icon": "✍️",
+      "exerciseId": "ex-apps-first-build-brief",
+      "title": "Your turn: write the brief",
+      "instruction": "Write the brief you would type into the AI builder — two or three sentences, for Van Dijk Groep's Inkoopaanvragen app or for an app you actually need. Say who uses it and what they do with it, ask for somewhere to submit and somewhere the submitted requests are read back, and list every piece of information one request has to keep. Write it in plain business language, as you would to a colleague: no component names, no field types, no invented screen labels.",
+      "placeholder": "e.g. Site managers at four sites submit a purchase request from their phone, and the office needs one list of everything still open. A request has to keep who asked, the supplier, what it is for, the amount, the date it is needed and a photo or PDF of the quote.",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "slide",
+      "id": "plan-card",
+      "icon": "📋",
+      "title": "Read the plan before it builds",
+      "bodyMd": "Ask for a **new app with two or more screens**, or for any data model at all, and the AI does not build straight away. It answers with a **plan card**: what it means to create — screens, tables with their fields, roles, actions and datasets — plus the questions it wants answered. A small ask — one screen, an edit, a fix — is built directly.\n\nThe card is editable: rename a table, delete a screen you did not ask for, add a field it forgot.\n\nTwo buttons sit at the bottom. **Discuss** puts the cursor back in the composer so you can talk it over; the card stays. **Build it** approves the plan *as you edited it*.\n\nCorrect course here: a wrong table costs one line of typing now, or a rebuild later."
+    },
+    {
+      "type": "slide",
+      "id": "watch-it-build",
+      "icon": "👀",
+      "title": "Watch it build, then click through it",
+      "bodyMd": "Once you press **Build it**, a banner floats at the bottom of the canvas: **Building**, the time so far, and what the AI is doing this second. It ends with a counter — **Plan 7/12** while the model works through its to-do list, or **Phase 2/4** when it reports phases. If the canvas has drifted away from the work, click **Follow the build**.\n\nIn the **AI builder** pane, activity rows narrate the same build: *Created a table*, *Added a screen*, *Wired a control*, *Set up roles*, *Added sample rows*, *Checked and saved the app*.\n\nThe banner closes with something like **Built · 23 components · 2 screens · 1m 12s**. Switch the header from **Edit** to **Preview** and use the app as Nadia would: submit a test request, check it lands in the list.\n\nPreview still shows *your* canvas. Nadia sees nothing of it until you press **Publish**, which freezes a copy for everyone else — a later chapter of this course is about choosing that audience."
+    },
+    {
+      "type": "sim",
+      "id": "match-parts",
+      "icon": "🧩",
+      "title": "Which part of the app does the job?",
+      "instruction": "Nadia lists four things the Inkoopaanvragen app has to do. Match each one to the part of an app that carries it.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "p1",
+            "left": "Site managers need somewhere to type a new purchase request",
+            "right": "A screen",
+            "note": "A screen is one page of the app; the form is a component sitting on it."
+          },
+          {
+            "id": "p2",
+            "left": "Every request must be kept, with supplier, amount and the date it is needed",
+            "right": "A table",
+            "note": "The app has its own private database. Fields on a table are what a submitted request is stored as."
+          },
+          {
+            "id": "p3",
+            "left": "The Goedkeuren button has to pass the request on to the office",
+            "right": "An action",
+            "note": "An action is what a control does when something happens — run a routine, add a row, go to a screen, show a message."
+          },
+          {
+            "id": "p4",
+            "left": "A site manager may see only their own requests; the office sees them all",
+            "right": "A role",
+            "note": "Roles are app-local. What each role may see is set per screen, and per row with a row rule."
+          }
+        ]
+      }
+    },
+    {
+      "type": "quiz",
+      "id": "q-undo",
+      "question": "The AI builder has just rewritten three screens of Inkoopaanvragen and you preferred what you had before. Which of these gets you back? (Pick every one that works.)",
+      "multi": true,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Ctrl+Z — a whole AI turn counts as one undo step, so one press reverses the entire turn.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "The ⋯ menu → Version history → Restore, on a snapshot from before the turn.",
+          "correct": true
+        },
+        {
+          "id": "c",
+          "label": "Close the editor without saving, so the AI's work never lands.",
+          "correct": false,
+          "feedback": "There is nothing to walk away from: the builder saves the draft as it goes, and the draft is saved even when a turn is stopped or fails. Closing the editor preserves the new version, it does not discard it."
+        },
+        {
+          "id": "d",
+          "label": "Publish again, to push the previous version back out to readers.",
+          "correct": false,
+          "feedback": "Publish copies the canvas as it stands right now — it would make the version you dislike live, which is the opposite of undoing it."
+        }
+      ],
+      "explanation": "One AI turn is committed as a single entry in the undo history, so Cmd/Ctrl+Z — or **Undo** in the header's ⋯ menu — reverses the whole turn. The builder also writes a checkpoint at each phase boundary, up to five in one turn, so a long build leaves several points to return to. Those snapshots appear in **Version history**, which keeps the newest 20 per app: *\"Restoring creates a new version — nothing is lost.\"*"
+    },
+    {
+      "type": "action",
+      "id": "build-one",
+      "icon": "🏗️",
+      "checkId": "app-created",
+      "title": "Build your first app — we will check it",
+      "instruction": "In Studio → Apps click New app, stay on Start blank, name it and click Create app. Type the brief you just wrote into the AI builder composer. If it answers with a plan card, read it, correct anything wrong and press Build it. When the banner says it is done, switch the header to Preview and submit one test record — then switch to Data and read the table it made for you, field by field.",
+      "launch": {
+        "navigateTo": "studio/apps",
+        "label": "Open Apps"
+      }
+    },
+    {
+      "type": "quiz",
+      "id": "q-read-back",
+      "question": "The banner closes with **Built · 23 components · 2 screens**. You open **Data** and find the table it made keeps the amount as a text field, and there is no \"date needed\" field at all. What is the sound next move?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Say so in the composer — the amount has to be a number, and a request needs the date it is needed — and let the builder change the model.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Leave it: the build finished and the app saved, so the fields it chose are the fields the app needs.",
+          "correct": false,
+          "feedback": "A finished build means the definition validated and saved. It cannot mean the model is right — the AI only had your sentence to work from, and nothing in it told the AI that amounts get totalled or that the office sorts on the date needed."
+        },
+        {
+          "id": "c",
+          "label": "Press Ctrl+Z to undo the turn and start again with a longer brief.",
+          "correct": false,
+          "feedback": "That throws away the twenty-odd components that are fine to fix two fields. Undoing a turn is for a turn you did not want at all; this one is nearly right and one sentence away from being right."
+        },
+        {
+          "id": "d",
+          "label": "Publish it, so colleagues can report what is missing from real use.",
+          "correct": false,
+          "feedback": "Publishing freezes this copy for everyone else — you would be handing out the version with the unusable amount field. Fix the model while the app is still only yours."
+        }
+      ],
+      "explanation": "Reading the result back is part of building. **Built · N components · S screens** says the definition validated and saved, not that the data model is right, and the **Data** view is where you see the fields the AI actually chose. A wrong type or a missing field costs one sentence in the composer today. Next chapter: taking the data model off the AI's hands and designing the tables yourself."
+    }
+  ],
+  "practiceTopic": {
+    "title": "First build in App Studio",
+    "summary": "How the AI builder turns a brief into an app, and what separates the draft you edit from the copy everyone else runs.",
+    "facts": [
+      "Studio → Apps → New app offers two tabs, Start blank and From template; the blank tab has a Name field and a Create app button.",
+      "The plan-first flow kicks in for a new app with two or more screens or any data model; small asks are built directly.",
+      "For a larger request the AI builder proposes an editable plan card listing screens, tables with their fields, roles and datasets; its two buttons are Discuss (back to the composer) and Build it (approve the plan as edited).",
+      "While building, the canvas banner shows Building with the elapsed time and either Plan {done}/{total} or Phase {i}/{n}, plus Follow the build; it ends with a line like 'Built · 23 components · 2 screens'.",
+      "Everyone except the owner runs the published copy; the header pill reads Publish changes when the canvas is ahead of the published version.",
+      "A whole AI builder turn counts as one undo step, the builder writes a checkpoint at each phase boundary (up to five per turn), and Version history keeps the newest 20 snapshots per app — restoring creates a new version rather than deleting anything.",
+      "Whatever ends a builder turn — you press Stop, or the turn fails — the draft is saved; the banner then reads 'Stopped — draft saved'.",
+      "The Data view of the editor shows the tables the app stores its rows in, so you can read back the fields the AI actually chose after a build."
+    ]
+  },
+  "rubrics": {
+    "ex-apps-first-build-brief": {
+      "title": "Brief for the AI builder",
+      "task": "Write the two-or-three-sentence brief you would type into the AI builder for an Inkoopaanvragen app (or an app of your own): who uses it, what they do with it, somewhere to submit and somewhere to read submissions back, and everything one record must keep.",
+      "criteria": [
+        "Names who uses the app and what they do with it — someone submitting, someone reading the submissions.",
+        "Asks for more than a single surface: a place to submit and a place where the submitted records are read back.",
+        "Lists the specific information one record must keep (supplier, description, amount, date needed, an attachment — or the learner's own equivalent), not just a subject.",
+        "Is written in plain business language a colleague could act on: no component names, no field types, no invented screen labels."
+      ],
+      "passScore": 70,
+      "guidance": "Pass a brief a colleague could act on without a follow-up question, even a short one about the learner's own work. Fail a brief that names only a subject ('something for purchasing'), one that lists nothing to store, and one that asks for a single form with no way to read anything back. Do not reward length or product jargon, and do not pass the placeholder sentence copied back unchanged."
+    }
+  },
+  "actionChecks": [
+    {
+      "checkId": "app-created",
+      "existing": false,
+      "label": "Create an app of your own",
+      "hint": "In Studio → Apps, click New app, name it and click Create app — then let the AI builder build a first version.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/studio-apps/mine",
+          "returns": "{ apps: [ { id, userId, name, definitionVersion, publishedVersion, isPublished, usage, ... } ] } — only apps the signed-in user owns"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "owns-app",
+          "label": "You own at least one app",
+          "hint": "Studio → Apps → New app → Start blank → Create app.",
+          "rule": "apps array length > 0",
+          "endpoint": "/api/studio-apps/mine",
+          "expect": {
+            "kind": "rows",
+            "field": "apps"
+          }
+        },
+        {
+          "id": "has-content",
+          "label": "The app has been saved at least once beyond creation",
+          "hint": "Type your brief into the AI builder and let it build — every save it makes moves the draft version past v1.",
+          "rule": "any app row has definitionVersion > 1"
+        }
+      ]
+    }
+  ]
+}

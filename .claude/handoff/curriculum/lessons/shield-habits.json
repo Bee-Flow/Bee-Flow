@@ -1,0 +1,213 @@
+{
+  "id": "shield-habits",
+  "icon": "🧭",
+  "estMinutes": 8,
+  "title": "Describe the case, not the person",
+  "desc": "The habits that keep you out of the dialog, and what to do when the shield cannot scan.",
+  "gate": {},
+  "learningGoal": "Rewrite a real prompt so it needs no personal data, and react correctly to a failed scan.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "why",
+      "icon": "🧭",
+      "title": "The AI does not need the name",
+      "bodyMd": "Nadia plans service visits at Van Dijk Groep. A customer has written an angry e-mail: the boiler service was moved twice and she wants compensation. Nadia wants help drafting the reply.\n\nHer first instinct is to paste the whole e-mail — name, street, mobile number and all. The Privacy Shield would catch most of that before the message goes anywhere. But there is a quicker route, and it is the habit this lesson is about: **the model needs the situation, not the identity.** A rescheduled service visit reads the same whether the customer is called De Boer or nothing at all.\n\nSo instead of the paste, Nadia writes:\n\n> \"A customer whose boiler service was postponed twice is asking for compensation. Draft a short apology in Dutch, offer a new appointment within five working days, and do not promise money.\"\n\nThree things improve at once:\n\n- Nothing personal leaves her screen, so no review dialog interrupts her.\n- The model reads plain words instead of placeholders such as `[email_1]`.\n- The real e-mail still sits in her mailbox — rewriting hides nothing from her colleagues."
+    },
+    {
+      "type": "slide",
+      "id": "amber",
+      "icon": "🟠",
+      "title": "The amber line: on, but nothing is checked",
+      "bodyMd": "On a wide screen, a short line beside the message box says what the shield will do with your text. One version of that line is amber and carries a warning icon:\n\n> \"Privacy Shield is on, but personal data cannot be checked right now\"\n\nIt means your organisation switched the shield on, but the service that recognises personal data cannot be reached. The rules are still configured; nothing is being found.\n\nDo not read it as \"everything still works, minus the shield\". With the default setting a check that cannot run refuses the message, so while the line is amber your ordinary prompts may bounce too — an amber line and a refusal are one problem, not two.\n\nWhat Van Dijk Groep's people should do is simple: **keep personal data out of the chat until the warning is gone**, and tell an administrator that the line is amber."
+    },
+    {
+      "type": "slide",
+      "id": "refused",
+      "icon": "📄",
+      "title": "When the check cannot finish",
+      "bodyMd": "Three messages are worth recognising, because each has a different fix.\n\n- **\"Privacy protection is temporarily unavailable, so your message was not sent. Please try again in a moment.\"** The check could not run, and the default is to refuse rather than send unchecked. Try again once the warning is gone.\n- **\"This message is too large to scan for personal data, so it was not sent. Please split it into smaller parts.\"** Send it in pieces.\n- **\"Scan incomplete\"** — an amber badge under your message, with a file line such as \"Scanned 50 of 180 pages\". The unscanned pages went to the AI unredacted. Some organisations hold the file instead and ask you to upload fewer pages.\n\nNone of these is a bug. Each is the system telling you what it could not do."
+    },
+    {
+      "type": "quiz",
+      "id": "q-fail",
+      "icon": "❓",
+      "question": "The amber line is showing and Nadia sends the customer's name anyway. What is most likely to happen?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "The message is refused, and she reads that privacy protection is temporarily unavailable.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "The name is replaced with a placeholder as usual.",
+          "correct": false,
+          "feedback": "Nothing can be replaced while the detector is down — finding the name is exactly the part that is not working."
+        },
+        {
+          "id": "c",
+          "label": "The shield falls back to checking attachments only.",
+          "correct": false,
+          "feedback": "There is no such fallback. Attachments are checked by the same service, so when it is unavailable they are not checked either."
+        },
+        {
+          "id": "d",
+          "label": "The message is sent unchecked — that is what organisations normally choose.",
+          "correct": false,
+          "feedback": "Sending unchecked is the other setting, not the usual one: refusing is the default. And either way, unchecked means the name reached the model."
+        }
+      ],
+      "explanation": "There are only two answers to \"the check cannot run\": refuse the message, or send it unchecked. Refusing is the default, and it does not wait for a name — while the detector is degraded the shield refuses whatever you type, personal data or not. So read an amber line as \"my text is not being checked\" and keep personal data out of it either way."
+    },
+    {
+      "type": "slide",
+      "id": "memory",
+      "icon": "🧠",
+      "title": "Store the rule, never the person",
+      "bodyMd": "While you chat, Bee Flow quietly notes durable facts about your work and keeps them under Settings → Memory. Those notes are stored with their real values; personal data in them is only swapped for labels such as `[IBAN]` on the way to a model.\n\nSo a customer's bank number, BSN or home address does not belong in a memory — not typed in by hand, and not left in a chat where it can be picked up.\n\nWhat does belong there is the rule behind the case. In **Manage memories → Add Memory** Bas at Van Dijk Groep saves an **Instruction**: \"Purchase orders above €5,000 need Karin's approval.\" That works for every supplier, forever, and names nobody's private details."
+    },
+    {
+      "type": "sim",
+      "id": "match",
+      "icon": "🧩",
+      "title": "Four things you might see — and what to do",
+      "instruction": "Each message on the left has one sensible next move. Pair them up.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "amber",
+            "left": "\"Privacy Shield is on, but personal data cannot be checked right now\"",
+            "right": "Keep names out and tell an administrator",
+            "note": "The shield is configured but blind. With the default setting a message that cannot be checked is refused, so this is the moment to stop typing names, not to work around it."
+          },
+          {
+            "id": "large",
+            "left": "\"This message is too large to scan for personal data, so it was not sent.\"",
+            "right": "Send it in smaller pieces",
+            "note": "There is a limit to how much text can be checked in one go. Splitting the paste gets every part checked."
+          },
+          {
+            "id": "incomplete",
+            "left": "An amber \"Scan incomplete\" badge under a message with a long PDF",
+            "right": "Treat the unscanned pages as sent unchecked",
+            "note": "The badge exists so a partial check is never mistaken for a full one. Next time, upload fewer pages."
+          },
+          {
+            "id": "dialog",
+            "left": "\"Check this before it goes to the AI\", with two names highlighted",
+            "right": "Press Redact and send",
+            "note": "The dialog also offers Block and Send anyway. Redact and send lets the work continue with placeholders in place of the names."
+          }
+        ]
+      }
+    },
+    {
+      "type": "exercise",
+      "id": "rewrite",
+      "icon": "🎯",
+      "exerciseId": "ex-shield-habits-rewrite",
+      "title": "Your turn: rewrite one real prompt",
+      "instruction": "Think of something you actually wanted to ask the assistant this week that involved a real person. Write three short parts: (1) which kinds of personal data the original would have contained — the kinds, not the values; (2) the rewritten prompt, with the role, the situation and what you want back, and no personal data at all; (3) one line on what you would do if the amber line were showing when you pressed send.",
+      "placeholder": "e.g. The original held a customer's name, address and mobile number. Rewritten: \"A customer whose boiler service was postponed twice is asking for compensation — draft a short apology in Dutch offering a new appointment within five working days.\" If the line were amber I would leave the names out anyway and tell our administrator.",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "quiz",
+      "id": "q-mapping",
+      "icon": "🔐",
+      "question": "Van Dijk Groep lets people see what was sent to the AI, so a message shows a Token mapping section behind \"Click to reveal\". Who can reveal which real value each placeholder stood for?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Anyone who can open that conversation.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Only an organisation administrator.",
+          "correct": false,
+          "feedback": "The mapping sits in the conversation itself, not on an admin screen, and no extra permission is asked for before it is revealed."
+        },
+        {
+          "id": "c",
+          "label": "Nobody — the mapping is deleted the moment the message is sent.",
+          "correct": false,
+          "feedback": "It is kept for the conversation, which is how the real values get put back into the answer you read. It is hidden behind a click, not gone."
+        },
+        {
+          "id": "d",
+          "label": "Only the AI provider that answered.",
+          "correct": false,
+          "feedback": "The model is the one party that never sees the real values — it received the placeholders and nothing else."
+        }
+      ],
+      "explanation": "The section only appears when your organisation switched that transparency setting on, and then anyone who can open the conversation can reveal the values. Share a conversation and you share the mapping with it — one more reason the personal data is better left out from the start."
+    },
+    {
+      "type": "action",
+      "id": "send-clean",
+      "icon": "🏗️",
+      "checkId": "shield-clean",
+      "title": "Send it for real — we will check",
+      "instruction": "Open a new chat and send the rewritten prompt from the previous step. You are looking for a quiet send: no review dialog, and no \"items redacted\" line under your message. If anything shows there, it reads \"Scanned for personal data — nothing found.\" — that is the shield finding nothing, because you gave it nothing to find.\n\nThat quiet send is the whole habit: describe the case, keep the identity out, and the dialog never has a reason to appear.",
+      "launch": {
+        "navigateTo": "agents",
+        "label": "Open a chat"
+      }
+    }
+  ],
+  "rubrics": {
+    "ex-shield-habits-rewrite": {
+      "title": "Rewrite a prompt so it needs no personal data",
+      "task": "The learner describes the kinds of personal data their original prompt would have contained, writes a rewritten prompt that carries none, and says how they would react to the amber \"cannot be checked right now\" line.",
+      "criteria": [
+        "Names the kinds of personal data in the original (name, address, phone number, e-mail, ID or bank number) without reproducing an actual value",
+        "The rewritten prompt still carries the role, the situation and the output wanted, so the assistant could actually do the job",
+        "The rewritten prompt contains no personal data at all — no names, addresses, phone numbers, e-mail addresses, ID or account numbers",
+        "States a sensible reaction to the amber line: do not send personal data, and either wait or raise it with an administrator"
+      ],
+      "passScore": 70,
+      "guidance": "Do not pass an answer that removes the name but leaves an address, phone number or account number. Do not pass a rewrite so vague the assistant could not act on it (\"write a reply\"). Do not pass an answer containing a real person's details, even as an illustration; clearly invented example data is fine. Do not pass an amber-line answer that amounts to sending anyway or to assuming the data is still protected."
+    }
+  },
+  "practiceTopic": {
+    "title": "Everyday shield habits",
+    "summary": "Writing prompts that need no personal data, and reading the shield's warnings and refusals correctly.",
+    "facts": [
+      "The composer's shield line reads \"Privacy Shield is on, but personal data cannot be checked right now\" in amber when the shield is switched on but the detection service cannot be reached.",
+      "When the check cannot run, the default is to refuse the whole message, not only messages holding personal data: \"Privacy protection is temporarily unavailable, so your message was not sent. Please try again in a moment.\"",
+      "A message too big to check is refused with \"This message is too large to scan for personal data, so it was not sent. Please split it into smaller parts.\"; an amber \"Scan incomplete\" badge instead means uploaded content went to the AI unredacted (\"Scanned 50 of 180 pages\").",
+      "The review dialog \"Check this before it goes to the AI\" offers three buttons: Block, Send anyway, and Redact and send.",
+      "Memories are stored with their real values and are only scrubbed to labels such as [IBAN] on the way to a model, so a customer's bank number or address should never be saved under Settings → Memory → Manage memories → Add Memory.",
+      "The Token mapping section appears in the Privacy protection panel under a message only when the organisation switched on \"Let people see what was sent to the AI\"; it sits behind \"Click to reveal\" and anyone who can open the conversation can reveal the real values."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "shield-clean",
+      "existing": false,
+      "label": "Send a prompt that needs no personal data",
+      "hint": "Open a chat, send your rewritten prompt, and wait for the answer. No review dialog and no \"values were replaced\" line means the scan found nothing.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/ai/direct/conversations",
+          "returns": "array of the caller's own conversations with id, title, created_at, updated_at, newest first"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "answered",
+          "label": "A recent chat of yours got an answer",
+          "hint": "Send your rewritten prompt in a chat and wait for the reply to finish.",
+          "rule": "newest conversation from the list has updated_at after the lesson started and its messages include both a user and an assistant entry"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://beeflow.nl/schemas/compliance/a11y-conformance.json",
+  "title": "Bee Flow accessibility conformance artefact",
+  "description": "Produced by .github/workflows/a11y-conformance.yml (Playwright + @axe-core/playwright over the product's own public surfaces) and shipped with the build as server/compliance/a11y/conformance.json. Read by the EAA-Art4-product-surfaces-conformance check. The file is a CI product — never hand-written, never committed as a fixture.",
+  "type": "object",
+  "required": ["schema_version", "build_sha", "generated_at", "surfaces"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1,
+      "description": "Shape version of this document. Bump when a required field changes."
+    },
+    "build_sha": {
+      "type": "string",
+      "minLength": 7,
+      "maxLength": 64,
+      "pattern": "^[0-9a-fA-F]{7,64}$|^dev$",
+      "description": "The git SHA the tested images were built from. The check compares it to the running server's APP_BUILD_SHA; a mismatch marks the artefact stale."
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 timestamp of the run. Older than 60 days counts as stale."
+    },
+    "axe_version": {
+      "type": "string",
+      "description": "Version of axe-core that produced the violations."
+    },
+    "runner": {
+      "type": "object",
+      "description": "Where and how the run happened — for the evidence row, not for the verdict.",
+      "additionalProperties": false,
+      "properties": {
+        "workflow": { "type": "string" },
+        "run_id": { "type": "string" },
+        "run_url": { "type": "string", "format": "uri" },
+        "browser": { "type": "string" },
+        "viewport": { "type": "string", "pattern": "^\\d+x\\d+$" },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "axe runOnly tags, e.g. wcag2a, wcag2aa, wcag21a, wcag21aa, best-practice."
+        }
+      }
+    },
+    "surfaces": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/surface" }
+    }
+  },
+  "$defs": {
+    "surface": {
+      "type": "object",
+      "required": ["id", "status"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "enum": ["public_form", "public_app", "dsr", "webpage_viewer"],
+          "description": "public_form = a hosted form (/f/<token> → /app/forms/<token>); public_app = an anonymous Studio app page (/p/<token>); dsr = the data-subject request form (/privacy/requests); webpage_viewer = a shared AI webpage (/share/<token>)."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["tested", "skipped"],
+          "description": "skipped surfaces (no fixture could be seeded, page failed to load) make the check warn — an untested surface is never a pass."
+        },
+        "url_path": {
+          "type": "string",
+          "description": "Path that was visited, with any token replaced by <token>. Never a full URL with a live token."
+        },
+        "skip_reason": { "type": "string" },
+        "violations": {
+          "type": "object",
+          "required": ["critical", "serious", "moderate", "minor"],
+          "additionalProperties": false,
+          "properties": {
+            "critical": { "type": "integer", "minimum": 0 },
+            "serious": { "type": "integer", "minimum": 0 },
+            "moderate": { "type": "integer", "minimum": 0 },
+            "minor": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "passes": { "type": "integer", "minimum": 0, "description": "Number of axe rules that passed on the surface." },
+        "incomplete": { "type": "integer", "minimum": 0, "description": "Number of axe rules that needed manual review." },
+        "rules": {
+          "type": "array",
+          "description": "One entry per violated axe rule. Node targets are CSS selectors from the product's own markup — never page content or personal data.",
+          "items": {
+            "type": "object",
+            "required": ["id", "impact", "nodes"],
+            "additionalProperties": false,
+            "properties": {
+              "id": { "type": "string", "description": "axe rule id, e.g. color-contrast, label, link-name." },
+              "impact": { "type": "string", "enum": ["critical", "serious", "moderate", "minor"] },
+              "wcag": {
+                "type": "array",
+                "items": { "type": "string" },
+                "description": "axe tags for the rule (wcag2aa, wcag143, …)."
+              },
+              "help": { "type": "string" },
+              "help_url": { "type": "string", "format": "uri" },
+              "nodes": { "type": "integer", "minimum": 1 },
+              "targets": {
+                "type": "array",
+                "maxItems": 10,
+                "items": { "type": "string" },
+                "description": "Up to 10 CSS selectors of offending nodes."
+              }
+            }
+          }
+        }
+      },
+      "if": { "properties": { "status": { "const": "tested" } } },
+      "then": { "required": ["violations", "rules"] }
+    }
+  }
+}

@@ -1,0 +1,1995 @@
+{
+  "boundary_quality": {
+    "matched_pairs": 780,
+    "mean_iou": 0.9962,
+    "pct_exact": 0.9346
+  },
+  "by_lang": {
+    "de": {
+      "macro": {
+        "f1": 0.5,
+        "f2": 0.5,
+        "precision": 0.5,
+        "recall": 0.5
+      },
+      "micro": {
+        "f1": 0.732,
+        "f2": 0.6306,
+        "fn": 41,
+        "fp": 0,
+        "precision": 1.0,
+        "recall": 0.5773,
+        "tp": 56
+      },
+      "per_category": {
+        "Address": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 3,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "ApiKeyOrSecret": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 3
+        },
+        "BankAccountNumber": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 3,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "DateOfBirth": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 3,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "DriversLicenseNumber": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 3,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "Email": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 12
+        },
+        "HealthInsuranceNumber": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 3,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "InternationalBankingAccountNumber": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 6
+        },
+        "LicensePlateNumber": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 3
+        },
+        "MedicalCondition": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 3,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "Medication": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 3,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "NationalIdentificationNumber": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 6
+        },
+        "Organization": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 3,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "PassportNumber": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 3
+        },
+        "Person": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 17,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "PhoneNumber": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 17
+        },
+        "TaxIdentificationNumber": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 3
+        },
+        "URL": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 3
+        }
+      }
+    },
+    "en": {
+      "macro": {
+        "f1": 0.5263,
+        "f2": 0.5263,
+        "precision": 0.5263,
+        "recall": 0.5263
+      },
+      "micro": {
+        "f1": 0.732,
+        "f2": 0.6306,
+        "fn": 82,
+        "fp": 0,
+        "precision": 1.0,
+        "recall": 0.5773,
+        "tp": 112
+      },
+      "per_category": {
+        "Address": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 6,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "ApiKeyOrSecret": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 6
+        },
+        "BankAccountNumber": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 6,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "DateOfBirth": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 6,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "DriversLicenseNumber": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 6,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "Email": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 29
+        },
+        "HealthInsuranceNumber": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 6,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "InternationalBankingAccountNumber": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 12
+        },
+        "LicensePlateNumber": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 6
+        },
+        "MedicalCondition": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 6,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "Medication": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 6,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "NationalIdentificationNumber": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 12
+        },
+        "Organization": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 6,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "PassportNumber": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 6
+        },
+        "Person": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 34,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "PhoneNumber": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 24
+        },
+        "TaxIdentificationNumber": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 6
+        },
+        "URL": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 6
+        },
+        "USSocialSecurityNumber": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 5
+        }
+      }
+    },
+    "es": {
+      "macro": {
+        "f1": 0.5,
+        "f2": 0.5,
+        "precision": 0.5,
+        "recall": 0.5
+      },
+      "micro": {
+        "f1": 0.7337,
+        "f2": 0.6326,
+        "fn": 53,
+        "fp": 0,
+        "precision": 1.0,
+        "recall": 0.5794,
+        "tp": 73
+      },
+      "per_category": {
+        "Address": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 4,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "ApiKeyOrSecret": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 4
+        },
+        "BankAccountNumber": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 4,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "DateOfBirth": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 4,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "DriversLicenseNumber": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 4,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "Email": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 21
+        },
+        "HealthInsuranceNumber": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 4,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "InternationalBankingAccountNumber": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 8
+        },
+        "LicensePlateNumber": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 4
+        },
+        "MedicalCondition": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 4,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "Medication": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 4,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "NationalIdentificationNumber": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 8
+        },
+        "Organization": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 4,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "PassportNumber": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 4
+        },
+        "Person": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 21,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "PhoneNumber": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 16
+        },
+        "TaxIdentificationNumber": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 4
+        },
+        "URL": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 4
+        }
+      }
+    },
+    "fr": {
+      "macro": {
+        "f1": 0.5,
+        "f2": 0.5,
+        "precision": 0.5,
+        "recall": 0.5
+      },
+      "micro": {
+        "f1": 0.7337,
+        "f2": 0.6326,
+        "fn": 53,
+        "fp": 0,
+        "precision": 1.0,
+        "recall": 0.5794,
+        "tp": 73
+      },
+      "per_category": {
+        "Address": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 4,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "ApiKeyOrSecret": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 4
+        },
+        "BankAccountNumber": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 4,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "DateOfBirth": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 4,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "DriversLicenseNumber": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 4,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "Email": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 21
+        },
+        "HealthInsuranceNumber": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 4,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "InternationalBankingAccountNumber": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 8
+        },
+        "LicensePlateNumber": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 4
+        },
+        "MedicalCondition": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 4,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "Medication": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 4,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "NationalIdentificationNumber": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 8
+        },
+        "Organization": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 4,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "PassportNumber": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 4
+        },
+        "Person": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 21,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "PhoneNumber": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 16
+        },
+        "TaxIdentificationNumber": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 4
+        },
+        "URL": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 4
+        }
+      }
+    },
+    "it": {
+      "macro": {
+        "f1": 0.5,
+        "f2": 0.5,
+        "precision": 0.5,
+        "recall": 0.5
+      },
+      "micro": {
+        "f1": 0.7337,
+        "f2": 0.6326,
+        "fn": 53,
+        "fp": 0,
+        "precision": 1.0,
+        "recall": 0.5794,
+        "tp": 73
+      },
+      "per_category": {
+        "Address": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 4,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "ApiKeyOrSecret": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 4
+        },
+        "BankAccountNumber": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 4,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "DateOfBirth": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 4,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "DriversLicenseNumber": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 4,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "Email": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 16
+        },
+        "HealthInsuranceNumber": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 4,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "InternationalBankingAccountNumber": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 8
+        },
+        "LicensePlateNumber": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 4
+        },
+        "MedicalCondition": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 4,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "Medication": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 4,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "NationalIdentificationNumber": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 8
+        },
+        "Organization": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 4,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "PassportNumber": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 4
+        },
+        "Person": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 21,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "PhoneNumber": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 21
+        },
+        "TaxIdentificationNumber": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 4
+        },
+        "URL": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 4
+        }
+      }
+    },
+    "nl": {
+      "macro": {
+        "f1": 0.5706,
+        "f2": 0.5711,
+        "precision": 0.5698,
+        "recall": 0.5714
+      },
+      "micro": {
+        "f1": 0.7165,
+        "f2": 0.6141,
+        "fn": 308,
+        "fp": 3,
+        "precision": 0.9924,
+        "recall": 0.5606,
+        "tp": 393
+      },
+      "per_category": {
+        "Address": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 24,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "ApiKeyOrSecret": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 24
+        },
+        "BankAccountNumber": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 24,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "CreditCardNumber": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 5
+        },
+        "DateOfBirth": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 29,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "DriversLicenseNumber": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 24,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "Email": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 86
+        },
+        "HealthInsuranceNumber": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 24,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "IPAddress": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 5
+        },
+        "InternationalBankingAccountNumber": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 43
+        },
+        "LicensePlateNumber": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 24
+        },
+        "MedicalCondition": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 24,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "Medication": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 24,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "NationalIdentificationNumber": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 43
+        },
+        "Organization": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 24,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "PassportNumber": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 24
+        },
+        "Person": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 111,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "PhoneNumber": {
+          "f1": 0.9829,
+          "f2": 0.9931,
+          "fn": 0,
+          "fp": 3,
+          "precision": 0.9663,
+          "recall": 1.0,
+          "tp": 86
+        },
+        "TaxIdentificationNumber": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 24
+        },
+        "URL": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 24
+        },
+        "USSocialSecurityNumber": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 5
+        }
+      }
+    }
+  },
+  "by_size_class": {
+    "large": {
+      "macro": {
+        "f1": 0.5,
+        "f2": 0.5,
+        "precision": 0.5,
+        "recall": 0.5
+      },
+      "micro": {
+        "f1": 0.7391,
+        "f2": 0.6391,
+        "fn": 480,
+        "fp": 0,
+        "precision": 1.0,
+        "recall": 0.5862,
+        "tp": 680
+      },
+      "per_category": {
+        "Address": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 40,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "ApiKeyOrSecret": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 40
+        },
+        "BankAccountNumber": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 40,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "DateOfBirth": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 40,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "DriversLicenseNumber": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 40,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "Email": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 160
+        },
+        "HealthInsuranceNumber": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 40,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "InternationalBankingAccountNumber": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 80
+        },
+        "LicensePlateNumber": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 40
+        },
+        "MedicalCondition": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 40,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "Medication": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 40,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "NationalIdentificationNumber": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 80
+        },
+        "Organization": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 40,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "PassportNumber": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 40
+        },
+        "Person": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 160,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "PhoneNumber": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 160
+        },
+        "TaxIdentificationNumber": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 40
+        },
+        "URL": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 40
+        }
+      }
+    },
+    "short": {
+      "macro": {
+        "f1": 0.5681,
+        "f2": 0.57,
+        "precision": 0.5652,
+        "recall": 0.5714
+      },
+      "micro": {
+        "f1": 0.639,
+        "f2": 0.5302,
+        "fn": 110,
+        "fp": 3,
+        "precision": 0.9709,
+        "recall": 0.4762,
+        "tp": 100
+      },
+      "per_category": {
+        "Address": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 5,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "ApiKeyOrSecret": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 5
+        },
+        "BankAccountNumber": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 5,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "CreditCardNumber": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 5
+        },
+        "DateOfBirth": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 10,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "DriversLicenseNumber": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 5,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "Email": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 25
+        },
+        "HealthInsuranceNumber": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 5,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "IPAddress": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 5
+        },
+        "InternationalBankingAccountNumber": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 5
+        },
+        "LicensePlateNumber": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 5
+        },
+        "MedicalCondition": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 5,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "Medication": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 5,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "NationalIdentificationNumber": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 5
+        },
+        "Organization": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 5,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "PassportNumber": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 5
+        },
+        "Person": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 65,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "PhoneNumber": {
+          "f1": 0.9302,
+          "f2": 0.9709,
+          "fn": 0,
+          "fp": 3,
+          "precision": 0.8696,
+          "recall": 1.0,
+          "tp": 20
+        },
+        "TaxIdentificationNumber": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 5
+        },
+        "URL": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 5
+        },
+        "USSocialSecurityNumber": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 10
+        }
+      }
+    }
+  },
+  "by_tier": {
+    "gliner": {
+      "macro": {
+        "f1": 0.1,
+        "f2": 0.1,
+        "precision": 0.1,
+        "recall": 0.1
+      },
+      "micro": {
+        "f1": 0.1324,
+        "f2": 0.087,
+        "fn": 590,
+        "fp": 0,
+        "precision": 1.0,
+        "recall": 0.0709,
+        "tp": 45
+      },
+      "per_category": {
+        "Address": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 45,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "BankAccountNumber": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 45,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "DateOfBirth": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 50,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "DriversLicenseNumber": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 45,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "HealthInsuranceNumber": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 45,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "MedicalCondition": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 45,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "Medication": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 45,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "Organization": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 45,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        },
+        "PassportNumber": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 45
+        },
+        "Person": {
+          "f1": 0.0,
+          "f2": 0.0,
+          "fn": 225,
+          "fp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tp": 0
+        }
+      }
+    },
+    "regex": {
+      "macro": {
+        "f1": 0.9992,
+        "f2": 0.9997,
+        "precision": 0.9985,
+        "recall": 1.0
+      },
+      "micro": {
+        "f1": 0.998,
+        "f2": 0.9992,
+        "fn": 0,
+        "fp": 3,
+        "precision": 0.9959,
+        "recall": 1.0,
+        "tp": 735
+      },
+      "per_category": {
+        "ApiKeyOrSecret": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 45
+        },
+        "CreditCardNumber": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 5
+        },
+        "Email": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 185
+        },
+        "IPAddress": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 5
+        },
+        "InternationalBankingAccountNumber": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 85
+        },
+        "LicensePlateNumber": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 45
+        },
+        "NationalIdentificationNumber": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 85
+        },
+        "PhoneNumber": {
+          "f1": 0.9917,
+          "f2": 0.9967,
+          "fn": 0,
+          "fp": 3,
+          "precision": 0.9836,
+          "recall": 1.0,
+          "tp": 180
+        },
+        "TaxIdentificationNumber": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 45
+        },
+        "URL": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 45
+        },
+        "USSocialSecurityNumber": {
+          "f1": 1.0,
+          "f2": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp": 10
+        }
+      }
+    }
+  },
+  "confusion": {
+    "Address->∅": 45,
+    "BankAccountNumber->∅": 45,
+    "DateOfBirth->∅": 50,
+    "DriversLicenseNumber->∅": 45,
+    "HealthInsuranceNumber->∅": 45,
+    "MedicalCondition->∅": 45,
+    "Medication->∅": 45,
+    "Organization->∅": 45,
+    "Person->∅": 225,
+    "∅->PhoneNumber": 3
+  },
+  "degraded_rate": 0.0,
+  "iou_threshold": 0.5,
+  "match_mode": "overlap",
+  "meta": {
+    "backend": "regex-only",
+    "corpus_files": [
+      "short.jsonl",
+      "large.jsonl",
+      "negatives.jsonl"
+    ],
+    "split": "all",
+    "subset": null,
+    "threshold": 0.7
+  },
+  "n_records": 211,
+  "overall": {
+    "macro": {
+      "f1": 0.571,
+      "f2": 0.5713,
+      "precision": 0.5706,
+      "recall": 0.5714
+    },
+    "micro": {
+      "f1": 0.7246,
+      "f2": 0.6227,
+      "fn": 590,
+      "fp": 3,
+      "precision": 0.9962,
+      "recall": 0.5693,
+      "tp": 780
+    },
+    "per_category": {
+      "Address": {
+        "f1": 0.0,
+        "f2": 0.0,
+        "fn": 45,
+        "fp": 0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "tp": 0
+      },
+      "ApiKeyOrSecret": {
+        "f1": 1.0,
+        "f2": 1.0,
+        "fn": 0,
+        "fp": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "tp": 45
+      },
+      "BankAccountNumber": {
+        "f1": 0.0,
+        "f2": 0.0,
+        "fn": 45,
+        "fp": 0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "tp": 0
+      },
+      "CreditCardNumber": {
+        "f1": 1.0,
+        "f2": 1.0,
+        "fn": 0,
+        "fp": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "tp": 5
+      },
+      "DateOfBirth": {
+        "f1": 0.0,
+        "f2": 0.0,
+        "fn": 50,
+        "fp": 0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "tp": 0
+      },
+      "DriversLicenseNumber": {
+        "f1": 0.0,
+        "f2": 0.0,
+        "fn": 45,
+        "fp": 0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "tp": 0
+      },
+      "Email": {
+        "f1": 1.0,
+        "f2": 1.0,
+        "fn": 0,
+        "fp": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "tp": 185
+      },
+      "HealthInsuranceNumber": {
+        "f1": 0.0,
+        "f2": 0.0,
+        "fn": 45,
+        "fp": 0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "tp": 0
+      },
+      "IPAddress": {
+        "f1": 1.0,
+        "f2": 1.0,
+        "fn": 0,
+        "fp": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "tp": 5
+      },
+      "InternationalBankingAccountNumber": {
+        "f1": 1.0,
+        "f2": 1.0,
+        "fn": 0,
+        "fp": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "tp": 85
+      },
+      "LicensePlateNumber": {
+        "f1": 1.0,
+        "f2": 1.0,
+        "fn": 0,
+        "fp": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "tp": 45
+      },
+      "MedicalCondition": {
+        "f1": 0.0,
+        "f2": 0.0,
+        "fn": 45,
+        "fp": 0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "tp": 0
+      },
+      "Medication": {
+        "f1": 0.0,
+        "f2": 0.0,
+        "fn": 45,
+        "fp": 0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "tp": 0
+      },
+      "NationalIdentificationNumber": {
+        "f1": 1.0,
+        "f2": 1.0,
+        "fn": 0,
+        "fp": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "tp": 85
+      },
+      "Organization": {
+        "f1": 0.0,
+        "f2": 0.0,
+        "fn": 45,
+        "fp": 0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "tp": 0
+      },
+      "PassportNumber": {
+        "f1": 1.0,
+        "f2": 1.0,
+        "fn": 0,
+        "fp": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "tp": 45
+      },
+      "Person": {
+        "f1": 0.0,
+        "f2": 0.0,
+        "fn": 225,
+        "fp": 0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "tp": 0
+      },
+      "PhoneNumber": {
+        "f1": 0.9917,
+        "f2": 0.9967,
+        "fn": 0,
+        "fp": 3,
+        "precision": 0.9836,
+        "recall": 1.0,
+        "tp": 180
+      },
+      "TaxIdentificationNumber": {
+        "f1": 1.0,
+        "f2": 1.0,
+        "fn": 0,
+        "fp": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "tp": 45
+      },
+      "URL": {
+        "f1": 1.0,
+        "f2": 1.0,
+        "fn": 0,
+        "fp": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "tp": 45
+      },
+      "USSocialSecurityNumber": {
+        "f1": 1.0,
+        "f2": 1.0,
+        "fn": 0,
+        "fp": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "tp": 10
+      }
+    }
+  },
+  "strict_micro": {
+    "f1": 0.6772,
+    "f2": 0.582,
+    "fn": 641,
+    "fp": 54,
+    "precision": 0.931,
+    "recall": 0.5321,
+    "tp": 729
+  }
+}

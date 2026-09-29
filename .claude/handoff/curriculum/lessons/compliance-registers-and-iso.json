@@ -1,0 +1,329 @@
+{
+  "id": "compliance-registers-and-iso",
+  "icon": "📚",
+  "estMinutes": 15,
+  "title": "The documents an auditor asks for",
+  "desc": "ROPA, DPIAs, the SoA, policies, risks, competence and the evidence bundle.",
+  "gate": {
+    "permission": "admin_compliance",
+    "feature": "compliance_hub_gdpr"
+  },
+  "learningGoal": "After this lesson you can review and stamp your organisation's processing register, keep the risk register and the competence record current, and say what is inside an ISO 27001 Stage-1 document pack and who decided each part of it.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "self-written",
+      "icon": "🧭",
+      "title": "The register writes itself, you sign it",
+      "bodyMd": "An auditor's first question is almost never about your firewall. It is: *show me the record of what you process, and who signed it off.*\n\nArticle 30 requires that record. In Bee Flow it is not a form you fill in. Open Settings → **Compliance** → **Processing register (ROPA)** and it is already built from what this workspace actually runs:\n\n- **Controller** — your organisation, your DPO, data residency and legal bases from setup.\n- **Processing activities** — one row per **published** agent: **Activity · Purpose · Data categories · Retention · Transfers**. A draft you are still editing is not in the register; the published configuration is.\n- **Processors** — the next card.\n\nThe toolbar carries **Regenerate from live configuration**, **Download ROPA (PDF)** and **Mark as reviewed**.\n\nThe synthesis is the machine's work. The signature is yours."
+    },
+    {
+      "type": "slide",
+      "id": "processors",
+      "icon": "🛰️",
+      "title": "Processors are measured, not declared",
+      "bodyMd": "The **Processors** table at the bottom of the register is not a supplier list somebody typed. It is a 180-day roll-up of the outbound calls this installation made, grouped per operator: **Operator · Location · Calls · Last seen · SCC / DPA**. The page says so out loud — *\"Derived from observed outbound calls (last 180 days).\"*\n\nThis is how Marieke, the organisation admin at Van Dijk Groep, finds out that procurement started using an American transcription supplier two months ago. The row is simply there: Location outside the EU, a few hundred calls, last seen yesterday. Nobody told her.\n\nA register assembled from a questionnaire would have missed it. This one cannot, because the traffic is the evidence."
+    },
+    {
+      "type": "quiz",
+      "id": "q-transfer",
+      "question": "That American supplier has no signed agreement yet. On the next run, which automated check turns red?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Art. 44 — international transfers. It reads the outbound call log and fails on any non-EU operator without an attested transfer basis.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Art. 30 — records of processing. The register counts as incomplete until the supplier is entered.",
+          "correct": false,
+          "feedback": "Art. 30 never looks at suppliers. It asks one question only: how long ago did a human mark the register as reviewed? Never reviewed is a warning, a review past 300 days warns too, and past a year it fails."
+        },
+        {
+          "id": "c",
+          "label": "Art. 35 — DPIA. Every new processor needs an impact assessment before it may be used.",
+          "correct": false,
+          "feedback": "Art. 35 works per high-risk agent, not per supplier. It lists published agents that decide about people or route data to an external provider, and asks whether each one has an assessment on record."
+        },
+        {
+          "id": "d",
+          "label": "None of them. A missing contract is a paperwork matter and the platform cannot see paperwork.",
+          "correct": false,
+          "feedback": "It cannot see the paperwork — but it can see the traffic, and it treats an unattested non-EU operator as a failure until somebody attests otherwise. Absent proof is deliberately not the same as a pass."
+        }
+      ],
+      "explanation": "Art. 44 is a high-severity check with a hybrid verification label: the traffic is read automatically, the transfer basis is your attestation. Art. 28 (processor agreements) speaks up alongside it and covers EU processors too, so an EU supplier without a DPA still surfaces — just more quietly, as a warning."
+    },
+    {
+      "type": "slide",
+      "id": "attest",
+      "icon": "✍️",
+      "title": "What \"SCC attested\" actually records",
+      "bodyMd": "On every non-EU processor row the **SCC / DPA** cell offers **Attest SCC**. Marieke has procurement sign the clauses, presses it once, and the cell reads **SCC attested**. EU operators read **EU — not required** and need nothing.\n\nBe precise about what just happened. Three things were stored against that operator: its name, your user id, and the moment. That is an **attestation** — a recorded human declaration.\n\nIt is not the contract. It does not read the contract. It does not prove a contract exists.\n\nWhat it does do is stop Art. 44 failing for that operator: pressing it re-runs that one check straight away instead of waiting for the next sweep. Knowing that the row says \"attested\" and not \"verified\" is the honest limit of the claim."
+    },
+    {
+      "type": "slide",
+      "id": "dpia",
+      "icon": "🧪",
+      "title": "One assessment per high-risk agent",
+      "bodyMd": "Rail → **DPIAs**. The list is not everything you have built. It is the published agents the Art. 35 check flags as high-risk: automated decision-making, a system prompt about approving, rejecting, scoring or ranking, or a model that routes data to an external provider. The heuristic leans towards flagging — a false flag costs thirty seconds, a missed one is a real breach.\n\nTwo ways to answer it. **Attest existing DPIA** records that you assessed this agent outside Bee Flow, valid for twelve months. Or fill the questionnaire — purpose, personal data involved, automated decisions, human oversight, mitigations, residual risk — and press **Save assessment**.\n\nThe difference shows at the next sweep. No assessment on record is a **failure**. An expired one is only a **warning**: re-attest, don't start again."
+    },
+    {
+      "type": "quiz",
+      "id": "q-policy",
+      "question": "Van Dijk Groep seeds the policy templates and publishes the information-security policy without changing a word. What does the register show afterwards?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Published v1 — with the amber **template not customised** flag still beside it, and colleagues acknowledging text that does not describe how the company works.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Nothing unusual. Publishing is what clears the template flag.",
+          "correct": false,
+          "feedback": "The flag tracks the document body, not its status. It clears only once the draft text actually diverges from the seeded template — publishing an unchanged body changes nothing about it."
+        },
+        {
+          "id": "c",
+          "label": "Publishing is refused until somebody has edited the template.",
+          "correct": false,
+          "feedback": "Nothing is blocked. The editor nudges — \"This is still the unedited template — make it your own before publishing. Auditors spot generic templates instantly.\" — and then lets you publish anyway. The product warns; it does not babysit."
+        },
+        {
+          "id": "d",
+          "label": "The Annex A controls that reference the policy move to approved on their own.",
+          "correct": false,
+          "feedback": "No decision in the Statement of Applicability is ever made for you. Applicability, justification, owner and approval stay human choices; seeding only creates rows that are missing."
+        }
+      ],
+      "explanation": "A published version is frozen and sha256-stamped, and members acknowledge that exact version — which is why publishing template text is worse than leaving it in draft. Edit first, then publish. Publishing again later creates a new version and asks everyone to acknowledge afresh."
+    },
+    {
+      "type": "slide",
+      "id": "soa",
+      "icon": "📋",
+      "title": "The SoA is 93 decisions, not 93 checkboxes",
+      "bodyMd": "Rail → **SoA (Annex A)**. ISO/IEC 27001:2022 carries **93** Annex A controls, and the Statement of Applicability is where each one gets a decision your organisation owns: does it apply to us, how is it satisfied, who owns it, and what evidences it.\n\n**Fill missing rows** in the header creates the rows you do not have yet — and never overwrites a decision already made. Per row you set the decision (**To review** → **Reviewed** → **Approved**), write **How met** (\"the sentence an auditor reads\"), a **Justification**, and an **Owner**. A control you exclude must carry a justification before it saves.\n\nOne guard rail before it surprises you: while a control's linked live check needs attention, **Approved** is disabled. The hint says why — resolve the finding first, or justify why it does not count."
+    },
+    {
+      "type": "exercise",
+      "id": "ex-soa",
+      "icon": "🎯",
+      "exerciseId": "ex-compliance-registers-soa-line",
+      "title": "Your turn: write one SoA line an auditor believes",
+      "instruction": "Van Dijk Groep now uses that American transcription supplier with signed clauses, attested on the processor row. Write the **How met** text for the Annex A control **Security within supplier agreements** (A.5.20), in two or three sentences. A strong answer says what the organisation concretely does, points at where the evidence sits in Bee Flow (the processing register, the per-operator attestation, the automated supplier check), and names a role that owns it. Write it as the auditor will read it — no \"we take security seriously\".",
+      "placeholder": "e.g. Every supplier that processes personal data for us appears in the processing register, which is built from observed outbound traffic rather than from a questionnaire, so a new supplier cannot stay invisible…",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "sim",
+      "id": "which-register",
+      "icon": "🧩",
+      "title": "Four questions, four registers",
+      "instruction": "The auditor visiting Van Dijk Groep asks four things. Pair each question with the register that answers it.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "p1",
+            "left": "\"Which outside parties process personal data for you, where do they sit, and what is your transfer basis for each?\"",
+            "right": "Processing register (ROPA)",
+            "note": "Activities, processors, locations and the per-operator SCC / DPA attestation, all in one generated record."
+          },
+          {
+            "id": "p2",
+            "left": "\"Show me the impact assessment for the assistant that ranks job applicants.\"",
+            "right": "DPIAs",
+            "note": "One assessment per high-risk published agent — the questionnaire, or an attestation that one exists elsewhere."
+          },
+          {
+            "id": "p3",
+            "left": "\"Which Annex A controls did you exclude, and on what grounds?\"",
+            "right": "SoA (Annex A)",
+            "note": "Every one of the 93 controls with its decision, justification, owner and linked live check."
+          },
+          {
+            "id": "p4",
+            "left": "\"Which version of the information-security policy is in force, and who has acknowledged it?\"",
+            "right": "Policies",
+            "note": "Published versions are frozen and stamped; acknowledgements are counted against that exact version."
+          }
+        ]
+      }
+    },
+    {
+      "type": "action",
+      "id": "review-ropa",
+      "icon": "🖋️",
+      "checkId": "ropa-reviewed",
+      "title": "Review your register and stamp it",
+      "instruction": "Open Compliance and go to Processing register (ROPA). Read the Controller block, the activities and the processors, and press Attest SCC on any non-EU row whose agreement you can vouch for. Then press Mark as reviewed and Download ROPA (PDF) for your file.",
+      "launch": {
+        "navigateTo": "settings/organisation/compliance",
+        "label": "Open Compliance"
+      }
+    },
+    {
+      "type": "slide",
+      "id": "risks",
+      "icon": "🎲",
+      "title": "The risk register is the one nobody generates for you",
+      "bodyMd": "Rail → **Risk register**. Unlike the ROPA, nothing here is synthesised: rows arrive through **Seed suggested risks** or **Add risk**, with **Title · Description · Category · Likelihood (1–5) · Impact (1–5) · Owner · Next review**. Categories are **Confidentiality / Integrity / Availability / Compliance**.\n\nLikelihood times impact gives a score from 1 to 25, shown in the **Score** column as `L4 × I3`. From **10** upward a risk counts as high, and the stats strip above the table reads **Total risks · Open · High (score ≥ 10) · Reviews overdue**.\n\nA row carries a status — **Open / Treating / Accepted / Closed** — an owner, and a review date. Miss that date and the row wears a **review overdue** pill. Marieke schedules her reviews before the certification body does it for her."
+    },
+    {
+      "type": "quiz",
+      "id": "q-risk",
+      "question": "Marieke has a risk scored L4 × I3 = 12. Treating it is expensive, so management decides to live with it and she sets the status to Accepted. What is now true?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "It still counts as high (score ≥ 10) and stays in the register with its owner and review date — and the acceptance is stamped with who decided it and when.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Accepting re-scores the risk, so it drops out of the High count.",
+          "correct": false,
+          "feedback": "The score is only likelihood × impact. Status and score are separate columns: an accepted risk keeps its 12 and keeps counting under High (score ≥ 10) until somebody changes the likelihood or the impact."
+        },
+        {
+          "id": "c",
+          "label": "A high risk cannot be accepted — the register holds it at Treating until the score falls below 10.",
+          "correct": false,
+          "feedback": "Nothing is blocked. High is a threshold for the statistics, not a gate, and all four statuses — Open, Treating, Accepted, Closed — stay available. Accepting is a management decision the register records, not one it refuses."
+        },
+        {
+          "id": "d",
+          "label": "The next six-hourly sweep re-evaluates the row and reopens it if a linked check is still failing.",
+          "correct": false,
+          "feedback": "The sweep never touches this register — risks are written by people, not by checks. The only clock on a risk row is its Next review date, and passing it shows a review overdue pill rather than a status change."
+        }
+      ],
+      "explanation": "Accepting a risk is an explicit management decision, so treat it as one: record it with an owner and a realistic Next review, not as a way to tidy the table. The Risk register (PDF) in the Stage-1 pack is simply this register printed — an auditor reading it sees exactly which risks you decided to live with."
+    },
+    {
+      "type": "slide",
+      "id": "training",
+      "icon": "🎓",
+      "title": "Competence: two things measured, one declared",
+      "bodyMd": "Rail → **Training & competence**, the **People & competence** card: *\"Per member: which policies they acknowledged, platform learning progress, and a security-training attestation for courses completed outside Bee Flow.\"*\n\nTwo of those three the platform can count. Each person's row shows `{n} policies acknowledged` — against the exact published versions from the Policies section — and `{count} learning modules` from their progress in the Learning Center you are sitting in right now.\n\nThe third it cannot see. A classroom course, an e-learning provider, a certificate: for those there is **Attest training** → **Record attestation**, with an optional note — *\"Optional note — course, provider, certificate…\"* Afterwards the row reads **Training attested {date}** with **Re-attest** beside it.\n\nSame family as SCC attested and an attested DPIA: a declaration with an actor and a timestamp. The rail badge counts `{done}/{total}` people."
+    },
+    {
+      "type": "sim",
+      "id": "competence-order",
+      "icon": "🧾",
+      "title": "How one colleague's row fills up",
+      "instruction": "A new colleague joins Van Dijk Groep. Put the four moves in the order that actually produces evidence on their Training & competence row.",
+      "sim": {
+        "kind": "order",
+        "items": [
+          {
+            "id": "seed",
+            "label": "In Policies, press Seed policy templates — the 13 documents appear as drafts."
+          },
+          {
+            "id": "publish",
+            "label": "Edit the information-security policy so it describes this company, then press Publish to freeze that version."
+          },
+          {
+            "id": "ack",
+            "label": "The colleague acknowledges that published version; their row counts one more under policies acknowledged."
+          },
+          {
+            "id": "attest",
+            "label": "They finish an external security-awareness course, so you press Attest training and record it with a note naming the provider."
+          }
+        ],
+        "solution": [
+          "seed",
+          "publish",
+          "ack",
+          "attest"
+        ],
+        "feedback": "Nothing can be acknowledged before it is published, and publishing an unedited template only gets people to acknowledge somebody else's words — so the edit sits between the seed and the publish. The attestation comes last because it is the fallback for what Bee Flow cannot count: training that happened outside it."
+      }
+    },
+    {
+      "type": "slide",
+      "id": "stage1",
+      "icon": "📦",
+      "title": "What a Stage-1 pack actually is",
+      "bodyMd": "Your certification body asks for documents before anyone visits. That is Stage 1: a desk review of paper.\n\nOverview → **Reports** hands you five downloads, and each one is somebody's decision made visible:\n\n- **Statement of Applicability (PDF)** — your 93 decisions, with justification and owner.\n- **Clause conformity (PDF)** — clauses 4–10, each marked in place, partial or not recorded.\n- **Risk register (PDF)** — your rows from the Risk register, with their scores, owners and statuses.\n- **Policy pack (PDF)** — the published policy versions, as acknowledged.\n- **Full evidence bundle (ZIP)** — the hash-chained rows underneath all of it.\n\nThe platform generates the files. Every judgement inside them was made by a person in your organisation — which is exactly what Stage 1 is checking. A risk register nobody filled in prints as an empty page, and Clause 7.2 competence is asked about at the visit, so keep **Training & competence** current too."
+    },
+    {
+      "type": "slide",
+      "id": "wrap",
+      "icon": "🏁",
+      "title": "What you can do now",
+      "bodyMd": "- **Hand over a processing register you can defend.** It is generated from published agents and 180 days of observed outbound calls, you attest the SCC per non-EU operator, and **Mark as reviewed** records who reviewed it and when.\n- **Tell an attestation from a measurement.** SCC attested, an attested DPIA, training attested — all three are declarations with an actor and a timestamp, never proof that the underlying document exists.\n- **Keep the two hand-written registers alive.** Risks are scored likelihood × impact, high from 10 up, each with an owner and a **Next review**; **Training & competence** counts acknowledged policies and learning modules per person, and **Attest training** covers the courses taken elsewhere.\n- **Assemble a Stage-1 pack** from Overview → **Reports**, and say for each file whose decision it carries.\n- **Watch the clocks.** A register never reviewed warns, one past a year fails, an expired DPIA warns, an overdue risk review shows a pill — and the sweep runs every six hours, so you find out quickly.\n\nThat is the last chapter of this course. The registers are now yours to keep current."
+    }
+  ],
+  "rubrics": {
+    "ex-compliance-registers-soa-line": {
+      "title": "A supplier-control line that survives review",
+      "task": "Write the \"How met\" text for Annex A control A.5.20 (security within supplier agreements) at Van Dijk Groep, in two or three sentences, given a non-EU transcription supplier whose standard clauses are signed and attested on the processor row.",
+      "criteria": [
+        "Describes a concrete, repeatable practice (suppliers that process personal data are recorded, agreements signed before or upon use, non-EU operators carry an attested transfer basis) rather than an intention.",
+        "Points at evidence that actually exists in the product: the processing register built from observed outbound calls, the per-operator SCC attestation on the processor row, or the automated supplier and transfer checks.",
+        "Names an owner — a role or function such as the DPO, the organisation admin or procurement — rather than leaving the control unowned.",
+        "Stays honest about what the attestation proves: it records that the agreement was signed, it does not itself verify the contract."
+      ],
+      "passScore": 70,
+      "guidance": "Do not pass slogans (\"we take supplier security seriously\", \"all suppliers are GDPR compliant\") or anything that only restates the control's title. Do not pass an answer claiming the platform checks or stores contracts, or that pressing the attestation button proves an agreement exists. An answer may pass without mentioning the American supplier by name, but it must describe a practice plus at least one real evidence location and an owner."
+    }
+  },
+  "practiceTopic": {
+    "title": "Registers, attestations and the ISO document pack",
+    "summary": "How the processing register, DPIAs, the Statement of Applicability, the ISMS policies, the risk register and the competence record are produced, reviewed and handed to an auditor.",
+    "facts": [
+      "The processing register (ROPA) is generated by Bee Flow (activities from published agents, processors from outbound calls over the last 180 days); its toolbar has Regenerate from live configuration, Download ROPA (PDF) and Mark as reviewed.",
+      "The Art. 30 check warns while the register has never been reviewed and fails once the last review is more than a year old.",
+      "Each non-EU processor row offers Attest SCC, which records the operator, the acting user and the timestamp as an attestation and re-runs the Art. 44 check at once — EU operators read EU — not required instead.",
+      "The DPIA list holds published agents the Art. 35 check flags as high-risk; a missing assessment is a failure, an expired one is only a warning, and Attest existing DPIA is valid for twelve months.",
+      "ISO/IEC 27001:2022 Annex A has 93 controls; Fill missing rows creates rows that are absent and never overwrites a decision, and Approved is disabled while a control's linked live check needs attention.",
+      "Policies keep a template not customised flag until the saved draft body diverges from the seeded template; publishing freezes a sha256-stamped version that members acknowledge.",
+      "The Risk register is written by hand via Seed suggested risks or Add risk: Likelihood (1-5) x Impact (1-5) gives a score of 1-25, high means score >= 10, statuses are Open / Treating / Accepted / Closed, and a missed Next review shows a review overdue pill.",
+      "Training & competence shows per member the policies they acknowledged and their learning-module count, plus Attest training -> Record attestation (with an optional note) for courses taken outside Bee Flow, after which the row reads Training attested {date} with Re-attest."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "ropa-reviewed",
+      "existing": false,
+      "label": "Review the processing register",
+      "hint": "In Settings → Compliance → Processing register (ROPA), read the generated record and press Mark as reviewed.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/compliance/ropa",
+          "returns": "the generated register: controller, activities[], processors[], plus last_reviewed_at and last_reviewed_by"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "reviewed",
+          "label": "The processing register has been marked as reviewed",
+          "hint": "Press Mark as reviewed on the ROPA page — the line above the toolbar then reads \"Last reviewed …\".",
+          "rule": "body.last_reviewed_at is not null",
+          "endpoint": "/api/compliance/ropa",
+          "expect": {
+            "kind": "truthy",
+            "field": "last_reviewed_at"
+          }
+        },
+        {
+          "id": "by-learner",
+          "label": "You are the reviewer on record",
+          "hint": "The stamp records who pressed the button, so press it yourself rather than reading a colleague's review.",
+          "rule": "body.last_reviewed_by equals the learner's user id"
+        }
+      ]
+    }
+  ]
+}

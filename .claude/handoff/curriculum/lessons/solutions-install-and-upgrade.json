@@ -1,0 +1,296 @@
+{
+ "id": "solutions-install-and-upgrade",
+ "icon": "⬆️",
+ "estMinutes": 10,
+ "title": "Install one, then ship version two",
+ "desc": "The three-step wizard, the grants you should refuse, and an upgrade that never deletes.",
+ "gate": {
+  "feature": [
+   "projects",
+   "blueprint_packaging"
+  ]
+ },
+ "learningGoal": "After this lesson you can install a Blueprint safely — refusing the grants that do not belong to it — and apply an upgrade knowing exactly what it will and will not do.",
+ "steps": [
+  {
+   "type": "slide",
+   "id": "wizard",
+   "icon": "🧳",
+   "title": "The install is where you can give yourself away",
+   "bodyMd": "Installing someone else's work is the one moment where you can hand over power over your own account without noticing. A Blueprint can ask that one of its pages be allowed to send mail — and that page's tools will run as **you**, not as whoever wrote it.\n\nThree screens stand between you and that. This lesson is about reading them instead of pressing **Next**.\n\nWe do it together on one case. Van Dijk Techniek is the finance team of **Van Dijk Groep**, and the parent company has just published its **Inkoopfacturen** Blueprint."
+  },
+  {
+   "type": "slide",
+   "id": "blueprint",
+   "icon": "📦",
+   "title": "What you are installing, and where it comes from",
+   "bodyMd": "A Blueprint is a Solution written down — its routines, apps, webpages and the links between them — kept on this instance, downloaded as a `.json` file, or both.\n\nTwo routes into it, both from **Studio → Solutions**:\n\n- the **Catalogue** tab — the Blueprints kept on this instance, scoped to your own organisation. There is no Bee Flow-wide store, so a Blueprint from another organisation reaches you as a file.\n- the **Install a Blueprint** button, which takes a `.json` file.\n\nEither way the same modal opens, titled **Install a Blueprint**, counting itself off as *1/3*, *2/3*, *3/3*:\n\n1. **What is in it**\n2. **Connect it up**\n3. **Who can reach it**\n\nUnder every one of those steps sits the same footer line: **\"Everything arrives as a draft.\"**"
+  },
+  {
+   "type": "quiz",
+   "id": "q-source",
+   "icon": "🪪",
+   "question": "Step 1 shows: \"This file says it was published by \"Van Dijk Groep\", version 3.\" How much does that line prove?",
+   "multi": false,
+   "choices": [
+    {
+     "id": "a",
+     "label": "Nothing on its own — it is text inside the file, and anyone who can edit the file can change it.",
+     "correct": true
+    },
+    {
+     "id": "b",
+     "label": "It proves the file came from Van Dijk Groep, because the server verified the publisher before showing it.",
+     "correct": false,
+     "feedback": "For a file someone handed you there is nothing to verify against. The line is repeated back from the file itself; the wizard prints a warning next to it for exactly that reason."
+    },
+    {
+     "id": "c",
+     "label": "It proves the version number, even if the publisher's name could be faked.",
+     "correct": false,
+     "feedback": "The version sits in the same claim block as the name. If one half can be edited, so can the other."
+    },
+    {
+     "id": "d",
+     "label": "It proves nothing about the publisher but guarantees the contents have not been altered.",
+     "correct": false,
+     "feedback": "There is no signature over the contents. A claim about who wrote something says nothing about what is inside it."
+    }
+   ],
+   "explanation": "The wizard prints the warning itself: \"That is what the file says about itself — anyone who can edit the file can change it. Check with whoever sent it.\" Installing from the **Catalogue** is different: that Blueprint is a real row on this instance, and the server decides what you may read. A file that arrives by e-mail carries only its own word."
+  },
+  {
+   "type": "slide",
+   "id": "holes",
+   "icon": "🕳️",
+   "title": "Step 2 fills holes the file left on purpose",
+   "bodyMd": "Step 2 opens with: *\"None of this travelled with the file. Answer what you can here; anything you leave can be set in the Solution afterwards.\"*\n\nThose gaps are deliberate. The parent company's supplier rows, its mail credential and its approver seats stayed behind. Three row types appear:\n\n- **A table for \"inkoopfacturen\"** — pick one of your tables, or **Create an empty table**. The row tells you where the hole is: *step 6 · in Factuurintake*.\n- **A credential for this request** — pick one of your connections, or **Leave it unset**.\n- **Who approves here** — pick a person or group, or **Leave it to the Solution's owner**.\n\nA thing you supply here is called a resolution, and it only ever fills a hole — it never overwrites a step that already points somewhere."
+  },
+  {
+   "type": "quiz",
+   "id": "q-grants",
+   "icon": "🔑",
+   "question": "Further down step 2 sits \"What the file asks its pages to be allowed to do\", with a tick box reading \"Let \"Factuurportaal\" use gmail_compose\". What are you actually agreeing to?",
+   "multi": false,
+   "choices": [
+    {
+     "id": "a",
+     "label": "That the page may send mail as you — its tools run as whoever installed it.",
+     "correct": true
+    },
+    {
+     "id": "b",
+     "label": "That the page may send mail as the person who published the Blueprint.",
+     "correct": false,
+     "feedback": "The publisher's account is not involved at all. The wizard says it plainly: a page's tools run as whoever installed it — here, you."
+    },
+    {
+     "id": "c",
+     "label": "Nothing yet — ticking it only records a wish that an administrator approves later.",
+     "correct": false,
+     "feedback": "There is no later approval step. The intro says it plainly: the wizard hands the grant over on your behalf, which is why it is a tick box and not a default."
+    },
+    {
+     "id": "d",
+     "label": "That the page may send mail as whichever visitor is using it at the time.",
+     "correct": false,
+     "feedback": "Visitors bring no credentials. The page's tools always act with one account: the installer's."
+    }
+   ],
+   "explanation": "The wizard says it in the intro: \"A page's tools run as whoever installed it, so installing grants none of these. Tick the ones you want to hand over yourself.\" Install writes an empty integration grant list every time — a tool name is authority. The box is only tickable where the row says **Connected to your account**. Tick only what you would have granted anyway."
+  },
+  {
+   "type": "slide",
+   "id": "drafts",
+   "icon": "😴",
+   "title": "It arrives asleep, and that is the safe default",
+   "bodyMd": "Press **Install** and the last panel says **\"Installed.\"** — plus, if something was left out, **\"Not installed: {kind} — {why}\"**, any warnings, and a list headed **\"Still to grant, on the pages themselves\"**.\n\nWhat you now have is inert on purpose:\n\n- routines land **inactive drafts** — no schedule fires\n- webpages land **unpublished** — no one can reach them\n- letting anonymous visitors spend your AI budget is **off**, whatever the file asked for\n- the pages' integration grants are **empty**, always\n\nSo the Van Dijk Techniek controller who installs **Inkoopfacturen** on Monday and waits for invoices to appear on Tuesday will wait forever. Press **Open it**, walk the Content tab, and switch on the pieces you actually want — one at a time."
+  },
+  {
+   "type": "slide",
+   "id": "licence",
+   "icon": "🧾",
+   "title": "A missing licence skips a kind, quietly",
+   "bodyMd": "One failure mode is easy to miss, because it does not look like a failure.\n\nIf the organisation installing the Blueprint is not licensed for a kind of thing the file carries, that kind is **skipped, not refused**. The install still succeeds, and those entities land in the report with a plain reason: *\"App Studio is not part of this plan.\"*, *\"Webpages are not part of this plan.\"*, *\"Tables are not part of this plan.\"*\n\nSo if Van Dijk Techniek's plan does not include App Studio, **Inkoopfacturen** installs with its routine and its table but without the controller's screen. The **Not installed** list on the last panel is the only place that is ever said."
+  },
+  {
+   "type": "quiz",
+   "id": "q-report",
+   "icon": "📋",
+   "question": "The last panel reads \"Installed.\" and under it \"Not installed: app — App Studio is not part of this plan.\" You press Open it, and the Content tab shows the routine and the table. What has actually happened?",
+   "multi": false,
+   "choices": [
+    {
+     "id": "a",
+     "label": "The controller's screen was never created, and that line is the only notice you will ever get — the install itself counted as a success.",
+     "correct": true
+    },
+    {
+     "id": "b",
+     "label": "The install failed halfway, so running it again once the plan is upgraded will finish the job.",
+     "correct": false,
+     "feedback": "Nothing failed. A kind outside the plan is skipped and the rest installs, which is why the panel still says \"Installed.\" There is no half-finished install waiting to be resumed — after the plan changes you install the Blueprint again, and read the report again."
+    },
+    {
+     "id": "c",
+     "label": "The screen exists but stays hidden until the plan includes App Studio, so it appears by itself when the licence changes.",
+     "correct": false,
+     "feedback": "Skipped means not created. Nothing is parked waiting for a licence — the Content tab is showing you everything this Solution actually contains."
+    },
+    {
+     "id": "d",
+     "label": "The Check tab will flag the missing screen, so the report is a convenience rather than the only warning.",
+     "correct": false,
+     "feedback": "The Check runs over the things the Solution actually holds. An entity that was never created is not a finding, it is simply absent — so the Check will look perfectly healthy."
+    },
+    {
+     "id": "e",
+     "label": "The routine that fed that screen was skipped along with it, so nothing from the app half installed.",
+     "correct": false,
+     "feedback": "Skipping is per kind, not per chain: the routine and the table are licensed, so they installed. That is exactly what makes this quiet — the Solution looks like it works."
+    }
+   ],
+   "explanation": "A licence miss is quiet by design: the entity is reported as skipped with its reason, the install still reports \"Installed.\", and nothing says it again afterwards. Reading the **Not installed** list before you press **Open it** is the difference between knowing on Monday and someone going looking for a screen six weeks later."
+  },
+  {
+   "type": "exercise",
+   "id": "ex-handover",
+   "icon": "✍️",
+   "exerciseId": "ex-solutions-install-handover",
+   "title": "Your turn: the note you send back",
+   "instruction": "You have just installed Inkoopfacturen at Van Dijk Techniek. The last panel read \"Installed.\", with one line under it: \"Not installed: app — App Studio is not part of this plan.\" Write the short note (4–6 sentences) you send to your own finance lead. It has to say what you supplied in Connect it up; which grant you refused and why it would have run as you; that everything arrived as a draft and what still has to be switched on by hand; and what that Not installed line means for the screen she is expecting. Name the real screens and buttons.",
+   "placeholder": "e.g. I installed Inkoopfacturen from the Catalogue this morning. In \"Connect it up\" I chose Create an empty table for \"inkoopfacturen\" and set Anke as the approver, and left the HTTP credential unset for now…",
+   "passScore": 70,
+   "maxAttempts": 4
+  },
+  {
+   "type": "sim",
+   "id": "sim-order",
+   "icon": "🧩",
+   "title": "Put the Van Dijk Techniek install in order",
+   "instruction": "The controller has the Inkoopfacturen Blueprint in the Catalogue. Drag these five moves into the order that gets her to a working Solution without handing over anything she did not mean to.",
+   "sim": {
+    "kind": "order",
+    "items": [
+     {
+      "id": "read",
+      "label": "Read \"What it brings\" and \"What this Blueprint does not carry\", and name the Solution"
+     },
+     {
+      "id": "connect",
+      "label": "Choose a table for \"inkoopfacturen\", pick an approver, and tick only the grants she wants to hand over"
+     },
+     {
+      "id": "access",
+      "label": "Add the group Administratie as Can view, then press Install"
+     },
+     {
+      "id": "activate",
+      "label": "Open it and take the invoice routine out of draft"
+     },
+     {
+      "id": "verify",
+      "label": "Open the Check tab and clear anything under \"Has to be fixed first\""
+     }
+    ],
+    "solution": [
+     "read",
+     "connect",
+     "access",
+     "activate",
+     "verify"
+    ],
+    "feedback": "The wizard's own order is 1 What is in it, 2 Connect it up, 3 Who can reach it — and access is the last thing you decide before pressing Install, not the first. Activating comes after the install because nothing is running yet; verifying comes last because a resolution you left blank installs a hole quite happily, and the Check tab is where that shows up before a run fails."
+   }
+  },
+  {
+   "type": "slide",
+   "id": "upgrade",
+   "icon": "🧮",
+   "title": "Version two: read the plan before you press",
+   "bodyMd": "Months later the parent company publishes **v4**. On the installed copy the owner sees a banner: *\"Version 4 of the Blueprint this Solution came from is available. You have version 3.\"* with **See what would change**.\n\nThe plan sorts every item into five groups. Three of them describe what moves:\n\n- **things are replaced by the new version** — *\"You have not touched these since you installed them.\"*\n- **things are added**\n- **things you changed stay as they are** — *\"Your version is kept — the update does not write over it.\"*\n\nSo the controller's restyled invoice page survives the upgrade precisely because she edited it."
+  },
+  {
+   "type": "slide",
+   "id": "upgrade-left",
+   "icon": "🪨",
+   "title": "The two groups that mean \"we left it alone\"",
+   "bodyMd": "The other two groups are the ones people misread.\n\n- **things stay as they are** — *\"a table or knowledge base is never rewritten because it holds live data, and anything the update could not read is left alone rather than guessed at\"*. That is not a statement that you did not change them.\n- **things you deleted are not brought back** — *\"Deleting them was a decision, so the update leaves them out.\"*\n\nNothing is ever deleted by an upgrade. Every row in the controller's table stays; a routine the new version dropped simply stays behind, and you remove it yourself. Press **Update it** and read **\"Updated. 2 replaced, 1 added.\"**"
+  },
+  {
+   "type": "action",
+   "id": "do-install",
+   "icon": "🏗️",
+   "checkId": "blueprint-installed",
+   "title": "Install one for real — we'll verify it",
+   "instruction": "Open Studio → Solutions. On the Catalogue tab press Install on any Blueprint, or use Install a Blueprint with a .json file a colleague sent you. Walk all three steps, tick no grant you are not sure about, and press Install. Then press Open it and take one piece out of draft.",
+   "launch": {
+    "navigateTo": "studio/solutions",
+    "label": "Open Solutions"
+   }
+  },
+  {
+   "type": "slide",
+   "id": "wrap",
+   "icon": "✅",
+   "title": "What you can do now",
+   "bodyMd": "- **Install without handing over authority.** Step 2's grant list asks for power over *your* account, because a page's tools run as whoever installed it. Tick what you would have granted anyway, and nothing else.\n- **Read the report before you press Open it.** Everything arrives as a draft — routines inactive, pages unpublished, public AI off, grants empty — and a kind outside your plan is skipped in silence, named only in the **Not installed** list.\n- **Upgrade without illusions.** Untouched things are replaced, things you edited are kept, tables are left alone, and nothing is ever deleted.\n- **Who may do this.** There is no Solutions permission to ask an admin for: installing needs the licence, and **Publish**, **Export** and **Update it** need you to be the Solution's *owner*."
+  }
+ ],
+ "rubrics": {
+  "ex-solutions-install-handover": {
+   "title": "Handover note after installing a Blueprint",
+   "task": "Write a 4–6 sentence note to a colleague describing an install of the Inkoopfacturen Blueprint whose last panel read 'Installed.' plus 'Not installed: app — App Studio is not part of this plan.': what was supplied in the Connect it up step, which tool grant was refused and why, that everything arrived as a draft plus what still needs switching on, and what that Not installed line means for the screen the finance lead expects.",
+   "criteria": [
+    "Names at least one concrete resolution supplied in step 2 — a table (existing or Create an empty table), a credential, or an approver — rather than saying 'I filled it in'.",
+    "States that a page's tool grants run as the installer's own account, and that one was deliberately refused or left for later.",
+    "Says the Solution arrived as a draft and names something that must be activated by hand (an inactive routine, an unpublished page).",
+    "Reports the Not installed line in its own terms: the App Studio screen was never created because that kind is outside this plan, and nothing will say so again.",
+    "Reads as a note to a named colleague about this install — concrete, 4–6 sentences — rather than a summary of how installs work in general."
+   ],
+   "passScore": 70,
+   "guidance": "Do not pass a note that treats the install as finished and running, that says grants act as the publisher or as the visitor, that claims the Blueprint brought data (rows, documents, credentials) with it, or that leaves the finance lead still expecting the App Studio screen. Treating the skipped kind as a failed install that can be resumed also fails. Accept British or American spelling and a note written in Dutch."
+  }
+ },
+ "practiceTopic": {
+  "title": "Installing and upgrading a Blueprint",
+  "summary": "How the three-step install wizard works, what it refuses to grant on your behalf, and what an upgrade will and will not touch.",
+  "facts": [
+   "The install wizard has three steps — What is in it, Connect it up, Who can reach it — and every step carries the footer 'Everything arrives as a draft.'; you reach it from the Catalogue tab (your own organisation's Blueprints) or from Install a Blueprint with a .json file.",
+   "Step 2 collects resolutions: 'A table for \"{key}\"' (Choose a table… or Create an empty table), 'A credential for this request' (or Leave it unset), 'Who approves here' (or Leave it to the Solution's owner) — and a resolution only fills a hole, it never overwrites a step that is already wired.",
+   "Everything arrives inert: routines as inactive drafts, webpages unpublished, anonymous AI spend off, and the pages' integration grants empty — a page's tools run as whoever installed it, so the wizard lists those grants unticked for the installer to hand over by hand.",
+   "The provenance line 'This file says it was published by …' is a claim inside the file; the wizard warns that anyone who can edit the file can change it.",
+   "An upgrade replaces untouched entities, keeps ones you edited, adds new ones, never rewrites a table or knowledge base, and never deletes anything.",
+   "If a kind of entity is outside the installing organisation's plan it is skipped rather than refused, and reported as 'Not installed: … — App Studio is not part of this plan.'"
+  ]
+ },
+ "actionChecks": [
+  {
+   "checkId": "blueprint-installed",
+   "existing": false,
+   "label": "Install a Blueprint",
+   "hint": "In Studio → Solutions, install a Blueprint from the Catalogue tab or from a .json file with Install a Blueprint.",
+   "endpoints": [
+    {
+     "method": "GET",
+     "path": "/api/projects",
+     "returns": "array of project rows with id, name, ownerId, installedFromBlueprintId, installedVersion, permission"
+    }
+   ],
+   "criteria": [
+    {
+     "id": "installed",
+     "label": "A Solution that came from a Blueprint exists",
+     "hint": "Walk all three wizard steps and press Install — the new Solution appears on the Installed tab.",
+     "rule": "at least one row from GET /api/projects has a non-empty installedFromBlueprintId"
+    },
+    {
+     "id": "owned",
+     "label": "You are its owner",
+     "hint": "You install as the owner, so use your own account rather than opening one a colleague installed.",
+     "rule": "that same row has ownerId equal to the learner's user id"
+    }
+   ]
+  }
+ ]
+}

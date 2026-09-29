@@ -1,0 +1,292 @@
+import React, { useState } from 'react';
+import OrgInfoPanel, { SECTIONS as INFO_SECTIONS } from '../../components/admin/org/OrgInfoPanel';
+import OrgUsersPanel from '../../components/admin/org/OrgUsersPanel';
+import OrgAcademyPanel from './OrgAcademyPanel';
+import N8nSection from './N8nSection';
+import UsageSection from './UsageSection';
+import GitHubSyncPanel from '../../components/integrations/github/GitHubSyncPanel';
+import NextcloudSyncPanel from '../../components/integrations/nextcloud/NextcloudSyncPanel';
+import MeetingNotesAdminPanel from '../../components/meetings/MeetingNotesAdminPanel';
+import GoogleMeetAdminPanel from '../../components/meetings/GoogleMeetAdminPanel';
+import SummaryTemplatesAdminPanel from '../../components/meetings/SummaryTemplatesAdminPanel';
+import OrgNcIntegrationsPanel from '../../components/integrations/nextcloud/OrgNcIntegrationsPanel';
+import OrgNcPairingPanel from '../../components/integrations/nextcloud/OrgNcPairingPanel';
+import GroupAccessMatrix from '../../components/admin/org/GroupAccessMatrix';
+import Tabs from '../../components/shared/Tabs';
+import { API_BASE, authFetch } from '../../utils/helpers';
+import { useTranslation } from '../../hooks/useTranslation';
+
+/* ── Google Maps integration card ────────────────────────────────────────── */
+const GoogleMapsRow = () => {
+    const { t } = useTranslation();
+    const [key, setKey] = useState('');
+    const [saving, setSaving] = useState(false);
+    const [hasKey, setHasKey] = useState(false);
+    const [open, setOpen] = useState(false);
+
+    React.useEffect(() => {
+        authFetch(`${API_BASE}/ai/config`)
+            .then(r => r.json())
+            .then(d => setHasKey(!!d.hasGoogleMapsKey))
+            .catch(() => {});
+    }, []);
+
+    const save = async () => {
+        if (!key.trim()) return;
+        setSaving(true);
+        try {
+            const res = await authFetch(`${API_BASE}/ai/config`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ googleMapsApiKey: key }),
+            });
+            if (res.ok) { setHasKey(true); setKey(''); setOpen(false); }
+        } catch (e) { console.error(e); }
+        setSaving(false);
+    };
+
+    return (
+        <div>
+            <button
+                className="w-full flex items-center gap-3 px-5 py-3.5 text-left transition-colors"
+                style={{ background: 'var(--bg-secondary)' }}
+                onClick={() => setOpen(v => !v)}
+                onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-tertiary)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'var(--bg-secondary)'}
+            >
+                <div className="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0">
+                    <svg viewBox="0 0 24 24" fill="none" style={{ width: '18px', height: '18px' }}>
+                        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#EA4335" />
+                        <circle cx="12" cy="9" r="2.5" fill="#fff" />
+                    </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>Google Maps</p>
+                    <p className="text-[11px] truncate" style={{ color: 'var(--text-muted)' }}>
+                        {hasKey ? t('org.integ_maps_configured') : t('org.integ_maps_desc')}
+                    </p>
+                </div>
+                {hasKey && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded font-medium flex-shrink-0"
+                        style={{ background: 'rgba(5,150,105,0.1)', color: '#059669' }}>{t('settings.connected')}</span>
+                )}
+                <svg className="flex-shrink-0" style={{ color: 'var(--text-muted)', width: '13px', height: '13px', transition: 'transform 150ms', transform: open ? 'rotate(90deg)' : 'none' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+            </button>
+            {open && (
+                <div className="px-5 pb-4 pt-2 space-y-2" style={{ background: 'var(--bg-secondary)', borderTop: '1px solid var(--border-subtle)' }}>
+                    <div className="flex gap-2">
+                        <input
+                            type="password" value={key} onChange={e => setKey(e.target.value)}
+                            placeholder={hasKey ? '••••••••••••••••' : t('org.integ_maps_desc')}
+                            className="flex-1 px-3 py-2 rounded-lg border outline-none text-[13px]"
+                            style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                            onKeyDown={e => e.key === 'Enter' && save()}
+                        />
+                        <button onClick={save} disabled={saving || !key.trim()}
+                            className="px-4 py-2 rounded-lg text-[13px] font-medium text-white disabled:opacity-40"
+                            style={{ background: 'var(--accent-primary)' }}>
+                            {saving ? '…' : t('org.save_changes')}
+                        </button>
+                    </div>
+                    <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                        Enable <strong>Directions API</strong>, <strong>Places API</strong> &amp; <strong>Maps Embed API</strong> in{' '}
+                        <a href="https://console.cloud.google.com/apis/library" target="_blank" rel="noopener noreferrer"
+                            className="underline" style={{ color: 'var(--accent-primary)' }}>Google Cloud Console</a>
+                    </p>
+                </div>
+            )}
+        </div>
+    );
+};
+
+/* ── OrganisationSection ─────────────────────────────────────────────────── */
+// activeSection is now controlled entirely by the parent sidebar.
+// Possible values: 'license' | 'auth' | 'privacy' | 'info' | 'users' | 'integrations'
+const OrganisationSection = ({ user, activeSection = 'license', usageInitialReport = '' }) => {
+    const { t } = useTranslation();
+    const [orgState, setOrgState] = useState({ hasChanges: false, saving: false, message: null, handleSave: null });
+    // Integrations sub-tab: 'access' (who can use which integration) | 'settings' (provider credentials / instance URLs)
+    const [intTab, setIntTab] = useState('access');
+
+    const perms = user?.permissions || [];
+    const isFullAdmin = perms.includes('all') || perms.some(p => p.startsWith('admin_'));
+    const isOrgAdmin = perms.includes('org_admin') || isFullAdmin;
+
+    const ei = user?.enabledIntegrations;
+    const showN8n = !ei || ei.includes('n8n');
+    const showGoogleMaps = !ei || ei.includes('google-maps');
+    // NC-bound orgs get an additional org-admin panel for Nextcloud
+    // integration management (Fase G). Standalone orgs never see it.
+    const isNcOrg = !!user?.ncOrg?.instanceId;
+
+    const isInfoSection = INFO_SECTIONS.some(s => s.id === activeSection);
+    // The Privacy Shield owns its own save bar, and has to: Save must be
+    // DISABLED when the config could not be loaded, and hidden entirely in
+    // read-only mode — neither of which this generic bar can know. Rendering
+    // both put two save affordances on one screen, and this one did nothing
+    // (OrgShieldEditor never calls onStateChange), so the button that looked
+    // like the primary action was the inert one.
+    const showOrgSaveBar = isInfoSection && activeSection !== 'privacy';
+
+    return (
+        <div>
+            {/* Save bar — shown above content when info section has changes */}
+            {showOrgSaveBar && (orgState.hasChanges || orgState.saving || orgState.message) && (
+                <div
+                    className="flex items-center gap-3 px-4 py-2.5 rounded-xl mb-4"
+                    style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)' }}
+                >
+                    {orgState.message && (
+                        <span className={`text-[12px] font-medium flex items-center gap-1.5 ${orgState.message.type === 'success' ? 'text-green-600' : 'text-red-500'}`}>
+                            {orgState.message.type === 'success' ? '✓' : '⚠'} {orgState.message.text}
+                        </span>
+                    )}
+                    {orgState.hasChanges && !orgState.message && (
+                        <span className="text-[12px] font-medium flex items-center gap-1.5" style={{ color: '#d97706' }}>
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0" />
+                            {t('org.unsaved_changes')}
+                        </span>
+                    )}
+                    <div className="flex-1" />
+                    <button
+                        onClick={() => orgState.handleSave?.()}
+                        disabled={orgState.saving || !orgState.hasChanges}
+                        className="px-4 py-1.5 rounded-lg text-[13px] font-medium text-white transition-all disabled:opacity-40"
+                        style={{ background: 'var(--accent-primary)' }}
+                    >
+                        {orgState.saving ? t('org.saving') : t('org.save_changes')}
+                    </button>
+                </div>
+            )}
+
+            {/* Org info sub-sections */}
+            {isInfoSection && (
+                <OrgInfoPanel
+                    user={user}
+                    activeSection={activeSection}
+                    onStateChange={setOrgState}
+                />
+            )}
+
+            {/* Users & Groups */}
+            {activeSection === 'users' && (
+                <OrgUsersPanel user={user} />
+            )}
+
+            {/* Academy — org learning overview */}
+            {activeSection === 'academy' && isOrgAdmin && (
+                <OrgAcademyPanel user={user} />
+            )}
+
+            {/* Usage & Monitoring */}
+            {activeSection === 'usage' && (
+                <UsageSection initialReport={usageInitialReport} />
+            )}
+
+            {/* Integrations */}
+            {activeSection === 'integrations' && isOrgAdmin && (
+                <div className="space-y-4">
+                    <div>
+                        <p className="text-[11px] font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>
+                            {t('org.integ_title')}
+                        </p>
+                        <p className="text-[12px] mb-4" style={{ color: 'var(--text-muted)' }}>
+                            {t('org.integ_subtitle')}
+                        </p>
+                    </div>
+                    <Tabs
+                        value={intTab}
+                        onChange={setIntTab}
+                        ariaLabel={t('org.integ_title')}
+                        items={[
+                            { id: 'access', label: t('org.integ_tab_access') },
+                            { id: 'settings', label: t('org.integ_tab_settings') },
+                        ]}
+                    />
+
+                    {/* Integration access — the integrations the subscription
+                        enables (MCP servers included as ordinary integrations).
+                        The org-admin grants each to the whole organisation or a
+                        specific group right here. */}
+                    {intTab === 'access' && (
+                        <GroupAccessMatrix
+                            kinds={['integration']}
+                            hideLocked
+                            heading="Integration access"
+                            subtitle="Give an integration to your whole organisation or to a specific group. These are the integrations your subscription includes."
+                        />
+                    )}
+
+                    {/* Integration settings — configure the integrations
+                        themselves (credentials, instance URLs, workflows). */}
+                    {intTab === 'settings' && (
+                        <div className="space-y-4">
+                            <div className="rounded-xl px-5 py-3 flex items-start gap-3" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)' }}>
+                                <svg className="flex-shrink-0 mt-0.5" style={{ width: 16, height: 16, color: '#3b82f6' }} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
+                                    Configure the integrations themselves — credentials, instance URLs and workflows.
+                                </p>
+                            </div>
+
+                            {/* Provider configuration (Nextcloud, n8n, Google Maps) */}
+                            <div className="space-y-4">
+                                {isNcOrg && <OrgNcIntegrationsPanel user={user} />}
+                                {!showN8n && !showGoogleMaps && !isNcOrg ? (
+                                    <div className="rounded-xl px-5 py-4" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)' }}>
+                                        <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>
+                                            {t('org.integ_none')}
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border-subtle)' }}>
+                                        {showN8n && (
+                                            <div style={{ borderBottom: showGoogleMaps ? '1px solid var(--border-subtle)' : 'none' }}>
+                                                <div className="flex items-center gap-3 px-5 py-3.5" style={{ background: 'var(--bg-secondary)' }}>
+                                                    <img src="/n8n-color.png" alt="n8n" style={{ width: '20px', height: '20px', objectFit: 'contain', flexShrink: 0 }} />
+                                                    <div className="flex-1">
+                                                        <p className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>n8n</p>
+                                                        <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{t('org.integ_n8n_desc')}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="px-5 pb-4" style={{ background: 'var(--bg-secondary)' }}>
+                                                    <N8nSection />
+                                                </div>
+                                            </div>
+                                        )}
+                                        {showGoogleMaps && <GoogleMapsRow />}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* GitHub Sync */}
+            {activeSection === 'github_sync' && isOrgAdmin && (
+                <GitHubSyncPanel user={user} />
+            )}
+
+            {/* Nextcloud Sync */}
+            {activeSection === 'nextcloud_sync' && isOrgAdmin && (
+                <>
+                    {(isNcOrg || isFullAdmin) && <OrgNcPairingPanel />}
+                    <NextcloudSyncPanel user={user} />
+                    <MeetingNotesAdminPanel user={user} />
+                    <GoogleMeetAdminPanel user={user} />
+                </>
+            )}
+
+            {/* Meeting Notes summary templates (org + group) */}
+            {activeSection === 'meeting_templates' && isOrgAdmin && (
+                <SummaryTemplatesAdminPanel />
+            )}
+        </div>
+    );
+};
+
+export default OrganisationSection;

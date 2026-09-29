@@ -1,0 +1,31 @@
+{
+ "id": "14-compose-invoice-tracker-english",
+ "title": "PB Invoice tracker (compose, English)",
+ "describe": "Read the PDF invoices in the Nextcloud folder /Invoices-Q3 into a table with invoice date, supplier, invoice number, amount excl. VAT, VAT and total. Build an app with a dashboard: count of invoices, sum of totals, a table of all invoices with a filter on supplier, and a detail screen per invoice.",
+ "locale": "en",
+ "options": {
+  "tableMode": "new",
+  "tier": "fast",
+  "locale": "en"
+ },
+ "until": "table",
+ "note": "`until` matches the phase KEY or its KIND (drive-playbook.js), so the run stops after the table phase however the model keyed it; read `until <key> (table): stopping here` in the notes to know the cheap gate held. The driver breaks BEFORE the consent patch, so the phase is reported `awaiting` (the server only moves a table phase running → awaiting; `done` is the person's consent) — hence the two accepted statuses, as in 07. The judge evaluates expect.compose on the composed document and expect.phases.table on the phase (falls back to the kind).",
+ "expect": {
+  "compose": {
+   "kinds": [
+    "table",
+    "routine",
+    "fill",
+    "design",
+    "app"
+   ],
+   "minColumns": 5
+  },
+  "phases": {
+   "table": [
+    "awaiting",
+    "done"
+   ]
+  }
+ }
+}

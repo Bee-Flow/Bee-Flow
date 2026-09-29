@@ -1,0 +1,18 @@
+{
+  "modeOverride": null,
+  "fallback": {
+    "enabled": true,
+    "maxScenarios": 4
+  },
+  "fallbackVerdictPolicy": "fail-with-label",
+  "models": {
+    "generate": "claude-sonnet-5",
+    "agentic": "claude-sonnet-5",
+    "analyze": "claude-haiku-4-5"
+  },
+  "agentic": {
+    "maxSteps": 60,
+    "actionTimeoutMs": 15000,
+    "vision": true
+  }
+}

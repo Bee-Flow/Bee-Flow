@@ -1,0 +1,1300 @@
+# Production release flow (manual run, channel=prod):
+#   build (push :latest + :prod + :sha-<fullsha>) → release (GitHub Release)
+# NOTE: the automated E2E smoke gate is intentionally NOT wired in here yet. The
+# harness lives under e2e/ and its reusable workflow (.github/workflows/e2e-smoke.yml)
+# can be run manually (workflow_dispatch); it is not triggered by this build.
+name: Build & Push to GHCR
+
+on:
+  # Merging to main publishes a DEV release: :dev + :dev-sha-<sha>.
+  # main only. `develop` stood here too, but no such branch exists; a branch
+  # pushed under that name later would have published :dev images that never
+  # went through a PR.
+  push:
+    branches: [main]
+  # PRODUCTION release is a manual run only — pick channel=prod. Builds push
+  # :latest + :prod + :sha-<sha> directly.
+  # Defaults to channel=dev so an accidental manual run never ships to production.
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: 'Release channel — dev (ad-hoc dev build) or prod (PRODUCTION release → :latest/:prod, only from main)'
+        type: choice
+        options: [dev, prod]
+        default: dev
+        required: true
+      version:
+        description: 'Version/tag for the GitHub Release (prod only, e.g. v1.5.0). Leave blank to auto-name prod-YYYY.MM.DD-<run>.'
+        default: ''
+        required: false
+      services:
+        description: 'Services to build: "all" or comma-separated (server,agent-hub,search,guard,pii,classify,whisperx,wizard,reranker,pwt-runner)'
+        default: 'server,agent-hub'
+        required: true
+
+# Tags by trigger:
+#   push main, or manual channel=dev          → :dev + :dev-sha-<sha>          (release_dev)
+#   manual channel=prod (main only)           → :latest + :prod + :sha-<sha>   (release_prod)
+# Only build services whose source changed (push) or were explicitly selected (manual run)
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ghcr.io/bee-flow
+
+# Default for jobs without their own block (the `changes` job). Build jobs
+# declare their own permissions (packages: write etc.), which replace this.
+permissions:
+  contents: read
+
+# Third-party actions are pinned to a full commit, the version in a comment:
+# every build job holds packages: write (it can overwrite :prod), and a tag
+# can be moved or deleted upstream — trivy-action's were. Dependabot's
+# github-actions entry proposes the next SHA. First-party actions/* stay on
+# their major tags.
+
+concurrency:
+  # Prod releases serialize in one shared group; dev runs get a unique group
+  # (run_id) so parallel dev builds behave exactly as before.
+  group: ${{ github.event_name == 'workflow_dispatch' && inputs.channel == 'prod' && 'ghcr-prod-release' || format('ghcr-{0}-{1}', github.ref, github.run_id) }}
+  cancel-in-progress: false
+
+jobs:
+  # Every job has a timeout-minutes of at least twice its longest measured run
+  # (40 runs up to 2026-09-23: changes, release-notes and release ≤1 min, CPU
+  # images 1-5, guard 8-13 with a warm cache). search-gpu and whisperx have
+  # never finished a build, so theirs allows a cold CUDA build. Without a cap a
+  # stuck push or a retrying blob upload runs to GitHub's 360-minute default.
+  # The `ci` call job cannot take one; ci.yml caps each of its own jobs.
+  # ── Detect changed services ────────────────────────────────
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # actions: read for the tested-tree lookup below; this block replaces the
+    # workflow default, so contents: read is restated.
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      # 'true' when a green pull_request run of ci.yml tested this exact tree,
+      # which lets the `ci` job below be skipped.
+      ci_verified: ${{ steps.verified.outputs.ci_verified }}
+      server:     ${{ steps.filter.outputs.server    || steps.manual.outputs.server }}
+      agent-hub:  ${{ steps.filter.outputs.agent-hub || steps.manual.outputs.agent-hub }}
+      search:     ${{ steps.filter.outputs.search    || steps.manual.outputs.search }}
+      guard:      ${{ steps.filter.outputs.guard     || steps.manual.outputs.guard }}
+      pii:        ${{ steps.filter.outputs.pii       || steps.manual.outputs.pii }}
+      classify:   ${{ steps.filter.outputs.classify  || steps.manual.outputs.classify }}
+      whisperx:   ${{ steps.filter.outputs.whisperx  || steps.manual.outputs.whisperx }}
+      wizard:     ${{ steps.filter.outputs.wizard    || steps.manual.outputs.wizard }}
+      reranker:   ${{ steps.filter.outputs.reranker  || steps.manual.outputs.reranker }}
+      pwt-runner: ${{ steps.filter.outputs.pwt-runner || steps.manual.outputs.pwt-runner }}
+      # Release channel flags consumed by every build job's tag block.
+      release_prod: ${{ steps.flags.outputs.release_prod }}
+      release_dev:  ${{ steps.flags.outputs.release_dev }}
+      # Comma-separated service keys built this run (used for the empty-prod guard below).
+      built_csv: ${{ steps.csv.outputs.built_csv }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      # Resolve the release channel once, so all build jobs tag consistently.
+      #   manual channel=prod (main only) → production (:latest/:prod/:sha)
+      #   everything else (push, or manual channel=dev) → dev (:dev/:dev-sha-*)
+      - id: flags
+        env:
+          EVENT: ${{ github.event_name }}
+          CHANNEL: ${{ inputs.channel }}
+          REF: ${{ github.ref }}
+        run: |
+          PROD=false; DEV=false
+          if [[ "$EVENT" == "workflow_dispatch" && "$CHANNEL" == "prod" ]]; then
+            if [[ "$REF" != "refs/heads/main" ]]; then
+              echo "::error::Production release (channel=prod) must run from 'main' (got $REF)."
+              exit 1
+            fi
+            PROD=true
+          else
+            DEV=true
+          fi
+          echo "release_prod=$PROD" >> "$GITHUB_OUTPUT"
+          echo "release_dev=$DEV"   >> "$GITHUB_OUTPUT"
+          echo "Release flags → prod=$PROD dev=$DEV (event=$EVENT channel=$CHANNEL ref=$REF)"
+      - uses: dorny/paths-filter@0e4a8c6effa4802afeda77dc8d303f8176d7dfad # v3.0.4
+        if: github.event_name == 'push'
+        id: filter
+        with:
+          filters: |
+            server:
+              - 'server/**'
+              # The server image vendors the headless App Studio runtime
+              # bundle compiled from agent-hub sources (see the runtime-bundle
+              # step in the server job). Frontend changes that can alter that
+              # bundle must rebuild the server image too, or the baked bundle
+              # silently drifts from source. src/** is deliberately broad:
+              # the bundle pulls in shared components, utils and the Tailwind
+              # CSS, so a narrower list would rot as imports move.
+              # postcss.config.js is what compiles that CSS (@tailwindcss/postcss);
+              # vite.runtime.config.js sets no inline postcss, so it reads this file.
+              - 'agent-hub/src/**'
+              - 'agent-hub/vite.runtime.config.js'
+              - 'agent-hub/postcss.config.js'
+              - 'agent-hub/package.json'
+              - 'agent-hub/package-lock.json'
+            agent-hub:
+              - 'agent-hub/**'
+            search:
+              - 'search-service/**'
+            guard:
+              - 'guard-service/**'
+            pii:
+              - 'pii-service/**'
+            classify:
+              - 'classify-service/**'
+            whisperx:
+              - 'whisperx-service/**'
+            wizard:
+              - 'install-wizard/**'
+            reranker:
+              - 'reranker/**'
+            pwt-runner:
+              - 'server/pwt-runner/**'
+      - id: manual
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          SVCS: ${{ inputs.services }}
+        run: |
+          # Normalise first. The match below is a literal substring test, so
+          # `server, agent-hub` — with the space a human naturally types —
+          # becomes ",server, agent-hub," and ",agent-hub," does not match it.
+          # agent-hub is then silently NOT built, built_csv is still non-empty
+          # so the fail-fast guard is happy, and a prod release is cut whose
+          # agent-hub image is whatever :prod already pointed at.
+          SVCS="$(echo "$SVCS" | tr -d '[:space:]')"
+          KNOWN="server agent-hub search guard pii classify whisperx wizard reranker pwt-runner"
+          # Reject unknown names outright. A typo used to select nothing and
+          # look like a deliberately narrow build.
+          if [[ "$SVCS" != "all" ]]; then
+            for want in ${SVCS//,/ }; do
+              [[ -z "$want" ]] && continue
+              found=false
+              for k in $KNOWN; do [[ "$k" == "$want" ]] && found=true; done
+              if [[ "$found" != true ]]; then
+                echo "::error::Unknown service '$want'. Known: ${KNOWN// /, }, or 'all'."
+                exit 1
+              fi
+            done
+          fi
+          for s in $KNOWN; do
+            if [[ ",$SVCS," == *",all,"* || ",$SVCS," == *",$s,"* ]]; then
+              echo "$s=true"  >> "$GITHUB_OUTPUT"
+            else
+              echo "$s=false" >> "$GITHUB_OUTPUT"
+            fi
+          done
+      # Assemble the built-services csv (fail-fast guard: a prod run that builds
+      # nothing would otherwise cut a phantom release).
+      # Did ci.yml already pass on exactly this tree? Its pull_request runs
+      # upload an artifact named after the tree they tested (the merge ref).
+      # A squash or merge commit that lands that same tree is byte-for-byte
+      # the code that went green, so running every suite again on the push
+      # only repeats the verdict (~80 runner-minutes a merge). A different
+      # tree (main moved after the PR's last run, a direct push) finds
+      # nothing and runs CI as before. The run must be ci.yml, a
+      # pull_request from this repository, and green; the artifact alone
+      # proves nothing. A prod release always runs the full suite. Any API
+      # failure answers false, never true.
+      - id: verified
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RELEASE_PROD: ${{ steps.flags.outputs.release_prod }}
+        run: |
+          VERIFIED=false
+          TREE=$(git rev-parse 'HEAD^{tree}')
+          if [[ "$RELEASE_PROD" != "true" ]]; then
+            RUNS=$(gh api "repos/$REPO/actions/artifacts?name=ci-tested-tree-$TREE&per_page=50" \
+                     --jq '.artifacts[].workflow_run.id' 2>/dev/null | sort -u || true)
+            for RUN in $RUNS; do
+              META=$(gh api "repos/$REPO/actions/runs/$RUN" \
+                       --jq '[.path, .event, .conclusion, .head_repository.full_name, .html_url] | @tsv' 2>/dev/null || true)
+              IFS=$'\t' read -r WF EVENT CONCLUSION HEAD_REPO URL <<< "$META"
+              if [[ "$WF" == ".github/workflows/ci.yml" && "$EVENT" == "pull_request" \
+                    && "$CONCLUSION" == "success" && "$HEAD_REPO" == "$REPO" ]]; then
+                VERIFIED=true
+                echo "::notice::CI already passed on tree $TREE in $URL; skipping the ci call."
+                break
+              fi
+            done
+          fi
+          [[ "$VERIFIED" == "true" ]] || echo "No green PR run of ci.yml for tree $TREE; the ci call runs."
+          echo "ci_verified=$VERIFIED" >> "$GITHUB_OUTPUT"
+      - id: csv
+        env:
+          # Operator input: a variable in the shell, never spliced into it.
+          SERVICES_INPUT: ${{ inputs.services }}
+          RELEASE_PROD:   ${{ steps.flags.outputs.release_prod }}
+          SERVER:         ${{ steps.filter.outputs.server         || steps.manual.outputs.server }}
+          AGENT_HUB:      ${{ steps.filter.outputs.agent-hub      || steps.manual.outputs.agent-hub }}
+          SEARCH:         ${{ steps.filter.outputs.search         || steps.manual.outputs.search }}
+          GUARD:          ${{ steps.filter.outputs.guard          || steps.manual.outputs.guard }}
+          PII:            ${{ steps.filter.outputs.pii            || steps.manual.outputs.pii }}
+          CLASSIFY:       ${{ steps.filter.outputs.classify       || steps.manual.outputs.classify }}
+          WHISPERX:       ${{ steps.filter.outputs.whisperx       || steps.manual.outputs.whisperx }}
+          WIZARD:         ${{ steps.filter.outputs.wizard         || steps.manual.outputs.wizard }}
+          RERANKER:       ${{ steps.filter.outputs.reranker       || steps.manual.outputs.reranker }}
+          PWT_RUNNER:     ${{ steps.filter.outputs.pwt-runner     || steps.manual.outputs.pwt-runner }}
+        run: |
+          CSV=""
+          for pair in "server:$SERVER" "agent-hub:$AGENT_HUB" "search:$SEARCH" \
+                      "guard:$GUARD" "pii:$PII" "classify:$CLASSIFY" "whisperx:$WHISPERX" \
+                      "wizard:$WIZARD" "reranker:$RERANKER" \
+                      "pwt-runner:$PWT_RUNNER"; do
+            key="${pair%%:*}"; val="${pair#*:}"
+            if [[ "$val" == "true" ]]; then CSV="${CSV:+$CSV,}$key"; fi
+          done
+          echo "built_csv=$CSV" >> "$GITHUB_OUTPUT"
+          echo "Built services this run: ${CSV:-<none>}"
+          # A prod release that builds nothing would cut a phantom GitHub
+          # Release with no images — fail fast instead.
+          if [[ "$RELEASE_PROD" == "true" && -z "$CSV" ]]; then
+            echo "::error::channel=prod selected no buildable services (services='${SERVICES_INPUT}'). Nothing to release."
+            exit 1
+          fi
+
+  # ── Every test and lint job, before any image ─────────────────
+  # ci.yml is the one CI definition (workflow_call); the image jobs below need
+  # it, so a commit that fails a test never becomes a :dev or :prod image.
+  # The grant here is the CEILING for every job in ci.yml: a called workflow
+  # can keep or lower it, never raise it, and a nested job that asks for more
+  # makes GitHub reject the whole run before any job starts — no tests, no
+  # images. ci.yml's `changes` job asks for pull-requests: read (paths-filter
+  # lists a PR's files through the API); every other job there inherits
+  # contents: read. Adding a scope to any job in ci.yml means adding it here.
+  #
+  # Skipped when `changes` found a green PR run on this exact tree. The image
+  # jobs then accept `skipped` only together with ci_verified == 'true', so a
+  # ci call that was skipped for any other reason never lets an image through.
+  ci:
+    needs: changes
+    if: needs.changes.outputs.ci_verified != 'true'
+    uses: ./.github/workflows/ci.yml
+    permissions:
+      contents: read
+      pull-requests: read
+
+  # ── Server ─────────────────────────────────────────────────
+  server:
+    needs: [changes, ci]
+    if: >-
+      ${{ !cancelled() && needs.changes.result == 'success'
+      && (needs.ci.result == 'success' || (needs.ci.result == 'skipped' && needs.changes.outputs.ci_verified == 'true'))
+      && needs.changes.outputs.server == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      # The server's half of the Playwright lockstep (see the pwt-runner job):
+      # its chromium.connect() to the shared browser is refused with HTTP 428
+      # on a version mismatch. A bump of server/package.json alone fires this
+      # job and not pwt-runner's, so the check has to run here too. Not
+      # best-effort: such an image cannot export a PDF.
+      - name: Playwright versions agree (base image, runner, server)
+        run: node scripts/check-playwright-lockstep.mjs
+      # ── App Studio headless runtime bundle (BEST-EFFORT) ─────
+      # The server screenshots Studio apps by serving this bundle into a
+      # network-less Playwright page (server/services/appStudioRender.js).
+      # The server image's build context stays ./server on purpose — widening
+      # it to the repo root would wreck its layer cache and drag the whole
+      # monorepo into every build — so the bundle is compiled HERE on the
+      # runner and staged into server/vendor/app-runtime/ (gitignored), where
+      # the Dockerfile's `COPY . .` picks it up. Best-effort throughout: a
+      # broken frontend build must never block a deployable server image —
+      # without the files the render service degrades to a plain
+      # "screenshots unavailable" answer instead.
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        continue-on-error: true
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: agent-hub/package-lock.json
+      - name: Build App Studio runtime bundle
+        id: runtime-bundle
+        continue-on-error: true
+        working-directory: agent-hub
+        run: |
+          set -euo pipefail
+          npm ci --no-audit --no-fund --prefer-offline
+          npm run build:runtime
+          # The artefact contract is exactly these two files. Refuse to stage
+          # a partial bundle — a truncated .mjs would surface at render time
+          # as an opaque mount failure instead of a clean "unavailable".
+          test -s dist-runtime/app-runtime.mjs
+          test -s dist-runtime/app-runtime.css
+          mkdir -p ../server/vendor/app-runtime
+          cp dist-runtime/app-runtime.mjs dist-runtime/app-runtime.css ../server/vendor/app-runtime/
+          du -h ../server/vendor/app-runtime/*
+      - name: Note missing runtime bundle
+        if: steps.runtime-bundle.outcome != 'success'
+        run: |
+          echo "::warning::App Studio runtime bundle failed to build — this server image ships WITHOUT it; Studio screenshots will report unavailable."
+          echo "Server image built WITHOUT the App Studio runtime bundle (build:runtime failed); Studio screenshots will be unavailable in this image." >> "$GITHUB_STEP_SUMMARY"
+      # ── SBOM — CRA Annex I Part II(1) (BEST-EFFORT) ──────────
+      # The running server must carry a machine-readable bill of materials for
+      # THIS build: server/compliance/lib/sbomLocator.js reads
+      # /app/sbom/cyclonedx.json at run time and the CRA-AnnexI-II1-sbom check
+      # grades it against APP_BUILD_SHA. So the artefact is generated here, for
+      # this commit, and staged into server/sbom/ (gitignored) — the same
+      # staging trick as the runtime bundle above: the Dockerfile's `COPY . .`
+      # carries it into the image without widening the build context.
+      #   • one CycloneDX document per npm workspace, `--package-lock-only`
+      #     (describes the lockfile the image installs from, no install
+      #     needed) and `--omit=dev` (matches `npm ci --omit=dev` in the
+      #     Dockerfile);
+      #   • every document is stamped with the `beeflow:build_sha` property
+      #     (= github.sha, the value baked into APP_BUILD_SHA) so the check can
+      #     prove the SBOM belongs to the running build, plus `beeflow:workspace`;
+      #   • sbom/cyclonedx.json is the SERVER workspace's document — that is
+      #     what the image's own SBOM means; the others ride along for
+      #     questionnaire packs (GET /api/compliance/sbom). Those ride-alongs
+      #     are refreshed only when the server image rebuilds: a lockfile
+      #     change in nextcloud-connector or install-wizard alone does not
+      #     trigger this job, so the copy in the running server can trail
+      #     those trees until the next server build. Deliberate — rebuilding
+      #     the server for another package's lockfile is not worth it, and the
+      #     wizard image carries its own buildkit SBOM (sbom: true below).
+      # Best-effort throughout: without the files the compliance check fails
+      # honestly ("no SBOM found"); a generator hiccup must never block a
+      # deployable server image.
+      - name: Generate SBOM (CycloneDX)
+        id: sbom
+        continue-on-error: true
+        env:
+          BUILD_SHA: ${{ github.sha }}
+          BUILD_REF: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          mkdir -p server/sbom
+          stamp() {
+            node - "$1" "$2" <<'NODE'
+          const fs = require('fs');
+          const [file, workspace] = process.argv.slice(2);
+          const bom = JSON.parse(fs.readFileSync(file, 'utf8'));
+          if (bom.bomFormat !== 'CycloneDX') throw new Error(`${file}: not a CycloneDX document`);
+          bom.metadata = bom.metadata || {};
+          bom.metadata.timestamp = bom.metadata.timestamp || new Date().toISOString();
+          const props = (bom.metadata.properties || []).filter(p => !/^beeflow:/.test(p.name));
+          props.push({ name: 'beeflow:build_sha', value: process.env.BUILD_SHA });
+          props.push({ name: 'beeflow:workspace', value: workspace });
+          if (process.env.BUILD_REF) props.push({ name: 'beeflow:build_ref', value: process.env.BUILD_REF });
+          bom.metadata.properties = props;
+          fs.writeFileSync(file, JSON.stringify(bom));
+          console.log(`${file}: ${(bom.components || []).length} components, build ${process.env.BUILD_SHA.slice(0, 12)}`);
+          NODE
+          }
+          for ws in server agent-hub nextcloud-connector install-wizard; do
+            if [ ! -f "$ws/package-lock.json" ]; then
+              echo "::notice::$ws has no package-lock.json — no SBOM generated for it"
+              continue
+            fi
+            out="server/sbom/${ws}.cyclonedx.json"
+            (cd "$ws" && npm sbom --sbom-format=cyclonedx --package-lock-only --omit=dev) > "$out"
+            stamp "$out" "$ws"
+          done
+          # The image's own SBOM is the server workspace's document.
+          test -s server/sbom/server.cyclonedx.json
+          cp server/sbom/server.cyclonedx.json server/sbom/cyclonedx.json
+          du -h server/sbom/*
+      - name: Note missing SBOM
+        if: steps.sbom.outcome != 'success'
+        run: |
+          echo "::warning::SBOM generation failed — this server image ships WITHOUT /app/sbom/cyclonedx.json; the CRA Annex I Part II(1) check will report no SBOM."
+          echo "Server image built WITHOUT an SBOM (npm sbom failed); the compliance check CRA-AnnexI-II1-sbom will fail on this image." >> "$GITHUB_STEP_SUMMARY"
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
+        with:
+          images: ${{ env.IMAGE_PREFIX }}/server
+          # Prod builds push :latest + :prod + :sha-<sha>; dev builds push :dev + :dev-sha-<sha>.
+          tags: |
+            type=sha,format=long,enable=${{ needs.changes.outputs.release_prod == 'true' }}
+            type=raw,value=latest,enable=${{ needs.changes.outputs.release_prod == 'true' }}
+            type=raw,value=prod,enable=${{ needs.changes.outputs.release_prod == 'true' }}
+            type=raw,value=dev,enable=${{ needs.changes.outputs.release_dev == 'true' }}
+            type=sha,format=long,prefix=dev-sha-,enable=${{ needs.changes.outputs.release_dev == 'true' }}
+      # The month of the DB-IP Lite edition the `geo` stage downloads (server
+      # IP location, server/Dockerfile). As a build-arg it is the cache key:
+      # every build in a month reuses that layer, the first build of a new
+      # month fetches the new edition.
+      - id: geo
+        name: DB-IP Lite edition month
+        run: echo "month=$(date -u +%Y-%m)" >> "$GITHUB_OUTPUT"
+      - uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
+        with:
+          context: ./server
+          push: true
+          provenance: true
+          sbom: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # The ARG sits after `COPY . .` in the Dockerfile, so the per-commit
+          # sha does not invalidate any cached layer that wasn't already stale.
+          build-args: |
+            APP_BUILD_SHA=${{ github.sha }}
+            GEO_DB_MONTH=${{ steps.geo.outputs.month }}
+          cache-from: type=gha,scope=server
+          cache-to:   type=gha,scope=server,mode=max
+
+  # ── Agent Hub (frontend) ───────────────────────────────────
+  agent-hub:
+    needs: [changes, ci]
+    if: >-
+      ${{ !cancelled() && needs.changes.result == 'success'
+      && (needs.ci.result == 'success' || (needs.ci.result == 'skipped' && needs.changes.outputs.ci_verified == 'true'))
+      && needs.changes.outputs.agent-hub == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
+        with:
+          images: ${{ env.IMAGE_PREFIX }}/agent-hub
+          tags: |
+            type=sha,format=long,enable=${{ needs.changes.outputs.release_prod == 'true' }}
+            type=raw,value=latest,enable=${{ needs.changes.outputs.release_prod == 'true' }}
+            type=raw,value=prod,enable=${{ needs.changes.outputs.release_prod == 'true' }}
+            type=raw,value=dev,enable=${{ needs.changes.outputs.release_dev == 'true' }}
+            type=sha,format=long,prefix=dev-sha-,enable=${{ needs.changes.outputs.release_dev == 'true' }}
+      - uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
+        with:
+          context: ./agent-hub
+          push: true
+          provenance: true
+          sbom: true
+          # Pass the commit SHA through to the image build so the UI footer
+          # can show a unique version string per deployment.
+          # OpenObserve RUM: the client token is injected ONLY for prod releases
+          # so dev images never beacon (they build with an empty token → no-op).
+          build-args: |
+            VITE_BUILD_SHA=${{ github.sha }}
+            # OPT-IN, not opt-out. The published image is the one strangers run on
+            # their own hardware, so it ships with the beacon OFF and no build can
+            # turn it on for them. A deployment that WANTS RUM sets
+            # BEEFLOW_TELEMETRY_ENABLED=true on the frontend container — including
+            # ours. See agent-hub/docker-entrypoint.d/19-beeflow-runtime-config.sh.
+            VITE_OPENOBSERVE_ENABLE=false
+            VITE_OPENOBSERVE_CLIENT_TOKEN=${{ needs.changes.outputs.release_prod == 'true' && secrets.OPENOBSERVE_RUM_CLIENT_TOKEN || '' }}
+            VITE_OPENOBSERVE_APPLICATION_ID=bee-flow-agent-hub
+            VITE_OPENOBSERVE_SITE=${{ vars.OPENOBSERVE_SITE }}
+            VITE_OPENOBSERVE_ORG=default
+            VITE_OPENOBSERVE_SERVICE=agent-hub
+            VITE_OPENOBSERVE_ENV=production
+            VITE_OPENOBSERVE_REPLAY_SAMPLE_RATE=0
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=agent-hub
+          cache-to:   type=gha,scope=agent-hub,mode=max
+
+      # Extract sourcemaps from the Docker build stage (already cached above) so
+      # we can decode minified production stack traces. No second npm install or
+      # Vite build — the maps come from the same layer that produced the image.
+      - uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
+        with:
+          context: ./agent-hub
+          target: sourcemaps
+          outputs: type=local,dest=./agent-hub-sourcemaps
+          # Keep build-args identical to the image build above so this reuses the
+          # same cached build layer instead of rebuilding.
+          build-args: |
+            VITE_BUILD_SHA=${{ github.sha }}
+            # OPT-IN, not opt-out. The published image is the one strangers run on
+            # their own hardware, so it ships with the beacon OFF and no build can
+            # turn it on for them. A deployment that WANTS RUM sets
+            # BEEFLOW_TELEMETRY_ENABLED=true on the frontend container — including
+            # ours. See agent-hub/docker-entrypoint.d/19-beeflow-runtime-config.sh.
+            VITE_OPENOBSERVE_ENABLE=false
+            VITE_OPENOBSERVE_CLIENT_TOKEN=${{ needs.changes.outputs.release_prod == 'true' && secrets.OPENOBSERVE_RUM_CLIENT_TOKEN || '' }}
+            VITE_OPENOBSERVE_APPLICATION_ID=bee-flow-agent-hub
+            VITE_OPENOBSERVE_SITE=${{ vars.OPENOBSERVE_SITE }}
+            VITE_OPENOBSERVE_ORG=default
+            VITE_OPENOBSERVE_SERVICE=agent-hub
+            VITE_OPENOBSERVE_ENV=production
+            VITE_OPENOBSERVE_REPLAY_SAMPLE_RATE=0
+          cache-from: type=gha,scope=agent-hub
+          push: false
+      - name: Upload sourcemaps artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: agent-hub-sourcemaps-${{ github.sha }}
+          path: agent-hub-sourcemaps/*.map
+          retention-days: 14
+          if-no-files-found: warn
+
+  # ── Search API ─────────────────────────────────────────────
+  search-api:
+    needs: [changes, ci]
+    if: >-
+      ${{ !cancelled() && needs.changes.result == 'success'
+      && (needs.ci.result == 'success' || (needs.ci.result == 'skipped' && needs.changes.outputs.ci_verified == 'true'))
+      && needs.changes.outputs.search == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
+        with:
+          images: ${{ env.IMAGE_PREFIX }}/search-api
+          tags: |
+            type=sha,format=long,enable=${{ needs.changes.outputs.release_prod == 'true' }}
+            type=raw,value=latest,enable=${{ needs.changes.outputs.release_prod == 'true' }}
+            type=raw,value=prod,enable=${{ needs.changes.outputs.release_prod == 'true' }}
+            type=raw,value=dev,enable=${{ needs.changes.outputs.release_dev == 'true' }}
+            type=sha,format=long,prefix=dev-sha-,enable=${{ needs.changes.outputs.release_dev == 'true' }}
+      - uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
+        with:
+          context: ./search-service
+          file: ./search-service/Dockerfile
+          push: true
+          provenance: true
+          sbom: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=search-api
+          cache-to:   type=gha,scope=search-api,mode=max
+
+  # ── Search GPU Inference ───────────────────────────────────
+  search-gpu:
+    needs: [changes, ci]
+    if: >-
+      ${{ !cancelled() && needs.changes.result == 'success'
+      && (needs.ci.result == 'success' || (needs.ci.result == 'skipped' && needs.changes.outputs.ci_verified == 'true'))
+      && needs.changes.outputs.search == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      # The CUDA torch stack alone is ~6 GB of wheels that uv unpacks into a
+      # cache mount AND copies into site-packages, on a runner that starts
+      # with ~14 GB free. The first real build of this image (2026-09-17)
+      # died on "No space left on device" while copying cuDNN. Drop the
+      # preinstalled toolchains nobody here uses before building.
+      - name: Free disk space for the CUDA image
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/.ghcup
+          sudo docker image prune --all --force >/dev/null 2>&1 || true
+          df -h / | tail -1
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
+        with:
+          images: ${{ env.IMAGE_PREFIX }}/search-inference-gpu
+          tags: |
+            type=sha,format=long,enable=${{ needs.changes.outputs.release_prod == 'true' }}
+            type=raw,value=latest,enable=${{ needs.changes.outputs.release_prod == 'true' }}
+            type=raw,value=prod,enable=${{ needs.changes.outputs.release_prod == 'true' }}
+            type=raw,value=dev,enable=${{ needs.changes.outputs.release_dev == 'true' }}
+            type=sha,format=long,prefix=dev-sha-,enable=${{ needs.changes.outputs.release_dev == 'true' }}
+      - uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
+        with:
+          context: ./search-service
+          file: ./search-service/Dockerfile.inference-gpu
+          push: true
+          provenance: true
+          sbom: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # No layer cache, deliberately. The Actions cache is ONE 10 GB pool
+          # per repository, evicted least-recently-used, and this image's CUDA
+          # torch stack alone is ~6 GB: exporting it would push out the npm,
+          # Gradle and small-image caches every other job starts from. A GPU
+          # image is rebuilt rarely enough to pay for a cold build instead.
+
+  # ── Guard Service ──────────────────────────────────────────
+  guard:
+    needs: [changes, ci]
+    if: >-
+      ${{ !cancelled() && needs.changes.result == 'success'
+      && (needs.ci.result == 'success' || (needs.ci.result == 'skipped' && needs.changes.outputs.ci_verified == 'true'))
+      && needs.changes.outputs.guard == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
+        with:
+          images: ${{ env.IMAGE_PREFIX }}/guard
+          tags: |
+            type=sha,format=long,enable=${{ needs.changes.outputs.release_prod == 'true' }}
+            type=raw,value=latest,enable=${{ needs.changes.outputs.release_prod == 'true' }}
+            type=raw,value=prod,enable=${{ needs.changes.outputs.release_prod == 'true' }}
+            # :dev tracks head-of-trunk (main pushes) so the dev compose
+            # install-from-UI path always has a reachable image (the installer
+            # tries :dev before :latest).
+            type=raw,value=dev,enable=${{ needs.changes.outputs.release_dev == 'true' }}
+            type=sha,format=long,prefix=dev-sha-,enable=${{ needs.changes.outputs.release_dev == 'true' }}
+      - uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
+        with:
+          context: ./guard-service
+          push: true
+          provenance: true
+          sbom: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # The guard mixes this into its engine fingerprint, and the server's
+          # scan ledger keys its verdicts (no TTL) on that fingerprint. Left at
+          # the Dockerfile default "dev", a release that changes only detection
+          # code would keep serving the old verdicts, "no PII" included. The
+          # ARG sits after `COPY . .`, so the model layers stay cached.
+          build-args: |
+            GUARD_BUILD_ID=${{ github.sha }}
+          # Registry cache, not the Actions cache: the baked model + ONNX layer
+          # is 3.6 GB, over a third of the repository's one 10 GB Actions pool,
+          # and every guard export evicted the npm and server caches. Stored
+          # as a tag of this (public) package, its blobs are the image's own
+          # layers, so the cache costs next to nothing in the registry.
+          # mode=min would not help: the Dockerfile is a single stage.
+          # Written from main ONLY. Unlike the Actions cache, which GitHub
+          # scopes per branch, this tag is one cache for every ref, and the next
+          # prod build (always from main) reads it: a dev dispatch from an
+          # unmerged branch could otherwise leave layers that :prod picks up.
+          # Other refs still read it; they just never write it.
+          cache-from: type=registry,ref=${{ env.IMAGE_PREFIX }}/guard:buildcache
+          cache-to:   ${{ github.ref == 'refs/heads/main' && format('type=registry,ref={0}/guard:buildcache,mode=max', env.IMAGE_PREFIX) || '' }}
+
+  # ── PII Service ────────────────────────────────────────────
+  pii:
+    needs: [changes, ci]
+    if: >-
+      ${{ !cancelled() && needs.changes.result == 'success'
+      && (needs.ci.result == 'success' || (needs.ci.result == 'skipped' && needs.changes.outputs.ci_verified == 'true'))
+      && needs.changes.outputs.pii == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
+        with:
+          images: ${{ env.IMAGE_PREFIX }}/pii
+          tags: |
+            type=sha,format=long,enable=${{ needs.changes.outputs.release_prod == 'true' }}
+            type=raw,value=latest,enable=${{ needs.changes.outputs.release_prod == 'true' }}
+            type=raw,value=prod,enable=${{ needs.changes.outputs.release_prod == 'true' }}
+            type=raw,value=dev,enable=${{ needs.changes.outputs.release_dev == 'true' }}
+            type=sha,format=long,prefix=dev-sha-,enable=${{ needs.changes.outputs.release_dev == 'true' }}
+      - uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
+        with:
+          context: ./pii-service
+          push: true
+          provenance: true
+          sbom: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=pii
+          cache-to:   type=gha,scope=pii,mode=max
+
+  # ── Classify Service ───────────────────────────────────────
+  # CPU only, and built ONLY here: no local script builds this image. The
+  # model (public on Hugging Face, so no token) is baked in by
+  # scripts/bake_model.py, which fails the build when the baked model cannot
+  # classify one sentence of our own.
+  classify:
+    needs: [changes, ci]
+    if: >-
+      ${{ !cancelled() && needs.changes.result == 'success'
+      && (needs.ci.result == 'success' || (needs.ci.result == 'skipped' && needs.changes.outputs.ci_verified == 'true'))
+      && needs.changes.outputs.classify == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
+        with:
+          images: ${{ env.IMAGE_PREFIX }}/classify
+          tags: |
+            type=sha,format=long,enable=${{ needs.changes.outputs.release_prod == 'true' }}
+            type=raw,value=latest,enable=${{ needs.changes.outputs.release_prod == 'true' }}
+            type=raw,value=prod,enable=${{ needs.changes.outputs.release_prod == 'true' }}
+            type=raw,value=dev,enable=${{ needs.changes.outputs.release_dev == 'true' }}
+            type=sha,format=long,prefix=dev-sha-,enable=${{ needs.changes.outputs.release_dev == 'true' }}
+      - uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
+        with:
+          context: ./classify-service
+          push: true
+          provenance: true
+          sbom: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # Mixed into the engine fingerprint that callers key cached scores
+          # on, so a release that only changes how text is prepared still
+          # invalidates them. The ARG sits after `COPY . .`, so the torch and
+          # model layers stay cached.
+          build-args: |
+            CLASSIFY_BUILD_ID=${{ github.sha }}
+          # Registry cache, for the guard's reason: the torch + baked-model
+          # layers would take a large bite of the repository's one 10 GB
+          # Actions cache pool and evict the npm and server caches.
+          # Written from main only, for the guard's reason: one registry cache
+          # serves every ref, and :prod builds read it.
+          cache-from: type=registry,ref=${{ env.IMAGE_PREFIX }}/classify:buildcache
+          cache-to:   ${{ github.ref == 'refs/heads/main' && format('type=registry,ref={0}/classify:buildcache,mode=max', env.IMAGE_PREFIX) || '' }}
+
+  # ── WhisperX ───────────────────────────────────────────────
+  whisperx:
+    needs: [changes, ci]
+    if: >-
+      ${{ !cancelled() && needs.changes.result == 'success'
+      && (needs.ci.result == 'success' || (needs.ci.result == 'skipped' && needs.changes.outputs.ci_verified == 'true'))
+      && needs.changes.outputs.whisperx == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      # The CUDA torch stack alone is ~6 GB of wheels that uv unpacks into a
+      # cache mount AND copies into site-packages, on a runner that starts
+      # with ~14 GB free. The first real build of this image (2026-09-17)
+      # died on "No space left on device" while copying cuDNN. Drop the
+      # preinstalled toolchains nobody here uses before building.
+      - name: Free disk space for the CUDA image
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/.ghcup
+          sudo docker image prune --all --force >/dev/null 2>&1 || true
+          df -h / | tail -1
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
+        with:
+          images: ${{ env.IMAGE_PREFIX }}/whisperx
+          tags: |
+            type=sha,format=long,enable=${{ needs.changes.outputs.release_prod == 'true' }}
+            type=raw,value=latest,enable=${{ needs.changes.outputs.release_prod == 'true' }}
+            type=raw,value=prod,enable=${{ needs.changes.outputs.release_prod == 'true' }}
+            type=raw,value=dev,enable=${{ needs.changes.outputs.release_dev == 'true' }}
+            type=sha,format=long,prefix=dev-sha-,enable=${{ needs.changes.outputs.release_dev == 'true' }}
+      - uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
+        with:
+          context: ./whisperx-service
+          push: true
+          provenance: true
+          sbom: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # No layer cache, for the reason given at search-gpu: the CUDA stack
+          # plus the baked Whisper model would evict the rest of the 10 GB pool.
+
+  # ── Install Wizard ─────────────────────────────────────────
+  wizard:
+    needs: [changes, ci]
+    if: >-
+      ${{ !cancelled() && needs.changes.result == 'success'
+      && (needs.ci.result == 'success' || (needs.ci.result == 'skipped' && needs.changes.outputs.ci_verified == 'true'))
+      && needs.changes.outputs.wizard == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
+        with:
+          images: ${{ env.IMAGE_PREFIX }}/install-wizard
+          tags: |
+            type=sha,format=long,enable=${{ needs.changes.outputs.release_prod == 'true' }}
+            type=raw,value=latest,enable=${{ needs.changes.outputs.release_prod == 'true' }}
+            type=raw,value=prod,enable=${{ needs.changes.outputs.release_prod == 'true' }}
+            type=raw,value=dev,enable=${{ needs.changes.outputs.release_dev == 'true' }}
+            type=sha,format=long,prefix=dev-sha-,enable=${{ needs.changes.outputs.release_dev == 'true' }}
+      - uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
+        with:
+          context: ./install-wizard
+          push: true
+          provenance: true
+          sbom: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=wizard
+          cache-to:   type=gha,scope=wizard,mode=max
+
+  # ── Reranker (CPU cross-encoder) ────────────────────────────
+  reranker:
+    needs: [changes, ci]
+    if: >-
+      ${{ !cancelled() && needs.changes.result == 'success'
+      && (needs.ci.result == 'success' || (needs.ci.result == 'skipped' && needs.changes.outputs.ci_verified == 'true'))
+      && needs.changes.outputs.reranker == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
+        with:
+          images: ${{ env.IMAGE_PREFIX }}/reranker
+          tags: |
+            type=sha,format=long,enable=${{ needs.changes.outputs.release_prod == 'true' }}
+            type=raw,value=latest,enable=${{ needs.changes.outputs.release_prod == 'true' }}
+            type=raw,value=prod,enable=${{ needs.changes.outputs.release_prod == 'true' }}
+            type=raw,value=dev,enable=${{ needs.changes.outputs.release_dev == 'true' }}
+            type=sha,format=long,prefix=dev-sha-,enable=${{ needs.changes.outputs.release_dev == 'true' }}
+      - uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
+        with:
+          context: ./reranker
+          push: true
+          provenance: true
+          sbom: true
+          secrets: |
+            "HF_TOKEN=${{ secrets.HF_TOKEN }}"
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # mode=min: only the runtime stage's layers go to the Actions cache,
+          # not the builder stage's torch + optimum install (~1 GB) that exists
+          # only to export the ONNX graph. The worst case is a reranker build
+          # that re-runs that export for a few minutes; the 1 GB no longer sits
+          # in the one 10 GB pool every other job's cache shares.
+          cache-from: type=gha,scope=reranker
+          cache-to:   type=gha,scope=reranker,mode=min
+
+  # ── Playwright runner / shared browser (pwt-runner) ─────────
+  # Backs the Studio test runner AND the long-lived shared-browser "serve" pod
+  # (`bf-browser`) used for PDF export, thumbnails and SPA ingestion on Kapsule,
+  # where there is no docker socket for the server to build/launch it itself.
+  # MUST stay pinned to the server's Playwright version (chromium.connect() 428s
+  # on a minor mismatch) — the image's base tag and server/package.json move
+  # together.
+  pwt-runner:
+    needs: [changes, ci]
+    if: >-
+      ${{ !cancelled() && needs.changes.result == 'success'
+      && (needs.ci.result == 'success' || (needs.ci.result == 'skipped' && needs.changes.outputs.ci_verified == 'true'))
+      && needs.changes.outputs.pwt-runner == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      # The lockstep above, checked where a one-sided bump would ship: a runner
+      # image whose Playwright differs from the server's is refused here, before
+      # it can become the bf-browser every server connects to. The server job
+      # runs the same script, because this job does not fire on a bump of
+      # server/package.json alone. Dependabot moves neither side by version
+      # (.github/dependabot.yml), so this catches a hand edit that bumped one
+      # file and not the others.
+      - name: Playwright versions agree (base image, runner, server)
+        run: node scripts/check-playwright-lockstep.mjs
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
+        with:
+          images: ${{ env.IMAGE_PREFIX }}/pwt-runner
+          tags: |
+            type=sha,format=long,enable=${{ needs.changes.outputs.release_prod == 'true' }}
+            type=raw,value=latest,enable=${{ needs.changes.outputs.release_prod == 'true' }}
+            type=raw,value=prod,enable=${{ needs.changes.outputs.release_prod == 'true' }}
+            type=raw,value=dev,enable=${{ needs.changes.outputs.release_dev == 'true' }}
+            type=sha,format=long,prefix=dev-sha-,enable=${{ needs.changes.outputs.release_dev == 'true' }}
+      - uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
+        with:
+          context: ./server/pwt-runner
+          push: true
+          provenance: true
+          sbom: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=pwt-runner
+          cache-to:   type=gha,scope=pwt-runner,mode=max
+
+  # ── Release notes (BOTH channels) ──────────────────────────
+  # Drafts customer-facing notes for this range and files them in the app as a
+  # DRAFT. Nothing here reaches the public site: an editor publishes from
+  # Admin → Release notes.
+  #
+  # Unlike `release` below, this runs on dev too — a dev build refreshes the one
+  # rolling "Unreleased" entry rather than creating a note per merge, so the
+  # draft is always current without becoming a stream of near-empty entries.
+  #
+  # ── Where the model runs, and why it moved ────────────────────────────────
+  # With ANTHROPIC_API_KEY set, drafting happens HERE (Claude Sonnet 5, via
+  # scripts/release-notes/draft.js) and the finished entry is POSTed to the app.
+  # That is what puts real notes in the GitHub Release body below: the Release is
+  # cut minutes later in this same run, and the runner cannot read a draft back
+  # out of the app.
+  #
+  # Without the key, the raw git material is POSTed instead and the app drafts it
+  # server-side exactly as before — the Release body then falls back to GitHub's
+  # own generated commit list. Both paths share one prompt and one schema
+  # (server/core/releaseNotesFormat.js), so the stored entry is identical either
+  # way. Every step below degrades to that fallback rather than failing.
+  #
+  # Either way the runner sends commit SUBJECTS, PR titles and a diffSTAT — never
+  # the diff. The diff is large, and it is exactly the payload that would carry a
+  # stray credential to a model.
+  #
+  # BEST-EFFORT THROUGHOUT. A changelog must never be the reason a build fails.
+  release-notes:
+    needs: [changes, ci, server, agent-hub, search-api, search-gpu, guard, pii, classify, whisperx, wizard, reranker, pwt-runner]
+    if: ${{ always() && !cancelled() && !contains(needs.*.result, 'failure') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    # ANTHROPIC_API_KEY and RELEASE_NOTES_TOKEN can live in the `release`
+    # environment, restricted to main. Only runs ON main enter it: this job
+    # also runs for a manual dev build from any branch, and an environment
+    # restricted to main would fail such a job outright. Elsewhere the name is
+    # empty, which means no environment: those secrets are then out of reach
+    # and every step below falls back as it does without them.
+    environment: ${{ github.ref == 'refs/heads/main' && 'release' || '' }}
+    outputs:
+      summary: ${{ steps.notes.outputs.summary }}
+      notes_md: ${{ steps.draft.outputs.notes_md }}
+    steps:
+      # Full history + tags: the range is "since the last prod release", and the
+      # default checkout is a shallow clone with no tags at all.
+      # persist-credentials: false: every git command here is local, and the
+      # steps that hold the API key and the ingest token have no use for a
+      # GITHUB_TOKEN left in .git/config.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          persist-credentials: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+
+      # ── 1. Collect the range's raw git material ──────────────────────────
+      # Unconditional: the Release body wants notes even when the app-side
+      # ingest token is unset, so this no longer hangs off RELEASE_NOTES_TOKEN.
+      - id: material
+        env:
+          CHANNEL: ${{ needs.changes.outputs.release_prod == 'true' && 'prod' || 'dev' }}
+          BUILT_CSV: ${{ needs.changes.outputs.built_csv }}
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          set -uo pipefail
+
+          # Range: previous production tag → HEAD. With no prod tag yet (a fresh
+          # repo), fall back to the last 50 commits rather than the entire history.
+          PREV="$(git describe --tags --match 'prod-*' --abbrev=0 2>/dev/null || true)"
+          if [[ -n "$PREV" ]]; then RANGE="$PREV..HEAD"; else RANGE="HEAD~50..HEAD"; fi
+          echo "Range: ${RANGE}"
+
+          # Subjects only, and a diffSTAT rather than the diff: the diff is large
+          # and is exactly the payload that carries a stray credential to a model.
+          COMMITS="$(git log --no-merges --pretty=%s "$RANGE" 2>/dev/null | head -200 || true)"
+          PRS="$(git log --merges --pretty=%s "$RANGE" 2>/dev/null | head -100 || true)"
+          STAT="$(git diff --stat "$RANGE" 2>/dev/null | tail -40 || true)"
+          FROM_SHA="$(git rev-parse "${PREV:-HEAD~50}" 2>/dev/null || echo '')"
+
+          VERSION=""
+          if [[ "$CHANNEL" == "prod" ]]; then
+            VERSION="$(echo "${INPUT_VERSION:-}" | tr -d '[:space:]')"
+            # Must match the `ver` step in the release job below.
+            if [[ -z "$VERSION" ]]; then VERSION="prod-$(date -u +%Y.%m.%d)-${{ github.run_number }}"; fi
+          fi
+
+          jq -n \
+            --arg channel "$CHANNEL" --arg version "$VERSION" \
+            --arg commits "$COMMITS" --arg prs "$PRS" --arg stat "$STAT" \
+            --arg services "$BUILT_CSV" --arg from "$FROM_SHA" --arg to "${{ github.sha }}" \
+            '{channel:$channel, version:(if $version=="" then null else $version end),
+              commitSubjects:$commits, prTitles:$prs, diffstat:$stat,
+              services:$services, fromSha:$from, toSha:$to}' > payload.json
+
+      # ── 2. Draft with Claude ─────────────────────────────────────────────
+      # Writes notes.json + notes.md. Exits 0 WITHOUT notes.json when the key is
+      # missing or the call fails — step 3 then posts the raw material and the
+      # app drafts it instead. Never fails the build.
+      #
+      # The install is a step of its own so the key is never in the
+      # environment of npm or of anything npm runs: `npm ci` installs exactly
+      # the committed lockfile, and --ignore-scripts runs no install hook at
+      # all. HAS_KEY carries only whether the secret is set, never its value.
+      - id: deps
+        env:
+          HAS_KEY: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+        run: |
+          set -uo pipefail
+          if [[ "$HAS_KEY" != "true" ]]; then
+            echo "::notice::release notes: no ANTHROPIC_API_KEY — the app will draft server-side"
+            exit 0
+          fi
+          if ! npm ci --ignore-scripts --omit=dev --no-audit --no-fund --prefix scripts/release-notes; then
+            echo "::warning::release notes: npm ci failed — falling back to server-side drafting"
+            exit 0
+          fi
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+
+      - id: draft
+        if: steps.deps.outputs.ready == 'true'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          set -uo pipefail
+
+          # The script exits 0 on its own failures, but a crash BEFORE its error
+          # handler is installed (a bad require, a broken install) would still
+          # take the job down and skip the release job with it. Half-written
+          # output is discarded so step 3 cannot post a truncated draft.
+          if ! node scripts/release-notes/draft.js --material payload.json --out-dir .; then
+            echo "::warning::release notes: drafter crashed — falling back to server-side drafting"
+            rm -f notes.json notes.md
+            exit 0
+          fi
+          [[ -s notes.md ]] || exit 0
+
+          # Multi-line output: the release job below uses this verbatim as the
+          # GitHub Release body. The delimiter is random per write: notes.md is
+          # model output built from commit text, and a line in it equal to a
+          # fixed delimiter would end the value early and let the lines after
+          # it set outputs of their own.
+          DELIM="EOF_$(openssl rand -hex 16)"
+          {
+            echo "notes_md<<${DELIM}"
+            cat notes.md
+            echo ""
+            echo "${DELIM}"
+          } >> "$GITHUB_OUTPUT"
+
+          {
+            echo "### Release notes (drafted in CI)"
+            echo ""
+            cat notes.md
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # ── 3. File it in the app as a DRAFT ─────────────────────────────────
+      # Sends the drafted entry when step 2 produced one, otherwise the raw
+      # material for the app to draft. Publishing stays a human action.
+      - id: notes
+        env:
+          # Where the draft goes: a repo variable, so no host is baked into this file.
+          APP_URL: ${{ secrets.APP_URL || vars.RELEASE_NOTES_APP_URL }}
+          NOTES_TOKEN: ${{ secrets.RELEASE_NOTES_TOKEN }}
+        run: |
+          set -uo pipefail
+          if [[ -z "${NOTES_TOKEN:-}" ]]; then
+            echo "::notice::release notes ingest skipped (RELEASE_NOTES_TOKEN not set)"
+            exit 0
+          fi
+          if [[ -z "${APP_URL:-}" ]]; then
+            echo "::notice::release notes ingest skipped (vars.RELEASE_NOTES_APP_URL not set)"
+            exit 0
+          fi
+
+          BODY=payload.json
+          if [[ -f notes.json ]]; then
+            jq -s '.[0] + {entry: .[1]}' payload.json notes.json > ingest.json
+            BODY=ingest.json
+          fi
+
+          RESP="$(curl -fsS -m 120 -X POST "${APP_URL%/}/api/release-notes/ingest" \
+            -H "Authorization: Bearer ${NOTES_TOKEN}" \
+            -H 'Content-Type: application/json' \
+            --data @"${BODY}")" || {
+              echo "::warning::release notes ingest failed — continuing"
+              exit 0
+            }
+
+          COUNT="$(echo "$RESP" | jq -r '.itemCount // 0')"
+          BY="$(echo "$RESP" | jq -r '.draftedBy // "server"')"
+          TITLE="$(echo "$RESP" | jq -r '.entry.title // ""')"
+          LEAD="$(echo "$RESP" | jq -r '.entry.lead // ""')"
+          echo "Drafted ${COUNT} item(s) by ${BY}: ${TITLE}"
+
+          # Kept as the Release-body fallback for when step 2 did not run: the
+          # app-drafted title and lead, which is what this job used to emit.
+          # Random delimiter, for step 2's reason: the lead is model text.
+          DELIM="EOF_$(openssl rand -hex 16)"
+          {
+            echo "summary<<${DELIM}"
+            [[ -n "$TITLE" ]] && echo "**${TITLE}**"
+            [[ -n "$LEAD" ]] && echo "" && echo "$LEAD"
+            echo "${DELIM}"
+          } >> "$GITHUB_OUTPUT"
+
+          {
+            echo "### Release notes"
+            echo ""
+            if [[ "$COUNT" == "0" ]]; then
+              echo "No user-visible changes in this range — nothing drafted."
+            else
+              echo "Filed **${COUNT}** item(s) as a DRAFT (drafted by \`${BY}\`). Publish from Admin → Release notes."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # ── GitHub Release (PRODUCTION only) ───────────────────────
+  # After a manual prod release builds & pushes the images, cut a git tag +
+  # GitHub Release so it shows up under Releases. Skipped for dev builds (every
+  # main merge is a continuous dev build — a Release per merge would be noise).
+  release:
+    needs: [changes, ci, release-notes, server, agent-hub, search-api, search-gpu, guard, pii, classify, whisperx, wizard, reranker, pwt-runner]
+    # only on prod, only if no build job failed.
+    if: ${{ always() && !cancelled() && needs.changes.outputs.release_prod == 'true' && !contains(needs.*.result, 'failure') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write   # create the tag + release
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - id: ver
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          V="$(echo "${INPUT_VERSION:-}" | tr -d '[:space:]')"
+          if [[ -z "$V" ]]; then V="prod-$(date -u +%Y.%m.%d)-${{ github.run_number }}"; fi
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+          echo "Release version: $V"
+      # Self-host bundle: the three files a no-clone install needs (the
+      # "release bundle" docs/self-hosting/docker-compose.md points at), plus
+      # checksums. Taken from the checkout above, i.e. the exact release
+      # commit. docker/init-db.sh is not an asset — selfhost.sh materialises
+      # it itself.
+      - name: Checksum self-host bundle
+        run: sha256sum selfhost.sh docker-compose.from-registry.yml .env.selfhost.example > SHA256SUMS
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
+        with:
+          tag_name: ${{ steps.ver.outputs.version }}
+          name: ${{ steps.ver.outputs.version }}
+          target_commitish: ${{ github.sha }}
+          generate_release_notes: true   # auto commit/PR changelog since the last release
+          # The drafted human notes go on top; GitHub appends its raw commit/PR
+          # list underneath. `notes_md` is the full itemised draft written by
+          # Claude in the release-notes job; `summary` is the app-drafted title
+          # and lead, which is all that exists when CI has no ANTHROPIC_API_KEY.
+          # Both empty (no ingest token either) leaves just GitHub's own list.
+          # `built_csv` is what actually built — `inputs.services` is the raw
+          # string the operator typed ("all"), which is not the same thing.
+          body: |
+            ${{ needs.release-notes.outputs.notes_md || needs.release-notes.outputs.summary }}
+
+            ---
+            Production release built from `${{ github.sha }}`.
+
+            **Images** — `ghcr.io/bee-flow/<svc>` at `:prod`, `:latest`, and `:sha-${{ github.sha }}`.
+            Built services: `${{ needs.changes.outputs.built_csv }}`
+
+            **Self-host bundle** — `selfhost.sh`, `docker-compose.from-registry.yml` and `.env.selfhost.example` (+ `SHA256SUMS`) are attached below.
+          files: |
+            selfhost.sh
+            docker-compose.from-registry.yml
+            .env.selfhost.example
+            SHA256SUMS

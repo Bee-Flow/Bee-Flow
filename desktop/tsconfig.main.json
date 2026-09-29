@@ -1,0 +1,17 @@
+{
+    // The build config for the main process. CommonJS on purpose, to match
+    // the preload: a sandboxed preload has to be CommonJS, and one module
+    // system is one set of rules. The preload itself is NOT built here — tsc
+    // would keep its relative imports, which a sandboxed preload cannot load —
+    // but by scripts/build-preload.mjs, which bundles it. tsconfig.json still
+    // type-checks it.
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "noEmit": false,
+        "rootDir": "src",
+        "outDir": "dist",
+        "declaration": false
+    },
+    "include": ["src/main/**/*.ts", "src/shared/**/*.ts"],
+    "exclude": ["src/**/*.test.ts", "src/main/testing/**/*.ts"]
+}

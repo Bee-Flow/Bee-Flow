@@ -1,0 +1,304 @@
+# ══════════════════════════════════════════════════════════════════
+# BeeFlow — Local Development Docker Compose
+# ══════════════════════════════════════════════════════════════════
+#
+# This compose file is optimized for LOCAL DEVELOPMENT.
+# It mounts your source code directly into the containers, allowing
+# instant hot-reloading for both the frontend and backend without
+# needing to rebuild the Docker images.
+#
+# Usage:
+#   docker compose -f docker-compose.dev.yml up --build
+#
+# Note: Initial start requires the containers to run `npm install` 
+# if node_modules is not populated, but subsequent starts are instant.
+# ══════════════════════════════════════════════════════════════════
+
+services: 
+  # ── PostgreSQL Database ────────────────────────────────────────
+  postgres:
+    image: pgvector/pgvector:pg15
+    container_name: beeflow-postgres-dev
+    environment:
+      - POSTGRES_USER=${DB_USER:-beeflow}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-beeflow}
+      - POSTGRES_DB=${DB_NAME:-beeflow_core}
+    volumes:
+      - beeflow-pgdata-dev:/var/lib/postgresql/data
+      - ./docker/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
+    ports:
+      # Host 5433 → container 5432 — matches docker-compose.local.yml and avoids
+      # colliding with a system-wide postgres install on the host (Ubuntu's
+      # default postgresql package binds 5432). Inside the docker network the
+      # server still reaches it at postgres:5432.
+      - "5433:5432"
+    networks:
+      - beeflow-network
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER:-beeflow} -d ${DB_NAME:-beeflow_core}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  # ── RustFS — S3-compatible Object Storage ──────────────────────
+  rustfs:
+    image: rustfs/rustfs:latest
+    container_name: beeflow-rustfs-dev
+    environment:
+      - RUSTFS_ROOT_USER=${RUSTFS_ACCESS_KEY:-beeflow}
+      - RUSTFS_ROOT_PASSWORD=${RUSTFS_SECRET_KEY:-beeflow_secret_key}
+    volumes:
+      - rustfs-data-dev:/data
+    ports:
+      - "9000:9000"
+    networks:
+      - beeflow-network
+    restart: unless-stopped
+
+  # ── Backend Server (Nodemon Hot Reload) ────────────────────────
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+      # The `dev` stage keeps the toolchain and the devDependencies (nodemon);
+      # the published `runtime` stage has neither and runs as a non-root user.
+      target: dev
+    container_name: beeflow-server-dev
+    # Only (re)install when the named beeflow-server-modules volume was cleared:
+    # the image baked the full tree in, and nodemon is the cheap proxy for
+    # "devDependencies present". A warm volume skips the install, so after adding
+    # a dependency rebuild the image or `down -v` to pick it up.
+    command: sh -c "[ -x node_modules/.bin/nodemon ] || npm ci --no-audit --no-fund; node_modules/.bin/nodemon --ignore data/ --ignore components/ index.js"
+    # Loopback-only by default — see docker-compose.from-registry.yml for the
+    # full rationale. It matters in dev too: a laptop on a café/office LAN
+    # otherwise hands every machine on that network an unauthenticated route to
+    # /auth/* on a stack that runs with development secrets. The dev SPA is
+    # served with VITE_API_URL=http://localhost:3001, so the browser resolves
+    # the API on its own loopback anyway — this mapping only ever needed to be
+    # reachable from the same machine. SERVER_BIND_HOST=0.0.0.0 to opt out.
+    ports:
+      - "${SERVER_BIND_HOST:-127.0.0.1}:${SERVER_PORT:-3001}:${SERVER_PORT:-3001}"
+    environment:
+      - NODE_ENV=development
+      - PORT=${SERVER_PORT:-3001}
+      # Must be ≥32 chars — supportInboxStore derives an AES-256 key
+      # from it and refuses to boot otherwise. Override via SESSION_SECRET
+      # in your .env for anything that needs token persistence across rebuilds
+      # (rebuilding rotates this default → existing OAuth tokens stop decrypting).
+      - SESSION_SECRET=${SESSION_SECRET:-dev-session-secret-padding-32chars-min}
+      - CORS_ORIGIN=http://localhost:5176,http://localhost:3001
+      - SERVER_PUBLIC_HOST=localhost:3001
+      - SERVER_PROTOCOL=http
+      - CLIENT_PUBLIC_HOST=localhost:5176
+      # Security keys (YubiKey / FIDO2): optional parent domain for the WebAuthn
+      # relying-party ID. Empty = the page's host, or CLIENT_PUBLIC_HOST when the
+      # page is on a subdomain of it. See auth/securityKeys/relyingParty.js.
+      - WEBAUTHN_RP_ID=${WEBAUTHN_RP_ID:-}
+      - CLIENT_PROTOCOL=http
+      # Published in /.well-known/security.txt. Empty is valid: the route derives
+      # security@<CLIENT_PUBLIC_HOST domain> when that host has a routable mail
+      # domain, and 404s rather than guessing when it does not.
+      - SECURITY_TXT_CONTACT=${SECURITY_TXT_CONTACT:-}
+      - COOKIE_SECURE=false
+      - COOKIE_DOMAIN=localhost
+      - COOKIE_SAMESITE=lax
+      - DEMO_MODE_ENABLED=true
+      - DEPLOYMENT_MODE=${DEPLOYMENT_MODE:-self-hosted}
+      # App Studio over MCP (POST /mcp/studio) — build apps from an editor
+      # instead of shipping a template in a new image. Empty = not mounted.
+      - STUDIO_MCP_ENABLED=${STUDIO_MCP_ENABLED:-}
+      # Routines over MCP (POST /mcp/automations). Empty = not mounted.
+      - AUTOMATION_MCP_ENABLED=${AUTOMATION_MCP_ENABLED:-}
+      - CORE_DATABASE_URL=postgresql://${DB_USER:-beeflow}:${DB_PASSWORD:-beeflow}@postgres:5432/${DB_NAME:-beeflow_core}
+      - DATABASE_URL=postgresql://${DB_USER:-beeflow}:${DB_PASSWORD:-beeflow}@postgres:5432/beeflow_tasks
+      - MONITORING_DATABASE_URL=postgresql://${DB_USER:-beeflow}:${DB_PASSWORD:-beeflow}@postgres:5432/monitoring_db
+      - RUSTFS_ENDPOINT=http://rustfs:9000
+      - RUSTFS_ACCESS_KEY=${RUSTFS_ACCESS_KEY:-beeflow}
+      - RUSTFS_SECRET_KEY=${RUSTFS_SECRET_KEY:-beeflow_secret_key}
+      - REDIS_URL=redis://search-redis:6379/1
+      - MASTER_ENCRYPTION_KEY=${MASTER_ENCRYPTION_KEY:-deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef}
+      # Dev sandbox needs BEEFLOW_BOOTSTRAP_SKIP_VERIFY=true so the SaaS doesn't
+      # try to publicly re-fetch the local NC's /ocs capabilities to anti-spoof
+      # the bootstrap claim. In prod the customer's NC IS publicly reachable;
+      # in this dev compose NC lives only on the docker network.
+      - BEEFLOW_BOOTSTRAP_SKIP_VERIFY=${BEEFLOW_BOOTSTRAP_SKIP_VERIFY:-true}
+      - ENABLE_TASKS=true
+      - ENABLE_MONITORING=true
+      - SERVICES_API_KEY=${SERVICES_API_KEY:-}
+      - SEARCH_SERVICE_URL=${SEARCH_SERVICE_URL:-}
+      - GUARD_SERVICE_URL=${GUARD_SERVICE_URL:-}
+      # PII_SERVICE_URL is the variable the server actually reads for the
+      # Privacy Shield (core/privacy/piiDetection/guardEndpoint.js);
+      # GUARD_SERVICE_URL above is legacy and read by nothing. This dev file
+      # runs no guard container — point it at wherever yours runs.
+      - PII_SERVICE_URL=${PII_SERVICE_URL:-}
+      # Module Hub (license-server service below, `hub` profile). Without these
+      # the product defaults to https://hub.beeflow.nl — unreachable from the
+      # local stack, so Admin ▸ Modules ▸ Marketplace shows "Could not reach the
+      # module hub".
+      # Reached over the docker network; http is allowed because NODE_ENV!=production.
+      - BEEFLOW_HUB_URL=${BEEFLOW_HUB_URL:-http://license-server:4400}
+      # Lets the product verify hub-issued license / module-grant tokens (install
+      # + entitlement flows). The hub serves its public keys at /v1/jwks.json.
+      - LICENSE_JWKS_URL=${LICENSE_JWKS_URL:-http://license-server:4400/v1/jwks.json}
+      # Website-analytics sidecar (profile: analytics) — internal API base.
+      - UMAMI_URL=${UMAMI_URL:-http://umami:3000}
+      # No Chromium is baked into the server image. All browser work is driven
+      # against the long-lived `bf-browser` container the server launches via the
+      # docker socket (services/browserProvider.js + services/pwtRunner.js), or an
+      # external Playwright server via BROWSER_WS_ENDPOINT.
+      # - BROWSER_WS_ENDPOINT=ws://browser:9222/...   # set to use an external/sidecar browser
+    volumes:
+      # Bind mount local source code for live reloading
+      - ./server:/app
+      # Named (not anonymous) so routine `down`/`up` keeps the compiled native
+      # deps — only an explicit `down -v` clears it and forces one recompile.
+      - beeflow-server-modules:/app/node_modules
+      - beeflow-data-dev:/app/data
+      - ./components:/components
+      - ./workflows:/workflows
+      # PII guard install fallback — when the GHCR pull is blocked, the
+      # installer shells out `docker build -t … /guard-service`. Read-only.
+      - ./guard-service:/guard-service:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - beeflow-network
+      - search-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      search-redis:
+        condition: service_healthy
+
+  # ── Agent Hub Frontend (Vite Dev Server Hot Reload) ────────────
+  agent-hub:
+    image: node:20-alpine
+    container_name: beeflow-agent-hub-dev
+    working_dir: /app
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 5176"
+    ports:
+      - "5176:5176"
+    environment:
+      - VITE_API_URL=http://localhost:3001
+    volumes:
+      - ./agent-hub:/app
+      - /app/node_modules # Prevent host node_modules from overwriting container's
+    networks:
+      - beeflow-network
+    depends_on:
+      - server
+
+  # ── Module Hub / License Server ────────────────────────────────
+  # Serves the /hub/v1/* marketplace API the product's Admin ▸ Modules panel
+  # talks to (product reaches it via BEEFLOW_HUB_URL=http://license-server:4400).
+  # No source bind-mount: run from the built image so the baked node_modules are
+  # used. The keypair + stored package blobs live in named volumes so they
+  # survive restarts (a stable JWKS the product can keep verifying against).
+  #
+  # Bee Flow-internal: the license server's source is private and not in this
+  # repository. It builds from a checkout of Bee-Flow-AI-internal next to this
+  # repo (override with LICENSE_SERVER_SRC; relative to the repo root), and
+  # only runs with the `hub` profile, so `up --build` works without it:
+  #   docker compose -f docker-compose.dev.yml --profile hub up -d --build license-server
+  # Without it the Modules marketplace reports the hub as unreachable.
+  #
+  # The command seeds a signing keypair + one published sample module on a fresh
+  # DB, then boots. seed-dev.js is idempotent — a no-op on a warm volume/DB.
+  license-server:
+    profiles: [hub]
+    build:
+      context: ${LICENSE_SERVER_SRC:-../Bee-Flow-AI-internal/license-server}
+      dockerfile: Dockerfile
+    container_name: beeflow-license-server-dev
+    command: sh -c "node scripts/seed-dev.js || true; node index.js"
+    ports:
+      - "4400:4400"
+    environment:
+      - NODE_ENV=development
+      - PORT=4400
+      - LICENSE_DB_URL=postgresql://${DB_USER:-beeflow}:${DB_PASSWORD:-beeflow}@postgres:5432/beeflow_hub
+      # Shared secret the product uses for /v1/issue + /v1/revoke (dev value).
+      - LICENSE_API_KEYS=${LICENSE_API_KEYS:-dev-hub-api-key}
+      # Boot without Stripe — admin-issued / free module flows work offline.
+      - LICENSE_STRIPE_VERIFY=false
+      - HUB_PUBLIC_URL=${HUB_PUBLIC_URL:-http://localhost:4400}
+      - HUB_SESSION_SECRET=${HUB_SESSION_SECRET:-dev-hub-session-secret-change-me-32chars}
+      # Password for the seeded admin@beeflow.nl hub-console user (printed once).
+      - SEED_ADMIN_PASSWORD=${SEED_ADMIN_PASSWORD:-bee-dev-admin}
+    volumes:
+      - beeflow-license-keys:/app/keys
+      - beeflow-license-packages:/app/packages-store
+    networks:
+      - beeflow-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Search & Guard Redis ───────────────────────────────────────
+  search-redis:
+    image: redis:7-alpine
+    container_name: beeflow-redis-dev
+    # Phase 8a: cap memory so Redis never OOM-evicts session data silently.
+    # allkeys-lru evicts the least-recently-used keys when the limit is hit,
+    # which safely clears search/embed caches before touching live sessions.
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+    networks:
+      - search-network
+    # Healthcheck so the server's depends_on can gate on `service_healthy` —
+    # otherwise the server boots ahead of redis and floods the log with
+    # ENOTFOUND/ECONNREFUSED before reconnecting once redis is up.
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    restart: unless-stopped
+
+  # ── Umami — self-hosted website analytics (opt-in) ─────────────
+  # Enable with: docker compose -f docker-compose.dev.yml --profile analytics up
+  # Reuses postgres-dev (its own `umami` DB from docker/init-db.sh). Browser
+  # loads /script.js from http://localhost:3000 (set that as the public URL in
+  # Admin ▸ Website Analytics ▸ Settings); the server talks to it via UMAMI_URL.
+  umami:
+    image: ghcr.io/umami-software/umami:postgresql-latest
+    container_name: beeflow-umami-dev
+    profiles: [analytics]
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_TYPE=postgresql
+      - DATABASE_URL=postgresql://${DB_USER:-beeflow}:${DB_PASSWORD:-beeflow}@postgres:5432/umami
+      - APP_SECRET=${UMAMI_APP_SECRET:-dev-umami-secret-change-me}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - beeflow-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/heartbeat || exit 1"]
+      interval: 30s
+      timeout: 10s
+      start_period: 40s
+      retries: 3
+
+volumes:
+  beeflow-pgdata-dev:
+  rustfs-data-dev:
+  beeflow-data-dev:
+  beeflow-server-modules:
+  # Hub signing keypair + stored .bfmod package blobs (persist across restarts).
+  beeflow-license-keys:
+  beeflow-license-packages:
+
+networks:
+  beeflow-network:
+    driver: bridge
+  search-network:
+    driver: bridge

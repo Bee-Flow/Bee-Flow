@@ -1,0 +1,182 @@
+# ──────────────────────────────────────────────────────────────────────
+# Agent Search Engine — Standalone Docker Compose
+# ──────────────────────────────────────────────────────────────────────
+# Start:  docker compose up -d
+# Logs:   docker compose logs -f search-api
+# Health: curl http://localhost:8000/health
+# ──────────────────────────────────────────────────────────────────────
+
+services:
+  # ── PostgreSQL (with pgvector) ───────────────────────────────────
+  search-postgres:
+    image: pgvector/pgvector:pg16
+    container_name: search-postgres
+    environment:
+      POSTGRES_USER: ${SEARCH_DB_USER:-search}
+      POSTGRES_PASSWORD: ${SEARCH_DB_PASSWORD:-search}
+      POSTGRES_DB: ${SEARCH_DB_NAME:-search_kb}
+    volumes:
+      - search-pgdata:/var/lib/postgresql/data
+    networks:
+      - search-network
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${SEARCH_DB_USER:-search} -d ${SEARCH_DB_NAME:-search_kb}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  # ── Redis ────────────────────────────────────────────────────────
+  search-redis:
+    image: redis:7-alpine
+    container_name: search-redis
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - search-redis-data:/data
+    networks:
+      - search-network
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  # ── Search API (FastAPI) ─────────────────────────────────────────
+  search-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: search-api
+    ports:
+      - "0.0.0.0:${SEARCH_API_PORT:-8000}:8000"
+    environment:
+      # General
+      SEARCH_DEBUG: ${SEARCH_DEBUG:-false}
+      SEARCH_LOG_LEVEL: ${SEARCH_LOG_LEVEL:-INFO}
+      # Database
+      SEARCH_DATABASE_URL: postgresql://${SEARCH_DB_USER:-search}:${SEARCH_DB_PASSWORD:-search}@search-postgres:5432/${SEARCH_DB_NAME:-search_kb}
+      # Redis
+      SEARCH_REDIS_URL: redis://search-redis:6379/0
+      # Serper.dev (Google Search API)
+      SEARCH_SERPER_API_KEY: ${SEARCH_SERPER_API_KEY:-}
+      SEARCH_SERPER_TIMEOUT: ${SEARCH_SERPER_TIMEOUT:-5.0}
+      SEARCH_SERPER_COUNTRY: ${SEARCH_SERPER_COUNTRY:-}
+      SEARCH_SERPER_LANG: ${SEARCH_SERPER_LANG:-}
+      # Inference — GPU inference server for embeddings + reranking
+      SEARCH_INFERENCE_ENABLED: "true"
+      SEARCH_EMBED_API_URL: http://inference-gpu:8001/v1
+      SEARCH_RERANK_API_URL: http://inference-gpu:8001/v1
+      SEARCH_CLEANUP_API_URL: ${SEARCH_CLEANUP_API_URL:-http://inference-llm:8003/v1}
+      # API Key for service-to-service auth (shared with callers)
+      SERVICES_API_KEY: ${SERVICES_API_KEY:-}
+    networks:
+      - search-network
+    restart: unless-stopped
+    depends_on:
+      search-postgres:
+        condition: service_healthy
+      search-redis:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  # ── GPU Inference Server (embeddings + reranking — CUDA) ──────────
+  inference-gpu:
+    build:
+      context: .
+      dockerfile: Dockerfile.inference-gpu
+    container_name: search-inference-gpu
+    environment:
+      EMBED_MODEL: BAAI/bge-m3
+      EMBED_DIMENSIONS: "1024"
+      RERANK_MODEL: BAAI/bge-reranker-v2-m3
+      PORT: "8001"
+      HF_HOME: /data/huggingface
+      DEVICE: "auto"
+      SERVICES_API_KEY: ${SERVICES_API_KEY:-}
+    volumes:
+      - search-hf-cache:/data/huggingface
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [ gpu ]
+    networks:
+      - search-network
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')" ]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 300s
+
+  # ── vLLM Inference: Cleanup LLM (Qwen3.5-2B on GPU) ────────────────
+  inference-llm:
+    image: vllm/vllm-openai:v0.8.0
+    container_name: search-inference-llm
+    profiles: [ "gpu" ]
+    command:
+      - "--model"
+      - "Qwen/Qwen3.5-2B"
+      - "--port"
+      - "8003"
+      - "--max-model-len"
+      - "4096"
+      - "--dtype"
+      - "auto"
+      - "--gpu-memory-utilization"
+      - "0.20"
+    environment:
+      - HUGGING_FACE_HUB_TOKEN=${HF_TOKEN}
+      - HF_TOKEN=${HF_TOKEN}
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [ gpu ]
+    networks:
+      - search-network
+    restart: unless-stopped
+  # ── Intel CPU Inference (fallback — uncomment if no GPU) ─────────
+  # inference-cpu:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile.inference
+  #   container_name: search-inference-cpu
+  #   environment:
+  #     EMBED_MODEL: BAAI/bge-m3
+  #     RERANK_MODEL: BAAI/bge-reranker-v2-m3
+  #     PORT: "8001"
+  #     HF_HOME: /data/huggingface
+  #     DEVICE: "auto"
+  #   volumes:
+  #     - search-hf-cache:/data/huggingface
+  #   devices:
+  #     - /dev/dri:/dev/dri
+  #     - /dev/accel:/dev/accel
+  #   networks:
+  #     - search-network
+  #   restart: unless-stopped
+
+volumes:
+  search-pgdata:
+    name: search-pgdata
+  search-redis-data:
+    name: search-redis-data
+  search-hf-cache:
+    name: search-hf-cache
+
+networks:
+  search-network:
+    name: search-network

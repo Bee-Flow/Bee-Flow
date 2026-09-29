@@ -1,0 +1,318 @@
+{
+  "id": "datatables-share-and-retain",
+  "icon": "⏳",
+  "estMinutes": 10,
+  "title": "Who may read it, and for how long",
+  "desc": "The grade ladder, audience versus write mode, and a retention window that really deletes.",
+  "gate": {
+    "feature": "automations",
+    "permission": "manage_datatables"
+  },
+  "learningGoal": "After this lesson you can share a table read-only with the right people and set a retention window that actually removes rows.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "scene",
+      "icon": "🧭",
+      "title": "Two questions, one table",
+      "bodyMd": "Van Dijk Groep, an installation firm of sixty people near Zwolle, has a table called **leveranciersfacturen**. A routine reads the invoice mailbox every morning and writes one row per invoice the firm receives from its merchants and subcontractors: supplier, invoice number, date, amount, status.\n\nTwo questions follow the moment the first rows land, and each is answered on its own tab:\n\n- **Who may read these rows, and who may change them?** — the **Sharing** tab.\n- **How long do the rows stay?** — the **Retention** tab.\n\nNeither answers itself. Leave the first alone and nobody but you can see the invoices. Leave the second alone and the state line says it plainly: *Rows stay until something deletes them — an automation step, or you.*"
+    },
+    {
+      "type": "slide",
+      "id": "ladder",
+      "icon": "🪜",
+      "title": "Viewer, editor, owner",
+      "bodyMd": "Access to a datatable is one of three grades.\n\n- **Viewer** — read the rows; a routine may look them up.\n- **Editor** — everything a viewer may do, plus adding, changing and deleting rows.\n- **Owner** — everything an editor may do, plus the columns, the Sharing tab, the Retention tab and deleting the table.\n\n**Owner is never handed out.** Whoever created the table is the owner, and so is an administrator of that same organisation. An invitation can only ever carry viewer or editor.\n\nSo Sanne, who built the invoice table, cannot be shared out of it — and Marieke, the administrator, already holds it without anyone sharing anything with her. Your card states your grade: **You own this table**, **You can read and change rows**, or **You can read rows**."
+    },
+    {
+      "type": "slide",
+      "id": "audience",
+      "icon": "👓",
+      "title": "Reading is an audience, writing is a grant",
+      "bodyMd": "On the **Sharing** tab, **Who can read the rows** offers three settings:\n\n- **Private** — *Only you and the people you invite.*\n- **Entire organisation** — *Everyone can read; only invited people can edit.*\n- **Specific groups** — *Only members of the groups you pick.*\n\nThat setting decides reading, and nothing else. Writing is a separate decision: invite a person or a group under **People and teams** with the grade **can change rows**, or switch on **Let everyone who can read it change it too**, which is off by default.\n\nReading Van Dijk's invoices suits the whole Inkoop group. Deleting one does not. That is why they are two switches — and why the widest combination warns you that anyone in your organisation can delete every row, and any routine they run can too."
+    },
+    {
+      "type": "sim",
+      "id": "grades",
+      "icon": "🧩",
+      "title": "Who ends up with what",
+      "instruction": "Pair each situation at Van Dijk Groep with the grade the table gives that person.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "creator",
+            "left": "Sanne created leveranciersfacturen last month and holds no grant on it",
+            "right": "Owner, as the creator",
+            "note": "The creator is always the owner; no grant is stored for it, so none can be removed."
+          },
+          {
+            "id": "admin",
+            "left": "Marieke is an organisation administrator at Van Dijk Groep and has never been invited",
+            "right": "Owner, worked out from her role",
+            "note": "An administrator of that same organisation grades as owner. Not of another organisation — that is refused before ownership is even considered."
+          },
+          {
+            "id": "invited",
+            "left": "The Inkoop group is invited under People and teams, set to can change rows",
+            "right": "Editor",
+            "note": "Writing comes from the explicit invitation, not from the audience."
+          },
+          {
+            "id": "audience",
+            "left": "Audience is Entire organisation and the write switch is off, seen by a colleague in Planning",
+            "right": "Viewer",
+            "note": "The audience grants reading only. With the write switch off, nobody gains row writes from it."
+          },
+          {
+            "id": "personal",
+            "left": "Sanne's personal table, opened by the organisation administrator",
+            "right": "No grade at all",
+            "note": "A personal table belongs to one account. Administrators included, everyone else is told the table is not available to them."
+          }
+        ]
+      }
+    },
+    {
+      "type": "slide",
+      "id": "whomay",
+      "icon": "🗝️",
+      "title": "Whose table it is decides who may change it",
+      "bodyMd": "Owning a table is not quite enough. Two scopes exist, and they are gated differently.\n\n- A **personal table** belongs to your account. You may create it, change its columns, its Sharing tab and its Retention tab yourself — no extra permission is checked, because you *are* the account.\n- An **organisation table** belongs to Van Dijk Groep. Creating one, or changing one, also needs the organisation permission **Manage datatables**, which comes with the roles *Organisation admin* and *Agent admin*. A member or an agent editor can still read and write rows on tables they hold a grade on; they just cannot create the organisation table or edit its settings.\n\nSo Sanne, an agent admin, builds **leveranciersfacturen** as an organisation table and can open both tabs. Bilal, a member of the Inkoop group, keeps his own scratch table happily — and asks Marieke or Sanne when Inkoop needs a shared one."
+    },
+    {
+      "type": "quiz",
+      "id": "q-perm",
+      "question": "Bilal is a member at Van Dijk Groep. He built a personal table to track his own site visits, and now wants a shared table for Inkoop that a routine will write to. What can he do himself?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "His own table entirely — settings included — but the organisation table has to be created by someone with Manage datatables, such as an organisation or agent admin",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Both: owning a table is what grants the settings tabs, and he will own the new one the moment he creates it",
+          "correct": false,
+          "feedback": "Ownership is what gives you the tabs on a personal table. On an organisation table the permission Manage datatables is checked as well, and a member does not carry it, so the creation is refused before there is anything to own."
+        },
+        {
+          "id": "c",
+          "label": "Neither: a member may only read rows, so even the personal table is off limits",
+          "correct": false,
+          "feedback": "A personal table belongs to his account, and the permission check is skipped there entirely. Members also read and write rows on any table they hold a grade on — reading and row writes are decided by the viewer/editor/owner ladder, not by an organisation permission."
+        },
+        {
+          "id": "d",
+          "label": "The organisation table, but not its Sharing tab — sharing is the part that needs Manage datatables",
+          "correct": false,
+          "feedback": "The permission covers creating and changing an organisation table, not just the Sharing tab. What sharing needs on top is the Enterprise feature, and that applies to admins too."
+        }
+      ],
+      "explanation": "Two different questions: *whose* table is it (personal versus organisation, which decides whether Manage datatables is checked at all), and *what grade* do you hold on it (which decides reading and row writes). This course assumes you hold Manage datatables — that is why the lessons that create and configure organisation tables are gated on it."
+    },
+    {
+      "type": "slide",
+      "id": "paid",
+      "icon": "🔐",
+      "title": "Sharing is the paid boundary, losing it is not",
+      "bodyMd": "Handing a table to colleagues is an Enterprise feature. Exactly two things check for it: changing the sharing settings, and inviting a person or a group. Without it you get one line: *Sharing a datatable with colleagues is part of a paid plan. Your own tables, and every table already shared with you, keep working exactly as they do now.*\n\nEverything else is deliberately not gated:\n\n- reading rows, and every row a routine writes, on a table you already hold a grade on;\n- **removing** a grant — taking access away must always be possible;\n- the retention sweep, on its own hourly tick with no module gate: a promise to delete must not stop when a licence does.\n\nA lapse narrows what you can newly share. It never opens, or freezes, what is already there."
+    },
+    {
+      "type": "quiz",
+      "id": "q-groups",
+      "question": "On the invoice table's Sharing tab, Sanne clicks Specific groups. She has not ticked a group yet. Who can read the rows at that moment?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Nobody new — the table is still exactly as it was, and ticking the first group is what shares it",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Everyone in the organisation, because a published table with an empty group list means everyone",
+          "correct": false,
+          "feedback": "That is what an empty group list would mean once the table is published — which is precisely why the click sends nothing at all. The panel says so: Nothing has changed yet — picking a group is what shares the table."
+        },
+        {
+          "id": "c",
+          "label": "Only organisation administrators, until a group is picked",
+          "correct": false,
+          "feedback": "Administrators of the same organisation already grade as owner, whatever the audience says. That is unrelated to this click, and nothing was sent anyway."
+        },
+        {
+          "id": "d",
+          "label": "Nobody — clicking Specific groups makes the table private straight away",
+          "correct": false,
+          "feedback": "No setting was sent, so if the table was on Entire organisation it still is. Only clearing the last ticked group falls back to Private, which is the honest reading of no groups."
+        }
+      ],
+      "explanation": "The narrowest-looking option must never be the widest one in practice, so the click only stages the choice. The first ticked group is the moment the table is shared — and the confirmation dialogue Give more people access? names who gains it."
+    },
+    {
+      "type": "slide",
+      "id": "retention",
+      "icon": "⏳",
+      "title": "A window needs two halves",
+      "bodyMd": "The **Retention** tab has one control, **Rows are deleted after**: **Never**, **7 days**, **30 days**, **90 days**, or **Other…** for anything from 1 to 3650 days. Ten years is the ceiling; a mistyped 36500 is refused.\n\nThe second half is mandatory. **Counted from** names the date column the age is measured from, and the picker lists the table's own Date and Date-and-time columns. Days without a column are refused; if the table has none, the panel points you at the Columns tab. On a table the platform fills in itself — a form's answers, a remembered web answer — the picker is greyed out, because the platform ages those rows itself.\n\nRead the state line back: *Rows are deleted 2555 days after their factuurdatum.* And a row whose date column is empty is never swept. No date means no age."
+    },
+    {
+      "type": "quiz",
+      "id": "q-runhist",
+      "question": "The sweep has removed a batch of expired invoice rows. Where can a copy of those rows still sit?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "In the run history of a routine that read them, which ages out on the run-history window instead",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Nowhere — once the sweep has run, every copy inside Bee Flow is gone",
+          "correct": false,
+          "feedback": "A routine step that reads rows keeps what it read in its own run record. The Retention tab says so in a standing line in the About to expire card, because people are surprised by it."
+        },
+        {
+          "id": "c",
+          "label": "In the Used by tab, which keeps the rows each routine has read",
+          "correct": false,
+          "feedback": "Used by records which routines, apps, web pages and knowledge bases depend on the table — names and step positions, never row content."
+        },
+        {
+          "id": "d",
+          "label": "In a knowledge base, because every datatable is indexed for search automatically",
+          "correct": false,
+          "feedback": "A knowledge base can be listed as a consumer of a table, but nothing indexes a datatable on its own. No such copy is made."
+        }
+      ],
+      "explanation": "Retention is a sweep over the table's rows, not an erasure across the workspace. If somebody asks for their data to be removed, the table is one place to look and the run history is another."
+    },
+    {
+      "type": "sim",
+      "id": "windows",
+      "icon": "🗓️",
+      "title": "Four tables, four windows",
+      "instruction": "Van Dijk Groep has four tables. Pair each one with the retention setting that fits it.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "invoices",
+            "left": "leveranciersfacturen — supplier invoices the bookkeeping has to keep for seven years",
+            "right": "2555 days, counted from factuurdatum",
+            "note": "The window is set by the obligation, and the age is counted from the invoice date rather than the day the routine happened to import it."
+          },
+          {
+            "id": "sick",
+            "left": "verzuimmeldingen — sick-leave answers collected by a form",
+            "right": "730 days, on the date column the answers table already counts from",
+            "note": "Health-adjacent answers get the shortest window HR can work with. On a form-answers table the Counted from picker is fixed and greyed out — the platform owns those columns and ages the rows by when the answer arrived."
+          },
+          {
+            "id": "seen",
+            "left": "A table an hourly routine uses to remember which e-mails it has already answered",
+            "right": "30 days, counted from its own 'answered on' date column",
+            "note": "A memo to itself needs no history. Even here the window needs one of the table's OWN date columns: the Counted from picker lists those, not the hidden created_at the grid shows as Added."
+          },
+          {
+            "id": "mirror",
+            "left": "offertes — a live copy of the sales spreadsheet kept in the team's file storage",
+            "right": "No window — there is no Retention tab",
+            "note": "A mirrored table refuses a window: its rows stay as long as they are in the source, and the source is where they are deleted."
+          }
+        ]
+      }
+    },
+    {
+      "type": "action",
+      "id": "do",
+      "icon": "🏗️",
+      "checkId": "datatable-retention",
+      "title": "Set a window on a table of your own",
+      "instruction": "Open a table you own that has a Date or Date-and-time column — make a small one with such a column first if you have none — and go to its Retention tab. Under Rows are deleted after pick a window, then check the column under Counted from. We will check that the table carries both halves.",
+      "launch": {
+        "navigateTo": "studio/datatables",
+        "label": "Open Datatables"
+      }
+    },
+    {
+      "type": "slide",
+      "id": "expiring",
+      "icon": "⚠️",
+      "title": "Before it goes, and where it does not apply",
+      "bodyMd": "With a window set, two things appear. The **Rows** tab grows an **Expires** column, reading *due to go*, *today* or *in 5 days*. The Retention tab shows **About to expire** — how many rows go in the next seven days — plus *Last swept …* so you can see the job is running.\n\nSome tables refuse a window outright. A table mirrored from Nextcloud Tables, or from a spreadsheet in Drive, OneDrive or Nextcloud Files, has no Retention tab at all.\n\nAnd the standing caveat, printed in the About to expire card: *A run that read these rows keeps its own copy in its run history, which ages out on the run-history window instead.*"
+    },
+    {
+      "type": "exercise",
+      "id": "ex",
+      "icon": "🎯",
+      "exerciseId": "ex-datatables-share-and-retain-plan",
+      "title": "Your turn: the access and retention note",
+      "instruction": "HR at Van Dijk Groep collects sick-leave notifications with a form; the answers land in a table called verzuimmeldingen. In three or four sentences, write the note you would leave on that table. Say which audience you pick and why, how the two HR coordinators get to change rows, how many days the rows are kept and which date the age is counted from, and name one copy the sweep will not reach.",
+      "placeholder": "e.g. Audience: Private, with the HR group invited — sick-leave answers must not be readable by the whole organisation, so …",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "slide",
+      "id": "wrap",
+      "icon": "🎓",
+      "title": "What you can do now",
+      "bodyMd": "- **Share read-only on purpose.** Pick the audience under **Who can read the rows**, leave **Let everyone who can read it change it too** off, and invite the few people who really write. Remember that Specific groups shares nothing until the first group is ticked.\n- **Know who already has it.** Viewer, editor, owner — and owner is derived from being the creator or an administrator of the same organisation, so it is never in the invitation list.\n- **Check the scope before you promise anything.** A personal table is yours alone to configure; an organisation table needs the **Manage datatables** permission as well, which is why this course assumes you hold it.\n- **Set a window with both halves.** A number of days between 1 and 3650, and the date column under **Counted from**. Check **About to expire** afterwards, and remember the run-history copy the sweep does not reach."
+    }
+  ],
+  "rubrics": {
+    "ex-datatables-share-and-retain-plan": {
+      "title": "Access and retention note for verzuimmeldingen",
+      "task": "Write three or four sentences covering the audience chosen for a sick-leave answers table and why, how the two HR coordinators get write access, the retention window in days plus the date column the age is counted from, and one copy the retention sweep does not remove.",
+      "criteria": [
+        "Picks an audience narrower than Entire organisation — Private, or Specific groups with the HR group named — and gives a reason tied to how sensitive sick-leave answers are.",
+        "Keeps reading and writing separate: the coordinators write because they are invited with the read-and-write grade (or because the write switch was deliberately turned on), not because they can read.",
+        "States a concrete number of days within 1 to 3650 and names the date column the age is counted from — on a form-answers table that column is fixed by the platform (the date the answer arrived), which is a correct answer too.",
+        "Names a copy the sweep does not reach — the rows a routine kept in its run history, which ages out on the run-history window instead."
+      ],
+      "passScore": 70,
+      "guidance": "Do not pass an answer that treats sharing as granting write access, that gives a number of days without naming a date column, or that claims retention removes every copy in the workspace. A confident summary of the Sharing tab with no retention decision in it fails. Wording may be informal; the four decisions must each be identifiable."
+    }
+  },
+  "practiceTopic": {
+    "title": "Sharing and retention on a datatable",
+    "summary": "How the viewer/editor/owner ladder, the read audience, the separate write switch and the retention window decide who sees a table's rows and how long they last.",
+    "facts": [
+      "The grades are viewer, editor and owner; an invitation can only carry viewer or editor, because owner is derived from being the creator or an organisation administrator of that same organisation.",
+      "Creating or changing an ORGANISATION datatable also needs the permission Manage datatables (org admin, agent admin); on a personal table that check is skipped, and reading and row writes follow the grade ladder.",
+      "Who can read the rows offers Private, Entire organisation and Specific groups, and decides reading only; writing needs an invitation set to can change rows, or the switch Let everyone who can read it change it too, which is off by default.",
+      "Choosing Specific groups sends nothing until the first group is ticked, and the panel says: Nothing has changed yet — picking a group is what shares the table.",
+      "Rows are deleted after offers Never, 7, 30, 90 days and Other… (1 to 3650); Counted from is mandatory and lists the table's own date columns, greyed out on a platform-filled table. A row with an empty date column is never swept.",
+      "Changing the sharing settings (the audience or the write switch) or inviting someone needs the Enterprise sharing feature, while removing a grant, reading rows and the hourly retention sweep are never gated.",
+      "A routine's copy of the rows in its run history is not removed by the retention sweep; it ages out on the run-history window instead; the About to expire card shows how many rows go in the next seven days and says so in a standing line.",
+      "A table mirrored from Nextcloud Tables or from a spreadsheet file has no Retention tab: its rows stay as long as they are in the source."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "datatable-retention",
+      "existing": false,
+      "label": "Set a retention window on a table you own",
+      "hint": "In Studio → Datatables, open a table whose card says You own this table and has a date column, go to Retention, pick a window under Rows are deleted after and check the column under Counted from.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/datatables",
+          "returns": "{ datatables: [ { id, name, key, grade, ownerUserId, scopeKind, retentionDays, retentionField, managedKind, ... } ], scope }"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "window",
+          "label": "A table you own has a retention window",
+          "hint": "Retention tab → Rows are deleted after → 7, 30, 90 days or Other…",
+          "rule": "some entry in datatables[] has grade === 'owner' and retentionDays is an integer between 1 and 3650"
+        }
+      ]
+    }
+  ]
+}

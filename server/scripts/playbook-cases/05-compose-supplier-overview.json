@@ -1,0 +1,54 @@
+{
+ "id": "05-compose-supplier-overview",
+ "title": "PB Leveranciersoverzicht",
+ "describe": "Lees alle pdf-documenten in de Nextcloud-map /Invoices-Q3. Haal per document de leverancier, de documentdatum, het totaalbedrag en een korte omschrijving (max 10 woorden) op en zet die in een tabel. Bouw daarna een app met een overzichtsscherm: totaalbedrag per leverancier als staafdiagram, een tabel met alle documenten met filter op leverancier, en een detailscherm per document.",
+ "locale": "nl",
+ "options": {
+  "tableMode": "new",
+  "tier": "fast",
+  "locale": "nl"
+ },
+ "expect": {
+  "compose": {
+   "kinds": [
+    "table",
+    "routine",
+    "fill",
+    "design",
+    "app"
+   ],
+   "minColumns": 4
+  },
+  "status": "done",
+  "phases": {
+   "table": "done",
+   "fill": "done",
+   "app": "done"
+  },
+  "minRows": 20,
+  "routine": {
+   "finalized": true,
+   "maxFailedCalls": 3,
+   "maxRounds": 12,
+   "triggerKind": "manual"
+  },
+  "app": {
+   "finalized": true,
+   "maxFailedCalls": 4,
+   "maxRounds": 12,
+   "linkedTable": {
+    "minRows": 1
+   },
+   "components": [
+    "chart",
+    "data_grid"
+   ],
+   "minComponents": 4,
+   "minScreens": 2,
+   "noTools": [
+    "app_seed_records",
+    "app_upsert_table"
+   ]
+  }
+ }
+}

@@ -1,0 +1,33 @@
+# EditorConfig — https://editorconfig.org
+#
+# Matches the styles already used in this repo; it exists so editors default to
+# them for NEW edits. Do not mass-reformat existing files to satisfy it —
+# diff noise costs more than consistency wins.
+
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+
+# Node services and the SPA (server/, agent-hub/) use 4-space indentation.
+[*.{js,jsx,ts,tsx,mjs,cjs}]
+indent_style = space
+indent_size = 4
+
+# The docs site and the Playwright suites use 2-space indentation.
+[{docs,e2e,playwright-tests}/**.{js,jsx,ts,tsx,mjs,cjs}]
+indent_size = 2
+
+[*.py]
+indent_style = space
+indent_size = 4
+
+[*.{yml,yaml,json}]
+indent_style = space
+indent_size = 2
+
+[*.md]
+# Trailing double-spaces are hard line breaks in Markdown — keep them.
+trim_trailing_whitespace = false

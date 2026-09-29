@@ -1,0 +1,303 @@
+{
+  "id": "skills-examples-and-test",
+  "icon": "🔬",
+  "estMinutes": 11,
+  "title": "Show it what good looks like",
+  "desc": "Examples taken from real conversations, and a sandboxed test run graded per step.",
+  "gate": {
+    "permission": "manage_skills",
+    "feature": "skills"
+  },
+  "learningGoal": "Add a defensible example and read a per-step test verdict.",
+  "steps": [
+    {
+      "type": "tour",
+      "id": "where-tabs",
+      "target": "[data-tour=\"nav-studio\"]",
+      "optional": true,
+      "timeoutMs": 6000,
+      "navigateTo": "studio/skills",
+      "placement": "right",
+      "title": "Where this lesson happens",
+      "body": "Studio, then Skills under AI. Open any skill and it carries four tabs: Method, Examples, Test and Used by. Method you already know — the steps and the rules. This lesson is the two tabs beside it: Examples, where you show the skill what good looks like, and Test, where you find out whether it listened."
+    },
+    {
+      "type": "slide",
+      "id": "why-example",
+      "icon": "🧭",
+      "title": "One worked example beats another paragraph",
+      "bodyMd": "Van Dijk Groep wrote a sales skill, **Klantvraag beantwoorden** — answer an inbound customer question. Four steps, three rules. Ask it when an order ships and back come 300 words that never name a date.\n\nRule number four will not fix that. A rule says what must always or never be true; it does not show what a good answer reads like.\n\nThat is what the **Examples** tab is for. Its own intro puts it plainly: *\"Examples show what it should look like. Two or three good ones are enough; a bad one helps with things the agent keeps getting wrong.\"*"
+    },
+    {
+      "type": "slide",
+      "id": "ex-card-parts",
+      "icon": "🗂️",
+      "title": "What one example card holds",
+      "bodyMd": "A card has three parts, in this order:\n\n- **When someone asks** — the kind of question that triggers this\n- **Good answer** — the reply you would have been happy to send\n- **Why this is good** — what a reader should copy from it\n\nUnder them sits an optional **Add an answer to avoid**. It opens a **Not like this** half plus **Rule it breaks**, where you point at one of the skill's own rules or leave it on **No specific rule**. Delete that rule later and the card reads *\"The rule this broke was removed\"* — it never quietly points at nothing.\n\nOne skill holds up to 40 examples."
+    },
+    {
+      "type": "quiz",
+      "id": "q-bad-half",
+      "question": "Klantvraag beantwoorden now has two good examples. When does the optional \"Add an answer to avoid\" half earn its place?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Once a good answer is already on the card and the agent keeps getting one specific thing wrong.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Straight away, next to the first good example, so the agent sees both sides from the start.",
+          "correct": false,
+          "feedback": "A wrong answer in the prompt is text the model has now read. Add it only once the good half exists and one particular mistake keeps coming back."
+        },
+        {
+          "id": "c",
+          "label": "Instead of a good answer, because showing the mistake is faster than writing the ideal reply.",
+          "correct": false,
+          "feedback": "\"Not like this\" is the second half of a card, not a card of its own — there is still a \"When someone asks\" and a \"Good answer\" to fill in, and nothing to contrast against without them."
+        },
+        {
+          "id": "d",
+          "label": "Once per Never rule, so every rule has a matching bad example.",
+          "correct": false,
+          "feedback": "Rules already hold for every answer. \"Rule it breaks\" lets a bad example point at one of them; it never asks for one example per rule."
+        }
+      ],
+      "explanation": "A bad half is worth its space when it fixes a repeating mistake. Pick the rule it breaks under \"Rule it breaks\", or leave it on \"No specific rule\".",
+      "icon": "❓"
+    },
+    {
+      "type": "slide",
+      "id": "from-chat",
+      "icon": "💬",
+      "title": "Take the example from a real conversation",
+      "bodyMd": "The best good answer is usually one that already happened. **Pick from a conversation** opens your own chats and lets you take one assistant reply straight in as the **Good answer** half of a card; **When someone asks** and **Why this is good** stay yours to write.\n\nThe help line under it is the contract: *\"Only your own conversations are listed. Personal data is removed before the example is stored.\"* The scan runs before the preview as well, so a customer's name never quietly becomes part of the skill — and if that scan is unavailable, nothing can be imported at all.\n\nThe finished card is tagged **Taken from a conversation**."
+    },
+    {
+      "type": "sim",
+      "id": "order-import",
+      "icon": "🔀",
+      "title": "Import one answer, in order",
+      "instruction": "Van Dijk Groep wants yesterday's good reply about a delivery date inside Klantvraag beantwoorden. Put the five moves of \"Pick from a conversation\" in the order they actually happen.",
+      "sim": {
+        "kind": "order",
+        "items": [
+          {
+            "id": "open",
+            "label": "Open the skill's Examples tab and click \"Pick from a conversation\""
+          },
+          {
+            "id": "conv",
+            "label": "Pick one of your own conversations — only yours are listed"
+          },
+          {
+            "id": "msg",
+            "label": "Pick one assistant reply out of the messages that conversation offers"
+          },
+          {
+            "id": "preview",
+            "label": "Read the preview, with personal data already stripped, and confirm"
+          },
+          {
+            "id": "fill",
+            "label": "Write \"When someone asks\" and \"Why this is good\" yourself"
+          }
+        ],
+        "solution": [
+          "open",
+          "conv",
+          "msg",
+          "preview",
+          "fill"
+        ],
+        "feedback": "The scan sits before the preview, never after it: you do not see, and the skill does not store, text nothing has checked. And the import only ever fills the Good answer half — the question it answers and the reason it is good are still yours to write."
+      }
+    },
+    {
+      "type": "exercise",
+      "id": "ex-card",
+      "icon": "🎯",
+      "exerciseId": "ex-skills-examples-and-test-card",
+      "title": "Your turn: write one example card",
+      "instruction": "Van Dijk Groep's skill Klantvraag beantwoorden has three rules: always address the customer formally; always give a concrete date or term, never \"soon\"; never promise a discount or an exception. Write one example card for it, all three parts. \"When someone asks\" — a realistic inbound question. \"Good answer\" — the reply you would have been happy to send. \"Why this is good\" — what a reader should copy from it. Use a made-up customer, or none at all.",
+      "placeholder": "When someone asks: … / Good answer: … / Why this is good: …",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "slide",
+      "id": "bridge",
+      "icon": "🌉",
+      "title": "From showing it to checking it",
+      "bodyMd": "The card is written. Did it change anything?\n\nAn example is a claim about how the skill will answer, and the only way to see that claim tested is to run the skill on a real question and read what comes back step by step. That is the **Test** tab — the third of the four, and where the rest of this lesson lives.\n\nOne thing to hold on to before you press anything there: a test never sends, writes or calls anything out. It reads, it answers, and it grades."
+    },
+    {
+      "type": "slide",
+      "id": "test-tab",
+      "icon": "🧪",
+      "title": "The Test tab: just this skill, or as one of your agents",
+      "bodyMd": "The **Test** tab runs *one question through the steps*. Choose who answers before you press **Run**:\n\n- **Just this skill** — the method alone, nothing else in the prompt, so a weak answer is the method's fault.\n- **as agent**, plus one of your agents — the same method inside the agent that will carry it. Only agents you may use are listed.\n\nType the question in *\"Ask something this skill should handle…\"* — up to 2000 characters.\n\nIf your agents cannot be read, the tab says *\"Could not load your agents, so a test cannot run as one\"* — not an empty picker, which would read as \"you have none\". Just this skill still runs."
+    },
+    {
+      "type": "quiz",
+      "id": "q-sandbox",
+      "question": "You press Run on Klantvraag beantwoorden. Which tool can the model actually call during that test run?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Only kb_search, the read-only search across the knowledge bases the skill links.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Everything the agent picked under \"as agent\" is allowed to use.",
+          "correct": false,
+          "feedback": "Picking an agent changes the prompt the skill sits in, and which model answers — not the tool list. The test's tool list is built separately and by hand."
+        },
+        {
+          "id": "c",
+          "label": "Every read-only tool, with the writing ones filtered out.",
+          "correct": false,
+          "feedback": "Filtering a real stack is a promise about tools that do not exist yet — every integration added next year would land inside the sandbox by default. The list is closed instead: a name that is not on it has no definition to hand the model."
+        },
+        {
+          "id": "d",
+          "label": "kb_search plus any routine the skill lists under May use.",
+          "correct": false,
+          "feedback": "Routines granted under May use are callable in a real turn, not in a test. Nothing is sent, written or called out while you are testing."
+        }
+      ],
+      "explanation": "The test sandbox holds exactly one tool, and it only searches knowledge bases you yourself may read. If some of the skill's bases fall away, the run says how many of how many were searched instead of answering as if they had been.",
+      "icon": "❓"
+    },
+    {
+      "type": "slide",
+      "id": "verdicts",
+      "icon": "🧾",
+      "title": "The answer first, the grading second",
+      "bodyMd": "**What the agent answered** arrives first — the whole reply, streaming, before any grading starts — so you read it before a grader tells you what to think of it.\n\nThen **Per step** gives one verdict per step, each with a sentence of evidence:\n\n- **ok** — the answer shows this step happened\n- **warning** — partly, or it cannot be told from the answer alone\n- **error** — the step was skipped or done wrong\n\nBeside a step sits **Open what this step uses**, for the knowledge base, routine or table that step references."
+    },
+    {
+      "type": "slide",
+      "id": "after-run",
+      "icon": "🗃️",
+      "title": "What a run leaves behind",
+      "bodyMd": "Under the verdicts sits **Advice** — concrete suggestions, or the line *no advice* when the grader has none.\n\nThe run itself is kept: **Earlier runs** holds the last 20 for this skill, each with the question you typed, so you can see whether last week's edit moved anything. Only people who may edit the skill see that history.\n\nAnd the verdict travels. In the **All skills** table the **Test** column reads *ok*, *{n} advice*, *failed* — or *not tested* for a skill nobody has run. That column is the quickest way to find the skill everyone attached and nobody ever checked."
+    },
+    {
+      "type": "sim",
+      "id": "sim-verdicts",
+      "icon": "🧩",
+      "title": "Read the verdict, make the edit",
+      "instruction": "Van Dijk Groep spent an afternoon on the Test tab with Klantvraag beantwoorden. Match each line the Test tab gave back to the response it calls for — and note that not every line asks for a change to the skill.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "silent",
+            "left": "Step 1 comes back as a warning: \"Not assessed — the grader did not report on this step.\"",
+            "right": "Rewrite that step so its result is visible in the answer",
+            "note": "Silence is never a pass. A step like \"work out what the question is about\" leaves no trace in the reply, so nothing can be graded — say what it should produce."
+          },
+          {
+            "id": "beyond",
+            "left": "Step 14 reads: \"Not assessed — one run grades the first 12 steps.\"",
+            "right": "Shorten the method to twelve steps or fewer",
+            "note": "One run grades the first twelve steps, so the tail of a fourteen-step method is never checked. Bring it back to twelve, or accept that the last steps are yours to verify by hand."
+          },
+          {
+            "id": "nosteps",
+            "left": "Run stays disabled, with the line: \"Add steps first — a test grades one step at a time.\"",
+            "right": "Write the steps on the Method tab",
+            "note": "There is nothing to grade one at a time yet. The Test tab grades steps, so a skill without them has no test to run."
+          },
+          {
+            "id": "toolong",
+            "left": "The last step is an error: the answer runs to 300 words where the step says 120.",
+            "right": "Add an example whose good answer is the short version",
+            "note": "The instruction is already there and being ignored. This is exactly the case an example fixes faster than a fourth rule."
+          },
+          {
+            "id": "kbdropped",
+            "left": "A line says only one of the two knowledge bases this skill links was searched.",
+            "right": "Nothing in the skill — that one is about your own access",
+            "note": "A test only searches bases you may read. The skill is fine; the run was simply built on fewer sources, which is why it says so instead of staying quiet."
+          }
+        ]
+      }
+    },
+    {
+      "type": "action",
+      "id": "do-test",
+      "icon": "🏗️",
+      "checkId": "skill-tested",
+      "title": "Run one test and fix one step",
+      "instruction": "Open a skill of your own and add at least one example on the Examples tab. Then go to Test, ask a question the skill should handle and press Run. Read Per step, find the first verdict that is not ok, and fix that step — or add an example that shows it done right.",
+      "launch": {
+        "navigateTo": "studio/skills",
+        "label": "Open Skills"
+      }
+    },
+    {
+      "type": "slide",
+      "id": "recap",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "- **Show, then tell.** Two or three good examples do more than a fourth rule, and a \"Not like this\" half only once the agent keeps making one particular mistake.\n- **Take examples from real work safely.** Pick from a conversation reaches only your own chats, and personal data is stripped before the text is shown or stored.\n- **Read a verdict literally.** ok, warning and error are per step; a warning reading \"Not assessed\" means nobody looked, not that the step passed — and a test only ever reads, never sends."
+    }
+  ],
+  "rubrics": {
+    "ex-skills-examples-and-test-card": {
+      "title": "One example card for Klantvraag beantwoorden",
+      "task": "Write the three parts of a single example card — \"When someone asks\", \"Good answer\" and \"Why this is good\" — for a sales skill whose rules are: address the customer formally, give a concrete date or term rather than \"soon\", and never promise a discount or an exception.",
+      "criteria": [
+        "\"When someone asks\" is a realistic inbound customer question about something like a lead time, a price or a warranty — not a description of a question.",
+        "\"Good answer\" is an answer someone could actually send, and it visibly keeps at least two of the three rules (formal address, a concrete date or term, no discount promised).",
+        "\"Why this is good\" names what a reader should copy — a specific quality of the answer — rather than saying it is correct or well written.",
+        "No real customer name, e-mail address, phone number or company is used; a made-up one or none at all."
+      ],
+      "passScore": 70,
+      "guidance": "Do not pass an answer that only gives one or two of the three parts, or that fills \"Why this is good\" with praise (\"clear and friendly\") instead of something to copy. Do not pass a good answer that promises a discount, says \"soon\" instead of a date, or is written informally. Do not pass an answer containing what looks like real contact details. Wording may be informal and may be in Dutch or English; substance decides."
+    }
+  },
+  "practiceTopic": {
+    "title": "Skill examples and the Test tab",
+    "summary": "How example cards are written and imported safely, and how to read a sandboxed per-step test verdict.",
+    "facts": [
+      "An example card has three parts: \"When someone asks\", \"Good answer\" and \"Why this is good\"; \"Add an answer to avoid\" adds a \"Not like this\" half plus \"Rule it breaks\".",
+      "\"Pick from a conversation\" lists only your own conversations and offers assistant replies; personal data is removed before the example is previewed or stored, and the card is tagged \"Taken from a conversation\".",
+      "A skill holds at most 40 examples, and each half of an example is capped at 4000 characters.",
+      "The Test tab runs one question through the steps, either as \"Just this skill\" or \"as agent\" with one of the agents you may use; the question field takes up to 2000 characters.",
+      "Per step verdicts are ok, warning or error; a step the grader did not report on comes back as a warning reading \"Not assessed — the grader did not report on this step.\"",
+      "One test run grades the first 12 steps of a method, and the last 20 runs are kept under \"Earlier runs\".",
+      "The test sandbox offers exactly one tool, kb_search, and it only searches the knowledge bases the person running the test may read.",
+      "In the skills table the Test column reads not tested, ok, \"{n} advice\" or failed, taken from the most recent stored run."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "skill-tested",
+      "existing": false,
+      "label": "Test a skill that has an example",
+      "hint": "In Studio → Skills, open a skill of your own, add an example on the Examples tab, then run a test on the Test tab.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/skills",
+          "returns": "array of skill rows, each with id, userId (owner), examplesV2[], steps[], canEdit and lastTest = { status: 'ok'|'warning'|'error', adviceCount, ranAt } | null"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "example",
+          "label": "A skill you own has at least one example",
+          "hint": "Open the skill, go to Examples and add a card, or use \"Pick from a conversation\".",
+          "rule": "rows.some(s => s.userId === me.id && (s.examplesV2 || []).length >= 1)"
+        }
+      ]
+    }
+  ]
+}

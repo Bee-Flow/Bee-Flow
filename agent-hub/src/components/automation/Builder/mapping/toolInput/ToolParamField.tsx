@@ -1,0 +1,107 @@
+import type { ComponentType } from 'react';
+import { EnumChoice, FrequentValues, ProblemNote, SuggestionChip, type ParamSuggestion } from './ParamExtras';
+import { describeExample, isMultilineProp, shortEnum, type SchemaProp } from './toolInputHelpers';
+import BindingFieldJs from '../BindingField';
+import { FieldLabelRow as FieldLabelRowJs } from '../fieldChrome';
+import { expectedKindFor } from '../fieldKinds';
+import { expectedShapeFor } from '../listShape';
+import { isEmptyBinding } from '../partitionInputs';
+import ValueBuilderJs from '../ValueBuilder';
+
+// The value editors and the label row are untyped JS; their props are checked there.
+const BindingField = BindingFieldJs as unknown as ComponentType<Record<string, unknown>>;
+const ValueBuilder = ValueBuilderJs as unknown as ComponentType<Record<string, unknown>>;
+const FieldLabelRow = FieldLabelRowJs as unknown as ComponentType<Record<string, unknown>>;
+const isEmpty = isEmptyBinding as (b: unknown) => boolean;
+const kindOf = expectedKindFor as (p: unknown) => string;
+const shapeOf = expectedShapeFor as (p: unknown) => string;
+
+/** Kinds a "Frequently used" chip can fill: one plain value. */
+const FREQUENT_KINDS = new Set(['text', 'email', 'number', 'date', 'choice']);
+
+/**
+ * One schema-declared setting in "What this step does" (round 4): the value
+ * editor it always had, plus what the artboards add around it. A short enum
+ * becomes buttons with "recommended" on the schema default, an empty
+ * required setting gets a one-click suggestion, an empty plain setting the
+ * values this organisation uses most, and the setting the last run's error
+ * named gets the red ring with the problem under it.
+ */
+export default function ToolParamField({
+    fieldKey, prop, required, value, onChange, visual, allowRaw, onFocusField, previewSample,
+    autoMapped, onRequestForEach, suggestion = null, tool = null, problem = null,
+}: {
+    fieldKey: string;
+    prop: SchemaProp | undefined;
+    required: boolean;
+    value: unknown;
+    onChange: (binding: unknown) => void;
+    visual: boolean;
+    allowRaw: boolean;
+    onFocusField?: unknown;
+    previewSample?: unknown;
+    autoMapped: boolean;
+    onRequestForEach?: unknown;
+    suggestion?: ParamSuggestion | null;
+    tool?: string | null;
+    problem?: string | null;
+}) {
+    const label = prop?.title || fieldKey;
+    const empty = isEmpty(value);
+    const expectKind = kindOf(prop);
+    const options = shortEnum(prop);
+    const literal = value && typeof value === 'object' && (value as { kind?: string }).kind === 'literal'
+        ? String((value as { value?: unknown }).value ?? '')
+        : null;
+    const asButtons = !!options && (empty || (literal != null && options.includes(literal)));
+    const recommended = prop?.default != null && options?.includes(String(prop.default)) ? String(prop.default) : null;
+    const setLiteral = (v: string) => onChange({ kind: 'literal', value: v });
+
+    let editor;
+    if (asButtons && options) {
+        editor = (
+            <div className="space-y-1.5">
+                <FieldLabelRow label={label} required={required} hint={prop?.description} autoMapped={autoMapped} />
+                <EnumChoice options={options} value={literal} recommended={recommended} onPick={setLiteral} label={label} />
+            </div>
+        );
+    } else {
+        const Field = visual ? ValueBuilder : BindingField;
+        editor = (
+            <Field
+                label={label}
+                showChrome
+                hint={prop?.description}
+                required={required}
+                placeholder={describeExample(prop)}
+                value={value ?? null}
+                onChange={onChange}
+                onFocusField={onFocusField}
+                previewSample={previewSample}
+                multiline={isMultilineProp(prop)}
+                autoMapped={autoMapped}
+                allowRaw={allowRaw}
+                expectShape={shapeOf(prop)}
+                expectKind={expectKind}
+                onRequestForEach={onRequestForEach}
+            />
+        );
+    }
+
+    return (
+        <div
+            data-testid={`param-${fieldKey}`}
+            data-problem={problem ? 'true' : undefined}
+            className={`space-y-1.5 ${problem
+                ? 'rounded-lg p-2 -m-2 border-[1.5px] border-[var(--error)] bg-[color-mix(in_srgb,var(--error)_5%,transparent)] shadow-[0_0_0_3px_color-mix(in_srgb,var(--error)_14%,transparent)]'
+                : ''}`}
+        >
+            {editor}
+            {problem && <ProblemNote text={problem} />}
+            {required && empty && suggestion && <SuggestionChip suggestion={suggestion} onUse={() => onChange(suggestion.binding)} />}
+            {empty && tool && !asButtons && FREQUENT_KINDS.has(expectKind) && (
+                <FrequentValues tool={tool} input={fieldKey} onPick={setLiteral} />
+            )}
+        </div>
+    );
+}

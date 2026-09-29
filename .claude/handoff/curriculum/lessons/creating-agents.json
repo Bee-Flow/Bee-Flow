@@ -1,0 +1,273 @@
+{
+  "id": "creating-agents",
+  "icon": "🤖",
+  "estMinutes": 10,
+  "title": "Create an agent from one sentence",
+  "desc": "The AI landing, what it writes for you, and the first things to fix by hand.",
+  "gate": {
+    "permission": "manage_agents"
+  },
+  "learningGoal": "After this lesson you have a working draft agent whose name, description and instructions you chose yourself — and you can tell what the AI wrote from what you decided.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "anatomy",
+      "icon": "🧩",
+      "title": "Four things make an agent",
+      "bodyMd": "Van Dijk Groep is a Dutch SME with forty supplier contracts and one buyer, Marloes, who is asked the same question all week: *what is the cancellation term at this supplier?*\n\nAn agent is how she answers it once. Every agent is four things:\n\n- **Instructions** — who it is, how it talks, what it must never do.\n- **Knowledge** — the documents it looks in before it answers. Marloes does not keep those herself: the contracts are her colleague Sandra's in procurement, and a later course follows Sandra as she gathers them into a knowledge base.\n- **Tools** — what it may do in other apps. Most good first agents have none.\n- **Audience** — who may see it and chat with it.\n\nThe Agents screen puts it in one line: *\"An agent answers in your words, from the knowledge and tools you give it.\"* This chapter builds Marloes her first one — hers to name, hers to publish, even once it is quoting Sandra's documents."
+    },
+    {
+      "type": "tour",
+      "id": "where",
+      "target": "[data-tour=\"nav-agents\"]",
+      "navigateTo": "agents",
+      "placement": "right",
+      "optional": true,
+      "timeoutMs": 7000,
+      "icon": "🗂️",
+      "title": "Where agents live",
+      "body": "This row opens the agent store, where everyone browses the agents shared with them. Building happens one door along, in **Studio → Agents** — a card per agent and a **New agent** button top right, drawn only for roles that may manage agents."
+    },
+    {
+      "type": "tour",
+      "id": "prompt",
+      "target": "[data-tour=\"agent-wizard-prompt\"]",
+      "navigateTo": "agentWizard",
+      "placement": "bottom",
+      "optional": true,
+      "timeoutMs": 7000,
+      "icon": "✍️",
+      "title": "One sentence starts everything",
+      "body": "The whole landing is a heading, this one box, and three templates underneath. Type what the agent should do and press Enter (Shift+Enter makes a newline); the selector inside the box picks the model tier and starts on **Fast**, which is right for a first agent."
+    },
+    {
+      "type": "slide",
+      "id": "row-first",
+      "icon": "⚡",
+      "title": "A row exists before the AI writes a word",
+      "bodyMd": "Marloes types her sentence and presses Enter. Two things happen, in this order.\n\n1. An agent is created straight away — named **\"Untitled agent\"**, with an empty configuration. It is in her list already.\n2. *Then* the sentence goes to the AI, which starts filling that agent in while the editor opens around it.\n\nThere is no \"review the plan first\" stage. That is deliberate: you land in the real editor, on a real agent, within seconds.\n\nThe practical consequence: an abandoned attempt leaves an **Untitled agent** behind on the Agents screen. Delete it from its card, or open it and keep going. The bar above the landing carries **Back to Agents** and **Create empty agent** for exactly those two exits."
+    },
+    {
+      "type": "exercise",
+      "id": "brief",
+      "icon": "🎯",
+      "exerciseId": "ex-creating-agents-brief",
+      "title": "Your turn: write the sentence",
+      "instruction": "Write the one sentence Marloes would type into that box for Van Dijk Groep's purchasing agent. A strong sentence says three things: what it answers about, which material it should answer from, and one rule it must follow (for example, always naming the contract it used, or admitting when it does not know). Keep it to one or two lines — you are briefing a draft, not writing the finished instructions.",
+      "placeholder": "e.g. Answer questions about our supplier contracts and the quarterly price list — delivery times, volume discounts, cancellation terms — and always name the contract the answer came from.",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "slide",
+      "id": "done-card",
+      "icon": "✅",
+      "title": "Read the Done card before you carry on",
+      "bodyMd": "The panel down the right-hand side of the editor is where the AI works: **\"Refine this agent with AI\"**, with the box *\"Ask me to change anything about this agent\"*.\n\nWhen a pass finishes it posts a **Done** card naming exactly what moved — *\"Rewrote the instructions\"*, *\"Renamed the agent\"*, *\"Updated the description\"*, *\"Changed the avatar\"*, *\"Turned on 2 apps\"*, *\"Changed the model\"*. If nothing moved it says so: *\"Nothing changed — the agent already worked that way.\"*\n\nThat list is the difference between an agent you own and an agent that happened to you. Marloes has renamed hers Inkoopassistent by now, so a *\"Renamed the agent\"* line is one to look at twice. Read the card every time, especially the lines you did not ask for."
+    },
+    {
+      "type": "quiz",
+      "id": "q-undo",
+      "icon": "❓",
+      "question": "The Done card says \"Renamed the agent\" and \"Rewrote the instructions\" — but you had already named it Inkoopassistent yourself. What is the honest first move?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Press Undo on that Done card, then ask again more narrowly.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Type the old name back into the name field and move on.",
+          "correct": false,
+          "feedback": "That repairs the name, but the same card said the instructions were rewritten too. You would be keeping a change you never read. Undo puts the whole pass back at once."
+        },
+        {
+          "id": "c",
+          "label": "Reload the editor — a refine is not saved until you press Save.",
+          "correct": false,
+          "feedback": "A refine is written to the agent as it goes; the editor saves itself. Reloading brings the rewritten version straight back."
+        },
+        {
+          "id": "d",
+          "label": "Delete the agent and start from a fresh sentence.",
+          "correct": false,
+          "feedback": "Expensive, and it teaches you nothing about what the AI misread. Undo is one click and keeps everything else you had already fixed."
+        }
+      ],
+      "explanation": "Undo restores the snapshot taken just before that pass. It is not always on offer, and the rail says which: \"Undo unavailable — no restore point was saved\", or \"Undo unavailable — a newer change came after this one\". So read a Done card while it is still the newest change."
+    },
+    {
+      "type": "slide",
+      "id": "hero",
+      "icon": "🪪",
+      "title": "The part colleagues see first",
+      "bodyMd": "At the top of the editor sits the agent's identity — avatar, name, category, description. The AI's first guess at it is rarely the one you want.\n\n- **Avatar** — click the pencil to pick an emoji or upload an image (under 512 KB).\n- **Name** — click it and type. The placeholder is *\"Agent name\"*.\n- **Category** — the label beside the name. Pick one or type a new one; the filters on the Agents screen are built from these.\n- **Description** — the counter underneath tells you where it ends up: **\"{count}/300 · Shown in the agent picker\"**. Three hundred characters, hard stop.\n\nBeside them sit two labels you can read but not click: **Model tier** and **Answers in**. Each is drawn only when there is a value to show."
+    },
+    {
+      "type": "quiz",
+      "id": "q-desc",
+      "icon": "❓",
+      "question": "Marloes leaves the description of Inkoopassistent empty. What does that actually cost her?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Colleagues meet the agent in a picker where that one line under its name is all they see.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Nothing — the description is a draft-only field that is never shown to anyone.",
+          "correct": false,
+          "feedback": "It is saved like every other field, and it is what the agent picker prints under the name. The counter under the description box says so out loud: \"Shown in the agent picker\"."
+        },
+        {
+          "id": "c",
+          "label": "The agent answers worse, because the description is part of what it was told to be.",
+          "correct": false,
+          "feedback": "Behaviour comes from the Instructions on the Role tab, not from the description. An empty description costs you readers, not answers."
+        },
+        {
+          "id": "d",
+          "label": "The picker falls back to the first line of the instructions instead.",
+          "correct": false,
+          "feedback": "There is no such fallback. What an empty description leaves behind is a stock line: the agent store prints \"AI agent ready to assist.\" and the Android app \"No description yet.\" — neither says anything about your agent."
+        }
+      ],
+      "explanation": "The description is the agent's shopfront: the agent picker prints it under the name, and the Android app uses the same field as the row subtitle. It is capped at 300 characters because it has to survive as one line in a list — so write what it answers about and who it is for, not how clever it is."
+    },
+    {
+      "type": "sim",
+      "id": "briefs",
+      "icon": "🔗",
+      "title": "Four briefs, four worries",
+      "instruction": "Four colleagues at Van Dijk Groep describe a nuisance — and, underneath it, a worry. Pair each one with the opening sentence whose rule answers that worry.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "inkoop",
+            "left": "Marloes looks up delivery times and cancellation terms in forty supplier contracts a day, and is always asked back: where does that number come from?",
+            "right": "\"Answer questions from our supplier contracts and price list, and always name the contract you used.\"",
+            "note": "Names the material and adds one rule. Naming the source is what makes a contract answer checkable."
+          },
+          {
+            "id": "hr",
+            "left": "Pieter answers the same staff-handbook questions all week, and dreads a confident answer about one colleague's own situation.",
+            "right": "\"Answer staff-handbook questions; when it is about one person, hand it to HR instead of answering.\"",
+            "note": "The interesting half is the limit. Saying what it must not answer is what keeps a handbook agent safe."
+          },
+          {
+            "id": "sales",
+            "left": "Sanne writes quotation e-mails from the same product sheets every day. She wants a head start, not a surprise in her outbox.",
+            "right": "\"Draft a quotation e-mail from our product sheets and rates — draft it, never send it.\"",
+            "note": "Says what the agent may do in another app, and where the line is. Sending is the thing to be explicit about from sentence one."
+          },
+          {
+            "id": "intro",
+            "left": "New colleagues keep asking where the expense form lives and how holiday requests work — then stop reading halfway down the answer.",
+            "right": "\"Answer practical newcomer questions from the intro guide, in Dutch, in two sentences or fewer.\"",
+            "note": "Scope, source, language and length. Short answers are a design decision, so put it in the brief."
+          }
+        ]
+      }
+    },
+    {
+      "type": "slide",
+      "id": "other-doors",
+      "icon": "🚪",
+      "title": "Two other ways in",
+      "bodyMd": "The sentence box is not the only door.\n\n**Or start from a template** sits underneath it with three rows: **Teamchat Q&A**, **Morning Planner** and **Bug Triage**. Clicking one simply sends its title and subtitle — *\"Answer questions in team chat using your documentation\"*, for instance — as your sentence. Same instant create, same editor.\n\n**Create empty agent**, in the bar above, skips the AI entirely and opens the editor on an empty draft. That one has no row yet: the header shows a plain **Save** button until you make it real. Use it when you already know the instructions and would only be correcting a draft you did not need."
+    },
+    {
+      "type": "quiz",
+      "id": "q-owners",
+      "icon": "❓",
+      "question": "Marloes will publish Inkoopassistent for the Inkoop group. The contracts it must quote live in a knowledge base her colleague Sandra keeps. Who does what?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Sandra decides who may read her base and whether it is offered to agents at all; Marloes links it from the agent's Can use tab.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Marloes uploads her own copy of the contracts in the agent editor, so she depends on nobody.",
+          "correct": false,
+          "feedback": "Uploading in the editor really does create those documents in a knowledge base — a second one, beside Sandra's. From the next new contract on, the two answer differently, and only one of them is being maintained."
+        },
+        {
+          "id": "c",
+          "label": "Nothing extra: publishing the agent to the Inkoop group publishes the knowledge behind it as well.",
+          "correct": false,
+          "feedback": "Publishing an agent settles the agent's configuration and audience. The base keeps its own audience, checked by the server on every read — so a colleague can hold the agent and still see nothing from a base they may not read."
+        },
+        {
+          "id": "d",
+          "label": "Sandra has to take over the agent, because only the person who built a base may link it to one.",
+          "correct": false,
+          "feedback": "There is no such rule. What decides it is the base's audience and whether Agents is ticked under \"Where it can be used\" — not who built it."
+        }
+      ],
+      "explanation": "Two owners, one answer. Marloes owns the agent — the name, the instructions, the publish. Sandra owns the material and therefore who may read it. Keep that split in your head from chapter one: the knowledge course picks the story up on Sandra's side, with the same agent already published."
+    },
+    {
+      "type": "action",
+      "id": "do",
+      "icon": "🏗️",
+      "checkId": "agent-created",
+      "title": "Build one for real — we'll verify it",
+      "instruction": "Create an agent of your own — the sentence you drafted a few steps back will do. One plain sentence in the box is enough; then fix its name and write a description before you leave. The checklist reads your real workspace, and an agent you built earlier counts immediately.",
+      "launch": {
+        "navigateTo": "agentWizard",
+        "label": "Open the agent wizard"
+      }
+    },
+    {
+      "type": "slide",
+      "id": "autosave",
+      "icon": "💾",
+      "title": "Saved is not the same as shared",
+      "bodyMd": "The editor saves itself. About 0.7 seconds after you stop typing, the label in the header goes **Saving…** and then **Saved** — or **Save failed**, with a **retry** link.\n\nThat is your copy, not everyone's. A new agent starts as **Personal** — *\"Only you can access\"* — so nobody else sees it yet, however many times it saved.\n\nNotice what the header does *not* say: there is no \"v0\". The **Saved · v1** label appears only once you have published a version. Two separate buttons get you there, and they do different jobs: the visibility control (**\"Publish to…\"**) decides *who*, and **Publish** decides *which configuration people actually get*. Telling those two apart is the last chapter of this course."
+    },
+    {
+      "type": "slide",
+      "id": "now",
+      "icon": "🎓",
+      "title": "What you can do now",
+      "bodyMd": "- **Start an agent from one sentence**, knowing the row exists the moment you press Enter — including the **Untitled agent** you may need to clean up afterwards.\n- **Read a Done card** and undo a pass you did not ask for, while it is still the newest change.\n- **Own the identity**: name, avatar, category, and a description under 300 characters — that one line is all a colleague reads before picking your agent.\n- **Say who owns what**: Marloes owns Inkoopassistent; the contracts it will quote stay Sandra's, in a base with its own audience.\n\nNext chapter: the instructions themselves. You will write something the agent will actually follow, and see why a rule you put there is a request rather than a lock — what an agent truly cannot do is whatever you never gave it."
+    }
+  ],
+  "rubrics": {
+    "ex-creating-agents-brief": {
+      "title": "A usable opening sentence",
+      "task": "Write the single sentence a buyer at Van Dijk Groep would type into the agent landing to start a purchasing agent that answers from supplier contracts and the quarterly price list.",
+      "criteria": [
+        "States the subject the agent answers about (supplier contracts, price list, delivery times, discounts, cancellation terms) rather than a vague 'helps with purchasing'.",
+        "Names the material it should answer from — the contracts, the price list, or purchasing documents — so the draft has somewhere to look.",
+        "Adds at least one rule or limit: naming the source contract, saying when it does not know, answering in a set language, or not acting on the answer.",
+        "Reads as a brief of one or two lines addressed to a builder, not as a finished system prompt or a bullet list."
+      ],
+      "passScore": 70,
+      "guidance": "Pass a concrete, self-contained sentence even if the wording is plain or Dutch. Do not pass a bare job title ('a purchasing assistant'), a sentence with no source material, or one with no rule of any kind. Do not pass a wall of instructions — the exercise is the opening brief. Missing punctuation or imperfect English is not a reason to fail; missing subject, source or rule is."
+    }
+  },
+  "practiceTopic": {
+    "title": "Creating an agent from one sentence",
+    "summary": "How the agent landing turns a sentence into a real agent row, and which parts of the result you must fix by hand.",
+    "facts": [
+      "Pressing Enter on the agent landing creates an agent named \"Untitled agent\" with an empty configuration first, and only then hands your sentence to the AI.",
+      "The model tier selector inside the prompt box starts on Fast, and the editor later shows that tier as a read-only chip labelled \"Model tier\".",
+      "After an AI pass the refine rail posts a Done card naming each change, such as \"Rewrote the instructions\" or \"Nothing changed — the agent already worked that way\".",
+      "Undo on a Done card can be refused with \"Undo unavailable — no restore point was saved\" or \"Undo unavailable — a newer change came after this one\".",
+      "The description counter in the editor reads \"{count}/300 · Shown in the agent picker\" and the field is hard-capped at 300 characters.",
+      "An uploaded avatar image must be under 512 KB, otherwise the picker refuses it.",
+      "The editor autosaves shortly after you stop typing and shows Saving… then Saved; the header's \"Saved · v1\" chip appears only after a version has been published, never as v0.",
+      "The landing also offers three templates — Teamchat Q&A, Morning Planner and Bug Triage — plus a \"Create empty agent\" button in the bar above the landing, which skips the AI and opens an unsaved draft."
+    ]
+  },
+  "actionChecks": []
+}

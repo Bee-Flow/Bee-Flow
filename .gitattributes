@@ -1,0 +1,23 @@
+# Shell scripts and container init files must stay LF — CRLF breaks them inside
+# Linux containers (postgres init: "cannot execute: required file not found").
+*.sh text eol=lf
+*.envsh text eol=lf
+docker/** text eol=lf
+docker-entrypoint.d/** text eol=lf
+Dockerfile* text eol=lf
+*.bash text eol=lf
+
+# Source and config files: normalize to LF in the repository and on checkout,
+# so Windows and Linux checkouts produce identical diffs.
+*.js text eol=lf
+*.jsx text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.css text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.json text eol=lf
+
+# Generated files — collapse in diffs and exclude from GitHub language stats.
+agent-hub/src/i18n/en-defaults.js linguist-generated=true
+package-lock.json linguist-generated=true

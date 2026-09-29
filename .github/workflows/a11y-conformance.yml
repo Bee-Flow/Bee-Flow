@@ -1,0 +1,339 @@
+# ══════════════════════════════════════════════════════════════════
+# Accessibility conformance — render the product's own PUBLIC surfaces in
+# a real browser and run axe-core over them, then write the result as
+# server/compliance/a11y/conformance.json (schema:
+# server/compliance/a11y/conformance.schema.json). The compliance check
+# EAA-Art4-product-surfaces-conformance reads that file at runtime; the
+# production image ships no browser, so this job is the only place the
+# rendered-DOM half of the EAA Art. 4 evidence can come from.
+#
+# Surfaces (ids are the schema's enum):
+#   public_form     /f/<token>          a hosted form (automation form trigger)
+#   public_app      /p/<token>          an anonymous Studio-app page
+#   dsr             /privacy/requests   the data-subject request form (always there)
+#   webpage_viewer  /share/<token>      a shared AI webpage
+#
+# A surface without a fixture is written as status:"skipped" with a reason —
+# the check turns that into warn, never pass. Tokens come from
+# e2e/ci/seed-a11y-fixtures.mjs when it exists (see "asks" in the stream's
+# DONE file), else from the dispatch inputs; the DSR form needs none.
+#
+# Stack bootstrap reuses the e2e smoke helpers (e2e/ci/*) so this job and
+# the smoke gate cannot drift on how a throwaway stack is started (core +
+# search profiles, because wait-for-stack.sh gates on search-api too).
+#
+# Trigger modes — never on push; nothing here deploys anything:
+#   • workflow_call     from the image pipeline, after the sha-tagged images
+#                       exist and BEFORE the final server image is assembled,
+#                       so conformance.json can be copied into it
+#                       (build-push-ghcr.yml does not call it yet — see asks).
+#   • workflow_dispatch manual run against one tag.
+# ══════════════════════════════════════════════════════════════════
+name: A11y Conformance
+
+on:
+  workflow_call:
+    inputs:
+      built_services:
+        description: 'CSV of workflow service keys built this run (e.g. server,agent-hub)'
+        type: string
+        default: ''
+      image_sha:
+        description: 'Full git sha the built images were tagged with (sha-<sha>); stamped as build_sha'
+        type: string
+        default: ''
+      fallback_tag:
+        description: 'Tag for services NOT built this run'
+        type: string
+        default: 'dev'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Image tag to test (dev, prod, latest, sha-<fullsha>)'
+        default: 'dev'
+      form_token:
+        description: 'Optional: token of a published form on the seeded stack (/f/<token>)'
+        default: ''
+      app_token:
+        description: 'Optional: token of a public Studio-app page (/p/<token>)'
+        default: ''
+      share_token:
+        description: 'Optional: token of a shared AI webpage (/share/<token>)'
+        default: ''
+
+env:
+  IMAGE_PREFIX: ghcr.io/bee-flow
+  CLIENT_URL: http://localhost:5176
+  SERVER_URL: http://localhost:3001
+  PLAYWRIGHT_VERSION: 1.59.1
+  AXE_PLAYWRIGHT_VERSION: 4.10.2
+  ARTEFACT_PATH: server/compliance/a11y/conformance.json
+
+jobs:
+  axe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Same mixed-tag resolution as the smoke gate: services built this run
+      # at :sha-<sha>, everything else at the fallback tag, all retagged :smoke.
+      - name: Resolve images
+        env:
+          BUILT: ${{ inputs.built_services }}
+          SHA: ${{ inputs.image_sha }}
+          FALLBACK_TAG: ${{ inputs.fallback_tag || inputs.tag || 'dev' }}
+        run: bash e2e/ci/resolve-images.sh
+
+      # Throwaway .env + fresh secrets; ADMIN_PASSWORD (masked) lands in
+      # GITHUB_ENV for the readiness gate and the seeder. No LLM key: nothing
+      # here talks to a model.
+      - name: Write stack env
+        env:
+          E2E_ANTHROPIC_API_KEY: ''
+          CI: 'true'
+        run: bash e2e/ci/write-env.sh
+
+      - name: Start stack
+        run: >
+          docker compose
+          -f docker-compose.from-registry.yml
+          -f e2e/ci/docker-compose.ci.yml
+          --profile core --profile search
+          up -d
+
+      - name: Wait for stack (strict gate)
+        run: bash e2e/ci/wait-for-stack.sh
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+
+      # Public fixtures: a published form, a public app page and a shared
+      # webpage. The seeder is the single source of tokens; when it is absent
+      # (or a surface cannot be seeded) the dispatch inputs are used, and any
+      # surface still without a token is recorded as skipped.
+      - name: Seed public fixtures
+        id: seed
+        env:
+          API_URL: ${{ env.SERVER_URL }}
+          BASE_URL: ${{ env.CLIENT_URL }}
+          ADMIN_USER: admin
+          ADMIN_PASSWORD: ${{ env.ADMIN_PASSWORD }}
+          FORM_TOKEN: ${{ inputs.form_token }}
+          APP_TOKEN: ${{ inputs.app_token }}
+          SHARE_TOKEN: ${{ inputs.share_token }}
+        run: |
+          set -euo pipefail
+          mkdir -p a11y-run
+          if [ -f e2e/ci/seed-a11y-fixtures.mjs ]; then
+            node e2e/ci/seed-a11y-fixtures.mjs > a11y-run/fixtures.json || {
+              echo "::warning::seed-a11y-fixtures.mjs failed — falling back to dispatch inputs"
+              echo '{}' > a11y-run/fixtures.json
+            }
+          else
+            echo "::notice::e2e/ci/seed-a11y-fixtures.mjs not present — public_form/public_app/webpage_viewer come from dispatch inputs or are skipped"
+            echo '{}' > a11y-run/fixtures.json
+          fi
+          node -e '
+            const fs = require("fs");
+            const seeded = JSON.parse(fs.readFileSync("a11y-run/fixtures.json", "utf8") || "{}");
+            const pick = (k, env) => (seeded[k] && String(seeded[k])) || (process.env[env] && String(process.env[env])) || "";
+            const out = {
+              form_token: pick("form_token", "FORM_TOKEN"),
+              app_token: pick("app_token", "APP_TOKEN"),
+              share_token: pick("share_token", "SHARE_TOKEN"),
+              seeder: fs.existsSync("e2e/ci/seed-a11y-fixtures.mjs"),
+            };
+            fs.writeFileSync("a11y-run/fixtures.json", JSON.stringify(out));
+            for (const k of ["form_token", "app_token", "share_token"]) if (out[k]) console.log(`::add-mask::${out[k]}`);
+            console.log("fixtures:", Object.fromEntries(Object.entries(out).map(([k, v]) => [k, typeof v === "string" ? (v ? "set" : "missing") : v])));
+          '
+
+      - name: Install Playwright + axe
+        working-directory: a11y-run
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund "playwright@${PLAYWRIGHT_VERSION}" "@axe-core/playwright@${AXE_PLAYWRIGHT_VERSION}"
+          npx playwright install --with-deps chromium
+
+      # The runner script is inlined so this workflow owns its whole contract
+      # with the schema; it reads no page content into the report — only axe
+      # rule ids, impacts, node counts and CSS selectors of the product's own
+      # markup. Tokens never reach the file (url_path carries "<token>").
+      - name: Run axe over the public surfaces
+        working-directory: a11y-run
+        env:
+          BASE_URL: ${{ env.CLIENT_URL }}
+          BUILD_SHA: ${{ inputs.image_sha || github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          WORKFLOW: ${{ github.workflow }}
+        run: |
+          set -euo pipefail
+          cat > run.mjs <<'EOF'
+          import fs from 'node:fs';
+          import { chromium } from 'playwright';
+          import { AxeBuilder } from '@axe-core/playwright';
+
+          const BASE = (process.env.BASE_URL || 'http://localhost:5176').replace(/\/+$/, '');
+          const fixtures = JSON.parse(fs.readFileSync('fixtures.json', 'utf8'));
+          const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
+          const VIEWPORT = { width: 1280, height: 900 };
+          const IMPACTS = ['critical', 'serious', 'moderate', 'minor'];
+
+          // Each surface: id, the path visited (with the live token), the
+          // path recorded (token redacted), and a readiness selector.
+          const surfaces = [
+            { id: 'dsr', path: '/privacy/requests', record: '/privacy/requests', ready: 'form, main, [role="main"]' },
+            fixtures.form_token
+              ? { id: 'public_form', path: `/f/${fixtures.form_token}`, record: '/f/<token>', ready: 'form, main, [role="main"]' }
+              : { id: 'public_form', skip: 'no published-form fixture token (seeder absent or failed)' },
+            fixtures.app_token
+              ? { id: 'public_app', path: `/p/${fixtures.app_token}`, record: '/p/<token>', ready: 'main, [role="main"], form, [data-app-root]' }
+              : { id: 'public_app', skip: 'no public-app fixture token (seeder absent or failed)' },
+            fixtures.share_token
+              ? { id: 'webpage_viewer', path: `/share/${fixtures.share_token}`, record: '/share/<token>', ready: 'iframe, main, [role="main"]' }
+              : { id: 'webpage_viewer', skip: 'no shared-webpage fixture token (seeder absent or failed)' },
+          ];
+
+          const browser = await chromium.launch();
+          const context = await browser.newContext({ viewport: VIEWPORT, locale: 'en-GB' });
+          const page = await context.newPage();
+          let axeVersion = null;
+          const out = [];
+
+          for (const s of surfaces) {
+            if (s.skip) { out.push({ id: s.id, status: 'skipped', skip_reason: s.skip }); continue; }
+            try {
+              const res = await page.goto(`${BASE}${s.path}`, { waitUntil: 'networkidle', timeout: 45_000 });
+              if (!res || res.status() >= 400) {
+                out.push({ id: s.id, status: 'skipped', url_path: s.record, skip_reason: `HTTP ${res ? res.status() : 'no response'}` });
+                continue;
+              }
+              await page.waitForSelector(s.ready, { timeout: 20_000 }).catch(() => {});
+              // Give client-side surfaces one more tick to settle after the API round trip.
+              await page.waitForTimeout(750);
+              const results = await new AxeBuilder({ page }).withTags(TAGS).analyze();
+              axeVersion = axeVersion || results.testEngine?.version || null;
+              const violations = { critical: 0, serious: 0, moderate: 0, minor: 0 };
+              const rules = [];
+              for (const v of results.violations) {
+                const impact = IMPACTS.includes(v.impact) ? v.impact : 'minor';
+                violations[impact] += v.nodes.length;
+                rules.push({
+                  id: v.id,
+                  impact,
+                  wcag: (v.tags || []).filter(t => /^wcag/.test(t)),
+                  help: String(v.help || '').slice(0, 200),
+                  help_url: v.helpUrl,
+                  nodes: v.nodes.length,
+                  targets: v.nodes.slice(0, 10).map(n => Array.isArray(n.target) ? n.target.join(' ') : String(n.target)).map(t => t.slice(0, 200)),
+                });
+              }
+              out.push({
+                id: s.id, status: 'tested', url_path: s.record, violations,
+                passes: results.passes.length, incomplete: results.incomplete.length, rules,
+              });
+              console.log(`${s.id}: ${JSON.stringify(violations)} (${results.passes.length} passes)`);
+            } catch (e) {
+              out.push({ id: s.id, status: 'skipped', url_path: s.record, skip_reason: String(e.message || e).slice(0, 200) });
+              console.log(`${s.id}: skipped — ${String(e.message || e).slice(0, 200)}`);
+            }
+          }
+          await browser.close();
+
+          const doc = {
+            schema_version: 1,
+            build_sha: /^[0-9a-fA-F]{7,64}$/.test(process.env.BUILD_SHA || '') ? process.env.BUILD_SHA : 'dev',
+            generated_at: new Date().toISOString(),
+            axe_version: axeVersion || 'unknown',
+            runner: {
+              workflow: process.env.WORKFLOW || 'a11y-conformance',
+              run_id: String(process.env.RUN_ID || ''),
+              run_url: process.env.RUN_URL || undefined,
+              browser: 'chromium',
+              viewport: `${VIEWPORT.width}x${VIEWPORT.height}`,
+              tags: TAGS,
+            },
+            surfaces: out,
+          };
+          if (!doc.runner.run_url) delete doc.runner.run_url;
+          fs.writeFileSync('conformance.json', JSON.stringify(doc, null, 2));
+          EOF
+          node run.mjs
+
+      # The same validator the server uses at runtime — if this fails, the
+      # check would have refused the file too.
+      - name: Validate against the schema reader
+        run: |
+          set -euo pipefail
+          node -e '
+            const { validate } = require("./server/compliance/a11y/conformance");
+            const doc = JSON.parse(require("fs").readFileSync("a11y-run/conformance.json", "utf8"));
+            const problems = validate(doc);
+            if (problems.length) { console.error("conformance.json rejected:", problems); process.exit(1); }
+            const tested = doc.surfaces.filter(s => s.status === "tested").length;
+            console.log(`conformance.json ok — ${tested}/${doc.surfaces.length} surfaces tested, build ${doc.build_sha}`);
+          '
+          mkdir -p "$(dirname "$ARTEFACT_PATH")"
+          cp a11y-run/conformance.json "$ARTEFACT_PATH"
+
+      - name: Step summary
+        if: always()
+        run: |
+          {
+            echo "## Accessibility conformance"
+            if [ -f a11y-run/conformance.json ]; then
+              node -e '
+                const doc = JSON.parse(require("fs").readFileSync("a11y-run/conformance.json", "utf8"));
+                console.log(`build \`${doc.build_sha}\` · axe ${doc.axe_version} · ${doc.generated_at}\n`);
+                console.log("| surface | status | critical | serious | moderate | minor | note |");
+                console.log("|---|---|---|---|---|---|---|");
+                for (const s of doc.surfaces) {
+                  const v = s.violations || {};
+                  console.log(`| ${s.id} | ${s.status} | ${v.critical ?? ""} | ${v.serious ?? ""} | ${v.moderate ?? ""} | ${v.minor ?? ""} | ${s.skip_reason || ""} |`);
+                }
+              '
+            else
+              echo "_no conformance.json produced_"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Collect stack logs
+        if: always()
+        run: bash e2e/ci/collect-logs.sh
+
+      # The artefact the image pipeline copies to server/compliance/a11y/
+      # before building the server image. Kept 90 days: the check marks a
+      # report older than 60 days stale, so a rebuild inside that window can
+      # still reuse it.
+      - name: Upload conformance artefact
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: a11y-conformance-${{ inputs.image_sha || github.sha }}
+          path: |
+            server/compliance/a11y/conformance.json
+            compose-logs/**
+          retention-days: 90
+          if-no-files-found: warn
+
+      - name: Teardown
+        if: always()
+        run: >
+          docker compose
+          -f docker-compose.from-registry.yml
+          -f e2e/ci/docker-compose.ci.yml
+          --profile core --profile search
+          down -v --remove-orphans

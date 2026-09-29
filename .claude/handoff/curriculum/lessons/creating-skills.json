@@ -1,0 +1,323 @@
+{
+ "id": "creating-skills",
+ "icon": "🧩",
+ "estMinutes": 10,
+ "title": "Write the method down",
+ "desc": "Summary, when to use it, ordered steps, always/never rules, and what it delivers.",
+ "gate": {
+  "permission": "manage_skills",
+  "feature": "skills"
+ },
+ "learningGoal": "After this lesson you can write a skill whose steps and rules a colleague could follow without you, and you know why a skill is not the same thing as an agent's instructions.",
+ "steps": [
+  {
+   "type": "slide",
+   "id": "why",
+   "icon": "🧭",
+   "title": "A method you write once",
+   "bodyMd": "At Van Dijk Groep the same 300-word instruction for assessing a supplier quote sits inside three different agents. Someone improves one of them. Now the three disagree, and nobody can say which is right.\n\nA **skill** is that method, written down once and kept in one place: what it is for, the steps in order, and the rules that hold every time.\n\nA skill never runs on its own. It reaches an answer in exactly three ways — attached to an agent, applied by a routine's AI step, or switched on for one chat from the composer. Improve the skill and all three change at the same moment. That is the whole point: one method, many places, no copies drifting apart."
+  },
+  {
+   "type": "tour",
+   "id": "where",
+   "target": "[data-tour=\"nav-studio\"]",
+   "navigateTo": "studio/skills",
+   "placement": "right",
+   "optional": true,
+   "timeoutMs": 7000,
+   "icon": "✨",
+   "title": "Where a skill is born",
+   "body": "Studio lives here in the left rail; Skills sits under AI. The round plus button in the list header (“Create skill”) makes an “Untitled skill” straight away and opens it — there is no blank form to fill in first. You rename it in the header and type into the cards, and every edit saves by itself 350 milliseconds after your last keystroke."
+  },
+  {
+   "type": "slide",
+   "id": "method",
+   "icon": "📋",
+   "title": "The Method tab, card by card",
+   "bodyMd": "Van Dijk Groep's first skill is **Offerte beoordelen** — assessing an incoming supplier quote.\n\n- **What this skill does** — one line, so anyone scanning the list knows what it is for.\n- **When to use it** — the trigger in plain words: “someone shares a quote, price list or rate card from a supplier”. Up to 4,000 characters; past 90 per cent of that the card counts down what is left.\n- **Steps** — one sentence per step, in this order, drag to rearrange. Empty, the card says so out loud: “No steps yet. Write down what the agent should do, one step at a time.”\n\nA step may carry a **reference** pill pointing at a routine, a knowledge base or a table, so the reader can see what that step works from."
+  },
+  {
+   "type": "slide",
+   "id": "rules",
+   "icon": "⚖️",
+   "title": "Always and Never",
+   "bodyMd": "A step happens once, in its place in the order. A **rule** holds for every answer the skill ever gives.\n\nEach rule is a single sentence with a button beside it that reads **Always** or **Never** — click it to flip the meaning. For **Offerte beoordelen**, Van Dijk Groep wrote three:\n\n- **Always** name the quote number and its date in the answer.\n- **Always** calculate in euros excluding VAT.\n- **Never** confirm or accept a quote on behalf of Van Dijk Groep.\n\nThat last one is the one that matters. A **Never** is the line the method will not cross, however the question is phrased — the piece of your judgement you would otherwise have to be present for."
+  },
+  {
+   "type": "sim",
+   "id": "sort",
+   "icon": "🗂️",
+   "title": "Which card does this line belong in?",
+   "instruction": "Five lines from Van Dijk Groep's Offerte beoordelen skill. Put each one in the card on the Method tab where it belongs. One of the cards is new — work it out by elimination, and the next slide picks it up.",
+   "sim": {
+    "kind": "match",
+    "pairs": [
+     {
+      "id": "p1",
+      "left": "Assesses an incoming supplier quote against our purchasing rules and gives an advice.",
+      "right": "What this skill does",
+      "note": "One line that describes the skill itself — this is what people read in the list."
+     },
+     {
+      "id": "p2",
+      "left": "Someone shares a quote, price list or rate card from a supplier.",
+      "right": "When to use it",
+      "note": "The trigger: the situation in which this method should be reached for."
+     },
+     {
+      "id": "p3",
+      "left": "Compare the line prices with the last agreed volume discount.",
+      "right": "Steps",
+      "note": "One thing that happens once, at a particular point in the order."
+     },
+     {
+      "id": "p4",
+      "left": "Never confirm or accept a quote on behalf of Van Dijk Groep.",
+      "right": "Rules",
+      "note": "It holds for every answer, not just at one point in the method."
+     },
+     {
+      "id": "p5",
+      "left": "advies — one of a list: akkoord, onderhandelen, afwijzen",
+      "right": "Delivers",
+      "note": "A named, typed field the skill hands back so something else can use it."
+     }
+    ]
+   }
+  },
+  {
+   "type": "slide",
+   "id": "delivers",
+   "icon": "📦",
+   "title": "Delivers: the fields something else can use",
+   "bodyMd": "Left alone, the **Delivers** card says “No fields — this skill answers in its own words.” That is fine for a skill a person reads.\n\nIt stops being fine the moment a routine has to do something with the answer. Van Dijk Groep's quote routine writes the outcome into a table, so the skill delivers named fields: `leverancier` (text), `offertenummer` (text), `totaal_excl_btw` (number), `advies` (one of a list). A read-back line, **“How an automation will see these”**, names each field in plain words — text, number, yes-no, date, one of a list, table.\n\nOn a routine's AI step, the **leading** skill's delivered fields become the step's own outgoing fields. That is the join: this card is where a written method turns into data a later step can map."
+  },
+  {
+   "type": "quiz",
+   "id": "q-scope",
+   "question": "Van Dijk Groep wants every agent that handles supplier quotes to assess them the same way — and wants the routine that empties the purchasing mailbox to do it too. Where does the method belong?",
+   "multi": false,
+   "choices": [
+    {
+     "id": "a",
+     "label": "In one skill, attached to those agents and picked on the routine's AI step.",
+     "correct": true
+    },
+    {
+     "id": "b",
+     "label": "In each agent's own instructions, copied across.",
+     "correct": false,
+     "feedback": "That is exactly the copy-paste you are escaping. An agent's instructions say who it is; three copies of a method drift apart the first time someone improves one of them."
+    },
+    {
+     "id": "c",
+     "label": "In a prompt the team pastes into the chat each time.",
+     "correct": false,
+     "feedback": "A prompt lives for one message. Nothing in the workspace keeps it, no routine can reach it, and nobody else can read what the method actually says."
+    },
+    {
+     "id": "d",
+     "label": "In a knowledge base document that describes the procedure.",
+     "correct": false,
+     "feedback": "A knowledge base is something an agent can search for facts. It is not instruction the agent must follow, so the method would only apply if the agent happened to look it up."
+    }
+   ],
+   "explanation": "An agent's instructions describe who it is; a skill describes how one job is done. The same skill can be attached to several agents and picked on a routine's AI step, and a change to it applies everywhere at once."
+  },
+  {
+   "type": "slide",
+   "id": "ai-fill",
+   "icon": "🪄",
+   "title": "Start from one sentence, then read every line",
+   "bodyMd": "A brand-new, still-empty skill shows one card above everything else: **Start from one sentence**. Type what it should do under “What should this skill do?” and press **Let AI fill it in**.\n\nBack come a name, a summary, a when-to-use line, steps, rules, examples and delivered fields — already saved. The message that follows is deliberately blunt: **“Filled in with AI. Read it through before you rely on it.”**\n\nSo read it. The draft writes words and structure only; it cannot decide what the skill may use, who may see it, or which knowledge base a step works from. Those stay yours. The card goes away once the skill has steps, rules or a when-to-use line; **Improve with AI** in the header stays."
+  },
+  {
+   "type": "sim",
+   "id": "order",
+   "icon": "🧮",
+   "title": "Put the method back in order",
+   "instruction": "These are the five steps of Offerte beoordelen, scrambled. Drag them into the order a colleague could actually follow.",
+   "sim": {
+    "kind": "order",
+    "items": [
+     {
+      "id": "c",
+      "label": "Compare the line prices with the last agreed volume discount (table: Prijslijst leveranciers)."
+     },
+     {
+      "id": "e",
+      "label": "Give an advice — akkoord, onderhandelen or afwijzen — with one reason per point."
+     },
+     {
+      "id": "a",
+      "label": "Pull the supplier, validity, delivery time and payment term out of the quote."
+     },
+     {
+      "id": "d",
+      "label": "Name every deviation larger than 5 per cent."
+     },
+     {
+      "id": "b",
+      "label": "Look up what was agreed with this supplier before (knowledge base: Inkoopkader & raamcontracten)."
+     }
+    ],
+    "solution": [
+     "a",
+     "b",
+     "c",
+     "d",
+     "e"
+    ],
+    "feedback": "Read the document first, then look up what you are comparing against, then compare, then name what stands out, and only then advise. Every step may lean on everything above it — a step that advises before anything has been compared has nothing to advise from."
+   }
+  },
+  {
+   "type": "exercise",
+   "id": "guardrails",
+   "icon": "🎯",
+   "exerciseId": "ex-creating-skills-rules",
+   "title": "Your turn: write the guardrails",
+   "instruction": "Van Dijk Groep's HR team wants a skill that summarises a job application against the vacancy it was sent for. Write two things for it. First the When to use it line — one or two sentences, specific enough that a colleague knows when this skill applies and when it does not. Then two rules: one Always and one Never, each a single sentence that could hold for every answer the skill ever gives. Label which is which.",
+   "placeholder": "When to use it: …\nAlways: …\nNever: …",
+   "passScore": 70,
+   "maxAttempts": 4
+  },
+  {
+   "type": "slide",
+   "id": "mayuse",
+   "icon": "🔑",
+   "title": "May use: what the skill may reach",
+   "bodyMd": "The right rail holds **May use**: the apps, routines and knowledge bases this skill may reach while it is working — three lists, no more. Van Dijk Groep's quote skill gets one knowledge base and no apps at all, so it can read, and it cannot send anything anywhere.\n\nA routine only appears in the picker once its trigger is **“an agent calls it”**. A scheduled or form-triggered routine cannot be called in the middle of an answer, so it is never offered.\n\nKeep the list short. It is a request, not a guarantee: what the skill may actually touch is checked again at the moment it tries."
+  },
+  {
+   "type": "slide",
+   "id": "grants",
+   "icon": "🔗",
+   "title": "A reference is not a grant",
+   "bodyMd": "A step can carry a **reference** pill pointing at a routine — and that is presentation. It shows the reader where that step gets its answer; it does not make the routine callable. Only **May use** does that.\n\nTwo exceptions. A reference to a **knowledge base** does grant access. So does a reference to a **table** — and a table can only ever be granted that way, because May use has no table list.\n\nSo: routines are granted in May use, tables on the step, knowledge bases either way. When a skill quietly ignores a routine you were sure it had, this is almost always why."
+  },
+  {
+   "type": "quiz",
+   "id": "q-mayuse",
+   "question": "Van Dijk Groep has three routines. Which one can be offered to the Offerte beoordelen skill under May use?",
+   "multi": false,
+   "choices": [
+    {
+     "id": "a",
+     "label": "Levertijd opvragen — trigger: an agent calls it.",
+     "correct": true
+    },
+    {
+     "id": "b",
+     "label": "Offertes uit de inkoopmailbox — trigger: on a schedule, every hour.",
+     "correct": false,
+     "feedback": "A scheduled routine runs on its own clock; nothing can call it in the middle of an answer. Skill and routine meet the other way round there: that routine's AI step picks the skill."
+    },
+    {
+     "id": "c",
+     "label": "Nieuwe leverancier aanmelden — trigger: on form submission.",
+     "correct": false,
+     "feedback": "A form routine waits for a submitted form, so it cannot be dispatched as a tool. The empty line in the card says it plainly: a routine appears here once its trigger is “an agent calls it”."
+    },
+    {
+     "id": "d",
+     "label": "Any of the three, as long as you own it.",
+     "correct": false,
+     "feedback": "Ownership is not the filter — the trigger is. Only a routine that is triggered by an agent calling it can be reached during an answer."
+    }
+   ],
+   "explanation": "Only a routine whose trigger is “an agent calls it” can be dispatched while a skill is working, so only that one is offered in the picker. And remember: putting it in May use is what grants it — a reference pill on a step does not."
+  },
+  {
+   "type": "action",
+   "id": "build",
+   "icon": "🏗️",
+   "checkId": "skill-created",
+   "title": "Build one — we'll verify it",
+   "instruction": "In Studio, open Skills and press the plus button. Rename it in the header, write a one-line summary and a When to use it line, then add at least three steps and at least one Always or Never rule. Use a method your team really does repeat. The checklist below reads your workspace as you go.",
+   "launch": {
+    "navigateTo": "studio/skills",
+    "label": "Open Skills"
+   }
+  },
+  {
+   "type": "slide",
+   "id": "recap",
+   "icon": "✅",
+   "title": "What you can do now",
+   "bodyMd": "- **Write a method down once.** Summary, when to use it, ordered steps, Always and Never rules — and the fields it delivers when something else has to act on the answer.\n- **Tell the parts apart.** A step happens once in its place; a rule holds for every answer; a reference shows the reader a source; May use is what actually grants one.\n- **Let the draft help, then own it.** “Let AI fill it in” writes text and structure; what the skill may reach, and who may see it, stays your decision.\n\nNext chapter: examples, and a test run that grades the method step by step — so you find out it is wrong before an agent does."
+  }
+ ],
+ "rubrics": {
+  "ex-creating-skills-rules": {
+   "title": "When to use it, plus one Always and one Never",
+   "task": "Write the When to use it line for a skill that summarises a job application against its vacancy, and two rules for it — one Always and one Never, each a single sentence that holds for every answer.",
+   "criteria": [
+    "The When to use it line names a concrete situation (an application arrives or is shared for an open vacancy), not a vague subject area.",
+    "It is narrow enough that the boundary is clear — either it says what the skill is not for, or the trigger itself excludes the neighbouring cases.",
+    "Exactly two rules are given, one labelled Always and one labelled Never, each a single sentence.",
+    "At least one rule is a genuine guardrail for this job — for example not naming age, gender, nationality, belief, health or home town, or not deciding to hire or reject."
+   ],
+   "passScore": 70,
+   "guidance": "Pass plain, specific answers even when the wording is clumsy, and accept Dutch or English. Do not pass: a rule written as a step (“first read the vacancy”), a rule that only holds in some answers, a Never that is really a preference about tone, a when-to-use line that only repeats the skill's name, or an answer that gives rules without labelling which is Always and which is Never."
+  }
+ },
+ "practiceTopic": {
+  "title": "Writing a skill's method",
+  "summary": "The parts of a skill on the Method tab, what each one is for, and how a skill differs from an agent's own instructions.",
+  "facts": [
+   "The Method tab holds What this skill does and When to use it on top, the Steps card on the left, and Rules, Delivers and May use in the right rail beside it.",
+   "A rule is one sentence with a polarity button beside it reading Always or Never, and it holds for every answer the skill gives.",
+   "A skill never runs on its own: it is attached to an agent, applied by a routine's AI step, or switched on for one chat from the composer.",
+   "May use holds three lists only — apps, routines and knowledge bases; a routine qualifies only when its trigger is “an agent calls it”, a step that merely references a routine grants nothing, and a table is granted by a reference pill on a step.",
+   "On an empty skill the card “Start from one sentence” offers “Let AI fill it in”, and the toast afterwards reads “Filled in with AI. Read it through before you rely on it.”",
+   "The Delivers card lists typed fields — text, number, yes-no, date, one of a list, table — and a routine's AI step inherits the leading skill's fields.",
+   "When to use it accepts up to 4,000 characters, and edits save by themselves 350 milliseconds after the last keystroke."
+  ]
+ },
+ "actionChecks": [
+  {
+   "checkId": "skill-created",
+   "existing": false,
+   "label": "Write a skill with steps and a rule",
+   "hint": "In Studio → Skills, press the plus button, rename the skill, then fill in the Steps and Rules cards.",
+   "endpoints": [
+    {
+     "method": "GET",
+     "path": "/api/skills",
+     "returns": "array of skill rows visible to the caller, each with id, userId (owner), name, steps[{id,text}], rulesV2[{id,polarity,text}], description, canEdit"
+    }
+   ],
+   "criteria": [
+    {
+     "id": "created",
+     "label": "A skill of your own exists",
+     "hint": "Press the plus button in the Skills list header — the skill is created straight away.",
+     "rule": "some row has userId === current user id",
+     "endpoint": "/api/skills",
+     "expect": {
+      "kind": "rows"
+     }
+    },
+    {
+     "id": "named",
+     "label": "You gave it a name",
+     "hint": "Click the title in the skill header and type a real name.",
+     "rule": "that row's name is non-empty and not 'Untitled skill'"
+    },
+    {
+     "id": "steps",
+     "label": "It has at least three steps",
+     "hint": "Use Add step in the Steps card and write one sentence per step.",
+     "rule": "that row's steps array length >= 3 with non-empty text"
+    },
+    {
+     "id": "rule",
+     "label": "It has at least one Always or Never rule",
+     "hint": "Use Add rule in the Rules card, then the button beside it to set Always or Never.",
+     "rule": "that row's rulesV2 array length >= 1 with non-empty text"
+    }
+   ]
+  }
+ ]
+}

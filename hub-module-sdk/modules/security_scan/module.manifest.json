@@ -1,0 +1,46 @@
+{
+  "manifestVersion": 1,
+  "id": "security_scan",
+  "name": "Security Scan",
+  "icon": "shield",
+  "category": "Studio",
+  "version": "1.0.0",
+  "description": "Automated website security audits (OWASP ZAP, Nuclei, testssl.sh) driven by an AI agent in an isolated Kali toolbox; findings rendered to a shareable webpage report.",
+  "minAppVersion": "1.0.0",
+  "hostApiVersion": 2,
+  "capabilities": [
+    {
+      "id": "security_scan",
+      "name": "Security Scan (Beta)",
+      "kind": "beta",
+      "lifecycle": "beta",
+      "licenseFeature": "security_scan",
+      "description": "Run an automated website security audit against a URL you are authorised to scan."
+    }
+  ],
+  "server": {
+    "entry": "server/entry.cjs",
+    "routes": ["/scans", "/toolbox"],
+    "workers": [
+      { "id": "security-scan-drain", "description": "Outbox drain for scan jobs", "intervalMs": 15000 },
+      { "id": "security-scan-reap", "description": "Reap orphaned scanner containers", "intervalMs": 120000 }
+    ],
+    "stores": ["securityScanStore"]
+  },
+  "frontend": {
+    "entry": "frontend/index.js",
+    "css": ["frontend/index.css"],
+    "studioApp": {
+      "urlSegment": "security",
+      "labels": { "en": "Security Scan", "nl": "Security Scan" },
+      "icon": "shield",
+      "gateCapability": "security_scan"
+    }
+  },
+  "requirements": {
+    "docker": true,
+    "images": ["beeflow-security-tools"],
+    "env": ["SECURITY_*"],
+    "notes": "Requires the docker socket mounted into the API container and the SECURITY_* env from docker-compose.security.override.yml. The beeflow-security-tools scanner image is NOT bundled — provision it once after install from the Studio Security tab (Build from the shipped Dockerfile, or Pull from a configured registry ref)."
+  }
+}

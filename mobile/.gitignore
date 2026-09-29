@@ -1,0 +1,33 @@
+# Native projects are GENERATED, never committed — `expo prebuild` rebuilds
+# android/ from app.config.ts + plugins/ on every build. Committing it would
+# create a second source of truth that silently wins.
+/android
+/ios
+
+# Expo / Metro
+.expo/
+dist/
+# Output of `npm run verify:native` — a Metro bundle built only to prove it
+# builds. Gradle produces its own; this copy is never shipped.
+.verify-bundle/
+web-build/
+*.jsbundle
+
+# Build outputs
+*.apk
+*.aab
+*.keystore
+*.jks
+
+# Local secrets — the release keystore and its passwords arrive from CI
+# secrets, never from the tree.
+keystore.properties
+/credentials.json
+
+node_modules/
+npm-debug.*
+coverage/
+
+# macOS/editor noise
+.DS_Store
+*.log

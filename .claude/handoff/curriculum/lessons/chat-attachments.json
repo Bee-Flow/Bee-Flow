@@ -1,0 +1,290 @@
+{
+  "id": "chat-attachments",
+  "icon": "📎",
+  "estMinutes": 11,
+  "title": "Bring your documents into the chat",
+  "desc": "Attach files the way that works, ground a chat on a knowledge base, and know the limits before they bite.",
+  "gate": {},
+  "learningGoal": "After this lesson you can get a document into a chat reliably and say when a file belongs as an attachment and when it belongs in a knowledge base.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "sanne",
+      "icon": "🧭",
+      "title": "One quote, one question",
+      "bodyMd": "Sanne works at **Van Dijk Groep**, a sixty-person installation firm near Zwolle. A supplier's quote for steel profiles has just landed in her inbox — eleven pages of PDF — and her manager wants to know one thing: what are the payment terms.\n\nShe could read all eleven pages. Or she could put the file in a chat and ask.\n\nThat takes about ten seconds once you know where files go — and how to tell that one really arrived, because when an attachment fails Bee Flow does not always say so. Three ways in, one thing to check every time, and one decision: attach the file, or point the chat at a whole shelf of documents instead."
+    },
+    {
+      "type": "tour",
+      "id": "composer",
+      "target": "[data-tour=\"chat-composer\"]",
+      "navigateTo": "agents",
+      "placement": "top",
+      "optional": true,
+      "timeoutMs": 7000,
+      "icon": "⌨️",
+      "title": "Everything happens here",
+      "body": "The box you type in is also where files go in. The **+** button in its bottom-left corner opens the message tools; attachments appear as chips just above the box."
+    },
+    {
+      "type": "slide",
+      "id": "three-ways",
+      "icon": "📥",
+      "title": "Three ways in — pick whichever is nearest",
+      "bodyMd": "**1. The + menu.** Click **+** at the bottom-left of the message box and choose **Add photos & files**.\n\n**2. Drag and drop.** Drag the file onto the **message box** — that strip at the bottom is the drop zone, not the conversation above it. An overlay reading **Drop files here** appears; let go anywhere inside it.\n\n**3. Paste.** Copy a file or an image — a screenshot, a page from a scanner — and press Ctrl+V with the cursor in the message box.\n\nAll three end in the same place. Sanne drags the quote straight out of her mail app and never opens a dialog. The picker takes images, **.pdf**, **.docx**, **.csv**, **.xlsx**, **.xls**, **.txt**, **.md** and common code and text files; anything else can still be dragged in, but then the AI gets only the file name."
+    },
+    {
+      "type": "slide",
+      "id": "the-chip",
+      "icon": "🔖",
+      "title": "The chip is your proof",
+      "bodyMd": "Once a file is accepted, a **chip** appears above the text box with the file name and its size. A picture shows as a small thumbnail instead. Either one has a remove button (**Remove attachment**) if you grabbed the wrong file.\n\n**No chip means no attachment.** A file larger than **20 MB** is skipped without a word — no error, no red text, just nothing. If Sanne drags a 34 MB scanned quote onto the chat, the box looks exactly as it did before, and the message she sends carries her question and nothing else. Several files can ride along with one message, but they share that same 20 MB budget, so a handful of big ones fails too.\n\nSo make it a habit: attach, see the chip, then type."
+    },
+    {
+      "type": "quiz",
+      "id": "no-chip",
+      "question": "Sanne drags a scanned PDF onto the chat. No chip appears above the box. What has most likely happened?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "The file is over 20 MB, so it was dropped silently — nothing is attached.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Nothing is wrong — the chip only appears once she presses Enter.",
+          "correct": false,
+          "feedback": "The chip appears the moment the file is accepted, before you send anything. If it is not there while you are still typing, the file is not attached, and Enter sends your question on its own."
+        },
+        {
+          "id": "c",
+          "label": "The AI is already reading it, which is why the chip is replaced by a progress line.",
+          "correct": false,
+          "feedback": "The line \"Reading attachment …\" only appears after you send, while the answer is being written. Before sending, the chip is the only sign the file is really there."
+        },
+        {
+          "id": "d",
+          "label": "A scanned PDF is not an accepted file type, so the chip is hidden.",
+          "correct": false,
+          "feedback": "PDF is very much accepted. And even a type Bee Flow cannot read still gets a chip — it just means the AI receives the file name rather than the contents. A missing chip is about size, not type."
+        }
+      ],
+      "explanation": "The 20 MB limit is enforced quietly: oversized files are dropped with no message on screen. Sanne needs a lighter version — fewer pages, or a compressed scan — and a two-second glance at the chip before she presses Enter, because that chip is the only confirmation she gets."
+    },
+    {
+      "type": "slide",
+      "id": "instruction",
+      "icon": "🗣️",
+      "title": "A file alone is not a question",
+      "bodyMd": "Attach the quote, send *“here you go”*, and you get a polite summary of eleven pages — which is not what anyone asked for. The file says what the AI is looking at; your sentence says what to do with it.\n\n> Attached is the quote from our steel supplier. Give me the payment terms, the delivery time and the validity date, as three short lines. Quote the exact wording for the payment terms.\n\nWhen you send, a line appears above the answer reading **Reading attachment {name}…** while Bee Flow pulls the text out of the file.\n\nThree things to name every time: the document, what you want out of it, and the shape you want it in."
+    },
+    {
+      "type": "exercise",
+      "id": "write-it",
+      "icon": "🎯",
+      "exerciseId": "ex-chat-attachments-instruction",
+      "title": "Your turn: write the message beside the file",
+      "instruction": "Sanne has attached the supplier's quote (a PDF) to a new chat. Write the message she should type alongside it. A strong answer does three things: it says what the document is, it names exactly what she wants out of it, and it says what the answer should look like — a list, a table, a few lines. Two or three sentences is plenty.",
+      "placeholder": "e.g. Attached is a quote from our steel supplier for the Kampen job. List the payment terms, the delivery time and how long the price is valid, one line each, and quote the payment terms word for word.",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "slide",
+      "id": "plus-menu",
+      "icon": "➕",
+      "title": "The + menu is more than the paperclip",
+      "bodyMd": "**Add photos & files** is only the first row of **Message tools**. What else is in there depends on what your organisation has switched on:\n\n- **Create image, music, video** — opens a panel with three tabs: **Image**, **Music & TTS**, **SFX**. Sanne uses the Image tab for a quick visual for a customer presentation. The row only appears when your organisation has enabled image, music or video generation *and* the matching key is configured.\n- **Apps** — *“What this chat may reach — Drive, Gmail, and the rest.”*\n- **Web search** — *“Let this turn look things up online.”*\n- **Memory** — in an agent chat, whether this chat saves new memories. In a direct chat that switch lives in the tier gauge's panel instead.\n- **Voice mode** (**beta**) — *“Talk with your assistant instead of typing.”* A spoken conversation, not typing.\n\nDon't confuse Voice mode with the **microphone** beside the box: that one is **Dictate — speak your instruction**, which turns your speech into text you can still edit before sending. A take runs up to 120 seconds.\n\nA row you cannot see is not a bug — it is a setting an administrator controls."
+    },
+    {
+      "type": "quiz",
+      "id": "missing-row",
+      "question": "Sanne wants a simple illustration for a customer presentation, so she opens the + menu — but there is no “Create image, music, video” row. Her colleague in another organisation has it. What is going on?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "The row only shows when her organisation has enabled image/music/video generation and the matching key is configured. She asks an administrator; there is nothing she can switch on herself.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "The row disappears while a file is attached, the same way web search does.",
+          "correct": false,
+          "feedback": "The attachment rule touches only the **Web search** row, and even then the row stays visible — greyed out and reading “Web search disabled by organisation policy (files attached)”. Media generation is not tied to attachments at all."
+        },
+        {
+          "id": "c",
+          "label": "She has to turn on Voice mode first; the Image, Music & TTS and SFX tabs live behind it.",
+          "correct": false,
+          "feedback": "Voice mode is its own row — talking to the assistant instead of typing — and it unlocks nothing else. The Image, Music & TTS and SFX tabs sit inside the Create image, music, video panel."
+        },
+        {
+          "id": "d",
+          "label": "Media generation only exists in an agent chat, never in a direct chat.",
+          "correct": false,
+          "feedback": "The row that really differs between the two is **Memory**: it appears in the + menu in an agent chat, while in a direct chat the same switch sits in the tier gauge's panel. Image, music and video generation is not a direct-versus-agent thing."
+        }
+      ],
+      "explanation": "The + menu is assembled per organisation: rows appear when the feature is enabled and, for generation and voice, a provider key exists. So the honest reading of a missing row is “not switched on here”, not “broken”. Ask an administrator — and meanwhile do the work with the rows you do have."
+    },
+    {
+      "type": "slide",
+      "id": "grounding",
+      "icon": "📚",
+      "title": "When it is not one file but a shelf",
+      "bodyMd": "Some documents are not a one-off. Van Dijk Groep's staff handbook gets asked about every week, by everyone. Attaching it to each chat is silly.\n\nFor that there are **knowledge bases**: collections your organisation keeps up to date. Beside the **+** you may see a **Knowledge** pill. Click it and a panel opens titled **Knowledge bases** with the hint *Pick one or more to ground this chat*. Tick one, press **Done**, and the pill now reads the base's name — its title says **Grounded on …**.\n\nFrom then on, **every turn** in that conversation searches those documents before answering. A chat can carry up to 50 bases. If you do not see the pill, your account has not been given the picker — ask an administrator."
+    },
+    {
+      "type": "sim",
+      "id": "which-one",
+      "icon": "🧩",
+      "title": "Attachment, knowledge base, or the web?",
+      "instruction": "Four situations at Van Dijk Groep. Pair each one with what it actually needs.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "quote",
+            "left": "Sanne has one quote from one supplier and needs the payment terms out of it today.",
+            "right": "Attach the file to this message",
+            "note": "One document, one question, gone tomorrow. An attachment lives in that conversation and nowhere else."
+          },
+          {
+            "id": "handbook",
+            "left": "Every new colleague asks the same questions about the staff handbook and the leave rules.",
+            "right": "Ground the chat on a knowledge base",
+            "note": "The same documents, over and over, for everybody. Put them in a knowledge base once and every turn searches them."
+          },
+          {
+            "id": "price",
+            "left": "The team wants to know what steel prices did this morning.",
+            "right": "Let this turn look things up online",
+            "note": "Nothing in your own files can answer this. That is what web search in the + menu is for."
+          },
+          {
+            "id": "big",
+            "left": "The scan of the full tender is one 40 MB PDF and no chip appears when she drops it in.",
+            "right": "Make it smaller first, then attach",
+            "note": "Over 20 MB is dropped silently. Split the scan or export a lighter version, and check the chip appears."
+          }
+        ]
+      }
+    },
+    {
+      "type": "slide",
+      "id": "sources",
+      "icon": "🔍",
+      "title": "Check the answer against the source",
+      "bodyMd": "When an answer was built on a knowledge base, the proof sits under the reply in **How I got this answer**. Expand it and a line counts what was used — **7 sources from 2 documents** — alongside which model ran and how long it thought.\n\nEach document in that list opens to the passages the AI actually read. A passage shows its section heading (or **Chunk 1**), the page when the document has pages — *p. 12* — and a bar for how well it matched. Open one and you are reading the exact text the answer stands on.\n\nSanne does this before she forwards anything. If the documents named there are not the ones she expected, the answer is about the wrong thing, however confident it sounds."
+    },
+    {
+      "type": "quiz",
+      "id": "search-off",
+      "question": "With the quote attached, Sanne opens the + menu to switch on web search. The row is greyed out and reads “Web search disabled by organisation policy (files attached)”. What does that mean for her?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Her organisation blocks web search in any conversation a file has been attached to. For a web question she opens a separate chat with nothing attached.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Web search is broken across the organisation and an administrator has to switch it back on.",
+          "correct": false,
+          "feedback": "Nothing is broken. The row is only disabled while a file is involved — in a chat without attachments the same account can search normally. It is a deliberate privacy setting."
+        },
+        {
+          "id": "c",
+          "label": "It is about this one message — the next turn in the same chat can search the web again.",
+          "correct": false,
+          "feedback": "The rule looks at the whole conversation, not one message. Once a file has been attached anywhere in that thread, every later turn in it loses web search too — even the turns with nothing attached."
+        },
+        {
+          "id": "d",
+          "label": "The label is only a warning; she can send the question and the AI will search anyway.",
+          "correct": false,
+          "feedback": "The search tool is not handed to the model at all for those turns, so it cannot look anything up. It will answer from the document and from what it already knows."
+        }
+      ],
+      "explanation": "This setting exists so that a sentence from your confidential document cannot travel into a public search query. It is an organisation-wide choice, and it holds for the entire conversation once a file has been in it."
+    },
+    {
+      "type": "action",
+      "id": "do-it",
+      "icon": "🏗️",
+      "checkId": "chat-attachment",
+      "title": "Attach a real document — we will check",
+      "instruction": "Open a new chat and attach a document you actually work with: drag it in, or use + → Add photos & files. Wait for the chip with the file name to appear, then type one specific question about it and send. Read the answer against the document before you move on.",
+      "launch": {
+        "navigateTo": "agents",
+        "label": "Open a new chat"
+      }
+    },
+    {
+      "type": "slide",
+      "id": "recap",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "- **Get the file in and prove it landed** — **+** → **Add photos & files**, a drag onto **Drop files here**, or Ctrl+V — then look for the chip, because anything over 20 MB is dropped in silence.\n- **Know the rest of the + menu** — **Create image, music, video** (tabs **Image**, **Music & TTS**, **SFX**), **Apps**, **Web search**, **Memory** and **Voice mode** (beta). Which rows you see is an organisation setting; the mic beside the box is **Dictate**, not Voice mode.\n- **Ask properly** — name the document, what you want out of it, and the shape of the answer. A file with no instruction earns a summary nobody asked for.\n- **Choose where it lives** — a one-off document is an attachment; a shelf everyone keeps asking about belongs in a knowledge base, where **How I got this answer** lets you open the exact passage a claim came from."
+    }
+  ],
+  "rubrics": {
+    "ex-chat-attachments-instruction": {
+      "title": "The message beside the attachment",
+      "task": "Write the message a colleague types alongside an attached supplier quote (PDF) so the AI returns the payment terms, delivery time and validity in a usable shape.",
+      "criteria": [
+        "Says what the attached document is, so the AI knows what it is looking at (a quote, from a supplier, for a job).",
+        "Names the specific things wanted out of it rather than asking for a general summary.",
+        "States the shape of the answer — a few lines, a list, a table — or asks for exact wording to be quoted.",
+        "Reads as one plain message a colleague could actually send: concrete, no vague 'analyse this'."
+      ],
+      "passScore": 70,
+      "guidance": "Pass an answer that is specific about both the ask and the output shape, even if short. Do not pass 'Summarise this', 'What does this say?', 'Analyse the attached document', or anything that only repeats that a file is attached. Do not pass an answer that invents a different task (writing a reply to the supplier) instead of extracting from the document. Length is not a criterion; specificity is."
+    }
+  },
+  "practiceTopic": {
+    "title": "Attachments and grounding in chat",
+    "summary": "How documents get into a Bee Flow chat, what the limits are, and when a knowledge base beats an attachment.",
+    "facts": [
+      "Files go into a chat three ways: the + button then Add photos & files, dragging onto the Drop files here overlay, or pasting with Ctrl+V. The picker accepts images, .pdf, .docx, .csv, .xlsx, .xls, .txt, .md and code files; other types can be dragged in but only the name reaches the AI.",
+      "An accepted file shows as a chip above the message box with its name and size, and a Remove attachment button; images show as a thumbnail. After sending, the line \"Reading attachment {name}…\" appears while the text is extracted.",
+      "A file larger than 20 MB is skipped without any message on screen, so a missing chip is the only signal that it did not attach.",
+      "The + button (\"Message tools\") holds Add photos & files; Create image, music, video, whose panel has the tabs Image, Music & TTS and SFX; Apps; Web search; Memory (in agent chat); and Voice mode (beta). The generation row appears only when the organisation has enabled it and a key is configured.",
+      "Voice mode (\"Talk with your assistant instead of typing\") is a spoken conversation and is not the microphone button beside the box, which is Dictate — speak your instruction and it becomes editable text, up to 120 seconds per take.",
+      "The Knowledge pill opens a panel titled Knowledge bases with the hint \"Pick one or more to ground this chat\"; once attached, every turn searches those documents, up to 50 bases per conversation.",
+      "How I got this answer, under a reply, counts the knowledge-base passages used (\"7 sources from 2 documents\") and opens each document to the exact passages, with section, page where known, and a relevance bar.",
+      "If the organisation has switched on \"No web search while a file is attached\", web search is unavailable for the whole conversation once a file has been attached in it."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "chat-attachment",
+      "existing": false,
+      "label": "Attach a document to a chat and ask about it",
+      "hint": "Open a new chat, drag a file in (or + → Add photos & files), wait for the chip, then ask a question about it.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/ai/direct/conversations",
+          "returns": "array of the signed-in user's direct conversation rows with id, title, updated_at"
+        },
+        {
+          "method": "GET",
+          "path": "/ai/direct/conversations/:id",
+          "returns": "the conversation including messages[], where a user message that carried files has attachments[] with name and type"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "attached",
+          "label": "One of your chats holds a message with an attachment",
+          "hint": "The chip must have appeared before you pressed Enter — a file over 20 MB is dropped and never reaches the conversation.",
+          "rule": "for conversations from GET /ai/direct/conversations (newest first, cap 10), GET /ai/direct/conversations/:id and pass if any message has attachments array length > 0"
+        }
+      ]
+    }
+  ]
+}

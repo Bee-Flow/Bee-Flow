@@ -1,0 +1,50 @@
+{
+  "name": "bee-flow-ai-monorepo",
+  "private": true,
+  "description": "Root workspace for the Bee Flow AI monorepo: dev orchestration, image builds, and secret-scan scripts. The deployable services live in their own directories (see REPO-STRUCTURE.md).",
+  "engines": {
+    "node": ">=22.12.0 <23.0.0"
+  },
+  "packageManager": "npm@10.9.0",
+  "scripts": {
+    "dev:server": "cd server && npm run start",
+    "dev:frontend": "cd agent-hub && npm run dev",
+    "dev:all": "concurrently \"npm run dev:server\" \"npm run dev:frontend\"",
+    "build:dev": "./scripts/build-images.sh build dev",
+    "build:prd": "./scripts/build-images.sh build prd",
+    "push:dev": "./scripts/build-images.sh push dev",
+    "push:prd": "./scripts/build-images.sh push prd",
+    "lint:secrets": "./scripts/check-no-test-secrets.sh",
+    "lint:deps": "node scripts/audit-ratchet.mjs",
+    "lint:deps:test": "node --test scripts/audit-ratchet.test.mjs",
+    "lint:budget": "node scripts/eslint-budget.mjs agent-hub && node scripts/eslint-budget.mjs server",
+    "lint:ts-ratchet": "node scripts/ts-ratchet.mjs agent-hub",
+    "lint:i18n-ratchet": "node scripts/i18n-ratchet.mjs agent-hub",
+    "lint:i18n-gen": "node scripts/gen-i18n-defaults.mjs --check",
+    "lint:shared-mirror": "node scripts/gen-shared-mirror.mjs --check",
+    "lint:style-ratchet": "node scripts/count-ratchet.mjs inline-style agent-hub",
+    "lint:fire-event-ratchet": "node scripts/count-ratchet.mjs fire-event agent-hub",
+    "lint:authfetch-effect-ratchet": "node scripts/count-ratchet.mjs authfetch-effect agent-hub",
+    "lint:module-mock-ratchet": "node scripts/count-ratchet.mjs module-mock server",
+    "lint:big-file-ratchet": "node scripts/count-ratchet.mjs big-file agent-hub && node scripts/count-ratchet.mjs big-file server",
+    "lint:line-ref-ratchet": "node scripts/count-ratchet.mjs line-ref agent-hub && node scripts/count-ratchet.mjs line-ref server && node scripts/count-ratchet.mjs line-ref mobile",
+    "lint:dutch-comment-ratchet": "node scripts/count-ratchet.mjs dutch-comment agent-hub && node scripts/count-ratchet.mjs dutch-comment server",
+    "lint:source-text": "node scripts/source-text-tests.mjs server --gate",
+    "lint:checkjs-ratchet": "node scripts/checkjs-ratchet.mjs server",
+    "lint:duplication": "node scripts/duplication-ratchet.mjs",
+    "lint:bundle": "node scripts/bundle-ratchet.mjs agent-hub",
+    "lint:coverage": "node scripts/coverage-ratchet.mjs server && node scripts/coverage-ratchet.mjs agent-hub && node scripts/coverage-ratchet.mjs mobile",
+    "lint:gitleaks": "./scripts/scan-secrets.sh",
+    "lint:checks": "node scripts/check-required-checks.mjs",
+    "lint:workflows": "node scripts/check-workflow-concurrency.mjs",
+    "i18n:gen": "node scripts/gen-i18n-defaults.mjs",
+    "gen:shared": "node scripts/gen-shared-mirror.mjs",
+    "count:source-text": "node scripts/source-text-tests.mjs server",
+    "check:fast": "node scripts/check-fast.mjs",
+    "test:scripts": "node --test scripts/*.test.mjs"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "jscpd": "^5.0.12"
+  }
+}

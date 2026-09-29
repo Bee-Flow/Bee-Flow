@@ -1,0 +1,288 @@
+{
+  "id": "datatables-rows-and-repair",
+  "icon": "🧾",
+  "estMinutes": 11,
+  "title": "The rows themselves, and the delete at the end",
+  "desc": "Correct a row, clear out a batch, page through a busy table, read a form's Dashboard, repair storage that never got made, and delete a table without breaking anybody.",
+  "gate": {
+    "permission": "manage_datatables",
+    "feature": "automations"
+  },
+  "learningGoal": "After this lesson you can correct and delete rows on a table other people's routines are reading, page through it without losing your place, read the Dashboard a form's answers table gets, run Check & repair, and rename or delete a table knowing exactly what it costs.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "open",
+      "icon": "🧭",
+      "title": "Tuesday morning, 412 rows",
+      "bodyMd": "Van Dijk Groep's supplier-invoice table has been running for a month. The columns are settled. Two routines read it: one writes a row per invoice from the mailbox, one chases everything still marked *nieuw* on Monday.\n\nSo the work Anna does now is not shaping the table any more. It is the small, ordinary, slightly dangerous work: one amount typed wrong, forty rejected invoices nobody needs, a number HR asks for, and one day a table that has outlived its purpose.\n\nAll of that lives in two places: the **\"Rows\"** tab, and the ⋯ menu (**\"More about this table\"**) at the end of it."
+    },
+    {
+      "type": "slide",
+      "id": "one-row",
+      "icon": "✏️",
+      "title": "One row, opened and put back",
+      "bodyMd": "The Rows grid shows your own columns plus **\"Added\"**, and — when a retention window is set — **\"Expires\"**, which reads *\"due to go\"*, *\"today\"* or *\"in {n} days\"*.\n\nEach row carries its own controls. **\"Edit this row\"** turns that one row's cells into inputs; **\"Save this row\"** writes it, **\"Stop editing this row\"** walks away without writing. **\"Delete this row\"** asks first: **\"Delete this row?\"** — *\"It is gone for good, and any automation that reads it by id stops finding it.\"*\n\nThat last line is the point. A row is not only yours. A routine may hold its id, and deleting the row does not tell the routine anything — it simply stops finding it on the next run."
+    },
+    {
+      "type": "quiz",
+      "id": "q-conflict",
+      "question": "Anna opens an invoice row to correct the amount, then gets pulled into a meeting. While the row sits open, the mailbox routine rewrites that same row. She comes back and presses \"Save this row\". What happens?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "The save is refused, and she is told someone else changed this row while she had it open — with the current row in front of her to redo the change on.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Her version wins. It was open first, so it is written over whatever arrived in between.",
+          "correct": false,
+          "feedback": "That is exactly what the guard exists to prevent. If her screen wins, the routine's newer values are thrown away silently and nobody ever learns it happened."
+        },
+        {
+          "id": "c",
+          "label": "The two versions are merged cell by cell: her amount, the routine's other fields.",
+          "correct": false,
+          "feedback": "There is no merge. A row is saved whole, and Bee Flow cannot know whether her amount was meant to go with the routine's new status or to replace it — so it refuses and lets her decide."
+        },
+        {
+          "id": "d",
+          "label": "A second row appears, so both versions are kept.",
+          "correct": false,
+          "feedback": "Editing never forks a row. A duplicate would be worse than either outcome: two invoices where the business has one, and no rule about which one the routines should believe."
+        }
+      ],
+      "explanation": "A row you opened carries the moment it was last changed, and a save has to hand that back. If the row moved on in the meantime, the write is refused and you get the current row to apply your correction to again. Same rule on the Columns tab, one level up: \"Someone else changed these columns while you were editing\"."
+    },
+    {
+      "type": "slide",
+      "id": "paging",
+      "icon": "📄",
+      "title": "What the counts are telling you",
+      "bodyMd": "Above the grid sits a line that changes as you move: *\"the {n} most recent of {total}\"* when you arrive, *\"page {p} · {n} of {total}\"* once you start paging. Beside it, *\"updated {when}\"* and **\"Refresh\"**.\n\nA page is 50 rows. **\"Load more\"** brings the next page in underneath; **\"Previous page\"** and **\"Next page\"** move a page at a time. Paging walks by position in the data, not by counting off rows, so a routine writing while you read cannot make a page skip or repeat.\n\nOne caveat worth carrying: the row count beside the **\"Rows\"** tab is kept by arithmetic and re-checked by the retention sweep. Treat it as close, not exact."
+    },
+    {
+      "type": "slide",
+      "id": "many-rows",
+      "icon": "🧹",
+      "title": "Many rows at once",
+      "bodyMd": "Tick rows and a selection bar appears: **\"{n} rows selected\"**, **\"Clear selection\"**, **\"Delete selected\"**. The confirmation is the plural of the single-row one: **\"Delete {n} rows?\"** — *\"They are gone for good, in one go, and any automation that reads them by id stops finding them.\"*\n\nTwo working habits make this safe.\n\nFirst, narrow before you tick. Search and the filter builder are there so the rows on screen are exactly the rows you mean; ticking through an unfiltered grid is how the wrong invoice goes.\n\nSecond, expect to do it more than once. One delete carries at most 200 rows — four pages' worth — so clearing out a year of rejected invoices is a few deliberate passes, not one heroic click."
+    },
+    {
+      "type": "sim",
+      "id": "sim-cleanup",
+      "icon": "🧩",
+      "title": "Clearing out last year's rejections",
+      "instruction": "Anna is removing every invoice from last year that was marked afgekeurd. Put the five moves in the order that leaves nothing to regret.",
+      "sim": {
+        "kind": "order",
+        "items": [
+          {
+            "id": "usage",
+            "label": "Open \"Used by\" and read which routines, apps or pages depend on this table"
+          },
+          {
+            "id": "filter",
+            "label": "On the Rows tab, filter to status is afgekeurd and the invoice date is before 1 January"
+          },
+          {
+            "id": "export",
+            "label": "Take a copy out with \"Export CSV\" before anything is removed"
+          },
+          {
+            "id": "select",
+            "label": "Tick the rows on the page and check the bar reads the number you expect"
+          },
+          {
+            "id": "delete",
+            "label": "Press \"Delete selected\" and confirm \"Delete {n} rows?\""
+          }
+        ],
+        "solution": [
+          "usage",
+          "filter",
+          "export",
+          "select",
+          "delete"
+        ],
+        "feedback": "Dependants first: \"Used by\" tells you whose Monday breaks if these rows vanish, and that is worth knowing before you are three clicks from a confirmation. Then narrow, so the grid holds only what you mean. Then the copy, because after the confirmation there is nothing to copy. Only then tick, read the count back, and delete."
+      }
+    },
+    {
+      "type": "slide",
+      "id": "csv",
+      "icon": "📤",
+      "title": "Taking the rows out",
+      "bodyMd": "**\"Export CSV\"** on the Rows toolbar streams up to 100,000 rows into one file. Two details make it worth using rather than copying off the screen.\n\nIt is UTF-8 with a byte-order mark, so a Dutch spreadsheet opens *Kooij* and *€* correctly instead of as mojibake. And any value that begins with `=`, `+`, `-` or `@` is written with a leading apostrophe, so a spreadsheet treats it as text and not as a formula to run.\n\nThe export is also recorded as a data-portability export, which is what you want the day someone asks for their own data out of this table."
+    },
+    {
+      "type": "slide",
+      "id": "dashboard",
+      "icon": "📊",
+      "title": "The tab only a form's table gets",
+      "bodyMd": "Van Dijk Groep's sick-leave notifications arrive through a form, so their table is an answers table — and it opens on **\"Dashboard\"** instead of Columns.\n\nAt the top, **\"Period\"**: **\"Today\"**, **\"7 days\"**, **\"30 days\"** (where it starts), **\"90 days\"**, **\"All\"** or **\"Custom\"** with **\"From\"** and **\"To\"**. Under it four tiles: **\"Responses in this period\"**, **\"All time\"**, **\"Today\"**, and a fourth that depends on the form — **\"Completed all pages\"**, a percentage of the responses in the period, on a form with more than one page, and otherwise **\"Last response\"** (**\"None yet\"** before the first one).\n\nThen **\"Responses over time\"**, labelled *per day*, *per week* or *per month* according to the period you picked, **\"Recent responses\"**, and **\"All responses\"** with **\"Export (CSV)\"** and **\"Open the table\"**. **\"Open the form\"** jumps back to the form itself.\n\nAn ordinary table has no Dashboard. It is the form's own reading of its answers."
+    },
+    {
+      "type": "quiz",
+      "id": "q-dashboard",
+      "question": "HR asks Marieke two things about the sick-leave form, which runs over several pages: how many notifications came in last week, and what share of people got to the end of every page. Where does she read both?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "The table's \"Dashboard\" tab: set \"Period\" to 7 days and read \"Responses in this period\" and \"Completed all pages\".",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "The row count beside the \"Rows\" tab, which is the number of notifications.",
+          "correct": false,
+          "feedback": "That is every row the table has ever kept, not last week's — and it is a count kept by arithmetic between retention sweeps, so it is close rather than exact. It also says nothing about who finished the form."
+        },
+        {
+          "id": "c",
+          "label": "The \"Used by\" tab, which counts what has read the table.",
+          "correct": false,
+          "feedback": "\"Used by\" lists the routines, apps, pages and knowledge bases that consume this table. It is about dependants, never about how many rows arrived or how complete they are."
+        },
+        {
+          "id": "d",
+          "label": "The \"Retention\" tab, where \"About to expire\" shows the recent rows.",
+          "correct": false,
+          "feedback": "\"About to expire\" counts rows going out in the next seven days, which is the far end of the life of a row. It is a warning, not a measure of what came in."
+        }
+      ],
+      "explanation": "Counting arrivals and measuring finishers are both questions about submissions, and the Dashboard is the one surface that answers them, over a period you choose. The Rows tab answers \"what is in here\", not \"how did last week go\"."
+    },
+    {
+      "type": "slide",
+      "id": "repair",
+      "icon": "🩺",
+      "title": "When the table and its storage drift apart",
+      "bodyMd": "A table is two things: the columns you designed, and the storage underneath that actually holds the rows. They can come apart.\n\n⋯ → **\"Check & repair\"** compares them and answers in one of three ways: **\"Everything matches: the table and every column it should have are there.\"**, **\"{n} column(s) are in the model but not in the storage: {keys}.\"**, or the blunt one — **\"The storage for this table has not been made yet.\"**\n\nThat last one is the case where nothing about the table works at all: no rows can be shown, and every routine writing to it fails. **\"Repair it\"** re-runs the table's own create-if-missing statements. The check needs owner access to the table, and the fix is deliberately narrow: *\"It only ever adds — it cannot drop a column or touch a row.\"*"
+    },
+    {
+      "type": "quiz",
+      "id": "q-storage",
+      "question": "The mailbox routine has failed all morning: it cannot write an invoice row. Anna opens ⋯ → \"Check & repair\" and reads \"The storage for this table has not been made yet.\" What is the right move?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Press \"Repair it\" — it creates what is missing, and there were no rows to lose.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Delete the table and create it again with the same name and columns.",
+          "correct": false,
+          "feedback": "A long way round for something one add-only button fixes. You would walk through the dialog that makes you type the table's name, and every routine that reads or writes this table points at this table — each one would have to be pointed at the new one by hand."
+        },
+        {
+          "id": "c",
+          "label": "Nothing can be done from this screen — an administrator has to create the table in the database.",
+          "correct": false,
+          "feedback": "That is precisely what \"Repair it\" does on your behalf: it re-runs this table's own create-if-missing statements. No database access, no ticket."
+        },
+        {
+          "id": "d",
+          "label": "Import the missing invoices from a spreadsheet so the rows exist again.",
+          "correct": false,
+          "feedback": "There is nowhere to put them. Importing writes rows into storage that, according to the check, does not exist yet — make the storage first, then let the routine catch up."
+        }
+      ],
+      "explanation": "Repair is the safe end of the menu. It adds what the table says should be there and it cannot drop a column or touch a row, so reaching for it costs nothing — while the destructive alternatives cost the technical name, the sharing, the retention window and every connection in \"Used by\"."
+    },
+    {
+      "type": "slide",
+      "id": "rename-delete",
+      "icon": "⚠️",
+      "title": "Rename is cheap. Delete is the one that ends it.",
+      "bodyMd": "The table's name is editable straight in the header, and **\"Rename table\"** sits in the ⋯ menu as well. It is only a label, so renaming costs nothing — the technical name underneath never changes, and ⋯ → **\"Technical name\"** copies it for you.\n\n**\"Delete this table…\"** is the other kind of menu item. You have to type the table's name to confirm, and the dialog lists the routines that break. On a form's answers table it adds: *\"This table holds the answers to a form. Deleting it deletes every answer; the form stays and stops collecting.\"*\n\nOn a mirrored table the item reads **\"Unlink this table…\"** instead. That one removes the copy here; the Nextcloud table or the spreadsheet file it came from is untouched."
+    },
+    {
+      "type": "exercise",
+      "id": "ex-note",
+      "icon": "🎯",
+      "exerciseId": "ex-datatables-rows-and-repair-note",
+      "title": "Your turn: the note you send before deleting",
+      "instruction": "Van Dijk Groep has moved supplier invoices into their accounting package, and Anna wants the old table gone. Write the short note she sends her colleagues first — four or five sentences. Say which tab she read to find out who depends on the table and what she found there, what the delete dialog will ask of her, what exactly is lost and whether it can come back, and one thing she will do before confirming.",
+      "placeholder": "e.g. Before I delete leveranciersfacturen: \"Used by\" lists two routines — the mailbox one that writes rows and the Monday reminder — so both have to be switched off first…",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "action",
+      "id": "do",
+      "icon": "🏗️",
+      "checkId": "datatable-has-rows",
+      "title": "Put rows in a table of your own",
+      "instruction": "Open a datatable you own, go to the \"Rows\" tab and get at least one row in it with \"Add a row\" or \"Import\". Then practise the two moves from this lesson on a row you invented: \"Edit this row\" and \"Save this row\", and \"Delete this row\" on one you no longer want.",
+      "launch": {
+        "navigateTo": "studio/datatables",
+        "label": "Open Datatables"
+      }
+    },
+    {
+      "type": "slide",
+      "id": "done",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "- **Change rows on a live table.** Edit one row at a time, and when a save comes back refused because someone else changed the row while you had it open, redo your change on the row you are given rather than forcing yours over it.\n- **Remove rows deliberately.** Narrow first, read the count in the selection bar, take an Export CSV copy, and expect a big clear-out to take a few passes of up to 200 rows.\n- **Reach for the right end of the ⋯ menu.** Check & repair only ever adds, so it is free to try; \"Delete this table…\" asks you to type the name because it is the one thing here that cannot be undone."
+    }
+  ],
+  "rubrics": {
+    "ex-datatables-rows-and-repair-note": {
+      "title": "The note before a table is deleted",
+      "task": "Write the note Anna sends colleagues before deleting the supplier-invoice table: which tab told her who depends on it and what it said, what the delete dialog demands, what is lost for good, and one precaution she takes before confirming.",
+      "criteria": [
+        "Names the \"Used by\" tab as the place that lists the dependants, and names concrete dependants (the routine that writes rows, the Monday reminder) that must be dealt with first",
+        "States that the delete dialog requires typing the table's name and lists the routines that break — it is not a one-click action",
+        "Is honest that the rows are gone for good and that any routine holding a row id simply stops finding it; nothing here restores them",
+        "Names a real precaution taken before confirming, such as an Export CSV copy, or switching the routines off first"
+      ],
+      "passScore": 70,
+      "guidance": "Pass a note that shows the learner checked dependants before touching the menu and understands the delete is irreversible and name-confirmed. Do not pass a note that only says \"I will delete the table on Friday\", that claims the data can be recovered or restored from a backup in the product, that confuses deleting rows with deleting the table, or that invents a control that does not exist (an archive button, a trash bin, an undo). A note that says renaming or unlinking is equally destructive is also wrong: renaming is only a label, and unlinking a mirror leaves the source file untouched."
+    }
+  },
+  "practiceTopic": {
+    "title": "Rows in daily use, and the end of a table",
+    "summary": "Editing and deleting rows on a table other people's routines read, paging, exporting, the answers Dashboard, Check & repair, and the delete dialog.",
+    "facts": [
+      "Each row in the Rows grid has \"Edit this row\", \"Save this row\", \"Stop editing this row\" and \"Delete this row\"; the confirmation reads \"Delete this row?\" — \"It is gone for good, and any automation that reads it by id stops finding it.\"",
+      "A save is refused when the row changed while you had it open: you are told someone else changed this row and are given the current row to redo your change on.",
+      "The Rows toolbar pages 50 rows at a time with \"Load more\", \"Previous page\" and \"Next page\", above a line reading \"the {n} most recent of {total}\" or \"page {p} · {n} of {total}\"; the row count is approximate between retention sweeps.",
+      "Ticking rows shows \"{n} rows selected\", \"Clear selection\" and \"Delete selected\", confirmed by \"Delete {n} rows?\"; one delete carries at most 200 rows, about four pages.",
+      "\"Export CSV\" streams up to 100,000 rows as UTF-8 with a byte-order mark, and prefixes any value starting with =, +, - or @ with an apostrophe so a spreadsheet cannot run it as a formula.",
+      "A form's answers table opens on \"Dashboard\": \"Period\" (Today / 7 days / 30 days by default / 90 days / All / Custom), the tiles \"Responses in this period\", \"All time\", \"Today\" and then either \"Completed all pages\" (a percentage, multi-page forms) or \"Last response\".",
+      "⋯ → \"Check & repair\" answers \"Everything matches…\", \"{n} column(s) are in the model but not in the storage: {keys}.\" or \"The storage for this table has not been made yet.\", and \"Repair it\" only ever adds — it cannot drop a column or touch a row.",
+      "\"Delete this table…\" requires typing the table's name and lists the routines that break; on a mirror the item is \"Unlink this table…\", which removes the copy and leaves the source untouched."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "datatable-has-rows",
+      "existing": false,
+      "label": "Get rows into a table you own",
+      "hint": "Studio → Datatables → open a table you own → \"Rows\" tab → \"Add a row\" (or \"Import\" to paste a block from a spreadsheet).",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/datatables",
+          "returns": "{ datatables: [ { id, name, key, rowCount, grade, ownerUserId, scopeKind, managedKind, ... } ], scope }"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "rows",
+          "label": "A datatable you can open is in your list",
+          "hint": "Studio → Datatables — create one first if the list is empty. The rows you type live inside the table, where this check cannot look; the count beside the Rows tab is your own proof.",
+          "rule": "GET /api/datatables → datatables[] is non-empty (rowCount and ownerUserId are NOT usable: ownerUserId is not an owner field the runtime reads)",
+          "endpoint": "/api/datatables"
+        }
+      ]
+    }
+  ]
+}

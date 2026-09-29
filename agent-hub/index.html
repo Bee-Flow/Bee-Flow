@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <!-- Favicon must point at a file in public/ (served verbatim at the root).
+       The brand icon in src/assets is content-hashed by Vite, so the old
+       /BeeFlow-logo-Icon-2026.svg reference 404'd → no tab icon (BFSF-242).
+       public/app-icon.svg is byte-identical to that brand icon. -->
+  <link rel="icon" type="image/svg+xml" href="/app-icon.svg" />
+  <!-- No font requests here at all — the shell's two families (Inter for UI
+       text, Fira Code for code) are self-hosted variable WOFF2s under
+       public/fonts/, declared via @font-face in the bundled CSS
+       (src/marketing/self-hosted-fonts.css). This head used to carry a Google
+       Fonts stylesheet (via the non-blocking print-media swap) plus three
+       preconnects; on a product whose pitch is that visitor data stays off
+       third-party infrastructure, every anonymous marketing pageview was
+       still pinging Google. Same-origin files need no preconnect, honour our
+       cache headers, and the CMS runtime loader (ensureFontsLink in
+       marketing/ProductWebsite.jsx) still fetches any NON-standard family an
+       editor picks — from its own CDN, only on sites that actually use one. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="referrer" content="no-referrer-when-downgrade" />
+  <title>Bee Flow - AI</title>
+  <meta name="description" content="Chat with AI agents powered by Bee Flow" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <!-- Single-React contract for runtime-loaded modules (see
+       src/moduleRuntime/sharedRuntime.js). Externalized module bundles import
+       bare `react*` specifiers; this map points them at the static shims under
+       public/module-shims/ (regenerated on every build/dev via the
+       generate-module-shims.mjs prebuild/predev hook) which re-export the host's
+       single React instance from window.__BEEFLOW_SHARED__. The app's own code
+       never uses bare specifiers at runtime — Vite resolves those at build time —
+       so this map only affects dynamically-imported module bundles. It must
+       precede the /src/main.jsx module script below. -->
+  <script type="importmap">
+    {
+      "imports": {
+        "react": "/module-shims/react.js",
+        "react-dom": "/module-shims/react-dom.js",
+        "react-dom/client": "/module-shims/react-dom-client.js",
+        "react/jsx-runtime": "/module-shims/react-jsx-runtime.js"
+      }
+    }
+  </script>
+</head>
+
+<body>
+  <script>
+    // Pre-React theme bootstrap — applies the last-resolved theme to <html>
+    // synchronously so paint never flashes the wrong background. The React
+    // ThemeProvider reconciles with the server on mount.
+    //
+    // Preview mode: when the URL has ?themePreview=1 (admin Theme Studio
+    // iframes), we ignore the localStorage cache and decode the `t=` query
+    // param instead. This paints the iframe with the admin's DRAFT theme on
+    // first frame, then the React provider takes over via postMessage.
+    (function () {
+      function applyTheme(t, root) {
+        if (!t || typeof t !== 'object') return;
+        if (t.preset) root.setAttribute('data-theme', t.preset);
+        if (t.accent) root.style.setProperty('--accent-primary', t.accent);
+        if (t.radiusScale) root.style.setProperty('--radius-scale', String(t.radiusScale));
+        if (t.glassIntensity != null) root.style.setProperty('--glass-intensity', String(t.glassIntensity));
+        if (t.wallpaperUrl) root.style.setProperty('--wallpaper-image', 'url("' + t.wallpaperUrl + '")');
+        if (t.wallpaperOverlay != null) root.style.setProperty('--wallpaper-overlay', 'rgba(255,255,255,' + t.wallpaperOverlay + ')');
+        // Glass v2 data-attrs — picked up by the CSS selectors in index.css.
+        if (t.wallpaperPreset) root.setAttribute('data-wallpaper', t.wallpaperPreset);
+        if (t.glassTint)       root.setAttribute('data-glass-tint', t.glassTint);
+        if (t.glassLens)       root.setAttribute('data-lens', t.glassLens);
+        if (t.glassAnimation)  root.setAttribute('data-anim', t.glassAnimation);
+        if (t.glassGrain)      root.setAttribute('data-glass-grain', t.glassGrain);
+        if (t.glassBorder)     root.setAttribute('data-glass-border', t.glassBorder);
+      }
+      try {
+        var root = document.documentElement;
+        var params = new URLSearchParams(window.location.search);
+        if (params.get('themePreview') === '1') {
+          root.setAttribute('data-preview', '1');
+          var raw = params.get('t');
+          if (raw) {
+            // URL-safe base64 → standard base64.
+            var b64 = raw.replace(/-/g, '+').replace(/_/g, '/');
+            while (b64.length % 4) b64 += '=';
+            var payload = JSON.parse(atob(b64));
+            applyTheme(payload, root);
+          }
+          return;
+        }
+        var cached = localStorage.getItem('beeflow:theme:bootstrap');
+        if (!cached) return;
+        var t = JSON.parse(cached);
+        applyTheme(t, root);
+      } catch (e) { console.warn('[Theme] bootstrap failed', e); }
+    })();
+  </script>
+  <div id="root"></div>
+  <!-- Runtime settings, written by the image at container start
+       (docker-entrypoint.d/19-beeflow-runtime-config.sh). Classic script, not a
+       module, so it has finished before main.jsx evaluates. Absent in dev and in
+       any non-container build — the 404 is harmless and the reader treats a
+       missing file as "no runtime opinion". -->
+  <script src="/beeflow-runtime.js"></script>
+  <script type="module" src="/src/main.jsx"></script>
+</body>
+
+</html>

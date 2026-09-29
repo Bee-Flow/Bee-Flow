@@ -1,0 +1,25 @@
+{
+  "_note": "be-1a-aggregates-routes. The server emits these key NAMES on aggregate rows (attention items carry action.label_key; GET /deadlines items carry `kind`, which the client renders as compliance.deadline_kind_<kind>). Attention item TITLES are server-composed English sentences, not keys — see the DONE file's asks.",
+  "en": {
+    "compliance.attention_action_auto_fix": "Auto-fix",
+    "compliance.attention_action_open_fix": "Open fix",
+    "compliance.attention_action_navigate": "Open",
+    "compliance.deadline_kind_dsr": "Data-subject request",
+    "compliance.deadline_kind_incident": "Incident notification",
+    "compliance.deadline_kind_cra_early_warning": "CRA early warning",
+    "compliance.deadline_kind_cra_full_report": "CRA full report",
+    "compliance.deadline_kind_obligation": "ISMS obligation",
+    "compliance.deadline_kind_attestation_expiry": "Attestation expires"
+  },
+  "nl": {
+    "compliance.attention_action_auto_fix": "Auto-herstel",
+    "compliance.attention_action_open_fix": "Herstel openen",
+    "compliance.attention_action_navigate": "Openen",
+    "compliance.deadline_kind_dsr": "AVG-verzoek",
+    "compliance.deadline_kind_incident": "Incidentmelding",
+    "compliance.deadline_kind_cra_early_warning": "CRA vroegtijdige waarschuwing",
+    "compliance.deadline_kind_cra_full_report": "CRA eindrapport",
+    "compliance.deadline_kind_obligation": "ISMS-verplichting",
+    "compliance.deadline_kind_attestation_expiry": "Verklaring verloopt"
+  }
+}

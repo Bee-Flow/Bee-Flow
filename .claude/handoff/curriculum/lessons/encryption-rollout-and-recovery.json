@@ -1,0 +1,328 @@
+{
+  "id": "encryption-rollout-and-recovery",
+  "icon": "🗝️",
+  "estMinutes": 13,
+  "title": "Switching it on without losing data",
+  "desc": "The backfill, the org-wide sign-out, recovery keys, and the password reset that destroys history.",
+  "gate": {
+    "permission": "org_admin",
+    "feature": "encryption"
+  },
+  "learningGoal": "After this lesson you can plan an encryption rollout for your organisation and rescue a colleague who has lost their PIN.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "new-writes",
+      "icon": "🧭",
+      "title": "Turning it on protects tomorrow, not yesterday",
+      "bodyMd": "You can switch encryption on this afternoon and still have two years of readable staff conversations in the database tonight. The screen is not lying to you — it just does less than most admins assume.\n\nMarieke is the organisation admin at **Van Dijk Groep**, a Dutch builder's merchant of sixty staff. She is the one who runs the workspace — Erik, the director, signs in like any other colleague. She opens **Settings → Organisation → Encryption** and reads the line at the top:\n\n> \"Choose how your organisation's conversation content is stored. This affects new messages; existing messages are left exactly as they are and stay readable either way.\"\n\nOnly new messages follow the setting. Reading works either way, because the app recognises each stored message for what it is. So:\n\n- switching **on** leaves the older messages as plain readable text;\n- switching **off** leaves the already-encrypted ones openable — no key is thrown away;\n- flipping the switch never rewrites a single old message.\n\nHistory is protected only once whoever runs your server runs the one-off **backfill** script: a dry run first to see the counts, then for real."
+    },
+    {
+      "type": "quiz",
+      "id": "q-backfill",
+      "icon": "❓",
+      "question": "Van Dijk Groep is on Zero-knowledge. What can the backfill never do there?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Encrypt message bodies that were written before the switch",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Encrypt the Privacy Shield token map",
+          "correct": false,
+          "feedback": "It can. The token map is written by background scanning with nobody signed in, so it is keyed to the organisation even on Zero-knowledge — which means a script can encrypt it."
+        },
+        {
+          "id": "c",
+          "label": "Encrypt conversation titles",
+          "correct": false,
+          "feedback": "It can. Titles are generated without a user session, so they too are keyed to the organisation on Zero-knowledge and can be backfilled."
+        },
+        {
+          "id": "d",
+          "label": "Report what it would change before changing anything",
+          "correct": false,
+          "feedback": "It can, and it should. The dry run is the first thing you run: it counts what would be encrypted and what is already done."
+        }
+      ],
+      "explanation": "On Zero-knowledge a message body is encrypted with a key derived from each person's own secret when they sign in. A script has no session and therefore no key, so it skips that surface and says so in its report. Message-body history on Zero-knowledge stays as it was written."
+    },
+    {
+      "type": "slide",
+      "id": "signout",
+      "icon": "🚪",
+      "title": "Zero-knowledge signs out everybody, including you",
+      "bodyMd": "The moment Marieke selects the **Zero-knowledge** card, a red box appears — before she has saved anything:\n\n> \"Saving this will sign out everyone in the organisation, including you. Each person must sign in again so their encryption key can be created. Data can no longer be recovered by an administrator.\"\n\nOn **Save**, every session in the organisation is deleted and a toast confirms it. Marieke is signed out on her next request too.\n\nTwo practical consequences:\n\n- **Pick your moment.** She saves on a Friday at 17:00, not in the middle of a working day.\n- **Verify afterwards.** If the sign-out ever fails halfway, still-open sessions keep writing readable text while the screen says the organisation is encrypted.\n\nChoosing **Managed** changes nothing about sessions — nobody is signed out."
+    },
+    {
+      "type": "slide",
+      "id": "pin-and-key",
+      "icon": "🔐",
+      "title": "SSO colleagues get a PIN and one recovery key",
+      "bodyMd": "Pieter in procurement signs in with Microsoft, so he has no password for Bee Flow to work from. On Zero-knowledge he lands on a full-screen **Set Up Data Encryption** gate at his next sign-in. It says plainly: \"This is separate from your SSO login.\"\n\nHe chooses an **Encryption PIN** of at least 6 characters, confirms it, and then sees **Save Your Recovery Key** once:\n\n> \"This is the only way to recover your encrypted data if you forget your PIN. Save it somewhere safe — it won't be shown again.\"\n\nThe key is 8 groups of 8 characters. **Copy to clipboard**, paste it into the company password manager that Anne, the office manager, keeps, then **I've saved my recovery key — Continue**.\n\nColleagues who sign in with a password — Jeroen, the sales lead, among them — see a similar one-off recovery-key box on the login screen. Every later sign-in on SSO shows **Unlock Your Data**."
+    },
+    {
+      "type": "sim",
+      "id": "sim-order",
+      "icon": "🧩",
+      "title": "Put Marieke's rollout in order",
+      "instruction": "Van Dijk Groep's sixty colleagues are moving to Zero-knowledge. Drag the five steps into the order Marieke should run them in.",
+      "sim": {
+        "kind": "order",
+        "items": [
+          {
+            "id": "announce",
+            "label": "Tell the team what will happen, and when"
+          },
+          {
+            "id": "switch",
+            "label": "Select Zero-knowledge and Save — everyone is signed out"
+          },
+          {
+            "id": "signin",
+            "label": "Everyone signs in again; SSO colleagues set their encryption PIN"
+          },
+          {
+            "id": "store",
+            "label": "Each person stores their recovery key in the password manager"
+          },
+          {
+            "id": "verify",
+            "label": "Check what is actually enforced and who changed the setting"
+          }
+        ],
+        "solution": [
+          "announce",
+          "switch",
+          "signin",
+          "store",
+          "verify"
+        ],
+        "feedback": "The announcement has to come first, because saving is what signs everyone out — there is no confirmation step afterwards. Keys can only be created once people sign back in, the key has to be stored the moment it is shown (it is never shown again), and verification is last because there is nothing to verify until the organisation is back on its feet."
+      }
+    },
+    {
+      "type": "quiz",
+      "id": "q-reset",
+      "icon": "🧯",
+      "question": "Jeroen, the sales lead at Van Dijk Groep, forgets his password. The organisation is on Zero-knowledge, and Marieke gives him a new one in the admin panel — Admin → Security → Users, Edit user, the field \"New Password (blank to keep)\". What happens to his existing conversations?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "They stop opening — the reset wipes the copy of his key that his password protected, and nothing in the app offers him a way back to it",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Nothing — he signs in with the new password and sees everything",
+          "correct": false,
+          "feedback": "That is the Managed tier. There, a copy of his content key is held by the organisation, so an admin reset costs nothing. On Zero-knowledge no such copy exists."
+        },
+        {
+          "id": "c",
+          "label": "He pastes his recovery key on the login screen and gets them back",
+          "correct": false,
+          "feedback": "A colleague who signs in with a password is only ever shown a recovery key, never asked for one: the login screen has no field for it, and Recover Your Account belongs to the SSO encryption-PIN flow. That is the difference between Pieter, who signs in with Microsoft and can be rescued, and Jeroen."
+        },
+        {
+          "id": "d",
+          "label": "Support can restore the data on request",
+          "correct": false,
+          "feedback": "There is nobody to ask. Zero-knowledge means neither your administrators nor Bee Flow hold a key to that content. No support ticket fixes this."
+        }
+      ],
+      "explanation": "Setting someone else's password without their old one runs the destructive path: it wipes the copy of the content key that their password protected. On Managed that costs nothing, because the organisation still holds its own copy. On Zero-knowledge there is no second copy an administrator can reach, so the reset is not a rescue — it ends that person's history. If Jeroen still knows his current password, have him change it himself: that path loses nothing."
+    },
+    {
+      "type": "slide",
+      "id": "rescue",
+      "icon": "🔁",
+      "title": "Every rescue mints a new key and kills the old one",
+      "bodyMd": "The rescue path is short, and it belongs to the SSO encryption-PIN flow. A month later Pieter forgets his PIN. On **Unlock Your Data** he clicks **Forgot your PIN? Use recovery key**, lands on **Recover Your Account**, pastes the key, types a **New PIN** twice and clicks **Recover & Set New PIN**.\n\nThe key unlocks the content key, the new PIN re-protects it, and then the important part: a **brand-new recovery key** is issued and shown once more. The old one stops working immediately.\n\nSo a recovery key is not filing you do once. Anne, who keeps the password-manager vault, has to replace that entry after every rescue.\n\nTwo things to remember. After 10 wrong recovery keys this path locks out too, so a colleague who is guessing should stop and find the real key. And **Recover Your Account** is the only screen in the app that ever asks for a recovery key — there is nowhere else to paste one."
+    },
+    {
+      "type": "sim",
+      "id": "sim-who-sees-what",
+      "icon": "👥",
+      "title": "Who meets which screen",
+      "instruction": "Marieke has saved the switch at Van Dijk Groep. Match each colleague to the screen the rollout puts in front of them.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "admin",
+            "left": "Marieke, the organisation admin, choosing the tier",
+            "right": "The red warning that saving signs out everyone, including her",
+            "note": "It appears on the Encryption screen the moment she selects Zero-knowledge, before she has saved anything."
+          },
+          {
+            "id": "sso",
+            "left": "Pieter in procurement, who signs in with Microsoft",
+            "right": "Set Up Data Encryption, where he picks a PIN of at least 6 characters",
+            "note": "SSO leaves Bee Flow no password to work from, so he sets a separate encryption PIN."
+          },
+          {
+            "id": "pw",
+            "left": "Jeroen, the sales lead, who signs in with a password",
+            "right": "A one-off recovery-key box on the login screen",
+            "note": "His password already protects his key, so there is no PIN to set — only a key to save."
+          },
+          {
+            "id": "forgot",
+            "left": "Pieter again a month later, PIN forgotten",
+            "right": "Recover Your Account, reached from \"Forgot your PIN?\"",
+            "note": "It is the only screen in the app that asks for a recovery key, and it mints a fresh one."
+          },
+          {
+            "id": "vault",
+            "left": "Anne, the office manager, who keeps the company vault",
+            "right": "A password-manager entry she replaces after every rescue",
+            "note": "Each rescue invalidates the old key, so a stale vault entry is worse than none."
+          }
+        ]
+      }
+    },
+    {
+      "type": "quiz",
+      "id": "q-lockout",
+      "icon": "⏱️",
+      "question": "A colleague keeps typing the wrong PIN on Unlock Your Data. What does the account do as the failures pile up?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "From the third failure each attempt has to wait longer, up to an hour; at twenty failures the account is hard-locked and needs an admin reset or the recovery key",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Nothing — the unlock screen simply keeps asking",
+          "correct": false,
+          "feedback": "A 6-character PIN would be guessable if that were true. Delays start at the third failure and grow, and there is a hard stop at twenty."
+        },
+        {
+          "id": "c",
+          "label": "The account locks after three wrong PINs",
+          "correct": false,
+          "feedback": "The third failure starts the waiting time, it does not lock the account. The hard lock is at twenty."
+        },
+        {
+          "id": "d",
+          "label": "After twenty failures the encrypted data is deleted",
+          "correct": false,
+          "feedback": "Nothing is ever deleted by failed attempts. The data stays exactly where it is — it just cannot be unlocked until the recovery key is used or an admin resets the account."
+        }
+      ],
+      "explanation": "The waiting time doubles with each failure from the third onwards and is capped at an hour, and a run of twenty failures stops the account entirely. That backoff is what makes a short PIN survivable — and it is also why a colleague who is convinced they are typing the right PIN should be pointed at the recovery key rather than left guessing."
+    },
+    {
+      "type": "exercise",
+      "id": "ex-announce",
+      "icon": "✍️",
+      "exerciseId": "ex-encryption-rollout-announce",
+      "title": "Your turn: write the announcement",
+      "instruction": "Write the message Marieke sends to her sixty colleagues at Van Dijk Groep before she switches the organisation to Zero-knowledge. Around 100-140 words. A strong message names the moment she will save; warns that everyone will be signed out and must sign in again; tells SSO colleagues they will be asked for an encryption PIN of at least 6 characters, separate from their SSO login; tells everyone to store the one-time recovery key in the company password manager the moment it is shown; and says plainly that from then on no administrator can recover anyone's data.",
+      "placeholder": "e.g. \"On Friday at 17:00 I am changing how our conversations are stored. When I save the change, everyone — me included — is signed out…\"",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "slide",
+      "id": "verify",
+      "icon": "🔎",
+      "title": "Afterwards: check what is actually enforced",
+      "bodyMd": "Two words are worth keeping apart.\n\n- **Scope** is what was asked for: the places the organisation wants encrypted.\n- **Effective** is what is enforced: that list narrowed to what this build really encrypts.\n\nNeither is printed on the Encryption screen. Both come back from the same admin call the screen makes when it loads, `GET /auth/organizations/<org id>/encryption`. Today all seven places are wired, so the two lists match — but scope is the promise and effective is the fact, so effective is the one to read.\n\nSecond, every tier change is recorded as the action `org.encryption.update`. Marieke finds it in **Settings → Organisation → Compliance → Access log**, filtered on that event. The row names the organisation and who changed it; the old and new tier ride in the record, so **Export (JSON)** is what she hands an auditor."
+    },
+    {
+      "type": "action",
+      "id": "do-managed",
+      "icon": "🏗️",
+      "checkId": "encryption-tier-on",
+      "title": "Switch encryption on — we'll verify it",
+      "instruction": "Open Settings → Organisation → Encryption, select the Managed card and click Save. You should see the toast \"Encryption settings saved\", and nobody is signed out. If Managed is greyed out, the reason is printed under the card — either your plan or a key this server is missing. Do not pick Zero-knowledge as a rehearsal: that really does sign out your whole organisation. Managed is reversible — Off is always selectable, even later.",
+      "launch": {
+        "navigateTo": "settings/organisation/encryption",
+        "label": "Open Encryption"
+      }
+    },
+    {
+      "type": "slide",
+      "id": "recap",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "- **Plan the switch.** You know that turning encryption on protects new writes only, that history needs a separate backfill, and that message bodies on Zero-knowledge can never be backfilled at all.\n- **Survive the sign-out.** Announce first, save Zero-knowledge outside working hours, get everyone signed back in, and make sure each recovery key lands in the password manager the moment it is shown.\n- **Rescue a colleague.** Recovery key, new PIN, then replace the old key in the vault — and never treat an admin password reset as a rescue on Zero-knowledge, because it ends that person's history instead of restoring it.\n- **Warn about transcripts.** Meeting transcripts are keyed to the organisation rather than to a person, so even on Zero-knowledge whoever runs the server can read them. Say that out loud before Anne records a personnel meeting.\n\nNext chapter: the compliance side of the same story — your first score on the board."
+    }
+  ],
+  "rubrics": {
+    "ex-encryption-rollout-announce": {
+      "title": "The pre-switch announcement",
+      "task": "Write the message an organisation admin sends before switching the organisation to Zero-knowledge encryption, covering the timing, the org-wide sign-out, the encryption PIN for SSO colleagues, the one-time recovery key, and the loss of admin recovery.",
+      "criteria": [
+        "States when the change will be saved, and that saving signs everyone out and everyone must sign in again",
+        "Tells SSO colleagues they will be asked to set an encryption PIN of at least 6 characters, separate from their SSO login",
+        "Tells people to store the recovery key straight away because it is shown only once, and names where (a password manager or vault)",
+        "Says plainly that after the switch no administrator can recover a person's data if PIN and recovery key are both lost",
+        "Reads like a message to colleagues: plain, calm, addressed to the team rather than a checklist of settings"
+      ],
+      "passScore": 70,
+      "guidance": "Do not pass a message that only announces 'we are enabling encryption' without the sign-out or the recovery key — those are the two things that cost data if missed. Do not pass a message that promises the admin can restore access, or that treats the PIN as the SSO password. A message that is warm but omits the recovery key fails; a plain, slightly dry message that covers all five points passes. Extra credit, not a requirement: a note that existing messages stay as they are."
+    }
+  },
+  "practiceTopic": {
+    "title": "Encryption rollout and recovery",
+    "summary": "How switching the organisation's encryption tier behaves in practice, and how a lost PIN is rescued.",
+    "facts": [
+      "The Encryption screen lives at Settings → Organisation → Encryption and says the setting affects new messages only; existing messages are left exactly as they are and stay readable either way.",
+      "Selecting Zero-knowledge shows a red warning before saving, and saving signs out everyone in the organisation, including the admin who saved it; choosing Managed signs nobody out.",
+      "On Zero-knowledge, message bodies written before the switch can never be backfilled, because their key is derived from each person's own secret at sign-in.",
+      "SSO users see a full-screen Set Up Data Encryption gate and choose an encryption PIN of at least 6 characters, which the screen says is separate from their SSO login.",
+      "The recovery key is shown once, as 8 groups of 8 characters; a recovery-key rescue issues a new key and invalidates the old one, and Recover Your Account is the only screen in the app that asks for one.",
+      "An admin setting a password without the old one wipes the password-protected copy of that user's content key: on Managed the escrowed copy survives and nothing is lost, on Zero-knowledge the old conversations stop opening.",
+      "Wrong PIN attempts trigger a growing delay from the third failure, capped at an hour, and a hard lockout at twenty failures; the recovery-key path hard-locks after ten.",
+      "Every tier change is recorded in Settings → Organisation → Compliance → Access log as the action org.encryption.update, with the acting user; the old and new tier ride in the record and come out in the Export (JSON)."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "encryption-tier-on",
+      "existing": false,
+      "label": "Switch encryption on for your organisation",
+      "hint": "In Settings → Organisation → Encryption, select Managed and click Save. The tier must no longer be Off.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/auth/organizations/:id/encryption",
+          "returns": "the organisation's encryption policy as an OBJECT (not a list): tier ('none'|'managed'|'zk'), enabled, scope, effective (scope narrowed to the surfaces this build really encrypts), surfaces, implementedSurfaces, keyVersion, entitled, allowedTiers, tierOptions, readiness, canEditScope. The runtime substitutes the learner's own organisation id for :id; the handler demands org-admin of that org (requireStrictOrgAdmin), which this lesson's gate already requires."
+        }
+      ],
+      "criteria": [
+        {
+          "id": "tier-on",
+          "label": "Encryption is switched on for the organisation",
+          "hint": "Pick Managed (or Zero-knowledge) on the Encryption screen and save. While the tier is still Off, the screen reports enabled: false.",
+          "endpoint": "/auth/organizations/:id/encryption",
+          "expect": {
+            "kind": "truthy",
+            "field": "enabled"
+          },
+          "rule": "GET /auth/organizations/<your org id>/encryption returns enabled === true, i.e. tier is 'managed' or 'zk' rather than 'none'"
+        },
+        {
+          "id": "messages-enforced",
+          "label": "Message content is enforced, not merely in scope",
+          "hint": "Read effective, not scope: it is the asked-for scope narrowed to what this build really encrypts. It turns true with the tier unless the messages surface was switched off in the advanced scope block.",
+          "endpoint": "/auth/organizations/:id/encryption",
+          "expect": {
+            "kind": "truthy",
+            "field": "effective.messages"
+          },
+          "rule": "the same response has effective.messages === true"
+        }
+      ]
+    }
+  ]
+}

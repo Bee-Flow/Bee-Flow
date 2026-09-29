@@ -1,0 +1,32 @@
+{
+  // Type checking for the server without a build step or a rename: JSDoc types,
+  // enabled per file with a `// @typecheck` line. scripts/typecheck.mjs checks
+  // exactly the marked files and reports errors for those only;
+  // scripts/checkjs-ratchet.mjs (repo root) makes their number only rise.
+  //
+  // Not `// @ts-check`: agent-hub's tests import server modules, and its own
+  // strict typecheck would check every such file under ITS options (364
+  // errors from utils/ alone the one time it happened). The custom marker
+  // keeps the checks independent. Strictness here starts off and tightens
+  // per option once the marked set is clean under it.
+  "compilerOptions": {
+    "target": "es2023",
+    "lib": ["es2023"],
+    "module": "node20",
+    "moduleResolution": "node16",
+    "allowJs": true,
+    "checkJs": false,
+    "noEmit": true,
+    "strict": false,
+    "strictNullChecks": false,
+    "noImplicitAny": false,
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "maxNodeModuleJsDepth": 0,
+    "types": ["node"],
+    "paths": {
+      "googleapis": ["./types/shims/googleapis.d.ts"]
+    }
+  }
+}

@@ -1,0 +1,114 @@
+.section {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: clamp(3rem, 7vw, 6rem) 1.25rem;
+}
+
+.heading {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.kicker {
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--bf-amber-700);
+  margin-bottom: 0.7rem;
+}
+.title {
+  font-size: clamp(1.7rem, 3.4vw, 2.6rem);
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+  font-weight: 800;
+  max-width: 760px;
+  margin: 0 auto;
+  color: var(--bf-ink-900);
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.1rem;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 1.6rem 1.5rem;
+  border-radius: var(--bf-radius);
+  background: var(--ifm-background-surface-color, #fff);
+  border: 1px solid var(--bf-ink-200);
+  text-decoration: none !important;
+  color: inherit !important;
+  position: relative;
+  overflow: hidden;
+  transition: transform 220ms ease, border-color 220ms ease, box-shadow 220ms ease;
+}
+.card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--bf-grad-amber);
+  opacity: 0;
+  transition: opacity 240ms ease;
+  pointer-events: none;
+  z-index: 0;
+  mix-blend-mode: soft-light;
+}
+
+.card:hover {
+  transform: translateY(-3px);
+  border-color: var(--bf-amber-300);
+  box-shadow: var(--bf-shadow);
+}
+
+.card:hover::before { opacity: 0.10; }
+
+.iconWrap {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--bf-grad-amber-soft);
+  color: var(--bf-amber-800);
+  position: relative;
+  z-index: 1;
+  transition: transform 220ms ease;
+}
+
+.iconWrap svg { width: 22px; height: 22px; }
+
+.card:hover .iconWrap { transform: rotate(-3deg) scale(1.05); }
+.cardTitle {
+  font-size: 1.12rem;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  margin: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.cardBody {
+  font-size: 0.95rem;
+  color: var(--bf-ink-600);
+  line-height: 1.55;
+  margin: 0;
+  position: relative;
+  z-index: 1;
+}
+.cardLink {
+  margin-top: auto;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--bf-amber-700);
+  position: relative;
+  z-index: 1;
+  transition: gap 200ms ease;
+}
+.card:hover .cardLink {
+  letter-spacing: 0.005em;
+}

@@ -1,0 +1,120 @@
+{
+ "model": "nli",
+ "provenance": {
+  "model_id": "MoritzLaurer/bge-m3-zeroshot-v2.0-c",
+  "revision": "705510dfe0f35d223a4bf6f5d2695ec5fd162341",
+  "package": "transformers",
+  "dtype": "torch.float32",
+  "device": "cpu",
+  "label_scoring": "independent (one entailment pass per label)",
+  "score": "entailment softmax per (text, label) pair",
+  "hypothesis_template": "This text is about {}.",
+  "max_length": 512,
+  "parameters_m": 567.8
+ },
+ "env": {
+  "date": "2026-09-26T15:29:38+00:00",
+  "python": "3.12.14",
+  "packages": {
+   "torch": "2.14.0+cpu",
+   "transformers": "5.17.0",
+   "tokenizers": "0.23.2",
+   "huggingface_hub": "1.33.0",
+   "numpy": "2.5.3"
+  },
+  "cpu_model": "AMD RYZEN AI MAX+ 395 w/ Radeon 8060S",
+  "os_cpu_count": 32,
+  "affinity_cpus": 32,
+  "cgroup_cpu_max": "300000 100000",
+  "cgroup_memory_max": "4294967296",
+  "torch_threads": 3,
+  "cuda_available": false
+ },
+ "labels": [
+  "a complaint",
+  "an invoice",
+  "a job application",
+  "a question about an order",
+  "a cancellation",
+  "spam or marketing"
+ ],
+ "load_seconds": 3.71,
+ "memory_mb": {
+  "vmhwm_before_load": 196.9,
+  "vmhwm_after_load": 3560.5,
+  "vmrss_after_load": 2829.7,
+  "vmhwm_after_batches": 3560.5,
+  "peak_rss": 3560.5
+ },
+ "sizes": {
+  "64": {
+   "mean_tokens": 64.0,
+   "batch_1": {
+    "reps": 30,
+    "p50_s": 1.9203,
+    "p95_s": 2.0233,
+    "mean_s": 1.9417,
+    "min_s": 1.9018,
+    "max_s": 2.0664,
+    "texts_per_s": 0.521
+   },
+   "batch_8": {
+    "reps": 10,
+    "p50_s": 10.7714,
+    "p95_s": 18.6452,
+    "mean_s": 12.1478,
+    "min_s": 9.5698,
+    "max_s": 18.6452,
+    "texts_per_s": 0.743
+   }
+  },
+  "256": {
+   "mean_tokens": 256.0,
+   "batch_1": {
+    "reps": 30,
+    "p50_s": 9.954,
+    "p95_s": 12.339,
+    "mean_s": 9.9597,
+    "min_s": 5.6112,
+    "max_s": 13.949,
+    "texts_per_s": 0.1
+   },
+   "batch_8": {
+    "reps": 10,
+    "p50_s": 58.3414,
+    "p95_s": 60.3806,
+    "mean_s": 56.4318,
+    "min_s": 45.6051,
+    "max_s": 60.3806,
+    "texts_per_s": 0.137
+   }
+  },
+  "512": {
+   "mean_tokens": 512.0,
+   "batch_1": {
+    "reps": 30,
+    "p50_s": 17.0631,
+    "p95_s": 18.0193,
+    "mean_s": 14.8819,
+    "min_s": 8.7524,
+    "max_s": 19.6674,
+    "texts_per_s": 0.059
+   },
+   "batch_8": {
+    "reps": 10,
+    "p50_s": 81.43,
+    "p95_s": 108.6315,
+    "mean_s": 83.7122,
+    "min_s": 63.9665,
+    "max_s": 108.6315,
+    "texts_per_s": 0.098
+   }
+  }
+ },
+ "gates": {
+  "p50_512_batch1_s": 17.0631,
+  "p95_512_batch1_s": 18.0193,
+  "texts_per_s_512_batch8": 0.098,
+  "peak_rss_mb": 3560.5
+ }
+}

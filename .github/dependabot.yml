@@ -1,0 +1,356 @@
+# Dependabot — ISO/IEC 27001 A.8.8, management of technical vulnerabilities.
+#
+# WHY THIS FILE EXISTS AT ALL, AND WHY ITS ABSENCE WAS A FINDING
+# Bee Flow ships an A.8.8 control (server/compliance/checks/iso27001/
+# a8-8-vuln-mgmt.js) that reads a CUSTOMER's Dependabot alerts and FAILS their
+# ISO readiness when a critical or high alert has been open past 30 days. This
+# repository had no Dependabot configuration, no dependency audit in CI and no
+# image scanning. Asking customers for a control the product does not run on
+# itself is the kind of thing a certified customer's supplier assessment
+# (A.5.19–A.5.22) is designed to find, and it would be right to find it.
+#
+# WHAT DEPENDABOT DOES AND DOES NOT DO HERE
+# It raises pull requests. It does not gate anything — the gate is
+# .github/workflows/dependency-audit.yml, which ratchets so the count cannot
+# grow. The two are meant to be read together: the ratchet stops the debt
+# increasing, Dependabot is what actually pays it down.
+#
+# GROUPING: one PR per ecosystem per week for patch/minor, and a separate PR per
+# major. Ungrouped, this repository's twelve manifests would open dozens of PRs
+# a week, which ends with everyone ignoring them — an alert nobody reads is
+# worse than no alert, because it looks like coverage.
+#
+# CADENCE: weekly for what ships to customers — server, agent-hub, mobile, and
+# the two PII detectors (see the Python section) — monthly for the rest:
+# tooling, satellites, the other sidecars, the actions and the base images.
+# Every scheduled run can open, refresh or supersede PRs, and each of those is
+# a CI run; a weekly satellite paid for up to four a month without moving
+# anything a customer runs. The interval only paces version updates: a
+# security update opens when its advisory is published, whatever the schedule
+# says — except where no advisory reaches, a base image or an action pinned to
+# a commit (see those two entries). A monthly entry runs on the 1st; `day`
+# only means something to a weekly schedule, so those entries leave it out.
+#
+# REBASING: `rebase-strategy: disabled` on every entry. By default Dependabot
+# rebases each open PR that a push to main puts in conflict, and every rebase
+# re-runs CI on a PR nobody was about to merge — after one merge that touched
+# a lockfile, a dozen of them at once. An open PR now stays as it is
+# until someone means to merge it: comment `@dependabot rebase` on the PR,
+# wait for its checks, then merge. Security-update PRs still open as usual;
+# the setting applies to them too, so the same comment brings one up to date.
+version: 2
+
+updates:
+  # ── Node ──────────────────────────────────────────────────────────
+  # Ordered by blast radius: server and agent-hub ship to customers, the rest
+  # are tooling or satellites.
+  - package-ecosystem: npm
+    directory: /server
+    schedule: { interval: weekly, day: monday, time: "05:00", timezone: Europe/Amsterdam }
+    open-pull-requests-limit: 5
+    rebase-strategy: disabled
+    groups:
+      server-patch-minor:
+        patterns: ["*"]
+        update-types: [minor, patch]
+    # playwright moves by hand, in the same change as the base image of
+    # server/pwt-runner/Dockerfile: the server's chromium.connect() to the
+    # shared browser is refused (HTTP 428) when the two differ. A bump on this
+    # side alone would ship a server that cannot export a PDF. The server and
+    # pwt-runner build jobs in build-push-ghcr.yml both run
+    # scripts/check-playwright-lockstep.mjs and fail when the two disagree.
+    ignore:
+      - dependency-name: playwright
+    labels: [dependencies, security]
+
+  - package-ecosystem: npm
+    directory: /agent-hub
+    schedule: { interval: weekly, day: monday, time: "05:00", timezone: Europe/Amsterdam }
+    open-pull-requests-limit: 5
+    rebase-strategy: disabled
+    groups:
+      frontend-patch-minor:
+        patterns: ["*"]
+        update-types: [minor, patch]
+    # Each entry below held back an update that broke CI or the product when
+    # main moved to ci.yml (2026-09-23, PRs #210, #211, #213). Lift an entry in
+    # the PR that makes its condition true, never on its own. `ignore` also
+    # silences security-update PRs for these names: act on an alert by hand.
+    ignore:
+      # 7.1 reports every React Compiler finding per function (react#35873-35884):
+      # 2 errors and +508 warnings over agent-hub/.eslint-budget.json. Lift in
+      # the PR that fixes those findings or re-baselines the budget with a reason.
+      - dependency-name: eslint-plugin-react-hooks
+        versions: [">=7.1.0"]
+      # 0.5 rewrote HOC detection ("major-like", its changelog): +67
+      # only-export-components warnings. Lift together with react-hooks above.
+      - dependency-name: eslint-plugin-react-refresh
+        versions: [">=0.5.0"]
+      # 0.18 prefixes KaTeX's CSS classes (KaTeX#4229) while rehype-katex 7.0.1,
+      # mermaid and micromark-extension-math still render with katex ^0.16, so
+      # chat math would get 0.16 HTML under 0.18 CSS. No test sees it (jsdom has
+      # no layout). Lift when rehype-katex accepts 0.18.
+      - dependency-name: katex
+        versions: [">=0.17.0"]
+      # ESLint 10: eslint-plugin-import 2.32.0 (peer eslint ^9; the fix #3230 is
+      # merged but unreleased) and eslint-plugin-react 7.37.5 (peer ^9.7; #4022
+      # open) neither install next to it nor run under it. Lift when both
+      # publish an ^10 peer range (or after a swap to eslint-plugin-import-x and
+      # dropping eslint-plugin-react) AND react-hooks >= 7.1 is on main (7.0.1
+      # stops at ^9), in a hand-made PR that also fixes eslint 10's new
+      # recommended errors.
+      - dependency-name: eslint
+        update-types: ["version-update:semver-major"]
+      # @eslint/js 10 has peer eslint ^10, so it can only move with eslint.
+      - dependency-name: "@eslint/js"
+        update-types: ["version-update:semver-major"]
+      # TypeScript 7.0 ships no JavaScript API (require('typescript') is only
+      # { version }); typescript-eslint 8.x needs it (peer <6.1.0) and crashes
+      # while eslint.config.js loads. Lift when `npm view typescript-eslint@latest
+      # peerDependencies.typescript` admits 7.x (typescript-eslint#10940; the API
+      # is expected in TS 7.1), bumping both in one PR.
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
+    labels: [dependencies, security]
+
+  - package-ecosystem: npm
+    directory: /
+    schedule: { interval: monthly, time: "05:00", timezone: Europe/Amsterdam }
+    open-pull-requests-limit: 3
+    rebase-strategy: disabled
+    groups:
+      root-patch-minor:
+        patterns: ["*"]
+        update-types: [minor, patch]
+    labels: [dependencies]
+
+  - package-ecosystem: npm
+    directory: /mobile
+    schedule: { interval: weekly, day: tuesday, time: "05:00", timezone: Europe/Amsterdam }
+    open-pull-requests-limit: 3
+    rebase-strategy: disabled
+    groups:
+      mobile-patch-minor:
+        patterns: ["*"]
+        update-types: [minor, patch]
+    # Expo SDK 57 pins these in expo/bundledNativeModules.json. They move WITH
+    # the SDK (`npx expo install --fix` after an expo bump), never on their own.
+    # Dependabot counts a 0.x minor (react-native 0.86 -> 0.87, worklets
+    # 0.10 -> 0.13) and React 19.2 -> 19.3 as "minor", so mobile-patch-minor
+    # pulled them out of the SDK contract in #230, and its --force lockfile
+    # broke `npm ci`. Exact pins: no updates at all. Tilde pins: patches only.
+    # mobile/src/lib/nativeDeps.test.ts fails an expo bump whose SDK map has
+    # moved one of these, which is the cue to run `npx expo install --fix`.
+    # An expo bump can also leave an expo-* module's DECLARED range under the
+    # new SDK floor while npm already installed the right version (#244);
+    # `--fix` does not see that. Copy the ranges the test prints into
+    # package.json and the root entry of package-lock.json.
+    # This also silences security-update PRs for these names: act on an alert
+    # by moving expo to the patched SDK release. Revisit the list at each SDK
+    # upgrade (SDK 58 = RN 0.88, React 19.3, reanimated 4.6, worklets 0.12).
+    ignore:
+      - dependency-name: react
+      - dependency-name: react-dom
+      - dependency-name: react-test-renderer
+      - dependency-name: react-native
+      - dependency-name: react-native-reanimated
+      - dependency-name: react-native-worklets
+      - dependency-name: react-native-svg
+      - dependency-name: "@react-native-async-storage/async-storage"
+      - dependency-name: "@react-native-community/netinfo"
+      - dependency-name: "@types/react"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: react-native-screens
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: react-native-safe-area-context
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: react-native-gesture-handler
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      # ESLint 10 (#245): eslint-config-expo 57.0.2 (58.0.2 too) ships
+      # eslint-plugin-react 7.37.5 and eslint-plugin-import 2.32.0, peers ^9 at
+      # most; under 10 react/* crash on context.getFilename and import/order on
+      # sourceCode.getTokenOrCommentAfter, and the PR's lockfile nests
+      # eslint-import-resolver-typescript so the `@/` alias stops resolving.
+      # @eslint/compat's fixupConfigRules can shim the plugins today; we wait
+      # for real support instead. Lift when eslint-config-expo depends on
+      # releases with an eslint ^10 peer.
+      - dependency-name: eslint
+        update-types: ["version-update:semver-major"]
+      # TypeScript 7 (#246) ships no JavaScript API: typescript-eslint 8.x (peer
+      # <6.1.0) and ts-api-utils crash on it. mobile is on ~5.9, so this also
+      # holds back 6.0.x ON PURPOSE: Expo SDK 57 recommends ~6.0.3, and that
+      # move is done by hand together with "types": ["jest", "node"] in
+      # mobile/tsconfig.json (without it tsc reports ~2000 errors). Narrow this
+      # to versions [">=6.1.0"] after that move; lift it when typescript-eslint
+      # and the Expo SDK both admit 7.x.
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
+    labels: [dependencies]
+
+  - package-ecosystem: npm
+    directory: /nextcloud-connector
+    schedule: { interval: monthly, time: "05:00", timezone: Europe/Amsterdam }
+    open-pull-requests-limit: 3
+    rebase-strategy: disabled
+    groups:
+      connector-patch-minor:
+        patterns: ["*"]
+        update-types: [minor, patch]
+    labels: [dependencies, security]
+
+  - package-ecosystem: npm
+    directory: /docs
+    schedule: { interval: monthly }
+    open-pull-requests-limit: 2
+    rebase-strategy: disabled
+    groups:
+      docs-patch-minor:
+        patterns: ["*"]
+        update-types: [minor, patch]
+    labels: [dependencies]
+
+  # ── Python sidecars ───────────────────────────────────────────────
+  # guard-service and pii-service handle personal data by definition — they are
+  # the PII detectors — so their dependencies carry the same weight as the
+  # server's, not less because they are "just a sidecar". So those two stay
+  # weekly, with the server; search-service, reranker and whisperx-service are
+  # monthly (CADENCE, in the header).
+  - package-ecosystem: pip
+    directory: /guard-service
+    schedule: { interval: weekly, day: wednesday, time: "05:00", timezone: Europe/Amsterdam }
+    open-pull-requests-limit: 3
+    rebase-strategy: disabled
+    groups:
+      guard-service-patch-minor:
+        patterns: ["*"]
+        update-types: [minor, patch]
+    labels: [dependencies, security]
+
+  - package-ecosystem: pip
+    directory: /pii-service
+    schedule: { interval: weekly, day: wednesday, time: "05:00", timezone: Europe/Amsterdam }
+    open-pull-requests-limit: 3
+    rebase-strategy: disabled
+    groups:
+      pii-service-patch-minor:
+        patterns: ["*"]
+        update-types: [minor, patch]
+    labels: [dependencies, security]
+
+  # classify-service reads customer text too (it scores it against labels),
+  # so it keeps the PII detectors' weekly cadence.
+  - package-ecosystem: pip
+    directory: /classify-service
+    schedule: { interval: weekly, day: wednesday, time: "05:00", timezone: Europe/Amsterdam }
+    open-pull-requests-limit: 3
+    rebase-strategy: disabled
+    groups:
+      classify-service-patch-minor:
+        patterns: ["*"]
+        update-types: [minor, patch]
+    labels: [dependencies, security]
+
+  - package-ecosystem: pip
+    directory: /search-service
+    schedule: { interval: monthly, time: "05:00", timezone: Europe/Amsterdam }
+    open-pull-requests-limit: 3
+    rebase-strategy: disabled
+    groups:
+      search-service-patch-minor:
+        patterns: ["*"]
+        update-types: [minor, patch]
+    labels: [dependencies]
+
+  - package-ecosystem: pip
+    directory: /reranker
+    schedule: { interval: monthly }
+    open-pull-requests-limit: 2
+    rebase-strategy: disabled
+    groups:
+      reranker-patch-minor:
+        patterns: ["*"]
+        update-types: [minor, patch]
+    labels: [dependencies]
+
+  - package-ecosystem: pip
+    directory: /whisperx-service
+    schedule: { interval: monthly }
+    open-pull-requests-limit: 2
+    rebase-strategy: disabled
+    groups:
+      whisperx-patch-minor:
+        patterns: ["*"]
+        update-types: [minor, patch]
+    labels: [dependencies]
+
+  # ── The supply chain of the build itself ──────────────────────────
+  # A compromised action runs with the workflow's token. The secret-scan
+  # workflow already pins gitleaks by sha256 for the same reason; this keeps the
+  # actions themselves current.
+  # Monthly. Every third-party action in .github/workflows is pinned to a
+  # commit, and GitHub raises no Dependabot alert (so no security-update PR)
+  # for an action pinned that way: this entry is the only thing that moves
+  # them. Most actions/* uses sit on a major tag (@v4), where the only update
+  # is a major, and a major stays its own PR as the header says.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: monthly, time: "05:00", timezone: Europe/Amsterdam }
+    open-pull-requests-limit: 3
+    rebase-strategy: disabled
+    groups:
+      actions-patch-minor:
+        patterns: ["*"]
+        update-types: [minor, patch]
+    labels: [dependencies, security, ci]
+
+  # ── Base images ───────────────────────────────────────────────────
+  # Every FROM is pinned to a digest, so a base image only moves when one of
+  # these PRs lands. One directory per Dockerfile location; a directory with
+  # several Dockerfiles (search-service, pii-service, whisperx-service) is one
+  # entry. guard-service/tools/candidate_shim builds FROM ghcr.io/bee-flow/guard:dev,
+  # a moving tag of our own, and is deliberately not listed.
+  - package-ecosystem: docker
+    directories:
+      - /server
+      - /server/pwt-runner
+      - /server/webpage-runner
+      - /server/terminal-runner
+      - /hub-module-sdk/modules/security_scan/assets/terminal-runner
+      - /agent-hub
+      - /nextcloud-connector
+      - /install-wizard
+      - /nc-login-mini
+      - /guard-service
+      - /pii-service
+      - /classify-service
+      - /search-service
+      - /reranker
+      - /whisperx-service
+    # Monthly, with the satellites. No advisory feed covers a base image, so it
+    # never gets a security-update PR and this entry is the only thing that
+    # moves one. When image-scan.yml reports a HIGH or CRITICAL that a newer
+    # base fixes, do not wait for the 1st: Insights → Dependency graph →
+    # Dependabot → "Check for updates" on the Dockerfile, or move the digest
+    # by hand.
+    schedule: { interval: monthly, time: "05:00", timezone: Europe/Amsterdam }
+    open-pull-requests-limit: 5
+    rebase-strategy: disabled
+    # Digest refreshes and patch tags only, unlike the header's rule for the
+    # other ecosystems. A base-image major or minor is a runtime change, not a
+    # refresh: node 22 → 24 against an .nvmrc that CI tests on 22, python
+    # 3.12 → 3.13 under wheels built for 3.12, CUDA 12.4 → 12.6 under torch.
+    # Those are made by hand, one image at a time, never bundled into the
+    # monthly group with fifteen digest bumps.
+    # The Playwright image does not move by version at all here: its tag must
+    # equal server/package.json's playwright (see the /server entry above).
+    # `*playwright` because the dependency name may or may not carry the
+    # mcr.microsoft.com prefix.
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "*playwright"
+        update-types: ["version-update:semver-patch"]
+    groups:
+      base-images:
+        patterns: ["*"]
+    labels: [dependencies, security]

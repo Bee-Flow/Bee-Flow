@@ -1,0 +1,19 @@
+{
+ "id": "07-compose-vague",
+ "title": "PB vaag",
+ "describe": "iets met facturen",
+ "options": {
+  "tableMode": "new",
+  "tier": "fast",
+  "locale": "nl"
+ },
+ "until": "table",
+ "expect": {
+  "phases": {
+   "table": [
+    "awaiting",
+    "done"
+   ]
+  }
+ }
+}

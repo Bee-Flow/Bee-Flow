@@ -1,0 +1,275 @@
+/**
+ * Google Docs Tools — Read and write Google Docs (no delete)
+ *
+ * Provides:
+ * - Create a new document
+ * - Read document content
+ * - Append text to a document
+ * - Replace text in a document
+ */
+
+require('googleapis');
+require('../auth/permissions');
+const log = require('../telemetry/log');
+
+// ─── Tool Definitions (for LLM tool-use) ──────────────────────
+
+const DOCS_TOOLS = [
+    {
+        type: 'function',
+        function: {
+            name: 'docs_create',
+            description: 'Create a new Google Doc. Returns the document ID and URL.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    title: { type: 'string', description: 'Title for the new document' },
+                    body: { type: 'string', description: 'Optional initial text content for the document' },
+                    folderId: { type: 'string', description: 'Optional Drive folder ID to move the document into' },
+                },
+                required: ['title']
+            }
+        }
+    },
+    {
+        type: 'function',
+        function: {
+            name: 'docs_read',
+            description: 'Read the text content of a Google Doc. Supports documents with multiple tabs — returns all tab content with tab name labels, or a specific tab if tabName is provided.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    documentId: { type: 'string', description: 'The document ID' },
+                    tabName: { type: 'string', description: 'Optional: read only a specific tab by its name. If omitted, all tabs are returned with labels.' },
+                },
+                required: ['documentId']
+            }
+        }
+    },
+    {
+        type: 'function',
+        function: {
+            name: 'docs_append',
+            description: 'Append text to the end of an existing Google Doc.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    documentId: { type: 'string', description: 'The document ID' },
+                    text: { type: 'string', description: 'Text to append to the document' },
+                },
+                required: ['documentId', 'text']
+            }
+        }
+    },
+    {
+        type: 'function',
+        function: {
+            name: 'docs_replace_text',
+            description: 'Find and replace text in a Google Doc. Useful for updating templates.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    documentId: { type: 'string', description: 'The document ID' },
+                    findText: { type: 'string', description: 'Text to find' },
+                    replaceText: { type: 'string', description: 'Text to replace with' },
+                    matchCase: { type: 'boolean', description: 'Whether to match case (default: false)' },
+                },
+                required: ['documentId', 'findText', 'replaceText']
+            }
+        }
+    },
+];
+
+// ─── Docs Client ───────────────────────────────────────────────
+
+async function createDocsClient(session) {
+    const { createGoogleApiClient } = require('./googleClient');
+    return createGoogleApiClient(session, { api: 'docs', version: 'v1', exposeOAuth2: true, notConnectedError: 'Not connected to Google Docs — user must log in with Google' });
+}
+
+// ─── Extract text from doc elements ────────────────────────────
+
+function extractText(body) {
+    if (!body?.content) return '';
+    let text = '';
+    for (const element of body.content) {
+        if (element.paragraph) {
+            for (const pe of (element.paragraph.elements || [])) {
+                if (pe.textRun?.content) {
+                    text += pe.textRun.content;
+                }
+            }
+        } else if (element.table) {
+            for (const row of (element.table.tableRows || [])) {
+                for (const cell of (row.tableCells || [])) {
+                    text += extractText(cell) + '\t';
+                }
+                text += '\n';
+            }
+        }
+    }
+    return text;
+}
+
+// ─── Tool Execution ────────────────────────────────────────────
+
+async function executeDocsTool(toolName, args, session) {
+    const { docs } = await createDocsClient(session);
+
+    switch (toolName) {
+        case 'docs_create': {
+            const { title, body, folderId } = args;
+            log.info(`[Docs] Creating document: "${title}"`);
+
+            const res = await docs.documents.create({
+                requestBody: { title },
+            });
+
+            const documentId = res.data.documentId;
+
+            // Add initial body content if provided
+            if (body) {
+                await docs.documents.batchUpdate({
+                    documentId,
+                    requestBody: {
+                        requests: [{
+                            insertText: {
+                                location: { index: 1 },
+                                text: body,
+                            },
+                        }],
+                    },
+                });
+            }
+
+            // Move to folder if specified
+            if (folderId) {
+                try {
+                    const { createDriveClient } = require('./driveTools');
+                    const drive = await createDriveClient(session);
+                    const file = await drive.files.get({ fileId: documentId, fields: 'parents', supportsAllDrives: true });
+                    const prevParents = (file.data.parents || []).join(',');
+                    await drive.files.update({
+                        fileId: documentId,
+                        addParents: folderId,
+                        removeParents: prevParents,
+                        supportsAllDrives: true,
+                    });
+                } catch (e) {
+                    log.warn(`[Docs] Could not move to folder ${folderId}:`, e.message);
+                }
+            }
+
+            return {
+                documentId,
+                url: `https://docs.google.com/document/d/${documentId}/edit`,
+                title,
+            };
+        }
+
+        case 'docs_read': {
+            const { documentId, tabName } = args;
+            log.info(`[Docs] Reading document: ${documentId}${tabName ? ` (tab: ${tabName})` : ''}`);
+
+            const res = await docs.documents.get({ documentId, includeTabsContent: true });
+            const tabs = res.data.tabs || [];
+
+            let text = '';
+            const tabNames = [];
+
+            if (tabs.length > 0) {
+                for (const tab of tabs) {
+                    const tName = tab.tabProperties?.title || 'Untitled';
+                    tabNames.push(tName);
+                    if (tabName && tName !== tabName) continue;
+                    const tabText = extractText(tab.documentTab?.body);
+                    if (tabs.length > 1) {
+                        text += `\n--- Tab: ${tName} ---\n${tabText}`;
+                    } else {
+                        text += tabText;
+                    }
+                }
+            } else {
+                // Fallback for docs without tabs structure
+                text = extractText(res.data.body);
+            }
+
+            if (tabName && !tabNames.includes(tabName)) {
+                return {
+                    documentId,
+                    title: res.data.title,
+                    error: `Tab "${tabName}" not found. Available tabs: ${tabNames.join(', ')}`,
+                    availableTabs: tabNames,
+                };
+            }
+
+            return {
+                documentId,
+                title: res.data.title,
+                text: text.length > 10000 ? text.substring(0, 10000) + '\n... [truncated]' : text,
+                characterCount: text.length,
+                tabs: tabNames.length > 1 ? tabNames : undefined,
+            };
+        }
+
+        case 'docs_append': {
+            const { documentId, text } = args;
+            log.info(`[Docs] Appending to document: ${documentId}`);
+
+            // Get end of document index
+            const doc = await docs.documents.get({ documentId });
+            const endIndex = doc.data.body.content.slice(-1)[0]?.endIndex || 1;
+
+            await docs.documents.batchUpdate({
+                documentId,
+                requestBody: {
+                    requests: [{
+                        insertText: {
+                            location: { index: endIndex - 1 },
+                            text: '\n' + text,
+                        },
+                    }],
+                },
+            });
+
+            return { documentId, appended: true, textLength: text.length };
+        }
+
+        case 'docs_replace_text': {
+            const { documentId, findText, replaceText, matchCase } = args;
+            log.info(`[Docs] Replace in ${documentId}: "${findText}" → "${replaceText}"`);
+
+            const res = await docs.documents.batchUpdate({
+                documentId,
+                requestBody: {
+                    requests: [{
+                        replaceAllText: {
+                            containsText: {
+                                text: findText,
+                                matchCase: matchCase || false,
+                            },
+                            replaceText: replaceText,
+                        },
+                    }],
+                },
+            });
+
+            const occurrences = res.data.replies?.[0]?.replaceAllText?.occurrencesChanged || 0;
+            return { documentId, replacements: occurrences };
+        }
+
+        default:
+            throw new Error(`Unknown docs tool: ${toolName}`);
+    }
+}
+
+function isDocsTool(toolName) {
+    return toolName.startsWith('docs_');
+}
+
+module.exports = {
+    DOCS_TOOLS,
+    executeDocsTool,
+    isDocsTool,
+    createDocsClient,
+};

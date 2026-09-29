@@ -1,0 +1,37 @@
+# The pins live here and nowhere else: uv.lock resolves them to exact
+# versions plus hashes, and the Dockerfile installs from that lock, so a
+# rebuild months from now gets the same wheels as this one.
+[project]
+name = "beeflow-search-service"
+version = "0.0.0"
+description = "Web and document extraction plus knowledge-base chunking"
+requires-python = ">=3.11"
+dependencies = [
+    "asyncpg==0.31.0",
+    "beautifulsoup4==4.15.0",
+    "fastapi==0.141.1",
+    "httpx==0.28.1",
+    "lxml==6.1.3",
+    "markdownify==1.2.3",
+    "orjson==3.12.0",
+    "pillow==12.3.0",
+    "pydantic==2.13.5",
+    "pydantic-settings==2.15.0",
+    "pymupdf==1.28.2",
+    "pypdf==6.19.0",
+    "python-multipart==0.0.32",
+    "readability-lxml==0.9",
+    "redis[hiredis]==8.1.0",
+    "tiktoken==0.14.0",
+    "trafilatura==2.2.0",
+    "uvicorn[standard]==0.53.0",
+]
+
+# PaddleOCR is deliberately absent: it drags paddlepaddle into every image
+# for a path only a handful of deployments use. Install it beside the
+# service where OCR is actually wanted.
+
+[tool.uv]
+# The service is an app, not an installable distribution, so uv resolves the
+# dependencies without trying to build app/ into a wheel.
+package = false

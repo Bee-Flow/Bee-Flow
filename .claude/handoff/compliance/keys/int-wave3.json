@@ -1,0 +1,10 @@
+{
+  "en": {
+    "compliance.custom_attest_upload_unavailable": "Attaching a file is not available here.",
+    "compliance.ovw_attention_loading": "Reading what needs attention…"
+  },
+  "nl": {
+    "compliance.custom_attest_upload_unavailable": "Een bestand koppelen kan hier niet.",
+    "compliance.ovw_attention_loading": "Bezig met lezen wat aandacht vraagt…"
+  }
+}

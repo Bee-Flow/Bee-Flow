@@ -1,0 +1,361 @@
+{
+  "endpoint": "http://127.0.0.1:8199/pii",
+  "n_records": 281,
+  "proposals": {
+    "Address": {
+      "at_operating_point": null,
+      "beta": 2.0,
+      "candidate_count": 211,
+      "current_floor": 0.5,
+      "gold_count": 93,
+      "min_precision": 0.7,
+      "policy_unreachable": true,
+      "precision_frontier": [
+        {
+          "precision": 0.4951,
+          "recall": 0.5484,
+          "t": 0.62
+        },
+        {
+          "precision": 0.4951,
+          "recall": 0.5484,
+          "t": 0.63
+        },
+        {
+          "precision": 0.4902,
+          "recall": 0.5376,
+          "t": 0.64
+        },
+        {
+          "precision": 0.4902,
+          "recall": 0.5376,
+          "t": 0.65
+        },
+        {
+          "precision": 0.49,
+          "recall": 0.5269,
+          "t": 0.66
+        }
+      ],
+      "proposed_floor": null
+    },
+    "ApiKeyOrSecret": {
+      "at_operating_point": {
+        "fbeta": 0.9957,
+        "precision": 0.9787,
+        "recall": 1.0,
+        "t": 0.6
+      },
+      "beta": 2.0,
+      "candidate_count": 126,
+      "current_floor": 0.45,
+      "gold_count": 92,
+      "min_precision": 0.8,
+      "policy_unreachable": false,
+      "precision_frontier": null,
+      "proposed_floor": 0.6
+    },
+    "BankAccountNumber": {
+      "at_operating_point": {
+        "fbeta": 0.9946,
+        "precision": 0.9892,
+        "recall": 1.0,
+        "t": 0.98
+      },
+      "beta": 1.0,
+      "candidate_count": 438,
+      "current_floor": 0.55,
+      "gold_count": 92,
+      "min_precision": 0.8,
+      "policy_unreachable": false,
+      "precision_frontier": null,
+      "proposed_floor": 0.98
+    },
+    "CreditCardNumber": {
+      "at_operating_point": {
+        "fbeta": 0.9979,
+        "precision": 0.9897,
+        "recall": 1.0,
+        "t": 0.96
+      },
+      "beta": 2.0,
+      "candidate_count": 105,
+      "current_floor": 0.4,
+      "gold_count": 96,
+      "min_precision": 0.9,
+      "policy_unreachable": false,
+      "precision_frontier": null,
+      "proposed_floor": 0.96
+    },
+    "DateOfBirth": {
+      "at_operating_point": {
+        "fbeta": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "t": 0.89
+      },
+      "beta": 1.0,
+      "candidate_count": 98,
+      "current_floor": 0.55,
+      "gold_count": 97,
+      "min_precision": 0.8,
+      "policy_unreachable": false,
+      "precision_frontier": null,
+      "proposed_floor": 0.89
+    },
+    "DriversLicenseNumber": {
+      "at_operating_point": {
+        "fbeta": 0.9794,
+        "precision": 0.9596,
+        "recall": 1.0,
+        "t": 0.55
+      },
+      "beta": 1.0,
+      "candidate_count": 199,
+      "current_floor": 0.6,
+      "gold_count": 95,
+      "min_precision": 0.85,
+      "policy_unreachable": false,
+      "precision_frontier": null,
+      "proposed_floor": 0.55
+    },
+    "Email": {
+      "at_operating_point": {
+        "fbeta": 0.9987,
+        "precision": 0.9936,
+        "recall": 1.0,
+        "t": 0.99
+      },
+      "beta": 2.0,
+      "candidate_count": 479,
+      "current_floor": 0.45,
+      "gold_count": 466,
+      "min_precision": 0.9,
+      "policy_unreachable": false,
+      "precision_frontier": null,
+      "proposed_floor": 0.99
+    },
+    "HealthInsuranceNumber": {
+      "at_operating_point": null,
+      "beta": 1.0,
+      "candidate_count": 0,
+      "current_floor": 0.6,
+      "gold_count": 92,
+      "min_precision": 0.8,
+      "policy_unreachable": true,
+      "precision_frontier": [],
+      "proposed_floor": null
+    },
+    "IPAddress": {
+      "at_operating_point": {
+        "fbeta": 0.976,
+        "precision": 0.9531,
+        "recall": 1.0,
+        "t": 0.88
+      },
+      "beta": 1.0,
+      "candidate_count": 193,
+      "current_floor": 0.5,
+      "gold_count": 183,
+      "min_precision": 0.9,
+      "policy_unreachable": false,
+      "precision_frontier": null,
+      "proposed_floor": 0.88
+    },
+    "InternationalBankingAccountNumber": {
+      "at_operating_point": {
+        "fbeta": 0.9674,
+        "precision": 0.9271,
+        "recall": 0.978,
+        "t": 0.26
+      },
+      "beta": 2.0,
+      "candidate_count": 234,
+      "current_floor": 0.35,
+      "gold_count": 182,
+      "min_precision": 0.85,
+      "policy_unreachable": false,
+      "precision_frontier": null,
+      "proposed_floor": 0.26
+    },
+    "LicensePlateNumber": {
+      "at_operating_point": null,
+      "beta": 1.0,
+      "candidate_count": 0,
+      "current_floor": 0.35,
+      "gold_count": 92,
+      "min_precision": 0.85,
+      "policy_unreachable": true,
+      "precision_frontier": [],
+      "proposed_floor": null
+    },
+    "MedicalCondition": {
+      "at_operating_point": null,
+      "beta": 2.0,
+      "candidate_count": 0,
+      "current_floor": 0.65,
+      "gold_count": 91,
+      "min_precision": 0.7,
+      "policy_unreachable": true,
+      "precision_frontier": [],
+      "proposed_floor": null
+    },
+    "Medication": {
+      "at_operating_point": null,
+      "beta": 1.0,
+      "candidate_count": 0,
+      "current_floor": 0.6,
+      "gold_count": 91,
+      "min_precision": 0.8,
+      "policy_unreachable": true,
+      "precision_frontier": [],
+      "proposed_floor": null
+    },
+    "NationalIdentificationNumber": {
+      "at_operating_point": {
+        "fbeta": 0.1923,
+        "precision": 0.8529,
+        "recall": 0.1611,
+        "t": 0.7
+      },
+      "beta": 2.0,
+      "candidate_count": 431,
+      "current_floor": 0.45,
+      "gold_count": 180,
+      "min_precision": 0.85,
+      "policy_unreachable": false,
+      "precision_frontier": null,
+      "proposed_floor": 0.7
+    },
+    "Organization": {
+      "at_operating_point": null,
+      "beta": 1.0,
+      "candidate_count": 0,
+      "current_floor": 0.5,
+      "gold_count": 93,
+      "min_precision": 0.8,
+      "policy_unreachable": true,
+      "precision_frontier": [],
+      "proposed_floor": null
+    },
+    "PassportNumber": {
+      "at_operating_point": {
+        "fbeta": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "t": 0.98
+      },
+      "beta": 1.0,
+      "candidate_count": 120,
+      "current_floor": 0.6,
+      "gold_count": 95,
+      "min_precision": 0.85,
+      "policy_unreachable": false,
+      "precision_frontier": null,
+      "proposed_floor": 0.98
+    },
+    "Person": {
+      "at_operating_point": {
+        "fbeta": 0.9634,
+        "precision": 0.8696,
+        "recall": 0.9901,
+        "t": 0.99
+      },
+      "beta": 2.0,
+      "candidate_count": 1365,
+      "current_floor": 0.4,
+      "gold_count": 404,
+      "min_precision": 0.55,
+      "policy_unreachable": false,
+      "precision_frontier": null,
+      "proposed_floor": 0.99
+    },
+    "PhoneNumber": {
+      "at_operating_point": {
+        "fbeta": 0.9957,
+        "precision": 0.9788,
+        "recall": 1.0,
+        "t": 0.96
+      },
+      "beta": 2.0,
+      "candidate_count": 394,
+      "current_floor": 0.35,
+      "gold_count": 369,
+      "min_precision": 0.85,
+      "policy_unreachable": false,
+      "precision_frontier": null,
+      "proposed_floor": 0.96
+    },
+    "TaxIdentificationNumber": {
+      "at_operating_point": null,
+      "beta": 1.0,
+      "candidate_count": 244,
+      "current_floor": 0.55,
+      "gold_count": 106,
+      "min_precision": 0.85,
+      "policy_unreachable": true,
+      "precision_frontier": [
+        {
+          "precision": 0.4925,
+          "recall": 0.9245,
+          "t": 0.3
+        },
+        {
+          "precision": 0.4924,
+          "recall": 0.9151,
+          "t": 0.31
+        },
+        {
+          "precision": 0.49,
+          "recall": 0.9245,
+          "t": 0.29
+        },
+        {
+          "precision": 0.4897,
+          "recall": 0.8962,
+          "t": 0.32
+        },
+        {
+          "precision": 0.4878,
+          "recall": 0.9434,
+          "t": 0.25
+        }
+      ],
+      "proposed_floor": null
+    },
+    "URL": {
+      "at_operating_point": null,
+      "beta": 1.0,
+      "candidate_count": 0,
+      "current_floor": 0.55,
+      "gold_count": 92,
+      "min_precision": 0.9,
+      "policy_unreachable": true,
+      "precision_frontier": [],
+      "proposed_floor": null
+    },
+    "USSocialSecurityNumber": {
+      "at_operating_point": null,
+      "beta": 2.0,
+      "candidate_count": 0,
+      "current_floor": 0.4,
+      "gold_count": 96,
+      "min_precision": 0.85,
+      "policy_unreachable": true,
+      "precision_frontier": [],
+      "proposed_floor": null
+    }
+  },
+  "timing_ms": {
+    "chars_per_sec": 252.5,
+    "max": 80002.7,
+    "mean": 6478.5,
+    "n": 281,
+    "p50": 1802.9,
+    "p90": 15284.7,
+    "p95": 23795.3,
+    "p99": 38785.5,
+    "suspected_cache_hits": 0,
+    "total_ms": 1820456.9
+  }
+}

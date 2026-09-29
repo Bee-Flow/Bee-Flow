@@ -1,0 +1,12 @@
+{
+ "id": "08-compose-nonsense",
+ "title": "PB onzin",
+ "describe": "asdf qwerty lorem ipsum 12345",
+ "options": {
+  "tableMode": "new",
+  "tier": "fast",
+  "locale": "nl"
+ },
+ "until": "table",
+ "expect": {}
+}

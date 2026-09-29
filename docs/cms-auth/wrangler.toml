@@ -1,0 +1,19 @@
+name = "bee-flow-cms-auth"
+main = "src/worker.js"
+compatibility_date = "2025-01-01"
+
+# Secrets are NOT set here — use `wrangler secret put` instead so they
+# never land in source control:
+#   wrangler secret put GITHUB_CLIENT_ID
+#   wrangler secret put GITHUB_CLIENT_SECRET
+
+# Optional: bind a custom domain or route at deploy time.
+# Uncomment and edit once the worker is running on a real hostname.
+# routes = [
+#   { pattern = "cms-auth.beeflow.ai/*", custom_domain = true }
+# ]
+
+# The default deploy gives you a workers.dev URL, e.g.:
+#   https://bee-flow-cms-auth.<your-subdomain>.workers.dev
+# Use that as the base_url in static/cms/config.yml until you wire up a
+# custom domain.

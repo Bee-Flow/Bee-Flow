@@ -1,0 +1,257 @@
+{
+  "id": "encryption-tiers",
+  "icon": "🔐",
+  "estMinutes": 10,
+  "title": "Off, Managed, Zero-knowledge",
+  "desc": "What each tier protects against, who can still read what, and the readiness requirement behind the scenes.",
+  "gate": {
+    "permission": "org_admin",
+    "feature": "encryption"
+  },
+  "learningGoal": "After this lesson you can choose an encryption tier and state honestly what it does and does not protect against.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "why",
+      "icon": "🧭",
+      "title": "The question Van Dijk Groep has to answer",
+      "bodyMd": "Van Dijk Groep is a Dutch SME of sixty staff. Supplier quotations, HR notes and meeting recordings all pass through Bee Flow.\n\nA customer's security questionnaire lands on Marieke's desk with one line on it: **is our data encrypted, and who can read it?**\n\nThe first half is easy. The second half is where organisations talk themselves into trouble, by repeating a reassuring phrase they cannot defend.\n\nBoth halves are decided on one screen — **Settings → Organisation → Encryption** — where three cards are offered: **Off**, **Managed** and **Zero-knowledge**. An organisation starts on **Off**, unless the server operator configured a higher default for newly created organisations.\n\nBy the end of this lesson you can pick one of those cards and say out loud what it does *not* protect against."
+    },
+    {
+      "type": "tour",
+      "id": "where",
+      "target": "[data-tour=\"account\"]",
+      "placement": "bottom",
+      "optional": true,
+      "timeoutMs": 7000,
+      "icon": "🧭",
+      "title": "Where the choice lives",
+      "body": "Open Settings from here, then the Organisation section in the left menu, then Encryption. That section only appears for organisation admins, and it is a desktop screen — it is hidden on phones."
+    },
+    {
+      "type": "slide",
+      "id": "envelope",
+      "icon": "✉️",
+      "title": "Content, DEK, KEK, secret",
+      "bodyMd": "Encrypted columns in Bee Flow use **envelope encryption**: content wrapped by a key, and that key wrapped by another. Four names, one chain.\n\n- The **content** (a message body, a transcript) is encrypted with AES-256-GCM.\n- The key that does that is the **DEK**, the data encryption key: 32 random bytes, one per user.\n- The DEK is never stored in the clear. It is *wrapped* — encrypted — by a **KEK**, the key encryption key.\n- The KEK is derived from a **secret**: a password, an encryption PIN, or a recovery key, stretched with Argon2id (a deliberately slow password hash).\n\nWhy two layers? Changing a password re-wraps one 32-byte key instead of re-encrypting a year of chat.\n\nThe tiers answer one question about that chain: **who else holds a wrapping of the DEK?**"
+    },
+    {
+      "type": "quiz",
+      "id": "q-layers",
+      "icon": "❓",
+      "question": "Marieke changes her own password. Two years of chat sit behind that account. What has to happen to all of it?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Nothing. Her data key is unwrapped with the old secret and re-wrapped with the new one; the content is never touched.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Every message is re-encrypted under a key derived from her new password.",
+          "correct": false,
+          "feedback": "That is exactly the work the second layer exists to avoid. The key that encrypts content — the DEK — does not change; only its wrapping does, so a password change moves 32 bytes, not a year of chat."
+        },
+        {
+          "id": "c",
+          "label": "The history survives only because the organisation keeps a spare copy of her key.",
+          "correct": false,
+          "feedback": "That spare wrapping is real, and you will meet it on the next card — but it rescues a *forgotten* password. A password she changes herself needs no rescue: she still knows the old secret, so her own key can be unwrapped and re-wrapped."
+        },
+        {
+          "id": "d",
+          "label": "Older messages stay wrapped under the old password and open only if she remembers it.",
+          "correct": false,
+          "feedback": "Then every password change would strand a year of history. The content key never belongs to one password; it is re-wrapped under the new secret at the moment the password changes."
+        }
+      ],
+      "explanation": "Two layers, one purpose: the secret can change while the content key stays put. That is also the hinge of this lesson — the three tiers do not differ in how content is encrypted. They differ in who else holds a wrapping of that key."
+    },
+    {
+      "type": "slide",
+      "id": "managed",
+      "icon": "🛡️",
+      "title": "Managed keeps a spare wrapping",
+      "bodyMd": "The card reads: *\"Encrypted at rest. Your administrators can reset a password without the user losing their data.\"*\n\nOn **Managed**, every user's DEK gets a second wrapping under a per-organisation root key, which chains back to a master key held in the server's own environment — never in the database. A stolen database, backup or replica is unreadable without that chain.\n\nThat second wrapping is called **escrow**, and it buys two things: an admin can reset a forgotten password with no data loss, and a 3am routine can summarise a thread with nobody signed in.\n\nThe honest limit, stated in the code itself: Managed does **not** protect against the operator of the server, who holds the master key. It must never be described as zero-knowledge."
+    },
+    {
+      "type": "slide",
+      "id": "zk",
+      "icon": "🔑",
+      "title": "Zero-knowledge keeps no spare",
+      "bodyMd": "The card reads: *\"Encrypted with each user's own secret. Nobody — not your administrators, not Bee Flow support — can recover a user's data if they lose their password and recovery key.\"*\n\nOn **Zero-knowledge** there is no escrowed wrapping of the message-body key. The DEK is unwrapped at sign-in from the user's own secret and lives only in that session, so the server cannot derive it.\n\nWhat that costs:\n\n- Saving the tier **signs out everyone in the organisation, including you** — all sixty accounts. Everyone must sign in again so their key can be created.\n- People who sign in with SSO have no password to derive from, so they set a separate **Encryption PIN** (minimum 6 characters) and are shown a **recovery key** once.\n- An admin password reset no longer rescues anyone. Only their recovery key does."
+    },
+    {
+      "type": "sim",
+      "id": "threats",
+      "icon": "🧩",
+      "title": "Which tier answers which fear?",
+      "instruction": "Four things Van Dijk Groep worries about. Match each one to the honest answer.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "backup",
+            "left": "A database backup leaves the building on a disk. The quotation text on it must be unreadable to whoever finds it.",
+            "right": "Managed already stops this",
+            "note": "On Managed the content is an AES-256-GCM envelope. The wrapped keys do sit in the database, but the master key that unlocks the chain lives in the server's own environment, not in the database — so a stolen dump, backup or replica yields nothing."
+          },
+          {
+            "id": "hr",
+            "left": "HR wants notes that nobody in IT — and nobody at the company running the server — can read.",
+            "right": "Only Zero-knowledge answers this",
+            "note": "Managed keeps an escrowed wrapping of every key, and the operator holds the master key. Only on Zero-knowledge is the message-body key derived from the user's own secret."
+          },
+          {
+            "id": "reset",
+            "left": "A buyer forgets their password, and two years of procurement threads have to survive the reset.",
+            "right": "Managed keeps this recoverable",
+            "note": "An admin reset wipes the password-wrapped key. On Managed the escrowed wrapping is untouched, so the buyer signs in with the new password and sees everything. On Zero-knowledge it is gone unless they kept their recovery key."
+          },
+          {
+            "id": "transcript",
+            "left": "The recorded works-council meeting must be unreadable to the server operator.",
+            "right": "No tier delivers this",
+            "note": "Transcriptions are keyed to the organisation, not to a user, because they are shared with colleagues and summarised by jobs with no session. On Zero-knowledge a transcript is still readable by the operator — so Van Dijk Groep agrees not to record that meeting."
+          }
+        ]
+      }
+    },
+    {
+      "type": "quiz",
+      "id": "q-operator",
+      "question": "Van Dijk Groep is on Managed. A customer asks: can anyone at the company running the server read our messages? What is the honest answer?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "No — the content is encrypted at rest, so nobody can read it.",
+          "correct": false,
+          "feedback": "\"Encrypted at rest\" only says the database column holds ciphertext. It says nothing about who holds the key, and on Managed the key chain ends at a master key in the operator's environment."
+        },
+        {
+          "id": "b",
+          "label": "Yes — the content is encrypted, but the escrowed key chain ends at a master key the server operator holds.",
+          "correct": true
+        },
+        {
+          "id": "c",
+          "label": "No — on every tier only the user's own password can unwrap their key.",
+          "correct": false,
+          "feedback": "That describes Zero-knowledge. On Managed each user's key carries a second wrapping under the organisation root key — which is precisely what makes an admin password reset safe."
+        },
+        {
+          "id": "d",
+          "label": "Yes, but only while that user happens to be signed in.",
+          "correct": false,
+          "feedback": "The escrowed wrapping does not depend on anyone's session. That is why a 3am routine can summarise a thread nobody is sitting in front of."
+        }
+      ],
+      "explanation": "Managed protects against a stolen database, backup or replica — not against the operator. The code says so in as many words, and adds that this tier must never be described as zero-knowledge. Saying it plainly in a questionnaire is what keeps the answer defensible.",
+      "icon": "❓"
+    },
+    {
+      "type": "slide",
+      "id": "weakenings",
+      "icon": "⚠️",
+      "title": "Two places Zero-knowledge is deliberately weakened",
+      "bodyMd": "Both are documented on purpose, and both belong in any honest answer.\n\n**1. Three surfaces still use the organisation escrow.** The Privacy Shield token map, the conversation summary that Conversation Memory writes, and the generated conversation title. All three are written by code with no user session in scope — a scanner, a 3am summarising job. An organisation-held key is weaker than zero-knowledge and far stronger than the plain text they used to be. **Message bodies are deliberately not in that set** — that is the line that makes the tier worth choosing.\n\n**2. Anything shared is keyed to the organisation.** A conversation shared into a project, and every meeting transcription, on every tier. So on Zero-knowledge a transcript is readable by the operator. Say that out loud before anyone records a sensitive meeting."
+    },
+    {
+      "type": "quiz",
+      "id": "q-refusals",
+      "question": "Van Dijk Groep upgrades to a plan that includes encryption. The Managed card is still grey: \"This server has no encryption master key configured… set MASTER_ENCRYPTION_KEY and restart.\" What now?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Wait — the upgrade has not reached the organisation yet.",
+          "correct": false,
+          "feedback": "An upgrade lifts a different block, and that one says so: \"Encryption is not included in your current plan. Contact your administrator or upgrade to enable it.\" — with an Enterprise badge and an upgrade link. This card is naming the server's configuration, not the plan."
+        },
+        {
+          "id": "b",
+          "label": "A server configuration change: set the master key and restart.",
+          "correct": true
+        },
+        {
+          "id": "c",
+          "label": "Choosing Zero-knowledge instead, since it does not need the master key.",
+          "correct": false,
+          "feedback": "Zero-knowledge genuinely does not need that master key, but it is not a workaround: it signs out the whole organisation and gives up admin-side recovery. Choose it because you want it, never because another card is grey."
+        },
+        {
+          "id": "d",
+          "label": "Saving anyway, so the tier is stored and takes effect once the key appears.",
+          "correct": false,
+          "feedback": "The save is refused with a \"tier unavailable\" error on purpose. Storing it would leave the organisation believing it was encrypted while every write quietly fell back to plaintext."
+        }
+      ],
+      "explanation": "Two refusals that look alike and have nothing in common. Entitlement is a billing answer — an upgrade lifts it. Readiness is a configuration answer — no upgrade will help. Locked cards stay on screen with their reason underneath so you can tell them apart, and Off is always selectable, so a lapsed plan never strands an organisation.",
+      "icon": "❓"
+    },
+    {
+      "type": "slide",
+      "id": "writes-reads",
+      "icon": "🧾",
+      "title": "Writes consult the policy; reads detect the format",
+      "bodyMd": "One design rule explains every surprise on this screen: a **write** asks the policy what the tier is. A **read** never does — it looks at the value in front of it and decides whether it is an envelope or plain text.\n\nThe screen says as much in its own intro: the choice *\"affects new messages; existing messages are left exactly as they are and stay readable either way.\"*\n\n- Switching **on** leaves every existing plain row readable. Only new writes become envelopes.\n- Switching **off** leaves every existing envelope readable. Key material is untouched.\n\nSo nothing you do on this screen re-encrypts anything. That is why a tier can change without a migration — and why history does not fix itself."
+    },
+    {
+      "type": "slide",
+      "id": "backfill",
+      "icon": "🗄️",
+      "title": "History needs a backfill — and one surface can never have one",
+      "bodyMd": "Turning encryption on protects tomorrow. Yesterday stays plain text until an operator runs the **backfill** that re-writes existing rows as envelopes. Run it as a dry run first.\n\nOne surface can never be backfilled. On **Zero-knowledge** a message body is keyed to a secret only the signed-in user holds, and a backfill runs with no user session, so it skips that surface and says so.\n\nOne more rule worth quoting in a questionnaire: if no key can be resolved when a row is written, the write is plain text and the server logs it — never an unopenable envelope. Bee Flow would rather tell you it failed to encrypt than hand you data nobody can read again."
+    },
+    {
+      "type": "exercise",
+      "id": "ex",
+      "icon": "🎯",
+      "exerciseId": "ex-encryption-tiers-questionnaire",
+      "title": "Your turn: answer the questionnaire",
+      "instruction": "Van Dijk Groep — sixty staff — runs on **Managed**. The customer's questionnaire asks: \"Is our data encrypted at rest, and who can read it?\" Write the two or three sentences Marieke sends back. A strong answer names the tier and the algorithm, says what it actually protects against, names who can still reach the content and why, and never claims zero-knowledge. Bonus credit for mentioning what the switch did and did not cover.",
+      "placeholder": "e.g. Conversation content is stored as AES-256-GCM envelopes, so a stolen backup or replica is unreadable. We run the Managed tier, which means…",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "slide",
+      "id": "recap",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "- **Name the tier and its limit.** Off stores content as plain text; Managed stores envelopes with an escrowed key the operator can reach; Zero-knowledge derives the message-body key from the user's own secret and gives up admin-side recovery in exchange.\n- **Read a locked card correctly.** An entitlement block is a billing answer; a readiness block is a configuration answer. Off is always selectable.\n- **Set expectations about history and about shared content.** Flipping the switch only changes new writes, and transcripts and project-shared conversations stay keyed to the organisation on every tier.\n\nNext chapter: switching the tier on without losing data — the org-wide sign-out, the backfill, and the password reset that erases a colleague's history."
+    }
+  ],
+  "rubrics": {
+    "ex-encryption-tiers-questionnaire": {
+      "title": "An honest Managed answer",
+      "task": "Write the two or three sentences an organisation admin sends back to a customer questionnaire asking whether data is encrypted at rest and who can read it, for an organisation running the Managed tier.",
+      "criteria": [
+        "Names the Managed tier and states that conversation content is stored as AES-256-GCM envelopes, so a stolen database, backup or replica is unreadable.",
+        "States plainly that the key is escrowed and chains back to a master key held by the operator of the server, so the operator can technically reach the content.",
+        "Avoids any claim of zero-knowledge, 'nobody can read it', or 'encrypted at rest, therefore inaccessible to the provider'.",
+        "Gives a reason for the choice rather than an apology: admin password reset without data loss, and background routines that read threads with no user session.",
+        "Bonus accuracy: notes that the switch protected new writes and history needed a backfill, or that transcripts and project-shared conversations are keyed to the organisation on every tier."
+      ],
+      "passScore": 70,
+      "guidance": "Fail any answer that calls Managed zero-knowledge, says nobody can read the content, or treats 'encrypted at rest' as proof the provider cannot read it. Fail an answer that only repeats the tier card without naming who holds the key. Length is not the point: a short, plain answer that names the tier, the protection and the key-holder passes. Do not penalise a learner for leaving out the bonus criterion."
+    }
+  },
+  "practiceTopic": {
+    "title": "Encryption tiers",
+    "summary": "The three organisation encryption tiers, what each protects against, and who still holds a key.",
+    "facts": [
+      "The tier is chosen at Settings → Organisation → Encryption, on three cards labelled Off, Managed and Zero-knowledge.",
+      "Off is the default tier for an organisation, and the screen states that the choice affects new messages while existing messages stay readable either way.",
+      "Managed escrows a second wrapping of each user's key under the organisation, so an admin can reset a password without data loss — and the server operator can still read content.",
+      "Zero-knowledge derives the message-body key from the user's own secret; saving it signs out everyone in the organisation, including the admin who saved it.",
+      "On Zero-knowledge three surfaces still use the organisation escrow: the Privacy Shield token map, the conversation summary and the generated conversation title.",
+      "Meeting transcriptions and conversations shared into a project are keyed to the organisation on every tier, so the server operator can read them.",
+      "A greyed-out card names its reason: an entitlement block is lifted by a plan upgrade, a readiness block by setting MASTER_ENCRYPTION_KEY on the server and restarting.",
+      "Off is always selectable even when the plan entitlement has lapsed, so a downgrade never strands an organisation on a tier it can no longer manage."
+    ]
+  },
+  "actionChecks": []
+}

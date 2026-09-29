@@ -1,0 +1,303 @@
+{
+ "id": "approvals-design",
+ "icon": "🛂",
+ "estMinutes": 11,
+ "title": "Stop and ask a human",
+ "desc": "The approval step: assignees, panels, stages, deadlines, reminders and escalation.",
+ "gate": {
+  "feature": [
+   "approvals",
+   "automations"
+  ]
+ },
+ "learningGoal": "After this lesson you can insert an approval a real person can decide, that can never silently strand a run.",
+ "steps": [
+  {
+   "type": "slide",
+   "id": "where",
+   "icon": "🧭",
+   "title": "Put it before the irreversible bit",
+   "bodyMd": "A routine does not hesitate. At 07:00 it will send a €40 000 order to a supplier as readily as a €40 one.\n\nAt Van Dijk Groep the site managers order materials by e-mail, and finance wants anything above €5 000 seen by a person before it leaves the building. In a routine that is one step: **Ask someone to approve**.\n\nThe run stops there. Approve and it continues from the next step. Reject and the run ends — nothing after that step runs.\n\nSo the step belongs *before* the thing you cannot take back: before the order is sent, before the payment file is written, before the customer e-mail goes out. An approval placed after the send is a receipt, not a control."
+  },
+  {
+   "type": "slide",
+   "id": "author",
+   "icon": "📝",
+   "title": "What the approver actually sees",
+   "bodyMd": "Everything a decider reads is authored in the step's **What to approve** section:\n\n- **Question for the approver** — required. Use `{{ }}` to pull values from earlier steps, so the amount and the supplier stand in the question itself.\n- **More information** — markdown shown under the question: the line items, the recipient, the drafted text.\n- **Documents to show** — up to five files earlier steps produced, each a binding like `{{steps.doc.output.fileId}}`, with an optional shown name.\n- **Questions for the approver** — a separate field from the question above: up to twenty extra questions (Short text, Long text, Number, Date, Choice, Yes/no, Email) answered together with the decision.\n\nA bare \"Approve?\" sends people hunting for what they are deciding. That is how approvals become rubber stamps."
+  },
+  {
+   "type": "quiz",
+   "id": "q-brief",
+   "question": "Finance must check the total and the line items before a Van Dijk order is released, and the quote PDF was produced two steps earlier. How do you brief them?",
+   "multi": false,
+   "choices": [
+    {
+     "id": "a",
+     "label": "Question: \"Order approval needed\" — finance can open the run in Studio and read the details there.",
+     "correct": false,
+     "feedback": "You can open a run; an approver may not be a builder at all. A decision should never require opening the machinery that raised it."
+    },
+    {
+     "id": "b",
+     "label": "Put the amount and the supplier in the question with `{{ }}`, the line items under More information, and the quote under Documents to show.",
+     "correct": true
+    },
+    {
+     "id": "c",
+     "label": "Ask an extra question, \"what is the total?\", so finance types the amount in while approving.",
+     "correct": false,
+     "feedback": "Extra questions collect what the next step needs back, such as a cost centre. They are not a way to make the approver look up what the run already knows."
+    },
+    {
+     "id": "d",
+     "label": "Keep the question short and e-mail the PDF to finance separately.",
+     "correct": false,
+     "feedback": "Now the decision and its evidence live in two places, and nothing ties them together afterwards. Documents to show puts the file inside the request."
+    }
+   ],
+   "explanation": "Everything the decision needs travels with the request: values in the question through `{{ }}`, context under More information, up to five files under Documents to show. A well-briefed approver decides in seconds; an under-briefed one either goes hunting or stops reading and clicks Approve."
+  },
+  {
+   "type": "slide",
+   "id": "who",
+   "icon": "👥",
+   "title": "One approver, or a panel of ten",
+   "bodyMd": "**Who decides** sits under **Deadline** and starts at **Me (the owner)**. Pick a colleague or a group instead — a group seat is filled by whichever of its members votes first.\n\n- **+ More approvers** turns that single seat into **Approvers**: up to ten seats, each a person or a group.\n- With two or more seats filled a **Decision rule** appears — **Everyone must approve** (the default; one reject declines immediately, so the requester hears fast), **First to respond decides**, or **At least N approvals** with an *N of M* picker.\n- **Final sign-off** adds a last word after a panel: once the panel says yes, that named person or group still has to agree, and only then does the run continue."
+  },
+  {
+   "type": "sim",
+   "id": "rules",
+   "icon": "🧩",
+   "title": "Four Van Dijk decisions, four shapes",
+   "instruction": "Each case below needs a different way of turning people into one answer. Pair every case with the setting that expresses it.",
+   "sim": {
+    "kind": "match",
+    "pairs": [
+     {
+      "id": "first",
+      "left": "Any one of the three site managers may release a standard materials order — whoever sees it first.",
+      "right": "First to respond decides",
+      "note": "One vote resolves the whole approval. Ideal when the seats are interchangeable and speed matters more than consensus."
+     },
+     {
+      "id": "all",
+      "left": "A €40 000 machine lease: finance, operations and the managing director must each say yes.",
+      "right": "Everyone must approve",
+      "note": "The default rule. Every seat must approve — and a single reject declines the request immediately rather than making everyone else vote first."
+     },
+     {
+      "id": "quorum",
+      "left": "Two of the five partners are enough to sign off a new supplier, and nobody wants to chase the other three.",
+      "right": "At least N approvals",
+      "note": "Quorum. The N of M picker only offers numbers up to the seats you actually filled, so a rule that can never pass cannot be saved."
+     },
+     {
+      "id": "stages",
+      "left": "The team lead confirms the kit list for a new engineer first; only then does the director see the budget.",
+      "right": "Use approval stages",
+      "note": "Order matters here, not tallying. A chain asks stage 1, then stage 2 — up to five stages, each with its own approvers, rule and name."
+     }
+    ]
+   }
+  },
+  {
+   "type": "quiz",
+   "id": "q-stages",
+   "question": "A colleague hands you a routine whose approval carries both a panel of three (Everyone must approve) and a two-stage chain. You press Save. What happens?",
+   "multi": false,
+   "choices": [
+    {
+     "id": "a",
+     "label": "Both run: the panel votes first, then the chain starts at stage 1.",
+     "correct": false,
+     "feedback": "There is no defined order between them, which is exactly why the combination is refused instead of guessed."
+    },
+    {
+     "id": "b",
+     "label": "The panel is quietly ignored and only the chain is used.",
+     "correct": false,
+     "feedback": "Silently ignoring a configured approver is the one outcome worse than refusing to save: three people would believe they are in the chain and never be asked."
+    },
+    {
+     "id": "c",
+     "label": "It will not save — stages and a panel are a mode switch, not a combination.",
+     "correct": true
+    },
+    {
+     "id": "d",
+     "label": "The panel is folded in automatically as an extra first stage.",
+     "correct": false,
+     "feedback": "Nothing is folded in for you. Guessing what the author meant is how an approval ends up asking the wrong people."
+    }
+   ],
+   "explanation": "Stages supersede the single approver, the panel, the final sign-off and the escalation — the validator reports the clash with a sentence like \"this approval uses stages, so a panel set alongside them would never be asked\". In the editor the switch is safe: pressing **Use approval stages** seeds the first stage from what you already picked and clears the old fields. Switching back carries the first stage and a single-seat last stage home; stages in the middle have nowhere to go."
+  },
+  {
+   "type": "slide",
+   "id": "deadline",
+   "icon": "⏳",
+   "title": "Decide within — and what \"no deadline\" costs",
+   "bodyMd": "**Decide within** offers 4 hours, 1 day, 3 days, **7 days** (the default), 14 days, 30 days and **No deadline**. Thirty days is also the engine's own ceiling, so every choice here is one the run will honour.\n\nIf nobody decides in time the approval expires and the run is closed with *Approval expired — no decision was made before the deadline*. Urgent notifications go to you and to everyone who was asked, so an expiry is loud rather than lost.\n\nPick the window from the business, not from habit: Van Dijk's supplier quotes hold for a week. **No deadline** is a real, supported choice — and a run that waits forever, holding whatever it was about. **Remind after** is separate, off by default (**No reminder**), from 1 hour up to 7 days."
+  },
+  {
+   "type": "quiz",
+   "id": "q-remind",
+   "question": "You set Decide within to 3 days and Remind after to 7 days. When does the reminder reach the approver?",
+   "multi": false,
+   "choices": [
+    {
+     "id": "a",
+     "label": "After seven days, once the approval has already expired.",
+     "correct": false,
+     "feedback": "By then the approval is expired and the run is closed. A nudge about a decision nobody can make any more is worse than silence, so the clock is never set."
+    },
+    {
+     "id": "b",
+     "label": "Never — a reminder timed at or after the deadline is simply dropped.",
+     "correct": true
+    },
+    {
+     "id": "c",
+     "label": "At the three-day mark, pulled forward to the deadline as a last call.",
+     "correct": false,
+     "feedback": "Reminders are not rescheduled to fit. The clock is either earlier than the deadline or it does not exist."
+    },
+    {
+     "id": "d",
+     "label": "Nowhere — the routine refuses to save until you lower the reminder.",
+     "correct": false,
+     "feedback": "It is not an error: the routine saves with a warning on that field. Nothing stops you shipping a step that will never remind anybody."
+    }
+   ],
+   "explanation": "Both opt-in clocks — the reminder and the escalation — are checked against the deadline twice: the builder shows a warning like \"the reminder fires at or after the 72h deadline, so it will never be sent\", and at pause time the run computes no reminder at all. Keep the reminder comfortably inside the window: 1 day inside a 3-day deadline gives the approver two more days to act."
+  },
+  {
+   "type": "slide",
+   "id": "escalate",
+   "icon": "📣",
+   "title": "Escalation adds a decider, it never swaps one",
+   "bodyMd": "**Escalate to** names a fallback person or group; picking one sets a delay of **1 day**, which you can change. When that clock runs out, the fallback *also* gains the right to decide.\n\nThe original approver keeps theirs. Nothing is taken away, the request does not move, nobody is bypassed — the worst case is that two people can now say yes. That is what makes escalation safe to set as a habit on anything time-critical.\n\nIt is offered on a single approver only. Saved beside a panel it is refused — a panel's takeover mechanism is **Final sign-off** instead — and beside stages it is refused too, with the advice to move the fallback into a stage of its own."
+  },
+  {
+   "type": "exercise",
+   "id": "ex-design",
+   "icon": "🎯",
+   "exerciseId": "ex-approvals-design-po",
+   "title": "Your turn: design the purchase-order approval",
+   "instruction": "Van Dijk Groep: a form starts the routine, a step extracts the supplier and the total, and a condition sends anything over €5 000 to an approval. Design that approval in a few lines: the question the approver reads (with at least one `{{ }}` value, so the amount is on the screen they decide on); who decides, and under which decision rule if that is a panel; the deadline — and why that one, not just which one; the reminder; and what should happen if nobody ever decides.",
+   "placeholder": "e.g. for a different case, an expense claim over €500: Question: \"Declaratie van €{{steps.extract.output.bedrag}} van {{trigger.output.medewerker}} goedkeuren?\" · Who decides: the Finance group, one seat — whoever is in first · Decide within: 3 days, because the payment run is on Friday · Remind after: 1 day · If nobody decides, the claim expires unpaid. Now write yours, for the purchase order.",
+   "passScore": 70,
+   "maxAttempts": 4
+  },
+  {
+   "type": "quiz",
+   "id": "q-outsider",
+   "question": "The colleague named under Who decides has left Van Dijk Groep's organisation since you built the routine. A run reaches the approval. Who is asked?",
+   "multi": false,
+   "choices": [
+    {
+     "id": "a",
+     "label": "They are asked anyway — the notification still goes to the address stored in the step.",
+     "correct": false,
+     "feedback": "The approver is re-checked against the owner's organisation at pause time, precisely so that a request — and the details inside it — can never reach someone outside it."
+    },
+    {
+     "id": "b",
+     "label": "The run fails with a configuration error and has to be fixed before it can continue.",
+     "correct": false,
+     "feedback": "The pause path never fails a run over an approver. It degrades to the owner and records a warning, so the work in flight is not lost."
+    },
+    {
+     "id": "c",
+     "label": "The approval step is skipped and the run carries on as if it had been approved.",
+     "correct": false,
+     "feedback": "An approval is never skipped. That would let the exact thing it guards — a €40 000 order — sail past unreviewed, which is the failure the step exists to prevent."
+    },
+    {
+     "id": "d",
+     "label": "Nobody outside the organisation: the seat is dropped at pause time and the approval falls back to you, the owner.",
+     "correct": true
+    }
+   ],
+   "explanation": "Naming an outsider in the first place is refused on save — *the chosen approver is not in your organisation*. This check runs again at pause time on every seat: the single assignee, each panel seat, each stage seat, the escalation target. An outsider's seat is dropped, and a stage that loses all of its seats falls back to the owner rather than disappearing — a chain that quietly got shorter is the failure a chain exists to prevent."
+  },
+  {
+   "type": "slide",
+   "id": "output",
+   "icon": "📦",
+   "title": "The decision is data the next step can use",
+   "bodyMd": "When the run resumes, the approval step has an output like any other step: `approved`, `by` (who decided), `reason`, `decidedAt`, and `answers` — every extra question you asked, under a name derived from its label. A panel also leaves `votes`.\n\nSo the cost centre and the PO number that Finance typed while approving can go straight onto the order: `{{steps.approval.output.answers.inkoopordernummer}}`. Approve-and-fill is one act, not two.\n\nOne thing to hold on to: the resumed run continues under **your** identity and connections, not the approver's. Who decided is recorded in the output and in the approval's history — recorded, never impersonated."
+  },
+  {
+   "type": "action",
+   "id": "build",
+   "icon": "🏗️",
+   "checkId": "routine-has-approval",
+   "title": "Build one — we will verify it",
+   "instruction": "Open a routine of your own and add an \"Ask someone to approve\" step in front of its final action. Give it a question containing a {{ }} value from an earlier step, set Who decides and Decide within, save, then press Dry-run. A dry-run does not wait for a person — it previews the wiring end to end without asking anyone anything.",
+   "launch": {
+    "navigateTo": "studio/routines",
+    "label": "Open Automations"
+   }
+  },
+  {
+   "type": "slide",
+   "id": "recap",
+   "icon": "✅",
+   "title": "What you can do now",
+   "bodyMd": "- **Place and brief an approval.** In front of the irreversible step, with the amount, the context and the document in the question itself — plus the extra questions whose answers the next step needs.\n- **Choose how people become one answer.** A single approver, a panel of up to ten with everyone / first / N of M, or a chain of stages when the order matters. Never stages and the panel fields together.\n- **Make sure it cannot strand.** A deadline you picked on purpose, a reminder comfortably inside it, an escalation that adds a decider without removing one — and the knowledge that an expiry closes the run loudly rather than leaving it open forever."
+  }
+ ],
+ "rubrics": {
+  "ex-approvals-design-po": {
+   "title": "Designing an approval that cannot strand",
+   "task": "Design the approval step for Van Dijk Groep's purchase orders over €5 000: the question the approver reads, who decides and under which rule, the deadline, the reminder, and what happens if nobody decides.",
+   "criteria": [
+    "The question is concrete and self-contained: it names what is being decided and uses at least one {{ }} binding (amount, supplier or client) so the approver does not have to go and look it up.",
+    "Who decides is named — a person, a group, or a panel of seats — and, if it is a panel, a decision rule (Everyone must approve / First to respond decides / At least N approvals) is chosen with a reason that fits the case.",
+    "A deadline is chosen and justified against the business reality, not just stated; the answer shows awareness that the default is 7 days and that 'No deadline' means a run that waits indefinitely.",
+    "The stranding case is covered: a reminder earlier than the deadline and/or an escalation, plus what expiry means here (the run closes and the order is not sent)."
+   ],
+   "passScore": 70,
+   "guidance": "Do not pass an answer that only lists field names without content ('question, assignee, deadline'), or whose question is a bare 'Approve?' with no value pulled in. Do not pass a reminder or escalation set at or after the stated deadline — that clock never fires; say so. Do not pass an escalation set alongside a panel of approvers: escalation is offered on a single approver only, and the two together are refused on save. Do not pass 'No deadline' offered as the safe option. A short answer is fine if all four elements are present and concrete; fluent prose with no rule or no deadline is not."
+  }
+ },
+ "practiceTopic": {
+  "title": "Designing the approval step",
+  "summary": "How a builder authors an approval that a real person can decide and that can never leave a run waiting forever.",
+  "facts": [
+   "The approval step is called 'Ask someone to approve'. The run stops there: approve and it continues from the next step, reject and the run ends — nothing after that step runs.",
+   "Its 'What to approve' section holds Question for the approver (required, supports {{ }}), More information (markdown), Documents to show (up to five bindings to files earlier steps produced) and Questions for the approver (up to twenty extra fields).",
+   "Who decides defaults to 'Me (the owner)'. '+ More approvers' turns it into a panel of up to ten seats, each a person or a group, with a Decision rule: Everyone must approve (default), First to respond decides, or At least N approvals.",
+   "Stages are a mode switch, not an addition: an approval that carries stages plus a single approver, a panel, a final sign-off or an escalation fails validation, because the people set alongside the stages would never be asked.",
+   "Decide within offers 4 hours, 1 day, 3 days, 7 days (the default), 14 days, 30 days and No deadline; 30 days is also the engine's ceiling, and an expiry closes the run with 'Approval expired — no decision was made before the deadline'.",
+   "Remind after is off by default and Escalate to is opt-in with a 1-day delay once a target is picked; either clock timed at or after the deadline is dropped and never fires.",
+   "Escalation grants the fallback person or group the right to decide as well — the original approver keeps theirs, and the request does not move.",
+   "After the decision the step's output carries approved, by, reason, decidedAt and answers (plus votes for a panel), and the resumed run continues under the owner's identity, not the decider's."
+  ]
+ },
+ "actionChecks": [
+  {
+   "checkId": "routine-has-approval",
+   "existing": false,
+   "label": "Add an approval step to a routine and test it",
+   "hint": "In Studio → Automations, open or create a routine of your own, add an 'Ask someone to approve' step, save it, and press Dry-run.",
+   "endpoints": [
+    {
+     "method": "GET",
+     "path": "/api/automation/",
+     "returns": "{ automations: [...] } — every routine owned by the caller, each row carrying id, title and the full definition (with its steps array)"
+    }
+   ],
+   "criteria": [
+    {
+     "id": "has-approval",
+     "label": "One of your routines contains an approval step",
+     "hint": "Add the step 'Ask someone to approve' from the canvas ribbon and save the routine.",
+     "rule": "some row from GET /api/automation/ has definition.steps containing a step whose type is 'approval'"
+    }
+   ]
+  }
+ ]
+}

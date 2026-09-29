@@ -1,0 +1,410 @@
+{
+  "id": "admin-access-control",
+  "icon": "🛡️",
+  "estMinutes": 10,
+  "title": "Roles, permissions and who decides",
+  "desc": "Organisation role versus platform role, what each role really carries, and the anti-orphan rule.",
+  "gate": {
+    "permission": [
+      "org_admin",
+      "manage_users"
+    ]
+  },
+  "learningGoal": "Assign the narrowest role that still lets someone do their job.",
+  "stepOutline": [
+    {
+      "kind": "slide",
+      "purpose": "Two separate axes: organisation role and platform role"
+    },
+    {
+      "kind": "slide",
+      "purpose": "The six organisation roles and what each carries"
+    },
+    {
+      "kind": "sim",
+      "purpose": "Match pairs: five colleagues onto the narrowest sufficient role"
+    },
+    {
+      "kind": "quiz",
+      "purpose": "The Roles tab is a catalogue — who can actually change it"
+    },
+    {
+      "kind": "slide",
+      "purpose": "Effective permissions: the union of role, groups and group roles"
+    },
+    {
+      "kind": "quiz",
+      "purpose": "Demoting yourself in a one-admin organisation"
+    },
+    {
+      "kind": "slide",
+      "purpose": "DPO and ISMS auditor see Compliance without being org admins"
+    },
+    {
+      "kind": "exercise",
+      "purpose": "Choose and justify the narrowest role for a new colleague"
+    },
+    {
+      "kind": "slide",
+      "purpose": "Admin → Security → Users: the five account modals Users & Groups lacks"
+    },
+    {
+      "kind": "sim",
+      "purpose": "Order: offboard a departing admin across both screens without stranding the org"
+    },
+    {
+      "kind": "slide",
+      "purpose": "Reversible resets versus the one-way doors: 2FA reset flips back, a password reset does not"
+    },
+    {
+      "kind": "quiz",
+      "purpose": "Which screen carries the role dropdown, the password reset and the 2FA reset"
+    },
+    {
+      "kind": "quiz",
+      "purpose": "What an admin password reset does to already-encrypted content"
+    },
+    {
+      "kind": "action",
+      "purpose": "Correct one over-broad role (check: org-role-set — GET /auth/users shows a member whose organisation role you set)"
+    },
+    {
+      "kind": "slide",
+      "purpose": "Recap: pick by the work, read access as a sum, promote before you step down"
+    }
+  ],
+  "steps": [
+    {
+      "type": "slide",
+      "id": "two-axes",
+      "icon": "🧭",
+      "title": "Two different roles, one dropdown",
+      "bodyMd": "A role takes ten seconds to set and then quietly decides what a colleague can reach for years. Nobody complains about having too much access, so nobody tells you.\n\nVan Dijk Groep, a sixty-person Dutch SME, has just moved in. Marieke, who runs the workspace there, opens **Settings → Organisation → Users & Groups** and sees a coloured role chip on every member row. The pencil beside a row (**Change role**) turns that chip into a dropdown. It sets one thing: the **organisation role** — what the person may do *inside* Van Dijk Groep.\n\nA second role lives elsewhere: the **platform role**, held by whoever operates the Bee Flow installation. This dropdown never offers it — the server refuses with *\"Cannot assign super admin role\"*, and refuses a move to another organisation the same way.\n\nEverything here shapes your own tenant. Nothing here reaches outside it."
+    },
+    {
+      "type": "slide",
+      "id": "six-roles",
+      "icon": "🗂️",
+      "title": "The six roles, from narrow to wide",
+      "bodyMd": "Behind that pencil sits a plain **User** default, then six named organisation roles — narrow to wide:\n\n- **Member** — the baseline of the named roles. Chat, personal notebooks, and reading and writing rows in tables that were shared with them. It is not \"no access\".\n- **Agent Editor** — creates agents, skills and knowledge bases, and uses shared tables.\n- **Agent Admin** — the same, plus **Manage Datatables** (create, change, share, delete) and the agent pipeline configuration.\n- **Data Protection Officer** — compliance oversight: the Compliance Center, nothing operational.\n- **ISMS Internal Auditor** — the same view, for internal ISO 27001 audits.\n- **Organisation Admin** — users, groups, Privacy Shield, monitoring, subscriptions, everything.\n\nAt Van Dijk Groep most people need **Member**. That is the normal answer, not a stingy one."
+    },
+    {
+      "type": "sim",
+      "id": "match-roles",
+      "icon": "🧩",
+      "title": "Five colleagues, five roles",
+      "instruction": "Give each person at Van Dijk Groep the narrowest role that still lets them finish their work. Pair each description with the role you would pick.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "pieter",
+            "left": "Pieter in procurement compares supplier quotes in chat and fills in rows in a table shared with him.",
+            "right": "Member",
+            "note": "Member already carries chat plus reading and writing rows in shared tables. Nothing wider is needed."
+          },
+          {
+            "id": "bilal",
+            "left": "Bilal builds the quote-summary agent and its knowledge base; the tables he works in are Joost's.",
+            "right": "Agent Editor",
+            "note": "Agent Editor creates agents, skills and knowledge bases and uses shared tables — but cannot create or delete tables."
+          },
+          {
+            "id": "joost",
+            "left": "Joost owns the quote pipeline — the agents, and the tables they write into, which he creates himself.",
+            "right": "Agent Admin",
+            "note": "Managing tables — creating, changing, sharing, deleting them — is the step up from Agent Editor to Agent Admin, together with the agent pipeline configuration."
+          },
+          {
+            "id": "anne",
+            "left": "Anne, the office manager, is Van Dijk's DPO: she answers data-subject requests and reviews compliance evidence, and must not touch accounts.",
+            "right": "Data Protection Officer",
+            "note": "The DPO role exists exactly for oversight without operational admin rights."
+          },
+          {
+            "id": "marieke",
+            "left": "Marieke runs the workspace: she invites new colleagues, assigns their roles and configures the Privacy Shield.",
+            "right": "Organisation Admin",
+            "note": "Only Organisation Admin carries user management and the organisation-wide settings."
+          }
+        ]
+      }
+    },
+    {
+      "type": "quiz",
+      "id": "q-roles-tab",
+      "question": "Van Dijk Groep wants Bilal to also create and delete tables. You open the Roles tab in Users & Groups to add that permission to Agent Editor. What can you do there?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Nothing — it is a read-only catalogue. Widen Bilal on the Users tab instead, one role up.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Click the Manage Datatables permission on Agent Editor and switch it on for your organisation.",
+          "correct": false,
+          "feedback": "There are no switches there. The tab lists each role, the number of people holding it, its description and its permissions — and its own subtitle says \"Assign roles in the Users tab\"."
+        },
+        {
+          "id": "c",
+          "label": "Duplicate Agent Editor into a custom Van Dijk Groep role that carries one extra permission.",
+          "correct": false,
+          "feedback": "Roles are defined for the whole installation, not per organisation, and creating or editing one is a platform-operator action. An organisation admin has no create, edit or delete control here."
+        },
+        {
+          "id": "d",
+          "label": "Assign Bilal his new role there, which applies its permissions to him at the same time.",
+          "correct": false,
+          "feedback": "Assignment happens on the Users tab, with the pencil on the person's row (\"Change role\"). The Roles tab only explains what each role carries."
+        }
+      ],
+      "explanation": "The catalogue is documentation, not a control panel. The real move is on the Users tab: Agent Admin is Agent Editor plus table management (and the pipeline configuration), so promoting Bilal one step is the narrowest fix.",
+      "icon": "❓"
+    },
+    {
+      "type": "slide",
+      "id": "stacking",
+      "icon": "➕",
+      "title": "What someone can actually do: everything added up",
+      "bodyMd": "A person's effective permissions are the **union** of four sources:\n\n1. their own organisation role;\n2. permissions set directly on any group they belong to;\n3. roles attached to those groups;\n4. a group's own **Group Role**, which fans a role out to every member.\n\nGrants only add. Nothing in this stack subtracts, so an over-broad role cannot be repaired by moving someone into a narrower group — you change the role, or nothing changes. Underneath it all, every signed-in account keeps chat access.\n\nOne setting runs the other way: a group's **Allowed tiers** limits which model tiers — which classes of AI model — its members may pick. That limit lives in the group, so membership of a second, unrestricted group widens it again."
+    },
+    {
+      "type": "quiz",
+      "id": "q-orphan",
+      "question": "Marieke is the only Organisation Admin at Van Dijk Groep. She wants to hand the organisation to the new commercial manager, so she first sets her own role to Member. What happens?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "It is refused: she must give another active member the Organisation Admin role first.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "It goes through, and the longest-serving member is promoted automatically to keep things manageable.",
+          "correct": false,
+          "feedback": "Nobody is ever promoted automatically — that would hand admin rights to a person no one chose. The change is simply refused."
+        },
+        {
+          "id": "c",
+          "label": "It goes through, and the organisation runs without an administrator until support restores one.",
+          "correct": false,
+          "feedback": "That is precisely the state the rule prevents. With nobody holding user management, no one inside the product could repair it — only direct database access could, so the change is blocked up front."
+        },
+        {
+          "id": "d",
+          "label": "A dialog \"Give up your admin rights?\" appears, and after confirming it goes through.",
+          "correct": false,
+          "feedback": "That dialog is real, but it only appears when another administrator remains. As the last admin you never reach it."
+        }
+      ],
+      "explanation": "Order matters: promote the commercial manager to Organisation Admin first, then change your own row. That second change shows \"Give up your admin rights?\" and the button \"Yes, step down\" — deliberate, but allowed, because somebody else is left holding the keys.",
+      "icon": "⚠️"
+    },
+    {
+      "type": "slide",
+      "id": "dpo-view",
+      "icon": "⚖️",
+      "title": "Oversight without the keys",
+      "bodyMd": "Anne, Van Dijk Groep's office manager, took on the DPO job and now has to review the compliance evidence. The tempting shortcut is to make her an Organisation Admin \"for now\". Do not — that also hands her every account in the organisation.\n\n**Data Protection Officer** and **ISMS Internal Auditor** exist for exactly this. Both open the Compliance Center; neither carries user management, so Users & Groups is not even rendered in their settings menu. The auditor role is the ISO 27001 flavour: it is meant for someone who reviews evidence and records findings without operating the system they are auditing.\n\nSeparating oversight from operations is not bureaucracy here — it is what makes the audit trail worth something."
+    },
+    {
+      "type": "exercise",
+      "id": "ex-narrow",
+      "icon": "🎯",
+      "exerciseId": "ex-admin-access-narrow-role",
+      "title": "Your turn: choose the narrowest role",
+      "instruction": "Van Dijk Groep hires Fleur for marketing. She will build one agent that drafts product texts, needs a knowledge base of the company's brochures, and will read and update rows in the Inkoop table that Joost shares with her — but she should not be able to create or delete tables. Write three or four sentences: which organisation role you give her, which wider role you deliberately do not give her and what that would have added, and what you would use a group for instead of widening her role.",
+      "placeholder": "e.g. Rick in finance only reads the quote tables and asks the agent questions, so Member is enough for him. I deliberately skip Agent Editor, which would let him build agents nobody asked for. For the finance drive I put him in a group instead, and widen his role only if he starts building himself.",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "slide",
+      "id": "second-screen",
+      "icon": "🗝️",
+      "title": "The other user screen — where accounts themselves live",
+      "bodyMd": "Users & Groups decides what people may do. It never creates, edits or removes an account: the pencil there is titled **Change role** and that is all it opens.\n\nThe accounts themselves live on a second screen, **Admin → Security → Users**, which an Organisation Admin reaches because that role carries the security-admin permission. Marieke finds five things there she cannot do anywhere else:\n\n- **Add new user** — a workspace account she types herself: Username, Display Name and Password, then **Add user**. Useful for a colleague without a work mailbox; everyone else gets **Invite User** instead.\n- **Edit user** — name, email, groups, and **New Password (blank to keep)**.\n- **Reset two-factor authentication?** — *\"Their authenticator and recovery codes stop working immediately; they will be asked to enroll again at their next sign-in.\"*\n- **Delete this user?** — *\"The account is removed and cannot be restored.\"*\n- **Delete this group?** — *\"Members keep their accounts but lose whatever this group granted them.\"* The built-in Admins and Users groups have no delete button at all."
+    },
+    {
+      "type": "sim",
+      "id": "order-offboard",
+      "icon": "📤",
+      "title": "Ruben leaves Van Dijk Groep",
+      "instruction": "Account manager Ruben is leaving. He is one of the two Organisation Admins and the only member of the old Offertes project group, and his replacement starts on Monday. Put the four moves in the order that never leaves the organisation stuck.",
+      "sim": {
+        "kind": "order",
+        "items": [
+          {
+            "id": "handover",
+            "label": "Give his replacement the role and group membership Ruben had, so the work keeps running."
+          },
+          {
+            "id": "demote",
+            "label": "On Users & Groups, use the pencil on Ruben's row and set him to Member."
+          },
+          {
+            "id": "delete-user",
+            "label": "On Admin → Security → Users, confirm \"Delete this user?\" on Ruben's account."
+          },
+          {
+            "id": "delete-group",
+            "label": "Delete the now-empty Offertes group with \"Delete this group?\"."
+          }
+        ],
+        "solution": [
+          "handover",
+          "demote",
+          "delete-user",
+          "delete-group"
+        ],
+        "feedback": "Hand over first: demoting Ruben before anyone else holds the role would be refused for leaving the organisation without an administrator. Narrow his role next, so nothing depends on his account. Then delete it — \"The account is removed and cannot be restored.\" The group goes last: members lose whatever it granted, so an emptied group is the safe one to remove."
+      }
+    },
+    {
+      "type": "slide",
+      "id": "reset-risk",
+      "icon": "🔑",
+      "title": "The two one-way doors",
+      "bodyMd": "Almost everything on those two screens flips back: change a role, move somebody between groups, restrict tiers, grant an integration. **Reset two-factor authentication?** flips back too — Sanne loses her phone, you clear her enrolment, and she sets up her authenticator again at her next sign-in. Her data is untouched.\n\nThree things do not flip back.\n\n**Reject** on a pending member deletes the account. **Delete this user?** does the same to an active one — *\"The account is removed and cannot be restored.\"*\n\n**Resetting a password for someone** is the quiet one. It lives in **Edit user** as *New Password (blank to keep)*, and it looks as harmless as the 2FA reset. It is not. Bee Flow is zero-knowledge: a person's data key is wrapped with their own password, and a reset you perform without their old password throws that wrapping away. Their existing encrypted content then needs their **recovery key**.\n\nThe kind path is to let them change their own password — that re-wraps the key — or to check they still hold the recovery key first."
+    },
+    {
+      "type": "quiz",
+      "id": "q-which-screen",
+      "question": "Marieke has three jobs this morning: change one colleague's organisation role, reset a second colleague's password, and get a third colleague back in who lost the phone holding her authenticator app. Where does each job happen?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "The role on Settings → Organisation → Users & Groups; the password in the Edit user modal and the 2FA reset on the same row — both on Admin → Security → Users.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "All three on Settings → Organisation → Users & Groups — the pencil on the row opens everything about that person.",
+          "correct": false,
+          "feedback": "The pencil there is titled \"Change role\" and opens only the role dropdown. Users & Groups carries no account modals at all — no Add new user, no Edit user, no \"Delete this user?\" and no \"Reset two-factor authentication?\"."
+        },
+        {
+          "id": "c",
+          "label": "The role is yours, but the password reset and the 2FA reset are platform-operator jobs, so ask whoever runs the Bee Flow installation.",
+          "correct": false,
+          "feedback": "All three are yours. An organisation admin reaches Admin → Security because that role carries the security-admin permission; only the platform role itself is out of reach."
+        },
+        {
+          "id": "d",
+          "label": "The role on the Roles tab of Users & Groups; both resets under Settings → Security.",
+          "correct": false,
+          "feedback": "The Roles tab is a read-only catalogue that tells you to assign roles in the Users tab, and Settings → Security is your own account — it never touches somebody else's password or authenticator."
+        }
+      ],
+      "explanation": "Two screens, two jobs. Users & Groups is about roles, groups and grants; Admin → Security → Users is where accounts themselves are added, edited, unlocked and deleted. Knowing which one you are on saves you hunting for a button that was never there.",
+      "icon": "🧭"
+    },
+    {
+      "type": "quiz",
+      "id": "q-reset",
+      "question": "Sanne in sales has locked herself out. Marieke resets Sanne's password for her. What happens to the conversations Sanne encrypted before today?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "She needs her recovery key to reach them — the reset re-keys her account.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Nothing changes; a password is only a login detail, not a key.",
+          "correct": false,
+          "feedback": "Not in a zero-knowledge product. Her password wraps the key that decrypts her data, so replacing the password without the old one discards that wrapping."
+        },
+        {
+          "id": "c",
+          "label": "They are permanently deleted along with the old password.",
+          "correct": false,
+          "feedback": "The content is not deleted, and the recovery-key wrapping survives. It is unreachable rather than gone — which is why the recovery key matters."
+        },
+        {
+          "id": "d",
+          "label": "An administrator can decrypt them and hand them back to her.",
+          "correct": false,
+          "feedback": "No administrator holds a key to someone else's content. That is the whole point of the encryption model, and it is also why this reset deserves a warning first."
+        }
+      ],
+      "explanation": "Ask first, reset second. If Sanne can still sign in, let her change her own password; if not, make sure she has her recovery key before you reset, and tell her she will need it.",
+      "icon": "🔐"
+    },
+    {
+      "type": "action",
+      "id": "do-fix",
+      "icon": "🏗️",
+      "checkId": "org-role-set",
+      "title": "Narrow one role for real",
+      "instruction": "Open Users & Groups and read down the role column. Find one colleague holding a wider role than their work needs — often an Organisation Admin who only builds agents — and use the pencil on their row to set the narrowest role that still fits. If every role already fits, open the pencil on a colleague who is on Member and confirm that choice. Leave at least one active Organisation Admin standing — you count, so do not narrow your own row.",
+      "launch": {
+        "navigateTo": "settings/organisation/users",
+        "label": "Open Users & Groups"
+      }
+    },
+    {
+      "type": "slide",
+      "id": "recap",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "- **Pick a role by the work, not by seniority.** Member for most people, Agent Editor for builders, Agent Admin when they own tables, DPO or ISMS Internal Auditor for oversight, Organisation Admin only for whoever runs the organisation.\n- **Read access as a sum.** Role plus groups plus group roles, always adding. If someone can do too much, narrow the role — a smaller group will not help.\n- **Know your two screens.** Users & Groups changes roles; Admin → Security → Users adds, edits, unlocks and deletes accounts. Promote before you step down, hand over before you delete, and treat Reject, \"Delete this user?\" and an admin password reset as one-way doors."
+    }
+  ],
+  "rubrics": {
+    "ex-admin-access-narrow-role": {
+      "title": "Choosing the narrowest sufficient role",
+      "task": "The learner had to pick an organisation role for a new marketing colleague who builds one agent and a knowledge base and works in a table somebody else owns, name the wider role they rejected and what it would have added, and say what they would use a group for instead.",
+      "criteria": [
+        "Names a defensible role — Agent Editor is the intended fit — and ties it to the actual work: creating an agent and a knowledge base while only using a table that was shared with her.",
+        "Explicitly rejects a wider role (Agent Admin or Organisation Admin) and says what it would have added, such as creating, restructuring or deleting the tables somebody else owns.",
+        "Uses a group for something a role should not decide — team membership, an integration grant or a model-tier restriction — rather than widening the role.",
+        "Shows awareness that starting narrow is safe because the role can be widened later."
+      ],
+      "passScore": 70,
+      "guidance": "Do not pass an answer that gives her Organisation Admin for convenience, that confuses the organisation role with the platform operator role, or that names a role without saying what it carries. An answer arguing for Member plus a group that grants agent building may pass if it explains how she then gets to create the agent and the knowledge base. Vague answers like 'the smallest role' with no named role fail."
+    }
+  },
+  "practiceTopic": {
+    "title": "Organisation roles and access decisions",
+    "summary": "How the six organisation roles differ, how permissions stack, which screen owns accounts rather than roles, and which access changes cannot be undone.",
+    "facts": [
+      "On the Users tab the role chip turns into a dropdown behind the pencil (title \"Change role\"); it sets the organisation role; the platform operator role cannot be assigned from Users & Groups, and neither can a move to another organisation.",
+      "The six organisation roles are Organisation Admin, Data Protection Officer, ISMS Internal Auditor, Agent Admin, Agent Editor and Member.",
+      "The Roles tab is a read-only catalogue with the subtitle \"These roles define what members can do within your organisation. Assign roles in the Users tab.\"",
+      "Effective permissions are the union of the person's own organisation role, their groups' permissions, roles attached to those groups and any Group Role — grants only add.",
+      "Agent Editor creates agents, skills and knowledge bases and uses shared tables; Agent Admin adds Manage Datatables and the pipeline configuration.",
+      "A change that would leave the organisation with no active Organisation Admin is refused, telling you to give another active member the role first; demoting yourself while another admin remains shows \"Give up your admin rights?\" with the button \"Yes, step down\".",
+      "Two user screens: Users & Groups (roles, groups, grants; pencil \"Change role\") and Admin → Security → Users, which alone carries Add new user, Edit user, \"Reset two-factor authentication?\", \"Delete this user?\" (\"The account is removed and cannot be restored.\") and \"Delete this group?\".",
+      "Resetting someone's two-factor authentication is reversible — their authenticator and recovery codes stop working and they enroll again at next sign-in — unlike an admin password reset, set in Edit user as \"New Password (blank to keep)\", which re-keys the account."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "org-role-set",
+      "existing": false,
+      "label": "Set a colleague's organisation role",
+      "hint": "In Settings → Organisation → Users & Groups, on the Users tab, click the pencil on a member's row and choose a role narrower than Organisation Admin.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/auth/users",
+          "returns": "array of user rows scoped to the caller's organisation, each with id, orgRole, role, status and organizationId"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "narrowed",
+          "label": "Someone other than you holds a role narrower than Organisation Admin",
+          "hint": "Use the pencil on a colleague's row and pick Member, Agent Editor, Agent Admin, Data Protection Officer or ISMS Internal Auditor.",
+          "rule": "at least one row from /auth/users with id different from the caller and orgRole in [user, member, agent_editor, agent_admin, dpo, isms_auditor]"
+        }
+      ]
+    }
+  ]
+}

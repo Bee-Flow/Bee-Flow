@@ -1,0 +1,31 @@
+{
+  "brief": "Build an automation \"Facturen goedkeuren\" that I start by hand: manual trigger, no schedule, no file event. One invoice per run.\n1. datatable find_rows in the EXISTING datatable \"Facturen\" (id tbl_x, key facturen): where status equals \"open\", sort datum ascending, limit 1 — the oldest open invoice.\n2. datatable update_rows on that same table where id equals the found row's id: set status to \"in_beoordeling\".\n3. builder_add_approval with assignee {userId:\"u1\"}, expiresInHours 168, prompt \"Factuur {{steps.<step1>.output.rows.0.factuurnummer}} van {{steps.<step1>.output.rows.0.leverancier}} — totaal {{steps.<step1>.output.rows.0.totaal}} goedkeuren?\" (use step 1's real id). The person decides in Studio → Approvals.\n4. datatable update_rows where id equals the found row's id: set status to \"goedgekeurd\". (A rejection ends the run; the row stays \"in_beoordeling\".)\nDo not create a table or columns. Title \"Facturen goedkeuren\".",
+  "tier": "fast",
+  "expect": {
+    "finalized": true,
+    "titled": true,
+    "maxFailedCalls": 2,
+    "maxRounds": 10,
+    "triggerKind": "manual",
+    "chain": [
+      {
+        "type": "datatable",
+        "op": "find_rows",
+        "datatableId": "tbl_x"
+      },
+      {
+        "type": "datatable",
+        "op": "update_rows",
+        "datatableId": "tbl_x"
+      },
+      {
+        "type": "approval"
+      },
+      {
+        "type": "datatable",
+        "op": "update_rows",
+        "datatableId": "tbl_x"
+      }
+    ]
+  }
+}

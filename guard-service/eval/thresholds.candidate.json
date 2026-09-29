@@ -1,0 +1,22 @@
+{
+  "Address": 0.64,
+  "ApiKeyOrSecret": 0.38,
+  "BankAccountNumber": 0.87,
+  "CreditCardNumber": 0.97,
+  "DateOfBirth": 0.1,
+  "DriversLicenseNumber": 0.82,
+  "Email": 0.36,
+  "IPAddress": 0.97,
+  "InternationalBankingAccountNumber": 0.92,
+  "LicensePlateNumber": 0.52,
+  "MedicalCondition": 0.59,
+  "Medication": 0.61,
+  "NationalIdentificationNumber": 0.66,
+  "Organization": 0.92,
+  "PassportNumber": 0.23,
+  "Person": 0.79,
+  "PhoneNumber": 0.16,
+  "TaxIdentificationNumber": 0.73,
+  "URL": 0.8,
+  "USSocialSecurityNumber": 0.67
+}

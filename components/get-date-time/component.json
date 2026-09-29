@@ -1,0 +1,56 @@
+{
+  "name": "Get Date Time",
+  "description": "Calculates and formats dates. Use this tool to answer questions about dates, like finding a future/past date or the day of the week for a specific date. For complex questions like 'what day is the last day of this month?', use this tool in two steps: 1. Find the date of the last day. 2. Find the day of the week for that date.",
+  "category": "Utils/Date & Time",
+  "inputs": {
+    "baseDate": {
+      "type": "string",
+      "label": "Base Date",
+      "description": "The date to start calculations from, in YYYY-MM-DD format. If you omit this, it will use the current date.",
+      "required": false
+    },
+    "period": {
+      "type": "string",
+      "label": "Period",
+      "description": "Use this to find the last day of a 'week', 'month', or 'year' relative to the baseDate. This calculates a NEW date.",
+      "required": false,
+      "options": [
+        "week",
+        "month",
+        "year"
+      ]
+    },
+    "amount": {
+      "type": "number",
+      "label": "Amount",
+      "description": "A number to add or subtract from the baseDate. Use 'unit' to specify what you're adding (e.g., days, years). This calculates a NEW date.",
+      "default": 0
+    },
+    "unit": {
+      "type": "string",
+      "label": "Unit",
+      "description": "The unit for the 'amount' (e.g., 'days', 'hours').",
+      "default": "seconds",
+      "options": [
+        "seconds",
+        "minutes",
+        "hours",
+        "days"
+      ]
+    },
+    "format": {
+      "type": "string",
+      "label": "Format",
+      "description": "The final question about the resulting date. This determines what information to output. Use 'EEEE' for the day of the week, 'yyyy-MM-dd' for the date, 'MMMM' for the month name, etc.",
+      "default": "yyyy-MM-dd HH:mm:ss"
+    }
+  },
+  "outputs": {
+    "datetime": {
+      "type": "string",
+      "label": "Datetime",
+      "description": "The calculated and formatted datetime string."
+    }
+  },
+  "agentEnabled": true
+}

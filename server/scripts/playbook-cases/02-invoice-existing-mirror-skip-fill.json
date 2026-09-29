@@ -1,0 +1,52 @@
+{
+ "id": "02-invoice-existing-mirror-skip-fill",
+ "title": "PB Facturen spiegel",
+ "recipeId": "invoice_tracker",
+ "options": {
+  "tableMode": "existing",
+  "datatableName": "Facturen",
+  "datatableManagedKind": "nextcloud_table",
+  "inputs": {
+   "folderPath": "/Invoices-Q3"
+  },
+  "tier": "fast",
+  "locale": "nl"
+ },
+ "skip": [
+  "fill"
+ ],
+ "expect": {
+  "status": "done",
+  "phases": {
+   "table": "done",
+   "routine": "done",
+   "fill": "skipped",
+   "app": "done",
+   "approvals": [
+    "skipped",
+    "done",
+    "locked"
+   ],
+   "design": "done"
+  },
+  "routine": {
+   "finalized": true,
+   "maxFailedCalls": 2,
+   "maxRounds": 10,
+   "triggerKind": "manual"
+  },
+  "app": {
+   "finalized": true,
+   "maxFailedCalls": 3,
+   "maxRounds": 10,
+   "components": [
+    "data_grid"
+   ],
+   "minScreens": 2,
+   "noTools": [
+    "app_seed_records",
+    "app_upsert_table"
+   ]
+  }
+ }
+}

@@ -1,0 +1,47 @@
+{
+  "name": "YouTrack Read Items",
+  "description": "Reads items (issues) from YouTrack.",
+  "category": "YouTrack",
+  "inputs": {
+    "youtrackUrl": {
+      "type": "string",
+      "default": "https://youtrack.beeflow.nl",
+      "description": "The base URL of your YouTrack instance."
+    },
+    "apiToken": {
+      "type": "string",
+      "default": "perm-Z29vZ2xlLTEwMDE3MTM0OTc5MzQ4NjMyMzc5Mi5na2ls.NDYtMA==.EpfHPrHHr5aCI3dcHnjGbZYmaQ3n7o",
+      "description": "Your YouTrack API authentication token.",
+      "secure": true
+    },
+    "query": {
+      "type": "string",
+      "description": "YouTrack search query to filter issues (e.g., 'project: MyProject State: Open')."
+    },
+    "fields": {
+      "type": "string",
+      "default": "id,summary,description,state",
+      "description": "Comma-separated list of fields to retrieve (e.g., 'id,summary,description,state')."
+    },
+    "max": {
+      "type": "number",
+      "default": 100,
+      "description": "Maximum number of issues to retrieve."
+    }
+  },
+  "outputs": {
+    "items": {
+      "type": "array",
+      "description": "A list of YouTrack issues."
+    },
+    "success": {
+      "type": "boolean",
+      "description": "True if the operation was successful, false otherwise."
+    },
+    "error": {
+      "type": "string",
+      "description": "Error message if the operation failed."
+    }
+  },
+  "agentEnabled": true
+}

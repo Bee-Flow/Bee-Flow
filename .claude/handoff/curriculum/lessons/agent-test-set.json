@@ -1,0 +1,252 @@
+{
+  "id": "agent-test-set",
+  "icon": "🧪",
+  "estMinutes": 11,
+  "title": "Questions it must keep answering",
+  "desc": "Turn a real answer into a test, read the verdicts, and stop trusting your memory of last week.",
+  "gate": {
+    "permission": "manage_agents"
+  },
+  "learningGoal": "After this lesson you can build a small test set for your own agent and read a row that is not green correctly — telling a real failure apart from one the run could not check.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "why",
+      "icon": "🧭",
+      "title": "A net, not a demo",
+      "bodyMd": "Marloes at Van Dijk Groep built **Inkoopassistent** in the previous chapters: the agent that answers questions about supplier contracts and the price list. It is hers — she wrote its instructions, chose its tools and pressed Publish. Its answers, though, come out of **Inkoopvoorwaarden**, the knowledge base Sandra in procurement keeps up to date. Two people, two objects.\n\nWhich is why, two weeks later, nobody can say whether it still answers the cancellation-notice question the way it did. Marloes rewrote two lines of the instructions; Sandra replaced a supplier agreement in the base. Neither of them saw the other's change.\n\nA **test set** is the answer to that. It is a handful of questions plus what a good answer has to contain, stored on the agent. Press **Run** and each question is replayed through the agent's real runtime: the real instructions, the real knowledge, the real tools. A test against a pretend agent proves nothing about the one people talk to.\n\nYou will find it on the **Test** tab, in a card called **\"Test set\"** — *\"Questions this agent should keep answering well\"*."
+    },
+    {
+      "type": "quiz",
+      "id": "q-upstream",
+      "question": "Sandra replaces a supplier agreement in Inkoopvoorwaarden on Monday. Marloes has not touched Inkoopassistent for two weeks. What does running her test set on Tuesday tell her?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "How the published agent answers today — its own instructions, plus the base as it now stands. A row can turn red because of a change she never made.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Nothing new: a test set only reacts to edits Marloes makes to the agent itself.",
+          "correct": false,
+          "feedback": "The run goes through the real runtime, and the real runtime reads the real knowledge. Sandra's Monday document is what the agent answers from on Tuesday — which is exactly the kind of drift a test set exists to catch."
+        },
+        {
+          "id": "c",
+          "label": "Every row comes back blocked, because the knowledge base belongs to someone else.",
+          "correct": false,
+          "feedback": "Blocked is about capability the sandbox withholds — anything that sends, any routine, anything set to Confirm first. Reading a linked base is none of those."
+        },
+        {
+          "id": "d",
+          "label": "It answers from the documents as they were when Marloes published v2, so Monday's change is invisible until she publishes again.",
+          "correct": false,
+          "feedback": "Publishing a version fixes the agent's own configuration — instructions, tools, which bases are linked. It does not freeze a copy of the documents inside those bases."
+        }
+      ],
+      "explanation": "Ownership is split on purpose here: Marloes owns the agent, Sandra owns the base it reads. A test set is the only thing that notices when the half you do not own moves."
+    },
+    {
+      "type": "slide",
+      "id": "two-fields",
+      "icon": "⚖️",
+      "title": "Two expectations, two kinds of judge",
+      "bodyMd": "A test question carries a **Question**, an optional **Name**, and the expectations. Two of them do the work, and they are graded in completely different ways.\n\n- **Must get across** — *\"One per line. A paraphrase counts — this one is judged by an AI, not matched word for word.\"* So Marloes writes *three months, in writing*, and an answer saying \"you have to cancel in writing, three months ahead\" still passes.\n- **Must never say** — *\"One per line, matched word for word.\"* If the forbidden text is literally in the answer, that is a failure no grader can talk its way out of.\n\nTwo more fields finish the picture: **Should use these tools** and **Anything else**."
+    },
+    {
+      "type": "slide",
+      "id": "propose",
+      "icon": "✍️",
+      "title": "Start from an answer you liked",
+      "bodyMd": "The cheapest test to write is one you have already seen work. Ask the agent a real question, like Marloes' *\"Wat is de opzegtermijn bij Heijmans Staal?\"*, and turn that answer into a test.\n\nAn AI reads that one answer and proposes what the test should expect. The dialog says so out loud: **\"An AI read that answer and proposed what this test should expect. Read it before you save — it becomes what the test guards.\"** Fields it wrote carry the chip **\"AI wrote this\"**.\n\nThe proposal is deliberately narrow. It may fill **Must get across** and **Anything else**. **Should use these tools** is not an opinion at all — *\"Taken from the tools this chat showed running\"* — so trim it to what you really want to require. Nothing exists until you press **Save as test**."
+    },
+    {
+      "type": "quiz",
+      "id": "q-propose",
+      "question": "Why does the proposal never fill in \"Must never say\" for you?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "A prohibition is a rule you decide, not something a model can read out of one answer — and matched word for word, a guessed one turns red for something nobody forbade.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "The field only becomes available once the agent has been published.",
+          "correct": false,
+          "feedback": "It is there from the first test you write. What changes is who fills it: you, always."
+        },
+        {
+          "id": "c",
+          "label": "The AI is not allowed to read the agent's answer, so it has nothing to go on.",
+          "correct": false,
+          "feedback": "It does read the answer — that is exactly how it proposes \"Must get across\". The limit is on what it may propose, not on what it may read."
+        },
+        {
+          "id": "d",
+          "label": "\"Must never say\" is judged by an AI anyway, so a written proposal would be ignored.",
+          "correct": false,
+          "feedback": "The opposite. \"Must get across\" is the AI-judged one where a paraphrase counts; \"Must never say\" is matched word for word."
+        }
+      ],
+      "explanation": "The product states it in the field's own help text: \"Nothing is proposed here — a prohibition is a rule you write.\" A literal match is the strictest expectation of the set, so it is the one that must come from a person."
+    },
+    {
+      "type": "slide",
+      "id": "sandbox",
+      "icon": "🛡️",
+      "title": "A run may lose capability, never gain permission",
+      "bodyMd": "Nobody is watching a test run, and Run gets pressed far more often than a chat gets typed. So a run only ever takes capability away:\n\n- anything that **sends** — mail, invitations, posts;\n- any **routine**, because what one does in step four is not knowable from its name;\n- anything set to **Confirm first**, because nobody is there to confirm.\n\nWrites still run: an agent whose job is to file a row has to be testable on it. The conversation is thrown away too — a test never lands in anyone's chat history.\n\nSo Marloes' test that expects Inkoopassistent to mail Sandra a contract summary comes back **blocked**: *\"A test run never uses {names}, so this could not be checked.\"* Drafting that mail is a write, so that part does run. The sending itself has to be proven in a real chat."
+    },
+    {
+      "type": "quiz",
+      "id": "q-live",
+      "question": "Marloes published v2, then made five edits to Inkoopassistent without publishing. She presses Run. What is being tested?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "The published agent, v2 — and the run says so, noting how many unpublished changes her draft is ahead.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Her draft, because she is standing in the editor with the draft open.",
+          "correct": false,
+          "feedback": "The run goes through the real runtime, and once a version is published the runtime serves that published configuration. Her five edits reach nobody yet — not colleagues, and not the test run."
+        },
+        {
+          "id": "c",
+          "label": "Both: each question is asked once against the draft and once against v2, and the row shows the two scores.",
+          "correct": false,
+          "feedback": "Each question is asked exactly once, through one configuration. There is a single score per row."
+        },
+        {
+          "id": "d",
+          "label": "Nothing runs until she publishes a new version; the button refuses with a warning.",
+          "correct": false,
+          "feedback": "It runs perfectly well. That is precisely why the screen keeps saying which version answered — a green score on v2 is not a verdict on the draft you are about to ship."
+        }
+      ],
+      "explanation": "The screen is honest about it: \"This answer came from the published agent, not from your draft.\" and \"Live is v{version}, with {count} unpublished changes.\" A stale pass presented as a verdict is worse than no test at all — so test, then publish."
+    },
+    {
+      "type": "slide",
+      "id": "verdicts",
+      "icon": "🚦",
+      "title": "Four outcomes, and only two are about your agent",
+      "bodyMd": "After a run the card shows **\"{passed} of {total} passed\"**, and each question carries a verdict.\n\n- **pass** — *\"Met the expectations in the last run.\"*\n- **fail** — the agent fell short: *\"Did not get across everything this test asks for.\"* or *\"Said something this test forbids: …\"*. This is the row you act on.\n- **blocked** — the run withheld what the test needed, so the agent never had a chance. Not a failure: change the test, or check that tool in a real chat.\n- **error** — *\"There was no answer to grade, so this says nothing about the agent.\"*\n\nOnly a pass counts towards the green number. A refusal — *\"No AI model is set up to grade these answers, so nothing was tested.\"* — is drawn as a refusal and leaves the score alone, rather than painting your agent red."
+    },
+    {
+      "type": "sim",
+      "id": "loop",
+      "icon": "🔁",
+      "title": "The loop, in order",
+      "instruction": "Put the six moves of a working test cycle in the order Marloes uses them.",
+      "sim": {
+        "kind": "order",
+        "items": [
+          {
+            "id": "ask",
+            "label": "Ask the agent a real question and read the answer you get"
+          },
+          {
+            "id": "save",
+            "label": "Turn that answer into a test — read the proposal, then Save as test"
+          },
+          {
+            "id": "run",
+            "label": "Press Run and wait for \"{passed} of {total} passed\""
+          },
+          {
+            "id": "read",
+            "label": "Open the row that is not green and read why it is not green"
+          },
+          {
+            "id": "fix",
+            "label": "Change the agent: its instructions, its knowledge or its tools"
+          },
+          {
+            "id": "rerun",
+            "label": "Run the set again, and only then publish a new version"
+          }
+        ],
+        "solution": [
+          "ask",
+          "save",
+          "run",
+          "read",
+          "fix",
+          "rerun"
+        ],
+        "feedback": "Both ends matter. A test starts from an answer you have actually seen, because you are the only one who knows what mattered in it. And the rerun comes before the publish, not after — a test set you run after shipping only tells you what you already broke."
+      }
+    },
+    {
+      "type": "action",
+      "id": "do",
+      "icon": "🏗️",
+      "checkId": "agent-tests-run",
+      "title": "Build a two-question set and run it",
+      "instruction": "Open your own agent and ask it two questions a colleague would really ask. Turn each answer into a test with \"This conversation as a test\": on the first, leave one line under \"Must get across\"; on the second, add one line under \"Must never say\" — something this agent has no business saying. Save both, then press Run on the Test tab and read the score and the reasons.",
+      "launch": {
+        "navigateTo": "studio/agents",
+        "label": "Open Agents"
+      }
+    },
+    {
+      "type": "slide",
+      "id": "history",
+      "icon": "🗂️",
+      "title": "What the history remembers",
+      "bodyMd": "Press **View** on the card and, under the questions, **Earlier runs** keeps the scores over time — because one number without a history turns a lucky green run into a fact. Four things worth knowing:\n\n- Only the last **20** runs are kept per agent; older ones are pruned.\n- A run that stopped part-way is not stored at all — *\"What you see below is what had already been tested.\"* A partial \"3 of 3 green\" would be the most misleading row here.\n- Every stored run remembers which configuration it exercised: **\"about v2\"** plus **\"5 unpublished changes since\"**.\n- Edit a question afterwards and the row admits it: *\"A question changed after this run, so the score is about the older wording.\"*\n\nAn agent holds at most **100** questions, and one press of Run covers at most **25**."
+    },
+    {
+      "type": "slide",
+      "id": "now",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "- **Write a test from a real answer.** Ask, like the answer, save it — and read the AI's proposal before you save, because it becomes what the test guards. \"Must never say\" stays yours.\n- **Read a row instead of a number.** A fail is your agent; a blocked row is the run withholding a sending tool, a routine or a confirm-first action; an error is no answer to grade. Only pass is green.\n- **Run when someone else's half moves too.** Marloes owns the agent, Sandra owns Inkoopvoorwaarden; a run reads the base as it stands today, so the set catches a document change as readily as an instruction change.\n- **Run before you publish.** Once a version is live, the run exercises the published agent — so the score you want is the one taken just before you press Publish new version."
+    }
+  ],
+  "practiceTopic": {
+    "title": "Agent test sets",
+    "summary": "Writing test questions for an agent, what the sandbox withholds, and how to read a run.",
+    "facts": [
+      "The Test tab holds a card called \"Test set\", subtitled \"Questions this agent should keep answering well\"; empty it reads \"No questions yet — turn an answer you liked into the first one.\"",
+      "\"Must get across\" is judged by an AI and a paraphrase counts; \"Must never say\" is matched word for word, and nothing is ever proposed for it because a prohibition is a rule you write.",
+      "A test run withholds every action that sends, every routine, and every action set to \"Confirm first\"; write actions still run, and the conversation is never kept.",
+      "A test whose expected tool was withheld comes back as blocked, not failed: \"A test run never uses {names}, so this could not be checked.\"",
+      "Once a version is published, a run exercises the published agent, not the draft (\"This answer came from the published agent, not from your draft.\") — and it reads the linked knowledge bases as they stand now, because a version fixes which bases are linked, not a copy of their documents.",
+      "Only the last 20 runs are kept per agent, and a run that did not finish is not stored at all.",
+      "An agent holds at most 100 test questions, and one press of Run covers at most 25 of them.",
+      "The four per-question outcomes are pass, fail, blocked and error, and only pass counts towards \"{passed} of {total} passed\"."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "agent-tests-run",
+      "existing": false,
+      "label": "Run a test set",
+      "hint": "In Studio → Agents, open one of your own agents, turn two of its answers into tests, then press Run on the Test tab.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/agents",
+          "returns": "array of the agents the caller owns (plus the shared system agents) with id, name, owner_id"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "two-tests",
+          "label": "One of your agents has at least two test questions",
+          "hint": "Add a second question before running — one set of expectations is not a net.",
+          "rule": "for some agent the caller owns in GET /agents, GET /agents/:id/tests returns tests.length >= 2"
+        }
+      ]
+    }
+  ]
+}

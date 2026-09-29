@@ -1,0 +1,42 @@
+import React from 'react';
+import { Bell } from 'lucide-react';
+import { nodeDefaultLabel, nodeHelp, nodeTypeLabel } from '../nodeDefs';
+import StepNodeBase, { NodeChip, ForEachBadge } from './StepNodeBase';
+import { humanizeExpression } from '../displayHelpers';
+import { CHANNEL_LABELS } from '../../notificationDefaults';
+
+export default function NotificationNode({ id, data }) {
+    const { step, runStep, issues, onAddAfter, stepLabelById } = data;
+    // The chip used to read the raw key — a node whose only badge said
+    // "notification" told the author nothing about where the message lands
+    // (BFSF-350).
+    const channels = (Array.isArray(step.channels) && step.channels.length ? step.channels : ['notification'])
+        .map(c => CHANNEL_LABELS[c] || c);
+    const title = step.title || '';
+    const bodyText = step.body || '';
+    const friendlyTitle = humanizeExpression(title, stepLabelById);
+    const friendlyBody = humanizeExpression(bodyText, stepLabelById);
+
+    const badges = (
+        <>
+            <ForEachBadge step={step} />
+            {channels.slice(0, 2).map(c => <NodeChip key={c} title={channels.join(', ')}>{c}</NodeChip>)}
+        </>
+    );
+
+    return (
+        <StepNodeBase
+            icon={<Bell size={14} />}
+            typeLabel={nodeTypeLabel('notification')}
+            help={nodeHelp('notification')}
+            name={friendlyTitle || step.label || nodeDefaultLabel('notification')}
+            sub={friendlyBody || { muted: 'no message yet' }}
+            subTitle={bodyText || undefined}
+            badges={badges}
+            runStep={runStep}
+            issues={issues}
+            nodeId={id}
+            onAddAfter={onAddAfter}
+        />
+    );
+}

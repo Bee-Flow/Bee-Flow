@@ -1,0 +1,1442 @@
+{
+    "schemaVersion": 2,
+    "meta": {
+        "name": "Advanced calculator",
+        "description": "A keypad calculator with a scientific row, plus loan and savings maths.",
+        "icon": "Calculator"
+    },
+    "theme": {
+        "primary": "#0891B2",
+        "radius": "md",
+        "density": "compact",
+        "fontScale": "md",
+        "appearance": "dark"
+    },
+    "roles": [],
+    "variables": [
+        {
+            "name": "entry",
+            "label": "Display",
+            "type": "text",
+            "default": "0",
+            "description": "What the display shows. Text, so a half-typed \"12.\" can exist."
+        },
+        {
+            "name": "acc",
+            "label": "Accumulator",
+            "type": "number",
+            "default": 0,
+            "description": "The left operand of the pending operation."
+        },
+        {
+            "name": "op",
+            "label": "Pending operator",
+            "type": "text",
+            "default": "",
+            "description": "One of + - * / while an operation is pending."
+        },
+        {
+            "name": "mode",
+            "label": "What the display holds",
+            "type": "text",
+            "default": "typing",
+            "description": "\"typing\" = the user is entering a number; \"operand\" = the display mirrors acc because an operator was just pressed; \"result\" = the display holds a computed answer."
+        }
+    ],
+    "screens": [
+        {
+            "id": "scr_0001",
+            "name": "Calculator",
+            "icon": "Calculator",
+            "showInNav": true,
+            "maxWidth": "medium",
+            "description": "Keypad, scientific keys and a running display.",
+            "sections": [
+                {
+                    "id": "sec_0002",
+                    "style": {
+                        "padding": 4,
+                        "gap": 3,
+                        "background": "none"
+                    },
+                    "children": [
+                        {
+                            "id": "cmp_0003",
+                            "type": "stat",
+                            "props": {
+                                "label": "Display",
+                                "value": {
+                                    "kind": "formula",
+                                    "expr": "vars.entry"
+                                },
+                                "caption": null,
+                                "captionSegments": [],
+                                "icon": null,
+                                "delta": {
+                                    "kind": "static",
+                                    "value": null
+                                },
+                                "deltaFormat": "number",
+                                "trend": {
+                                    "kind": "static",
+                                    "value": null
+                                },
+                                "positiveIsGood": true,
+                                "look": "accent"
+                            },
+                            "style": {
+                                "span": 12,
+                                "size": "lg",
+                                "align": "end"
+                            },
+                            "visible": true
+                        },
+                        {
+                            "id": "cmp_0004",
+                            "type": "button",
+                            "props": {
+                                "label": "√",
+                                "variant": "soft",
+                                "iconLeft": null,
+                                "role": "button",
+                                "disabledWhen": null
+                            },
+                            "style": {
+                                "span": 3,
+                                "size": "lg"
+                            },
+                            "visible": true,
+                            "onClick": "act_0042"
+                        },
+                        {
+                            "id": "cmp_0005",
+                            "type": "button",
+                            "props": {
+                                "label": "x²",
+                                "variant": "soft",
+                                "iconLeft": null,
+                                "role": "button",
+                                "disabledWhen": null
+                            },
+                            "style": {
+                                "span": 3,
+                                "size": "lg"
+                            },
+                            "visible": true,
+                            "onClick": "act_0043"
+                        },
+                        {
+                            "id": "cmp_0006",
+                            "type": "button",
+                            "props": {
+                                "label": "ln",
+                                "variant": "soft",
+                                "iconLeft": null,
+                                "role": "button",
+                                "disabledWhen": null
+                            },
+                            "style": {
+                                "span": 3,
+                                "size": "lg"
+                            },
+                            "visible": true,
+                            "onClick": "act_0044"
+                        },
+                        {
+                            "id": "cmp_0007",
+                            "type": "button",
+                            "props": {
+                                "label": "sin",
+                                "variant": "soft",
+                                "iconLeft": null,
+                                "role": "button",
+                                "disabledWhen": null
+                            },
+                            "style": {
+                                "span": 3,
+                                "size": "lg"
+                            },
+                            "visible": true,
+                            "onClick": "act_0045"
+                        },
+                        {
+                            "id": "cmp_0008",
+                            "type": "button",
+                            "props": {
+                                "label": "C",
+                                "variant": "outline",
+                                "iconLeft": null,
+                                "role": "button",
+                                "disabledWhen": null
+                            },
+                            "style": {
+                                "span": 3,
+                                "size": "lg"
+                            },
+                            "visible": true,
+                            "onClick": "act_0046"
+                        },
+                        {
+                            "id": "cmp_0009",
+                            "type": "button",
+                            "props": {
+                                "label": "⌫",
+                                "variant": "outline",
+                                "iconLeft": null,
+                                "role": "button",
+                                "disabledWhen": null
+                            },
+                            "style": {
+                                "span": 3,
+                                "size": "lg"
+                            },
+                            "visible": true,
+                            "onClick": "act_0047"
+                        },
+                        {
+                            "id": "cmp_0010",
+                            "type": "button",
+                            "props": {
+                                "label": "÷",
+                                "variant": "outline",
+                                "iconLeft": null,
+                                "role": "button",
+                                "disabledWhen": null
+                            },
+                            "style": {
+                                "span": 3,
+                                "size": "lg"
+                            },
+                            "visible": true,
+                            "onClick": "act_0048"
+                        },
+                        {
+                            "id": "cmp_0011",
+                            "type": "button",
+                            "props": {
+                                "label": "×",
+                                "variant": "outline",
+                                "iconLeft": null,
+                                "role": "button",
+                                "disabledWhen": null
+                            },
+                            "style": {
+                                "span": 3,
+                                "size": "lg"
+                            },
+                            "visible": true,
+                            "onClick": "act_0049"
+                        },
+                        {
+                            "id": "cmp_0012",
+                            "type": "button",
+                            "props": {
+                                "label": "7",
+                                "variant": "secondary",
+                                "iconLeft": null,
+                                "role": "button",
+                                "disabledWhen": null
+                            },
+                            "style": {
+                                "span": 3,
+                                "size": "lg"
+                            },
+                            "visible": true,
+                            "onClick": "act_0050"
+                        },
+                        {
+                            "id": "cmp_0013",
+                            "type": "button",
+                            "props": {
+                                "label": "8",
+                                "variant": "secondary",
+                                "iconLeft": null,
+                                "role": "button",
+                                "disabledWhen": null
+                            },
+                            "style": {
+                                "span": 3,
+                                "size": "lg"
+                            },
+                            "visible": true,
+                            "onClick": "act_0051"
+                        },
+                        {
+                            "id": "cmp_0014",
+                            "type": "button",
+                            "props": {
+                                "label": "9",
+                                "variant": "secondary",
+                                "iconLeft": null,
+                                "role": "button",
+                                "disabledWhen": null
+                            },
+                            "style": {
+                                "span": 3,
+                                "size": "lg"
+                            },
+                            "visible": true,
+                            "onClick": "act_0052"
+                        },
+                        {
+                            "id": "cmp_0015",
+                            "type": "button",
+                            "props": {
+                                "label": "−",
+                                "variant": "outline",
+                                "iconLeft": null,
+                                "role": "button",
+                                "disabledWhen": null
+                            },
+                            "style": {
+                                "span": 3,
+                                "size": "lg"
+                            },
+                            "visible": true,
+                            "onClick": "act_0053"
+                        },
+                        {
+                            "id": "cmp_0016",
+                            "type": "button",
+                            "props": {
+                                "label": "4",
+                                "variant": "secondary",
+                                "iconLeft": null,
+                                "role": "button",
+                                "disabledWhen": null
+                            },
+                            "style": {
+                                "span": 3,
+                                "size": "lg"
+                            },
+                            "visible": true,
+                            "onClick": "act_0054"
+                        },
+                        {
+                            "id": "cmp_0017",
+                            "type": "button",
+                            "props": {
+                                "label": "5",
+                                "variant": "secondary",
+                                "iconLeft": null,
+                                "role": "button",
+                                "disabledWhen": null
+                            },
+                            "style": {
+                                "span": 3,
+                                "size": "lg"
+                            },
+                            "visible": true,
+                            "onClick": "act_0055"
+                        },
+                        {
+                            "id": "cmp_0018",
+                            "type": "button",
+                            "props": {
+                                "label": "6",
+                                "variant": "secondary",
+                                "iconLeft": null,
+                                "role": "button",
+                                "disabledWhen": null
+                            },
+                            "style": {
+                                "span": 3,
+                                "size": "lg"
+                            },
+                            "visible": true,
+                            "onClick": "act_0056"
+                        },
+                        {
+                            "id": "cmp_0019",
+                            "type": "button",
+                            "props": {
+                                "label": "+",
+                                "variant": "outline",
+                                "iconLeft": null,
+                                "role": "button",
+                                "disabledWhen": null
+                            },
+                            "style": {
+                                "span": 3,
+                                "size": "lg"
+                            },
+                            "visible": true,
+                            "onClick": "act_0057"
+                        },
+                        {
+                            "id": "cmp_0020",
+                            "type": "button",
+                            "props": {
+                                "label": "1",
+                                "variant": "secondary",
+                                "iconLeft": null,
+                                "role": "button",
+                                "disabledWhen": null
+                            },
+                            "style": {
+                                "span": 3,
+                                "size": "lg"
+                            },
+                            "visible": true,
+                            "onClick": "act_0058"
+                        },
+                        {
+                            "id": "cmp_0021",
+                            "type": "button",
+                            "props": {
+                                "label": "2",
+                                "variant": "secondary",
+                                "iconLeft": null,
+                                "role": "button",
+                                "disabledWhen": null
+                            },
+                            "style": {
+                                "span": 3,
+                                "size": "lg"
+                            },
+                            "visible": true,
+                            "onClick": "act_0059"
+                        },
+                        {
+                            "id": "cmp_0022",
+                            "type": "button",
+                            "props": {
+                                "label": "3",
+                                "variant": "secondary",
+                                "iconLeft": null,
+                                "role": "button",
+                                "disabledWhen": null
+                            },
+                            "style": {
+                                "span": 3,
+                                "size": "lg"
+                            },
+                            "visible": true,
+                            "onClick": "act_0060"
+                        },
+                        {
+                            "id": "cmp_0023",
+                            "type": "button",
+                            "props": {
+                                "label": "=",
+                                "variant": "primary",
+                                "iconLeft": null,
+                                "role": "button",
+                                "disabledWhen": null
+                            },
+                            "style": {
+                                "span": 3,
+                                "size": "lg"
+                            },
+                            "visible": true,
+                            "onClick": "act_0061"
+                        },
+                        {
+                            "id": "cmp_0024",
+                            "type": "button",
+                            "props": {
+                                "label": "0",
+                                "variant": "secondary",
+                                "iconLeft": null,
+                                "role": "button",
+                                "disabledWhen": null
+                            },
+                            "style": {
+                                "span": 6,
+                                "size": "lg"
+                            },
+                            "visible": true,
+                            "onClick": "act_0062"
+                        },
+                        {
+                            "id": "cmp_0025",
+                            "type": "button",
+                            "props": {
+                                "label": ".",
+                                "variant": "secondary",
+                                "iconLeft": null,
+                                "role": "button",
+                                "disabledWhen": null
+                            },
+                            "style": {
+                                "span": 6,
+                                "size": "lg"
+                            },
+                            "visible": true,
+                            "onClick": "act_0063"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "scr_0026",
+            "name": "Finance",
+            "icon": "Landmark",
+            "showInNav": true,
+            "maxWidth": "medium",
+            "description": "Loan repayment and compound growth, live as you type.",
+            "sections": [
+                {
+                    "id": "sec_0027",
+                    "style": {
+                        "padding": 4,
+                        "gap": 3,
+                        "background": "none"
+                    },
+                    "children": [
+                        {
+                            "id": "cmp_0028",
+                            "type": "card",
+                            "props": {
+                                "title": "Loan repayment",
+                                "description": "Amortised monthly payment.",
+                                "look": "default"
+                            },
+                            "style": {
+                                "span": 12,
+                                "padding": 4,
+                                "gap": 3,
+                                "background": "surface"
+                            },
+                            "visible": true,
+                            "children": [
+                                {
+                                    "id": "cmp_0029",
+                                    "type": "form",
+                                    "props": {
+                                        "name": "loan",
+                                        "submitLabel": "Submit",
+                                        "showReset": false,
+                                        "showSubmit": false,
+                                        "resetKey": null
+                                    },
+                                    "style": {
+                                        "span": 12,
+                                        "gap": 3,
+                                        "padding": 0
+                                    },
+                                    "visible": true,
+                                    "children": [
+                                        {
+                                            "id": "cmp_0030",
+                                            "type": "input_number",
+                                            "props": {
+                                                "name": "amount",
+                                                "label": "Loan amount",
+                                                "min": 0,
+                                                "max": null,
+                                                "step": 1000,
+                                                "required": false,
+                                                "defaultValue": 250000,
+                                                "valueFrom": {
+                                                    "kind": "static",
+                                                    "value": null
+                                                }
+                                            },
+                                            "style": {
+                                                "span": 4
+                                            },
+                                            "visible": true
+                                        },
+                                        {
+                                            "id": "cmp_0031",
+                                            "type": "input_number",
+                                            "props": {
+                                                "name": "rate",
+                                                "label": "Annual interest %",
+                                                "min": 0,
+                                                "max": null,
+                                                "step": 0.1,
+                                                "required": false,
+                                                "defaultValue": 4.5,
+                                                "valueFrom": {
+                                                    "kind": "static",
+                                                    "value": null
+                                                }
+                                            },
+                                            "style": {
+                                                "span": 4
+                                            },
+                                            "visible": true
+                                        },
+                                        {
+                                            "id": "cmp_0032",
+                                            "type": "input_number",
+                                            "props": {
+                                                "name": "years",
+                                                "label": "Term (years)",
+                                                "min": 1,
+                                                "max": null,
+                                                "step": 1,
+                                                "required": false,
+                                                "defaultValue": 30,
+                                                "valueFrom": {
+                                                    "kind": "static",
+                                                    "value": null
+                                                }
+                                            },
+                                            "style": {
+                                                "span": 4
+                                            },
+                                            "visible": true
+                                        }
+                                    ]
+                                },
+                                {
+                                    "id": "cmp_0033",
+                                    "type": "stat",
+                                    "props": {
+                                        "label": "Monthly payment",
+                                        "value": {
+                                            "kind": "formula",
+                                            "expr": "round(forms.loan.amount * (forms.loan.rate / 1200) / (1 - pow(1 + (forms.loan.rate / 1200), 0 - (forms.loan.years * 12))), 2)"
+                                        },
+                                        "caption": null,
+                                        "captionSegments": [],
+                                        "icon": null,
+                                        "delta": {
+                                            "kind": "static",
+                                            "value": null
+                                        },
+                                        "deltaFormat": "number",
+                                        "trend": {
+                                            "kind": "static",
+                                            "value": null
+                                        },
+                                        "positiveIsGood": true,
+                                        "look": "tile"
+                                    },
+                                    "style": {
+                                        "span": 4
+                                    },
+                                    "visible": true
+                                },
+                                {
+                                    "id": "cmp_0034",
+                                    "type": "stat",
+                                    "props": {
+                                        "label": "Total repaid",
+                                        "value": {
+                                            "kind": "formula",
+                                            "expr": "round((round(forms.loan.amount * (forms.loan.rate / 1200) / (1 - pow(1 + (forms.loan.rate / 1200), 0 - (forms.loan.years * 12))), 2)) * (forms.loan.years * 12), 2)"
+                                        },
+                                        "caption": null,
+                                        "captionSegments": [],
+                                        "icon": null,
+                                        "delta": {
+                                            "kind": "static",
+                                            "value": null
+                                        },
+                                        "deltaFormat": "number",
+                                        "trend": {
+                                            "kind": "static",
+                                            "value": null
+                                        },
+                                        "positiveIsGood": true,
+                                        "look": "tile"
+                                    },
+                                    "style": {
+                                        "span": 4
+                                    },
+                                    "visible": true
+                                },
+                                {
+                                    "id": "cmp_0035",
+                                    "type": "stat",
+                                    "props": {
+                                        "label": "Total interest",
+                                        "value": {
+                                            "kind": "formula",
+                                            "expr": "round((round((round(forms.loan.amount * (forms.loan.rate / 1200) / (1 - pow(1 + (forms.loan.rate / 1200), 0 - (forms.loan.years * 12))), 2)) * (forms.loan.years * 12), 2)) - forms.loan.amount, 2)"
+                                        },
+                                        "caption": null,
+                                        "captionSegments": [],
+                                        "icon": null,
+                                        "delta": {
+                                            "kind": "static",
+                                            "value": null
+                                        },
+                                        "deltaFormat": "number",
+                                        "trend": {
+                                            "kind": "static",
+                                            "value": null
+                                        },
+                                        "positiveIsGood": true,
+                                        "look": "tile"
+                                    },
+                                    "style": {
+                                        "span": 4
+                                    },
+                                    "visible": true
+                                }
+                            ]
+                        },
+                        {
+                            "id": "cmp_0036",
+                            "type": "card",
+                            "props": {
+                                "title": "Compound growth",
+                                "description": "Monthly compounding, using the ^ operator.",
+                                "look": "default"
+                            },
+                            "style": {
+                                "span": 12,
+                                "padding": 4,
+                                "gap": 3,
+                                "background": "surface"
+                            },
+                            "visible": true,
+                            "children": [
+                                {
+                                    "id": "cmp_0037",
+                                    "type": "form",
+                                    "props": {
+                                        "name": "save",
+                                        "submitLabel": "Submit",
+                                        "showReset": false,
+                                        "showSubmit": false,
+                                        "resetKey": null
+                                    },
+                                    "style": {
+                                        "span": 12,
+                                        "gap": 3,
+                                        "padding": 0
+                                    },
+                                    "visible": true,
+                                    "children": [
+                                        {
+                                            "id": "cmp_0038",
+                                            "type": "input_number",
+                                            "props": {
+                                                "name": "deposit",
+                                                "label": "Deposit",
+                                                "min": 0,
+                                                "max": null,
+                                                "step": 500,
+                                                "required": false,
+                                                "defaultValue": 10000,
+                                                "valueFrom": {
+                                                    "kind": "static",
+                                                    "value": null
+                                                }
+                                            },
+                                            "style": {
+                                                "span": 4
+                                            },
+                                            "visible": true
+                                        },
+                                        {
+                                            "id": "cmp_0039",
+                                            "type": "input_number",
+                                            "props": {
+                                                "name": "rate",
+                                                "label": "Annual interest %",
+                                                "min": 0,
+                                                "max": null,
+                                                "step": 0.1,
+                                                "required": false,
+                                                "defaultValue": 5,
+                                                "valueFrom": {
+                                                    "kind": "static",
+                                                    "value": null
+                                                }
+                                            },
+                                            "style": {
+                                                "span": 4
+                                            },
+                                            "visible": true
+                                        },
+                                        {
+                                            "id": "cmp_0040",
+                                            "type": "input_number",
+                                            "props": {
+                                                "name": "years",
+                                                "label": "Years",
+                                                "min": 1,
+                                                "max": null,
+                                                "step": 1,
+                                                "required": false,
+                                                "defaultValue": 10,
+                                                "valueFrom": {
+                                                    "kind": "static",
+                                                    "value": null
+                                                }
+                                            },
+                                            "style": {
+                                                "span": 4
+                                            },
+                                            "visible": true
+                                        }
+                                    ]
+                                },
+                                {
+                                    "id": "cmp_0041",
+                                    "type": "stat",
+                                    "props": {
+                                        "label": "Future value",
+                                        "value": {
+                                            "kind": "formula",
+                                            "expr": "round(forms.save.deposit * (1 + forms.save.rate / 1200) ^ (forms.save.years * 12), 2)"
+                                        },
+                                        "caption": null,
+                                        "captionSegments": [],
+                                        "icon": null,
+                                        "delta": {
+                                            "kind": "static",
+                                            "value": null
+                                        },
+                                        "deltaFormat": "number",
+                                        "trend": {
+                                            "kind": "static",
+                                            "value": null
+                                        },
+                                        "positiveIsGood": true,
+                                        "look": "tile"
+                                    },
+                                    "style": {
+                                        "span": 6
+                                    },
+                                    "visible": true
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "actions": {
+        "act_0042": {
+            "kind": "sequence",
+            "steps": [
+                {
+                    "kind": "set_variable",
+                    "name": "entry",
+                    "value": {
+                        "kind": "formula",
+                        "expr": "toStr(ifNull(round(sqrt(number(vars.entry)), 8), \"Error\"))"
+                    }
+                },
+                {
+                    "kind": "set_variable",
+                    "name": "mode",
+                    "value": {
+                        "kind": "static",
+                        "value": "result"
+                    }
+                }
+            ]
+        },
+        "act_0043": {
+            "kind": "sequence",
+            "steps": [
+                {
+                    "kind": "set_variable",
+                    "name": "entry",
+                    "value": {
+                        "kind": "formula",
+                        "expr": "toStr(ifNull(round(pow(number(vars.entry), 2), 8), \"Error\"))"
+                    }
+                },
+                {
+                    "kind": "set_variable",
+                    "name": "mode",
+                    "value": {
+                        "kind": "static",
+                        "value": "result"
+                    }
+                }
+            ]
+        },
+        "act_0044": {
+            "kind": "sequence",
+            "steps": [
+                {
+                    "kind": "set_variable",
+                    "name": "entry",
+                    "value": {
+                        "kind": "formula",
+                        "expr": "toStr(ifNull(round(ln(number(vars.entry)), 8), \"Error\"))"
+                    }
+                },
+                {
+                    "kind": "set_variable",
+                    "name": "mode",
+                    "value": {
+                        "kind": "static",
+                        "value": "result"
+                    }
+                }
+            ]
+        },
+        "act_0045": {
+            "kind": "sequence",
+            "steps": [
+                {
+                    "kind": "set_variable",
+                    "name": "entry",
+                    "value": {
+                        "kind": "formula",
+                        "expr": "toStr(ifNull(round(sin(radians(number(vars.entry))), 8), \"Error\"))"
+                    }
+                },
+                {
+                    "kind": "set_variable",
+                    "name": "mode",
+                    "value": {
+                        "kind": "static",
+                        "value": "result"
+                    }
+                }
+            ]
+        },
+        "act_0046": {
+            "kind": "sequence",
+            "steps": [
+                {
+                    "kind": "set_variable",
+                    "name": "entry",
+                    "value": {
+                        "kind": "static",
+                        "value": "0"
+                    }
+                },
+                {
+                    "kind": "set_variable",
+                    "name": "acc",
+                    "value": {
+                        "kind": "static",
+                        "value": 0
+                    }
+                },
+                {
+                    "kind": "set_variable",
+                    "name": "op",
+                    "value": {
+                        "kind": "static",
+                        "value": ""
+                    }
+                },
+                {
+                    "kind": "set_variable",
+                    "name": "mode",
+                    "value": {
+                        "kind": "static",
+                        "value": "typing"
+                    }
+                }
+            ]
+        },
+        "act_0047": {
+            "kind": "sequence",
+            "steps": [
+                {
+                    "kind": "set_variable",
+                    "name": "entry",
+                    "value": {
+                        "kind": "formula",
+                        "expr": "len(vars.entry) <= 1 ? \"0\" : substring(vars.entry, 0, len(vars.entry) - 1)"
+                    }
+                },
+                {
+                    "kind": "set_variable",
+                    "name": "mode",
+                    "value": {
+                        "kind": "static",
+                        "value": "typing"
+                    }
+                }
+            ]
+        },
+        "act_0048": {
+            "kind": "sequence",
+            "steps": [
+                {
+                    "kind": "set_variable",
+                    "name": "acc",
+                    "value": {
+                        "kind": "formula",
+                        "expr": "vars.mode == \"operand\" ? vars.acc : (vars.op == \"+\" ? vars.acc + number(vars.entry) : (vars.op == \"-\" ? vars.acc - number(vars.entry) : (vars.op == \"*\" ? vars.acc * number(vars.entry) : (vars.op == \"/\" ? (number(vars.entry) == 0 ? 0 : vars.acc / number(vars.entry)) : number(vars.entry)))))"
+                    }
+                },
+                {
+                    "kind": "set_variable",
+                    "name": "entry",
+                    "value": {
+                        "kind": "formula",
+                        "expr": "toStr(vars.acc)"
+                    }
+                },
+                {
+                    "kind": "set_variable",
+                    "name": "op",
+                    "value": {
+                        "kind": "static",
+                        "value": "/"
+                    }
+                },
+                {
+                    "kind": "set_variable",
+                    "name": "mode",
+                    "value": {
+                        "kind": "static",
+                        "value": "operand"
+                    }
+                }
+            ]
+        },
+        "act_0049": {
+            "kind": "sequence",
+            "steps": [
+                {
+                    "kind": "set_variable",
+                    "name": "acc",
+                    "value": {
+                        "kind": "formula",
+                        "expr": "vars.mode == \"operand\" ? vars.acc : (vars.op == \"+\" ? vars.acc + number(vars.entry) : (vars.op == \"-\" ? vars.acc - number(vars.entry) : (vars.op == \"*\" ? vars.acc * number(vars.entry) : (vars.op == \"/\" ? (number(vars.entry) == 0 ? 0 : vars.acc / number(vars.entry)) : number(vars.entry)))))"
+                    }
+                },
+                {
+                    "kind": "set_variable",
+                    "name": "entry",
+                    "value": {
+                        "kind": "formula",
+                        "expr": "toStr(vars.acc)"
+                    }
+                },
+                {
+                    "kind": "set_variable",
+                    "name": "op",
+                    "value": {
+                        "kind": "static",
+                        "value": "*"
+                    }
+                },
+                {
+                    "kind": "set_variable",
+                    "name": "mode",
+                    "value": {
+                        "kind": "static",
+                        "value": "operand"
+                    }
+                }
+            ]
+        },
+        "act_0050": {
+            "kind": "sequence",
+            "steps": [
+                {
+                    "kind": "set_variable",
+                    "name": "entry",
+                    "value": {
+                        "kind": "formula",
+                        "expr": "vars.mode == \"typing\" ? (vars.entry == \"0\" ? \"7\" : concat(vars.entry, \"7\")) : \"7\""
+                    }
+                },
+                {
+                    "kind": "set_variable",
+                    "name": "mode",
+                    "value": {
+                        "kind": "static",
+                        "value": "typing"
+                    }
+                }
+            ]
+        },
+        "act_0051": {
+            "kind": "sequence",
+            "steps": [
+                {
+                    "kind": "set_variable",
+                    "name": "entry",
+                    "value": {
+                        "kind": "formula",
+                        "expr": "vars.mode == \"typing\" ? (vars.entry == \"0\" ? \"8\" : concat(vars.entry, \"8\")) : \"8\""
+                    }
+                },
+                {
+                    "kind": "set_variable",
+                    "name": "mode",
+                    "value": {
+                        "kind": "static",
+                        "value": "typing"
+                    }
+                }
+            ]
+        },
+        "act_0052": {
+            "kind": "sequence",
+            "steps": [
+                {
+                    "kind": "set_variable",
+                    "name": "entry",
+                    "value": {
+                        "kind": "formula",
+                        "expr": "vars.mode == \"typing\" ? (vars.entry == \"0\" ? \"9\" : concat(vars.entry, \"9\")) : \"9\""
+                    }
+                },
+                {
+                    "kind": "set_variable",
+                    "name": "mode",
+                    "value": {
+                        "kind": "static",
+                        "value": "typing"
+                    }
+                }
+            ]
+        },
+        "act_0053": {
+            "kind": "sequence",
+            "steps": [
+                {
+                    "kind": "set_variable",
+                    "name": "acc",
+                    "value": {
+                        "kind": "formula",
+                        "expr": "vars.mode == \"operand\" ? vars.acc : (vars.op == \"+\" ? vars.acc + number(vars.entry) : (vars.op == \"-\" ? vars.acc - number(vars.entry) : (vars.op == \"*\" ? vars.acc * number(vars.entry) : (vars.op == \"/\" ? (number(vars.entry) == 0 ? 0 : vars.acc / number(vars.entry)) : number(vars.entry)))))"
+                    }
+                },
+                {
+                    "kind": "set_variable",
+                    "name": "entry",
+                    "value": {
+                        "kind": "formula",
+                        "expr": "toStr(vars.acc)"
+                    }
+                },
+                {
+                    "kind": "set_variable",
+                    "name": "op",
+                    "value": {
+                        "kind": "static",
+                        "value": "-"
+                    }
+                },
+                {
+                    "kind": "set_variable",
+                    "name": "mode",
+                    "value": {
+                        "kind": "static",
+                        "value": "operand"
+                    }
+                }
+            ]
+        },
+        "act_0054": {
+            "kind": "sequence",
+            "steps": [
+                {
+                    "kind": "set_variable",
+                    "name": "entry",
+                    "value": {
+                        "kind": "formula",
+                        "expr": "vars.mode == \"typing\" ? (vars.entry == \"0\" ? \"4\" : concat(vars.entry, \"4\")) : \"4\""
+                    }
+                },
+                {
+                    "kind": "set_variable",
+                    "name": "mode",
+                    "value": {
+                        "kind": "static",
+                        "value": "typing"
+                    }
+                }
+            ]
+        },
+        "act_0055": {
+            "kind": "sequence",
+            "steps": [
+                {
+                    "kind": "set_variable",
+                    "name": "entry",
+                    "value": {
+                        "kind": "formula",
+                        "expr": "vars.mode == \"typing\" ? (vars.entry == \"0\" ? \"5\" : concat(vars.entry, \"5\")) : \"5\""
+                    }
+                },
+                {
+                    "kind": "set_variable",
+                    "name": "mode",
+                    "value": {
+                        "kind": "static",
+                        "value": "typing"
+                    }
+                }
+            ]
+        },
+        "act_0056": {
+            "kind": "sequence",
+            "steps": [
+                {
+                    "kind": "set_variable",
+                    "name": "entry",
+                    "value": {
+                        "kind": "formula",
+                        "expr": "vars.mode == \"typing\" ? (vars.entry == \"0\" ? \"6\" : concat(vars.entry, \"6\")) : \"6\""
+                    }
+                },
+                {
+                    "kind": "set_variable",
+                    "name": "mode",
+                    "value": {
+                        "kind": "static",
+                        "value": "typing"
+                    }
+                }
+            ]
+        },
+        "act_0057": {
+            "kind": "sequence",
+            "steps": [
+                {
+                    "kind": "set_variable",
+                    "name": "acc",
+                    "value": {
+                        "kind": "formula",
+                        "expr": "vars.mode == \"operand\" ? vars.acc : (vars.op == \"+\" ? vars.acc + number(vars.entry) : (vars.op == \"-\" ? vars.acc - number(vars.entry) : (vars.op == \"*\" ? vars.acc * number(vars.entry) : (vars.op == \"/\" ? (number(vars.entry) == 0 ? 0 : vars.acc / number(vars.entry)) : number(vars.entry)))))"
+                    }
+                },
+                {
+                    "kind": "set_variable",
+                    "name": "entry",
+                    "value": {
+                        "kind": "formula",
+                        "expr": "toStr(vars.acc)"
+                    }
+                },
+                {
+                    "kind": "set_variable",
+                    "name": "op",
+                    "value": {
+                        "kind": "static",
+                        "value": "+"
+                    }
+                },
+                {
+                    "kind": "set_variable",
+                    "name": "mode",
+                    "value": {
+                        "kind": "static",
+                        "value": "operand"
+                    }
+                }
+            ]
+        },
+        "act_0058": {
+            "kind": "sequence",
+            "steps": [
+                {
+                    "kind": "set_variable",
+                    "name": "entry",
+                    "value": {
+                        "kind": "formula",
+                        "expr": "vars.mode == \"typing\" ? (vars.entry == \"0\" ? \"1\" : concat(vars.entry, \"1\")) : \"1\""
+                    }
+                },
+                {
+                    "kind": "set_variable",
+                    "name": "mode",
+                    "value": {
+                        "kind": "static",
+                        "value": "typing"
+                    }
+                }
+            ]
+        },
+        "act_0059": {
+            "kind": "sequence",
+            "steps": [
+                {
+                    "kind": "set_variable",
+                    "name": "entry",
+                    "value": {
+                        "kind": "formula",
+                        "expr": "vars.mode == \"typing\" ? (vars.entry == \"0\" ? \"2\" : concat(vars.entry, \"2\")) : \"2\""
+                    }
+                },
+                {
+                    "kind": "set_variable",
+                    "name": "mode",
+                    "value": {
+                        "kind": "static",
+                        "value": "typing"
+                    }
+                }
+            ]
+        },
+        "act_0060": {
+            "kind": "sequence",
+            "steps": [
+                {
+                    "kind": "set_variable",
+                    "name": "entry",
+                    "value": {
+                        "kind": "formula",
+                        "expr": "vars.mode == \"typing\" ? (vars.entry == \"0\" ? \"3\" : concat(vars.entry, \"3\")) : \"3\""
+                    }
+                },
+                {
+                    "kind": "set_variable",
+                    "name": "mode",
+                    "value": {
+                        "kind": "static",
+                        "value": "typing"
+                    }
+                }
+            ]
+        },
+        "act_0061": {
+            "kind": "sequence",
+            "steps": [
+                {
+                    "kind": "switch",
+                    "expr": "vars.op",
+                    "cases": [
+                        {
+                            "value": "+",
+                            "steps": [
+                                {
+                                    "kind": "set_variable",
+                                    "name": "entry",
+                                    "value": {
+                                        "kind": "formula",
+                                        "expr": "toStr(vars.acc + number(vars.entry))"
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "value": "-",
+                            "steps": [
+                                {
+                                    "kind": "set_variable",
+                                    "name": "entry",
+                                    "value": {
+                                        "kind": "formula",
+                                        "expr": "toStr(vars.acc - number(vars.entry))"
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "value": "*",
+                            "steps": [
+                                {
+                                    "kind": "set_variable",
+                                    "name": "entry",
+                                    "value": {
+                                        "kind": "formula",
+                                        "expr": "toStr(vars.acc * number(vars.entry))"
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "value": "/",
+                            "steps": [
+                                {
+                                    "kind": "set_variable",
+                                    "name": "entry",
+                                    "value": {
+                                        "kind": "formula",
+                                        "expr": "number(vars.entry) == 0 ? \"Cannot divide by 0\" : toStr(vars.acc / number(vars.entry))"
+                                    }
+                                }
+                            ]
+                        }
+                    ],
+                    "default": [
+                        {
+                            "kind": "set_variable",
+                            "name": "entry",
+                            "value": {
+                                "kind": "formula",
+                                "expr": "toStr(ifNull(number(vars.entry), 0))"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "kind": "set_variable",
+                    "name": "acc",
+                    "value": {
+                        "kind": "formula",
+                        "expr": "ifNull(number(vars.entry), 0)"
+                    }
+                },
+                {
+                    "kind": "set_variable",
+                    "name": "op",
+                    "value": {
+                        "kind": "static",
+                        "value": ""
+                    }
+                },
+                {
+                    "kind": "set_variable",
+                    "name": "mode",
+                    "value": {
+                        "kind": "static",
+                        "value": "result"
+                    }
+                }
+            ]
+        },
+        "act_0062": {
+            "kind": "sequence",
+            "steps": [
+                {
+                    "kind": "set_variable",
+                    "name": "entry",
+                    "value": {
+                        "kind": "formula",
+                        "expr": "vars.mode == \"typing\" ? (vars.entry == \"0\" ? \"0\" : concat(vars.entry, \"0\")) : \"0\""
+                    }
+                },
+                {
+                    "kind": "set_variable",
+                    "name": "mode",
+                    "value": {
+                        "kind": "static",
+                        "value": "typing"
+                    }
+                }
+            ]
+        },
+        "act_0063": {
+            "kind": "sequence",
+            "steps": [
+                {
+                    "kind": "set_variable",
+                    "name": "entry",
+                    "value": {
+                        "kind": "formula",
+                        "expr": "vars.mode == \"typing\" ? (contains(vars.entry, \".\") ? vars.entry : concat(vars.entry, \".\")) : \"0.\""
+                    }
+                },
+                {
+                    "kind": "set_variable",
+                    "name": "mode",
+                    "value": {
+                        "kind": "static",
+                        "value": "typing"
+                    }
+                }
+            ]
+        }
+    },
+    "design": {
+        "preset": "midnight",
+        "font": "geist",
+        "surface": "soft",
+        "motion": "subtle",
+        "chartPalette": "brand",
+        "accentEdge": "bar",
+        "logoUrl": null
+    },
+    "nav": {
+        "style": "rail"
+    },
+    "homeScreenId": "scr_0001"
+}

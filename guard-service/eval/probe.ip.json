@@ -1,0 +1,42 @@
+{
+  "category": "IPAddress",
+  "labels": {
+    "IP address": {
+      "covered_gold": 45,
+      "exact_boundary": 1.0,
+      "precision_approx": 0.4545,
+      "predicted_spans": 99,
+      "recall": 1.0
+    },
+    "email address+phone number+url+ip address": {
+      "covered_gold": 45,
+      "exact_boundary": 1.0,
+      "precision_approx": 0.1466,
+      "predicted_spans": 307,
+      "recall": 1.0
+    },
+    "ip address": {
+      "covered_gold": 44,
+      "exact_boundary": 0.9778,
+      "precision_approx": 0.5789,
+      "predicted_spans": 76,
+      "recall": 0.9778
+    },
+    "ip address+url": {
+      "covered_gold": 45,
+      "exact_boundary": 1.0,
+      "precision_approx": 0.1867,
+      "predicted_spans": 241,
+      "recall": 1.0
+    },
+    "ip-adres": {
+      "covered_gold": 44,
+      "exact_boundary": 0.9778,
+      "precision_approx": 0.4889,
+      "predicted_spans": 90,
+      "recall": 0.9778
+    }
+  },
+  "n_gold": 45,
+  "n_records": 25
+}

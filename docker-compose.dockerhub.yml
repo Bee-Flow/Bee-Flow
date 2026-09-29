@@ -1,0 +1,222 @@
+# ══════════════════════════════════════════════════════════════════
+# Bee Flow — self-host from Docker Hub
+# ══════════════════════════════════════════════════════════════════
+#
+# A minimal, SELF-CONTAINED stack: this file plus a .env is the whole install.
+# Nothing else is needed from the repository — see .env.dockerhub.example.
+#
+#   docker compose -f docker-compose.dockerhub.yml up -d
+#   docker compose -f docker-compose.dockerhub.yml --profile guard up -d   # + Privacy Shield
+#
+# WHAT THIS IS NOT: the full stack. Knowledge search, transcription and the
+# reranker are not published to Docker Hub and are not included here. For those,
+# use docker-compose.from-registry.yml against ghcr.io/bee-flow, which carries
+# every service and every profile.
+#
+# Requires Docker Compose v2.23 or newer — the database bootstrap below is an
+# inline `configs` entry, which older versions cannot read.
+# ══════════════════════════════════════════════════════════════════
+
+configs:
+  # Postgres creates only POSTGRES_DB itself. Bee Flow also wants a task queue
+  # and a monitoring database, and pgvector enabled where embeddings live. Kept
+  # inline so this stack stays two files.
+  beeflow-init-db:
+    content: |
+      #!/bin/bash
+      set -e
+      psql -v ON_ERROR_STOP=1 --username "$$POSTGRES_USER" --dbname "$$POSTGRES_DB" <<-EOSQL
+          SELECT 'CREATE DATABASE beeflow_tasks' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'beeflow_tasks')\gexec
+          SELECT 'CREATE DATABASE monitoring_db' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'monitoring_db')\gexec
+      EOSQL
+      for db in "$$POSTGRES_DB" beeflow_tasks; do
+          psql -v ON_ERROR_STOP=1 --username "$$POSTGRES_USER" --dbname "$$db" <<-EOSQL
+              CREATE EXTENSION IF NOT EXISTS vector;
+      EOSQL
+      done
+
+services:
+  # ── Database ───────────────────────────────────────────────────
+  postgres:
+    image: pgvector/pgvector:pg15
+    container_name: beeflow-postgres
+    environment:
+      - POSTGRES_USER=${DB_USER:-beeflow}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:?Set DB_PASSWORD in .env}
+      - POSTGRES_DB=${DB_NAME:-beeflow_core}
+    volumes:
+      - beeflow-pgdata:/var/lib/postgresql/data
+    configs:
+      - source: beeflow-init-db
+        target: /docker-entrypoint-initdb.d/init-db.sh
+        mode: 0755
+    networks: [ beeflow-network ]
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER:-beeflow} -d ${DB_NAME:-beeflow_core}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  # ── Object storage (uploads, generated files) ──────────────────
+  rustfs:
+    image: rustfs/rustfs:latest
+    container_name: beeflow-rustfs
+    environment:
+      - RUSTFS_ROOT_USER=${RUSTFS_ACCESS_KEY:-beeflow}
+      - RUSTFS_ROOT_PASSWORD=${RUSTFS_SECRET_KEY:?Set RUSTFS_SECRET_KEY in .env}
+    volumes:
+      - rustfs-data:/data
+      - rustfs-logs:/logs
+    networks: [ beeflow-network ]
+    restart: unless-stopped
+
+  # ── Bee Flow API ───────────────────────────────────────────────
+  server:
+    image: ${REGISTRY:-docker.io/beeflowapp}/server:${TAG:-latest}
+    container_name: beeflow-server
+    # Bound to loopback on purpose: the browser talks to agent-hub, which
+    # proxies /api internally. Publish this port only if something else needs
+    # the API directly, and put authentication in front of it if you do.
+    ports:
+      - "${SERVER_BIND_HOST:-127.0.0.1}:${SERVER_PORT:-3001}:${SERVER_PORT:-3001}"
+    environment:
+      - NODE_ENV=production
+      - PORT=${SERVER_PORT:-3001}
+      - DEPLOYMENT_MODE=self-hosted
+
+      # ── Secrets. Generate once, then never change them: see the .env example.
+      - SESSION_SECRET=${SESSION_SECRET:?Set SESSION_SECRET in .env}
+      - MASTER_ENCRYPTION_KEY=${MASTER_ENCRYPTION_KEY:?Set MASTER_ENCRYPTION_KEY in .env}
+
+      # ── Databases (created by the init config above)
+      - CORE_DATABASE_URL=postgresql://${DB_USER:-beeflow}:${DB_PASSWORD:?err}@postgres:5432/${DB_NAME:-beeflow_core}
+      - DATABASE_URL=postgresql://${DB_USER:-beeflow}:${DB_PASSWORD:?err}@postgres:5432/beeflow_tasks
+      - MONITORING_DATABASE_URL=postgresql://${DB_USER:-beeflow}:${DB_PASSWORD:?err}@postgres:5432/monitoring_db
+      - ENABLE_TASKS=${ENABLE_TASKS:-true}
+      - ENABLE_MONITORING=${ENABLE_MONITORING:-true}
+
+      # ── Public addresses. These drive CORS and cookies: get them wrong and
+      #    login appears to succeed but the session is dropped.
+      - SERVER_PUBLIC_HOST=${SERVER_PUBLIC_HOST:-localhost:3001}
+      - SERVER_PROTOCOL=${SERVER_PROTOCOL:-http}
+      - CLIENT_PUBLIC_HOST=${CLIENT_PUBLIC_HOST:-localhost:5176}
+      # Security keys (YubiKey / FIDO2): optional parent domain for the WebAuthn
+      # relying-party ID. Empty = the page's host, or CLIENT_PUBLIC_HOST when the
+      # page is on a subdomain of it. See auth/securityKeys/relyingParty.js.
+      - WEBAUTHN_RP_ID=${WEBAUTHN_RP_ID:-}
+      - CLIENT_PROTOCOL=${CLIENT_PROTOCOL:-http}
+      - CORS_ORIGIN=${CLIENT_PROTOCOL:-http}://${CLIENT_PUBLIC_HOST:-localhost:5176},${SERVER_PROTOCOL:-http}://${SERVER_PUBLIC_HOST:-localhost:3001}
+      - COOKIE_SECURE=${COOKIE_SECURE:-false}
+      - COOKIE_DOMAIN=${COOKIE_DOMAIN:-}
+      - COOKIE_SAMESITE=${COOKIE_SAMESITE:-lax}
+
+      # ── Object storage
+      - RUSTFS_ENDPOINT=http://rustfs:9000
+      - RUSTFS_ACCESS_KEY=${RUSTFS_ACCESS_KEY:-beeflow}
+      - RUSTFS_SECRET_KEY=${RUSTFS_SECRET_KEY:?err}
+
+      # ── Privacy Shield. Ignored unless the `guard` profile is running.
+      - GUARD_SERVICE_URL=${GUARD_SERVICE_URL:-http://guard-service:8100}
+      # PII_SERVICE_URL is the variable the server actually reads
+      # (core/privacy/piiDetection/guardEndpoint.js); GUARD_SERVICE_URL above
+      # is legacy and read by nothing. Empty by default — unlike the legacy
+      # line it is NOT ignored without the `guard` profile: a baked-in URL
+      # would read as "guard installed" while every scan fails. Set
+      # PII_SERVICE_URL=http://guard-service:8100 when running that profile.
+      - PII_SERVICE_URL=${PII_SERVICE_URL:-}
+      - SERVICES_API_KEY=${SERVICES_API_KEY:-}
+
+      # ── Models. Leave blank and configure providers in the admin UI instead.
+      - LLM_API_URL=${LLM_API_URL:-}
+      - LLM_API_KEY=${LLM_API_KEY:-}
+      - OLLAMA_URL=${OLLAMA_URL:-}
+    volumes:
+      - beeflow-data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rustfs:
+        condition: service_started
+    networks: [ beeflow-network ]
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT:-3001}/api/health" ]
+      interval: 30s
+      timeout: 10s
+      start_period: 90s
+      retries: 3
+
+  # ── Web interface ──────────────────────────────────────────────
+  # This is the one users open, and the only container that needs to be
+  # reachable from outside. It reverse-proxies /api to the server.
+  agent-hub:
+    image: ${REGISTRY:-docker.io/beeflowapp}/agent-hub:${TAG:-latest}
+    container_name: beeflow-agent-hub
+    ports:
+      - "${CLIENT_PORT:-5176}:80"
+    environment:
+      - SERVER_HOST=server
+      - SERVER_PORT=${SERVER_PORT:-3001}
+      - NGINX_ENVSUBST_FILTER=SERVER_HOST|SERVER_PORT|ANALYTICS_ORIGIN|NGINX_RESOLVER
+    depends_on:
+      - server
+    networks: [ beeflow-network ]
+    restart: unless-stopped
+
+  # ── Privacy Shield (profile: guard) ────────────────────────────
+  # Optional. Detects personal data in text before it reaches a model.
+  # Start with: --profile guard
+  guard-service:
+    image: ${REGISTRY:-docker.io/beeflowapp}/guard:${TAG:-latest}
+    container_name: beeflow-guard
+    profiles: [ guard ]
+    environment:
+      - GUARD_REDIS_URL=redis://guard-redis:6379/1
+      - GUARD_PII_ENABLED=${GUARD_PII_ENABLED:-true}
+      - GUARD_PII_REGEX_TIER=${GUARD_PII_REGEX_TIER:-on}
+      - GUARD_PII_REGIONS=${GUARD_PII_REGIONS:-*}
+      - GUARD_PII_MAX_CONCURRENCY=${GUARD_PII_MAX_CONCURRENCY:-2}
+      - GUARD_LOG_LEVEL=${GUARD_LOG_LEVEL:-INFO}
+      - SERVICES_API_KEY=${SERVICES_API_KEY:-}
+    # A scan is a queue of sequential forward passes, so this CPU quota is the
+    # ceiling on scan latency. Give it more cores if the host has them.
+    cpus: ${GUARD_CPUS:-3}
+    mem_limit: ${GUARD_MEM:-4g}
+    depends_on:
+      guard-redis:
+        condition: service_healthy
+    networks: [ beeflow-network ]
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8100/health')" ]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+
+  guard-redis:
+    image: redis:7-alpine
+    container_name: beeflow-guard-redis
+    profiles: [ guard ]
+    volumes:
+      - guard-redis-data:/data
+    networks: [ beeflow-network ]
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  beeflow-network:
+    driver: bridge
+
+volumes:
+  beeflow-pgdata:
+  beeflow-data:
+  rustfs-data:
+  rustfs-logs:
+  guard-redis-data:

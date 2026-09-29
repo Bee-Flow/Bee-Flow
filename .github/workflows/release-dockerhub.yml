@@ -1,0 +1,392 @@
+# ══════════════════════════════════════════════════════════════════
+# Release to Docker Hub — manual mirror of an existing GHCR release
+# ══════════════════════════════════════════════════════════════════
+#
+# WHAT THIS DOES: copies images that build-push-ghcr.yml ALREADY built and
+# pushed to ghcr.io/bee-flow, retagging them under a Docker Hub namespace. It
+# never builds anything. The bits on Docker Hub are byte-identical to the bits
+# on GHCR — same digest, same multi-arch index, same provenance.
+#
+# WHY A COPY AND NOT A BUILD: a rebuild from the same commit is not the same
+# image (timestamps, base-image drift, a dependency that moved). Two registries
+# claiming the same version with different digests is the kind of thing you only
+# discover during an incident. So GHCR stays the thing that gets built, and this
+# is a mirror.
+#
+# The source is resolved to a DIGEST before anything is pushed: `:prod` is a
+# moving tag, and a release that starts mid-way through someone else's push
+# would otherwise mix two builds.
+#
+# ── Dry run is the discovery tool ──
+# build-push-ghcr.yml is path-filtered, so a service only carries a :prod tag if
+# it was selected or changed in some prod release — several never have been. A
+# DRY RUN therefore reports missing sources and carries on, so one run tells you
+# exactly what is publishable today. A real run refuses instead: a half-mirrored
+# release, three services on the new version and two still on the old, is worse
+# than no release at all.
+#
+# ── license-server is not mirrorable ──
+# It mints and signs the JWT licences. Its source is private and is not built
+# from this repository, but its images sit in the same ghcr.io/bee-flow
+# namespace for our own deploys, and they must never appear on a public
+# registry — the block below is deliberate and not an oversight to "fix" (or
+# delete as dead code) when someone passes it in `services`.
+#
+# ── Namespace ──
+# docker.io/beeflowapp/<service>. The bare `beeflow` and `beeflowai` names were
+# both registered years ago by accounts that have never published an image;
+# Docker Hub does not reclaim dormant usernames without a trademark claim, so
+# the account is `beeflowapp`. It is read from the secret rather than hardcoded,
+# but note that changing it later breaks every existing self-host install —
+# REGISTRY=docker.io/<ns> is baked into their compose invocation.
+#
+# ── One-time setup ──
+#   1. Docker Hub account, then Account settings → Personal access tokens →
+#      Generate, with the "Read & Write" scope.
+#   2. Repo secrets: DOCKERHUB_USERNAME (the account name) and DOCKERHUB_TOKEN
+#      (the PAT — NOT your password).
+#   3. Optional repo VARIABLE DOCKERHUB_NAMESPACE if images should live under an
+#      org rather than the account (defaults to DOCKERHUB_USERNAME).
+#   4. Pre-create each repository on Docker Hub as PUBLIC. A push can create the
+#      repo for you, but the visibility it gets depends on your account default —
+#      and a self-host image that silently lands private is a broken install for
+#      every customer.
+# ══════════════════════════════════════════════════════════════════
+
+name: Release to Docker Hub
+
+run-name: Docker Hub ${{ inputs.version || 'auto' }} ← ghcr:${{ inputs.source_tag }} (${{ inputs.services }})${{ inputs.dry_run && ' [dry run]' || '' }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag to publish. LEAVE BLANK to derive it from the latest prod release (prod-2026.08.19-918 → 2026.08.19-918).'
+        default: ''
+        required: false
+      source_tag:
+        description: 'GHCR tag to copy FROM (prod = the last production release)'
+        type: choice
+        options: [prod, latest, dev]
+        default: prod
+        required: true
+      services:
+        description: '"published" (server,agent-hub,guard — the repos that exist on Docker Hub), "all" (adds pii,search-api,whisperx,search-inference-gpu,reranker,install-wizard,pwt-runner — several have no image yet, so pair it with a dry run), or a comma-separated list'
+        default: published
+        required: true
+      also_latest:
+        description: 'Also move :latest on Docker Hub to this version'
+        type: boolean
+        default: true
+      dry_run:
+        description: 'Resolve and report what WOULD be pushed, without pushing. Off by default — tick it only to preview, or with "all" to discover which services have a source image.'
+        type: boolean
+        default: false
+
+concurrency:
+  group: dockerhub-release
+  cancel-in-progress: false
+
+env:
+  SOURCE_PREFIX: ghcr.io/bee-flow
+  # The set that has BOTH a Docker Hub repository and a GHCR source image today.
+  # Deliberately NOT called "core": in docker-compose.from-registry.yml the `core`
+  # profile means postgres + rustfs + server + agent-hub, with guard in its own
+  # `guard` profile. Reusing that word for a different set here would mislead.
+  PUBLISHED_SERVICES: server,agent-hub,guard
+  # Mirrorable in principle; several have never been built to GHCR, so `all`
+  # is mostly useful with dry_run to see what exists.
+  EXTRA_SERVICES: pii,search-api,whisperx,search-inference-gpu,reranker,install-wizard,pwt-runner
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    # DOCKERHUB_USERNAME and DOCKERHUB_TOKEN can live in the `release`
+    # environment, restricted to main. This job runs from main only anyway
+    # (the first step below refuses any other ref, dry runs included), so
+    # the environment's branch rule refuses nothing that step would allow.
+    environment: release
+    permissions:
+      contents: read
+      packages: read      # pull from ghcr.io/bee-flow
+    steps:
+      # A published version has to correspond to something reviewable. Prod
+      # images are only ever built from main, so mirroring from anywhere else
+      # would put a tag on Docker Hub that main cannot account for.
+      - name: Refuse to publish from a non-main ref
+        if: ${{ github.ref_name != 'main' }}
+        # A branch name can hold `$(…)`: the ref reaches the shell as a
+        # variable, never spliced into the script text.
+        env:
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          echo "::error::Docker Hub releases run from main only (this ref: ${REF_NAME})"
+          exit 1
+
+      # ── Resolve the version to publish under ─────────────────────────────
+      # Left blank, it comes from the latest GitHub Release, which the prod
+      # channel of build-push-ghcr.yml creates as `prod-YYYY.MM.DD-<run>`. That
+      # tag IS the release coordinate for these images, so there is nothing to
+      # invent and nothing to keep in sync by hand.
+      #
+      # The `prod-` prefix is dropped: on Docker Hub every published tag is a
+      # production release, so the prefix carries no information there.
+      #
+      # NOTE ON PROVENANCE: build-push-ghcr.yml is path-filtered, so a service
+      # that did not change in the newest release still carries an older commit
+      # in its image. That is correct — `2026.08.19-918` names the RELEASE these
+      # images ship in, not the commit each was built from. The per-image commit
+      # stays visible in the digest column of the summary below.
+      - id: version
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -uo pipefail
+
+          V="$(echo "${INPUT_VERSION:-}" | tr -d '[:space:]')"
+          FROM="the version input"
+
+          if [[ -z "$V" ]]; then
+            TAG="$(gh api "repos/${GITHUB_REPOSITORY}/releases/latest" --jq '.tag_name' 2>/dev/null || true)"
+            if [[ -z "$TAG" || "$TAG" == "null" ]]; then
+              echo "::error::no version given, and no GitHub Release exists to derive one from — pass one explicitly"
+              exit 1
+            fi
+            V="${TAG#prod-}"
+            FROM="the latest GitHub Release (${TAG})"
+          fi
+
+          # Docker tag grammar. A version that cannot be a tag should fail here,
+          # not halfway through publishing.
+          if [[ ! "$V" =~ ^[A-Za-z0-9_][A-Za-z0-9._-]{0,127}$ ]]; then
+            echo "::error::'${V}' is not a valid Docker tag"
+            exit 1
+          fi
+
+          echo "version=${V}" >> "$GITHUB_OUTPUT"
+          echo "::notice::publishing as '${V}' — from ${FROM}"
+
+      # crane, not `docker buildx imagetools create`.
+      #
+      # imagetools ALWAYS builds a NEW index from its sources. Given an image
+      # that is already an index (server) that happens to reproduce the same
+      # digest; given a BARE manifest (agent-hub, which is built without
+      # attestations) it wraps it in a fresh index and the top-level digest
+      # changes. Same layers, same config, different digest — which breaks the
+      # one promise this workflow makes, that the two registries serve the
+      # identical image, and defeats a `docker buildx imagetools inspect`
+      # comparison by anyone who wants to check.
+      #
+      # crane copies the manifest byte-for-byte, whatever its shape. It also
+      # reads ~/.docker/config.json, so the two login steps below authenticate
+      # it for free.
+      #
+      # Pinned by version AND sha256, like gitleaks in secret-scan.yml: crane
+      # runs with the Docker Hub login in reach, so a release asset swapped
+      # upstream must fail the checksum instead of running. CRANE_SHA256 is
+      # the Linux_x86_64 tarball's line in that release's checksums.txt,
+      # checked against a download of the tarball itself. Moving the version
+      # means moving both.
+      - name: Install crane
+        env:
+          CRANE_VERSION: v0.20.2
+          CRANE_SHA256: c14340087103ba9dadf61d45acd20675490fd0ccbd56ac7901fc1b502137f44b
+        run: |
+          set -euo pipefail
+          TARBALL="$RUNNER_TEMP/crane.tar.gz"
+          curl -sSfL -o "$TARBALL" \
+            "https://github.com/google/go-containerregistry/releases/download/${CRANE_VERSION}/go-containerregistry_Linux_x86_64.tar.gz"
+          if ! echo "${CRANE_SHA256}  ${TARBALL}" | sha256sum -c -; then
+            echo "::error::crane ${CRANE_VERSION}: the downloaded tarball does not match the pinned sha256 — refusing to run it"
+            exit 1
+          fi
+          sudo tar -xzf "$TARBALL" -C /usr/local/bin crane
+          rm -f "$TARBALL"
+          crane version
+
+      - name: Log in to GHCR (source)
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Skipped on a dry run so the workflow stays runnable before the Docker Hub
+      # account exists — you can see exactly what it would publish first.
+      - name: Log in to Docker Hub (destination)
+        if: ${{ !inputs.dry_run }}
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # ── Resolve the service list and every source digest, before pushing ──
+      # Fail-fast is the point: a half-mirrored release, where three services
+      # moved to the new version and two did not, is worse than none.
+      - id: plan
+        env:
+          SERVICES_IN: ${{ inputs.services }}
+          SOURCE_TAG: ${{ inputs.source_tag }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          set -uo pipefail
+
+          case "${SERVICES_IN}" in
+            published) LIST="${PUBLISHED_SERVICES}" ;;
+            all)       LIST="${PUBLISHED_SERVICES},${EXTRA_SERVICES}" ;;
+            *)         LIST="${SERVICES_IN}" ;;
+          esac
+          LIST="$(echo "$LIST" | tr -d '[:space:]')"
+
+          RESOLVED=""
+          FAILED=""
+          IFS=',' read -ra SVCS <<< "$LIST"
+          for svc in "${SVCS[@]}"; do
+            [[ -z "$svc" ]] && continue
+
+            # See the header: the licence minter never goes to a public registry.
+            if [[ "$svc" == "license-server" ]]; then
+              echo "::error::license-server must never be published to a public registry — refusing"
+              exit 1
+            fi
+
+            SRC="${SOURCE_PREFIX}/${svc}:${SOURCE_TAG}"
+            DIGEST="$(crane digest "$SRC" 2>/dev/null || true)"
+            if [[ -z "$DIGEST" ]]; then
+              # A dry run's job is to REPORT what is publishable, so a missing
+              # source is a finding, not a failure. build-push-ghcr.yml is
+              # path-filtered, so a service only carries a :prod tag if it was
+              # selected or changed in some prod release — several never have
+              # been. A real run still refuses rather than publish a partial set.
+              if [[ "${DRY_RUN}" == "true" ]]; then
+                echo "::warning::${SRC} does not exist — would be SKIPPED"
+              else
+                echo "::error::${SRC} does not exist — build it to GHCR first"
+              fi
+              FAILED="${FAILED}${svc} "
+              continue
+            fi
+            echo "  ${svc} → ${DIGEST}"
+            RESOLVED="${RESOLVED}${svc}@${DIGEST}"$'\n'
+          done
+
+          if [[ -n "$FAILED" ]]; then
+            if [[ "${DRY_RUN}" == "true" ]]; then
+              echo "::notice::not present at '${SOURCE_TAG}', would be skipped: ${FAILED}"
+              {
+                echo "### Not publishable from \`ghcr:${SOURCE_TAG}\`"
+                echo ""
+                echo "\`${FAILED}\` — no image at that tag. Build them to GHCR first, or drop them from \`services\`."
+                echo ""
+              } >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "::error::missing at GHCR tag '${SOURCE_TAG}': ${FAILED}— nothing was pushed"
+              exit 1
+            fi
+          fi
+          if [[ -z "$RESOLVED" ]]; then
+            echo "::error::nothing to publish — no selected service resolved at '${SOURCE_TAG}'"
+            exit 1
+          fi
+
+          {
+            # A random delimiter: a value that contains a fixed one would end the block early.
+            DELIM="EOF_$(openssl rand -hex 16)"
+            echo "resolved<<${DELIM}"
+            printf '%s' "$RESOLVED"
+            echo "${DELIM}"
+          } >> "$GITHUB_OUTPUT"
+
+      # ── Copy each manifest to Docker Hub ─────────────────────────────────
+      # `imagetools create` copies the whole multi-arch index, so a single call
+      # per service preserves every platform GHCR holds.
+      - name: Mirror to Docker Hub
+        env:
+          NAMESPACE: ${{ vars.DOCKERHUB_NAMESPACE || secrets.DOCKERHUB_USERNAME }}
+          VERSION: ${{ steps.version.outputs.version }}
+          SOURCE_TAG: ${{ inputs.source_tag }}
+          ALSO_LATEST: ${{ inputs.also_latest }}
+          DRY_RUN: ${{ inputs.dry_run }}
+          RESOLVED: ${{ steps.plan.outputs.resolved }}
+        run: |
+          set -uo pipefail
+
+          if [[ -z "${NAMESPACE:-}" ]]; then
+            echo "::error::no Docker Hub namespace — set the DOCKERHUB_USERNAME secret (or the DOCKERHUB_NAMESPACE variable)"
+            exit 1
+          fi
+
+          {
+            echo "### Docker Hub — \`${VERSION}\` from \`ghcr:${SOURCE_TAG}\`"
+            echo ""
+            [[ "$DRY_RUN" == "true" ]] && echo "**DRY RUN — nothing was pushed.**" && echo ""
+            echo "| service | destination | source digest |"
+            echo "|---|---|---|"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          FAILED=""
+          while IFS= read -r line; do
+            [[ -z "$line" ]] && continue
+            svc="${line%%@*}"
+            digest="${line#*@}"
+
+            SRC="${SOURCE_PREFIX}/${svc}@${digest}"
+            DST="docker.io/${NAMESPACE}/${svc}"
+
+            if [[ "$DRY_RUN" == "true" ]]; then
+              echo "would push ${DST}:${VERSION} ← ${SRC}"
+            else
+              echo "pushing ${DST}:${VERSION} ← ${SRC}"
+              # One copy, then a tag. `crane tag` only writes a new tag against
+              # the manifest already in the registry — no second transfer of a
+              # multi-gigabyte image.
+              if ! crane copy "$SRC" "${DST}:${VERSION}"; then
+                echo "::error::${svc}: copy failed"
+                FAILED="${FAILED}${svc} "
+                continue
+              fi
+              if [[ "$ALSO_LATEST" == "true" ]] && ! crane tag "${DST}:${VERSION}" latest; then
+                echo "::error::${svc}: could not move :latest"
+                FAILED="${FAILED}${svc} "
+                continue
+              fi
+              # Read every tag back: a push that reports success but resolves to
+              # a different digest means the tag was moved underneath us. :latest
+              # is checked too — it is the tag most people actually pull, so
+              # "published fine but :latest still points at the old release" is
+              # the one failure nobody would notice until a customer did.
+              BAD=""
+              VERIFY=("${VERSION}")
+              [[ "$ALSO_LATEST" == "true" ]] && VERIFY+=("latest")
+              for t in "${VERIFY[@]}"; do
+                PUSHED="$(crane digest "${DST}:${t}" 2>/dev/null || true)"
+                if [[ "$PUSHED" != "$digest" ]]; then
+                  echo "::error::${svc}:${t} — published digest ${PUSHED:-<none>} != source ${digest}"
+                  BAD=1
+                fi
+              done
+              if [[ -n "$BAD" ]]; then
+                FAILED="${FAILED}${svc} "
+                continue
+              fi
+            fi
+
+            echo "| \`${svc}\` | \`${NAMESPACE}/${svc}:${VERSION}\` | \`${digest}\` |" >> "$GITHUB_STEP_SUMMARY"
+          done <<< "$RESOLVED"
+
+          if [[ -n "$FAILED" ]]; then
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "**Failed: ${FAILED}** — these services were NOT published." >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+
+          if [[ "$DRY_RUN" != "true" ]]; then
+            {
+              echo ""
+              echo "Self-hosters can now run against Docker Hub with:"
+              echo '```'
+              echo "REGISTRY=docker.io/${NAMESPACE} TAG=${VERSION} docker compose -f docker-compose.from-registry.yml up -d"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi

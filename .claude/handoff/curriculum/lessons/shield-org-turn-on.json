@@ -1,0 +1,268 @@
+{
+  "id": "shield-org-turn-on",
+  "icon": "🛰️",
+  "estMinutes": 9,
+  "title": "Switch it on properly",
+  "desc": "The master switch, the posture table, and the first configuration that actually catches something.",
+  "gate": {
+    "permission": "org_admin"
+  },
+  "learningGoal": "After this lesson you can switch the Privacy Shield on for your organisation, read the Overview posture table as a summary of your own decisions, and say what an empty category list and a missing detection service each really do.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "one-policy",
+      "icon": "🛰️",
+      "title": "One policy, every chat in the organisation",
+      "bodyMd": "Sooner or later somebody asks you to put it in writing: what personal data leaves this building when our people use AI?\n\nAt Van Dijk Groep, a Dutch SME of forty-odd people, purchasing pastes supplier contracts into chat, HR runs a routine over re-integration files, sales drafts proposals from a CRM export. All of it reaches an AI model unless somebody decides otherwise.\n\nThe Privacy Shield is that decision, made once for the whole organisation instead of left to each colleague. You find it under **Settings → Organisation → Privacy Shield**; the page is headed *Organization Privacy Shield*.\n\nThe foot of the Overview tab states the rule that matters most: these rules run first, before any rules set on an individual agent. An agent can be stricter, never looser."
+    },
+    {
+      "type": "slide",
+      "id": "master-switch",
+      "icon": "🔌",
+      "title": "The master switch, and the tabs it unlocks",
+      "bodyMd": "Everything starts on the **Overview** tab with one toggle: **Protect personal data** — *\"Applies to every chat and every agent in this organisation.\"* A new organisation has it **off**.\n\nWhile it is off the page says so plainly: messages go to the AI unchanged, and the three policy tabs — **What we look for**, **What happens**, **Leaving your org** — stay inactive. Overview and **What happened** stay readable.\n\nFlip it and those tabs wake up. Nothing you change anywhere on the page counts until you press **Save All Changes** and see *Saved successfully!*\n\nThe switch is reversible. One consequence is not: documents already redacted when they were added to a knowledge base keep the redacted text."
+    },
+    {
+      "type": "slide",
+      "id": "posture",
+      "icon": "📋",
+      "title": "Read the posture table, not your memory",
+      "bodyMd": "With the shield on, Overview becomes a read-only summary of every decision you made — your posture in one table. Each row has a **Change** link to the tab that owns it. Read this page, not your memory, before you tell anyone the shield is configured.\n\nThe rows to read first:\n\n- **Kinds of data we look for** — reads *\"n of 21\"*\n- **How strict** — Low sensitivity, Balanced, High sensitivity or Custom\n- **When we find something** — Replace with placeholders, or Do not send the message\n- **Also covers routines** — on unless you turned it off\n- **One last check before an outside AI** — off until you switch it on\n- **Always hidden** and **Never hidden** — your own terms, and your exemptions\n\nAn amber row wants a second look before you call this done."
+    },
+    {
+      "type": "quiz",
+      "id": "q-zero-cats",
+      "question": "Van Dijk Groep's admin switches Protect personal data on, presses Save All Changes, and ticks no categories at all. What happens to the next message containing a customer name and an IBAN?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Both are found. An empty selection narrows nothing, so every kind stays in scope, and the default action stops the message.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Nothing is found, so the message reaches the AI unchanged.",
+          "correct": false,
+          "feedback": "The amber row on Overview reads that way, but an empty list means \"no narrowing\", not \"nothing to look for\". Ticking categories narrows the scan; ticking none leaves it at its widest."
+        },
+        {
+          "id": "c",
+          "label": "The message goes through, because no action can fire until at least one category is ticked.",
+          "correct": false,
+          "feedback": "The action fires on whatever the detector returns, and with no selection it is asked about all 21 kinds. Do not send the message is the default action, so a message like this one is stopped."
+        },
+        {
+          "id": "d",
+          "label": "Only the customer name is found; bank details have to be ticked before they are looked for.",
+          "correct": false,
+          "feedback": "No category is special. Either your selection narrows the scan, for every category alike, or it is empty and nothing is narrowed."
+        }
+      ],
+      "explanation": "Ticking categories narrows what the detector is asked about; an empty list narrows nothing, so all 21 kinds stay in scope. Overview still turns the row Kinds of data we look for amber at \"0 of 21\". Read that as \"nobody has made this decision yet\" and make it deliberately, because that selection is what your tool rules and your evidence are built on later.",
+      "icon": "❓"
+    },
+    {
+      "type": "slide",
+      "id": "guard-service",
+      "icon": "🧠",
+      "title": "Where the looking actually happens",
+      "bodyMd": "The tick boxes describe what to look for. A separate detection service, running on your own server, does the looking: it reads each message before it goes to the AI, and that scan never leaves your own machines.\n\nIf the service was never installed, detection is simply off. Every category on **What we look for** has no effect and messages go through unchecked. Your own entries under **Always hide these** still match, because exact words and patterns need no model."
+    },
+    {
+      "type": "slide",
+      "id": "guard-down",
+      "icon": "⚠️",
+      "title": "Installed, but not answering",
+      "bodyMd": "The other failure is louder. When the service is installed but not responding, the shield refuses to guess: people read *\"Privacy protection is temporarily unavailable, so your message was not sent.\"*\n\nNeither state shows anywhere on the Privacy Shield page, which will report a full posture while nothing is being scanned.\n\nThe check lives on a different route, and the difference in that route is the point. Everything you configure sits under **Settings → Organisation → Privacy Shield** — your own organisation's area. The detection service belongs to whoever runs the server, so it is checked in the separate server-operator console: **Admin → Security → Guardrails**, which exists on Enterprise installs only. A platform admin opens it and reads the banner there: *PII Guard is not installed* or *PII Guard is unreachable*.\n\nAsk for that check before you sign anything off."
+    },
+    {
+      "type": "sim",
+      "id": "sim-which-screen",
+      "icon": "🗺️",
+      "title": "Which screen owns which job",
+      "instruction": "Two different areas are involved, and only one of them is yours. Match each job to the screen that does it.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "p1",
+            "left": "Switch Protect personal data on for the whole organisation",
+            "right": "Settings → Organisation → Privacy Shield, tab Overview",
+            "note": "The master switch lives on Overview, and it is what makes the three policy tabs clickable."
+          },
+          {
+            "id": "p2",
+            "left": "Tick the kinds of personal data to look for, and set How strict",
+            "right": "Settings → Organisation → Privacy Shield, tab What we look for",
+            "note": "Same page, second tab. How strict sits above the grid of 21 categories."
+          },
+          {
+            "id": "p3",
+            "left": "Read the evidence of what was hidden, and where data went",
+            "right": "Settings → Organisation → Privacy Shield, tab What happened",
+            "note": "The evidence tab. It stays readable even while the master switch is off."
+          },
+          {
+            "id": "p4",
+            "left": "Confirm the detection service is installed and answering",
+            "right": "Admin → Security → Guardrails (server-operator console)",
+            "note": "A different area with a different owner: the person who runs the server, not the organisation admin. Enterprise installs only, and the Privacy Shield page never reports this."
+          }
+        ]
+      }
+    },
+    {
+      "type": "sim",
+      "id": "sim-order",
+      "icon": "🧩",
+      "title": "The first configuration, in order",
+      "instruction": "Drag the six steps of a first switch-on into the order the Privacy Shield page walks you through them.",
+      "sim": {
+        "kind": "order",
+        "items": [
+          {
+            "id": "a",
+            "label": "On Overview, switch Protect personal data on"
+          },
+          {
+            "id": "b",
+            "label": "Tick the kinds of personal data that matter for your work"
+          },
+          {
+            "id": "c",
+            "label": "On What we look for, set How strict — Balanced is the tested setting"
+          },
+          {
+            "id": "d",
+            "label": "On What happens, choose placeholders or Do not send the message"
+          },
+          {
+            "id": "e",
+            "label": "Press Save All Changes and wait for Saved successfully!"
+          },
+          {
+            "id": "f",
+            "label": "Back on Overview, read the row Kinds of data we look for"
+          }
+        ],
+        "solution": [
+          "a",
+          "c",
+          "b",
+          "d",
+          "e",
+          "f"
+        ],
+        "feedback": "The switch comes first: it is what makes the other tabs clickable at all. Then work down What we look for as it is laid out, with How strict above the grid of categories, and Balanced is the level every kind of data was tuned and measured at. Nothing is in force until Save All Changes, and Overview is where you read back what you just decided."
+      }
+    },
+    {
+      "type": "quiz",
+      "id": "q-where-scan",
+      "question": "A works council member at Van Dijk Groep asks where the checking happens. Which answer is correct?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "A service on your organisation's own server reads the message before it goes to the AI; nothing is sent elsewhere to be checked.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "The AI provider sees the message first and flags the personal data, so Bee Flow can strip it from the answer.",
+          "correct": false,
+          "feedback": "That would defeat the purpose: the provider has already seen the personal data. The check runs before the message leaves, not after."
+        },
+        {
+          "id": "c",
+          "label": "The text goes to an outside scanning service, which sends the findings back.",
+          "correct": false,
+          "feedback": "Nothing is sent elsewhere to be checked. The detection service runs on your own server, which is exactly why the feature can be promised under GDPR."
+        },
+        {
+          "id": "d",
+          "label": "Only the words typed into Always hide these are ever matched; no detection model is involved.",
+          "correct": false,
+          "feedback": "That is what you are left with when the detection service is missing: your own words and patterns still match, but none of the 21 categories are detected."
+        }
+      ],
+      "explanation": "The detection service runs on your own server. It reads the message before it is sent, finds what the ticked categories describe, and the text never leaves the organisation for that check. When the service is absent, only your own terms and patterns still fire.",
+      "icon": "🔎"
+    },
+    {
+      "type": "action",
+      "id": "do-enable",
+      "icon": "🏗️",
+      "checkId": "shield-configured",
+      "title": "Turn it on, with a first set of categories",
+      "instruction": "Open Settings → Organisation → Privacy Shield and switch Protect personal data on. On What we look for, set How strict to Balanced and tick the kinds that match your work — for a purchasing team like Van Dijk Groep's, at least Person Names, Email Addresses, Phone Numbers, IBAN Numbers and Company names. Press Save All Changes, then check that Overview no longer reads 0 of 21.",
+      "launch": {
+        "navigateTo": "settings/organisation/privacy",
+        "label": "Open Privacy Shield"
+      }
+    },
+    {
+      "type": "slide",
+      "id": "gaps",
+      "icon": "✅",
+      "title": "What you can do now, and two gaps",
+      "bodyMd": "**What you can do now**\n\n- Switch the shield on for your organisation and read Overview row by row as a summary of your own decisions.\n- Say what an empty category list really does, which is the widest scan rather than a safe one, and what a detection service that is not running does, and where somebody checks that: the server-operator console at Admin → Security → Guardrails, never the Privacy Shield page.\n- Explain that nothing is in force until Save All Changes reports *Saved successfully!*\n\n**Two gaps to write down**\n\n1. The 21 categories are generic. Van Dijk Groep's own contract-number format is not among them, and neither are the supplier names the AI needs to keep reading. That is the next chapter, *What we look for*.\n2. **One last check before an outside AI** is still off, so an external model is covered only by the always-on check you just configured."
+    }
+  ],
+  "practiceTopic": {
+    "title": "Switching on the Organisation Privacy Shield",
+    "summary": "How an org admin enables the Privacy Shield, and the two configurations that look finished but catch nothing.",
+    "facts": [
+      "The Privacy Shield lives under Settings → Organisation → Privacy Shield, with the tabs Overview, What we look for, What happens, Leaving your org and What happened; the server-operator console Admin → Security → Guardrails is a separate area with a separate owner.",
+      "The master toggle is called Protect personal data; it is off for a new organisation, and the three policy tabs stay inactive until it is on.",
+      "The catalogue holds 21 kinds of personal data, and the Overview row Kinds of data we look for shows how many of them are ticked, as \"n of 21\".",
+      "An empty category list is read as \"no narrowing\", so the detector is asked about every kind it knows, while Overview still flags the row Kinds of data we look for in amber at \"0 of 21\".",
+      "The three strictness presets are Low sensitivity, Balanced and High sensitivity; Balanced carries the Recommended badge and is the level every quality number was measured at.",
+      "Detection runs on a service on your own server; the text is not sent elsewhere to be checked, and whether that service is installed and answering shows only in Admin → Security → Guardrails, never on the Privacy Shield page.",
+      "Changes only take effect after pressing Save All Changes, which confirms with the toast Saved successfully!",
+      "Overview’s footer states that org rules run before any agent’s own rules: an agent can be stricter, never looser."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "shield-configured",
+      "existing": false,
+      "label": "Shield on with at least one category",
+      "hint": "In Settings → Organisation → Privacy Shield: switch Protect personal data on, tick at least one kind of personal data on What we look for, then press Save All Changes.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/org-privacy-shield/:orgid",
+          "returns": "the saved shield config object for the learners own organisation (any member may read it): enabled (bool), piiDetectionCategories (array of category names), piiDetectionConfidenceThreshold, piiDetectionAction, updatedAt, updatedBy"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "enabled",
+          "label": "The shield is switched on and saved",
+          "hint": "Overview → Protect personal data must be on, and you must press Save All Changes — the check reads the saved organisation setting, not the toggle on screen.",
+          "rule": "GET /api/org-privacy-shield/:orgid → enabled === true (the org id is filled in for you; a never-saved org answers enabled: false)",
+          "endpoint": "/api/org-privacy-shield/:orgid",
+          "expect": {
+            "kind": "equals",
+            "field": "enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "categories",
+          "label": "At least one kind of personal data is ticked",
+          "hint": "What we look for → tick the kinds that matter for your work, then Save All Changes. Overview must no longer read 0 of 21.",
+          "rule": "GET /api/org-privacy-shield/:orgid → piiDetectionCategories is a non-empty array of category names",
+          "endpoint": "/api/org-privacy-shield/:orgid",
+          "expect": {
+            "kind": "nonEmpty",
+            "field": "piiDetectionCategories"
+          }
+        }
+      ]
+    }
+  ]
+}

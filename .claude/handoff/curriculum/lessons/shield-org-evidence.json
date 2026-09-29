@@ -1,0 +1,286 @@
+{
+  "id": "shield-org-evidence",
+  "icon": "📈",
+  "estMinutes": 10,
+  "title": "Prove it",
+  "desc": "The What happened tab: KPIs, the sovereignty score, alert banners and the detail rows behind them.",
+  "gate": {
+    "permission": "org_admin",
+    "feature": "advanced_usage_monitoring"
+  },
+  "learningGoal": "After this lesson you can turn a month of shield activity into one action and one sentence you are willing to sign.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "why",
+      "icon": "🧭",
+      "title": "The tab that has to survive a question",
+      "bodyMd": "Van Dijk Groep, a sixty-person installation firm near Zwolle. In March the board asks their office manager one question: **what personal data left our building last month?**\n\nThe first four tabs of the Privacy Shield say what *should* happen. The fifth says what *did*.\n\n**Settings → Organisation → Privacy Shield → What happened.** The header reads \"What the shield caught, and where your data went.\", with a range control offering `7d`, `30d` and `90d`. It opens on **30d**.\n\nTwo things to know before you read a single number. It is part of the Enterprise plan; without it you get a lock card, \"See what actually happened\". And if the shield is off right now, a grey line says so: you are looking at past activity."
+    },
+    {
+      "type": "slide",
+      "id": "kpis",
+      "icon": "🔢",
+      "title": "Four cards, four different questions",
+      "bodyMd": "Across the top sit four KPI cards. They count different things, and mixing them up is how a report goes wrong.\n\n- **Times the shield stepped in** — every recorded shield event: personal data, your own custom rules, unsafe content, and the checks just before an outside AI.\n- **Personal data caught** — only the personal-data events, so it can never be larger than the first card.\n- **Calls to outside services** — every recorded call to a connected app or an outside tool. Some of those rows went no further than a server of your own.\n- **Stayed in Europe** — a score out of 100, not a count.\n\nThe first three are clickable: the first two open the shield-event rows, Calls to outside services opens the rows for data that left. Stayed in Europe is a read-out only."
+    },
+    {
+      "type": "sim",
+      "id": "kpi-match",
+      "icon": "🧩",
+      "title": "Which number moves?",
+      "instruction": "Four things happened at Van Dijk Groep on Tuesday. Match each one to the card on the What happened tab that it moves. Every card is used once.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "iban",
+            "left": "A quotation with a supplier's IBAN in it was stopped before the model saw it.",
+            "right": "Personal data caught",
+            "note": "A personal-data event. It also adds one to Times the shield stepped in, which counts every recorded event of every kind."
+          },
+          {
+            "id": "clean",
+            "left": "The organisation has \"Always show this check, even when nothing is found\" on; the pre-send check found nothing, the person pressed Send, and the message went.",
+            "right": "Times the shield stepped in",
+            "note": "The decision was shown to someone, so it is recorded even though nothing was hidden and the total rises. It is a check-before-an-outside-AI event, not a personal-data one, so Personal data caught stays where it was."
+          },
+          {
+            "id": "local",
+            "left": "A routine fetched a project file from the company's own self-hosted file server.",
+            "right": "Calls to outside services",
+            "note": "It is recorded like any other connected-app call, so that is the only card it moves: the destination column reads \"Your own server\", and the score treats your own server as staying home."
+          },
+          {
+            "id": "abroad",
+            "left": "Twelve calls carried customer e-mail addresses to a server in the United States.",
+            "right": "Stayed in Europe",
+            "note": "These twelve sit in Calls to outside services too, but this is the card that reacts: personal data leaving Europe is the one thing the score counts twice, so it falls fastest."
+          }
+        ]
+      }
+    },
+    {
+      "type": "slide",
+      "id": "score",
+      "icon": "🌍",
+      "title": "A score that counts one thing twice",
+      "bodyMd": "**Stayed in Europe** is written `NN/100`. Its tooltip is the whole rule: \"Out of 100. Calls that stayed in Europe or on your own servers score full marks; personal data leaving Europe counts double against the score.\"\n\nA call to a service in Ireland costs nothing. A call outside the EU costs one. One that *carried personal data* counts against you twice over.\n\nThe score is worked out over every call in the period, not over the rows you can see in the table. Under it sits a change chip: the difference against the previous window of the same length, so on `30d` a chip reading -10 means ten points lower than the month before. With nothing to compare against, the card just says \"of your calls\"; with no calls at all it shows a dash, not a flattering 100."
+    },
+    {
+      "type": "slide",
+      "id": "banners",
+      "icon": "🚨",
+      "title": "One banner at a time, worst first",
+      "bodyMd": "Above the cards you may see a banner. Never more than one, and always the most serious that applies:\n\n1. **Personal data left Europe** — red. Fires as soon as a single call carried personal data out of the EU.\n2. **A lot of your data is leaving Europe** — amber, when the score drops below **40**.\n3. **The shield is catching a lot of personal data** — amber, when more than **10** messages contained personal data.\n\nEvery banner carries the same button, **Look at these**, which opens The details on the ledger that banner is about. From the Europe banners you land on the rows for data that left, already filtered to destinations outside Europe.\n\nBecause only the worst one shows, two of the three conditions can be true while you read about the third."
+    },
+    {
+      "type": "quiz",
+      "id": "q-banner",
+      "icon": "❓",
+      "question": "The 30d view at Van Dijk Groep shows the red banner \"Personal data left Europe\". What do you do first?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Press Look at these, then expand one of the rows.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Open the Shield events rows and look for the blocked messages.",
+          "correct": false,
+          "feedback": "Those are two different ledgers. Shield events say what was done to a message on its way to a model; this banner is about calls that already left, which live under \"Data that left your org\"."
+        },
+        {
+          "id": "c",
+          "label": "Switch the range to 90d first, to see whether it is a trend.",
+          "correct": false,
+          "feedback": "Worth doing afterwards. But the banner has already told you there are rows in this window, and widening the range only mixes them with older traffic before you have read one."
+        },
+        {
+          "id": "d",
+          "label": "Go straight to Leaving your org and switch on \"Use only AI hosted in the EU\".",
+          "correct": false,
+          "feedback": "Two things wrong with that. The switch sends chats to EU-hosted models, while these rows are connected-app and tool calls, so it need not touch them at all. And you cannot name the destination, the country or the kind of data in a report you sign if you never opened the rows behind the banner."
+        }
+      ],
+      "explanation": "Look at these opens \"The details\" on \"Data that left your org\", already filtered to destinations outside Europe. Expanding a row gives you the country, who operates the server, the server address, how long the call took and which kinds of personal data travelled with it. That is the paragraph you have to write, sitting in one row."
+    },
+    {
+      "type": "slide",
+      "id": "rows",
+      "icon": "📋",
+      "title": "Two ledgers under one fold",
+      "bodyMd": "Under **The details** sit two filters: **Shield events** and **Data that left your org**.\n\nShield events read `Time · Person · Where it happened · What we found · What we did`. The last column is plain: Stopped, Hidden, Sent anyway, Placeholders, Search stopped, Noted only, Sent unchecked, Check failed. \"Where it happened\" is Direct chat, Agent, Routine or Notebook.\n\nEgress rows read `Time · Person · Where it happened · Service · Where it went`, and a local destination shows as \"Your own server\".\n\nAny row expands. An egress row then names the country, who operates the server, the server address, the result, how long the call took and which kinds of personal data travelled with it.\n\n**Show more** adds fifty at a time and stops at two hundred: it is for reading examples, not exporting a month."
+    },
+    {
+      "type": "sim",
+      "id": "order-fix",
+      "icon": "🧭",
+      "title": "From banner to signature",
+      "instruction": "Put the five moves in the order that ends with something you can defend. Drag them into place.",
+      "sim": {
+        "kind": "order",
+        "items": [
+          {
+            "id": "read",
+            "label": "Read the one banner at the top of the 30d view."
+          },
+          {
+            "id": "open",
+            "label": "Press Look at these and expand a row: country, operator, categories."
+          },
+          {
+            "id": "cause",
+            "label": "Use the Where it happened and Service columns to name the surface and the connector behind it."
+          },
+          {
+            "id": "fix",
+            "label": "Change the setting on Leaving your org, then Save All Changes."
+          },
+          {
+            "id": "recheck",
+            "label": "Come back a week later, same range, and read Stayed in Europe again."
+          }
+        ],
+        "solution": [
+          "read",
+          "open",
+          "cause",
+          "fix",
+          "recheck"
+        ],
+        "feedback": "Banner, detail, cause, setting, recheck. Skipping the detail row leaves you fixing a guess; skipping the recheck leaves you claiming a fix you never measured. The fix itself is one tab away, on Leaving your org."
+      }
+    },
+    {
+      "type": "quiz",
+      "id": "q-zero",
+      "icon": "❓",
+      "question": "After a demonstrably busy month, Van Dijk Groep's What happened tab shows zero shield events. What is the right reading?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Nothing yet. Zero is equally consistent with a shield that cannot see anything, so check the posture before you report it.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Good news: it proves no personal data was sent to any model last month.",
+          "correct": false,
+          "feedback": "It proves nothing was recorded. A shield with no categories ticked, or a detection service that is not answering, produces exactly this same empty tab."
+        },
+        {
+          "id": "c",
+          "label": "The range is wrong; widen it to 90d and report whatever appears.",
+          "correct": false,
+          "feedback": "Widening the window is a reasonable check, but an empty 30d after a busy 30d is a signal in itself. Do not explain it away before you have looked at the configuration."
+        },
+        {
+          "id": "d",
+          "label": "Lower the sensitivity percentage until events start appearing.",
+          "correct": false,
+          "feedback": "Turning the dial to make a report look busier is the wrong instinct, and it changes what is hidden from the AI for everyone in the organisation. Diagnose first."
+        }
+      ],
+      "explanation": "Go back to the Overview tab. If \"Kinds of data we look for\" reads \"0 of 21\", nothing was ever asked for and nothing could be found. If categories are ticked and \"How strict\" sits at a high custom percentage, almost nothing qualifies. If both look right, ask your platform administrator whether the detection service is installed and answering. An empty evidence tab is a question, never an answer."
+    },
+    {
+      "type": "action",
+      "id": "egress-scan",
+      "icon": "🏗️",
+      "checkId": "shield-egress-scanning",
+      "title": "Close the one blind spot in the ledger",
+      "instruction": "Open the Privacy Shield and go to the tab \"Leaving your org\". Switch on \"Check connected-app traffic for personal data\", then press Save All Changes and wait for the confirmation. Every connected-app call is recorded either way, with its host, country and result; this setting is what lets those rows also say which kinds of personal data travelled with them.",
+      "launch": {
+        "navigateTo": "settings/organisation/privacy",
+        "label": "Open Privacy Shield"
+      }
+    },
+    {
+      "type": "slide",
+      "id": "console",
+      "icon": "🔍",
+      "title": "Why the operator console has only four tabs",
+      "bodyMd": "If your organisation runs its own server, an administrator can also reach a Privacy Shield editor through the platform console, where a picker lets them choose which organisation to edit.\n\nThat copy of the page has four tabs. **What happened is deliberately missing there.**\n\nThe reason is worth understanding, because it is the same trap the rest of this course keeps pointing at. The monitoring figures are scoped to the organisation of the person signed in, not to the organisation chosen in the picker. Shown side by side with someone else's policy, they would look like that organisation's evidence while being your own.\n\nSo the evidence tab lives only where the two can never disagree: your own organisation's settings page. If you are asked for a report about another organisation, it has to come from an administrator inside it."
+    },
+    {
+      "type": "exercise",
+      "id": "board-note",
+      "icon": "🎯",
+      "exerciseId": "ex-shield-org-evidence-board-note",
+      "title": "Your turn: the paragraph you would sign",
+      "instruction": "Write the short paragraph you would send the board of Van Dijk Groep about last month. Use the 30d view as your source. Name the period and the range you read, give at least two of the four figures and say what each one counts, name one concrete finding from a detail row (a destination, a country, a kind of data or a surface), state the one change you made and the date you will re-read the score. Then add the honest limit: one sentence on what this tab does not prove.",
+      "placeholder": "e.g. For 12 February to 14 March (the 30d view), the shield stepped in 46 times, of which 18 were personal data...",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "slide",
+      "id": "recap",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "- **Read the four cards for what they each count.** Times the shield stepped in counts every recorded event of every kind; Personal data caught is the personal-data subset; Calls to outside services includes calls that stayed on your own servers; Stayed in Europe is a score out of 100 in which personal data leaving Europe counts double.\n- **Work a banner all the way down.** Look at these, expand a row for country, operator and categories, name the surface and the service, change the setting on Leaving your org, then re-read the score in a week.\n- **Treat an empty tab as a question.** Check the ticked categories on Overview, the strictness and the detection service before you report zero as a result."
+    }
+  ],
+  "rubrics": {
+    "ex-shield-org-evidence-board-note": {
+      "title": "A defensible month in one paragraph",
+      "task": "Write the paragraph you would send Van Dijk Groep's board about last month's shield activity, based on the 30d view of the What happened tab: the period and range, at least two figures with what they count, one concrete finding from a detail row, the change made plus a recheck date, and one sentence on what the tab does not prove.",
+      "criteria": [
+        "Names the period and the range read (7d, 30d or 90d), so the figures can be reproduced by someone else.",
+        "Uses at least two of the four figures correctly: shield events as every event, personal data caught as the subset, calls to outside services, or the score out of 100 in which personal data leaving Europe counts double.",
+        "Cites one concrete detail-row finding — a destination or country, an operator, a kind of personal data, or the surface (direct chat, agent, routine, notebook).",
+        "States one specific change made or planned, and says when the figures will be read again.",
+        "Adds an honest limit: the tab reports what was recorded, so it cannot prove that nothing was missed."
+      ],
+      "passScore": 70,
+      "guidance": "Pass a paragraph a non-technical board could act on and an auditor could reproduce. Do not pass an answer that treats a low count or an empty tab as proof that no personal data was processed; that confuses shield events with calls that left; that quotes a figure without saying what it counts; that invents fields the tab does not show, such as message content or exported spreadsheets; or that ends without a change and a recheck. Invented numbers must stay consistent: personal data caught can never exceed the total number of shield events."
+    }
+  },
+  "practiceTopic": {
+    "title": "Reading the Privacy Shield's What happened tab",
+    "summary": "How an org admin turns the shield's evidence tab into a defensible statement about what left the organisation.",
+    "facts": [
+      "The evidence tab is called \"What happened\" and sits on Settings → Organisation → Privacy Shield, with range presets 7d, 30d and 90d and 30d selected by default.",
+      "The four KPI cards are \"Times the shield stepped in\", \"Personal data caught\", \"Calls to outside services\" and \"Stayed in Europe\", which is a score out of 100 rather than a count.",
+      "In the sovereignty score, calls that stayed in Europe or on your own servers score full marks, and personal data leaving Europe counts double against the score.",
+      "At most one alert banner is shown, worst first: \"Personal data left Europe\", then \"A lot of your data is leaving Europe\" below a score of 40, then \"The shield is catching a lot of personal data\" above 10 catches.",
+      "Every banner carries the button \"Look at these\", which opens The details on the ledger the banner is about; from the Europe banners it opens \"Data that left your org\" pre-filtered to destinations outside Europe.",
+      "The details fold has two filters: \"Shield events\" with the columns Time, Person, Where it happened, What we found, What we did; and \"Data that left your org\" with Time, Person, Where it happened, Service, Where it went.",
+      "Show more adds fifty detail rows at a time and stops at two hundred, and expanding an egress row shows the country, the operator, the server address, the result, how long the call took and the kinds of personal data involved.",
+      "The tab is offered only on the organisation settings page, never in the platform console, because the monitoring figures are scoped to the signed-in user's own organisation."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "shield-egress-scanning",
+      "existing": false,
+      "label": "Turn on content checks for connected-app traffic",
+      "hint": "Privacy Shield → Leaving your org → \"Check connected-app traffic for personal data\" → Save All Changes.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/org-privacy-shield/:orgid",
+          "returns": "the organisation's shield config as a flat object with the boolean monitorIntegrations at the top level (false in the defaults used when no row was ever saved); :orgid is templated with the learner's own organisation id, and the handler only requires being signed in and a member of that org, so an org admin can always read it"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "monitoring-on",
+          "label": "Connected-app traffic is content-checked",
+          "hint": "Privacy Shield → Leaving your org → switch on \"Check connected-app traffic for personal data\", then press Save All Changes and wait for the confirmation.",
+          "rule": "GET /api/org-privacy-shield/<your org id> has monitorIntegrations === true",
+          "endpoint": "/api/org-privacy-shield/:orgid",
+          "expect": {
+            "kind": "equals",
+            "field": "monitorIntegrations",
+            "value": true
+          }
+        }
+      ]
+    }
+  ]
+}

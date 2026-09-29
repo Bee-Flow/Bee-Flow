@@ -1,0 +1,101 @@
+import { useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { ChevronDown } from 'lucide-react';
+import CmdTip from './CmdTip';
+import useCmdTip from './useCmdTip';
+
+/**
+ * Ribbon dropdown: a pill trigger + a body-portalled, fixed-position panel.
+ *
+ * The panel is portalled to <body> because ribbons live inside headers /
+ * canvases that create stacking contexts (and may clip overflow) — an in-flow
+ * absolute panel ends up trapped behind the canvas or cut off. A fixed,
+ * body-portalled panel escapes every ancestor.
+ *
+ * The panel carries `data-ribbon-dropdown`; callers owning outside-click
+ * handling must ignore mousedowns inside `[data-ribbon-dropdown]`, or
+ * item-selection unmounts the portal before the click registers.
+ *
+ * Trigger glyph: `icon` (lucide component) wins over `glyph` (pre-sized
+ * ReactNode, e.g. an <IntegrationLogo/>).
+ *
+ * Explaining what the menu behind the pill CONTAINS: pass `desc` (and
+ * optionally `tipFooter`) and the trigger grows the same Office-style screen tip
+ * a CmdButton has. Every app on the ribbon's Apps tab is one of these pills, and
+ * without a tip they were the only commands on the ribbon that explained
+ * nothing — hovering "Nextcloud Talk" told you no more than reading it did.
+ *
+ * `buttonProps` land on the pill <button> itself — the routines ribbon stamps
+ * `data-ribbon-origin` there so the build film can find the pill a card flies
+ * from. Spread BEFORE the hover props, so nothing a caller passes can unhook
+ * the screen tip.
+ */
+export default function RibbonDropdown({
+    label,
+    tipTitle = null,
+    desc = null,
+    tipFooter = null,
+    icon: Icon = null,
+    glyph = null,
+    open,
+    onToggle,
+    children,
+    align = 'left',
+    width = 300,
+    buttonProps = null,
+}) {
+    const btnRef = useRef(null);
+    const [pos, setPos] = useState(null);
+    // The tip is suppressed while the menu is open: the panel it describes is
+    // already on screen, directly under the tip's own position.
+    const { open: tipOpen, hoverProps, dismiss } = useCmdTip(!!desc);
+
+    useLayoutEffect(() => {
+        if (!open || !btnRef.current) return undefined;
+        const place = () => {
+            const r = btnRef.current.getBoundingClientRect();
+            const left = align === 'right' ? r.right - width : r.left;
+            const clampedLeft = Math.max(8, Math.min(left, window.innerWidth - width - 8));
+            setPos({ top: r.bottom + 4, left: clampedLeft });
+        };
+        place();
+        window.addEventListener('resize', place);
+        window.addEventListener('scroll', place, true);
+        return () => { window.removeEventListener('resize', place); window.removeEventListener('scroll', place, true); };
+    }, [open, align, width]);
+
+    const resolvedGlyph = Icon ? <Icon size={14} /> : glyph;
+    return (
+        <div className="relative shrink-0">
+            <button
+                ref={btnRef}
+                type="button"
+                onClick={(e) => { dismiss?.(); onToggle?.(e); }}
+                aria-haspopup="true"
+                aria-expanded={open}
+                className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium transition ${
+                    open
+                        ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]'
+                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]'
+                }`}
+                {...(buttonProps || null)}
+                {...hoverProps}
+            >
+                {resolvedGlyph}
+                <span className="truncate max-w-[8rem]">{label}</span>
+                <ChevronDown size={12} className="opacity-60" />
+            </button>
+            {desc && <CmdTip anchorRef={btnRef} open={tipOpen && !open} title={tipTitle || label} desc={desc} footer={tipFooter} />}
+            {open && pos && createPortal(
+                <div
+                    data-ribbon-dropdown
+                    style={{ position: 'fixed', top: pos.top, left: pos.left, width }}
+                    className="z-[1000] max-h-[60vh] flex flex-col rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] shadow-xl overflow-hidden"
+                >
+                    {children}
+                </div>,
+                document.body,
+            )}
+        </div>
+    );
+}

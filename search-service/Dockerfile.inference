@@ -1,0 +1,34 @@
+FROM python:3.11-slim@sha256:da047cb8f9d1d98e5c070f5300ba9f7274e33b8fc0e5be5ed88740aed1b95ba9
+
+WORKDIR /app
+
+# System deps (including OpenCL for Intel GPU)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# PyTorch CPU (lightweight) + inference stack
+RUN pip install --no-cache-dir \
+    torch --extra-index-url https://download.pytorch.org/whl/cpu && \
+    pip install --no-cache-dir \
+    fastapi \
+    uvicorn[standard] \
+    sentence-transformers \
+    pydantic \
+    pydantic-settings \
+    numpy \
+    openvino \
+    optimum[openvino] \
+    transformers
+
+COPY inference_server.py .
+
+RUN useradd -m appuser && \
+    mkdir -p /data/huggingface && \
+    chown -R appuser:appuser /data
+ENV HF_HOME=/data/huggingface
+USER appuser
+
+EXPOSE 8001
+
+CMD ["python", "inference_server.py"]

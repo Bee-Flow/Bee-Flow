@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <!-- Locked to nothing but the files shipped beside this page. `file:` is
+             listed alongside 'self' because a file:// document's origin is
+             opaque in Chromium, so 'self' alone can refuse to match the page's
+             own scripts. There is no remote content on these pages at all, and
+             no network: everything they do goes over IPC. -->
+        <meta
+            http-equiv="Content-Security-Policy"
+            content="default-src 'none'; script-src 'self' file:; style-src 'self' file:; img-src 'self' file: data:; font-src 'self' file:; connect-src 'none'; base-uri 'none'; form-action 'none'"
+        />
+        <title>Bee Flow is offline</title>
+        <link rel="stylesheet" href="styles.css" />
+    </head>
+    <body>
+        <main>
+            <div class="mark" aria-hidden="true">B</div>
+            <h1 id="heading">Bee Flow cannot reach your server</h1>
+            <p id="reason"></p>
+
+            <div class="card">
+                <div class="row">
+                    <div class="row-text">
+                        <div class="row-title">Server</div>
+                        <div class="row-hint" id="server"></div>
+                    </div>
+                    <span class="pill off" id="state">offline</span>
+                </div>
+                <div id="advice"></div>
+                <div class="status" id="status" role="status" aria-live="polite"></div>
+                <div class="actions">
+                    <button class="primary" id="use-target" hidden></button>
+                    <button class="primary" id="retry">Try again</button>
+                    <button id="change">Use a different server</button>
+                    <button class="link" id="settings">Open settings</button>
+                </div>
+            </div>
+
+            <p class="muted">
+                Bee Flow keeps running in the background. Notifications and the quick-ask shortcut will start working
+                again by themselves once the server answers.
+            </p>
+        </main>
+        <script type="module" src="unreachable.js"></script>
+    </body>
+</html>

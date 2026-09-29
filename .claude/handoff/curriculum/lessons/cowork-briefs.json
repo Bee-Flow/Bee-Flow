@@ -1,0 +1,211 @@
+{
+  "id": "cowork-briefs",
+  "icon": "📝",
+  "estMinutes": 9,
+  "title": "Writing a brief nobody has to clarify",
+  "desc": "The unattended prompt: what to produce, the detail that makes it useful, when it runs.",
+  "gate": {},
+  "learningGoal": "After this lesson you can write a cowork brief that produces something useful at 07:30 with nobody at the keyboard, and set the timing and the apps yourself instead of leaving them to a guess.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "nobody-there",
+      "icon": "🌙",
+      "title": "Nobody is there to answer",
+      "bodyMd": "At 07:30 tomorrow a run starts, and nobody is awake to answer a question about it.\n\nBart does procurement at Van Dijk Groep, a Dutch building-supplies firm. His first brief reads: **\"Every weekday at 07:30, keep an eye on the supplier mail.\"**\n\nThe runner has one standing instruction it cannot break: **do not ask follow-up questions — this runs unattended.** So it never asks *which* mailbox, *which* suppliers, or what *\"an eye\"* means. It guesses, writes something, and drops it in Bart's notifications.\n\nIn chat a vague prompt costs you one follow-up message. In Cowork it costs you the whole run — and you find out the next morning."
+    },
+    {
+      "type": "slide",
+      "id": "three-parts",
+      "icon": "🧩",
+      "title": "A brief has three parts",
+      "bodyMd": "Say all three and there is nothing left to clarify.\n\n1. **The work** — what should actually be produced. A digest, a list, a draft, a table. Not a topic to \"look at\".\n2. **The detail that makes it useful** — where to look, what to include, what to leave out, and the shape you want back: which fields, how many bullets, how long.\n3. **The cadence** — when, or how often.\n\nBart's second attempt:\n\n> *Every weekday at 07:30, summarise the new supplier messages in my mailbox, grouped per supplier, with the order number, the amount and the reply deadline for each message.*\n\nSame job. Nothing left to ask."
+    },
+    {
+      "type": "sim",
+      "id": "diagnose",
+      "icon": "🔍",
+      "title": "What did this brief forget to say?",
+      "instruction": "Four briefs Bart nearly sent. Each one is missing exactly one thing. Match it to the gap that would bite him at 07:30.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "work",
+            "left": "\"Every Monday at 08:00, keep an eye on our three biggest suppliers.\"",
+            "right": "Missing: what to produce",
+            "note": "A topic is not a deliverable. Say digest, list, table or draft — otherwise the run decides for you, differently every time."
+          },
+          {
+            "id": "scope",
+            "left": "\"Every weekday at 07:30, summarise what came in overnight.\"",
+            "right": "Missing: where to look",
+            "note": "Which mailbox, which folder, which senders? An unattended run reaches for whatever your connected apps offer it."
+          },
+          {
+            "id": "shape",
+            "left": "\"Every Monday at 09:00, list the quotes that are still open.\"",
+            "right": "Missing: the shape of the result",
+            "note": "Two lines or forty? Customer and amount, or also how long it has been silent? Pin the fields and the length."
+          },
+          {
+            "id": "when",
+            "left": "\"Summarise the new supplier mail with order number, amount and deadline.\"",
+            "right": "Missing: when or how often",
+            "note": "No timing words at all, so there is nothing to infer: it runs straight away, once, and then switches itself off — which the list shows as Finished. Say the day and the hour, or say you want it now."
+          }
+        ]
+      }
+    },
+    {
+      "type": "slide",
+      "id": "what-happens",
+      "icon": "🪄",
+      "title": "What happens to the words you type",
+      "bodyMd": "Your brief is not stored as-is. When you send it, Bee Flow reads it once and splits it into:\n\n- **a title** — short, max 60 characters, so the list on the left stays scannable;\n- **the instruction** — your brief rewritten as a direct, self-contained order to an assistant. You can read it back on the item under **THE ASSIGNMENT**, and reword it under **Edit** → **What it does**;\n- **the timing** — kept in separate fields, never inside the instruction.\n\nVague times get fixed hours: *morning* is 08:00, *midday* 12:00, *afternoon* 14:00, *evening* 18:00, *night* 21:00.\n\nIt creates nothing on its own. Nothing reaches your list until you press **Run** or **Schedule**."
+    },
+    {
+      "type": "quiz",
+      "id": "asks-a-question",
+      "question": "Saskia, who runs HR at Van Dijk Groep, ends her monthly brief with: \"...and shall I also include last month's open actions?\" The run starts on the 1st at 08:00. What comes back?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "A finished report, with that decision already made for her.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "The run pauses and a notification asks her to decide before it continues.",
+          "correct": false,
+          "feedback": "Nothing in Cowork waits for input. A run either finishes or fails; the only thing that reaches you is the result or the failure, in your notifications."
+        },
+        {
+          "id": "c",
+          "label": "Bee Flow refuses to schedule a brief that contains a question.",
+          "correct": false,
+          "feedback": "Your wording is never blocked. The brief is always turned into a title, an instruction and a timing — and if the model cannot be reached, your own words are used as a one-off instead."
+        },
+        {
+          "id": "d",
+          "label": "The run ends as \"Nothing to report\".",
+          "correct": false,
+          "feedback": "\"Nothing to report\" means the run succeeded and produced no text at all. A question does not stop it producing text — it produces text built on a guess."
+        }
+      ],
+      "explanation": "The runner is told never to ask follow-up questions, because nobody is there to answer one — so your question simply becomes part of what it interprets. Every open question in a brief is a decision you handed to a machine that will not come back to you. Make the call yourself: \"...including last month's open actions.\""
+    },
+    {
+      "type": "tour",
+      "id": "chips",
+      "target": "[data-tour=\"cowork-options\"]",
+      "navigateTo": "cowork",
+      "placement": "top",
+      "optional": true,
+      "timeoutMs": 7000,
+      "icon": "🎛️",
+      "title": "The chips under the box",
+      "body": "Each chip shows its current answer, not its name: the first reads Now (when it runs), the second Once (how often). A third chip reads No agent when your account has agents it may hand work to — that is the Run as choice — and the Apps button sits beside them. Any chip you set yourself wins; Bee Flow only fills in the ones you leave alone."
+    },
+    {
+      "type": "slide",
+      "id": "apps",
+      "icon": "🔌",
+      "title": "Narrowing what it may reach",
+      "bodyMd": "Bart's digest should read his mail and nothing else. He opens **Apps** beside the chips and leaves only Outlook switched on.\n\nTwo things to know about that click:\n\n- **Before you touch it**, the item has no list of its own and follows your workspace-wide app list — so switching an app on elsewhere reaches it too.\n- **After you touch it**, the item keeps its own list and ignores later workspace changes.\n\nNothing here is one-way. Open the item, click **Edit**, and under **Apps it may use** click **Follow my workspace list** to hand it back.\n\nIf the **Apps** button is missing and the line *App list unavailable — this run follows your workspace list* stands in its place, Bee Flow could not read your apps and will not claim a narrower list than it can verify."
+    },
+    {
+      "type": "quiz",
+      "id": "now-and-repeat",
+      "question": "Bart wants his digest every weekday, but he also wants to see one result today. He sets When to \"Run now\" and Repeat to \"Every weekday\". What does he get?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "One run immediately, and the series then starts at the next weekday occurrence.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "One run immediately, and that is all — \"Run now\" cancels the repeat.",
+          "correct": false,
+          "feedback": "That is what \"Run now\" plus \"Once\" does: a single run, after which the item switches itself off and reads Finished. With a repeat set, the series carries on."
+        },
+        {
+          "id": "c",
+          "label": "Nothing today; the first run waits until tomorrow at the scheduled time.",
+          "correct": false,
+          "feedback": "\"Run now\" means now. The immediate run is the whole point — the series is simply booked from the next occurrence so it does not start an interval late."
+        },
+        {
+          "id": "d",
+          "label": "It refuses the combination and asks him to pick one.",
+          "correct": false,
+          "feedback": "The combination is deliberate, and it is the fastest way to test a repeating brief: you see a real result today instead of waiting for tomorrow morning."
+        }
+      ],
+      "explanation": "\"Run now\" plus a repeat is your test run. \"Run now\" plus \"Once\" is a single job that ends as Finished — which is a completed item, not a failed one."
+    },
+    {
+      "type": "slide",
+      "id": "run-as-agent",
+      "icon": "🤝",
+      "title": "When words are not enough: Run as",
+      "bodyMd": "Some jobs need more than an instruction — they need the knowledge bases, skills and connected apps you already gave an agent. The **Run as** chip hands your brief to that agent: it brings its own standing instructions, and the result also lands in that agent's chat thread.\n\n- Bee Flow links an agent **only when your brief names one**. *\"Summarise my invoices\"* will not reach for your Invoice agent; *\"let the Invoice agent summarise my invoices\"* will. Picking one on the chip yourself always works too — a chip you touch wins.\n- With an agent linked the run uses that agent's own model, so the depth setting stays on **Auto**.\n- No **Run as** chip at all means there is nothing to pick: no agents of your own, or your account cannot hand work to one. Ask your workspace admin if you expected to see it.\n- Long jobs have a ceiling either way: a run works in rounds of tool calls and stops after **20** of them, saying so instead of finishing. When you see that message, the fix is usually to split the brief into two smaller ones."
+    },
+    {
+      "type": "slide",
+      "id": "before-after",
+      "icon": "✍️",
+      "title": "Bart's brief, before and after",
+      "bodyMd": "**Before**\n\n> Every morning, something about the supplier mail.\n\n**After**\n\n> Every weekday at 07:30, summarise the new supplier messages in my mailbox, grouped per supplier. For each message give the order number, the amount and the reply deadline. Flag anything due within two days. If there is no new mail, say so in one line.\n\nThat last sentence earns its place. Without it, an empty morning gets filler invented to fill the page. With it, you get one honest line — and a run that genuinely produces nothing at all is recorded as **Nothing to report** in **What happened**, so you can tell quiet from broken."
+    },
+    {
+      "type": "exercise",
+      "id": "write-it",
+      "icon": "🎯",
+      "exerciseId": "ex-cowork-brief",
+      "title": "Your turn: the thing you redo every Monday",
+      "instruction": "Think of the job you retype most often — the Monday list, the weekly summary, the check you keep forgetting. Write it as a brief you would genuinely hand over. Name the work that comes out, where it should look, the shape of the result (fields, bullets, length), and when or how often it runs. Read it back once and ask: could a colleague do this while I am on holiday, without ringing me?",
+      "placeholder": "e.g. Every Friday at 15:00, go through this week's closed support tickets and give me the three problems that came up most often, with a one-line example each, plus any customer who mentioned leaving. Say \"a quiet week\" if there are fewer than five tickets.",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "slide",
+      "id": "recap",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "- **Write a brief with no gaps** — the work, the detail that makes it useful, the cadence — and no question left in it for someone who will not be there.\n- **Decide with the chips what you care about**, and let Bee Flow fill in the rest: a chip you touch always wins, and the Apps picker narrows what the run may reach until you send it back to your workspace list.\n- **Test it the fast way**: \"Run now\" plus a repeat gives you a real result today, and the series starts at its next occurrence.\n\nNext chapter you ship one for real, watch it run, and read a failure on purpose."
+    }
+  ],
+  "rubrics": {
+    "ex-cowork-brief": {
+      "title": "Write a Cowork brief",
+      "task": "Write a brief you would hand to Cowork: one plain-language message saying what Bee Flow should do unattended, with enough detail that the result is useful, and when or how often it should run.",
+      "criteria": [
+        "States a concrete deliverable — what is actually produced (a digest, list, draft, table), not just a topic to watch",
+        "Names the source or scope it should work from (a mailbox, meeting notes, this week's tickets, a named set of customers)",
+        "Pins the shape of the result: which fields, how many items, how long, or what to leave out",
+        "Says when or how often it runs, or explicitly that it runs right now"
+      ],
+      "passScore": 70,
+      "guidance": "Reward briefs that could run with nobody available to clarify. Score below pass: a topic with no deliverable (\"keep an eye on our competitors\"), a brief with no source or scope, and any brief that asks the user a question (\"shall I also include...?\") since nobody will answer it. Timing may be a moment, a repeat, or an explicit \"now\". Naming an agent, an app, or what to do when there is nothing to report is a plus, not a requirement."
+    }
+  },
+  "practiceTopic": {
+    "title": "Cowork briefs that run unattended",
+    "summary": "How a brief becomes a title, an instruction and a schedule, and which decisions the chips take out of your words.",
+    "facts": [
+      "The cowork runner is instructed never to ask follow-up questions because the run is unattended, so a question left in the brief comes back as a guess rather than a pause.",
+      "A sent brief is split into a title of at most 60 characters, the instruction shown on the item as THE ASSIGNMENT and editable under 'What it does', and the timing, which is kept in separate fields.",
+      "Vague times in a brief map to fixed hours: morning is 08:00, midday 12:00, afternoon 14:00, evening 18:00 and night 21:00.",
+      "Any chip you set yourself — When, Repeat or Run as — always wins; Bee Flow only fills in the chips you left untouched.",
+      "When is set to 'Run now' and a repeat is also set, the first run fires immediately and the series starts at the next occurrence.",
+      "'Run now' with Repeat on 'Once' runs exactly once, after which the item switches itself off and the list shows it as Finished.",
+      "Until you touch the Apps picker an item has no list of its own and follows your workspace-wide app list; 'Follow my workspace list' in Edit puts it back.",
+      "A run that succeeds without producing any text is recorded as 'Nothing to report' in the item's 'What happened' history."
+    ]
+  }
+}

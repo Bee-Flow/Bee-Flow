@@ -1,0 +1,5 @@
+# Transient eval outputs — regenerate with run_eval.py / calibrate.py.
+# Baselines and the checked-in corpus are NOT ignored.
+metrics.json
+metrics.*.json
+calibration.json

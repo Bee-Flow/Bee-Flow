@@ -1,0 +1,71 @@
+# ══════════════════════════════════════════════════════════════════
+# BeeFlow — Supporting Services Only
+# ══════════════════════════════════════════════════════════════════
+#
+# Runs ONLY the backing services (DB, storage, Redis).
+# Frontend and backend run natively on the host for fast iteration.
+#
+# Usage:
+#   docker compose -f docker-compose.services.yml up -d
+#
+# Then start natively:
+#   cd server && npm run dev
+#   cd agent-hub && npm run dev
+# ══════════════════════════════════════════════════════════════════
+
+services:
+  # ── PostgreSQL Database ────────────────────────────────────────
+  postgres:
+    image: pgvector/pgvector:pg15
+    container_name: beeflow-postgres-dev
+    environment:
+      - POSTGRES_USER=${DB_USER:-beeflow}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-beeflow}
+      - POSTGRES_DB=${DB_NAME:-beeflow_core}
+    volumes:
+      - beeflow-pgdata-dev:/var/lib/postgresql/data
+      - ./docker/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
+    ports:
+      - "5432:5432"
+    networks:
+      - beeflow-network
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER:-beeflow} -d ${DB_NAME:-beeflow_core}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  # ── RustFS — S3-compatible Object Storage ──────────────────────
+  rustfs:
+    image: rustfs/rustfs:latest
+    container_name: beeflow-rustfs-dev
+    environment:
+      - RUSTFS_ROOT_USER=${RUSTFS_ACCESS_KEY:-beeflow}
+      - RUSTFS_ROOT_PASSWORD=${RUSTFS_SECRET_KEY:-beeflow_secret_key}
+    volumes:
+      - rustfs-data-dev:/data
+    ports:
+      - "9100:9000"
+    networks:
+      - beeflow-network
+    restart: unless-stopped
+
+  # ── Redis ──────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: beeflow-redis-dev
+    ports:
+      - "6379:6379"
+    networks:
+      - beeflow-network
+    restart: unless-stopped
+
+volumes:
+  beeflow-pgdata-dev:
+  rustfs-data-dev:
+
+networks:
+  beeflow-network:
+    driver: bridge

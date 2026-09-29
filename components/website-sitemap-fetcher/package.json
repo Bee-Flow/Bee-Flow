@@ -1,0 +1,8 @@
+{
+  "name": "website-sitemap-fetcher",
+  "version": "1.0.0",
+  "dependencies": {
+    "axios": "^1.7.0",
+    "xml2js": "^0.6.2"
+  }
+}

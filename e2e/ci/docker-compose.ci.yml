@@ -1,0 +1,64 @@
+# ══════════════════════════════════════════════════════════════════
+# e2e/ci/docker-compose.ci.yml — CI overrides for the e2e smoke stack
+# ══════════════════════════════════════════════════════════════════
+#
+# Layered on top of docker-compose.from-registry.yml by the E2E Smoke
+# workflow (.github/workflows/e2e-smoke.yml):
+#
+#   docker compose -f docker-compose.from-registry.yml \
+#                  -f e2e/ci/docker-compose.ci.yml \
+#                  --profile core --profile search up -d
+#
+# What it changes:
+#   • restart: "no" on every core+search service — a crash-looping container
+#     must FAIL the strict gate (e2e/ci/wait-for-stack.sh), not get papered
+#     over by the base file's `unless-stopped` restarts.
+#   • server: forwards the first-boot AI provider env (INIT_AI_PROVIDER /
+#     INIT_GENERIC_API_KEY / INIT_CHAT_MODEL_TIERS) that the base file does
+#     NOT pass through; boot-init.js consumes these once so the smoke suite
+#     gets working chat model tiers without touching the admin UI.
+#   • search-api: SEARCH_INFERENCE_ENABLED=false — CI runners have no GPU,
+#     so the embedding/reranking sidecars (search-gpu profile) are absent
+#     and must not be called.
+#
+# NOTE: profiles are declared in the base file and MUST be passed
+# (--profile core --profile search) on EVERY compose invocation
+# (up / ps / logs / down), otherwise compose acts on an empty service set.
+# ══════════════════════════════════════════════════════════════════
+
+services:
+  postgres:
+    restart: "no"
+
+  rustfs:
+    restart: "no"
+
+  server:
+    restart: "no"
+    # The base file uses list-style environment; matching the style makes
+    # compose merge the two blocks key-by-key (override wins on duplicates)
+    # instead of clobbering the whole block.
+    environment:
+      - INIT_AI_PROVIDER=${INIT_AI_PROVIDER:-}
+      - INIT_GENERIC_API_KEY=${INIT_GENERIC_API_KEY:-}
+      - INIT_CHAT_MODEL_TIERS=${INIT_CHAT_MODEL_TIERS:-}
+      # The base file does not forward these; without them the server reads
+      # process.env as undefined and the intended lock-down in write-env.sh
+      # (ALLOW_SIGNUPS=false) is silently inert.
+      - ALLOW_SIGNUPS=${ALLOW_SIGNUPS:-false}
+      - ALLOW_PASSWORD_LOGIN=${ALLOW_PASSWORD_LOGIN:-true}
+
+  agent-hub:
+    restart: "no"
+
+  search-postgres:
+    restart: "no"
+
+  search-redis:
+    restart: "no"
+
+  search-api:
+    restart: "no"
+    # The base file uses map-style environment on this service.
+    environment:
+      SEARCH_INFERENCE_ENABLED: "false"

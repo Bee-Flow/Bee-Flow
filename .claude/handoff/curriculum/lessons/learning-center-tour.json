@@ -1,0 +1,235 @@
+{
+  "id": "learning-center-tour",
+  "icon": "🎓",
+  "estMinutes": 8,
+  "title": "How this Academy works",
+  "desc": "Review, mastery, practice and the AI tutor — how to keep what you set up in this course from fading in week three.",
+  "gate": {},
+  "learningGoal": "After this lesson you can use review and practice deliberately, so the workspace you just set up still makes sense to you a month from now.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "layers",
+      "icon": "🗺️",
+      "title": "Two weeks from now, half of this is gone",
+      "bodyMd": "In this course Sanne made Bee Flow hers: she set her startup screen, connected her own Drive account, and started using a colleague's agent instead of writing the same brief herself.\n\nBy next Friday she will have forgotten a fair slice of *how* she did it. That is not carelessness, it is how memory works — and it is the reason the third week is where new tools quietly get abandoned.\n\nThe Learning Center is built for that week. Its rail has three entries:\n\n- **Overview** — what to learn next.\n- **Review** — what is slipping, brought back to you.\n- **Achievements** — the badges and certificate progress you have earned.\n\nThis chapter is about the middle one, because ten minutes there beats re-reading a course you already finished."
+    },
+    {
+      "type": "quiz",
+      "id": "q-review",
+      "question": "Three weeks from now Sanne's Drive connection stops working and she cannot remember what she learned about fixing it. She opens Review. What does the Academy put in front of her?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "The steps she got wrong in that lesson, plus an item from the lesson itself — she completed it over a fortnight ago and never mastered it",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "The connections lesson from step one, so she can read it through again",
+          "correct": false,
+          "feedback": "Review never replays a whole lesson — that is what Replay on the lesson row is for. Review replays single items: the quizzes and simulations behind them."
+        },
+        {
+          "id": "c",
+          "label": "Nothing: she completed that course, and Review only holds lessons she abandoned halfway",
+          "correct": false,
+          "feedback": "Half-finished lessons wait under Continue on the Overview. Review is the opposite — it is built from work she already did: wrong answers, and completions that have gone stale."
+        },
+        {
+          "id": "d",
+          "label": "Anything Drive-related the Academy can find in her own chats and files",
+          "correct": false,
+          "feedback": "The Academy never reads your workspace — a deliberate choice in a privacy product. Everything in Review comes from your lesson history alone."
+        }
+      ],
+      "explanation": "Two sources, no more: the steps you got wrong (a failed quiz, a quiz passed only after a wrong try, a simulation you revealed) and completed-but-not-mastered lessons older than fourteen days. So the cure for \"I have forgotten how to do that\" is a review session, not a re-read.",
+      "icon": "❓"
+    },
+    {
+      "type": "slide",
+      "id": "review",
+      "icon": "🔁",
+      "title": "What a review session is made of",
+      "bodyMd": "Sanne presses **Start review** and the Academy assembles at most six items, in a fixed order:\n\n1. **your mistakes first** — the actual steps you got wrong, replayed exactly as they were;\n2. then **one item per stale lesson**, oldest first;\n3. then **fresh AI-generated questions** to fill the remaining room.\n\nAnswer a mistake right *on the first try* and it clears — the lesson's own record is rewritten as a clean pass. Answer it wrong again and it simply stays for next time.\n\nSix items is about one coffee. That ceiling is the whole point: a session small enough that you will still do it on a Friday afternoon, rather than a backlog you postpone until it is hopeless."
+    },
+    {
+      "type": "sim",
+      "id": "match",
+      "icon": "🧩",
+      "title": "Five things that will happen to you",
+      "instruction": "Five real moments from Sanne's first month with Bee Flow. Match each to the control that actually helps — every one of them is a click away in the Learning Center.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "slipping",
+            "left": "Friday afternoon: she wants the last three weeks to still be there on Monday",
+            "right": "Start review",
+            "note": "At most six items, her own mistakes first. It is the only control here that targets what she personally got wrong."
+          },
+          {
+            "id": "more-reps",
+            "left": "She understood the connections chapter but wants more questions on it than the lesson had",
+            "right": "Practice on that lesson's row",
+            "note": "Practice generates a fresh multiple-choice set for that one lesson — three questions by default, at most six, and the set expires after a day."
+          },
+          {
+            "id": "midstep",
+            "left": "Halfway through a step, the explanation in front of her does not land",
+            "right": "Ask AI in the player header",
+            "note": "The tutor answers about the step you are on, and hints before it solves. It sits on every step, not only the graded ones."
+          },
+          {
+            "id": "redo",
+            "left": "She wants to walk a finished lesson again from the first step, at her own pace",
+            "right": "Replay on the lesson row",
+            "note": "Replay reopens the whole lesson; review brings back single items. Different tools — use Replay when the subject, not the detail, has gone."
+          },
+          {
+            "id": "certificate",
+            "left": "She wants to know which course still stands between her and a certificate",
+            "right": "The Achievements tab",
+            "note": "Achievements holds her badges and how far each certificate has come. Badges come from courses; certificates from a fixed set of them — except Practitioner, which counts any four."
+          }
+        ]
+      }
+    },
+    {
+      "type": "slide",
+      "id": "mastery",
+      "icon": "🏅",
+      "title": "Complete is not the same as mastered",
+      "bodyMd": "Finishing a lesson makes it **complete**. Getting every quiz and simulation in it right **on the first try, with nothing revealed**, makes it **Mastered**.\n\nThat difference is not decoration — it decides what comes back to you:\n\n- a completed lesson goes stale after fourteen days and returns in review;\n- a mastered lesson never does.\n\nSo revealing a solution costs you nothing today; it quietly books the lesson a return visit. Fair enough when you were guessing — a waste when you were nearly there, which is the moment to press **Ask AI** instead.\n\nAnd mastery is not one-shot. Clear every item from a lesson first try in a review session and the stamp lands then."
+    },
+    {
+      "type": "quiz",
+      "id": "q-practice",
+      "question": "Sanne wants extra questions on the connections lesson before she helps a colleague with it. Her team handles customer data, so she asks the obvious question first: where do those generated questions come from?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "A short list of facts Bee Flow keeps on the server for that lesson — the model writes new questions from it, and grades them there too",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "From her own chats, files and knowledge bases, so the questions match her actual work",
+          "correct": false,
+          "feedback": "Appealing, but no: practice never reads your workspace. The generator gets only the lesson's server-side facts, so nothing you wrote can steer a question — or leak into one."
+        },
+        {
+          "id": "c",
+          "label": "They are the lesson's own questions, shuffled",
+          "correct": false,
+          "feedback": "That is the fallback when generation is unavailable: the bundled quizzes and simulations replay instead. Normally the items are genuinely new."
+        },
+        {
+          "id": "d",
+          "label": "From a public question bank on the internet",
+          "correct": false,
+          "feedback": "Nothing is fetched from outside. That is also why practice questions use the product's real labels — they are written from the product's own facts."
+        }
+      ],
+      "explanation": "Practice is grounded generation: server-owned facts in, new questions out, graded on the server so the answer key never reaches the browser. Three questions by default, six at most, and a set stays valid for a day — after that, start a fresh one from the Learning Center.",
+      "icon": "❓"
+    },
+    {
+      "type": "slide",
+      "id": "player",
+      "icon": "🪟",
+      "title": "Learn with your hands in the app",
+      "bodyMd": "When you come back to a lesson to actually change something, how you open it matters. **Play** gives the centred window. **Beside the app** docks the lesson on the right with the workspace fully usable next to it — use that one whenever the lesson is telling you to connect an account or fix a setting of your own. Your choice is remembered next time, and a docked lesson minimises to a pill that keeps checking while you work.\n\nOne piece of planning: the Learning Center is a laptop screen. It is not rendered on a phone, so put your ten minutes where there is a real keyboard."
+    },
+    {
+      "type": "quiz",
+      "id": "q-stuck",
+      "question": "Sanne's written answer to an exercise has come back short four times, and she has a meeting in ten minutes. What are her options?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "A \"Skip this one\" button has appeared — she can take it and still finish the lesson",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "She has to wait out a cooling-off period before the coach will grade her again",
+          "correct": false,
+          "feedback": "There is no cooling-off period. The coach is rate-limited against being hammered, not against a learner who wants one more go a minute later."
+        },
+        {
+          "id": "c",
+          "label": "She asks an administrator to unlock the lesson for her",
+          "correct": false,
+          "feedback": "No administrator is involved in your attempts. Nothing in a lesson locks — reaching the attempt limit adds a way past, it never takes one away."
+        },
+        {
+          "id": "d",
+          "label": "She gives up on the course badge — an unpassed exercise blocks it",
+          "correct": false,
+          "feedback": "A badge asks that you complete every lesson you can see, not that you pass every exercise. Skipping costs her the Mastered stamp for that lesson, and nothing more."
+        }
+      ],
+      "explanation": "Exercises are a soft gate: attempts first, then a way past. Before you take it, press Get a hint — one sentence, a nudge rather than the answer, and a nudge is usually all a nearly-right attempt needs. Skipping forfeits mastery, so the lesson will come back in review later — which, ten minutes before a meeting, is exactly the right trade.",
+      "icon": "❓"
+    },
+    {
+      "type": "slide",
+      "id": "help",
+      "icon": "💡",
+      "title": "Why a lesson can be missing from your course",
+      "bodyMd": "On a course screen you may read a line like *\"You see 5 of 7 lessons\"*. The missing ones need a permission or a plan feature you do not have — usually the admin chapters.\n\nThat is the same ladder this whole course has been about: what your plan allows, what your admin has granted you, and what you have connected yourself. A missing lesson is a rung, not a verdict — and you now know which rung to name when you ask.\n\nIt is never held against you either. A badge only ever asks for the lessons you can actually open, so a member without admin rights can finish an admin-flavoured course in full.\n\nAnd wherever you are, **Ask AI** is in the player header on every step. Ask in your own words — \"explain that differently\", \"give me a real example\". The thread is scratch: it clears when you close the player, and the only record kept is your lesson progress."
+    },
+    {
+      "type": "exercise",
+      "id": "plan",
+      "icon": "🎯",
+      "exerciseId": "ex-learning-center-tour-plan",
+      "title": "Your turn: make this course survive the month",
+      "instruction": "Name one thing you actually set up in this course — a preference you changed, an account you connected, a colleague's agent you started using — and write three or four sentences on how you will keep it from fading. Give a concrete moment you will open Review (a day or a slot, not \"regularly\"), say what you expect the queue to hold for you and why, and say what you will do the next time an exercise refuses to pass. Strong answers use the real mechanics: your own wrong answers, lessons going stale after fourteen days, a first-try clean run, the hint before the skip.",
+      "placeholder": "e.g. I connected my own Drive account this week. Friday after the team call I open Review — it should hold the two questions I got wrong in the connections chapter, plus anything I finished a fortnight ago and never mastered, because…",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "slide",
+      "id": "recap",
+      "icon": "✅",
+      "title": "What you own now",
+      "bodyMd": "*Make Bee Flow Yours* was four small acts of ownership: the app behaves the way you work, your own accounts are connected, you can borrow what colleagues built — and now the habit that keeps all three from decaying.\n\n- **Review is a queue, not a rerun.** Your wrong answers plus completions older than fourteen days; clear an item first try and it is gone for good.\n- **Aim for Mastered where it matters.** Every quiz and simulation right first try, nothing revealed — and that lesson never goes stale.\n- **Stuck is never a wall.** Ask AI on any step, Get a hint on an exercise, Skip after the attempts, Practice when you want more reps.\n\nSo put ten minutes in Review somewhere in your week. The setup you did in this course was the easy part; the second and third week decide whether it counted."
+    }
+  ],
+  "rubrics": {
+    "ex-learning-center-tour-plan": {
+      "title": "Make this course survive the month",
+      "task": "Name one thing set up during this course (a preference, a connected account, a colleague's agent) and describe in three or four sentences how it will be kept alive: a concrete moment for opening Review, what the queue will hold and why, and what to do when an exercise will not pass.",
+      "criteria": [
+        "Anchors the plan to something real from this course — a preference changed, an account connected, an agent borrowed — rather than to learning in general.",
+        "Names a concrete, repeatable moment for review (a day, a slot, after a specific meeting) rather than 'regularly' or 'when I have time'.",
+        "Describes the queue correctly: their own wrong or revealed answers, and/or completed lessons that have gone stale after about fourteen days.",
+        "Names a real recovery move when stuck: Ask AI, Get a hint, skipping after the attempts, Replay, or running Practice.",
+        "Shows what a first-try clean answer buys them — clearing a mistake, or the Mastered stamp that keeps a lesson out of review."
+      ],
+      "passScore": 70,
+      "guidance": "Pass a plan that is specific and mechanically correct even if briefly written. Do NOT pass: vague intentions ('I will study more', 'I will repeat the lessons'); a plan claiming review resurfaces every finished lesson, or every lesson weekly; a claim that the tutor hands over the answer, that an unpassed exercise blocks the lesson or the badge, or that an admin must unlock something. One-sentence answers, and answers that only restate the question, do not pass."
+    }
+  },
+  "practiceTopic": {
+    "title": "How the Academy works",
+    "summary": "Complete versus mastered; how review sessions and AI practice are assembled; the tutor's hint-first rule and the soft gate on exercises.",
+    "facts": [
+      "The Learning Center rail holds Overview, Review and Achievements; it is a desktop-only screen and is not rendered on a phone.",
+      "Review is built from the learner's own mistakes — a failed quiz, a quiz passed only after a wrong try, a revealed simulation — plus lessons completed more than fourteen days ago.",
+      "A review session is at most six items: mistakes first, then one item per stale lesson oldest first, then fresh AI-generated questions; a first-try right answer clears the mistake.",
+      "Mastered means every quiz and simulation in the lesson was right on the first try with nothing revealed; mastered lessons never go stale, and a clean first-try run in review can re-stamp mastery.",
+      "AI practice questions are generated and graded on the server from a fact list kept for that lesson — never from the learner's chats, files or the internet; three by default, six at most, and a set expires after a day.",
+      "An exercise is a soft gate: Get a hint nudges before it solves, and Skip this one appears after the fourth failed attempt; skipping still completes the lesson but forfeits mastery.",
+      "Play opens the centred window and Beside the app docks the player beside a fully usable workspace; lessons with hands-on or spotlight steps dock by default and a docked lesson can be minimised while it keeps checking.",
+      "A course badge needs every lesson you can see; a course screen states 'You see X of Y lessons' when a permission or plan feature hides the rest."
+    ]
+  },
+  "actionChecks": []
+}

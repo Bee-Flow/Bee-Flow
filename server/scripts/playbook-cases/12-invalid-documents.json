@@ -1,0 +1,101 @@
+{
+ "id": "12-invalid-documents",
+ "title": "PB ongeldige documenten",
+ "apiOnly": true,
+ "documents": [
+  {
+   "name": "fill without routine",
+   "recipe": {
+    "title": "x",
+    "phases": [
+     {
+      "key": "a",
+      "kind": "fill",
+      "label": "F"
+     }
+    ]
+   },
+   "expectCodes": [
+    "fill_without_routine"
+   ]
+  },
+  {
+   "name": "brief with unknown placeholder",
+   "recipe": {
+    "title": "x",
+    "table": {
+     "fields": [
+      {
+       "key": "a",
+       "name": "A",
+       "type": "text"
+      }
+     ]
+    },
+    "phases": [
+     {
+      "kind": "routine",
+      "label": "R",
+      "brief": "{{field.zzz}}"
+     }
+    ]
+   },
+   "expectCodes": [
+    "unknown_placeholder"
+   ]
+  },
+  {
+   "name": "select without options",
+   "recipe": {
+    "title": "x",
+    "table": {
+     "fields": [
+      {
+       "key": "s",
+       "name": "S",
+       "type": "select"
+      }
+     ]
+    },
+    "phases": [
+     {
+      "kind": "routine",
+      "label": "R",
+      "brief": "ok {{table.name}}"
+     }
+    ]
+   },
+   "expectCodes": [
+    "select_needs_options"
+   ]
+  },
+  {
+   "name": "no phases",
+   "recipe": {
+    "title": "x",
+    "phases": []
+   },
+   "expectCodes": [
+    "phases_required"
+   ]
+  },
+  {
+   "name": "brief too long",
+   "recipe": {
+    "title": "x",
+    "phases": [
+     {
+      "kind": "routine",
+      "label": "R",
+      "brief": "x"
+     }
+    ]
+   },
+   "briefLength": 1500,
+   "expectCodes": [
+    "brief_too_long"
+   ]
+  }
+ ],
+ "expect": {}
+}

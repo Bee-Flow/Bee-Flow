@@ -1,0 +1,250 @@
+{
+ "id": "compliance-center-map",
+ "icon": "🧭",
+ "estMinutes": 10,
+ "title": "Three groups, one rail",
+ "desc": "How the Compliance Center is laid out, and where a question goes.",
+ "gate": {
+  "permission": "admin_compliance",
+  "feature": "compliance_hub_gdpr"
+ },
+ "learningGoal": "After this lesson you can find any compliance question's home in the rail, read a row's status without opening it, and tell what the Calendar and Reports tabs are for.",
+ "steps": [
+  {
+   "type": "slide",
+   "id": "three-groups",
+   "icon": "🧭",
+   "title": "Frameworks, Registers, Admin",
+   "bodyMd": "The Compliance Center is one rail with three headings, and the headings are the whole mental model.\n\n- **Frameworks** are the things that score you. GDPR, AI Act and ISO 27001 are always there; the rest appear once your organisation switches them on.\n- **Registers** are the things you keep. Requests, incidents, the processing register, risks, policies, audits.\n- **Admin** is the plumbing: Settings, and Evidence connectors.\n\nA framework asks *are we compliant*. A register is *the book you write in*. They are not layers of each other."
+  },
+  {
+   "type": "slide",
+   "id": "registers-serve-many",
+   "icon": "🔗",
+   "title": "A register is not under a framework",
+   "bodyMd": "This is the part people get wrong. A register does not belong to one regulation.\n\nRecord one breach at Van Dijk Groep and that single incident counts for **GDPR Art. 33**, for **ISO 27001 A.5.24**, and — if the organisation has the CRA switched on — for its reporting duty too. One row, three obligations.\n\nThat is why Registers is its own group and not a sub-list under ISO 27001. If you go looking for the Risk register *inside* ISO, you will not find it."
+  },
+  {
+   "type": "quiz",
+   "id": "q-incident",
+   "icon": "❓",
+   "question": "Van Dijk Groep records one suspected data breach. Which of these does that single row feed?",
+   "multi": true,
+   "choices": [
+    {
+     "id": "a",
+     "label": "GDPR Art. 33 — the 72-hour notification clock",
+     "correct": true
+    },
+    {
+     "id": "b",
+     "label": "ISO 27001 Annex A control A.5.24",
+     "correct": true
+    },
+    {
+     "id": "c",
+     "label": "Only whichever framework page you were on when you recorded it",
+     "correct": false,
+     "feedback": "The register is not scoped to the page you came from. The row exists once and every framework that cares about incidents reads it."
+    },
+    {
+     "id": "d",
+     "label": "Nothing, until an auditor asks for it",
+     "correct": false,
+     "feedback": "The clock starts at detection whether or not anyone asks. That is the reason Incidents is a register and not a form you fill in later."
+    }
+   ],
+   "explanation": "Registers serve several frameworks at once. One incident row is simultaneously GDPR evidence, an ISO control record, and — where the CRA is enabled — a reporting obligation."
+  },
+  {
+   "type": "slide",
+   "id": "row-meta",
+   "icon": "📊",
+   "title": "The number on the right is the answer",
+   "bodyMd": "Every rail row carries its own status on the right, so you can triage without opening anything:\n\n- **Requests (DSR)** — an overdue badge and `{n} open`\n- **Incidents & breaches** — a clock, the hours left, and `{n} open`\n- **Risk register** — `{n} · {high} high`\n- **SoA (Annex A)** — `{approved}/{total} approved`\n- **Policies** — `{n} · {due} review`\n- **Training & competence** — `{done}/{total}`\n\nA number that the server did not send renders as nothing at all. A blank is not a zero — it means *not known*, and the product refuses to invent the difference."
+  },
+  {
+   "type": "sim",
+   "id": "match-meta",
+   "icon": "🧩",
+   "title": "Read the rail without opening it",
+   "instruction": "Match each thing you see on a row to the question it answers.",
+   "sim": {
+    "kind": "match",
+    "pairs": [
+     {
+      "id": "p1",
+      "left": "A clock and \"14 h\" on Incidents & breaches",
+      "right": "How long until the Art. 33 deadline",
+      "note": "The incident row counts down from detection, not from when you opened the page."
+     },
+     {
+      "id": "p2",
+      "left": "\"31/93 approved\" on SoA (Annex A)",
+      "right": "How much of the Statement of Applicability is decided",
+      "note": "93 is the full Annex A control set; approved is the last rung of the decision ladder."
+     },
+     {
+      "id": "p3",
+      "left": "A blank where a number should be",
+      "right": "The server could not answer — not \"zero\"",
+      "note": "Rendering a 0 the server never sent would be a lie an auditor could act on."
+     },
+     {
+      "id": "p4",
+      "left": "\"Evidence chain intact · SHA-256\" in the footer",
+      "right": "The ledger has not been tampered with",
+      "note": "If it ever reads \"Evidence chain broken\", the integrity report is the next stop."
+     }
+    ]
+   }
+  },
+  {
+   "type": "slide",
+   "id": "filter-and-search",
+   "icon": "🔎",
+   "title": "Two ways to cut the rail down",
+   "bodyMd": "At the top of the rail sit the only two controls you need on a busy morning.\n\n**All / Needs attention** is a two-way switch. Needs attention carries a badge with the count, and hides every row that has nothing wrong with it.\n\n**Search** takes more than section names — the placeholder says *Search checks, articles or registers…* and it means it. Type an article number and you land on the check that scores it. Nothing found reads *Nothing matches*."
+  },
+  {
+   "type": "quiz",
+   "id": "q-search",
+   "icon": "🔦",
+   "question": "You want the check behind GDPR Art. 32. What is the shortest route?",
+   "choices": [
+    {
+     "id": "a",
+     "label": "Type the article number into the rail's search box",
+     "correct": true
+    },
+    {
+     "id": "b",
+     "label": "Open GDPR, then read down the Checks table until you see it",
+     "correct": false,
+     "feedback": "That works, but search covers checks, articles and registers precisely so you do not have to scan a table."
+    },
+    {
+     "id": "c",
+     "label": "Switch the rail to Needs attention",
+     "correct": false,
+     "feedback": "Needs attention filters by what is failing, not by article — a passing Art. 32 check would vanish from the list."
+    }
+   ],
+   "explanation": "The search box is indexed over checks, article numbers and register names, which makes it the fastest path to a specific obligation."
+  },
+  {
+   "type": "slide",
+   "id": "overview-status",
+   "icon": "🎯",
+   "title": "Overview → Status",
+   "bodyMd": "The Overview opens on **Status**: the **Overall score** ring, and under it four counters — **Passing**, **Warnings**, **Failing**, **Not applicable**.\n\nThe subtitle tells you what to do with them: *Fix the red items first.*\n\nUnderneath, the **Needs attention** card lists work in the order that matters — failing first, then by severity. When there is genuinely nothing, it says so plainly: *Nothing needs attention — every check passes or is not applicable.*"
+  },
+  {
+   "type": "slide",
+   "id": "run-now",
+   "icon": "▶️",
+   "title": "Run now, and why it is sometimes greyed out",
+   "bodyMd": "The header carries **Run now** as its primary button. While a sweep runs the label becomes *Running…*.\n\nBefore onboarding is finished the button is disabled and its tooltip says **Available after setup** — a score computed before the organisation has told the product who its DPO is and which legal bases it relies on would be a number about nothing.\n\nBeside it, a chip reads `Last run {time} · every {hours} h`. Checks sweep on their own schedule; **Run now** is for when you have just changed something and want the score to catch up."
+  },
+  {
+   "type": "slide",
+   "id": "calendar-tab",
+   "icon": "📅",
+   "title": "Overview → Calendar",
+   "bodyMd": "The second tab is the one nobody expects and everybody needs: every clock the organisation is running, on one page.\n\nIt collects the deadlines that already exist elsewhere — a data-subject request's 30 days, an incident's 72 hours, a CRA early warning and its full report, an obligation you scheduled, an attestation about to expire — and shows each as a bar with how far through it you are.\n\nNothing is authored here. The Calendar is a view over work that already exists in the registers."
+  },
+  {
+   "type": "slide",
+   "id": "reports-tab",
+   "icon": "📄",
+   "title": "Overview → Reports",
+   "bodyMd": "The third tab is where the documents live, and it is also where the ISO readiness numbers moved to.\n\nIt is the one place to fetch the **Statement of Applicability**, **Clause conformity**, the **Risk register**, the **Policy pack** and the **Full evidence bundle** — the Stage-1 document set a certification body asks for.\n\nThe rail has a shortcut to it too: the small reports button at the top, labelled *Reports and downloads* for screen readers."
+  },
+  {
+   "type": "sim",
+   "id": "order-triage",
+   "icon": "🧮",
+   "title": "Monday morning, in order",
+   "instruction": "Marieke opens the Compliance Center and has twenty minutes. Put her steps in the order that gets the most risk off the table.",
+   "sim": {
+    "kind": "order",
+    "items": [
+     {
+      "id": "a",
+      "label": "Switch the rail to Needs attention"
+     },
+     {
+      "id": "b",
+      "label": "Deal with the incident counting down in hours"
+     },
+     {
+      "id": "c",
+      "label": "Deal with the data-subject request counting down in days"
+     },
+     {
+      "id": "d",
+      "label": "Work the Needs attention card, failing items first"
+     },
+     {
+      "id": "e",
+      "label": "Press Run now so the score reflects the fixes"
+     }
+    ],
+    "solution": [
+     "a",
+     "b",
+     "c",
+     "d",
+     "e"
+    ],
+    "feedback": "Filter first so the rail only shows work. Then the shortest clock wins: a breach deadline is measured in hours and a request in days. Failing checks come after the statutory clocks, and re-running the sweep is last — it reports on what you did, it does not do anything."
+   }
+  },
+  {
+   "type": "exercise",
+   "id": "ex-where",
+   "icon": "🎯",
+   "exerciseId": "ex-compliance-center-map-where",
+   "title": "Your turn: route four questions",
+   "instruction": "Van Dijk Groep's account manager forwards you four things in one morning. Say which rail row you open for each, and why. (1) A customer asks whether you have a signed processing agreement with your American transcription supplier. (2) An engineer reports he mailed a parts list to the wrong address. (3) A prospect's security questionnaire asks which Annex A controls you have excluded and why. (4) A colleague asks whether she still has to acknowledge the new acceptable-use policy.",
+   "placeholder": "1) Processing register (ROPA) — the processors table records each operator, its location and whether an SCC is attested…",
+   "passScore": 70,
+   "maxAttempts": 4
+  },
+  {
+   "type": "slide",
+   "id": "recap",
+   "icon": "✅",
+   "title": "What you can do now",
+   "bodyMd": "- Route any compliance question to the right rail row, because you know a framework **scores** and a register **records**.\n- Triage from the rail alone: the meta on each row is the status, and a blank is *unknown*, never zero.\n- Use the Overview's three tabs for three different jobs — Status to fix, Calendar to see what is due, Reports to hand something to an auditor."
+  }
+ ],
+ "rubrics": {
+  "ex-compliance-center-map-where": {
+   "title": "Route four questions to their register",
+   "task": "Name the rail row for four incoming compliance questions and justify each choice.",
+   "criteria": [
+    "Question 1 goes to Processing register (ROPA) — specifically its processors table, where an operator's location and SCC/DPA state are recorded",
+    "Question 2 goes to Incidents & breaches, and the answer recognises that recording starts the 72-hour clock immediately",
+    "Question 3 goes to SoA (Annex A), and mentions that an excluded control still needs a written justification",
+    "Question 4 goes to Policies (acknowledgements) or Training & competence, and does not confuse either with the Learning Center's own courses"
+   ],
+   "passScore": 70,
+   "guidance": "Do not pass an answer that files the misdirected e-mail under Requests (DSR) — a data-subject request is someone exercising their rights, not a mistake the organisation made. Do not pass an answer that puts the Annex A question under ISO 27001's framework page: the framework page scores controls, the SoA records the decisions. An answer that names the right row but gives no reason is at most a borderline pass; the reasoning is the thing being taught."
+  }
+ },
+ "practiceTopic": {
+  "title": "Finding your way around the Compliance Center",
+  "summary": "The rail's three groups, what each row's meta means, and the Overview's three tabs.",
+  "facts": [
+   "The rail groups rows under three headings: Frameworks, Registers and Admin.",
+   "Registers serve several frameworks at once — one incident row counts for GDPR Art. 33, ISO 27001 A.5.24 and the CRA reporting duty.",
+   "The rail's segmented control switches between All and Needs attention, and Needs attention carries the attention count as a badge.",
+   "The rail search placeholder is \"Search checks, articles or registers…\" and an empty result reads \"Nothing matches\".",
+   "The Overview has three tabs: Status, Calendar and Reports.",
+   "Run now is disabled until onboarding is finished, and its tooltip then reads \"Available after setup\".",
+   "The rail footer reads \"Evidence chain intact · {rows} rows · SHA-256\", or \"Evidence chain broken — check the integrity report\".",
+   "A number the server did not send renders as nothing at all — a blank means unknown, not zero."
+  ]
+ }
+}

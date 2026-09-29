@@ -1,0 +1,5 @@
+{
+  "_comment": "Highest number of test files mocking through the module system server may still carry. Lower it with `node scripts/count-ratchet.mjs module-mock server --update` after a conversion; raising it is a deliberate edit that belongs in a commit message with a reason.",
+  "_generated": "2026-09-24",
+  "count": 824
+}

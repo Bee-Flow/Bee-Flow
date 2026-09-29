@@ -1,0 +1,60 @@
+# ──────────────────────────────────────────────────────────────────────
+# Guard Service — Docker Compose
+# ──────────────────────────────────────────────────────────────────────
+# CPU-based PII detection sidecar (GLiNER multi PII v1, Apache 2.0).
+# ──────────────────────────────────────────────────────────────────────
+
+services:
+  # ── Guard API ──────────────────────────────────────────────────────
+  guard-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: guard-service
+    ports:
+      - "0.0.0.0:8100:8100"
+    environment:
+      - GUARD_REDIS_URL=redis://guard-redis:6379/1
+      - GUARD_PII_ENABLED=${GUARD_PII_ENABLED:-true}
+      - GUARD_LOG_LEVEL=${GUARD_LOG_LEVEL:-INFO}
+      - SERVICES_API_KEY=${SERVICES_API_KEY:-}
+    depends_on:
+      guard-redis:
+        condition: service_healthy
+    networks:
+      - guard-network
+      - search-network
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8100/health')" ]
+      interval: 30s
+      timeout: 10s
+      start_period: 5s
+      retries: 3
+
+  # ── Redis (PII cache) ──────────────────────────────────────────────
+  guard-redis:
+    image: redis:7-alpine
+    container_name: guard-redis
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - guard-redis-data:/data
+    networks:
+      - guard-network
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  guard-redis-data:
+    name: guard-redis-data
+
+networks:
+  guard-network:
+    name: guard-network
+  search-network:
+    external: true
+    name: search-network

@@ -1,0 +1,324 @@
+{
+ "id": "skills-attach-and-apply",
+ "icon": "🔗",
+ "estMinutes": 11,
+ "title": "Make it change real answers",
+ "desc": "Publish it to the right audience, attach to an agent, apply in a routine AI step, toggle per chat — and retire one safely.",
+ "gate": {
+  "permissionsAll": [
+   "manage_skills",
+   "manage_agents"
+  ],
+  "feature": "skills"
+ },
+ "learningGoal": "After this lesson you can get a skill into production through the right door, recognise the three traps that make an attached skill do nothing, and retire one without surprising anybody.",
+ "steps": [
+  {
+   "type": "slide",
+   "id": "doors",
+   "icon": "🚪",
+   "title": "Three doors into production",
+   "bodyMd": "You wrote a good method. Until you attach it somewhere it changes nothing: a skill never runs on its own. It reaches a model turn through exactly three doors.\n\n- **An agent** — Studio → Agents → tab **Can use** → card **Skills** (\"The working methods it follows\") → **Link**. An attached skill is in play on every turn that agent takes.\n- **A routine AI step** — inside the step, the section **Who does the thinking** → **Skills for this step**.\n- **One chat** — **Skills** in the chat composer's tools menu, under the hint \"Toggle reusable instruction packs for this chat\". A session skill lasts for that conversation only; **Import into skill library** is what keeps it.\n\nAt Van Dijk Groep the skill *Offerte beoordelen* goes through door one for the agent *Inkoopassistent*, and through door two for the routine that empties the procurement mailbox. One method, two doors, no copy."
+  },
+  {
+   "type": "slide",
+   "id": "leading",
+   "icon": "🥇",
+   "title": "The leading skill sets the step's fields",
+   "bodyMd": "On a routine AI step you tick skills under **Skills for this step**. The first one you tick wears a **Leading** pill, and the hint under **Skills for this step** says what that buys you: its instructions come first, and the step inherits its output fields.\n\nSo the fields under **Delivers** in *Offerte beoordelen* — leverancier, offertenummer, totaal_excl_btw, advies — become the fields the routine's later steps can write into a table.\n\nThe same hint carries the other half: with an agent picked as well, the step's skills come before the agent's own. Order is simply the order you ticked, so tick the method you want in charge first."
+  },
+  {
+   "type": "quiz",
+   "id": "q-cap",
+   "icon": "🚧",
+   "question": "The Inkoopassistent has six skills attached. One of them silently never reaches the model. Which one?",
+   "multi": false,
+   "choices": [
+    {
+     "id": "a",
+     "label": "The sixth one in the attached list — the merged list is cut at five",
+     "correct": true
+    },
+    {
+     "id": "b",
+     "label": "The one with the fewest steps",
+     "correct": false,
+     "feedback": "Length plays no part. The cut is by position: attached skills go in first, in their own order, and everything past the fifth is dropped."
+    },
+    {
+     "id": "c",
+     "label": "None of them — all six arrive and the model picks whichever fits",
+     "correct": false,
+     "feedback": "The runtime merges attached skills first, removes duplicates and truncates at five. The sixth skill's text never reaches the prompt, so the model cannot pick it."
+    },
+    {
+     "id": "d",
+     "label": "The one whose Last time column is oldest",
+     "correct": false,
+     "feedback": "Last time only reports when a skill last actually fired. It is history, not a rule about what gets injected."
+    }
+   ],
+   "explanation": "Five skills per turn is the cap. Attached skills go in first, then any session skills from the chat, deduped and truncated at five. The same cap applies on a routine AI step — and there the step's own skills go in first, so five step skills push the agent's own skills off the edge."
+  },
+  {
+   "type": "slide",
+   "id": "activation",
+   "icon": "⚡",
+   "title": "Static or dynamic — and what dynamic grants",
+   "bodyMd": "Open **All options** at the bottom of the **May use** card on the Method tab and you find **Dynamic activation**: \"When on, the agent decides at runtime whether to apply this skill based on the user message.\"\n\nA new skill is **static**: the whole body goes into the system prompt on every turn. Dynamic puts a single manifest line in instead, and the model calls the skill when a message actually matches.\n\nThe catch is the grants. **May use** — apps, routines, knowledge — follows the same split. A dynamic skill contributes nothing at all until it has been activated in that conversation. Dynamic earns its place when an agent carries several methods and only one applies per message."
+  },
+  {
+   "type": "quiz",
+   "id": "q-dynamic",
+   "icon": "🧪",
+   "question": "Van Dijk's sales agent carries a skill with Dynamic activation on. Under May use it has the knowledge base Productinformatie. A customer question arrives. Before the model has activated the skill, what is in play?",
+   "multi": false,
+   "choices": [
+    {
+     "id": "a",
+     "label": "A one-line manifest entry for the skill, and no knowledge base",
+     "correct": true
+    },
+    {
+     "id": "b",
+     "label": "The full method plus the knowledge base",
+     "correct": false,
+     "feedback": "That is what static does. With dynamic on, only the manifest line sits in the prompt until the model activates the skill."
+    },
+    {
+     "id": "c",
+     "label": "The knowledge base, but not the steps and rules",
+     "correct": false,
+     "feedback": "Grants follow the body. An unactivated dynamic skill contributes no apps, no routines, no tables and no knowledge."
+    },
+    {
+     "id": "d",
+     "label": "Nothing — the agent cannot know the skill exists until someone names it",
+     "correct": false,
+     "feedback": "The manifest line is exactly what lets the model decide. Without it the skill could never be activated at all."
+    }
+   ],
+   "explanation": "Dynamic keeps the prompt short, at the price of one round trip: nothing from May use exists until activation happens in that conversation. If a method must always have its knowledge base under it, leave it static."
+  },
+  {
+   "type": "slide",
+   "id": "legacy",
+   "icon": "🪤",
+   "title": "The linked routine that replaces everything",
+   "bodyMd": "Some older skills carry a linked routine. Under **All options** the note is blunt: \"This skill runs routine {id} instead of its own steps. Steps, rules and examples are ignored while that is set.\"\n\nThe routine is the body. Whatever the steps say, the routine answers. The runtime also treats such a skill as dynamic no matter how the checkbox is set, so its grants wait for activation too.\n\nIf you inherit a skill like this, read that note before you touch anything. The id in it tells you which routine is actually in charge — and that routine, not the Method tab, is where a change belongs."
+  },
+  {
+   "type": "quiz",
+   "id": "q-legacy",
+   "icon": "🔍",
+   "question": "You spend an hour rewriting an inherited skill's steps. Every test run comes back exactly as before. All options shows a linked routine. What happened?",
+   "multi": false,
+   "choices": [
+    {
+     "id": "a",
+     "label": "The linked routine replaces the body, so steps, rules and examples are ignored while it is set",
+     "correct": true
+    },
+    {
+     "id": "b",
+     "label": "The edits never saved",
+     "correct": false,
+     "feedback": "The editor autosaves 350 ms after the last keystroke and the header chip reports the state. A failed save shows itself; it does not look like a silent no-op."
+    },
+    {
+     "id": "c",
+     "label": "Agents keep a cached copy of the skill until they are published again",
+     "correct": false,
+     "feedback": "A change to a skill applies everywhere at once — that is the standing note in the editor. Caching is not the mechanism here."
+    },
+    {
+     "id": "d",
+     "label": "Steps only count when the skill is the leading one on an AI step",
+     "correct": false,
+     "feedback": "Leading decides whose instructions come first and which output fields the step inherits. It does not decide whether steps count at all."
+    }
+   ],
+   "explanation": "A linked routine is a whole-body replacement, and the editor says so under All options rather than hiding it. Check that note first on any skill you did not write yourself; hours disappear into this one."
+  },
+  {
+   "type": "slide",
+   "id": "audience",
+   "icon": "👥",
+   "title": "Who may reach for it at all",
+   "bodyMd": "A door only opens for someone who can see the skill. That is the capsule in the skill's header, **Publish to…**, and a new skill starts at **Personal** — \"Only you can access\".\n\nPersonal is fine while you are still writing. It also means the skill exists for your agents and nobody else's: a colleague building the procurement agent cannot pick a method they cannot see.\n\nThe other two settings are **Entire organisation** (\"All members can access\") and **Or specific groups**. Widening asks once — **Share more widely?**, with **Share** and **Keep as is** — so the moment a method leaves your own desk is a decision you make on purpose.\n\nSharing is not handing over the pen. People who may see but not edit get the banner \"You can see this skill but not change it. Ask its owner, or an admin of the organisation it belongs to.\""
+  },
+  {
+   "type": "quiz",
+   "id": "q-audience",
+   "question": "Your Offerte beoordelen skill works. Two other teams should be able to attach it, but the method encodes procurement policy you own. Which audience, and what happens next?",
+   "multi": false,
+   "choices": [
+    {
+     "id": "a",
+     "label": "Or specific groups, picking their groups — they can see and attach it, and still get the read-only banner if they open it",
+     "correct": true
+    },
+    {
+     "id": "b",
+     "label": "Leave it Personal and attach it to their agents yourself — visibility does not affect attaching",
+     "correct": false,
+     "feedback": "It does. A Personal skill is visible only to you, so it is not in the picker for anybody else's agent. Publishing is what makes the method reusable outside your own desk."
+    },
+    {
+     "id": "c",
+     "label": "Entire organisation, because specific groups only works for agents, not for skills",
+     "correct": false,
+     "feedback": "The capsule offers Personal, Entire organisation and Or specific groups for a skill too. Entire organisation would work, but it is wider than the two teams you meant."
+    },
+    {
+     "id": "d",
+     "label": "Or specific groups — and from then on anyone in those groups can rewrite the steps",
+     "correct": false,
+     "feedback": "Visible is not editable. People in those groups see the skill and can attach it; if they open it they get the read-only banner pointing them at you or an org admin."
+    }
+   ],
+   "explanation": "The capsule is the reach of the method: Personal keeps it on your own desk, Entire organisation opens it to all members, Or specific groups lands in between. Widening asks \"Share more widely?\" once. And if the group list cannot be read, the sharing option is simply not offered — that is a failed read, not proof that the organisation has no groups."
+  },
+  {
+   "type": "sim",
+   "id": "match-doors",
+   "icon": "🧩",
+   "title": "Five needs, five decisions",
+   "instruction": "Van Dijk Groep has five situations. Pair each one with the way you would put the method to work.",
+   "sim": {
+    "kind": "match",
+    "pairs": [
+     {
+      "id": "always",
+      "left": "Every answer the Inkoopassistent gives must follow the quote-review method, without anyone remembering to switch it on.",
+      "right": "Attach it to the agent",
+      "note": "An attached skill lives on the agent's configuration and is on for every turn it takes."
+     },
+     {
+      "id": "fields",
+      "left": "The routine that empties the procurement mailbox must hand an advies field to a later step that writes a table row.",
+      "right": "Tick it first on the AI step",
+      "note": "The first skill ticked is the leading one, and the step inherits its Delivers fields."
+     },
+     {
+      "id": "once",
+      "left": "Sanne wants to draft one reply in the house style this afternoon, and nowhere else afterwards.",
+      "right": "Toggle it in the chat's tools menu",
+      "note": "A session skill applies to that conversation only; Import into skill library is what keeps it."
+     },
+     {
+      "id": "dynamic",
+      "left": "The sales agent carries four methods, only one applies per message, and the prompt should stay short.",
+      "right": "Switch on Dynamic activation",
+      "note": "Only a manifest line goes in per turn — and the skill's May use grants wait until it is activated."
+     },
+     {
+      "id": "reach",
+      "left": "A second team wants to build its own agent on the same quote-review method, and you want to stay the only editor.",
+      "right": "Publish to their groups from the header capsule",
+      "note": "Personal means only you can see it. Sharing to specific groups puts it in their picker; they still get the read-only banner if they open it."
+     }
+    ]
+   }
+  },
+  {
+   "type": "exercise",
+   "id": "ex-plan",
+   "icon": "🎯",
+   "exerciseId": "ex-skills-attach-plan",
+   "title": "Your turn: pick the door",
+   "instruction": "Take one skill you have written, or Van Dijk's Offerte beoordelen, and write its attachment plan in six or seven lines. Say which door you use and name the screen or control you would use. Say why that door fits how often the method must apply. Say which audience you publish to — Personal, Entire organisation or specific groups — and who that lets attach it. Choose static or dynamic and say what the choice costs. Finish with one thing you checked before attaching — how many skills the agent already carries, or which fields the step will inherit.",
+   "placeholder": "e.g. Offerte beoordelen goes on the Inkoopassistent through Can use → Skills → Link, because every incoming quote should be handled the same way. In the header I publish it to the group Inkoop rather than the whole organisation, so their builders can attach it while I stay the editor. Static, because the Inkoopkader knowledge base has to be there from the first turn. The agent already carried four skills, so this one is number five — the cap …",
+   "passScore": 70,
+   "maxAttempts": 4
+  },
+  {
+   "type": "action",
+   "id": "do-attach",
+   "icon": "🏗️",
+   "checkId": "skill-in-use",
+   "title": "Attach it for real",
+   "instruction": "Open Agents, pick an agent you own and go to its Can use tab. In the Skills card press Link — the builder jumps to the Role tab and opens the skill picker — and click one of your own skills to tick it. The builder autosaves; the header chip shows when the change landed. Then open that skill's Used by tab: the agent should be listed there.",
+   "launch": {
+    "navigateTo": "studio/agents",
+    "label": "Open Agents"
+   }
+  },
+  {
+   "type": "slide",
+   "id": "retire",
+   "icon": "🗑️",
+   "title": "Retiring one happens next to the damage",
+   "bodyMd": "There is no delete in the skills list and no overflow menu. **Delete skill** sits at the bottom of the **Used by** tab, underneath the list of agents and routine steps that depend on it, beside the notice \"Agents that attach this skill lose the behaviour immediately.\" You type the skill's name to confirm, and that typing is the confirmation of the breakage.\n\nIf the server finds a dependant the list missed, it refuses the delete and shows that list, and you confirm the breakage on purpose before it goes through.\n\nRead the list before you decide, including a line such as \"Not everything could be checked, so this list may be short.\" In the skills list a blank subline, and in the **All skills** table an em dash, means not counted — never nobody."
+  },
+  {
+   "type": "slide",
+   "id": "recap",
+   "icon": "✅",
+   "title": "What you can do now",
+   "bodyMd": "- **Set the reach first.** Publish to… decides who can even see the method: Personal (only you), Entire organisation, or specific groups. A Personal skill is in nobody else's picker.\n- **Choose a door.** Attach to an agent for every turn, tick it on a routine AI step when a later step needs its fields, toggle it in a chat for one conversation.\n- **Avoid the three silences.** The sixth attached skill never arrives, a dynamic skill grants nothing until it is activated, and a linked routine ignores every step you write.\n- **Retire from Used by.** Read who depends on it first, confirm the breakage on purpose, and treat a blank count as unknown rather than as zero.\n\nA skill only pays off the second time it is used — by you, or by the team you published it to."
+  }
+ ],
+ "rubrics": {
+  "ex-skills-attach-plan": {
+   "title": "Attachment plan for one skill",
+   "task": "Write a six or seven line plan for putting one specific skill into production: which door, why that door, which audience it is published to, static or dynamic with its cost, and one check performed before attaching.",
+   "criteria": [
+    "Names one specific door and a real screen or control: Can use → Skills → Link, Skills for this step on an AI step, or Skills in the chat composer's tools menu.",
+    "Justifies the door by how often the method must apply — every turn, one routine step, or one conversation.",
+    "Chooses an audience in the Publish to… capsule — Personal, Entire organisation or specific groups — and says who that lets attach the skill.",
+    "Makes a static or dynamic choice and states its cost, in particular that a dynamic skill grants nothing from May use until it is activated.",
+    "Shows one concrete check before attaching: the five-skills-per-turn cap, which skill leads, or which Delivers fields the step inherits."
+   ],
+   "passScore": 70,
+   "guidance": "Pass only a plan tied to one named skill and one door, with a real control named and an audience chosen. Do not pass answers that describe browsing or installing skills from a marketplace, that have a skill running on its own, that treat a Personal skill as attachable by colleagues, that confuse sharing with handing over editing rights, or that only restate what a skill is without making an attachment decision."
+  }
+ },
+ "practiceTopic": {
+  "title": "Putting a skill to work",
+  "summary": "How a skill reaches a model turn — agent, routine AI step or chat — who may see it at all, and what silently stops it.",
+  "facts": [
+   "A skill reaches a turn in three ways only: attached to an agent (Can use tab → card Skills → Link), applied by a routine AI step, or toggled as a session skill in one chat.",
+   "A routine AI step's first ticked skill wears the Leading pill: its instructions come first and the step inherits its Delivers fields.",
+   "At most five skills reach any one turn: attached skills go in first, then session skills, deduped and truncated — the sixth never arrives.",
+   "A skill's header capsule Publish to… sets its reach: Personal (\"Only you can access\"), Entire organisation (\"All members can access\") or specific groups; a new skill starts Personal.",
+   "Widening a skill's audience asks \"Share more widely?\" with Share or Keep as is, and sharing never grants editing: people who may not edit see a read-only banner.",
+   "Dynamic activation puts only a one-line manifest entry in the prompt, and the skill's May use grants stay out until the model activates it.",
+   "A skill with a linked routine runs that routine instead of its own steps; steps, rules and examples are ignored while it is set.",
+   "Delete skill lives at the bottom of the Used by tab, requires typing the skill's name, and warns that agents lose the behaviour immediately; a blank usage count means not counted, not zero."
+  ]
+ },
+ "actionChecks": [
+  {
+   "checkId": "skill-in-use",
+   "existing": false,
+   "label": "Attach a skill to an agent",
+   "hint": "In Studio → Agents, open an agent, go to the Can use tab, and use Link in the Skills card. The picker opens on the Role tab; ticking the skill autosaves.",
+   "endpoints": [
+    {
+     "method": "GET",
+     "path": "/api/skills",
+     "returns": "array of skill rows visible to the caller: id, userId (owner), name, canEdit, steps, rulesV2, …"
+    }
+   ],
+   "criteria": [
+    {
+     "id": "attached",
+     "label": "One of your skills is attached to at least one agent",
+     "hint": "Open the agent's Can use tab, press Link in the Skills card and tick the skill; the builder autosaves.",
+     "rule": "some skill s from GET /api/skills with s.userId === me.id has summary[s.id].agents > 0"
+    },
+    {
+     "id": "own-skill",
+     "label": "You own at least one skill to attach",
+     "hint": "If the list is empty, create one first in Studio → Skills with the + button.",
+     "rule": "GET /api/skills returns at least one row owned by the learner (userId === me.id)",
+     "endpoint": "/api/skills",
+     "expect": {
+      "kind": "rows"
+     }
+    }
+   ]
+  }
+ ]
+}

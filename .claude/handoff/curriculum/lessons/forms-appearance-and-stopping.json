@@ -1,0 +1,328 @@
+{
+ "id": "forms-appearance-and-stopping",
+ "icon": "🎀",
+ "estMinutes": 9,
+ "title": "The look of the page, and switching it off",
+ "desc": "Five presets, four knobs and an accent colour on a page someone else fills in — then the three switches that stop a form, and what \"Stop collecting?\" really stops.",
+ "gate": {
+  "feature": "automations"
+ },
+ "learningGoal": "After this lesson you can style a form deliberately — preset, accent, Corners, Spacing, Text size, Appearance, and page two — and you can stop a form the right way, knowing exactly what each switch leaves behind.",
+ "steps": [
+  {
+   "type": "slide",
+   "id": "why",
+   "icon": "🪞",
+   "title": "The page is the only part anyone else sees",
+   "bodyMd": "Van Dijk Groep's inside-sales team opens **Offerteaanvraag** twenty times a week, on a call, typing a customer's details into it while the customer waits. Nobody sees your trigger, your steps or your table. They see a page.\n\nA brand-new form starts on the **Clean** preset with the title *\"Get in touch\"* — a sensible page, and an anonymous one. This lesson is the other half of the Questions tab: the **Styling** section at the bottom of the editor, and then the switches under **Settings** that take a form back off the air.\n\nEvery switch in this lesson goes both ways, except one — and the lesson tells you which."
+  },
+  {
+   "type": "slide",
+   "id": "preset",
+   "icon": "🎨",
+   "title": "A preset is a shortcut, not a mode",
+   "bodyMd": "Studio → **Forms** → your form → **Questions** → section **Styling**. Five chips, each with its accent shown as a dot:\n\n- **Clean** — the starting look: teal accent, medium corners, comfortable spacing, light.\n- **Corporate** — blue, tight corners, compact spacing, smaller text.\n- **Friendly** — warm orange, very round corners, spacious, larger text.\n- **Night** — cyan on a dark page.\n- **Match visitor** — green, and the light-or-dark decision handed to the browser that opens it.\n\nOne click writes **five settings at once**: the accent colour plus Corners, Spacing, Text size and Appearance. After that click the preset has done its job — it is not a style that keeps governing the form."
+  },
+  {
+   "type": "slide",
+   "id": "knobs",
+   "icon": "🎚️",
+   "title": "The four knobs, and the values they offer",
+   "bodyMd": "Under the presets sits **Accent colour** — twelve swatches and a custom colour picker, for the house colour that is not one of the twelve.\n\nThen four rows, each a short list of buttons:\n\n- **Corners** — `none`, `sm`, `md`, `lg`, `xl`\n- **Spacing** — `compact`, `comfortable`, `spacious`\n- **Text size** — `sm`, `md`, `lg`\n- **Appearance** — `light`, `dark`, `auto`\n\nThat is the whole vocabulary. There is no font picker, no logo upload and no custom CSS — which is the point: a colleague can restyle Van Dijk's supplier intake in thirty seconds and cannot break the page doing it."
+  },
+  {
+   "type": "sim",
+   "id": "sim-knobs",
+   "icon": "🧩",
+   "title": "Four things sales asked for",
+   "instruction": "Van Dijk's sales lead sends you a list of complaints about Offerteaanvraag. Match each one to the control that answers it.",
+   "sim": {
+    "kind": "match",
+    "pairs": [
+     {
+      "id": "p1",
+      "left": "\"Too much scrolling — it should fit on one screen while we are on the phone.\"",
+      "right": "Spacing → compact",
+      "note": "Spacing is the density knob: compact, comfortable or spacious."
+     },
+     {
+      "id": "p2",
+      "left": "\"The labels are too small to read at a glance during a call.\"",
+      "right": "Text size → lg",
+      "note": "Text size offers sm, md and lg — nothing finer, and nothing in points."
+     },
+     {
+      "id": "p3",
+      "left": "\"Our blue is not one of the twelve colours you showed me.\"",
+      "right": "The custom colour picker",
+      "note": "The Accent colour row ends in a picker for any colour the swatches do not cover."
+     },
+     {
+      "id": "p4",
+      "left": "\"Half the team works in dark mode and the form blinds them.\"",
+      "right": "Appearance → auto",
+      "note": "auto follows the dark-mode setting of the browser that opens the page."
+     },
+     {
+      "id": "p5",
+      "left": "\"Make the edges soft, like our marketing site.\"",
+      "right": "Corners → xl",
+      "note": "Corners runs from none to xl; xl is the roundest, and what the Friendly preset uses."
+     }
+    ]
+   }
+  },
+  {
+   "type": "slide",
+   "id": "appearance",
+   "icon": "🌗",
+   "title": "Appearance is the knob with a consequence",
+   "bodyMd": "The other three knobs are taste. **Appearance** is a decision about someone else's eyes.\n\nA form does not inherit the workspace theme of the person reading it. It stamps its own light-or-dark on the page it renders, so a form set to `light` renders light for a colleague who has used dark mode all day — and a form set to `dark` does the reverse.\n\n`auto` is the third option: the page reads the dark-mode setting of the browser that opens it and renders to match, instead of imposing yours. That is exactly what the **Match visitor** preset sets, and why it is named after the visitor rather than after a colour.\n\n**Night** is not the same thing. Night is a fixed dark page for everyone."
+  },
+  {
+   "type": "quiz",
+   "id": "q-dark",
+   "question": "Van Dijk wants Offerteaanvraag in the company blue, and each colleague should get whichever of light or dark their own browser is set to. What do you set under Styling?",
+   "multi": false,
+   "choices": [
+    {
+     "id": "a",
+     "label": "Pick a preset, set the accent to the blue swatch or picker, then set Appearance to auto.",
+     "correct": true
+    },
+    {
+     "id": "b",
+     "label": "Pick Night — it is the dark one, so nobody gets dazzled.",
+     "correct": false,
+     "feedback": "Night is a fixed dark page. It dazzles nobody working in dark mode and everybody working in light mode — it does not follow the visitor at all."
+    },
+    {
+     "id": "c",
+     "label": "Pick Match visitor and stop there — it handles the colour too.",
+     "correct": false,
+     "feedback": "Match visitor sets Appearance to auto, but it also writes its own green accent over yours. Pick it first if you like, then set the accent afterwards."
+    },
+    {
+     "id": "d",
+     "label": "Change nothing — a form already follows the theme of whoever opens it.",
+     "correct": false,
+     "feedback": "It does not. A form stamps its own light-or-dark on the page, so the Clean default renders light for everyone until you set Appearance to auto."
+    }
+   ],
+   "explanation": "Accent and Appearance are separate settings that a preset happens to write together. Set the preset first, then correct the one or two knobs you actually care about."
+  },
+  {
+   "type": "slide",
+   "id": "preview",
+   "icon": "👁️",
+   "title": "Preview, then Save — in that order",
+   "bodyMd": "At the top of the question editor sits **Preview the form** (it becomes **Hide preview**). It renders the real page with your current styling, without leaving the tab and without saving anything.\n\nNothing you touch under Styling reaches the live page until you press **Save** on the sticky bar at the bottom and see the toast **\"Saved.\"** The bar's other button, **Discard changes**, throws the whole editing session away — styling included.\n\nAnd if you navigate away with unsaved changes the app asks first: *\"The questions were changed and not saved. Leave and lose them?\"* with **Leave** and **Keep editing**. Styling counts as a change, exactly like a question does."
+  },
+  {
+   "type": "slide",
+   "id": "page-two",
+   "icon": "📄",
+   "title": "Page two does not restyle itself",
+   "bodyMd": "A longer form runs over several pages — the later ones are steps in the routine behind it, edited there rather than on the Questions tab.\n\nEvery later page opens its Styling section with one extra control at the top: the checkbox **Match the first page**. While it is ticked, that page has no styling of its own and simply follows page one — so a visitor never watches the form change appearance halfway through.\n\nUnticking it opens the presets and knobs for that page alone, so you style it from there. Ticking it again gives the page straight back to page one. For Van Dijk's supplier intake, leave it ticked; the only good reason to untick it is a closing page that should deliberately look different."
+  },
+  {
+   "type": "quiz",
+   "id": "q-chip",
+   "question": "You click the Corporate preset, then set Corners to xl because the sales lead likes round edges. The Corporate chip stops looking selected. What has happened?",
+   "multi": false,
+   "choices": [
+    {
+     "id": "a",
+     "label": "Nothing broke. A preset chip only highlights while all five of its settings still match, and your form now has Corporate's colour, spacing and text size with xl corners.",
+     "correct": true
+    },
+    {
+     "id": "b",
+     "label": "The preset was undone and the form fell back to Clean.",
+     "correct": false,
+     "feedback": "Moving a knob changes that one setting. The other four the preset wrote are untouched — the chip simply stops claiming to describe the form."
+    },
+    {
+     "id": "c",
+     "label": "The form now has no styling and will render with the product defaults.",
+     "correct": false,
+     "feedback": "There is always a styling on the form: five values. \"No preset selected\" means the five values do not happen to match any of the five chips."
+    },
+    {
+     "id": "d",
+     "label": "You must click Corporate again to make the corner change stick.",
+     "correct": false,
+     "feedback": "That would do the opposite — clicking a preset rewrites all five settings, so your xl corners would be replaced by Corporate's sm."
+    }
+   ],
+   "explanation": "The preset chips are a description, not a container. Pick one to get close, then nudge the knobs; re-clicking the preset is how you throw those nudges away."
+  },
+  {
+   "type": "slide",
+   "id": "switches",
+   "icon": "🔌",
+   "title": "Three switches, three different endings",
+   "bodyMd": "The **Settings** tab holds all three, and builders mix them up constantly:\n\n- **Form is live** (off) — *\"the link answers 'not available' and nothing is collected\"*. The page is gone; everything else is intact.\n- **Collect answers in a table** (off) — the form still opens, still accepts submissions, still starts the routine. Only the table stops being fed.\n- **Delete this form** in the danger zone — type the name to confirm. The form and the routine behind it go. The answers table does **not**; it stays under Datatables until someone removes it there.\n\nThe first two are toggles you can put back. The third is the end of the routine."
+  },
+  {
+   "type": "slide",
+   "id": "stop-confirm",
+   "icon": "🛑",
+   "title": "\"Stop collecting?\" tells you exactly what it costs",
+   "bodyMd": "Switching **Collect answers in a table** off is the one action on this tab that asks first:\n\n> **Stop collecting?**\n> New submissions no longer land in the table. The table, its rows and its sharing stay as they are.\n> **Stop collecting** · **Cancel**\n\nRead that as three promises. Rows already collected are not touched. Whoever the answers table was shared with keeps their access and keeps seeing the dashboard. And it is *new submissions* that stop — not submissions.\n\nSwitching it back on later is one click, and the card says what that click does not do: *\"Earlier submissions are not imported; collecting starts with the next one.\"* The gap stays a gap."
+  },
+  {
+   "type": "exercise",
+   "id": "ex-say",
+   "icon": "🎯",
+   "exerciseId": "ex-forms-appearance-stop",
+   "title": "Your turn: what stops, and what stays",
+   "instruction": "Van Dijk's Inkoop team asks you to \"switch off the table on Leveranciersintake — we work in the ERP now\". Before you touch it, write the two or three sentences you send back, so nobody is surprised afterwards. Say what stops the moment you confirm, what is left exactly as it is, and what carries on running because this switch does not touch it. A strong answer also mentions what switching it back on in six months would and would not recover.",
+   "placeholder": "e.g. If I confirm this, from the next submission onwards nothing new lands in the answers table. The 46 rows already in it stay, and so does…",
+   "passScore": 70,
+   "maxAttempts": 4
+  },
+  {
+   "type": "sim",
+   "id": "sim-retire",
+   "icon": "📦",
+   "title": "Retiring Offerteaanvraag without losing anything",
+   "instruction": "Sales moves quote requests into the ERP. The answers must stay findable for the auditor, and nothing should be lost. Put the four moves in the order you would make them.",
+   "sim": {
+    "kind": "order",
+    "items": [
+     {
+      "id": "live",
+      "label": "Settings → switch \"Form is live\" off, so the link answers \"not available\""
+     },
+     {
+      "id": "collect",
+      "label": "Settings → switch \"Collect answers in a table\" off and confirm Stop collecting"
+     },
+     {
+      "id": "retention",
+      "label": "Settings → \"Open the table's retention settings\" and decide how long the answers stay"
+     },
+     {
+      "id": "delete",
+      "label": "Only if the routine itself must go: danger zone → \"Delete this form\", knowing the table survives it"
+     }
+    ],
+    "solution": [
+     "live",
+     "collect",
+     "retention",
+     "delete"
+    ],
+    "feedback": "Close the inflow first: with the form off the air nothing more arrives, so what follows is a decision rather than a race. Then stop the table following the form, then decide how long its rows live — answers are kept indefinitely until a retention window is set. Delete last: it is the only one of the four that does not toggle back, and it removes the routine, not the answers."
+   }
+  },
+  {
+   "type": "quiz",
+   "id": "q-resume",
+   "question": "Van Dijk switched \"Collect answers in a table\" off in June but left the form live all summer; colleagues kept submitting it. In September they switch collecting back on. What is in the answers table?",
+   "multi": false,
+   "choices": [
+    {
+     "id": "a",
+     "label": "Everything from before June, then nothing for the summer, then rows again from the next submission onwards.",
+     "correct": true
+    },
+    {
+     "id": "b",
+     "label": "Nothing — switching collection off emptied the table, so it starts again from zero.",
+     "correct": false,
+     "feedback": "The confirm promised the opposite: \"The table, its rows and its sharing stay as they are.\" Stopping collection never removes a row."
+    },
+    {
+     "id": "c",
+     "label": "Everything, including the summer — the submissions are filled in from the runs when collecting resumes.",
+     "correct": false,
+     "feedback": "There is no backfill. The card is explicit: \"Earlier submissions are not imported; collecting starts with the next one.\""
+    },
+    {
+     "id": "d",
+     "label": "Everything from before June, and nothing after — collecting cannot be switched back on once it is off.",
+     "correct": false,
+     "feedback": "It can. The toggle goes both ways and only the off direction asks for a confirmation."
+    }
+   ],
+   "explanation": "Stopping collection stops the table being fed, and that is all it does. The form kept running all summer — those submissions started the routine, they just left no row behind, and nothing will ever put them there."
+  },
+  {
+   "type": "action",
+   "id": "do",
+   "icon": "🏗️",
+   "checkId": "form-appearance-set",
+   "title": "Give one of your forms a face",
+   "instruction": "Open a form you own, go to the Questions tab and scroll to Styling. Pick a preset other than Clean, or set an accent colour and move a knob, then use Preview the form to check it and press Save.",
+   "launch": {
+    "navigateTo": "studio/forms",
+    "label": "Open Forms"
+   }
+  },
+  {
+   "type": "slide",
+   "id": "recap",
+   "icon": "✅",
+   "title": "What you can do now",
+   "bodyMd": "- **Style a form on purpose.** Pick one of Clean, Corporate, Friendly, Night or Match visitor to get close, then set the accent and the four knobs — Corners, Spacing, Text size, Appearance — and know that the chip going dim just means the five values stopped matching it.\n- **Choose Appearance for the reader, not for yourself.** A form imposes its own light or dark; `auto` is the setting that hands that choice back. On a later page, leave **Match the first page** ticked unless you mean it.\n- **Stop a form with the right switch.** *Form is live* takes the page down, *Collect answers in a table* only stops the table being fed — after the **Stop collecting?** confirm, which leaves the table, its rows and its sharing untouched — and **Delete this form** ends the routine while the answers table lives on under Datatables."
+  }
+ ],
+ "rubrics": {
+  "ex-forms-appearance-stop": {
+   "title": "What stopping collection actually does",
+   "task": "Write the short note back to the Inkoop team explaining what happens when \"Collect answers in a table\" is switched off on Leveranciersintake: what stops, what stays untouched, what keeps running, and what switching it back on later would not recover.",
+   "criteria": [
+    "Says that only NEW submissions stop landing in the table, starting from the next submission",
+    "Says the answers table itself, the rows already in it and the people it is shared with all stay exactly as they are",
+    "Makes clear the form keeps working — it still opens, still accepts submissions and still starts the routine, because taking it off the air is the separate \"Form is live\" switch",
+    "Notes that switching collecting back on does not import the submissions made in the meantime"
+   ],
+   "passScore": 70,
+   "guidance": "Do not pass an answer that says the table or its rows are deleted or emptied, that sharing is revoked, or that the form stops accepting submissions — those are the three misconceptions this exercise exists to catch. An answer that only says \"the table stops filling\" without stating that the existing rows and sharing survive is incomplete. Mentioning the retention window, or that deleting the form would not delete the table, is a bonus and never a substitute for the four points above."
+  }
+ },
+ "practiceTopic": {
+  "title": "Form styling, and stopping a form",
+  "summary": "How a form's look is set under Styling, and what each of the three switches under Settings actually stops.",
+  "facts": [
+   "The five theme presets are Clean, Corporate, Friendly, Night and Match visitor; a brand-new form starts on Clean.",
+   "Clicking a preset writes five settings at once: the accent colour plus Corners, Spacing, Text size and Appearance.",
+   "Corners offers none, sm, md, lg and xl; Spacing offers compact, comfortable and spacious; Text size offers sm, md and lg.",
+   "Appearance is light, dark or auto; auto is what the Match visitor preset sets, so the page follows the dark-mode setting of the browser that opens it.",
+   "The Accent colour row holds twelve swatches plus a custom colour picker, and Preview the form renders the page without saving.",
+   "A later form page carries a Match the first page checkbox; while it is ticked that page follows page one's styling.",
+   "Switching Collect answers in a table off confirms with \"Stop collecting?\" and the promise that the table, its rows and its sharing stay as they are.",
+   "Switching collecting back on imports nothing: collecting starts again with the next submission."
+  ]
+ },
+ "actionChecks": [
+  {
+   "checkId": "form-appearance-set",
+   "existing": false,
+   "label": "Style a form of your own",
+   "hint": "In Studio → Forms, open a form you own → Questions → Styling, choose a preset or move a knob, then Save.",
+   "endpoints": [
+    {
+     "method": "GET",
+     "path": "/api/automation",
+     "returns": "the caller's own routines, each with id, title, isActive, isDraft and definition (including definition.trigger.kind and definition.trigger.form)"
+    }
+   ],
+   "criteria": [
+    {
+     "id": "has-form",
+     "label": "A routine of your own exists — your form is one of them",
+     "hint": "Every form is a routine with a form trigger, so New form in Studio → Forms makes one. The Styling you pick is saved inside the form, where this check cannot look — Preview the form is your proof.",
+     "rule": "GET /api/automation → automations[] is non-empty (definition.trigger.kind and the theme are per row and not readable by the runtime)",
+     "endpoint": "/api/automation",
+     "expect": {
+      "kind": "rows",
+      "field": "automations"
+     }
+    }
+   ]
+  }
+ ]
+}

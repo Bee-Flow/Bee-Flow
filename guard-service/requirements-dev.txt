@@ -1,0 +1,10 @@
+# Test-only dependencies for ci.yml's guard job. Run from guard-service/:
+#   python -m coverage run --source=app -m unittest discover -s tests
+# No model, no torch: the unit tests use FakeGliner. The service lines carry
+# the same pins as requirements.txt, so the tests import the versions the
+# image ships; the classes that read app/config.py need pydantic-settings.
+coverage==7.16.1
+fastapi==0.141.1
+pydantic==2.13.5
+pydantic-settings==2.15.0
+httpx==0.28.1

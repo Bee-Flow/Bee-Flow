@@ -1,0 +1,225 @@
+{
+  "id": "connecting-integrations",
+  "icon": "🔗",
+  "estMinutes": 12,
+  "title": "Connect your own tools",
+  "desc": "How to connect a tool to your own account, the three rungs that must all say yes, and what changes when a colleague lends you theirs.",
+  "gate": { "feature": "integrations" },
+  "learningGoal": "After this lesson you can connect a provider yourself and say which of the three rungs — plan, grant, or your own credential — is missing when a tool does not appear.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "ladder",
+      "icon": "🪜",
+      "title": "Three rungs, and only one is yours",
+      "bodyMd": "At Van Dijk Groep, Anouk in HR asks her agent for a leave overview out of vPlan. Nothing happens — no error, the tool is simply not there.\n\nThree separate decisions have to say yes before any integration works for one person:\n\n- **The plan.** Your subscription or server licence has to include the integration. Nobody inside the organisation can raise that ceiling.\n- **The grant.** An admin — at Van Dijk Groep that is Marieke, the organisation admin — hands the integration to *All members* or to one group, under Settings → Organisation → Integrations → **Integration access**.\n- **The connection.** You store your own credential under Settings → **Connections**.\n\nMiss one and the tool is silently absent from the agent's toolbox. The third rung is the one you can always fix yourself — it is the one most people are actually missing, and it is what the rest of this lesson is about."
+    },
+    {
+      "type": "tour",
+      "id": "where",
+      "target": "[data-tour=\"integration-card\"]",
+      "navigateTo": "settings/integrations",
+      "placement": "top",
+      "optional": true,
+      "timeoutMs": 7000,
+      "icon": "🧩",
+      "title": "This page is rung three",
+      "body": "Settings → Connections lists the integrations your organisation has actually granted you, grouped as Google Workspace, Productivity, Health, Social and Developer. A row expands in place: you either sign in, or you fill in the fields that tool asks for. Once it holds a credential it shows a green Connected badge."
+    },
+    {
+      "type": "slide",
+      "id": "howto",
+      "icon": "🔌",
+      "title": "What connecting actually looks like",
+      "bodyMd": "Open the row for the tool you need and it expands in place. From there it is one of two shapes.\n\n**Sign in.** Some rows hand you over to the provider's own sign-in page; you approve there and come back. You never type that password into Bee Flow.\n\n**Fill in the fields.** The rest ask you to paste what that tool gives you, and the row says exactly where to get it. The GitHub row asks for a token and tells you: *Create token at github.com/settings/tokens with **repo** scope*. The Nextcloud row asks for the URL, your username and an **App password**, with the hint *\"Generate at Nextcloud → Settings → Security → Devices & sessions.\"*\n\nSave, and the row shows a green **Connected** badge while each stored field reads **✓ Configured**.\n\nThat badge is the whole of what it proves: your credential is stored and encrypted. It does not promise the token carries enough rights in the other system — if a tool later answers \"not allowed\", that is the scope you gave the token, not Bee Flow refusing you."
+    },
+    {
+      "type": "quiz",
+      "id": "q-rung",
+      "icon": "❓",
+      "question": "Anouk can see the vPlan row on her Connections page, and Marieke granted vPlan to the HR group. Her agent still cannot open the leave planning. What is missing?",
+      "multi": false,
+      "choices": [
+        { "id": "a", "label": "Her own credential — rung three. She has never opened that row and filled in what vPlan asks for.", "correct": true },
+        { "id": "b", "label": "The subscription does not include vPlan.", "correct": false, "feedback": "If the plan did not include it, the row would not be on her Connections page at all — that page lists only what has cleared the plan and the grant." },
+        { "id": "c", "label": "The grant went to the wrong group.", "correct": false, "feedback": "A missing grant hides the row exactly the way a missing plan does. She can see the row, so the grant reached her." },
+        { "id": "d", "label": "Nothing — an agent picks up a tool automatically once the grant is made.", "correct": false, "feedback": "A grant hands out the right to use a tool, never a credential. Somebody still has to sign in or fill in the fields in that row." }
+      ],
+      "explanation": "A visible but empty row is the signature of a missing credential. Plan and grant decide whether the row exists at all; you decide whether it holds anything."
+    },
+    {
+      "type": "sim",
+      "id": "symptoms",
+      "icon": "🩺",
+      "title": "Diagnose before you ask",
+      "instruction": "Four colleagues at Van Dijk Groep report a missing tool. Match each symptom to the rung that is actually broken.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "p1",
+            "left": "The provider is nowhere on your Connections page, and a colleague in a different group cannot find it either.",
+            "right": "The plan",
+            "note": "Integrations outside the subscription or licence are not shown at all. Only a change of plan brings them back."
+          },
+          {
+            "id": "p2",
+            "left": "Sales use the tool every day. You are in HR and the row is not on your page.",
+            "right": "The grant",
+            "note": "The grant went to one group. An admin either adds your group or grants it to All members."
+          },
+          {
+            "id": "p3",
+            "left": "The row is there, you have never opened it, and the agent has no such tool.",
+            "right": "Your own credential",
+            "note": "Rung three, and yours to fix: expand the row and sign in or fill in the fields."
+          },
+          {
+            "id": "p4",
+            "left": "You worked for weeks on a credential a colleague lent you, and this morning it stopped.",
+            "right": "A lapsed loan",
+            "note": "A lend can carry an expiry of 7, 30 or 90 days, and can be revoked at any time. Once it lapses you are back to bringing your own."
+          }
+        ]
+      }
+    },
+    {
+      "type": "slide",
+      "id": "named",
+      "icon": "🏷️",
+      "title": "Named connections, and the Default star",
+      "bodyMd": "Above those rows sits a block also called **Connections**: *\"Keep multiple named credentials per integration and lend a specific one to teammates.\"*\n\n**Add a connection** asks for a provider — GitHub, YouTrack, Gamma, AFAS Profit, vPlan, NMBRS and a few more, plus *HTTP API (custom)* — then a name and the same credential fields. Give it a name you will still recognise in three months, such as \"YouTrack – Inkoop\", because afterwards the name is all you see.\n\nWhy bother, when the row below already works? Two reasons: you may hold more than one credential for the same provider, and only a named connection can be lent to a colleague.\n\nThe first one you create for a provider becomes the **Default** automatically, and the Default is the one a run reaches for; **Set default** moves the star to another row.\n\nEither way the secret is encrypted and never comes back out — the screen only ever tells you that a field is filled in."
+    },
+    {
+      "type": "action",
+      "id": "connect",
+      "icon": "🔑",
+      "checkId": "connection-created",
+      "title": "Connect one tool — we'll verify it",
+      "instruction": "Open Settings → Connections and create one named connection for a tool you genuinely need. Use Add a connection at the top of the page, pick the provider, give it a name you will recognise later such as \"GitHub – Van Dijk\", fill the credential fields and press Create connection. Leave it unshared for now — the check only looks for a connection you own.",
+      "launch": { "navigateTo": "settings/integrations", "label": "Open Connections" }
+    },
+    {
+      "type": "slide",
+      "id": "byo",
+      "icon": "🙋",
+      "title": "Bring your own is the deliberate default",
+      "bodyMd": "When somebody shares an agent, a routine or a Studio app with you, you do **not** inherit their credentials. The Connections screen says so: *\"Recipients without a lent connection bring their own.\"*\n\nThat is on purpose. Your run then uses your account: the mailbox that gets read is yours, the issue is filed under your name, and your own permissions in the other system still apply. Nobody borrows access by accident.\n\nThe order a run uses is worth remembering. It looks for **your own Default connection first**. Only when you have none does a credential somebody lent you come into play."
+    },
+    {
+      "type": "slide",
+      "id": "lend",
+      "icon": "🤝",
+      "title": "Lending: whose account the run uses",
+      "bodyMd": "Sometimes bring-your-own is impractical — a colleague has the account and you do not. The share icon on a named connection row lends it.\n\nThe panel is blunt about what that means: *\"Lending shares this connection with full delegation — the recipient's runs use your credentials.\"* The run acts as the owner, and the other system records the owner's name, not the borrower's.\n\nSo it cuts both ways. If somebody lends you one, remember you are working on their account. If you lend one, lend to the smallest audience that needs it — a named teammate rather than **Lend to everyone in my organization** — and give it an end date.\n\nFor an *HTTP API (custom)* credential the panel adds a second warning, because that kind cannot be narrowed to one address. If you are not sure what a credential can reach, do not lend it.\n\nOne boundary is structural: a lend never crosses organisations."
+    },
+    {
+      "type": "quiz",
+      "id": "q-http",
+      "icon": "❓",
+      "question": "A colleague lends you her YouTrack connection for a two-week pilot. You ask your agent to file an issue, and it works. Whose account did that use?",
+      "multi": false,
+      "choices": [
+        { "id": "a", "label": "Hers. A lend is full delegation — your run used her credential, and YouTrack records her name.", "correct": true },
+        { "id": "b", "label": "Yours, because accepting a lend copies the credential into your own Connections.", "correct": false, "feedback": "Nothing is copied. The secret stays in her connection and never comes back out of any screen; you get the use of it, not the credential itself." },
+        { "id": "c", "label": "Yours, because you are the one who typed the request.", "correct": false, "feedback": "The request is yours, the credential is not. Everything the run does in the other system is done as her — which is why a lend is worth a conversation before it is worth a click." },
+        { "id": "d", "label": "Neither — a lend only makes the row visible, and you still have to add your own credential.", "correct": false, "feedback": "That is bring-your-own, which is what happens when nothing is lent. An active lend really does apply — although your own Default connection for that provider would win over it." }
+      ],
+      "explanation": "A lend is delegation, not a copy. If you already have your own connection for that provider, the run uses yours first; if you do not, you are working on the lender's account until the share expires or is revoked."
+    },
+    {
+      "type": "slide",
+      "id": "expiry",
+      "icon": "⏳",
+      "title": "Ending a share: expiry, revoke, delete",
+      "bodyMd": "Whenever the reason for a lend is temporary, give it an end date. The **Expiry** dropdown on the share panel offers **No expiry, 7 days, 30 days, 90 days** — and an expiry is the only limit that applies itself.\n\nA shared row then shows a count, for example **\"2 shared\"**. Open the panel again and every recipient is listed — a teammate's address, a group, or **Everyone in org** — with the date it expires when you set one, beside a bin icon that revokes it.\n\nA revoked or expired share simply stops matching the next time a run looks for a credential. Nothing announces it, so a job that suddenly reports the tool as unavailable is worth checking here.\n\nDeleting the connection is heavier, and Bee Flow asks twice when it is shared. The first question is the honest one: *\"Delete this connection? Any automation using it will stop working.\"*"
+    },
+    {
+      "type": "exercise",
+      "id": "ex-lend",
+      "icon": "🎯",
+      "exerciseId": "ex-connecting-integrations-lend",
+      "title": "Your turn: answer the lending request",
+      "instruction": "You have just connected your own YouTrack account. A teammate who has no YouTrack account of her own asks you to lend her your connection for a two-week pilot. Write 3–5 sentences replying to her: whether you lend it or ask her to get her own account first, what she needs to know about whose name will appear in YouTrack, which expiry you pick from the four the panel offers, and what you will do when the pilot ends.",
+      "placeholder": "e.g. Yes, I'll lend it for the pilot — but you should know that… I'm setting the expiry to… because… When the pilot ends I'll… If you turn out to need it permanently…",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "slide",
+      "id": "breaks",
+      "icon": "🚧",
+      "title": "When a connection stops working",
+      "bodyMd": "Credentials do not last forever: a token is rotated, an app password is withdrawn at the source, a lend reaches its expiry date.\n\nBee Flow does not improvise around that. A connection whose credential no longer works is marked as needing re-authentication and stops being used, and the run then treats the tool as unavailable. It will not quietly reach for somebody else's credential, and it will not pretend to have run.\n\nThe repair is rung three again, in Settings → **Connections**: expand the integration row and enter the credential again — saving clears the error.\n\nA **named** connection has no re-entry field; the row only offers Set default, Rename, share and delete. So add a fresh connection with the new credential and press **Set default** on it."
+    },
+    {
+      "type": "slide",
+      "id": "now",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "- **Connect it yourself.** Settings → Connections, expand the row, sign in or fill in what the tool asks for, and look for the green **Connected** badge.\n- **Diagnose before you ask.** Say which rung you are on — plan, grant, or your own credential — and an admin can answer in one line instead of three.\n- **Know whose account is running.** Your own Default connection always beats one lent to you; and when you lend, lend narrowly, set an expiry, and revoke the day the reason disappears."
+    }
+  ],
+  "rubrics": {
+    "ex-connecting-integrations-lend": {
+      "title": "Answering a request to lend your connection",
+      "task": "The learner owns a YouTrack connection. A teammate with no account of her own asks to borrow it for a two-week pilot. The learner replies in 3-5 sentences: lend or not, what delegation means for whose name appears in YouTrack, which expiry from the offered list, and what happens when the pilot ends.",
+      "criteria": [
+        "Makes an actual decision for this pilot rather than only describing how lending works.",
+        "Says that the teammate's runs will use the learner's credential, so YouTrack will record the learner's name and not hers.",
+        "Picks one of the real expiry options (7, 30 or 90 days) and ties it to the two-week pilot instead of No expiry.",
+        "Names an end: revoking the share from the connection row, or letting the expiry lapse — and, if the need turns out to be permanent, the teammate getting an account of her own."
+      ],
+      "passScore": 70,
+      "guidance": "Pass an answer that treats lending as delegation of the learner's own account and limits it in time. Do not pass an answer that claims the teammate receives a copy of the token, that the lend can be narrowed to one project or to read-only, or that picks No expiry for a two-week pilot. An answer that only restates what lending is, without deciding, fails."
+    }
+  },
+  "practiceTopic": {
+    "title": "Connections and the three rungs",
+    "summary": "How a plan, an organisation grant and your own credential combine before any integration works, and what changes when a colleague lends you theirs.",
+    "facts": [
+      "Settings → Connections lists only the integrations that have cleared the plan and the organisation's grant; a missing row points at one of those two, not at your credential.",
+      "An integration row expands in place: you either sign in with the provider or fill in the fields it asks for, and a green Connected badge means the credential is stored.",
+      "Add a connection at the top of Settings → Connections creates a named credential; the first one you create for a provider becomes the Default, and Set default moves the star.",
+      "Lending a named connection is full delegation — the recipient's runs use the owner's credential, so the other system records the owner's name.",
+      "The Expiry dropdown on the share panel offers No expiry, 7 days, 30 days and 90 days, and each share can be revoked from the same panel.",
+      "A run looks for your own Default connection first; only when you have none does a lent credential apply, and an expired or revoked lend never matches.",
+      "Connection secrets are encrypted and are never returned by any screen or endpoint — the page only shows that a field is configured.",
+      "A lend can never cross organisations: only people in the owner's own organisation can receive one."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "connection-created",
+      "existing": false,
+      "label": "Connect one integration of your own",
+      "hint": "Settings → Connections → Add a connection: pick a provider, name it, fill the credential fields and press Create connection. Signing in on one of the integration rows lower down the page does not create a named connection.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/integrations/connections",
+          "returns": "{connections:[{id, ownerUserId, orgId, provider, label, kind, status, isDefault, secretMeta, lastUsedAt}]} — called without query parameters it returns only the caller's own connections, never secrets"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "exists",
+          "label": "You own at least one connection",
+          "hint": "Use Add a connection at the top of Settings → Connections, pick a provider, name it, fill the credential fields and press Create connection.",
+          "rule": "connections.length > 0",
+          "endpoint": "/api/integrations/connections",
+          "expect": {
+            "kind": "rows",
+            "field": "connections"
+          }
+        },
+        {
+          "id": "active",
+          "label": "The connection is active",
+          "hint": "A connection is active from the moment you create it; if one is later marked as needing re-authentication, add a fresh connection with the new credential and press Set default on it.",
+          "rule": "connections.some(c => c.status === 'active')"
+        }
+      ]
+    }
+  ]
+}

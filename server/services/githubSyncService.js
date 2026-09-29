@@ -1,0 +1,630 @@
+/**
+ * GitHub Sync Service — Core engine for syncing agent & skill configs to GitHub
+ *
+ * Serializes agent/skill state into structured JSON/MD files and commits them
+ * to a configured GitHub repository via the GitHub Contents API.
+ *
+ * Repository structure:
+ *   agents/<id>/agent.json          — metadata + config
+ *   agents/<id>/system-prompt.md    — system prompt (human-readable)
+ *   agents/<id>/starter-prompts.json
+ *   agents/<id>/tools.json
+ *   skills/<id>/skill.json          — metadata
+ *   skills/<id>/instructions.md
+ *   skills/<id>/rules.md
+ *   skills/<id>/examples.md
+ *   skills/<id>/workflow.md
+ *   sync-manifest.json              — full index + timestamps
+ */
+
+const crypto = require('crypto');
+const configStore = require('../stores/configStore');
+const githubSyncStore = require('../stores/githubSyncStore');
+const log = require('../telemetry/log');
+
+const GITHUB_API = 'https://api.github.com';
+
+// ── GitHub API helpers ───────────────────────────────────────────
+
+/**
+ * Get the GitHub PAT for a user.
+ */
+async function getToken(userId) {
+    const token = await configStore.getSecret(`github_token_user_${userId}`);
+    if (!token) throw new Error('GitHub not connected. Set your Personal Access Token in Settings → Integrations.');
+    return token;
+}
+
+/**
+ * Make an authenticated GitHub API request.
+ */
+async function ghFetch(token, endpoint, options = {}) {
+    const url = endpoint.startsWith('http') ? endpoint : `${GITHUB_API}${endpoint}`;
+    const res = await fetch(url, {
+        ...options,
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/vnd.github+json',
+            'X-GitHub-Api-Version': '2022-11-28',
+            ...(options.headers || {}),
+        },
+        signal: AbortSignal.timeout(30000),
+    });
+
+    if (res.status === 401) {
+        throw new Error('GitHub token expired or invalid. Update it in Settings → Integrations.');
+    }
+    // 404 is expected for new files (file doesn't exist yet)
+    if (res.status === 404 && options._allow404) {
+        return null;
+    }
+    if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`GitHub API error (${res.status}): ${text}`);
+    }
+    return res.json();
+}
+
+/**
+ * Get the SHA of an existing file on GitHub (needed for updates).
+ * Returns null if file doesn't exist.
+ */
+async function getFileSha(token, owner, repo, path, branch) {
+    try {
+        let url = `/repos/${owner}/${repo}/contents/${path}`;
+        if (branch) url += `?ref=${encodeURIComponent(branch)}`;
+        const data = await ghFetch(token, url, { _allow404: true });
+        return data?.sha || null;
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Create or update a file on GitHub.
+ */
+async function pushFile(token, owner, repo, filePath, content, message, branch = 'main') {
+    const encoded = Buffer.from(content, 'utf-8').toString('base64');
+    const existingSha = await getFileSha(token, owner, repo, filePath, branch);
+
+    const body = {
+        message,
+        content: encoded,
+        branch,
+    };
+    if (existingSha) body.sha = existingSha;
+
+    const result = await ghFetch(token, `/repos/${owner}/${repo}/contents/${filePath}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+    });
+
+    return result?.commit?.sha || null;
+}
+
+/**
+ * Delete a file from GitHub.
+ */
+async function deleteFile(token, owner, repo, filePath, message, branch = 'main') {
+    const existingSha = await getFileSha(token, owner, repo, filePath, branch);
+    if (!existingSha) return null; // File doesn't exist, nothing to delete
+
+    const result = await ghFetch(token, `/repos/${owner}/${repo}/contents/${filePath}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            message,
+            sha: existingSha,
+            branch,
+        }),
+    });
+
+    return result?.commit?.sha || null;
+}
+
+// ── Content hashing ──────────────────────────────────────────────
+
+function contentHash(content) {
+    return crypto.createHash('sha256').update(content, 'utf-8').digest('hex');
+}
+
+// ── Agent Serialization ──────────────────────────────────────────
+
+function serializeAgentMeta(agent) {
+    return JSON.stringify({
+        id: agent.id,
+        name: agent.name,
+        description: agent.description || '',
+        model: agent.model || null,
+        threadsEnabled: agent.threads_enabled !== false,
+        copyEnabled: agent.copy_enabled !== false,
+        workspaceEnabled: agent.workspace_enabled === true,
+        embedEnabled: agent.embed_enabled === true,
+        isPublished: agent.is_published === true,
+        categoryId: agent.category_id || null,
+        config: agent.config || {},
+        updatedAt: agent.updated_at,
+    }, null, 2);
+}
+
+function serializeTools(tools, toolParams) {
+    return JSON.stringify({
+        components: tools || [],
+        params: toolParams || {},
+    }, null, 2);
+}
+
+function serializeStarterPrompts(agent) {
+    let prompts = agent.starter_prompts;
+    if (typeof prompts === 'string') {
+        try { prompts = JSON.parse(prompts); } catch { prompts = []; }
+    }
+    return JSON.stringify(prompts || [], null, 2);
+}
+
+// ── Skill Serialization ──────────────────────────────────────────
+
+// A JSONB column arrives parsed from pg, as a string from an older TEXT
+// column or a hand-edited file, and as undefined on a row from before S1.
+function _jsonArrayField(v) {
+    if (Array.isArray(v)) return v;
+    if (typeof v === 'string' && v.trim()) { try { const p = JSON.parse(v); return Array.isArray(p) ? p : []; } catch { return []; } }
+    return [];
+}
+function _jsonObjectField(v) {
+    if (v && typeof v === 'object' && !Array.isArray(v)) return v;
+    if (typeof v === 'string' && v.trim()) { try { const p = JSON.parse(v); return p && typeof p === 'object' && !Array.isArray(p) ? p : null; } catch { return null; } }
+    return null;
+}
+function _pick(skill, camel, snake) {
+    return skill[camel] !== undefined ? skill[camel] : skill[snake];
+}
+
+/**
+ * skill.json — the metadata next to the four .md files. Since S1 (Sep 2026)
+ * it also carries the STRUCTURE (`steps`, `rules`, `examples` as arrays,
+ * `outputSchema`, `version`, the grants) so a skill survives the round-trip
+ * with its step references, rule polarity and output fields intact; the
+ * .md files stay the human-readable text. Accepts a mapped row (camelCase)
+ * or a raw SELECT * row (snake_case). `deserializeSkillMeta` is the inverse.
+ *
+ * SKILL_META_FORMAT bumps only when a key changes meaning; adding keys is
+ * free (older readers ignore them, `deserializeSkillMeta` defaults them).
+ */
+const SKILL_META_FORMAT = 2;
+
+function serializeSkillMeta(skill) {
+    const sharedGroups = _jsonArrayField(_pick(skill, 'sharedGroups', 'shared_groups'));
+    const outputSchema = _jsonObjectField(_pick(skill, 'outputSchema', 'output_schema'));
+    const versionRaw = Number(skill.version);
+    return JSON.stringify({
+        format: SKILL_META_FORMAT,
+        id: skill.id,
+        name: skill.name,
+        description: skill.description || '',
+        icon: skill.icon || '⚡',
+        isShared: skill.isShared === true || skill.is_shared === true,
+        dynamicActivation: skill.dynamicActivation === true || skill.dynamic_activation === true,
+        sharedGroups,
+        automationId: _pick(skill, 'automationId', 'automation_id') || null,
+        enabledIntegrations: _jsonArrayField(_pick(skill, 'enabledIntegrations', 'enabled_integrations')),
+        // Structure (S1). The arrays mirror the .md files; the text there is
+        // the rendered form of these.
+        version: Number.isFinite(versionRaw) && versionRaw > 0 ? versionRaw : 1,
+        steps: _jsonArrayField(skill.steps),
+        rules: _jsonArrayField(_pick(skill, 'rulesV2', 'rules_v2')),
+        examples: _jsonArrayField(_pick(skill, 'examplesV2', 'examples_v2')),
+        outputSchema,
+        knowledgeBaseIds: _jsonArrayField(_pick(skill, 'knowledgeBaseIds', 'knowledge_base_ids')),
+        allowedAutomationIds: _jsonArrayField(_pick(skill, 'allowedAutomationIds', 'allowed_automation_ids')),
+        updatedAt: skill.updatedAt || skill.updated_at,
+    }, null, 2);
+}
+
+/**
+ * Inverse of serializeSkillMeta: skill.json (string or parsed) → the
+ * camelCase fields skillStore.createSkill / updateSkill accept. Text
+ * facets are NOT in here (they live in the .md files) — pass those
+ * separately; when both text and structure are given, the store's
+ * precedence rule lets the structure win and regenerates the text.
+ * A format-1 file (no structure) yields no structured keys at all, so the
+ * store parses the .md text instead of overwriting structure with [].
+ */
+function deserializeSkillMeta(json) {
+    const meta = typeof json === 'string' ? JSON.parse(json) : (json || {});
+    const out = {
+        id: meta.id,
+        name: meta.name,
+        description: typeof meta.description === 'string' ? meta.description : '',
+        icon: meta.icon || '⚡',
+        isShared: meta.isShared === true,
+        dynamicActivation: meta.dynamicActivation === true,
+        sharedGroups: _jsonArrayField(meta.sharedGroups),
+        automationId: meta.automationId || null,
+        enabledIntegrations: _jsonArrayField(meta.enabledIntegrations),
+        updatedAt: meta.updatedAt || null,
+    };
+    const hasStructure = Number(meta.format) >= 2 || Array.isArray(meta.steps) || Array.isArray(meta.rules) || Array.isArray(meta.examples);
+    if (hasStructure) {
+        out.steps = _jsonArrayField(meta.steps);
+        out.rulesV2 = _jsonArrayField(meta.rules);
+        out.examplesV2 = _jsonArrayField(meta.examples);
+        out.outputSchema = _jsonObjectField(meta.outputSchema);
+        out.knowledgeBaseIds = _jsonArrayField(meta.knowledgeBaseIds);
+        out.allowedAutomationIds = _jsonArrayField(meta.allowedAutomationIds);
+        const v = Number(meta.version);
+        out.version = Number.isFinite(v) && v > 0 ? v : 1;
+    }
+    return out;
+}
+
+// ── Sync Operations ──────────────────────────────────────────────
+
+/**
+ * Sync a single agent to GitHub.
+ * Returns { pushed: boolean, commitSha, filesUpdated }
+ */
+async function syncAgent(agent, tools, toolParams, token, owner, repo, branch, orgId) {
+    const basePath = `agents/${agent.id}`;
+    const files = {
+        [`${basePath}/agent.json`]: serializeAgentMeta(agent),
+        [`${basePath}/system-prompt.md`]: agent.system_prompt || '',
+        [`${basePath}/starter-prompts.json`]: serializeStarterPrompts(agent),
+        [`${basePath}/tools.json`]: serializeTools(tools, toolParams),
+    };
+
+    let lastCommitSha = null;
+    let filesUpdated = 0;
+    const combinedContent = Object.values(files).join('\n---\n');
+    const newHash = contentHash(combinedContent);
+
+    // Check if content has actually changed
+    const existing = await githubSyncStore.getSyncState(orgId, 'agent', agent.id);
+    if (existing && existing.last_synced_sha === newHash && existing.sync_status === 'synced') {
+        return { pushed: false, commitSha: existing.github_commit_sha, filesUpdated: 0, skipped: true };
+    }
+
+    // Push each file
+    for (const [filePath, content] of Object.entries(files)) {
+        if (!content && content !== '') continue;
+        try {
+            const commitSha = await pushFile(
+                token, owner, repo, filePath, content,
+                `Sync agent "${agent.name}": ${filePath.split('/').pop()}`,
+                branch
+            );
+            if (commitSha) lastCommitSha = commitSha;
+            filesUpdated++;
+        } catch (err) {
+            log.error(`[GitHubSync] Failed to push ${filePath}:`, err.message);
+            await githubSyncStore.markError(orgId, 'agent', agent.id, err.message);
+            throw err;
+        }
+    }
+
+    // Update sync state
+    await githubSyncStore.markSynced(orgId, 'agent', agent.id, newHash, lastCommitSha);
+    return { pushed: true, commitSha: lastCommitSha, filesUpdated };
+}
+
+/**
+ * Sync a single skill to GitHub.
+ */
+async function syncSkill(skill, token, owner, repo, branch, orgId) {
+    const basePath = `skills/${skill.id}`;
+    const files = {
+        [`${basePath}/skill.json`]: serializeSkillMeta(skill),
+        [`${basePath}/instructions.md`]: skill.instructions || '',
+        [`${basePath}/rules.md`]: skill.rules || '',
+        [`${basePath}/examples.md`]: skill.examples || '',
+        [`${basePath}/workflow.md`]: skill.workflow || '',
+    };
+
+    let lastCommitSha = null;
+    let filesUpdated = 0;
+    const combinedContent = Object.values(files).join('\n---\n');
+    const newHash = contentHash(combinedContent);
+
+    const existing = await githubSyncStore.getSyncState(orgId, 'skill', skill.id);
+    if (existing && existing.last_synced_sha === newHash && existing.sync_status === 'synced') {
+        return { pushed: false, commitSha: existing.github_commit_sha, filesUpdated: 0, skipped: true };
+    }
+
+    for (const [filePath, content] of Object.entries(files)) {
+        try {
+            const commitSha = await pushFile(
+                token, owner, repo, filePath, content,
+                `Sync skill "${skill.name}": ${filePath.split('/').pop()}`,
+                branch
+            );
+            if (commitSha) lastCommitSha = commitSha;
+            filesUpdated++;
+        } catch (err) {
+            log.error(`[GitHubSync] Failed to push ${filePath}:`, err.message);
+            await githubSyncStore.markError(orgId, 'skill', skill.id, err.message);
+            throw err;
+        }
+    }
+
+    await githubSyncStore.markSynced(orgId, 'skill', skill.id, newHash, lastCommitSha);
+    return { pushed: true, commitSha: lastCommitSha, filesUpdated };
+}
+
+/**
+ * Delete agent files from GitHub (when agent is deleted).
+ */
+async function deleteAgentFromGitHub(agentId, agentName, token, owner, repo, branch, orgId) {
+    const basePath = `agents/${agentId}`;
+    const filesToDelete = ['agent.json', 'system-prompt.md', 'starter-prompts.json', 'tools.json'];
+
+    for (const fileName of filesToDelete) {
+        try {
+            await deleteFile(token, owner, repo, `${basePath}/${fileName}`,
+                `Delete agent "${agentName || agentId}"`, branch);
+        } catch (err) {
+            // Non-fatal: file may not exist on GitHub
+            log.warn(`[GitHubSync] Could not delete ${basePath}/${fileName}:`, err.message);
+        }
+    }
+
+    await githubSyncStore.removeSyncState(orgId, 'agent', agentId);
+}
+
+/**
+ * Full sync of all agents and skills for an organization.
+ */
+async function syncAll(orgId, userId) {
+    const config = await githubSyncStore.getOrgSyncConfig(orgId);
+    if (!config) throw new Error('GitHub sync not configured for this organization');
+
+    const token = await getToken(userId);
+    const { repoOwner, repoName, branch } = config;
+
+    // Lazy-require to avoid circular dependencies
+    const agentCrud = require('../stores/agent/agentCrud');
+    const agentTools = require('../stores/agent/agentTools');
+    require('../stores/skillStore');
+
+    const results = { agents: { pushed: 0, skipped: 0, errors: 0 }, skills: { pushed: 0, skipped: 0, errors: 0 } };
+
+    // Sync all agents
+    const allAgents = await agentCrud.getAllAgents();
+    const orgAgents = allAgents.filter(a => a.organization_id === orgId);
+
+    for (const agent of orgAgents) {
+        try {
+            const tools = await agentTools.getAgentTools(agent.id);
+            const toolsWithParams = await agentTools.getAgentToolsWithParams(agent.id);
+            const toolParams = {};
+            for (const t of toolsWithParams) {
+                if (t.params) toolParams[t.componentId] = t.params;
+            }
+
+            const result = await syncAgent(agent, tools, toolParams, token, repoOwner, repoName, branch, orgId);
+            if (result.skipped) results.agents.skipped++;
+            else results.agents.pushed++;
+        } catch (err) {
+            log.error(`[GitHubSync] Agent ${agent.id} sync failed:`, err.message);
+            results.agents.errors++;
+        }
+    }
+
+    // Sync all skills
+    // Get all org skills (use a direct query since getAvailableSkills requires userId)
+    try {
+        const { getAll: dbGetAll } = require('../db');
+        const allSkills = await dbGetAll('SELECT * FROM skills WHERE org_id = $1', [orgId]);
+        for (const skill of allSkills) {
+            try {
+                const result = await syncSkill(skill, token, repoOwner, repoName, branch, orgId);
+                if (result.skipped) results.skills.skipped++;
+                else results.skills.pushed++;
+            } catch (err) {
+                log.error(`[GitHubSync] Skill ${skill.id} sync failed:`, err.message);
+                results.skills.errors++;
+            }
+        }
+    } catch (err) {
+        log.warn('[GitHubSync] Skills sync skipped:', err.message);
+    }
+
+    // Push sync manifest
+    try {
+        const manifest = {
+            organization_id: orgId,
+            synced_at: new Date().toISOString(),
+            agents: orgAgents.map(a => ({ id: a.id, name: a.name })),
+            summary: results,
+        };
+        await pushFile(token, repoOwner, repoName, 'sync-manifest.json',
+            JSON.stringify(manifest, null, 2),
+            `Sync manifest updated — ${results.agents.pushed} agents, ${results.skills.pushed} skills`,
+            branch);
+    } catch (err) {
+        log.warn('[GitHubSync] Manifest push failed:', err.message);
+    }
+
+    // Update last full sync
+    await githubSyncStore.updateLastFullSync(orgId);
+
+    // Handle deletions
+    const pendingDeletes = (await githubSyncStore.getPendingChanges(orgId))
+        .filter(s => s.sync_status === 'deleted');
+
+    for (const del of pendingDeletes) {
+        try {
+            if (del.resource_type === 'agent') {
+                await deleteAgentFromGitHub(del.resource_id, null, token, repoOwner, repoName, branch, orgId);
+            } else {
+                // Skills — delete individual files
+                const basePath = `skills/${del.resource_id}`;
+                for (const f of ['skill.json', 'instructions.md', 'rules.md', 'examples.md', 'workflow.md']) {
+                    try { await deleteFile(token, repoOwner, repoName, `${basePath}/${f}`, `Delete skill ${del.resource_id}`, branch); } catch { /* ok */ }
+                }
+                await githubSyncStore.removeSyncState(orgId, 'skill', del.resource_id);
+            }
+        } catch (err) {
+            log.warn(`[GitHubSync] Delete failed for ${del.resource_type}/${del.resource_id}:`, err.message);
+        }
+    }
+
+    log.info(`[GitHubSync] Full sync complete for org ${orgId}:`, results);
+    return results;
+}
+
+/**
+ * Push only pending changes (incremental sync).
+ */
+async function syncPending(orgId, userId) {
+    const config = await githubSyncStore.getOrgSyncConfig(orgId);
+    if (!config) throw new Error('GitHub sync not configured');
+
+    const pending = await githubSyncStore.getPendingChanges(orgId);
+    if (pending.length === 0) return { pushed: 0, message: 'Nothing to sync' };
+
+    const token = await getToken(userId);
+    const { repoOwner, repoName, branch } = config;
+
+    const agentCrud = require('../stores/agent/agentCrud');
+    const agentTools = require('../stores/agent/agentTools');
+
+    let pushed = 0;
+    let errors = 0;
+
+    for (const item of pending) {
+        try {
+            if (item.sync_status === 'deleted') {
+                if (item.resource_type === 'agent') {
+                    await deleteAgentFromGitHub(item.resource_id, null, token, repoOwner, repoName, branch, orgId);
+                } else {
+                    const basePath = `skills/${item.resource_id}`;
+                    for (const f of ['skill.json', 'instructions.md', 'rules.md', 'examples.md', 'workflow.md']) {
+                        try { await deleteFile(token, repoOwner, repoName, `${basePath}/${f}`, `Delete skill`, branch); } catch { /* ok */ }
+                    }
+                    await githubSyncStore.removeSyncState(orgId, 'skill', item.resource_id);
+                }
+                pushed++;
+                continue;
+            }
+
+            if (item.resource_type === 'agent') {
+                const agent = await agentCrud.getAgent(item.resource_id);
+                if (!agent) { await githubSyncStore.removeSyncState(orgId, 'agent', item.resource_id); continue; }
+
+                const tools = await agentTools.getAgentTools(agent.id);
+                const toolsWithParams = await agentTools.getAgentToolsWithParams(agent.id);
+                const toolParams = {};
+                for (const t of toolsWithParams) {
+                    if (t.params) toolParams[t.componentId] = t.params;
+                }
+
+                await syncAgent(agent, tools, toolParams, token, repoOwner, repoName, branch, orgId);
+                pushed++;
+            } else if (item.resource_type === 'skill') {
+                const { getAll: dbGetAll } = require('../db');
+                const rows = await dbGetAll('SELECT * FROM skills WHERE id = $1', [item.resource_id]);
+                if (rows.length === 0) { await githubSyncStore.removeSyncState(orgId, 'skill', item.resource_id); continue; }
+                await syncSkill(rows[0], token, repoOwner, repoName, branch, orgId);
+                pushed++;
+            }
+        } catch (err) {
+            log.error(`[GitHubSync] Pending sync failed for ${item.resource_type}/${item.resource_id}:`, err.message);
+            errors++;
+        }
+    }
+
+    return { pushed, errors, total: pending.length };
+}
+
+// ── Auto-sync (push on change) ───────────────────────────────────
+
+// Debounce timers keyed by `${orgId}:${type}:${id}` so a burst of edits to the
+// same resource coalesces into a single push instead of one commit per save.
+const _autoSyncTimers = new Map();
+const AUTO_SYNC_DEBOUNCE_MS = 4000;
+
+/**
+ * Push a single resource for one org, using the configured user's token.
+ * Used by the auto-sync debounce; all failures are non-fatal (the resource
+ * stays marked pending/error for a later manual push).
+ */
+async function _pushSingleResource(orgId, resourceType, resourceId, action) {
+    const config = await githubSyncStore.getOrgSyncConfig(orgId);
+    if (!config || config.autoSync !== true) return;
+    if (!config.configuredBy) return; // no token owner to push as
+
+    let token;
+    try {
+        token = await getToken(config.configuredBy);
+    } catch {
+        return; // GitHub not connected for the configuring user — keep pending
+    }
+
+    const { repoOwner, repoName, branch } = config;
+
+    if (action === 'deleted') {
+        if (resourceType === 'agent') {
+            await deleteAgentFromGitHub(resourceId, null, token, repoOwner, repoName, branch, orgId);
+        } else {
+            const basePath = `skills/${resourceId}`;
+            for (const f of ['skill.json', 'instructions.md', 'rules.md', 'examples.md', 'workflow.md']) {
+                try { await deleteFile(token, repoOwner, repoName, `${basePath}/${f}`, `Delete skill`, branch); } catch { /* ok */ }
+            }
+            await githubSyncStore.removeSyncState(orgId, 'skill', resourceId);
+        }
+        return;
+    }
+
+    if (resourceType === 'agent') {
+        const agentCrud = require('../stores/agent/agentCrud');
+        const agentTools = require('../stores/agent/agentTools');
+        const agent = await agentCrud.getAgent(resourceId);
+        if (!agent) { await githubSyncStore.removeSyncState(orgId, 'agent', resourceId); return; }
+
+        const tools = await agentTools.getAgentTools(agent.id);
+        const toolsWithParams = await agentTools.getAgentToolsWithParams(agent.id);
+        const toolParams = {};
+        for (const t of toolsWithParams) {
+            if (t.params) toolParams[t.componentId] = t.params;
+        }
+        await syncAgent(agent, tools, toolParams, token, repoOwner, repoName, branch, orgId);
+    } else if (resourceType === 'skill') {
+        const { getAll: dbGetAll } = require('../db');
+        const rows = await dbGetAll('SELECT * FROM skills WHERE id = $1', [resourceId]);
+        if (rows.length === 0) { await githubSyncStore.removeSyncState(orgId, 'skill', resourceId); return; }
+        await syncSkill(rows[0], token, repoOwner, repoName, branch, orgId);
+    }
+}
+
+/**
+ * Schedule a debounced auto-sync push for a single resource. Fire-and-forget:
+ * callers (agent/skill CRUD hooks) should already have marked the resource
+ * pending/deleted, so a failed push simply leaves it queued for manual sync.
+ */
+function autoSyncResource(orgId, resourceType, resourceId, action = 'pending') {
+    if (!orgId || !resourceId) return;
+    const key = `${orgId}:${resourceType}:${resourceId}`;
+    const existing = _autoSyncTimers.get(key);
+    if (existing) clearTimeout(existing);
+    const timer = setTimeout(() => {
+        _autoSyncTimers.delete(key);
+        _pushSingleResource(orgId, resourceType, resourceId, action)
+            .catch(err => log.warn(`[GitHubSync] Auto-sync failed for ${resourceType}/${resourceId}:`, err.message));
+    }, AUTO_SYNC_DEBOUNCE_MS);
+    if (typeof timer.unref === 'function') timer.unref();
+    _autoSyncTimers.set(key, timer);
+}
+
+module.exports = {
+    syncAll,
+    syncPending,
+    syncAgent,
+    syncSkill,
+    deleteAgentFromGitHub,
+    autoSyncResource,
+    getToken,
+    serializeSkillMeta,
+    deserializeSkillMeta,
+    SKILL_META_FORMAT,
+};

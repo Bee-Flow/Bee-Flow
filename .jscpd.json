@@ -1,0 +1,41 @@
+{
+  "minLines": 10,
+  "minTokens": 50,
+  "mode": "weak",
+  "format": [
+    "javascript",
+    "typescript",
+    "jsx",
+    "tsx",
+    "python"
+  ],
+  "gitignore": true,
+  "reporters": [
+    "console"
+  ],
+  "ignore": [
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/build/**",
+    "**/out/**",
+    "**/.next/**",
+    "**/.docusaurus/**",
+    "**/coverage/**",
+    "**/.venv/**",
+    "**/venv/**",
+    "**/__pycache__/**",
+    "**/.pytest_cache/**",
+    "**/vendor/**",
+    "**/*.min.js",
+    "**/*.min.css",
+    "**/*.bundle.js",
+    "**/*.map",
+    "**/*.snap",
+    "**/package-lock.json",
+    "**/*.lock",
+    "**/migrations/**",
+    "agent-hub/src/shared/expr/**",
+    "deploy/**",
+    "docs_old/**"
+  ]
+}

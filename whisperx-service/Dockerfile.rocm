@@ -1,0 +1,166 @@
+# ══════════════════════════════════════════════════════════════════
+# WhisperX on AMD GPUs (ROCm) — EXPERIMENTAL
+#
+# The canonical image (./Dockerfile, CUDA) stays the one CI builds and
+# NVIDIA self-hosters run. This variant exists because WhisperX's engine
+# (faster-whisper → CTranslate2) ships no GPU build for AMD on PyPI.
+#
+# We no longer compile CTranslate2 from source: OpenNMT now publishes an
+# official prebuilt ROCm wheel per release (rocm-python-wheels-Linux.zip),
+# and its baked-in gfx targets already include gfx1151. We just download and
+# install it — no HIP toolchain, no API-compat patching. (History: an earlier
+# revision built the ROCm/CTranslate2 `amd_dev` fork from source; that fork is
+# stuck on CT2 3.23.0, which faster-whisper/whisperx no longer accept — the
+# prebuilt 4.7.1 wheel is both correct-version and far simpler.)
+#
+# Built and tested for gfx1151 (Radeon 8060S / Ryzen AI MAX "Strix Halo");
+# the wheel also covers gfx900/906/908/90a/942/950/1030/1100/1101/1102/1150/
+# 1200/1201. torch stays the ROCm build (used for alignment + pyannote).
+#
+# Works under WSL2 (Windows) as well as bare Linux. ROCm ≥7.2 detects WSL
+# and routes through dxcore/dxg — no WSL-specific runtime package needed,
+# but the container must be started with the dxg device and WSL libs:
+#
+#   docker run -d --name whisperx-rocm \
+#     --device /dev/dxg -v /usr/lib/wsl/lib:/usr/lib/wsl/lib \
+#     -e HF_TOKEN=... -p 8787:8787 -v whisperx-cache:/cache \
+#     beeflow/whisperx-rocm
+#
+# On bare Linux use `--device /dev/kfd --device /dev/dri` instead, and add
+# the host's device groups for the non-root service user:
+#   --group-add video --group-add $(getent group render | cut -d: -f3)
+#
+# BUILD REQUIREMENT — Windows SDK headers (not redistributable, so they are
+# passed as a named build context instead of living in this repo). librocdxg
+# compiles against d3dkmt/ntstatus headers from the SDK's `shared` include dir:
+#
+#   docker build -f Dockerfile.rocm -t beeflow/whisperx-rocm \
+#     --build-context winsdk="C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\shared" .
+#
+# (Install the "Windows SDK Headers" feature from the Windows SDK if missing.)
+#
+# app.py is unchanged: torch-ROCm masquerades as CUDA
+# (torch.cuda.is_available() → true on HIP), so the service selects
+# device=cuda / float16 exactly as it does on NVIDIA.
+# ══════════════════════════════════════════════════════════════════
+
+FROM ubuntu:24.04@sha256:008173c23f95b170204355c12626cb5a965d779a7e1283b09e9cffbb1bf33ca3 AS rocm-base
+
+ENV DEBIAN_FRONTEND=noninteractive
+# 7.2.1 pinned: the exact version whose runtime was probe-verified to reach
+# gfx1151 through WSL2's dxg on this hardware. 'latest' (7.2.4) was not.
+ARG ROCM_INSTALLER=amdgpu-install_7.2.1.70201-1_all.deb
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    wget ca-certificates gnupg \
+    python3.12 python3.12-venv python3-pip python3.12-dev \
+    ffmpeg git build-essential cmake \
+    && rm -rf /var/lib/apt/lists/*
+
+# ROCm userspace only — no kernel module in a container (--no-dkms); the GPU
+# arrives via /dev/dxg (WSL) or /dev/kfd (bare metal) from the host.
+RUN wget -q https://repo.radeon.com/amdgpu-install/7.2.1/ubuntu/noble/${ROCM_INSTALLER} \
+    && apt-get update \
+    && apt-get install -y ./${ROCM_INSTALLER} \
+    && rm ./${ROCM_INSTALLER} \
+    && amdgpu-install -y --usecase=rocm --no-dkms \
+    && rm -rf /var/lib/apt/lists/*
+
+# librocdxg: the bridge that lets the HSA runtime reach the GPU through WSL2's
+# /dev/dxg. Without it hsa_init fails with "no supported GPU devices" even
+# though the runtime prints "WSL environment detected". develop branch carries
+# the WSL VRAM-pool fix (librocdxg PR #12). Compiles against Windows SDK
+# headers supplied via the `winsdk` build context (see header).
+# Harmless on bare-metal Linux, where the runtime uses /dev/kfd directly.
+COPY --from=winsdk . /winsdk/shared
+RUN git clone -b develop https://github.com/ROCm/librocdxg.git /src/librocdxg \
+    && cmake -S /src/librocdxg -B /src/librocdxg/build \
+        -DCMAKE_BUILD_TYPE=Release -DWIN_SDK=/winsdk/shared \
+    && cmake --build /src/librocdxg/build --parallel \
+    # -a keeps the version symlink chain intact across version bumps.
+    && cp -a /src/librocdxg/build/librocdxg.so* /opt/rocm/lib/ \
+    && rm -rf /src/librocdxg \
+    && echo /opt/rocm/lib > /etc/ld.so.conf.d/rocm.conf && ldconfig
+
+ENV PATH=/opt/rocm/bin:$PATH \
+    LD_LIBRARY_PATH=/usr/lib/wsl/lib:/opt/rocm/lib \
+    HSA_ENABLE_DXG_DETECTION=1
+
+# ── Stage: runtime ─────────────────────────────────────────────────
+FROM rocm-base AS runtime
+
+ENV LD_LIBRARY_PATH=/usr/lib/wsl/lib:/opt/rocm/lib \
+    VIRTUAL_ENV=/venv \
+    PATH=/venv/bin:/opt/rocm/bin:$PATH \
+    # The ROCm image defaults to large-v3 (the CUDA image's model); without
+    # this the service would silently fall back to `medium` (app.py).
+    WHISPER_MODEL=large-v3 \
+    # gfx1151 (Strix Halo) has no working torch GPU kernels for the alignment
+    # (wav2vec2) and diarization (pyannote SincNet: instance_norm/hipBLAS) stages
+    # — open AMD bugs ROCm/TheRock #2488 and ROCm #5643. Run those two torch
+    # stages on CPU; Whisper transcription still runs on the GPU via CTranslate2.
+    # Quality is identical (same weights); only those stages' speed differs.
+    WHISPERX_TORCH_DEVICE=cpu \
+    # torch-ROCm wheels bundle rocBLAS Tensile kernels that may not cover
+    # newer architectures (gfx1151). Point rocBLAS at the system ROCm's
+    # library set, which does. (Workaround proven by the whisper-rocm
+    # project on this exact GPU.)
+    ROCBLAS_TENSILE_LIBPATH=/opt/rocm/lib/rocblas/library \
+    # The torch wheel bundles its own (older) HSA runtime, whose rpath loads
+    # BEFORE the system one — hiding the dxg/WSL bridge and breaking CTranslate2
+    # with "undefined symbol: hsa_amd_*". Preloading the system 7.2.1 runtime
+    # makes every ROCm consumer in the process share it. Benign for non-GPU.
+    LD_PRELOAD=/opt/rocm/lib/libhsa-runtime64.so.1
+
+RUN python3.12 -m venv /venv
+
+# Torch for ROCm from the official PyTorch index. Installed FIRST so nothing
+# later drags in a CUDA torch build.
+RUN pip install --no-cache-dir torch torchaudio --index-url https://download.pytorch.org/whl/rocm6.4
+
+# Official prebuilt ROCm CTranslate2 (gfx1151 kernels baked in). The archive
+# holds one wheel per CPython version under temp-linux/; pick cp312 to match
+# this image's interpreter. --checksum pins the asset and keeps the layer cache
+# honest. The wheel links the system ROCm at /opt/rocm — no bundled runtime.
+ADD --checksum=sha256:2318fa6761e0d816d15d07ed7909cd486e57cb912dfa7537c9c2195f1e6d78a9 \
+    https://github.com/OpenNMT/CTranslate2/releases/download/v4.7.1/rocm-python-wheels-Linux.zip \
+    /tmp/ct2-rocm.zip
+# Extract with Python's stdlib zipfile (no unzip dep, keeps rocm-base cached).
+RUN python3.12 -c "import zipfile,glob,os; z=zipfile.ZipFile('/tmp/ct2-rocm.zip'); n=[x for x in z.namelist() if 'cp312-cp312' in x][0]; z.extract(n,'/tmp/ct2'); print('extracted',n)" \
+    && pip install --no-cache-dir /tmp/ct2/temp-linux/ctranslate2-4.7.1-cp312-*x86_64.whl \
+    && rm -rf /tmp/ct2-rocm.zip /tmp/ct2
+
+# WhisperX + faster-whisper WITHOUT deps, so pip can't replace our ROCm
+# ctranslate2 with the upstream CUDA-only wheel or pull a CUDA torch (whisperx
+# pins torch~=2.8, which would clobber the ROCm build). Their runtime deps are
+# installed explicitly below — including omegaconf, which pyannote's diarization
+# checkpoint unpickles and which --no-deps would otherwise miss.
+RUN pip install --no-cache-dir --no-deps faster-whisper whisperx \
+    && pip install --no-cache-dir \
+        "pyannote.audio>=3.1" omegaconf transformers huggingface_hub \
+        "fastapi>=0.110" "uvicorn[standard]" python-multipart pydantic-settings \
+        av soundfile onnxruntime nltk pandas
+
+WORKDIR /app
+COPY app.py .
+
+# Every model cache lives under /cache, outside any home directory; mount the
+# persistent volume there (formerly /root/.cache).
+ENV HF_HOME=/cache/huggingface \
+    TORCH_HOME=/cache/torch \
+    XDG_CACHE_HOME=/cache \
+    MPLCONFIGDIR=/cache/matplotlib
+
+# Runtime user: uid 1000, no home directory. ubuntu:24.04 ships an `ubuntu`
+# user on that uid, which goes first. The device groups only help when their
+# gids match the host's; see the run examples in the header.
+RUN (userdel --remove ubuntu 2>/dev/null || true) \
+    && useradd --uid 1000 --user-group --no-create-home --shell /usr/sbin/nologin app \
+    && for g in video render; do getent group "$g" >/dev/null && usermod -aG "$g" app; done; \
+    mkdir -p /cache/huggingface /cache/torch /cache/matplotlib \
+    && chown -R app:app /cache
+USER app
+
+EXPOSE 8787
+
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8787"]

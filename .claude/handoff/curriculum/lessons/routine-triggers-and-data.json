@@ -1,0 +1,317 @@
+{
+  "id": "routine-triggers-and-data",
+  "icon": "🔌",
+  "estMinutes": 13,
+  "title": "Getting data from step to step",
+  "desc": "Bindings, trigger payloads, notifications that leak, pinned output and the traps that make a run silently do nothing.",
+  "gate": {
+    "feature": "automations"
+  },
+  "learningGoal": "After this lesson you can wire data through a multi-step routine and recognise an undefined binding before it ships.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "roots",
+      "icon": "🧭",
+      "title": "Three places a step can read from",
+      "bodyMd": "A routine can finish green and still have mailed an empty line — because one binding pointed at something that was never there.\n\nVan Dijk Groep, an installation firm of sixty people fitting kitchens and window frames, runs a routine that files incoming supplier invoices. Almost every binding in it starts at one of three roots:\n\n- **`trigger.output`** — what started this run\n- **`steps.<id>.output`** — what an earlier step produced\n- **`loop.<item name>`** — the current item inside a **Repeat for each** (here the item is named `item`, so the bindings read `loop.item`)\n\nBeside `trigger.output` sit a few facts about the start itself. `trigger.kind` stays whatever the routine declares, while `trigger.source` records how this run was actually started — so a step can tell your own test from a real event.\n\nA step can only read something that has already run. Draw the line first, then bind to it."
+    },
+    {
+      "type": "quiz",
+      "id": "q-root",
+      "icon": "🧭",
+      "question": "Van Dijk's invoice routine starts on a webhook, then an Extract data step (id ex_c41d) pulls out totaal, then a Repeat for each walks the invoice lines. A step inside that loop needs the invoice number, which arrived in the posted body. What does it bind to?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "{{trigger.output.factuurnummer}}",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "{{loop.item.factuurnummer}} — inside a loop, everything has to come off the item.",
+          "correct": false,
+          "feedback": "loop.item holds only the current invoice line. It is additive: a step inside the loop still reads trigger.output and every earlier step exactly as it would outside."
+        },
+        {
+          "id": "c",
+          "label": "{{steps.ex_c41d.output.factuurnummer}} — the extract step is the last thing that ran.",
+          "correct": false,
+          "feedback": "A step output only holds the fields that step actually produced. This one was asked for totaal, so that path resolves to nothing — and in Text mode nothing renders as an empty string."
+        },
+        {
+          "id": "d",
+          "label": "{{trigger.headers.factuurnummer}}",
+          "correct": false,
+          "feedback": "trigger.headers is a separate shelf for the request headers. A field from the posted body never appears there — the next slides show what does."
+        }
+      ],
+      "explanation": "Pick the root by asking where the value was born, not by what ran most recently. The webhook body is trigger.output, and it stays readable everywhere downstream — inside loops included."
+    },
+    {
+      "type": "slide",
+      "id": "modes",
+      "icon": "✍️",
+      "title": "Text or Formula — the switch on a mapped value",
+      "bodyMd": "Open a step and every value you map carries a two-segment switch: **Text** and **Formula**.\n\n**Text** is plain typing with holes in it — *Plain text — type a value. Use `{{ }}` to insert data from a previous step.* Bee Flow replaces each pair of braces with the value it finds. A number goes in as digits, an object goes in as JSON.\n\n**Formula** is *Expression — compute the value, e.g. `steps.s1.output.total > 100`*. No braces there: the whole field is one expression.\n\nSo the braces are the tell. Where you see `{{ }}`, a value is being pasted into surrounding text. Where you don't, the field is being computed — which is why a **Condition**'s rule is written bare, with no braces around it."
+    },
+    {
+      "type": "slide",
+      "id": "payloads",
+      "icon": "🎚️",
+      "title": "Every trigger hands over a different payload",
+      "bodyMd": "`trigger.output` has no fixed shape — it is whatever that trigger kind carries.\n\n- **On a schedule**: almost nothing. The clock carries no business data, so a scheduled routine has to fetch what it needs in its first step.\n- **Trigger manually**: nothing at all. `trigger.output` is an empty object unless something handed the run a payload.\n- **On webhook call**: `trigger.output` *is* the raw JSON body that was posted. There is no `body` wrapper — bind `trigger.output.<yourField>`.\n- **On form submission**: the answers, keyed by the names you gave the questions.\n- **On app event**: the fields that event declares — for Gmail's new-mail event, the subject, the sender and so on.\n- **From a Studio App**: the typed inputs the app action declares.\n\nSo the first question about any routine is not \"what does my trigger do\" but \"what does my trigger *hand me*\" — and for two of these seven, the honest answer is nothing at all."
+    },
+    {
+      "type": "quiz",
+      "id": "q-manual",
+      "icon": "❓",
+      "question": "Van Dijk Groep's invoice routine starts on an app event — Gmail, new mail. You open the builder and press Run live without handing it a payload. What do its {{trigger.output.subject}} bindings get?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Bee Flow looks for your most recent matching message and runs against that; if there is none it answers that the routine is ready and will fire when a matching mail arrives.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Nothing — a manual run never carries a payload, so every trigger binding comes out empty.",
+          "correct": false,
+          "feedback": "That is the rule for most app events, but Gmail and Nextcloud triggers are the two exceptions: the server synthesises a payload from your most recent matching item."
+        },
+        {
+          "id": "c",
+          "label": "The run is blocked until you paste a sample payload into the builder.",
+          "correct": false,
+          "feedback": "There is no such gate. The run starts either way — the only question is what the bindings hold when it does."
+        },
+        {
+          "id": "d",
+          "label": "The step's pinned sample is used instead.",
+          "correct": false,
+          "feedback": "A pin belongs to one step and only applies where you set it. It is never a stand-in for a missing trigger payload."
+        }
+      ],
+      "explanation": "Gmail and Nextcloud triggers get a payload synthesised from the latest matching item, and say so plainly when there is none. Every other app event tested by hand leaves trigger.output empty — and in Text mode an empty path renders as an empty string, so the step often 'succeeds' with a blank inside it."
+    },
+    {
+      "type": "slide",
+      "id": "headers",
+      "icon": "📮",
+      "title": "Headers ride beside the payload, never inside it",
+      "bodyMd": "Van Dijk's webshop posts every order to an **On webhook call** trigger. The JSON body becomes `trigger.output`. The request headers land somewhere else entirely: `trigger.headers.<name>`, for example `trigger.headers.user_agent`.\n\nThat separation is deliberate. Because a header never enters `output`, a body field of the same name can never be shadowed by one.\n\nOnly `content-type`, `user-agent` and headers beginning with `x-` are kept; dashes become underscores; and the signature and nonce headers that authenticate the call are dropped before the run sees anything.\n\nA form trigger uses the same shelf: the answers sit in `trigger.output`, while the facts about the submission itself sit at `trigger.headers`."
+    },
+    {
+      "type": "sim",
+      "id": "match-binds",
+      "icon": "🧩",
+      "title": "What does each binding actually return?",
+      "instruction": "Van Dijk Groep's invoice routine has a webhook trigger, an Extract data step whose generated id is `ex_c41d`, and a Repeat for each over the invoice lines. Pair each binding with what it hands the step it sits in.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "p1",
+            "left": "{{trigger.output.factuurnummer}}",
+            "right": "The field of that name in the posted JSON body",
+            "note": "For a webhook, trigger.output is the body itself — no wrapper around it."
+          },
+          {
+            "id": "p2",
+            "left": "{{trigger.headers.user_agent}}",
+            "right": "A request header, kept outside the payload",
+            "note": "Headers are additive and live at trigger.headers so they can never collide with a body field."
+          },
+          {
+            "id": "p3",
+            "left": "{{loop.item.omschrijving}}",
+            "right": "One invoice line — this iteration's item",
+            "note": "Repeat for each hands the current item to the steps inside it under the name that step gives it — here, item."
+          },
+          {
+            "id": "p4",
+            "left": "{{steps.ex_c41d.output}}",
+            "right": "The whole step output, inserted as JSON",
+            "note": "No field named, so the entire object is stringified into the text."
+          },
+          {
+            "id": "p5",
+            "left": "{{steps.ex_c41d.output.btw}} while that step has not run",
+            "right": "An empty string, with the run carrying on",
+            "note": "A Text binding that resolves to nothing is blanked, not raised as an error — the run only collects it as a warning."
+          }
+        ]
+      }
+    },
+    {
+      "type": "slide",
+      "id": "insert",
+      "icon": "🖱️",
+      "title": "Let the editor write the path for you",
+      "bodyMd": "A step's id is generated when you add it rather than typed by you — in Van Dijk's routine the Extract data step is `ex_c41d`. Nobody should be retyping that from memory.\n\nUnder a mappable field sits **Insert data from a previous step**: pick the step, pick the field, and the path is written for you, correctly rooted. In Formula mode, **What can I write here?** opens the legend of what the grammar allows.\n\nIf you cannot find either helper, you are looking at the lean view. The step editor has two density modes — **Simple** and **All options**, under **How much of this step to show** — so flip to **All options** and the rest of the field's controls appear.\n\nTyping a path by hand is how `ex_c41d` quietly becomes `ex_c41b`, and a binding renders nothing at all."
+    },
+    {
+      "type": "quiz",
+      "id": "q-notify",
+      "icon": "📨",
+      "question": "The routine ends with a Notification step sent to both places — in-app and email — and its body reads: Nieuwe factuur: {{steps.ex_c41d.output}}. What just left the building?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "The whole extracted object as JSON — supplier, invoice number, amount and every other field that step produced. And because the email channel leaves the platform, that text is recorded in the egress log.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Only the fields that were mapped into the notification.",
+          "correct": false,
+          "feedback": "Nothing narrows it. Text mode inserts whatever the path resolves to, and this path resolves to the entire output object."
+        },
+        {
+          "id": "c",
+          "label": "The step fails, because a notification body has to be text.",
+          "correct": false,
+          "feedback": "It does not fail. An object is inserted as JSON, so the body is still a string — just a far longer one than anyone intended."
+        },
+        {
+          "id": "d",
+          "label": "Nothing, until somebody opens the run and reads it.",
+          "correct": false,
+          "feedback": "A notification step delivers while the run is going. Only a dry-run holds back — it synthesises the send instead of doing it."
+        }
+      ],
+      "explanation": "A single whole-output binding is the classic leak. Name the field you actually want — {{steps.ex_c41d.output.factuurnummer}} — and the message says what you meant. A dry-run is a cheap way to read your own body text first: nothing really leaves, because side effects are synthesised rather than executed."
+    },
+    {
+      "type": "exercise",
+      "id": "ex-bind",
+      "icon": "🎯",
+      "exerciseId": "ex-routine-data-bindings",
+      "title": "Your turn: write the three bindings",
+      "instruction": "Van Dijk Groep has a second routine. It starts On form submission with a question named factuurnummer, then an Extract data step (generated id `ex_c41d`) that produces totaal, then a Condition, then a Notification. Write three things: (1) the Text-mode binding for the invoice number in the notification title, (2) the expression for the condition 'total above 2500' — a condition is evaluated rather than interpolated, so write it bare, with no braces around it — and (3) one sentence saying what the title shows if that form question was left blank.",
+      "placeholder": "e.g. Title: Nieuwe factuur {{trigger.output....}} — Condition (expression): steps.... > 2500 — If the answer is blank the title shows ...",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "slide",
+      "id": "pinned",
+      "icon": "📌",
+      "title": "Pinned output: a routine that only looks alive",
+      "bodyMd": "A step can be **pinned**: it stops running and serves a saved sample instead. In the run history the outcome word for that is **Frozen data**.\n\nIt is a genuinely useful build aid and a quiet disaster left in. Press **Activate** and Bee Flow *warns* — *serves pinned data instead of running — live runs will use that saved sample, not fresh data* — but it does not stop you. A pin is a warning, not a gate.\n\nAnd a pinned routine hands you exactly the wrong evidence. People ignore the warning because the dry-run looked perfect. Of course it did: the pinned value is the one they wanted to see.\n\nSo before you activate, walk the canvas and unpin everything you pinned while building."
+    },
+    {
+      "type": "slide",
+      "id": "lists",
+      "icon": "🔁",
+      "title": "Inside a Repeat for each",
+      "bodyMd": "**Repeat for each** — *Run the steps inside once for every item in a list* — runs the steps inside it once per item and hands each one over under the name that step gives it, usually `loop.item`.\n\nThat name is **additive**. A step inside the loop still reads `trigger.output` and every earlier `steps.<id>.output` exactly as it would outside; `loop.item` is simply one more root, and only inside.\n\nTwo consequences:\n\n- Outside the loop, `loop.item` resolves to nothing — an empty string in Text mode, not an error.\n- What the item *holds* is whatever the list held. Over Van Dijk's invoice lines, `loop.item.omschrijving` is one line description; the invoice number is not on it unless the line carried one, so it comes off `trigger.output` instead.\n\nThe iteration cap runs from 1 to 1000."
+    },
+    {
+      "type": "tour",
+      "id": "where",
+      "target": "[data-tour=\"routine-create\"]",
+      "navigateTo": "studio/routines",
+      "placement": "bottom",
+      "optional": true,
+      "timeoutMs": 7000,
+      "icon": "➕",
+      "title": "Where a routine starts",
+      "body": "This is the button that creates a routine in Studio, under Automations. Open one you already have, or make a small fresh one — the next step asks you to write one binding and read back what it produced."
+    },
+    {
+      "type": "action",
+      "id": "do",
+      "icon": "🏗️",
+      "checkId": "routine-dry-run",
+      "title": "Bind one field, then read it back",
+      "instruction": "Open a routine of your own under Studio, Automations — or build a small one. Add a Notification step and write its body in Text mode so it names exactly ONE field, for example: Nieuwe factuur {{trigger.output.factuurnummer}}. Use Insert data from a previous step rather than typing the path, and do not bind a whole steps.<id>.output. Then press Dry-run in the builder header and read the body that step recorded — that is the text that would have left the building. Check it is not blank, and not a wall of JSON. We check that one of your routines has a dry-run on file.",
+      "launch": {
+        "navigateTo": "studio/routines",
+        "label": "Open Automations"
+      }
+    },
+    {
+      "type": "slide",
+      "id": "now",
+      "icon": "🎓",
+      "title": "What you can do now",
+      "bodyMd": "- Read any field in a routine and say where its value comes from — `trigger.output`, `steps.<id>.output` or `loop.item` — and switch between **Text** and **Formula** knowing what each does with the braces.\n- Predict what a trigger hands over before you bind to it, including the two places people get caught: a manual test of an app-event routine, and webhook or form data that lives on `trigger.headers`.\n- Spot the silent failures — a Text binding that renders as nothing, a whole-output binding that sends far more than you meant, and a pinned step about to go live on yesterday's sample.\n- And the habit that catches all three: name one field, let **Insert data from a previous step** write the path, then **Dry-run** and read back the text your step actually produced."
+    }
+  ],
+  "rubrics": {
+    "ex-routine-data-bindings": {
+      "title": "Three bindings, correctly rooted",
+      "task": "Write the Text-mode binding for a form answer, the condition expression comparing an extracted total with 2500, and one sentence on what an unresolved Text binding renders as.",
+      "criteria": [
+        "Uses {{trigger.output.factuurnummer}} — a form trigger's answers live on trigger.output, keyed by the question name.",
+        "Writes the condition as a bare expression on steps.ex_c41d.output.totaal compared with 2500, with no braces around it, because a condition is evaluated rather than interpolated.",
+        "States that an unresolved Text binding renders as an empty string and the run carries on, rather than failing.",
+        "Names a single field rather than binding the whole steps.ex_c41d.output object."
+      ],
+      "passScore": 70,
+      "guidance": "Do not pass an answer that wraps the condition expression in {{ }}, that puts the form answer under trigger.headers or trigger.output.body, that binds the entire step output, or that claims a missing value makes the step error. Dutch or English field names are both fine; exact step ids matter less than the correct root and the correct mode."
+    }
+  },
+  "practiceTopic": {
+    "title": "Bindings and trigger data in routines",
+    "summary": "How a routine moves data from its trigger and its earlier steps into the fields of the next step, and where that quietly goes wrong.",
+    "facts": [
+      "A mapped value in a routine step carries a two-segment switch labelled Text and Formula; Text interpolates {{ }} into the surrounding text, Formula evaluates the whole field as one expression. The step editor has two density modes, Simple and All options, under How much of this step to show.",
+      "A Text-mode path that resolves to nothing renders as an empty string and the run continues — it is collected as a run warning, not recorded as a step error.",
+      "For a webhook trigger, trigger.output is the raw JSON body that was posted; request headers live at trigger.headers.<name>, outside output, and the signature and nonce headers are dropped.",
+      "A form trigger puts the answers on trigger.output keyed by question name; the facts about the submission itself sit on trigger.headers.",
+      "Running an app-event routine by hand leaves its trigger bindings empty, except for Gmail and Nextcloud triggers, where the server synthesises a payload from the most recent matching item; trigger.kind stays what the routine declares, while trigger.source records how the run was actually started.",
+      "A pinned step serves its saved sample instead of running; the run history calls that Frozen data, and Activate warns about a pin without blocking it.",
+      "Repeat for each exposes the current item under the name that step gives it, usually loop.item, and allows 1 to 1000 iterations.",
+      "Binding a whole step output into a notification body inserts the entire object as JSON, and with the email channel on that text is recorded in the egress log."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "routine-dry-run",
+      "existing": false,
+      "label": "Dry-run a routine",
+      "hint": "In Studio, Automations: open a routine, bind one named field into a step, then press Dry-run in the builder header.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/automation/",
+          "returns": "{ automations: [...] } — the caller's own routines, each with id, title, isDraft, isActive"
+        },
+        {
+          "method": "GET",
+          "path": "/api/automation/_runs/recent",
+          "returns": "{ runs, nextCursor } — the caller's runs across all routines; supports ?mode=dry_run&limit=1"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "has-routine",
+          "label": "The learner owns at least one routine",
+          "hint": "Create one from the start screen, or open an existing one.",
+          "rule": "GET /api/automation/ → automations.length > 0",
+          "endpoint": "/api/automation/",
+          "expect": {
+            "kind": "rows",
+            "field": "automations"
+          }
+        },
+        {
+          "id": "has-dry-run",
+          "label": "At least one dry-run has been recorded",
+          "hint": "Press Dry-run in the builder header — it runs no real actions.",
+          "rule": "GET /api/automation/_runs/recent?mode=dry_run&limit=1 → runs.length > 0",
+          "endpoint": "/api/automation/_runs/recent?mode=dry_run&limit=1",
+          "expect": {
+            "kind": "nonEmpty",
+            "field": "runs"
+          }
+        }
+      ]
+    }
+  ]
+}

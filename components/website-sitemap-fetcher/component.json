@@ -1,0 +1,59 @@
+{
+  "name": "Website Sitemap Fetcher",
+  "description": "Fetches and parses a website's sitemap XML to extract all page URLs",
+  "category": "Integration",
+  "inputs": {
+    "url": {
+      "type": "string",
+      "description": "The base URL of the website to fetch the sitemap for (e.g., https://example.com)"
+    },
+    "timeout": {
+      "type": "number",
+      "default": 10000,
+      "description": "Maximum time to wait for each HTTP request in milliseconds"
+    },
+    "userAgent": {
+      "type": "string",
+      "default": "Mozilla/5.0 (compatible; BeeFlowBot/1.0)",
+      "description": "User agent string to use for HTTP requests"
+    },
+    "maxUrls": {
+      "type": "number",
+      "default": 1000,
+      "description": "Stop processing after finding this many URLs"
+    }
+  },
+  "outputs": {
+    "sitemapUrls": {
+      "type": "array",
+      "label": "Sitemap URLs",
+      "description": "List of discovered sitemap URLs"
+    },
+    "pageUrls": {
+      "type": "array",
+      "label": "Page URLs",
+      "description": "List of deduplicated page URLs extracted from the sitemap(s)"
+    },
+    "warnings": {
+      "type": "array",
+      "label": "Warnings",
+      "description": "List of warnings encountered during sitemap processing"
+    },
+    "errors": {
+      "type": "array",
+      "label": "Errors",
+      "description": "List of errors encountered during sitemap processing"
+    },
+    "success": {
+      "type": "boolean",
+      "label": "Success",
+      "description": "Whether the operation completed successfully"
+    },
+    "error": {
+      "type": "string",
+      "label": "Error Message",
+      "description": "Error message if the operation failed"
+    }
+  },
+  "agentEnabled": true
+}

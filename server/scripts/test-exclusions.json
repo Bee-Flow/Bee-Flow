@@ -1,0 +1,30 @@
+{
+    "$comment": "Test files excluded from `npm test` (scripts/run-tests.mjs). Buckets: needs-infra = requires services CI does not provide (Postgres etc.); needs-fixture = requires a gitignored data file absent from a fresh clone; failing = fails deterministically today and needs a real fix. Every entry removed from this list is progress \u2014 it should only ever get shorter. run-tests.mjs fails loudly if a listed file no longer exists, so renames cannot silently shrink coverage. Classified 2026-08-26 by running each file in isolation with `node --test --test-force-exit`.",
+    "exclusions": [
+        {
+            "file": "core/datasets/geneCatalog.test.js",
+            "bucket": "needs-fixture",
+            "reason": "Reads core/datasets/data/geneCoords.GRCh38.tsv.gz, which is gitignored and absent from a fresh clone."
+        },
+        {
+            "file": "core/datasets/query.test.js",
+            "bucket": "needs-fixture",
+            "reason": "Reads core/datasets/data/geneCoords.GRCh38.tsv.gz, which is gitignored and absent from a fresh clone."
+        },
+        {
+            "file": "core/automationRunner/safety.egress.test.js",
+            "bucket": "needs-infra",
+            "reason": "Needs Postgres: egress rows go through the real DB pool and every subtest fails with ECONNREFUSED 127.0.0.1:5432 (6/6 fail in isolation)."
+        },
+        {
+            "file": "routes/automation/catalog.test.js",
+            "bucket": "failing",
+            "reason": "1/8 subtests fails deterministically: expects deliverability 'connector' for nextcloud deck.card.created but the catalog reports 'ok'. Assertion/product drift."
+        },
+        {
+            "file": "routes/cms.export.test.js",
+            "bucket": "failing",
+            "reason": "3/11 subtests fail deterministically against fully mocked stores: the .zip export carries no asset entries and .zip import restores 0 assets. No infra involved; needs a real fix."
+        }
+    ]
+}

@@ -1,0 +1,347 @@
+{
+  "id": "admin-joining-and-sso",
+  "icon": "🚪",
+  "estMinutes": 13,
+  "title": "How people get in",
+  "desc": "Invitations, allowed domains, pending SSO newcomers, auto-approve, Azure group sync, seat caps and the sign-in method you only choose once.",
+  "gate": {
+    "permission": [
+      "org_admin",
+      "manage_users"
+    ]
+  },
+  "learningGoal": "After this lesson you can onboard a batch of colleagues without losing invitations, seats, or control of who is inside your organisation.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "three-doors",
+      "icon": "🚪",
+      "title": "There are three doors into your organisation",
+      "bodyMd": "Van Dijk Groep is a Dutch installation firm with sixty staff, and all sixty have to be let in before Monday. They will arrive through one of three doors, and each one behaves differently.\n\n- **An invitation you send.** From **Settings → Organisation → Users & Groups**, the **Invite User** button. The person arrives **active**, with the role you picked and the organisation's default groups.\n- **An SSO newcomer.** Someone signs in with their Google or Microsoft account. Unless you switched on auto-approve, they land in your organisation as **pending**: no role, no groups, no AI.\n- **Azure AD sync** (self-hosted only). **Azure Configuration → Microsoft SSO → Sync Now** pulls in the groups and users assigned to your enterprise app.\n\nThe door you use is decided by one setting you will look at next — and it is the only one in this lesson you cannot undo."
+    },
+    {
+      "type": "slide",
+      "id": "one-choice",
+      "icon": "🔒",
+      "title": "Sign-in Method: chosen once, locked forever",
+      "bodyMd": "**Settings → Organisation → Sign-in Method** offers three cards: **Username & Password**, **Sign in with Google**, **Sign in with Microsoft**. Under them sits the warning:\n\n> **Choose carefully:** Once saved, this cannot be changed. Each user's data is protected with a unique key that is tied to how they sign in. Switching later would make existing conversations unreadable.\n\nThis is not a policy, it is cryptography. Bee Flow derives each person's encryption key from how they authenticate, so changing the method would orphan the key that unlocks their content.\n\nAfter you save, the chosen card shows a lock chip reading **Active**, the banner **Sign-in method is locked** appears, and the row vanishes from the settings menu altogether. So decide this before you invite anybody."
+    },
+    {
+      "type": "quiz",
+      "id": "q-switch",
+      "question": "Van Dijk Groep launched on Username & Password. Six months and 4 000 conversations later, the director wants everyone to sign in with Microsoft instead. What can the admin do?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Nothing from this screen — the choice is locked, and switching would make existing conversations unreadable.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Open Sign-in Method and pick the Microsoft card; people simply sign in differently from tomorrow.",
+          "correct": false,
+          "feedback": "The other cards are disabled once a method is saved, and the whole Sign-in Method row is removed from the settings menu. The reason matters more than the missing button: each person's data key is tied to how they sign in."
+        },
+        {
+          "id": "c",
+          "label": "Switch it during the night, while nobody has an open session.",
+          "correct": false,
+          "feedback": "The lock has nothing to do with active sessions. It protects encryption keys that already exist on every stored conversation."
+        },
+        {
+          "id": "d",
+          "label": "Reject every member and re-invite them, so the new accounts use Microsoft.",
+          "correct": false,
+          "feedback": "Reject deletes accounts, and an invitation does not carry a sign-in method of its own — the organisation-level choice stays locked either way. You would destroy sixty people's history for nothing."
+        }
+      ],
+      "explanation": "The sign-in method is a one-time decision because the encryption key of every user is derived from it. Settle it on day one, with whoever owns identity at your company, before the first invitation goes out."
+    },
+    {
+      "type": "slide",
+      "id": "domains",
+      "icon": "🌐",
+      "title": "Allowed Domains: which addresses may attach themselves",
+      "bodyMd": "On a self-hosted install the Sign-in Method screen carries a second card, and unlike the method itself it stays editable forever: **Allowed Domains** — *\"Email domains that are allowed to join this organisation via SSO. Users with matching email domains will be automatically linked to this organisation.\"*\n\nIt is a tag box. Type `vandijkgroep.nl`, press Enter, and the domain becomes a chip with an ✕ to remove it again; a malformed entry is refused with *\"Invalid domain format\"* and a duplicate with *\"Domain … is already added\"*.\n\nThis is the setting that decides **which organisation** an SSO newcomer is attached to — not whether they are let in. Van Dijk Groep lists `vandijkgroep.nl` and nothing else, so the external bookkeeper signing in with her own firm's address never lands in their tenant at all. Never list a free mail domain here: that would hand your organisation to anybody with such an address."
+    },
+    {
+      "type": "slide",
+      "id": "invite-form",
+      "icon": "✉️",
+      "title": "The invitation, field by field",
+      "bodyMd": "On the **Users** tab of **Users & Groups**, the card **Organisation Members** carries an **Invite User** button. It opens two fields.\n\n- **EMAIL ADDRESS** — the address the invitation is sent to and the address that must be used to redeem it.\n- **ROLE** — a dropdown that starts at `User` and then lists every organisation role: *Organisation Admin, Data Protection Officer, ISMS Internal Auditor, Agent Admin, Agent Editor, Member*.\n\nPick the role the person will actually hold when they join; it is applied the moment they redeem the link. Leaving it on `User` is the safe default — you can always raise it afterwards with the pencil on their row, titled **Change role**.\n\nClick **Send** and the confirmation reads *\"Invitation sent to …\"*."
+    },
+    {
+      "type": "slide",
+      "id": "invite-life",
+      "icon": "⏳",
+      "title": "Seven days, one link, one chance to copy it",
+      "bodyMd": "Every invitation lives **7 days**. Until it is redeemed it sits under **PENDING INVITATIONS** at the bottom of the Users tab: the address, a chip reading **Invited**, the line *\"Invited by &lt;name&gt; · Expires &lt;date&gt;\"* and an ✕ button titled **Revoke invitation**.\n\nWhen mail delivery fails — a quarantined mailbox, a strict spam filter — the invitation is still created, so the result line still reads as success: *\"Invitation created but email delivery failed. Share the link manually:\"*, with a **Copy invite link** button under it.\n\nThat link is shown **once**. Nothing brings it back: the pending row carries the address, the inviter and the expiry, never the link. And you cannot simply redo it — the same address is blocked for an hour. Copy it first, then paste it somewhere safe."
+    },
+    {
+      "type": "quiz",
+      "id": "q-bulk",
+      "question": "Van Dijk Groep's office manager sits down on Monday morning to invite the thirty colleagues from the fitting workshops — half of the firm's sixty staff — in one go. What actually happens?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "The first twenty go out; after that she is refused until the hour has rolled on.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "All thirty go out — there is no limit on invitations.",
+          "correct": false,
+          "feedback": "There are three limits: 20 per inviter per hour, 200 per organisation per 24 hours, and one hour of cooldown per email address."
+        },
+        {
+          "id": "c",
+          "label": "None go out; an organisation may only invite one person per day.",
+          "correct": false,
+          "feedback": "The organisation-wide cap is 200 invitations per 24 hours, which no normal onboarding will reach. The limit she meets first is the per-inviter one: 20 in a rolling hour."
+        },
+        {
+          "id": "d",
+          "label": "All thirty go out, but each link expires after 24 hours.",
+          "correct": false,
+          "feedback": "Invitations live for 7 days, not 24 hours. The number that bites during bulk onboarding is 20 per hour."
+        }
+      ],
+      "explanation": "Plan bulk onboarding in batches of twenty, an hour apart — or split the work across two admins. The same rules block a quick re-send: invite the same address twice within the hour and you get \"This email was recently invited. Wait an hour before re-inviting.\""
+    },
+    {
+      "type": "slide",
+      "id": "pending-queue",
+      "icon": "🛎️",
+      "title": "The pending queue, and what Reject really does",
+      "bodyMd": "People who arrive through SSO rather than an invitation wait for you, and nothing comes looking for you about it. No mail, no badge. Go and find them: on the **Users** tab, change the status select in the filter bar from **Any status** to **Pending**.\n\nEach waiting row carries an amber **Pending** chip and two buttons.\n\n- **Approve** sets the account to **active** with the role `User`. If they need more than that, use the pencil afterwards.\n- **Reject** asks *\"Reject and remove this user? They can sign up again later.\"* and then **deletes the account**. It is not a parking bay and not an archive.\n\nSo reject only strangers. For a colleague who arrived at the wrong moment, approve and fix the role — that is the reversible path."
+    },
+    {
+      "type": "quiz",
+      "id": "q-seats",
+      "question": "Van Dijk Groep's plan allows 60 users — one seat per member of staff. Fifty-seven colleagues are active and the last three invitations are still pending. The office manager now invites the external bookkeeper as a sixty-first account. What comes back?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "A refusal: \"Your plan has reached its user limit (57 active + 3 pending invite(s) of 60).\"",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "The invitation is sent; the limit is only checked when the sixty-first person actually signs up.",
+          "correct": false,
+          "feedback": "That is exactly the dead end the seat pre-check exists to prevent. Checking only at signup means the invitee hits the wall, and the admin never sees it."
+        },
+        {
+          "id": "c",
+          "label": "The invitation is sent and the plan is upgraded automatically to fit.",
+          "correct": false,
+          "feedback": "Nothing is bought on your behalf. The failure line carries a View plans & upgrade link, and a human decides."
+        },
+        {
+          "id": "d",
+          "label": "The invitation is sent, and the three pending ones are revoked to make room.",
+          "correct": false,
+          "feedback": "Nothing is revoked for you. If a pending invitation will never be redeemed, revoke it yourself with the ✕ under PENDING INVITATIONS — that frees the seat it was holding."
+        }
+      ],
+      "explanation": "A seat is consumed by an active member or by a live invitation. Before a hiring round, clear out stale invitations first; the refusal also offers View plans & upgrade if the organisation genuinely needs more seats."
+    },
+    {
+      "type": "slide",
+      "id": "auto-approve",
+      "icon": "⚖️",
+      "title": "Auto-approve: speed bought with a domain check",
+      "bodyMd": "Above the member list, organisations that sign in with Google or Microsoft see one extra card — **Auto-approve users from trusted domains**:\n\n> When enabled, users with a matching email domain are added automatically with default permissions. When disabled, they are added as pending and require admin approval.\n\nThe trade is plain. **On**, nobody waits for you and nobody is blocked on a Friday afternoon — but anyone who can obtain an address on your domain walks straight into the organisation's default groups. **Off**, you see every newcomer before they see the workspace — but you have to look.\n\nThe toggle is reversible, and it only decides who arrives **next**: people already approved keep their access. Organisations with **Username & Password** never see this card, because there is no external directory to trust."
+    },
+    {
+      "type": "slide",
+      "id": "azure-sync",
+      "icon": "🔄",
+      "title": "Azure AD Group Sync: the door that opens itself",
+      "bodyMd": "Self-hosted organisations on Microsoft can let the directory do the admitting. **Settings → Organisation → Azure Configuration → Microsoft SSO** holds the credentials (**Application (Client) ID**, **Client Secret**, **Directory (Tenant) ID**) and the card **Azure AD Group Sync** with a **Sync Now** button, which answers *\"Sync completed: N group(s), M new user(s)\"*.\n\nFirst, the permissions the screen lists under **Required Azure Permissions** — `GroupMember.Read.All`, `User.Read.All`, `Application.Read.All`, granted as Application permissions **with admin consent**. Without that consent Sync Now fails before it reads a single group.\n\nThen three switches under **Sync Settings**:\n\n- **Auto-activate synced users** — on, they are immediately active; off, they still require admin approval.\n- **Destructive sync** — removes groups and memberships in Bee Flow once they disappear in Azure.\n- **Automatic periodic sync** — with **Sync every** 1, 3, 6, 12, 24 or 48 hours, or Weekly.\n\nSynced groups appear on the Groups tab marked **Managed**, with no delete button."
+    },
+    {
+      "type": "sim",
+      "id": "sim-sync",
+      "icon": "🧩",
+      "title": "Which switch solves which Monday",
+      "instruction": "Van Dijk Groep runs self-hosted on Microsoft. Match each thing the admin wants (or fears) to the single setting that decides it.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "periodic",
+            "left": "HR adds a new fitter to the Monteurs group in Azure on Tuesday, and nobody wants to remember to click anything in Bee Flow",
+            "right": "Automatic periodic sync, Sync every 6 hours",
+            "note": "Sync Now is the manual version of the same job; periodic sync just repeats it on the interval you pick, from 1 hour up to Weekly."
+          },
+          {
+            "id": "destructive",
+            "left": "A fitter leaves the firm, HR takes him out of every Azure group, and his Bee Flow group memberships must disappear with him",
+            "right": "Destructive sync",
+            "note": "Only this switch lets a sync take things away. With it off, a sync only ever adds, so a leaver keeps whatever his groups granted him."
+          },
+          {
+            "id": "activate",
+            "left": "Synced newcomers should be able to work the moment they first sign in, with no admin standing between them and the workspace",
+            "right": "Auto-activate synced users",
+            "note": "On, new users from Azure groups are immediately active; off, they require admin approval, which is the pending queue again."
+          },
+          {
+            "id": "graph",
+            "left": "Sync Now fails immediately, before a single group has been read, on a freshly registered enterprise app",
+            "right": "GroupMember.Read.All, User.Read.All, Application.Read.All",
+            "note": "These three Application permissions are listed on the screen and must be granted with admin consent in Azure; nothing syncs until they are."
+          },
+          {
+            "id": "domains",
+            "left": "The bookkeeper at an external accountancy firm must never end up inside Van Dijk Groep by signing in with her own work address",
+            "right": "Allowed Domains",
+            "note": "Allowed Domains decides which addresses are linked to the organisation at all — a different question from whether a linked person arrives active or pending."
+          }
+        ]
+      }
+    },
+    {
+      "type": "slide",
+      "id": "landing",
+      "icon": "🧳",
+      "title": "What a newcomer is actually holding on day one",
+      "bodyMd": "One person, five ways in, five different starting positions:\n\n- **Invited** — active immediately, the role you chose in the invitation, plus the organisation's default groups.\n- **SSO newcomer, auto-approve on** — active, role `User`, plus the default groups.\n- **SSO newcomer, auto-approve off** — **pending**, with **no** role and **no** groups. They can sign in and see nothing useful.\n- **Azure-synced** — active or pending depending on **Auto-activate synced users**, carrying the Azure groups the directory says they are in.\n- **Founder** — whoever creates a new organisation is its first **Organisation Admin**, active from the start.\n\nNotice the quiet lever in the first two lines: the **default groups**. Whatever they carry — a role, allowed model tiers, integration grants — is what those two newcomers silently start with. **Approve** does not repair the other two: it leaves the groups empty, so you assign them yourself. Audit the default groups once, and half of your onboarding is already decided."
+    },
+    {
+      "type": "sim",
+      "id": "sim-onboard",
+      "icon": "🧩",
+      "title": "Put Marieke to work",
+      "instruction": "Van Dijk Groep signs in with Microsoft, auto-approve is off. Marieke starts today, signs in, and nothing happens. Put the admin's five moves in order.",
+      "sim": {
+        "kind": "order",
+        "items": [
+          {
+            "id": "open",
+            "label": "Open Settings → Organisation → Users & Groups and set the status filter to Pending"
+          },
+          {
+            "id": "approve",
+            "label": "Click Approve on Marieke's row"
+          },
+          {
+            "id": "role",
+            "label": "Click the pencil and change her role from User to Agent Editor"
+          },
+          {
+            "id": "group",
+            "label": "Click Assign groups and tick Inkoop"
+          },
+          {
+            "id": "verify",
+            "label": "Confirm her row now shows the Agent Editor chip and the Inkoop group chip"
+          }
+        ],
+        "solution": [
+          "open",
+          "approve",
+          "role",
+          "group",
+          "verify"
+        ],
+        "feedback": "Approval comes first because a pending account has no role and no groups to edit — Approve is what makes her a real member, with the role User. Role and group are the two refinements on top, and the last move is the cheap one people skip: read the row back. If the chips are not there, the change did not land."
+      }
+    },
+    {
+      "type": "exercise",
+      "id": "ex-policy",
+      "icon": "🎯",
+      "exerciseId": "ex-admin-joining-policy",
+      "title": "Your turn: write the joining policy",
+      "instruction": "Write the joining policy for Van Dijk Groep in five or six sentences, as if you were handing it to the office manager. Cover: which door people come through and how that follows from the sign-in method; whether auto-approve is on or off and what you accept in return; who watches the pending queue and how often; and what happens to somebody who is rejected or whose invitation expires. Be concrete — name the rhythm, not a good intention.",
+      "placeholder": "e.g. \"We sign in with Microsoft, so colleagues arrive by signing in, not by invitation; invitations are only for the two external accountants. Auto-approve stays off: our domain is also used by the webshop, so I would rather look. I check the pending list every morning with the post, and again at 16:00…\"",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "action",
+      "id": "do-invite",
+      "icon": "🏗️",
+      "checkId": "invite-sent",
+      "title": "Send one real invitation",
+      "instruction": "Open Users & Groups, stay on the Users tab and click Invite User. Enter a colleague's address, pick their role (leave it on User if in doubt) and click Send. Check the new row under PENDING INVITATIONS, and if the line says delivery failed, click Copy invite link straight away. If this was only practice, revoke it afterwards with the ✕. Sending and reading invitations are Organisation Admin only, so this one is verified for org admins and taken on trust from everyone else.",
+      "launch": {
+        "navigateTo": "settings/organisation/users",
+        "label": "Open Users & Groups"
+      }
+    },
+    {
+      "type": "slide",
+      "id": "recap",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "- **Choose the door on purpose.** The sign-in method is locked the moment you save it, so settle it before the first invitation; **Allowed Domains** beside it stays editable and decides which addresses may attach themselves to your organisation at all.\n- **Run the queue, not the fire drill.** Twenty invitations per inviter per hour, seven days to redeem, pending invitations holding seats, **Copy invite link** when mail fails — plan a batch instead of improvising one.\n- **Know which buttons bite.** Approve makes a member with role `User` and is easy to correct; Reject deletes the account; auto-approve and **Auto-activate synced users** only govern who arrives next, while **Destructive sync** is the one switch that takes access away — and no sync runs at all until the three Azure permissions carry admin consent.\n\nNext chapter: giving that organisation its tools — which integrations your plan allows, and how a grant reaches a single team."
+    }
+  ],
+  "rubrics": {
+    "ex-admin-joining-policy": {
+      "title": "Joining policy for Van Dijk Groep",
+      "task": "Write the organisation's joining policy in five or six sentences: which door newcomers use and why, the auto-approve decision with its trade-off, an owner and rhythm for the pending queue, and what happens after a rejection or an expired invitation.",
+      "criteria": [
+        "Names a specific door (invitation, SSO sign-in, or Azure AD sync) and ties that choice to the organisation's sign-in method rather than treating it as a free option.",
+        "Takes a clear position on auto-approve and states what is being traded — waiting time against anyone with a matching domain arriving with the default groups.",
+        "Assigns a named owner and a concrete rhythm for watching pending users and pending invitations (for example 'every morning', not 'regularly').",
+        "Handles at least one destructive or expiring edge correctly: Reject deletes the account, invitations expire after 7 days, or pending invitations occupy plan seats."
+      ],
+      "passScore": 70,
+      "guidance": "Pass a plain, concrete policy even if the prose is rough. Do not pass an answer that only says 'invite people and approve them' with no auto-approve decision and no owner. Do not pass an answer that claims the sign-in method can be changed later, that Reject merely deactivates or archives an account, or that pending invitations are free of the seat limit — those are the three mistakes this lesson exists to prevent. An answer may legitimately choose either auto-approve setting; what counts is that the trade-off is named."
+    }
+  },
+  "practiceTopic": {
+    "title": "Joining an organisation: invitations, SSO and seats",
+    "summary": "How people enter a Bee Flow organisation — invitations and their limits, pending SSO newcomers, auto-approve, and the one-time sign-in choice.",
+    "facts": [
+      "An invitation expires 7 days after it is created and sits under PENDING INVITATIONS until then, with an ✕ titled 'Revoke invitation'; the caps are 20 invitations per inviter per rolling hour, 200 per organisation per 24 hours, and one per email address per hour.",
+      "Sign-in Method is a one-time choice: after saving, the chosen card shows a lock chip reading Active, the banner 'Sign-in method is locked' appears, the other two cards are disabled, and the row disappears from the settings menu altogether.",
+      "When the invitation mail cannot be delivered the invitation is still created and the result line reads 'Invitation created but email delivery failed. Share the link manually:' with a Copy invite link button — that link is shown only once and cannot be retrieved afterwards.",
+      "Pending invitations count toward the plan's seat limit, so the refusal reads 'Your plan has reached its user limit (N active + M pending invite(s) of X)' and offers a View plans & upgrade link; revoking a pending invitation frees its seat again.",
+      "Pending members are found by setting the filter bar's status select from Any status to Pending; Approve makes the account active with the organisation role User, while Reject asks 'Reject and remove this user? They can sign up again later.' and then deletes the account.",
+      "The card 'Auto-approve users from trusted domains' appears only when the organisation's sign-in method is Google or Microsoft: with it off a new SSO user arrives with status pending, no organisation role and no groups; with it on, active with role User and the organisation's default groups.",
+      "Allowed Domains sits beside the Sign-in Method cards on self-hosted installs: email domains allowed to join the organisation via SSO, whose users are automatically linked to it. It is a tag box (Enter adds, the chip's cross removes) and stays editable, unlike the sign-in method.",
+      "Azure AD Group Sync has Sync Now plus three Sync Settings — Auto-activate synced users, Destructive sync, and Automatic periodic sync with Sync every 1, 3, 6, 12, 24 or 48 hours or Weekly — and requires GroupMember.Read.All, User.Read.All and Application.Read.All with admin consent."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "invite-sent",
+      "existing": false,
+      "label": "Send an invitation",
+      "hint": "Settings → Organisation → Users & Groups → Users tab → Invite User → fill in EMAIL ADDRESS → Send. Sending and listing invitations are both Organisation Admin work.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/auth/invitations",
+          "returns": "array of invitation rows for the caller's own organisation: id, email, role, status, invited_by, created_at, expires_at, plus a derived inviterName. Guarded by isOrgAdminForOrg, which passes on the org_admin ROLE (or a platform admin), not on the manage_users permission — anyone else gets 403; [] when the caller has no organisation."
+        }
+      ],
+      "criteria": [
+        {
+          "id": "exists",
+          "label": "Your organisation has at least one invitation on record",
+          "hint": "Click Invite User on the Users tab, fill in the address and click Send — the row then appears under PENDING INVITATIONS.",
+          "rule": "GET /auth/invitations returns at least one row",
+          "endpoint": "/auth/invitations",
+          "expect": {
+            "kind": "rows"
+          },
+          "gate": {
+            "permission": [
+              "org_admin"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

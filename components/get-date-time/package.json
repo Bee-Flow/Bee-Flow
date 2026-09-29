@@ -1,0 +1,7 @@
+{
+  "name": "get-date-time",
+  "version": "1.0.0",
+  "dependencies": {
+    "date-fns": "^2.29.3"
+  }
+}

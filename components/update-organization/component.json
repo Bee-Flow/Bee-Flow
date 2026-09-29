@@ -1,0 +1,53 @@
+{
+    "name": "Update Organization",
+    "description": "Updates organization details in the database. Provide the organizationId and any fields to update. Only provided fields will be changed; others remain unchanged. Available fields: name, description, tagline, address, email, phone, website, kvk (Chamber of Commerce number), vat (VAT number).",
+    "category": "Admin",
+    "inputs": {
+        "organizationId": {
+            "type": "string",
+            "description": "The ID of the organization to update (required)",
+            "required": true
+        },
+        "name": {
+            "type": "string",
+            "description": "Company name"
+        },
+        "description": {
+            "type": "string",
+            "description": "Company description"
+        },
+        "tagline": {
+            "type": "string",
+            "description": "Company tagline or slogan"
+        },
+        "address": {
+            "type": "string",
+            "description": "Company address"
+        },
+        "email": {
+            "type": "string",
+            "description": "Company email address"
+        },
+        "phone": {
+            "type": "string",
+            "description": "Company phone number"
+        },
+        "website": {
+            "type": "string",
+            "description": "Company website URL"
+        },
+        "kvk": {
+            "type": "string",
+            "description": "Chamber of Commerce registration number"
+        },
+        "vat": {
+            "type": "string",
+            "description": "VAT / Tax identification number"
+        }
+    },
+    "outputs": {
+        "success": "boolean",
+        "organization": "object"
+    },
+    "agentEnabled": true
+}

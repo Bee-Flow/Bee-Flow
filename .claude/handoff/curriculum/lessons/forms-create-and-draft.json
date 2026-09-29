@@ -1,0 +1,325 @@
+{
+  "id": "forms-create-and-draft",
+  "icon": "📋",
+  "estMinutes": 13,
+  "title": "A form is a routine's front door",
+  "desc": "Create one, let AI draft the questions, style it, and understand what you are really building.",
+  "gate": {
+    "feature": "automations"
+  },
+  "learningGoal": "After this lesson you can create a form, let AI draft its questions, review and style them in the editor, and save them deliberately.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "intro",
+      "icon": "🚪",
+      "title": "A form is the front of a routine",
+      "bodyMd": "Purchasing at **Van Dijk Groep** needs the same details on file for every new supplier before the first order. Today they arrive scattered through an e-mail thread, and whoever onboards the supplier retypes them into a sheet.\n\nIn Bee Flow you build that as a **form**. Open **Studio → Forms** and the page tells you what it is: *\"A form is the front of a routine: whoever fills it in starts it.\"* So a form is not a document of its own — the questions live on a routine's trigger, and submitting them starts that routine.\n\nOne boundary before you build, and it is about **this** object. A **Form** — what you create in Studio → Forms, at an `/f/` address — is filled in by signed-in colleagues: its audience is the people and groups you list, or everyone in the organisation, and never anyone outside it. This is the account manager's intake, typed in during the call, not something you send to the supplier.\n\nAn **app screen** in App Studio is a different object with a different rule: a published app can open one screen to people without an account, at a `/p/` address. Same word, two products — ask which one a colleague means before you promise anything."
+    },
+    {
+      "type": "slide",
+      "id": "two-doors",
+      "icon": "🚦",
+      "title": "Two doors out of the New form dialog",
+      "bodyMd": "Click **New form** and you give it a **Name**, then answer one question: **\"What happens with the answers?\"**\n\n- **Collect answers in a table** (badge **Recommended**) — a table is created with one column per question and kept in step with the form. Every answer appears there the moment someone submits.\n- **Form that starts a routine** — every submission runs the steps you build in the routine builder: send an e-mail, file a ticket, ask an agent. No table unless you add one.\n\nThe choice decides where you land. \"Collect\" drops you on the form's **Questions** tab; \"starts a routine\" drops you straight into the routine builder. For the Leveranciersintake, Inkoop wants a live list — so: collect."
+    },
+    {
+      "type": "slide",
+      "id": "ai-draft",
+      "icon": "✨",
+      "title": "Describe it, and the AI drafts the questions",
+      "bodyMd": "In \"collect\" mode the dialog offers one more box, **\"Describe it (optional)\"**: *\"What should the form ask? A sentence is enough — or paste the checklist, e-mail or policy it should be based on.\"* Underneath it says exactly what will happen: *\"AI drafts the questions from this on the next screen. You review them before anything is saved.\"*\n\nPress **Create form** and the Questions tab runs that brief once for you. Purchasing's onboarding checklist goes in; eleven questions come back out.\n\nAnd there they stop. The brief is not saved with the form, and neither is the draft: the questions land in the unsaved editor and nowhere else."
+    },
+    {
+      "type": "quiz",
+      "id": "q-save",
+      "question": "You pressed \"Draft the questions\" and eleven questions appeared in the editor. What has happened to the form at this moment?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Nothing yet — the questions sit in an unsaved editor until you press Save.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "The questions are saved; the sticky bar at the bottom only confirms it.",
+          "correct": false,
+          "feedback": "The sticky bar offers **Discard changes** and **Save** precisely because nothing has been written yet. Leaving the tab asks \"Unsaved changes — the questions were changed and not saved. Leave and lose them?\""
+        },
+        {
+          "id": "c",
+          "label": "The form is now live and colleagues can open its link.",
+          "correct": false,
+          "feedback": "Drafting questions never switches a form on. A freshly created routine is a draft, and going live is a separate toggle under Settings."
+        },
+        {
+          "id": "d",
+          "label": "The answers table already has the new columns.",
+          "correct": false,
+          "feedback": "The answers table is derived from the form when you **save** it. Until then the draft exists only in your browser's editor."
+        }
+      ],
+      "explanation": "The draft is a proposal, not a change. That gap is the point: you read the labels, fix the types, or press Undo. On a form that already collects answers, it is also what stops an unreviewed draft from retiring columns that hold real answers.",
+      "icon": "❓"
+    },
+    {
+      "type": "slide",
+      "id": "ai-card",
+      "icon": "🔁",
+      "title": "The AI box does not go away",
+      "bodyMd": "That box is not only there at creation. The **\"Build it with AI\"** card sits on the Questions tab for as long as the form exists.\n\nOn a form that has nothing to change yet the button reads **Draft the questions**; once there are questions it reads **Change the questions**, and a segmented control lets you **Start over from a description** instead.\n\nEither way the card reports back — *\"{count} questions drafted — review them below, then Save.\"* — with an **Undo** beside it.\n\nSo treat it as an editor you keep talking to, not a one-shot at creation: change, read what came back, undo if it went too far."
+    },
+    {
+      "type": "sim",
+      "id": "sim-match",
+      "icon": "🧩",
+      "title": "Five things Van Dijk Groep wants",
+      "instruction": "Match each situation to the control that handles it. Three of these you have already met; two arrive later in the lesson — read the note either way.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "p1",
+            "left": "Inkoop wants every supplier's details in one live list they can sort and export.",
+            "right": "Collect answers in a table",
+            "note": "One column per question, one row per submission — no building required."
+          },
+          {
+            "id": "p2",
+            "left": "A leave request must reach the team lead for approval; nobody needs a spreadsheet.",
+            "right": "Form that starts a routine",
+            "note": "The point is the steps that run, not the storage. Create it in routine mode and you land in the builder."
+          },
+          {
+            "id": "p3",
+            "left": "Purchasing already has the intake checklist in a document, and nobody wants to retype it.",
+            "right": "Describe it (optional)",
+            "note": "Paste the checklist into the description box and the Questions tab drafts from it — then you review what came back."
+          },
+          {
+            "id": "p4",
+            "left": "Whoever submits the intake should see a line confirming it landed, not the empty form again.",
+            "right": "Thank-you message",
+            "note": "It replaces the form after a successful submission. A new form starts with \"Thanks — we got your answer.\""
+          },
+          {
+            "id": "p5",
+            "left": "You drop the fax number question, but last year's fax numbers must stay readable.",
+            "right": "A retired column",
+            "note": "Removing a question keeps its column, marked \"no longer on the form\". Nothing is ever dropped for you."
+          }
+        ]
+      }
+    },
+    {
+      "type": "slide",
+      "id": "editor",
+      "icon": "🛠️",
+      "title": "What you can actually edit",
+      "bodyMd": "Under the AI card sits the real editor: **Form title**, **Intro text**, the **Questions** section with **Add a question**, then **Button text** (placeholder `Submit`), **Thank-you message** (*\"Replaces the form after a successful submission.\"*) and **Styling**. **Preview the form** shows the result.\n\nA brand-new form is not empty. It carries the name you typed in the dialog and three starter questions — **Your name**, **Your email** and **How can we help?** — a **Submit** button and the thank-you line *\"Thanks — we got your answer.\"*\n\nThose three are a placeholder, not a head start. Replacing them is exactly what the draft does for you."
+    },
+    {
+      "type": "slide",
+      "id": "types",
+      "icon": "🏷️",
+      "title": "Every question has a type",
+      "bodyMd": "Open a question and you get its label, a **Required** checkbox, a placeholder, move up/down, and a type: **Short text, Long text, Email, Number, Date, Dropdown, Checkbox, File upload, Download button, Open in Notebooks**.\n\nThe type is the part a draft most often gets nearly right. A drafted \"Payment term\" may arrive as **Short text** where you wanted **Number**, and the KvK extract is only an upload if you set **File upload**. Fixing that while you review costs a minute; fixing it after the first answers arrive leaves a second column beside the first.\n\nAn editor with no questions says so: *\"No questions yet — nobody can submit this form.\"*"
+    },
+    {
+      "type": "slide",
+      "id": "styling",
+      "icon": "🎨",
+      "title": "Styling: five presets and four knobs",
+      "bodyMd": "The last section of the editor is **Styling**, and it is the whole of the look. There is no CSS anywhere.\n\nFive presets set everything in one click — **Clean** (what a new form starts on), **Corporate**, **Friendly**, **Night** and **Match visitor**. Under them sits **Accent colour**: twelve swatches plus a colour picker for a house colour that is not among them.\n\nThen four knobs, for when a preset is nearly right:\n\n- **Corners** — none, sm, md, lg, xl\n- **Spacing** — compact, comfortable, spacious\n- **Text size** — sm, md, lg\n- **Appearance** — light, dark, auto\n\nThose four are also what the presets differ in: **Night** is the dark one, and **Match visitor** is the `auto` setting — it follows the light-or-dark mode of whoever opens the form.\n\n**Preview the form** shows the result while you work; the same button reads **Hide preview** to put the editor back. A later page of a multi-page form carries **Match the first page**, so a journey does not change its look halfway through."
+    },
+    {
+      "type": "quiz",
+      "id": "q-style",
+      "icon": "❓",
+      "question": "Van Dijk wants the intake tight and in their own blue, and a colleague who works in dark mode should not be dazzled by it. What do you do under Styling?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Click the Corporate preset, set the accent colour to their blue, then turn the Appearance knob to auto.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Pick Match visitor — it is the only one that adapts — and live with the rest of what it sets.",
+          "correct": false,
+          "feedback": "Match visitor is the `auto` Appearance, true. But a preset writes all five values at once, including its own accent, corners, spacing and text size. Any preset plus the **Appearance** knob on `auto` gets you the same adaptation without giving up the rest."
+        },
+        {
+          "id": "c",
+          "label": "Paste the house-style CSS into Intro text so the form picks it up.",
+          "correct": false,
+          "feedback": "A form takes no CSS at all. Styling is five presets, an accent colour (twelve swatches plus a custom one) and the four knobs — Corners, Spacing, Text size, Appearance. **Intro text** is just text shown under the title."
+        },
+        {
+          "id": "d",
+          "label": "Nothing yet — a form's look can only be set once it is live.",
+          "correct": false,
+          "feedback": "Styling sits in the editor beside the questions and is saved with the form. **Preview the form** shows the result before you press Save; going live is a separate switch under Settings."
+        }
+      ],
+      "explanation": "A preset is a starting point, not a cage: one click writes accent colour, Corners, Spacing, Text size and Appearance together, and each knob then overrides its own value. A form you never style is not neutral — it is **Clean**, teal, light, because that is what a new form starts on."
+    },
+    {
+      "type": "exercise",
+      "id": "ex-brief",
+      "icon": "🎯",
+      "exerciseId": "ex-forms-create-brief",
+      "title": "Your turn: brief the Leveranciersintake",
+      "instruction": "Write the brief you would paste into \"Describe it (optional)\" for Van Dijk Groep's supplier intake, then add two sentences: which of the two modes you picked and why, and which Styling preset or accent colour you would give it. A strong answer names the concrete details purchasing needs — company name, a contact, an e-mail, an upload, a yes/no — hints at the question type where it matters, and ties the mode to what has to happen with the answers.",
+      "placeholder": "e.g. Ask for company name, KvK number, VAT number, contact person, e-mail, phone, IBAN, payment term in days, an upload of the chamber-of-commerce extract, and whether they hold ISO 9001. I chose \"Collect answers in a table\" because Inkoop needs a live list to sort and export, not an e-mail per supplier. Styling: the Corporate preset with our own accent colour, so it matches the rest of our paperwork.",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "quiz",
+      "id": "q-limit",
+      "question": "The intake grew and page one now carries 41 questions. You press Save. What happens?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "The save is refused — a page holds at most 40 questions.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "It saves, but the form cannot be switched on until you trim it.",
+          "correct": false,
+          "feedback": "That is how an *empty* form behaves — no questions is a warning while you are drafting and a blocker only at activation. Too many questions is refused outright, at save."
+        },
+        {
+          "id": "c",
+          "label": "It saves and the 41st question is quietly dropped.",
+          "correct": false,
+          "feedback": "Nothing about forms discards your work silently. The limit is enforced with a message, not by trimming."
+        },
+        {
+          "id": "d",
+          "label": "A second form is created automatically for the overflow.",
+          "correct": false,
+          "feedback": "Bee Flow never creates a form behind your back. Extra pages are form pages you add to the routine yourself."
+        }
+      ],
+      "explanation": "Forty questions per page is a hard limit. The way past it is not a shorter form but a longer journey: later pages are form-page steps in the same routine, and the visitor walks through them on one link.",
+      "icon": "❓"
+    },
+    {
+      "type": "slide",
+      "id": "columns",
+      "icon": "🧾",
+      "title": "Renaming is cheap; removing is not a delete",
+      "bodyMd": "On a collecting form the Questions tab carries a line you should read before every save: *\"Every question here is a column in the answers table. Renaming a question renames its column; removing one keeps the column, marked 'no longer on the form'.\"*\n\nThree cases, three outcomes:\n\n- **Rename the label** — the column header changes. The answers stay where they are.\n- **Remove the question** — the column is retired, not dropped. It collapses into \"No longer on the form\" on the Answers dashboard, and re-adding the same question brings it back.\n- **Change its type** — that is a new column, and the old one is retired beside it. Two columns, both readable.\n\nThe table never shrinks by itself, because the answers in it are somebody's."
+    },
+    {
+      "type": "quiz",
+      "id": "q-gate",
+      "icon": "❓",
+      "question": "A colleague with no admin role wants to build this intake himself. What may he do, and where does an organisation permission start to matter?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "He can build the form: Forms asks for the automations feature, and the routine is his because he made it. The answers table is where an org permission comes in.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "He needs the manage_automations permission before he may create a form at all.",
+          "correct": false,
+          "feedback": "That permission is real, but it opens the organisation-wide run history — it is not what the forms routes check. They decide by ownership: whoever built the routine may edit its form, and nobody else may, admin or not."
+        },
+        {
+          "id": "c",
+          "label": "Once the automations feature is on, every screen his form touches is his to change.",
+          "correct": false,
+          "feedback": "The form is. The answers table it creates is an ordinary organisation datatable, and changing an organisation table — its columns, its sharing, its retention — needs the manage_datatables permission. That is exactly what the datatables lessons in this course ask of you."
+        },
+        {
+          "id": "d",
+          "label": "He must first be given access to the answers table, or Create form is refused.",
+          "correct": false,
+          "feedback": "The table is created by the form, not the other way round. Granting people a grade on the answers table is how you let *others* read the answers afterwards."
+        }
+      ],
+      "explanation": "Two gatekeepers sit on one form, and they ask for different things. The form: the **automations** feature plus ownership — Studio → Forms lists every form in the organisation, but only its owner can open the routine behind it. The answers table: the ordinary datatable rules, where changing an organisation table is an admin permission (manage_datatables). So this lesson asks less of you than the lessons about the table it fills."
+    },
+    {
+      "type": "action",
+      "id": "build",
+      "icon": "🏗️",
+      "checkId": "form-exists",
+      "title": "Build it — we'll verify it",
+      "instruction": "Open Studio → Forms and press New form. Name it (Leveranciersintake works), keep \"Collect answers in a table\", and describe what it should ask in the box before pressing Create form. Review the drafted questions — fix a label, set a type, mark one Required — then pick a preset under Styling, press Preview the form to look at it, and Save.",
+      "launch": {
+        "navigateTo": "studio/forms",
+        "label": "Open Forms"
+      }
+    },
+    {
+      "type": "slide",
+      "id": "recap",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "- **Create it in the right mode.** \"Collect answers in a table\" builds the table for you; \"Form that starts a routine\" drops you in the builder.\n- **Use the AI draft as a draft.** Describe it or paste the checklist, read what comes back, press Undo if it missed — and know that nothing exists until you press Save.\n- **Save knowing what a save does.** Labels, types, Required, Button text, the thank-you message and **Styling** are yours; on a collecting form every question is a column, and removing one retires it instead of deleting the answers.\n- **Know which object you built.** A Form is for signed-in colleagues at an `/f/` address; the anonymous `/p/` page belongs to App Studio, not here.\n\nTwo things still stand between your form and a filled-in one: it is a draft until **Form is live** is switched on, and it is shared with nobody until you say who may fill it in. That is the next chapter."
+    }
+  ],
+  "rubrics": {
+    "ex-forms-create-brief": {
+      "title": "A brief the AI can draft from",
+      "task": "Write the brief for Van Dijk Groep's supplier intake as it would be pasted into \"Describe it (optional)\", plus a sentence choosing between \"Collect answers in a table\" and \"Form that starts a routine\" with a reason, and a sentence on how it should look.",
+      "criteria": [
+        "Lists several concrete things to ask for — at least a company or contact identity, an e-mail, and one non-text item such as a file upload, a number or a yes/no.",
+        "Is specific enough to draft from: it names the details rather than saying \"the usual supplier information\".",
+        "Names one of the two real modes (\"Collect answers in a table\" or \"Form that starts a routine\") and gives a reason tied to what must happen with the answers.",
+        "Says something about the look using a real control — a preset (Clean, Corporate, Friendly, Night, Match visitor), the accent colour, or one of the knobs Corners, Spacing, Text size, Appearance.",
+        "Shows awareness that the draft is reviewed before it is saved, or that question types and Required are set by the author."
+      ],
+      "passScore": 70,
+      "guidance": "Pass a plainly written brief in English or Dutch that a drafter could turn into questions. Do not pass: a one-line restatement of the task (\"a supplier form\"), a mode choice with no reason, or an answer that invents product behaviour — for example claiming the brief is saved with the form, that the AI publishes or activates the form, that the AI picks the styling, or that the link can be sent to the supplier. A learner who picks the routine mode with a sound reason passes just as well."
+    }
+  },
+  "practiceTopic": {
+    "title": "Creating a form and drafting its questions",
+    "summary": "How a form is created in Studio, what the AI draft does and does not touch, and what a save means for the answers table.",
+    "facts": [
+      "The New form dialog asks \"What happens with the answers?\" and offers \"Collect answers in a table\" (badge Recommended, landing on the Questions tab) or \"Form that starts a routine\" (landing in the routine builder).",
+      "The \"Build it with AI\" card reports \"{count} questions drafted — review them below, then Save.\" and offers an Undo; the draft is not stored anywhere.",
+      "Nothing is written until Save: the sticky bar offers Discard changes and Save, and leaving warns \"Unsaved changes\".",
+      "Question types are Short text, Long text, Email, Number, Date, Dropdown, Checkbox, File upload, Download button and Open in Notebooks.",
+      "A page holds at most 40 questions; saving a page with more is refused, and the way past it is a later form page in the same routine.",
+      "On a collecting form, renaming a question renames its column, removing one retires the column as \"no longer on the form\", and changing its type adds a new column beside the retired one.",
+      "Styling offers the presets Clean, Corporate, Friendly, Night and Match visitor, an Accent colour (twelve swatches plus a custom one) and the knobs Corners, Spacing, Text size and Appearance; a new form starts on Clean.",
+      "A Form is filled in by signed-in colleagues only — its audience is the people and groups you list, or everyone in the organisation. The anonymous /p/ page is an App Studio screen, a different object."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "form-exists",
+      "existing": false,
+      "label": "Create a form with questions",
+      "hint": "In Studio → Forms, press New form, let the AI draft the questions or add them yourself, then press Save.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/automation/forms",
+          "returns": "{ forms: [ { id, automationId, title, live, mine, answers: { collecting, datatableId }, ... } ] } — organisation-scoped; `mine` is true only for the routine's owner"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "own-form",
+          "label": "A form of your own exists",
+          "hint": "Studio → Forms → New form. The row must be one you built yourself.",
+          "rule": "GET /api/automation/forms → at least one row with mine === true"
+        }
+      ]
+    }
+  ]
+}

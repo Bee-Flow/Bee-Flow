@@ -1,0 +1,279 @@
+{
+ "id": "playbooks-describe-your-own",
+ "icon": "✍️",
+ "estMinutes": 9,
+ "title": "Describe your own playbook",
+ "desc": "Write a description the model can turn into real phases — and read the recipe before it builds.",
+ "gate": {
+  "permission": "manage_apps",
+  "feature": [
+   "automations",
+   "app_studio"
+  ]
+ },
+ "learningGoal": "After this lesson you can write a description that yields a valid multi-phase recipe, read the preview it produces, and tell which parts of the plan you control.",
+ "steps": [
+  {
+   "type": "slide",
+   "id": "start",
+   "icon": "🎬",
+   "title": "Nobody shipped the playbook you need",
+   "bodyMd": "The shipped playbooks cover the jobs every organisation has. The one on your desk this week is usually not one of them.\n\nVan Dijk Groep's service team keeps every maintenance report as a PDF in Nextcloud, and nothing shipped reads those. So Anne opens **Studio → Playbooks → New playbook** and picks the second card, **Describe it**: *\"Say what should be read, stored and built — the AI writes the phases.\"*\n\nThat card does not start a build. It asks the model for a **recipe**: the table's columns, the inputs you fill in at start, and the phases in order with a brief for each builder phase. You read that plan as a preview — nothing exists in your workspace until you press **Start**."
+  },
+  {
+   "type": "slide",
+   "id": "who-may",
+   "icon": "🔑",
+   "title": "Who is allowed to press Start",
+   "bodyMd": "Two different locks sit in front of this lesson, and it is worth knowing which is which.\n\n- **The capability `app_studio`.** Playbooks lives behind it together with Automations. Without it the Studio row stays visible but locked — you can see that Playbooks exists, and you cannot open it.\n- **The permission `manage_apps`.** Reading playbooks needs nothing more than a login, but every *write* needs it: creating a playbook, composing a recipe, running, skipping or retrying a phase. Organisation Admin, Agent Admin and Agent Editor hold `manage_apps`; a plain member does not, and for them **New playbook** is not shown at all.\n\nOne more lock sits deeper: the table phase separately checks **`manage_datatables`** before it creates a new organisation table.\n\nAnd do not read these as the rules for the whole chapter. Later you bundle what you built as a **Solution** — that half has no organisation permission at all; there access is the licence plus your role in the Solution itself."
+  },
+  {
+   "type": "quiz",
+   "id": "q-who",
+   "icon": "❓",
+   "question": "Mo works in HR with the role Agent Editor: he has manage_apps but not manage_datatables. He describes a sick-leave register — read /HR/Ziekmeldingen into a new table, then an app showing who is off per department. What happens?",
+   "multi": false,
+   "choices": [
+    {
+     "id": "a",
+     "label": "He can compose and start it, but the table phase may refuse to create a new organisation table — he asks for manage_datatables, or points the playbook at an existing table he may edit.",
+     "correct": true
+    },
+    {
+     "id": "b",
+     "label": "Nothing at all: without manage_datatables he is not shown New playbook.",
+     "correct": false,
+     "feedback": "New playbook is governed by manage_apps, which Mo has as an Agent Editor. It is the table phase, further in, that checks manage_datatables."
+    },
+    {
+     "id": "c",
+     "label": "It runs through: the table is created as a private one of his own instead.",
+     "correct": false,
+     "feedback": "There is no private fallback. The table phase creates a Studio datatable for the organisation or it refuses, and manage_datatables is what decides."
+    },
+    {
+     "id": "d",
+     "label": "It is refused at the preview — the composer checks your permissions before it writes a plan.",
+     "correct": false,
+     "feedback": "Composing checks the plan, not your rights: the only thing refused there is a plan with no routine and no app phase. Permissions bite when a phase actually runs."
+    }
+   ],
+   "explanation": "Reading playbooks needs only a session; every write needs manage_apps, which Organisation Admin, Agent Admin and Agent Editor hold. Inside the table phase a second check applies: manage_datatables decides whether a new organisation table may be created, and an existing table additionally needs editor rights — one you may only read fails the phase (table_read_only). So check both before you describe a playbook that starts a new table."
+  },
+  {
+   "type": "slide",
+   "id": "say-three",
+   "icon": "🧾",
+   "title": "Say three things: read, stored, shown",
+   "bodyMd": "The field is **\"What should this playbook build?\"** and it takes up to 2,000 characters. A description works when it answers three questions:\n\n- **What is read, and from where** — a Nextcloud folder, an existing table, an inbox.\n- **Where it is stored** — a table, with the columns named.\n- **What the app shows** — the screen someone opens and the question it answers.\n\nAnne writes:\n\n> Read the maintenance reports in /Service/Rapporten into a table with date, customer, installation, engineer and hours, then build an app that shows per customer which installations were serviced this quarter.\n\nThree sentences would work too. Three questions answered is the bar, not length — and there is room for a fair-sized process: a plan may hold up to 8 phases, 30 columns and 6 inputs."
+  },
+  {
+   "type": "quiz",
+   "id": "q-nothing",
+   "icon": "❓",
+   "question": "A colleague types \"Maak een tabel met onze onderhoudsrapporten: datum, klant, monteur en uren.\" and presses Let the AI write the phases. The dialog comes back in red: the plan it wrote is not runnable. What went wrong?",
+   "multi": false,
+   "choices": [
+    {
+     "id": "a",
+     "label": "He asked for a table and nothing else — no phase in that plan builds anything.",
+     "correct": true
+    },
+    {
+     "id": "b",
+     "label": "The description is in Dutch, and a description has to be written in English.",
+     "correct": false,
+     "feedback": "It does not. Your description is handed to the model as data in whatever language you wrote it; the separate Language control decides the language the playbook is built in."
+    },
+    {
+     "id": "c",
+     "label": "He never named a folder, so there is nothing for the playbook to read.",
+     "correct": false,
+     "feedback": "A missing folder is not fatal: a folder input the model declares always comes back with a default path, and you fill it in in the dialog before Start. What is missing here is a phase that builds something."
+    },
+    {
+     "id": "d",
+     "label": "He has to name the phases himself — Table, Routine, App — or the plan has no order.",
+     "correct": false,
+     "feedback": "You never list phases. The table phase is put first when a table is declared, a First rows phase follows the routine that feeds it, and a Design phase is inserted right before the app."
+    }
+   ],
+   "explanation": "The dialog says it in the product's own words: \"The model's playbook is not runnable. A playbook needs a routine or an app phase — a table alone builds nothing.\" The plan is checked before you ever see it, and the model gets exactly one repair round; if it still returns a table and nothing else, nothing is created. Name the work: what is read in, and what the app should show."
+  },
+  {
+   "type": "slide",
+   "id": "language",
+   "icon": "🌍",
+   "title": "Language decides the words, your typing does not",
+   "bodyMd": "Above the description sits a **Language** control — **English** or **Nederlands** — with the hint: *\"The table's columns, the briefs the AI works from and the app's labels are all in this language.\"*\n\nA playbook remembers that choice. It decides the column names, the routine and app titles, the screen names and the phase summaries you read between phases.\n\nSo Anne can type her description in English and set Language to **Nederlands**, and the table comes back with Dutch column names — the two are independent. Pick the language the service team will actually read on screen, not the one you happen to be typing in."
+  },
+  {
+   "type": "slide",
+   "id": "preview",
+   "icon": "🔍",
+   "title": "Read the plan before you press Start",
+   "bodyMd": "Press **Let the AI write the phases**: a spinner starts and **Writing the playbook…** appears beside it. Then a preview card — the title the model chose, a one-line description, the phases as chips with arrows between them, and **Columns:** the list as `name (type)`.\n\nAnne set Language to **Nederlands**, so her plan comes back in Dutch: *Tabel → Rapporten inlezen → Eerste rijen → Ontwerp → Rapportage-app*, with columns `Datum (date), Klant (text), Installatie (text), Monteur (text), Uren (number)`.\n\nRead it against three questions. Are the columns there and sensibly typed? Does a phase fill the table? Does a phase build the app? If not, edit the text and press **Write it again** — the preview is replaced, and still nothing has been created."
+  },
+  {
+   "type": "sim",
+   "id": "match",
+   "icon": "🧩",
+   "title": "Which description gets which plan?",
+   "instruction": "Van Dijk Groep tried four wordings: two whole descriptions, then two sentences added to the first one. Match each to the plan that comes back.",
+   "sim": {
+    "kind": "match",
+    "pairs": [
+     {
+      "id": "full",
+      "left": "\"Read the maintenance reports in /Service/Rapporten into a table with date, customer and hours, then build an app that shows them per customer.\"",
+      "right": "Table → Routine → First rows → Design → App",
+      "note": "Read, stored, shown — all three answered. The routine that feeds the table gets a First rows phase behind it, and every app is designed before it is built."
+     },
+     {
+      "id": "tableonly",
+      "left": "\"Keep a table of our subcontractors with name, trade and hourly rate.\"",
+      "right": "Refused — a table alone builds nothing",
+      "note": "No routine, no app. The model gets one repair round on the validator's finding; when it still returns only a table nothing is created and the dialog shows \"The model's playbook is not runnable. A playbook needs a routine or an app phase — a table alone builds nothing.\""
+     },
+     {
+      "id": "approval",
+      "left": "\"…and the service manager approves each report before it may be invoiced.\"",
+      "right": "…plus a second routine phase for the approval flow",
+      "note": "An approval is never built into the app. It is a second routine that parks the row and asks for a decision in Studio → Approvals; it needs a status column, and the Enterprise capability."
+     },
+     {
+      "id": "secondscreen",
+      "left": "\"…and next to the overview add a second screen with a chart of hours per month.\"",
+      "right": "…plus another turn of the app builder on the same app",
+      "note": "A further screen or chart is an extra builder turn on the app that already exists — not a second app and not a second table."
+     }
+    ]
+   }
+  },
+  {
+   "type": "exercise",
+   "id": "describe",
+   "icon": "🎯",
+   "exerciseId": "ex-playbooks-describe-your-own-desk",
+   "title": "Your turn: describe a process from your own desk",
+   "instruction": "Write the description you would paste into \"What should this playbook build?\" for something real on your own desk. Answer all three questions in plain sentences: what is read and from where, which table it lands in with the columns named, and what the app shows or lets someone do. Keep it to what this workspace can reach — Nextcloud files, e-mail, HTTP calls and AI steps — and if a decision is needed, ask for an approval rather than a button in the app.",
+   "placeholder": "e.g. Read the delivery notes in /Logistiek/Vrachtbrieven into a table with date, carrier, order number, pallets and status, then build an app that shows per carrier which deliveries are still open this week.",
+   "passScore": 70,
+   "maxAttempts": 4
+  },
+  {
+   "type": "quiz",
+   "id": "q-brief",
+   "icon": "❓",
+   "question": "Phase 2 of Anne's playbook is the routine, and it is already running when she realises the brief — the instruction that phase's builder works from — should have said \"one row per report\". What can she still do?",
+   "multi": false,
+   "choices": [
+    {
+     "id": "a",
+     "label": "Talk to the builder in its own chat on the left — the brief of a running phase is frozen.",
+     "correct": true
+    },
+    {
+     "id": "b",
+     "label": "Edit the brief in the handoff card; the running phase picks the change up at its next poll.",
+     "correct": false,
+     "feedback": "Nothing re-reads a brief mid-turn. A change after the phase has started is refused outright: the brief can only change before the phase starts."
+    },
+    {
+     "id": "c",
+     "label": "Nothing short of Stop — a running phase can only be abandoned.",
+     "correct": false,
+     "feedback": "Stop ends the whole playbook. The builder is a real builder sitting in the stage: while it is writing, its composer offers Stop generating, and the moment the turn stops you steer the next one in that same chat."
+    },
+    {
+     "id": "d",
+     "label": "Edit the handoff textarea once and every later brief is rewritten with it.",
+     "correct": false,
+     "feedback": "One textarea, one brief — the one for the phase named in \"Next: …\". Later phases compose their briefs when you continue into them."
+    }
+   ],
+   "explanation": "The brief you can edit is the one in the handoff card, and it belongs to the phase named under \"Next\" — up to 3,000 characters, editable until that phase starts. While a phase runs you have the builder's own chat: it takes your next message as soon as the turn stops streaming, and when the builder asks something the card says \"The builder asked a question\" and points you there. After the phase lands: Continue, Skip, Stop — and a failed phase can be retried."
+  },
+  {
+   "type": "action",
+   "id": "do",
+   "icon": "🏗️",
+   "checkId": "playbook-recipe",
+   "title": "Describe one for real, and start it",
+   "instruction": "Open Studio → Playbooks, press New playbook and pick Describe it. Paste the description you just wrote, choose a Language, press \"Let the AI write the phases\" and read the preview. Fill in the name, where the rows go and any inputs it asked for, then press Start. We will check that a playbook of your own is running a recipe the AI wrote, with at least two phases.",
+   "launch": {
+    "navigateTo": "studio/playbooks",
+    "label": "Open Playbooks"
+   }
+  },
+  {
+   "type": "slide",
+   "id": "now",
+   "icon": "✅",
+   "title": "What you can do now",
+   "bodyMd": "- **Write a description that holds up.** Name what is read and from where, the table and its columns, and what the app shows. A description that asks only for a table is refused — a table alone builds nothing.\n- **Read the preview as a plan.** Phase chips, the column list as `name (type)`, and the three questions: columns right, something fills the table, something builds the app. **Write it again** costs nothing, and nothing is created until **Start**.\n- **Know what is yours to change and when.** The **Language** control decides the words the build uses; the handoff textarea edits the brief of the *next* phase only, before it starts.\n- **Know the locks.** Playbooks needs the `app_studio` capability, and every write needs `manage_apps`; the table phase checks `manage_datatables` on top of that. The Solutions half of this chapter carries no organisation permission at all.\n\nNext chapter: bundling what you built, and running the Check over it."
+  }
+ ],
+ "rubrics": {
+  "ex-playbooks-describe-your-own-desk": {
+   "title": "A description that composes into real phases",
+   "task": "The learner writes the description they would paste into \"What should this playbook build?\" for a real process of their own: what is read and from where, which table it lands in with the columns named, and what the app shows or lets someone do.",
+   "criteria": [
+    "Names a concrete source: a Nextcloud folder with a path, an existing table, a mailbox — not \"our data\".",
+    "Names where the rows go and lists real column names, so a table phase with typed columns can be composed.",
+    "Names what the app shows or lets someone do, so the plan gets a routine or an app phase rather than a table alone.",
+    "Stays inside what the workspace can reach (Nextcloud files, e-mail, HTTP, AI steps), and asks for an approval decision rather than an approve button inside the app."
+   ],
+   "passScore": 70,
+   "guidance": "Fail anything that only asks for a table, or that is a wish rather than a process (\"automate our administration\", \"make our service department smarter\"). Fail a description whose source is a third-party system the workspace cannot reach, unless the learner says it arrives as a file or an HTTP call. Length is not the measure: three short sentences that answer read / stored / shown pass; a long paragraph that never names a column or a screen does not. Naming a column such as \"customer\" is fine; inventing named individuals is not needed."
+  }
+ },
+ "practiceTopic": {
+  "title": "Describing a playbook",
+  "summary": "Turning a plain description into a recipe with real phases, and reading the preview before anything is created.",
+  "facts": [
+   "The second choice card in New playbook is \"Describe it\" — \"Say what should be read, stored and built — the AI writes the phases.\"",
+   "The description field is labelled \"What should this playbook build?\" and takes up to 2,000 characters.",
+   "The button reads \"Let the AI write the phases\", spins with \"Writing the playbook…\" beside it while it runs, and becomes \"Write it again\" once a plan has been composed.",
+   "A composed plan with no routine and no app phase is refused: a playbook needs a builder phase, because a table alone builds nothing.",
+   "The preview card shows the title, the phases as chips with arrows, and \"Columns:\" listing each column as name (type).",
+   "The Language control (English or Nederlands) decides the table's columns, the briefs the AI works from and the app's labels — not the language the description was typed in.",
+   "Reads need only a session, but every write — create, compose, run, skip, retry — needs manage_apps (Organisation Admin, Agent Admin, Agent Editor); the table phase separately checks manage_datatables.",
+   "Composing creates nothing: the table, routine and app appear only after Start, phase by phase."
+  ]
+ },
+ "actionChecks": [
+  {
+   "checkId": "playbook-recipe",
+   "existing": false,
+   "label": "Start a playbook from your own description",
+   "hint": "Studio → Playbooks → New playbook → Describe it, then \"Let the AI write the phases\" and Start.",
+   "endpoints": [
+    {
+     "method": "GET",
+     "path": "/api/playbooks",
+     "returns": "{ playbooks: [ { id, title, recipeId, recipeLabel, status, currentPhase, progress, phases: [{key, kind, label, status}], updatedAt } ] } — scoped to the caller as owner"
+    }
+   ],
+   "criteria": [
+    {
+     "id": "exists",
+     "label": "A playbook of your own exists",
+     "hint": "Press Start in the New playbook dialog — a described recipe is only stored once the playbook is created.",
+     "rule": "GET /api/playbooks → playbooks.length > 0",
+     "endpoint": "/api/playbooks",
+     "expect": {
+      "kind": "nonEmpty",
+      "field": "playbooks"
+     }
+    },
+    {
+     "id": "phases",
+     "label": "That recipe has at least two phases",
+     "hint": "Say what should be read, where it is stored and what the app shows, so the plan gets a builder phase.",
+     "rule": "playbook.recipe.phases.length >= 2"
+    }
+   ]
+  }
+ ]
+}

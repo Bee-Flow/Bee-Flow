@@ -1,0 +1,91 @@
+# Nextcloud embed regression suite — MANUAL ONLY.
+#
+# Covers the browser → Nextcloud AppAPI proxy → connector → Bee Flow server
+# path, which is the one place where a broken chat send shows up as an EMPTY
+# assistant reply with no error at all. Every test here pins a failure that
+# produced exactly that symptom, so a green run means "a chat turn cannot end
+# silently", not merely "the code imports".
+#
+# ── TRIGGERING ───────────────────────────────────────────────────────────────
+# This workflow runs ONLY when a human starts it:
+#   GitHub → Actions → "Nextcloud regression" → Run workflow
+#   gh workflow run nextcloud-regression.yml --ref <branch>
+#
+# There is deliberately no `push:`, `pull_request:`, `schedule:` or
+# `workflow_call:` trigger. Do not add one without being asked — the point of
+# this file is that it never fires on its own.
+name: Nextcloud regression
+
+on:
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: 'Which suites to run'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - connector
+          - frontend
+
+permissions:
+  contents: read
+
+jobs:
+  connector:
+    # Transport-level regressions: SSE framing and compression, request-body
+    # framing, PATCH tunnelling, the AppAPI route allow-list, the auth
+    # navigation check, and the embed frame's sizing.
+    if: ${{ inputs.scope == 'all' || inputs.scope == 'connector' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: nextcloud-connector
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: nextcloud-connector/package-lock.json
+
+      - run: npm ci --no-audit --no-fund
+
+      # The suite is hermetic: it stands up throwaway HTTP servers on loopback
+      # and never contacts a real Nextcloud or the Bee Flow server. The two env
+      # vars below are what src/config.js requires at import time.
+      - name: Run connector tests
+        env:
+          APP_SECRET: ci-test-secret
+          NEXTCLOUD_URL: http://nextcloud.invalid
+        run: node --test test/*.test.js
+
+  frontend:
+    # Chat-stream integrity in the SPA: a turn must never finalise silently,
+    # whatever shape the body arrives in.
+    if: ${{ inputs.scope == 'all' || inputs.scope == 'frontend' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: agent-hub
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: agent-hub/package-lock.json
+
+      - run: npm ci --no-audit --no-fund
+
+      - name: Run chat stream-integrity tests
+        run: npx vitest run src/hooks/useChatEngine.streamIntegrity.test.js
+
+      # Guards the "raw i18n key rendered in the UI" bug class. The block
+      # notices the chat shows instead of an empty bubble are t() lookups, so a
+      # missing key would put us right back to an unexplained message.
+      - name: Run i18n completeness guard
+        run: npx vitest run src/i18n/i18nGuard.test.js

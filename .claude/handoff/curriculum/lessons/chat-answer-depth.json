@@ -1,0 +1,256 @@
+{
+  "id": "chat-answer-depth",
+  "icon": "⚡",
+  "estMinutes": 10,
+  "title": "How deep should it think?",
+  "desc": "The tier gauge: Auto, Fast, Think and Deep Thinking — and why there is no model dropdown.",
+  "gate": {},
+  "learningGoal": "After this lesson you can pick an answer depth on purpose, and explain why Bee Flow asks for depth instead of a model name.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "why-depth",
+      "icon": "🧭",
+      "title": "Bee Flow asks for depth, not a model name",
+      "bodyMd": "Pieter has just joined the procurement desk at **Van Dijk Groep**, a sixty-person installation firm near Zwolle. At home he was used to choosing a model from a list of names and version numbers.\n\nIn Bee Flow's chat there is no such list. What you set per message instead is **how deep the answer should go**.\n\nThat is deliberate. A model name tells you nothing about how long you will wait or how hard the machine will work — and which models the firm runs is Marieke's decision as organisation admin, not Pieter's. Depth is the part that is genuinely yours to choose: *a quick reply now*, or *a careful one in a minute*."
+    },
+    {
+      "type": "tour",
+      "id": "where",
+      "target": "[data-tour=\"chat-composer\"]",
+      "navigateTo": "agents",
+      "placement": "top",
+      "optional": true,
+      "timeoutMs": 7000,
+      "icon": "⌨️",
+      "title": "The gauge lives next to Send",
+      "body": "In a direct chat — the one you get from New Chat — a small speedometer sits in the row of icons beside the message box. Hovering it names your current depth and what it is for — \"Auto — Optimal choice\". Clicking it opens a panel with the slider; the control is labelled \"Response depth\" for screen readers."
+    },
+    {
+      "type": "slide",
+      "id": "labels",
+      "icon": "🎚️",
+      "title": "Four stops on one slider",
+      "bodyMd": "Open the gauge and you get a slider with four stops. The panel names your current choice above the track:\n\n- **Auto** — *Optimal choice*. Bee Flow decides for you. This is what you start with.\n- **Fast** — *Quick answers*. Lookups, rewrites, short questions.\n- **Think** — *Complex problems*. Comparisons, planning, anything with a trade-off in it.\n- **Deep Thinking** — *Advanced reasoning*. Long, layered work you are willing to wait for.\n\nOn Auto the needle disappears and an **A** takes its place, with the whole arc lit faintly — because Auto is not a position on the dial, it is \"pick for me\"."
+    },
+    {
+      "type": "slide",
+      "id": "auto-picks",
+      "icon": "🔀",
+      "title": "What Auto actually does",
+      "bodyMd": "Auto is not a random pick. Before answering, the server reads your message and looks for structural signals: a greeting of a dozen characters goes straight to Fast, while three or more links to research, or a very large block of code, go straight to Deep Thinking. Anything in between is handed to a small classifier that judges the intent, in whatever language you wrote it.\n\nYou cannot see the verdict before the answer — the choice is made while the reply streams. Afterwards, open **How I got this answer** under the reply: it shows a pill reading **Auto → Think**, next to things like **2 tools · 6s**. The gauge asks; that pill reports."
+    },
+    {
+      "type": "sim",
+      "id": "match-depth",
+      "icon": "🧩",
+      "title": "Four jobs at Van Dijk Groep",
+      "instruction": "Pair each piece of work with the depth you would set for it. One of them is a job for Auto.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "lookup",
+            "left": "Pieter, new on the procurement desk, pastes a supplier's e-mail signature and asks which phone number is the mobile one.",
+            "right": "Fast",
+            "note": "A lookup with a single right answer. Nothing to reason about, so extra effort only costs time."
+          },
+          {
+            "id": "compare",
+            "left": "Sanne in sales compares two supplier quotes for the same job and wants to know which is cheaper per unit once delivery is counted.",
+            "right": "Think",
+            "note": "A real comparison with a trade-off in it — exactly what Think is described as: complex problems."
+          },
+          {
+            "id": "plan",
+            "left": "The management team wants a three-year van-replacement plan argued out of five different reports.",
+            "right": "Deep Thinking",
+            "note": "Long, layered work where the argument matters more than the wait. This is what Advanced reasoning is for."
+          },
+          {
+            "id": "mixed",
+            "left": "Pieter is working through twenty unrelated questions in a row and does not want to touch the dial each time.",
+            "right": "Auto",
+            "note": "Auto classifies every message on its own, so a mixed working day needs no decision from you at all."
+          }
+        ]
+      }
+    },
+    {
+      "type": "quiz",
+      "id": "one-model",
+      "icon": "❓",
+      "question": "On a normal Bee Flow install, what really changes when you drag the gauge from Fast to Deep Thinking?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "The same model is asked to put more effort into the answer, so it thinks longer before replying.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Bee Flow swaps in a different, smarter model from another supplier.",
+          "correct": false,
+          "feedback": "Not by itself. An administrator decides which model sits behind each stop, and on a default install the depth stops all point at the same model — the stop changes the effort, not the supplier."
+        },
+        {
+          "id": "c",
+          "label": "Your message goes to several models at once and the answers are merged into one.",
+          "correct": false,
+          "feedback": "That describes the separate Swarm pill — parallel agents with a synthesised answer — which is a kind of work, not a point on the depth slider, and it is in beta."
+        },
+        {
+          "id": "d",
+          "label": "The Privacy Shield scan is skipped so the answer comes back sooner.",
+          "correct": false,
+          "feedback": "Depth never touches the Privacy Shield. Every message is scanned for personal data in the same way whichever stop you choose."
+        }
+      ],
+      "explanation": "The three depths are one axis: how hard to work, with Auto parked at the left as \"pick for me\". That is why they are drawn as a slider rather than a menu — a menu of four names would hide the fact that they are ordered."
+    },
+    {
+      "type": "slide",
+      "id": "kinds-of-work",
+      "icon": "🐝",
+      "title": "Flow, Swarm and Write are not depths",
+      "bodyMd": "Some organisations also switch on **Flow** (*Multi-stage orchestration*), **Swarm** (*Parallel agents, synthesised answer*) and **Write** (*Long-form content*). When they are available they appear as **pills underneath the slider**, never as a stop on it.\n\nSo the slider is four stops and only four: **Auto, Fast, Think, Deep Thinking**. If you have seen Write listed in the middle of that run, as though it sat between Think and Deep Thinking, read it as a slip — it would claim a ranking that does not exist. Flow, Swarm and Write are *kinds* of work, not amounts of it, and nothing in the product orders them against the depths.\n\nFlow and Swarm carry a **beta** badge and are switched on per organisation; Write appears only where an administrator has configured it. On most installs that row is empty and the panel is just the slider, and nothing is broken if you never see it."
+    },
+    {
+      "type": "slide",
+      "id": "other-names",
+      "icon": "🏷️",
+      "title": "The same four stops, spelled differently elsewhere",
+      "bodyMd": "One thing will trip you up later: the depths are not spelled the same on every screen.\n\n- **In the chat composer** — the labels you have just learned: Auto, Fast, **Think**, Deep Thinking.\n- **In Organisation → Users → Groups**, under *Allowed tiers*, an admin sees pills reading **⚡ Fast**, **🧠 Thinking**, **✍️ Writer** and **✨ Deep Thinking** — the stored names for the same settings. Think appears as *Thinking*, Write as *Writer*, and Auto is not in that list at all, because a group restricts what may be picked, not whether you may ask Bee Flow to pick.\n\nSame control set, two vocabularies. When Marieke tells Pieter she has \"allowed Thinking\", she means the stop his slider calls **Think**.\n\nAnd there is no third menu: the actions under an answer are **Retry response** and **Retry with different model** — neither of them offers a list of depths. The depth is set before you send, in the gauge."
+    },
+    {
+      "type": "quiz",
+      "id": "names-map",
+      "icon": "❓",
+      "question": "Marieke writes to Pieter: \"I've restricted your group to Fast and Thinking.\" Pieter opens the gauge. What should he expect?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Two stops he can use — Fast and the one his slider labels Think — with Auto still there, since Auto is a request to have the depth chosen, not a depth of its own.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "A fifth stop called Thinking has been added to his slider, between Think and Deep Thinking.",
+          "correct": false,
+          "feedback": "Thinking is not a new stop, it is the stored name for Think — and nothing is ever inserted into the middle of the slider. The composer always shows the same run: Auto, Fast, Think, Deep Thinking."
+        },
+        {
+          "id": "c",
+          "label": "Nothing in the chat changes; Allowed tiers only affects which agents he may open.",
+          "correct": false,
+          "feedback": "Allowed tiers restricts exactly this: which depths the members of a group may pick in the composer. Agent access is a different setting."
+        },
+        {
+          "id": "d",
+          "label": "He should use Retry with different model to reach the depths his group has lost.",
+          "correct": false,
+          "feedback": "Retry with different model re-runs the answer; it is not a depth menu and it is not a way around a group restriction."
+        }
+      ],
+      "explanation": "The admin screen and the composer name the same four settings differently — Thinking is Think, Writer is Write. Read across the two vocabularies rather than hunting for a stop that does not exist."
+    },
+    {
+      "type": "slide",
+      "id": "not-always",
+      "icon": "🔒",
+      "title": "When the gauge is not yours to move",
+      "bodyMd": "Three cases where you will not see the same four stops:\n\n- **Agent chat.** Talking to a saved agent, the gauge is replaced by a small pill labelled with the agent's depth — *The depth this agent runs at*. The person who built the agent chose it, and you cannot change it per message.\n- **Group limits.** An administrator can restrict which depths a user group may use — that is the *Allowed tiers* list described a moment ago, so a depth may simply be absent from your slider. If your group has no restriction, you see everything the server has configured.\n- **A phone, or Simple Mode.** Simple Mode — switched on in your settings, and forced on any screen narrower than 768 pixels — strips the composer back to attachments and web search. The gauge is hidden, and the depth is put back to Auto for you."
+    },
+    {
+      "type": "quiz",
+      "id": "deep-on-typo",
+      "icon": "❓",
+      "question": "Pieter sets Deep Thinking and asks: \"Fix the spelling in this sentence.\" What does he get?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "The same corrected sentence, but later — and it still counts as one message, with more thinking tokens, against the monthly usage.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "A more accurate correction, because the deeper stop is more careful with every task.",
+          "correct": false,
+          "feedback": "Depth buys reasoning effort on problems that need reasoning. A spelling fix has nothing to reason about, so the extra effort produces the same sentence more slowly."
+        },
+        {
+          "id": "c",
+          "label": "Nothing different — Bee Flow ignores the gauge for very short messages.",
+          "correct": false,
+          "feedback": "Only Auto classifies your message; a depth you set by hand is respected exactly as you set it. That is the point of setting it."
+        },
+        {
+          "id": "d",
+          "label": "A warning that this message is too simple for the depth he picked.",
+          "correct": false,
+          "feedback": "There is no such warning. The gauge never argues with you — which is why the judgement is worth making, or worth leaving to Auto."
+        }
+      ],
+      "explanation": "Depth costs time and effort, not correctness. Leaving the gauge on Auto for everyday messages is the low-effort habit; reach for Think or Deep Thinking when the question genuinely has layers."
+    },
+    {
+      "type": "action",
+      "id": "try-deeper",
+      "icon": "🏗️",
+      "checkId": "chat-tier-chosen",
+      "title": "Ask the same question one stop deeper",
+      "instruction": "Take a question you have already asked Bee Flow — one with a judgement in it, not a lookup — and ask it again in a new chat. Click the gauge beside Send, move the slider from Auto to Think (or Deep Thinking), and send. When the answer is back, open \"How I got this answer\" under it: the pill there names the depth it ran on, so you can compare the two replies.",
+      "launch": {
+        "navigateTo": "agents",
+        "label": "Open a new chat"
+      }
+    },
+    {
+      "type": "slide",
+      "id": "recap",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "- **Set a depth on purpose.** The gauge beside Send opens a slider with Auto, Fast, Think and Deep Thinking; the panel names your choice above the track.\n- **Trust Auto for ordinary messages.** It reads your message first and routes it, and tells you afterwards in the **Auto → …** pill under the answer.\n- **Read the panel for what is missing.** No slider means an agent chat, a phone, or Simple Mode; pills under the slider mean Flow, Swarm or Write is available here as well — pills, never a fifth stop.\n- **Translate the admin vocabulary.** *Thinking* on a group's Allowed tiers is the slider's **Think**; *Writer* is the **Write** pill.\n\nThe slider stays where you left it: your last choice is remembered in this browser and used for your next new chat, until you move it again."
+    }
+  ],
+  "practiceTopic": {
+    "title": "Answer depth in chat",
+    "summary": "How the tier gauge in a direct chat works, what each depth is for, and what Auto decides on your behalf.",
+    "facts": [
+      "The composer control for depth is a speedometer gauge beside Send, labelled \"Response depth\"; clicking it opens a panel with a four-stop slider.",
+      "The four depth stops are Auto (\"Optimal choice\"), Fast (\"Quick answers\"), Think (\"Complex problems\") and Deep Thinking (\"Advanced reasoning\").",
+      "On Auto the gauge shows an \"A\" instead of a needle, because Auto is not a position on the depth scale but a request to have it chosen for you.",
+      "Auto classifies your message server-side before answering; the chosen depth is reported afterwards in \"How I got this answer\" as a pill reading \"Auto → Think\".",
+      "Flow, Swarm and Write are kinds of work rather than depths, so they render as pills under the slider and never as a stop on it; Flow and Swarm carry a beta badge and are enabled per organisation.",
+      "In agent chat the gauge is replaced by a read-only pill hinted \"The depth this agent runs at\" — the agent's depth is fixed by whoever built it.",
+      "An administrator limits depths per user group under Organisation → Users → Groups → Allowed tiers, where the pills read Fast, Thinking, Writer and Deep Thinking — the stored names for the composer's Fast, Think, Write and Deep Thinking. No restriction set means every configured depth is visible.",
+      "The slider remembers your last-used depth per user in the browser (it starts at \"auto\"); separately, the server records on each conversation which depth its last finished turn ran on."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "chat-tier-chosen",
+      "existing": false,
+      "label": "Send a message on a depth you chose yourself",
+      "hint": "In a direct chat, click the gauge beside Send, move the slider off Auto (to Think or Deep Thinking) and send a message.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/ai/direct/conversations",
+          "returns": "array of the caller's own direct conversations, each with id, title, model_tier, created_at, updated_at (model_tier is written after a turn finishes and holds the depth that turn ran on; 'auto' stays 'auto')"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "non-auto-tier",
+          "label": "A conversation of yours ran on a depth you picked",
+          "hint": "Move the slider off Auto before sending — the stored depth is only updated once an answer has finished.",
+          "rule": "at least one row where model_tier is a non-empty string other than 'auto'"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,212 @@
+# Sveltia CMS configuration — Bee Flow docs.
+#
+# Drop-in compatible with Decap CMS config syntax.
+# Source-of-truth lives in: docs/static/cms/config.yml
+#
+# Each collection below maps 1:1 to a top-level section under docs/.
+
+backend:
+  name: github
+  repo: Bee-Flow/docs
+  branch: main
+  # OAuth helper that performs the GitHub code -> token exchange.
+  # We self-host a tiny Cloudflare Worker for this — code lives in
+  # ../../cms-auth/. Setup steps: cms-auth/README.md.
+  #
+  # Until the worker is deployed, swap this for `https://auth.sveltia.app`
+  # to use Sveltia's shared helper (less control, third-party dependency).
+  base_url: https://bee-flow-cms-auth.bee-flow-cms-auth.workers.dev
+
+site_url: https://docs.beeflow.ai/
+display_url: https://docs.beeflow.ai/
+logo_url: /img/logo.svg
+
+# Where uploaded media is stored in the repo, and what URL prefix gets written
+# into Markdown when an image is referenced.
+media_folder: docs/img/uploads
+public_folder: /img/uploads
+
+# Editor sees the rendered site for each saved entry.
+show_preview_links: true
+
+# Re-usable field set: every doc page has the same shape (front-matter + body).
+# Defined inline below so non-technical editors don't see YAML anchors.
+
+collections:
+  # ---- Top-level docs sections ----------------------------------------------
+
+  - name: getting-started
+    label: Getting started
+    label_singular: page
+    description: Install, first-run wizard, free vs paid features.
+    folder: docs/getting-started
+    create: true
+    delete: false
+    extension: md
+    format: frontmatter
+    slug: "{{slug}}"
+    preview_path: "getting-started/{{slug}}"
+    fields:
+      - {label: Title, name: title, widget: string, required: false}
+      - {label: Description, name: description, widget: string, required: false, hint: "One sentence shown in search results."}
+      - {label: Body, name: body, widget: markdown}
+
+  - name: connector
+    label: Nextcloud connector
+    label_singular: page
+    description: ExApp, permissions, privacy, troubleshooting.
+    folder: docs/connector
+    create: true
+    delete: false
+    extension: md
+    format: frontmatter
+    slug: "{{slug}}"
+    preview_path: "connector/{{slug}}"
+    fields:
+      - {label: Title, name: title, widget: string, required: false}
+      - {label: Description, name: description, widget: string, required: false}
+      - {label: Body, name: body, widget: markdown}
+
+  - name: self-hosting
+    label: Self-hosting
+    label_singular: page
+    description: Docker, Kubernetes, env vars, upgrades.
+    folder: docs/self-hosting
+    create: true
+    delete: false
+    extension: md
+    format: frontmatter
+    slug: "{{slug}}"
+    preview_path: "self-hosting/{{slug}}"
+    fields:
+      - {label: Title, name: title, widget: string, required: false}
+      - {label: Description, name: description, widget: string, required: false}
+      - {label: Body, name: body, widget: markdown}
+
+  - name: features
+    label: Features
+    label_singular: page
+    description: Chat, knowledge bases, automations, voice, privacy.
+    folder: docs/features
+    create: true
+    delete: false
+    extension: md
+    format: frontmatter
+    slug: "{{slug}}"
+    preview_path: "features/{{slug}}"
+    fields:
+      - {label: Title, name: title, widget: string, required: false}
+      - {label: Description, name: description, widget: string, required: false}
+      - {label: Body, name: body, widget: markdown}
+
+  - name: studio
+    label: Studio
+    label_singular: page
+    description: Agent designer, wizard, knowledge bases, skills.
+    folder: docs/studio
+    create: true
+    delete: false
+    extension: md
+    format: frontmatter
+    slug: "{{slug}}"
+    preview_path: "studio/{{slug}}"
+    fields:
+      - {label: Title, name: title, widget: string, required: false}
+      - {label: Description, name: description, widget: string, required: false}
+      - {label: Body, name: body, widget: markdown}
+
+  - name: integrations
+    label: Integrations
+    label_singular: integration
+    description: Nextcloud, Google, Microsoft, GitHub, n8n, and more.
+    folder: docs/integrations
+    create: true
+    delete: false
+    extension: md
+    format: frontmatter
+    slug: "{{slug}}"
+    preview_path: "integrations/{{slug}}"
+    fields:
+      - {label: Title, name: title, widget: string, required: false}
+      - {label: Description, name: description, widget: string, required: false}
+      - {label: Body, name: body, widget: markdown}
+
+  - name: admin
+    label: Admin
+    label_singular: page
+    description: Users, groups, organisation settings, compliance.
+    folder: docs/admin
+    create: true
+    delete: false
+    extension: md
+    format: frontmatter
+    slug: "{{slug}}"
+    preview_path: "admin/{{slug}}"
+    fields:
+      - {label: Title, name: title, widget: string, required: false}
+      - {label: Description, name: description, widget: string, required: false}
+      - {label: Body, name: body, widget: markdown}
+
+  - name: licensing
+    label: Licensing
+    label_singular: page
+    description: Tiers, applying a licence key, fair-code FAQ.
+    folder: docs/licensing
+    create: true
+    delete: false
+    extension: md
+    format: frontmatter
+    slug: "{{slug}}"
+    preview_path: "licensing/{{slug}}"
+    fields:
+      - {label: Title, name: title, widget: string, required: false}
+      - {label: Description, name: description, widget: string, required: false}
+      - {label: Body, name: body, widget: markdown}
+
+  - name: api
+    label: API
+    label_singular: page
+    description: Auth, REST, SSE.
+    folder: docs/api
+    create: true
+    delete: false
+    extension: md
+    format: frontmatter
+    slug: "{{slug}}"
+    preview_path: "api/{{slug}}"
+    fields:
+      - {label: Title, name: title, widget: string, required: false}
+      - {label: Description, name: description, widget: string, required: false}
+      - {label: Body, name: body, widget: markdown}
+
+  - name: reference
+    label: Reference
+    label_singular: page
+    description: Architecture, telemetry, glossary.
+    folder: docs/reference
+    create: true
+    delete: false
+    extension: md
+    format: frontmatter
+    slug: "{{slug}}"
+    preview_path: "reference/{{slug}}"
+    fields:
+      - {label: Title, name: title, widget: string, required: false}
+      - {label: Description, name: description, widget: string, required: false}
+      - {label: Body, name: body, widget: markdown}
+
+  - name: contributing
+    label: Contributing
+    label_singular: page
+    description: Editor guide for this docs site.
+    folder: docs/contributing
+    create: true
+    delete: false
+    extension: md
+    format: frontmatter
+    slug: "{{slug}}"
+    preview_path: "contributing/{{slug}}"
+    fields:
+      - {label: Title, name: title, widget: string, required: false}
+      - {label: Description, name: description, widget: string, required: false}
+      - {label: Body, name: body, widget: markdown}

@@ -1,0 +1,989 @@
+# Build the Bee Flow desktop client for Linux, macOS and Windows.
+#
+#   pull request touching desktop/**  → the Linux installers, built and
+#                                       launched; all three platforms when the
+#                                       PR changes packaging or carries the
+#                                       `desktop-full` label (see below)
+#   push to main (desktop/** changed) → all three, every package launched, then
+#                                       a DEV release: the rolling `desktop-dev`
+#                                       prerelease, replaced in place
+#   manual run, channel=dev           → the same, on demand; from any branch
+#                                       but main it builds and launches and
+#                                       publishes nothing (see `release`)
+#   manual run, channel=prod (main)   → a PRODUCTION release, tagged and kept
+#
+# The two channels are separated all the way down, not just by a label. A dev
+# build is published with `-c.publish.channel=beta`, so electron-builder writes
+# `beta.yml` instead of `latest.yml`; an app set to the beta channel reads the
+# first, an app on stable reads the second, and neither ever sees the other's
+# builds. Getting that wrong is how a nightly ends up on a customer's laptop.
+#
+# Dev is one ROLLING release rather than one per merge. A desktop build is
+# ~400 MB across the three platforms, and a release per commit would be both
+# unusable ("which of these forty is current?") and a storage problem. The
+# `desktop-dev` tag always points at the newest build; prod releases are
+# immutable and keep their own tags.
+#
+# Three runners, because there is no cross-compiling an installer: a .dmg has
+# to be built on macOS (hdiutil, codesign) and an NSIS installer on Windows.
+# Linux is the one that fans out inside a single runner — one Ubuntu job
+# produces the .deb, .rpm, .pacman, AppImage and tarball for x64 and
+# arm64, which is what "works on your distribution" actually costs.
+#
+# Signing is optional everywhere, and only main may sign. The signing secrets
+# reach a build only on a push to main or a manual run from main (the build
+# job's SIGNING_ALLOWED); every pull request and every manual run on another
+# branch gets empty values and produces unsigned installers, exactly as a
+# build without the secrets does. The release job refuses to PUBLISH unsigned
+# macOS builds, because an unsigned .dmg on a modern Mac is not something to
+# hand a customer.
+#
+# A pull request from a FORK builds its packages but uploads none of them:
+# they would be official-looking downloads hosted on this repository, built
+# from code nobody here has merged. With nothing uploaded there is nothing to
+# launch, so its launch legs are skipped too and `launch-coverage` says so.
+# Push the branch to this repository for a run that launches them.
+#
+# One repository variable: DESKTOP_ARM64_BUILDS=true starts the two arm64
+# launch legs on GitHub-hosted arm64 runners (see `launch-linux-arm64`).
+# Unset, they are skipped.
+#
+# WHAT A PULL REQUEST BUILDS.
+#
+# Linux only, unless the `plan` job finds a reason to build all three. Measured
+# on PR #224 (runs 6 and 7, 2026-09-23; each job rounded up to a whole minute,
+# macOS billed at 10x, Windows at 2x): one push that built and launched every
+# platform cost 122 and 115 billed minutes. macOS was 70 and 60 of that, for
+# three jobs of one to three minutes each; Windows 24 and 28. The nine runs on
+# that PR cost ~930. Linux alone (its build, its five launch legs, `plan` and
+# `launch-coverage`) was 28 and 27, and its build is half of that. Linux is the
+# leg to keep: it packages the same compiled app the other two do, and its
+# launch legs run the whole e2e suite against an installed, sandboxed package.
+#
+# `plan` builds every platform for a pull request when:
+#   1. the PR changes something that decides how a package is MADE rather than
+#      what the app does: electron-builder.yml (every target, the signing and
+#      notarisation settings), package.json and package-lock.json (the Electron
+#      and electron-builder versions, and any dependency that brings a native
+#      module; there is none today), build/ (the macOS entitlements, the NSIS
+#      include, the icon every platform derives its own from), resources/ (the
+#      tray images, macOS's template image among them), .nvmrc, or this file.
+#      The list is the fenced block in `plan`, and
+#      desktop/src/main/releaseWorkflow.test.ts fails when a file on it moves;
+#   2. the PR carries the `desktop-full` label. Adding it starts a run by
+#      itself. Put it on any PR that changes how the app STARTS on macOS or
+#      Windows: code behind a `process.platform` branch is unit-tested with a
+#      faked platform on every PR (desktop-checks.yml), but only this workflow
+#      launches it on those systems. "Run workflow" on the branch builds all
+#      three as well (only main publishes), but its verdict is not on the PR;
+#   3. the PR's changed files cannot be listed. It fails open.
+#
+# A push to main keeps every leg, the second macOS and Windows launches
+# included. Main is where a PR that was built on Linux only is first started on
+# macOS and Windows, and what main builds is published: `release` refuses a
+# package that did not start, and an app on the beta channel updates itself
+# from it. The two legs that look like duplicates are not. dmg-intel is the only
+# thing that starts the Intel half of the universal app natively (under Rosetta
+# it proved nothing; see the launch job), and an Intel Mac on beta updates to
+# exactly that half. portable-zip starts the zip and the portable build, which
+# unpacks itself to a temporary folder and runs from there; both are published
+# and no other leg opens them. So a desktop merge still costs ~120 billed
+# minutes, which is what every desktop PR push used to cost.
+name: Desktop client
+
+on:
+  pull_request:
+    # `labeled` so that adding `desktop-full` to an open PR starts the full
+    # build. The paths filter stays COARSE on purpose: GitHub applies it to
+    # every activity type, so narrowing it would make the label unreachable on
+    # exactly the PRs it exists for. The narrowing happens in `plan`. Any other
+    # label starts a run too, which supersedes the one in progress and builds
+    # the same thing again: labelling mid-run costs a rebuild, not a verdict.
+    types: [opened, synchronize, reopened, labeled]
+    paths:
+      - 'desktop/**'
+      - '.github/workflows/desktop-release.yml'
+      # On the packaging list below: every build reads it through setup-node,
+      # so a Node bump alone has to start a (full) run.
+      - '.nvmrc'
+  push:
+    branches: [main]
+    paths:
+      - 'desktop/**'
+      - '.github/workflows/desktop-release.yml'
+      - '.nvmrc'
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: 'dev (rolling desktop-dev prerelease) or prod (tagged release, main only)'
+        type: choice
+        options: [dev, prod]
+        default: dev
+        required: true
+      version:
+        description: 'Tag for a PROD release (e.g. desktop-v1.0.0). Blank auto-names desktop-YYYY.MM.DD-<run>. Ignored for dev.'
+        default: ''
+        required: false
+      platforms:
+        description: 'Which platforms to build'
+        type: choice
+        options: [all, linux, macos, windows]
+        default: all
+        required: true
+
+permissions:
+  contents: read
+
+# Three groups, because the runs want three different things.
+#
+# A pull-request build is keyed on its branch and supersedes itself: a
+# quarter-hour build for a commit that has already been replaced is runner time
+# spent on an answer nobody wants.
+#
+# Everything that PUBLISHES is keyed on its channel and never cancelled. A
+# push to main and a manual `channel=dev` run both replace the same rolling
+# `desktop-dev` tag, so they have to be in one group — keyed on the ref, they
+# would sit in different groups and race to delete and recreate the same
+# release. And cancelling is exactly wrong here: the kill would land between
+# the delete and the create, leaving no dev release at all until the next merge.
+# GitHub does keep only one PENDING run per group, so a run still waiting when
+# a newer one queues is replaced by it. For two pushes to main that is the
+# point: the newer build contains the older merge too, and nothing that has
+# started is ever cancelled. (A PR now builds Linux only by default, so a
+# main push is the first macOS/Windows build of a source-only merge; when a
+# second merge replaces a waiting run, a break still shows, just attributed
+# to the later merge.)
+#
+# A manual run that never publishes gets a group of its own: one for fewer
+# than all platforms (release needs a full plan), or one from a branch other
+# than main (release publishes from main only). It must not replace a main
+# push waiting in desktop-dev, which would drop that merge's only
+# macOS/Windows build.
+concurrency:
+  group: >-
+    ${{ github.event_name == 'pull_request'
+    && format('desktop-pr-{0}', github.ref)
+    || (github.event_name == 'workflow_dispatch' && inputs.channel == 'prod' && 'desktop-prod'
+    || (github.event_name == 'workflow_dispatch' && (inputs.platforms != 'all' || github.ref != 'refs/heads/main') && format('desktop-try-{0}', github.run_id)
+    || 'desktop-dev')) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  plan:
+    # Two jobs' worth of work that has to happen before any runner is claimed:
+    # refuse a prod build from the wrong branch, and decide which platforms the
+    # matrix will contain.
+    #
+    # The matrix is computed here rather than filtered with a job-level `if`
+    # because the `matrix` context is not available in `jobs.<id>.if` — a
+    # condition mentioning `matrix.platform` there reads as empty and silently
+    # skips every build. Emitting the list as JSON is the shape that works.
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      # Only to list a pull request's changed files below. No checkout needed.
+      pull-requests: read
+    outputs:
+      matrix: ${{ steps.pick.outputs.matrix }}
+      launch: ${{ steps.pick.outputs.launch }}
+      linux: ${{ steps.pick.outputs.linux }}
+      windows: ${{ steps.pick.outputs.windows }}
+      # `all`, `linux`, `macos` or `windows`: what `release` checks before it
+      # publishes, and `launch-coverage` reports together with `why`.
+      platforms: ${{ steps.pick.outputs.platforms }}
+      why: ${{ steps.pick.outputs.why }}
+      # 'true' for a pull request from a fork (a deleted fork counts as one).
+      # Its packages are never uploaded (see the header), so the upload step
+      # and every launch job read this, and run only on an exact 'false'.
+      fork: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
+    steps:
+      - name: Production builds only from main
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.channel == 'prod' && github.ref != 'refs/heads/main' }}
+        # Through env, never ${{ }} in the script: a branch name may contain
+        # $, backticks and quotes, and this step runs exactly when the branch
+        # is not main.
+        env:
+          REF: ${{ github.ref }}
+        run: |
+          echo "::error::channel=prod is only allowed from main (got $REF)."
+          exit 1
+
+      # Not an error: a dev run on a branch is how to build and launch all
+      # three platforms for it. It just must not become the beta update feed,
+      # so `release` skips it; this says why before anyone wonders.
+      - name: Dev builds publish only from main
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.channel == 'dev' && github.ref != 'refs/heads/main' }}
+        env:
+          REF: ${{ github.ref }}
+        run: echo "::notice::channel=dev from $REF builds and launches, but only main publishes the desktop-dev prerelease (the beta update feed)."
+
+      # A pull request builds Linux only unless one of the three reasons in the
+      # header holds; any other event builds what it asks for, which for a push
+      # to main is everything. The packaging list is fenced by two sentinel
+      # comments because desktop/src/main/releaseWorkflow.test.ts parses it:
+      # edit the list, never the sentinels, and add a pattern whenever a file
+      # that shapes a package moves. The test fails if you forget.
+      - id: pick
+        name: Decide which platforms to build
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          WANTED: ${{ github.event_name == 'workflow_dispatch' && inputs.platforms || 'all' }}
+          LABELLED: ${{ github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'desktop-full') }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/packaging-paths.txt" <<'EOF'
+          # PACKAGING_PATHS_BEGIN
+          ^desktop/electron-builder\.yml$
+          ^desktop/package\.json$
+          ^desktop/package-lock\.json$
+          ^desktop/build/
+          ^desktop/resources/
+          ^\.nvmrc$
+          ^\.github/workflows/desktop-release\.yml$
+          # PACKAGING_PATHS_END
+          EOF
+          if [[ "$EVENT" == "workflow_dispatch" ]]; then
+            WHY="A manual run builds what it names: platforms=$WANTED."
+          elif [[ "$EVENT" != "pull_request" ]]; then
+            WHY="A push to main builds and launches every platform."
+          elif [[ "$LABELLED" == "true" ]]; then
+            WHY="The PR carries the desktop-full label."
+          # A renamed file counts under its old name too: moving a packaging
+          # file away changes the package as much as editing it does.
+          elif ! CHANGED="$(gh api "repos/$REPO/pulls/$PR_NUMBER/files" --paginate --jq '.[] | .filename, (.previous_filename // empty)')"; then
+            WHY="The PR's changed files could not be listed, so every platform: a platform left unbuilt is worse than a spent runner minute."
+            echo "::warning::$WHY"
+          else
+            # grep exits 1 for "no match" and 2 for an error; only the first
+            # may narrow the build.
+            RC=0
+            printf '%s\n' "$CHANGED" | grep -E -f "$RUNNER_TEMP/packaging-paths.txt" > "$RUNNER_TEMP/packaging-hits.txt" || RC=$?
+            if [[ "$RC" -eq 0 ]]; then
+              WHY="Packaging-affecting files changed: $(sort -u "$RUNNER_TEMP/packaging-hits.txt" | paste -sd' ')."
+            elif [[ "$RC" -eq 1 ]]; then
+              WANTED=linux
+              WHY="No packaging-affecting file changed, so Linux only; macOS and Windows are built and launched on main. Add the desktop-full label to build them here."
+            else
+              WHY="The packaging-path check failed (grep exit $RC), so every platform."
+              echo "::warning::$WHY"
+            fi
+          fi
+          # The reason is also in launch-coverage's summary, which annotates a
+          # narrowed run; here it is only logged, so it is not said twice.
+          echo "$WHY"
+          {
+            echo "platforms=$WANTED"
+            echo "why=$WHY"
+          } >> "$GITHUB_OUTPUT"
+
+          # arm64 Linux is built on the same x64 runner: electron-builder fetches
+          # the arm64 Electron and packs it, with no emulation involved. It
+          # matters because plenty of self-hosters run this on an ARM laptop.
+          ALL='[
+            {"os":"ubuntu-latest","platform":"linux","flag":"--linux"},
+            {"os":"macos-14","platform":"macos","flag":"--mac"},
+            {"os":"windows-latest","platform":"windows","flag":"--win"}
+          ]'
+          if [[ "$WANTED" == "all" ]]; then
+            MATRIX="$(echo "$ALL" | jq -c .)"
+          else
+            MATRIX="$(echo "$ALL" | jq -c --arg want "$WANTED" '[.[] | select(.platform == $want)]')"
+          fi
+          echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
+          echo "Building: $MATRIX"
+
+          # Every format, installed the way a user installs it and started (the
+          # `launch` job). Filtered by the same platform choice as the builds.
+          LAUNCH='[
+            {"leg":"deb","os":"ubuntu-24.04","platform":"linux"},
+            {"leg":"appimage","os":"ubuntu-24.04","platform":"linux"},
+            {"leg":"targz","os":"ubuntu-24.04","platform":"linux"},
+            {"leg":"rpm","os":"ubuntu-24.04","platform":"linux"},
+            {"leg":"pacman","os":"ubuntu-24.04","platform":"linux"},
+            {"leg":"nsis","os":"windows-2025","platform":"windows"},
+            {"leg":"portable-zip","os":"windows-2025","platform":"windows"},
+            {"leg":"dmg","os":"macos-14","platform":"macos"},
+            {"leg":"dmg-intel","os":"macos-15-intel","platform":"macos"}
+          ]'
+          if [[ "$WANTED" == "all" ]]; then
+            echo "launch=$(echo "$LAUNCH" | jq -c .)" >> "$GITHUB_OUTPUT"
+          else
+            echo "launch=$(echo "$LAUNCH" | jq -c --arg want "$WANTED" '[.[] | select(.platform == $want)]')" >> "$GITHUB_OUTPUT"
+          fi
+          echo "linux=$([[ "$WANTED" == all || "$WANTED" == linux ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          echo "windows=$([[ "$WANTED" == all || "$WANTED" == windows ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: plan
+    strategy:
+      # One platform failing should not hide whether the other two are fine —
+      # which is exactly the question on a PR that touches something shared.
+      fail-fast: false
+      matrix:
+        include: ${{ fromJson(needs.plan.outputs.matrix) }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: desktop
+    env:
+      # The one switch between the signing secrets and a build: a push (which
+      # can only be to main) or a manual run from main. GitHub already
+      # withholds secrets from a fork's pull request; this also keeps them from
+      # a same-repository PR and from a manual run on any other branch, both of
+      # which build code that is not on main. Signing that would make any
+      # branch a route to an installer carrying our certificate.
+      SIGNING_ALLOWED: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+    outputs:
+      channel: ${{ steps.meta.outputs.channel }}
+      tag: ${{ steps.meta.outputs.tag }}
+      version: ${{ steps.meta.outputs.version }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+
+      # electron-builder shells out to `rpmbuild` for the .rpm; without it the
+      # target is skipped with a warning rather than failing, which is the worst
+      # possible outcome — a green build that quietly stopped shipping to
+      # Fedora and openSUSE.
+      - name: Install Linux packaging tools
+        if: matrix.platform == 'linux'
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends rpm libarchive-tools
+
+      - name: Install dependencies
+        run: npm ci
+
+      # One place decides dev-vs-prod, and the release job reads it back off
+      # this job's outputs rather than repeating the expression. Two copies of
+      # a channel rule is how a "dev" build ends up published as stable.
+      - id: meta
+        name: Resolve build metadata
+        shell: bash
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          CHANNEL: ${{ github.event_name == 'workflow_dispatch' && inputs.channel || 'dev' }}
+        run: |
+          set -euo pipefail
+          APP_VERSION="$(node -p "require('./package.json').version")"
+          if [[ "$CHANNEL" == "prod" ]]; then
+            TAG="$(echo "${INPUT_VERSION:-}" | tr -d '[:space:]')"
+            [[ -n "$TAG" ]] || TAG="desktop-$(date -u +%Y.%m.%d)-${{ github.run_number }}"
+            UPDATE_CHANNEL=latest
+          else
+            # A single rolling tag, moved on every dev build.
+            TAG="desktop-dev"
+            UPDATE_CHANNEL=beta
+          fi
+          {
+            echo "channel=$CHANNEL"
+            echo "tag=$TAG"
+            echo "version=$APP_VERSION"
+            echo "update_channel=$UPDATE_CHANNEL"
+          } >> "$GITHUB_OUTPUT"
+          echo "Building Bee Flow Desktop $APP_VERSION for ${{ matrix.platform }}, channel=$CHANNEL, update feed=$UPDATE_CHANNEL, tag=$TAG"
+
+      # Optional on purpose (see the header). When the secrets are absent, or
+      # SIGNING_ALLOWED withholds them, the build still produces installers —
+      # unsigned, and the release job knows.
+      - id: signing
+        name: Decide whether this build can be signed
+        shell: bash
+        env:
+          MAC_CERT: ${{ env.SIGNING_ALLOWED == 'true' && secrets.MAC_CSC_LINK || '' }}
+          WIN_CERT: ${{ env.SIGNING_ALLOWED == 'true' && secrets.WIN_CSC_LINK || '' }}
+        run: |
+          set -euo pipefail
+          case "${{ matrix.platform }}" in
+            macos)   [[ -n "${MAC_CERT:-}" ]] && echo "signed=true" >> "$GITHUB_OUTPUT" || echo "signed=false" >> "$GITHUB_OUTPUT" ;;
+            windows) [[ -n "${WIN_CERT:-}" ]] && echo "signed=true" >> "$GITHUB_OUTPUT" || echo "signed=false" >> "$GITHUB_OUTPUT" ;;
+            *)       echo "signed=true" >> "$GITHUB_OUTPUT" ;;
+          esac
+
+      - name: Build
+        run: npm run build
+
+      # electron-builder is called directly rather than through `npm run
+      # dist:<platform>`, which would run `npm run build` a second time.
+      - name: Package
+        shell: bash
+        env:
+          # electron-builder reads these itself. Empty = absent = an unsigned
+          # build, which is what every value here is unless SIGNING_ALLOWED.
+          # Each secret goes only to the platform that uses it: the certificate
+          # used to fall through, handing a macOS build with no Mac certificate
+          # the Windows one, and the Linux build the Windows one too.
+          CSC_LINK: ${{ env.SIGNING_ALLOWED == 'true' && (matrix.platform == 'macos' && secrets.MAC_CSC_LINK || matrix.platform == 'windows' && secrets.WIN_CSC_LINK) || '' }}
+          CSC_KEY_PASSWORD: ${{ env.SIGNING_ALLOWED == 'true' && (matrix.platform == 'macos' && secrets.MAC_CSC_KEY_PASSWORD || matrix.platform == 'windows' && secrets.WIN_CSC_KEY_PASSWORD) || '' }}
+          APPLE_ID: ${{ env.SIGNING_ALLOWED == 'true' && matrix.platform == 'macos' && secrets.APPLE_ID || '' }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ env.SIGNING_ALLOWED == 'true' && matrix.platform == 'macos' && secrets.APPLE_APP_SPECIFIC_PASSWORD || '' }}
+          APPLE_TEAM_ID: ${{ env.SIGNING_ALLOWED == 'true' && matrix.platform == 'macos' && secrets.APPLE_TEAM_ID || '' }}
+          SIGNED: ${{ steps.signing.outputs.signed }}
+          CHANNEL: ${{ steps.meta.outputs.channel }}
+          UPDATE_CHANNEL: ${{ steps.meta.outputs.update_channel }}
+        run: |
+          set -euo pipefail
+          # `--publish never` with an explicit channel: electron-builder still
+          # writes the update metadata (which is the point), it just does not
+          # upload anything. The release job attaches the files, so a build can
+          # never create or modify a GitHub Release as a side effect.
+          ARGS=(--publish never "-c.publish.channel=$UPDATE_CHANNEL")
+          # Notarisation is the slow part of a macOS build (minutes at Apple's
+          # end) and only means anything on a signed prod build.
+          if [[ "${{ matrix.platform }}" == "macos" && "$SIGNED" == "true" && "$CHANNEL" == "prod" && -n "${APPLE_ID:-}" ]]; then
+            ARGS+=(-c.mac.notarize=true)
+            echo "::notice::Notarising this build with Apple."
+          fi
+          # Without a Developer ID, sign ad hoc rather than not at all. An Apple
+          # silicon Mac will not run an app whose signature is simply broken; an
+          # ad-hoc one opens after the usual "unidentified developer" step.
+          # Hardened runtime is off because it would enforce library validation
+          # against an ad-hoc identity. `beeflowUnsignedMac` tells the app that
+          # macOS will refuse to let it update itself (see updatePolicy.ts).
+          if [[ "${{ matrix.platform }}" == "macos" && "$SIGNED" != "true" ]]; then
+            ARGS+=(-c.mac.identity=- -c.mac.hardenedRuntime=false -c.extraMetadata.beeflowUnsignedMac=true)
+            echo "::notice::No macOS signing identity: signing this build ad hoc."
+          fi
+          npx electron-builder ${{ matrix.flag }} "${ARGS[@]}"
+
+      - name: List what was produced
+        shell: bash
+        run: ls -lh release/ || true
+
+      # The .yml files are not incidental: electron-updater reads
+      # latest-linux.yml / latest-mac.yml / latest.yml from the release to work
+      # out whether an update exists. Shipping installers without them produces
+      # an app that can never update itself.
+      #
+      # Never for a pull request from a fork (see the header). Keyed on an
+      # exact 'false' so that a missing output uploads nothing.
+      - name: Upload installers
+        if: ${{ needs.plan.outputs.fork == 'false' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: beeflow-desktop-${{ matrix.platform }}-${{ steps.meta.outputs.version }}-${{ github.run_number }}
+          path: |
+            desktop/release/*.AppImage
+            desktop/release/*.deb
+            desktop/release/*.rpm
+            desktop/release/*.pacman
+            desktop/release/*.tar.gz
+            desktop/release/*.dmg
+            desktop/release/*.exe
+            desktop/release/*.zip
+            desktop/release/*.blockmap
+            desktop/release/*.yml
+          retention-days: ${{ steps.meta.outputs.channel == 'prod' && 90 || 14 }}
+          if-no-files-found: error
+
+  # ── Launch every package ─────────────────────────────────────────────────
+  # A package that builds is not a package that starts. Until this job existed
+  # nothing in CI ever launched the app, and the first real launch was a user's:
+  # on it the Connect button did nothing, because the sandbox refused the
+  # preload. Each leg installs one format the way a user would, starts it, and
+  # drives it with the e2e suite (desktop/e2e) — the full suite once per OS, the
+  # `@smoke` subset (starts, has the bridge, connects) everywhere else. Formats
+  # CI cannot drive with Playwright (rpm and pacman in their distros' containers,
+  # the tarball's launcher) get scripts/smoke-launch.sh, which reads the app's
+  # own log. The release job waits for all of it. A fork's pull request uploads
+# no packages, so there is nothing here to launch (see the header).
+  launch:
+    needs: [plan, build]
+    if: ${{ needs.plan.outputs.launch != '[]' && needs.plan.outputs.fork == 'false' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJson(needs.plan.outputs.launch) }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: desktop
+        shell: bash
+    env:
+      # Only Playwright is needed here: every leg launches a PACKAGED app.
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+
+      - name: Install the test harness
+        run: npm ci
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: beeflow-desktop-${{ matrix.platform }}-*
+          path: desktop/artifacts
+          merge-multiple: true
+
+      - name: Virtual display
+        if: matrix.platform == 'linux'
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends xvfb
+
+      # Installed from the .deb with the kernel restricting user namespaces, as
+      # Ubuntu 24.04 does by default: the only thing that lets Chromium's
+      # sandbox start there is the AppArmor profile the package's postinst
+      # installs. BEEFLOW_E2E_SANDBOX=1 stops Playwright adding --no-sandbox
+      # (it does on Linux otherwise) and makes the smoke test assert the app
+      # really runs sandboxed — so a profile that is missing, not loaded or not
+      # attached to '/opt/Bee Flow/beeflow' fails here.
+      - name: .deb — install and launch
+        if: matrix.leg == 'deb'
+        run: |
+          set -euo pipefail
+          DEB="$(ls artifacts/*.deb | grep -v -E 'arm64|aarch64' | head -1)"
+          sudo apt-get install -y "./$DEB"
+          test -x /usr/bin/beeflow || { echo "::error::the .deb did not create /usr/bin/beeflow"; exit 1; }
+          if [[ -e /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]]; then
+            sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=1
+            if sudo aa-status --enabled 2>/dev/null; then
+              test -f /etc/apparmor.d/beeflow || { echo "::error::the .deb did not install its AppArmor profile"; exit 1; }
+            fi
+          fi
+          BEEFLOW_E2E_SANDBOX=1 BEEFLOW_E2E_APP="/opt/Bee Flow/beeflow" xvfb-run -a npx playwright test --grep @smoke
+
+      # With user namespaces allowed, the AppImage's own launcher (AppRun)
+      # keeps the sandbox on, and the run is held to that. Where they are
+      # restricted it falls back to --no-sandbox by design; the tarball leg
+      # covers that path.
+      - name: AppImage — launch
+        if: matrix.leg == 'appimage'
+        run: |
+          set -euo pipefail
+          sudo apt-get install -y --no-install-recommends libfuse2t64
+          APPIMAGE="$PWD/$(ls artifacts/*.AppImage | grep -v -E 'arm64|aarch64' | head -1)"
+          chmod +x "$APPIMAGE"
+          if [[ -e /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]]; then
+            sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          fi
+          export BEEFLOW_E2E_SANDBOX=1
+          # Mounted with FUSE, the way it runs for most people...
+          BEEFLOW_E2E_APP="$APPIMAGE" xvfb-run -a npx playwright test --grep @smoke
+          # ...and extracted, the way it runs where FUSE is missing.
+          APPIMAGE_EXTRACT_AND_RUN=1 BEEFLOW_E2E_APP="$APPIMAGE" xvfb-run -a npx playwright test --grep @smoke
+
+      # The tarball has no install step, so its launcher decides about the
+      # sandbox. Checked with the kernel restricting user namespaces (it must
+      # start, and say the sandbox is off), then the full suite with a kernel
+      # that lets the sandbox run — the state a user who followed its advice
+      # is in.
+      - name: tar.gz — launcher, then the full suite
+        if: matrix.leg == 'targz'
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/bf"
+          tar xzf "$(ls artifacts/*.tar.gz | grep -v -E 'arm64|aarch64' | head -1)" -C "$RUNNER_TEMP/bf"
+          DIR="$(ls -d "$RUNNER_TEMP"/bf/*/ | head -1)"
+          if [[ -e /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]]; then
+            sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=1
+          fi
+          scripts/smoke-launch.sh "${DIR}beeflow.sh"
+          if [[ -e /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]]; then
+            sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          fi
+          BEEFLOW_E2E_SANDBOX=1 BEEFLOW_E2E_APP="${DIR}beeflow" xvfb-run -a npx playwright test
+
+      - name: .rpm — install and launch on Fedora
+        if: matrix.leg == 'rpm'
+        run: |
+          set -euo pipefail
+          RPM="$(ls artifacts/*.rpm | grep -v -E 'arm64|aarch64' | head -1)"
+          # As root in a container, where Chromium needs --no-sandbox; the
+          # sandbox itself is covered by the .deb leg.
+          docker run --rm -v "$PWD:/work" -w /work fedora:latest bash -c "
+            set -euo pipefail
+            dnf install -y './$RPM' xorg-x11-server-Xvfb xorg-x11-xauth which
+            scripts/smoke-launch.sh '/opt/Bee Flow/beeflow' --no-sandbox"
+
+      - name: pacman — install and launch on Arch
+        if: matrix.leg == 'pacman'
+        run: |
+          set -euo pipefail
+          PKG="$(ls artifacts/*.pacman | head -1)"
+          docker run --rm -v "$PWD:/work" -w /work archlinux:latest bash -c "
+            set -euo pipefail
+            pacman -Syu --noconfirm xorg-server-xvfb xorg-xauth which
+            pacman -U --noconfirm './$PKG'
+            scripts/smoke-launch.sh '/opt/Bee Flow/beeflow' --no-sandbox"
+
+      - name: NSIS — install per user, then the full suite
+        if: matrix.leg == 'nsis'
+        shell: pwsh
+        run: |
+          $installer = Get-ChildItem artifacts -Filter 'Bee-Flow-*-win-x64.exe' | Select-Object -First 1
+          if (-not $installer) { $installer = Get-ChildItem artifacts -Filter 'Bee-Flow-*-win.exe' | Select-Object -First 1 }
+          if (-not $installer) { throw 'No x64 NSIS installer among the artifacts.' }
+          Start-Process -FilePath $installer.FullName -ArgumentList '/S' -Wait
+          $exe = Join-Path $env:LOCALAPPDATA 'Programs\Bee Flow\Bee Flow.exe'
+          if (-not (Test-Path $exe)) { throw "The installer did not put Bee Flow at $exe" }
+          $env:BEEFLOW_E2E_APP = $exe
+          npx playwright test
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: zip and portable — launch
+        if: matrix.leg == 'portable-zip'
+        shell: pwsh
+        run: |
+          $zip = Get-ChildItem artifacts -Filter 'Bee-Flow-*-win-x64.zip' | Select-Object -First 1
+          if (-not $zip) { throw 'No x64 zip among the artifacts.' }
+          $unzipped = Join-Path $env:RUNNER_TEMP 'bf-zip'
+          Expand-Archive -Path $zip.FullName -DestinationPath $unzipped
+          $env:BEEFLOW_E2E_APP = (Get-ChildItem $unzipped -Recurse -Filter 'Bee Flow.exe' | Select-Object -First 1).FullName
+          npx playwright test --grep '@smoke'
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Remove-Item Env:\BEEFLOW_E2E_APP
+
+          # The portable build unpacks itself to a temp folder and starts from
+          # there, so it is judged by its own log rather than driven.
+          $portable = Get-ChildItem artifacts -Filter 'Bee-Flow-*-windows-portable.exe' | Select-Object -First 1
+          if (-not $portable) { throw 'No portable build among the artifacts.' }
+          $profileDir = Join-Path $env:RUNNER_TEMP 'bf-portable'
+          New-Item -ItemType Directory -Force -Path $profileDir | Out-Null
+          $env:BEEFLOW_USER_DATA_DIR = $profileDir
+          $process = Start-Process -FilePath $portable.FullName -PassThru
+          Start-Sleep -Seconds 40
+          Get-Process -Name 'Bee Flow' -ErrorAction SilentlyContinue | Stop-Process -Force
+          if (-not $process.HasExited) { Stop-Process -Id $process.Id -Force }
+          $log = Join-Path $profileDir 'logs\beeflow-desktop.log'
+          if (-not (Test-Path $log)) { throw "The portable build wrote no log at $log" }
+          Get-Content $log
+          $text = Get-Content $log -Raw
+          if ($text -notmatch '\[App\] starting') { throw 'The portable build did not start.' }
+          if ($text -notmatch '\[App\] bridge ready') { throw "The portable build's first page never got window.beeflow." }
+          if ($text -match '\[Preload\]|uncaught exception|start-up did not finish') { throw 'The portable build logged a failure.' }
+
+      # The universal app, copied out of the .dmg as a user does, and started
+      # natively on each half: the full suite on Apple silicon, the smoke tests
+      # on Intel. Those three stay on the loopback address, which macOS 15
+      # does not put behind its Local Network prompt; nothing on a runner can
+      # answer that prompt.
+      #
+      # The Intel half used to run under Rosetta on the Apple silicon runner.
+      # It started there but never finished starting within Playwright's 60 s,
+      # while the same binary passed everything natively. So it proved nothing
+      # about Intel Macs, which do not run it under Rosetta.
+      - name: .dmg — install and launch
+        if: matrix.leg == 'dmg' || matrix.leg == 'dmg-intel'
+        env:
+          LEG: ${{ matrix.leg }}
+        run: |
+          set -euo pipefail
+          if [[ "$LEG" == dmg-intel && "$(uname -m)" != x86_64 ]]; then
+            echo "::error::The Intel leg is running on $(uname -m), so it would not test the Intel half."
+            exit 1
+          fi
+          DMG="$(ls artifacts/*.dmg | head -1)"
+          hdiutil attach "$DMG" -nobrowse -mountpoint "$RUNNER_TEMP/bf-dmg"
+          cp -R "$RUNNER_TEMP/bf-dmg/Bee Flow.app" "$RUNNER_TEMP/"
+          hdiutil detach "$RUNNER_TEMP/bf-dmg"
+          APP="$RUNNER_TEMP/Bee Flow.app/Contents/MacOS/Bee Flow"
+          echo "Starting the $(uname -m) half of: $(lipo -archs "$APP")"
+          if [[ "$LEG" == dmg-intel ]]; then
+            BEEFLOW_E2E_APP="$APP" npx playwright test --grep @smoke
+          else
+            BEEFLOW_E2E_APP="$APP" npx playwright test
+          fi
+
+      - name: Keep what the tests saw
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          # Not `beeflow-desktop-…`: the release job downloads that prefix
+          # to publish it, and test results are not release assets.
+          name: desktop-launch-results-${{ matrix.leg }}-${{ github.run_number }}
+          # A re-run of a failed leg uploads under the same name; without this
+          # the upload itself would fail the re-run and block the release.
+          overwrite: true
+          path: |
+            desktop/e2e-results
+            desktop/e2e-report
+          if-no-files-found: ignore
+          retention-days: 14
+
+  # arm64 packages are built on every run, on the x64 runner; starting them
+  # needs an arm64 machine. Set the repository variable DESKTOP_ARM64_BUILDS
+  # to `true` and these two legs run on GitHub's hosted ubuntu-24.04-arm and
+  # windows-11-arm runners; unset (the default), they are skipped and the
+  # summary says so.
+  #
+  # The variable switches the legs on or off; it never NAMES the runner. This
+  # workflow runs pull requests, a fork's among them once approved, and a
+  # runner label read from a variable is one repository setting away from
+  # sending that code to a self-hosted machine.
+  launch-linux-arm64:
+    needs: [plan, build]
+    if: ${{ needs.plan.outputs.linux == 'true' && needs.plan.outputs.fork == 'false' && vars.DESKTOP_ARM64_BUILDS == 'true' }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: desktop
+        shell: bash
+    env:
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+      - run: npm ci
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: beeflow-desktop-linux-*
+          path: desktop/artifacts
+          merge-multiple: true
+      - name: arm64 .deb and AppImage — install and launch
+        run: |
+          set -euo pipefail
+          sudo apt-get update && sudo apt-get install -y --no-install-recommends xvfb libfuse2t64
+          sudo apt-get install -y "./$(ls artifacts/*.deb | grep -E 'arm64|aarch64' | head -1)"
+          BEEFLOW_E2E_APP="/opt/Bee Flow/beeflow" xvfb-run -a npx playwright test --grep @smoke
+          APPIMAGE="$PWD/$(ls artifacts/*.AppImage | grep -E 'arm64|aarch64' | head -1)"
+          chmod +x "$APPIMAGE"
+          BEEFLOW_E2E_APP="$APPIMAGE" xvfb-run -a npx playwright test --grep @smoke
+
+  launch-windows-arm64:
+    needs: [plan, build]
+    if: ${{ needs.plan.outputs.windows == 'true' && needs.plan.outputs.fork == 'false' && vars.DESKTOP_ARM64_BUILDS == 'true' }}
+    runs-on: windows-11-arm
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: desktop
+    env:
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+      - run: npm ci
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: beeflow-desktop-windows-*
+          path: desktop/artifacts
+          merge-multiple: true
+      - name: arm64 NSIS — install and launch
+        shell: pwsh
+        run: |
+          $installer = Get-ChildItem artifacts -Filter 'Bee-Flow-*-win-arm64.exe' | Select-Object -First 1
+          if (-not $installer) { $installer = Get-ChildItem artifacts -Filter 'Bee-Flow-*-win.exe' | Select-Object -First 1 }
+          Start-Process -FilePath $installer.FullName -ArgumentList '/S' -Wait
+          $env:BEEFLOW_E2E_APP = Join-Path $env:LOCALAPPDATA 'Programs\Bee Flow\Bee Flow.exe'
+          npx playwright test --grep '@smoke'
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+  launch-coverage:
+    # Says, on every run, which packages were NOT started — so "CI is green"
+    # never quietly means less than it seems to. The list of legs comes from
+    # `plan`, so a pull request that built Linux only says so here.
+    needs: [plan, launch, launch-linux-arm64, launch-windows-arm64]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Report what was launched
+        env:
+          PLATFORMS: ${{ needs.plan.outputs.platforms }}
+          WHY: ${{ needs.plan.outputs.why }}
+          LEGS: ${{ needs.plan.outputs.launch }}
+          LAUNCH: ${{ needs.launch.result }}
+          LINUX_BUILT: ${{ needs.plan.outputs.linux }}
+          WINDOWS_BUILT: ${{ needs.plan.outputs.windows }}
+          LINUX_ARM64: ${{ needs.launch-linux-arm64.result }}
+          WINDOWS_ARM64: ${{ needs.launch-windows-arm64.result }}
+          FORK: ${{ needs.plan.outputs.fork }}
+        run: |
+          LEG_LIST="$(jq -r '[.[] | "\(.leg) (\(.os))"] | join(", ")' <<< "${LEGS:-[]}")"
+          {
+            echo "### Desktop packages launched in CI"
+            echo "- Platforms built: ${PLATFORMS:-none}. ${WHY}"
+            echo "- x64 and universal launch legs: ${LEG_LIST:-none}. The launch job: ${LAUNCH}."
+            echo "- arm64 Linux: ${LINUX_ARM64}"
+            echo "- arm64 Windows: ${WINDOWS_ARM64}"
+            if [[ "$FORK" == true ]]; then echo "- A pull request from a fork: packages built, not uploaded, so none launched."; fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [[ -z "$PLATFORMS" ]]; then
+            echo "::notice::Nothing was built: the plan job did not finish."
+          elif [[ "$PLATFORMS" != all ]]; then
+            echo "::notice::Only $PLATFORMS was built and launched. $WHY"
+          fi
+          if [[ "$FORK" == true ]]; then
+            echo "::notice::A pull request from a fork: its packages were built but not uploaded, so none was launched. Push the branch to this repository for a run that launches them."
+            exit 0
+          fi
+          [[ "$LINUX_BUILT" == true && "$LINUX_ARM64" == skipped ]] && echo "::notice::arm64 Linux packages were built but not launched: set the DESKTOP_ARM64_BUILDS repository variable to true."
+          [[ "$WINDOWS_BUILT" == true && "$WINDOWS_ARM64" == skipped ]] && echo "::notice::arm64 Windows packages were built but not launched: set the DESKTOP_ARM64_BUILDS repository variable to true."
+          exit 0
+
+  release:
+    needs: [plan, build, launch, launch-linux-arm64, launch-windows-arm64]
+    # Four conditions, each for its own reason:
+    #   - never from a pull request: a PR gets artifacts, not a tag on the
+    #     repository;
+    #   - never from a branch other than main: desktop-dev is the beta
+    #     channel's update feed, so whatever it holds is what every beta app
+    #     installs next, and only merged code may go there (`plan` also
+    #     refuses prod off main outright; a dev run off main builds, launches
+    #     and stops here);
+    #   - never from a one-platform run: the dev release is replaced wholesale,
+    #     so publishing a Linux-only build would delete the macOS and Windows
+    #     downloads and leave a release that silently serves a third of its
+    #     users. Read off `plan`, the one place that decides the platforms, so
+    #     it holds whatever narrowed them: a manual `platforms` choice or the
+    #     pull-request rule;
+    #   - never on a failed build, obviously.
+    # `always()` so a skipped optional arm64 leg does not skip this job; the
+    # results are checked one by one instead. A package that did not start is
+    # not published.
+    if: >-
+      ${{ always()
+          && github.event_name != 'pull_request'
+          && github.ref == 'refs/heads/main'
+          && needs.build.result == 'success'
+          && needs.launch.result == 'success'
+          && contains(fromJson('["success","skipped"]'), needs.launch-linux-arm64.result)
+          && contains(fromJson('["success","skipped"]'), needs.launch-windows-arm64.result)
+          && needs.plan.outputs.platforms == 'all' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      CHANNEL: ${{ needs.build.outputs.channel }}
+      TAG: ${{ needs.build.outputs.tag }}
+      VERSION: ${{ needs.build.outputs.version }}
+      # Read from the secret here rather than from a build-job output. Matrix
+      # jobs share one set of outputs and the last one to finish wins, so a
+      # `signed` flag set by the Linux leg would happily vouch for a macOS build
+      # that was never signed at all.
+      MACOS_SIGNING_CONFIGURED: ${{ secrets.MAC_CSC_LINK != '' }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      # The packages only: this directory is what gets published, and the run
+      # also holds the launch job's test results.
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: beeflow-desktop-*
+          path: artifacts
+          merge-multiple: true
+
+      - name: Check there is something to publish
+        run: |
+          set -euo pipefail
+          COUNT="$(find artifacts -type f | wc -l)"
+          if [[ "$COUNT" -eq 0 ]]; then
+            echo "::error::The build jobs produced no files to release."
+            exit 1
+          fi
+          echo "Publishing $COUNT files as $CHANNEL (tag $TAG):"
+          ls -lh artifacts/
+
+      # A macOS build that was never signed cannot be handed to anyone: Gatekeeper
+      # refuses it, and "right-click → Open" is not an instruction to put in
+      # release notes. Dev builds are exempt — they exist to be tried by people
+      # who know what they are running.
+      - name: Refuse to publish an unsigned production macOS build
+        if: ${{ env.CHANNEL == 'prod' && env.MACOS_SIGNING_CONFIGURED != 'true' }}
+        run: |
+          echo "::error::The macOS build was not signed, so this cannot be published as a production release."
+          echo "Set the MAC_CSC_LINK, MAC_CSC_KEY_PASSWORD, APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD"
+          echo "and APPLE_TEAM_ID repository secrets, then run again."
+          exit 1
+
+      # The dev release is rolling: one tag, replaced in place. Deleting first
+      # is what makes it a replacement rather than an accumulation — the action
+      # below would otherwise add today's assets next to last week's and leave
+      # the tag pointing at the old commit.
+      - name: Clear the previous dev release
+        if: ${{ env.CHANNEL == 'dev' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release delete "$TAG" --yes --cleanup-tag --repo "$GITHUB_REPOSITORY" || true
+
+      - name: Publish the dev release
+        if: ${{ env.CHANNEL == 'dev' }}
+        uses: softprops/action-gh-release@72f2c25fcb47643c292f7107632f7a47c1df5cd8 # v2.3.2
+        with:
+          tag_name: ${{ env.TAG }}
+          name: Bee Flow Desktop — development build
+          target_commitish: ${{ github.sha }}
+          files: artifacts/*
+          prerelease: true
+          body: |
+            **Development build** of Bee Flow Desktop ${{ env.VERSION }}, from `${{ github.sha }}`.
+
+            This tag is rolling: it is replaced by every build of `main`, so what is
+            attached below is always the newest one. It is not a supported release —
+            expect it to change under you, and keep production machines on the
+            [latest stable release](https://github.com/Bee-Flow/Bee-Flow/releases/latest).
+
+            Apps set to **Settings → Updates → Channel → Beta** update from here.
+            Apps on Stable never see these builds.
+
+            **Linux.** `.deb` (Debian, Ubuntu, Mint), `.rpm` (Fedora, RHEL, openSUSE),
+            `.pacman` (Arch, Manjaro), an AppImage that runs anywhere without
+            root, or a plain tarball. x64 and arm64 for each.
+
+            **macOS.** One universal `.dmg` for Apple silicon and Intel. Dev builds
+            are not notarised, so macOS will need convincing the first time.
+
+            **Windows.** An installer that needs no administrator rights, plus a
+            portable build that installs nothing. Dev builds are unsigned, so
+            SmartScreen will warn.
+
+            On first launch the app asks which Bee Flow server to connect to. It
+            checks `/api/health` before remembering it, and nothing is sent anywhere
+            until you name one.
+
+      - name: Publish the production release
+        if: ${{ env.CHANNEL == 'prod' }}
+        uses: softprops/action-gh-release@72f2c25fcb47643c292f7107632f7a47c1df5cd8 # v2.3.2
+        with:
+          tag_name: ${{ env.TAG }}
+          name: Bee Flow Desktop ${{ env.VERSION }}
+          target_commitish: ${{ github.sha }}
+          files: artifacts/*
+          draft: true
+          generate_release_notes: true
+          body: |
+            Bee Flow Desktop ${{ env.VERSION }} — the workspace client for Linux, macOS and Windows.
+
+            **Linux.** Install the package your distribution understands, so its
+            updates come from your package manager: `.deb` (Debian, Ubuntu, Mint),
+            `.rpm` (Fedora, RHEL, openSUSE), `.pacman` (Arch, Manjaro). The
+            AppImage runs anywhere without root and updates itself; the tarball is
+            for anyone packaging it themselves. x64 and arm64 for each.
+
+            **macOS.** The `.dmg` is a universal binary — one download for Apple
+            silicon and Intel.
+
+            **Windows.** The installer needs no administrator rights. The portable
+            build runs from a folder and installs nothing.
+
+            Every build connects to *your* Bee Flow server: the first screen asks
+            for its address. Nothing is sent anywhere until you name one.

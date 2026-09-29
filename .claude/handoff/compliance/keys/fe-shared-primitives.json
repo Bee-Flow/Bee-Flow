@@ -1,0 +1,28 @@
+{
+  "en": {
+    "common.previous": "Previous",
+    "common.pager_range": "Rows {from}–{to} of {total}",
+    "compliance.clock_days_left": "still {days} days",
+    "compliance.clock_days_overdue": "overdue by {days} days",
+    "compliance.clock_hours_left": "still {hours} hours",
+    "compliance.clock_hours_overdue": "overdue by {hours} hours",
+    "compliance.clock_done_in_days": "completed in {days} days",
+    "compliance.clock_done": "completed",
+    "compliance.clock_none": "no open deadline",
+    "compliance.clock_short_days": "{days}",
+    "compliance.clock_short_hours": "{hours} h"
+  },
+  "nl": {
+    "common.previous": "Vorige",
+    "common.pager_range": "Rij {from}–{to} van {total}",
+    "compliance.clock_days_left": "nog {days} dagen",
+    "compliance.clock_days_overdue": "{days} dagen te laat",
+    "compliance.clock_hours_left": "nog {hours} uur",
+    "compliance.clock_hours_overdue": "{hours} uur te laat",
+    "compliance.clock_done_in_days": "afgerond in {days} dagen",
+    "compliance.clock_done": "afgerond",
+    "compliance.clock_none": "geen open termijn",
+    "compliance.clock_short_days": "{days}",
+    "compliance.clock_short_hours": "{hours} u"
+  }
+}

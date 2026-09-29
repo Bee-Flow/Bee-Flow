@@ -1,0 +1,328 @@
+{
+  "id": "forms-audience-answers-and-links",
+  "icon": "🔗",
+  "estMinutes": 12,
+  "title": "Live, shared, and collecting",
+  "desc": "Switching it on, choosing who may fill it in, reading the answers, and rotating a leaked link.",
+  "gate": {
+    "feature": "automations"
+  },
+  "learningGoal": "After this lesson you can put a form on the air for exactly the right people, read what comes back, and rotate a link that leaked.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "draft-first",
+      "icon": "🚦",
+      "title": "Built is not the same as live",
+      "bodyMd": "Van Dijk Groep's purchasing team has just built **Leveranciersintake** — the questions every new supplier must answer. The questions are saved. The link exists. And nobody can use it.\n\nA form is the front door of a **routine**, and a brand-new routine is a **draft**. In Studio → Forms the row is marked **Not live**, with the hint *\"The routine behind it is paused or still a draft, so the link answers 'not available'.\"*\n\nOne switch changes that: **\"Form is live\"**, on the form's **Settings** tab. Turn it on and the hint becomes *\"Colleagues in your organisation can fill this in after signing in.\"*"
+    },
+    {
+      "type": "slide",
+      "id": "nobody",
+      "icon": "🔒",
+      "title": "A new form is shared with nobody",
+      "bodyMd": "Switching it on is only half of it. Every new form page starts **restricted with nobody on it** — the owner, and no one else. The directory chip says it plainly: **\"Only you — not shared yet\"**.\n\nSo the moment purchasing pastes the link into the Inkoop team chat, their colleagues get **\"not found\"**. Not \"you are not allowed\" — genuinely not found. Someone outside the audience gets the same answer as someone typing a made-up link, and that is deliberate: you cannot probe a form into admitting it exists.\n\nThe fix lives on the **Share** tab, under **\"Who can fill it in\"**."
+    },
+    {
+      "type": "quiz",
+      "id": "q-customer",
+      "question": "Purchasing e-mails the Leveranciersintake link straight to a new supplier, outside the company. What does the supplier see?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "The form opens and they fill it in — that is what the link is for.",
+          "correct": false,
+          "feedback": "Not for a Form. The whole /f/ surface sits behind sign-in, so an outsider never reaches the questions. The anonymous page you may be thinking of is an App Studio app screen at a /p/ address — a different object."
+        },
+        {
+          "id": "b",
+          "label": "A sign-in screen, and no way past it — the form opens for signed-in colleagues only.",
+          "correct": true
+        },
+        {
+          "id": "c",
+          "label": "The form opens in a read-only preview, so they can read the questions but not submit.",
+          "correct": false,
+          "feedback": "A visitor never gets a read-only view: the page either opens for them or it answers \"not found\". The preview in the question editor belongs to the owner."
+        },
+        {
+          "id": "d",
+          "label": "They can submit, but the answer is quietly dropped because they are not staff.",
+          "correct": false,
+          "feedback": "Nothing is silently dropped for being an outsider — they never get as far as the questions."
+        }
+      ],
+      "explanation": "A Form is signed-in and organisation-only. The short address /f/<token> redirects to the in-app form page, and that page opens only for a signed-in member of the owning organisation who is in the audience. An App Studio app screen published at /p/<token> is the object that does open without an account — same word \"form\" in the corridor, different product surface."
+    },
+    {
+      "type": "slide",
+      "id": "internal-only",
+      "icon": "🏢",
+      "title": "Inside the organisation — because it is a Form",
+      "bodyMd": "Read both audience options on the **Share** tab and you will see the same promise twice:\n\n- **\"Only the people and groups you choose\"** — *\"Nobody else in the organisation — and never anyone outside it.\"*\n- **\"Everyone in the organisation\"** — *\"Every signed-in colleague with the link. Never anyone outside the organisation.\"*\n\nThat tab offers no third option, and the rule belongs to **this object**: a **Form**, the thing you build in Studio → Forms at an `/f/` address. So Van Dijk Groep runs the supplier intake the other way round — the account manager opens the form during the onboarding call and fills it in on the supplier's behalf.\n\nAn **app screen** in App Studio is a different object with a different rule: a published app can open one screen to people without an account, at a `/p/` address. Colleagues call that an intake form too. So promise a customer a link to a **Form** and you have promised something a Form does not do — ask which of the two anyone means before you answer."
+    },
+    {
+      "type": "slide",
+      "id": "two-controls",
+      "icon": "🎛️",
+      "title": "Two different questions, two different controls",
+      "bodyMd": "The **Share** tab answers two questions that people constantly mix up.\n\n**\"Who can fill it in\"** is the audience: the owner plus the people and groups you list, or everyone in the organisation. Purchasing adds the group *Inkoop* and two account managers.\n\n**\"Who can see the answers\"** is a different door. The answers live in a table, and sharing that table is what shares them. Invite the controller on it under **\"People and teams\"** with **\"can read rows\"**, and she can open **Answers** here as well as the table's **Dashboard** tab.\n\nShe gets nothing more: her form page shows the **Answers** tab alone, with the chip **\"shared with you\"**. The questions, the audience and the link stay with the owner."
+    },
+    {
+      "type": "quiz",
+      "id": "q-doors-gate",
+      "question": "Marieke owns Leveranciersintake and has no admin role. She can put it live and set its audience, but the Share tab's second door beats her. What is it asking for that the first one did not?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Nothing extra — if she may set the audience she may hand out the answers too.",
+          "correct": false,
+          "feedback": "Two different objects, two different rulebooks. Going live and setting the audience are the form's own routes, decided by ownership; letting the controller read the answers is done on a datatable."
+        },
+        {
+          "id": "b",
+          "label": "Letting someone read the answers happens on the answers table, so it follows the datatable rules — an organisation table needs the Manage datatables permission, and inviting a person or group is a paid-plan feature on top.",
+          "correct": true
+        },
+        {
+          "id": "c",
+          "label": "The manage_automations permission, which is what every form route checks before it lets you share anything.",
+          "correct": false,
+          "feedback": "That permission exists, but the forms routes check ownership, not it. Whoever built the routine may edit its form, and nobody else may — admin or not."
+        },
+        {
+          "id": "d",
+          "label": "She must add the controller under \"Who can fill it in\" first; reading access is granted from there.",
+          "correct": false,
+          "feedback": "That door only decides who may submit. Someone in the audience still sees no answers, and the controller does not have to be in it to read them."
+        }
+      ],
+      "explanation": "This lesson asks little of you: the automations feature, plus being the owner of the form. The moment you touch the answers table you are in the datatables lessons' territory — that is why they ask for the Manage datatables permission as well, and why inviting a colleague onto a table is an Enterprise feature. Removing someone's access is never gated, and rows a routine writes keep flowing whatever the plan does."
+    },
+    {
+      "type": "sim",
+      "id": "sim-who",
+      "icon": "🩺",
+      "title": "Which control fixes it?",
+      "instruction": "Four things go wrong with Leveranciersintake in its first week. Match each complaint to the thing that fixes it.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "notlive",
+            "left": "Nobody can open the form — not even the two account managers you just added to the audience.",
+            "right": "Settings tab: \"Form is live\"",
+            "note": "An audience cannot rescue a dead address. While the routine is a draft or paused, the link answers \"not available\" for everyone."
+          },
+          {
+            "id": "audience",
+            "left": "Most of Inkoop fills the form in happily, but one colleague gets \"not found\".",
+            "right": "Share tab: \"Who can fill it in\"",
+            "note": "That colleague is simply not in the audience. Out-of-audience looks exactly like a wrong link, so only the list tells you."
+          },
+          {
+            "id": "read",
+            "left": "The controller must read every answer, but must never be able to change a question.",
+            "right": "Table sharing: \"can read rows\"",
+            "note": "Reading answers is granted on the answers table, not on the form. She then sees the Answers tab and nothing else."
+          },
+          {
+            "id": "outside",
+            "left": "The supplier would rather type their own details in than dictate them over the phone.",
+            "right": "No control on this tab — someone inside fills it in, or you build an app screen",
+            "note": "A Form is organisation-only: both audience options promise never anyone outside the organisation. If the supplier really must type it himself, that is the other object — an App Studio app with one screen published at a /p/ address."
+          }
+        ]
+      }
+    },
+    {
+      "type": "slide",
+      "id": "answers-table",
+      "icon": "📊",
+      "title": "What the answers table actually holds",
+      "bodyMd": "Leveranciersintake collects, so every submission writes one row into its own datatable: two fixed columns — **Run** and **Completed** — plus one column for each question that collects an answer.\n\nThe columns follow the form on every save, and the note under the question editor says how: *\"Renaming a question renames its column; removing one keeps the column, marked 'no longer on the form'.\"* Those retired columns fold away under **\"No longer on the form ({n})\"** on the Answers tab. Nothing is dropped behind your back.\n\nThe **Answers** tab opens on the last **30 days** — presets run Today / 7 days / 30 days / 90 days / All / Custom — refreshes itself every 30 seconds, and hands you the whole set with **Export (CSV)**."
+    },
+    {
+      "type": "quiz",
+      "id": "q-collect",
+      "question": "Leveranciersintake ran for three weeks as a routine-only form. Purchasing now switches \"Collect answers in a table\" on. What lands in the new table?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Every submission so far, backfilled from the run history.",
+          "correct": false,
+          "feedback": "There is no backfill. The setting's own hint says earlier submissions are not imported."
+        },
+        {
+          "id": "b",
+          "label": "Only submissions from that moment on — the three weeks before stay out of the table.",
+          "correct": true
+        },
+        {
+          "id": "c",
+          "label": "Nothing, until you save the questions again and re-enter each answer by hand.",
+          "correct": false,
+          "feedback": "Collecting starts by itself with the next submission — no re-entry, and no second save needed."
+        },
+        {
+          "id": "d",
+          "label": "Everything from the last 30 days, matching the dashboard's default period.",
+          "correct": false,
+          "feedback": "The 30-day default is only the dashboard's viewing window. It has nothing to do with which rows exist."
+        }
+      ],
+      "explanation": "The toggle's own words: \"Earlier submissions are not imported; collecting starts with the next one.\" If you need the older ones, they are in the routine's run history, not in the table."
+    },
+    {
+      "type": "sim",
+      "id": "sim-golive",
+      "icon": "🧩",
+      "title": "Take Leveranciersintake live, in order",
+      "instruction": "Purchasing has drafted the questions but saved nothing yet, and they work to one rule: no audience until the form is finished and switched on. Put these five moments in the order they happen.",
+      "sim": {
+        "kind": "order",
+        "items": [
+          {
+            "id": "save",
+            "label": "Save the questions — the answers table is created and matched to them on that same save"
+          },
+          {
+            "id": "live",
+            "label": "Settings tab: switch \"Form is live\" on"
+          },
+          {
+            "id": "audience",
+            "label": "Share tab, \"Who can fill it in\": add the group Inkoop and the two account managers"
+          },
+          {
+            "id": "copy",
+            "label": "Copy the link and send it to Inkoop"
+          },
+          {
+            "id": "first",
+            "label": "The first response appears on the Answers tab"
+          }
+        ],
+        "solution": [
+          "save",
+          "live",
+          "audience",
+          "copy",
+          "first"
+        ],
+        "feedback": "Save first: a form with no saved questions cannot go live, and the answers table is built from the saved questions. Live before audience is purchasing's own rule — the two switches are independent, but leaving the audience until last means the link works the moment it lands. Share it any earlier and Inkoop gets a \"not found\"."
+      }
+    },
+    {
+      "type": "slide",
+      "id": "rotate",
+      "icon": "🔑",
+      "title": "The link is a credential, so treat it like one",
+      "bodyMd": "The address ends in a 48-character token, and that token is the whole key to the form — there is no second factor behind it. Which is why it stays out of circulation: it is not in Studio's own routes, not in search, not in recents, not in an export, never on a ticket. It lives in the link, on the **Share** tab.\n\nIf it ends up somewhere it should not, that same tab has **New link**. The confirmation is blunt: *\"The current link stops working immediately — anyone who already has it will see 'not available'.\"*\n\nRotating is not un-sharing: the audience moves to the new link with it. Send the new address to Inkoop and you are done."
+    },
+    {
+      "type": "action",
+      "id": "do-live",
+      "icon": "🏗️",
+      "checkId": "form-live",
+      "title": "Put one form on the air",
+      "instruction": "Open Studio → Forms and pick a form you own (or create one). On the Settings tab switch \"Form is live\" on, then on the Share tab give it an audience: add at least one person or group under \"Who can fill it in\", or choose \"Everyone in the organisation\". We will check both.",
+      "launch": {
+        "navigateTo": "studio/forms",
+        "label": "Open Forms"
+      }
+    },
+    {
+      "type": "quiz",
+      "id": "q-delete",
+      "question": "Supplier intake moves to the ERP, so purchasing deletes the Leveranciersintake form. What happens to the 46 supplier rows it collected?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "They go with it — deleting the form deletes its answers.",
+          "correct": false,
+          "feedback": "The delete notice says the opposite: the answers table is not deleted. Deleting a form is not a way to erase answers."
+        },
+        {
+          "id": "b",
+          "label": "They stay in the answers table under Datatables; the routine behind the form is what gets deleted.",
+          "correct": true
+        },
+        {
+          "id": "c",
+          "label": "They are exported to CSV automatically and then removed.",
+          "correct": false,
+          "feedback": "Nothing is exported for you. If you want a copy, use Export (CSV) on the Answers tab before you delete anything."
+        },
+        {
+          "id": "d",
+          "label": "They are kept for 30 days and then swept away.",
+          "correct": false,
+          "feedback": "Rows are only swept when a retention window is set on the table, and retention is off until you set it."
+        }
+      ],
+      "explanation": "The confirmation spells it out: \"Deleting the form deletes the routine behind it. The answers table is not deleted — remove it under Datatables if the answers are no longer needed.\" Supplier contact details are personal data, so deciding what happens to that table is part of deleting the form, not an afterthought."
+    },
+    {
+      "type": "slide",
+      "id": "journeys",
+      "icon": "📑",
+      "title": "One address, however many pages",
+      "bodyMd": "A long intake does not need a long page. Split Leveranciersintake across several pages and it is still one journey on one address: the account manager answers page one, the routine works, the next questions appear in the same place. They never move, and the whole journey lands in history as a single run, not one row per page.\n\nThat is also why a **Download button** field can only sit on a later page. On page one the routine has not run yet, so there is nothing for it to hand over."
+    },
+    {
+      "type": "slide",
+      "id": "wrap",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "- **Put a form on the air properly.** Save, switch **\"Form is live\"** on, then give it an audience — a new form is shared with nobody, and a live form with no audience is still a \"not found\" for everyone but you.\n- **Keep the two doors apart.** \"Who can fill it in\" is the audience, and it is yours as the owner; reading access on the answers table is what lets a colleague see the answers — that one follows the datatable rules, and the Answers tab is then all they see.\n- **Treat the link as a key.** If it leaks, **New link** kills the old address on the spot and carries the audience across.\n\nLeveranciersintake is live for Inkoop, collecting into its own table, with a link you can replace in seconds."
+    }
+  ],
+  "practiceTopic": {
+    "title": "Publishing a form: live, audience, answers, link",
+    "summary": "How a Bee Flow form goes on the air, who may open it, where the answers land, and what rotating or deleting it really does.",
+    "facts": [
+      "A new routine is a draft, so its form row shows \"Not live\" until \"Form is live\" is switched on; the page is also restricted with nobody on it (\"Only you — not shared yet\"), and everyone else gets a \"not found\".",
+      "A Form is signed-in and organisation-only: both audience options state that no one outside the organisation can ever fill it in. An App Studio app screen published at a /p/ address is the other object — that one opens without an account.",
+      "The form itself asks only for the automations feature plus ownership; the answers table follows the datatable rules, where changing an organisation table needs the Manage datatables permission and inviting a person or group is an Enterprise feature.",
+      "\"Who can fill it in\" is the audience; \"Who can see the answers\" is reading access on the answers table, given under \"People and teams\" with \"can read rows\"; a colleague who has only that sees the Answers tab alone.",
+      "Switching \"Collect answers in a table\" on does not import earlier submissions: collecting starts with the next one.",
+      "The answers table has two fixed columns, Run and Completed, plus one per question; a removed question keeps its column under \"No longer on the form\".",
+      "\"New link\" on the Share tab mints a new token, kills the old address immediately, and carries the audience over to the new link.",
+      "Deleting a form deletes the routine behind it but not the answers table, which stays under Datatables until you remove it there."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "form-live",
+      "existing": false,
+      "label": "Put a form live and give it an audience",
+      "hint": "In Studio → Forms: Settings → \"Form is live\", then Share → \"Who can fill it in\".",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/automation/forms",
+          "returns": "{ forms: [ { id, automationId, title, live, mine, audience: { mode, groups, users }, answers } ] } — organisation-scoped; audience and mine identify the learner's own forms"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "live",
+          "label": "One of your own forms is live",
+          "hint": "The row should read Live, not Not live. Switch \"Form is live\" on under Settings.",
+          "rule": "at least one row with mine === true and live === true"
+        },
+        {
+          "id": "audience",
+          "label": "That form has an audience",
+          "hint": "On the Share tab, add a person or group under \"Who can fill it in\", or choose \"Everyone in the organisation\".",
+          "rule": "the same row has audience.mode === 'org', or audience.mode === 'restricted' with at least one entry in audience.groups or audience.users"
+        }
+      ]
+    }
+  ]
+}

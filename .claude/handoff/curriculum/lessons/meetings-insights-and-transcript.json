@@ -1,0 +1,354 @@
+{
+  "id": "meetings-insights-and-transcript",
+  "icon": "📊",
+  "estMinutes": 14,
+  "title": "Read the meeting, not just the summary",
+  "desc": "The five Insights views behind Balance, Interactivity and Silence, the transcript as a workbench, asking one meeting — or ten — a question, and getting a note out as a file.",
+  "gate": {
+    "feature": "meeting_notes"
+  },
+  "learningGoal": "After this lesson the learner can read a meeting note’s Insights tab, work its transcript with search and the line menu, question one meeting or a selection with Ask AI, use a recurring meeting’s series card, and export a note as Markdown or text.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "why",
+      "icon": "🧭",
+      "title": "The summary is the conclusion, the note is the evidence",
+      "bodyMd": "Sandra at **Van Dijk Groep** reads the summary of Tuesday's pipeline call. It says the team discussed pricing pressure and agreed to follow up. True, and useless: she cannot tell whether that was a five-minute exchange or a forty-minute monologue, nor which sentence a customer actually said.\n\nEverything that answers her sits in two places she has not opened yet — the **Insights** tab and the **Transcript** tab in the note's header strip (**Summary · Transcript · Insights · Used by**). This chapter is about reading a note critically, and about questioning it in words."
+    },
+    {
+      "type": "slide",
+      "id": "chips",
+      "icon": "📈",
+      "title": "Three numbers sit above every summary",
+      "bodyMd": "On the **Summary** tab, above the summary text, three chips are always visible:\n\n- **Balance** — a percentage: *how evenly the speaking time was shared*.\n- **Interactivity** — a score out of 10: *how often the conversation changed hands*. A dash means it could not be worked out.\n- **Silence** — a duration: *recording time when nobody spoke*.\n\nThey are the headline only. **Show details** hands you over to the **Insights** tab, where the same data is broken out across five views. If a note is too thin to measure, the panel simply says *\"Not enough data for insights on this meeting.\"*"
+    },
+    {
+      "type": "sim",
+      "id": "tabs",
+      "icon": "🧩",
+      "title": "Which view answers which question?",
+      "instruction": "Sandra has five questions about the pipeline call. Match each one to the Insights sub-tab that answers it.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "p1",
+            "left": "Give me the headline facts of this meeting on one screen",
+            "right": "Overview",
+            "note": "Overview is a row of headline cards: longest monologue, most questions asked, biggest topic, open action items, people who spoke."
+          },
+          {
+            "id": "p2",
+            "left": "Did everyone get a word in, or did one person hold the floor?",
+            "right": "People",
+            "note": "People lists talk time per speaker, plus pace, turns, questions and listening time."
+          },
+          {
+            "id": "p3",
+            "left": "Was this a real exchange, or a series of monologues with gaps?",
+            "right": "Flow",
+            "note": "Flow shows turn-taking rhythm, airtime over time, who follows whom and the quiet stretches."
+          },
+          {
+            "id": "p4",
+            "left": "Where did the hour go — which subject ate it?",
+            "right": "Topics",
+            "note": "Topics splits the recording time across the note's chapters and counts the keywords that were said."
+          },
+          {
+            "id": "p5",
+            "left": "What did this meeting leave behind, and who is on the hook?",
+            "right": "Follow-up",
+            "note": "Follow-up counts open actions, actions without an owner, deadlines and unanswered questions."
+          }
+        ]
+      }
+    },
+    {
+      "type": "slide",
+      "id": "overview-people",
+      "icon": "👥",
+      "title": "Overview and People",
+      "bodyMd": "**Overview** is a row of headline cards — **Longest monologue**, **Most questions asked**, **Biggest topic**, **Open action items**, **People who spoke**, **Attention spent**. Cards that point at a moment are clickable: *\"Jump to this moment\"* seeks the player to it.\n\n**People** lists every speaker with their talk time; your own row floats to the top with a **you** marker. Per speaker you get **Pace** in wpm (*words per minute while speaking*), **Turns** with an average length, **Questions**, and **Listening** (*recording time while somebody else had the floor*). Attendees you typed in but who were never recorded speaking appear under **Did not speak**."
+    },
+    {
+      "type": "quiz",
+      "id": "q-people",
+      "question": "The People tab shows Ingrid with \"Questions 2\", but Bart is sure she asked far more than that. Before he distrusts the whole tab, what should he know?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "The Questions figure counts lines that end in a question mark — its own tooltip calls it a rough signal, not an exact count.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Per-person statistics must be switched off for the organisation.",
+          "correct": false,
+          "feedback": "Then the People tab would be disabled altogether and a line would read \"Per-person statistics are disabled by your organization.\" A row with numbers in it is a row that was counted."
+        },
+        {
+          "id": "c",
+          "label": "Regenerating the summary will recount them.",
+          "correct": false,
+          "feedback": "Regenerating rewrites the summary and what is extracted from it. These counts are read off the transcript's own lines, which a regeneration does not change."
+        },
+        {
+          "id": "d",
+          "label": "Only the note's owner sees the real figures; readers see rounded ones.",
+          "correct": false,
+          "feedback": "Readers and the owner see the same insight figures. What is kept for the owner alone is the voice-profile matching behind the speaker names, not these counts."
+        }
+      ],
+      "explanation": "Insights are derived from the transcript, so they inherit its rough edges. Read them as signals that tell you where to look, then confirm the detail on the Transcript tab."
+    },
+    {
+      "type": "slide",
+      "id": "flow-topics",
+      "icon": "🌊",
+      "title": "Flow and Topics",
+      "bodyMd": "**Flow** is the shape of the conversation over time: **Turn-taking rhythm** (*speaker changes per time block — tall means a lively exchange*), **Airtime over time**, **Who follows whom**, **Time in long monologues** (uninterrupted stretches of 90 seconds or more), and **Quiet stretches**, where the first and last gaps read *\"Before the first word\"* and *\"After the last word\"*. Too short a recording and it says so instead.\n\n**Topics** works off the note's chapters and keywords: **Time per topic**, **Action items per topic**, **Keywords mentioned**. With neither of those, the tab has nothing to draw and sits greyed out; its own empty text is *\"No chapters were detected for this meeting. Regenerate the summary to add them.\"*"
+    },
+    {
+      "type": "quiz",
+      "id": "q-greyed",
+      "question": "Sandra opens Insights on a short supplier call. The \"Topics\" tab is greyed out and will not open. What is going on?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "This note produced neither chapters nor keywords, so Topics has nothing to draw — and chapters come out of summary generation, so regenerating the summary is what can produce them.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Her organisation switched per-person statistics off.",
+          "correct": false,
+          "feedback": "That takes away the People tab and adds the line \"Per-person statistics are disabled by your organization.\" Topics is not about people."
+        },
+        {
+          "id": "c",
+          "label": "The recording is no longer available.",
+          "correct": false,
+          "feedback": "Insights are computed from the stored transcript and the note's own fields. Missing audio blocks Re-transcribe and playback, not the tabs."
+        },
+        {
+          "id": "d",
+          "label": "Insights only work on notes you own.",
+          "correct": false,
+          "feedback": "Anyone who may read the note sees its insights. Ownership decides who may rename, re-transcribe, edit speakers or delete."
+        }
+      ],
+      "explanation": "A tab with nothing behind it is disabled rather than hidden, so the absence is itself information: this note never produced chapters."
+    },
+    {
+      "type": "slide",
+      "id": "followup",
+      "icon": "✅",
+      "title": "Follow-up: the work the meeting created",
+      "bodyMd": "The **Follow-up** tab carries a badge with the number of open actions, and inside it the counts **Open**, **Without an owner** (*nobody was named for these — they usually stall*), **With a deadline**, and — when anything is late — **Past their deadline**. Under **Per person** you see how the follow-up work is spread, with an overdue count beside each name.\n\nBelow that sit **Decisions made** with a per-hour figure, and **Left unanswered** — questions that were raised on the recording and never resolved, each one clickable back to the moment it was asked. That last list is the one worth reading out loud at the end of a meeting."
+    },
+    {
+      "type": "slide",
+      "id": "transcript",
+      "icon": "🔎",
+      "title": "The transcript search is literal, and that is the point",
+      "bodyMd": "The **Transcript** tab opens with **Search transcript…**. It filters the turns down to the segments that contain what you typed and highlights the hit; nothing matching gives you *\"No matching segments.\"*\n\nThis is a plain text match, not an interpretation. That is exactly what you want when you need the sentence in which a price, a date or a name was actually said — an AI answer paraphrases, a search hit does not. Beside the search box the speaker legend filters the list to one voice, and every timestamp seeks the player to that moment."
+    },
+    {
+      "type": "slide",
+      "id": "linemenu",
+      "icon": "🧾",
+      "title": "\"What is this line?\"",
+      "bodyMd": "Every turn has a menu called **What is this line?** with five choices:\n\n- **Action** — make it an action item on this note.\n- **Decision** — record it as a decision.\n- **To a knowledge base** — file the line as knowledge.\n- **Row in a table** — append it to a datatable.\n- **Copy quote** — put the text on your clipboard.\n\nWhere a line has already been classified, the entry reads **Already an action** or **Already a decision** instead. Beside the transcript, **Pulled from this transcript** keeps the running counts of **Action items**, **Decisions** and **Open questions**, plus **Filed as knowledge** — empty until you file something."
+    },
+    {
+      "type": "sim",
+      "id": "order",
+      "icon": "🧩",
+      "title": "From a vague memory to a tracked action",
+      "instruction": "Bart remembers the supplier saying something about the price tiers, but not what. Put the five moves in the order that gets it onto the note.",
+      "sim": {
+        "kind": "order",
+        "items": [
+          {
+            "id": "a",
+            "label": "Type \"staffel\" into \"Search transcript…\" so only the turns that mention it remain"
+          },
+          {
+            "id": "b",
+            "label": "Click the timestamp on the matching line to hear it back in the player"
+          },
+          {
+            "id": "c",
+            "label": "Open that line's \"What is this line?\" menu"
+          },
+          {
+            "id": "d",
+            "label": "Choose \"Action\""
+          },
+          {
+            "id": "e",
+            "label": "Check that the Action items count under \"Pulled from this transcript\" went up"
+          }
+        ],
+        "solution": [
+          "a",
+          "b",
+          "c",
+          "d",
+          "e"
+        ],
+        "feedback": "Search narrows, playback confirms the words really were said, the line menu files them, and the counters beside the transcript are your receipt."
+      }
+    },
+    {
+      "type": "quiz",
+      "id": "q-marked",
+      "question": "Bart opens \"What is this line?\" on the line he just found. Where \"Action\" normally sits, the menu reads \"Already an action\". What does that tell him?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "This note already carries an action item from that line — either from the extraction after transcription, or because someone filed it earlier — so there is nothing to file again.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "The line belongs to another person's action item and he must ask them to release it.",
+          "correct": false,
+          "feedback": "The marks belong to the note, not to a person. It is telling him the note already holds an action from this line."
+        },
+        {
+          "id": "c",
+          "label": "The line is locked and can no longer be copied or filed anywhere.",
+          "correct": false,
+          "feedback": "The marker only reports that an action from this line already exists on the note. It is a label, not a lock on the line."
+        },
+        {
+          "id": "d",
+          "label": "He should pick \"Decision\" instead so the line is not lost.",
+          "correct": false,
+          "feedback": "A decision is not a fallback for an action. Label the line for what was said; the marker is information, not an obstacle."
+        }
+      ],
+      "explanation": "The marker exists to stop you duplicating work. The action itself lives under Action items on the Summary tab, which is where you edit it, give it an owner or tick it off."
+    },
+    {
+      "type": "slide",
+      "id": "askai",
+      "icon": "💬",
+      "title": "Ask this one meeting",
+      "bodyMd": "The **Ask AI** toggle in the note header opens **Ask about this meeting**, a chat whose composer reads *\"Ask anything about this meeting…\"*. It is scoped to this transcript and nothing else — no other note, no knowledge base.\n\nThree starters are offered: **Summarize the key decisions made**, **List open questions**, and **Draft a follow-up email** — which names the attendees stored on the note when there are any. The draft stays in the chat: you copy it out and send it from your own mail client.\n\nBecause the chat only ever sees this one transcript, it is the right tool for \"what did we agree\" and the wrong one for \"what did we agree the previous three times\". That question has its answers elsewhere, and the next two steps are both of them: the **Previously in this series** card for the meeting before this one, and the **AI report** for a run of meetings."
+    },
+    {
+      "type": "slide",
+      "id": "series",
+      "icon": "🔁",
+      "title": "A recurring meeting carries its own history",
+      "bodyMd": "Ask AI cannot reach last month’s call — but a recurring note often does not need it to. Meetings recorded from the **same Meet code or the same Talk room** form a **series**, and on the **Summary** tab of the newest note sits a card headed **Previously in this series**: the previous note’s title and date, two lines of its summary, and under **Still open** the action items from that meeting nobody has ticked off (five of them, then a `+n`). **Open note** jumps straight to it.\n\nThe card puts itself there, and only when there is something to show — an imported Talk or Meet note, with an earlier note in that same room that you are allowed to read. A microphone recording or an uploaded file belongs to no room, so it never gets one, and neither does the first meeting of a series.\n\nRead it before the meeting starts: it is the standing answer to *\"what did we leave open last time?\"*. It reaches exactly one meeting back, though — *\"what did we agree the previous three times\"* is still a job for the report in the next step."
+    },
+    {
+      "type": "slide",
+      "id": "report",
+      "icon": "📚",
+      "title": "Ask several meetings at once",
+      "bodyMd": "A question that spans meetings needs the other tool. In the library rail, **AI report** turns the list into select mode — the counter reads *\"{selected}/10 selected — click meetings to select\"* — then **Ask AI** takes your question and returns one report that cites the meetings it used. **Cancel selection** backs out.\n\nThe limits are worth remembering: at most **10** notes per report, and a question of at most **4000** characters. Notes that are still transcribing or that failed cannot be picked; they are greyed out with the tooltip *\"This meeting is not ready yet\"*."
+    },
+    {
+      "type": "exercise",
+      "id": "ex",
+      "icon": "🎯",
+      "exerciseId": "ex-meetings-insights-scope",
+      "title": "Your turn: pick the scope, then write the question",
+      "instruction": "Month end at Van Dijk Groep. Write two short lines. Line 1: the question you would type into Ask AI on the single pipeline call you have open. Line 2: name the tool you would use instead if a colleague disputes a price and you need the exact sentence in which it was said — and say in one clause why that tool and not the other. A strong answer shows you know Ask AI is scoped to one transcript, that an AI report spans up to ten notes and cites them, and that literal wording comes from the transcript search.",
+      "placeholder": "e.g. Ask AI: \"Which objections did the customer raise about the tiered price, and what did we promise in return?\" — For the exact wording I would use Search transcript… on the note, because it matches the words as spoken instead of summarising them.",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "action",
+      "id": "do",
+      "icon": "🏗️",
+      "checkId": "meeting-line-filed",
+      "title": "Work one note the way this lesson describes",
+      "instruction": "Open a finished meeting note of your own. Read one thing off the Insights tab, then go to the Transcript tab, search for a word you remember, open \"What is this line?\" on a hit and choose \"Action\". We check that a note of your own is in the list; the Actions tab shows what you filed.",
+      "launch": {
+        "navigateTo": "studio/meetingNotes",
+        "label": "Open Meeting Notes"
+      }
+    },
+    {
+      "type": "slide",
+      "id": "exports",
+      "icon": "📤",
+      "title": "Handing a note to someone outside Bee Flow",
+      "bodyMd": "Colleagues read a note because you gave them access. Anyone else — an accountant, a customer, the supplier from the call — needs a file, and the file comes out of the ⋯ **More actions** menu in the header. It holds **Copy transcript**, **Edit speakers**, **Export as Markdown**, **Export as Text**, **Re-transcribe** and **Delete**.\n\nBoth exports download one file named after the note, holding the same content: title, date, duration, speakers, the summary, the action items (done ones ticked) and the full transcript. **Export as Markdown** keeps the structure — headings, checkboxes — for pasting into a document. **Export as Text** is flat, with plain rules between the blocks: the one to paste into an email.\n\nTwo things worth knowing. Anyone who may read the note may export it, not only the owner — publishing a note hands out its transcript as a file too. And the download is stamped as a data-portability export of your meeting notes, which is what makes a later access request answerable. **Copy transcript** is the quick sibling: the turns on your clipboard, no summary, no file."
+    },
+    {
+      "type": "slide",
+      "id": "recap",
+      "icon": "🏁",
+      "title": "What you can do now",
+      "bodyMd": "- Read **Balance**, **Interactivity** and **Silence** above a summary, and open **Insights** for the five views behind them: **Overview**, **People**, **Flow**, **Topics**, **Follow-up** — knowing that a greyed tab means the note has nothing to show there.\n- Use **Search transcript…** when you need words as spoken, and **What is this line?** to turn one of those lines into an action, a decision, a knowledge entry, a table row, or just a copied quote.\n- Question a single note with **Ask AI**, and up to ten notes at once with **AI report** in the library.\n- Let a recurring meeting carry its own history: **Previously in this series** on the Summary tab shows the last instalment and what it left open. For a reader outside Bee Flow, ⋯ **More actions** → **Export as Markdown** or **Export as Text**."
+    }
+  ],
+  "rubrics": {
+    "ex-meetings-insights-scope": {
+      "title": "Choosing the right scope for the question",
+      "task": "Write the question to put to Ask AI on one meeting note, then name the tool for retrieving the exact sentence in which something was said, with a one-clause reason.",
+      "criteria": [
+        "Line 1 is a real, answerable question about one meeting's content — not a request that needs other meetings, other systems or data the note does not hold.",
+        "Line 2 names the transcript search (\"Search transcript…\") for literal wording, rather than Ask AI or an AI report.",
+        "The reason given distinguishes a literal text match from an AI answer that summarises or paraphrases.",
+        "The answer shows awareness that Ask AI is scoped to the one open transcript, while an AI report covers a selection of up to ten notes and cites them."
+      ],
+      "passScore": 70,
+      "guidance": "Do not pass an answer that proposes the AI report for a single-meeting question, or that claims Ask AI can search other meetings or knowledge bases. Do not pass a vague line 2 such as \"I would look it up in the note\" with no tool named. A correct tool choice with a thin reason may pass at the low end; a wrong tool choice may not pass, however well written."
+    }
+  },
+  "practiceTopic": {
+    "title": "Meeting insights and the transcript tools",
+    "summary": "The three headline chips, the five Insights sub-tabs and what each measures, the transcript search and line menu, the two ways to ask a meeting a question, and the series card on a recurring meeting.",
+    "facts": [
+      "Three chips sit above every summary: Balance (a percentage — how evenly speaking time was shared), Interactivity (a score out of 10 — how often the conversation changed hands) and Silence (recording time when nobody spoke).",
+      "The Insights tab has five sub-tabs: Overview, People, Flow, Topics and Follow-up. A sub-tab with no data is disabled rather than hidden, and the whole panel can read \"Not enough data for insights on this meeting.\"",
+      "The People tab shows talk time, Pace in words per minute, Turns with an average, Questions (lines ending in a question mark — a rough signal) and Listening; attendees never recorded speaking appear under \"Did not speak\".",
+      "Flow shows turn-taking rhythm, airtime over time, who follows whom and the quiet stretches, and says a recording is too short when it is; Topics is built from the note's chapters and keywords, and its empty text points you at regenerating the summary to add chapters.",
+      "The Follow-up tab badges the number of open actions and counts Open, Without an owner, With a deadline and Past their deadline, plus decisions per hour and the questions left unanswered.",
+      "\"Search transcript…\" on the Transcript tab filters the turns down to segments containing the typed text, and shows \"No matching segments.\" when nothing hits.",
+      "The per-line menu \"What is this line?\" offers Action, Decision, To a knowledge base, Row in a table and Copy quote, and reads \"Already an action\" or \"Already a decision\" on a line already classified.",
+      "\"Ask AI\" in the note header is scoped to that one transcript; \"AI report\" asks across at most 10 selected notes (question ≤ 4000 characters) and cites them; a note from a recurring Meet code or Talk room also shows a \"Previously in this series\" card with what it left open."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "meeting-line-filed",
+      "existing": false,
+      "label": "File a transcript line as an action",
+      "hint": "Open a completed note you own, go to its Transcript tab, open \"What is this line?\" on a line and choose \"Action\".",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/transcriptions",
+          "returns": "{ transcriptions: [ { id, title, status: 'processing'|'completed'|'failed', isOwner, ownerId, actionsTotal, actionsOpen, tags } ] } — default limit 50, max 100"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "completed",
+          "label": "A meeting note of your own is in the list",
+          "hint": "Record or upload one first if the list is empty. Whether the note is finished, and the action you filed off a transcript line, live inside the note where this check cannot look.",
+          "rule": "GET /api/transcriptions → transcriptions[] holds a row whose ownerId is the learner (status and actionsTotal are per row and not readable by the runtime)",
+          "endpoint": "/api/transcriptions",
+          "expect": {
+            "kind": "rows",
+            "field": "transcriptions"
+          }
+        }
+      ]
+    }
+  ]
+}

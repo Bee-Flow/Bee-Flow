@@ -1,0 +1,730 @@
+server {
+    listen 80;
+    server_name localhost;
+
+    # Hide Nginx version in responses
+    server_tokens off;
+
+    # DNS resolver for the dynamic ($backend) upstreams below.
+    #
+    # 127.0.0.11 is DOCKER'S embedded DNS and does not exist in Kubernetes,
+    # where CoreDNS has its own ClusterIP. That went unnoticed for a long time
+    # because the only consumer was `location /api/`, and the Kapsule ingress
+    # routes /api straight to the server Service — nginx never saw it. The
+    # moment page loads started going through @render, every request in k8s
+    # hung on an unreachable resolver until the 30s default timeout, the
+    # readiness probe on / gave up after 1s, and the pod crash-looped.
+    #
+    # Overridable per environment (see NGINX_ENVSUBST_FILTER in the manifest);
+    # the image defaults it to Docker's so a plain `docker compose up` is
+    # unchanged.
+    resolver ${NGINX_RESOLVER} valid=30s ipv6=off;
+    # Fail fast rather than hanging a page load. If DNS is wrong the request
+    # falls through to @shell and the visitor gets the client-rendered site.
+    resolver_timeout 3s;
+    set $backend "http://${SERVER_HOST}:${SERVER_PORT}";
+
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # Allow large file uploads (knowledge base docs, etc.)
+    client_max_body_size 100m;
+
+    # Gzip compression.
+    #
+    # `gzip_comp_level` was unset, which means nginx's default of 1 — and level 1
+    # on the entry stylesheet costs 12.7 KB over level 6 (59,728 → 47,069 bytes
+    # measured against the real build). That sits on the render-blocking path, so
+    # it is paid before anything paints. Level 6 is the usual sweet spot; 9 buys
+    # a further 1 KB for materially more CPU. Bounded risk: /assets/ is
+    # content-hashed and served `immutable`, so each file is compressed rarely
+    # and cached everywhere afterwards.
+    #
+    # image/svg+xml was missing from the type list, so the CMS artwork (the hive
+    # graphic and the logo, both text) shipped uncompressed.
+    gzip on;
+    gzip_comp_level 6;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript image/svg+xml;
+
+    # ── Content-Security-Policy — ONE definition, used everywhere ──────────────
+    #
+    # `add_header` in a location replaces the entire inherited set, so every
+    # block that adds a header of its own must re-declare the policy. It used to
+    # re-declare it by VALUE — five copies that had already drifted apart (the
+    # server-level copy had lost worker-src, the /chat/ copy had lost the
+    # OpenObserve connect-src source). Drift between copies of a security header
+    # is how one response ends up protected and the next one does not, so the
+    # value now lives here once and every block emits the variable.
+    #
+    # Safe against the template renderer: envsubst only substitutes the braced
+    # UPPERCASE names it is handed, and nginx variables are lowercase and
+    # unbraced (see docker-entrypoint.d/18-beeflow-template-vars.envsh).
+    #
+    # script-src — no blanket `https:`.
+    #   `https:` allowed a script from ANY https host, which is close to not
+    #   having a script-src at all: the payload for a stored-XSS in this app —
+    #   and it has plenty of dangerouslySetInnerHTML/innerHTML sinks rendering
+    #   user- and CMS-authored content — is a one-line
+    #   <script src="https://attacker/x.js">. Only the hosts the app genuinely
+    #   loads code from are listed:
+    #     • cdn.jsdelivr.net — @monaco-editor/react fetches the Monaco AMD
+    #       loader from jsdelivr (its built-in default; nothing in the app calls
+    #       loader.config to relocate it). Remove this and every code editor in
+    #       the admin UI stops rendering.
+    #     • ${GA_ORIGIN} — Google Tag Manager (gtag.js), injected by
+    #       marketing/components/GoogleAnalyticsTracker.jsx when a CMS site has
+    #       a GA measurement id configured. EMPTY by default and
+    #       only to be set to https://www.googletagmanager.com on deployments
+    #       that actually run Google Analytics. It is deliberately not hard-coded
+    #       like the others: GTM is a documented CSP bypass vector, because a
+    #       container can be configured in the GTM console to inject arbitrary
+    #       script — so allow-listing it hands script-execution rights to
+    #       whoever holds that console, and undoes much of the benefit of having
+    #       removed the blanket `https:`. An install with no GA should not carry
+    #       that trade at all.
+    #     • https://esm.sh — the Webpages React/MUI preview. buildWebpagePreview.js
+    #       bundles the project with esbuild-wasm into ONE inline module whose
+    #       only external imports are esm.sh URLs resolved through an import map,
+    #       and mounts it as an iframe `srcDoc` — a srcdoc document inherits the
+    #       EMBEDDER's CSP, so this policy governs those imports. Dropping it
+    #       breaks the preview only in nginx-served deploys (Vite dev has no
+    #       CSP), which is exactly the blind spot noted further down. The backend
+    #       already allows the same origin for the published tier — see
+    #       server/routes/publicViewer.js.
+    #     • ${ANALYTICS_ORIGIN} — the Umami tracker/session-recorder script.
+    #       This is now REQUIRED for ANY external analytics origin, https
+    #       included; the blanket `https:` used to cover public stats domains
+    #       silently. Set it to the tracker's origin (e.g.
+    #       https://stats.example.com or http://localhost:3000).
+    #
+    # 'unsafe-inline' and 'unsafe-eval' are NOT removable here, and both were
+    # verified against the built bundle rather than assumed:
+    #   • inline scripts are structural — index.html carries the pre-React theme
+    #     bootstrap AND the <script type="importmap"> that pins the single-React
+    #     contract (import maps are governed by script-src), and the GA tracker
+    #     injects an inline gtag() init block. Nonces would have to be minted by
+    #     the server renderer and threaded through @render/@shell/index.html.
+    #   • runtime code generation is real: @serenity-kit/opaque ships the
+    #     wasm-bindgen glue (`new Function(...)`) that OPAQUE login runs on, and
+    #     mermaid bundles d3-dsv's row-parser factory (also `new Function`).
+    #     esbuild-wasm (the Webpages in-browser preview build) and the OPAQUE
+    #     wasm module additionally need WebAssembly compilation, which without
+    #     'unsafe-eval' would require 'wasm-unsafe-eval'. Dropping 'unsafe-eval'
+    #     would break password login before it broke anything else.
+    #
+    # connect-src USED to keep `https: wss:`, on the reasoning that admins point
+    # the app at their own endpoints at runtime so the set is not knowable from
+    # the build — and that the trade was only worth taking "with per-deployment
+    # configuration behind it". A pentest flagged the wildcard as an
+    # exfiltration path, correctly: it permits a POST of anything the page can
+    # read to any HTTPS host on the internet, which is most of what an XSS
+    # would want, and the `unsafe-inline` above means CSP is not stopping the
+    # XSS itself either.
+    #
+    # So the configuration got built instead. What the browser actually connects
+    # to, audited against the bundle rather than assumed:
+    #   • 'self' — every API call. API_BASE is relative (or VITE_API_URL), and
+    #     there is not one absolute fetch('https://…') in agent-hub/src.
+    #   • https://observe.beeflow.nl — the RUM/telemetry beacon
+    #     (src/telemetry/openobserve.js, VITE_OPENOBSERVE_SITE at build time).
+    #   • ${ANALYTICS_ORIGIN} — the Umami tracker, already a variable.
+    #   • ${EXTRA_CONNECT_SRC} — the escape hatch the old comment was asking
+    #     for. Space-separated origins, empty by default. Set it when an
+    #     operator points the browser at an endpoint of their own.
+    #
+    # `wss:` is gone: there is no `new WebSocket` anywhere in the SPA. The two
+    # live streams are EventSource (support inbox), which is plain HTTP to
+    # 'self'. If a websocket feature lands, this is the line it needs.
+    #
+    # img-src keeps `https:` too: CMS pages, agent avatars and the emoji picker
+    # (jsdelivr emoji-datasource) load images from wherever the operator points
+    # them, and an image source is not an execution sink.
+    #
+    # frame-src/object-src 'self' blob: is REQUIRED for the in-app invoice PDF
+    # viewer (BFSF-250) — InvoicePdfModal renders the proxied PDF in an
+    # <iframe src="blob:...">, and without it frames fall back to default-src
+    # 'self', which never matches blob: URLs (Vite dev has no CSP, so this only
+    # ever bit in nginx-served deploys). worker-src 'self' blob: covers Monaco's
+    # blob workers and Umami session replay.
+    #
+    # ${CAPTCHA_ORIGIN} is EMPTY by default and only needs a value when the
+    # operator enables the signup bot challenge (SIGNUP_CAPTCHA_PROVIDER — see
+    # server/auth/signupCaptcha.js). The widget loads a third-party script AND
+    # renders in a third-party iframe, so it needs both script-src and
+    # frame-src; without them CaptchaWidget.jsx fails to load and signup is
+    # blocked with no obvious cause. Space-separated origins per provider:
+    #   turnstile  https://challenges.cloudflare.com
+    #   hcaptcha   https://js.hcaptcha.com https://newassets.hcaptcha.com
+    #   recaptcha  https://www.google.com https://www.gstatic.com
+    set $csp_common "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://esm.sh ${GA_ORIGIN} ${ANALYTICS_ORIGIN} ${CAPTCHA_ORIGIN}; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; worker-src 'self' blob:; frame-src 'self' blob: ${CAPTCHA_ORIGIN}; object-src 'self' blob:; connect-src 'self' https://observe.beeflow.nl ${ANALYTICS_ORIGIN} ${EXTRA_CONNECT_SRC}; base-uri 'self'; form-action 'self'";
+    # Default policy. $csp_embed is the same policy WITHOUT frame-ancestors —
+    # see the /chat/ block for why that one exception exists.
+    set $csp       "$csp_common; frame-ancestors 'self'";
+    set $csp_embed "$csp_common";
+
+    # ── Security headers (server-level) ────────────────────────────────────────
+    #
+    # Drop the backend's own copies of the headers we set here, so a proxied
+    # response carries exactly one of each. helmet sets several of these too;
+    # with both layers emitting them, every API response through this proxy went
+    # out with the header twice — for a while with CONFLICTING values, which is
+    # how a security header stops meaning anything definite. The values agree
+    # now, but one authority is still better than two that happen to match.
+    #
+    # Unlike add_header, proxy_hide_header IS inherited into locations (as long
+    # as no location declares its own), so this one declaration covers all
+    # twenty proxy blocks below. The backend keeps sending them for anyone
+    # reaching it directly, which is the connector and loopback only.
+    proxy_hide_header X-Content-Type-Options;
+    proxy_hide_header X-Frame-Options;
+    proxy_hide_header X-XSS-Protection;
+    proxy_hide_header Referrer-Policy;
+    proxy_hide_header Permissions-Policy;
+    proxy_hide_header Content-Security-Policy;
+
+    add_header X-Content-Type-Options  "nosniff" always;
+    add_header X-Frame-Options         "SAMEORIGIN" always;
+    # X-XSS-Protection: 0 — DISABLING the legacy auditor on purpose, and the
+    # value every block below repeats.
+    #
+    # The API (helmet) already sends `0` on its own responses, so the two layers
+    # used to contradict each other on the same origin: whichever hop answered
+    # decided whether the auditor ran. Browsers that still honour the header
+    # implement it with a reflection heuristic that has its own history of
+    # turning non-issues into information leaks (it can be steered to suppress
+    # legitimate script or to confirm cross-origin content); `1; mode=block`
+    # also turns a false positive into a blank page. Chrome removed the auditor
+    # outright. CSP below is the actual defence.
+    add_header X-XSS-Protection        "0" always;
+    add_header Referrer-Policy         "strict-origin-when-cross-origin" always;
+    add_header Permissions-Policy      "camera=(), microphone=(self), geolocation=(), clipboard-read=(self), clipboard-write=(self)" always;
+    add_header Content-Security-Policy $csp always;
+
+    # ── Self-hosted fonts ──────────────────────────────────────────────────────
+    #
+    # No location matched /fonts/, so the WOFF2 files fell into `location /` and
+    # inherited its `no-store, no-cache, must-revalidate` — a header meant for
+    # the SPA shell, which must never be cached. The effect was that Inter and
+    # Fraunces (85 KB together) were re-downloaded on every single navigation,
+    # and it stayed invisible in Lighthouse because its cache audit skips
+    # no-store resources entirely: the report named two 5 KB CMS SVGs and never
+    # mentioned the two fonts that are seventeen times larger.
+    #
+    # 30 days rather than `immutable`: unlike /assets/, files under public/fonts/
+    # are not content-hashed, so an in-place swap has to stay recoverable.
+    #
+    # NOTE: add_header in a location block overrides all server-level add_header
+    # directives, so the security headers must be re-declared here.
+    location ^~ /fonts/ {
+        add_header Cache-Control "public, max-age=2592000" always;
+        add_header X-Content-Type-Options  "nosniff" always;
+        add_header X-Frame-Options         "SAMEORIGIN" always;
+        add_header X-XSS-Protection        "0" always;
+        add_header Referrer-Policy         "strict-origin-when-cross-origin" always;
+        add_header Permissions-Policy      "camera=(), microphone=(self), geolocation=(), clipboard-read=(self), clipboard-write=(self)" always;
+    }
+
+    # Public agent chat embed (/chat/<agentId>) — must be framable from any
+    # origin so the "Web embed" iframe snippet works on third-party sites
+    # AND inside Bee Flow's own Webpages preview (whose sandbox makes the
+    # parent opaque-origin). We re-declare the security headers here WITHOUT
+    # `X-Frame-Options` and WITHOUT `frame-ancestors` in the CSP. Embedding
+    # is opt-in per-agent via the `embed_enabled` flag enforced by the chat
+    # metadata API; that's the trust gate, not framing policy.
+    #
+    # NOTE: `try_files … /index.html` would internal-redirect into
+    # `location /`, and `add_header` directives from the original location
+    # are NOT applied to responses served from a redirected location. So we
+    # use `rewrite … break` instead — it rewrites the URI to /index.html
+    # but keeps the request in this location, so our header block actually
+    # wins.
+    location ~ ^/chat/ {
+        root /usr/share/nginx/html;
+        rewrite ^ /index.html break;
+        add_header Cache-Control "no-store, no-cache, must-revalidate" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header Referrer-Policy        "strict-origin-when-cross-origin" always;
+        add_header Permissions-Policy     "camera=(), microphone=(self), geolocation=(), clipboard-read=(self), clipboard-write=(self)" always;
+        # $csp_embed, not $csp: identical policy minus frame-ancestors, so this
+        # one route stays framable from a third-party origin.
+        add_header Content-Security-Policy $csp_embed always;
+    }
+
+    # ── Embedded SPA shell for the Nextcloud connector ───────────────────────
+    # The connector proxies its embedded SPA shell here (instead of baking its
+    # own copy) so a frontend deploy reaches the embedded view without a
+    # connector release. This is the `dist-embed` build (Vite --base +
+    # VITE_API_URL = NC's signed-proxy path). `^~` makes these prefixes win
+    # over `location /`; longest-prefix picks /embed/assets/ over /embed/.
+    # Uses the server-level `root`, so /embed/<x> → <root>/embed/<x> 1:1 —
+    # avoiding the alias+try_files pitfalls.
+    # Runtime settings written at container start. Never cached: a stale copy
+    # would keep telemetry on for a browser after the operator turned it off,
+    # which is the exact failure this file exists to prevent.
+    location = /beeflow-runtime.js {
+        add_header Cache-Control "no-store, no-cache, must-revalidate" always;
+        add_header X-Content-Type-Options "nosniff" always;
+    }
+
+    location ^~ /embed/assets/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable" always;
+        add_header X-Content-Type-Options  "nosniff" always;
+        add_header Referrer-Policy         "strict-origin-when-cross-origin" always;
+        add_header Permissions-Policy      "camera=(), microphone=(self), geolocation=(), clipboard-read=(self), clipboard-write=(self)" always;
+    }
+    location ^~ /embed/ {
+        try_files $uri $uri/ /embed/index.html;
+        add_header Cache-Control "no-store, no-cache, must-revalidate" always;
+        add_header X-Content-Type-Options  "nosniff" always;
+        add_header Referrer-Policy         "strict-origin-when-cross-origin" always;
+        add_header Permissions-Policy      "camera=(), microphone=(self), geolocation=(), clipboard-read=(self), clipboard-write=(self)" always;
+    }
+
+    # ── Azure AD publisher-domain verification ───────────────────────────────────
+    # Microsoft fetches this exact file and requires `application/json`. Without
+    # this block it falls into `location /` below and gets index.html (text/html),
+    # which fails verification. Proxy to the Node backend, which serves it
+    # cloud-only (gated on DEPLOYMENT_MODE in server/routes/wellKnown.js) so the
+    # app ID is never baked into the shared image. `location =` (exact) wins over
+    # the `location /` prefix regardless of order.
+    location = /.well-known/microsoft-identity-association.json {
+        proxy_pass $backend;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # ── security.txt (RFC 9116) ──────────────────────────────────────────────────
+    # Same reason as the block above: without an exact-match location this path
+    # falls into `location /` and a researcher looking for a way to report a
+    # vulnerability gets the SPA shell — a 200 full of HTML with no contact in
+    # it, which reads as "there is no channel here". The backend renders the
+    # real file (server/routes/wellKnown.js) so the contact address follows the
+    # DEPLOYMENT's configuration instead of being baked into the shared image.
+    location = /.well-known/security.txt {
+        proxy_pass $backend;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Legacy top-level path. RFC 9116 §3 makes /.well-known/security.txt the
+    # canonical location for web properties but scanners and humans still try
+    # /security.txt first, so serve the same document there. proxy_pass carries
+    # an explicit URI, which replaces the request URI for this exact location —
+    # the backend only mounts the router under /.well-known.
+    location = /security.txt {
+        proxy_pass $backend/.well-known/security.txt;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Health endpoint for the kubelet probes.
+    #
+    # It MUST be served by nginx itself. Both probes used to hit `/`, which
+    # after the render change meant the FRONTEND's liveness depended on the
+    # backend being reachable and fast — so a slow API would restart healthy
+    # web pods, which is exactly backwards.
+    location = /healthz {
+        access_log off;
+        add_header Content-Type text/plain always;
+        return 200 "ok";
+    }
+
+    # The homepage needs its own exact-match block. `index index.html;` at the
+    # server level resolves "/" to /index.html on disk, so `try_files $uri` in
+    # `location /` matched the file and never reached @render — the single most
+    # important page on the site was the one page still served un-rendered.
+    # try_files with a path that cannot exist forces the named fallback.
+    location = / {
+        try_files /__render_homepage__ @render;
+    }
+
+    # Handle SPA routing.
+    #
+    # A non-file request no longer goes straight to index.html — it goes to the
+    # backend's renderer (@render), which returns the SAME shell with the page's
+    # real <head> and its text already in #root. That is what makes the site
+    # crawlable: before this, every URL served `<div id="root"></div>` plus the
+    # app's default title, and social scrapers (LinkedIn, Slack, X) do not run
+    # JavaScript, so every shared link previewed as "Bee Flow - AI / Chat with
+    # AI agents powered by Bee Flow".
+    #
+    # NOTE: add_header in a location block overrides all server-level add_header
+    # directives, so security headers must be re-declared here.
+    location / {
+        try_files $uri $uri/ @render;
+        add_header Cache-Control "no-store, no-cache, must-revalidate" always;
+        add_header X-Content-Type-Options  "nosniff" always;
+        add_header X-Frame-Options         "SAMEORIGIN" always;
+        add_header X-XSS-Protection        "0" always;
+        add_header Referrer-Policy         "strict-origin-when-cross-origin" always;
+        add_header Permissions-Policy      "camera=(), microphone=(self), geolocation=(), clipboard-read=(self), clipboard-write=(self)" always;
+        # CSP for the SPA document — defined once at server level ($csp).
+        add_header Content-Security-Policy $csp always;
+    }
+
+    # ── Server-rendered marketing pages ──────────────────────────────────────────
+    # Everything `location /` could not answer from disk lands here. The backend
+    # fills in <head> (title, description, canonical, og/twitter, hreflang,
+    # JSON-LD) and puts the page's text inside #root, then React mounts over it.
+    #
+    # FALLBACK IS MANDATORY, NOT DEFENSIVE: routing page loads through the API
+    # means an API outage would otherwise take the marketing site down with it.
+    # `proxy_intercept_errors` + @shell degrade to the old client-rendered
+    # behaviour instead — the visitor gets a working page, just without the
+    # server-side head.
+    location @render {
+        proxy_pass $backend$request_uri;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_connect_timeout 2s;
+        proxy_read_timeout 5s;
+
+        proxy_intercept_errors on;
+        error_page 404 500 502 503 504 = @shell;
+
+        # No Cache-Control here on purpose — the renderer sets its own and it
+        # passes through. This block used to add "no-store", which both
+        # duplicated the header and contradicted the upstream's: server-rendered
+        # marketing HTML is anonymous and identical for everyone, so forbidding
+        # every cache in the chain meant each navigation paid a full origin round
+        # trip. Failures never reach here anyway — error_page above hands 404s
+        # and 5xxs to @shell, which still sends no-store for the un-rendered
+        # shell. See routes/publicRender.js for the caching rationale.
+        add_header X-Content-Type-Options  "nosniff" always;
+        add_header X-Frame-Options         "SAMEORIGIN" always;
+        add_header X-XSS-Protection        "0" always;
+        add_header Referrer-Policy         "strict-origin-when-cross-origin" always;
+        add_header Permissions-Policy      "camera=(), microphone=(self), geolocation=(), clipboard-read=(self), clipboard-write=(self)" always;
+        # CSP for the SPA document — defined once at server level ($csp).
+        add_header Content-Security-Policy $csp always;
+    }
+
+    # The un-rendered shell. Reached when the backend is unreachable, or when it
+    # declined the path (404) because no published CMS page matches it — the app
+    # router then resolves it client-side exactly as it always did.
+    location @shell {
+        root /usr/share/nginx/html;
+        try_files /index.html =404;
+
+        add_header Cache-Control "no-store, no-cache, must-revalidate" always;
+        add_header X-Content-Type-Options  "nosniff" always;
+        add_header X-Frame-Options         "SAMEORIGIN" always;
+        add_header X-XSS-Protection        "0" always;
+        add_header Referrer-Policy         "strict-origin-when-cross-origin" always;
+        add_header Permissions-Policy      "camera=(), microphone=(self), geolocation=(), clipboard-read=(self), clipboard-write=(self)" always;
+        # CSP for the SPA document — defined once at server level ($csp).
+        add_header Content-Security-Policy $csp always;
+    }
+
+    # Block source-map files. We build with sourcemap:'hidden' for post-mortem
+    # decoding via CI artifacts, but never want them to leak publicly.
+    location ~* \.map$ {
+        return 404;
+    }
+
+    # Vite assets are hashed (e.g. assets/index.1234.js), so we can cache them forever
+    location /assets/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable" always;
+        add_header X-Content-Type-Options  "nosniff" always;
+        add_header X-Frame-Options         "SAMEORIGIN" always;
+        add_header X-XSS-Protection        "0" always;
+        add_header Referrer-Policy         "strict-origin-when-cross-origin" always;
+        add_header Permissions-Policy      "camera=(), microphone=(self), geolocation=(), clipboard-read=(self), clipboard-write=(self)" always;
+    }
+
+    # ── Meeting-notes audio upload ───────────────────────────────────────────
+    # The API accepts audio up to 500 MB (the multer cap in
+    # server/routes/transcriptions.js), so the proxy in front of it must not be
+    # the one that says no: at the server-level 100 MB a long recording was
+    # refused here, before routing, and the browser got a bare "HTTP 413" with
+    # no JSON body — no engine, no note, nothing to retry.
+    #
+    # Scoped to this one prefix so the 100 MB default keeps guarding every
+    # other endpoint. `^~` makes it win over `location /api/` without a regex.
+    # Request buffering is off so a large upload streams straight through
+    # instead of being spooled to disk first, and the timeouts match the
+    # client's 10-minute upload abort.
+    location ^~ /api/transcriptions {
+        client_max_body_size 512m;
+        proxy_request_buffering off;
+        proxy_pass $backend;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 600s;
+        proxy_send_timeout 600s;
+        proxy_buffering off;
+    }
+
+    # ── Proxy ALL /api/* requests to the backend server ──────────────────────────
+    # This single block covers all routes under /api/ (notebooks, tasks, projects,
+    # integrations, storage, monitoring, subscriptions, etc.)
+    location /api/ {
+        proxy_pass $backend;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        # $http_host keeps the port (localhost:5176); $host strips it, which
+        # breaks OAuth redirect URIs built from the Host header on non-80/443.
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+        proxy_read_timeout 300s;
+        proxy_buffering off;
+    }
+
+    # Proxy /p/* requests — public webpage viewer (external share links).
+    # Unauthenticated; the server enforces its own gates (token + CSP + rate
+    # limit). Must be proxied because otherwise nginx would serve the SPA
+    # which redirects unauthenticated visitors to the login screen.
+    #
+    # Adding any `add_header` here suppresses inheritance of the server-level
+    # `add_header` directives (nginx behavior), so the backend's strict
+    # per-route CSP isn't shadowed by the SPA's permissive CSP. We re-add
+    # only the headers that are safe to apply uniformly.
+    #
+    # The `proxy_hide_header` block below is NOT redundant with the server-level
+    # one. Those directives de-duplicate headers the app and nginx both set, and
+    # `proxy_hide_header` IS inherited — which quietly broke exactly what the
+    # paragraph above is trying to achieve: the server-level list strips
+    # Content-Security-Policy, so the backend's `default-src 'none'` was being
+    # deleted in transit while this block added no CSP of its own, and the public
+    # viewer went out with no policy at all. Re-declaring the list here replaces
+    # the inherited one (array directives do not merge across levels), so every
+    # header nginx owns is still hidden EXCEPT the CSP, which is the one the
+    # backend is authoritative for on this route.
+    location /p/ {
+        proxy_pass $backend;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_buffering off;
+        proxy_hide_header X-Content-Type-Options;
+        proxy_hide_header X-Frame-Options;
+        proxy_hide_header X-XSS-Protection;
+        proxy_hide_header Referrer-Policy;
+        proxy_hide_header Permissions-Policy;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header Referrer-Policy        "no-referrer" always;
+    }
+
+    # Proxy /auth requests
+    location /auth {
+        proxy_pass $backend;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        # $http_host keeps the port — see /api/ block (OAuth redirect URIs).
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    # Proxy /agents requests (agent CRUD, conversations, memory)
+    location /agents {
+        proxy_pass $backend;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+        proxy_read_timeout 300s;
+        proxy_buffering off;
+    }
+
+    # Proxy /ai requests (direct chat, streaming, config)
+    location /ai {
+        proxy_pass $backend;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+        proxy_read_timeout 300s;
+        proxy_buffering off;
+    }
+
+    # Proxy /components requests
+    location /components {
+        proxy_pass $backend;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    # Proxy /group-chats requests (roundtable / multi-agent chats)
+    location /group-chats {
+        proxy_pass $backend;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    # Proxy /swarms requests
+    location /swarms {
+        proxy_pass $backend;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    # Proxy /browser-agents requests
+    location /browser-agents {
+        proxy_pass $backend;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    # Proxy /terminal-agents requests
+    location /terminal-agents {
+        proxy_pass $backend;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    # Proxy /security-agents requests
+    location /security-agents {
+        proxy_pass $backend;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    # Proxy /apps requests
+    location /apps {
+        proxy_pass $backend;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    # Proxy /versions requests
+    location /versions {
+        proxy_pass $backend;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Proxy /reports requests
+    location /reports {
+        proxy_pass $backend;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    # Proxy /execute requests
+    location /execute {
+        proxy_pass $backend;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    # Proxy /test-component requests
+    location /test-component {
+        proxy_pass $backend;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    # Proxy /speech requests
+    location /speech {
+        proxy_pass $backend;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    # Proxy /uploads requests (generated images, etc.)
+    location /uploads {
+        proxy_pass $backend;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Proxy /download requests (APK download page + file)
+    location /download {
+        proxy_pass $backend;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}

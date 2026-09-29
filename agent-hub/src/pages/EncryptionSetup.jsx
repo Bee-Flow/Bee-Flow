@@ -1,0 +1,433 @@
+import React, { useState } from 'react';
+import { Shield, Key, Copy, Check, Eye, EyeOff, AlertTriangle, Lock, ArrowLeft } from 'lucide-react';
+import { API_BASE, authFetch } from '../utils/helpers';
+import { opaquePinRegister, opaquePinLogin } from '../lib/opaque';
+import { useTranslation } from '../hooks/useTranslation';
+
+/**
+ * EncryptionSetup — Intercepts SSO login when encryption PIN is needed.
+ * 
+ * Four modes:
+ * 1. mode='setup': First-time SSO user — choose a PIN, get recovery key
+ * 2. mode='unlock': Returning SSO user — enter existing PIN to unlock
+ * 3. mode='recovery': Show a recovery key (from login migration or signup)
+ * 4. Internal 'recover' state: Forgot PIN — enter recovery key + new PIN
+ */
+const EncryptionSetup = ({ mode, onComplete, recoveryKeyProp }) => {
+    const { t } = useTranslation();
+    const [pin, setPin] = useState('');
+    const [confirmPin, setConfirmPin] = useState('');
+    const [showPin, setShowPin] = useState(false);
+    const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const [recoveryKey, setRecoveryKey] = useState(recoveryKeyProp || null);
+    const [copied, setCopied] = useState(false);
+    const [showRecovery, setShowRecovery] = useState(false);
+    const [recoveryInput, setRecoveryInput] = useState('');
+    const [newPin, setNewPin] = useState('');
+    const [confirmNewPin, setConfirmNewPin] = useState('');
+
+    const isSetup = mode === 'setup';
+
+    const handleSetup = async () => {
+        setError('');
+        if (pin.length < 6) {
+            setError('PIN must be at least 6 characters');
+            return;
+        }
+        if (pin !== confirmPin) {
+            setError('PINs do not match');
+            return;
+        }
+
+        setIsLoading(true);
+        try {
+            // Try OPAQUE PIN registration first (PIN never sent to server)
+            const result = await opaquePinRegister(pin);
+            if (result.success && result.recoveryKey) {
+                setRecoveryKey(result.recoveryKey);
+                return;
+            }
+        } catch (opaqueErr) {
+            console.warn('[Encryption] OPAQUE PIN setup failed, falling back to legacy:', opaqueErr.message);
+        }
+
+        // Legacy fallback — PIN sent to server (for users without OPAQUE support)
+        try {
+            const res = await authFetch(`${API_BASE}/auth/sso-encryption-setup`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pin })
+            });
+            const data = await res.json();
+            if (res.ok && data.success) {
+                setRecoveryKey(data.recoveryKey);
+            } else {
+                setError(data.error || 'Setup failed');
+            }
+        } catch {
+            setError('Connection error');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleUnlock = async () => {
+        setError('');
+        if (!pin) {
+            setError('Please enter your encryption PIN');
+            return;
+        }
+
+        setIsLoading(true);
+        try {
+            // Try OPAQUE PIN login first (PIN never sent to server)
+            const result = await opaquePinLogin(pin);
+            if (result.success) {
+                onComplete();
+                return;
+            }
+            // `needsSetup` here means only "this account has no opaqueRecord"
+            // (auth/opaqueRoutes.js:487). For an account still on
+            // kdfMode 'legacy_argon2' that is NOT first-time setup: its DEK is
+            // wrapped with Argon2 in users.wrappedDEK, and the legacy endpoint
+            // below unwraps it — and transparently re-wraps it with current
+            // params. Reloading here instead trapped those accounts in a loop
+            // (reload -> PIN screen -> reload) with the PIN never checked and
+            // no error shown, because this early return also skipped the
+            // fallback. Fall through and let the legacy endpoint decide; it
+            // reports genuine first-time setup via its own needsSetup.
+        } catch (opaqueErr) {
+            console.warn('[Encryption] OPAQUE PIN unlock failed, falling back to legacy:', opaqueErr.message);
+        }
+
+        // Legacy fallback
+        try {
+            const res = await authFetch(`${API_BASE}/auth/sso-encryption-unlock`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pin })
+            });
+            const data = await res.json();
+            if (res.ok && data.success) {
+                onComplete();
+            } else if (data.needsSetup) {
+                window.location.reload();
+            } else {
+                setError(data.error || 'Incorrect PIN');
+            }
+        } catch {
+            setError('Connection error');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleRecover = async () => {
+        setError('');
+        if (!recoveryInput.trim()) {
+            setError('Please enter your recovery key');
+            return;
+        }
+        if (newPin.length < 6) {
+            setError('New PIN must be at least 6 characters');
+            return;
+        }
+        if (newPin !== confirmNewPin) {
+            setError('PINs do not match');
+            return;
+        }
+
+        setIsLoading(true);
+        try {
+            const res = await authFetch(`${API_BASE}/auth/sso-recovery`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ recoveryKey: recoveryInput.trim(), newPin })
+            });
+            const data = await res.json();
+            if (res.ok && data.success) {
+                setRecoveryKey(data.recoveryKey);
+                setShowRecovery(false);
+            } else {
+                setError(data.error || 'Recovery failed');
+            }
+        } catch {
+            setError('Connection error');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleCopy = () => {
+        navigator.clipboard.writeText(recoveryKey);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+
+    // Recovery key confirmation screen
+    if (recoveryKey) {
+        return (
+            <div className="min-h-screen flex items-center justify-center p-4"
+                style={{ background: 'linear-gradient(160deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, var(--bg-tertiary) 100%)' }}>
+                <div className="w-full max-w-lg relative z-10">
+                    <div className="backdrop-blur-xl rounded-3xl p-8 shadow-2xl border relative overflow-hidden"
+                        style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)' }}>
+                        <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-[var(--border-default)] to-transparent" />
+
+                        <div className="text-center mb-6">
+                            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center"
+                                style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}>
+                                <Key className="w-8 h-8 text-white" />
+                            </div>
+                            <h1 className="text-xl font-bold text-[var(--text-primary)]">{t('encryption.save_recovery_title', 'Save Your Recovery Key')}</h1>
+                            <p className="text-sm text-[var(--text-secondary)] mt-2">
+                                {t('encryption.save_recovery_desc', "This is the only way to recover your encrypted data if you forget your PIN. Save it somewhere safe — it won't be shown again.")}
+                            </p>
+                        </div>
+
+                        {/* Warning */}
+                        <div className="mb-5 p-3 rounded-lg flex items-start gap-3 text-sm"
+                            style={{ background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.3)', color: '#f59e0b' }}>
+                            <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
+                            <span>{t('encryption.save_recovery_warning', 'If you lose this key and forget your PIN, your encrypted data will be permanently inaccessible.')}</span>
+                        </div>
+
+                        {/* Recovery key display */}
+                        <div className="mb-6">
+                            <div className="p-4 rounded-xl font-mono text-sm text-center tracking-wider break-all select-all"
+                                data-testid="encryption-recovery-key"
+                                style={{ background: 'var(--bg-primary)', border: '2px dashed var(--border-default)', color: 'var(--text-primary)' }}>
+                                {recoveryKey}
+                            </div>
+                            <button onClick={handleCopy}
+                                className="mt-3 w-full py-2.5 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-all"
+                                style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)', border: '1px solid var(--border-default)' }}>
+                                {copied ? <><Check className="w-4 h-4" /> {t('encryption.copied', 'Copied!')}</> : <><Copy className="w-4 h-4" /> {t('encryption.copy_clipboard', 'Copy to clipboard')}</>}
+                            </button>
+                        </div>
+
+                        <button onClick={onComplete}
+                            data-testid="encryption-recovery-saved"
+                            className="w-full py-3 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90"
+                            style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}>
+                            {t('encryption.saved_continue', "I've saved my recovery key — Continue")}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // Recovery flow — forgot PIN
+    if (showRecovery) {
+        return (
+            <div className="min-h-screen flex items-center justify-center p-4"
+                style={{ background: 'linear-gradient(160deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, var(--bg-tertiary) 100%)' }}>
+                <div className="w-full max-w-md relative z-10">
+                    <div className="backdrop-blur-xl rounded-3xl p-8 shadow-2xl border relative overflow-hidden"
+                        style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)' }}>
+                        <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-[var(--border-default)] to-transparent" />
+
+                        {/* Header */}
+                        <div className="text-center mb-6">
+                            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center"
+                                style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)' }}>
+                                <Key className="w-8 h-8 text-white" />
+                            </div>
+                            <h1 className="text-xl font-bold text-[var(--text-primary)]">{t('encryption.recover_title', 'Recover Your Account')}</h1>
+                            <p className="text-sm text-[var(--text-secondary)] mt-2">
+                                {t('encryption.recover_desc', 'Enter your recovery key and choose a new PIN to regain access to your encrypted data.')}
+                            </p>
+                        </div>
+
+                        {/* Error */}
+                        {error && (
+                            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex items-center gap-2 text-red-500 text-sm">
+                                <AlertTriangle className="w-4 h-4 shrink-0" />
+                                {error}
+                            </div>
+                        )}
+
+                        <div className="space-y-4">
+                            {/* Recovery key input */}
+                            <div>
+                                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">
+                                    {t('encryption.recovery_key_label', 'Recovery Key')}
+                                </label>
+                                <textarea
+                                    value={recoveryInput}
+                                    onChange={(e) => setRecoveryInput(e.target.value)}
+                                    placeholder={t('encryption.paste_recovery_placeholder', 'Paste your recovery key here')}
+                                    rows={3}
+                                    className="w-full px-4 py-3 bg-[var(--bg-primary)] border border-[var(--border-default)] rounded-lg text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-transparent transition-all text-sm font-mono"
+                                />
+                            </div>
+
+                            {/* New PIN input */}
+                            <div>
+                                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">
+                                    {t('encryption.new_pin_label', 'New PIN')}
+                                </label>
+                                <div className="relative">
+                                    <input
+                                        type={showPin ? 'text' : 'password'}
+                                        value={newPin}
+                                        onChange={(e) => setNewPin(e.target.value)}
+                                        placeholder={t('encryption.min_six_placeholder', 'Minimum 6 characters')}
+                                        className="w-full px-4 py-3 pr-10 bg-[var(--bg-primary)] border border-[var(--border-default)] rounded-lg text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-transparent transition-all text-sm"
+                                    />
+                                    <button type="button" onClick={() => setShowPin(!showPin)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]">
+                                        {showPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Confirm new PIN */}
+                            <div>
+                                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">
+                                    {t('encryption.confirm_new_pin_label', 'Confirm New PIN')}
+                                </label>
+                                <input
+                                    type={showPin ? 'text' : 'password'}
+                                    value={confirmNewPin}
+                                    onChange={(e) => setConfirmNewPin(e.target.value)}
+                                    placeholder={t('encryption.confirm_new_pin_placeholder', 'Confirm your new PIN')}
+                                    onKeyDown={(e) => { if (e.key === 'Enter') handleRecover(); }}
+                                    className="w-full px-4 py-3 bg-[var(--bg-primary)] border border-[var(--border-default)] rounded-lg text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-transparent transition-all text-sm"
+                                />
+                            </div>
+
+                            <button
+                                onClick={handleRecover}
+                                disabled={isLoading}
+                                className="w-full py-3 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90 disabled:opacity-50"
+                                style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)' }}>
+                                {isLoading ? t('encryption.recovering', 'Recovering…') : t('encryption.recover_set_new_pin', 'Recover & Set New PIN')}
+                            </button>
+
+                            <button
+                                onClick={() => { setShowRecovery(false); setError(''); setRecoveryInput(''); setNewPin(''); setConfirmNewPin(''); }}
+                                className="w-full py-2.5 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-all"
+                                style={{ color: 'var(--text-secondary)' }}>
+                                <ArrowLeft className="w-4 h-4" />
+                                {t('encryption.back_to_pin', 'Back to PIN entry')}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="min-h-screen flex items-center justify-center p-4"
+            style={{ background: 'linear-gradient(160deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, var(--bg-tertiary) 100%)' }}>
+            <div className="w-full max-w-md relative z-10">
+                <div className="backdrop-blur-xl rounded-3xl p-8 shadow-2xl border relative overflow-hidden"
+                    style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)' }}>
+                    <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-[var(--border-default)] to-transparent" />
+
+                    {/* Header */}
+                    <div className="text-center mb-6">
+                        <div className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center"
+                            style={{ background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))' }}>
+                            {isSetup ? <Shield className="w-8 h-8 text-white" /> : <Lock className="w-8 h-8 text-white" />}
+                        </div>
+                        <h1 className="text-xl font-bold text-[var(--text-primary)]">
+                            {isSetup ? t('encryption.setup_title', 'Set Up Data Encryption') : t('encryption.unlock_title', 'Unlock Your Data')}
+                        </h1>
+                        <p className="text-sm text-[var(--text-secondary)] mt-2">
+                            {isSetup
+                                ? t('encryption.setup_desc', 'Choose an encryption PIN to protect your data. This is separate from your SSO login.')
+                                : t('encryption.unlock_desc', 'Enter your encryption PIN to access your encrypted data.')}
+                        </p>
+                    </div>
+
+                    {/* Error */}
+                    {error && (
+                        <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex items-center gap-2 text-red-500 text-sm">
+                            <AlertTriangle className="w-4 h-4 shrink-0" />
+                            {error}
+                        </div>
+                    )}
+
+                    {/* PIN input */}
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">
+                                {isSetup ? t('encryption.choose_pin_label', 'Choose Encryption PIN') : t('encryption.pin_label', 'Encryption PIN')}
+                            </label>
+                            <div className="relative">
+                                <input
+                                    type={showPin ? 'text' : 'password'}
+                                    value={pin}
+                                    onChange={(e) => setPin(e.target.value)}
+                                    placeholder={isSetup ? t('encryption.min_six_placeholder', 'Minimum 6 characters') : t('encryption.enter_pin_placeholder', 'Enter your PIN')}
+                                    data-testid="encryption-pin"
+                                    autoFocus
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && !isSetup) handleUnlock();
+                                    }}
+                                    className="w-full px-4 py-3 pr-10 bg-[var(--bg-primary)] border border-[var(--border-default)] rounded-lg text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-transparent transition-all text-sm"
+                                />
+                                <button type="button" onClick={() => setShowPin(!showPin)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]">
+                                    {showPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                </button>
+                            </div>
+                        </div>
+
+                        {isSetup && (
+                            <div>
+                                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">
+                                    {t('encryption.confirm_pin_label', 'Confirm PIN')}
+                                </label>
+                                <input
+                                    type={showPin ? 'text' : 'password'}
+                                    value={confirmPin}
+                                    onChange={(e) => setConfirmPin(e.target.value)}
+                                    placeholder={t('encryption.confirm_pin_placeholder', 'Confirm your PIN')}
+                                    data-testid="encryption-pin-confirm"
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') handleSetup();
+                                    }}
+                                    className="w-full px-4 py-3 bg-[var(--bg-primary)] border border-[var(--border-default)] rounded-lg text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-transparent transition-all text-sm"
+                                />
+                            </div>
+                        )}
+
+                        <button
+                            onClick={isSetup ? handleSetup : handleUnlock}
+                            data-testid="encryption-submit"
+                            disabled={isLoading}
+                            className="w-full py-3 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90 disabled:opacity-50"
+                            style={{ background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))' }}>
+                            {isLoading ? t('encryption.processing', 'Processing…') : isSetup ? t('encryption.setup_button', 'Set Up Encryption') : t('encryption.unlock_button', 'Unlock')}
+                        </button>
+
+                        {/* Forgot PIN — only show on unlock screen */}
+                        {!isSetup && (
+                            <button
+                                onClick={() => { setShowRecovery(true); setError(''); }}
+                                className="w-full py-2 text-sm font-medium transition-all hover:opacity-80"
+                                style={{ color: 'var(--accent-primary)' }}>
+                                {t('encryption.forgot_pin', 'Forgot your PIN? Use recovery key')}
+                            </button>
+                        )}
+                    </div>
+
+                    {/* Info footer */}
+                    {isSetup && (
+                        <p className="text-xs text-[var(--text-tertiary)] text-center mt-5 leading-relaxed">
+                            {t('encryption.local_encrypt_info', 'Your PIN encrypts your data locally. The server cannot read your encrypted data without it.')}
+                        </p>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default EncryptionSetup;

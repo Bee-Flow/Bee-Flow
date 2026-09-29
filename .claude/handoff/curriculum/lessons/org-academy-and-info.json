@@ -1,0 +1,266 @@
+{
+  "id": "org-academy-and-info",
+  "icon": "🎓",
+  "estMinutes": 9,
+  "title": "Is anyone actually learning?",
+  "desc": "The Academy panel, custom courses, and the organisation profile behind every document.",
+  "gate": { "permission": "org_admin" },
+  "learningGoal": "After this lesson you can read your team's learning progress in the Academy panel, judge whether a gap needs a custom course, and finish the organisation profile the rest of the workspace hangs off.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "intro",
+      "icon": "🧭",
+      "title": "Proof, not a feeling",
+      "bodyMd": "Marieke is the organisation admin at **Van Dijk Groep**, a sixty-person Dutch installation firm. Every quarter someone asks her the same question: *did the training land?*\n\nThe answer lives in one screen. Settings sidebar → **Organisation** → **Academy**, subtitle **\"Course progress, badges and certificates across your team.\"**\n\nTwo things to know before she opens it:\n\n- It is a **desktop screen**. The whole Organisation section is hidden on phones.\n- It reports on **members**: everyone whose organisation is Van Dijk Groep, plus everyone in one of its groups. System accounts and people who have not accepted their invite yet are left out."
+    },
+    {
+      "type": "slide",
+      "id": "cards",
+      "icon": "📊",
+      "title": "Four numbers at the top",
+      "bodyMd": "The Overview opens with four cards, each showing a dash until the data arrives:\n\n- **Members** — how many people the report covers.\n- **Courses completed** — completed courses added up across everyone.\n- **Certificates issued** — certificates people have actually been granted.\n- **Active last 30 days** — members whose most recent **completed** lesson falls inside the last 30 days.\n\nThat last one is the trap. *Opening* a lesson is not activity; **finishing** one is. A colleague who reads three lessons without ever reaching the end of one still counts as inactive — and shows **\"Not started\"** in the table if they have never finished anything at all."
+    },
+    {
+      "type": "quiz",
+      "id": "q-scope",
+      "question": "Marieke published her own course, \"Inkoop: van offerte tot PO\", and everyone in Pieter's procurement team finished it. What changes on the Academy Overview?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Last activity refreshes and Active last 30 days can rise; the dots and the two completion counts stay put.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Courses completed goes up by one for each buyer who finished it.",
+          "correct": false,
+          "feedback": "The Overview's completion maths runs over the built-in catalogue, not over courses your organisation wrote. The count stays where it was."
+        },
+        {
+          "id": "c",
+          "label": "Certificates issued goes up, because a finished course is worth a certificate.",
+          "correct": false,
+          "feedback": "Org-authored courses earn a badge but are deliberately kept out of certificate rules — otherwise any organisation could mint a certificate with four short courses."
+        },
+        {
+          "id": "d",
+          "label": "The course joins the \"Completed:\" dropdown, so she can filter on it.",
+          "correct": false,
+          "feedback": "That dropdown is built from the built-in courses. Your own course never appears in it; check the member's Achievements instead."
+        }
+      ],
+      "explanation": "The completion side of the Overview reports on the built-in curriculum: the dots, Courses completed, the Completed: filter and Certificates issued all ignore courses your organisation wrote. Finishing any lesson still stamps the member's progress, so Last activity and Active last 30 days do react. Custom courses give a badge, visible in the member's own Achievements, and never satisfy a certificate rule."
+    },
+    {
+      "type": "slide",
+      "id": "filter",
+      "icon": "🔍",
+      "title": "Reading the table",
+      "bodyMd": "Below the cards: a **Search members…** box and a dropdown starting at **All courses**, then one **\"Completed: …\"** option per built-in course.\n\nThe table columns are **Member · Courses · Badges · Certificates · Last activity**. Each row has one dot per built-in course (filled = completed), a badge count, certificate pills you can hover for the issue date, and a relative time such as **Today**, **Yesterday**, **3 days ago** or **Not started**.\n\n**Refresh** does less than it looks. The server keeps the whole aggregation for **60 seconds per organisation**, so pressing it twice in a row hands you the same snapshot. Wait a minute if you just asked someone to finish a lesson."
+    },
+    {
+      "type": "slide",
+      "id": "author",
+      "icon": "✍️",
+      "title": "Writing a course of your own",
+      "bodyMd": "When your organisation has **Academy Custom Courses (Beta)**, the panel grows a second tab: **Content** — *\"Author your own Academy courses. Drafts stay private until you publish them to your members.\"*\n\n**+ New course** asks for a **Course title**, a **Level** (Beginner / Intermediate / Advanced), a **Description**, an **Icon**, and optionally a **Badge title (earned on completion)**.\n\nA lesson is built from three step types and no others: **Slide**, **Quiz** and **Exercise**. An exercise carries private **Grading criteria** — *\"The AI coach grades against these. Learners never see them.\"* — with a pass score (default 70) and max attempts (default 3).\n\nLimits: 50 courses per organisation, 20 lessons per course, 30 steps per lesson. Over-long titles are silently cut to 120 characters."
+    },
+    {
+      "type": "quiz",
+      "id": "q-publish",
+      "question": "Marieke corrects a wrong figure in a course that is already published and clicks Save course. What do members see, and what will Unpublish do later?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Members keep the old version until she clicks Publish again; Unpublish only removes the published copy.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "The fix is live at once because the course is published, and Unpublish deletes the course.",
+          "correct": false,
+          "feedback": "The Content tab always edits drafts. Nothing reaches members until Publish, which re-snapshots the course and every lesson in it. And Unpublish is not a delete — only Delete removes the drafts."
+        },
+        {
+          "id": "c",
+          "label": "The fix is live at once, but anyone already in the lesson keeps the old copy until they finish.",
+          "correct": false,
+          "feedback": "Editing a draft changes nothing for members, mid-lesson or not. Publish is the only thing that moves content across."
+        },
+        {
+          "id": "d",
+          "label": "Members get the fix automatically once the 60-second cache expires.",
+          "correct": false,
+          "feedback": "That cache belongs to the admin Overview aggregation. It has nothing to do with course content, which only moves on Publish."
+        }
+      ],
+      "explanation": "Draft and published are two separate copies. Publish snapshots the course plus all its lessons for members; Unpublish deletes just that snapshot, so the course vanishes from the members' catalogue while your drafts stay ready for the next round. Delete is the one that removes everything."
+    },
+    {
+      "type": "exercise",
+      "id": "ex-brief",
+      "icon": "🎯",
+      "exerciseId": "ex-org-academy-course-brief",
+      "title": "Your turn: brief one lesson",
+      "instruction": "Pieter, who runs procurement at Van Dijk Groep, wants his buyers to stop guessing at the quote rules. Write the brief for ONE lesson of a custom course. Include: the course title; what the slide steps cover; one quiz question with its choices and which one is correct; and two private grading criteria for a short exercise. A strong brief keeps the correct answer out of the Explanation text and stays realistic about what a custom course earns.",
+      "placeholder": "e.g. Course: Inkoop — van offerte tot PO (Beginner). Lesson 1, two slides: when three quotes are required, and who signs off. Quiz: \"Vanaf welk bedrag zijn drie offertes verplicht?\" with three amounts; the middle one is correct; the explanation points at the purchasing policy page without repeating the figure. Exercise: summarise a quote for the PO request — criteria: names the supplier and the amount excluding VAT; states the delivery term. Pass score 70.",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "sim",
+      "id": "sim-fit",
+      "icon": "🧩",
+      "title": "Course, policy or setting?",
+      "instruction": "Four gaps at Van Dijk Groep. Match each one to the instrument that actually closes it — not everything is a training problem.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "p1",
+            "left": "Pieter's buyers keep attaching quotes to the wrong routine, and each one asks a colleague how it works.",
+            "right": "A custom Academy course",
+            "note": "Repeatable know-how that only makes sense inside your organisation is exactly what the Content tab is for."
+          },
+          {
+            "id": "p2",
+            "left": "Nobody agrees on the amount above which three quotes are required.",
+            "right": "A policy page the slide links to",
+            "note": "A course teaches the habit; the authoritative figure belongs in your own policy, so a change there does not mean republishing a course."
+          },
+          {
+            "id": "p3",
+            "left": "Marieke can open Academy, but there is no Content tab at all.",
+            "right": "A capability grant under Access",
+            "note": "Academy Custom Courses (Beta) first has to sit inside the plan or licence ceiling. On a cloud plan beta features then follow the subscription; on a self-hosted install an admin still grants them to all members or to a group before the tab appears."
+          },
+          {
+            "id": "p4",
+            "left": "Invoices and exports carry no company details for Van Dijk Groep.",
+            "right": "Organisation Info",
+            "note": "Company Name, Street, Chamber of Commerce (KVK) and VAT Number live in the organisation profile, not in a course."
+          }
+        ]
+      }
+    },
+    {
+      "type": "slide",
+      "id": "orginfo",
+      "icon": "🏢",
+      "title": "Three fields, three different moments",
+      "bodyMd": "A month in, two things go wrong on one day. The bookkeeper bounces the plan invoice — no Chamber of Commerce number, no VAT number — and the new colleague Marieke invited to take the course signs in to an English workspace nobody asked for.\n\nBoth live in **Organisation → Organisation Info**, where the three blocks fail in three different ways.\n\n**Branding** — **Logo** (*\"Displayed in the UI header and exports. PNG or SVG, max 500×200px.\"*), **Company Name**, **Tagline**, **Description**, **Email**, **Phone**, **Website**. Left empty, the header and every export go out nameless.\n\n**Legal & Invoicing** — **Street** (*\"Used on invoices and to calculate tax at checkout.\"*), **Address line 2**, **Postal code**, **City**, **Country**, **Chamber of Commerce (KVK)**, **VAT Number**. The address is not decoration; it is read when the tax at checkout is worked out.\n\n**New User Language** — *\"Set the default interface language for new users in your organisation.\"* Read once, at account creation. So it is worth setting **before** the invites go out.\n\nAnd nothing is stored until you click **Save changes** on the **Unsaved changes** bar."
+    },
+    {
+      "type": "quiz",
+      "id": "q-profile",
+      "question": "Marieke sets New User Language to Nederlands, fills in the VAT Number and clicks Save changes. Next week a new buyer's account is created, and she checks on Pieter, who has been on the platform for a year. Who ends up where?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "The new buyer's workspace starts in Dutch; Pieter's language is untouched, because the field is read when an account is created.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Both switch to Dutch at their next sign-in — it is an organisation-wide language setting.",
+          "correct": false,
+          "feedback": "Read the hint on the field: it sets the default interface language *for new users*. The sixty accounts that already exist keep the language they are on, so a late change never reaches the people you most wanted to help."
+        },
+        {
+          "id": "c",
+          "label": "Neither: the language only applies to invoices and exports, not to the workspace itself.",
+          "correct": false,
+          "feedback": "That mixes up two blocks. Language is the interface language a new account opens in; it is the Legal & Invoicing block — Street, Country, KVK, VAT Number — that the invoice and the tax at checkout read."
+        },
+        {
+          "id": "d",
+          "label": "Nothing takes effect for anyone until the whole profile, logo included, is complete.",
+          "correct": false,
+          "feedback": "One Save changes bar covers the screen, but the fields are not all-or-nothing: each is read by whatever needs it, whenever that happens. A saved VAT Number counts even with the Logo still empty."
+        }
+      ],
+      "explanation": "Organisation Info holds three kinds of setting with three different moments of effect. Branding is read whenever the header or an export is drawn. Legal & Invoicing is read when an invoice is produced or tax is calculated at checkout. New User Language is read once, at account creation — so it changes the next colleague's workspace, never the current one's. All three share one save: nothing at all is stored until Save changes on the Unsaved changes bar."
+    },
+    {
+      "type": "action",
+      "id": "do-info",
+      "icon": "🏗️",
+      "checkId": "org-info",
+      "title": "Finish the organisation profile",
+      "instruction": "Open Organisation Info and complete the Legal & Invoicing block the way an invoice to your organisation would have to carry it: fill in Street and the VAT Number, and add Postal code, City, Country and the Chamber of Commerce (KVK) number while you are there. Then set New User Language to the language your next colleague should land in, because it is read at account creation and not afterwards. Click Save changes when the Unsaved changes bar appears — we then check the saved profile for a street address and a VAT number.",
+      "launch": { "navigateTo": "settings/organisation/info", "label": "Open Organisation Info" }
+    },
+    {
+      "type": "slide",
+      "id": "wrap",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "- **Read the Academy Overview honestly.** The four cards and the course dots report on the built-in curriculum; *Active last 30 days* counts finished lessons, and Refresh returns the same snapshot for a minute.\n- **Decide before you author.** A custom course fixes repeatable, organisation-specific know-how; a figure that keeps changing belongs in a policy, and a missing tab belongs in Access or in the plan.\n- **Publish deliberately.** Drafts are private until Publish; Unpublish takes the course off the shelf without losing your work.- **Treat the profile as three settings, not fifteen fields.** Branding is read when the header or an export is drawn, Legal & Invoicing when an invoice or the tax at checkout is produced, and New User Language once, at account creation — which is why you set it before the invites, not after."
+    }
+  ],
+  "rubrics": {
+    "ex-org-academy-course-brief": {
+      "title": "Brief one custom lesson",
+      "task": "Write the brief for one lesson of a custom Academy course for Van Dijk Groep's buyers: course title, what the slides cover, one quiz question with its choices and the correct one, and two private grading criteria for a short exercise.",
+      "criteria": [
+        "Names a concrete course title and describes at least one slide plus one quiz or exercise step — the only step types an org author has are Slide, Quiz and Exercise.",
+        "Gives a quiz question with two to six choices and states which choice is correct, without handing the answer to the learner in the explanation text.",
+        "Lists at least two private grading criteria phrased as things a strong answer must show, and mentions a pass score.",
+        "Keeps the scope to something a member can finish, and does not claim the custom course yields a certificate or will appear in the Academy Overview."
+      ],
+      "passScore": 70,
+      "guidance": "Fail a bare topic list with no quiz or exercise. Fail an answer that writes the correct answer into the explanation or the instruction shown to learners. Fail an answer that promises a certificate from an org-authored course, expects it in the Overview dots or the course filter, or invents step types such as a guided tour or a video step."
+    }
+  },
+  "practiceTopic": {
+    "title": "Academy panel and the organisation profile",
+    "summary": "How an org admin reads team learning progress, authors and publishes a custom course, and completes the organisation profile.",
+    "facts": [
+      "The Academy Overview shows four cards — Members, Courses completed, Certificates issued and Active last 30 days — where Active last 30 days counts a member whose newest completed lesson is within 30 days: opening a lesson is not activity, finishing one is.",
+      "The Overview's course dots, the Completed: filter and the completion counts cover the built-in courses only, not courses the organisation wrote itself.",
+      "Org-authored courses earn a badge but never count toward a certificate.",
+      "The server caches the Academy aggregation for 60 seconds per organisation, so Refresh inside that window returns the same snapshot.",
+      "Org authors can add Slide, Quiz and Exercise steps only; the limits are 50 courses per organisation, 20 lessons per course and 30 steps per lesson.",
+      "Publish copies the draft course and all its lessons into a published snapshot; Unpublish removes only that snapshot and leaves the drafts.",
+      "Organisation Info's Legal & Invoicing block (Street, Country, KVK, VAT Number) is what invoices and the tax calculation at checkout read; Street's own hint says so.",
+      "New User Language sets the default interface language for new users only: it is read at account creation, so changing it leaves existing members on the language they already have. Nothing on the screen is stored until Save changes on the Unsaved changes bar."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "org-info",
+      "existing": false,
+      "label": "Fill in the invoicing details on the organisation profile",
+      "hint": "Settings → Organisation → Organisation Info → Legal & Invoicing: fill in Street and VAT Number, then Save changes.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/auth/organizations/:id",
+          "returns": "the learner's own organisation object — the runtime substitutes their organisation id for :id, and org_admin (this lesson's gate) is exactly the role the route demands. Fields: name, description, tagline, address, email, phone, website, kvk, vat, logo"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "street",
+          "endpoint": "/auth/organizations/:id",
+          "expect": { "kind": "nonEmpty", "field": "address" },
+          "label": "A street address is saved on the profile",
+          "hint": "Street, under Legal & Invoicing on Organisation Info — it is read when the tax at checkout is worked out.",
+          "rule": "GET /auth/organizations/<your org id> → the object's `address` is a non-empty string"
+        },
+        {
+          "id": "vat",
+          "endpoint": "/auth/organizations/:id",
+          "expect": { "kind": "nonEmpty", "field": "vat" },
+          "label": "The VAT number is filled in",
+          "hint": "VAT Number, under Legal & Invoicing — an invoice without it is the one the bookkeeper bounces.",
+          "rule": "GET /auth/organizations/<your org id> → the object's `vat` is a non-empty string"
+        }
+      ]
+    }
+  ]
+}

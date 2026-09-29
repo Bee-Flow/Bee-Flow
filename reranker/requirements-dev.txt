@@ -1,0 +1,9 @@
+# Test-only dependencies. Run from the repo root: pytest reranker/tests
+# No model and no ONNX Runtime: the tests cover the request model, the
+# settings and the ranking arithmetic. Pins as in pyproject.toml.
+pytest==9.1.1
+pytest-cov==7.1.0
+fastapi==0.141.1
+pydantic-settings==2.15.0
+# TestClient's transport; not in the image.
+httpx==0.28.1

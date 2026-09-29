@@ -1,0 +1,2927 @@
+{
+  "providers": [
+    {
+      "id": "gmail",
+      "label": "Gmail",
+      "defaultEvent": "mail.new",
+      "events": [
+        {
+          "id": "mail.new",
+          "label": "New email",
+          "deliverability": "ok"
+        },
+        {
+          "id": "label.added",
+          "label": "Label added",
+          "deliverability": "ok"
+        }
+      ]
+    },
+    {
+      "id": "google-calendar",
+      "label": "Google Calendar",
+      "defaultEvent": "event.changed",
+      "events": [
+        {
+          "id": "event.changed",
+          "label": "Event changed",
+          "deliverability": "ok"
+        },
+        {
+          "id": "event.upcoming",
+          "label": "Event upcoming (lead-time before start)",
+          "deliverability": "ok"
+        }
+      ]
+    },
+    {
+      "id": "google-drive",
+      "label": "Google Drive",
+      "defaultEvent": "file.new",
+      "events": [
+        {
+          "id": "file.new",
+          "label": "New file",
+          "deliverability": "ok"
+        }
+      ]
+    },
+    {
+      "id": "nextcloud",
+      "label": "Nextcloud",
+      "defaultEvent": "file.new",
+      "events": [
+        {
+          "id": "file.new",
+          "label": "New file",
+          "deliverability": "ok"
+        },
+        {
+          "id": "file.changed",
+          "label": "File changed",
+          "deliverability": "ok"
+        },
+        {
+          "id": "file.deleted",
+          "label": "File deleted",
+          "deliverability": "ok"
+        },
+        {
+          "id": "file.renamed",
+          "label": "File renamed",
+          "deliverability": "ok"
+        },
+        {
+          "id": "share.received",
+          "label": "Share received",
+          "deliverability": "ok"
+        },
+        {
+          "id": "share.created",
+          "label": "Share created",
+          "deliverability": "connector"
+        },
+        {
+          "id": "activity.new",
+          "label": "Any activity (advanced)",
+          "deliverability": "ok"
+        },
+        {
+          "id": "notification.new",
+          "label": "Notification received",
+          "deliverability": "ok"
+        },
+        {
+          "id": "calendar.event.upcoming",
+          "label": "Calendar event upcoming (lead-time before start)",
+          "deliverability": "ok"
+        },
+        {
+          "id": "calendar.event.created",
+          "label": "Calendar event created",
+          "deliverability": "ok"
+        },
+        {
+          "id": "calendar.event.changed",
+          "label": "Calendar event changed",
+          "deliverability": "ok"
+        },
+        {
+          "id": "deck.card.created",
+          "label": "Deck card created",
+          "deliverability": "ok"
+        },
+        {
+          "id": "deck.card.changed",
+          "label": "Deck card changed",
+          "deliverability": "ok"
+        },
+        {
+          "id": "deck.card.deleted",
+          "label": "Deck card deleted",
+          "deliverability": "ok"
+        },
+        {
+          "id": "deck.card.moved",
+          "label": "Deck card moved to another list",
+          "deliverability": "ok"
+        },
+        {
+          "id": "deck.card.completed",
+          "label": "Deck card marked done",
+          "deliverability": "ok"
+        },
+        {
+          "id": "file.tagged",
+          "label": "Tag assigned to a file",
+          "deliverability": "ok"
+        },
+        {
+          "id": "forms.submitted",
+          "label": "Form submitted (Nextcloud Forms)",
+          "deliverability": "ok"
+        },
+        {
+          "id": "tables.row.added",
+          "label": "Row added to a Nextcloud Table",
+          "deliverability": "ok"
+        },
+        {
+          "id": "tables.row.updated",
+          "label": "Row updated in a Nextcloud Table",
+          "deliverability": "ok"
+        },
+        {
+          "id": "talk.message.received",
+          "label": "Talk message received",
+          "deliverability": "ok"
+        },
+        {
+          "id": "talk.reaction.added",
+          "label": "Talk reaction added",
+          "deliverability": "ok"
+        }
+      ]
+    },
+    {
+      "id": "support",
+      "label": "Support Inbox",
+      "defaultEvent": "ticket.resolved",
+      "events": [
+        {
+          "id": "ticket.resolved",
+          "label": "Ticket resolved",
+          "deliverability": "ok"
+        }
+      ]
+    },
+    {
+      "id": "approvals",
+      "label": "Approvals",
+      "defaultEvent": "approval.decided",
+      "events": [
+        {
+          "id": "approval.decided",
+          "label": "Approval decided",
+          "deliverability": "ok"
+        },
+        {
+          "id": "approval.requested",
+          "label": "Approval requested",
+          "deliverability": "ok"
+        }
+      ]
+    },
+    {
+      "id": "msgraph",
+      "label": "Microsoft 365 (Outlook)",
+      "defaultEvent": "mail.new",
+      "events": [
+        {
+          "id": "mail.new",
+          "label": "New email (Outlook)",
+          "deliverability": "ok"
+        },
+        {
+          "id": "mail.flagged",
+          "label": "Email flagged",
+          "deliverability": "ok"
+        },
+        {
+          "id": "event.created",
+          "label": "Calendar event created",
+          "deliverability": "ok"
+        },
+        {
+          "id": "event.changed",
+          "label": "Calendar event changed",
+          "deliverability": "ok"
+        },
+        {
+          "id": "file.new",
+          "label": "New OneDrive file",
+          "deliverability": "ok"
+        },
+        {
+          "id": "file.changed",
+          "label": "OneDrive file changed",
+          "deliverability": "ok"
+        }
+      ]
+    }
+  ],
+  "outputs": {
+    "gmail.mail.new": {
+      "fields": [
+        {
+          "key": "messageId",
+          "sample": "msg-abc123"
+        },
+        {
+          "key": "threadId",
+          "sample": "th-abc123"
+        },
+        {
+          "key": "from",
+          "sample": "alice@example.com"
+        },
+        {
+          "key": "to",
+          "sample": "me@example.com"
+        },
+        {
+          "key": "cc",
+          "sample": ""
+        },
+        {
+          "key": "subject",
+          "sample": "Project update — Q2"
+        },
+        {
+          "key": "snippet",
+          "sample": "Hi, attached is the latest deck for the kickoff…"
+        },
+        {
+          "key": "labelIds",
+          "sample": [
+            "INBOX",
+            "UNREAD"
+          ]
+        },
+        {
+          "key": "date",
+          "sample": "Wed, 13 May 2026 09:15:00 +0200"
+        },
+        {
+          "key": "sizeEstimate",
+          "sample": 12345
+        },
+        {
+          "key": "historyId",
+          "sample": "987654"
+        }
+      ],
+      "sample": {
+        "messageId": "msg-abc123",
+        "threadId": "th-abc123",
+        "from": "alice@example.com",
+        "to": "me@example.com",
+        "cc": "",
+        "subject": "Project update — Q2",
+        "snippet": "Hi, attached is the latest deck for the kickoff…",
+        "labelIds": [
+          "INBOX",
+          "UNREAD"
+        ],
+        "date": "Wed, 13 May 2026 09:15:00 +0200",
+        "sizeEstimate": 12345,
+        "historyId": "987654"
+      }
+    },
+    "gmail.label.added": {
+      "fields": [
+        {
+          "key": "messageId",
+          "sample": "msg-abc123"
+        },
+        {
+          "key": "threadId",
+          "sample": "th-abc123"
+        },
+        {
+          "key": "addedLabelIds",
+          "sample": [
+            "Label_3"
+          ]
+        },
+        {
+          "key": "from",
+          "sample": "alice@example.com"
+        },
+        {
+          "key": "to",
+          "sample": "me@example.com"
+        },
+        {
+          "key": "subject",
+          "sample": "Project update — Q2"
+        },
+        {
+          "key": "snippet",
+          "sample": "Hi, attached is the latest deck…"
+        },
+        {
+          "key": "labelIds",
+          "sample": [
+            "INBOX",
+            "Label_3"
+          ]
+        },
+        {
+          "key": "date",
+          "sample": "Wed, 13 May 2026 09:15:00 +0200"
+        }
+      ],
+      "sample": {
+        "messageId": "msg-abc123",
+        "threadId": "th-abc123",
+        "addedLabelIds": [
+          "Label_3"
+        ],
+        "from": "alice@example.com",
+        "to": "me@example.com",
+        "subject": "Project update — Q2",
+        "snippet": "Hi, attached is the latest deck…",
+        "labelIds": [
+          "INBOX",
+          "Label_3"
+        ],
+        "date": "Wed, 13 May 2026 09:15:00 +0200"
+      }
+    },
+    "google-calendar.event.changed": {
+      "fields": [
+        {
+          "key": "eventId",
+          "sample": "evt-abc"
+        },
+        {
+          "key": "summary",
+          "sample": "Team standup"
+        },
+        {
+          "key": "description",
+          "sample": "Daily sync"
+        },
+        {
+          "key": "start",
+          "sample": "2026-05-13T09:00:00+02:00"
+        },
+        {
+          "key": "end",
+          "sample": "2026-05-13T09:30:00+02:00"
+        },
+        {
+          "key": "status",
+          "sample": "confirmed"
+        },
+        {
+          "key": "calendarId",
+          "sample": "primary"
+        },
+        {
+          "key": "organizer",
+          "sample": {
+            "email": "me@example.com",
+            "displayName": "Me"
+          }
+        },
+        {
+          "key": "attendees",
+          "sample": [
+            {
+              "email": "alice@example.com",
+              "responseStatus": "accepted"
+            }
+          ]
+        },
+        {
+          "key": "htmlLink",
+          "sample": "https://calendar.google.com/event?eid=…"
+        }
+      ],
+      "sample": {
+        "eventId": "evt-abc",
+        "summary": "Team standup",
+        "description": "Daily sync",
+        "start": "2026-05-13T09:00:00+02:00",
+        "end": "2026-05-13T09:30:00+02:00",
+        "status": "confirmed",
+        "calendarId": "primary",
+        "organizer": {
+          "email": "me@example.com",
+          "displayName": "Me"
+        },
+        "attendees": [
+          {
+            "email": "alice@example.com",
+            "responseStatus": "accepted"
+          }
+        ],
+        "htmlLink": "https://calendar.google.com/event?eid=…"
+      }
+    },
+    "google-calendar.event.upcoming": {
+      "fields": [
+        {
+          "key": "eventId",
+          "sample": "evt-abc"
+        },
+        {
+          "key": "summary",
+          "sample": "Team standup"
+        },
+        {
+          "key": "description",
+          "sample": "Daily sync"
+        },
+        {
+          "key": "start",
+          "sample": "2026-05-13T09:00:00+02:00"
+        },
+        {
+          "key": "end",
+          "sample": "2026-05-13T09:30:00+02:00"
+        },
+        {
+          "key": "status",
+          "sample": "confirmed"
+        },
+        {
+          "key": "calendarId",
+          "sample": "primary"
+        },
+        {
+          "key": "organizer",
+          "sample": {
+            "email": "me@example.com",
+            "displayName": "Me"
+          }
+        },
+        {
+          "key": "attendees",
+          "sample": [
+            {
+              "email": "alice@example.com",
+              "responseStatus": "accepted"
+            }
+          ]
+        },
+        {
+          "key": "htmlLink",
+          "sample": "https://calendar.google.com/event?eid=…"
+        },
+        {
+          "key": "minutesUntilStart",
+          "sample": 15
+        }
+      ],
+      "sample": {
+        "eventId": "evt-abc",
+        "summary": "Team standup",
+        "description": "Daily sync",
+        "start": "2026-05-13T09:00:00+02:00",
+        "end": "2026-05-13T09:30:00+02:00",
+        "status": "confirmed",
+        "calendarId": "primary",
+        "organizer": {
+          "email": "me@example.com",
+          "displayName": "Me"
+        },
+        "attendees": [
+          {
+            "email": "alice@example.com",
+            "responseStatus": "accepted"
+          }
+        ],
+        "htmlLink": "https://calendar.google.com/event?eid=…",
+        "minutesUntilStart": 15
+      }
+    },
+    "google-drive.file.new": {
+      "fields": [
+        {
+          "key": "fileId",
+          "sample": "file-xyz"
+        },
+        {
+          "key": "name",
+          "sample": "Invoice-2026-001.pdf"
+        },
+        {
+          "key": "mimeType",
+          "sample": "application/pdf"
+        },
+        {
+          "key": "parents",
+          "sample": [
+            "folder-abc"
+          ]
+        },
+        {
+          "key": "createdTime",
+          "sample": "2026-05-13T09:15:00Z"
+        },
+        {
+          "key": "owners",
+          "sample": [
+            {
+              "emailAddress": "me@example.com",
+              "displayName": "Me"
+            }
+          ]
+        },
+        {
+          "key": "webViewLink",
+          "sample": "https://drive.google.com/file/d/file-xyz"
+        }
+      ],
+      "sample": {
+        "fileId": "file-xyz",
+        "name": "Invoice-2026-001.pdf",
+        "mimeType": "application/pdf",
+        "parents": [
+          "folder-abc"
+        ],
+        "createdTime": "2026-05-13T09:15:00Z",
+        "owners": [
+          {
+            "emailAddress": "me@example.com",
+            "displayName": "Me"
+          }
+        ],
+        "webViewLink": "https://drive.google.com/file/d/file-xyz"
+      }
+    },
+    "google-sheets.spreadsheet.changed": {
+      "fields": [
+        {
+          "key": "id",
+          "sample": "1AbCDeFgHiJkLmNoPqRsTuV"
+        },
+        {
+          "key": "name",
+          "sample": "Invoice tracker 2026"
+        },
+        {
+          "key": "url",
+          "sample": "https://docs.google.com/spreadsheets/d/1AbCDeFgHiJkLmNoPqRsTuV/edit"
+        },
+        {
+          "key": "modifiedTime",
+          "sample": "2026-05-12T10:23:00Z"
+        },
+        {
+          "key": "changedKeys",
+          "sample": [
+            "modifiedTime"
+          ]
+        },
+        {
+          "key": "previous",
+          "sample": {
+            "modifiedTime": "2026-05-11T09:02:00Z"
+          }
+        },
+        {
+          "key": "current",
+          "sample": {
+            "modifiedTime": "2026-05-12T10:23:00Z"
+          }
+        },
+        {
+          "key": "changedAt",
+          "sample": "2026-05-12T10:23:04.881Z"
+        }
+      ],
+      "sample": {
+        "id": "1AbCDeFgHiJkLmNoPqRsTuV",
+        "name": "Invoice tracker 2026",
+        "url": "https://docs.google.com/spreadsheets/d/1AbCDeFgHiJkLmNoPqRsTuV/edit",
+        "modifiedTime": "2026-05-12T10:23:00Z",
+        "changedKeys": [
+          "modifiedTime"
+        ],
+        "previous": {
+          "modifiedTime": "2026-05-11T09:02:00Z"
+        },
+        "current": {
+          "modifiedTime": "2026-05-12T10:23:00Z"
+        },
+        "changedAt": "2026-05-12T10:23:04.881Z"
+      }
+    },
+    "google-sheets.spreadsheet.new": {
+      "fields": [
+        {
+          "key": "id",
+          "sample": "1AbCDeFgHiJkLmNoPqRsTuV"
+        },
+        {
+          "key": "name",
+          "sample": "Invoice tracker 2026"
+        },
+        {
+          "key": "url",
+          "sample": "https://docs.google.com/spreadsheets/d/1AbCDeFgHiJkLmNoPqRsTuV/edit"
+        },
+        {
+          "key": "modifiedTime",
+          "sample": "2026-05-12T10:23:00Z"
+        },
+        {
+          "key": "changedKeys",
+          "sample": []
+        },
+        {
+          "key": "previous",
+          "sample": {}
+        },
+        {
+          "key": "current",
+          "sample": {
+            "modifiedTime": "2026-05-12T10:23:00Z"
+          }
+        },
+        {
+          "key": "changedAt",
+          "sample": "2026-05-12T10:23:04.881Z"
+        }
+      ],
+      "sample": {
+        "id": "1AbCDeFgHiJkLmNoPqRsTuV",
+        "name": "Invoice tracker 2026",
+        "url": "https://docs.google.com/spreadsheets/d/1AbCDeFgHiJkLmNoPqRsTuV/edit",
+        "modifiedTime": "2026-05-12T10:23:00Z",
+        "changedKeys": [],
+        "previous": {},
+        "current": {
+          "modifiedTime": "2026-05-12T10:23:00Z"
+        },
+        "changedAt": "2026-05-12T10:23:04.881Z"
+      }
+    },
+    "google-slides.presentation.changed": {
+      "fields": [
+        {
+          "key": "id",
+          "sample": "1PrEsIdSlIdEsAbCdEfG"
+        },
+        {
+          "key": "name",
+          "sample": "Q1 review template"
+        },
+        {
+          "key": "url",
+          "sample": "https://docs.google.com/presentation/d/1PrEsIdSlIdEsAbCdEfG/edit"
+        },
+        {
+          "key": "modifiedTime",
+          "sample": "2026-04-22T08:11:00Z"
+        },
+        {
+          "key": "changedKeys",
+          "sample": [
+            "modifiedTime"
+          ]
+        },
+        {
+          "key": "previous",
+          "sample": {
+            "modifiedTime": "2026-04-20T16:40:00Z"
+          }
+        },
+        {
+          "key": "current",
+          "sample": {
+            "modifiedTime": "2026-04-22T08:11:00Z"
+          }
+        },
+        {
+          "key": "changedAt",
+          "sample": "2026-04-22T08:11:06.203Z"
+        }
+      ],
+      "sample": {
+        "id": "1PrEsIdSlIdEsAbCdEfG",
+        "name": "Q1 review template",
+        "url": "https://docs.google.com/presentation/d/1PrEsIdSlIdEsAbCdEfG/edit",
+        "modifiedTime": "2026-04-22T08:11:00Z",
+        "changedKeys": [
+          "modifiedTime"
+        ],
+        "previous": {
+          "modifiedTime": "2026-04-20T16:40:00Z"
+        },
+        "current": {
+          "modifiedTime": "2026-04-22T08:11:00Z"
+        },
+        "changedAt": "2026-04-22T08:11:06.203Z"
+      }
+    },
+    "google-slides.presentation.new": {
+      "fields": [
+        {
+          "key": "id",
+          "sample": "1PrEsIdSlIdEsAbCdEfG"
+        },
+        {
+          "key": "name",
+          "sample": "Q1 review template"
+        },
+        {
+          "key": "url",
+          "sample": "https://docs.google.com/presentation/d/1PrEsIdSlIdEsAbCdEfG/edit"
+        },
+        {
+          "key": "modifiedTime",
+          "sample": "2026-04-22T08:11:00Z"
+        },
+        {
+          "key": "changedKeys",
+          "sample": []
+        },
+        {
+          "key": "previous",
+          "sample": {}
+        },
+        {
+          "key": "current",
+          "sample": {
+            "modifiedTime": "2026-04-22T08:11:00Z"
+          }
+        },
+        {
+          "key": "changedAt",
+          "sample": "2026-04-22T08:11:06.203Z"
+        }
+      ],
+      "sample": {
+        "id": "1PrEsIdSlIdEsAbCdEfG",
+        "name": "Q1 review template",
+        "url": "https://docs.google.com/presentation/d/1PrEsIdSlIdEsAbCdEfG/edit",
+        "modifiedTime": "2026-04-22T08:11:00Z",
+        "changedKeys": [],
+        "previous": {},
+        "current": {
+          "modifiedTime": "2026-04-22T08:11:00Z"
+        },
+        "changedAt": "2026-04-22T08:11:06.203Z"
+      }
+    },
+    "google-contacts.contact.new": {
+      "fields": [
+        {
+          "key": "resourceName",
+          "sample": "people/c1234567890"
+        },
+        {
+          "key": "displayName",
+          "sample": "Sanne de Vries"
+        },
+        {
+          "key": "firstName",
+          "sample": "Sanne"
+        },
+        {
+          "key": "lastName",
+          "sample": "de Vries"
+        },
+        {
+          "key": "email",
+          "sample": "sanne@example.com"
+        },
+        {
+          "key": "phone",
+          "sample": "+31 6 12345678"
+        },
+        {
+          "key": "company",
+          "sample": "Example BV"
+        },
+        {
+          "key": "changedKeys",
+          "sample": []
+        },
+        {
+          "key": "previous",
+          "sample": {}
+        },
+        {
+          "key": "current",
+          "sample": {
+            "email": "sanne@example.com"
+          }
+        },
+        {
+          "key": "changedAt",
+          "sample": "2026-06-02T11:45:12.004Z"
+        }
+      ],
+      "sample": {
+        "resourceName": "people/c1234567890",
+        "displayName": "Sanne de Vries",
+        "firstName": "Sanne",
+        "lastName": "de Vries",
+        "email": "sanne@example.com",
+        "phone": "+31 6 12345678",
+        "company": "Example BV",
+        "changedKeys": [],
+        "previous": {},
+        "current": {
+          "email": "sanne@example.com"
+        },
+        "changedAt": "2026-06-02T11:45:12.004Z"
+      }
+    },
+    "google-contacts.contact.changed": {
+      "fields": [
+        {
+          "key": "resourceName",
+          "sample": "people/c1234567890"
+        },
+        {
+          "key": "displayName",
+          "sample": "Sanne de Vries"
+        },
+        {
+          "key": "firstName",
+          "sample": "Sanne"
+        },
+        {
+          "key": "lastName",
+          "sample": "de Vries"
+        },
+        {
+          "key": "email",
+          "sample": "sanne@example.com"
+        },
+        {
+          "key": "phone",
+          "sample": "+31 6 12345678"
+        },
+        {
+          "key": "company",
+          "sample": "Example BV"
+        },
+        {
+          "key": "changedKeys",
+          "sample": [
+            "email"
+          ]
+        },
+        {
+          "key": "previous",
+          "sample": {
+            "email": "s.devries@example.com"
+          }
+        },
+        {
+          "key": "current",
+          "sample": {
+            "email": "sanne@example.com"
+          }
+        },
+        {
+          "key": "changedAt",
+          "sample": "2026-06-02T11:45:12.004Z"
+        }
+      ],
+      "sample": {
+        "resourceName": "people/c1234567890",
+        "displayName": "Sanne de Vries",
+        "firstName": "Sanne",
+        "lastName": "de Vries",
+        "email": "sanne@example.com",
+        "phone": "+31 6 12345678",
+        "company": "Example BV",
+        "changedKeys": [
+          "email"
+        ],
+        "previous": {
+          "email": "s.devries@example.com"
+        },
+        "current": {
+          "email": "sanne@example.com"
+        },
+        "changedAt": "2026-06-02T11:45:12.004Z"
+      }
+    },
+    "google-keep.note.new": {
+      "fields": [
+        {
+          "key": "noteId",
+          "sample": "notes/abc123"
+        },
+        {
+          "key": "title",
+          "sample": "Boodschappen"
+        },
+        {
+          "key": "type",
+          "sample": "text"
+        },
+        {
+          "key": "content",
+          "sample": "Koffie, brood, kaas"
+        },
+        {
+          "key": "updateTime",
+          "sample": "2026-06-14T07:22:41Z"
+        },
+        {
+          "key": "changedKeys",
+          "sample": []
+        },
+        {
+          "key": "previous",
+          "sample": {}
+        },
+        {
+          "key": "current",
+          "sample": {
+            "content": "Koffie, brood, kaas"
+          }
+        },
+        {
+          "key": "changedAt",
+          "sample": "2026-06-14T07:22:45.117Z"
+        }
+      ],
+      "sample": {
+        "noteId": "notes/abc123",
+        "title": "Boodschappen",
+        "type": "text",
+        "content": "Koffie, brood, kaas",
+        "updateTime": "2026-06-14T07:22:41Z",
+        "changedKeys": [],
+        "previous": {},
+        "current": {
+          "content": "Koffie, brood, kaas"
+        },
+        "changedAt": "2026-06-14T07:22:45.117Z"
+      }
+    },
+    "google-keep.note.changed": {
+      "fields": [
+        {
+          "key": "noteId",
+          "sample": "notes/abc123"
+        },
+        {
+          "key": "title",
+          "sample": "Boodschappen"
+        },
+        {
+          "key": "type",
+          "sample": "text"
+        },
+        {
+          "key": "content",
+          "sample": "Koffie, brood, kaas"
+        },
+        {
+          "key": "updateTime",
+          "sample": "2026-06-14T07:22:41Z"
+        },
+        {
+          "key": "changedKeys",
+          "sample": [
+            "content"
+          ]
+        },
+        {
+          "key": "previous",
+          "sample": {
+            "content": "Koffie, brood"
+          }
+        },
+        {
+          "key": "current",
+          "sample": {
+            "content": "Koffie, brood, kaas"
+          }
+        },
+        {
+          "key": "changedAt",
+          "sample": "2026-06-14T07:22:45.117Z"
+        }
+      ],
+      "sample": {
+        "noteId": "notes/abc123",
+        "title": "Boodschappen",
+        "type": "text",
+        "content": "Koffie, brood, kaas",
+        "updateTime": "2026-06-14T07:22:41Z",
+        "changedKeys": [
+          "content"
+        ],
+        "previous": {
+          "content": "Koffie, brood"
+        },
+        "current": {
+          "content": "Koffie, brood, kaas"
+        },
+        "changedAt": "2026-06-14T07:22:45.117Z"
+      }
+    },
+    "nextcloud.file.new": {
+      "fields": [
+        {
+          "key": "activityId",
+          "sample": 12345
+        },
+        {
+          "key": "path",
+          "sample": "/Documents/Invoices/Invoice-2026-001.pdf"
+        },
+        {
+          "key": "name",
+          "sample": "Invoice-2026-001.pdf"
+        },
+        {
+          "key": "extension",
+          "sample": "pdf"
+        },
+        {
+          "key": "kind",
+          "sample": "file"
+        },
+        {
+          "key": "actor",
+          "sample": "alice"
+        },
+        {
+          "key": "datetime",
+          "sample": "2026-05-13T09:15:00Z"
+        },
+        {
+          "key": "link",
+          "sample": "https://cloud.example.com/f/12345"
+        }
+      ],
+      "sample": {
+        "activityId": 12345,
+        "path": "/Documents/Invoices/Invoice-2026-001.pdf",
+        "name": "Invoice-2026-001.pdf",
+        "extension": "pdf",
+        "kind": "file",
+        "actor": "alice",
+        "datetime": "2026-05-13T09:15:00Z",
+        "link": "https://cloud.example.com/f/12345"
+      }
+    },
+    "nextcloud.file.changed": {
+      "fields": [
+        {
+          "key": "activityId",
+          "sample": 12346
+        },
+        {
+          "key": "path",
+          "sample": "/Documents/Invoices/Invoice-2026-001.pdf"
+        },
+        {
+          "key": "name",
+          "sample": "Invoice-2026-001.pdf"
+        },
+        {
+          "key": "extension",
+          "sample": "pdf"
+        },
+        {
+          "key": "kind",
+          "sample": "file"
+        },
+        {
+          "key": "actor",
+          "sample": "alice"
+        },
+        {
+          "key": "datetime",
+          "sample": "2026-05-13T10:20:00Z"
+        },
+        {
+          "key": "link",
+          "sample": "https://cloud.example.com/f/12345"
+        }
+      ],
+      "sample": {
+        "activityId": 12346,
+        "path": "/Documents/Invoices/Invoice-2026-001.pdf",
+        "name": "Invoice-2026-001.pdf",
+        "extension": "pdf",
+        "kind": "file",
+        "actor": "alice",
+        "datetime": "2026-05-13T10:20:00Z",
+        "link": "https://cloud.example.com/f/12345"
+      }
+    },
+    "nextcloud.file.deleted": {
+      "fields": [
+        {
+          "key": "activityId",
+          "sample": 12348
+        },
+        {
+          "key": "path",
+          "sample": "/Documents/Old/Draft.docx"
+        },
+        {
+          "key": "name",
+          "sample": "Draft.docx"
+        },
+        {
+          "key": "extension",
+          "sample": "docx"
+        },
+        {
+          "key": "kind",
+          "sample": "file"
+        },
+        {
+          "key": "actor",
+          "sample": "alice"
+        },
+        {
+          "key": "datetime",
+          "sample": "2026-05-13T11:30:00Z"
+        },
+        {
+          "key": "link",
+          "sample": "https://cloud.example.com/f/12348"
+        }
+      ],
+      "sample": {
+        "activityId": 12348,
+        "path": "/Documents/Old/Draft.docx",
+        "name": "Draft.docx",
+        "extension": "docx",
+        "kind": "file",
+        "actor": "alice",
+        "datetime": "2026-05-13T11:30:00Z",
+        "link": "https://cloud.example.com/f/12348"
+      }
+    },
+    "nextcloud.file.renamed": {
+      "fields": [
+        {
+          "key": "activityId",
+          "sample": 12349
+        },
+        {
+          "key": "path",
+          "sample": "/Documents/Invoices/Invoice-2026-001.pdf"
+        },
+        {
+          "key": "oldPath",
+          "sample": "/Documents/Invoices/draft.pdf"
+        },
+        {
+          "key": "name",
+          "sample": "Invoice-2026-001.pdf"
+        },
+        {
+          "key": "extension",
+          "sample": "pdf"
+        },
+        {
+          "key": "kind",
+          "sample": "file"
+        },
+        {
+          "key": "actor",
+          "sample": "alice"
+        },
+        {
+          "key": "datetime",
+          "sample": "2026-05-13T11:45:00Z"
+        },
+        {
+          "key": "link",
+          "sample": "https://cloud.example.com/f/12345"
+        }
+      ],
+      "sample": {
+        "activityId": 12349,
+        "path": "/Documents/Invoices/Invoice-2026-001.pdf",
+        "oldPath": "/Documents/Invoices/draft.pdf",
+        "name": "Invoice-2026-001.pdf",
+        "extension": "pdf",
+        "kind": "file",
+        "actor": "alice",
+        "datetime": "2026-05-13T11:45:00Z",
+        "link": "https://cloud.example.com/f/12345"
+      }
+    },
+    "nextcloud.share.received": {
+      "fields": [
+        {
+          "key": "activityId",
+          "sample": 12347
+        },
+        {
+          "key": "path",
+          "sample": "/Shared/Project.docx"
+        },
+        {
+          "key": "name",
+          "sample": "Project.docx"
+        },
+        {
+          "key": "kind",
+          "sample": "file"
+        },
+        {
+          "key": "actor",
+          "sample": "bob"
+        },
+        {
+          "key": "datetime",
+          "sample": "2026-05-13T11:00:00Z"
+        },
+        {
+          "key": "link",
+          "sample": "https://cloud.example.com/f/22345"
+        }
+      ],
+      "sample": {
+        "activityId": 12347,
+        "path": "/Shared/Project.docx",
+        "name": "Project.docx",
+        "kind": "file",
+        "actor": "bob",
+        "datetime": "2026-05-13T11:00:00Z",
+        "link": "https://cloud.example.com/f/22345"
+      }
+    },
+    "nextcloud.share.created": {
+      "fields": [
+        {
+          "key": "shareId",
+          "sample": 778
+        },
+        {
+          "key": "shareType",
+          "sample": "link"
+        },
+        {
+          "key": "path",
+          "sample": "/Shared/Report.pdf"
+        },
+        {
+          "key": "name",
+          "sample": "Report.pdf"
+        },
+        {
+          "key": "kind",
+          "sample": "file"
+        },
+        {
+          "key": "actor",
+          "sample": "alice"
+        },
+        {
+          "key": "datetime",
+          "sample": "2026-05-13T13:00:00Z"
+        },
+        {
+          "key": "link",
+          "sample": "https://cloud.example.com/s/AbCdEf"
+        }
+      ],
+      "sample": {
+        "shareId": 778,
+        "shareType": "link",
+        "path": "/Shared/Report.pdf",
+        "name": "Report.pdf",
+        "kind": "file",
+        "actor": "alice",
+        "datetime": "2026-05-13T13:00:00Z",
+        "link": "https://cloud.example.com/s/AbCdEf"
+      }
+    },
+    "nextcloud.activity.new": {
+      "fields": [
+        {
+          "key": "activityId",
+          "sample": 12350
+        },
+        {
+          "key": "type",
+          "sample": "file_created"
+        },
+        {
+          "key": "subject",
+          "sample": "alice created Invoice-2026-001.pdf"
+        },
+        {
+          "key": "message",
+          "sample": ""
+        },
+        {
+          "key": "actor",
+          "sample": "alice"
+        },
+        {
+          "key": "objectName",
+          "sample": "Invoice-2026-001.pdf"
+        },
+        {
+          "key": "link",
+          "sample": "https://cloud.example.com/f/12345"
+        },
+        {
+          "key": "datetime",
+          "sample": "2026-05-13T09:15:00Z"
+        }
+      ],
+      "sample": {
+        "activityId": 12350,
+        "type": "file_created",
+        "subject": "alice created Invoice-2026-001.pdf",
+        "message": "",
+        "actor": "alice",
+        "objectName": "Invoice-2026-001.pdf",
+        "link": "https://cloud.example.com/f/12345",
+        "datetime": "2026-05-13T09:15:00Z"
+      }
+    },
+    "nextcloud.notification.new": {
+      "fields": [
+        {
+          "key": "notificationId",
+          "sample": 9876
+        },
+        {
+          "key": "app",
+          "sample": "comments"
+        },
+        {
+          "key": "subject",
+          "sample": "alice mentioned you"
+        },
+        {
+          "key": "message",
+          "sample": "@me please take a look"
+        },
+        {
+          "key": "link",
+          "sample": "https://cloud.example.com/comment/9876"
+        },
+        {
+          "key": "datetime",
+          "sample": "2026-05-13T12:00:00Z"
+        }
+      ],
+      "sample": {
+        "notificationId": 9876,
+        "app": "comments",
+        "subject": "alice mentioned you",
+        "message": "@me please take a look",
+        "link": "https://cloud.example.com/comment/9876",
+        "datetime": "2026-05-13T12:00:00Z"
+      }
+    },
+    "nextcloud.calendar.event.upcoming": {
+      "fields": [
+        {
+          "key": "uid",
+          "sample": "evt-9f2a"
+        },
+        {
+          "key": "calendarId",
+          "sample": "personal"
+        },
+        {
+          "key": "summary",
+          "sample": "Kickoff with Nextcloud"
+        },
+        {
+          "key": "startsAt",
+          "sample": "2026-05-13T15:00:00+02:00"
+        },
+        {
+          "key": "endsAt",
+          "sample": "2026-05-13T15:30:00+02:00"
+        },
+        {
+          "key": "location",
+          "sample": "Online"
+        },
+        {
+          "key": "attendees",
+          "sample": [
+            "alice@example.com",
+            "bob@example.com"
+          ]
+        },
+        {
+          "key": "minutesUntilStart",
+          "sample": 15
+        },
+        {
+          "key": "actor",
+          "sample": "me"
+        },
+        {
+          "key": "datetime",
+          "sample": "2026-05-13T14:45:00Z"
+        }
+      ],
+      "sample": {
+        "uid": "evt-9f2a",
+        "calendarId": "personal",
+        "summary": "Kickoff with Nextcloud",
+        "startsAt": "2026-05-13T15:00:00+02:00",
+        "endsAt": "2026-05-13T15:30:00+02:00",
+        "location": "Online",
+        "attendees": [
+          "alice@example.com",
+          "bob@example.com"
+        ],
+        "minutesUntilStart": 15,
+        "actor": "me",
+        "datetime": "2026-05-13T14:45:00Z"
+      }
+    },
+    "nextcloud.calendar.event.created": {
+      "fields": [
+        {
+          "key": "uid",
+          "sample": "evt-9f2b"
+        },
+        {
+          "key": "calendarId",
+          "sample": "personal"
+        },
+        {
+          "key": "summary",
+          "sample": "Design review"
+        },
+        {
+          "key": "startsAt",
+          "sample": "2026-05-14T10:00:00+02:00"
+        },
+        {
+          "key": "endsAt",
+          "sample": "2026-05-14T11:00:00+02:00"
+        },
+        {
+          "key": "location",
+          "sample": ""
+        },
+        {
+          "key": "actor",
+          "sample": "alice"
+        },
+        {
+          "key": "datetime",
+          "sample": "2026-05-13T09:00:00Z"
+        }
+      ],
+      "sample": {
+        "uid": "evt-9f2b",
+        "calendarId": "personal",
+        "summary": "Design review",
+        "startsAt": "2026-05-14T10:00:00+02:00",
+        "endsAt": "2026-05-14T11:00:00+02:00",
+        "location": "",
+        "actor": "alice",
+        "datetime": "2026-05-13T09:00:00Z"
+      }
+    },
+    "nextcloud.calendar.event.changed": {
+      "fields": [
+        {
+          "key": "uid",
+          "sample": "evt-9f2b"
+        },
+        {
+          "key": "calendarId",
+          "sample": "personal"
+        },
+        {
+          "key": "summary",
+          "sample": "Design review (moved)"
+        },
+        {
+          "key": "startsAt",
+          "sample": "2026-05-14T11:00:00+02:00"
+        },
+        {
+          "key": "endsAt",
+          "sample": "2026-05-14T12:00:00+02:00"
+        },
+        {
+          "key": "location",
+          "sample": "Room 2"
+        },
+        {
+          "key": "actor",
+          "sample": "alice"
+        },
+        {
+          "key": "datetime",
+          "sample": "2026-05-13T09:30:00Z"
+        }
+      ],
+      "sample": {
+        "uid": "evt-9f2b",
+        "calendarId": "personal",
+        "summary": "Design review (moved)",
+        "startsAt": "2026-05-14T11:00:00+02:00",
+        "endsAt": "2026-05-14T12:00:00+02:00",
+        "location": "Room 2",
+        "actor": "alice",
+        "datetime": "2026-05-13T09:30:00Z"
+      }
+    },
+    "nextcloud.deck.card.created": {
+      "fields": [
+        {
+          "key": "cardId",
+          "sample": 4521
+        },
+        {
+          "key": "boardId",
+          "sample": 12
+        },
+        {
+          "key": "stackId",
+          "sample": 34
+        },
+        {
+          "key": "title",
+          "sample": "Follow up with Nextcloud"
+        },
+        {
+          "key": "description",
+          "sample": "Prep the integration demo"
+        },
+        {
+          "key": "done",
+          "sample": null
+        },
+        {
+          "key": "archived",
+          "sample": false
+        },
+        {
+          "key": "duedate",
+          "sample": "2026-05-20T00:00:00+00:00"
+        },
+        {
+          "key": "labels",
+          "sample": [
+            "urgent"
+          ]
+        },
+        {
+          "key": "assignedUsers",
+          "sample": [
+            "bob"
+          ]
+        },
+        {
+          "key": "actor",
+          "sample": "alice"
+        },
+        {
+          "key": "datetime",
+          "sample": "2026-05-13T09:20:00Z"
+        }
+      ],
+      "sample": {
+        "cardId": 4521,
+        "boardId": 12,
+        "stackId": 34,
+        "title": "Follow up with Nextcloud",
+        "description": "Prep the integration demo",
+        "done": null,
+        "archived": false,
+        "duedate": "2026-05-20T00:00:00+00:00",
+        "labels": [
+          "urgent"
+        ],
+        "assignedUsers": [
+          "bob"
+        ],
+        "actor": "alice",
+        "datetime": "2026-05-13T09:20:00Z"
+      }
+    },
+    "nextcloud.deck.card.changed": {
+      "fields": [
+        {
+          "key": "cardId",
+          "sample": 4521
+        },
+        {
+          "key": "boardId",
+          "sample": 12
+        },
+        {
+          "key": "stackId",
+          "sample": 34
+        },
+        {
+          "key": "previousStackId",
+          "sample": 34
+        },
+        {
+          "key": "title",
+          "sample": "Follow up with Nextcloud"
+        },
+        {
+          "key": "description",
+          "sample": "Prep the integration demo"
+        },
+        {
+          "key": "done",
+          "sample": null
+        },
+        {
+          "key": "archived",
+          "sample": false
+        },
+        {
+          "key": "duedate",
+          "sample": "2026-05-20T00:00:00+00:00"
+        },
+        {
+          "key": "labels",
+          "sample": [
+            "urgent"
+          ]
+        },
+        {
+          "key": "assignedUsers",
+          "sample": [
+            "bob"
+          ]
+        },
+        {
+          "key": "actor",
+          "sample": "alice"
+        },
+        {
+          "key": "datetime",
+          "sample": "2026-05-13T10:00:00Z"
+        }
+      ],
+      "sample": {
+        "cardId": 4521,
+        "boardId": 12,
+        "stackId": 34,
+        "previousStackId": 34,
+        "title": "Follow up with Nextcloud",
+        "description": "Prep the integration demo",
+        "done": null,
+        "archived": false,
+        "duedate": "2026-05-20T00:00:00+00:00",
+        "labels": [
+          "urgent"
+        ],
+        "assignedUsers": [
+          "bob"
+        ],
+        "actor": "alice",
+        "datetime": "2026-05-13T10:00:00Z"
+      }
+    },
+    "nextcloud.deck.card.deleted": {
+      "fields": [
+        {
+          "key": "cardId",
+          "sample": 4521
+        },
+        {
+          "key": "boardId",
+          "sample": 12
+        },
+        {
+          "key": "stackId",
+          "sample": 34
+        },
+        {
+          "key": "title",
+          "sample": "Follow up with Nextcloud"
+        },
+        {
+          "key": "actor",
+          "sample": "alice"
+        },
+        {
+          "key": "datetime",
+          "sample": "2026-05-13T10:15:00Z"
+        }
+      ],
+      "sample": {
+        "cardId": 4521,
+        "boardId": 12,
+        "stackId": 34,
+        "title": "Follow up with Nextcloud",
+        "actor": "alice",
+        "datetime": "2026-05-13T10:15:00Z"
+      }
+    },
+    "nextcloud.deck.card.moved": {
+      "fields": [
+        {
+          "key": "cardId",
+          "sample": 4521
+        },
+        {
+          "key": "boardId",
+          "sample": 12
+        },
+        {
+          "key": "stackId",
+          "sample": 36
+        },
+        {
+          "key": "previousStackId",
+          "sample": 34
+        },
+        {
+          "key": "title",
+          "sample": "Follow up with Nextcloud"
+        },
+        {
+          "key": "done",
+          "sample": null
+        },
+        {
+          "key": "labels",
+          "sample": [
+            "urgent"
+          ]
+        },
+        {
+          "key": "assignedUsers",
+          "sample": [
+            "bob"
+          ]
+        },
+        {
+          "key": "actor",
+          "sample": "alice"
+        },
+        {
+          "key": "datetime",
+          "sample": "2026-05-13T10:30:00Z"
+        }
+      ],
+      "sample": {
+        "cardId": 4521,
+        "boardId": 12,
+        "stackId": 36,
+        "previousStackId": 34,
+        "title": "Follow up with Nextcloud",
+        "done": null,
+        "labels": [
+          "urgent"
+        ],
+        "assignedUsers": [
+          "bob"
+        ],
+        "actor": "alice",
+        "datetime": "2026-05-13T10:30:00Z"
+      }
+    },
+    "nextcloud.deck.card.completed": {
+      "fields": [
+        {
+          "key": "cardId",
+          "sample": 4521
+        },
+        {
+          "key": "boardId",
+          "sample": 12
+        },
+        {
+          "key": "stackId",
+          "sample": 36
+        },
+        {
+          "key": "title",
+          "sample": "Follow up with Nextcloud"
+        },
+        {
+          "key": "done",
+          "sample": "2026-05-13T11:00:00+00:00"
+        },
+        {
+          "key": "archived",
+          "sample": false
+        },
+        {
+          "key": "duedate",
+          "sample": "2026-05-20T00:00:00+00:00"
+        },
+        {
+          "key": "labels",
+          "sample": [
+            "urgent"
+          ]
+        },
+        {
+          "key": "assignedUsers",
+          "sample": [
+            "bob"
+          ]
+        },
+        {
+          "key": "actor",
+          "sample": "alice"
+        },
+        {
+          "key": "datetime",
+          "sample": "2026-05-13T11:00:00Z"
+        }
+      ],
+      "sample": {
+        "cardId": 4521,
+        "boardId": 12,
+        "stackId": 36,
+        "title": "Follow up with Nextcloud",
+        "done": "2026-05-13T11:00:00+00:00",
+        "archived": false,
+        "duedate": "2026-05-20T00:00:00+00:00",
+        "labels": [
+          "urgent"
+        ],
+        "assignedUsers": [
+          "bob"
+        ],
+        "actor": "alice",
+        "datetime": "2026-05-13T11:00:00Z"
+      }
+    },
+    "nextcloud.file.tagged": {
+      "fields": [
+        {
+          "key": "fileId",
+          "sample": "437"
+        },
+        {
+          "key": "objectIds",
+          "sample": [
+            "437",
+            "438"
+          ]
+        },
+        {
+          "key": "tagId",
+          "sample": 3
+        },
+        {
+          "key": "tagIds",
+          "sample": [
+            3,
+            17
+          ]
+        },
+        {
+          "key": "objectType",
+          "sample": "files"
+        },
+        {
+          "key": "actor",
+          "sample": "alice"
+        },
+        {
+          "key": "datetime",
+          "sample": "2026-05-13T09:15:00Z"
+        }
+      ],
+      "sample": {
+        "fileId": "437",
+        "objectIds": [
+          "437",
+          "438"
+        ],
+        "tagId": 3,
+        "tagIds": [
+          3,
+          17
+        ],
+        "objectType": "files",
+        "actor": "alice",
+        "datetime": "2026-05-13T09:15:00Z"
+      }
+    },
+    "nextcloud.forms.submitted": {
+      "fields": [
+        {
+          "key": "formId",
+          "sample": 51
+        },
+        {
+          "key": "formHash",
+          "sample": "abc123def456"
+        },
+        {
+          "key": "formTitle",
+          "sample": "Employee Feedback"
+        },
+        {
+          "key": "formOwner",
+          "sample": "alice"
+        },
+        {
+          "key": "submissionId",
+          "sample": 220
+        },
+        {
+          "key": "submittedBy",
+          "sample": "bob"
+        },
+        {
+          "key": "submittedAt",
+          "sample": "2026-05-13T09:15:00Z"
+        },
+        {
+          "key": "actor",
+          "sample": "bob"
+        },
+        {
+          "key": "datetime",
+          "sample": "2026-05-13T09:15:00Z"
+        }
+      ],
+      "sample": {
+        "formId": 51,
+        "formHash": "abc123def456",
+        "formTitle": "Employee Feedback",
+        "formOwner": "alice",
+        "submissionId": 220,
+        "submittedBy": "bob",
+        "submittedAt": "2026-05-13T09:15:00Z",
+        "actor": "bob",
+        "datetime": "2026-05-13T09:15:00Z"
+      }
+    },
+    "nextcloud.tables.row.added": {
+      "fields": [
+        {
+          "key": "tableId",
+          "sample": 34
+        },
+        {
+          "key": "rowId",
+          "sample": 7
+        },
+        {
+          "key": "values",
+          "sample": {
+            "0": "Project X",
+            "1": 2026,
+            "2": "active"
+          }
+        },
+        {
+          "key": "actor",
+          "sample": "carol"
+        },
+        {
+          "key": "datetime",
+          "sample": "2026-05-13T09:15:00Z"
+        }
+      ],
+      "sample": {
+        "tableId": 34,
+        "rowId": 7,
+        "values": {
+          "0": "Project X",
+          "1": 2026,
+          "2": "active"
+        },
+        "actor": "carol",
+        "datetime": "2026-05-13T09:15:00Z"
+      }
+    },
+    "nextcloud.tables.row.updated": {
+      "fields": [
+        {
+          "key": "tableId",
+          "sample": 34
+        },
+        {
+          "key": "rowId",
+          "sample": 7
+        },
+        {
+          "key": "values",
+          "sample": {
+            "0": "Project X",
+            "2": "done"
+          }
+        },
+        {
+          "key": "previousValues",
+          "sample": {
+            "2": "active"
+          }
+        },
+        {
+          "key": "actor",
+          "sample": "carol"
+        },
+        {
+          "key": "datetime",
+          "sample": "2026-05-13T09:20:00Z"
+        }
+      ],
+      "sample": {
+        "tableId": 34,
+        "rowId": 7,
+        "values": {
+          "0": "Project X",
+          "2": "done"
+        },
+        "previousValues": {
+          "2": "active"
+        },
+        "actor": "carol",
+        "datetime": "2026-05-13T09:20:00Z"
+      }
+    },
+    "nextcloud.talk.message.received": {
+      "fields": [
+        {
+          "key": "messageId",
+          "sample": 88123
+        },
+        {
+          "key": "roomToken",
+          "sample": "a1b2c3d4"
+        },
+        {
+          "key": "roomName",
+          "sample": "Demo team"
+        },
+        {
+          "key": "actor",
+          "sample": "alice"
+        },
+        {
+          "key": "actorName",
+          "sample": "Alice"
+        },
+        {
+          "key": "message",
+          "sample": "Can someone post the latest invoice summary?"
+        },
+        {
+          "key": "isMarkdown",
+          "sample": true
+        },
+        {
+          "key": "inReplyTo",
+          "sample": null
+        },
+        {
+          "key": "datetime",
+          "sample": "2026-05-13T12:30:00Z"
+        }
+      ],
+      "sample": {
+        "messageId": 88123,
+        "roomToken": "a1b2c3d4",
+        "roomName": "Demo team",
+        "actor": "alice",
+        "actorName": "Alice",
+        "message": "Can someone post the latest invoice summary?",
+        "isMarkdown": true,
+        "inReplyTo": null,
+        "datetime": "2026-05-13T12:30:00Z"
+      }
+    },
+    "nextcloud.talk.reaction.added": {
+      "fields": [
+        {
+          "key": "messageId",
+          "sample": 88123
+        },
+        {
+          "key": "roomToken",
+          "sample": "a1b2c3d4"
+        },
+        {
+          "key": "roomName",
+          "sample": "Demo team"
+        },
+        {
+          "key": "actor",
+          "sample": "alice"
+        },
+        {
+          "key": "actorName",
+          "sample": "Alice"
+        },
+        {
+          "key": "reaction",
+          "sample": "👍"
+        },
+        {
+          "key": "removed",
+          "sample": false
+        },
+        {
+          "key": "datetime",
+          "sample": "2026-05-13T12:31:00Z"
+        }
+      ],
+      "sample": {
+        "messageId": 88123,
+        "roomToken": "a1b2c3d4",
+        "roomName": "Demo team",
+        "actor": "alice",
+        "actorName": "Alice",
+        "reaction": "👍",
+        "removed": false,
+        "datetime": "2026-05-13T12:31:00Z"
+      }
+    },
+    "support.ticket.resolved": {
+      "fields": [
+        {
+          "key": "threadId",
+          "sample": "thr-42"
+        },
+        {
+          "key": "inboxId",
+          "sample": "inbox-1"
+        },
+        {
+          "key": "subject",
+          "sample": "Cannot log in after password reset"
+        },
+        {
+          "key": "category",
+          "sample": "authentication"
+        },
+        {
+          "key": "priority",
+          "sample": "high"
+        },
+        {
+          "key": "tags",
+          "sample": [
+            "login",
+            "password"
+          ]
+        },
+        {
+          "key": "resolvedBy",
+          "sample": "ai"
+        },
+        {
+          "key": "requesterEmail",
+          "sample": "customer@example.com"
+        },
+        {
+          "key": "messageCount",
+          "sample": 4
+        },
+        {
+          "key": "transcript",
+          "sample": "Customer: I cannot log in after resetting my password.\nSupport: Please clear your browser cache and try the reset link again.\nCustomer: That worked, thanks!"
+        },
+        {
+          "key": "genuineContact",
+          "sample": true
+        }
+      ],
+      "sample": {
+        "threadId": "thr-42",
+        "inboxId": "inbox-1",
+        "subject": "Cannot log in after password reset",
+        "category": "authentication",
+        "priority": "high",
+        "tags": [
+          "login",
+          "password"
+        ],
+        "resolvedBy": "ai",
+        "requesterEmail": "customer@example.com",
+        "messageCount": 4,
+        "transcript": "Customer: I cannot log in after resetting my password.\nSupport: Please clear your browser cache and try the reset link again.\nCustomer: That worked, thanks!",
+        "genuineContact": true
+      }
+    },
+    "approvals.approval.decided": {
+      "fields": [
+        {
+          "key": "approvalId",
+          "sample": "apr_9f2c41d0e6b7a8f31245"
+        },
+        {
+          "key": "source",
+          "sample": "run"
+        },
+        {
+          "key": "decision",
+          "sample": "approved"
+        },
+        {
+          "key": "reason",
+          "sample": "Discount is within policy."
+        },
+        {
+          "key": "answers",
+          "sample": {
+            "poNumber": "PO-4471"
+          }
+        },
+        {
+          "key": "prompt",
+          "sample": "Send the €12.400 quote to Jansen BV?"
+        },
+        {
+          "key": "automationId",
+          "sample": "auto_quote_followup"
+        },
+        {
+          "key": "runId",
+          "sample": "run_7d81b2"
+        },
+        {
+          "key": "studioAppId",
+          "sample": null
+        },
+        {
+          "key": "requestedBy",
+          "sample": null
+        },
+        {
+          "key": "decidedBy",
+          "sample": "user-42"
+        },
+        {
+          "key": "decidedByName",
+          "sample": "Fleur de Vries"
+        },
+        {
+          "key": "assigneeUserId",
+          "sample": "user-42"
+        },
+        {
+          "key": "assigneeGroupId",
+          "sample": null
+        },
+        {
+          "key": "votes",
+          "sample": [
+            {
+              "by": "user-42",
+              "name": "Fleur de Vries",
+              "decision": "approve",
+              "reason": null,
+              "stage": "panel"
+            },
+            {
+              "by": "user-7",
+              "name": "Daan Bakker",
+              "decision": "approve",
+              "reason": "Binnen budget.",
+              "stage": "panel"
+            }
+          ]
+        },
+        {
+          "key": "stages",
+          "sample": [
+            {
+              "key": "s1",
+              "name": "Teamleider",
+              "description": null,
+              "rule": "first",
+              "skipped": false
+            },
+            {
+              "key": "s2",
+              "name": "Finance",
+              "description": "Past dit binnen het budget?",
+              "rule": "all",
+              "skipped": false
+            },
+            {
+              "key": "s3",
+              "name": "Directie",
+              "description": null,
+              "rule": "first",
+              "skipped": true
+            }
+          ]
+        },
+        {
+          "key": "stage",
+          "sample": "s2"
+        },
+        {
+          "key": "context",
+          "sample": {
+            "recordId": "rec_18"
+          }
+        }
+      ],
+      "sample": {
+        "approvalId": "apr_9f2c41d0e6b7a8f31245",
+        "source": "run",
+        "decision": "approved",
+        "reason": "Discount is within policy.",
+        "answers": {
+          "poNumber": "PO-4471"
+        },
+        "prompt": "Send the €12.400 quote to Jansen BV?",
+        "automationId": "auto_quote_followup",
+        "runId": "run_7d81b2",
+        "studioAppId": null,
+        "requestedBy": null,
+        "decidedBy": "user-42",
+        "decidedByName": "Fleur de Vries",
+        "assigneeUserId": "user-42",
+        "assigneeGroupId": null,
+        "votes": [
+          {
+            "by": "user-42",
+            "name": "Fleur de Vries",
+            "decision": "approve",
+            "reason": null,
+            "stage": "panel"
+          },
+          {
+            "by": "user-7",
+            "name": "Daan Bakker",
+            "decision": "approve",
+            "reason": "Binnen budget.",
+            "stage": "panel"
+          }
+        ],
+        "stages": [
+          {
+            "key": "s1",
+            "name": "Teamleider",
+            "description": null,
+            "rule": "first",
+            "skipped": false
+          },
+          {
+            "key": "s2",
+            "name": "Finance",
+            "description": "Past dit binnen het budget?",
+            "rule": "all",
+            "skipped": false
+          },
+          {
+            "key": "s3",
+            "name": "Directie",
+            "description": null,
+            "rule": "first",
+            "skipped": true
+          }
+        ],
+        "stage": "s2",
+        "context": {
+          "recordId": "rec_18"
+        }
+      }
+    },
+    "approvals.approval.requested": {
+      "fields": [
+        {
+          "key": "approvalId",
+          "sample": "apr_9f2c41d0e6b7a8f31245"
+        },
+        {
+          "key": "source",
+          "sample": "run"
+        },
+        {
+          "key": "prompt",
+          "sample": "Send the €12.400 quote to Jansen BV?"
+        },
+        {
+          "key": "automationId",
+          "sample": "auto_quote_followup"
+        },
+        {
+          "key": "runId",
+          "sample": "run_7d81b2"
+        },
+        {
+          "key": "studioAppId",
+          "sample": null
+        },
+        {
+          "key": "requestedBy",
+          "sample": null
+        },
+        {
+          "key": "assigneeUserId",
+          "sample": "user-42"
+        },
+        {
+          "key": "assigneeGroupId",
+          "sample": null
+        },
+        {
+          "key": "expiresAt",
+          "sample": "2026-09-08T17:00:00.000Z"
+        },
+        {
+          "key": "stages",
+          "sample": [
+            {
+              "key": "s1",
+              "name": "Teamleider",
+              "description": null,
+              "rule": "first",
+              "skipped": false
+            },
+            {
+              "key": "s2",
+              "name": "Finance",
+              "description": "Past dit binnen het budget?",
+              "rule": "all",
+              "skipped": false
+            }
+          ]
+        },
+        {
+          "key": "stage",
+          "sample": "s1"
+        },
+        {
+          "key": "context",
+          "sample": {
+            "recordId": "rec_18"
+          }
+        }
+      ],
+      "sample": {
+        "approvalId": "apr_9f2c41d0e6b7a8f31245",
+        "source": "run",
+        "prompt": "Send the €12.400 quote to Jansen BV?",
+        "automationId": "auto_quote_followup",
+        "runId": "run_7d81b2",
+        "studioAppId": null,
+        "requestedBy": null,
+        "assigneeUserId": "user-42",
+        "assigneeGroupId": null,
+        "expiresAt": "2026-09-08T17:00:00.000Z",
+        "stages": [
+          {
+            "key": "s1",
+            "name": "Teamleider",
+            "description": null,
+            "rule": "first",
+            "skipped": false
+          },
+          {
+            "key": "s2",
+            "name": "Finance",
+            "description": "Past dit binnen het budget?",
+            "rule": "all",
+            "skipped": false
+          }
+        ],
+        "stage": "s1",
+        "context": {
+          "recordId": "rec_18"
+        }
+      }
+    },
+    "msgraph.mail.new": {
+      "fields": [
+        {
+          "key": "subscriptionId",
+          "sample": "a1b2c3d4-0000-0000-0000-000000000001"
+        },
+        {
+          "key": "changeType",
+          "sample": "created"
+        },
+        {
+          "key": "resource",
+          "sample": "Users('user-guid')/Messages('AAMkAGI2…')"
+        },
+        {
+          "key": "resourceData",
+          "sample": {
+            "id": "AAMkAGI2…",
+            "@odata.type": "#Microsoft.Graph.Message"
+          }
+        }
+      ],
+      "sample": {
+        "subscriptionId": "a1b2c3d4-0000-0000-0000-000000000001",
+        "changeType": "created",
+        "resource": "Users('user-guid')/Messages('AAMkAGI2…')",
+        "resourceData": {
+          "id": "AAMkAGI2…",
+          "@odata.type": "#Microsoft.Graph.Message"
+        }
+      }
+    },
+    "msgraph.mail.flagged": {
+      "fields": [
+        {
+          "key": "subscriptionId",
+          "sample": "a1b2c3d4-0000-0000-0000-000000000002"
+        },
+        {
+          "key": "changeType",
+          "sample": "updated"
+        },
+        {
+          "key": "resource",
+          "sample": "Users('user-guid')/Messages('AAMkAGI2…')"
+        },
+        {
+          "key": "resourceData",
+          "sample": {
+            "id": "AAMkAGI2…",
+            "@odata.type": "#Microsoft.Graph.Message"
+          }
+        }
+      ],
+      "sample": {
+        "subscriptionId": "a1b2c3d4-0000-0000-0000-000000000002",
+        "changeType": "updated",
+        "resource": "Users('user-guid')/Messages('AAMkAGI2…')",
+        "resourceData": {
+          "id": "AAMkAGI2…",
+          "@odata.type": "#Microsoft.Graph.Message"
+        }
+      }
+    },
+    "msgraph.event.created": {
+      "fields": [
+        {
+          "key": "subscriptionId",
+          "sample": "a1b2c3d4-0000-0000-0000-000000000003"
+        },
+        {
+          "key": "changeType",
+          "sample": "created"
+        },
+        {
+          "key": "resource",
+          "sample": "Users('user-guid')/Events('AAMkAGI2…')"
+        },
+        {
+          "key": "resourceData",
+          "sample": {
+            "id": "AAMkAGI2…",
+            "@odata.type": "#Microsoft.Graph.Event"
+          }
+        }
+      ],
+      "sample": {
+        "subscriptionId": "a1b2c3d4-0000-0000-0000-000000000003",
+        "changeType": "created",
+        "resource": "Users('user-guid')/Events('AAMkAGI2…')",
+        "resourceData": {
+          "id": "AAMkAGI2…",
+          "@odata.type": "#Microsoft.Graph.Event"
+        }
+      }
+    },
+    "msgraph.event.changed": {
+      "fields": [
+        {
+          "key": "subscriptionId",
+          "sample": "a1b2c3d4-0000-0000-0000-000000000004"
+        },
+        {
+          "key": "changeType",
+          "sample": "updated"
+        },
+        {
+          "key": "resource",
+          "sample": "Users('user-guid')/Events('AAMkAGI2…')"
+        },
+        {
+          "key": "resourceData",
+          "sample": {
+            "id": "AAMkAGI2…",
+            "@odata.type": "#Microsoft.Graph.Event"
+          }
+        }
+      ],
+      "sample": {
+        "subscriptionId": "a1b2c3d4-0000-0000-0000-000000000004",
+        "changeType": "updated",
+        "resource": "Users('user-guid')/Events('AAMkAGI2…')",
+        "resourceData": {
+          "id": "AAMkAGI2…",
+          "@odata.type": "#Microsoft.Graph.Event"
+        }
+      }
+    },
+    "msgraph.file.new": {
+      "fields": [
+        {
+          "key": "subscriptionId",
+          "sample": "a1b2c3d4-0000-0000-0000-000000000006"
+        },
+        {
+          "key": "changeType",
+          "sample": "created"
+        },
+        {
+          "key": "resource",
+          "sample": "Users('user-guid')/Drive/Root"
+        },
+        {
+          "key": "resourceData",
+          "sample": {
+            "id": "01BYE5RZ…",
+            "@odata.type": "#Microsoft.Graph.DriveItem"
+          }
+        }
+      ],
+      "sample": {
+        "subscriptionId": "a1b2c3d4-0000-0000-0000-000000000006",
+        "changeType": "created",
+        "resource": "Users('user-guid')/Drive/Root",
+        "resourceData": {
+          "id": "01BYE5RZ…",
+          "@odata.type": "#Microsoft.Graph.DriveItem"
+        }
+      }
+    },
+    "msgraph.file.changed": {
+      "fields": [
+        {
+          "key": "subscriptionId",
+          "sample": "a1b2c3d4-0000-0000-0000-000000000007"
+        },
+        {
+          "key": "changeType",
+          "sample": "updated"
+        },
+        {
+          "key": "resource",
+          "sample": "Users('user-guid')/Drive/Root"
+        },
+        {
+          "key": "resourceData",
+          "sample": {
+            "id": "01BYE5RZ…",
+            "@odata.type": "#Microsoft.Graph.DriveItem"
+          }
+        }
+      ],
+      "sample": {
+        "subscriptionId": "a1b2c3d4-0000-0000-0000-000000000007",
+        "changeType": "updated",
+        "resource": "Users('user-guid')/Drive/Root",
+        "resourceData": {
+          "id": "01BYE5RZ…",
+          "@odata.type": "#Microsoft.Graph.DriveItem"
+        }
+      }
+    },
+    "msgraph.event.updated": {
+      "fields": [
+        {
+          "key": "subscriptionId",
+          "sample": "a1b2c3d4-0000-0000-0000-000000000005"
+        },
+        {
+          "key": "changeType",
+          "sample": "updated"
+        },
+        {
+          "key": "resource",
+          "sample": "Users('user-guid')/Events('AAMkAGI2…')"
+        },
+        {
+          "key": "resourceData",
+          "sample": {
+            "id": "AAMkAGI2…",
+            "@odata.type": "#Microsoft.Graph.Event"
+          }
+        }
+      ],
+      "sample": {
+        "subscriptionId": "a1b2c3d4-0000-0000-0000-000000000005",
+        "changeType": "updated",
+        "resource": "Users('user-guid')/Events('AAMkAGI2…')",
+        "resourceData": {
+          "id": "AAMkAGI2…",
+          "@odata.type": "#Microsoft.Graph.Event"
+        }
+      }
+    },
+    "tuya.device.status.changed": {
+      "fields": [
+        {
+          "key": "deviceId",
+          "sample": "bf12ab34cd56ef7890"
+        },
+        {
+          "key": "deviceName",
+          "sample": "Woonkamer lamp"
+        },
+        {
+          "key": "category",
+          "sample": "dj"
+        },
+        {
+          "key": "productName",
+          "sample": "Smart Bulb"
+        },
+        {
+          "key": "online",
+          "sample": true
+        },
+        {
+          "key": "isLock",
+          "sample": false
+        },
+        {
+          "key": "status",
+          "sample": [
+            {
+              "code": "switch_led",
+              "value": true
+            },
+            {
+              "code": "bright_value_v2",
+              "value": 540
+            }
+          ]
+        },
+        {
+          "key": "changedKeys",
+          "sample": [
+            "status.switch_led"
+          ]
+        },
+        {
+          "key": "previous",
+          "sample": {
+            "status.switch_led": false
+          }
+        },
+        {
+          "key": "current",
+          "sample": {
+            "status.switch_led": true,
+            "status.bright_value_v2": 540,
+            "online": true
+          }
+        },
+        {
+          "key": "changedAt",
+          "sample": "2026-08-02T10:14:03.115Z"
+        }
+      ],
+      "sample": {
+        "deviceId": "bf12ab34cd56ef7890",
+        "deviceName": "Woonkamer lamp",
+        "category": "dj",
+        "productName": "Smart Bulb",
+        "online": true,
+        "isLock": false,
+        "status": [
+          {
+            "code": "switch_led",
+            "value": true
+          },
+          {
+            "code": "bright_value_v2",
+            "value": 540
+          }
+        ],
+        "changedKeys": [
+          "status.switch_led"
+        ],
+        "previous": {
+          "status.switch_led": false
+        },
+        "current": {
+          "status.switch_led": true,
+          "status.bright_value_v2": 540,
+          "online": true
+        },
+        "changedAt": "2026-08-02T10:14:03.115Z"
+      }
+    },
+    "tuya.device.online.changed": {
+      "fields": [
+        {
+          "key": "deviceId",
+          "sample": "bf98zy76xw54vu3210"
+        },
+        {
+          "key": "deviceName",
+          "sample": "Voordeur sensor"
+        },
+        {
+          "key": "category",
+          "sample": "mcs"
+        },
+        {
+          "key": "online",
+          "sample": false
+        },
+        {
+          "key": "isLock",
+          "sample": false
+        },
+        {
+          "key": "changedKeys",
+          "sample": [
+            "online"
+          ]
+        },
+        {
+          "key": "previous",
+          "sample": {
+            "online": true
+          }
+        },
+        {
+          "key": "current",
+          "sample": {
+            "online": false
+          }
+        },
+        {
+          "key": "changedAt",
+          "sample": "2026-08-02T10:14:03.115Z"
+        }
+      ],
+      "sample": {
+        "deviceId": "bf98zy76xw54vu3210",
+        "deviceName": "Voordeur sensor",
+        "category": "mcs",
+        "online": false,
+        "isLock": false,
+        "changedKeys": [
+          "online"
+        ],
+        "previous": {
+          "online": true
+        },
+        "current": {
+          "online": false
+        },
+        "changedAt": "2026-08-02T10:14:03.115Z"
+      }
+    },
+    "__manual": {
+      "fields": [
+        {
+          "key": "now",
+          "sample": "2026-08-23T06:50:30.708Z"
+        }
+      ],
+      "sample": {
+        "now": "2026-08-23T06:50:30.709Z"
+      }
+    },
+    "__schedule": {
+      "fields": [
+        {
+          "key": "now",
+          "sample": "2026-08-23T06:50:30.709Z"
+        }
+      ],
+      "sample": {
+        "now": "2026-08-23T06:50:30.709Z"
+      }
+    },
+    "__webhook": {
+      "fields": [],
+      "sample": {},
+      "note": "trigger.output is the raw JSON body you POST — bind trigger.output.<yourField>. Request headers are at trigger.headers.<name>."
+    },
+    "__app_trigger": {
+      "fields": [],
+      "sample": {}
+    },
+    "__form": {
+      "fields": [],
+      "sample": {},
+      "note": "trigger.output is the answers keyed by field name — bind trigger.output.<fieldName>. submitted_at / form_page_id are at trigger.headers.<name>."
+    }
+  }
+}

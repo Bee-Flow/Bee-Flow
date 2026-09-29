@@ -1,0 +1,57 @@
+import React, { useMemo } from 'react';
+// No tier picker here: the welcome screen renders the composer as `children`,
+// and the composer owns that control. The import was dead.
+import { ALL_PROMPTS, WELCOME_MESSAGES } from '../../utils/prompts';
+import { useTranslation } from '../../hooks/useTranslation';
+
+const DirectChatWelcome = ({ tiers, selectedTier, onTierChange, onPromptClick, children }) => {
+    const { t } = useTranslation();
+
+    const welcomeMsg = useMemo(() => {
+        return WELCOME_MESSAGES[Math.floor(Math.random() * WELCOME_MESSAGES.length)];
+    }, []);
+
+    const prompts = useMemo(() => {
+        // Randomly pick 3 prompts from the list of 100
+        return [...ALL_PROMPTS].sort(() => 0.5 - Math.random()).slice(0, 3);
+    }, []);
+
+    return (
+        <div className="flex flex-col items-center justify-center p-4 sm:p-8 max-w-4xl mx-auto w-full">
+            <h1 className="text-center" style={{
+                fontSize: 'clamp(20px, 5vw, 32px)', fontWeight: 600,
+                color: 'var(--text-primary)', marginBottom: '20px',
+                letterSpacing: '-0.02em'
+            }}>
+                {t(welcomeMsg.i18nKey, welcomeMsg.text)}
+            </h1>
+
+            {/* Render passing InputArea here */}
+            {children && (
+                <div className="w-full mb-6">
+                    {children}
+                </div>
+            )}
+
+            {/* Phones: full-width rows whose text wraps (long prompts no longer
+                clip off the right edge). Desktop: inline single-line pills. */}
+            <div className="w-full flex flex-col sm:flex-row sm:flex-wrap sm:justify-center gap-2 mb-8">
+                {prompts.map((prompt, i) => (
+                    <button
+                        key={i}
+                        onClick={() => onPromptClick && onPromptClick(t(prompt.i18nKey, prompt.text))}
+                        data-surface="subtle"
+                        className="text-left px-3.5 py-2 sm:py-1.5 rounded-2xl sm:rounded-full border border-[var(--border-subtle)] bg-[var(--bg-card)] hover:bg-[var(--bg-secondary)] transition-all flex items-start sm:items-center gap-2 group w-full sm:w-auto sm:max-w-full whitespace-normal sm:whitespace-nowrap"
+                    >
+                        <span className="text-sm leading-5 group-hover:scale-110 transition-transform flex-shrink-0">{prompt.icon}</span>
+                        <span className="text-[12.5px] font-medium text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors">
+                            {t(prompt.i18nKey, prompt.text)}
+                        </span>
+                    </button>
+                ))}
+            </div>
+        </div>
+    );
+};
+
+export default DirectChatWelcome;

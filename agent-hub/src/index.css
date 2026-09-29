@@ -1,0 +1,2883 @@
+@import "tailwindcss";
+
+/* Bind the Tailwind `dark:` variant to our theme system (`data-theme`) instead
+   of `prefers-color-scheme`. Without this override the scattered `dark:` classes
+   across the codebase would apply on a dark-mode OS even when the admin picked
+   the Light preset — breaking every page's contrast. Now `dark:bg-white/5`
+   activates exactly when `data-theme` is `dark` or `glass-dark`. */
+@custom-variant dark (&:where([data-theme="dark"] *, [data-theme="glass-dark"] *, [data-theme="obsidian"] *, [data-theme="dark"], [data-theme="glass-dark"], [data-theme="obsidian"]));
+
+/* User chat bubble — the prose inside the user message keeps black text by
+   default because the bubble has a fixed light gray background. The token is
+   overridable so embedders (EmbedChat) can pass a `userColor` URL param and
+   have both the bubble and its prose flip in lockstep. */
+.bubble-user-prose,
+.bubble-user-prose :where(h1, h2, h3, h4, h5, h6, p, a, strong, code, li, blockquote) {
+    color: var(--user-bubble-fg, #000) !important;
+}
+
+.bubble-user-prose a {
+    text-decoration: underline;
+}
+
+/* Per-theme user-bubble colour. Without these, every theme falls back to the
+   universal `#e8e8eb` cool gray in MessageItem.jsx — which clashes with warm
+   themes (Paper, Sepia) and reads as a flat slab on dark themes. Glass
+   variants use a translucent tile so they sit on the wallpaper naturally
+   instead of breaking the liquid-glass aesthetic. EmbedChat's `userColor`
+   URL param still wins because it writes to :root with !important. */
+:root                          { --user-bubble-bg: #2a2a36;                 --user-bubble-fg: #f8fafc; }
+[data-theme="light"]           { --user-bubble-bg: #e8e8ee;                 --user-bubble-fg: #0f172a; }
+[data-theme="glass"]           { --user-bubble-bg: rgba(255,255,255,0.55);  --user-bubble-fg: #0f172a; }
+[data-theme="glass-dark"]      { --user-bubble-bg: rgba(15,23,42,0.55);     --user-bubble-fg: #f8fafc; }
+[data-theme="high-contrast"]   { --user-bubble-bg: #ffffff;                 --user-bubble-fg: #000000; }
+[data-theme="paper"]           { --user-bubble-bg: #f0ebe0;                 --user-bubble-fg: #1c1917; }
+[data-theme="obsidian"]        { --user-bubble-bg: #1c1c20;                 --user-bubble-fg: #fafaf9; }
+[data-theme="sepia"]           { --user-bubble-bg: #e8dcc4;                 --user-bubble-fg: #44322c; }
+
+/* PII category colors — the DLP review UI (dlpReview/) badges/highlights a
+   detected span by CATEGORY + color, never a raw confidence percentage. Eight
+   slots from the dataviz skill's validated categorical palette (fixed order,
+   CVD-safe on adjacent pairs — see the skill's references/palette.md), mapped
+   1:1 onto piiCategories.ts's 7 groups plus an 8th slot for manually-marked /
+   custom-term spans. Two value sets (not one per Bee Flow theme): the
+   palette is validated against ONE light and ONE dark reference surface, so
+   themes group by surface lightness rather than getting bespoke, unvalidated
+   re-tunes. Dark-surface themes: default (root), glass-dark, obsidian.
+   Light-surface themes: light, glass, high-contrast, paper, sepia. */
+:root,
+[data-theme="glass-dark"],
+[data-theme="obsidian"] {
+    --pii-cat-1: #3987e5; /* Personal — blue */
+    --pii-cat-2: #d95926; /* Contact — orange */
+    --pii-cat-3: #199e70; /* Financial — aqua */
+    --pii-cat-4: #c98500; /* Identity — yellow */
+    --pii-cat-5: #d55181; /* Digital — magenta */
+    --pii-cat-6: #008300; /* Organization — green */
+    --pii-cat-7: #9085e9; /* EU / Netherlands — violet */
+    --pii-cat-8: #e66767; /* Manually marked / custom term — red */
+}
+[data-theme="light"],
+[data-theme="glass"],
+[data-theme="high-contrast"],
+[data-theme="paper"],
+[data-theme="sepia"] {
+    --pii-cat-1: #2a78d6;
+    --pii-cat-2: #eb6834;
+    --pii-cat-3: #1baf7a;
+    --pii-cat-4: #eda100;
+    --pii-cat-5: #e87ba4;
+    --pii-cat-6: #008300;
+    --pii-cat-7: #4a3aa7;
+    --pii-cat-8: #e34948;
+}
+
+/* Chart series for the product's own dashboards (Studio → Forms → Answers,
+   a datatable's Dashboard tab; components/shared/charts). The same validated
+   categorical palette as --pii-cat-* — one set per surface lightness — with
+   slot 7 on cyan instead of violet: a chart may carry no purple/violet/indigo
+   (house rule, AppStudio.noPurple.test). Series colours only; axes, grid,
+   labels and tooltips stay on the text/border tokens. */
+:root,
+[data-theme="glass-dark"],
+[data-theme="obsidian"] {
+    --chart-1: #3987e5;
+    --chart-2: #d95926;
+    --chart-3: #199e70;
+    --chart-4: #c98500;
+    --chart-5: #d55181;
+    --chart-6: #008300;
+    --chart-7: #0e9ab8;
+    --chart-8: #e66767;
+}
+[data-theme="light"],
+[data-theme="glass"],
+[data-theme="high-contrast"],
+[data-theme="paper"],
+[data-theme="sepia"] {
+    --chart-1: #2a78d6;
+    --chart-2: #eb6834;
+    --chart-3: #1baf7a;
+    --chart-4: #eda100;
+    --chart-5: #e87ba4;
+    --chart-6: #008300;
+    --chart-7: #0891b2;
+    --chart-8: #e34948;
+}
+
+/* Step-type family colours for the automations builder (Bee Flow Builder
+   redesign, Sep 2026). Nine families — trigger, ai, app, branch, loop, data,
+   pause, guard, end — each painted ONLY as the 4px bar and the icon tile on a
+   step card, in the palette, the legend and the minimap; never as a surface.
+   Same two-set model as --pii-cat above: one set validated on a light
+   reference surface, one on a dark one, grouped by surface lightness rather
+   than re-tuned per theme. `end` is the theme's own ink (declared once in
+   :root below) so a paper/sepia end card never carries a foreign near-black.
+   The type→family map lives in components/automation/Builder/flow/nodeDefs.js;
+   the visual recipes in flow/nodeTypeColors.js. */
+:root,
+[data-theme="glass-dark"],
+[data-theme="obsidian"] {
+    --type-trigger: #5cc2b3;
+    --type-ai: #82aaf0;
+    --type-app: #c8ad74;
+    --type-branch: #e08a5e;
+    --type-loop: #63bfe0;
+    --type-data: #9fb0c8;
+    --type-pause: #c2a98a;
+    --type-guard: #6cb8d3;
+}
+[data-theme="light"],
+[data-theme="glass"],
+[data-theme="high-contrast"],
+[data-theme="paper"],
+[data-theme="sepia"] {
+    --type-trigger: #2b7f74;
+    --type-ai: #3f6fc4;
+    --type-app: #7c6a3f;
+    --type-branch: #a8552d;
+    --type-loop: #2a7f9d;
+    --type-data: #5a6b82;
+    --type-pause: #7d6b55;
+    --type-guard: #2e6f86;
+}
+
+/* Object-kind colours for Studio (Bee Flow Builder redesign, Sep 2026). A
+   KIND is a thing you make in Studio — an app, a webpage, a skill, a
+   knowledge base, a meeting note — where a --type-* family above is a step
+   inside an automation. Painted only as the 28/30/36/48px icon tile, the
+   rail glyph, a reference pill or a legend swatch; never as a surface.
+   Same two-set model as --pii-cat and --type-* above. Kinds that already
+   have a step family reuse its token (automation → --type-trigger, table →
+   --type-data, form → --type-pause, agent → --type-ai — artboard 1b says
+   "blauw · zelfde als AI-stap" on purpose); a solution is a container and
+   stays neutral (--text-secondary). The kind→token map and the tile recipes
+   live in components/shared/kindColors.js.
+
+   Two artboard values are RETUNED here, not aliased. The design draws
+   Webpagina as #2a7f9d and Meeting note as #7d6b55 — exactly --type-loop
+   and --type-pause — while artboard 1b puts Formulier (--type-pause) and
+   Meeting note side by side in one nine-tile legend, and the Studio rail
+   tints Webpagina's in a petrol the builder has already taught as "loop".
+   One shared colour would make that legend teach eight kinds, not nine. So
+   each is moved one perceptible step (ΔE*ab ≈ 15–17) from its twin inside
+   its own hue family: web stays petrol but deeper and a touch bluer (loop
+   and guard keep the cyan side), meet stays brown but drops the grey (pause
+   keeps the taupe). Design-owner sign-off pending — recorded in the plan's
+   deviation table.
+
+   A THIRD retune (Compliance Center redesign, 2026-09-14). The Compliance
+   artboards paint the area #2e6f86 — exactly the light --type-guard — and a
+   guard step (DLP, PII shield, approval) is the family a compliance section
+   sits next to most often. Compliance is also the one kind that is an AREA
+   you administer rather than a thing you make; it is on this map so the
+   Studio section header, the settings-nav tile and the hub's own rail read
+   ONE token instead of each choosing a teal. Retuned inside the teal family,
+   one perceptible step darker and greener. Light #1b6067: 7.2:1 on #fff;
+   ΔE*ab 12.1 from --type-guard #2e6f86, 17.0 from --type-trigger #2b7f74,
+   18.5 from --type-loop #2a7f9d, 27.9 from --kind-web #22699b. Dark
+   #3eb3bd: 6.9:1 on the dark --bg-card #1a1a24; ΔE 14.8 from --type-trigger
+   #5cc2b3, 14.6 from --type-guard #6cb8d3, 15.9 from --type-loop #63bfe0.
+   The planned fallback #34a8b2 (6.1:1, ΔE 16.6 / 15.6) was not needed:
+   both bars — contrast ≥ 6:1, ΔE ≥ 12 light / ≥ 10 dark — clear at the
+   first pick. Design-owner sign-off pending — recorded in the plan's
+   deviation table.
+
+   Light set: the artboard values, retunes included. On the light --bg-card:
+   app 6.1:1, web 5.9, kb 4.9, meet 7.4; skill #c2661f is the artboard's own
+   4.0:1 — a glyph and pill colour, never body text. Dark set: derived by
+   eye like --type-* (not a formula — one shift would push the ochre to
+   lemon and the brown to pink), each lifted until it sits at the weight of
+   its --type-* neighbours: 6.3–8.4:1 on the dark --bg-card (#1a1a24), ≥ 5:1
+   on the glass-dark tile, and the retuned pair kept ≥ ΔE 12 from the dark
+   --type-loop / --type-pause. */
+:root,
+[data-theme="glass-dark"],
+[data-theme="obsidian"] {
+    --kind-app: #a996ee;
+    --kind-web: #6db3e6;
+    --kind-skill: #eea052;
+    --kind-kb: #d3b14f;
+    --kind-meet: #c29276;
+    /* Playbooks (2026-09-13): emerald, one step from --success and from the
+       teal --type-trigger (routines) — every blue slot is taken and purple
+       is out; ≥ 6:1 on the dark --bg-card. Design-owner sign-off pending. */
+    --kind-playbook: #6ccf8e;
+    /* Documents (2026-09-15): printable artefacts — invoices, quotes,
+       letters. Rose, because every blue/teal/green slot is taken and a
+       document sits next to Webpages on the rail, where a second blue
+       would read as the same kind. 7.1:1 on the dark --bg-card, ΔE 34.9
+       from its nearest neighbour (--kind-meet). Design-owner sign-off
+       pending, as for --kind-playbook above. */
+    --kind-doc: #e58cae;
+    /* Compliance (2026-09-14): the one kind that is an area you administer,
+       not a thing you make. Teal, one step from the dark --type-trigger and
+       --type-guard; 6.9:1 on the dark --bg-card. Retuned — see above. */
+    --kind-compliance: #3eb3bd;
+    /* Status ink, dark set — see the light set for the rule. The raw status
+       colours already read on a dark chip except the default theme's --error
+       #ef4444 (3.9:1 on its own 16% tint), so this set is the lighter ramp
+       step that glass-dark and obsidian use as their raw value: 6.5 / 7.3 /
+       4.9:1 on a 16% chip over #1a1a24. */
+    --success-ink: #34d399;
+    --warning-ink: #fbbf24;
+    --error-ink: #f87171;
+    /* The fourth status family: an INFORMATIVE note, and the inline "here is
+       the thing that fixes it" link inside one. Added for the Privacy Shield
+       round-2 artboards, which lean on it 20-odd times — a posture row's
+       "See where", the how-it-works footer, the upgrade link. It was five
+       different hardcoded blues before (#3b82f6 in LicenceLock, #1e40af in a
+       warning box, --accent-primary elsewhere), which on the paper and sepia
+       themes read as three unrelated link styles on one screen. Same pairing
+       rule as the three above: raw token for borders, dots and glyphs, ink for
+       words. 6.6:1 on a 16% chip over #1a1a24. */
+    --info: #3b82f6;
+    --info-ink: #93c5fd;
+    /* Learning Center (2026-09-14 handoff): the two FIXED semantic colours of
+       the one progress idiom — green = complete, gold = mastered — are the
+       same in every theme (the artboard names them the only non-token
+       colours). Their -ink partners follow the status-ink rule above: raw
+       token for bars, borders and glyphs, ink for words. */
+    --learn-complete: #15803d;
+    --learn-complete-ink: #4ade80;
+    --learn-mastered: #ca8a04;
+    --learn-mastered-ink: #fbbf24;
+}
+[data-theme="light"],
+[data-theme="glass"],
+[data-theme="high-contrast"],
+[data-theme="paper"],
+[data-theme="sepia"] {
+    --kind-app: #6b4fbb;
+    --kind-web: #22699b;   /* artboard #2a7f9d == --type-loop; retuned, see above */
+    --kind-skill: #c2661f;
+    --kind-kb: #8a6d1f;
+    --kind-meet: #734d33;  /* artboard #7d6b55 == --type-pause; retuned, see above */
+    --kind-playbook: #1e7f4f;  /* Playbooks — emerald; ≥ 4.5:1 on the light --bg-card */
+    --kind-doc: #a83a63;  /* Documents — rose; 6.1:1 on the light --bg-card */
+    --kind-compliance: #1b6067;  /* artboard #2e6f86 == --type-guard; retuned, see above */
+    /* Status INK — the TEXT colour on a status chip. A chip is a 14–16% tint
+       of --success/--warning/--error with a 1px border in the raw token; the
+       raw token as text on that tint measures 2.7–3.8:1 on a light card, so
+       the artboards write a darker ink for the words (#0b7a5a / #8a5a00, 32
+       places in 8 files). Rule: chip TEXT uses the -ink token, borders and
+       dots use the raw token. A token pair rather than a color-mix recipe:
+       no single mix percentage reproduces #0b7a5a in every theme, and a
+       per-theme percentage is exactly the unvalidated re-tune this two-set
+       model exists to forbid. Precedent: --accent-primary / --accent-primary-fg
+       below. --error-ink is --error one ramp step darker (red-600 → red-700),
+       the step the artboards took for the other two. On a 16% chip over the
+       light card: 4.4 / 5.0 / 5.0:1. */
+    --success-ink: #0b7a5a;
+    --warning-ink: #8a5a00;
+    --error-ink: #b91c1c;
+    /* Info, light set — see the dark set for the rule. --info is blue-500 for
+       borders and glyphs; the ink is blue-700, the same one-ramp-step-darker
+       move --error-ink makes, giving 5.9:1 on a 16% chip over the light
+       --bg-card (and 6.4:1 as plain text on it, so it also works as the
+       inline link colour it mostly gets used as). */
+    --info: #3b82f6;
+    --info-ink: #1d4ed8;
+    /* Learning Center, light set — see the dark set for the rule. */
+    --learn-complete: #15803d;
+    --learn-complete-ink: #15803d;
+    --learn-mastered: #ca8a04;
+    --learn-mastered-ink: #854d0e;
+}
+
+:root {
+    /* Visible-viewport layout vars — kept live by useAppHeight(). Defaults are
+       correct before JS runs / if JS is disabled. --app-height tracks the real
+       visible height (use instead of 100vh/100dvh); --keyboard-inset is how much
+       the on-screen keyboard covers at the bottom. */
+    --app-height: 100dvh;
+    --keyboard-inset: 0px;
+
+    /* Color Palette - Dark Professional Theme */
+    --bg-primary: #0f0f13;
+    --bg-secondary: #16161d;
+    --bg-tertiary: #1e1e28;
+    --bg-card: #1a1a24;
+    --bg-card-hover: #22222e;
+
+    --accent-primary: #9ca3af;
+    --accent-secondary: #d1d5db;
+    --accent-primary-hover: #6b7280;
+    /* Foreground for text ON the accent. ~20 call sites read it with a #fff
+       fallback, but it was never declared in CSS — so with the default grey
+       accent every filled button rendered white-on-#9ca3af at 2.54:1
+       (applyTheme.js only sets it when an admin picks a CUSTOM accent).
+       Near-black on the default grey measures ≈ 7:1. */
+    --accent-primary-fg: #111827;
+    --accent-glow: rgba(156, 163, 175, 0.2);
+
+    --success: #10b981;
+    --warning: #f59e0b;
+    --error: #ef4444;
+    --pinned: #06b6d4;
+
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    /* Caption/hint tier. Declared LITERALLY in every theme block, not aliased
+       to --text-muted: the builder uses it ~490× at 9–11px, where the muted
+       value failed WCAG AA in three themes (#64748b on #16161d ≈ 3.7:1).
+       Dark/light/sepia get a stronger step (this one ≈ 6.9:1); the other five
+       themes reuse their --text-muted value, which already measures 6.4–9.1:1.
+       A theme block missing its own declaration would silently inherit this
+       dark-theme value — every block below declares it. */
+    --text-tertiary: #8b9bb0;
+
+    --border-subtle: rgba(255, 255, 255, 0.06);
+    --border-default: rgba(255, 255, 255, 0.1);
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+    --shadow-card: 0 2px 6px rgba(0, 0, 0, 0.25);
+    --shadow-card-hover: 0 8px 24px rgba(0, 0, 0, 0.45);
+    --shadow-popover: 0 12px 32px rgba(0, 0, 0, 0.55);
+    --shadow-glow: 0 0 20px var(--accent-glow);
+
+    /* Short alias — many builder components use the shorthand `--accent`.
+       Define it once here so it inherits the per-theme `--accent-primary`
+       automatically; no per-theme override needed. */
+    --accent: var(--accent-primary);
+    /* The end-of-flow family is the theme's own ink — see the --type-* block above. */
+    --type-end: var(--text-primary);
+    --accent-hover: var(--accent-primary-hover);
+
+    /* Brand (semantic aliases, monochrome to match app-wide accent) */
+    --brand-primary: var(--accent-primary);
+    --brand-primary-hover: var(--accent-primary-hover);
+    --brand-secondary: var(--accent-secondary);
+    --brand-gradient: linear-gradient(135deg, var(--accent-primary), var(--accent-primary-hover));
+    --brand-gradient-soft: linear-gradient(135deg, rgba(156, 163, 175, 0.14), rgba(107, 114, 128, 0.10));
+
+    /* Surface layering aliases */
+    --surface-1: var(--bg-primary);
+    --surface-2: var(--bg-secondary);
+    --surface-3: var(--bg-tertiary);
+
+    /* Menu/list row states. Sidebar, NotificationCenter and the designer
+       headers read these at ~15 call sites, but they were never declared —
+       and an undefined var() substitutes to transparent, so hovered and
+       active rows painted NOTHING in every theme. Derived from the theme's
+       own ink and accent (resolved at the element that uses them), so every
+       theme block below picks them up without declaring anything. */
+    --item-hover-bg: color-mix(in srgb, var(--text-primary) 7%, transparent);
+    --item-active-bg: color-mix(in srgb, var(--accent-primary) 12%, transparent);
+
+    /* Tooltip tile. shared/Tooltip.tsx has always painted one dark slate tile
+       in every theme, but read it through two tokens that were never declared
+       (so the hex fallbacks shipped). Declared once here, theme-independent on
+       purpose: a tooltip is the one surface that stays dark on a light theme. */
+    --bg-tooltip: rgba(15, 23, 42, 0.92);
+    --text-tooltip: #fafafa;
+
+    /* Radii — multiplied by --radius-scale (defaults to 1) so admins can dial
+       roundness globally without touching every component. */
+    --radius-scale: 1;
+    --radius-sm: calc(8px * var(--radius-scale, 1));
+    --radius-md: calc(12px * var(--radius-scale, 1));
+    --radius-lg: calc(16px * var(--radius-scale, 1));
+    --radius-xl: calc(20px * var(--radius-scale, 1));
+
+    /* Typography — switchable via ThemeProvider (admin font dropdown). */
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+    /* Glass / liquid-glass theme tokens (also consumed by [data-surface] in
+       non-glass themes when admins want a frosted card on a flat backdrop). */
+    --glass-blur: 24px;
+    --glass-saturate: 180%;
+    --glass-tint: rgba(255, 255, 255, 0.55);
+    --glass-tint-strong: rgba(255, 255, 255, 0.78);
+    --glass-border: rgba(255, 255, 255, 0.40);
+    --glass-highlight: linear-gradient(135deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.05));
+    --glass-shadow: 0 8px 32px rgba(15, 23, 42, 0.18);
+
+    /* Wallpaper layer — set to a url(...) by ThemeProvider when an admin
+       uploads one; falls back to the animated gradient defined below. */
+    --wallpaper-image: none;
+    --wallpaper-overlay: rgba(255, 255, 255, 0.10);
+}
+
+/* Light Theme */
+[data-theme="light"] {
+    --bg-primary: #fafafa;
+    --bg-secondary: #f3f3f3;
+    --bg-tertiary: #e5e5e5;
+    --bg-card: #ffffff;
+    --bg-card-hover: #fafafa;
+
+    --accent-primary: #9ca3af;
+    --accent-secondary: #d1d5db;
+    --accent-primary-hover: #6b7280;
+    --accent-primary-fg: #111827;
+    --accent-glow: rgba(156, 163, 175, 0.12);
+
+    --text-primary: #0f172a;
+    --text-secondary: #334155;
+    --text-muted: #64748b;
+    --text-tertiary: #55606d;
+
+    --success: #059669;
+    --warning: #d97706;
+    --error: #dc2626;
+    --pinned: #0891b2;
+
+    --border-subtle: rgba(0, 0, 0, 0.06);
+    --border-default: rgba(0, 0, 0, 0.12);
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+    --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.06);
+    --shadow-card-hover: 0 8px 20px rgba(0, 0, 0, 0.12);
+    --shadow-popover: 0 12px 32px rgba(0, 0, 0, 0.16);
+    --shadow-glow: 0 0 20px var(--accent-glow);
+
+    --brand-primary: var(--accent-primary);
+    --brand-primary-hover: var(--accent-primary-hover);
+    --brand-secondary: var(--accent-secondary);
+    --brand-gradient: linear-gradient(135deg, var(--accent-primary), var(--accent-primary-hover));
+    --brand-gradient-soft: linear-gradient(135deg, rgba(156, 163, 175, 0.10), rgba(107, 114, 128, 0.06));
+
+    --surface-1: var(--bg-primary);
+    --surface-2: var(--bg-secondary);
+    --surface-3: var(--bg-tertiary);
+}
+
+/* Glass Theme — iOS 26 "Liquid Glass" inspired. Surfaces become translucent
+   over a chromatic wallpaper, frosted via backdrop-filter, edged with bright
+   specular highlights. Three tiers (subtle / default / opaque) cover sidebar
+   chrome, cards, and modals respectively. Admin's intensity knob drives blur
+   + saturation + brightness via --glass-intensity (0 / 1 / 2). */
+[data-theme="glass"] {
+    /* Scale-factor written by ThemeProvider from admin's intensity slider.
+       0 = subtle, 1 = medium, 2 = strong. Defaults to medium if unset. */
+    --glass-intensity: 1;
+    --glass-blur:       calc(8px + var(--glass-intensity) * 20px);
+    --glass-saturate:   calc(140% + var(--glass-intensity) * 15%);
+    --glass-brightness: calc(0.98 + var(--glass-intensity) * 0.07);
+
+    /* Tier tints — gradients (not flat alpha) so a light catches each surface.
+       Tier 2 picks up a hint of the admin's accent at the corners via color-mix
+       so the brand colour threads through every glass panel. */
+    --glass-tint-tier-1: linear-gradient(135deg,
+        rgba(255, 255, 255, 0.32) 0%,
+        rgba(255, 255, 255, 0.18) 60%,
+        rgba(255, 255, 255, 0.28) 100%);
+    --glass-tint-tier-2: linear-gradient(135deg,
+        color-mix(in srgb, var(--accent-primary) 3%, rgba(255, 255, 255, 0.55)) 0%,
+        rgba(255, 255, 255, 0.40) 60%,
+        color-mix(in srgb, var(--accent-primary) 2%, rgba(255, 255, 255, 0.52)) 100%);
+    --glass-tint-tier-3: linear-gradient(135deg,
+        rgba(255, 255, 255, 0.88) 0%,
+        rgba(255, 255, 255, 0.82) 60%,
+        rgba(255, 255, 255, 0.86) 100%);
+
+    --bg-primary: transparent;
+    --bg-secondary: rgba(255, 255, 255, 0.06);
+    --bg-tertiary: rgba(255, 255, 255, 0.10);
+    --bg-card: rgba(255, 255, 255, 0.55);            /* fallback for inline style consumers */
+    --bg-card-hover: rgba(255, 255, 255, 0.68);
+
+    --accent-primary: #6b7280;
+    --accent-secondary: #9ca3af;
+    --accent-primary-hover: #4b5563;
+    --accent-primary-fg: #ffffff;
+    --accent-glow: rgba(107, 114, 128, 0.22);
+
+    --text-primary: #0f172a;
+    --text-secondary: #1e293b;
+    --text-muted: #475569;
+    --text-tertiary: #475569;
+
+    --success: #059669;
+    --warning: #d97706;
+    --error: #dc2626;
+    --pinned: #0891b2;
+
+    --border-subtle: rgba(255, 255, 255, 0.40);
+    --border-default: rgba(255, 255, 255, 0.55);
+
+    --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.08);
+    --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.10);
+    --shadow-lg: 0 8px 24px rgba(15, 23, 42, 0.14);
+    --shadow-card: 0 8px 32px rgba(15, 23, 42, 0.14);
+    --shadow-card-hover: 0 12px 40px rgba(15, 23, 42, 0.22);
+    --shadow-popover: 0 20px 60px rgba(15, 23, 42, 0.26);
+    --shadow-glow: 0 0 20px var(--accent-glow);
+
+    --brand-primary: var(--accent-primary);
+    --brand-primary-hover: var(--accent-primary-hover);
+    --brand-secondary: var(--accent-secondary);
+    --brand-gradient: linear-gradient(135deg, var(--accent-primary), var(--accent-primary-hover));
+    --brand-gradient-soft: linear-gradient(135deg, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0.10));
+
+    --surface-1: transparent;
+    --surface-2: var(--bg-secondary);
+    --surface-3: var(--bg-tertiary);
+}
+
+/* Glass Dark — mirror of the light Glass theme but on a dark backdrop. Same
+   blob wallpaper + lensing pipeline, but tier tints are dark/translucent and
+   text flips to light. The wallpaper-layer's base swaps to near-black via
+   the [data-theme="glass-dark"] override in the wallpaper section above. */
+[data-theme="glass-dark"] {
+    --glass-intensity: 1;
+    --glass-blur:       calc(8px + var(--glass-intensity) * 20px);
+    --glass-saturate:   calc(140% + var(--glass-intensity) * 15%);
+    --glass-brightness: calc(0.98 + var(--glass-intensity) * 0.07);
+
+    --glass-tint-tier-1: linear-gradient(135deg,
+        rgba(15, 23, 42, 0.45) 0%,
+        rgba(15, 23, 42, 0.25) 60%,
+        rgba(15, 23, 42, 0.40) 100%);
+    --glass-tint-tier-2: linear-gradient(135deg,
+        color-mix(in srgb, var(--accent-primary) 8%, rgba(15, 23, 42, 0.55)) 0%,
+        rgba(15, 23, 42, 0.42) 60%,
+        color-mix(in srgb, var(--accent-primary) 6%, rgba(15, 23, 42, 0.52)) 100%);
+    --glass-tint-tier-3: linear-gradient(135deg,
+        rgba(15, 23, 42, 0.78) 0%,
+        rgba(15, 23, 42, 0.68) 60%,
+        rgba(15, 23, 42, 0.76) 100%);
+
+    --bg-primary: transparent;
+    --bg-secondary: rgba(15, 23, 42, 0.30);
+    --bg-tertiary: rgba(15, 23, 42, 0.40);
+    --bg-card: rgba(15, 23, 42, 0.55);
+    --bg-card-hover: rgba(15, 23, 42, 0.68);
+
+    --accent-primary: #9ca3af;
+    --accent-secondary: #cbd5e1;
+    --accent-primary-hover: #d1d5db;
+    --accent-primary-fg: #111827;
+    --accent-glow: rgba(156, 163, 175, 0.30);
+
+    --text-primary: #f8fafc;
+    --text-secondary: #cbd5e1;
+    --text-muted: #94a3b8;
+    --text-tertiary: #94a3b8;
+
+    --success: #34d399;
+    --warning: #fbbf24;
+    --error: #f87171;
+    --pinned: #22d3ee;
+
+    --border-subtle: rgba(255, 255, 255, 0.10);
+    --border-default: rgba(255, 255, 255, 0.20);
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.40);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.50);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.60);
+    --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.45);
+    --shadow-card-hover: 0 12px 40px rgba(0, 0, 0, 0.60);
+    --shadow-popover: 0 20px 60px rgba(0, 0, 0, 0.70);
+    --shadow-glow: 0 0 20px var(--accent-glow);
+
+    --brand-primary: var(--accent-primary);
+    --brand-primary-hover: var(--accent-primary-hover);
+    --brand-secondary: var(--accent-secondary);
+    --brand-gradient: linear-gradient(135deg, var(--accent-primary), var(--accent-primary-hover));
+    --brand-gradient-soft: linear-gradient(135deg, rgba(15, 23, 42, 0.45), rgba(15, 23, 42, 0.10));
+
+    --surface-1: transparent;
+    --surface-2: var(--bg-secondary);
+    --surface-3: var(--bg-tertiary);
+}
+
+/* High-Contrast Theme — WCAG AAA color pairs, for accessibility. */
+[data-theme="high-contrast"] {
+    --bg-primary: #000000;
+    --bg-secondary: #0a0a0a;
+    --bg-tertiary: #141414;
+    --bg-card: #000000;
+    --bg-card-hover: #1a1a1a;
+
+    --accent-primary: #ffd400;
+    --accent-secondary: #ffeb70;
+    --accent-primary-hover: #fff080;
+    --accent-primary-fg: #000000;
+    --accent-glow: rgba(255, 212, 0, 0.35);
+
+    --text-primary: #ffffff;
+    --text-secondary: #e5e5e5;
+    --text-muted: #b0b0b0;
+    --text-tertiary: #b0b0b0;
+
+    --success: #00ff66;
+    --warning: #ffaa00;
+    --error: #ff5252;
+    --pinned: #00e5ff;
+
+    /* The four tokens this theme has to take back from the light set.
+       The two-set blocks at the top of the file group by SURFACE lightness
+       and list high-contrast with the light themes — right for a 4px bar or
+       an icon tile, which is all the --type-* families were when those sets
+       were written, and where the light values still clear the 3:1 a graphic
+       needs on this black card. Four of them are read as TEXT, though:
+       --*-ink is the word on a status chip, and --type-ai became the word
+       "Running" when it stopped being amber (shared/statusTokens.ts, CW-04).
+       On #000000 those four measure 3.3-4.3:1 — under AA, in the one theme
+       that exists for contrast. So this block, which already re-declares
+       every status colour for exactly this reason, re-declares them too:
+
+         - the inks ARE the raw tokens here. An ink exists because the raw
+           colour is too dark to read on a light chip; these three were picked
+           to be read on black in the first place (15.5 / 11.0 / 6.6:1 on this
+           card), so there is no darker step to take and a lighter one would
+           only dilute a palette tuned for AAA pairs.
+         - --type-ai takes the DARK set's value verbatim (8.96:1, against
+           4.28:1 for the light one) — the value the other black-surfaced
+           themes already use, not a bespoke ninth blue. The other eight
+           families stay on the light set: they are still only bars and tiles.
+           mobile/src/theme/tokens.ts mirrors this override and its
+           tokens.test.ts pins the pair. */
+    --success-ink: var(--success);
+    --warning-ink: var(--warning);
+    --error-ink: var(--error);
+    --type-ai: #82aaf0;
+
+    --border-subtle: rgba(255, 255, 255, 0.35);
+    --border-default: rgba(255, 255, 255, 0.65);
+
+    --shadow-sm: 0 0 0 1px rgba(255, 255, 255, 0.3);
+    --shadow-md: 0 0 0 2px rgba(255, 255, 255, 0.3);
+    --shadow-lg: 0 0 0 2px rgba(255, 255, 255, 0.5);
+    --shadow-card: 0 0 0 1px rgba(255, 255, 255, 0.5);
+    --shadow-card-hover: 0 0 0 2px var(--accent-primary);
+    --shadow-popover: 0 0 0 2px rgba(255, 255, 255, 0.7);
+    --shadow-glow: 0 0 0 3px var(--accent-primary);
+
+    --brand-primary: var(--accent-primary);
+    --brand-primary-hover: var(--accent-primary-hover);
+    --brand-secondary: var(--accent-secondary);
+    --brand-gradient: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+    --brand-gradient-soft: linear-gradient(135deg, rgba(255, 212, 0, 0.20), rgba(255, 235, 112, 0.10));
+
+    --surface-1: var(--bg-primary);
+    --surface-2: var(--bg-secondary);
+    --surface-3: var(--bg-tertiary);
+}
+
+/* Paper — warm editorial light. The neutral Light theme reads as clinical
+   true-white; Paper sits a shade off, on warm cream, with espresso text and a
+   muted clay accent. Cards lift off the page by being a brighter warm-white,
+   not pure #fff — pure white next to warm cream reads as a tonal clash, not
+   as elevation. */
+[data-theme="paper"] {
+    --bg-primary: #fdfcf8;
+    --bg-secondary: #f7f4ed;
+    --bg-tertiary: #f0ebe0;
+    --bg-card: #fffdf7;
+    --bg-card-hover: #fff9ed;
+
+    --accent-primary: #b45309;             /* amber-700, muted clay */
+    --accent-secondary: #d97706;
+    --accent-primary-hover: #92400e;
+    --accent-primary-fg: #ffffff;
+    --accent-glow: rgba(180, 83, 9, 0.18);
+
+    --text-primary: #1c1917;               /* stone-900, espresso */
+    --text-secondary: #292524;
+    --text-muted: #57534e;
+    --text-tertiary: #57534e;
+
+    --success: #15803d;
+    --warning: #b45309;
+    --error: #b91c1c;
+    --pinned: #0e7490;
+
+    --border-subtle: rgba(120, 53, 15, 0.08);
+    --border-default: rgba(120, 53, 15, 0.18);
+
+    --shadow-sm: 0 1px 2px rgba(28, 25, 23, 0.05);
+    --shadow-md: 0 4px 12px rgba(28, 25, 23, 0.07);
+    --shadow-lg: 0 8px 24px rgba(28, 25, 23, 0.10);
+    --shadow-card: 0 1px 3px rgba(28, 25, 23, 0.06), 0 1px 2px rgba(28, 25, 23, 0.04);
+    --shadow-card-hover: 0 4px 12px rgba(28, 25, 23, 0.08), 0 2px 4px rgba(28, 25, 23, 0.04);
+    --shadow-popover: 0 12px 32px rgba(28, 25, 23, 0.12);
+    --shadow-glow: 0 0 0 3px var(--accent-glow);
+
+    --brand-primary: var(--accent-primary);
+    --brand-primary-hover: var(--accent-primary-hover);
+    --brand-secondary: var(--accent-secondary);
+    --brand-gradient: linear-gradient(135deg, var(--accent-primary), var(--accent-primary-hover));
+    --brand-gradient-soft: linear-gradient(135deg, rgba(180, 83, 9, 0.14), rgba(180, 83, 9, 0.04));
+
+    --surface-1: var(--bg-primary);
+    --surface-2: var(--bg-secondary);
+    --surface-3: var(--bg-tertiary);
+}
+
+/* Obsidian — monochrome dark. The default Dark theme has a faint blue
+   undertone; Obsidian goes pure neutral carbon with a warm-pearl accent and
+   hairline 1px borders instead of soft drop shadows. */
+[data-theme="obsidian"] {
+    --bg-primary: #0a0a0c;
+    --bg-secondary: #131316;
+    --bg-tertiary: #1c1c20;
+    --bg-card: #131316;
+    --bg-card-hover: #1c1c20;
+
+    --accent-primary: #e7e5e4;             /* stone-200, warm pearl */
+    --accent-secondary: #f5f5f4;
+    --accent-primary-hover: #d6d3d1;
+    --accent-primary-fg: #000000;
+    --accent-glow: rgba(231, 229, 228, 0.15);
+
+    --text-primary: #fafaf9;               /* stone-50 */
+    --text-secondary: #d6d3d1;
+    --text-muted: #a8a29e;
+    --text-tertiary: #a8a29e;
+
+    --success: #4ade80;
+    --warning: #fbbf24;
+    --error: #f87171;
+    --pinned: #22d3ee;
+
+    --border-subtle: rgba(255, 255, 255, 0.06);
+    --border-default: rgba(255, 255, 255, 0.12);
+
+    /* Shadows here are mostly hairline outlines — cards lift via the lightest
+       possible 1px ring catching the page light, not a soft drop shadow. */
+    --shadow-sm: 0 0 0 1px rgba(255, 255, 255, 0.04);
+    --shadow-md: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 2px 4px rgba(0, 0, 0, 0.30);
+    --shadow-lg: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 4px 12px rgba(0, 0, 0, 0.40);
+    --shadow-card: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 1px 2px rgba(0, 0, 0, 0.30);
+    --shadow-card-hover: 0 0 0 1px rgba(255, 255, 255, 0.12), 0 4px 12px rgba(0, 0, 0, 0.45);
+    --shadow-popover: 0 0 0 1px rgba(255, 255, 255, 0.10), 0 16px 48px rgba(0, 0, 0, 0.60);
+    --shadow-glow: 0 0 0 3px rgba(231, 229, 228, 0.20);
+
+    --brand-primary: var(--accent-primary);
+    --brand-primary-hover: var(--accent-primary-hover);
+    --brand-secondary: var(--accent-secondary);
+    --brand-gradient: linear-gradient(135deg, var(--accent-primary), var(--accent-primary-hover));
+    --brand-gradient-soft: linear-gradient(135deg, rgba(231, 229, 228, 0.10), rgba(231, 229, 228, 0.02));
+
+    --surface-1: var(--bg-primary);
+    --surface-2: var(--bg-secondary);
+    --surface-3: var(--bg-tertiary);
+}
+
+/* Sepia — warm mid-tone reading. Tan paper background, deep-brown ink text,
+   terracotta accent. The first non-binary-bright theme; best for long reading
+   or focus sessions. */
+[data-theme="sepia"] {
+    --bg-primary: #f4ede0;
+    --bg-secondary: #ebe2d2;
+    --bg-tertiary: #ddd2bd;
+    --bg-card: #fbf6ec;                    /* the "page" — brighter than bg */
+    --bg-card-hover: #f4ede0;
+
+    --accent-primary: #c2410c;             /* orange-700, terracotta */
+    --accent-secondary: #ea580c;
+    --accent-primary-hover: #9a3412;
+    --accent-primary-fg: #ffffff;
+    --accent-glow: rgba(194, 65, 12, 0.18);
+
+    --text-primary: #44322c;               /* deep fountain-pen brown */
+    --text-secondary: #5c443a;
+    --text-muted: #8a6f5e;
+    --text-tertiary: #6f5849;
+
+    --success: #166534;
+    --warning: #a16207;
+    --error: #991b1b;
+    --pinned: #155e75;
+
+    --border-subtle: rgba(68, 50, 44, 0.10);
+    --border-default: rgba(68, 50, 44, 0.22);
+
+    --shadow-sm: 0 1px 2px rgba(68, 50, 44, 0.08);
+    --shadow-md: 0 4px 12px rgba(68, 50, 44, 0.10);
+    --shadow-lg: 0 8px 24px rgba(68, 50, 44, 0.14);
+    --shadow-card: 0 1px 3px rgba(68, 50, 44, 0.08);
+    --shadow-card-hover: 0 4px 12px rgba(68, 50, 44, 0.12);
+    --shadow-popover: 0 12px 32px rgba(68, 50, 44, 0.18);
+    --shadow-glow: 0 0 0 3px var(--accent-glow);
+
+    --brand-primary: var(--accent-primary);
+    --brand-primary-hover: var(--accent-primary-hover);
+    --brand-secondary: var(--accent-secondary);
+    --brand-gradient: linear-gradient(135deg, var(--accent-primary), var(--accent-primary-hover));
+    --brand-gradient-soft: linear-gradient(135deg, rgba(194, 65, 12, 0.14), rgba(194, 65, 12, 0.04));
+
+    --surface-1: var(--bg-primary);
+    --surface-2: var(--bg-secondary);
+    --surface-3: var(--bg-tertiary);
+}
+
+/* ── Preview mode (Admin Theme Studio) ──────────────────────────────
+   When the admin's appearance Theme Studio mounts a same-origin iframe
+   with ?themePreview=1, ThemeProvider sets html[data-preview="1"]. Any
+   element tagged [data-preview-hide] is omitted from that view so the
+   preview reflects the chrome the END user sees, without admin-only
+   notifications, install prompts, or upgrade nudges getting in the way.
+   Keep this list short — the goal is a faithful preview, not a stripped one.
+*/
+html[data-preview="1"] [data-preview-hide] {
+    display: none !important;
+}
+
+/* Glass surface treatment — the shared material. Applied via .glass utility
+   class or any element with a [data-surface] attribute under either Glass
+   theme. Selectors use [data-theme^="glass"] so the rules apply to both
+   "glass" (light) and "glass-dark" automatically. */
+[data-theme^="glass"] [data-surface],
+[data-theme^="glass"] .glass {
+    position: relative;
+    isolation: isolate;                              /* contains the ::before/::after */
+}
+
+/* Respect Tailwind positioning utility classes on glass surfaces. Without
+   this, the (0,2,0) selector above silently overrides `.absolute`/`.fixed`
+   (0,1,0), which silently re-flows popovers (e.g. the sidebar profile menu)
+   back into normal flow in glass mode — pushing their anchor button up
+   by the popover's own height. */
+[data-theme^="glass"] [data-surface].absolute { position: absolute; }
+[data-theme^="glass"] [data-surface].fixed { position: fixed; }
+[data-theme^="glass"] [data-surface].sticky { position: sticky; }
+
+[data-theme^="glass"] [data-surface],
+[data-theme^="glass"] .glass {
+    background: var(--glass-tint-tier-2);
+    backdrop-filter:
+        blur(var(--glass-blur))
+        saturate(var(--glass-saturate))
+        brightness(var(--glass-brightness));
+    -webkit-backdrop-filter:
+        blur(var(--glass-blur))
+        saturate(var(--glass-saturate))
+        brightness(var(--glass-brightness));
+    border: 1px solid transparent;
+    box-shadow:
+        /* Top-left specular highlight — the unmistakable glass edge.
+           Toned down (from 0.75/0.45 to 0.40/0.25) so panels read as frosted
+           rather than glossy; admins can still push intensity per tier. */
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.40),
+        inset 1px 0 0 0 rgba(255, 255, 255, 0.25),
+        /* Bottom-right depth shadow */
+        inset 0 -1px 0 0 rgba(15, 23, 42, 0.06),
+        inset -1px 0 0 0 rgba(15, 23, 42, 0.04),
+        /* Outer drop shadow + contact shadow for elevation */
+        0 1px 2px rgba(15, 23, 42, 0.06),
+        0 8px 32px rgba(15, 23, 42, 0.12);
+    contain: layout style;                            /* reduce reflow scope */
+}
+
+/* Tall chrome surfaces (sidebar, top tab bar) are flex containers that need
+   to fill 100% of their flex parent via h-full + flex-1 + mt-auto children.
+   CSS layout containment + flex column + percentage heights can interact in
+   ways that collapse the container to its content height, leaving a gap at
+   the bottom. Containment is a paint-perf optimisation, not load-bearing —
+   drop it on [data-static] elements where the layout is the priority. */
+[data-theme^="glass"] [data-surface][data-static] {
+    contain: none;
+}
+
+/* Chromatic edge stroke — picks up the wallpaper colours and creates the
+   iridescent thin ring you see on real liquid-glass surfaces. */
+[data-theme^="glass"] [data-surface]::before,
+[data-theme^="glass"] .glass::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(135deg,
+        rgba(255, 255, 255, 0.35) 0%,
+        rgba(255, 255, 255, 0.00) 30%,
+        rgba(255, 255, 255, 0.00) 70%,
+        rgba(255, 255, 255, 0.20) 100%);
+    -webkit-mask:
+        linear-gradient(#000 0 0) content-box,
+        linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* Subtle frosted-glass grain. Tiny SVG noise, ultra-low opacity. */
+[data-theme^="glass"] [data-surface]::after,
+[data-theme^="glass"] .glass::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.6' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/></svg>");
+    mix-blend-mode: overlay;
+    opacity: 0.07;
+    pointer-events: none;
+    z-index: 2;
+}
+
+/* Tier-specific tints. Tier 2 is the default (the base rule above); tier 1
+   (subtle) is for sidebar/chrome; tier 3 (opaque) is the MODAL tier — now a
+   true frosted-glass material with strong blur, not opaque white. */
+[data-theme^="glass"] [data-surface="subtle"] {
+    background: var(--glass-tint-tier-1);
+    backdrop-filter:
+        blur(calc(var(--glass-blur) * 0.7))
+        saturate(var(--glass-saturate))
+        brightness(var(--glass-brightness));
+    -webkit-backdrop-filter:
+        blur(calc(var(--glass-blur) * 0.7))
+        saturate(var(--glass-saturate))
+        brightness(var(--glass-brightness));
+}
+
+[data-theme^="glass"] [data-surface="opaque"] {
+    background: var(--glass-tint-tier-3);
+    backdrop-filter: blur(60px) saturate(220%) brightness(1.05);
+    -webkit-backdrop-filter: blur(60px) saturate(220%) brightness(1.05);
+}
+
+/* Modal-solid escape hatch — for content that genuinely needs opacity (PDF
+   viewer, image preview). Falls back to original opaque white/dark fill. */
+[data-theme="glass"] [data-surface="modal-solid"] {
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+[data-theme="glass-dark"] [data-surface="modal-solid"] {
+    background: rgba(15, 23, 42, 0.96);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
+/* Non-glass fallback for [data-surface] elements. Mirrors the glass tier
+   semantics so sidebars/chrome read one shade darker than cards:
+     subtle  → chrome tier   → --bg-secondary
+     default → card tier     → --bg-card
+     opaque  → modal tier    → --bg-card
+   Without splitting "subtle" out, every chrome surface (Sidebar, WelcomeScreen,
+   BuilderSplit, BuilderShell, DirectChatWelcome) paints --bg-card and creates
+   a visible bright-on-page seam under warm-toned flat themes like Paper.
+   :where() keeps specificity at (0,1,0) so callers can override trivially. */
+:where(html:not([data-theme^="glass"])) [data-surface="subtle"] {
+    background: var(--bg-secondary);
+}
+:where(html:not([data-theme^="glass"])) [data-surface="default"],
+:where(html:not([data-theme^="glass"])) [data-surface="opaque"] {
+    background: var(--bg-card);
+}
+
+/* ── Chat composer ─────────────────────────────────────────────────────────
+   The composer needs to feel like it belongs to the page, not float on top
+   as a tinted rectangle. Standard data-surface tiers add a 30–55 % white
+   wash that desaturates the wallpaper underneath, making the form read as
+   a separate card — especially obvious on the saturated Bee Flow amber.
+
+   Solution: heavy blur + slight saturation bump + a barely-there fill, so
+   the wallpaper colours pass through but the form still has clear bounds. */
+.chat-composer {
+    background: var(--bg-card);
+    box-shadow: 0 6px 24px rgba(15, 23, 42, 0.06);
+}
+
+/* Composer toolbar toggles (web search, memory-write, KB picker).
+   Active state uses --accent-primary so the toggles harmonise with the org
+   accent under every theme instead of locking to blue/emerald.
+   color-mix is already used elsewhere in this file — safe to rely on. */
+.composer-toggle-on {
+    color: var(--accent-primary);
+    background: color-mix(in srgb, var(--accent-primary) 12%, transparent);
+}
+.composer-toggle-on:hover {
+    background: color-mix(in srgb, var(--accent-primary) 20%, transparent);
+}
+
+/* The composer's send button with nothing to send, and the mic that takes its
+   place when voice chat is available. Both wear the same quiet grey — an empty
+   composer should not carry a solid, urgent-looking button.
+
+   A colour, not `opacity`: the mic is live and clickable, so it cannot borrow
+   the disabled fade, and the two have to be indistinguishable. Mixed from the
+   theme's own ink over its own page so it stays grey on Light, warm on Paper,
+   and pale-on-dark under Obsidian, where a flat #b0b0b0 would look pasted on. */
+.composer-send-quiet {
+    background: color-mix(in srgb, var(--text-primary) 30%, var(--bg-primary));
+}
+.composer-send-quiet:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--text-primary) 45%, var(--bg-primary));
+}
+
+/* ComposerToolsMenu rows. The "+" panel replaced the composer's icon row, so
+   its rows carry the hover affordance those buttons used to. Inline styles
+   cover everything else in that component; only :hover needs a class. */
+.composer-tool-row:hover:not(:disabled) {
+    background: var(--bg-tertiary);
+}
+.composer-tool-row:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--accent-primary) 45%, transparent);
+    outline-offset: -2px;
+}
+
+/* Composer "blocked by policy" state — uses --warning so warm and cool
+   themes both render a sensible cautionary hue. */
+.composer-toggle-warn {
+    color: var(--warning);
+    background: color-mix(in srgb, var(--warning) 8%, transparent);
+}
+
+/* Glass-mode composer: the BOX gets a subtle glass tile look (frosted tint
+   + soft drop shadow). The TEXTAREA inside stays fully transparent so the
+   typing area itself doesn't read as a second nested card. */
+[data-theme^="glass"] .chat-composer {
+    background: var(--glass-tint-tier-1);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.50),
+        0 4px 18px rgba(15, 23, 42, 0.06);
+}
+
+[data-theme="glass-dark"] .chat-composer {
+    background: linear-gradient(135deg,
+        rgba(255, 255, 255, 0.08) 0%,
+        rgba(255, 255, 255, 0.04) 100%);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.15),
+        0 4px 18px rgba(0, 0, 0, 0.25);
+}
+
+[data-theme^="glass"] .chat-composer:focus-within {
+    box-shadow:
+        inset 0 0 0 1px var(--accent-primary),
+        inset 0 1px 0 rgba(255, 255, 255, 0.50),
+        0 6px 22px rgba(15, 23, 42, 0.08);
+}
+
+/* Force the textarea inside the composer to be fully transparent in glass
+   mode — the global `[data-theme^="glass"] textarea` rule (specificity
+   0,1,1) otherwise paints it with a 55 % white tile that sits as a second
+   inner card. This rule's higher specificity (0,2,1) wins cleanly. */
+[data-theme^="glass"] .chat-composer textarea,
+[data-theme^="glass"] .chat-composer textarea:focus {
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border: none;
+    box-shadow: none;
+}
+
+/* Profile menu popover — keeps the glass aesthetic (the tier-3 tint
+   gradient + the chromatic ::before edge inherited from [data-surface])
+   so it matches every other glass surface. The trick to legibility is the
+   HEAVY backdrop blur (80px): at that radius the sidebar text behind is
+   smeared into pure colour wash, even on the vivid wallpaper presets
+   (Aurora, Ocean) where lower blur let silhouettes through.
+   Saturate is dropped to a mild 110% so the wallpaper colour passes
+   through but doesn't get amplified to the point of redrawing the text
+   in a more readable hue. Grain ::after is suppressed — texture on top
+   of menu rows hurts text legibility. */
+[data-theme="glass"] [data-testid="profile-menu"] {
+    background: var(--glass-tint-tier-3);
+    backdrop-filter: blur(80px) saturate(110%);
+    -webkit-backdrop-filter: blur(80px) saturate(110%);
+}
+
+[data-theme="glass-dark"] [data-testid="profile-menu"] {
+    background:
+        linear-gradient(135deg, rgba(15, 23, 42, 0.86), rgba(15, 23, 42, 0.80), rgba(15, 23, 42, 0.84));
+    backdrop-filter: blur(80px) saturate(110%);
+    -webkit-backdrop-filter: blur(80px) saturate(110%);
+}
+
+[data-theme^="glass"] [data-testid="profile-menu"]::after {
+    display: none !important;
+}
+
+/* "Sensitive data detected" / "Scan incomplete" popovers (BFSF-303).
+   Same legibility problem as the profile menu: these panels paint
+   `var(--bg-card)`, which is a deliberately translucent rgba(…, 0.55) in the
+   glass themes, so the chat text underneath bled through and the panel read
+   as a rendering glitch. `!important` because the component sets background
+   inline (AnchoredMenu merges a caller `style`), and inline beats a class.
+   Tier-3 tint + the same heavy 80px blur used for the profile menu: at that
+   radius whatever sits behind is smeared to a flat colour wash, so the
+   privacy detail stays readable on every wallpaper preset.
+   The node-config field help popover (`[data-field-hint]`, BFSF-362) is the
+   same panel with the same problem, one screen over: it painted
+   `var(--bg-card)` too, and AnchoredMenu's own class is `--bg-primary`, which
+   is outright `transparent` in glass — so it gets the identical treatment
+   rather than a second, drifting one. */
+[data-theme="glass"] [data-tokenised-popover],
+[data-theme="glass"] [data-field-hint] {
+    background: var(--glass-tint-tier-3) !important;
+    backdrop-filter: blur(80px) saturate(110%);
+    -webkit-backdrop-filter: blur(80px) saturate(110%);
+}
+
+[data-theme="glass-dark"] [data-tokenised-popover],
+[data-theme="glass-dark"] [data-field-hint] {
+    background:
+        linear-gradient(135deg, rgba(15, 23, 42, 0.86), rgba(15, 23, 42, 0.80), rgba(15, 23, 42, 0.84)) !important;
+    backdrop-filter: blur(80px) saturate(110%);
+    -webkit-backdrop-filter: blur(80px) saturate(110%);
+}
+
+[data-theme^="glass"] [data-tokenised-popover]::after,
+[data-theme^="glass"] [data-field-hint]::after {
+    display: none !important;
+}
+
+/* Interactive states — surfaces brighten + blur more on hover, depress on
+   active. Limited to surfaces that look like controls (buttons, cards with
+   role=button). Static surfaces (sidebar chrome) skip this via :not([data-static]). */
+[data-theme^="glass"] [data-surface]:hover:not([data-static]),
+[data-theme^="glass"] .glass:hover:not([data-static]) {
+    backdrop-filter:
+        blur(calc(var(--glass-blur) + 4px))
+        saturate(calc(var(--glass-saturate) + 20%))
+        brightness(calc(var(--glass-brightness) + 0.03));
+    box-shadow:
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.45),
+        0 12px 36px rgba(15, 23, 42, 0.16);
+}
+
+[data-theme^="glass"] [data-surface]:active:not([data-static]),
+[data-theme^="glass"] .glass:active:not([data-static]) {
+    transform: translateY(0.5px);
+    box-shadow:
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.55),
+        0 4px 14px rgba(15, 23, 42, 0.10);
+}
+
+/* Form controls — translucent by default, focus brings them to readable
+   contrast with an accent-coloured glow ring. Applies to both Glass themes. */
+[data-theme^="glass"] input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="range"]):not([type="file"]),
+[data-theme^="glass"] textarea,
+[data-theme^="glass"] select {
+    background: rgba(255, 255, 255, 0.55);
+    backdrop-filter: blur(12px) saturate(160%);
+    -webkit-backdrop-filter: blur(12px) saturate(160%);
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    color: var(--text-primary);
+}
+
+/* Dark Glass — inputs read as translucent dark panels so they're legible
+   over the dark wallpaper without becoming bright white blobs. */
+[data-theme="glass-dark"] input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="range"]):not([type="file"]),
+[data-theme="glass-dark"] textarea,
+[data-theme="glass-dark"] select {
+    background: rgba(15, 23, 42, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.10);
+}
+
+[data-theme^="glass"] input:focus,
+[data-theme^="glass"] textarea:focus,
+[data-theme^="glass"] select:focus {
+    background: rgba(255, 255, 255, 0.55);
+    border-color: var(--accent-primary);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.8),
+        0 0 0 3px color-mix(in srgb, var(--accent-primary) 25%, transparent);
+    outline: none;
+}
+
+[data-theme="glass-dark"] input:focus,
+[data-theme="glass-dark"] textarea:focus,
+[data-theme="glass-dark"] select:focus {
+    background: rgba(15, 23, 42, 0.82);
+}
+
+[data-theme^="glass"] button[data-surface="solid"] { backdrop-filter: none; }
+
+/* Placeholder readability in glass — the default ::placeholder color often
+   inherits from currentColor or browser defaults (white-ish). Force it to
+   the muted-text token so it reads cleanly on every wallpaper. */
+[data-theme^="glass"] input::placeholder,
+[data-theme^="glass"] textarea::placeholder {
+    color: var(--text-muted);
+    opacity: 0.85;
+}
+
+/* When a [data-surface] element also carries a hardcoded Tailwind background
+   utility (`bg-[var(--bg-card)]`, `bg-[var(--bg-secondary)]`), we want the
+   glass tier tint to win — zero out the conflicting bg-color so the gradient
+   from the main glass rule paints unobstructed. Borders are left to the
+   element's own rules so :focus-within accent rings still work. */
+[data-theme^="glass"] [data-surface] {
+    background-color: transparent;
+}
+
+[data-theme^="glass"] {
+    --text-primary-shadow: 0 1px 1px rgba(255, 255, 255, 0.4);
+}
+[data-theme="glass-dark"] {
+    --text-primary-shadow: 0 1px 1px rgba(0, 0, 0, 0.4);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    [data-theme^="glass"] [data-surface],
+    [data-theme^="glass"] .glass {
+        background: rgba(255, 255, 255, 0.86);
+    }
+    [data-theme="glass-dark"] [data-surface],
+    [data-theme="glass-dark"] .glass {
+        background: rgba(15, 23, 42, 0.86);
+    }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+    [data-theme^="glass"] [data-surface],
+    [data-theme^="glass"] .glass {
+        background: var(--glass-tint-tier-3) !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+    }
+}
+
+/* Override the white html background that browsers default to. */
+[data-theme^="glass"] html,
+[data-theme^="glass"] body,
+html[data-theme^="glass"],
+html[data-theme^="glass"] body {
+    background: transparent !important;
+}
+
+/* ── Dark Glass edge override ────────────────────────────────────────────
+   White edge highlights are too bright on the dark backdrop — soften them. */
+[data-theme="glass-dark"] [data-surface],
+[data-theme="glass-dark"] .glass {
+    box-shadow:
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.22),
+        inset 1px 0 0 0 rgba(255, 255, 255, 0.10),
+        inset 0 -1px 0 0 rgba(0, 0, 0, 0.30),
+        inset -1px 0 0 0 rgba(0, 0, 0, 0.20),
+        0 1px 2px rgba(0, 0, 0, 0.40),
+        0 8px 32px rgba(0, 0, 0, 0.55);
+}
+[data-theme="glass-dark"] [data-surface]::before,
+[data-theme="glass-dark"] .glass::before {
+    background: linear-gradient(135deg,
+        rgba(255, 255, 255, 0.32) 0%,
+        rgba(255, 255, 255, 0.00) 30%,
+        rgba(255, 255, 255, 0.00) 70%,
+        rgba(255, 255, 255, 0.18) 100%);
+}
+
+/* ── Border style modes via [data-glass-border] ──────────────────────────
+   none / subtle (default) / bright / iridescent */
+[data-glass-border="none"] [data-surface]::before,
+[data-glass-border="none"] .glass::before { display: none; }
+
+[data-glass-border="bright"] [data-surface]::before,
+[data-glass-border="bright"] .glass::before {
+    padding: 1.5px;
+    background: linear-gradient(135deg,
+        rgba(255, 255, 255, 0.60) 0%,
+        rgba(255, 255, 255, 0.15) 35%,
+        rgba(255, 255, 255, 0.15) 65%,
+        rgba(255, 255, 255, 0.50) 100%);
+}
+
+[data-glass-border="iridescent"] [data-surface]::before,
+[data-glass-border="iridescent"] .glass::before {
+    padding: 1.5px;
+    background: conic-gradient(
+        from 90deg at 50% 50%,
+        rgba(244, 114, 182, 0.50),
+        rgba(251, 191, 36, 0.50),
+        rgba(16, 185, 129, 0.50),
+        rgba(6, 182, 212, 0.50),
+        rgba(244, 114, 182, 0.50));
+}
+
+/* ── Grain density modes via [data-glass-grain] ─────────────────────────── */
+[data-glass-grain="off"] [data-surface]::after,
+[data-glass-grain="off"] .glass::after { display: none; }
+
+[data-glass-grain="frosted"] [data-surface]::after,
+[data-glass-grain="frosted"] .glass::after { opacity: 0.18; }
+
+/* ── Animated specular sheen via [data-anim="lively"] ─────────────────────
+   Stacked into the grain ::after so we don't need a third pseudo-element. */
+[data-anim="lively"][data-theme^="glass"] [data-surface]::after,
+[data-anim="lively"][data-theme^="glass"] .glass::after {
+    background-image:
+        url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.6' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/></svg>"),
+        linear-gradient(115deg, transparent 35%, rgba(255, 255, 255, 0.22) 50%, transparent 65%);
+    background-size: auto, 220% 100%;
+    background-repeat: repeat, no-repeat;
+    animation: glassSheen 12s linear infinite;
+}
+
+@keyframes glassSheen {
+    0%   { background-position: 0 0, -50% 0; }
+    100% { background-position: 0 0,  150% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    [data-anim="lively"][data-theme^="glass"] [data-surface]::after,
+    [data-anim="lively"][data-theme^="glass"] .glass::after { animation: none; }
+}
+
+/* ── Tint hue via [data-glass-tint] — warm / neutral / cool ───────────────
+   Adds a translucent colour wash on top of the tier-2 tint. */
+[data-glass-tint="warm"][data-theme^="glass"] [data-surface],
+[data-glass-tint="warm"][data-theme^="glass"] .glass {
+    background-image: linear-gradient(rgba(251, 191, 36, 0.07), rgba(251, 191, 36, 0.07)), var(--glass-tint-tier-2);
+}
+[data-glass-tint="cool"][data-theme^="glass"] [data-surface],
+[data-glass-tint="cool"][data-theme^="glass"] .glass {
+    background-image: linear-gradient(rgba(6, 182, 212, 0.07), rgba(6, 182, 212, 0.07)), var(--glass-tint-tier-2);
+}
+
+/* ── SVG lensing via [data-lens="on"] ─────────────────────────────────────
+   Stacks an SVG displacement filter into the backdrop-filter so the wallpaper
+   visibly refracts through the glass — the iOS Liquid Glass signature. The
+   #glass-lens filter is mounted once by <WallpaperLayer />. */
+@supports (backdrop-filter: url(#glass-lens)) {
+    [data-lens="on"][data-theme^="glass"] [data-surface],
+    [data-lens="on"][data-theme^="glass"] .glass {
+        backdrop-filter:
+            url(#glass-lens)
+            blur(var(--glass-blur))
+            saturate(var(--glass-saturate))
+            brightness(var(--glass-brightness));
+        -webkit-backdrop-filter:
+            url(#glass-lens)
+            blur(var(--glass-blur))
+            saturate(var(--glass-saturate))
+            brightness(var(--glass-brightness));
+    }
+}
+
+/* ── Wallpaper layer + preset library ──────────────────────────────────────
+   Six curated presets switched via [data-wallpaper] on <html>. Each preset
+   overrides the base colour (--wp-base) and four vibrant radial-blob colour
+   stops (--wp-c1..--wp-c4). Glass surfaces refract these colours through
+   their backdrop-filter, giving each preset a distinct mood. */
+.wallpaper-layer {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background-color: var(--wp-base, #fafafa);
+    background-image: var(--wallpaper-image, none);
+    background-size: cover;
+    background-position: center center;
+    background-repeat: no-repeat;
+}
+
+/* Show the layer for Glass (chromatic blob + image) and whenever an admin
+   has uploaded an image — flat themes now show the photo too. The blob layer
+   itself is suppressed under non-Glass themes (see ::before override below)
+   so the image acts as a plain backdrop. */
+[data-theme="glass"] .wallpaper-layer,
+[data-theme="glass-dark"] .wallpaper-layer,
+html[data-wallpaper-on="image"] .wallpaper-layer {
+    display: block;
+}
+
+html:not([data-theme="glass"]):not([data-theme="glass-dark"]) .wallpaper-layer::before {
+    display: none;
+}
+
+/* Dark Glass uses a near-black base so blobs read as glowing embers. */
+[data-theme="glass-dark"] .wallpaper-layer {
+    background-color: #0a0e1a;
+}
+
+/* Chromatic blobs — four drifting radial gradients painted in ::before so an
+   uploaded image still appears as .wallpaper-layer's background-image. Blob
+   colours are CSS vars set by [data-wallpaper] presets below. Alpha bumped
+   to 0.80-0.90 (was 0.45-0.65) so colour actually shows through tier-2 glass. */
+.wallpaper-layer::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+        radial-gradient(60% 50% at 18% 22%, var(--wp-c1, rgba(148, 163, 184, 0.55)), transparent 62%),
+        radial-gradient(55% 45% at 82% 18%, var(--wp-c2, rgba(100, 116, 139, 0.45)), transparent 62%),
+        radial-gradient(60% 55% at 25% 82%, var(--wp-c3, rgba(6, 182, 212, 0.18)), transparent 65%),
+        radial-gradient(50% 50% at 85% 78%, var(--wp-c4, rgba(148, 163, 184, 0.35)), transparent 62%);
+    background-size: 140% 140%, 130% 130%, 150% 150%, 120% 120%;
+    animation: wallpaperDrift 45s ease-in-out infinite;
+    pointer-events: none;
+    opacity: var(--wallpaper-blob-opacity, 0.8);
+}
+
+.wallpaper-layer.has-image::before { opacity: 0.20; }
+
+.wallpaper-layer::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--wallpaper-overlay, transparent);
+    pointer-events: none;
+}
+
+.wallpaper-layer.fallback {
+    background-image: linear-gradient(180deg, var(--wp-base, #fafafa) 0%, var(--wp-base-2, #f3f4f6) 100%);
+}
+
+/* ── Curated wallpaper presets ─────────────────────────────────────────────
+   All presets share a minimalist neutral aesthetic — near-white bases with
+   low-saturation blob tints (alpha 0.18-0.55). The hue distinguishes them
+   without breaking the calm look that the rest of the Glass theme aims for. */
+
+/* Mono — neutral grays with a faint cool tint. Default preset. */
+[data-wallpaper="mono"] {
+    --wp-base:   #fafafa;
+    --wp-base-2: #f3f4f6;
+    --wp-c1: rgba(148, 163, 184, 0.55);  /* slate */
+    --wp-c2: rgba(100, 116, 139, 0.45);  /* deeper slate */
+    --wp-c3: rgba(6, 182, 212, 0.18);    /* faint cyan tint */
+    --wp-c4: rgba(148, 163, 184, 0.35);
+}
+
+/* Slate — cool blue-gray neutrals. */
+[data-wallpaper="slate"] {
+    --wp-base:   #f8fafc;                /* slate-50 */
+    --wp-base-2: #e2e8f0;                /* slate-200 */
+    --wp-c1: rgba(148, 163, 184, 0.55);  /* slate-400 */
+    --wp-c2: rgba(100, 116, 139, 0.42);  /* slate-500 */
+    --wp-c3: rgba(59, 130, 246, 0.18);   /* faint blue tint */
+    --wp-c4: rgba(148, 163, 184, 0.32);
+}
+
+/* Sand — warm beige neutrals. */
+[data-wallpaper="sand"] {
+    --wp-base:   #fafaf9;                /* stone-50 */
+    --wp-base-2: #f5f5f4;                /* stone-100 */
+    --wp-c1: rgba(168, 162, 158, 0.55);  /* stone-400 */
+    --wp-c2: rgba(120, 113, 108, 0.42);  /* stone-500 */
+    --wp-c3: rgba(245, 158, 11, 0.18);   /* faint amber tint */
+    --wp-c4: rgba(168, 162, 158, 0.32);
+}
+
+/* Frost — cool seafoam neutrals. */
+[data-wallpaper="frost"] {
+    --wp-base:   #f0fdfa;                /* teal-50 */
+    --wp-base-2: #f1f5f9;                /* slate-100 */
+    --wp-c1: rgba(148, 163, 184, 0.55);  /* slate-400 */
+    --wp-c2: rgba(94, 234, 212, 0.40);   /* teal-300 */
+    --wp-c3: rgba(20, 184, 166, 0.18);   /* faint teal tint */
+    --wp-c4: rgba(148, 163, 184, 0.32);
+}
+
+/* Sage — muted green-gray neutrals. */
+[data-wallpaper="sage"] {
+    --wp-base:   #f7faf7;
+    --wp-base-2: #f0f4f0;
+    --wp-c1: rgba(156, 163, 175, 0.55);  /* gray-400 */
+    --wp-c2: rgba(132, 169, 140, 0.42);  /* desaturated sage */
+    --wp-c3: rgba(16, 185, 129, 0.18);   /* faint emerald tint */
+    --wp-c4: rgba(156, 163, 175, 0.32);
+}
+
+/* Ash — darker neutral, for admins who want more contrast against glass. */
+[data-wallpaper="ash"] {
+    --wp-base:   #e5e7eb;                /* gray-200 */
+    --wp-base-2: #d1d5db;                /* gray-300 */
+    --wp-c1: rgba(107, 114, 128, 0.55);  /* gray-500 */
+    --wp-c2: rgba(75, 85, 99, 0.42);     /* gray-600 */
+    --wp-c3: rgba(100, 116, 139, 0.18);  /* faint slate tint */
+    --wp-c4: rgba(107, 114, 128, 0.32);
+}
+
+/* Dark Glass overrides — keep blob hues but deepen the base. */
+[data-theme="glass-dark"] {
+    --wp-base:   #0a0e1a;
+    --wp-base-2: #0f172a;
+}
+
+@keyframes wallpaperDrift {
+    0%   { background-position: 0% 0%, 100% 0%, 0% 100%, 100% 100%; }
+    25%  { background-position: 20% 30%, 70% 20%, 30% 70%, 80% 90%; }
+    50%  { background-position: 40% 50%, 50% 40%, 60% 50%, 50% 60%; }
+    75%  { background-position: 20% 70%, 70% 60%, 30% 30%, 80% 50%; }
+    100% { background-position: 0% 0%, 100% 0%, 0% 100%, 100% 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .wallpaper-layer::before { animation: none; }
+}
+
+/* Animation level — [data-anim="off"] stops the drift; "lively" enables the
+   specular sheen sweep across glass surfaces (defined further down). */
+[data-anim="off"] .wallpaper-layer::before { animation: none; }
+
+/* Var-backed utility classes — drop-in replacements for `bg-gray-800` etc.
+   Components migrating off hardcoded Tailwind colors should reach for these. */
+.bg-surface { background-color: var(--bg-primary); }
+.bg-surface-2 { background-color: var(--bg-secondary); }
+.bg-surface-3 { background-color: var(--bg-tertiary); }
+.bg-surface-card { background-color: var(--bg-card); }
+.text-surface { color: var(--text-primary); }
+.text-surface-muted { color: var(--text-muted); }
+.border-surface { border-color: var(--border-default); }
+.border-surface-subtle { border-color: var(--border-subtle); }
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+    height: 100%;
+    /* Match the *visible* viewport (browser chrome + on-screen keyboard) rather
+       than 100vh, which includes area behind the mobile browser UI. Falls back
+       to the :root 100dvh default before useAppHeight() runs. */
+    height: var(--app-height);
+    margin: 0;
+    font-family: var(--font-sans);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    /* Safe area for mobile devices with notch/gesture bar. The on-screen
+       keyboard is handled by --app-height tracking visualViewport.height (the
+       shell shrinks to the visible region above the keyboard), so the keyboard
+       inset must NOT be added here too — that would double-count on iOS. */
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border-default);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+}
+
+/* Custom visible scrollbar sidebar for panels */
+.custom-scrollbar {
+    overflow-y: auto !important;
+    scrollbar-width: auto;
+    scrollbar-color: var(--text-muted) var(--bg-tertiary);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+    width: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: var(--bg-tertiary);
+    border-radius: 6px;
+    margin: 4px 0;
+    border: 1px solid var(--border-subtle);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: var(--text-muted);
+    border-radius: 6px;
+    border: 2px solid var(--bg-tertiary);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: var(--text-secondary);
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.7;
+    }
+}
+
+/* A running step card on the automations canvas: a 3px outline whose colour
+   breathes. Animates outline-color only, so it can never shift layout.
+
+   The colour is NOT decided here. cardChrome (Builder/flow/nodeTypeColors.js)
+   sets --bf-pulse-color to the same token it gives the border, which it in
+   turn reads off the shared status table — one decision, in one place. This
+   used to name --warning outright, and since a keyframe's outline-color beats
+   the shorthand's, the pulse stayed amber the day the running state turned
+   blue: a card with a blue outline breathing amber. The fallback keeps the
+   animation honest for any caller that forgets to set the property. */
+@keyframes bf-node-pulse {
+    0%, 100% { outline-color: color-mix(in srgb, var(--bf-pulse-color, var(--type-ai)) 90%, transparent); }
+    50%      { outline-color: color-mix(in srgb, var(--bf-pulse-color, var(--type-ai)) 25%, transparent); }
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.3s ease-out forwards;
+}
+
+.animate-pulse-slow {
+    animation: pulse 2s ease-in-out infinite;
+}
+
+/* ── A builder step arriving in the assistant panel ───────────────────────
+   Its own keyframe rather than .animate-fade-in: that one lifts 10px, which
+   on a 22px row reads as the list jumping rather than a step landing. Rows
+   arrive seconds apart as the model calls each tool, so they stagger by
+   themselves — no delay needed, and none wanted (a delay on a row that is
+   already late reads as lag).
+
+   Guarded for reduced motion, which this stylesheet honours per-animation
+   rather than globally: something that fires once per built step is exactly
+   what somebody who asked for less motion meant. */
+@keyframes bfStepIn {
+    from { opacity: 0; transform: translateY(3px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.bf-step-in {
+    animation: bfStepIn 220ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .bf-step-in { animation: none; }
+}
+
+/* ── The build as a film: a card materialising on the routines canvas ────
+   While the AI builds a routine, the canvas keeps rendering the LIVE draft
+   (summary chip, validation, minimap and layout never lag the truth); what
+   lags is visibility. The choreography hook (Builder/flow/
+   useBuildChoreography.js) diffs consecutive drafts into presentation flags
+   and StepNodeBase stamps them on the card root: data-build="fresh" |
+   "touched" | "live", plus --bf-reveal-delay (a <time>) and --bf-ring (the
+   family colour) inline; the summary line carries .bf-rv-sub; a new edge's
+   <path> carries .bf-edge-draw with pathLength=1 (flow/edges.jsx). The rules
+   below are what those flags look like. A burst of five cards shows up one
+   at a time through animation-delay alone — fill-mode `both` holds each
+   card at its `from` frame (invisible) until its turn, so there is no JS
+   queue to drift and the cards are already laid out and measured when the
+   camera frames the final shape.
+
+   One reveal, in order; every offset is added to --bf-reveal-delay:
+       0 ms   the incoming edge draws in             bfEdgeDraw      320 ms
+     140 ms   the card lands (opacity only)           bfCardIn        240 ms
+     140 ms   a family-coloured ring dissolves        bfRingDissolve  600 ms
+     260 ms   the icon tile pops                      bfTilePop       180 ms
+     340 ms   the name slides in                      bfTextIn        180 ms
+     460 ms   the summary line wipes in, left→right   bfSubWipe       380 ms
+   A touched card gets a family wash and its summary line re-wipes ("inputs
+   filling in"). The frontier — the one card the AI is working from — breathes
+   a 2px --accent outline, the ONLY --accent on the canvas: the family colour
+   is identity, never focus. A card with a run status carries data-status and
+   an inline outline from cardChrome (flow/nodeTypeColors.js), so the live
+   outline steps aside for it rather than fighting it.
+
+   Gated on prefers-reduced-motion ONLY. The guard that used to sit here read
+   `[data-anim="off"]` — but data-anim on <html> is the GLASS THEME's sheen
+   level (Off / Subtle / Lively; appearance/studio/look/sections/
+   AdvancedGlassDisclosure.jsx), default 'off' (appearance/ThemeContext.jsx,
+   applied by theme/applyTheme.js). That guard switched the step-arrival
+   animation off for nearly every user, including the demo laptop. The OS
+   setting is the one signal that means "I asked for less motion";
+   index.css.motion.test.js keeps any data-anim selector away from .bf-*.
+
+   Never animate `transform` on .react-flow__node. React Flow positions each
+   node with an inline translate() on that wrapper and draws the edges from
+   the positions in its store, so a transition there leaves the lines
+   snapping ahead of gliding cards. Everything below moves the card's OWN
+   root (a child of the wrapper) or its children, and does so through the
+   individual `scale` / `translate` properties rather than `transform`: the
+   branch tile carries an inline rotate(45deg) that a transform keyframe
+   would wipe mid-pop.
+
+   The card ROOT itself is never scaled either, not even for the landing.
+   React Flow measures the <Handle>s — children of that root — exactly once,
+   on the ResizeObserver's first callback, with getBoundingClientRect
+   relative to the unscaled node wrapper; fill-mode `both` holds a fresh
+   card at its `from` frame while it waits its turn, so a `scale: .96` there
+   was measured in, put the ports ~5px inside the card for the life of the
+   canvas, and hid the tip of every incoming arrow. The landing is opacity
+   only; the pop and the slide live on children that carry no handle.
+
+   The ring and the wash live on ::after. The card root's background and
+   box-shadow are inline (cardChrome), and a keyframe on either would fight
+   the status ring; a pseudo-element has neither. bfCardIn has no `to` frame
+   on purpose: the implicit end frame is then the card's own inline value,
+   so a dimmed card (0.7 for a disabled step) fades in to ITS opacity and
+   never gets pinned at 1 by the fill. */
+@keyframes bfEdgeDraw {
+    from { stroke-dasharray: 1; stroke-dashoffset: 1; }
+    to   { stroke-dasharray: 1; stroke-dashoffset: 0; }
+}
+
+@keyframes bfCardIn {
+    from { opacity: 0; }
+}
+
+@keyframes bfRingDissolve {
+    from { box-shadow: 0 0 0 8px color-mix(in srgb, var(--bf-ring, var(--text-tertiary)) 35%, transparent); }
+    to   { box-shadow: 0 0 0 0 transparent; }
+}
+
+@keyframes bfTilePop {
+    from { opacity: 0; scale: .7; }
+    60%  { scale: 1.08; }
+    to   { scale: 1; }
+}
+
+@keyframes bfTextIn {
+    from { opacity: 0; translate: -4px 0; }
+    to   { opacity: 1; translate: 0 0; }
+}
+
+@keyframes bfSubWipe {
+    from { clip-path: inset(0 100% 0 0); }
+    to   { clip-path: inset(0); }
+}
+
+@keyframes bfTouchWash {
+    from { opacity: 1; }
+    to   { opacity: 0; }
+}
+
+@keyframes bfLivePulse {
+    0%, 100% { outline-color: var(--accent); }
+    50%      { outline-color: color-mix(in srgb, var(--accent) 55%, transparent); }
+}
+
+/* pathLength=1 on the <path> makes the dash unit "the whole path", so a
+   320px link and a 1500px wrap edge draw in at the same pace. The dasharray
+   sits inside the keyframes, not on the rule, so `animation: none` leaves a
+   plain solid line behind. */
+.react-flow__edge.bf-edge-fresh .react-flow__edge-path,
+.bf-edge-draw {
+    animation: bfEdgeDraw 320ms ease-out var(--bf-reveal-delay, 0ms) both;
+}
+
+[data-build=fresh] {
+    animation: bfCardIn 240ms ease-out calc(140ms + var(--bf-reveal-delay, 0ms)) both;
+}
+
+[data-build=fresh]::after,
+[data-build=touched]::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+}
+
+[data-build=fresh]::after {
+    animation: bfRingDissolve 600ms ease-out calc(140ms + var(--bf-reveal-delay, 0ms)) both;
+}
+
+/* The tile is the card root's only direct span WITHOUT a class (the branch
+   labels and the tool port are classed, absolute spans) or its only
+   non-absolute button (the quick-add "+" is absolute). Read-only coupling to
+   StepNodeBase's markup; a miss costs one pop and nothing else. */
+[data-build=fresh] > span[aria-hidden="true"]:not([class]),
+[data-build=fresh] > button:not(.absolute) {
+    animation: bfTilePop 180ms ease-out calc(260ms + var(--bf-reveal-delay, 0ms)) both;
+}
+
+[data-build=fresh] [data-testid=node-name] {
+    animation: bfTextIn 180ms ease-out calc(340ms + var(--bf-reveal-delay, 0ms)) both;
+}
+
+/* steps(24) rather than a smooth wipe: the line appears character-ish by
+   character-ish, which is what "inputs filling in" looks like at 11px. */
+[data-build=fresh] .bf-rv-sub {
+    animation: bfSubWipe 380ms steps(24) calc(460ms + var(--bf-reveal-delay, 0ms)) both;
+}
+
+[data-build=touched]::after {
+    background: color-mix(in srgb, var(--bf-ring, var(--text-tertiary)) 10%, transparent);
+    animation: bfTouchWash 600ms ease-out both;
+}
+
+[data-build=touched] .bf-rv-sub {
+    animation: bfSubWipe 380ms steps(24) both;
+}
+
+/* Deliberately unlike bf-node-pulse (1.4s, 3px, the status colour): slower,
+   thinner, colour-only, so "the AI is here" and "this step is running" can
+   never be mistaken for each other. */
+[data-build=live]:not([data-status]) {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+    animation: bfLivePulse 2.4s ease-in-out infinite;
+}
+
+/* ── Dealt from the ribbon ──────────────────────────────────────────────
+   Each card the AI adds is drawn from the ribbon command that would have
+   added it by hand (flow/useRibbonFlight.js): the command rings in --accent
+   at the card's departure (the one moment the accent leaves the canvas —
+   "the AI is here" moves to the ribbon for 600 ms), a ghost card leaves it
+   150 ms later (RibbonFlightLayer.jsx, a fixed div moved by transform from
+   a rAF loop — never a React Flow node), and on landing the ghost fades
+   while the real card's own reveal takes over underneath. Per card, from
+   its departure at i × 1200 ms:
+       0 ms   the command rings; the camera pushes in if the slot is off-screen
+     150 ms   the ghost departs
+     600 ms   it lands; the incoming edge draws (bfEdgeDraw, delay = 600)
+     740 ms   the card lands under it, ring dissolves (the ladder above)
+    1200 ms   the next card departs
+   The ring is a box-shadow so it needs no layout and leaves no trace; the
+   class is removed after 700 ms so the same command can ring again for the
+   next card of the same kind. */
+@keyframes bfRibbonPick {
+    from { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 55%, transparent); }
+    to   { box-shadow: 0 0 0 8px transparent; }
+}
+
+@keyframes bfFlyLand {
+    to { opacity: 0; }
+}
+
+.bf-ribbon-pick {
+    animation: bfRibbonPick 600ms ease-out both;
+}
+
+.bf-fly-ghost-land {
+    animation: bfFlyLand 120ms ease-out both;
+}
+
+/* ── The card being drawn ─────────────────────────────────────────────
+   While the model TYPES a tool call (state.toolDraft, flow/ghostDraft.js)
+   the ghost slot becomes the card in progress and the ribbon command it is
+   drawn from wears a steady spotlight (flow/useRibbonSpotlight.js) — the
+   sustained "eye on this tile" before the 600 ms pick ring above flashes on
+   departure. Both may sit on the same element, so the spotlight's own
+   motion lives on ::after and never touches the element's `animation`
+   (that is bfRibbonPick's). The caret blinks beside the name as far as it
+   has been typed; the name itself updates in place. */
+.bf-ribbon-spot {
+    position: relative;
+    box-shadow: 0 0 0 2px color-mix(in oklab, var(--accent) 45%, transparent);
+    background: color-mix(in oklab, var(--accent) 8%, transparent);
+    transition: box-shadow 200ms, background 200ms;
+}
+
+@keyframes bfSpotBreathe {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: .7; }
+}
+
+.bf-ribbon-spot::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: inherit;
+    box-shadow: 0 0 0 4px color-mix(in oklab, var(--accent) 14%, transparent);
+    pointer-events: none;
+    animation: bfSpotBreathe 2.4s ease-in-out infinite;
+}
+
+@keyframes bfCaret {
+    50% { opacity: 0; }
+}
+
+.bf-caret {
+    display: inline-block;
+    width: 1.5px;
+    height: 1em;
+    margin-left: 2px;
+    background: currentColor;
+    vertical-align: -.15em;
+    animation: bfCaret 1s steps(2, start) infinite;
+}
+
+/* ── The silence before the first token (chat/BuilderWaitingCard.jsx) ───
+   Two rules for the waiting card in the chat column. The dot beside "Model
+   is reading your request" is REMOUNTED on every server heartbeat, so a
+   one-shot swell per mount reads as a pulse that only beats while the
+   connection does — a dot that stopped is the truth, a looping pulse would
+   not be. The bar with no history to draw on is a shimmer, a promise-free
+   "still going"; a bar with an estimate is a plain inline width and never
+   carries the class, so the shimmer cannot ride over a real fill. */
+@keyframes bfPingTick {
+    from { scale: 1; opacity: 1; }
+    40%  { scale: 1.8; opacity: .4; }
+    to   { scale: 1; opacity: 1; }
+}
+
+.bf-ping-tick {
+    animation: bfPingTick 600ms ease-out both;
+}
+
+@keyframes bfWaitBar {
+    from { translate: -100% 0; }
+    to   { translate: 300% 0; }
+}
+
+.bf-wait-bar {
+    position: relative;
+    overflow: hidden;
+}
+
+.bf-wait-bar::after {
+    content: '';
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 33%;
+    border-radius: inherit;
+    background: var(--bf-accent, var(--accent));
+    opacity: .7;
+    animation: bfWaitBar 1.6s ease-in-out infinite;
+}
+
+/* Reduced motion: every rule above, zeroed in one place. Not just
+   `animation: none` — the fill is what hides a card before its turn, so the
+   animation going away is what makes it visible; the pseudo-elements go too
+   (a wash with no fade would be a permanent tint) and the summary line's clip
+   is released. The choreography hook also stops issuing flags in this mode,
+   so this block is the belt to its braces. */
+@media (prefers-reduced-motion: reduce) {
+    .react-flow__edge.bf-edge-fresh .react-flow__edge-path,
+    .bf-edge-draw,
+    [data-build=fresh],
+    [data-build=fresh] > span[aria-hidden="true"]:not([class]),
+    [data-build=fresh] > button:not(.absolute),
+    [data-build=fresh] [data-testid=node-name],
+    [data-build=live]:not([data-status]) {
+        animation: none;
+    }
+
+    [data-build=fresh] > span[aria-hidden="true"]:not([class]),
+    [data-build=fresh] > button:not(.absolute),
+    [data-build=fresh] [data-testid=node-name] {
+        opacity: 1;
+    }
+
+    [data-build=fresh]::after,
+    [data-build=touched]::after {
+        content: none;
+        animation: none;
+    }
+
+    [data-build=fresh] .bf-rv-sub,
+    [data-build=touched] .bf-rv-sub {
+        animation: none;
+        clip-path: none;
+    }
+
+    /* The flight hook issues no ring and no ghost under reduced motion; this
+       is the belt to that brace. */
+    .bf-ribbon-pick,
+    .bf-fly-ghost-land {
+        animation: none;
+    }
+
+    /* A steady spotlight and a standing caret: the state without the motion. */
+    .bf-ribbon-spot::after,
+    .bf-caret {
+        animation: none;
+    }
+
+    .bf-ping-tick {
+        animation: none;
+    }
+
+    /* No shimmer; the tinted track alone says "still waiting". */
+    .bf-wait-bar::after {
+        animation: none;
+        content: none;
+    }
+}
+
+/* ── The test run, replayed: the result chip ─────────────────────────────
+   Once a run row has settled, the card puts one chip at the head of its
+   summary line — "3 items", "done", "failed" (flow/stepResultChip.js, drawn
+   by StepNodeBase at mid and near LOD). It wipes in the way the summary
+   line does during a build, reusing bfSubWipe; keyed on its text, so a new
+   result remounts the chip and the wipe plays again. */
+.bf-result-chip {
+    animation: bfSubWipe 380ms steps(24) both;
+}
+
+/* ── Presenter mode (flow/presenterMode.js) ──────────────────────────────
+   `data-presenter="on"` on the canvas wrapper (DiagramPane). The cards
+   re-derive their LOD from PresenterContext (text at 30% / 55% instead of
+   45% / 80%) and edges.jsx thickens the lines by one pixel — both in JS,
+   because they are inline. What follows is the overlay chrome: the south
+   bar's banners and hint, the badges, the ghost caption. Sizes only; no
+   layout re-run, the cards stay 240×72. Tailwind's utilities sit in a layer,
+   so these unlayered rules win without !important. */
+[data-presenter=on] [data-testid=canvas-build-banner],
+[data-presenter=on] [data-testid=canvas-run-banner],
+[data-presenter=on] [data-testid=canvas-selection-bar] {
+    font-size: 13px;
+    padding-top: 12px;
+    padding-bottom: 12px;
+}
+
+[data-presenter=on] [data-testid=canvas-hint] {
+    font-size: 13px;
+}
+
+/* The build banner's dot: 8px → 12px, halo included. */
+[data-presenter=on] [data-testid=canvas-build-banner] > span:first-child,
+[data-presenter=on] [data-testid=canvas-build-banner] > span:first-child > span {
+    height: 12px;
+    width: 12px;
+}
+
+[data-presenter=on] [data-testid=node-status-badge] {
+    font-size: 12px;
+    line-height: 18px;
+}
+
+[data-presenter=on] .bf-result-chip {
+    font-size: 12px;
+}
+
+[data-presenter=on] [data-testid=ghost-step-caption] {
+    font-size: 13px;
+    line-height: 16px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .bf-result-chip {
+        animation: none;
+        clip-path: none;
+    }
+}
+
+.animate-spin {
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes bounce {
+
+    0%,
+    80%,
+    100% {
+        transform: translateY(0);
+    }
+
+    40% {
+        transform: translateY(-6px);
+    }
+}
+
+.animate-bounce {
+    animation: bounce 1.4s ease-in-out infinite;
+}
+
+/* Button styles */
+.btn-primary {
+    background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+    color: white;
+    font-weight: 600;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: var(--shadow-sm);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md), var(--shadow-glow);
+}
+
+.btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Markdown Content Styles */
+.markdown-content {
+    line-height: 1.45;
+    word-wrap: break-word;
+}
+
+/* Override Tailwind prose spacing for tighter output */
+.prose.prose-sm {
+    --tw-prose-body: 1;
+    line-height: 1.45;
+    font-size: 0.875rem;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    overflow: visible;
+}
+
+.prose.prose-sm> :first-child {
+    margin-top: 0;
+}
+
+.prose.prose-sm> :last-child {
+    margin-bottom: 0;
+}
+
+.prose.prose-sm p {
+    margin-top: 0.25rem;
+    margin-bottom: 0.25rem;
+}
+
+.prose.prose-sm h1,
+.prose.prose-sm h2,
+.prose.prose-sm h3,
+.prose.prose-sm h4 {
+    margin-top: 0.6rem;
+    margin-bottom: 0.2rem;
+    line-height: 1.3;
+}
+
+.prose.prose-sm ul,
+.prose.prose-sm ol {
+    margin-top: 0.25rem;
+    margin-bottom: 0.25rem;
+}
+
+.prose.prose-sm li {
+    margin-top: 0.05rem;
+    margin-bottom: 0.05rem;
+}
+
+.prose.prose-sm pre {
+    margin-top: 0.4rem;
+    margin-bottom: 0.4rem;
+}
+
+.prose.prose-sm blockquote {
+    margin-top: 0.4rem;
+    margin-bottom: 0.4rem;
+}
+
+.prose.prose-sm hr {
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.markdown-content p {
+    margin: 0.25rem 0;
+}
+
+.markdown-content p:first-child {
+    margin-top: 0;
+}
+
+.markdown-content p:last-child {
+    margin-bottom: 0;
+}
+
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3,
+.markdown-content h4 {
+    margin: 0.6rem 0 0.2rem 0;
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: 1.3;
+}
+
+.markdown-content h1 {
+    font-size: 1.35rem;
+}
+
+.markdown-content h2 {
+    font-size: 1.15rem;
+}
+
+.markdown-content h3 {
+    font-size: 1.05rem;
+}
+
+.markdown-content h4 {
+    font-size: 0.95rem;
+}
+
+/* A cowork run's output is read inside a collapsed history row, not a chat
+   bubble. The headings above are rem-based, so an h1 landed at ~21px in a
+   12.5px box and every digest opened like a press release. Step them down to
+   the row, and drop the outer margins so the first line starts where the
+   border ends. */
+.cowork-run-output h1 {
+    font-size: 1.02rem;
+}
+
+.cowork-run-output h2 {
+    font-size: 0.95rem;
+}
+
+.cowork-run-output h3,
+.cowork-run-output h4 {
+    font-size: 0.88rem;
+}
+
+.cowork-run-output> :first-child {
+    margin-top: 0;
+}
+
+.cowork-run-output> :last-child {
+    margin-bottom: 0;
+}
+
+.markdown-content ul,
+.markdown-content ol {
+    margin: 0.25rem 0;
+    padding-left: 1.25rem;
+}
+
+/* BFSF-259: Tailwind preflight resets list-style to none globally and nothing
+   here restored it — numbered/bulleted lists rendered without markers in
+   EVERY chat bubble (user and assistant alike). Mirrors the .bf-content fix
+   in editor/editor.css. */
+.markdown-content ul {
+    list-style: disc outside;
+}
+
+.markdown-content ol {
+    list-style: decimal outside;
+    /* two-digit markers ("10.") clip at 1.25rem */
+    padding-left: 1.5rem;
+}
+
+.markdown-content ul ul {
+    list-style: circle;
+}
+
+.markdown-content ol ol {
+    list-style: lower-alpha;
+}
+
+.markdown-content ol ol ol {
+    list-style: lower-roman;
+}
+
+/* GFM task lists carry their own checkbox — a disc/decimal marker next to it
+   would trade one glitch for another. remark-gfm puts .contains-task-list on
+   BOTH ul and ol (e.g. "1. [ ] item"), so match the class, not the element. */
+.markdown-content .contains-task-list {
+    list-style: none;
+    padding-left: 0.25rem;
+}
+
+.markdown-content li {
+    margin: 0.1rem 0;
+}
+
+.markdown-content .inline-code {
+    background: rgba(220, 38, 38, 0.08);
+    color: #dc2626;
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+    font-family: 'Fira Code', 'Monaco', monospace;
+    font-size: 0.85em;
+    border: 1px solid rgba(220, 38, 38, 0.12);
+    /* BFSF-273: compact snippets rendered inside a bare <pre> (short
+       no-language fenced blocks) inherit white-space:pre, which disables
+       every soft-wrap opportunity — the chat bubble's overflow-hidden then
+       silently clips the text at the right edge. Declaring white-space on
+       the <code> itself restores wrapping regardless of the wrapper, and
+       overflow-wrap:anywhere also participates in min-content sizing so
+       long tokens can't blow out flex/table layouts. */
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+/* Tighten the UA's 1em <pre> margins around compact inline-code chips so a
+   wrapped prompt snippet sits like inline code instead of floating with big
+   gaps (evergreen-browser SPA — :has() is fine here). */
+.markdown-content pre:has(> code.inline-code) {
+    white-space: pre-wrap;
+    margin: 0.25rem 0;
+}
+
+[data-theme="light"] .markdown-content .inline-code {
+    background: rgba(220, 38, 38, 0.06);
+    color: #b91c1c;
+    border-color: rgba(220, 38, 38, 0.1);
+}
+
+.markdown-content .code-block {
+    background: #1e1e2e;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 0.6rem 0.75rem;
+    overflow-x: auto;
+    overflow-y: auto;
+    max-height: 70vh;
+    margin: 0.4rem 0;
+    font-family: 'Fira Code', 'Monaco', monospace;
+    font-size: 0.83rem;
+    line-height: 1.4;
+    color: #e2e8f0;
+}
+
+.markdown-content .code-block code {
+    background: none;
+    padding: 0;
+    color: #e2e8f0;
+}
+
+/* Override highlight.js background to use our container bg */
+.markdown-content pre.hljs,
+pre.hljs {
+    background: transparent !important;
+}
+
+.markdown-content blockquote {
+    border-left: 3px solid var(--accent-primary);
+    margin: 0.4rem 0;
+    padding-left: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.markdown-content a {
+    color: #60a5fa;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.markdown-content a:hover {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.markdown-content hr {
+    border: none;
+    border-top: 1px solid var(--border-default);
+    margin: 0.6rem 0;
+}
+
+.markdown-content .table-wrapper {
+    overflow-x: auto;
+    margin: 0.4rem 0;
+}
+
+.markdown-content table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+.markdown-content th,
+.markdown-content td {
+    padding: 0.35rem 0.6rem;
+    border: 1px solid var(--border-default);
+    text-align: left;
+}
+
+.markdown-content th {
+    background: var(--bg-tertiary);
+    font-weight: 600;
+}
+
+.markdown-content img {
+    max-width: 100%;
+    border-radius: 8px;
+}
+
+/* ── Vega-Lite chart styling ──────────────────────── */
+.vega-chart-wrapper .vega-embed {
+    width: 100% !important;
+}
+
+.vega-chart-wrapper .vega-embed summary {
+    position: absolute;
+    right: 8px;
+    top: 8px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    cursor: pointer;
+    list-style: none;
+    padding: 4px 6px;
+    border-radius: 6px;
+    background: var(--bg-tertiary, #1e1e2e);
+    border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.06));
+    color: var(--text-secondary, #94a3b8);
+    z-index: 10;
+}
+
+.vega-chart-wrapper:hover .vega-embed summary {
+    opacity: 0.7;
+}
+
+.vega-chart-wrapper .vega-embed summary:hover {
+    opacity: 1;
+    background: var(--bg-card-hover, #22222e);
+}
+
+.vega-chart-wrapper .vega-embed details[open] summary {
+    opacity: 1;
+}
+
+.vega-chart-wrapper .vega-actions {
+    background: var(--bg-secondary, #16161d);
+    border: 1px solid var(--border-default, rgba(255, 255, 255, 0.1));
+    border-radius: 8px;
+    padding: 4px 0;
+    box-shadow: var(--shadow-lg, 0 8px 24px rgba(0, 0, 0, 0.5));
+    position: absolute;
+    right: 0;
+    top: 100%;
+    margin-top: 4px;
+    z-index: 20;
+    min-width: 140px;
+}
+
+.vega-chart-wrapper .vega-actions a {
+    display: block;
+    padding: 6px 14px;
+    color: var(--text-secondary, #94a3b8);
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 500;
+    transition: background 0.15s ease, color 0.15s ease;
+    white-space: nowrap;
+}
+
+.vega-chart-wrapper .vega-actions a:hover {
+    background: var(--bg-card-hover, #22222e);
+    color: var(--text-primary, #f8fafc);
+    text-decoration: none;
+}
+
+/* Modal placement variants (shared/Modal.tsx): left/right panels slide in
+   from their edge, the bottom sheet slides up. Duration reads the app motion
+   tokens when a themed app shell provides them and falls back to 200ms (the
+   portal renders under <body>, outside .app-runtime, so the fallback is the
+   common case); reduced-motion kills the animation outright. */
+@keyframes modalSlideInLeft { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+@keyframes modalSlideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
+@keyframes modalSlideInUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.modal-slide-in-left { animation: modalSlideInLeft var(--app-motion-med, 200ms) var(--app-ease, ease-out) both; }
+.modal-slide-in-right { animation: modalSlideInRight var(--app-motion-med, 200ms) var(--app-ease, ease-out) both; }
+.modal-slide-in-up { animation: modalSlideInUp var(--app-motion-med, 200ms) var(--app-ease, ease-out) both; }
+@media (prefers-reduced-motion: reduce) {
+    .modal-slide-in-left,
+    .modal-slide-in-right,
+    .modal-slide-in-up { animation: none !important; }
+}
+
+/* Sidebar slide-in animation (mobile overlay) */
+@keyframes sidebarSlideIn {
+    from {
+        transform: translateX(-100%);
+    }
+
+    to {
+        transform: translateX(0);
+    }
+}
+
+.sidebar-slide-in {
+    animation: sidebarSlideIn 0.25s ease-out;
+}
+
+/* ModelTierSelector popover entrance — slight slide + fade so it feels
+   anchored to the trigger rather than blinking in. */
+@keyframes modelTierPanelIn {
+    from { opacity: 0; transform: translateY(4px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0)   scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .model-tier-panel { animation: none !important; }
+}
+
+/* Hover lift on the tier trigger so it reads as interactive without painting
+   an extra border. Skip the lift while the panel is open — the open state
+   already has its own shadow. */
+.model-tier-trigger[data-open="0"]:hover {
+    background: var(--bg-card-hover, var(--bg-tertiary)) !important;
+    border-color: var(--border-default) !important;
+}
+
+/* ── Mobile Responsive ─────────────────────────────── */
+@media (max-width: 767px) {
+
+    /* Tighter chat padding on mobile */
+    .p-4 {
+        padding: 0.75rem;
+    }
+
+    /* Full-width message bubbles */
+    .max-w-3xl {
+        max-width: 100%;
+    }
+
+    /* Smaller chat header */
+    .h-14 {
+        height: 3rem;
+    }
+
+    /* Touch-friendly tap targets */
+    button {
+        min-height: 36px;
+    }
+
+    /* Hide scrollbar on mobile for cleaner look */
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    /* Scale down markdown for mobile */
+    .markdown-content {
+        font-size: 0.875rem;
+    }
+
+    .markdown-content h1 {
+        font-size: 1.1rem;
+    }
+
+    .markdown-content h2 {
+        font-size: 1rem;
+    }
+
+    .markdown-content h3 {
+        font-size: 0.95rem;
+    }
+
+    .markdown-content h4 {
+        font-size: 0.875rem;
+    }
+
+    /* Tighter table cells on mobile */
+    .markdown-content th,
+    .markdown-content td {
+        padding: 0.25rem 0.4rem;
+        font-size: 0.8rem;
+    }
+
+    .markdown-content .code-block,
+    .markdown-content pre.hljs {
+        font-size: 0.75rem;
+    }
+}
+
+/* ── Compact Responsive (small laptops 768–1279) ─────── */
+/* Mirrors the mobile block but lighter — just enough to stop layouts
+   feeling cramped on 13" laptops. Most compact-specific layout changes
+   are handled by Tailwind classes (xl: prefixes) on individual
+   components; this block covers global affordances like scrollbar
+   thickness and markdown table padding. */
+@media (min-width: 768px) and (max-width: 1279px) {
+
+    /* Slimmer scrollbars so they don't chew horizontal space */
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    /* Tighter markdown tables so they fit without horizontal scroll */
+    .markdown-content th,
+    .markdown-content td {
+        padding: 0.35rem 0.55rem;
+        font-size: 0.85rem;
+    }
+}
+
+/* ── BeeEditor (from-scratch) — kill the contenteditable focus box ── */
+.bf-content,
+.bf-content:focus,
+.bf-content:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+    border: none !important;
+}
+.bf-content :focus,
+.bf-content :focus-visible {
+    outline: none;
+}
+
+
+/* ── Mermaid Diagram Block — Premium Styling ──────────── */
+
+/* Container */
+.notebook-mermaid-block {
+    margin: 20px 0;
+    border-radius: 16px;
+    border: 1px solid rgba(59, 130, 246, 0.15);
+    background: linear-gradient(145deg,
+        rgba(59, 130, 246, 0.04) 0%,
+        rgba(16, 185, 129, 0.03) 40%,
+        rgba(59, 130, 246, 0.02) 100%);
+    overflow: hidden;
+    box-shadow:
+        0 1px 3px rgba(59, 130, 246, 0.06),
+        0 4px 16px rgba(59, 130, 246, 0.04);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.notebook-mermaid-block:hover {
+    border-color: rgba(59, 130, 246, 0.28);
+    box-shadow:
+        0 2px 8px rgba(59, 130, 246, 0.08),
+        0 8px 32px rgba(59, 130, 246, 0.06);
+    transform: translateY(-1px);
+}
+
+/* Glassmorphism Header */
+.mermaid-block-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 14px;
+    border-bottom: 1px solid rgba(59, 130, 246, 0.08);
+    background: linear-gradient(135deg,
+        rgba(59, 130, 246, 0.06) 0%,
+        rgba(16, 185, 129, 0.04) 50%,
+        rgba(255, 255, 255, 0.02) 100%);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+.mermaid-block-title {
+    font-size: 12px;
+    font-weight: 650;
+    color: #3b82f6;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    letter-spacing: 0.01em;
+}
+
+.mermaid-block-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 7px;
+    background: rgba(59, 130, 246, 0.12);
+    color: #3b82f6;
+}
+
+.mermaid-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.mermaid-toolbar-btn {
+    font-family: Inter, system-ui, sans-serif !important;
+}
+.mermaid-toolbar-btn:hover {
+    background: rgba(59, 130, 246, 0.12) !important;
+    border-color: rgba(59, 130, 246, 0.2) !important;
+    color: #1d4ed8 !important;
+}
+
+/* Diagram Render Area */
+.mermaid-diagram-area {
+    padding: 24px 20px;
+    text-align: center;
+    background: #ffffff;
+    min-height: 100px;
+    position: relative;
+}
+
+.mermaid-svg-container {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* SVG node enhancements — applied globally */
+.notebook-mermaid-block svg {
+    max-width: 100%;
+    height: auto;
+}
+
+.notebook-mermaid-block .node text,
+.notebook-mermaid-block .actor text,
+.notebook-mermaid-block .noteText {
+    font-family: Inter, system-ui, sans-serif !important;
+}
+
+.notebook-mermaid-block .edgeLabel text {
+    font-family: Inter, system-ui, sans-serif !important;
+    font-size: 13px !important;
+}
+
+/* Loading Skeleton */
+.mermaid-skeleton {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    gap: 4px;
+}
+
+.mermaid-skeleton-spinner {
+    color: #93c5fd;
+}
+
+/* `@keyframes spin` lives once, near `.animate-spin` above (BFSF-396) — this
+   block used to redeclare it verbatim; MermaidBlock.jsx's inline
+   `animation: 'spin 1s linear infinite'` still resolves to that one
+   definition by name. */
+
+/* Code Editor */
+.mermaid-code-editor {
+    width: 100%;
+    min-height: 140px;
+    background: #0f172a;
+    border: 1px solid rgba(59, 130, 246, 0.15);
+    border-radius: 10px;
+    padding: 14px 16px;
+    color: #e2e8f0;
+    font-family: 'Fira Code', 'JetBrains Mono', 'Monaco', monospace;
+    font-size: 12.5px;
+    line-height: 1.6;
+    resize: vertical;
+    outline: none;
+    tab-size: 2;
+    transition: border-color 0.2s;
+}
+
+.mermaid-code-editor:focus {
+    border-color: rgba(59, 130, 246, 0.4);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.08);
+}
+
+/* Error State */
+.mermaid-error {
+    padding: 14px 18px;
+    border-radius: 10px;
+    background: rgba(239, 68, 68, 0.06);
+    border: 1px solid rgba(239, 68, 68, 0.15);
+    color: #dc2626;
+    font-size: 12px;
+    text-align: left;
+}
+
+.mermaid-error-btn {
+    margin-top: 10px;
+    padding: 6px 16px;
+    border-radius: 20px;
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    color: #1d4ed8;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+.mermaid-error-btn:hover {
+    background: rgba(59, 130, 246, 0.18);
+}
+
+/* ── Fullscreen Modal ── */
+.mermaid-fullscreen-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    animation: mermaidFadeIn 0.2s ease;
+}
+
+.mermaid-fullscreen-modal {
+    background: #0f172a;
+    border-radius: 20px;
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5);
+    width: 95vw;
+    max-width: 1400px;
+    max-height: 95vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: mermaidSlideUp 0.3s ease;
+}
+
+.mermaid-fullscreen-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.mermaid-fullscreen-content {
+    flex: 1;
+    overflow: auto;
+    padding: 32px;
+    background: #ffffff;
+    border-radius: 0 0 19px 19px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+@keyframes mermaidFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes mermaidSlideUp {
+    from { opacity: 0; transform: translateY(20px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ── Light Mode Overrides ── */
+[data-theme="light"] .notebook-mermaid-block {
+    border-color: rgba(59, 130, 246, 0.12);
+    background: linear-gradient(145deg,
+        rgba(59, 130, 246, 0.03) 0%,
+        rgba(16, 185, 129, 0.02) 40%,
+        rgba(59, 130, 246, 0.015) 100%);
+    box-shadow:
+        0 1px 3px rgba(0, 0, 0, 0.04),
+        0 4px 16px rgba(59, 130, 246, 0.03);
+}
+
+[data-theme="light"] .notebook-mermaid-block:hover {
+    border-color: rgba(59, 130, 246, 0.22);
+    box-shadow:
+        0 2px 8px rgba(0, 0, 0, 0.05),
+        0 8px 32px rgba(59, 130, 246, 0.05);
+}
+
+[data-theme="light"] .mermaid-block-header {
+    border-bottom-color: rgba(59, 130, 246, 0.06);
+    background: linear-gradient(135deg,
+        rgba(59, 130, 246, 0.04) 0%,
+        rgba(16, 185, 129, 0.02) 50%,
+        rgba(255, 255, 255, 0.5) 100%);
+}

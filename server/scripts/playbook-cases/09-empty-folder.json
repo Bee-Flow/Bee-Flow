@@ -1,0 +1,44 @@
+{
+ "id": "09-empty-folder",
+ "title": "PB lege map",
+ "recipeId": "invoice_tracker",
+ "options": {
+  "tableMode": "new",
+  "tableTitle": "PB Facturen leeg",
+  "inputs": {
+   "folderPath": "/Playbook-Empty-Test-Folder"
+  },
+  "tier": "fast",
+  "locale": "nl"
+ },
+ "onFail": {
+  "fill": "skip"
+ },
+ "until": "app",
+ "expect": {
+  "phases": {
+   "table": "done",
+   "routine": "done",
+   "fill": [
+    "done",
+    "skipped"
+   ],
+   "app": "awaiting",
+   "design": "done"
+  },
+  "routine": {
+   "finalized": true,
+   "maxRounds": 10,
+   "triggerKind": "manual"
+  },
+  "app": {
+   "finalized": true,
+   "maxFailedCalls": 4,
+   "maxRounds": 12,
+   "noTools": [
+    "app_seed_records",
+    "app_upsert_table"
+   ]
+  }
+ }
+}

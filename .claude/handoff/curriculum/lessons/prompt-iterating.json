@@ -1,0 +1,376 @@
+{
+  "id": "prompt-iterating",
+  "icon": "🔁",
+  "estMinutes": 9,
+  "title": "Iterate to perfection",
+  "desc": "Treat the first answer as a draft and steer it with one high-leverage follow-up.",
+  "gate": {},
+  "learningGoal": "Fix an almost-right answer with one targeted follow-up instead of restarting.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "draft",
+      "icon": "📄",
+      "title": "The first answer is a draft",
+      "bodyMd": "The answer comes back. It is correct, polite, and not something you would send. Most people read that as proof that the model is mediocre, and go off to rewrite the prompt from scratch.\n\nSanne at Van Dijk Groep — the sixty-person installation firm near Zwolle you have met in earlier lessons — asked for a letter to twelve customers whose heat pump is arriving two weeks late. What came back is accurate, and 380 words of corporate nothing.\n\nThat is normal. A first answer is a **draft**, the same way your own first paragraph is a draft.\n\nThe cheap repair is not a better prompt. It is a **reply in the same thread**. Everything already said — your brief, the answer, the tone you disliked — travels with that reply. You are not explaining the job again; you are correcting one thing about work that already exists."
+    },
+    {
+      "type": "slide",
+      "id": "memory",
+      "icon": "🧵",
+      "title": "The thread is the memory",
+      "bodyMd": "A conversation carries its own history. Your second message arrives with the first question and the first answer attached, which is why *\"same thing, but half as long\"* works at all.\n\nTwo things worth knowing:\n\n- **New Chat** in the sidebar opens an empty thread. None of the earlier conversation comes along — that is the point of it, and the risk of it.\n- A thread that grows towards the model's **context window** — the amount of conversation it can hold at once — gets folded to fit, and a thin rule then appears in the chat reading **\"Earlier messages were summarised\"**. A long chain of nudges is not free; a handful of precise ones is."
+    },
+    {
+      "type": "quiz",
+      "id": "q-cheapest",
+      "icon": "❓",
+      "question": "Sanne's letter is 90% right: the facts are correct, but it is twice as long as it should be and it reads stiffly. What is the cheapest next move?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Reply in the same thread: \"Cut this to 120 words and make the tone warmer — keep the new delivery date in the first sentence.\"",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Open New Chat and write a better prompt from scratch.",
+          "correct": false,
+          "feedback": "A new chat is an empty thread — your brief, the draft and everything you learned about what was wrong stay behind. You would be paying for the same 90% twice."
+        },
+        {
+          "id": "c",
+          "label": "Reply with \"make it better\".",
+          "correct": false,
+          "feedback": "Better how? The model has to guess which of the ten possible improvements you meant, and it usually guesses length when you meant tone. Name the change."
+        },
+        {
+          "id": "d",
+          "label": "Copy it into a document and fix the length and tone by hand.",
+          "correct": false,
+          "feedback": "Fine once, but you spend ten minutes on something a follow-up does in ten seconds — and next week's letter starts from the same stiff draft, because you never taught the thread what you wanted."
+        }
+      ],
+      "explanation": "One reply in the same thread keeps every bit of context and names exactly what to change — and it names what to keep, so the fix cannot break the part that already worked."
+    },
+    {
+      "type": "slide",
+      "id": "moves",
+      "icon": "🛠️",
+      "title": "Five follow-ups that do most of the work",
+      "bodyMd": "Almost every repair is one of five moves:\n\n- **Size** — \"Cut this to 120 words.\"\n- **Tone** — \"Warmer and plainer; write it the way our installers talk.\"\n- **Evidence** — \"Add one concrete example from the delayed order.\"\n- **Choice** — \"Give me two more versions of the opening line, same length.\"\n- **Reasoning** — \"Why did you lead with the apology? Redo it leading with the new date.\"\n\nNotice that each names *one* change. That is what makes them cheap: the rest of the answer stays put."
+    },
+    {
+      "type": "sim",
+      "id": "sim-fix",
+      "icon": "🧩",
+      "title": "Match the flaw to the follow-up that fixes it",
+      "instruction": "Five drafts came back for Van Dijk Groep, each with one thing wrong. Tap a draft on the left, then the follow-up that repairs it.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "long",
+            "left": "All the facts are right, but it runs to 380 words where 120 would do.",
+            "right": "Cut this to 120 words, keeping the new delivery date and the apology.",
+            "note": "A size instruction needs a number. \"Shorter\" gets you 300 words; \"120 words\" gets you 120."
+          },
+          {
+            "id": "stiff",
+            "left": "Correct, but it reads as though a lawyer wrote it to another lawyer.",
+            "right": "Rewrite it in plain, everyday language — warm, but not chatty.",
+            "note": "Tone is a separate dial from length. Say which way to move it and where to stop, or it swings straight past warm into chatty."
+          },
+          {
+            "id": "generic",
+            "left": "Sensible advice, but it could be about any installation company in the country.",
+            "right": "Redo it with our own details: an installer of sixty people near Zwolle, and this two-week delay.",
+            "note": "Generic output almost always means missing specifics. Hand over the facts rather than asking it to \"be more specific\"."
+          },
+          {
+            "id": "invented",
+            "left": "It offers the customer a 10% discount — something Van Dijk Groep never gives.",
+            "right": "Remove the discount. The only thing we can offer is a free first service visit.",
+            "note": "Say what to do instead, not only what to avoid. A bare \"don't mention discounts\" leaves a hole the model fills with something else you did not ask for."
+          },
+          {
+            "id": "onlyone",
+            "left": "The opening line is nearly right — you would like to compare a couple of options.",
+            "right": "Give me two more versions of the opening line, same length.",
+            "note": "Asking for alternatives is cheaper than describing the one you cannot quite picture. Pick the winner and carry on."
+          }
+        ]
+      }
+    },
+    {
+      "type": "slide",
+      "id": "name-it",
+      "icon": "🎯",
+      "title": "\"Make it better\" says nothing",
+      "bodyMd": "A follow-up is an instruction, not a complaint. Compare:\n\n> Make it better. It is a bit much.\n\nagainst\n\n> Cut it to 120 words. Drop \"cutting-edge\" and \"tailor-made\". Lead with the new delivery date, not the apology. Keep the last paragraph exactly as it is.\n\nFour named changes, one of which is *keep*. The second version cannot be misread, and it takes ten seconds longer to type.\n\nThe pattern: **name the size, name the words, name the lead, name what stays**."
+    },
+    {
+      "type": "slide",
+      "id": "one-change",
+      "icon": "🔬",
+      "title": "One variable at a time",
+      "bodyMd": "\"One thing at a time\" does not mean one word at a time. Two or three related changes in one message are fine: cut the length, warm the tone, keep the date. What breaks is the message that changes the length, the audience, the structure and the argument at once — when the result comes back worse, you cannot tell which change did it.\n\nIf a follow-up makes things worse, say so plainly — *\"Go back to the previous version and only shorten the middle paragraph\"* — because the previous version is still in the thread and can be referred to.\n\nTwo or three rounds is a normal, healthy conversation. Eight rounds of \"hmm, not quite\" is a sign that the brief itself was wrong, and no amount of nudging repairs a wrong brief."
+    },
+    {
+      "type": "quiz",
+      "id": "q-restart",
+      "icon": "❓",
+      "question": "Eight rounds in, the letter now contradicts itself and Sanne is arguing with the answers. When does starting over genuinely beat another follow-up?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "When the thread has drifted so far that you are fighting the earlier turns — start fresh, pasting the best version so far as the new starting point.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Whenever the first answer is not immediately usable.",
+          "correct": false,
+          "feedback": "That is almost every first answer. Restarting there throws away the 90% that was already right and asks the model to rediscover it."
+        },
+        {
+          "id": "c",
+          "label": "When the answer is too long — a fresh chat keeps answers shorter.",
+          "correct": false,
+          "feedback": "Length has nothing to do with which thread you are in. It comes from what you asked for, and \"cut this to 120 words\" fixes it in one line."
+        },
+        {
+          "id": "d",
+          "label": "When you want a deeper answer — a new chat runs at a higher depth.",
+          "correct": false,
+          "feedback": "Depth is a setting, not a side effect of a new chat. In a direct chat the depth gauge in the composer sets the depth the next answer runs at, and Retry with different model re-runs the same question at another depth."
+        }
+      ],
+      "explanation": "Restart when the premise is broken, not when the draft is imperfect. Carrying the best version across gives the new thread a running start instead of a blank page."
+    },
+    {
+      "type": "exercise",
+      "id": "ex-refine",
+      "icon": "🎯",
+      "exerciseId": "ex-iterating-refine",
+      "title": "Your turn: write the one follow-up",
+      "instruction": "Van Dijk Groep asked for a description of its heat-pump maintenance plan. What came back is accurate, but 350 words long, so generic it could describe any competitor, and thick with words like \"revolutionary\" and \"tailor-made\".\n\nWrite the single follow-up message you would send in that same thread. A strong answer names a concrete size target, names at least one specific thing to remove or replace, says what to lead with or keep, and reads as a correction of the existing draft rather than a fresh brief.",
+      "placeholder": "e.g. \"Cut this to 90 words. Drop 'revolutionary' and 'tailor-made', and instead say what a homeowner actually gets. Lead with …\"",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "slide",
+      "id": "escape",
+      "icon": "🔄",
+      "title": "Under the answer: run it again",
+      "bodyMd": "A follow-up adds to the thread. The row of buttons under an answer lets you replace part of it instead.\n\n**Retry response** re-runs the same question of yours and replaces that answer — along with anything that came after it. The small arrow beside it opens **Retry with different model**, which re-runs the same question at another depth. The depths are the four on the composer's gauge: **Auto**, **Fast**, **Think**, **Deep Thinking**. Reach for it when the brief was fine and the thinking was thin.\n\nThose four are the whole ladder. **Write**, **Flow** and **Swarm** are pills beside the gauge — *kinds* of work, not deeper settings — so \"Write\" is never one rung above Think.\n\nIf you are not sure the thinking *was* thin, open **\"How I got this answer\"** first: it shows which depth Auto picked (*\"Auto → Fast\"*). Retrying at Fast when Auto already ran Fast changes nothing."
+    },
+    {
+      "type": "quiz",
+      "id": "q-depth-names",
+      "icon": "❓",
+      "question": "Sanne wants the retry to think harder. Her chat offers Auto, Fast, Think and Deep Thinking; the group card her admin showed her lists allowed tiers as Fast, Thinking, Writer and Deep Thinking. Which reading is right?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Think and Thinking are one depth under two names — chat shows the label, the admin screen shows the stored tier key. Writer is the Write pill: a kind of work, not a rung on the depth ladder.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Writer sits between Thinking and Deep Thinking, so retrying at Writer thinks harder than Think.",
+          "correct": false,
+          "feedback": "There is no such rung. Only Auto, Fast, Think and Deep Thinking sit on the depth gauge; Write — stored as writer, which is why the admin screen spells it that way — is a pill for long-form work. Picking it changes the kind of answer, not the amount of thinking."
+        },
+        {
+          "id": "c",
+          "label": "Her workspace runs two independent sets of depths: one for chat, one that admins hand out per group.",
+          "correct": false,
+          "feedback": "One set, two screens. The group card's Allowed tiers decide which of those same tiers appear on her gauge at all — an admin who ticks only Fast simply removes the deeper ones from her chat."
+        },
+        {
+          "id": "d",
+          "label": "Chat's Think is a cheaper, shallower version of the admin's Thinking tier.",
+          "correct": false,
+          "feedback": "Same tier, same setting. On a default install Fast, Think and Deep Thinking even point at the same model and differ only in how much reasoning effort each is given."
+        }
+      ],
+      "explanation": "One control set, spelled two ways: Auto / Fast / Think / Deep Thinking in chat, the stored keys fast / thinking / writer / pro on the admin group card. Depth has four stops; Write, Flow and Swarm are kinds of work standing beside them."
+    },
+    {
+      "type": "slide",
+      "id": "edit-msg",
+      "icon": "✏️",
+      "title": "Under your own message: the pencil",
+      "bodyMd": "Under your own message sits a pencil: **Edit message**, with **Save & Regenerate** and **Cancel**.\n\nUse it when *your* wording was wrong — the number you mistyped, the constraint you forgot — rather than when the answer missed the point. It is the only move that changes the question itself instead of adding to the conversation.\n\nBefore you press **Save & Regenerate**, look at what sits below that message. The next question is about why."
+    },
+    {
+      "type": "quiz",
+      "id": "q-edit",
+      "icon": "❓",
+      "question": "Sanne realises her opening message said \"50 words\" when she meant \"150\". There are four more turns after it. She hovers that message and clicks Edit message, then Save & Regenerate. What happens?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Her message is replaced and the thread continues from there — the four turns that followed are gone.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Only her wording changes; the answers that followed stay exactly as they were.",
+          "correct": false,
+          "feedback": "They cannot stay: they were written in reply to the old wording. The chat rebuilds the conversation from the edited message onward, which is why the later turns disappear."
+        },
+        {
+          "id": "c",
+          "label": "A correction is appended to the end of the thread and the model reads it there.",
+          "correct": false,
+          "feedback": "That is what a follow-up does, and it is often the better choice. Edit message is different — it rewrites history at that point rather than adding to the end."
+        },
+        {
+          "id": "d",
+          "label": "A second conversation opens with the edited message, leaving the original untouched.",
+          "correct": false,
+          "feedback": "No copy is kept. If the turns after your message are worth keeping, copy them out before you edit, or send a follow-up instead."
+        }
+      ],
+      "explanation": "Edit message rewinds the thread to that point. It is the cleanest fix for a wrong brief and the most expensive one when good work sits below it — so check what is underneath before you press Save & Regenerate."
+    },
+    {
+      "type": "sim",
+      "id": "sim-ladder",
+      "icon": "🪜",
+      "title": "The repair ladder, cheapest first",
+      "instruction": "Put the four moves in order of how much of your existing work each one throws away — least first.",
+      "sim": {
+        "kind": "order",
+        "items": [
+          {
+            "id": "followup",
+            "label": "Reply in the thread naming the one change you want, and what to keep"
+          },
+          {
+            "id": "retry",
+            "label": "Retry with different model at a deeper depth — the brief was fine, the thinking was thin"
+          },
+          {
+            "id": "edit",
+            "label": "Edit message and Save & Regenerate — your own wording was wrong"
+          },
+          {
+            "id": "restart",
+            "label": "New Chat, pasting the best version so far as the starting point"
+          }
+        ],
+        "solution": [
+          "followup",
+          "retry",
+          "edit",
+          "restart"
+        ],
+        "feedback": "Each rung discards more than the one above it: a follow-up discards nothing, a retry replaces that answer and anything below it, Save & Regenerate throws away your own wording and every turn that followed it, and New Chat leaves the whole thread behind. Start at the top and stop as soon as the answer is right."
+      }
+    },
+    {
+      "type": "tour",
+      "id": "newchat-spot",
+      "target": "[data-tour=\"nav-new-chat\"]",
+      "navigateTo": "agents",
+      "placement": "right",
+      "optional": true,
+      "timeoutMs": 7000,
+      "icon": "🚪",
+      "title": "The button that forgets everything",
+      "body": "New Chat opens an empty thread. Nothing you built up in the last conversation comes with it — which is exactly what you want when the premise changed, and exactly what you do not want when the draft was nearly there."
+    },
+    {
+      "type": "action",
+      "id": "do-followup",
+      "icon": "🏗️",
+      "checkId": "chat-followup",
+      "title": "Do it for real: one question, one follow-up",
+      "instruction": "Open a chat and ask something from your own work — a customer reply, a summary, a short description. Read the answer as a draft, then reply in that same thread with one named change: a size, a tone, a lead, or something to remove. We will check that one of your conversations holds two of your messages with an answer between them.",
+      "launch": {
+        "navigateTo": "agents",
+        "label": "Open chat"
+      }
+    },
+    {
+      "type": "slide",
+      "id": "now",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "- **Read the first answer as a draft** and reply in the same thread — the conversation carries your brief, the draft and your last correction with it.\n- **Name the change**: a number for the size, the exact words to drop, what to lead with, and what to keep. One variable at a time, so you can tell what worked.\n- **Pick the right rung**: a follow-up first, then Retry with different model when the thinking was thin, Edit message when your own wording was wrong, and a fresh chat only when the premise itself broke.\n\nNext lesson, *Advanced techniques*: the two moves that get a hard task right on the first try."
+    }
+  ],
+  "rubrics": {
+    "ex-iterating-refine": {
+      "title": "One follow-up that repairs the draft",
+      "task": "The learner saw a product description for Van Dijk Groep's heat-pump maintenance plan that is accurate but 350 words, generic, and full of hype words. They must write the single follow-up message they would send in the same conversation to fix it.",
+      "criteria": [
+        "Gives a concrete size target — a word count, a sentence count or a paragraph count — rather than only \"shorter\"",
+        "Names at least one specific thing to remove or replace, such as a named hype word or the opening line, rather than only \"less salesy\"",
+        "Fixes the genericness by supplying or demanding concrete detail (what the plan actually includes, who it is for) instead of asking it to \"be more specific\"",
+        "Reads as a correction of the existing draft in the same thread — ideally naming what to lead with or what to keep — rather than a brand-new brief that restates the whole task"
+      ],
+      "passScore": 70,
+      "guidance": "Pass a specific, actionable follow-up even if it is blunt or ungrammatical. Do not pass vague requests (\"make it better\", \"shorter and less salesy\") with no measurable target; do not pass a complaint with no direction; do not pass a full rewritten prompt that starts the task again from zero, however well written. Reward named numbers and named words; a missing \"what to keep\" alone should not fail an otherwise concrete answer."
+    }
+  },
+  "practiceTopic": {
+    "title": "Iterating on an answer in chat",
+    "summary": "How follow-ups, Retry and Edit message steer an almost-right answer, and what each one costs you.",
+    "facts": [
+      "Under an assistant answer the chat shows Copy, the Good response / Bad response thumbs, Retry response and a small arrow for Retry with different model; Copy as Markdown and Export as PDF sit behind the arrow next to Copy (\"More export options\").",
+      "Retry with different model re-runs the same question at another depth. The depth gauge has four stops — Auto, Fast, Think, Deep Thinking — and Write, Flow and Swarm are pills beside it, kinds of work rather than deeper settings.",
+      "The same tiers appear under their stored keys elsewhere in the product: an organisation group card lists Allowed tiers as Fast, Thinking, Writer and Deep Thinking, which are the chat gauge's Fast and Think, the Write pill, and Deep Thinking.",
+      "Your own message carries a pencil labelled \"Edit message\"; the inline editor offers \"Cancel\" and \"Save & Regenerate\".",
+      "Save & Regenerate replaces your message and drops every turn that came after it; Retry response keeps your message and re-runs the answer, also dropping anything below it.",
+      "A follow-up in the same thread arrives with the whole conversation as context, while New Chat in the sidebar opens an empty thread with none of it.",
+      "When a long conversation is folded to fit the model's context window, the thread shows a rule reading \"Earlier messages were summarised\"; \"How I got this answer\" under an answer shows how many tools ran and for how long, which depth Auto picked, and how many sources were used."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "chat-followup",
+      "existing": false,
+      "label": "Refine an answer with one follow-up",
+      "hint": "In a chat, send a real question, wait for the answer, then reply in the same thread naming one change.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/ai/direct/conversations",
+          "returns": "array of the signed-in user's direct conversations, newest first, each with id, title, model_tier, created_at, updated_at (no owner field — the query is already scoped to the session user)"
+        },
+        {
+          "method": "GET",
+          "path": "/ai/direct/conversations/:id",
+          "returns": "the full conversation row plus messages[], each { role, content, attachments?, … } — 404 if it is not yours and not shared"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "thread",
+          "label": "You have at least one chat of your own",
+          "hint": "Click New Chat in the sidebar and ask something real from your own work.",
+          "rule": "GET /ai/direct/conversations returns an array with length > 0",
+          "endpoint": "/ai/direct/conversations",
+          "expect": {
+            "kind": "rows"
+          }
+        },
+        {
+          "id": "followup",
+          "label": "One of those chats holds a follow-up you sent",
+          "hint": "Read the answer as a draft, then reply in the same thread naming one change — a size, a tone, a lead, or something to remove.",
+          "rule": "for some conversation in that array, GET /ai/direct/conversations/:id returns messages[] with at least 2 entries where role = 'user' and at least one role = 'assistant' entry between them"
+        }
+      ]
+    }
+  ]
+}

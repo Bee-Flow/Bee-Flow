@@ -1,0 +1,102 @@
+import { Bot, Zap } from 'lucide-react';
+import useTranslation from '../../../../../hooks/useTranslation';
+import type { OpenState } from './AppCommands';
+import { planPills } from './CommandsPanel';
+import { DropdownPill } from './MenuPanel';
+import PillRow from './PillRow';
+import type { RowPill } from './PillRow';
+import { resultRow } from './menuRows';
+import { planRow } from './ribbonRows';
+import { agentResult, skillResult } from './ribbonSearch';
+import type { AgentRow, SkillRow } from './ribbonSearch';
+import type { PaletteItem, StepPayload } from './ribbonCategories';
+
+type AddFn = (payload: StepPayload) => void;
+
+interface AiPanelProps extends OpenState {
+    items: PaletteItem[];
+    /** null: the list could not be read, which is not the same as none. */
+    agents: AgentRow[] | null;
+    skills: SkillRow[];
+    enabled: boolean;
+    onAdd: AddFn;
+}
+
+const AI_ORIGIN = 'section:ai';
+
+/**
+ * The AI tab as one row: AI step and Extract data add on click, "Use an
+ * agent" and "Apply a skill" list the org's agents and skills. Every row in
+ * those lists drags straight onto the canvas: an agent lands as an AI step
+ * with `agentId`, a skill as one with `skillIds: [id]`. An agent that cannot
+ * be used stays in the list with its reason.
+ */
+export default function AiPanel({ items, agents, skills, enabled, onAdd, openKey, setOpenKey }: AiPanelProps) {
+    const { t } = useTranslation();
+    const open = { openKey, setOpenKey };
+    const title = t('routines.ribbon.cat_ai', 'AI');
+    const dragHint = t('routines.ribbon.ai_drag_caption', 'Drag an agent or skill straight onto the canvas');
+    const agentRows = (agents || []).map(a => resultRow(agentResult(a, t('routines.ribbon.agent', 'Agent'))));
+    const skillRows = skills.map(s => resultRow(skillResult(s, t('routines.ribbon.skill', 'Skill'))));
+    const agentsTitle = t('routines.ribbon.agents', 'Agents');
+    const skillsTitle = t('routines.ribbon.skills', 'Skills');
+
+    const lists: RowPill[] = [
+        {
+            key: 'agents',
+            node: (
+                <DropdownPill
+                    id="__agents"
+                    label={t('routines.ribbon.use_agent', 'Use an agent')}
+                    glyph={<Bot size={14} className="text-[var(--type-ai)]" />}
+                    desc={t('routines.ribbon.use_agent_desc', 'An agent from Studio, with its role, knowledge and skills. One place to maintain.')}
+                    tipFooter={dragHint}
+                    origin={AI_ORIGIN}
+                    title={agentsTitle}
+                    hint={agentRows.length > 0 ? dragHint : null}
+                    sections={[{ key: 'agents', title: agentsTitle, rows: agentRows }]}
+                    filterLabel={(n) => t('routines.ribbon.filter_agents', 'Filter {n} agents…', { n })}
+                    emptyText={agents === null
+                        ? t('routines.ribbon.agents_unreadable', 'The list of agents could not be read. Try again in a moment.')
+                        : t('routines.ribbon.agents_empty', 'No agents yet. Build one under Agents first.')}
+                    onAdd={onAdd}
+                    {...open}
+                />
+            ),
+            fold: { key: 'agents', title: agentsTitle, rows: agentRows },
+            origins: [AI_ORIGIN],
+        },
+        {
+            key: 'skills',
+            node: (
+                <DropdownPill
+                    id="__skills"
+                    label={t('routines.ribbon.apply_skill', 'Apply a skill')}
+                    glyph={<Zap size={14} className="text-[var(--kind-skill)]" />}
+                    desc={t('routines.ribbon.apply_skill_desc', 'A skill from Studio, applied without an agent.')}
+                    tipFooter={dragHint}
+                    origin={AI_ORIGIN}
+                    title={skillsTitle}
+                    hint={skillRows.length > 0 ? dragHint : null}
+                    sections={[{ key: 'skills', title: skillsTitle, rows: skillRows }]}
+                    filterLabel={(n) => t('routines.ribbon.filter_skills', 'Filter {n} skills…', { n })}
+                    emptyText={t('routines.ribbon.skills_empty', 'No skills yet.')}
+                    onAdd={onAdd}
+                    {...open}
+                />
+            ),
+            fold: { key: 'skills', title: skillsTitle, rows: skillRows },
+            origins: [AI_ORIGIN],
+        },
+    ];
+
+    return (
+        <PillRow
+            segments={[...planPills(planRow(items, 'ai', AI_ORIGIN, t), title, onAdd, open), lists]}
+            testId="ribbon-ai"
+            enabled={enabled}
+            onAdd={onAdd}
+            {...open}
+        />
+    );
+}

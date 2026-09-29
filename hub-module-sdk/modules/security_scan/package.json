@@ -1,0 +1,20 @@
+{
+  "name": "bfmod-security-scan",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Bee Flow Hub module — AI-driven website security scanning (server runtime).",
+  "type": "commonjs",
+  "scripts": {
+    "test": "node --test 'test/*.test.js'"
+  },
+  "dependencies": {
+    "dockerode": "4.0.12",
+    "tar-stream": "2.2.0"
+  },
+  "devDependencies": {
+    "express": "^5.2.1"
+  },
+  "bfmod": {
+    "stub": ["ssh2"]
+  }
+}

@@ -1,0 +1,139 @@
+import React, { useEffect, useRef, useState } from 'react';
+import { CheckCircle2, AlertTriangle, AlertCircle, X, Loader2 } from 'lucide-react';
+
+/**
+ * Renders the response of POST /:id/diagnose-trigger as a vertical list of
+ * checks (subscription / credentials / Gmail history / latest match).
+ *
+ * Each check has a status (`ok` | `warn` | `error` | `skipped`) that drives
+ * the icon + colour. Optional `detail` payloads (cursor, lastPolledAt,
+ * subject of latest match) are rendered as a monospace block under the
+ * message so the user can spot the obvious thing without opening devtools.
+ *
+ * When `anchorRef` is provided, the panel positions itself just below the
+ * referenced element (typically the Diagnose header button) using fixed
+ * coordinates — feels like a popover rather than a free-floating panel.
+ * Falls back to the previous absolute `top-16 right-4` placement when
+ * no anchor is given (keeps callers that don't pass anchorRef working).
+ */
+export default function TriggerDiagnosePanel({ result, loading, error, onClose, anchorRef }) {
+    const wrapRef = useRef(null);
+    const [pos, setPos] = useState(null);
+
+    // Re-measure whenever the panel mounts, the window resizes, or scroll
+    // shifts. The button might be inside a scrollable header so we listen
+    // for both window scroll and resize.
+    useEffect(() => {
+        if (!anchorRef?.current) return;
+        const measure = () => {
+            const r = anchorRef.current.getBoundingClientRect();
+            setPos({
+                top: Math.round(r.bottom + 8),
+                right: Math.max(8, Math.round(window.innerWidth - r.right)),
+            });
+        };
+        measure();
+        window.addEventListener('resize', measure);
+        window.addEventListener('scroll', measure, true);
+        return () => {
+            window.removeEventListener('resize', measure);
+            window.removeEventListener('scroll', measure, true);
+        };
+    }, [anchorRef]);
+
+    // Click-outside-to-close, only when anchored — the floating fallback
+    // mode is dismissed via its X button (the button has its own click
+    // handlers that would conflict with a global mousedown listener).
+    useEffect(() => {
+        if (!anchorRef) return;
+        const onDoc = (e) => {
+            if (!wrapRef.current) return;
+            if (wrapRef.current.contains(e.target)) return;
+            if (anchorRef.current && anchorRef.current.contains(e.target)) return;
+            onClose?.();
+        };
+        document.addEventListener('mousedown', onDoc);
+        return () => document.removeEventListener('mousedown', onDoc);
+    }, [anchorRef, onClose]);
+
+    const positioned = anchorRef && pos
+        ? { position: 'fixed', top: pos.top, right: pos.right }
+        : null;
+    const positionClass = positioned ? 'fixed' : 'absolute right-4 top-16';
+
+    return (
+        <div
+            ref={wrapRef}
+            className={`${positionClass} z-30 w-[420px] max-h-[70vh] overflow-y-auto rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] shadow-xl p-4`}
+            style={positioned || undefined}
+        >
+            <div className="flex items-center justify-between mb-3">
+                <div className="font-semibold text-sm text-[var(--text-primary)]">Trigger diagnose</div>
+                <button
+                    onClick={onClose}
+                    className="p-1 rounded text-[var(--text-tertiary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]"
+                    title="Close"
+                >
+                    <X size={14} />
+                </button>
+            </div>
+
+            {loading && (
+                <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)] py-4">
+                    <Loader2 size={14} className="animate-spin" /> Probing the trigger pipeline…
+                </div>
+            )}
+
+            {error && (
+                <div className="text-sm text-red-600 dark:text-red-400 py-2">
+                    {error}
+                </div>
+            )}
+
+            {!loading && result && (
+                <>
+                    <div className="text-xs text-[var(--text-tertiary)] mb-2">
+                        Trigger kind: <span className="font-mono">{result.kind || 'unknown'}</span>
+                    </div>
+                    <ul className="space-y-2">
+                        {(result.checks || []).map((c) => (
+                            <li
+                                key={c.name}
+                                className="rounded-md border border-[var(--border-default)] bg-[var(--bg-secondary)] p-2.5"
+                            >
+                                <div className="flex items-start gap-2">
+                                    <StatusIcon status={c.status} />
+                                    <div className="min-w-0 flex-1">
+                                        <div className="text-xs uppercase tracking-wide text-[var(--text-tertiary)]">{c.name}</div>
+                                        <div className="text-sm text-[var(--text-primary)] mt-0.5">{c.message}</div>
+                                        {c.detail && (
+                                            <pre className="mt-1.5 text-[11px] font-mono text-[var(--text-secondary)] whitespace-pre-wrap break-words bg-[var(--bg-primary)] rounded p-1.5 border border-[var(--border-default)]">
+{JSON.stringify(c.detail, null, 2)}
+                                            </pre>
+                                        )}
+                                    </div>
+                                </div>
+                            </li>
+                        ))}
+                    </ul>
+                    <div className="mt-3 text-xs text-[var(--text-tertiary)]">
+                        {result.ok
+                            ? (String(result.kind || '').startsWith('nextcloud.')
+                                ? 'No critical issues found. Trigger the matching Nextcloud action (e.g. upload a file) to confirm the run fires.'
+                                : String(result.kind || '').startsWith('gmail.')
+                                    ? 'No critical issues found. Send a matching email to confirm the run fires.'
+                                    : 'No critical issues found.')
+                            : 'One or more checks failed — fix the highlighted issue and re-run the diagnose.'}
+                    </div>
+                </>
+            )}
+        </div>
+    );
+}
+
+function StatusIcon({ status }) {
+    if (status === 'ok')      return <CheckCircle2 size={16} className="text-emerald-500 mt-0.5 flex-shrink-0" />;
+    if (status === 'warn')    return <AlertTriangle size={16} className="text-amber-500 mt-0.5 flex-shrink-0" />;
+    if (status === 'error')   return <AlertCircle size={16} className="text-red-500 mt-0.5 flex-shrink-0" />;
+    return <CheckCircle2 size={16} className="text-[var(--text-tertiary)] mt-0.5 flex-shrink-0" />;
+}

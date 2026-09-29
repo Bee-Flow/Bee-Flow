@@ -1,0 +1,253 @@
+{
+  "id": "skills-audience-and-sharing",
+  "icon": "👥",
+  "estMinutes": 9,
+  "title": "Who else gets the method",
+  "desc": "Personal, entire organisation or specific groups — and why a skill nobody can see is silently missing from their answers.",
+  "gate": {
+    "permission": "manage_skills",
+    "feature": "skills"
+  },
+  "learningGoal": "After this lesson you can set a skill's audience deliberately, predict exactly who will and will not get the method in their answers, and tell an audience problem apart from a permission problem.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "intro",
+      "icon": "🕵️",
+      "title": "The method that only worked for you",
+      "bodyMd": "Marloes at **Van Dijk Groep** wrote the skill *Offerte beoordelen* — five steps for judging a supplier quote, three rules, and a delivered field `advies`. She attached it to **Inkoopassistent**, the agent the whole purchasing team chats with. For her it works beautifully.\n\nRuben asks the same agent about the same quote and gets a vague paragraph: no steps, no comparison against the price list, no advice. Nothing errors, and nothing on his screen says a method is missing.\n\nThe cause is one setting she never touched. Every new skill is created **Personal** — *\"Only you can access\"* — and a skill is looked up for the person who is asking. Ruben may not see it, so it was never in his prompt.\n\nThat is what this chapter is about: the difference between writing a method once, and writing it once **for everybody who needs it**."
+    },
+    {
+      "type": "slide",
+      "id": "capsule",
+      "icon": "🔐",
+      "title": "Publish to… — the three settings",
+      "bodyMd": "Open a skill and look beside its title in the header. That small pill is the **visibility capsule**, and it is the only control for who can see this skill. Its label reads the audience by name — **Personal**, **Entire organisation**, **Group Inkoop**, **3 groups** — never a count in brackets, so one glance tells you where you stand.\n\nClick it and the panel is titled **\"Publish to…\"** with the line *\"Choose who can see this.\"*:\n\n- **Personal** — *\"Only you can access\"*. The default for every skill you create.\n- **Entire organisation** — *\"All members can access\"*.\n- **Or specific groups** — tick one or more of your organisation's groups.\n\nGroups are not made here. An administrator creates them under **Settings → Organisation → Users & Groups**, tab **Groups**, button **\"Create New Group\"**. The capsule can only offer what already exists.\n\nLike everything else in the skill editor, the choice saves itself — no separate publish button, no draft to ship."
+    },
+    {
+      "type": "slide",
+      "id": "who-resolves",
+      "icon": "🧭",
+      "title": "A skill is looked up per asker",
+      "bodyMd": "This is the rule worth learning by heart, because it explains every surprise in this chapter.\n\n**In chat**, the skills attached to an agent are resolved for **the person typing**. An attached skill that person may not see is left out of that turn — the agent simply answers from its own instructions. The answer is thinner, not broken, and nobody is told.\n\n**In a routine**, the asker is the **routine's owner**. A personal skill belonging to somebody else, named on an AI step, falls away in exactly the same way when the routine runs.\n\nSo sharing here is not publishing to a catalogue — there is no skills marketplace, nothing is installed or forked. Sharing means only this: the people who need the method can see it, so it can reach their prompt. What they get is the same single skill you keep editing, not a copy."
+    },
+    {
+      "type": "quiz",
+      "id": "q-silent",
+      "question": "Ruben gets answers from Inkoopassistent without any of the five steps in Offerte beoordelen. Marloes, from the same agent, gets the full method. What actually fixes Ruben's answers?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Open the skill and set its capsule to Entire organisation, or to the group Ruben is in.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Publish a new version of the agent, so its configuration reaches everyone.",
+          "correct": false,
+          "feedback": "Publishing ships the agent's configuration, and that configuration already names the skill. What Ruben lacks is access to the skill itself, which no agent publish changes."
+        },
+        {
+          "id": "c",
+          "label": "Switch the skill to Dynamic activation so the model picks it up at runtime.",
+          "correct": false,
+          "feedback": "Dynamic activation only changes when a skill enters the prompt for people who can already see it. It cannot conjure up a skill somebody has no access to."
+        },
+        {
+          "id": "d",
+          "label": "Ask Ruben to attach the skill to an agent of his own.",
+          "correct": false,
+          "feedback": "He cannot — a Personal skill is not in his list at all. And a second copy of the method is exactly the duplication a skill exists to end."
+        }
+      ],
+      "explanation": "A skill reaches a turn only if the person asking may see it. Marloes owns it, so she always could; Ruben needed the audience widened — one setting, in the capsule."
+    },
+    {
+      "type": "slide",
+      "id": "widening",
+      "icon": "⚖️",
+      "title": "Widening asks; narrowing does not",
+      "bodyMd": "Stepping out of **Personal** — to the whole organisation, or to a first group — asks first, and so does going from groups to the whole organisation. The dialog is titled **\"Share more widely?\"**, its buttons are **\"Share\"** and **\"Keep as is\"**, and the sentence names who:\n\n- to the whole organisation: *\"Everyone in your organisation will be able to see and use “Offerte beoordelen”.\"*\n- to a group: *\"Members of Inkoop will be able to see and use “Offerte beoordelen”.\"*\n\nTicking a further group on a skill that is already shared does not ask again — it is already out of your hands. Taking access away asks nothing either: one click and it is done, because making \"stop sharing\" slower than \"share\" would be backwards.\n\nOne trap the capsule closes for you: with sharing switched on, **no groups ticked means everyone**, not nobody. So the group list refuses to untick the last remaining group — the box springs back and a hint underneath reads **\"Choose Personal to stop sharing\"**."
+    },
+    {
+      "type": "slide",
+      "id": "visible-not-edit",
+      "icon": "👁️",
+      "title": "Visible is not editable",
+      "bodyMd": "Sharing hands out the method, never the pen. Whether somebody may **change** a skill is a separate question with a separate answer: the permission **manage_skills**, which ships with the roles **Organisation Admin**, **Agent Admin** and **Agent Editor** — not with a plain member, a DPO or an ISMS auditor. On top of that the skill must belong to their own organisation, or to them.\n\nSomebody who may see but not change opens the skill read-only, under the banner: *\"You can see this skill but not change it. Ask its owner, or an admin of the organisation it belongs to.\"* The **Earlier runs** history on the **Test** tab is hidden from them as well.\n\nThe other half of that deal is the reason to share at all. Everyone is reading your one skill, so your edit lands everywhere at once — as the editor keeps saying: *\"Used by {count} agents and automations. A change here applies everywhere at once.\"*"
+    },
+    {
+      "type": "sim",
+      "id": "sim-symptoms",
+      "icon": "🧩",
+      "title": "Audience problem, or something else?",
+      "instruction": "Five things people at Van Dijk Groep run into around sharing. Match each one to what is actually going on.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "invisible",
+            "left": "Ruben cannot find Offerte beoordelen anywhere in his skills picker.",
+            "right": "Widen the capsule to the group Inkoop",
+            "note": "A pure audience problem: a Personal skill is not in anyone else's list, so there is nothing for him to pick."
+          },
+          {
+            "id": "locked",
+            "left": "Bram opens the HR skill shared with his group and cannot type in a single field; a banner sits at the top.",
+            "right": "He has no manage_skills — ask an admin",
+            "note": "The share worked. Editing is the separate permission, and his role does not carry it."
+          },
+          {
+            "id": "nogroups",
+            "left": "The capsule offers Personal and Entire organisation, but the group section is replaced by a sentence.",
+            "right": "The group list could not be read — Try again",
+            "note": "It reads \"The list of groups could not be read, so sharing with specific groups is not offered right now. That is not “this organisation has no groups”.\" A failed read is never presented as an empty organisation."
+          },
+          {
+            "id": "lastgroup",
+            "left": "Marloes unticks the only ticked group and the checkbox springs straight back.",
+            "right": "Choose Personal to stop sharing",
+            "note": "Sharing on with no groups ticked means the whole organisation, so unticking the last one would widen the audience instead of closing it. The capsule refuses and says what to do."
+          },
+          {
+            "id": "notgranted",
+            "left": "Colleagues report that the whole Skills row in Studio is greyed out, with a hint beside it.",
+            "right": "The feature itself is not switched on",
+            "note": "The hint is \"Not switched on for your organisation — ask an admin\". Nothing to do with any skill's audience: an administrator grants the feature itself, and no capsule can hand it out."
+          }
+        ]
+      }
+    },
+    {
+      "type": "slide",
+      "id": "narrow-back",
+      "icon": "↩️",
+      "title": "Taking it back, and what that costs",
+      "bodyMd": "An audience is fully reversible. Set the capsule back to **Personal** and it applies immediately: the next turn a colleague takes no longer carries the method. Again, nothing errors and nothing is deleted — their agent quietly goes back to answering from its own instructions.\n\nThat is why the **Used by** tab is worth a look before you narrow. It lists the agents that attach the skill and the routine AI steps that apply it, so you can see who is standing on the method you are about to pull back.\n\nRead it carefully: when a kind could not be scanned the tab says so — *\"Not everything could be checked, so this list may be short.\"* Anywhere in this section, a blank or an em dash means **not counted**, never zero."
+    },
+    {
+      "type": "slide",
+      "id": "gate-admin",
+      "icon": "🔑",
+      "title": "Two switches that are not yours",
+      "bodyMd": "Your capsule decides who sees one skill. Two things around it belong to an administrator.\n\n**Whether the organisation has Skills at all.** It is part of the Community feature set and still a beta, so both have to be on. When they are not, the Studio row is disabled with the hint *\"Not switched on for your organisation — ask an admin\"*; where the plan does not carry it, the hint is *\"Available on a higher plan\"*. An administrator grants it under **Admin → Access & permissions**, in **Grants** (all members, or per group), within what the **Ceiling** allows under the heading **Beta features**.\n\n**Who may write skills at all** — the `manage_skills` permission, granted by role.\n\nSo sharing with the entire organisation makes a skill usable by everyone who has the feature. It hands out no edit rights, and it cannot give the feature to someone whose organisation never got it."
+    },
+    {
+      "type": "quiz",
+      "id": "q-readonly",
+      "question": "Sandra shares Sollicitatiebrief samenvatten with the group HR only. Bram — in that group, role member — opens it, spots a typo in step 2, and finds every field locked. What is true?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "The share is working exactly as intended; changing a skill needs manage_skills, which his role does not carry, so he asks Sandra or an admin.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "The share failed — sharing with a group is meant to grant reading and writing, so something went wrong.",
+          "correct": false,
+          "feedback": "Sharing decides who can see and use a skill, and nothing else. Writing is a permission carried by a role, never by an audience."
+        },
+        {
+          "id": "c",
+          "label": "Sandra should move it to Entire organisation; the whole-organisation setting also grants editing.",
+          "correct": false,
+          "feedback": "Widening never grants editing — it would only add readers. And this method encodes hiring policy, so the group HR is exactly the right audience for it."
+        },
+        {
+          "id": "d",
+          "label": "Bram can fix it from the agent he attached it to, because that attachment is his.",
+          "correct": false,
+          "feedback": "Attaching does not copy the skill. The body stays in the one skill, editable only by people with manage_skills in the organisation it belongs to."
+        }
+      ],
+      "explanation": "Two independent questions: audience (who can see and use it) and permission (who can change it). Bram passes the first and fails the second — by design — which is why he gets the read-only banner instead of an error."
+    },
+    {
+      "type": "exercise",
+      "id": "ex-decision",
+      "icon": "🎯",
+      "exerciseId": "ex-skills-audience-decision",
+      "title": "Your turn: decide one audience",
+      "instruction": "Take one skill you own, or the one you are about to write, and decide its audience in three or four sentences. Say which of the three settings you pick and why that is the right circle of people; name one concrete colleague, agent or routine that would silently lose the method while it stays Personal; and finish with one thing that stays with you even after you share it. Use the settings' exact names.",
+      "placeholder": "e.g. Offerte beoordelen goes to Or specific groups — the group Inkoop — rather than Entire organisation, because …",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "action",
+      "id": "do-share",
+      "icon": "🏗️",
+      "checkId": "skill-shared",
+      "title": "Share one skill",
+      "instruction": "Open Studio, then Skills, and open a skill you own (or make one with the + button, \"Create skill\"). Click the visibility capsule beside its title and pick Entire organisation, or Or specific groups and tick the team that needs the method. Answer the \"Share more widely?\" question with Share.",
+      "launch": {
+        "navigateTo": "studio/skills",
+        "label": "Open Skills"
+      }
+    },
+    {
+      "type": "slide",
+      "id": "recap",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "- **Set an audience on purpose.** The capsule in the skill header, titled **\"Publish to…\"**, offers **Personal** (*\"Only you can access\"*), **Entire organisation** (*\"All members can access\"*) and **Or specific groups**. New skills start Personal, and leaving Personal asks **\"Share more widely?\"** first.\n- **Predict who gets the method.** A skill is looked up for the person asking — the one typing in chat, the owner of a routine when it runs. Anyone who may not see it gets a thinner answer and no warning.\n- **Tell the two problems apart.** \"I cannot find it\" is an audience problem, fixed in the capsule. \"I can see it but not change it\" is the `manage_skills` permission, fixed by an administrator — and it is the price of everyone reading the one skill you keep improving."
+    }
+  ],
+  "rubrics": {
+    "ex-skills-audience-decision": {
+      "title": "An audience decision with a reason",
+      "task": "The learner picks one skill of their own and writes three or four sentences: which audience setting they choose and why that circle of people is the right one, which concrete colleague, agent or routine would silently lose the method while the skill stays Personal, and one thing sharing does not hand over.",
+      "criteria": [
+        "Names one of the three real settings — Personal, Entire organisation, or Or specific groups (with the group named) — and ties the choice to who actually needs the method.",
+        "Shows they understand that a skill is resolved for the person asking: names a specific colleague, agent or routine that would get a thinner answer while the skill stays Personal.",
+        "States that sharing grants seeing and using but not editing, which stays with the manage_skills permission and the skill's owner.",
+        "Is concrete about a real skill of theirs — a named method and a real team — not a generic sentence about sharing."
+      ],
+      "passScore": 70,
+      "guidance": "Do not pass an answer that only says 'I will share it with everyone' without saying who needs it and why. Do not pass an answer claiming that sharing lets colleagues edit the skill, that the capsule grants a role, or that the audience is set by publishing an agent. An answer that confuses this with a marketplace, an install or a copy of the skill also fails."
+    }
+  },
+  "practiceTopic": {
+    "title": "Skills: audience and sharing",
+    "summary": "Who can see and use a skill, how the visibility capsule sets that, and why seeing is not the same as editing.",
+    "facts": [
+      "Every new skill is created Personal — the capsule reads \"Only you can access\" — and stays that way until somebody widens it.",
+      "The visibility capsule in the skill header is titled \"Publish to…\" and offers Personal, Entire organisation and Or specific groups.",
+      "Leaving Personal, or going from groups to the whole organisation, asks \"Share more widely?\" with the buttons \"Share\" and \"Keep as is\"; narrowing is one click and asks nothing.",
+      "Sharing switched on with no groups ticked means the whole organisation, so the capsule refuses to untick the last group and hints \"Choose Personal to stop sharing\".",
+      "A skill is looked up for the person asking — whoever is typing in chat, or the routine's owner when a routine runs — and one they may not see is left out of that turn with no warning.",
+      "Seeing is not editing: changing a skill needs the manage_skills permission, carried by Organisation Admin, Agent Admin and Agent Editor; others get the read-only banner and no test history.",
+      "When the group list cannot be read the capsule says so rather than dropping the section, because a failed read must not look like an organisation without groups."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "skill-shared",
+      "existing": false,
+      "label": "Share a skill with colleagues",
+      "hint": "In Studio → Skills, open a skill you own and set its visibility capsule to Entire organisation or to one or more groups.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/skills",
+          "returns": "bare JSON array of skills visible to the caller; each row carries id, name, userId (owner), isShared, sharedGroups[], canEdit"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "owned",
+          "label": "You own at least one skill",
+          "hint": "Create one with the + button (\"Create skill\") in the Skills list header. The audience you pick in the visibility capsule is stored on the skill, where this check cannot look — the capsule text is your proof.",
+          "rule": "GET /api/skills → at least one row whose userId is the learner (isShared is per row and not readable by the runtime)",
+          "endpoint": "/api/skills",
+          "expect": {
+            "kind": "rows"
+          }
+        }
+      ]
+    }
+  ]
+}

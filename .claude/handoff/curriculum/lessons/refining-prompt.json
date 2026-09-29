@@ -1,0 +1,212 @@
+{
+  "id": "refining-prompt",
+  "icon": "✍️",
+  "estMinutes": 10,
+  "title": "Write instructions it will follow",
+  "desc": "Role, tone, always/never rules — and what instructions can never enforce.",
+  "gate": { "permission": "manage_agents" },
+  "learningGoal": "Write a system prompt with a role, a tone and at least one always/never rule.",
+  "stepOutline": [
+    { "kind": "slide", "purpose": "A system prompt applies to every conversation, forever" },
+    { "kind": "tour", "purpose": "Spotlight agent-system-prompt: where the instructions live" },
+    { "kind": "slide", "purpose": "The four things the text has to say" },
+    { "kind": "slide", "purpose": "Persona fields versus free text, and the one-way parse" },
+    { "kind": "quiz", "purpose": "'Never does' lines: what they actually prevent" },
+    { "kind": "sim", "purpose": "Match pairs: four wishes onto instruction, tool removal, confirm-first or documents-only" },
+    { "kind": "slide", "purpose": "What to do when it does not know: say so, search, or hand off" },
+    { "kind": "quiz", "purpose": "Fixed reply language plus a Dutch-unless-asked tone chip" },
+    { "kind": "slide", "purpose": "Rules that survive contact with a model, and the field caps" },
+    { "kind": "exercise", "purpose": "ex-system-prompt: role, tone and one always/never rule" },
+    { "kind": "slide", "purpose": "Refine with AI, then read what it changed before saving" },
+    { "kind": "action", "purpose": "agent-instructions: write real instructions into an agent you own" },
+    { "kind": "slide", "purpose": "Recap and the handover to the Can use lesson" }
+  ],
+  "steps": [
+    {
+      "type": "slide",
+      "id": "standing",
+      "icon": "🧭",
+      "title": "One instruction, every conversation",
+      "bodyMd": "A chat prompt lives for one conversation. An agent's **instructions** are a standing order: the same text is read before every question, from every colleague, every day, until somebody edits it.\n\nIn the first lesson of this course Marloes at Van Dijk Groep — the sixty-person installation firm near Zwolle that fits kitchens and window frames — made an agent out of one sentence: *\"Answer questions from our supplier contracts and price list, and always name the contract you used.\"* She has renamed it **Inkoopassistent** since.\n\nThat sentence is now a block of text on the agent's **Role** tab, labelled **Instructions**. It is the difference between one agent that behaves the same for everybody and sixty colleagues quietly getting sixty slightly different answers."
+    },
+    {
+      "type": "tour",
+      "id": "where",
+      "target": "[data-tour=\"agent-system-prompt\"]",
+      "navigateTo": "studio/agents",
+      "placement": "top",
+      "optional": true,
+      "timeoutMs": 7000,
+      "icon": "📝",
+      "title": "Where the instructions live",
+      "body": "Open an agent you may edit. Its standing instructions sit in the Instructions block on the Role tab — click the text and type. On an agent that already exists there is nothing to press: about three quarters of a second after you stop typing, the header shows \"Saving…\" and then \"Saved\"."
+    },
+    {
+      "type": "slide",
+      "id": "anatomy",
+      "icon": "🧬",
+      "title": "Four things the text has to say",
+      "bodyMd": "1. **Who it is** — the scope and who it serves. *\"You answer purchasing questions for the fitters and buyers at Van Dijk Groep, from the supplier contracts and the current price list.\"*\n2. **How it talks** — tone in plain words: businesslike, short, amounts in euros.\n3. **What it does** — one rule per line. *\"Name the contract an answer comes from.\"*\n4. **What it never does** — also one per line. *\"Never quote a price that is not in the price list.\"*\n\nA fifth line decides everything the first four do not cover: what happens when the answer simply is not there. That one gets its own card in a moment."
+    },
+    {
+      "type": "slide",
+      "id": "fields-free",
+      "icon": "🔀",
+      "title": "Your text, or a set of fields",
+      "bodyMd": "Bee Flow holds a role in one of two shapes.\n\n- **Fields** — who it is, tone, what it does, what it never does. On save these are rendered into the instruction text, headed **What you do:** and **What you never do:**.\n- **Free text** — one block that *is* the instruction, exactly as you typed it.\n\nFields become text automatically. The way back does not: a text a person wrote by hand cannot be split into fields without inventing something, so that reading-back is a separate step you have to ask for.\n\nWhich means: if you typed the instructions yourself, your text stays the source. AI can rewrite it, but it will not quietly swap your writing for a set of fields."
+    },
+    {
+      "type": "quiz",
+      "id": "never-quiz",
+      "icon": "❓",
+      "question": "Marloes writes \"Never quote a price that is not in the price list\" in the instructions. What does that line actually prevent?",
+      "multi": false,
+      "choices": [
+        { "id": "a", "label": "Nothing is blocked. The line goes into the instructions and the model follows it — it is guidance, not a gate.", "correct": true },
+        { "id": "b", "label": "It removes the agent's ability to read prices at all.", "correct": false, "feedback": "Instructions never take a source away. What the agent may read is decided by the knowledge and table grants on the Can use tab." },
+        { "id": "c", "label": "It stops the agent from using any app that could send a quotation.", "correct": false, "feedback": "An app is switched off — or set to ask a person first — on the Can use tab. A sentence in the instructions cannot reach a tool grant." },
+        { "id": "d", "label": "It makes the agent refuse every question the price list does not cover.", "correct": false, "feedback": "That is a different control: the switch \"Only answer from these documents\", which refuses anything the linked documents do not cover." }
+      ],
+      "explanation": "An instruction asks; it does not enforce. What an agent truly cannot do is what it was never given — take the app, table or routine away under Can use, or set it to confirm first."
+    },
+    {
+      "type": "sim",
+      "id": "enforce",
+      "icon": "🧩",
+      "title": "Where is this actually decided?",
+      "instruction": "Marloes has four wishes for the purchasing agent. Each one is honoured in exactly one place. Match the wish to the control that really delivers it.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          { "id": "p1", "left": "It should answer in short sentences and name the contract it quotes from.", "right": "A line in the instructions", "note": "Tone and what to mention are exactly what instructions are for — nothing else can express this." },
+          { "id": "p2", "left": "It must never e-mail a supplier without a person reading the message first.", "right": "Set that app to \"Confirm first\"", "note": "Anything that sends is locked to confirm first anyway, and the card says so. A written promise adds nothing on top." },
+          { "id": "p3", "left": "It must not look anything up on the open web.", "right": "Take the web-search app away under Can use", "note": "Capability removed is capability gone. An instruction not to search leaves the tool sitting there." },
+          { "id": "p4", "left": "It must refuse questions the contracts do not cover, rather than reason around them.", "right": "Switch on \"Only answer from these documents\"", "note": "This one overrides the rest of the instructions — so only switch it on once a knowledge base is actually linked, or the agent refuses everything." }
+        ]
+      }
+    },
+    {
+      "type": "slide",
+      "id": "unknown",
+      "icon": "🤷",
+      "title": "What it does when it does not know",
+      "bodyMd": "Three honest endings. Each one is a line in the instructions — you write it, or you ask the AI panel beside the editor to add it.\n\n- **Say so plainly.** The narrowest, and where a role that never chose lands: *\"When you do not know the answer, or it is not in the material you have been given, say so plainly. Never guess, and never invent an answer.\"*\n- **Look it up on the web.** Only works if the web-search app is actually switched on under **Can use**. Telling an agent to use an action it was never given is telling it to invent one.\n- **Hand it to a person.** A routine picks the question up. Without a routine it can really start — one that is switched on and belongs to the agent's owner — it falls back to saying it does not know.\n\nOnly one of the three is a switch rather than a sentence: **\"Only answer from these documents\"** on the Role tab, which refuses anything the linked documents do not cover. The other two are lines you write — and an agent given no ending picks one itself."
+    },
+    {
+      "type": "quiz",
+      "id": "lang-quiz",
+      "icon": "❓",
+      "question": "The purchasing agent has a fixed reply language (Dutch) and someone also adds the tone word \"Dutch, unless asked otherwise\". A German supplier writes in German. What should Marloes expect?",
+      "multi": false,
+      "choices": [
+        { "id": "a", "label": "Dutch. A fixed reply language renders as \"whatever language the question is in\", which overrules \"unless asked otherwise\" — so she should keep one of the two.", "correct": true },
+        { "id": "b", "label": "German, because the tone word is more specific than the language setting.", "correct": false, "feedback": "The other way round. The fixed-language line is unconditional — \"whatever language the question is in\" leaves no room for \"unless asked otherwise\", which is why the two are a clash and not a refinement." },
+        { "id": "c", "label": "The agent asks the supplier which language to use.", "correct": false, "feedback": "Nothing in either setting asks a question back. Two contradicting instructions do not produce a clarification, they produce one of the two behaviours." },
+        { "id": "d", "label": "Both: a Dutch answer with a German translation underneath.", "correct": false, "feedback": "No setting produces a bilingual reply. If you want that, it has to be written as a rule in the instructions." }
+      ],
+      "explanation": "Fixing a reply language adds the line \"Always write your replies in Dutch, whatever language the question is in.\" For an agent that serves foreign suppliers, drop the fixed language and let the tone word do the work."
+    },
+    {
+      "type": "slide",
+      "id": "writing",
+      "icon": "📏",
+      "title": "Rules that survive contact with a model",
+      "bodyMd": "- **One rule per line.** A paragraph with three rules in it is followed like one vague rule.\n- **Concrete enough to check.** \"Be accurate\" is unverifiable; \"name the contract and its date\" is something you can turn into a test later in this course, in *Questions it must keep answering*.\n- **Say what to do instead.** \"Never promise a delivery date\" works far better followed by \"quote the lead time from the contract and say it is indicative\".\n- **Mind the caps on the fields.** A role held as fields keeps twenty lines each for what it does and what it never does, 300 characters per line, twelve tone words, 600 for who it is — and says so: *\"Twenty lines is the maximum this agent keeps.\"* Free text you type yourself has far more room, which is no invitation to use it.\n\nLong is not strong. The purchasing agent needs about ten lines, not a handbook."
+    },
+    {
+      "type": "exercise",
+      "id": "ex",
+      "icon": "🎯",
+      "exerciseId": "ex-system-prompt",
+      "title": "Your turn: write the instructions",
+      "instruction": "Write the standing instructions for an agent — the purchasing agent at Van Dijk Groep, or one you actually need. Cover three things: who it is and who it serves, how it talks, and at least one always or never rule that is concrete enough for a colleague to check. Add a line for what it should do when the answer is not in its material.",
+      "placeholder": "e.g. You answer purchasing questions for Van Dijk Groep from the supplier contracts and the current price list. Be businesslike and short, amounts in euros. Always name the contract and its date. Never quote a price that is not in the price list — quote the lead time from the contract instead and say it is indicative. When the answer is not in the documents, say so and suggest asking the purchasing team.",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "slide",
+      "id": "refine",
+      "icon": "🪄",
+      "title": "Let the AI edit it — then read what it changed",
+      "bodyMd": "The rail beside the editor takes plain requests: **\"Make the tone more friendly\"**, **\"Add a step to summarise the result at the end\"**, **\"Always answer in Dutch unless asked otherwise\"**.\n\nWhen it finishes, a **Done** card lists exactly what moved — \"Rewrote the instructions\", \"Turned on 1 app\", \"Added 1 knowledge base\" — or says **\"Nothing changed — the agent already worked that way.\"** Read that list before you move on, and use **Undo** while it is still the newest change.\n\nA refine never *empties* a list — a list it says nothing about is kept exactly as you curated it. It can still hand back a different one, which is why **\"Turned off 1 app\"** and **\"Removed 1 knowledge base\"** are lines the Done card can show. Ten seconds of reading is what keeps that from being a surprise."
+    },
+    {
+      "type": "action",
+      "id": "do",
+      "icon": "🏗️",
+      "checkId": "agent-instructions",
+      "title": "Write it into a real agent",
+      "instruction": "Open an agent you own, go to the Role tab and click the Instructions block. Write the four parts for real: who it is, how it talks, one always or never rule, and what to do when it does not know. Wait for \"Saved\" in the header, then come back — we check that an agent of yours has instructions that are no longer empty.",
+      "launch": { "navigateTo": "studio/agents", "label": "Open Agents" }
+    },
+    {
+      "type": "slide",
+      "id": "recap",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "- **Write a standing instruction** with the four parts — who it is, how it talks, what it does, what it never does — plus an ending for the questions it cannot answer.\n- **Tell asking from enforcing.** A never-line is guidance; a capability the agent never got is a guarantee. The next lesson, *What it knows and what it may do*, is where you hand out those capabilities.\n- **Refine with AI and stay in charge** by reading the Done card and undoing what you did not want.\n\nOne thing to carry forward: what you just typed is a draft. Once an agent has a published version, colleagues keep getting that version until you publish a new one — that is *The two publish buttons*, the final lesson of this course."
+    }
+  ],
+  "rubrics": {
+    "ex-system-prompt": {
+      "title": "A system prompt with a role, a tone and a rule",
+      "task": "Write the standing instructions for an agent: who it is and who it serves, how it talks, at least one concrete always/never rule, and what to do when the answer is not in its material.",
+      "criteria": [
+        "Names a role and a scope — who the agent is and which questions or material it serves, not just 'an assistant'.",
+        "States a tone or style in words the agent can act on (businesslike, short, warm, amounts in euros).",
+        "Contains at least one always or never rule that is concrete enough for someone else to check afterwards.",
+        "Says what the agent should do when it does not know, or when the answer is outside its material."
+      ],
+      "passScore": 70,
+      "guidance": "Pass a submission that is specific to a real job. Do not pass generic filler ('be helpful', 'be accurate', 'always give the best answer'), a rule nobody could verify, or a bare role line with no tone and no rule. A rule that only forbids, with no alternative, still passes if it is concrete. Length is not a criterion: ten precise lines beat a page."
+    }
+  },
+  "practiceTopic": {
+    "title": "Agent instructions",
+    "summary": "How an agent's standing instructions are written, what they can ask for, and which wishes need a setting instead.",
+    "facts": [
+      "An agent's standing instructions live in the Instructions block on the Role tab of the agent editor; there is no save button, the header shows Saving… and then Saved.",
+      "A line under 'what it never does' goes into the instructions and the model follows it — nothing there blocks an action. What an agent truly cannot do is what it was never given.",
+      "To really stop an action, take the app, table or routine away on the Can use tab or set it to Confirm first; anything that sends is locked to Confirm first.",
+      "The Role tab carries the switch 'Only answer from these documents': it makes the agent refuse questions the linked documents do not cover, so it only makes sense once a knowledge base is linked.",
+      "A role can be held as fields (who, tone, what it does, what it never does) or as one free text; fields are rendered into the instruction text on save, and reading a hand-written text back into fields is a separate AI step.",
+      "A fixed reply language renders as 'Always write your replies in Dutch, whatever language the question is in', which overrules the tone word 'Dutch, unless asked otherwise' — keep one of the two.",
+      "Caps on a role held as fields: twenty lines each for what it does and never does, 300 characters per line, twelve tone words, 600 characters for who it is. One block of free text you type yourself has far more room.",
+      "After an AI refine the Done card lists what changed — 'Rewrote the instructions', 'Turned on 1 app', also 'Turned off 1 app' or 'Removed 1 knowledge base' — or 'Nothing changed'. A refine never empties a list it said nothing about; Undo works while it is the newest change."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "agent-instructions",
+      "existing": false,
+      "label": "Give an agent its instructions",
+      "hint": "In Studio → Agents, open an agent you own, click the Instructions block on the Role tab and write who it is, how it talks and one always/never rule.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/agents",
+          "returns": "array of the caller's own agents (owner_id = the session user, plus rows with owner_id 'system'), each row carrying id, name, owner_id, system_prompt, config, rev, published_version"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "own-agent",
+          "label": "You own at least one agent",
+          "hint": "Create one first — *Create an agent from one sentence*, the opening lesson of this course, walks through it.",
+          "rule": "at least one row where owner_id is neither 'system' nor 'swarm'",
+          "endpoint": "/agents",
+          "expect": {
+            "kind": "rows"
+          }
+        },
+        {
+          "id": "has-instructions",
+          "label": "One of your agents has instructions",
+          "hint": "Open the agent, click the Instructions block on the Role tab and write the four parts; wait for 'Saved' in the header.",
+          "rule": "at least one such row where system_prompt is a string with 40 or more characters after trimming"
+        }
+      ]
+    }
+  ]
+}

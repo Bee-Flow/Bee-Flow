@@ -1,0 +1,97 @@
+{
+ "id": "03-invoice-existing-own-table",
+ "title": "PB Facturen B (bestaande eigen tabel)",
+ "recipeId": "invoice_tracker",
+ "options": {
+  "tableMode": "existing",
+  "datatableName": "PB Facturen A",
+  "inputs": {
+   "folderPath": "/Invoices-Q3"
+  },
+  "tier": "fast",
+  "locale": "nl"
+ },
+ "skip": [
+  "fill"
+ ],
+ "expect": {
+  "status": "done",
+  "phases": {
+   "table": "done",
+   "routine": "done",
+   "fill": "skipped",
+   "app": "done",
+   "approvals": [
+    "done",
+    "locked"
+   ],
+   "design": "done"
+  },
+  "routine": {
+   "finalized": true,
+   "maxFailedCalls": 2,
+   "maxRounds": 10,
+   "triggerKind": "manual",
+   "chain": [
+    {
+     "type": "integration_action",
+     "tool": "nextcloud_list_files"
+    },
+    {
+     "type": "integration_action",
+     "tool": "nextcloud_read_file",
+     "forEachOver": "$0.output.items"
+    },
+    {
+     "type": "data_extraction",
+     "forEachOver": "$1.output.results"
+    },
+    {
+     "type": "datatable",
+     "op": "add_row",
+     "forEachOver": "$2.output.results"
+    }
+   ]
+  },
+  "app": {
+   "finalized": true,
+   "maxFailedCalls": 3,
+   "maxRounds": 10,
+   "linkedTable": {
+    "minRows": 1
+   },
+   "components": [
+    "data_grid",
+    "record_detail"
+   ],
+   "minScreens": 2,
+   "noTools": [
+    "app_seed_records",
+    "app_upsert_table"
+   ]
+  },
+  "approvals": {
+   "finalized": true,
+   "maxFailedCalls": 3,
+   "maxRounds": 12,
+   "triggerKind": "manual",
+   "chain": [
+    {
+     "type": "datatable",
+     "op": "find_rows"
+    },
+    {
+     "type": "datatable",
+     "op": "update_rows"
+    },
+    {
+     "type": "approval"
+    },
+    {
+     "type": "datatable",
+     "op": "update_rows"
+    }
+   ]
+  }
+ }
+}

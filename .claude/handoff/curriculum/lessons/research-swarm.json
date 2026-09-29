@@ -1,0 +1,180 @@
+{
+  "id": "research-swarm",
+  "icon": "🐝",
+  "estMinutes": 8,
+  "title": "When one assistant is not enough",
+  "desc": "The Research Swarm: three researchers, a writer, a shared Hive Mind — and when it is the wrong tool.",
+  "gate": { "feature": "swarm" },
+  "learningGoal": "After this lesson you can judge whether a question deserves a Swarm, and read its timeline honestly.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "kind-not-depth",
+      "icon": "🐝",
+      "title": "A different kind of work, not a deeper one",
+      "bodyMd": "Bart does purchasing at **Van Dijk Groep**. Twice a year one question lands on him that is not really a question: *should we move part of our steel orders to a second supplier?* Asking one assistant to think harder gets him a longer answer from one angle — not three angles.\n\nThe **Swarm** tier is a team, not a deeper thinker: **three researchers in parallel**, then **one writer** who turns their findings into a single answer. Its subtitle in the picker says exactly that — *\"Parallel agents, synthesised answer\"*.\n\nOne vocabulary note, because these words come back elsewhere. The depth slider runs **Auto → Fast → Think → Deep Thinking**. **Flow**, **Write** and **Swarm** are not stops on it; they are kinds of work, sitting beside it as their own pills. The same four depths wear different labels in org settings, where a group's **Allowed tiers** pills read **Fast, Thinking, Writer, Deep Thinking** — Think and Thinking are one tier, Write and Writer are one tier.\n\nSwarm is marked **beta**: it appears only once an admin has enabled it and mapped a model to it. If you cannot find it in your picker, that is why."
+    },
+    {
+      "type": "tour",
+      "id": "where-tier",
+      "target": "[data-tour=\"chat-composer\"]",
+      "navigateTo": "agents",
+      "placement": "top",
+      "optional": true,
+      "timeoutMs": 7000,
+      "icon": "⌨️",
+      "title": "Where you choose the tier",
+      "body": "The tier control lives with the message box. Open it and look below the depth slider: that is where a configured Swarm appears, next to Flow and Write."
+    },
+    {
+      "type": "slide",
+      "id": "three-angles",
+      "icon": "🧭",
+      "title": "Three angles, one shared notebook",
+      "bodyMd": "The built-in swarm is called **Research Swarm**, and its three researchers are given deliberately different jobs so they do not duplicate each other:\n\n- **Facts and data** — what is objectively true, with sources.\n- **Context and stakeholders** — who cares, what the constraints are.\n- **Risks and counterarguments** — where the obvious answer could be wrong, and what is missing.\n\nEach researcher has the same tools you have in chat: web search, your knowledge bases, mail, calendar, drive, notebooks, connected servers. Each writes its findings into the **Hive Mind**, the swarm's shared notebook — which is kept on the conversation, so a second Swarm question in the same chat starts from what was already found instead of researching the supplier again from scratch.\n\nThen the **Writer** reads the Hive Mind and produces the final answer — one voice, in your language, in the format you asked for. Where the researchers found nothing, the answer says so rather than hiding the gap."
+    },
+    {
+      "type": "sim",
+      "id": "sim-match",
+      "icon": "🧩",
+      "title": "Match the need to the tool",
+      "instruction": "Five requests from Bart's week at Van Dijk Groep. Pair each one with the tool that fits it. Only one of them is worth three researchers.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          { "id": "p1", "left": "\"What is the deadline for filing our annual accounts?\" — one fact, needed now.", "right": "Fast", "note": "A single factual lookup. The Swarm's own description rules itself out here: not for quick factual questions — use Fast or Flow." },
+          { "id": "p2", "left": "\"Our margin on this quote disagrees with the finance sheet — work out where.\" — one hard problem, no new sources needed.", "right": "Think", "note": "Depth, not breadth. Nothing new has to be gathered, so extra researchers add nothing." },
+          { "id": "p3", "left": "\"Should we move part of our steel orders to a second supplier next year: what is true, who inside the firm it affects, and where the case could be wrong.\"", "right": "Swarm", "note": "Open-ended and multi-angle — exactly the facts / context / risks split the Research Swarm runs." },
+          { "id": "p4", "left": "\"Halve the length of this paragraph in the supplier letter.\"", "right": "Write", "note": "A short edit needs no research at all, let alone three researchers." },
+          { "id": "p5", "left": "\"Which clauses in our own purchasing terms cover late delivery?\"", "right": "A chat grounded on the knowledge base", "note": "One source you already own. Attach the base with the Knowledge pill — a swarm would send three workers after something one lookup answers." }
+        ]
+      }
+    },
+    {
+      "type": "slide",
+      "id": "read-timeline",
+      "icon": "📊",
+      "title": "Reading the Swarm timeline",
+      "bodyMd": "While it runs, a card above the answer shows what the team is doing: phase **Researching**, then phase **Writing**. The header reads **\"Phase 1 of 2 · workers running in parallel\"**, and at the end **\"Completed 2/2 phases\"**.\n\nEach researcher gets a row of its own — **\"Working…\"**, then **\"Done · 12.4s\"** or **\"Failed\"** with the reason, plus the number of tool calls it made. The writer has no row; its text streams straight into the answer below.\n\nYou need the card for one thing. Before you pass a Swarm answer on to someone else, open the row of the angle you actually care about and read what that researcher found. If Bart's risks researcher came back with two tool calls and nothing much, the paragraph about risks in the answer is thin — and he should know that before he says it out loud in the supplier meeting."
+    },
+    {
+      "type": "quiz",
+      "id": "q-failures",
+      "icon": "⚠️",
+      "question": "Bart's swarm finishes and the header reads \"Completed 2/2 phases · 2 worker failures\". What should he conclude?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Two of the three angles are missing — he should open the timeline to see which, and re-run if he needs them.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "The whole answer is invalid and must be thrown away.",
+          "correct": false,
+          "feedback": "Not invalid — incomplete. The writer still had at least one researcher's material, and the surviving findings are real. What you lose is coverage, not correctness."
+        },
+        {
+          "id": "c",
+          "label": "Nothing in particular — the writer will have filled the missing angles in by itself.",
+          "correct": false,
+          "feedback": "A worker that fails writes nothing into the Hive Mind, so the writer never sees that angle. If it invented the gap, that would be worse, not better."
+        },
+        {
+          "id": "d",
+          "label": "The failures are cosmetic; the count refers to tool calls that were retried.",
+          "correct": false,
+          "feedback": "The count is workers, not tools. Tool calls are counted separately on each worker row as \" · {n} tool calls\"."
+        }
+      ],
+      "explanation": "Failures are shown rather than hidden on purpose. A failed worker contributes nothing to the Hive Mind, so \"2 worker failures\" means the briefing rests on fewer angles than you asked for. Open the rows, see which angle is missing, decide whether it mattered."
+    },
+    {
+      "type": "exercise",
+      "id": "ex-worth-it",
+      "icon": "🎯",
+      "exerciseId": "ex-research-swarm-worth-it",
+      "title": "Your turn: name a question worth a Swarm",
+      "instruction": "Write the one open question from your own work that you would spend a Swarm on. Give it as you would actually type it. Then, in a sentence or two, say why one angle is not enough — and name which of the three angles you most want covered: facts and data, context and stakeholders, or risks and counterarguments. A strong answer also says what you would open in the timeline before you use the result.",
+      "placeholder": "e.g. \"Give me a briefing on switching our fleet to electric vans in 2027: costs and charging, who inside the company is affected, and the strongest arguments against.\" I need it because the finance side and the objections from the drivers never appear in the same answer — I care most about the risks angle, and I will open that researcher's row to see whether it actually found sources or just reasoned.",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "action",
+      "id": "run-one",
+      "icon": "🚀",
+      "checkId": "swarm-available",
+      "title": "Now actually run one — we'll check the tier is live",
+      "instruction": "Open a chat, set the tier control to Swarm, and ask the question you just wrote, in your own words. While it runs, watch the header move from Researching to Writing. When it finishes, open the row of the researcher whose angle you care about most and read what it really found before you use the answer anywhere. The check below looks at one thing only: whether the Swarm tier is live for your account. If it fails, your question is fine — the beta is off or no model is mapped to the tier, and only an admin can change that.",
+      "launch": {
+        "navigateTo": "agents",
+        "label": "Open chat"
+      }
+    },
+    {
+      "type": "slide",
+      "id": "wrap",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "- **Choose deliberately.** Swarm is a kind of work, not a depth: three researchers on facts, context and risks, plus a writer. One fact, one edit or one internal document belongs on Fast, Write or a knowledge-grounded chat.\n- **Know the vocabulary.** The depth slider is Auto, Fast, Think, Deep Thinking; Flow, Write and Swarm sit beside it as kinds of work. In org settings those same depths are labelled Fast, Thinking, Writer, Deep Thinking.\n- **Read the card instead of trusting it.** Researching, then Writing; open the row of the angle you care about and see what that researcher actually found before you repeat it.\n- **Take failures seriously and keep the thread.** A failed worker writes nothing into the Hive Mind, so an angle is simply missing — and follow-up Swarm questions in the same chat build on the findings already stored there."
+    }
+  ],
+  "rubrics": {
+    "ex-research-swarm-worth-it": {
+      "title": "A question worth a Swarm",
+      "task": "The learner names one open question from their own work that justifies a Swarm, explains why it needs more than one angle, names at least one of the three researcher angles they want covered, and ideally says what they would verify in the timeline.",
+      "criteria": [
+        "The question is genuinely open-ended or multi-source (a briefing, scan, or groundwork task) — not a single fact, a short edit, or a lookup in one internal document.",
+        "The reason given is about breadth: several angles or sources have to come together, rather than simply 'it is important' or 'I want a better answer'.",
+        "At least one of the three angles is named or clearly described: facts and data, context and stakeholders, or risks and counterarguments.",
+        "The answer shows some scepticism about the output — checking the timeline, a worker's tool calls or findings, or noticing worker failures."
+      ],
+      "passScore": 70,
+      "guidance": "Do not pass a single factual question, a rewrite or formatting request, or a question answerable from one knowledge base — those are the documented wrong uses. Do not pass a vague 'research my market' with no angle and no reason. A short answer can pass if the question is concretely stated and the multi-angle reason is real; missing only the timeline-check point should still pass if everything else is solid."
+    }
+  },
+  "practiceTopic": {
+    "title": "The Research Swarm",
+    "summary": "When a chat question deserves three parallel researchers and a writer, and how to read the Swarm timeline honestly.",
+    "facts": [
+      "Swarm is a tier in the chat model picker, marked beta, with the subtitle 'Parallel agents, synthesised answer'; it sits as a pill beside Flow and Write rather than on the depth slider (Auto, Fast, Think, Deep Thinking).",
+      "The same depths carry different labels in org settings: a group's Allowed tiers pills read Fast, Thinking, Writer and Deep Thinking — Think and Thinking are one tier, Write and Writer are one tier.",
+      "The built-in swarm is called Research Swarm: three researchers run in parallel on facts and data, context and stakeholders, and risks and counterarguments, then one writer synthesises the answer.",
+      "The phases are Researching then Writing: 'Phase {current} of {total} · workers running in parallel', ending 'Completed {done}/{total} phases'. Only researchers get rows ('Working…', 'Done · {seconds}s' or 'Failed', ' · {n} tool calls').",
+      "Worker failures are displayed as ' · {n} worker failures' rather than hidden; a failed worker writes nothing into the Hive Mind, so the writer never sees that angle.",
+      "The Hive Mind is the swarm's shared notebook and is stored on the conversation, so a later Swarm turn in the same chat builds on the earlier findings.",
+      "Swarm is not for quick factual questions or short edits — those belong on Fast, Flow or Write; a question about one document you already own belongs in a knowledge-grounded chat.",
+      "Swarm appears only once an admin has enabled the beta for the organisation and mapped a model to the Swarm tier; otherwise picking it is refused before any worker starts."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "swarm-available",
+      "existing": false,
+      "label": "The Swarm tier is live for your account",
+      "hint": "If this does not pass, ask an admin to enable the Swarm beta for the organisation and map a model to the Swarm tier.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/ai/swarms/available",
+          "returns": "{ swarms: [...] } — the swarms this signed-in user may run. The whole router requires the swarm capability, so a 403 or 404 is itself the answer 'the Swarm beta is off for this organisation'."
+        }
+      ],
+      "criteria": [
+        {
+          "id": "available",
+          "label": "At least one swarm is available to you",
+          "hint": "Open a chat and look under the depth slider for the Swarm pill; if it is missing, an admin has to switch the beta on and configure its model.",
+          "rule": "GET /ai/swarms/available returns 200 and swarms array length > 0",
+          "endpoint": "/ai/swarms/available",
+          "expect": {
+            "kind": "nonEmpty",
+            "field": "swarms"
+          }
+        }
+      ]
+    }
+  ]
+}

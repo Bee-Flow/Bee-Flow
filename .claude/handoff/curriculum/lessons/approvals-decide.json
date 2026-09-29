@@ -1,0 +1,203 @@
+{
+  "id": "approvals-decide",
+  "icon": "✅",
+  "estMinutes": 9,
+  "title": "Decide what is waiting on you",
+  "desc": "The inbox, the frozen snapshot, reasons, withdrawal, escalation and expiry.",
+  "gate": {
+    "feature": "approvals"
+  },
+  "learningGoal": "After this lesson you can decide an approval correctly — snapshot, required answers, reason — and say who else could have decided it.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "intro",
+      "icon": "📥",
+      "title": "Two jobs in one screen",
+      "bodyMd": "At Van Dijk Groep a routine has stopped mid-run: it drafted a purchase order and reached the step where a human has to say yes. Nothing else in that run happens until somebody decides — and that somebody may be you.\n\n**Approvals**, in the left sidebar, is where that happens, and it does two jobs.\n\nIt is your **inbox**. The badge on the sidebar row counts the requests still waiting on you. It refreshes about every 30 seconds, and pauses while the tab sits in the background. A request addressed to you by name carries an amber **You**.\n\nIt is also the **record**. The tabs **Waiting**, **Approved**, **Declined**, **Expired** and **Closed** hold every decision you were part of; an organisation admin can switch to **Organisation** for the whole company's.\n\nYou never need the routine's canvas to say yes."
+    },
+    {
+      "type": "slide",
+      "id": "snapshot",
+      "icon": "🧊",
+      "title": "What you see was frozen when the run paused",
+      "bodyMd": "The routine's question lands in Finance's inbox: *Bestelling van €7.480 bij Van Loon B.V. goedkeuren?* — approve an order of €7.480 with Van Loon B.V.?\n\nEverything on that page — the question, the details underneath it, the extra questions and every file under **Documents** — was written into the approval at the moment the run paused. The page does not re-read the live run.\n\nThat is deliberate. You are judging what the run actually had in front of it, not what the supplier's price list says this afternoon. And years later the record still means what it meant on the day.\n\nAttachments follow the same logic: their expiry is pushed out to the approval deadline, so a document cannot disappear before the decision window closes."
+    },
+    {
+      "type": "quiz",
+      "id": "q-snapshot",
+      "icon": "❓",
+      "question": "The request shows a total of €7.480, but Van Loon raised its prices this morning. Why does the approval still show €7.480?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "The question, the details and the documents were frozen into the approval when the run paused.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "The page caches approvals for 30 seconds — a refresh would show today's price.",
+          "correct": false,
+          "feedback": "The 30-second rhythm belongs to the sidebar badge and the tab counts, not to the content. The detail never re-reads the live run, however often you refresh it."
+        },
+        {
+          "id": "c",
+          "label": "Only the routine's owner sees live figures; approvers are shown a copy.",
+          "correct": false,
+          "feedback": "Nobody sees live figures on an approval. The owner, the approvers and anyone reading the record next year all see the same frozen snapshot."
+        },
+        {
+          "id": "d",
+          "label": "The run has already finished, so its data is gone.",
+          "correct": false,
+          "feedback": "The run has not finished — it is paused, waiting for you. And the snapshot outlives even a deleted routine, because it is stored on the approval itself."
+        }
+      ],
+      "explanation": "You decide on what the run had in front of it at the moment it asked. That is what makes the decision fair to the approver and keeps the record readable long afterwards."
+    },
+    {
+      "type": "slide",
+      "id": "controls",
+      "icon": "✍️",
+      "title": "Extra questions, and the one rule about rejecting",
+      "bodyMd": "Above the reason box you may find extra fields — short questions the builder attached to the decision under **Questions for the approver**. Van Dijk Groep's purchase order asks for **Kostenplaats** (cost centre) and **Inkoopordernummer** (purchase-order number). Required fields carry a red asterisk and you cannot approve without them.\n\nThey are not paperwork. Your answers travel on with the run, so the next step can put your order number on the order itself. Approving *and* supplying the number is one act, not two.\n\nThen the reason box: *Why? Required when you reject.* On **Approve** a reason is optional. On **Reject** it is mandatory — the red **Reject** button stays disabled until you type one, with the hint *Add a reason to reject.*"
+    },
+    {
+      "type": "sim",
+      "id": "who-decides",
+      "icon": "🪑",
+      "title": "Who may do what on a panel",
+      "instruction": "Van Dijk Groep sends purchase orders to a panel of three Finance colleagues, with the CFO as the final sign-off. Match each person to what they may do while the panel is still voting.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "seat",
+            "left": "Marieke, who holds one of the three Finance seats",
+            "right": "Can vote now — Approve or Reject",
+            "note": "On a panel the seats are the authority. Her vote is evidence; the request only flips when the decision rule resolves."
+          },
+          {
+            "id": "owner",
+            "left": "Bram, who owns the routine but holds no seat",
+            "right": "Can watch it and withdraw it, but cannot vote",
+            "note": "An 'everyone must approve' that the owner can bypass would be theatre, so the owner keeps view and withdraw rights only."
+          },
+          {
+            "id": "final",
+            "left": "The CFO, named as the final sign-off, while the panel is still voting",
+            "right": "Can watch now, decides only once the panel approves",
+            "note": "The detail says so out loud: A final sign-off follows once the panel approves."
+          },
+          {
+            "id": "stranger",
+            "left": "A colleague from another team who was never asked",
+            "right": "Cannot open it at all — the page reports it as not found",
+            "note": "Not allowed to see it and not existing look identical on purpose, so an approval link can never confirm that a request exists."
+          }
+        ]
+      }
+    },
+    {
+      "type": "quiz",
+      "id": "q-override",
+      "icon": "❓",
+      "question": "The panel rule is 'Everyone must approve' and one seat has not voted. Bram, who owns the routine, wants to push the order through himself. Can he?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "No — he can watch the request and withdraw it, but he cannot vote a seat he does not hold.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Yes — the owner can always decide an approval on their own routine.",
+          "correct": false,
+          "feedback": "Not always. When the request went to one person or a group, the owner may decide it too — but the moment there is a panel or a chain, the seats are the authority and the owner is not one of them."
+        },
+        {
+          "id": "c",
+          "label": "Yes, provided he is also an organisation admin.",
+          "correct": false,
+          "feedback": "An organisation admin can watch the row and withdraw it, exactly like the owner. Neither role hands out a seat on the panel."
+        },
+        {
+          "id": "d",
+          "label": "No, and his only way out is to wait for the deadline to pass.",
+          "correct": false,
+          "feedback": "He is not stuck. Withdraw this request closes the question and the paused run straight away — waiting for expiry is the slow option he does not need."
+        }
+      ],
+      "explanation": "Seats decide. The same holds for an approval chain: only the stage that is currently waiting may act, so someone seated in stage 3 has no vote while stage 1 is running."
+    },
+    {
+      "type": "slide",
+      "id": "withdraw",
+      "icon": "↩️",
+      "title": "Withdraw is not a vote",
+      "bodyMd": "**Withdraw this request** is the requester's \"never mind\", and it is deliberately narrower than deciding: only the routine's owner or an organisation admin can do it, and only while the request is still waiting.\n\nConfirm the dialog and the approval becomes **Closed**, the paused run is closed with it, and whoever was asked is told.\n\nAn approver who disagrees does not withdraw — they reject. Withdrawing says the question no longer needs an answer; rejecting says the answer is no. The record keeps those two apart, and so should you."
+    },
+    {
+      "type": "slide",
+      "id": "deadline",
+      "icon": "⏳",
+      "title": "A deadline that decides nothing",
+      "bodyMd": "Most requests also carry **Decide before …** — 7 days, unless the builder chose another window or **No deadline**.\n\nLet it pass and the request flips to **Expired**, the run fails with *Approval expired — no decision was made before the deadline*, and an urgent notification goes to the owner **and** to everyone who was asked. Arrive a moment too late and the app refuses your click.\n\nA builder can soften that with an escalation: after its delay a fallback person or group *also* gains the right to decide, and the original approver keeps theirs. Two people who can say yes beat a deadline that passes in the night.\n\n**Expired** is not **Declined**. Nobody said no — nobody said anything."
+    },
+    {
+      "type": "exercise",
+      "id": "ex-reason",
+      "icon": "🎯",
+      "exerciseId": "ex-approvals-decide-reject-reason",
+      "title": "Your turn: write a rejection the requester can act on",
+      "instruction": "The request reads *Bestelling van €7.480 bij Van Loon B.V. goedkeuren?* Two things are wrong: the unit price is 12% above the framework agreement Van Dijk Groep signed with Van Loon, and the site manager left **Kostenplaats** empty.\n\nWrite the two or three sentences you would type into the reason box before clicking **Reject**. That sentence is all that travels on — into the run's log line, the approval's **History** and the owner's notification — so name the concrete problem, say what would make the order approvable, and make it readable to someone who has none of this on screen.",
+      "placeholder": "e.g. The unit price is 12% above the framework rate we agreed with Van Loon…",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "slide",
+      "id": "rejected",
+      "icon": "🧾",
+      "title": "Rejected is not broken",
+      "bodyMd": "You rejected the Van Loon order, so the run stopped. In **Runs & log** its Outcome reads **Failed** — the run genuinely did not finish. But the *What happened* column does not repeat that word. It reads **Rejected — the unit price is 12% above the framework rate**, because a decision somebody made on purpose is not a breakage. A log where deliberate rejections look like faults teaches people to ignore the error column.\n\nYour sentence travels to three places: that row, the **History** line on the approval, and — when the person who decided is not the owner — the notification the owner receives.\n\nAnd if a colleague beat you to it by a second, the app says so rather than deciding twice: *Someone else already decided this approval.*"
+    },
+    {
+      "type": "slide",
+      "id": "recap",
+      "icon": "🎓",
+      "title": "What you can do now",
+      "bodyMd": "- **Decide well.** Open **Approvals**, look for the amber **You** and for the routines you own, read the frozen snapshot and its **Documents**, fill in the required answers, and give a reason — always when rejecting.\n- **Say who else could have decided.** On a panel, only the seats; the owner and an organisation admin may watch and withdraw. On a chain, only the stage that is waiting. With a single approver, the owner may decide as well.\n- **Read the four endings apart.** Approved, Declined (a person said no), Expired (nobody said anything) and Closed (the requester withdrew the question).\n\nNext chapter you cross to the other side of the glass and build an approval step into a routine of your own."
+    }
+  ],
+  "rubrics": {
+    "ex-approvals-decide-reject-reason": {
+      "title": "A rejection reason the requester can act on",
+      "task": "Write the reason for rejecting a €7.480 purchase order at Van Dijk Groep, where the unit price is 12% above the framework agreement with Van Loon and the cost centre (Kostenplaats) was left empty.",
+      "criteria": [
+        "Names at least one concrete fault — the price above the framework agreement, or the missing cost centre — instead of only refusing.",
+        "Gives the requester a next step: what to correct, requote or supply so the order can be approved.",
+        "Reads as a message to a person who has none of this on screen — no \"see the run\", no reliance on the approval's own history.",
+        "Stays about the request rather than blaming the person, and is short enough to sit in a notification."
+      ],
+      "passScore": 70,
+      "guidance": "Pass a short answer that names a fault and the fix. Do not pass a bare refusal such as 'not approved', 'wrong price' or 'see the run' with nothing actionable; do not pass an answer that leans on the reader being able to open the run or the approval; do not pass an answer that attacks the site manager personally. Naming the supplier and the amount is fine — this stays inside the workspace."
+    }
+  },
+  "practiceTopic": {
+    "title": "Deciding an approval",
+    "summary": "The Approvals inbox, the frozen snapshot, required answers, the reason rule, who may vote, withdrawal and expiry.",
+    "facts": [
+      "The badge on the Approvals sidebar row counts the requests still waiting on you, and refreshes about every 30 seconds.",
+      "The status tabs are Waiting, Approved, Declined, Expired and Closed; a request addressed to you by name carries an amber You marker.",
+      "The question, details, extra questions and documents shown on an approval are frozen at the moment the run paused.",
+      "The Reject button stays disabled until a reason is typed; a reason is optional when approving.",
+      "On a panel only the seat holders vote — the routine's owner and an organisation admin may watch and withdraw, but not vote; with a single approver the owner may decide too.",
+      "Withdraw this request is limited to the owner or an organisation admin, and it also closes the paused run.",
+      "The default deadline is 7 days; if nobody decides, the request becomes Expired and the run fails with an expiry message.",
+      "In Runs & log a rejected run shows the sentence Rejected — followed by the reason, not the word Failed, in the What happened column."
+    ]
+  }
+}

@@ -1,0 +1,373 @@
+{
+  "id": "research-notebooks",
+  "icon": "📓",
+  "estMinutes": 17,
+  "title": "From sources to a briefing",
+  "desc": "Build a notebook from files and URLs, ask across them, export the document — and decide who else may read it.",
+  "gate": {
+    "permission": "use_notebooks",
+    "feature": "notebooks"
+  },
+  "learningGoal": "After this lesson you can turn a pile of files, links and notes into one cited document you can hand over, and set who else may read it.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "why",
+      "icon": "🧭",
+      "title": "A notebook is three things at once",
+      "bodyMd": "Bart does purchasing at **Van Dijk Groep**. On his desk: a quote from a new steel supplier (PDF), the supplier's terms and conditions (a web page), and the note from last week's site visit. His manager wants one page: *where does this quote differ from our standard terms?*\n\nOpen **Notebooks** in the sidebar — *\"Upload sources, chat with your documents, and generate content\"* — and a notebook gives him all three parts of that job in one screen:\n\n- **Sources** (left) — the material, parsed and indexed\n- the **document** (middle) — what he will actually hand over\n- **AI Chat** (right) — questions answered from those sources, with citations\n\nThe two side panels fold away with **Toggle Sources** and **Toggle AI Chat**. Beside them sits **Command palette (⌘K)** — placeholder **\"Type a command…\"** — so you can type for a command instead of hunting for its button; it answers **\"No matching commands\"** when nothing fits."
+    },
+    {
+      "type": "slide",
+      "id": "add-sources",
+      "icon": "📥",
+      "title": "Four ways to get material in",
+      "bodyMd": "The **Sources** panel starts on *\"Add your first source\"* — *\"Sources power the AI chat & citations\"* — and the four type buttons sit right under it:\n\n- **File** — \"PDF, Word, Excel, CSV…\" (up to 50 MB each)\n- **URL** — \"Fetch a web page\": paste `https://…` and click **Add**\n- **Text** — \"Paste any text\", then **Add Text** (up to 500,000 characters)\n- **Notes** — \"From a meeting note\", included as **Full transcript** or **Summary only**\n\nThere is a shortcut too: drag a file onto the Notebooks page and it says **\"Drop a file to create a notebook\"** — the notebook is created from that file. Drag onto an existing card and it says **\"Drop to add to this notebook\"**.\n\nBart adds the quote as a **File** and the terms page as a **URL**."
+    },
+    {
+      "type": "slide",
+      "id": "statuses",
+      "icon": "🚦",
+      "title": "Queued, Reading, Indexing, ready",
+      "bodyMd": "A source is not usable the second it lands. Each row walks through its stages, and the words are on screen:\n\n**Queued…** → **Reading…** (a URL says **Fetching…**) → **Indexing…** → ready.\n\nThe footer under the list counts them: **\"1 of 2 ready\"**, and finally **\"All 2 sources ready\"**. That line is your green light.\n\nWhen something goes wrong the row turns red with **Failed**. **Show details** reveals the reason, and **Retry** runs the ingestion again without you re-uploading anything. A source that sits in processing for ten minutes is failed for you, with *\"Ingestion timed out — retry or re-upload.\"* — so a row never spins forever."
+    },
+    {
+      "type": "quiz",
+      "id": "q-indexing",
+      "icon": "❓",
+      "question": "The quote PDF is ready, but the terms page still says Indexing… Bart asks in AI Chat: \"Where does this quote differ from our standard terms?\" What happens?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "The question is sent and answered from the sources that are ready — the page still indexing can simply be missing from the answer.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "The chat refuses to send until every source is ready.",
+          "correct": false,
+          "feedback": "Nothing blocks the input box. The only signal is the small pill above it, which counts ready sources only — so it would say \"1 source\" while two rows are visible."
+        },
+        {
+          "id": "c",
+          "label": "The answer is held back until indexing finishes, then sent with the page included.",
+          "correct": false,
+          "feedback": "There is no queue. The sources are searched at the moment you ask, against whatever is indexed at that moment."
+        },
+        {
+          "id": "d",
+          "label": "The assistant reads the original page directly, because indexing only makes it faster.",
+          "correct": false,
+          "feedback": "Indexing is not an optimisation. A source is parsed, chunked and indexed before it can be searched at all; until it reaches ready there is nothing to retrieve."
+        }
+      ],
+      "explanation": "The pill above \"Ask about your sources...\" counts ready sources only — if it says fewer than you added, the missing ones cannot answer yet. Wait for the footer to say \"All {n} sources ready\", then ask."
+    },
+    {
+      "type": "sim",
+      "id": "order",
+      "icon": "🧩",
+      "title": "The order that gets a citable answer",
+      "instruction": "Put Bart's five moves in the order that produces an answer he can defend.",
+      "sim": {
+        "kind": "order",
+        "items": [
+          {
+            "id": "create",
+            "label": "New notebook → type a name → Create notebook"
+          },
+          {
+            "id": "add",
+            "label": "Add the quote as a File source and the terms page as a URL source"
+          },
+          {
+            "id": "wait",
+            "label": "Wait for the Sources footer to say \"All 2 sources ready\""
+          },
+          {
+            "id": "ask",
+            "label": "Ask in AI Chat: \"Where does this quote differ from our standard terms?\""
+          },
+          {
+            "id": "insert",
+            "label": "Click Insert on the answer he trusts, to drop it into the document"
+          }
+        ],
+        "solution": [
+          "create",
+          "add",
+          "wait",
+          "ask",
+          "insert"
+        ],
+        "feedback": "Sources before questions, and ready before either. Asking between adding and ready is the one mistake that produces a confident answer built on half the evidence — and it looks exactly like a good answer."
+      }
+    },
+    {
+      "type": "slide",
+      "id": "insert",
+      "icon": "📌",
+      "title": "Insert the answer, keep the evidence",
+      "bodyMd": "Every assistant answer in the notebook has an **Insert** button (\"Insert into document\"). It drops that answer into the document you are writing, and saving is automatic.\n\nUnder the answer sit the citation chips — the passages the answer was built from. A chip names the source the passage came from, and clicking it opens that passage so you can check it.\n\nThose chips live in the chat, not in the document. So when you insert, make the kept sentence name its source — *\"clause 7.2 of the Staal BV quote\"* — otherwise the finished page states a fact nobody can trace.\n\nSelect any text in the document and you get **Ask AI**, **Rewrite**, **Shorten** and **Expand** for tightening it up. The header keeps you honest about saving: **Saving…**, **Saved**, **Unsaved changes**, **Save failed — retry**."
+    },
+    {
+      "type": "slide",
+      "id": "templates",
+      "icon": "✍️",
+      "title": "Let the sources fill the blanks: AI fill and Templates",
+      "bodyMd": "Two things write parts of the document *for* you.\n\n**AI fill** is inside the notebook. Write your draft with placeholders — `{{leverancier}}`, `{{levertijd}}`, `{{betaaltermijn}}` — then run **AI fill**, and every `{{parameter}}` in the document is filled from the notebook's sources. It is blunt about the two ways it can come up empty: **\"No {{parameters}} found in the document to fill.\"** (you wrote no placeholders) and **\"AI Fill returned no content. Please try again.\"**\n\n**Templates** is the other half, on its own page: *\"Upload .docx templates with {{parameters}} for AI to fill\"*. Upload the house-style offer letter or contract once, then per template use **Fill with AI** and **Generate Document**. That is document assembly — the template brings the layout, your material brings the facts — not web research.\n\nSo Bart types the skeleton of his briefing with `{{afwijkingen}}` and `{{risico}}` in it, and lets the sources do the filling."
+    },
+    {
+      "type": "sim",
+      "id": "controls",
+      "icon": "🎛️",
+      "title": "Which control does which job",
+      "instruction": "Bart has five jobs left. Match each one to the thing that actually does it.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "fill",
+            "left": "Fill the {{parameter}} placeholders in his draft from the notebook's sources",
+            "right": "AI fill",
+            "note": "Inside the notebook. No placeholders in the document and it says \"No {{parameters}} found in the document to fill.\""
+          },
+          {
+            "id": "palette",
+            "left": "Reach a command without hunting along the header for its button",
+            "right": "Command palette (⌘K)",
+            "note": "Placeholder \"Type a command…\"; \"No matching commands\" when nothing fits."
+          },
+          {
+            "id": "history",
+            "left": "Undo a rewrite from an hour ago that made the briefing worse",
+            "right": "Version history",
+            "note": "The newest 200 versions are kept, snapshotted automatically while you edit."
+          },
+          {
+            "id": "templates",
+            "left": "Reuse the house-style .docx offer letter for every new supplier",
+            "right": "Templates → Fill with AI",
+            "note": "The template carries the layout and the {{parameters}}; Generate Document produces the file."
+          },
+          {
+            "id": "members",
+            "left": "Give a colleague their own way in to this material",
+            "right": "File it into a Project, then Members → Invite",
+            "note": "A notebook has no Members tab of its own. The project Owner invites a User or Group as Viewer or Editor; Activity logs it, and Danger deletes the project, not your notebook."
+          }
+        ]
+      }
+    },
+    {
+      "type": "slide",
+      "id": "private",
+      "icon": "🔒",
+      "title": "Who else can read this notebook?",
+      "bodyMd": "On its own, a notebook is a room with one door and you hold the key. The Notebooks page lists **your own notebooks only**, and every notebook route checks the owner — hand a colleague the link and they get **\"Notebook not found\"**, not a permission prompt. There is nothing to request, because a notebook has no **Members** tab of its own.\n\nThere is exactly one way to widen that door: **file the notebook into a Project**. A project's **Content** tab (*\"In this project\"*) has a **Notebooks** section with **Add existing**. Filing in and taking back out is the notebook owner's act alone — nobody can pull your notebook into their project. Take it out again and it is yours alone again.\n\nSo Bart keeps the Staal BV quote to himself until he deliberately files it into the **Inkoop Van Dijk Groep** project."
+    },
+    {
+      "type": "slide",
+      "id": "project-tabs",
+      "icon": "👥",
+      "title": "Members, Activity, Danger — the three tabs that decide the rest",
+      "bodyMd": "Once the notebook is filed, the project's own tabs govern it. A project opens on **General**, **Chats**, **Content**, **Knowledge**, **Members**, **Activity**, **Memory** and **Danger** — and the tab is part of the address, so \"look at Members\" is a link, not instructions.\n\n- **Members** — only the project **Owner** sees **Invite Member**: pick **User** or **Group**, then **Viewer** or **Editor**. The line under it is the rule: *\"Editors can update project settings and KBs. Viewers can read and chat in the project.\"* For the filed notebook that means a Viewer reads it and an Editor may also write in its document.\n- **Activity** — the ledger: *\"Bart invited Nadia as editor\"*, *\"changed Joost's role from viewer to editor\"*, *\"left the project\"*. Empty, it says **\"No activity yet.\"**\n- **Danger** — Owner-only, and it holds one button: **Delete Project**, warning *\"Conversations will be unassigned but not deleted. Members and activity history will be removed.\"* Your filed notebook is handed back detached, not deleted."
+    },
+    {
+      "type": "sim",
+      "id": "who-reads",
+      "icon": "🚪",
+      "title": "Four requests, four different doors",
+      "instruction": "Bart's notebook is filed in the Inkoop Van Dijk Groep project. Match each request to the control that answers it.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "viewer",
+            "left": "Nadia must be able to read the briefing while Bart is away, but change nothing",
+            "right": "Members → Invite Member → Viewer",
+            "note": "\"Viewers can read and chat in the project.\" An Editor could also write in the notebook's document; a Viewer cannot."
+          },
+          {
+            "id": "audit",
+            "left": "Find out who gave Joost editor rights last month, and when",
+            "right": "The Activity tab",
+            "note": "Every membership change is logged there — invited, removed, and \"changed Joost's role from viewer to editor\"."
+          },
+          {
+            "id": "winddown",
+            "left": "Wind the project up now that the supplier is chosen, but keep the notebook",
+            "right": "Danger → Delete Project",
+            "note": "Owner-only. Conversations are unassigned, members and activity history are removed, and filed items like your notebook are handed back detached."
+          },
+          {
+            "id": "destroy",
+            "left": "Get rid of the material altogether — sources, chat and all",
+            "right": "\"Delete notebook?\" in the notebook itself",
+            "note": "That one cascades: the sources, the version history and the chat go with it, and it cannot be undone."
+          }
+        ]
+      }
+    },
+    {
+      "type": "quiz",
+      "id": "q-private",
+      "icon": "🚪",
+      "question": "Bart is on holiday. His notebook is standalone — he never filed it into a project. Nadia has the link and needs the supplier briefing. What does she see?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "\"Notebook not found\" — a standalone notebook is owner-only, so she needs the exported document, the material in a knowledge base, or the notebook filed into a project she belongs to.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "A read-only view, because everyone in the workspace may read a notebook but not edit it.",
+          "correct": false,
+          "feedback": "There is no viewer role on a notebook. Owner / Editor / Viewer are Project roles; the notebook list query returns only notebooks you own."
+        },
+        {
+          "id": "c",
+          "label": "A request-access prompt she can send to Bart.",
+          "correct": false,
+          "feedback": "There is nothing to approve: a notebook has no Members tab of its own, so there is no role to grant. Granting access means filing it into a project and inviting her there."
+        },
+        {
+          "id": "d",
+          "label": "The notebook with the document visible but the Sources panel hidden, since sources are private.",
+          "correct": false,
+          "feedback": "Access is not partial. It is your notebook or it is \"Notebook not found\" — the sources are not separately shareable either."
+        }
+      ],
+      "explanation": "A standalone notebook has one owner and no Members, Activity or Danger tab. Access is granted by filing it into a Project: the project's Owner invites a User or Group as Viewer or Editor on the Members tab, Activity records that change, and the owner-only Danger tab deletes the project without deleting the notebook."
+    },
+    {
+      "type": "slide",
+      "id": "export",
+      "icon": "📤",
+      "title": "Handing it over, and what deleting takes with it",
+      "bodyMd": "**Export** offers **Download as PDF** and **Download as Word**. Two more entries appear only once they are configured for your workspace: **Send for signing** (an e-signature service) and **Save to Nextcloud**.\n\nThe **History** icon opens the document's version history. Snapshots are taken automatically as you edit — debounced to roughly one per five minutes — and the newest **200** are kept, so an hour-old rewrite that went wrong is recoverable: open the list, pick the version, restore it. You can also drop one (**\"Delete this version?\"**). A failed restore is explicit about what it did not break: **\"Restore failed. Your content is unchanged — try again.\"**\n\nDeleting the notebook is another matter — that one has no history. The confirm is **\"Delete notebook?\"** and it spells out the cascade: the notebook *\"will be permanently deleted, along with {sources}, its version history and the chat in this notebook. This can't be undone.\"* It names the source count for a reason. Export the document first if it still matters."
+    },
+    {
+      "type": "quiz",
+      "id": "q-kb",
+      "icon": "🗂️",
+      "question": "Fatima in HR wants the staff handbook available to her whole team's chats from now on, not just for one memo. Notebook, or knowledge base?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "A knowledge base — grounding that stays, that chats and agents search again and again, and that her colleagues can reach.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "One notebook per colleague, each with the handbook added as a File source.",
+          "correct": false,
+          "feedback": "A notebook is yours — the list returns only the notebooks you own. That is one copy to maintain per colleague, and no shared answer."
+        },
+        {
+          "id": "c",
+          "label": "A notebook, pasting the handbook in as a Text source whenever someone needs it.",
+          "correct": false,
+          "feedback": "Fine for a one-off briefing, but you would re-index the same document again and again, and nobody else could search it."
+        },
+        {
+          "id": "d",
+          "label": "A notebook exported to Word and mailed round every quarter.",
+          "correct": false,
+          "feedback": "That is a snapshot of an answer, not something the assistant can search next week when the question is different."
+        }
+      ],
+      "explanation": "A notebook is a private workspace for producing one deliverable from a fixed set of sources. A knowledge base is durable, shareable grounding that chats and agents search. Building one is an admin or editor job — a plain **Member** role can use notebooks but cannot create or share knowledge bases, so Fatima asks an administrator to put the handbook in a base her team can reach."
+    },
+    {
+      "type": "exercise",
+      "id": "question",
+      "icon": "🎯",
+      "exerciseId": "ex-research-notebooks-question",
+      "title": "Your turn: write the question the briefing must answer",
+      "instruction": "Pick a briefing you actually owe someone. Write the single question you would type into \"Ask about your sources...\" — the one whose answer is the briefing. A strong answer names the decision behind it, says which sources in the notebook it should be answered from, and says what a useful answer contains (a comparison, a list of clauses, a number with its source). Keep it to one or two sentences.",
+      "placeholder": "e.g. Compare the payment and delivery terms in the Staal BV quote with our standard terms, and list every clause that is worse for us, naming the clause number in each document.",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "action",
+      "id": "build",
+      "icon": "🏗️",
+      "checkId": "notebook-with-source",
+      "title": "Build a two-source notebook — we'll verify it",
+      "instruction": "Open Notebooks in the sidebar and click New notebook (name it something like \"Leverancierscheck Staal BV\"). Add two sources: one File, and one URL or Text. Wait until the Sources footer says all of them are ready, then ask your question in AI Chat and Insert the answer you trust.",
+      "launch": {
+        "navigateTo": "agents",
+        "label": "Open Bee Flow"
+      }
+    },
+    {
+      "type": "slide",
+      "id": "done",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "- **Build a notebook from mixed material** — File, URL, Text and meeting Notes side by side, and read the row stages instead of guessing when they are usable.\n- **Ask across your sources and keep the evidence** — wait for \"All {n} sources ready\", ask one sharp question, check the citation chips, then **Insert** the answer and name its source in the sentence you keep.\n- **Let the sources do the typing** — `{{parameters}}` plus **AI fill** in the notebook, or a .docx **Template** with **Fill with AI** when the layout must stay the same every time. And **Command palette (⌘K)** when you cannot find the button.\n- **Decide who can read it** — a standalone notebook is yours alone (\"Notebook not found\" for anyone else). File it into a **Project** and its **Members** tab grants a User or Group **Viewer** (read) or **Editor** (read and write the document), **Activity** logs every change, and the owner-only **Danger** tab deletes the project while handing your notebook back.\n- **Hand it over safely** — **Download as PDF** or **Word**, restore from the newest 200 versions when a rewrite goes wrong, and remember that deleting a notebook takes its sources, its history and its chat with it.\n\nNext chapter: what to do when one assistant is not enough."
+    }
+  ],
+  "rubrics": {
+    "ex-research-notebooks-question": {
+      "title": "The question behind the briefing",
+      "task": "Write the single question, as typed into the notebook's AI Chat, whose answer is the briefing the learner owes someone — naming the decision, the sources it should be answered from, and what a useful answer contains.",
+      "criteria": [
+        "It is one decidable question, not a topic or a heading ('supplier terms' is a topic; 'which clauses are worse for us than our standard terms' is a question).",
+        "It is bounded to material that would be in the notebook as sources, rather than assuming the open web or general knowledge.",
+        "It says what the answer should look like — a comparison, a list of clauses, a number, a recommendation — so the answer can be judged.",
+        "It connects to a real decision or deliverable someone is waiting for."
+      ],
+      "passScore": 70,
+      "guidance": "Do not pass a bare topic, a one-word subject, or a request for 'a summary of these documents' with no stated shape. Do not pass a question that only the open internet could answer, since the point of the chapter is grounding on your own sources. A short, plain question that meets all four criteria passes; polish and length are not the point."
+    }
+  },
+  "practiceTopic": {
+    "title": "Notebooks: sources, statuses and the document",
+    "summary": "How a notebook turns files, links, pasted text and meeting notes into one cited document — filled, versioned, exported, and read by nobody but you until you file it into a project.",
+    "facts": [
+      "The Notebooks page — subtitle \"Upload sources, chat with your documents, and generate content\" — creates one via New notebook → Create notebook; a notebook has three columns (Sources, document, AI Chat) plus Toggle Sources, Toggle AI Chat and Command palette (⌘K).",
+      "The source types are File (\"PDF, Word, Excel, CSV…\"), URL (\"Fetch a web page\"), Text (\"Paste any text\") and — when meeting notes are enabled for that account — Notes (\"From a meeting note\", as Full transcript or Summary only).",
+      "A source moves through Queued…, Reading… (Fetching… for a URL) and Indexing… before it is ready; the footer shows \"{ready} of {total} ready\", then \"All {n} sources ready\". A failed row offers Show details and Retry; a source stuck for ten minutes fails with \"Ingestion timed out\".",
+      "Each assistant answer in AI Chat has an Insert button (\"Insert into document\"); the citation chips stay in the chat panel and open the cited passage when clicked. Selecting text offers Ask AI, Rewrite, Shorten and Expand.",
+      "AI fill fills every {{parameter}} in the document from the notebook's sources, answering \"No {{parameters}} found in the document to fill.\" or \"AI Fill returned no content. Please try again.\"; Templates hold .docx layouts with {{parameters}}, filled via Fill with AI and Generate Document.",
+      "Export offers Download as PDF and Download as Word, plus Send for signing and Save to Nextcloud once configured; version history keeps the newest 200 auto-snapshots; deleting a notebook also deletes its sources, its version history and its chat.",
+      "A standalone notebook is owner-only — the list returns only your own and a stranger's link answers \"Notebook not found\". Filing it into a Project widens it: Content → Notebooks → Add existing, the notebook owner's act alone.",
+      "Project tabs are General, Chats, Content, Knowledge, Members, Activity, Memory and Danger. Only the Owner sees Invite Member (User or Group; Viewer or Editor) and the Danger tab, whose Delete Project unassigns conversations, removes members and activity history, and detaches filed notebooks."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "notebook-with-source",
+      "existing": false,
+      "label": "Build a notebook with a ready source",
+      "hint": "Notebooks → New notebook, then add a File or URL source and wait until the Sources footer says it is ready.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/notebooks",
+          "returns": "{ notebooks: [...] } for the signed-in user (owner is implicit in the query); each row carries id, name, sourceCount, processingCount, failedCount, messageCount, docWordCount"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "exists",
+          "label": "A notebook of your own exists",
+          "hint": "Click New notebook on the Notebooks page and give it a name.",
+          "rule": "notebooks array length > 0",
+          "endpoint": "/api/notebooks",
+          "expect": {
+            "kind": "rows",
+            "field": "notebooks"
+          }
+        }
+      ]
+    }
+  ]
+}

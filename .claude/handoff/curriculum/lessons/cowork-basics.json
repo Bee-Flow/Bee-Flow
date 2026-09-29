@@ -1,0 +1,315 @@
+{
+  "id": "cowork-basics",
+  "icon": "🤝",
+  "estMinutes": 10,
+  "title": "Work that runs without you",
+  "desc": "What a Cowork item is, where its result lands, and how it differs from a chat.",
+  "gate": {},
+  "learningGoal": "After this lesson you can describe the full life of a Cowork item — from the sentence you type to the notification that reports back — and say which jobs belong in Cowork rather than in chat.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "hand-over",
+      "icon": "🤝",
+      "title": "Ask it here, or hand it over",
+      "bodyMd": "At Van Dijk Groep, buyer Bart starts every morning the same way: he opens a chat and retypes the same request — *what came in from suppliers overnight, and what needs an answer today?*\n\nBee Flow has two halves for that.\n\n- **Chat** answers you here, while you wait. You are present, so you can ask a follow-up.\n- **Cowork** takes the job away and runs it unattended — now, at a moment you pick, or every weekday — and reports back when it is done.\n\nThe page says it plainly: **What can Bee Flow take off your plate?** *Describe it once. It runs on its own — now, later, or every week.*\n\nWe follow one job the whole way: Bart's sentence, the run at 07:30, and the result waiting in his notifications."
+    },
+    {
+      "type": "tour",
+      "id": "nav",
+      "target": "[data-tour=\"nav-cowork\"]",
+      "placement": "right",
+      "optional": true,
+      "timeoutMs": 6000,
+      "icon": "🧭",
+      "title": "Cowork lives under New Chat",
+      "body": "The badge on this row counts the items that are still switched on — the ones with a run still ahead of them. Open it and the page splits: your list on the left, one item on the right, and a New task button that clears the selection so you can write the next one."
+    },
+    {
+      "type": "tour",
+      "id": "composer",
+      "navigateTo": "cowork",
+      "target": "[data-tour=\"cowork-composer\"]",
+      "placement": "top",
+      "optional": true,
+      "timeoutMs": 8000,
+      "icon": "⌨️",
+      "title": "One box, three chips",
+      "body": "Type the work here; the box says \"Describe the work — Bee Flow runs it and reports back\". Under it sit three chips showing their current answer, not their name: when it runs (Now), whether it repeats (Once), and who does the work (No agent) — that last chip appears only when you have agents. Send reads Run when the work starts now, Schedule when it starts later."
+    },
+    {
+      "type": "slide",
+      "id": "compose-ai",
+      "icon": "🪄",
+      "title": "Your sentence becomes the assignment",
+      "bodyMd": "Bart types one sentence: *\"Every weekday at 07:30, summarise the new supplier mail per supplier, with the order number, the amount and the reply deadline.\"*\n\nHe presses send. A fast model reads that sentence and proposes three things:\n\n- **a title** for the list — at most 60 characters;\n- **the instruction that actually runs** — the item's *What it does*, which you can read and rewrite afterwards;\n- **the schedule** it heard in his words: *Every weekday*, *07:30*.\n\nSo the sentence you type is not the thing that runs. It is the raw material Bee Flow turns into the assignment."
+    },
+    {
+      "type": "slide",
+      "id": "no-preview",
+      "icon": "🔎",
+      "title": "There is no preview — so check the item",
+      "bodyMd": "Reading your sentence and storing the item happen in the same press of the button. There is no step in between that shows you a draft first.\n\nThat makes the item itself the first place you see what Bee Flow understood. Open it, read the title and the *What it does* instruction, and correct anything the model misheard under **Edit**.\n\nAnd if the model cannot be reached at all, nothing is lost: Bee Flow falls back to your own sentence as the instruction, and to whatever the chips already say."
+    },
+    {
+      "type": "quiz",
+      "id": "q-result",
+      "icon": "❓",
+      "question": "Bart's supplier digest runs at 07:30 while he is driving to a site visit. Where does the result end up?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "In his notifications, under the Cowork category — and every attempt is kept in the item's own What happened history.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "In a chat thread he has to leave open, which is why he should not close the app overnight.",
+          "correct": false,
+          "feedback": "Nothing needs to stay open. A cowork item runs unattended on Bee Flow's side; the result is delivered to your notifications and stored on the item."
+        },
+        {
+          "id": "c",
+          "label": "In an email to him and to the purchasing team.",
+          "correct": false,
+          "feedback": "Nothing is delivered by mail and nothing goes to a colleague. Notifications and the item's own run history are where the output lives."
+        }
+      ],
+      "explanation": "Notifications are the delivery channel: a finished run arrives with the item's title and the full result, with a button to open that result in chat. The item's What happened card keeps every attempt."
+    },
+    {
+      "type": "slide",
+      "id": "chips",
+      "icon": "🎛️",
+      "title": "The chips are decisions; the brief is context",
+      "bodyMd": "- **When** — *Run now*, *In an hour*, *Tonight* (18:00), *Tomorrow morning* (09:00), *Next Monday* (09:00), or *Pick a moment…* with your own date and time.\n- **Repeat** — *Once*, *Every hour*, *Every day*, *Every weekday*, *Every week*, and on up to *Every year*. A repeat keeps running until you pause it.\n- **Run as** — hands the job to one of your agents, which brings its own skills, knowledge and connected apps. This chip only appears when you have agents to pick from; the next card follows what it changes.\n\nThe rule that settles every argument: **a chip you touch always wins**. Write \"every Friday\" in the brief but leave Repeat on *Once*, and it runs once. The model only fills in the chips you left alone."
+    },
+    {
+      "type": "slide",
+      "id": "run-as",
+      "icon": "🧑‍🔧",
+      "title": "Run as: handing the job to an agent",
+      "bodyMd": "The third chip answers one question, and its sheet asks it out loud: **Who does the work?** Underneath, the one-line explanation — *An agent brings its own skills, knowledge and connected apps.* The first row is **No agent**, hinted *Runs as a plain prompt*.\n\nPick one of your agents and three things change at once.\n\n- The brief runs **as that agent**: its own instructions, its skills, its knowledge bases and the apps it is connected to all come along for the run.\n- The result lands in **that agent's chat thread** as well as in your notifications — so you can open the thread and carry on talking about what came out.\n- The model tier stops being yours to set. An agent-linked run uses the agent's own model, so the item's tier pill reads **Auto**.\n\nThe chip is only on screen when you actually have agents to pick from; with none, there is nothing to choose and the composer shows just the two chips. (Start in an agent's chat and flip to Cowork, and that agent is pre-selected for you.)"
+    },
+    {
+      "type": "quiz",
+      "id": "q-agent",
+      "icon": "❓",
+      "question": "Bart hands his 07:30 supplier digest to his purchasing agent with the **Run as** chip. What does that change about the run?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "It runs with that agent's instructions, skills, knowledge and connected apps; the result lands in the agent's chat thread as well as in his notifications; and the model tier reads Auto, because the agent's own model does the work.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Only the name on the row changes. The work itself is identical, and he still sets the model tier for it himself.",
+          "correct": false,
+          "feedback": "Both halves are off. The agent brings its own skills, knowledge bases and connected apps to the run, and the tier is no longer his to set — an agent-linked run uses the agent's own model, so the item shows Auto."
+        },
+        {
+          "id": "c",
+          "label": "The result now goes only to the agent's chat thread, so the Cowork notification is skipped.",
+          "correct": false,
+          "feedback": "Nothing is skipped. An agent-linked run is delivered to your notifications in the usual way and additionally writes the result into that agent's chat thread."
+        }
+      ],
+      "explanation": "Run as is a handover, not a label: the agent's own setup does the work, its thread keeps a copy of the result, and the tier is forced to Auto. Without agents to pick from, the chip does not appear at all."
+    },
+    {
+      "type": "sim",
+      "id": "sim-match",
+      "icon": "🧩",
+      "title": "Chat, or hand it over?",
+      "instruction": "Four jobs from Van Dijk Groep. Match each one to where it belongs.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "ask",
+            "left": "Bart needs our payment terms with one specific supplier right now — and may want to dig further.",
+            "right": "Ask it in chat",
+            "note": "You are present and you want a conversation. A cowork run never asks you a question back, so anything that needs a follow-up belongs in chat."
+          },
+          {
+            "id": "once",
+            "left": "A one-off comparison of three steel-frame suppliers, ready to read after this afternoon's site visit.",
+            "right": "Cowork — When: Run now, Repeat: Once",
+            "note": "Real work, no repeat, and he is not going to sit and watch it. Press Run; the result is in his notifications when he gets back."
+          },
+          {
+            "id": "weekday",
+            "left": "Every working day at 07:30, a digest of the new supplier mail with order number, amount and deadline.",
+            "right": "Cowork — Repeat: Every weekday",
+            "note": "Mon–Fri work that must happen whether or not he opens Bee Flow. The row will read \"Every weekday 07:30\"."
+          },
+          {
+            "id": "monthly",
+            "left": "Saskia in the office writes a short progress report on the first of every month, from last month's meeting notes.",
+            "right": "Cowork — Repeat: Every month",
+            "note": "Same shape, slower drum. She sets Repeat to Every month and picks the moment herself, so the model does not have to guess."
+          }
+        ]
+      }
+    },
+    {
+      "type": "exercise",
+      "id": "ex-life",
+      "icon": "🎯",
+      "exerciseId": "ex-cowork-basics-life",
+      "title": "Your turn: walk the life of one delegation",
+      "instruction": "Pick one job you would genuinely hand over — yours, or Bart's supplier digest. In four to six sentences, walk it from beginning to end: the sentence you type, which button you press and why (**Run** or **Schedule**), what Bee Flow derives from that sentence, and where you read the result once it has run. Write it for a colleague who has never opened Cowork.",
+      "placeholder": "e.g. I type \"Every Friday at 16:00, list this week's quotes that have had no reply, with customer, amount and how many days it has been quiet.\" Because it starts later, the button reads Schedule…",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "slide",
+      "id": "detail",
+      "icon": "🗂️",
+      "title": "What the item tells you afterwards",
+      "bodyMd": "Click a row in the list and the right pane shows the whole life of that job.\n\n- **The assignment** — the instruction exactly as it runs, with pills for the cadence (*Every weekday 07:30*), the next run (*next Tomorrow at 07:30*), the agent if there is one, and the model tier — how heavy a model the work gets.\n- **What happened** — one row per attempt, newest first: time, duration and the first line of the outcome. Expand a row for the full result, and for whether it was *Started by you* or *Started on schedule*.\n\nBefore the first run that history reads: *This hasn't run yet. The history fills in after the first run.*"
+    },
+    {
+      "type": "slide",
+      "id": "figures",
+      "icon": "📊",
+      "title": "Why Runs and Succeeded disagree",
+      "bodyMd": "Between the assignment and the history sit three small cards: **Runs**, **Succeeded** and **Average**.\n\nRuns is the lifetime tally. The other two are counted from the run rows that are still kept, and those are kept for 90 days.\n\nSo a large Runs number can sit beside a smaller Succeeded one, and nothing is broken. Once nothing at all is left inside that window, Succeeded reads 0 with the note *older runs are no longer kept* — the honest answer, rather than a comforting *nothing went wrong*."
+    },
+    {
+      "type": "quiz",
+      "id": "q-private",
+      "icon": "❓",
+      "question": "Saskia's monthly progress report touches personnel data. Who else at Van Dijk Groep can open that cowork item and read its runs?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Nobody. A cowork item belongs to the person who created it, and there is no shared or organisation-wide list.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Everyone in the organisation — the Cowork list is a workspace list, like a shared calendar.",
+          "correct": false,
+          "feedback": "It is not shared at all. Every read is scoped to the signed-in user, and opening someone else's item is refused as Forbidden."
+        },
+        {
+          "id": "c",
+          "label": "Organisation admins, from a central overview of everyone's scheduled work.",
+          "correct": false,
+          "feedback": "That overview does not exist. There is no organisation-wide cowork view; ownership is the only key to an item."
+        }
+      ],
+      "explanation": "Cowork is strictly per person: your items, your runs, your notifications. A colleague who wants the same digest types the same sentence into their own Cowork."
+    },
+    {
+      "type": "slide",
+      "id": "apps-list",
+      "icon": "🔌",
+      "title": "Apps it may use",
+      "bodyMd": "Beside the chips sits an **Apps** button, and the same picker comes back under **Edit** as **Apps it may use**, with a counter reading *{count} of {total} enabled*.\n\nA new item carries no list of its own: it simply follows the apps you have switched on workspace-wide. The hint says so — *Following your workspace-wide list. Switch anything here and this cowork keeps its own list from then on.*\n\nThat last clause is the whole trap. The moment you switch one app off, the item has its **own** list, and later changes to your workspace list no longer reach it. The hint changes to *Only these apps are available to this cowork when it runs, whatever you have switched on elsewhere.* The link **Follow my workspace list** hands it back.\n\nAn empty list is a real answer too: this one may use nothing. And once an item carries its own list, the assignment shows a pill counting them — *2 apps*."
+    },
+    {
+      "type": "quiz",
+      "id": "q-apps",
+      "icon": "❓",
+      "question": "Saskia's monthly report should only touch her meeting notes, so in that item's Apps picker she switches the other apps off. Weeks later a new app is connected for the whole workspace. Does her cowork item get it?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "No. Switching an app off gave the item its own list, and from then on it ignores workspace-wide changes — until she clicks Follow my workspace list.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Yes. The per-item picker only changes what she sees on screen; at run time the workspace-wide list is what applies.",
+          "correct": false,
+          "feedback": "It is the other way round. Once the item has its own list, only those apps are available to it when it runs, whatever you have switched on elsewhere."
+        },
+        {
+          "id": "c",
+          "label": "Yes, because a per-item list only holds for the next run and then falls back to the workspace list.",
+          "correct": false,
+          "feedback": "The list is stored on the item and keeps applying to every run. Nothing expires it; the Follow my workspace list link is what gives it back."
+        }
+      ],
+      "explanation": "An item is in one of two states: no list of its own, so it follows your workspace-wide list, or its own list, which wins over anything you change elsewhere. Touching the picker moves it from the first state to the second; Follow my workspace list moves it back."
+    },
+    {
+      "type": "slide",
+      "id": "control",
+      "icon": "🎚️",
+      "title": "You stay in charge of it",
+      "bodyMd": "Four controls sit above the assignment.\n\n- **Run now** — fires immediately without disturbing the series; the next scheduled moment stays where it was. It is greyed out while a run is still open.\n- **Pause / Resume** — the reversible way to stop a repeat. The row then reads *Paused*.\n- **Edit** — rewrite **Name**, **What it does**, the **Next run** date, the **At** time, the **Repeat**, and which apps the item may use.\n- **Delete** — removes the item *and* its history, and that cannot be undone. If there is any chance you want it back, pause it instead.\n\nOne ceiling to remember: 10 cowork items per person. Past that, the page asks you to delete or finish one to make room."
+    },
+    {
+      "type": "quiz",
+      "id": "q-finished",
+      "icon": "❓",
+      "question": "Bart sent that one-off supplier comparison with **When: Run now** and **Repeat: Once**, and it ran that afternoon. A week later the item reads **Finished** and has not run again. Did something go wrong?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Nothing went wrong: Now plus Once means exactly one run, after which the item switches itself off. Finished is the normal end state.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "It failed quietly — Finished is what an item says when its run produced no usable output.",
+          "correct": false,
+          "feedback": "Those are different words. A run with no text shows as \"Nothing to report\" in What happened, and a real failure turns the item's status into Failed with an urgent notification."
+        },
+        {
+          "id": "c",
+          "label": "It was switched off automatically after its history reached the 90-day limit.",
+          "correct": false,
+          "feedback": "Nothing is switched off by age. Ninety days is only how long the individual run rows are kept in What happened; the item itself and its lifetime Runs count stay."
+        }
+      ],
+      "explanation": "Once is a decision, not an oversight. If Bart wants that comparison every week, he opens Edit and sets Repeat to Every week — the series then starts at the next occurrence."
+    },
+    {
+      "type": "slide",
+      "id": "now",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "- **Tell the two halves apart.** If you want the answer in front of you and may ask a follow-up, chat. If the work should happen while you are elsewhere, hand it to Cowork.\n- **Predict what your sentence will do.** Bee Flow derives a title, an instruction and a schedule from it — and any chip you set yourself wins over what the sentence says.\n- **Know where to read it.** The assignment says what runs, the pills say when, What happened keeps every attempt with its full result — and the finished result reaches you in your notifications (and in the agent's chat thread, if you handed the job to an agent).\n\nNext chapter: writing a brief nobody has to clarify — because when it runs, nobody will be there to ask."
+    }
+  ],
+  "rubrics": {
+    "ex-cowork-basics-life": {
+      "title": "The life of a cowork item",
+      "task": "The learner picks one job to delegate and describes it end to end in four to six sentences: the sentence they type, whether they press Run or Schedule and why, what Bee Flow derives from that sentence, and where the result is read afterwards.",
+      "criteria": [
+        "Names a concrete job with a timing decision (now, a moment, or a repeat) rather than a vague wish.",
+        "Uses the correct send button for that timing: Run when it starts now, Schedule when it starts later.",
+        "Shows that Bee Flow derives a title and the instruction that actually runs from the typed sentence, and that the item is only created when they send.",
+        "Says the result arrives in their notifications and that past attempts live in the item's run history — not in a chat thread, an email, or a colleague's screen."
+      ],
+      "passScore": 70,
+      "guidance": "Pass a plain, specific walkthrough even if the wording is informal. Do not pass an answer that only says \"it runs automatically\", that describes a back-and-forth conversation with follow-up questions, that sends the result to a colleague or an inbox, or that omits where the result is read. A wrong button choice (Schedule for work starting now, or the reverse) should fail the second criterion but need not sink the whole answer."
+    }
+  },
+  "practiceTopic": {
+    "title": "Cowork basics",
+    "summary": "How a cowork item is created, what the chips decide, where its result is delivered, and who can see it.",
+    "facts": [
+      "The Cowork row sits directly under New Chat in the sidebar, and its badge counts the items that are currently active.",
+      "The send button reads Run when the work starts now and Schedule when it starts later; while it is submitting it reads Starting…",
+      "A finished run is delivered to the notification centre under the Cowork category, and every attempt is listed in the item's What happened card.",
+      "A chip you set yourself — When, Repeat or Run as — always wins; Bee Flow only fills in the chips you left untouched.",
+      "Run as hands the brief to one of your agents, which brings its own skills, knowledge and connected apps; the result then also lands in that agent's chat thread, and the model tier is forced to Auto because the agent's own model runs it.",
+      "Apps it may use is a per-item allow-list: by default the item follows your workspace-wide list, and switching anything in the picker gives it its own list until you click Follow my workspace list.",
+      "Cowork items are personal: every read is scoped to the signed-in user, and there is no organisation-wide cowork list.",
+      "The cards above What happened read Runs, Succeeded and Average: Runs is the lifetime tally while individual run rows are kept for 90 days, and each person can keep 10 cowork items at a time."
+    ]
+  },
+  "actionChecks": []
+}

@@ -1,0 +1,385 @@
+{
+  "id": "apps-roles-and-publish",
+  "icon": "🔐",
+  "estMinutes": 15,
+  "title": "Who sees which rows",
+  "desc": "Roles, screen access, row rules — and publishing to the right audience.",
+  "gate": {
+    "permission": "manage_apps",
+    "feature": "app_studio"
+  },
+  "learningGoal": "After this lesson you can set role-based row access on an app's tables, tell a preview apart from a real access test, and publish to exactly the audience you meant.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "intro",
+      "icon": "🧭",
+      "title": "Three questions in one panel",
+      "bodyMd": "Van Dijk Groep's **Inkoopaanvragen** app works. Site managers file purchase requests, the office handles them. But right now every request is readable by everyone who can open the app — including the amounts one site manager would rather not discuss with another.\n\nAccess in an app is three separate questions, and the **Roles** view has a tab for each:\n\n- **Roles** — who gets which role\n- **Screen access** — which screens and components a role sees\n- **Row rules** — which rows of a table a role may touch\n\nOnly the last one decides what data leaves the database. The first two decide what the app looks like. That difference is the whole chapter."
+    },
+    {
+      "type": "tour",
+      "id": "where",
+      "target": "[data-tour=\"nav-studio\"]",
+      "navigateTo": "studio/apps",
+      "placement": "right",
+      "optional": true,
+      "timeoutMs": 7000,
+      "icon": "🧰",
+      "title": "Where the app lives",
+      "body": "Studio → Apps lists the apps you own, next to any a colleague shared with you. Open one and the editor header carries everything this chapter uses: the Roles view, the View as menu, and the Publish button."
+    },
+    {
+      "type": "slide",
+      "id": "who",
+      "icon": "👥",
+      "title": "How a person ends up with a role",
+      "bodyMd": "On the **Roles** tab you add the roles the app needs — Van Dijk Groep needs `aanvrager` and `inkoop`. Then, for each person who opens the app, a fixed order decides which one they get:\n\n1. The app **owner** — always full access; no rule narrows it.\n2. Someone assigned to a role **by name**.\n3. A role mapped to one of their **organisation groups**.\n4. **Default role (everyone else)** — a drop-down offering \"App default (full access)\", \"No access\", or any role you created.\n5. Nothing at all — and then no data access.\n\nThe more specific setting wins, so one named person overrides the group mapping, which overrides the default. An app can carry up to 20 roles. The panel has its own **Save roles** button; leaving the view without pressing it asks “Leave without saving?” and discards the edits if you go."
+    },
+    {
+      "type": "slide",
+      "id": "modes",
+      "icon": "🗄️",
+      "title": "What a role may do with a table",
+      "bodyMd": "The **Row rules** tab works one table and one role at a time. Pick both, then **Start with**:\n\n- **See, change and delete every row**\n- **Only the rows they added**\n- **No access**\n\nOne click sets reading, adding, editing and deleting together, which is why the labels name all of them.\n\nA table you create in App Studio starts out open to everyone who can open the app. That is a sound default among colleagues and a poor one everywhere else — keep it in mind when you reach the public page later. If a role was given a finer mix than these three buttons cover — read every row but change none, say — the panel says so and leaves it exactly as it stands unless you pick one."
+    },
+    {
+      "type": "slide",
+      "id": "rules",
+      "icon": "🔎",
+      "title": "Then keep only the rows where…",
+      "bodyMd": "A row rule narrows the base access you just picked. You build it with pickers: a column on the row, a test, and something to compare with — a fixed value, or the person opening the app (their id, **their organisation**, **their role**). **Only rows they added themselves** writes the commonest rule in one click.\n\n**Write it myself** swaps the pickers for a text box, but even there the rule is not free-form code. It is compiled into a parameterised query, an app never runs a query of its own, and anything outside the safe subset — function calls, arithmetic — is refused when you save.\n\nOne trap worth reading twice: joined with **any of these**, each extra condition shows a role *more* rows, not fewer. The panel warns you on screen the moment you switch to it."
+    },
+    {
+      "type": "quiz",
+      "id": "q-viewas",
+      "question": "You give `inkoop` every row and `aanvrager` only their own, then switch the View as menu to `aanvrager`. What has that actually proved?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "That screens and components hidden from `aanvrager` are hidden — lists and tables still show every row you, the owner, can see.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "That an `aanvrager` will see only their own rows, because the preview runs the row rule.",
+          "correct": false,
+          "feedback": "The preview does not re-run the query as that person. The banner is blunt about it: each person only gets their own rows once they open the app themselves."
+        },
+        {
+          "id": "c",
+          "label": "That the rule is valid — an invalid rule would break the preview.",
+          "correct": false,
+          "feedback": "A rule is checked when you save it on the Row rules tab, against the same safe subset the server accepts. The preview never looks at it."
+        },
+        {
+          "id": "d",
+          "label": "Nothing at all, because View as only works once the app is published.",
+          "correct": false,
+          "feedback": "View as works on the draft canvas at any time, and it is genuinely useful — for layout. It is just not an access test."
+        }
+      ],
+      "explanation": "The View as banner spells it out: screens and components hidden from this role are hidden here, but lists and tables still show everything you can see. The Screen access tab says the same in its own words — a checked cell is a preview aid, and data access is always enforced by row-level security."
+    },
+    {
+      "type": "slide",
+      "id": "viewas",
+      "icon": "👓",
+      "title": "View as, and what really checks a rule",
+      "bodyMd": "**View as** sits in the editor header, and again under **More (⋯) → View as role…**. Its menu lists **Owner (full view)** plus every role the app has, and the tooltip says exactly what it is for: *preview which screens and components a role sees*.\n\nPick a role and a banner appears — **Previewing as** that role, with the warning printed on it: screens and components hidden from this role are hidden here, lists and tables still show everything you can see, and each person only gets their own rows once they open the app themselves. **Exit preview** puts you back. (It is a different control from the **Preview** segment beside Edit, which only switches the canvas from editing to clicking.)\n\nSo use it for what it is good at. Switch to `aanvrager` and you see at a glance that the supplier screen is gone from the menu and the Close request button is off the card. That is a layout answer, and a fast one.\n\nThe row rule needs another test entirely: a colleague who really holds that role opens the **published** app and reads back what they got. Until then, a row rule is a promise you wrote down, not one you checked."
+    },
+    {
+      "type": "sim",
+      "id": "sim-match",
+      "icon": "🧩",
+      "title": "Five requirements, five settings",
+      "instruction": "Van Dijk Groep wrote down what each group needs. Match each requirement to the setting that delivers it.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "own",
+            "left": "A site manager may only ever see the purchase requests they filed themselves.",
+            "right": "Only the rows they added",
+            "note": "The one-click preset. It sets reading, adding, editing and deleting in one go."
+          },
+          {
+            "id": "all",
+            "left": "The office handles every request from every site and closes them off.",
+            "right": "See, change and delete every row",
+            "note": "The role that runs the process needs the whole table, not a slice of it."
+          },
+          {
+            "id": "none",
+            "left": "The works council may open the app, but the supplier price table is none of their business.",
+            "right": "No access, on that one table",
+            "note": "Access is per table, so one role can be wide open on one table and shut out of the next."
+          },
+          {
+            "id": "rule",
+            "left": "A team lead sees every request for their own department and nobody else's.",
+            "right": "Every row, narrowed by a row rule on the department column",
+            "note": "Base access sets the ceiling; the rule takes it down to the rows that match."
+          },
+          {
+            "id": "default",
+            "left": "Anyone in the organisation who was never given a role should get nothing.",
+            "right": "Default role (everyone else) set to No access",
+            "note": "Leave the default on full access and every colleague inherits it silently."
+          }
+        ]
+      }
+    },
+    {
+      "type": "exercise",
+      "id": "ex-plan",
+      "icon": "🎯",
+      "exerciseId": "ex-apps-roles-plan",
+      "title": "Your turn: write the access plan",
+      "instruction": "Van Dijk Groep adds a second table to Inkoopaanvragen: `leveranciers`, holding supplier contacts and agreed contract prices. Three groups will use the app — site managers, the purchasing office, and the works council. In four or five lines, write the access plan: for each role, the base access on each of the two tables; any row rule, naming the column it compares and what it compares against; what \"Default role (everyone else)\" is set to; and how you will verify the result before you tell people the app is ready. A strong answer closes at least one table completely to one role, and does not lean on a hidden screen as the protection.",
+      "placeholder": "e.g. inkoop — aanvragen: see, change and delete every row; leveranciers: every row. aanvrager — aanvragen: only the rows they added; leveranciers: …",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "slide",
+      "id": "publish",
+      "icon": "📣",
+      "title": "Publishing picks the audience",
+      "bodyMd": "The **Publish app** dialog offers three audiences: **Private draft**, **Everyone in your organization**, and **Specific groups**. Groups must all come from one organisation.\n\n**Check this app** runs the app's screens and logic first without changing anything. If a publish is refused for something broken, nothing changes for your readers — they stay on the version you published last.\n\nVan Dijk Groep publishes Inkoopaanvragen to **Specific groups** and picks *Uitvoering*, so colleagues outside site work never even see the app in their list.\n\nWhat gets frozen is the canvas: screens, components and actions. Roles and row rules are not in that copy — they are saved with the app’s data and the server applies them to every request, so a tightened rule bites without a new publish.\n\nThe \"Show in the Nextcloud app menu\" tick is a separate thing: that icon is instance-wide, so everyone there sees it and only your chosen audience can use the app."
+    },
+    {
+      "type": "quiz",
+      "id": "q-frozen",
+      "question": "Inkoopaanvragen is published to the Uitvoering group. You open the canvas and add a new screen with a monthly overview. What do the site managers get for the rest of the afternoon?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "The copy you published last — the new screen reaches them when you press Publish changes.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "The new screen straight away; the canvas is the live app.",
+          "correct": false,
+          "feedback": "Publishing takes a copy of the canvas. Everyone but you runs that frozen copy until you publish again — which is also why a half-finished screen never leaks to your colleagues."
+        },
+        {
+          "id": "c",
+          "label": "The new screen as soon as they reload the page.",
+          "correct": false,
+          "feedback": "A reload fetches the same frozen copy. Reloading changes nothing; only a new publish does."
+        },
+        {
+          "id": "d",
+          "label": "Nothing — the app drops back to a private draft while you have it open.",
+          "correct": false,
+          "feedback": "Editing never unpublishes anything. The app becomes a private draft only when you choose that audience yourself in the Publish app dialog."
+        }
+      ],
+      "explanation": "The dialog says it plainly: publishing takes a copy of the app as it is now, you can keep editing afterwards, and readers stay on that copy until you publish again. While the live version is behind your canvas, the header button reads Publish changes. Access is the exception: roles and row rules are saved with the app’s data, not in the frozen copy, so they take hold at once."
+    },
+    {
+      "type": "slide",
+      "id": "consumer",
+      "icon": "📱",
+      "title": "What your colleagues see in Apps",
+      "bodyMd": "Nobody in the office opens App Studio. They open **Apps** in the left menu: **Recently used** above **All apps**, with **Search apps…** and a row of category pills — **All · Sales · Service · Finance · HR · Internal**.\n\nThat row is a closed list, not free text. An app with no category is still reachable under **All**, but it mints no pill of its own — so give Inkoopaanvragen one. And **Recently used** is not \"newest\": it is the handful of apps this reader has opened themselves, on this device, at most three.\n\nThe line under the list is the rule of the page: *Only what you are allowed to use appears here.* A colleague outside the *Uitvoering* group gets no locked tile — they get nothing where the app would be. Published nothing to them at all, and the page reads **No apps yet**.\n\nA direct link fails differently. Sent the address from outside the audience, they are refused — **This app is shared with specific groups**, or **This app is not available to you**. That is not the same failure as opening the app and finding the tables empty, and it has a different fix."
+    },
+    {
+      "type": "sim",
+      "id": "sim-find",
+      "icon": "🔎",
+      "title": "From your canvas to Nadia's Apps page",
+      "instruction": "Nadia works in Van Dijk Groep's office and is in the Uitvoering group. Put the five things in the order they have to happen before Inkoopaanvragen shows up for her under Recently used.",
+      "sim": {
+        "kind": "order",
+        "items": [
+          {
+            "id": "cat",
+            "label": "Give the app a category from the closed list — Finance — in its own settings"
+          },
+          {
+            "id": "check",
+            "label": "In Publish app, run Check this app and fix anything it lists as broken"
+          },
+          {
+            "id": "pub",
+            "label": "Choose Specific groups, pick Uitvoering, and press Apply"
+          },
+          {
+            "id": "open",
+            "label": "Nadia opens Apps, filters on the Finance pill and opens the tile under All apps"
+          },
+          {
+            "id": "recent",
+            "label": "From her next visit, the app sits under Recently used at the top of her page"
+          }
+        ],
+        "solution": [
+          "cat",
+          "check",
+          "pub",
+          "open",
+          "recent"
+        ],
+        "feedback": "What the builder controls comes first: the category decides which pill the app answers to, and Check this app runs inside the Publish dialog before you press Apply. Only once the audience includes Uitvoering does a tile exist for Nadia. Recently used comes last because it is her own history — it stays empty for her until she has opened the app once herself."
+      }
+    },
+    {
+      "type": "quiz",
+      "id": "q-notavail",
+      "question": "A site manager you never added to the Uitvoering group is sent the link to Inkoopaanvragen. What happens, and where do you fix it?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "They are refused — \"This app is shared with specific groups\" or \"This app is not available to you\" — and the app is absent from their Apps list too. Fix it in the Publish app dialog.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "The app opens with every table empty, because the row rules hand them nothing. Fix it on the Row rules tab.",
+          "correct": false,
+          "feedback": "Audience is decided before any row rule is consulted: someone outside it never reaches a screen. Empty tables are what an over-narrow row rule looks like for someone who IS in the audience — which is why the two failures point at different panels."
+        },
+        {
+          "id": "c",
+          "label": "The app opens read-only until you add them to the group.",
+          "correct": false,
+          "feedback": "There is no read-only visitor mode on a published app. The audience is a yes or a no; what someone may then read is decided by their role and its row rules."
+        },
+        {
+          "id": "d",
+          "label": "A greyed-out tile appears in their Apps list with a request-access button.",
+          "correct": false,
+          "feedback": "The Apps list shows only what a person may already use — the page says so: \"Only what you are allowed to use appears here.\" There is no locked tile and no request button; you widen the audience yourself."
+        }
+      ],
+      "explanation": "Two failures, two panels. Outside the audience: a refusal page and no tile at all, fixed by publishing to Everyone in your organization or by adding their group under Specific groups. Inside the audience but short of rows: their role and its row rules."
+    },
+    {
+      "type": "slide",
+      "id": "public",
+      "icon": "🌍",
+      "title": "The public page, and the role called public",
+      "bodyMd": "One **screen** of an app can be opened to people without an account, at an address of the form /p/ plus a long token. You open it by asking the AI builder — “make the intake screen publicly reachable”. There is no panel for it in the editor, and the address is minted over the API.\n\nMind the word *form* here. A **Form**, in Studio → Forms, is a different object, and that one is only ever filled in by signed-in colleagues of your own organisation. What goes public here is an app **screen** — it may carry a form component, but it is the app's public page that lets an outsider reach it. Promise an outsider a link and this is what you are promising, never a Form.\n\nAnonymous visitors carry a reserved role, **public**, denied on every table by default. It never inherits the table's ordinary setting, precisely because that setting starts out open. Grant it explicitly and narrowly: on Van Dijk Groep's leave-request app the *Aanvraag indienen* screen is the public one, and seasonal workers may add a row and read back only their own.\n\nThe app must be published before the address works, an app can hold three live addresses, and minting a new one does not retire the old — revoke it yourself."
+    },
+    {
+      "type": "quiz",
+      "id": "q-versions",
+      "question": "Version history is the undo of last resort. Which description matches what it actually keeps and does?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "The newest 20 snapshots, written when you publish, when you restore, and at the AI builder's checkpoints; restoring one puts it back on your canvas without publishing it.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Every draft save, so any wording you typed earlier can be recovered.",
+          "correct": false,
+          "feedback": "Draft saves write over each other. A snapshot is written on a publish, on a restore and at the AI builder's phase checkpoints — not on every edit."
+        },
+        {
+          "id": "c",
+          "label": "Every snapshot the app has ever had; nothing is ever dropped.",
+          "correct": false,
+          "feedback": "Only the newest 20 per app survive. As new snapshots arrive the oldest are pruned, so a very old state is not a safety net you can count on."
+        },
+        {
+          "id": "d",
+          "label": "The snapshots — and restoring one immediately hands your readers that older version back.",
+          "correct": false,
+          "feedback": "A restore lands on your canvas only. Readers keep the copy you published last, which is usually what you want while you check that the restore was the right one."
+        }
+      ],
+      "explanation": "Restoring creates a new version — nothing is lost, as the dialog says. It replaces what is on your canvas, leaves the published copy alone, and the history keeps the newest 20 snapshots per app — written on a publish, on a restore, and at the AI builder's checkpoints."
+    },
+    {
+      "type": "action",
+      "id": "do",
+      "icon": "🏗️",
+      "checkId": "app-published",
+      "title": "Set one role, then publish it",
+      "instruction": "Open an app you own in Studio → Apps. On the Roles view, add a role and give someone that role — map an organisation group to it, or assign a colleague by name — then press Save roles. On Row rules, pick your main table and that role, choose “Only the rows they added” and press Save row access. Finally open Publish app, choose Everyone in your organization or Specific groups, and press Apply.",
+      "launch": {
+        "navigateTo": "studio/apps",
+        "label": "Open Apps"
+      }
+    },
+    {
+      "type": "slide",
+      "id": "now",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "- **Set access per role, per table.** Pick the base access, then narrow it with a row rule that compares a column on the row against a fixed value or against the person opening the app.\n- **Read View as for what it is.** A layout preview, banner and all. The real test is a colleague in that role opening the published app and telling you what they see.\n- **Publish to the audience that needs it, and give the app a category.** Your colleagues meet the result in **Apps**, where only what they may use appears at all and the pill row is a closed list — so “I cannot find it” is an audience question, and “it is empty” is a row-rule question.\n- Screens on your canvas reach nobody until you press **Publish changes**, while a saved row rule applies at once.\n\nAnd when a screen goes out to the open internet, grant the `public` role deliberately, table by table. Nothing arrives there by inheritance — which is the one default in this chapter that is on your side."
+    }
+  ],
+  "rubrics": {
+    "ex-apps-roles-plan": {
+      "title": "Access plan for Inkoopaanvragen",
+      "task": "Write an access plan for an app with two tables (aanvragen, leveranciers) and three groups (site managers, the purchasing office, the works council): the base access per role per table, any row rule and what it compares, the setting for everyone else, and how the plan will be verified.",
+      "criteria": [
+        "Names a base access for each role on each table, using the meaning of the three presets — every row, only the rows they added, or no access.",
+        "Uses a row rule only where a narrowing is genuinely needed, and says which column is compared with which value or with the person opening the app.",
+        "States what \"Default role (everyone else)\" is set to, rather than leaving it implicit.",
+        "Closes the supplier price table to at least one role, showing that access is decided per table.",
+        "Verifies by having someone in that role open the published app, not by View as alone."
+      ],
+      "passScore": 70,
+      "guidance": "Do not pass an answer that relies on hiding a screen or component as the protection, that offers View as as the verification, that leaves the works council on the default role, or that tries to limit the app owner with a row rule — the owner always has full access and rules do not apply. An answer giving every role every row on both tables has not engaged with the task."
+    }
+  },
+  "practiceTopic": {
+    "title": "App roles, row rules and publishing",
+    "summary": "How an app decides who sees which rows, and what publishing actually changes for the people who use it.",
+    "facts": [
+      "The Roles view has three tabs — Roles, Screen access and Row rules — and its own Save; leaving mid-edit offers \"Discard changes\" or \"Keep editing\".",
+      "A viewer's role resolves in a fixed order: the app owner, then a person assigned by name, then a mapped organisation group, then “Default role (everyone else)” — a drop-down offering “App default (full access)”, “No access” and every role the app has — then no access at all.",
+      "The base-access presets on the Row rules tab are \"See, change and delete every row\", \"Only the rows they added\" and \"No access\", and one click sets reading, adding, editing and deleting together.",
+      "“View as” lists “Owner (full view)” plus each role and shows a “Previewing as” banner: screens and components hidden from that role are hidden, but lists and tables still show every row the owner can see — row security bites only when that person opens the app themselves.",
+      "The Publish app dialog offers Private draft, Everyone in your organization and Specific groups, groups must come from one organisation, and publishing freezes a copy of the canvas — roles and row rules sit with the app’s data and apply as soon as they are saved.",
+      "Anonymous visitors on a /p/ page carry the reserved role public, which is denied on every table until it is granted explicitly, and an app can hold at most three live public addresses.",
+      "Version history keeps the newest 20 snapshots per app, written on publish, on restore and at the AI builder's checkpoints; restoring one changes your canvas, not what readers see.",
+      "Colleagues open apps from Apps: “Recently used” (max three, only ones they opened) above “All apps”, a search box, closed category pills (All · Sales · Service · Finance · HR · Internal) and “Only what you are allowed to use appears here”; outside the audience, “This app is not available to you”."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "app-published",
+      "existing": false,
+      "label": "Publish an app you own",
+      "hint": "In Studio → Apps, open your app, press Publish, choose an audience and press Apply.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/studio-apps/mine",
+          "returns": "{ apps: [ … ] } — only apps owned by the caller; each row carries id, name, isPublished, publishedVersion, sharedGroups[]"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "owned",
+          "label": "You own at least one app",
+          "hint": "If the Apps gallery is empty, create one with New app first.",
+          "rule": "apps array length > 0",
+          "endpoint": "/api/studio-apps/mine",
+          "expect": {
+            "kind": "rows",
+            "field": "apps"
+          }
+        },
+        {
+          "id": "published",
+          "label": "One of your apps is published",
+          "hint": "Open the app, press Publish, pick Everyone in your organization or Specific groups, then Apply.",
+          "rule": "some app has isPublished === true and publishedVersion is not null"
+        }
+      ]
+    }
+  ]
+}

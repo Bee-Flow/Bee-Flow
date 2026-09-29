@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <!-- Locked to nothing but the files shipped beside this page. `file:` is
+             listed alongside 'self' because a file:// document's origin is
+             opaque in Chromium, so 'self' alone can refuse to match the page's
+             own scripts. There is no remote content on these pages at all, and
+             no network: everything they do goes over IPC. -->
+        <meta
+            http-equiv="Content-Security-Policy"
+            content="default-src 'none'; script-src 'self' file:; style-src 'self' file:; img-src 'self' file: data:; font-src 'self' file:; connect-src 'none'; base-uri 'none'; form-action 'none'"
+        />
+        <title>Connect to Bee Flow</title>
+        <link rel="stylesheet" href="styles.css" />
+    </head>
+    <body>
+        <main>
+            <div class="mark" aria-hidden="true">B</div>
+            <h1 id="heading">Connect to your Bee Flow server</h1>
+            <p id="intro">
+                Bee Flow is self-hosted: the workspace runs on your own server, and this app connects to it. Enter its
+                address to begin.
+            </p>
+
+            <div class="card">
+                <label for="server">Server address</label>
+                <input id="server" type="text" inputmode="url" placeholder="bee.example.com or 192.168.1.40:5176" autocomplete="off" autocapitalize="off" spellcheck="false" autofocus />
+                <p class="row-hint">
+                    The address you open Bee Flow at in a browser. On a standard self-hosted install that is port 5176;
+                    on your own network, <code>http://</code> works too.
+                </p>
+                <div class="status" id="status" role="status" aria-live="polite"></div>
+                <div class="actions">
+                    <button class="primary" id="connect">Connect</button>
+                    <button id="cancel" hidden>Cancel</button>
+                </div>
+            </div>
+
+            <section id="recent-section" hidden>
+                <h2>Recently used</h2>
+                <ul class="recent" id="recent"></ul>
+            </section>
+
+            <p class="muted">
+                Nothing about this computer is sent anywhere until a server is set. Bee Flow talks to the address you
+                enter and nowhere else.
+            </p>
+        </main>
+        <script type="module" src="welcome.js"></script>
+    </body>
+</html>

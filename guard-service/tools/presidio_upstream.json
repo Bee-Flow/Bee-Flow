@@ -1,0 +1,71 @@
+{
+  "_comment": [
+    "Provenance for the recognizer content ported from Presidio into",
+    "app/services/pii_regex.py and eval/validators.py.",
+    "",
+    "Presidio is MIT-licensed and, since 2026, community-owned under the",
+    "data-privacy-stack organisation. We vendor its CONTENT (patterns, context",
+    "word lists, checksum algorithms) rather than depending on the package:",
+    "presidio-analyzer hard-depends on spaCy, and the guard pod runs at 2451Mi",
+    "of a 4Gi limit with a 2.5GB GLiNER model already resident.",
+    "",
+    "Vendoring means upstream fixes do not arrive on their own. This file plus",
+    "`python -m tools.check_presidio_drift` makes that a visible decision rather",
+    "than a silent one: each entry records the exact upstream blob we read, so",
+    "the checker can report which have changed since.",
+    "",
+    "Blob SHAs, not a version pin, so the check needs no install and no spaCy."
+  ],
+  "repo": "data-privacy-stack/presidio",
+  "package_version_read": "2.2.364",
+  "license": "MIT",
+  "ported": [
+    {
+      "path": "presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/uk/uk_nino_recognizer.py",
+      "sha": "9ced6a505fa0438ee5abd377287140f0ea54986d",
+      "ported_at": "2026-07-30",
+      "into": "_GB_NINO_RE",
+      "took": "pattern (position-specific letter alphabets, never-issued prefixes), context words",
+      "notes": "Compiled uppercase-only rather than IGNORECASE, matching every other country pattern here; a lowercase NINO is not a form anyone writes and the case-blind version costs precision on ordinary words."
+    },
+    {
+      "path": "presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/uk/uk_nhs_recognizer.py",
+      "sha": "80b81e9470bafc0198fbfc18667d205fdc649fdc",
+      "ported_at": "2026-07-30",
+      "into": "_GB_NHS_RE, eval.validators.is_valid_uk_nhs",
+      "took": "pattern, mod-11 checksum, context words",
+      "notes": "Made ANCHOR-REQUIRED, which upstream is not. Measured: the checksum admits 9.2% of random ten-digit runs and the 3-3-4 grouping is also a NANP phone number and a spaced-IBAN tail. Anchor words extended with Dutch (polisnummer, verzekeringsnummer, zorgverzekeraar) because the document language is not the identifier's country."
+    },
+    {
+      "path": "presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/uk/uk_vehicle_registration_recognizer.py",
+      "sha": "5f63852ec7ce1d7d56cd07ca817919df7d8ec7ac",
+      "ported_at": "2026-07-30",
+      "into": "_GB_PLATE_RE",
+      "took": "current-format pattern, age-identifier validation",
+      "notes": "Only the current (2001+) format. Upstream also ships prefix (1983-2001) and suffix (1963-1983) formats at confidence 0.2 and 0.15; both reduce to 'a letter, up to three digits, three letters', which is too common in ordinary text for our precision bar. The age-identifier range check is folded into the pattern rather than kept as a separate validator."
+    },
+    {
+      "path": "presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/uk/uk_driving_licence_recognizer.py",
+      "sha": "37827ca0eec4690788d36c81a40d60ff2fc66773",
+      "ported_at": "2026-07-30",
+      "into": "_GB_DL_RE, _is_valid_uk_driving_licence",
+      "took": "pattern, surname-field rejection",
+      "notes": "The DVLA check-digit algorithm is not public, so upstream's validate_result only rejects; ours does the same. Not a checksum."
+    },
+    {
+      "path": "presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/uk/uk_passport_recognizer.py",
+      "sha": "60b1ccf645048346b53cc82dc574150c813c021b",
+      "ported_at": "2026-07-30",
+      "into": "_GB_PASSPORT_RE",
+      "took": "pattern (two letters + seven digits)",
+      "notes": "Reuses the existing passport anchor alternation, which already carries both Dutch and English wording."
+    }
+  ],
+  "evaluated_and_rejected": [
+    {
+      "path": "presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/uk/uk_postcode_recognizer.py",
+      "sha": "80d0192896b6d1dee026136a06ebfe06e476522f",
+      "reason": "Upstream ships it at confidence 0.1. A postcode is not a standalone identifier, and the only category it could map to here is Address — a fuzzy GLiNER category whose spans are whole address blocks, so emitting 'SW1A 1AA' as an Address would make the span extent lie about what was found. Same call as DE_PLZ, which upstream itself flags as high-false-positive at confidence 0.05."
+    }
+  ]
+}

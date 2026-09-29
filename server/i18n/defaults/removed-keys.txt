@@ -1,0 +1,160 @@
+# English keys that are removed ON PURPOSE.
+#
+# scripts/i18n-key-guard.mjs (CI, on every pull request) fails when a key that
+# exists in server/i18n/defaults/en/ on the base branch is missing on the pull
+# request — that is what a merge in which "the second wins" looks like. A key
+# you delete deliberately goes here, one per line, so the guard knows the
+# removal is intended. `#` starts a comment; blank lines are ignored.
+#
+# An entry only matters while the base branch still has the key. Once the
+# removal is merged, the line can go in any later cleanup.
+
+# Privacy Shield "Your own data" (2026-09): the "Always hide these" card and its
+# table moved to their own tab, under the shield_data namespace.
+admin.shield_custom_terms_empty_summary
+admin.shield_custom_terms_summary
+admin.shield_custom_terms_title
+admin.shield_hiw_exceptions_body
+admin.shield_manage
+admin.shield_posture_customterms
+admin.shield_posture_terms_value
+admin.shield_terms_add
+admin.shield_terms_case
+admin.shield_terms_desc
+admin.shield_terms_empty
+admin.shield_terms_err_duplicate
+admin.shield_terms_err_server
+admin.shield_terms_label
+admin.shield_terms_pattern
+admin.shield_terms_placeholder
+admin.shield_terms_remove
+admin.shield_terms_title
+admin.shield_terms_type
+admin.shield_terms_type_literal
+admin.shield_terms_type_regex
+
+# Privacy Shield egress map (2026-09): the map was rebuilt with its own namespace
+# (egress_map). The loading line admin.shield_map_loading is still used.
+admin.shield_map_alt
+admin.shield_map_footnote
+admin.shield_map_legend_eea
+admin.shield_map_legend_other
+admin.shield_map_pin
+admin.shield_map_unplaced
+
+# Builder list-in-text note (2026-09, BFSF-458): the one warning split in two,
+# a neutral JSON line for JSON bodies and a note naming join() for text slots.
+routines.builder.template_array_warn
+
+# Automations launcher (2026-09-28): the Build with AI tab is gone (owner);
+# its Learning Center tour step went with it.
+learn.automation-builder-tour.buildai.title
+learn.automation-builder-tour.buildai.body
+
+# "Start from Nextcloud Files" (2026-09-29): a click now hands the run fixed
+# fields for a folder OR a file, so the folder-only wording and the start-field
+# chooser ("Change", "The start hands the folder on as") are gone.
+routines.app_button.error.invalid_folder_path
+routines.app_button.picker.list
+routines.app_button.folder.change
+routines.app_button.folder.connect
+routines.app_button.folder.field_label
+routines.app_button.folder.none
+routines.app_button.folder.none_hint
+routines.app_button.folder.reads_other
+routines.app_button.folder.slot_empty
+routines.app_button.folder.slot_typed
+routines.app_button.folder.slots
+routines.app_button.folder.step_gets
+routines.app_button.folder.steps_get
+routines.app_button.folder_label
+routines.app_button.picker.empty_what
+routines.app_button.status.every_folder
+routines.app_button.try.bad_path
+routines.app_button.try.hint
+routines.app_button.try.path
+routines.app_button.why
+
+# 2026-09-29: "Start from Nextcloud Files" (the app button of handoff 5) removed at the owner's request:
+# the Settings card and dialog, the Files picker, the canvas chip and the right-click entry.
+routines.app_button.add
+routines.app_button.card.add_another
+routines.app_button.card.edit
+routines.app_button.card.edit_aria
+routines.app_button.card.for_owner_and
+routines.app_button.card.for_you_and
+routines.app_button.card.in_files_as
+routines.app_button.card.only_for_owner
+routines.app_button.card.only_for_you
+routines.app_button.card.remove
+routines.app_button.card.remove_aria
+routines.app_button.error.app_button_answer_required
+routines.app_button.error.app_button_incomplete
+routines.app_button.error.app_button_not_found
+routines.app_button.error.automation_forbidden
+routines.app_button.error.automation_not_active
+routines.app_button.example_folder
+routines.app_button.explain
+routines.app_button.explain_hint
+routines.app_button.files_entry
+routines.app_button.folder.connected_note
+routines.app_button.folder.fallback
+routines.app_button.folder.list_and
+routines.app_button.folder.step_option
+routines.app_button.folder.which_step
+routines.app_button.name
+routines.app_button.name_hint
+routines.app_button.name_required
+routines.app_button.notify_done
+routines.app_button.picker.answer_placeholder
+routines.app_button.picker.description
+routines.app_button.picker.empty_hint
+routines.app_button.picker.empty_title
+routines.app_button.picker.load_failed
+routines.app_button.picker.loading
+routines.app_button.picker.retry
+routines.app_button.picker.run
+routines.app_button.picker.run_failed
+routines.app_button.picker.shared_by
+routines.app_button.picker.started
+routines.app_button.picker.started_body
+routines.app_button.picker.started_test
+routines.app_button.picker.starting
+routines.app_button.picker.test_hint
+routines.app_button.picker.title
+routines.app_button.question
+routines.app_button.question_add
+routines.app_button.question_hint
+routines.app_button.question_placeholder
+routines.app_button.status.active
+routines.app_button.status.inactive
+routines.app_button.status.inactive_owner
+routines.app_button.status.make_live
+routines.app_button.step1
+routines.app_button.step2
+routines.app_button.step3
+routines.app_button.title
+routines.app_button.try.run
+routines.app_button.try.save_and_try
+routines.app_button.try.started
+routines.app_button.try.title
+routines.app_button.view_run
+routines.app_button.walkthrough
+routines.app_button.who.change
+routines.app_button.who.group
+routines.app_button.who.group_one
+routines.app_button.who.loading
+routines.app_button.who.locked
+routines.app_button.who.only_owner
+routines.app_button.who.only_you
+routines.app_button.who.owner_and
+routines.app_button.who.you_and
+routines.app_button.who_label
+routines.canvas.add_app_button
+routines.canvas.add_app_button_aria
+routines.canvas.no_app_button
+routines.settings.files_open
+routines.settings.files_rename
+routines.settings.files_share
+routines.settings.start_manual_detail
+routines.settings.start_manual_hint

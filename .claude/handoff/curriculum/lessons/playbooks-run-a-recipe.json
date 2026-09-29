@@ -1,0 +1,425 @@
+{
+ "id": "playbooks-run-a-recipe",
+ "icon": "🎬",
+ "estMinutes": 13,
+ "title": "Watch a playbook build",
+ "desc": "Phases, handoff cards, Continue / Skip / Stop — and what lands after each one.",
+ "gate": {
+  "permission": "manage_apps",
+  "feature": [
+   "automations",
+   "app_studio"
+  ]
+ },
+ "learningGoal": "After this lesson you can run a built-in playbook end to end and steer it at every consent pause.",
+ "steps": [
+  {
+   "type": "slide",
+   "id": "why",
+   "icon": "🎬",
+   "title": "A build you watch, phase by phase",
+   "bodyMd": "Anne keeps the purchase-invoice administration at **Van Dijk Groep**. Every supplier invoice arrives as a PDF in the Nextcloud folder `/Inkoop/Facturen-Q3`, and she retypes each one into a spreadsheet. What she wants instead is a table of those invoices and a small app on top of it.\n\nBy hand that is three jobs in three places: a table, then the routine builder, then the app builder. A **playbook** does the whole set in one sitting — and stops after every phase, so Anne can look at what landed before anything else is built on top of it.\n\nYou find it in **Studio**, in the **Bundle** group, under **Playbooks**: *\"Watch the AI build a table, a routine and an app — one phase at a time.\"* Two things decide whether you get that far. Playbooks needs the **app_studio** capability, or the rail shows the row locked. And every write — starting, continuing, skipping, retrying — needs the **manage apps** permission. Anne's role is **Agent Admin**, which carries it."
+  },
+  {
+   "type": "quiz",
+   "id": "q-who",
+   "question": "A colleague at Van Dijk Groep opens Studio → Playbooks, sees the section but no New playbook button, and an empty card reading \"Playbooks are started by whoever may build apps and automations here. Ask an administrator.\" What is missing?",
+   "multi": false,
+   "choices": [
+    {
+     "id": "a",
+     "label": "The manage apps permission. Reading playbooks needs only a login; every write — start, continue, skip, retry, delete — needs manage apps.",
+     "correct": true
+    },
+    {
+     "id": "b",
+     "label": "The app_studio capability that Playbooks runs on.",
+     "correct": false,
+     "feedback": "Without app_studio the Playbooks row in the Studio rail is locked, hinting \"Available on a higher plan\" or \"Not switched on for your organisation — ask an admin\". Your colleague would never reach this list, let alone its empty card."
+    },
+    {
+     "id": "c",
+     "label": "The manage datatables permission, without which the playbook has nowhere to put rows.",
+     "correct": false,
+     "feedback": "That permission only decides whether the Table phase may create a *new* organisation table. An Agent Editor has manage apps but not manage datatables: they still see New playbook, and can point the playbook at an existing table they may edit."
+    },
+    {
+     "id": "d",
+     "label": "A share on Anne's playbook — playbooks are per-user, so a colleague has to be added to hers first.",
+     "correct": false,
+     "feedback": "Playbooks really are owner-only — someone else's is simply not in your list, answered 404 rather than refused — but that hides Anne's playbook, not the New playbook button. The button is hidden by the permission."
+    }
+   ],
+   "explanation": "Two gates, two symptoms. app_studio decides whether the Playbooks row opens at all; manage apps decides whether you may start and steer one. Organisation Admin and Agent Admin hold manage apps and manage datatables, Agent Editor holds manage apps only, a plain member neither. The Solutions lessons later in this course ask for no permission at all — there is no Solutions org permission, only the licence gate and your role on the project."
+  },
+  {
+   "type": "slide",
+   "id": "phases",
+   "icon": "🧱",
+   "title": "One recipe, six phases",
+   "bodyMd": "Anne presses **New playbook** and picks the built-in recipe **Invoice tracker**. She leaves **Language** on **English**, so the table, its columns and the app's labels all come out in English.\n\nThat recipe runs as six phases, and every one of them leaves something real behind: a table called *Invoices*, a routine that reads the PDFs, real rows in the table, a design, an app, and an approval flow. Nothing here is a preview — a phase either landed or it did not. The approval flow is the one phase that needs the Enterprise plan; without it the playbook shows it locked and skips it.\n\nThe choice card shows the whole chain before you start. Work it out yourself first: each phase needs something the phase before it made."
+  },
+  {
+   "type": "sim",
+   "id": "sim-order",
+   "icon": "🧩",
+   "title": "Put the Invoice tracker in order",
+   "instruction": "The six phases below each need something an earlier phase made. Drag them into the order the playbook runs them for Van Dijk Groep — reason it out from what each one leaves behind.",
+   "sim": {
+    "kind": "order",
+    "items": [
+     {
+      "id": "app",
+      "label": "App — the App Studio editor builds an app on the table"
+     },
+     {
+      "id": "fill",
+      "label": "First rows — the routine runs once and real rows arrive"
+     },
+     {
+      "id": "table",
+      "label": "Table — the table Invoices is created or checked"
+     },
+     {
+      "id": "approvals",
+      "label": "Approval flow — a second routine parks an invoice for the Inkoop group"
+     },
+     {
+      "id": "design",
+      "label": "Design — the AI sketches screens, hierarchy and one accent"
+     },
+     {
+      "id": "routine",
+      "label": "Routine — the routine builder makes Read invoices"
+     }
+    ],
+    "solution": [
+     "table",
+     "routine",
+     "fill",
+     "design",
+     "app",
+     "approvals"
+    ],
+    "feedback": "Each phase feeds the next. The table hands over its real id and column keys; the routine is written against those keys; running it once puts real rows there; the designer works on an app with data behind it; the app is built on that design; and the approval routine needs a status column in the same table. Approvals are decided in Studio → Approvals, not in the app."
+   }
+  },
+  {
+   "type": "slide",
+   "id": "kinds",
+   "icon": "🧱",
+   "title": "Two ways a phase runs",
+   "bodyMd": "That is the chain the choice card shows:\n\n**Table → Routine → First rows → Design → App → Approval flow**\n\nSix phases, but five kinds — and the kind decides what you see:\n\n- **Table**, **First rows** and **Design** run on the server. No builder appears; the page shows the stage, the live panel of what is being built, and polls for progress.\n- **Routine** and **App** mount the *real* builders inside the playbook: the routine builder, then the App Studio editor, each with its brief already handed over. **Approval flow** is a second routine phase, so the routine builder comes back for it.\n\nWhatever they make is a normal routine and a normal app, waiting in Studio → Automations and Studio → Apps afterwards. A playbook keeps no private copy of anything: it drives the tools you already know."
+  },
+  {
+   "type": "slide",
+   "id": "options",
+   "icon": "🎛️",
+   "title": "The form you fill before it starts",
+   "bodyMd": "Between picking **Invoice tracker** and watching anything build, Anne fills one short form — and those answers steer all six phases.\n\n- **Name** — up to 120 characters; leave it and you get the recipe's own title.\n- **Language** — `English` or `Nederlands`. The hint says it plainly: *\"The table's columns, the briefs the AI works from and the app's labels are all in this language.\"*\n- **Where the rows go** — a new table, or **An existing table** picked under **Table**, whose select starts empty with **\"Pick a table…\"**.\n- **Nextcloud folder with the invoices** — an absolute path such as `/Inkoop/Facturen-Q3`; type `Facturen-Q3` and you are told *\"The folder is an absolute Nextcloud path, e.g. /Invoices.\"*\n- **Model** — **Fast** or **Auto**: *\"Fast keeps every phase at one pace; Auto adds a classification step per turn.\"*\n- **Approver group (optional)** — defaults to **Me (the owner)**; the organisation's groups are listed beside it.\n\nThen **Cancel** or **Start**. If the server refuses the options, the footer says why — *\"Pick the existing table.\"* — or falls back to **\"Check the options.\"**"
+  },
+  {
+   "type": "sim",
+   "id": "sim-options",
+   "icon": "🧩",
+   "title": "Which control answers which wish?",
+   "instruction": "Anne is filling the New playbook form for Van Dijk Groep. Match each thing she wants — or each thing that just went wrong — to the control in that form that settles it.",
+   "sim": {
+    "kind": "match",
+    "pairs": [
+     {
+      "id": "lang",
+      "left": "The table's columns, the app's labels and the phase summaries must come out in Dutch",
+      "right": "Language → Nederlands",
+      "note": "The Language control, not the words you type in a description, decides the language of everything the playbook builds."
+     },
+     {
+      "id": "folder",
+      "left": "The routine has to know which PDFs to read",
+      "right": "Nextcloud folder with the invoices → /Inkoop/Facturen-Q3",
+      "note": "A recipe input. It must be an absolute Nextcloud path starting with a slash, and the routine reads it through Anne's own Nextcloud connection."
+     },
+     {
+      "id": "approver",
+      "left": "The Inkoop team, not Anne alone, should decide on a parked invoice",
+      "right": "Approver group (optional) → Inkoop",
+      "note": "Left alone it reads Me (the owner). Only groups from your own organisation are offered, and the field only appears when a phase asks for approvals."
+     },
+     {
+      "id": "model",
+      "left": "Every phase should keep one pace, with no extra classification step per turn",
+      "right": "Model → Fast",
+      "note": "Fast is the default. Auto adds a classification step per turn — useful for mixed work, needless for one steady recipe."
+     },
+     {
+      "id": "table",
+      "left": "Start comes back with \"Pick the existing table.\" and nothing is created",
+      "right": "Table → Pick a table…",
+      "note": "You switched Where the rows go to An existing table but left the select on its placeholder. Pick the table — or switch back to A new table."
+     }
+    ]
+   }
+  },
+  {
+   "type": "slide",
+   "id": "handoff",
+   "icon": "🃏",
+   "title": "The handoff card is the consent pause",
+   "bodyMd": "When a phase lands, the stage stops moving and a card slides in under it:\n\n> **Phase 1 of 6 landed — Table**\n\nUnder the heading: the summary of what was actually made — for Anne, the table *Invoices* with its 8 columns —, and then the next phase. For a builder phase you get **\"Next: Routine — the brief the AI gets (edit if you like)\"** with the brief in an editable box of up to 3000 characters. For a server-run phase you get a line instead, such as **\"Next: First rows — the routine runs once so the table has real rows.\"**\n\nThree buttons: **Continue**, **Skip Routine**, **Stop**. On the last phase Continue reads **Finish**.\n\nThe brief box only steers the phase that has not started yet. Once a phase is running, its brief is frozen."
+  },
+  {
+   "type": "quiz",
+   "id": "q-autopilot",
+   "question": "The Routine phase has just landed. Anne switches on the Autopilot toggle in the top bar. What changes?",
+   "multi": false,
+   "choices": [
+    {
+     "id": "a",
+     "label": "The pause still happens — Autopilot only presses Continue for her, after a short linger, with a countdown toast offering \"Continue now\".",
+     "correct": true
+    },
+    {
+     "id": "b",
+     "label": "The phases stop waiting altogether: the playbook runs to the end and Continue is never sent again.",
+     "correct": false,
+     "feedback": "Every landing still waits, and Continue is still what moves the build on — Autopilot only presses it for her, and only after a linger: 8 seconds on First rows, 6 on Table and Design, 3 elsewhere. A toast slides in at the bottom right — \"Autopilot continues in {n} s\" — but the handoff card stays, and the phase really is paused."
+    },
+    {
+     "id": "c",
+     "label": "It is an organisation setting: once an admin turns it on, every playbook in the organisation continues by itself.",
+     "correct": false,
+     "feedback": "Autopilot is a preference of your own browser, not an organisation setting. A colleague opening the same playbook still sees the pause and has to press Continue."
+    },
+    {
+     "id": "d",
+     "label": "It hands the briefs to a quicker model so the phases finish sooner.",
+     "correct": false,
+     "feedback": "Which model the phases use comes from the **Model** control in the New playbook dialog (**Fast** or **Auto**). Autopilot never touches the model — only the pauses."
+    }
+   ],
+   "explanation": "Nothing in a playbook continues on its own. With Autopilot on, a toast counts down at the bottom right — \"Autopilot continues in {n} s\", with a \"Continue now\" link — and Continue is sent only when the linger runs out. With it off, the card waits for you, and the top bar even says \"Pauses after this phase\" while a phase runs."
+  },
+  {
+   "type": "slide",
+   "id": "table-choice",
+   "icon": "🗂️",
+   "title": "A new table, or one you already have",
+   "bodyMd": "In the **New playbook** dialog, **Where the rows go** has two settings.\n\n**A new table** — the playbook creates one. That needs the *manage datatables* permission; without it the Table phase fails and says so.\n\n**An existing table** — you pick it under **Table**, where each option reads `name · rowCount · Nextcloud`. The hint is blunt: *\"Own table or a Nextcloud mirror — you need edit rights; its columns are checked in the first phase.\"* The Table phase then says **\"Checking the columns…\"** and maps your column names onto the roles the briefs use.\n\nTwo things bite people here. A table you may only read fails the phase — the routine has to add rows. And a table with no **status** column makes the stage warn *\"No status column — the approval flow will be skipped\"*, and that phase is then skipped for you."
+  },
+  {
+   "type": "exercise",
+   "id": "ex-brief",
+   "icon": "✍️",
+   "exerciseId": "ex-playbooks-run-a-recipe-brief",
+   "title": "Your turn: steer the next phase",
+   "instruction": "Phase 1 has landed: the table Invoices exists with the columns Date, Supplier, Invoice number, Excl. VAT, VAT, Total, Status and File. The card now shows the Routine brief in an editable box, and Anne wants to add her own line before she presses Continue.\n\nWrite what she should add, in 2 to 5 sentences. A strong answer says where the invoices are read from, names the columns the routine must fill, insists the routine keeps a manual trigger so the First rows phase can run it once, and stays inside this one phase instead of describing the app.",
+   "placeholder": "e.g. Read the PDF files in /Inkoop/Facturen-Q3 through our Nextcloud connection and add one row per invoice, filling …",
+   "passScore": 70,
+   "maxAttempts": 4
+  },
+  {
+   "type": "quiz",
+   "id": "q-skip",
+   "question": "On a failed phase the card offers Retry, Skip this phase and Stop — but on the Table phase there is no Skip button, and the API refuses a skip as well. Why?",
+   "multi": false,
+   "choices": [
+    {
+     "id": "a",
+     "label": "Every later brief is composed from the table's real id and column keys, so with no table there is nothing for the following phases to build on.",
+     "correct": true
+    },
+    {
+     "id": "b",
+     "label": "Skipping the Table phase would delete the rows that already landed in it.",
+     "correct": false,
+     "feedback": "Skipping never deletes anything — it marks a phase skipped and moves on. The refusal is about dependency: the briefs after it are written with the table's real ids and column keys in them."
+    },
+    {
+     "id": "c",
+     "label": "Because Anne lacks the manage datatables permission, the button is hidden for her.",
+     "correct": false,
+     "feedback": "That permission decides whether a *new* organisation table may be created, and its absence fails the phase with its own message. Skip is missing on the Table phase for everyone, whatever their permissions."
+    },
+    {
+     "id": "d",
+     "label": "Because the Table phase runs on the server, and server-run phases can never be skipped.",
+     "correct": false,
+     "feedback": "First rows and Design also run on the server and both can be skipped. The Table phase is the one exception, because everything downstream depends on it."
+    }
+   ],
+   "explanation": "The table is the spine of a playbook. Its id, its column keys and the mapping of those keys onto roles are written into every brief that follows, which is why the Table phase can only be retried or the whole playbook stopped."
+  },
+  {
+   "type": "action",
+   "id": "do-run",
+   "icon": "🏗️",
+   "checkId": "playbook-run",
+   "title": "Run one for real — we will check it",
+   "instruction": "Open Studio → Playbooks, press New playbook and pick Invoice tracker: choose your language, leave Model on Fast, and point the folder input at an absolute Nextcloud path such as /Inkoop/Facturen-Q3. Press Start and wait for the Table phase to land. Read the summary on the handoff card, then press Continue, so at least one phase ends up marked Done.",
+   "launch": {
+    "navigateTo": "studio/playbooks",
+    "label": "Open Playbooks"
+   }
+  },
+  {
+   "type": "slide",
+   "id": "presenter",
+   "icon": "📽️",
+   "title": "Showing the build to other people",
+   "bodyMd": "A playbook is worth watching, so Anne runs one live for the Van Dijk Groep management team.\n\nOn a builder canvas she presses **Shift+P**. The type grows, the **Phases** rail widens from 236 to 280 pixels, and a **Presenter** pill appears in the top bar. It is a view setting shared with the builder canvases — it changes nothing about what is built, and Shift+P again puts it back.\n\nBeside it she switches **Autopilot** on, so each landing lingers by itself — 8 seconds on First rows, 6 on Table and Design, 3 elsewhere — with **\"Autopilot continues in {n} s\"** and a **\"Continue now\"** link.\n\nOne thing she cannot fix on stage: the language. A playbook runs in the language picked in the dialog and keeps it — English and Dutch are the two it speaks."
+  },
+  {
+   "type": "quiz",
+   "id": "q-presenter",
+   "icon": "❓",
+   "question": "Anne will demo the invoice playbook to Van Dijk Groep's management next week, on a beamer, in Dutch. What must she settle before she presses Start?",
+   "multi": false,
+   "choices": [
+    {
+     "id": "a",
+     "label": "The Language control — she picks Nederlands, because the playbook keeps the language it was created with: the columns, the titles, the screen names and the summaries. Presenter mode she can switch on any time with Shift+P.",
+     "correct": true
+    },
+    {
+     "id": "b",
+     "label": "Presenter mode — it has to be armed in the New playbook dialog, since a running playbook cannot change its layout.",
+     "correct": false,
+     "feedback": "There is no presenter control in the dialog. Shift+P on a builder canvas turns it on whenever you like, mid-build included: the Presenter pill appears, the type grows and the Phases rail widens to 280 pixels."
+    },
+    {
+     "id": "c",
+     "label": "Nothing — she switches her own interface to Dutch on the day and the playbook follows along.",
+     "correct": false,
+     "feedback": "The dialog only *starts* at the language on your screen; from Start the playbook keeps the language it was created with. Switching your interface afterwards will not rename a column called Supplier into Leverancier."
+    },
+    {
+     "id": "d",
+     "label": "Autopilot — without it the playbook stops between phases and a demo cannot run to the end.",
+     "correct": false,
+     "feedback": "Autopilot is only about who presses Continue, and it is a preference of her own browser. A demo runs perfectly well with her pressing Continue herself — that pause is the part worth showing."
+    }
+   ],
+   "explanation": "Two demo helpers, two moments. Language is a decision at creation time and travels with the playbook — English and Dutch are the packs it has. Presenter mode and Autopilot are view and pacing settings you can flip mid-build: Shift+P for the bigger stage, the Autopilot toggle for a landing that continues itself after a short linger."
+  },
+  {
+   "type": "slide",
+   "id": "failed",
+   "icon": "🛠️",
+   "title": "When a phase does not land",
+   "bodyMd": "The card has two other faces.\n\n**\"Phase 3 did not land\"** shows the reason and offers **Retry**, **Skip this phase** and **Stop**. Retry hands the brief over again and counts an attempt. A classic one here: *\"The routine starts on \"schedule\", not by hand\"* — the First rows phase runs the routine once by hand, so its trigger has to be manual.\n\n**\"The builder asked a question\"** means a builder stopped mid-phase and wants an answer: *\"Answer in the chat on the left and the phase goes on.\"* If what is already built is enough, **Mark as done** closes the phase — it is only offered once a routine or an app actually exists.\n\nAnd **Stop** is safe: *\"What has landed stays — the table, the automation draft, the app.\"* Reopen the playbook later and press **Resume**."
+  },
+  {
+   "type": "quiz",
+   "id": "q-fill",
+   "question": "Phase 3, First rows, fails at once for Van Dijk Groep: \"The routine starts on \"schedule\", not by hand — a manual trigger is needed to run it once here.\" What is the repair?",
+   "multi": false,
+   "choices": [
+    {
+     "id": "a",
+     "label": "Set the routine's trigger to manual in the routine, then press Retry on the failed phase.",
+     "correct": true
+    },
+    {
+     "id": "b",
+     "label": "Press Skip this phase — the app will collect the rows itself once it is built.",
+     "correct": false,
+     "feedback": "You may skip it, but then the Design and App phases work on an empty table and the routine still never runs by hand. An app does not read invoices; the routine does."
+    },
+    {
+     "id": "c",
+     "label": "Stop the playbook and start a fresh one on the same table.",
+     "correct": false,
+     "feedback": "Stopping keeps what landed and Resume brings you back, but nothing about the trigger changes — a new playbook would meet exactly the same refusal."
+    },
+    {
+     "id": "d",
+     "label": "Edit the brief in the handoff card so it tells the routine to run manually.",
+     "correct": false,
+     "feedback": "The brief box only steers a phase that has not started yet, and this phase has already run. First rows has no brief for a model in any case: the server simply runs the routine once."
+    }
+   ],
+   "explanation": "The First rows phase runs the existing routine once, as a manual run, and watches the row counter climb. A routine on a schedule or a file trigger cannot be started that way, so the fix lives in the routine, and Retry picks it up from there."
+  },
+  {
+   "type": "slide",
+   "id": "recap",
+   "icon": "✅",
+   "title": "What you can do now",
+   "bodyMd": "- **Start a playbook and drive it.** Studio → Playbooks → New playbook, pick Invoice tracker or describe your own, and press Continue, Skip or Stop on each handoff card. The top bar tells you where you are: \"Phase 2 of 6: Routine\".\n- **Steer before you consent.** Edit the next brief in the card while the phase is still waiting, and choose between a new table and an existing one knowing what each costs you — edit rights, mapped columns, and a status column if you want the approval flow.\n- **Recover without losing work.** Retry a failed phase, answer a builder that asked a question, or Stop and Resume later. What landed stays — and deleting the playbook afterwards leaves the table, the routine and the app exactly where they are."
+  }
+ ],
+ "rubrics": {
+  "ex-playbooks-run-a-recipe-brief": {
+   "title": "Steering the Routine brief",
+   "task": "Write the line or lines Anne adds to the Routine brief on the handoff card, after the table Invoices has landed with the columns Date, Supplier, Invoice number, Excl. VAT, VAT, Total, Status and File, before she presses Continue.",
+   "criteria": [
+    "Names the source concretely: the PDF invoices in the Nextcloud folder /Inkoop/Facturen-Q3, read through the Nextcloud connection.",
+    "Says which columns of Invoices the routine must fill, using the real column names rather than 'the fields'.",
+    "Asks for a manual trigger, or at least does not contradict it, so the First rows phase can run the routine once.",
+    "Stays inside the next phase only — it briefs the routine, it does not describe the app, the design or the approval flow."
+   ],
+   "passScore": 70,
+   "guidance": "Pass a concrete, phase-scoped brief even if it is short. Do not pass: a generic 'read the invoices and fill the table' with no folder and no columns; a brief that describes the whole build including the app screens; anything that asks for a schedule or a file trigger, since that breaks the First rows phase; or an answer that invents product behaviour, such as sending invoice data to an outside system."
+  }
+ },
+ "practiceTopic": {
+  "title": "Running a playbook",
+  "summary": "How a phased playbook build runs, pauses for consent and recovers from a failed phase.",
+  "facts": [
+   "Playbooks sits in the Bundle group of the Studio rail: \"Watch the AI build a table, a routine and an app — one phase at a time\". Reading needs only a login; starting, continuing, skipping, retrying or deleting one needs the manage apps permission.",
+   "The built-in Invoice tracker recipe runs six phases — Table, Routine, First rows, Design, App, Approval flow; Table, First rows and Design run on the server, while Routine, App and Approval flow mount the real routine builder and the real App Studio editor inside the playbook.",
+   "After every phase a handoff card reads \"Phase {n} of {total} landed\" and offers Continue, Skip {next phase} and Stop; on the last phase Continue reads Finish, and the next phase's brief is editable there up to 3000 characters until that phase starts.",
+   "Autopilot is a per-user browser preference: a toast at the bottom right reads \"Autopilot continues in {n} s\" with a \"Continue now\" link, and Continue is pressed after 8 seconds on First rows, 6 on Table and Design, 3 elsewhere.",
+   "The Table phase can never be skipped, the First rows phase can only run a routine whose trigger is manual, and a table without a status column makes the Approval flow phase be skipped.",
+   "The Language control in the New playbook dialog (English or Nederlands) decides the table's columns, the briefs the AI works from and the app's labels, and the playbook keeps that language after Start.",
+   "In the same dialog: Model offers Fast (the default) or Auto, which \"adds a classification step per turn\"; \"Nextcloud folder with the invoices\" must be an absolute path such as /Inkoop/Facturen-Q3; \"Approver group (optional)\" defaults to \"Me (the owner)\".",
+   "Choosing \"An existing table\" but leaving the select on \"Pick a table…\" makes Start fail with \"Pick the existing table.\" or \"Check the options.\"; Shift+P on a builder canvas turns on presenter mode — a \"Presenter\" pill, bigger type, the Phases rail at 280 pixels."
+  ]
+ },
+ "actionChecks": [
+  {
+   "checkId": "playbook-run",
+   "existing": false,
+   "label": "Run a playbook past its first phase",
+   "hint": "In Studio → Playbooks press New playbook, start the Invoice tracker, and press Continue once the Table phase lands.",
+   "endpoints": [
+    {
+     "method": "GET",
+     "path": "/api/playbooks",
+     "returns": "{ playbooks: [ { id, title, recipeId, recipeLabel, status, currentPhase, progress { done, total, locked }, phases: [ { key, kind, label, status } ], updatedAt } ] } — own playbooks only, ordered updated_at DESC, so playbooks[0] is the one you just worked on; phases[0] is the table phase"
+    }
+   ],
+   "criteria": [
+    {
+     "id": "created",
+     "label": "A playbook of your own exists",
+     "hint": "Studio → Playbooks → New playbook → Invoice tracker → Start.",
+     "endpoint": "/api/playbooks",
+     "expect": {
+      "kind": "nonEmpty",
+      "field": "playbooks"
+     },
+     "gate": {
+      "feature": "automations"
+     },
+     "rule": "GET /api/playbooks returns a non-empty playbooks array (the list is already scoped to you as owner)"
+    },
+    {
+     "id": "phase-landed",
+     "label": "Its Table phase is marked Done",
+     "hint": "Wait for the Table phase to land, read the handoff card and press Continue — then check again.",
+     "endpoint": "/api/playbooks",
+     "expect": {
+      "kind": "equals",
+      "field": "playbooks.0.phases.0.status",
+      "value": "done"
+     },
+     "gate": {
+      "feature": "automations"
+     },
+     "rule": "playbooks[0].phases[0].status === 'done' — the first phase is always the table phase, and it is the one phase that can never be skipped, so 'done' really means it landed and you pressed Continue"
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,179 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://license.beeflow.nl/modules/manifest.schema.json",
+  "title": "Bee Flow module manifest",
+  "description": "Descriptor for a downloadable Bee Flow Hub module (.bfmod). The product verifier (server/modules/packageVerify.js) enforces the load-bearing subset of this schema at install/boot; the full schema is enforced here at authoring/pack time.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["manifestVersion", "id", "name", "version", "hostApiVersion", "capabilities", "server"],
+  "properties": {
+    "manifestVersion": {
+      "type": "integer",
+      "enum": [1, 2],
+      "description": "Manifest envelope version. 2 adds the permission manifest (permissions[]) and server.native/restart/schemaVersion/streamingRoutes. mv2 with a non-empty permissions list MUST declare hostApiVersion >= 3; mv2 capability ids must be '<id>' or '<id>_'-prefixed and kind 'core' is forbidden."
+    },
+    "permissions": {
+      "type": "array",
+      "description": "mv2 only. Host-API permission grants this module needs; empty/absent = core-only surface. Fixed taxonomy ids plus 'http:<host>', 'http:*.domain' or 'http:*'. Shown verbatim in the operator consent dialog.",
+      "items": {
+        "type": "string",
+        "pattern": "^(db|ai|usage:write|limits:read|storage:read|webpages:write|email:send|license:read|config|env:docker|env:files|http:(\\*|(\\*\\.)?[a-z0-9]([a-z0-9.-]*[a-z0-9])?))$"
+      }
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{2,40}$",
+      "description": "Stable module slug. Must not collide with a built-in module id."
+    },
+    "name": { "type": "string", "minLength": 1, "maxLength": 80 },
+    "description": { "type": "string", "maxLength": 500 },
+    "icon": {
+      "type": "string",
+      "description": "lucide-react icon name (mapped on the client; falls back to Puzzle)."
+    },
+    "category": { "type": "string", "maxLength": 40 },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z-.]+)?(?:\\+[0-9A-Za-z-.]+)?$",
+      "description": "Semantic version of this module release."
+    },
+    "minAppVersion": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z-.]+)?(?:\\+[0-9A-Za-z-.]+)?$",
+      "description": "Advisory minimum product (server) version."
+    },
+    "maxAppVersion": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z-.]+)?(?:\\+[0-9A-Za-z-.]+)?$",
+      "description": "Advisory maximum product (server) version."
+    },
+    "hostApiVersion": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Hard compatibility gate — the host-context surface the module was built against. The loader refuses a mismatch."
+    },
+    "capabilities": {
+      "type": "array",
+      "description": "Capability descriptors this module contributes to the registry.",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["id"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z][a-z0-9_]{2,60}$" },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "kind": { "type": "string", "enum": ["beta", "ga", "core", "integration"] },
+          "lifecycle": { "type": "string", "enum": ["beta", "ga"] }
+        }
+      }
+    },
+    "server": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["entry"],
+      "properties": {
+        "entry": {
+          "type": "string",
+          "description": "Path to the built CommonJS server entry (e.g. server/entry.cjs) exporting createModule(host)."
+        },
+        "routes": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Advisory list of route prefixes the module mounts under the dispatcher."
+        },
+        "workers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id"],
+            "properties": {
+              "id": { "type": "string" },
+              "description": { "type": "string" },
+              "intervalMs": { "type": "integer", "minimum": 1000 }
+            }
+          }
+        },
+        "stores": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Advisory list of store names the module initialises."
+        },
+        "native": {
+          "type": "boolean",
+          "description": "mv2. True when the package contains native addons (*.node) — updates STAGE and require a restart."
+        },
+        "restart": {
+          "type": "string",
+          "enum": ["auto", "never", "always"],
+          "description": "mv2. Restart policy for updates: 'auto' (host decides from package contents), 'never' (hot-swap always safe), 'always' (stage every update for the next restart)."
+        },
+        "schemaVersion": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "mv2. Monotonic version of the module's OWN database schema; rollback to a lower schemaVersion is guarded (409 schema_downgrade unless forced)."
+        },
+        "streamingRoutes": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "mv2. Route prefixes exempt from the host's per-request deadline (SSE / long-poll endpoints)."
+        }
+      }
+    },
+    "frontend": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["entry"],
+      "properties": {
+        "entry": {
+          "type": "string",
+          "description": "Path to the built ESM frontend entry (e.g. frontend/index.js), react family externalised."
+        },
+        "css": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "CSS files injected as <link> when the module UI mounts."
+        },
+        "studioApp": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["urlSegment", "labels"],
+          "properties": {
+            "urlSegment": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{1,40}$",
+              "description": "Route segment under Studio (e.g. /studio/<urlSegment>)."
+            },
+            "labels": {
+              "type": "object",
+              "description": "Locale -> display label map (must include 'en').",
+              "required": ["en"],
+              "additionalProperties": { "type": "string" }
+            },
+            "icon": { "type": "string" },
+            "gateCapability": {
+              "type": "string",
+              "description": "Capability id that must be entitled for the Studio tab to render."
+            }
+          }
+        },
+        "sharedDependencies": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Bare specifiers the module expects the host to provide via import map (react family is always shared)."
+        }
+      }
+    },
+    "requirements": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Runtime prerequisites surfaced to the operator (docker socket, images, env patterns).",
+      "properties": {
+        "docker": { "type": "boolean" },
+        "images": { "type": "array", "items": { "type": "string" } },
+        "env": { "type": "array", "items": { "type": "string" } },
+        "notes": { "type": "string" }
+      }
+    }
+  }
+}

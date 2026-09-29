@@ -1,0 +1,3374 @@
+{
+ "model": "gliner2",
+ "split": "dev",
+ "provenance": {
+  "model_id": "fastino/GLiNER2.5-multi-Decide",
+  "revision": "6bc1d43d201b0691e733626389af8c57eea3ea68",
+  "package": "gliner2",
+  "dtype": "torch.float32",
+  "device": "cpu",
+  "label_scoring": "joint (labels in the schema prompt with the text)",
+  "score": "multi_label confidence per label",
+  "max_len": 4096,
+  "parameters_m": 287.4
+ },
+ "env": {
+  "date": "2026-09-26T15:10:57+00:00",
+  "python": "3.12.14",
+  "packages": {
+   "torch": "2.14.0+cpu",
+   "transformers": "4.57.6",
+   "tokenizers": "0.22.2",
+   "huggingface_hub": "0.36.2",
+   "numpy": "2.5.3",
+   "gliner2": "2.0.0",
+   "protobuf": "7.36.2"
+  },
+  "cpu_model": "AMD RYZEN AI MAX+ 395 w/ Radeon 8060S",
+  "os_cpu_count": 32,
+  "affinity_cpus": 32,
+  "cgroup_cpu_max": "300000 100000",
+  "cgroup_memory_max": "4294967296",
+  "torch_threads": 3,
+  "cuda_available": false
+ },
+ "load_seconds": 10.0,
+ "corpus": {
+  "items_sha256": "99bdaf0369fbecb971f92b81d2851fa5427a4aa4132ec168c6533455427f8b2d",
+  "labelsets_sha256": "4c81bf3cc568e4084a3f038e3e7bc97922b452ef523d9265cd8f7d998990e932",
+  "n": 120,
+  "tokens_by_kind": {
+   "email": {
+    "min": 36,
+    "median": 110,
+    "max": 863
+   },
+   "filecontent": {
+    "min": 93,
+    "median": 150,
+    "max": 234
+   },
+   "filename": {
+    "min": 5,
+    "median": 12,
+    "max": 18
+   },
+   "form": {
+    "min": 10,
+    "median": 27,
+    "max": 54
+   }
+  }
+ },
+ "headline_config": {
+  "labels": "en (articled)",
+  "truncation": "head 512 tokens",
+  "joint_call": true
+ },
+ "timing": {
+  "score_seconds": 54.79,
+  "seconds_per_item": 0.457
+ },
+ "results": {
+  "sweep": [
+   {
+    "threshold": 0.05,
+    "macro_f1": 0.51,
+    "macro_f2": 0.7105,
+    "macro_f05": 0.402,
+    "micro_f1": 0.506,
+    "micro_precision": 0.3387,
+    "micro_recall": 1.0,
+    "none_fp_rate": 1.0
+   },
+   {
+    "threshold": 0.1,
+    "macro_f1": 0.6547,
+    "macro_f2": 0.8021,
+    "macro_f05": 0.561,
+    "micro_f1": 0.6508,
+    "micro_precision": 0.49,
+    "micro_recall": 0.9685,
+    "none_fp_rate": 1.0
+   },
+   {
+    "threshold": 0.15,
+    "macro_f1": 0.7853,
+    "macro_f2": 0.8748,
+    "macro_f05": 0.7218,
+    "micro_f1": 0.7846,
+    "micro_precision": 0.663,
+    "micro_recall": 0.9606,
+    "none_fp_rate": 1.0
+   },
+   {
+    "threshold": 0.2,
+    "macro_f1": 0.8349,
+    "macro_f2": 0.8847,
+    "macro_f05": 0.8026,
+    "micro_f1": 0.844,
+    "micro_precision": 0.7677,
+    "micro_recall": 0.937,
+    "none_fp_rate": 0.7222
+   },
+   {
+    "threshold": 0.25,
+    "macro_f1": 0.8656,
+    "macro_f2": 0.8856,
+    "macro_f05": 0.857,
+    "micro_f1": 0.8755,
+    "micro_precision": 0.8406,
+    "micro_recall": 0.9134,
+    "none_fp_rate": 0.5556
+   },
+   {
+    "threshold": 0.3,
+    "macro_f1": 0.8769,
+    "macro_f2": 0.8769,
+    "macro_f05": 0.8876,
+    "micro_f1": 0.8863,
+    "micro_precision": 0.8828,
+    "micro_recall": 0.8898,
+    "none_fp_rate": 0.3889
+   },
+   {
+    "threshold": 0.35,
+    "macro_f1": 0.8649,
+    "macro_f2": 0.8502,
+    "macro_f05": 0.8896,
+    "micro_f1": 0.8735,
+    "micro_precision": 0.9068,
+    "micro_recall": 0.8425,
+    "none_fp_rate": 0.2778
+   },
+   {
+    "threshold": 0.4,
+    "macro_f1": 0.8519,
+    "macro_f2": 0.8126,
+    "macro_f05": 0.9047,
+    "micro_f1": 0.8584,
+    "micro_precision": 0.9434,
+    "micro_recall": 0.7874,
+    "none_fp_rate": 0.1667
+   },
+   {
+    "threshold": 0.45,
+    "macro_f1": 0.8111,
+    "macro_f2": 0.7604,
+    "macro_f05": 0.8847,
+    "micro_f1": 0.8214,
+    "micro_precision": 0.9485,
+    "micro_recall": 0.7244,
+    "none_fp_rate": 0.1111
+   },
+   {
+    "threshold": 0.5,
+    "macro_f1": 0.7987,
+    "macro_f2": 0.7416,
+    "macro_f05": 0.8802,
+    "micro_f1": 0.8091,
+    "micro_precision": 0.957,
+    "micro_recall": 0.7008,
+    "none_fp_rate": 0.1111
+   },
+   {
+    "threshold": 0.55,
+    "macro_f1": 0.7818,
+    "macro_f2": 0.7178,
+    "macro_f05": 0.8753,
+    "micro_f1": 0.7907,
+    "micro_precision": 0.9659,
+    "micro_recall": 0.6693,
+    "none_fp_rate": 0.1111
+   },
+   {
+    "threshold": 0.6,
+    "macro_f1": 0.7548,
+    "macro_f2": 0.6815,
+    "macro_f05": 0.8656,
+    "micro_f1": 0.7596,
+    "micro_precision": 0.9753,
+    "micro_recall": 0.622,
+    "none_fp_rate": 0.1111
+   },
+   {
+    "threshold": 0.65,
+    "macro_f1": 0.7166,
+    "macro_f2": 0.6356,
+    "macro_f05": 0.8439,
+    "micro_f1": 0.72,
+    "micro_precision": 0.9863,
+    "micro_recall": 0.5669,
+    "none_fp_rate": 0.0556
+   },
+   {
+    "threshold": 0.7,
+    "macro_f1": 0.6486,
+    "macro_f2": 0.5676,
+    "macro_f05": 0.7836,
+    "micro_f1": 0.6597,
+    "micro_precision": 0.9844,
+    "micro_recall": 0.4961,
+    "none_fp_rate": 0.0556
+   },
+   {
+    "threshold": 0.75,
+    "macro_f1": 0.5919,
+    "macro_f2": 0.5126,
+    "macro_f05": 0.7296,
+    "micro_f1": 0.612,
+    "micro_precision": 1.0,
+    "micro_recall": 0.4409,
+    "none_fp_rate": 0.0
+   },
+   {
+    "threshold": 0.8,
+    "macro_f1": 0.5023,
+    "macro_f2": 0.4328,
+    "macro_f05": 0.6252,
+    "micro_f1": 0.5318,
+    "micro_precision": 1.0,
+    "micro_recall": 0.3622,
+    "none_fp_rate": 0.0
+   },
+   {
+    "threshold": 0.85,
+    "macro_f1": 0.4432,
+    "macro_f2": 0.3703,
+    "macro_f05": 0.5816,
+    "micro_f1": 0.4699,
+    "micro_precision": 1.0,
+    "micro_recall": 0.3071,
+    "none_fp_rate": 0.0
+   },
+   {
+    "threshold": 0.9,
+    "macro_f1": 0.351,
+    "macro_f2": 0.2906,
+    "macro_f05": 0.471,
+    "micro_f1": 0.3718,
+    "micro_precision": 1.0,
+    "micro_recall": 0.2283,
+    "none_fp_rate": 0.0
+   },
+   {
+    "threshold": 0.95,
+    "macro_f1": 0.2717,
+    "macro_f2": 0.2297,
+    "macro_f05": 0.3499,
+    "micro_f1": 0.2953,
+    "micro_precision": 1.0,
+    "micro_recall": 0.1732,
+    "none_fp_rate": 0.0
+   }
+  ],
+  "best_threshold": 0.3,
+  "loose_threshold": 0.25,
+  "strict_threshold": 0.4,
+  "at_best": {
+   "n": 120,
+   "n_classes": 25,
+   "macro_f1": 0.8769,
+   "micro_f1": 0.8863,
+   "micro_precision": 0.8828,
+   "micro_recall": 0.8898,
+   "none_fp_rate": 0.3889
+  },
+  "at_0_5": {
+   "n": 120,
+   "n_classes": 25,
+   "macro_f1": 0.7987,
+   "micro_f1": 0.8091,
+   "micro_precision": 0.957,
+   "micro_recall": 0.7008,
+   "none_fp_rate": 0.1111
+  },
+  "top1": {
+   "n": 77,
+   "accuracy": 0.961
+  },
+  "by_lang": {
+   "en": {
+    "n": 54,
+    "n_classes": 25,
+    "macro_f1": 0.8992,
+    "micro_f1": 0.9138,
+    "micro_precision": 0.8983,
+    "micro_recall": 0.9298,
+    "none_fp_rate": 0.25
+   },
+   "nl": {
+    "n": 66,
+    "n_classes": 25,
+    "macro_f1": 0.8647,
+    "micro_f1": 0.8633,
+    "micro_precision": 0.8696,
+    "micro_recall": 0.8571,
+    "none_fp_rate": 0.5
+   }
+  },
+  "by_kind": {
+   "email": {
+    "n": 42,
+    "n_classes": 7,
+    "macro_f1": 0.8905,
+    "micro_f1": 0.8958,
+    "micro_precision": 0.8776,
+    "micro_recall": 0.9149,
+    "none_fp_rate": 0.5
+   },
+   "filecontent": {
+    "n": 26,
+    "n_classes": 6,
+    "macro_f1": 0.879,
+    "micro_f1": 0.902,
+    "micro_precision": 0.92,
+    "micro_recall": 0.8846,
+    "none_fp_rate": 0.0
+   },
+   "filename": {
+    "n": 26,
+    "n_classes": 6,
+    "macro_f1": 0.9108,
+    "micro_f1": 0.92,
+    "micro_precision": 0.9583,
+    "micro_recall": 0.8846,
+    "none_fp_rate": 0.0
+   },
+   "form": {
+    "n": 26,
+    "n_classes": 6,
+    "macro_f1": 0.8251,
+    "micro_f1": 0.8276,
+    "micro_precision": 0.8,
+    "micro_recall": 0.8571,
+    "none_fp_rate": 1.0
+   }
+  },
+  "per_class_at_best": {
+   "email:a cancellation": {
+    "tp": 6,
+    "fp": 1,
+    "fn": 1,
+    "gold": 7,
+    "precision": 0.8571,
+    "recall": 0.8571,
+    "f1": 0.8571
+   },
+   "email:a complaint": {
+    "tp": 9,
+    "fp": 2,
+    "fn": 1,
+    "gold": 10,
+    "precision": 0.8182,
+    "recall": 0.9,
+    "f1": 0.8571
+   },
+   "email:a job application": {
+    "tp": 5,
+    "fp": 0,
+    "fn": 0,
+    "gold": 5,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0
+   },
+   "email:a meeting request": {
+    "tp": 5,
+    "fp": 3,
+    "fn": 0,
+    "gold": 5,
+    "precision": 0.625,
+    "recall": 1.0,
+    "f1": 0.7692
+   },
+   "email:a question about an order": {
+    "tp": 8,
+    "fp": 0,
+    "fn": 0,
+    "gold": 8,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0
+   },
+   "email:an invoice": {
+    "tp": 7,
+    "fp": 0,
+    "fn": 0,
+    "gold": 7,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0
+   },
+   "email:spam or marketing": {
+    "tp": 3,
+    "fp": 0,
+    "fn": 2,
+    "gold": 5,
+    "precision": 1.0,
+    "recall": 0.6,
+    "f1": 0.75
+   },
+   "filecontent:a CV": {
+    "tp": 3,
+    "fp": 1,
+    "fn": 0,
+    "gold": 3,
+    "precision": 0.75,
+    "recall": 1.0,
+    "f1": 0.8571
+   },
+   "filecontent:a contract": {
+    "tp": 5,
+    "fp": 0,
+    "fn": 0,
+    "gold": 5,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0
+   },
+   "filecontent:a delivery note": {
+    "tp": 2,
+    "fp": 0,
+    "fn": 2,
+    "gold": 4,
+    "precision": 1.0,
+    "recall": 0.5,
+    "f1": 0.6667
+   },
+   "filecontent:a quote": {
+    "tp": 3,
+    "fp": 1,
+    "fn": 1,
+    "gold": 4,
+    "precision": 0.75,
+    "recall": 0.75,
+    "f1": 0.75
+   },
+   "filecontent:an invoice": {
+    "tp": 6,
+    "fp": 0,
+    "fn": 0,
+    "gold": 6,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0
+   },
+   "filecontent:meeting minutes": {
+    "tp": 4,
+    "fp": 0,
+    "fn": 0,
+    "gold": 4,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0
+   },
+   "filename:a CV": {
+    "tp": 3,
+    "fp": 0,
+    "fn": 0,
+    "gold": 3,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0
+   },
+   "filename:a contract": {
+    "tp": 5,
+    "fp": 1,
+    "fn": 0,
+    "gold": 5,
+    "precision": 0.8333,
+    "recall": 1.0,
+    "f1": 0.9091
+   },
+   "filename:a photo": {
+    "tp": 4,
+    "fp": 0,
+    "fn": 0,
+    "gold": 4,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0
+   },
+   "filename:a quote": {
+    "tp": 5,
+    "fp": 0,
+    "fn": 0,
+    "gold": 5,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0
+   },
+   "filename:an invoice": {
+    "tp": 4,
+    "fp": 0,
+    "fn": 1,
+    "gold": 5,
+    "precision": 1.0,
+    "recall": 0.8,
+    "f1": 0.8889
+   },
+   "filename:meeting minutes": {
+    "tp": 2,
+    "fp": 0,
+    "fn": 2,
+    "gold": 4,
+    "precision": 1.0,
+    "recall": 0.5,
+    "f1": 0.6667
+   },
+   "form:a cancellation": {
+    "tp": 3,
+    "fp": 0,
+    "fn": 1,
+    "gold": 4,
+    "precision": 1.0,
+    "recall": 0.75,
+    "f1": 0.8571
+   },
+   "form:a complaint": {
+    "tp": 6,
+    "fp": 0,
+    "fn": 0,
+    "gold": 6,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0
+   },
+   "form:a question about an order": {
+    "tp": 4,
+    "fp": 2,
+    "fn": 1,
+    "gold": 5,
+    "precision": 0.6667,
+    "recall": 0.8,
+    "f1": 0.7273
+   },
+   "form:a request for a quote": {
+    "tp": 3,
+    "fp": 2,
+    "fn": 0,
+    "gold": 3,
+    "precision": 0.6,
+    "recall": 1.0,
+    "f1": 0.75
+   },
+   "form:a technical problem": {
+    "tp": 4,
+    "fp": 0,
+    "fn": 1,
+    "gold": 5,
+    "precision": 1.0,
+    "recall": 0.8,
+    "f1": 0.8889
+   },
+   "form:positive feedback": {
+    "tp": 4,
+    "fp": 2,
+    "fn": 1,
+    "gold": 5,
+    "precision": 0.6667,
+    "recall": 0.8,
+    "f1": 0.7273
+   }
+  }
+ },
+ "probes": {
+  "label_set_sensitivity": {
+   "distractors": {
+    "email": [
+     "a password reset",
+     "a thank-you note"
+    ],
+    "filename": [
+     "a presentation",
+     "a spreadsheet"
+    ],
+    "filecontent": [
+     "a recipe",
+     "a news article"
+    ],
+    "form": [
+     "a donation",
+     "a press inquiry"
+    ]
+   },
+   "n": 120,
+   "headline_macro_f1_at_best": 0.8769,
+   "variant_macro_f1_at_best": 0.9201,
+   "variant_best_threshold": 0.3,
+   "variant_macro_f1_at_own_best": 0.9201,
+   "headline_top1": 0.961,
+   "variant_top1": 0.974,
+   "gold_score_mean_abs_delta": {
+    "n": 127,
+    "mean": 0.0371,
+    "median": 0.0248,
+    "max": 0.2582
+   },
+   "decision_flips_at_best": 16,
+   "macro_f1_by_threshold": {
+    "0.05": [
+     0.51,
+     0.5676
+    ],
+    "0.1": [
+     0.6547,
+     0.7582
+    ],
+    "0.15": [
+     0.7853,
+     0.8509
+    ],
+    "0.2": [
+     0.8349,
+     0.8829
+    ],
+    "0.25": [
+     0.8656,
+     0.911
+    ],
+    "0.3": [
+     0.8769,
+     0.9201
+    ],
+    "0.35": [
+     0.8649,
+     0.8759
+    ],
+    "0.4": [
+     0.8519,
+     0.839
+    ],
+    "0.45": [
+     0.8111,
+     0.8236
+    ],
+    "0.5": [
+     0.7987,
+     0.795
+    ],
+    "0.55": [
+     0.7818,
+     0.7856
+    ],
+    "0.6": [
+     0.7548,
+     0.7542
+    ],
+    "0.65": [
+     0.7166,
+     0.7156
+    ],
+    "0.7": [
+     0.6486,
+     0.6504
+    ],
+    "0.75": [
+     0.5919,
+     0.5722
+    ],
+    "0.8": [
+     0.5023,
+     0.5056
+    ],
+    "0.85": [
+     0.4432,
+     0.4293
+    ],
+    "0.9": [
+     0.351,
+     0.3348
+    ],
+    "0.95": [
+     0.2717,
+     0.2175
+    ]
+   },
+   "all_labels_mean_abs_delta": {
+    "n": 762,
+    "mean": 0.0224,
+    "median": 0.0084,
+    "max": 0.3807
+   },
+   "distractor_fired_share_at_best": 0.0833
+  },
+  "label_phrasing": {
+   "bare_vs_articled": {
+    "n": 120,
+    "headline_macro_f1_at_best": 0.8769,
+    "variant_macro_f1_at_best": 0.8751,
+    "variant_best_threshold": 0.25,
+    "variant_macro_f1_at_own_best": 0.8759,
+    "headline_top1": 0.961,
+    "variant_top1": 0.961,
+    "gold_score_mean_abs_delta": {
+     "n": 127,
+     "mean": 0.0407,
+     "median": 0.0264,
+     "max": 0.2716
+    },
+    "decision_flips_at_best": 14,
+    "macro_f1_by_threshold": {
+     "0.05": [
+      0.51,
+      0.531
+     ],
+     "0.1": [
+      0.6547,
+      0.6666
+     ],
+     "0.15": [
+      0.7853,
+      0.7953
+     ],
+     "0.2": [
+      0.8349,
+      0.8443
+     ],
+     "0.25": [
+      0.8656,
+      0.8759
+     ],
+     "0.3": [
+      0.8769,
+      0.8751
+     ],
+     "0.35": [
+      0.8649,
+      0.8513
+     ],
+     "0.4": [
+      0.8519,
+      0.8203
+     ],
+     "0.45": [
+      0.8111,
+      0.8165
+     ],
+     "0.5": [
+      0.7987,
+      0.7853
+     ],
+     "0.55": [
+      0.7818,
+      0.7579
+     ],
+     "0.6": [
+      0.7548,
+      0.7307
+     ],
+     "0.65": [
+      0.7166,
+      0.692
+     ],
+     "0.7": [
+      0.6486,
+      0.6387
+     ],
+     "0.75": [
+      0.5919,
+      0.5531
+     ],
+     "0.8": [
+      0.5023,
+      0.4968
+     ],
+     "0.85": [
+      0.4432,
+      0.4201
+     ],
+     "0.9": [
+      0.351,
+      0.316
+     ],
+     "0.95": [
+      0.2717,
+      0.2584
+     ]
+    }
+   },
+   "dutch_labels": {
+    "hypothesis_template": null,
+    "on_nl_items": {
+     "n": 66,
+     "headline_macro_f1_at_best": 0.8647,
+     "variant_macro_f1_at_best": 0.8547,
+     "variant_best_threshold": 0.3,
+     "variant_macro_f1_at_own_best": 0.8547,
+     "headline_top1": 0.9524,
+     "variant_top1": 0.9048,
+     "gold_score_mean_abs_delta": {
+      "n": 70,
+      "mean": 0.1619,
+      "median": 0.1179,
+      "max": 0.7899
+     },
+     "decision_flips_at_best": 19,
+     "macro_f1_by_threshold": {
+      "0.05": [
+       0.4732,
+       0.531
+      ],
+      "0.1": [
+       0.6361,
+       0.7032
+      ],
+      "0.15": [
+       0.7952,
+       0.8134
+      ],
+      "0.2": [
+       0.82,
+       0.8391
+      ],
+      "0.25": [
+       0.8715,
+       0.844
+      ],
+      "0.3": [
+       0.8647,
+       0.8547
+      ],
+      "0.35": [
+       0.8535,
+       0.8496
+      ],
+      "0.4": [
+       0.8486,
+       0.8494
+      ],
+      "0.45": [
+       0.7577,
+       0.815
+      ],
+      "0.5": [
+       0.75,
+       0.8096
+      ],
+      "0.55": [
+       0.7383,
+       0.7576
+      ],
+      "0.6": [
+       0.6721,
+       0.73
+      ],
+      "0.65": [
+       0.5923,
+       0.6914
+      ],
+      "0.7": [
+       0.5136,
+       0.628
+      ],
+      "0.75": [
+       0.439,
+       0.6147
+      ],
+      "0.8": [
+       0.355,
+       0.5947
+      ],
+      "0.85": [
+       0.3084,
+       0.5373
+      ],
+      "0.9": [
+       0.2387,
+       0.4013
+      ],
+      "0.95": [
+       0.1867,
+       0.2267
+      ]
+     }
+    },
+    "on_en_items": {
+     "n": 54,
+     "headline_macro_f1_at_best": 0.8992,
+     "variant_macro_f1_at_best": 0.817,
+     "variant_best_threshold": 0.3,
+     "variant_macro_f1_at_own_best": 0.817,
+     "headline_top1": 0.9714,
+     "variant_top1": 0.9429,
+     "gold_score_mean_abs_delta": {
+      "n": 57,
+      "mean": 0.1635,
+      "median": 0.1247,
+      "max": 0.8008
+     },
+     "decision_flips_at_best": 13,
+     "macro_f1_by_threshold": {
+      "0.05": [
+       0.5645,
+       0.4987
+      ],
+      "0.1": [
+       0.6961,
+       0.6463
+      ],
+      "0.15": [
+       0.7825,
+       0.7207
+      ],
+      "0.2": [
+       0.8495,
+       0.7521
+      ],
+      "0.25": [
+       0.8722,
+       0.7952
+      ],
+      "0.3": [
+       0.8992,
+       0.817
+      ],
+      "0.35": [
+       0.8819,
+       0.8036
+      ],
+      "0.4": [
+       0.8272,
+       0.757
+      ],
+      "0.45": [
+       0.833,
+       0.725
+      ],
+      "0.5": [
+       0.8187,
+       0.672
+      ],
+      "0.55": [
+       0.784,
+       0.6133
+      ],
+      "0.6": [
+       0.7907,
+       0.5413
+      ],
+      "0.65": [
+       0.785,
+       0.5107
+      ],
+      "0.7": [
+       0.72,
+       0.444
+      ],
+      "0.75": [
+       0.6667,
+       0.392
+      ],
+      "0.8": [
+       0.5933,
+       0.3413
+      ],
+      "0.85": [
+       0.5187,
+       0.2187
+      ],
+      "0.9": [
+       0.424,
+       0.2187
+      ],
+      "0.95": [
+       0.328,
+       0.0987
+      ]
+     }
+    },
+    "on_all_items": {
+     "n": 120,
+     "headline_macro_f1_at_best": 0.8769,
+     "variant_macro_f1_at_best": 0.8448,
+     "variant_best_threshold": 0.3,
+     "variant_macro_f1_at_own_best": 0.8448,
+     "headline_top1": 0.961,
+     "variant_top1": 0.9221,
+     "gold_score_mean_abs_delta": {
+      "n": 127,
+      "mean": 0.1626,
+      "median": 0.1179,
+      "max": 0.8008
+     },
+     "decision_flips_at_best": 32,
+     "macro_f1_by_threshold": {
+      "0.05": [
+       0.51,
+       0.5095
+      ],
+      "0.1": [
+       0.6547,
+       0.6672
+      ],
+      "0.15": [
+       0.7853,
+       0.7648
+      ],
+      "0.2": [
+       0.8349,
+       0.8082
+      ],
+      "0.25": [
+       0.8656,
+       0.8294
+      ],
+      "0.3": [
+       0.8769,
+       0.8448
+      ],
+      "0.35": [
+       0.8649,
+       0.838
+      ],
+      "0.4": [
+       0.8519,
+       0.8215
+      ],
+      "0.45": [
+       0.8111,
+       0.795
+      ],
+      "0.5": [
+       0.7987,
+       0.7806
+      ],
+      "0.55": [
+       0.7818,
+       0.7455
+      ],
+      "0.6": [
+       0.7548,
+       0.7057
+      ],
+      "0.65": [
+       0.7166,
+       0.6624
+      ],
+      "0.7": [
+       0.6486,
+       0.5979
+      ],
+      "0.75": [
+       0.5919,
+       0.5655
+      ],
+      "0.8": [
+       0.5023,
+       0.5215
+      ],
+      "0.85": [
+       0.4432,
+       0.4335
+      ],
+      "0.9": [
+       0.351,
+       0.3526
+      ],
+      "0.95": [
+       0.2717,
+       0.1831
+      ]
+     }
+    }
+   }
+  },
+  "truncation": {
+   "n": 9,
+   "tokens": {
+    "d-em-17": 863,
+    "d-em-18": 808,
+    "d-em-19": 770,
+    "d-em-20": 652,
+    "d-em-21": 644,
+    "d-em-36": 695,
+    "d-em-37": 740,
+    "d-em-38": 657,
+    "d-em-39": 791
+   },
+   "head": {
+    "micro_f1_at_best": 0.8,
+    "micro_precision": 0.8889,
+    "micro_recall": 0.7273,
+    "mean_gold_score": 0.5068,
+    "mean_best_non_gold_score": 0.1148,
+    "per_item_gold_scores": {
+     "d-em-17": {
+      "a complaint": 0.6317
+     },
+     "d-em-18": {
+      "a complaint": 0.4303,
+      "a cancellation": 0.0518
+     },
+     "d-em-19": {
+      "a job application": 0.9031
+     },
+     "d-em-20": {
+      "spam or marketing": 0.2243
+     },
+     "d-em-21": {
+      "a question about an order": 0.399
+     },
+     "d-em-36": {
+      "a complaint": 0.8752
+     },
+     "d-em-37": {
+      "spam or marketing": 0.1054
+     },
+     "d-em-38": {
+      "a job application": 0.9693
+     },
+     "d-em-39": {
+      "a complaint": 0.3463,
+      "an invoice": 0.6388
+     }
+    }
+   },
+   "head_tail": {
+    "micro_f1_at_best": 0.9,
+    "micro_precision": 1.0,
+    "micro_recall": 0.8182,
+    "mean_gold_score": 0.5953,
+    "mean_best_non_gold_score": 0.099,
+    "per_item_gold_scores": {
+     "d-em-17": {
+      "a complaint": 0.6506
+     },
+     "d-em-18": {
+      "a complaint": 0.1301,
+      "a cancellation": 0.8904
+     },
+     "d-em-19": {
+      "a job application": 0.9555
+     },
+     "d-em-20": {
+      "spam or marketing": 0.3737
+     },
+     "d-em-21": {
+      "a question about an order": 0.4339
+     },
+     "d-em-36": {
+      "a complaint": 0.904
+     },
+     "d-em-37": {
+      "spam or marketing": 0.3607
+     },
+     "d-em-38": {
+      "a job application": 0.8851
+     },
+     "d-em-39": {
+      "a complaint": 0.2843,
+      "an invoice": 0.68
+     }
+    }
+   },
+   "full": {
+    "micro_f1_at_best": 0.8,
+    "micro_precision": 0.8889,
+    "micro_recall": 0.7273,
+    "mean_gold_score": 0.5613,
+    "mean_best_non_gold_score": 0.1075,
+    "per_item_gold_scores": {
+     "d-em-17": {
+      "a complaint": 0.6556
+     },
+     "d-em-18": {
+      "a complaint": 0.1655,
+      "a cancellation": 0.6586
+     },
+     "d-em-19": {
+      "a job application": 0.9355
+     },
+     "d-em-20": {
+      "spam or marketing": 0.3848
+     },
+     "d-em-21": {
+      "a question about an order": 0.3897
+     },
+     "d-em-36": {
+      "a complaint": 0.8717
+     },
+     "d-em-37": {
+      "spam or marketing": 0.1643
+     },
+     "d-em-38": {
+      "a job application": 0.9608
+     },
+     "d-em-39": {
+      "a complaint": 0.2113,
+      "an invoice": 0.7759
+     }
+    }
+   }
+  },
+  "independent_labels": {
+   "n": 120,
+   "headline_macro_f1_at_best": 0.8769,
+   "variant_macro_f1_at_best": 0.2819,
+   "variant_best_threshold": 0.65,
+   "variant_macro_f1_at_own_best": 0.656,
+   "headline_top1": 0.961,
+   "variant_top1": 0.7532,
+   "gold_score_mean_abs_delta": {
+    "n": 127,
+    "mean": 0.1873,
+    "median": 0.1427,
+    "max": 0.7882
+   },
+   "decision_flips_at_best": 633,
+   "macro_f1_by_threshold": {
+    "0.05": [
+     0.51,
+     0.2857
+    ],
+    "0.1": [
+     0.6547,
+     0.2857
+    ],
+    "0.15": [
+     0.7853,
+     0.2857
+    ],
+    "0.2": [
+     0.8349,
+     0.2857
+    ],
+    "0.25": [
+     0.8656,
+     0.2816
+    ],
+    "0.3": [
+     0.8769,
+     0.2819
+    ],
+    "0.35": [
+     0.8649,
+     0.2804
+    ],
+    "0.4": [
+     0.8519,
+     0.2811
+    ],
+    "0.45": [
+     0.8111,
+     0.2912
+    ],
+    "0.5": [
+     0.7987,
+     0.3251
+    ],
+    "0.55": [
+     0.7818,
+     0.4095
+    ],
+    "0.6": [
+     0.7548,
+     0.5528
+    ],
+    "0.65": [
+     0.7166,
+     0.656
+    ],
+    "0.7": [
+     0.6486,
+     0.6375
+    ],
+    "0.75": [
+     0.5919,
+     0.5263
+    ],
+    "0.8": [
+     0.5023,
+     0.372
+    ],
+    "0.85": [
+     0.4432,
+     0.2569
+    ],
+    "0.9": [
+     0.351,
+     0.2012
+    ],
+    "0.95": [
+     0.2717,
+     0.1274
+    ]
+   },
+   "seconds_per_item": 1.833
+  }
+ },
+ "items": [
+  {
+   "id": "d-em-01",
+   "kind": "email",
+   "lang": "nl",
+   "gold": [
+    "a complaint"
+   ],
+   "scores": {
+    "a complaint": 0.86808,
+    "an invoice": 0.00922,
+    "a job application": 0.02314,
+    "a question about an order": 0.02063,
+    "a cancellation": 0.05265,
+    "spam or marketing": 0.03157,
+    "a meeting request": 0.06981
+   },
+   "n_tokens": 177
+  },
+  {
+   "id": "d-em-02",
+   "kind": "email",
+   "lang": "nl",
+   "gold": [
+    "an invoice"
+   ],
+   "scores": {
+    "a complaint": 0.00426,
+    "an invoice": 0.91994,
+    "a job application": 0.01476,
+    "a question about an order": 0.14037,
+    "a cancellation": 0.00467,
+    "spam or marketing": 0.02248,
+    "a meeting request": 0.01569
+   },
+   "n_tokens": 123
+  },
+  {
+   "id": "d-em-03",
+   "kind": "email",
+   "lang": "nl",
+   "gold": [
+    "a job application"
+   ],
+   "scores": {
+    "a complaint": 0.00166,
+    "an invoice": 0.02484,
+    "a job application": 0.97466,
+    "a question about an order": 0.00855,
+    "a cancellation": 0.00158,
+    "spam or marketing": 0.00922,
+    "a meeting request": 0.02236
+   },
+   "n_tokens": 186
+  },
+  {
+   "id": "d-em-04",
+   "kind": "email",
+   "lang": "nl",
+   "gold": [
+    "a question about an order"
+   ],
+   "scores": {
+    "a complaint": 0.02466,
+    "an invoice": 0.06207,
+    "a job application": 0.019,
+    "a question about an order": 0.73381,
+    "a cancellation": 0.01821,
+    "spam or marketing": 0.02576,
+    "a meeting request": 0.0197
+   },
+   "n_tokens": 66
+  },
+  {
+   "id": "d-em-05",
+   "kind": "email",
+   "lang": "nl",
+   "gold": [
+    "a cancellation"
+   ],
+   "scores": {
+    "a complaint": 0.00802,
+    "an invoice": 0.01131,
+    "a job application": 0.01487,
+    "a question about an order": 0.05061,
+    "a cancellation": 0.96876,
+    "spam or marketing": 0.00268,
+    "a meeting request": 0.00598
+   },
+   "n_tokens": 78
+  },
+  {
+   "id": "d-em-06",
+   "kind": "email",
+   "lang": "nl",
+   "gold": [
+    "spam or marketing"
+   ],
+   "scores": {
+    "a complaint": 0.02456,
+    "an invoice": 0.01989,
+    "a job application": 0.03748,
+    "a question about an order": 0.09214,
+    "a cancellation": 0.18401,
+    "spam or marketing": 0.44198,
+    "a meeting request": 0.04025
+   },
+   "n_tokens": 112
+  },
+  {
+   "id": "d-em-07",
+   "kind": "email",
+   "lang": "nl",
+   "gold": [
+    "a meeting request"
+   ],
+   "scores": {
+    "a complaint": 0.00395,
+    "an invoice": 0.01062,
+    "a job application": 0.07497,
+    "a question about an order": 0.04895,
+    "a cancellation": 0.00522,
+    "spam or marketing": 0.03087,
+    "a meeting request": 0.77763
+   },
+   "n_tokens": 86
+  },
+  {
+   "id": "d-em-08",
+   "kind": "email",
+   "lang": "nl",
+   "gold": [
+    "a complaint",
+    "an invoice"
+   ],
+   "scores": {
+    "a complaint": 0.56431,
+    "an invoice": 0.57101,
+    "a job application": 0.02778,
+    "a question about an order": 0.03306,
+    "a cancellation": 0.00399,
+    "spam or marketing": 0.01271,
+    "a meeting request": 0.01779
+   },
+   "n_tokens": 152
+  },
+  {
+   "id": "d-em-09",
+   "kind": "email",
+   "lang": "nl",
+   "gold": [
+    "a complaint",
+    "a cancellation"
+   ],
+   "scores": {
+    "a complaint": 0.0696,
+    "an invoice": 0.00519,
+    "a job application": 0.00793,
+    "a question about an order": 0.01484,
+    "a cancellation": 0.96224,
+    "spam or marketing": 0.00598,
+    "a meeting request": 0.00426
+   },
+   "n_tokens": 161
+  },
+  {
+   "id": "d-em-10",
+   "kind": "email",
+   "lang": "nl",
+   "gold": [
+    "a question about an order",
+    "a cancellation"
+   ],
+   "scores": {
+    "a complaint": 0.01316,
+    "an invoice": 0.0152,
+    "a job application": 0.00342,
+    "a question about an order": 0.31319,
+    "a cancellation": 0.86523,
+    "spam or marketing": 0.00193,
+    "a meeting request": 0.00423
+   },
+   "n_tokens": 95
+  },
+  {
+   "id": "d-em-11",
+   "kind": "email",
+   "lang": "nl",
+   "gold": [],
+   "scores": {
+    "a complaint": 0.19413,
+    "an invoice": 0.03444,
+    "a job application": 0.10336,
+    "a question about an order": 0.13282,
+    "a cancellation": 0.12516,
+    "spam or marketing": 0.12918,
+    "a meeting request": 0.16013
+   },
+   "n_tokens": 88
+  },
+  {
+   "id": "d-em-12",
+   "kind": "email",
+   "lang": "nl",
+   "gold": [],
+   "scores": {
+    "a complaint": 0.70544,
+    "an invoice": 0.01339,
+    "a job application": 0.04077,
+    "a question about an order": 0.05663,
+    "a cancellation": 0.02048,
+    "spam or marketing": 0.01863,
+    "a meeting request": 0.09384
+   },
+   "n_tokens": 74
+  },
+  {
+   "id": "d-em-13",
+   "kind": "email",
+   "lang": "nl",
+   "gold": [
+    "spam or marketing"
+   ],
+   "scores": {
+    "a complaint": 0.06352,
+    "an invoice": 0.01644,
+    "a job application": 0.0325,
+    "a question about an order": 0.05646,
+    "a cancellation": 0.03215,
+    "spam or marketing": 0.721,
+    "a meeting request": 0.02388
+   },
+   "n_tokens": 112
+  },
+  {
+   "id": "d-em-14",
+   "kind": "email",
+   "lang": "nl",
+   "gold": [
+    "a job application",
+    "a meeting request"
+   ],
+   "scores": {
+    "a complaint": 0.00249,
+    "an invoice": 0.00246,
+    "a job application": 0.63371,
+    "a question about an order": 0.00628,
+    "a cancellation": 0.00246,
+    "spam or marketing": 0.00596,
+    "a meeting request": 0.63765
+   },
+   "n_tokens": 109
+  },
+  {
+   "id": "d-em-15",
+   "kind": "email",
+   "lang": "nl",
+   "gold": [
+    "an invoice"
+   ],
+   "scores": {
+    "a complaint": 0.31003,
+    "an invoice": 0.65947,
+    "a job application": 0.01792,
+    "a question about an order": 0.06134,
+    "a cancellation": 0.04914,
+    "spam or marketing": 0.01195,
+    "a meeting request": 0.01399
+   },
+   "n_tokens": 136
+  },
+  {
+   "id": "d-em-16",
+   "kind": "email",
+   "lang": "nl",
+   "gold": [
+    "a complaint",
+    "a question about an order"
+   ],
+   "scores": {
+    "a complaint": 0.51785,
+    "an invoice": 0.0202,
+    "a job application": 0.01068,
+    "a question about an order": 0.41619,
+    "a cancellation": 0.01999,
+    "spam or marketing": 0.02848,
+    "a meeting request": 0.01083
+   },
+   "n_tokens": 107
+  },
+  {
+   "id": "d-em-17",
+   "kind": "email",
+   "lang": "nl",
+   "gold": [
+    "a complaint"
+   ],
+   "scores": {
+    "a complaint": 0.63168,
+    "an invoice": 0.01415,
+    "a job application": 0.02804,
+    "a question about an order": 0.0823,
+    "a cancellation": 0.02881,
+    "spam or marketing": 0.03913,
+    "a meeting request": 0.04783
+   },
+   "n_tokens": 863
+  },
+  {
+   "id": "d-em-18",
+   "kind": "email",
+   "lang": "nl",
+   "gold": [
+    "a complaint",
+    "a cancellation"
+   ],
+   "scores": {
+    "a complaint": 0.43025,
+    "an invoice": 0.04056,
+    "a job application": 0.04157,
+    "a question about an order": 0.13361,
+    "a cancellation": 0.05177,
+    "spam or marketing": 0.12552,
+    "a meeting request": 0.04191
+   },
+   "n_tokens": 808
+  },
+  {
+   "id": "d-em-19",
+   "kind": "email",
+   "lang": "nl",
+   "gold": [
+    "a job application"
+   ],
+   "scores": {
+    "a complaint": 0.00271,
+    "an invoice": 0.00359,
+    "a job application": 0.90309,
+    "a question about an order": 0.00773,
+    "a cancellation": 0.00408,
+    "spam or marketing": 0.0157,
+    "a meeting request": 0.00784
+   },
+   "n_tokens": 770
+  },
+  {
+   "id": "d-em-20",
+   "kind": "email",
+   "lang": "nl",
+   "gold": [
+    "spam or marketing"
+   ],
+   "scores": {
+    "a complaint": 0.01741,
+    "an invoice": 0.06108,
+    "a job application": 0.12003,
+    "a question about an order": 0.12493,
+    "a cancellation": 0.02489,
+    "spam or marketing": 0.22429,
+    "a meeting request": 0.11598
+   },
+   "n_tokens": 652
+  },
+  {
+   "id": "d-em-21",
+   "kind": "email",
+   "lang": "nl",
+   "gold": [
+    "a question about an order"
+   ],
+   "scores": {
+    "a complaint": 0.0988,
+    "an invoice": 0.1693,
+    "a job application": 0.03286,
+    "a question about an order": 0.39904,
+    "a cancellation": 0.02653,
+    "spam or marketing": 0.14405,
+    "a meeting request": 0.04491
+   },
+   "n_tokens": 644
+  },
+  {
+   "id": "d-em-22",
+   "kind": "email",
+   "lang": "nl",
+   "gold": [],
+   "scores": {
+    "a complaint": 0.06457,
+    "an invoice": 0.05119,
+    "a job application": 0.09386,
+    "a question about an order": 0.07774,
+    "a cancellation": 0.04085,
+    "spam or marketing": 0.11115,
+    "a meeting request": 0.31706
+   },
+   "n_tokens": 78
+  },
+  {
+   "id": "d-em-23",
+   "kind": "email",
+   "lang": "nl",
+   "gold": [],
+   "scores": {
+    "a complaint": 0.01152,
+    "an invoice": 0.01495,
+    "a job application": 0.03787,
+    "a question about an order": 0.02441,
+    "a cancellation": 0.01441,
+    "spam or marketing": 0.02407,
+    "a meeting request": 0.62032
+   },
+   "n_tokens": 149
+  },
+  {
+   "id": "d-em-24",
+   "kind": "email",
+   "lang": "en",
+   "gold": [
+    "a complaint"
+   ],
+   "scores": {
+    "a complaint": 0.9558,
+    "an invoice": 0.00626,
+    "a job application": 0.00664,
+    "a question about an order": 0.02756,
+    "a cancellation": 0.02184,
+    "spam or marketing": 0.01431,
+    "a meeting request": 0.02017
+   },
+   "n_tokens": 176
+  },
+  {
+   "id": "d-em-25",
+   "kind": "email",
+   "lang": "en",
+   "gold": [
+    "an invoice"
+   ],
+   "scores": {
+    "a complaint": 0.0044,
+    "an invoice": 0.91687,
+    "a job application": 0.07499,
+    "a question about an order": 0.06968,
+    "a cancellation": 0.0072,
+    "spam or marketing": 0.0121,
+    "a meeting request": 0.01549
+   },
+   "n_tokens": 79
+  },
+  {
+   "id": "d-em-26",
+   "kind": "email",
+   "lang": "en",
+   "gold": [
+    "a job application"
+   ],
+   "scores": {
+    "a complaint": 0.00253,
+    "an invoice": 0.00457,
+    "a job application": 0.96004,
+    "a question about an order": 0.01126,
+    "a cancellation": 0.00286,
+    "spam or marketing": 0.01182,
+    "a meeting request": 0.02726
+   },
+   "n_tokens": 164
+  },
+  {
+   "id": "d-em-27",
+   "kind": "email",
+   "lang": "en",
+   "gold": [
+    "a question about an order"
+   ],
+   "scores": {
+    "a complaint": 0.0199,
+    "an invoice": 0.02828,
+    "a job application": 0.0145,
+    "a question about an order": 0.76468,
+    "a cancellation": 0.01427,
+    "spam or marketing": 0.06075,
+    "a meeting request": 0.01424
+   },
+   "n_tokens": 87
+  },
+  {
+   "id": "d-em-28",
+   "kind": "email",
+   "lang": "en",
+   "gold": [
+    "a cancellation"
+   ],
+   "scores": {
+    "a complaint": 0.01788,
+    "an invoice": 0.00392,
+    "a job application": 0.01229,
+    "a question about an order": 0.09246,
+    "a cancellation": 0.98686,
+    "spam or marketing": 0.00191,
+    "a meeting request": 0.00334
+   },
+   "n_tokens": 70
+  },
+  {
+   "id": "d-em-29",
+   "kind": "email",
+   "lang": "en",
+   "gold": [
+    "spam or marketing"
+   ],
+   "scores": {
+    "a complaint": 0.01281,
+    "an invoice": 0.02947,
+    "a job application": 0.06138,
+    "a question about an order": 0.0467,
+    "a cancellation": 0.0302,
+    "spam or marketing": 0.8758,
+    "a meeting request": 0.02266
+   },
+   "n_tokens": 108
+  },
+  {
+   "id": "d-em-30",
+   "kind": "email",
+   "lang": "en",
+   "gold": [
+    "a meeting request"
+   ],
+   "scores": {
+    "a complaint": 0.00351,
+    "an invoice": 0.00655,
+    "a job application": 0.02538,
+    "a question about an order": 0.06487,
+    "a cancellation": 0.00392,
+    "spam or marketing": 0.01054,
+    "a meeting request": 0.89143
+   },
+   "n_tokens": 61
+  },
+  {
+   "id": "d-em-31",
+   "kind": "email",
+   "lang": "en",
+   "gold": [
+    "an invoice",
+    "a question about an order"
+   ],
+   "scores": {
+    "a complaint": 0.01632,
+    "an invoice": 0.67883,
+    "a job application": 0.04076,
+    "a question about an order": 0.36025,
+    "a cancellation": 0.00945,
+    "spam or marketing": 0.00788,
+    "a meeting request": 0.01406
+   },
+   "n_tokens": 103
+  },
+  {
+   "id": "d-em-32",
+   "kind": "email",
+   "lang": "en",
+   "gold": [
+    "a question about an order",
+    "a cancellation"
+   ],
+   "scores": {
+    "a complaint": 0.00362,
+    "an invoice": 0.01352,
+    "a job application": 0.00559,
+    "a question about an order": 0.44502,
+    "a cancellation": 0.80593,
+    "spam or marketing": 0.00531,
+    "a meeting request": 0.00496
+   },
+   "n_tokens": 62
+  },
+  {
+   "id": "d-em-33",
+   "kind": "email",
+   "lang": "en",
+   "gold": [
+    "a complaint",
+    "a meeting request"
+   ],
+   "scores": {
+    "a complaint": 0.32613,
+    "an invoice": 0.0078,
+    "a job application": 0.04908,
+    "a question about an order": 0.01136,
+    "a cancellation": 0.4511,
+    "spam or marketing": 0.01907,
+    "a meeting request": 0.69104
+   },
+   "n_tokens": 110
+  },
+  {
+   "id": "d-em-34",
+   "kind": "email",
+   "lang": "en",
+   "gold": [],
+   "scores": {
+    "a complaint": 0.08461,
+    "an invoice": 0.04406,
+    "a job application": 0.07002,
+    "a question about an order": 0.10728,
+    "a cancellation": 0.15121,
+    "spam or marketing": 0.17994,
+    "a meeting request": 0.19383
+   },
+   "n_tokens": 52
+  },
+  {
+   "id": "d-em-35",
+   "kind": "email",
+   "lang": "en",
+   "gold": [],
+   "scores": {
+    "a complaint": 0.03862,
+    "an invoice": 0.04844,
+    "a job application": 0.07444,
+    "a question about an order": 0.15488,
+    "a cancellation": 0.0303,
+    "spam or marketing": 0.08442,
+    "a meeting request": 0.18984
+   },
+   "n_tokens": 50
+  },
+  {
+   "id": "d-em-36",
+   "kind": "email",
+   "lang": "en",
+   "gold": [
+    "a complaint"
+   ],
+   "scores": {
+    "a complaint": 0.87517,
+    "an invoice": 0.00727,
+    "a job application": 0.01803,
+    "a question about an order": 0.04333,
+    "a cancellation": 0.01712,
+    "spam or marketing": 0.0255,
+    "a meeting request": 0.03517
+   },
+   "n_tokens": 695
+  },
+  {
+   "id": "d-em-37",
+   "kind": "email",
+   "lang": "en",
+   "gold": [
+    "spam or marketing"
+   ],
+   "scores": {
+    "a complaint": 0.01073,
+    "an invoice": 0.01031,
+    "a job application": 0.06644,
+    "a question about an order": 0.0426,
+    "a cancellation": 0.00944,
+    "spam or marketing": 0.1054,
+    "a meeting request": 0.38952
+   },
+   "n_tokens": 740
+  },
+  {
+   "id": "d-em-38",
+   "kind": "email",
+   "lang": "en",
+   "gold": [
+    "a job application"
+   ],
+   "scores": {
+    "a complaint": 0.00296,
+    "an invoice": 0.00177,
+    "a job application": 0.96927,
+    "a question about an order": 0.00303,
+    "a cancellation": 0.00149,
+    "spam or marketing": 0.00763,
+    "a meeting request": 0.01258
+   },
+   "n_tokens": 657
+  },
+  {
+   "id": "d-em-39",
+   "kind": "email",
+   "lang": "en",
+   "gold": [
+    "a complaint",
+    "an invoice"
+   ],
+   "scores": {
+    "a complaint": 0.34632,
+    "an invoice": 0.63877,
+    "a job application": 0.01032,
+    "a question about an order": 0.06217,
+    "a cancellation": 0.01237,
+    "spam or marketing": 0.02012,
+    "a meeting request": 0.01358
+   },
+   "n_tokens": 791
+  },
+  {
+   "id": "d-em-40",
+   "kind": "email",
+   "lang": "en",
+   "gold": [
+    "a question about an order"
+   ],
+   "scores": {
+    "a complaint": 0.02703,
+    "an invoice": 0.01991,
+    "a job application": 0.0196,
+    "a question about an order": 0.78499,
+    "a cancellation": 0.01646,
+    "spam or marketing": 0.02973,
+    "a meeting request": 0.027
+   },
+   "n_tokens": 85
+  },
+  {
+   "id": "d-em-41",
+   "kind": "email",
+   "lang": "en",
+   "gold": [
+    "an invoice",
+    "a meeting request"
+   ],
+   "scores": {
+    "a complaint": 0.00423,
+    "an invoice": 0.89713,
+    "a job application": 0.00294,
+    "a question about an order": 0.01618,
+    "a cancellation": 0.0019,
+    "spam or marketing": 0.00232,
+    "a meeting request": 0.47613
+   },
+   "n_tokens": 108
+  },
+  {
+   "id": "d-em-42",
+   "kind": "email",
+   "lang": "en",
+   "gold": [
+    "a cancellation"
+   ],
+   "scores": {
+    "a complaint": 0.02242,
+    "an invoice": 0.00613,
+    "a job application": 0.02776,
+    "a question about an order": 0.0409,
+    "a cancellation": 0.99138,
+    "spam or marketing": 0.01197,
+    "a meeting request": 0.00586
+   },
+   "n_tokens": 36
+  },
+  {
+   "id": "d-fn-01",
+   "kind": "filename",
+   "lang": "nl",
+   "gold": [
+    "an invoice"
+   ],
+   "scores": {
+    "an invoice": 0.5074,
+    "a quote": 0.05931,
+    "a CV": 0.23447,
+    "a contract": 0.1322,
+    "a photo": 0.04478,
+    "meeting minutes": 0.0707
+   },
+   "n_tokens": 13
+  },
+  {
+   "id": "d-fn-02",
+   "kind": "filename",
+   "lang": "nl",
+   "gold": [
+    "a CV"
+   ],
+   "scores": {
+    "an invoice": 0.00663,
+    "a quote": 0.01725,
+    "a CV": 0.9878,
+    "a contract": 0.00942,
+    "a photo": 0.01253,
+    "meeting minutes": 0.02173
+   },
+   "n_tokens": 10
+  },
+  {
+   "id": "d-fn-03",
+   "kind": "filename",
+   "lang": "nl",
+   "gold": [
+    "a quote"
+   ],
+   "scores": {
+    "an invoice": 0.11163,
+    "a quote": 0.38761,
+    "a CV": 0.21862,
+    "a contract": 0.136,
+    "a photo": 0.09349,
+    "meeting minutes": 0.10404
+   },
+   "n_tokens": 10
+  },
+  {
+   "id": "d-fn-04",
+   "kind": "filename",
+   "lang": "nl",
+   "gold": [
+    "a contract"
+   ],
+   "scores": {
+    "an invoice": 0.06376,
+    "a quote": 0.04069,
+    "a CV": 0.06304,
+    "a contract": 0.77927,
+    "a photo": 0.0373,
+    "meeting minutes": 0.05435
+   },
+   "n_tokens": 12
+  },
+  {
+   "id": "d-fn-05",
+   "kind": "filename",
+   "lang": "nl",
+   "gold": [
+    "a photo"
+   ],
+   "scores": {
+    "an invoice": 0.03551,
+    "a quote": 0.07702,
+    "a CV": 0.10469,
+    "a contract": 0.03648,
+    "a photo": 0.77552,
+    "meeting minutes": 0.07198
+   },
+   "n_tokens": 8
+  },
+  {
+   "id": "d-fn-06",
+   "kind": "filename",
+   "lang": "nl",
+   "gold": [
+    "meeting minutes"
+   ],
+   "scores": {
+    "an invoice": 0.02336,
+    "a quote": 0.06416,
+    "a CV": 0.10377,
+    "a contract": 0.03835,
+    "a photo": 0.04634,
+    "meeting minutes": 0.82273
+   },
+   "n_tokens": 12
+  },
+  {
+   "id": "d-fn-07",
+   "kind": "filename",
+   "lang": "nl",
+   "gold": [
+    "an invoice"
+   ],
+   "scores": {
+    "an invoice": 0.69323,
+    "a quote": 0.08284,
+    "a CV": 0.08602,
+    "a contract": 0.10119,
+    "a photo": 0.04834,
+    "meeting minutes": 0.07822
+   },
+   "n_tokens": 7
+  },
+  {
+   "id": "d-fn-08",
+   "kind": "filename",
+   "lang": "nl",
+   "gold": [
+    "a contract"
+   ],
+   "scores": {
+    "an invoice": 0.0714,
+    "a quote": 0.04827,
+    "a CV": 0.06465,
+    "a contract": 0.78954,
+    "a photo": 0.04486,
+    "meeting minutes": 0.05349
+   },
+   "n_tokens": 14
+  },
+  {
+   "id": "d-fn-09",
+   "kind": "filename",
+   "lang": "nl",
+   "gold": [
+    "a quote"
+   ],
+   "scores": {
+    "an invoice": 0.12999,
+    "a quote": 0.66843,
+    "a CV": 0.08036,
+    "a contract": 0.10037,
+    "a photo": 0.0891,
+    "meeting minutes": 0.10857
+   },
+   "n_tokens": 18
+  },
+  {
+   "id": "d-fn-10",
+   "kind": "filename",
+   "lang": "nl",
+   "gold": [
+    "a quote",
+    "a contract"
+   ],
+   "scores": {
+    "an invoice": 0.09617,
+    "a quote": 0.42525,
+    "a CV": 0.08311,
+    "a contract": 0.47968,
+    "a photo": 0.07811,
+    "meeting minutes": 0.07755
+   },
+   "n_tokens": 14
+  },
+  {
+   "id": "d-fn-11",
+   "kind": "filename",
+   "lang": "nl",
+   "gold": [
+    "a photo",
+    "an invoice"
+   ],
+   "scores": {
+    "an invoice": 0.27681,
+    "a quote": 0.03552,
+    "a CV": 0.04433,
+    "a contract": 0.04572,
+    "a photo": 0.8539,
+    "meeting minutes": 0.02799
+   },
+   "n_tokens": 13
+  },
+  {
+   "id": "d-fn-12",
+   "kind": "filename",
+   "lang": "nl",
+   "gold": [
+    "meeting minutes"
+   ],
+   "scores": {
+    "an invoice": 0.05853,
+    "a quote": 0.09929,
+    "a CV": 0.1743,
+    "a contract": 0.50383,
+    "a photo": 0.05046,
+    "meeting minutes": 0.19287
+   },
+   "n_tokens": 14
+  },
+  {
+   "id": "d-fn-13",
+   "kind": "filename",
+   "lang": "nl",
+   "gold": [],
+   "scores": {
+    "an invoice": 0.11634,
+    "a quote": 0.17486,
+    "a CV": 0.15995,
+    "a contract": 0.15225,
+    "a photo": 0.22019,
+    "meeting minutes": 0.20927
+   },
+   "n_tokens": 13
+  },
+  {
+   "id": "d-fn-14",
+   "kind": "filename",
+   "lang": "nl",
+   "gold": [],
+   "scores": {
+    "an invoice": 0.12004,
+    "a quote": 0.13117,
+    "a CV": 0.17197,
+    "a contract": 0.14065,
+    "a photo": 0.15138,
+    "meeting minutes": 0.18382
+   },
+   "n_tokens": 10
+  },
+  {
+   "id": "d-fn-15",
+   "kind": "filename",
+   "lang": "en",
+   "gold": [
+    "an invoice"
+   ],
+   "scores": {
+    "an invoice": 0.90233,
+    "a quote": 0.04729,
+    "a CV": 0.04981,
+    "a contract": 0.0455,
+    "a photo": 0.04311,
+    "meeting minutes": 0.06356
+   },
+   "n_tokens": 14
+  },
+  {
+   "id": "d-fn-16",
+   "kind": "filename",
+   "lang": "en",
+   "gold": [
+    "a CV"
+   ],
+   "scores": {
+    "an invoice": 0.02479,
+    "a quote": 0.04488,
+    "a CV": 0.81951,
+    "a contract": 0.03761,
+    "a photo": 0.06521,
+    "meeting minutes": 0.08325
+   },
+   "n_tokens": 10
+  },
+  {
+   "id": "d-fn-17",
+   "kind": "filename",
+   "lang": "en",
+   "gold": [
+    "a quote"
+   ],
+   "scores": {
+    "an invoice": 0.02003,
+    "a quote": 0.97104,
+    "a CV": 0.04492,
+    "a contract": 0.01634,
+    "a photo": 0.02634,
+    "meeting minutes": 0.03698
+   },
+   "n_tokens": 11
+  },
+  {
+   "id": "d-fn-18",
+   "kind": "filename",
+   "lang": "en",
+   "gold": [
+    "a contract"
+   ],
+   "scores": {
+    "an invoice": 0.07932,
+    "a quote": 0.12501,
+    "a CV": 0.11963,
+    "a contract": 0.5231,
+    "a photo": 0.11693,
+    "meeting minutes": 0.11846
+   },
+   "n_tokens": 9
+  },
+  {
+   "id": "d-fn-19",
+   "kind": "filename",
+   "lang": "en",
+   "gold": [
+    "a photo"
+   ],
+   "scores": {
+    "an invoice": 0.03615,
+    "a quote": 0.08097,
+    "a CV": 0.12301,
+    "a contract": 0.04151,
+    "a photo": 0.72814,
+    "meeting minutes": 0.07436
+   },
+   "n_tokens": 5
+  },
+  {
+   "id": "d-fn-20",
+   "kind": "filename",
+   "lang": "en",
+   "gold": [
+    "meeting minutes"
+   ],
+   "scores": {
+    "an invoice": 0.01,
+    "a quote": 0.01885,
+    "a CV": 0.02468,
+    "a contract": 0.0115,
+    "a photo": 0.01101,
+    "meeting minutes": 0.97212
+   },
+   "n_tokens": 10
+  },
+  {
+   "id": "d-fn-21",
+   "kind": "filename",
+   "lang": "en",
+   "gold": [
+    "a contract",
+    "a quote"
+   ],
+   "scores": {
+    "an invoice": 0.06676,
+    "a quote": 0.78931,
+    "a CV": 0.06143,
+    "a contract": 0.37903,
+    "a photo": 0.02085,
+    "meeting minutes": 0.04212
+   },
+   "n_tokens": 13
+  },
+  {
+   "id": "d-fn-22",
+   "kind": "filename",
+   "lang": "en",
+   "gold": [
+    "meeting minutes",
+    "a photo"
+   ],
+   "scores": {
+    "an invoice": 0.01329,
+    "a quote": 0.03293,
+    "a CV": 0.03852,
+    "a contract": 0.01425,
+    "a photo": 0.88582,
+    "meeting minutes": 0.24575
+   },
+   "n_tokens": 14
+  },
+  {
+   "id": "d-fn-23",
+   "kind": "filename",
+   "lang": "en",
+   "gold": [],
+   "scores": {
+    "an invoice": 0.05819,
+    "a quote": 0.13839,
+    "a CV": 0.18378,
+    "a contract": 0.12793,
+    "a photo": 0.22758,
+    "meeting minutes": 0.25767
+   },
+   "n_tokens": 12
+  },
+  {
+   "id": "d-fn-24",
+   "kind": "filename",
+   "lang": "en",
+   "gold": [],
+   "scores": {
+    "an invoice": 0.26299,
+    "a quote": 0.14889,
+    "a CV": 0.13726,
+    "a contract": 0.24792,
+    "a photo": 0.11581,
+    "meeting minutes": 0.13278
+   },
+   "n_tokens": 8
+  },
+  {
+   "id": "d-fn-25",
+   "kind": "filename",
+   "lang": "en",
+   "gold": [
+    "a CV"
+   ],
+   "scores": {
+    "an invoice": 0.01373,
+    "a quote": 0.01541,
+    "a CV": 0.99218,
+    "a contract": 0.01574,
+    "a photo": 0.00969,
+    "meeting minutes": 0.0173
+   },
+   "n_tokens": 11
+  },
+  {
+   "id": "d-fn-26",
+   "kind": "filename",
+   "lang": "en",
+   "gold": [
+    "an invoice"
+   ],
+   "scores": {
+    "an invoice": 0.82894,
+    "a quote": 0.04531,
+    "a CV": 0.05129,
+    "a contract": 0.03908,
+    "a photo": 0.20421,
+    "meeting minutes": 0.05248
+   },
+   "n_tokens": 11
+  },
+  {
+   "id": "d-fc-01",
+   "kind": "filecontent",
+   "lang": "nl",
+   "gold": [
+    "an invoice"
+   ],
+   "scores": {
+    "an invoice": 0.57214,
+    "a quote": 0.20396,
+    "a contract": 0.07119,
+    "a CV": 0.36951,
+    "meeting minutes": 0.01851,
+    "a delivery note": 0.03824
+   },
+   "n_tokens": 163
+  },
+  {
+   "id": "d-fc-02",
+   "kind": "filecontent",
+   "lang": "nl",
+   "gold": [
+    "a quote"
+   ],
+   "scores": {
+    "an invoice": 0.05878,
+    "a quote": 0.64032,
+    "a contract": 0.12889,
+    "a CV": 0.06595,
+    "meeting minutes": 0.05321,
+    "a delivery note": 0.0471
+   },
+   "n_tokens": 156
+  },
+  {
+   "id": "d-fc-03",
+   "kind": "filecontent",
+   "lang": "nl",
+   "gold": [
+    "a contract"
+   ],
+   "scores": {
+    "an invoice": 0.02423,
+    "a quote": 0.01598,
+    "a contract": 0.92323,
+    "a CV": 0.02773,
+    "meeting minutes": 0.02271,
+    "a delivery note": 0.02122
+   },
+   "n_tokens": 225
+  },
+  {
+   "id": "d-fc-04",
+   "kind": "filecontent",
+   "lang": "nl",
+   "gold": [
+    "a CV"
+   ],
+   "scores": {
+    "an invoice": 0.00644,
+    "a quote": 0.00747,
+    "a contract": 0.00994,
+    "a CV": 0.95897,
+    "meeting minutes": 0.01683,
+    "a delivery note": 0.00909
+   },
+   "n_tokens": 150
+  },
+  {
+   "id": "d-fc-05",
+   "kind": "filecontent",
+   "lang": "nl",
+   "gold": [
+    "meeting minutes"
+   ],
+   "scores": {
+    "an invoice": 0.03641,
+    "a quote": 0.126,
+    "a contract": 0.02276,
+    "a CV": 0.04744,
+    "meeting minutes": 0.65732,
+    "a delivery note": 0.03862
+   },
+   "n_tokens": 234
+  },
+  {
+   "id": "d-fc-06",
+   "kind": "filecontent",
+   "lang": "nl",
+   "gold": [
+    "a delivery note"
+   ],
+   "scores": {
+    "an invoice": 0.13271,
+    "a quote": 0.10584,
+    "a contract": 0.07031,
+    "a CV": 0.13298,
+    "meeting minutes": 0.06277,
+    "a delivery note": 0.41304
+   },
+   "n_tokens": 124
+  },
+  {
+   "id": "d-fc-07",
+   "kind": "filecontent",
+   "lang": "nl",
+   "gold": [
+    "an invoice"
+   ],
+   "scores": {
+    "an invoice": 0.63369,
+    "a quote": 0.0366,
+    "a contract": 0.05988,
+    "a CV": 0.05818,
+    "meeting minutes": 0.05586,
+    "a delivery note": 0.13207
+   },
+   "n_tokens": 157
+  },
+  {
+   "id": "d-fc-08",
+   "kind": "filecontent",
+   "lang": "nl",
+   "gold": [
+    "a quote",
+    "a contract"
+   ],
+   "scores": {
+    "an invoice": 0.07594,
+    "a quote": 0.33743,
+    "a contract": 0.57756,
+    "a CV": 0.04827,
+    "meeting minutes": 0.03609,
+    "a delivery note": 0.05511
+   },
+   "n_tokens": 196
+  },
+  {
+   "id": "d-fc-09",
+   "kind": "filecontent",
+   "lang": "nl",
+   "gold": [
+    "an invoice",
+    "a delivery note"
+   ],
+   "scores": {
+    "an invoice": 0.37455,
+    "a quote": 0.23673,
+    "a contract": 0.09595,
+    "a CV": 0.07821,
+    "meeting minutes": 0.04158,
+    "a delivery note": 0.18701
+   },
+   "n_tokens": 130
+  },
+  {
+   "id": "d-fc-10",
+   "kind": "filecontent",
+   "lang": "nl",
+   "gold": [],
+   "scores": {
+    "an invoice": 0.06167,
+    "a quote": 0.08359,
+    "a contract": 0.09848,
+    "a CV": 0.27746,
+    "meeting minutes": 0.12143,
+    "a delivery note": 0.1297
+   },
+   "n_tokens": 154
+  },
+  {
+   "id": "d-fc-11",
+   "kind": "filecontent",
+   "lang": "nl",
+   "gold": [],
+   "scores": {
+    "an invoice": 0.09462,
+    "a quote": 0.20937,
+    "a contract": 0.08126,
+    "a CV": 0.19282,
+    "meeting minutes": 0.09921,
+    "a delivery note": 0.11414
+   },
+   "n_tokens": 128
+  },
+  {
+   "id": "d-fc-12",
+   "kind": "filecontent",
+   "lang": "nl",
+   "gold": [
+    "a contract"
+   ],
+   "scores": {
+    "an invoice": 0.03665,
+    "a quote": 0.03646,
+    "a contract": 0.88977,
+    "a CV": 0.03036,
+    "meeting minutes": 0.02861,
+    "a delivery note": 0.03159
+   },
+   "n_tokens": 208
+  },
+  {
+   "id": "d-fc-13",
+   "kind": "filecontent",
+   "lang": "nl",
+   "gold": [
+    "meeting minutes"
+   ],
+   "scores": {
+    "an invoice": 0.02446,
+    "a quote": 0.0363,
+    "a contract": 0.25859,
+    "a CV": 0.04857,
+    "meeting minutes": 0.41407,
+    "a delivery note": 0.05735
+   },
+   "n_tokens": 118
+  },
+  {
+   "id": "d-fc-14",
+   "kind": "filecontent",
+   "lang": "nl",
+   "gold": [
+    "a CV"
+   ],
+   "scores": {
+    "an invoice": 0.00066,
+    "a quote": 0.00272,
+    "a contract": 0.0026,
+    "a CV": 0.99665,
+    "meeting minutes": 0.00883,
+    "a delivery note": 0.00223
+   },
+   "n_tokens": 113
+  },
+  {
+   "id": "d-fc-15",
+   "kind": "filecontent",
+   "lang": "en",
+   "gold": [
+    "an invoice"
+   ],
+   "scores": {
+    "an invoice": 0.67129,
+    "a quote": 0.59458,
+    "a contract": 0.0408,
+    "a CV": 0.00997,
+    "meeting minutes": 0.01238,
+    "a delivery note": 0.01744
+   },
+   "n_tokens": 130
+  },
+  {
+   "id": "d-fc-16",
+   "kind": "filecontent",
+   "lang": "en",
+   "gold": [
+    "a quote"
+   ],
+   "scores": {
+    "an invoice": 0.02186,
+    "a quote": 0.9602,
+    "a contract": 0.04696,
+    "a CV": 0.01108,
+    "meeting minutes": 0.01545,
+    "a delivery note": 0.03676
+   },
+   "n_tokens": 121
+  },
+  {
+   "id": "d-fc-17",
+   "kind": "filecontent",
+   "lang": "en",
+   "gold": [
+    "a contract"
+   ],
+   "scores": {
+    "an invoice": 0.01904,
+    "a quote": 0.02324,
+    "a contract": 0.80631,
+    "a CV": 0.02,
+    "meeting minutes": 0.03356,
+    "a delivery note": 0.02523
+   },
+   "n_tokens": 217
+  },
+  {
+   "id": "d-fc-18",
+   "kind": "filecontent",
+   "lang": "en",
+   "gold": [
+    "a CV"
+   ],
+   "scores": {
+    "an invoice": 0.03271,
+    "a quote": 0.05515,
+    "a contract": 0.06586,
+    "a CV": 0.39564,
+    "meeting minutes": 0.17659,
+    "a delivery note": 0.05275
+   },
+   "n_tokens": 160
+  },
+  {
+   "id": "d-fc-19",
+   "kind": "filecontent",
+   "lang": "en",
+   "gold": [
+    "meeting minutes"
+   ],
+   "scores": {
+    "an invoice": 0.00952,
+    "a quote": 0.00619,
+    "a contract": 0.0329,
+    "a CV": 0.00624,
+    "meeting minutes": 0.98614,
+    "a delivery note": 0.00991
+   },
+   "n_tokens": 181
+  },
+  {
+   "id": "d-fc-20",
+   "kind": "filecontent",
+   "lang": "en",
+   "gold": [
+    "a delivery note"
+   ],
+   "scores": {
+    "an invoice": 0.03033,
+    "a quote": 0.03351,
+    "a contract": 0.02242,
+    "a CV": 0.03289,
+    "meeting minutes": 0.03529,
+    "a delivery note": 0.90343
+   },
+   "n_tokens": 101
+  },
+  {
+   "id": "d-fc-21",
+   "kind": "filecontent",
+   "lang": "en",
+   "gold": [
+    "a quote",
+    "a contract"
+   ],
+   "scores": {
+    "an invoice": 0.10601,
+    "a quote": 0.05405,
+    "a contract": 0.7833,
+    "a CV": 0.04524,
+    "meeting minutes": 0.03403,
+    "a delivery note": 0.038
+   },
+   "n_tokens": 201
+  },
+  {
+   "id": "d-fc-22",
+   "kind": "filecontent",
+   "lang": "en",
+   "gold": [
+    "an invoice",
+    "a delivery note"
+   ],
+   "scores": {
+    "an invoice": 0.66332,
+    "a quote": 0.14637,
+    "a contract": 0.0996,
+    "a CV": 0.04819,
+    "meeting minutes": 0.04214,
+    "a delivery note": 0.08004
+   },
+   "n_tokens": 141
+  },
+  {
+   "id": "d-fc-23",
+   "kind": "filecontent",
+   "lang": "en",
+   "gold": [],
+   "scores": {
+    "an invoice": 0.0874,
+    "a quote": 0.15955,
+    "a contract": 0.10998,
+    "a CV": 0.23457,
+    "meeting minutes": 0.1252,
+    "a delivery note": 0.14454
+   },
+   "n_tokens": 93
+  },
+  {
+   "id": "d-fc-24",
+   "kind": "filecontent",
+   "lang": "en",
+   "gold": [],
+   "scores": {
+    "an invoice": 0.04547,
+    "a quote": 0.13075,
+    "a contract": 0.12525,
+    "a CV": 0.15242,
+    "meeting minutes": 0.11818,
+    "a delivery note": 0.15023
+   },
+   "n_tokens": 132
+  },
+  {
+   "id": "d-fc-25",
+   "kind": "filecontent",
+   "lang": "en",
+   "gold": [
+    "an invoice"
+   ],
+   "scores": {
+    "an invoice": 0.51249,
+    "a quote": 0.08593,
+    "a contract": 0.08684,
+    "a CV": 0.06652,
+    "meeting minutes": 0.05995,
+    "a delivery note": 0.08369
+   },
+   "n_tokens": 93
+  },
+  {
+   "id": "d-fc-26",
+   "kind": "filecontent",
+   "lang": "en",
+   "gold": [
+    "meeting minutes"
+   ],
+   "scores": {
+    "an invoice": 0.01314,
+    "a quote": 0.0096,
+    "a contract": 0.01931,
+    "a CV": 0.01747,
+    "meeting minutes": 0.80604,
+    "a delivery note": 0.06286
+   },
+   "n_tokens": 133
+  },
+  {
+   "id": "d-fo-01",
+   "kind": "form",
+   "lang": "nl",
+   "gold": [
+    "a request for a quote"
+   ],
+   "scores": {
+    "a complaint": 0.00265,
+    "a request for a quote": 0.98708,
+    "a question about an order": 0.03695,
+    "a cancellation": 0.00591,
+    "a technical problem": 0.00662,
+    "positive feedback": 0.02025
+   },
+   "n_tokens": 34
+  },
+  {
+   "id": "d-fo-02",
+   "kind": "form",
+   "lang": "nl",
+   "gold": [
+    "a question about an order"
+   ],
+   "scores": {
+    "a complaint": 0.00837,
+    "a request for a quote": 0.10463,
+    "a question about an order": 0.73992,
+    "a cancellation": 0.02094,
+    "a technical problem": 0.01849,
+    "positive feedback": 0.0542
+   },
+   "n_tokens": 25
+  },
+  {
+   "id": "d-fo-03",
+   "kind": "form",
+   "lang": "nl",
+   "gold": [
+    "a technical problem"
+   ],
+   "scores": {
+    "a complaint": 0.29009,
+    "a request for a quote": 0.03775,
+    "a question about an order": 0.05297,
+    "a cancellation": 0.09923,
+    "a technical problem": 0.57216,
+    "positive feedback": 0.03043
+   },
+   "n_tokens": 39
+  },
+  {
+   "id": "d-fo-04",
+   "kind": "form",
+   "lang": "nl",
+   "gold": [
+    "a cancellation"
+   ],
+   "scores": {
+    "a complaint": 0.06672,
+    "a request for a quote": 0.12231,
+    "a question about an order": 0.1352,
+    "a cancellation": 0.16495,
+    "a technical problem": 0.05636,
+    "positive feedback": 0.35825
+   },
+   "n_tokens": 14
+  },
+  {
+   "id": "d-fo-05",
+   "kind": "form",
+   "lang": "nl",
+   "gold": [
+    "positive feedback"
+   ],
+   "scores": {
+    "a complaint": 0.0572,
+    "a request for a quote": 0.06212,
+    "a question about an order": 0.06454,
+    "a cancellation": 0.01952,
+    "a technical problem": 0.02407,
+    "positive feedback": 0.79358
+   },
+   "n_tokens": 16
+  },
+  {
+   "id": "d-fo-06",
+   "kind": "form",
+   "lang": "nl",
+   "gold": [
+    "a complaint"
+   ],
+   "scores": {
+    "a complaint": 0.63621,
+    "a request for a quote": 0.0422,
+    "a question about an order": 0.05679,
+    "a cancellation": 0.03213,
+    "a technical problem": 0.23531,
+    "positive feedback": 0.06586
+   },
+   "n_tokens": 33
+  },
+  {
+   "id": "d-fo-07",
+   "kind": "form",
+   "lang": "nl",
+   "gold": [
+    "a complaint",
+    "a technical problem"
+   ],
+   "scores": {
+    "a complaint": 0.73934,
+    "a request for a quote": 0.0101,
+    "a question about an order": 0.01812,
+    "a cancellation": 0.00991,
+    "a technical problem": 0.41057,
+    "positive feedback": 0.01424
+   },
+   "n_tokens": 44
+  },
+  {
+   "id": "d-fo-08",
+   "kind": "form",
+   "lang": "nl",
+   "gold": [
+    "a complaint",
+    "a cancellation"
+   ],
+   "scores": {
+    "a complaint": 0.31248,
+    "a request for a quote": 0.00982,
+    "a question about an order": 0.01302,
+    "a cancellation": 0.95045,
+    "a technical problem": 0.00901,
+    "positive feedback": 0.00765
+   },
+   "n_tokens": 34
+  },
+  {
+   "id": "d-fo-09",
+   "kind": "form",
+   "lang": "nl",
+   "gold": [
+    "positive feedback",
+    "a request for a quote"
+   ],
+   "scores": {
+    "a complaint": 0.00124,
+    "a request for a quote": 0.97524,
+    "a question about an order": 0.01974,
+    "a cancellation": 0.00115,
+    "a technical problem": 0.00197,
+    "positive feedback": 0.23739
+   },
+   "n_tokens": 54
+  },
+  {
+   "id": "d-fo-10",
+   "kind": "form",
+   "lang": "nl",
+   "gold": [],
+   "scores": {
+    "a complaint": 0.03716,
+    "a request for a quote": 0.24546,
+    "a question about an order": 0.36386,
+    "a cancellation": 0.06394,
+    "a technical problem": 0.05767,
+    "positive feedback": 0.11997
+   },
+   "n_tokens": 11
+  },
+  {
+   "id": "d-fo-11",
+   "kind": "form",
+   "lang": "nl",
+   "gold": [],
+   "scores": {
+    "a complaint": 0.0262,
+    "a request for a quote": 0.33084,
+    "a question about an order": 0.21967,
+    "a cancellation": 0.12474,
+    "a technical problem": 0.05527,
+    "positive feedback": 0.12398
+   },
+   "n_tokens": 27
+  },
+  {
+   "id": "d-fo-12",
+   "kind": "form",
+   "lang": "nl",
+   "gold": [
+    "a technical problem"
+   ],
+   "scores": {
+    "a complaint": 0.10423,
+    "a request for a quote": 0.11361,
+    "a question about an order": 0.19571,
+    "a cancellation": 0.058,
+    "a technical problem": 0.26808,
+    "positive feedback": 0.06192
+   },
+   "n_tokens": 28
+  },
+  {
+   "id": "d-fo-13",
+   "kind": "form",
+   "lang": "nl",
+   "gold": [
+    "a question about an order"
+   ],
+   "scores": {
+    "a complaint": 0.02397,
+    "a request for a quote": 0.10154,
+    "a question about an order": 0.59916,
+    "a cancellation": 0.17676,
+    "a technical problem": 0.04072,
+    "positive feedback": 0.03122
+   },
+   "n_tokens": 24
+  },
+  {
+   "id": "d-fo-14",
+   "kind": "form",
+   "lang": "nl",
+   "gold": [
+    "positive feedback"
+   ],
+   "scores": {
+    "a complaint": 0.02523,
+    "a request for a quote": 0.07606,
+    "a question about an order": 0.05762,
+    "a cancellation": 0.00794,
+    "a technical problem": 0.02019,
+    "positive feedback": 0.82595
+   },
+   "n_tokens": 21
+  },
+  {
+   "id": "d-fo-15",
+   "kind": "form",
+   "lang": "nl",
+   "gold": [
+    "a question about an order",
+    "a cancellation"
+   ],
+   "scores": {
+    "a complaint": 0.01336,
+    "a request for a quote": 0.01917,
+    "a question about an order": 0.29634,
+    "a cancellation": 0.86331,
+    "a technical problem": 0.01025,
+    "positive feedback": 0.00376
+   },
+   "n_tokens": 26
+  },
+  {
+   "id": "d-fo-16",
+   "kind": "form",
+   "lang": "en",
+   "gold": [
+    "a request for a quote"
+   ],
+   "scores": {
+    "a complaint": 0.00121,
+    "a request for a quote": 0.99008,
+    "a question about an order": 0.11938,
+    "a cancellation": 0.00187,
+    "a technical problem": 0.00207,
+    "positive feedback": 0.03274
+   },
+   "n_tokens": 33
+  },
+  {
+   "id": "d-fo-17",
+   "kind": "form",
+   "lang": "en",
+   "gold": [
+    "a technical problem"
+   ],
+   "scores": {
+    "a complaint": 0.2702,
+    "a request for a quote": 0.03597,
+    "a question about an order": 0.0277,
+    "a cancellation": 0.02016,
+    "a technical problem": 0.73894,
+    "positive feedback": 0.03421
+   },
+   "n_tokens": 29
+  },
+  {
+   "id": "d-fo-18",
+   "kind": "form",
+   "lang": "en",
+   "gold": [
+    "a cancellation"
+   ],
+   "scores": {
+    "a complaint": 0.0072,
+    "a request for a quote": 0.01862,
+    "a question about an order": 0.04198,
+    "a cancellation": 0.99031,
+    "a technical problem": 0.00402,
+    "positive feedback": 0.00388
+   },
+   "n_tokens": 17
+  },
+  {
+   "id": "d-fo-19",
+   "kind": "form",
+   "lang": "en",
+   "gold": [
+    "positive feedback"
+   ],
+   "scores": {
+    "a complaint": 0.01549,
+    "a request for a quote": 0.03407,
+    "a question about an order": 0.02776,
+    "a cancellation": 0.00594,
+    "a technical problem": 0.01012,
+    "positive feedback": 0.90769
+   },
+   "n_tokens": 25
+  },
+  {
+   "id": "d-fo-20",
+   "kind": "form",
+   "lang": "en",
+   "gold": [
+    "a question about an order"
+   ],
+   "scores": {
+    "a complaint": 0.00551,
+    "a request for a quote": 0.03539,
+    "a question about an order": 0.96828,
+    "a cancellation": 0.00535,
+    "a technical problem": 0.01249,
+    "positive feedback": 0.00668
+   },
+   "n_tokens": 22
+  },
+  {
+   "id": "d-fo-21",
+   "kind": "form",
+   "lang": "en",
+   "gold": [
+    "a complaint"
+   ],
+   "scores": {
+    "a complaint": 0.78045,
+    "a request for a quote": 0.03126,
+    "a question about an order": 0.0481,
+    "a cancellation": 0.07636,
+    "a technical problem": 0.05259,
+    "positive feedback": 0.0635
+   },
+   "n_tokens": 27
+  },
+  {
+   "id": "d-fo-22",
+   "kind": "form",
+   "lang": "en",
+   "gold": [
+    "a complaint",
+    "a question about an order"
+   ],
+   "scores": {
+    "a complaint": 0.38186,
+    "a request for a quote": 0.14062,
+    "a question about an order": 0.34939,
+    "a cancellation": 0.01276,
+    "a technical problem": 0.08885,
+    "positive feedback": 0.02298
+   },
+   "n_tokens": 46
+  },
+  {
+   "id": "d-fo-23",
+   "kind": "form",
+   "lang": "en",
+   "gold": [
+    "a technical problem",
+    "a complaint"
+   ],
+   "scores": {
+    "a complaint": 0.46057,
+    "a request for a quote": 0.043,
+    "a question about an order": 0.03974,
+    "a cancellation": 0.05321,
+    "a technical problem": 0.65104,
+    "positive feedback": 0.01604
+   },
+   "n_tokens": 35
+  },
+  {
+   "id": "d-fo-24",
+   "kind": "form",
+   "lang": "en",
+   "gold": [],
+   "scores": {
+    "a complaint": 0.01748,
+    "a request for a quote": 0.26467,
+    "a question about an order": 0.37108,
+    "a cancellation": 0.04595,
+    "a technical problem": 0.03777,
+    "positive feedback": 0.17618
+   },
+   "n_tokens": 11
+  },
+  {
+   "id": "d-fo-25",
+   "kind": "form",
+   "lang": "en",
+   "gold": [],
+   "scores": {
+    "a complaint": 0.03954,
+    "a request for a quote": 0.40485,
+    "a question about an order": 0.19306,
+    "a cancellation": 0.04456,
+    "a technical problem": 0.05164,
+    "positive feedback": 0.30218
+   },
+   "n_tokens": 10
+  },
+  {
+   "id": "d-fo-26",
+   "kind": "form",
+   "lang": "en",
+   "gold": [
+    "positive feedback"
+   ],
+   "scores": {
+    "a complaint": 0.03168,
+    "a request for a quote": 0.05955,
+    "a question about an order": 0.04829,
+    "a cancellation": 0.02249,
+    "a technical problem": 0.02862,
+    "positive feedback": 0.74631
+   },
+   "n_tokens": 11
+  }
+ ]
+}

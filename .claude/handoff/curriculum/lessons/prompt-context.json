@@ -1,0 +1,282 @@
+{
+  "id": "prompt-context",
+  "icon": "🧭",
+  "estMinutes": 10,
+  "title": "Give it context",
+  "desc": "Role, audience and goal — the three lines that stop generic answers.",
+  "gate": {},
+  "learningGoal": "After this lesson you can add role, audience and goal to a bare request, tell which of those lines is doing the real work, and use the context Bee Flow already carries for you instead of retyping it.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "why",
+      "icon": "🧭",
+      "title": "The model has never met your company",
+      "bodyMd": "Last chapter you named the missing ingredient in Anouk's bland job advert: context. This chapter is about why that one word carries so much weight.\n\nWhen you type \"write a job advert for a service engineer\", the model has to invent an employer to write for. It has never met **Van Dijk Groep**, the installation firm in Zwolle where Anouk does HR. It does not know the trade, the region, who will read the advert, or what a successful advert would actually change — so it averages every job advert it has ever read. That average is precisely what \"generic\" feels like.\n\n**A generic, off-target answer is a diagnosis, not a verdict on the model.** The repair takes about twenty seconds, and it is the same short lines every time."
+    },
+    {
+      "type": "slide",
+      "id": "three",
+      "icon": "🧱",
+      "title": "Role, audience, goal — one line each",
+      "bodyMd": "Three short lines in front of the request, and nothing else changes:\n\n- **Your role** — \"I do HR at Van Dijk Groep, an installation firm in Zwolle with sixty staff.\"\n- **The audience** — \"For mbo-4 service engineers aged 25 to 40 who already work at a large installer.\"\n- **The goal** — \"I want more applicants who hold an F-gas certificate.\"\n\nEach line answers a question the model would otherwise have to guess at: who is speaking, who is reading, and what counts as a win.\n\nNotice what the goal line does. Without it you get a correct advert. With it you get an advert that argues why a certified engineer should leave a bigger employer."
+    },
+    {
+      "type": "slide",
+      "id": "role",
+      "icon": "🎭",
+      "title": "Give the model a role as well",
+      "bodyMd": "You can also tell the model **who to be**: \"Act as a recruitment copywriter who writes for technical trades\" or \"You are a careful procurement analyst.\"\n\nA role primes three things at once — the tone it reaches for, the vocabulary it assumes you know, and how cautious it is about claims. It is the cheapest single upgrade to a first draft.\n\nThat makes four pieces in all: your role, the audience, the goal, and the role you hand the model.\n\nOne warning. \"Act as a helpful assistant\" is not a role; it is what the model already thinks it is. A role only earns its line when it narrows something: a trade, a discipline, a level of caution, a house style."
+    },
+    {
+      "type": "quiz",
+      "id": "q1",
+      "question": "Anouk considers four lines to add above \"write a job advert for a service engineer\". Which one will change the answer most?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "\"For mbo-4 service engineers aged 25 to 40 who already work at a large installer.\"",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "\"Act as a helpful AI assistant.\"",
+          "correct": false,
+          "feedback": "A role only works when it narrows something. \"Helpful assistant\" is the default behaviour already, so this line costs you a sentence and buys nothing. \"Act as a recruitment copywriter for technical trades\" would earn its place."
+        },
+        {
+          "id": "c",
+          "label": "\"Please make this as good as you possibly can.\"",
+          "correct": false,
+          "feedback": "Encouragement is not information. The model has no way to turn \"as good as possible\" into a decision about tone, length or what to lead with — that is exactly what the audience and goal lines are for."
+        },
+        {
+          "id": "d",
+          "label": "\"Keep it under 300 words and use short paragraphs.\"",
+          "correct": false,
+          "feedback": "That is a format instruction, and a good one — the next chapter is built on them. But it changes the packaging, not the substance. Nothing in it tells the model who is reading or what the advert has to achieve."
+        }
+      ],
+      "explanation": "The audience line is the one that reshapes the content: it tells the model these readers already have a job, already know the trade, and need a reason to switch. Role and format polish an answer; audience and goal decide what is in it."
+    },
+    {
+      "type": "sim",
+      "id": "diagnose",
+      "icon": "🧩",
+      "title": "The repair loop, in order",
+      "instruction": "Anouk's advert came back bland. Put the four moves in the order that gets her to a usable advert with the least retyping — first move at the top.",
+      "sim": {
+        "kind": "order",
+        "items": [
+          {
+            "id": "name",
+            "label": "Read the weak answer and name the one piece that was missing: her role, the reader, the goal, or the role the model was given."
+          },
+          {
+            "id": "one",
+            "label": "Add that single line to the prompt — leave the rest of it exactly as it was."
+          },
+          {
+            "id": "resend",
+            "label": "Send it again in the same chat, so everything already said in the thread still counts."
+          },
+          {
+            "id": "park",
+            "label": "Once a line has proved itself on several chats, park it where it is carried for her: memory, a knowledge base or a skill."
+          }
+        ],
+        "solution": ["name", "one", "resend", "park"],
+        "feedback": "Diagnose, add one line, resend in the same thread, and only then make it permanent. Changing one thing at a time is what tells you which line was actually carrying the answer — rewrite everything at once and you learn nothing. Parking comes last because a line has to earn its keep before it is worth storing."
+      }
+    },
+    {
+      "type": "quiz",
+      "id": "q-miss",
+      "question": "A colleague complains: \"It spent two paragraphs explaining what an installation firm does — as if I had never heard of one.\" Which line was missing from that prompt?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "His own role — who is asking, and what trade they are already in.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "The audience — who is going to read the answer.",
+          "correct": false,
+          "feedback": "An audience line would have fixed the reading level and the tone, but not this. The model explained the trade because it had no idea the person asking works in it every day — that is the writer's own role line."
+        },
+        {
+          "id": "c",
+          "label": "The goal — what the answer has to achieve.",
+          "correct": false,
+          "feedback": "A goal line stops correct-but-useless answers. Here the answer was not useless, it was condescending: it introduced the trade to someone who lives in it. That is a missing role line."
+        },
+        {
+          "id": "d",
+          "label": "Nothing — a long preamble is just how models answer.",
+          "correct": false,
+          "feedback": "It is how they answer a stranger. Tell the model who is asking and the explanation of your own trade disappears, because it can assume you already know it."
+        }
+      ],
+      "explanation": "Each complaint points at a specific missing line. Explaining your trade back to you means your role was absent; wrong reading level means the audience was; correct-but-pointless means the goal was; a tone that wobbles between legal notice and social post means the model was never cast in a role."
+    },
+    {
+      "type": "slide",
+      "id": "template",
+      "icon": "✍️",
+      "title": "Before and after, in twenty seconds",
+      "bodyMd": "Here is Anouk's prompt before and after.\n\n**Before:** \"Write a job advert for a service engineer.\"\n\n**After:** \"Act as a recruitment copywriter for technical trades. I do HR at Van Dijk Groep, an installation firm in Zwolle with sixty staff. The advert is for mbo-4 service engineers aged 25 to 40 who already work at a large installer. The goal is more applicants holding an F-gas certificate. Write the advert.\"\n\nSame request, four short lines in front of it. The second version comes back arguing about shorter travel times and a say in your own planning — because that is what makes a certified engineer leave a big employer.\n\nYou are not writing a briefing document. Four lines is enough. If a line could sit unchanged on somebody else's prompt, it is not context yet."
+    },
+    {
+      "type": "quiz",
+      "id": "q2",
+      "question": "Bas from procurement opens every prompt with: \"You are a helpful assistant. Write for everyone. The goal is to be useful.\" Why does that count as no context at all?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Every one of those lines could be pasted onto any prompt in any company — none of them rules anything out.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "It is too short. Real context needs at least a full paragraph of background.",
+          "correct": false,
+          "feedback": "Length is not the test. Three specific lines beat a vague paragraph every time — and a long paragraph of generalities is just a slower way of saying nothing."
+        },
+        {
+          "id": "c",
+          "label": "The model ignores any sentence that begins with \"You are\".",
+          "correct": false,
+          "feedback": "It reads every word you send. \"You are a careful procurement analyst comparing steel quotes\" works exactly as intended — the problem here is that \"helpful assistant\" describes the default."
+        },
+        {
+          "id": "d",
+          "label": "Context has to come last in the prompt, after the task.",
+          "correct": false,
+          "feedback": "Order is a matter of structure, not of whether context exists, and these lines would be empty in any position. The next chapter covers where each block belongs."
+        }
+      ],
+      "explanation": "Context works by narrowing. \"For everyone\" narrows nothing, so the model keeps its widest, blandest default. The AI coach on the exercise later in this lesson applies the same test, and deliberately refuses to pass generic context."
+    },
+    {
+      "type": "slide",
+      "id": "carried",
+      "icon": "📎",
+      "title": "Context Bee Flow already carries",
+      "bodyMd": "Some context should never be typed twice. Bee Flow carries it into every turn for you.\n\n- **Memory** — standing facts about you and your work, saved as you chat. Settings shows everything that is stored.\n- **Knowledge** — the pill whose tooltip reads *What this chat is grounded on*. Pick a knowledge base and every turn searches it, and the answer carries its sources.\n- **Skills** — *Reusable instruction packs for this chat*: a prompt shape you keep pasting, saved once and switched on per chat.\n- **The conversation itself** — everything said earlier in the thread still counts.\n\nNot every account shows every pill; which controls you get depends on what your organisation has enabled.\n\nType the context that is true today. Let memory, knowledge and skills carry the context that is true every time."
+    },
+    {
+      "type": "tour",
+      "id": "mem",
+      "target": "[data-tour=\"memory-manage\"]",
+      "navigateTo": "settings/memory",
+      "placement": "top",
+      "optional": true,
+      "timeoutMs": 7000,
+      "title": "Where standing facts live",
+      "body": "This is Settings, Memory. \"Manage memories\" opens everything Bee Flow has kept about you and your work, and you can review, edit or remove any of it. Facts parked here are the reason Anouk does not retype her role line in every new chat."
+    },
+    {
+      "type": "slide",
+      "id": "person",
+      "icon": "🛡️",
+      "title": "Describe the case, not the person",
+      "bodyMd": "Good context describes a **situation**, not a human being.\n\n\"A candidate who does not hold an F-gas certificate\" gets you the same rejection letter as a pasted CV — and the letter comes back with a placeholder where the name goes, which is what Anouk needs anyway.\n\nThe name, the address and the employment history change nothing in the answer. All they change is how far a person's details travel.\n\nNine times out of ten the better prompt is the one without the person in it."
+    },
+    {
+      "type": "slide",
+      "id": "shield",
+      "icon": "🚦",
+      "title": "If the shield stops you",
+      "bodyMd": "If your organisation runs **Privacy Shield** and has switched on **One last check before an outside AI**, with that check set to **Ask**, pasting the real thing opens **Check this before it goes to the AI**.\n\nThe dialog names the AI service the prompt would be sent to and marks it **external**. It shows your own message with every detected item highlighted and counted above it. Your three buttons are **Block**, **Send anyway** and **Redact and send**, with a tick box to **Remember my choice for this conversation**.\n\nTreat it as a prompt review, not an obstacle. It is usually pointing at context the answer never needed."
+    },
+    {
+      "type": "quiz",
+      "id": "q3",
+      "question": "Anouk pastes a candidate's CV to get a rejection letter written. The shield stops her with \"Check this before it goes to the AI\". What is the best move?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Rewrite the prompt to describe the case — \"a candidate without an F-gas certificate\" — and ask for a letter with a placeholder for the name.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Choose \"Send anyway\" — the letter is about that person, so the model needs the whole CV.",
+          "correct": false,
+          "feedback": "A rejection letter needs one fact: why this candidate is not a fit. Name, address and employment history change nothing in the output, so sending them buys no quality and costs privacy."
+        },
+        {
+          "id": "c",
+          "label": "Tick \"Remember my choice for this conversation\" so the dialog stops interrupting, then carry on as before.",
+          "correct": false,
+          "feedback": "That tick box only spares you the next dialog — it applies the choice you have just made, allow or redact, to the rest of this conversation. The question of what leaves the workspace is untouched."
+        },
+        {
+          "id": "d",
+          "label": "Ask an administrator to switch Privacy Shield off for the organisation.",
+          "correct": false,
+          "feedback": "An administrator could switch the shield off for the whole organisation — it is an organisation-wide policy, not a personal one — but that would not improve the prompt by a word. The CV was never the context the letter needed."
+        }
+      ],
+      "explanation": "Describe the case, not the person. \"Redact and send\" is the honest fallback when material genuinely has to travel, but the cleanest fix is a prompt that never contained the CV — and the answer is just as good."
+    },
+    {
+      "type": "exercise",
+      "id": "ex",
+      "icon": "🎯",
+      "exerciseId": "ex-context-add",
+      "title": "Your turn: add the context",
+      "instruction": "Marketing at Van Dijk Groep typed the bare task \"suggest three blog post ideas\" and got three ideas that could belong to any company.\n\nRewrite it. Keep the task, and put your role, your audience and your goal in front of it. Write as Van Dijk Groep or about your own work, whichever you can be concrete about.\n\nA strong answer names a real role, a reader specific enough to picture, and something the ideas have to achieve. Generic context does not pass.",
+      "placeholder": "e.g. I handle marketing at Van Dijk Groep, an installation firm in Zwolle with sixty staff. Our readers are facility managers at housing associations who are planning a heat-pump replacement. Suggest three blog post ideas that would get them to request a site survey.",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "slide",
+      "id": "permanent",
+      "icon": "🏠",
+      "title": "When context stops being typed",
+      "bodyMd": "Once a context block has earned its keep, stop retyping it.\n\n- **Said once, true always** — let it land in memory, and check Settings when you want to see what is stored.\n- **The same documents every time** — put them in a knowledge base and ground the chat on it.\n- **The same instruction block every time** — save it as a skill and attach it, rather than pasting.\n- **Standing behaviour for a whole team** — that belongs in an agent's system prompt, if your role lets you build agents.\n\nAnouk's role line is memory. The collective labour agreement is knowledge. Her house style for adverts is a skill. Three different homes, and none of them is her keyboard."
+    },
+    {
+      "type": "slide",
+      "id": "nowcan",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "- **Add three lines before any request** — your role, the audience, the goal — and cast the model in a role that narrows something.\n- **Read a bland answer as a diagnosis.** Ask which of the four pieces you left out, add that one, and resend rather than starting over.\n- **Stop retyping.** Standing facts belong in memory, documents in a knowledge base, a repeated instruction block in a skill — and a person's details belong in none of them.\n\nNext chapter: **Structure & format** — now that the model knows the situation, you tell it the exact shape to answer in."
+    }
+  ],
+  "rubrics": {
+    "ex-context-add": {
+      "title": "Add role, audience and goal",
+      "task": "Rewrite the bare task \"suggest three blog post ideas\" so it carries real context: the writer's role or company, the audience the ideas are for, and the goal the ideas must achieve.",
+      "criteria": [
+        "Names the writer's role, job or company concretely (not just \"I work in marketing\")",
+        "Names a specific audience — who reads this, and something true about their situation",
+        "States a goal the ideas must serve, beyond \"be useful\" or \"get traffic\"",
+        "The context is specific enough that it could not be pasted unchanged onto another company's prompt"
+      ],
+      "passScore": 70,
+      "guidance": "Pass a submission that supplies all three lines with real specifics, even if the writing is plain or the company is invented. Do not pass generic filler such as \"for everyone\", \"to be helpful\" or \"act as a helpful assistant\". Do not pass a rewrite that only adds format, length or tone but leaves role, audience and goal unstated. A role given to the model does not substitute for the writer's own role. Personal data in the submission is never required and should not be rewarded."
+    }
+  },
+  "practiceTopic": {
+    "title": "Giving a prompt context",
+    "summary": "How role, audience and goal turn a generic answer into a targeted one, and where Bee Flow keeps the context you should never retype.",
+    "facts": [
+      "A generic, off-target answer usually signals missing context rather than a weak model.",
+      "Context is three lines: your role, the audience the answer is for, and the goal the answer has to achieve.",
+      "Role prompting such as \"Act as a recruitment copywriter for technical trades\" primes tone, vocabulary and caution; \"act as a helpful assistant\" adds nothing because it describes the default.",
+      "Generic context like \"for everyone, to be helpful\" does not pass the AI coach: a context line must be one that could not be pasted unchanged onto another company's prompt.",
+      "In the chat composer the Knowledge pill's tooltip reads \"What this chat is grounded on\", and once a base is picked it reads \"Grounded on\" plus the name; Skills are \"Reusable instruction packs for this chat\".",
+      "Standing facts live in Settings under Memory, where \"Manage memories\" lets you review, edit or remove anything that has been stored.",
+      "When the shield's \"One last check before an outside AI\" is set to Ask, a prompt with personal data opens \"Check this before it goes to the AI\", naming the AI service it would be sent to, marking it external, and offering Block, Send anyway and Redact and send.",
+      "Describing the case beats pasting the person: \"a candidate without an F-gas certificate\" produces the same letter as a pasted CV."
+    ]
+  }
+}

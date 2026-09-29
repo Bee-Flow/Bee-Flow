@@ -1,0 +1,101 @@
+/*
+ * App Studio runtime — card LOOK variants (AppCard.jsx).
+ *
+ * A card's visible surface is its grid CELL (.app-node): resolveNodeStyle
+ * paints the background/padding knobs there as INLINE styles and .app-surface
+ * adds the hairline (runtime.css). The component cannot reach that cell from
+ * the inside, so the look classes it stamps on its own root are matched from
+ * the cell with :has().
+ *
+ * IDENTITY: look 'default' stamps no class, so none of these can ever match a
+ * stored definition — the default card renders byte-identically to before.
+ *
+ * Selector shape, deliberately:
+ *   - `.app-node.app-node` bumps specificity to 0,3,0 so these outrank the
+ *     design-variant rules in app-tokens.css (0,2,0) regardless of import order.
+ *   - the :has() argument is a two-position list: in run mode the card root is
+ *     the cell's DIRECT child; in edit mode (EditorNodeWrapper) and under
+ *     DisabledWrap there is exactly one wrapper div between them. Deeper
+ *     descendants are excluded on purpose — a NESTED card's look must not
+ *     restyle its ancestor's cell (a nested card root only ever appears under
+ *     a further [data-node-id] cell, below these two positions).
+ *   - !important only where the cell paints the same property INLINE (the
+ *     background knob); an explicit inline `border`/`radius` knob still wins
+ *     over the un-!important declarations here, which is the knob contract.
+ *
+ * Colors: theme tokens only — the primary family and the platform tokens —
+ * so every look follows dark mode and high contrast for free.
+ */
+
+/* flat — flush and borderless: no surface, no hairline, no elevation, and no
+   inset (the cell's padding knob is what indents the content). */
+.app-node.app-node:has(> .app-card--flat),
+.app-node.app-node:has(> div > .app-card--flat) {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+}
+
+/* raised — the surface keeps its footprint but trades the hairline for real
+   elevation (semantic: rings in high contrast, see app-tokens.css). */
+.app-node.app-node:has(> .app-card--raised),
+.app-node.app-node:has(> div > .app-card--raised) {
+    border-color: transparent;
+    border-radius: var(--app-radius, 8px);
+    box-shadow: var(--app-shadow-2);
+}
+
+/* tinted — soft primary wash; text on it stays --text-primary (readable in
+   both themes: --app-primary-soft is a low-alpha wash over the page). */
+.app-node.app-node:has(> .app-card--tinted),
+.app-node.app-node:has(> div > .app-card--tinted) {
+    background: var(--app-primary-soft) !important;
+    border-color: transparent;
+    border-radius: var(--app-radius, 8px);
+}
+
+/* accent — the current surface plus a primary left edge bar. */
+.app-node.app-node:has(> .app-card--accent),
+.app-node.app-node:has(> div > .app-card--accent) {
+    border-left: 3px solid var(--app-primary);
+}
+
+/* solid — a brand panel: filled with the app primary, with the platform
+   TEXT and SURFACE tokens re-declared for the subtree so headings, text,
+   labels, nested cards and inputs inside it all read in the contrast colour
+   without any component knowing where it sits. The surfaces are re-declared
+   too — a white input with white text would otherwise be the price of the
+   text override. A heading's `tinted` accent paints primary-on-primary here;
+   the heading color knob is the way to a coloured title on a solid card. */
+.app-node.app-node:has(> .app-card--solid),
+.app-node.app-node:has(> div > .app-card--solid) {
+    background: var(--app-primary) !important;
+    border-color: transparent;
+    border-radius: var(--app-radius, 8px);
+    color: var(--app-primary-contrast);
+    --text-primary: var(--app-primary-contrast);
+    --text-secondary: color-mix(in srgb, var(--app-primary-contrast) 84%, var(--app-primary));
+    --text-muted: color-mix(in srgb, var(--app-primary-contrast) 68%, var(--app-primary));
+    --text-tertiary: color-mix(in srgb, var(--app-primary-contrast) 68%, var(--app-primary));
+    --bg-primary: var(--app-primary);
+    --bg-card: color-mix(in srgb, var(--app-primary-contrast) 8%, var(--app-primary));
+    --bg-secondary: color-mix(in srgb, var(--app-primary-contrast) 12%, var(--app-primary));
+    --bg-tertiary: color-mix(in srgb, var(--app-primary-contrast) 18%, var(--app-primary));
+    --border-default: color-mix(in srgb, var(--app-primary-contrast) 30%, transparent);
+    --border-subtle: color-mix(in srgb, var(--app-primary-contrast) 18%, transparent);
+    --app-primary-soft: color-mix(in srgb, var(--app-primary-contrast) 14%, transparent);
+}
+
+/* gradient — a soft primary gradient surface, no literal colors: both stops
+   are color-mix washes of the app primary over whatever the theme paints. */
+.app-node.app-node:has(> .app-card--gradient),
+.app-node.app-node:has(> div > .app-card--gradient) {
+    background: linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--app-primary) 16%, transparent),
+        color-mix(in srgb, var(--app-primary) 3%, transparent)
+    ) !important;
+    border-color: transparent;
+    border-radius: var(--app-radius, 8px);
+}

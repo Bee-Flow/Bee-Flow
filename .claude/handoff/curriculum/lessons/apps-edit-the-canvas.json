@@ -1,0 +1,394 @@
+{
+  "id": "apps-edit-the-canvas",
+  "icon": "🎛️",
+  "estMinutes": 14,
+  "title": "Change it yourself on the canvas",
+  "desc": "Add, place and inspect a component by hand, share one named value across the screens — and read the badges, the save pill and the conflict dialog the canvas answers with.",
+  "gate": {
+    "permission": "manage_apps",
+    "feature": "app_studio"
+  },
+  "learningGoal": "After this lesson you can add, place and delete a component by hand, find the right setting in the Inspector's Look and Behaviour tabs, declare a variable your screens share and read it as vars.<name>, read the badges on a node, and undo a change you did not mean.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "edit-is-a-place",
+      "icon": "🧭",
+      "title": "Edit is the workshop, Preview is the shop floor",
+      "bodyMd": "The AI built Van Dijk Groep's **Inkoopaanvragen** app in a few minutes. Now Nadia in the office wants one thing changed: a line of explanation above the amount field. That is a two-second job by hand and a whole conversation to describe.\n\nThe view control in the editor header has five segments: **Edit · Preview · Data · Logic · Roles**. The last three open a panel over the app. The first two are the same canvas in two modes — **Edit**, where every block can be picked up, and **Preview**, which runs the screen the way the app will actually behave.\n\nEverything you do in Edit lands in the *draft*. Nobody else is looking at the draft, so you can take the screen apart without anyone noticing."
+    },
+    {
+      "type": "slide",
+      "id": "anatomy",
+      "icon": "🧱",
+      "title": "Screen, section, component",
+      "bodyMd": "A screen is not a blank sheet. It holds **sections** — full-width bands stacked down the page — and each section lays its components out on a 12-column grid. So a component always has a section as its parent, and a container, card or tabs component can hold more components inside it again.\n\nThat nesting is where the ceilings live:\n\n- **40** screens in an app, **40** sections in a screen\n- **500** nodes in total — sections and components together\n- **6** levels of nesting\n- **5 000** characters in any single text property\n\nThe whole app definition may not pass **512 KB**. You will meet none of these on a normal internal tool; you will meet them if you paste a novel into a text block."
+    },
+    {
+      "type": "sim",
+      "id": "which-drawer",
+      "icon": "🗂️",
+      "title": "Which drawer is it in?",
+      "instruction": "The component strip sorts everything into six categories. Match each thing Van Dijk Groep wants on a screen to the category you would open to find it.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "p1",
+            "left": "A Goedkeuren control the office manager clicks on the Openstaand screen",
+            "right": "Basics",
+            "note": "Basics holds exactly one component: the button."
+          },
+          {
+            "id": "p2",
+            "left": "A short note above the form explaining which purchases need a project number",
+            "right": "Content",
+            "note": "Headings, text, callouts, images and markdown are all Content."
+          },
+          {
+            "id": "p3",
+            "left": "A tabbed panel so open and closed requests share one screen",
+            "right": "Layout",
+            "note": "Layout is the furniture: containers, cards, tabs, modals, dividers, spacers."
+          },
+          {
+            "id": "p4",
+            "left": "A board of requests in columns by status, dragged from column to column",
+            "right": "Data",
+            "note": "Data is the biggest category — grids, lists, charts, kanban, calendars, timelines."
+          },
+          {
+            "id": "p5",
+            "left": "A field where a site manager picks the colleague who requested it",
+            "right": "Input",
+            "note": "Every typing, picking and uploading control sits in Input."
+          },
+          {
+            "id": "p6",
+            "left": "A chat panel inside the app that answers questions about the request",
+            "right": "AI",
+            "note": "AI holds one component, the chat panel."
+          }
+        ]
+      }
+    },
+    {
+      "type": "slide",
+      "id": "the-strip",
+      "icon": "🧰",
+      "title": "The component strip",
+      "bodyMd": "The strip beside the canvas is labelled **Components** (its full name for a screen reader is *Add a component*). It opens on **Start here** — a short list of the eight you reach for most, among them Heading, Text, Button, Form, Table and Chart — and **All** shows the complete set under **Basics · Content · Layout · Data · Input · AI**.\n\nThere is a **Search a component…** box when you know the name; type something that does not exist and it says so: *No components match “…”*.\n\nEvery card in the strip repeats the two ways in: **Click to add — or drag it onto the canvas**. Clicking drops the component in just after whatever you have selected — or at the end of the screen's last section when nothing is — and dragging lets you aim instead. When the canvas needs the room, **Hide the component strip** folds it away, and **Show the component strip** brings it back."
+    },
+    {
+      "type": "slide",
+      "id": "place-and-size",
+      "icon": "✋",
+      "title": "Picking it up once it has landed",
+      "bodyMd": "Click a component and its own chrome appears around it.\n\n- The **drag handle** moves it. Its tooltip says *Drag to move · Alt+↑/↓ to reorder*, so you never have to fight the mouse for one place up or down.\n- **Resize width** and **Resize height** are the edge handles. Drag them, or use the keyboard: *Drag to resize width · ←/→ to adjust*.\n- **Duplicate** copies it in place, **Delete** removes it.\n\nDeleting a container asks first — **Delete this card?** — and tells you the price: *It contains 3 components — everything inside is deleted with it.*\n\nSay yes anyway. Every one of these is a single undo away, which is why the honest way to work here is to move fast and lean on Cmd/Ctrl+Z rather than hesitate over every block."
+    },
+    {
+      "type": "quiz",
+      "id": "q-delete",
+      "question": "Nadia selects the card holding two input fields on Nieuwe aanvraag, clicks Delete on its chrome and confirms. A second later she wants it back. What happened, and what gets her out of it?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "The card and both fields inside it are gone from the draft, and one undo (Cmd/Ctrl+Z) brings the whole lot back.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Only the card was removed; the two fields moved up into the section and are still on the screen.",
+          "correct": false,
+          "feedback": "The confirm dialog is explicit about this: everything nested inside a container is deleted with it. That is precisely why it asks."
+        },
+        {
+          "id": "c",
+          "label": "The delete is refused while the card still has components inside it, so nothing changed.",
+          "correct": false,
+          "feedback": "Nothing refuses it. The dialog counts the children for you and deletes them along with the parent once you confirm."
+        },
+        {
+          "id": "d",
+          "label": "Her colleagues have just lost those fields too, so she must publish again to repair it.",
+          "correct": false,
+          "feedback": "Colleagues are not watching the draft. Everyone but the owner runs the copy frozen at the last publish, so a canvas mistake never reaches them."
+        }
+      ],
+      "explanation": "Deleting a container takes its contents with it — the confirm dialog says so and counts them for you. It is still one undo step, so Cmd/Ctrl+Z restores the card and both fields together."
+    },
+    {
+      "type": "slide",
+      "id": "many-at-once",
+      "icon": "⌨️",
+      "title": "More than one at a time",
+      "bodyMd": "Drag a box across empty canvas and you select everything it touches. A small bar appears reading **3 selected**, with **Duplicate selected** and **Delete selected** beside it. Deleting a group asks once — **Delete 3 components?** — and warns that containers take their contents along.\n\nThe keyboard does the rest, and only while your cursor is not in a text field:\n\n- **Cmd/Ctrl+C / X / V** — copy, cut and paste the selection. A cut is one undo step, not two.\n- **Cmd/Ctrl+D** — duplicate and select the copy.\n- **↑ / ↓** — step to the previous or next component in the same parent.\n- **Escape** — let go of the selection.\n\nWhile the AI builder is mid-build it owns the draft, and all of these pause until it is done."
+    },
+    {
+      "type": "slide",
+      "id": "inspector",
+      "icon": "🔍",
+      "title": "The Inspector asks two questions",
+      "bodyMd": "The panel on the right is the Inspector, and its screen-reader name is the whole idea: **What to edit**. It splits into two tabs.\n\n**Look** — what the component *is*. **Content** holds its own settings: the words in a heading, the columns of a grid, the table a form is bound to. **Style** holds width, spacing and tone.\n\n**Behaviour** — what it *does*. **Actions** lists the events this type can react to (**When clicked**, **When submitted**, **When it changes**, **When a row is clicked**) and what runs on each. Under it, **Logic** decides whether it is on screen at all, and whether it can be used once it is.\n\nSelect a heading and the Behaviour tab is honest about it: *This component has nothing to react to — it shows information rather than taking input.* That is an answer, not an empty panel."
+    },
+    {
+      "type": "sim",
+      "id": "order-of-work",
+      "icon": "🧩",
+      "title": "One component, start to finish",
+      "instruction": "Nadia is adding a short explanation above the amount field on Nieuwe aanvraag. Put her five moves in the order that actually works.",
+      "sim": {
+        "kind": "order",
+        "items": [
+          {
+            "id": "a",
+            "label": "Set the view control in the header to Edit"
+          },
+          {
+            "id": "b",
+            "label": "Open the Components strip and click Heading to add it"
+          },
+          {
+            "id": "c",
+            "label": "With it selected, type the words under Content on the Look tab"
+          },
+          {
+            "id": "d",
+            "label": "Drag its handle above the amount field and pull the width handle to fit"
+          },
+          {
+            "id": "e",
+            "label": "Switch to Preview and read the screen as a site manager would"
+          }
+        ],
+        "solution": [
+          "a",
+          "b",
+          "c",
+          "d",
+          "e"
+        ],
+        "feedback": "Mode first — the strip, the handles and the Inspector only exist in Edit. Then add, then fill in, then place, and finally check it in Preview, which runs the screen the way a colleague meets it."
+      }
+    },
+    {
+      "type": "slide",
+      "id": "badges",
+      "icon": "🏷️",
+      "title": "The canvas answers back in badges",
+      "bodyMd": "A component that behaves differently at run time says so on the canvas, so Preview never has to be a guessing game. The badges you will meet:\n\n- **Hidden in the running app** — someone switched it off in Logic.\n- **Only shown when {expr}** and **Only usable when {expr}** — it appears, or becomes clickable, only while that condition holds.\n- **Checks 4 rules before submitting** — this input carries validation rules.\n- **points at an action that no longer exists** — the thing this control was wired to has been deleted or replaced.\n\nThe `{expr}` in those two condition badges is the app's expression language. It can read the row in front of it and the values on the screen — and one thing that belongs to no component at all, which the next card is about.\n\nThe dangling-action badge is the useful one. A draft save will not stop you over it — data references are demoted to warnings on a draft so half-finished work stays saveable — but the control does nothing when a person clicks it."
+    },
+    {
+      "type": "quiz",
+      "id": "q-badge",
+      "question": "In Preview, the Goedkeuren button on Van Dijk's Openstaand screen does nothing at all. Back in Edit the button wears the badge \"points at an action that no longer exists\". What is the fastest read of this?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "The action the button was wired to has been removed or renamed; open the button's Behaviour tab under Actions and point it at a live one.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "The button is hidden by a condition, so nothing runs until that condition comes out true.",
+          "correct": false,
+          "feedback": "That is a different badge. A condition reads \"Only shown when {expr}\" or \"Only usable when {expr}\" — and a hidden button would not be sitting there in Preview waiting to be clicked."
+        },
+        {
+          "id": "c",
+          "label": "The draft failed to save, which is why the wiring is missing.",
+          "correct": false,
+          "feedback": "The draft saved. A dangling reference is a warning on a draft save, not an error — the save went through and left the badge behind to tell you."
+        },
+        {
+          "id": "d",
+          "label": "The screen the button navigates to was deleted, so there is nowhere to go.",
+          "correct": false,
+          "feedback": "A missing screen is a different problem. This badge is about the action itself — the wiring, not its destination."
+        }
+      ],
+      "explanation": "Every badge on a node is the editor showing you a run-time difference while you can still see the component. This one says the wiring is dangling: the fix is in Behaviour → Actions, and it is worth fixing before you publish rather than after."
+    },
+    {
+      "type": "slide",
+      "id": "variables",
+      "icon": "🧮",
+      "title": "One value the whole app can see",
+      "bodyMd": "A condition has to read *something*. A grid filtered to one status, a section that only appears once a choice is made, a button that stays unusable until a row is picked — none of those belong to a single component. They need a value that sits above the screen.\n\nThat is a **variable**: a named value your screens and actions share, which formulas read as `vars.<name>`.\n\nThey live in one place — header → **Data**, then the **Variables** tab beside Tables, with a badge counting the ones you have. **New variable** gives you **Name** (one word, and it is exactly what `vars.<name>` refers to), **Shown as**, **Holds** (what kind of value) and **Starts out as**.\n\nThat last field is the one people skip. Without a starting value, a grid filtered on `vars.status_filter` shows *everything* until something sets it.\n\nSetting is an action's job: a **Set a variable** step, filed under **On screen** — *Put a value in one of the app's shared variables.*\n\nAn app holds **30** variables and one starting value may be at most **2 048 bytes**. They are for a status, a choice, a filter — not for parking a table in."
+    },
+    {
+      "type": "sim",
+      "id": "use-a-variable",
+      "icon": "🧪",
+      "title": "Make one value do the work",
+      "instruction": "Openstaand should open showing only the requests whose status is nieuw, and a Toon goedgekeurde button on the same screen should switch that grid over. Put Nadia's five moves in the order that actually works.",
+      "sim": {
+        "kind": "order",
+        "items": [
+          {
+            "id": "a",
+            "label": "Header → Data → the Variables tab → New variable, named status_filter"
+          },
+          {
+            "id": "b",
+            "label": "Set Holds to a text value and Starts out as nieuw"
+          },
+          {
+            "id": "c",
+            "label": "Select the grid and filter its status column on the formula {vars.status_filter}"
+          },
+          {
+            "id": "d",
+            "label": "Select the button: Behaviour → Actions → When clicked, add a Set a variable step writing goedgekeurd into status_filter"
+          },
+          {
+            "id": "e",
+            "label": "Preview: the grid opens on nieuw, and the button swaps it to goedgekeurd"
+          }
+        ],
+        "solution": [
+          "a",
+          "b",
+          "c",
+          "d",
+          "e"
+        ],
+        "feedback": "Declare before you read. A formula pointing at a variable that does not exist earns the warning 'One formula reads a variable that does not exist', with a Declare it button — and until you do, the filter is dropped and the grid shows every row rather than none. Starts out as is what opens the screen already filtered; the Set a variable step is what moves it afterwards."
+      }
+    },
+    {
+      "type": "slide",
+      "id": "saving",
+      "icon": "💾",
+      "title": "Nothing here has a Save button",
+      "bodyMd": "The canvas saves itself. The pill in the header is the whole status report: **Saving…** while it is in flight, **Saved · v14** when it lands, **Saving failed** if it did not. **Cmd/Ctrl+S** pushes a save through immediately rather than waiting.\n\nBeside the pill sit the notices from that save, under **From the last save**. When the draft has loose ends, the header counts them: **3 to check**, and every row has a **Show me** that selects the offending node on the canvas for you.\n\nTwo things turn a save into a failure rather than a warning: a definition over **512 KB**, and a structural error the validator cannot demote. Everything softer — a form pointing at a table you have not built yet — comes back as a warning you can keep working through. (A save can also stop because somebody else saved first; that is the conflict dialog on the next card.)"
+    },
+    {
+      "type": "slide",
+      "id": "getting-back",
+      "icon": "↩️",
+      "title": "Getting back what you broke",
+      "bodyMd": "**Cmd/Ctrl+Z** undoes, **Shift+Cmd/Ctrl+Z** redoes, and both also sit in the header's **More** (⋯) menu next to **Command palette** and **Version history**. **Cmd/Ctrl+K** opens the palette from anywhere, even mid-typing.\n\nUndo covers the deletions too. Delete a screen and the dialog says *The screen and everything on it are removed from the app. You can undo this.* The one deletion the editor simply refuses is the last one: **An app needs at least one screen**.\n\nWhat undo does not cover is somebody else. If the app was saved elsewhere while you were editing, the next save stops on **This app changed in another tab** and asks you to choose — it never guesses."
+    },
+    {
+      "type": "exercise",
+      "id": "ex-plan",
+      "icon": "🎯",
+      "exerciseId": "ex-apps-edit-the-canvas-plan",
+      "title": "Your turn: plan the hand edit",
+      "instruction": "Van Dijk Groep's Openstaand screen shows a grid of open purchase requests. The office manager wants a short heading above the grid reading \"Wacht op jouw akkoord\", and a Goedkeuren button beside it that should only be clickable once a row has been selected. Write the edit as a short list of moves: which mode you work in, which category of the component strip each piece comes from, which Inspector tab and section you open for each setting, and which badge you expect to see on the button when you are done.",
+      "placeholder": "e.g. Switch the view control to Edit. From Content in the strip, click Heading; with it selected, open Look → Content and type…",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "quiz",
+      "id": "q-conflict",
+      "question": "Nadia has been rearranging Openstaand for ten minutes when the save stops on \"This app changed in another tab\". What do the two buttons actually do?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Load latest replaces the canvas with the newer saved copy; Overwrite with mine pushes her version over it and the other save's changes are lost.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "They merge the two versions, keeping every change from both sides.",
+          "correct": false,
+          "feedback": "There is no merge. The editor cannot know which of two edits to the same screen you meant, so it puts the choice in front of you instead of inventing one."
+        },
+        {
+          "id": "c",
+          "label": "It is about the published copy: Load latest re-publishes, Overwrite with mine unpublishes.",
+          "correct": false,
+          "feedback": "Publishing is not involved. This dialog is only about the draft — two saves of the same draft that disagree about where they started."
+        },
+        {
+          "id": "d",
+          "label": "Nothing is lost either way, because every draft save is kept in Version history.",
+          "correct": false,
+          "feedback": "Version history is written on publish, on restore and at the AI builder's phase boundaries — not on every draft save. There is no snapshot of the ten minutes in question."
+        }
+      ],
+      "explanation": "The editor never retries a conflicting save on its own. Before you choose Overwrite with mine, it is worth knowing who else had the app open — and worth publishing, or letting the builder reach a phase boundary, before a long stretch of hand editing."
+    },
+    {
+      "type": "action",
+      "id": "do",
+      "icon": "🏗️",
+      "checkId": "app-canvas-edited",
+      "title": "Put one component on a screen yourself",
+      "instruction": "Open an app you own and set the view control to Edit. From the Components strip, add a Heading to the screen, type its text under Content on the Inspector's Look tab, then use the drag handle and the width handle to place it. Watch the header pill go from Saving… to Saved · v{n}, then check it in Preview.",
+      "launch": {
+        "navigateTo": "studio/apps",
+        "label": "Open App Studio"
+      }
+    },
+    {
+      "type": "slide",
+      "id": "recap",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "- **Work in Edit, check in Preview.** The five-segment view control puts Data, Logic and Roles in a panel; Edit and Preview are the same canvas in two modes, and both show only your draft.\n- **Add a component by hand.** The **Components** strip, **Start here** or **All**, six categories and a search box, and every card offering the same two ways in: *Click to add — or drag it onto the canvas*.\n- **Place it.** Drag handle (*Alt+↑/↓ to reorder*), the width and height handles, Duplicate, Delete — and a group of them at once with **3 selected**, Cmd/Ctrl+D, Cmd/Ctrl+C / X / V.\n- **Find the setting.** **Look** for Content and Style, **Behaviour** for Actions and Logic.\n- **Share a value.** Header → **Data** → **Variables**: **Name**, **Shown as**, **Holds**, **Starts out as** — read anywhere as `vars.<name>`, written by a **Set a variable** step, 30 per app.\n- **Read the canvas.** The badges on a node, the **Saved · v14** pill, **3 to check** with its **Show me** — and undo, or the conflict dialog, when a change was not the one you meant.\n\nThe AI builder is still the fastest way to get a first version. This is how you take it from there."
+    }
+  ],
+  "rubrics": {
+    "ex-apps-edit-the-canvas-plan": {
+      "title": "Plan a hand edit of the Openstaand screen",
+      "task": "Describe, as an ordered list of moves, how to add a heading and a conditionally usable Goedkeuren button to an existing screen by hand: the editor mode, the component strip category for each piece, the Inspector tab and section for each setting, and the badge expected on the button afterwards.",
+      "criteria": [
+        "Names Edit as the mode, and adds both pieces from the Components strip — the heading from Content and the button from Basics.",
+        "Puts the heading's words under Content on the Look tab, not in Behaviour.",
+        "Sets the button's condition under Behaviour → Logic so it stays visible but is not usable until a row is selected, rather than hiding the button outright.",
+        "Expects the badge 'Only usable when {expr}' on the button, and mentions checking the result in Preview."
+      ],
+      "passScore": 70,
+      "guidance": "Do not pass an answer that puts styling or wording under Behaviour, or wiring and conditions under Look — the two-tab split is the point of the exercise. Do not pass an answer that reaches for the AI builder instead of the canvas, or that expects the button to be Hidden in the running app when the requirement was that it be visible but not yet clickable. An answer may name a plausible condition expression; the exact syntax is not what is graded."
+    }
+  },
+  "practiceTopic": {
+    "title": "Editing an app canvas by hand",
+    "summary": "Adding, placing and inspecting components on an App Studio screen without asking the AI builder, and reading what the editor reports back.",
+    "facts": [
+      "The editor's view control has five segments — Edit, Preview, Data, Logic and Roles — and Edit and Preview are two modes of the same canvas while the other three open a panel.",
+      "The Components strip opens on Start here, offers All with the categories Basics, Content, Layout, Data, Input and AI, has a Search a component… box, and every card reads 'Click to add — or drag it onto the canvas'.",
+      "A component's chrome carries a drag handle ('Drag to move · Alt+↑/↓ to reorder'), Resize width and Resize height handles, Duplicate and Delete; a multi-selection shows '{n} selected' with Duplicate selected and Delete selected.",
+      "The Inspector splits into a Look tab (Content, Style) and a Behaviour tab (Actions, Logic); the app's shared named values sit under Data → Variables, and formulas read them as vars.<name>.",
+      "Canvas badges include 'Hidden in the running app', 'Only shown when {expr}', 'Only usable when {expr}', 'Checks {n} rules before submitting' and 'points at an action that no longer exists'.",
+      "The header pill reads Saving…, Saved · v{version} or Saving failed; notices sit under 'From the last save' and each row has a Show me that selects the node.",
+      "An app may hold 40 screens, 40 sections per screen, 500 nodes, 6 levels of nesting and 30 variables (each starting value at most 2 048 bytes), and the definition may not exceed 512 KB.",
+      "Deleting the only screen is refused with 'An app needs at least one screen', and a save that collides with another tab stops on 'This app changed in another tab' offering Load latest or Overwrite with mine."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "app-canvas-edited",
+      "existing": false,
+      "label": "Edit an app canvas by hand",
+      "hint": "In Studio → Apps, open an app you own, switch the header's view control to Edit and add a component from the Components strip. The header pill counts the version up on every save.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/studio-apps/mine",
+          "returns": "{ apps: [ { id, userId, name, definitionVersion, publishedVersion, isPublished, updatedAt, … } ] } — only apps the caller owns"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "owns-app",
+          "label": "You own an app in App Studio",
+          "hint": "Studio → Apps → New app, or open one you already built in an earlier chapter. The draft version behind the header pill is stored on the app itself and is not part of this check.",
+          "rule": "GET /api/studio-apps/mine → apps[] is non-empty (the route returns only apps the caller owns)",
+          "endpoint": "/api/studio-apps/mine",
+          "expect": {
+            "kind": "rows",
+            "field": "apps"
+          }
+        }
+      ]
+    }
+  ]
+}

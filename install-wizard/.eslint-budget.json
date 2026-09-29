@@ -1,0 +1,5 @@
+{
+  "_comment": "Highest eslint warning count install-wizard may carry. Lower it with `node scripts/eslint-budget.mjs install-wizard --update` after a clean-up; raising it is a deliberate edit that belongs in a commit message with a reason.",
+  "_generated": "2026-09-24",
+  "warnings": 0
+}

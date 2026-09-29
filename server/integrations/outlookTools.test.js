@@ -1,0 +1,111 @@
+/**
+ * Outlook send / reply / save-draft recipient handling.
+ *
+ * outlook_compose accepts a `bcc`, the draft carries it and EmailDraftCard
+ * shows it — but only the plain sendMail path ever put it on the wire. The
+ * reply payload forwarded to/cc only (mail genuinely went out, the card said
+ * "sent", and the BCC copy never arrived) and executeOutlookSaveDraft never
+ * looked at draft.bcc at all. One shared buildOutlookMessage now feeds all
+ * three, so the next recipient field cannot go missing from one of them.
+ *
+ * './msGraphClient' is stubbed via installResolveStub (pattern:
+ * calendarTools.test.js) with a fake Graph recording every request.
+ *
+ * Run: cd server && node --test integrations/outlookTools.test.js
+ */
+
+const test = require('node:test');
+const assert = require('node:assert');
+const { installResolveStub } = require('../testUtils/stubRequire');
+
+const calls = [];
+
+const restore = installResolveStub({
+    './msGraphClient': {
+        isMicrosoftConnected: () => true,
+        graphFetch: async (path, session, options = {}) => {
+            calls.push({ path, method: options.method || 'GET', body: options.body ? JSON.parse(options.body) : null });
+            return { id: 'DRAFT1', conversationId: 'C1' };
+        },
+        GRAPH_BASE: 'https://graph.microsoft.com/v1.0',
+    },
+});
+
+const {
+    executeOutlookSend,
+    executeOutlookSaveDraft,
+    buildOutlookMessage,
+    isOutlookTool,
+} = require('./outlookTools');
+
+test.after(() => restore());
+
+const SESSION = { oauthProvider: 'microsoft', accessToken: 'at' };
+
+const DRAFT = {
+    _provider: 'microsoft',
+    to: 'boss@company.com',
+    cc: 'team@company.com',
+    bcc: 'compliance@company.com',
+    subject: 'Re: Q3 numbers',
+    body: 'See attached.',
+    replyToMessageId: 'MSG1',
+};
+
+const addresses = (list) => (list || []).map(r => r.emailAddress.address);
+
+// ═══ BCC survives every outbound path ═══════════════════════════════
+
+test('reply: the BCC the card showed is actually sent', async () => {
+    calls.length = 0;
+    await executeOutlookSend(DRAFT, SESSION);
+
+    assert.strictEqual(calls[0].path, '/me/messages/MSG1/reply');
+    const message = calls[0].body.message;
+    assert.deepStrictEqual(addresses(message.toRecipients), ['boss@company.com']);
+    assert.deepStrictEqual(addresses(message.ccRecipients), ['team@company.com']);
+    assert.deepStrictEqual(addresses(message.bccRecipients), ['compliance@company.com'],
+        'reply payload carries bccRecipients (was dropped silently)');
+});
+
+test('new mail: to/cc/bcc all reach sendMail', async () => {
+    calls.length = 0;
+    await executeOutlookSend({ ...DRAFT, replyToMessageId: null }, SESSION);
+
+    assert.strictEqual(calls[0].path, '/me/sendMail');
+    const message = calls[0].body.message;
+    assert.deepStrictEqual(addresses(message.bccRecipients), ['compliance@company.com']);
+    assert.strictEqual(calls[0].body.saveToSentItems, true);
+});
+
+test('save draft: the BCC is stored on the Outlook draft', async () => {
+    calls.length = 0;
+    const result = await executeOutlookSaveDraft(DRAFT, SESSION);
+
+    assert.strictEqual(calls[0].path, '/me/messages');
+    assert.deepStrictEqual(addresses(calls[0].body.bccRecipients), ['compliance@company.com'],
+        'saved draft keeps the user-entered BCC (was dropped silently)');
+    assert.strictEqual(result.draftId, 'DRAFT1');
+});
+
+// ═══ The shared builder ═════════════════════════════════════════════
+
+test('buildOutlookMessage: splits lists, trims, and omits empty fields', () => {
+    const message = buildOutlookMessage({
+        to: 'a@x.com, b@x.com ',
+        subject: 'Hi',
+        body: 'text',
+    });
+    assert.deepStrictEqual(addresses(message.toRecipients), ['a@x.com', 'b@x.com']);
+    assert.ok(!('ccRecipients' in message), 'no empty ccRecipients when cc is absent');
+    assert.ok(!('bccRecipients' in message), 'no empty bccRecipients when bcc is absent');
+
+    const trailing = buildOutlookMessage({ to: 'a@x.com,', bcc: 'c@x.com , ', subject: 's', body: 'b' });
+    assert.deepStrictEqual(addresses(trailing.toRecipients), ['a@x.com'], 'trailing comma does not add a blank recipient');
+    assert.deepStrictEqual(addresses(trailing.bccRecipients), ['c@x.com']);
+});
+
+test('the prefix test matches this module and nothing broader', () => {
+    assert.strictEqual(isOutlookTool('outlook_compose'), true);
+    assert.strictEqual(isOutlookTool('gmail_compose'), false);
+});

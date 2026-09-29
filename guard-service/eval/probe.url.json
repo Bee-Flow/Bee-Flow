@@ -1,0 +1,49 @@
+{
+  "category": "URL",
+  "labels": {
+    "URL": {
+      "covered_gold": 20,
+      "exact_boundary": 0.72,
+      "precision_approx": 0.0733,
+      "predicted_spans": 273,
+      "recall": 0.8
+    },
+    "email address+phone number+url+ip address": {
+      "covered_gold": 22,
+      "exact_boundary": 0.72,
+      "precision_approx": 0.0669,
+      "predicted_spans": 329,
+      "recall": 0.88
+    },
+    "url": {
+      "covered_gold": 21,
+      "exact_boundary": 0.72,
+      "precision_approx": 0.0795,
+      "predicted_spans": 264,
+      "recall": 0.84
+    },
+    "url+ip address": {
+      "covered_gold": 22,
+      "exact_boundary": 0.72,
+      "precision_approx": 0.088,
+      "predicted_spans": 250,
+      "recall": 0.88
+    },
+    "web address": {
+      "covered_gold": 22,
+      "exact_boundary": 0.72,
+      "precision_approx": 0.0978,
+      "predicted_spans": 225,
+      "recall": 0.88
+    },
+    "website url": {
+      "covered_gold": 22,
+      "exact_boundary": 0.72,
+      "precision_approx": 0.0859,
+      "predicted_spans": 256,
+      "recall": 0.88
+    }
+  },
+  "n_gold": 25,
+  "n_records": 25
+}

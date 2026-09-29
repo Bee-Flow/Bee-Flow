@@ -1,0 +1,46 @@
+// Native Argon2id for the Bee Flow client.
+//
+// This module exists for one measurement. The server's OPAQUE configuration
+// stretches the OPRF output with Argon2id at t=3, m=64 MiB, p=4, and the client
+// has to burn exactly that work or it derives a different key. In pure
+// JavaScript that costs ~1.15 s on a desktop V8, and Hermes has no optimising
+// JIT — so on a mid-range phone it is seconds, on the critical path of signing
+// in. The same parameters through the reference C implementation are tens of
+// milliseconds.
+//
+// argon2kt is a thin Kotlin wrapper around phc-winner-argon2 shipping prebuilt
+// .so files for every Android ABI, so nothing here needs the NDK and CI does
+// not grow a C toolchain.
+//
+// `expo-module-gradle-plugin` supplies the Android/Kotlin configuration every
+// Expo module shares — compileSdk, minSdk, JVM target, the expo-modules-core
+// dependency. Setting those by hand here would duplicate values that must
+// match the rest of the build, so this file declares only what is specific to
+// this module. Repositories come from the generated root project, which
+// already has mavenCentral().
+plugins {
+    id 'com.android.library'
+    id 'expo-module-gradle-plugin'
+}
+
+group = 'nl.beeflow'
+version = '1.0.0'
+
+android {
+    namespace 'expo.modules.beeflowargon2'
+
+    // expo-module-gradle-plugin REQUIRES both of these and fails configuration
+    // with a bare "'android.defaultConfig.versionName' is not defined" if
+    // either is missing — a message that names no project and reads like a
+    // problem with the app rather than with a library module. Every bundled
+    // Expo module sets them (see expo-secure-store/android/build.gradle); the
+    // first version of this file set only `namespace` and cost a CI run.
+    defaultConfig {
+        versionCode 1
+        versionName '1.0.0'
+    }
+}
+
+dependencies {
+    implementation 'com.lambdapioneer.argon2kt:argon2kt:1.6.0'
+}

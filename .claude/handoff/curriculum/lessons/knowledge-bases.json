@@ -1,0 +1,414 @@
+{
+  "id": "knowledge-bases",
+  "icon": "📚",
+  "estMinutes": 15,
+  "title": "Create a base and fill it",
+  "desc": "A base, its sources, what each document status means, and what deleting one takes with it.",
+  "gate": {
+    "permission": [
+      "manage_knowledge",
+      "manage_agents"
+    ]
+  },
+  "learningGoal": "After this lesson you can create a knowledge base with real documents in it and read the processing status of every one of them.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "why",
+      "icon": "🧭",
+      "title": "Confident, and wrong",
+      "bodyMd": "Sandra runs procurement at Van Dijk Groep. She asks **Inkoopassistent** — the purchasing agent her colleague Marloes built and published in the previous course — which delivery time was agreed with a supplier. The answer arrives in one confident paragraph, with nothing to click. It is wrong.\n\nThe contract exists. It sits in a folder nobody ever pointed the agent at, and a model that meets a gap does not stop — it fills it.\n\nA **knowledge base** closes that gap. It is the material your AI is allowed to quote from, and an answer drawn from one comes back with a citation naming the document it quoted.\n\nMarloes owns the agent. The material it may quote from is Sandra's job, and this chapter builds her first base."
+    },
+    {
+      "type": "slide",
+      "id": "pipeline",
+      "icon": "🧱",
+      "title": "Four words, one pipeline",
+      "bodyMd": "Four words cover the journey from a file on a laptop to a line in an answer.\n\n- **Base** — a named collection, with an owner, an audience and a purpose.\n- **Source** — *where content comes from*: uploaded files, a pasted snippet, a web page, a table, a meeting tag, or a routine that writes into it.\n- **Document** — one item a source produced: one file, one page, one meeting, a block of table rows.\n- **Chunk** — a slice of a document (about 800 tokens) that a question is matched against, so an answer can point at a passage rather than a whole file.\n\nYou create the first two. The other two are made for you — so this chapter stops at sources."
+    },
+    {
+      "type": "tour",
+      "id": "create-here",
+      "icon": "✨",
+      "target": "[data-tour=\"knowledge-create\"]",
+      "navigateTo": "studio/knowledge",
+      "placement": "bottom",
+      "optional": true,
+      "timeoutMs": 7000,
+      "title": "Where a base is born",
+      "body": "Studio → Knowledge. The page you land on is headed **Knowledge bases**, so both names mean this one screen. The button creates a base called \"New knowledge base\" and opens it straight away on the Sources tab — there is no create form to fill in first."
+    },
+    {
+      "type": "slide",
+      "id": "name-blurb",
+      "icon": "✍️",
+      "title": "Name it, then say what is in it",
+      "bodyMd": "Sandra creates a base and clicks the title in the header to rename it **Inkoopvoorwaarden**.\n\nThen the part people skip. Open the **Settings** tab and fill in **What is in it**. The placeholder tells you exactly what it is for: *\"A sentence an agent can read to decide whether to look here.\"* It commits when you click away.\n\nThat sentence is the only place the base explains itself. The Knowledge list searches it along with the name, and it is what the next person reads before pointing an agent at this base. \"Procurement stuff\" helps nobody. \"General terms, supplier framework agreements and current delivery times per supplier; no prices and no contracts with customers\" says both what is in here and what is not."
+    },
+    {
+      "type": "slide",
+      "id": "source-kinds",
+      "icon": "🗂️",
+      "title": "Pick the source by who changes the material",
+      "bodyMd": "Picking a source kind is not a question about formats. Ask where the material lives and who changes it.\n\nA signed contract is finished: upload it and it stays true. A list of delivery times is never finished: read it from the table it already lives in, so tomorrow's version arrives without you. Get that wrong and the base is not broken — it is quietly out of date, which is far harder to notice.\n\nThe **Add a source** card runs down the right-hand side of the Sources tab with seven buttons; the **+ Add a source** button in the header simply jumps you to it. Six are live. **Folder in Nextcloud** is disabled — *\"Coming soon — this kind of source is not available yet.\"*"
+    },
+    {
+      "type": "sim",
+      "id": "pick-kind",
+      "icon": "🧩",
+      "title": "Which source kind?",
+      "instruction": "Van Dijk Groep has five kinds of material for the procurement base. Match each one to the source you would add for it.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "pdfs",
+            "left": "The general terms, three signed supplier agreements and the ISO certificate — PDFs on Sandra's laptop",
+            "right": "Upload files",
+            "note": "Files you hold yourself. Up to 20 at a time, 20 MB each, all landing in one \"Uploaded files\" source."
+          },
+          {
+            "id": "table",
+            "left": "The Leveranciers table, where delivery times change every few weeks",
+            "right": "Table",
+            "note": "A table source reads rows straight from the datatable, so it can be kept current instead of re-uploaded."
+          },
+          {
+            "id": "web",
+            "left": "A supplier's public terms page, plus the pages it links to on the same site",
+            "right": "Web page / URL",
+            "note": "Tick \"Follow links on the same site\" and set how many pages at most — the default is 50."
+          },
+          {
+            "id": "faq",
+            "left": "The ten questions the procurement mailbox gets every week, typed out by hand",
+            "right": "Paste text",
+            "note": "A name and a body, up to 500,000 characters. Longer than that and you are told to split it."
+          },
+          {
+            "id": "routine",
+            "left": "A written summary that a routine should file after every purchase review",
+            "right": "Let an automation fill it",
+            "note": "Not a form: it explains that a routine with the \"To knowledge base\" step appears here by itself once saved."
+          }
+        ]
+      }
+    },
+    {
+      "type": "slide",
+      "id": "add-source",
+      "icon": "📥",
+      "title": "Upload files: the limits, and the one bucket",
+      "bodyMd": "**Upload files** opens a dashed **Choose files** button with the hint **\"Up to 20 files, 20 MB each\"**. A file over the size limit never leaves your browser — it is listed back as *\"Too large, so not uploaded\"* while the rest go.\n\nUpload again tomorrow and no second row appears in the Sources list: every upload is added to the **same** \"Uploaded files\" source. That is deliberate. One bucket means one row to refresh, one row to delete, and one place to look when a document is missing.\n\nSandra picks five PDFs: the general terms, three supplier agreements and the ISO certificate."
+    },
+    {
+      "type": "slide",
+      "id": "watch-rows",
+      "icon": "🔍",
+      "title": "Open the source and watch",
+      "bodyMd": "Click the \"Uploaded files\" row. The header chip counts **\"5 files · 3 processed\"**, and the table has four columns: **File**, **What the AI took from it**, **Status**, **Changed**. The list refreshes itself every few seconds while anything is still working, so you can sit and watch rows settle.\n\nA row ends on one word: **processing**, **processed**, **shielded**, **skipped**, **failed** or **duplicate**. Each answers a different question, and none of them is decoration.\n\nAbove the table sit filter chips with counts: **All**, **Processed**, **Skipped** (amber the moment it is above zero) and **With personal data**. Skipped is the one to click. A file that could not be read does not disappear — it stays, with a plain reason in the \"What the AI took from it\" column, which is why that column exists."
+    },
+    {
+      "type": "quiz",
+      "id": "q-status",
+      "icon": "❓",
+      "question": "Sandra's five PDFs have settled. One row reads \"shielded\". What does that tell her?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Personal data was found and replaced before the text was stored.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "The file was refused and nothing from it is in the base.",
+          "correct": false,
+          "feedback": "That is \"skipped\" — a document that was not taken in, with the reason next to it. A shielded document is fully in the base; only the personal data in it was replaced."
+        },
+        {
+          "id": "c",
+          "label": "The document is still queued for a Privacy Shield check.",
+          "correct": false,
+          "feedback": "A document still being worked on shows \"processing\". One that could not be checked at all carries a small \"not checked\" badge and is checked again on the next refresh. \"Shielded\" is a finished state."
+        },
+        {
+          "id": "d",
+          "label": "Only Sandra can read that document; colleagues get the rest of the base.",
+          "correct": false,
+          "feedback": "Shielding is about the text, not about people. Who may read the base is one setting for the whole base, on the Settings tab."
+        }
+      ],
+      "explanation": "The statuses each answer a different question. Processing: still working. Processed: in, unchanged. Shielded: in, with personal data replaced. Skipped and failed: not in, with a reason. Duplicate: identical to something already in this source, so nothing was indexed twice."
+    },
+    {
+      "type": "slide",
+      "id": "dupes",
+      "icon": "👯",
+      "title": "The same thing twice: duplicate, or overlap",
+      "bodyMd": "Two of those words are about repetition, and they are not the same word.\n\n**Duplicate** is a verdict *inside one source*. Upload a file whose content is already in this source and the new row ends on **duplicate**: nothing is indexed a second time, and nothing is lost. That is why re-uploading a folder you are unsure about is cheap — the bucket sorts it out.\n\n**Overlap** is what happens *between* sources. When content is near-identical to something in another source, it is taken in anyway — and the **\"What the AI took from it\"** cell ends with *\"· overlaps another source\"*. Nothing is blocked, because the two are often both right: the signed PDF and the supplier's public page really do say the same thing, and you may want the citation to land on the signed one.\n\nSo read a duplicate as \"already handled\" and an overlap as \"decide which of these two you want quoted\"."
+    },
+    {
+      "type": "quiz",
+      "id": "q-overlap",
+      "icon": "❓",
+      "question": "Sandra re-uploads the ISO certificate that is already in \"Uploaded files\". Later a supplier's terms page repeats nearly all of the general-terms PDF. What do those two rows end up saying?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "The re-uploaded certificate reads \"duplicate\" and is not indexed again; the page is taken in, with \"· overlaps another source\" after what the AI took from it.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Both read \"duplicate\", because the content already exists in the base either way.",
+          "correct": false,
+          "feedback": "Duplicate is judged inside one source only. Content that resembles something in a *different* source is still ingested — and annotated \"overlaps another source\" so you can see why an answer might be quotable twice."
+        },
+        {
+          "id": "c",
+          "label": "The page is refused, because a base may not hold the same passage twice.",
+          "correct": false,
+          "feedback": "Nothing is refused for resembling something else. Two sources saying the same thing is normal and often useful; the annotation exists so you can choose which one you would rather have cited."
+        },
+        {
+          "id": "d",
+          "label": "Both are taken in silently, and you find out only by reading every document.",
+          "correct": false,
+          "feedback": "Neither is silent. The identical upload is marked \"duplicate\" in the Status column, and the near-identical page carries \"· overlaps another source\" in the \"What the AI took from it\" column."
+        }
+      ],
+      "explanation": "Identical content inside the same source → status duplicate, nothing re-embedded. Near-identical content in another source → ingested anyway, annotated \"overlaps another source\". One saves you work; the other asks you a question."
+    },
+    {
+      "type": "slide",
+      "id": "shield-oneway",
+      "icon": "🛡️",
+      "title": "Shielded is the stored text",
+      "bodyMd": "The footer under the document list says it plainly: *\"Shielded\" means personal data (name, address, IBAN) was replaced before the text entered the knowledge base. The AI knows the terms, not the customer.*\n\nRead \"before\" literally. The redacted text **is** what was stored. There is no copy of the original kept anywhere, so nothing you press later brings the names back — not a refresh, not a re-upload of the same file.\n\nThat makes it a decision, not a warning. If a document is only useful *with* the names in it, it does not belong in a base that a room full of colleagues can query. Leave it where it lives and put the policy in the base instead."
+    },
+    {
+      "type": "sim",
+      "id": "order-flow",
+      "icon": "🪜",
+      "title": "From an empty base to a cited answer",
+      "instruction": "Put the five stages in the order they actually happen for Sandra's procurement base.",
+      "sim": {
+        "kind": "order",
+        "items": [
+          {
+            "id": "base",
+            "label": "The base is created, named, and given a sentence saying what is in it"
+          },
+          {
+            "id": "source",
+            "label": "A source is added — the upload, the table or the page the material comes from"
+          },
+          {
+            "id": "docs",
+            "label": "The source produces documents: one per file, page, meeting or block of rows"
+          },
+          {
+            "id": "chunks",
+            "label": "Each document is cut into chunks, so a question can be matched to one passage instead of a whole file"
+          },
+          {
+            "id": "cite",
+            "label": "An answer comes back with a citation naming the document it quoted"
+          }
+        ],
+        "solution": [
+          "base",
+          "source",
+          "docs",
+          "chunks",
+          "cite"
+        ],
+        "feedback": "Only the first two stages are yours. A source produces documents, documents become chunks, and chunks are what a question is matched against — which is why Studio shows you documents and their status, and never asks you to think about chunks at all."
+      }
+    },
+    {
+      "type": "slide",
+      "id": "freshness",
+      "icon": "🟢",
+      "title": "The verdict on the right of every row",
+      "bodyMd": "Go back to the Knowledge list and every base has one cell on the right: a dot and a few words. It is a verdict, and it is reached in a fixed order — the most urgent true thing wins.\n\n1. **A problem beats everything.** Red **\"empty, but in use\"** with an alert icon: something already points at this base and there is nothing in it to quote.\n2. **Then a promise.** **\"live\"**, **\"on change\"**, **\"after every meeting\"**, **\"on a schedule\"**, **\"refreshes on its own\"** — this base keeps itself current, which matters more than when the last pass ran.\n3. **Then a plain fact.** A green dot and **\"updated {when}\"** — the last time content actually landed here.\n4. **Or nothing yet.** A grey **\"no sources yet\"** / **\"nothing yet\"** for a base still waiting for its first source.\n\nSandra's base, filled by hand this morning, sits on the third rung: *updated 2 min ago*. A green dot is the weakest of the good answers — it says this base was true at a moment, not that it stays true."
+    },
+    {
+      "type": "quiz",
+      "id": "q-fresh",
+      "icon": "❓",
+      "question": "A base in the Knowledge list shows the red \"empty, but in use\" cell. What does that tell you, and what does it not?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "An agent, chat or routine already points at this base while there is nothing in it to quote — so those answers come back without it.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "The base has sources, but none of them refresh by themselves.",
+          "correct": false,
+          "feedback": "That reading belongs to the promise words — \"on a schedule\", \"live\", \"on change\". \"Empty, but in use\" is about content: something depends on this base and the base has nothing to give it."
+        },
+        {
+          "id": "c",
+          "label": "The last refresh pass failed.",
+          "correct": false,
+          "feedback": "The freshness cell reports the state of the base, not the outcome of a pass. A source that keeps failing carries its error on its own row in the Sources tab."
+        },
+        {
+          "id": "d",
+          "label": "Nobody has been given permission to read the base yet.",
+          "correct": false,
+          "feedback": "Who may read it lives under \"Who may see and use it\" on the Settings tab. The freshness cell never says anything about people."
+        }
+      ],
+      "explanation": "The cell ranks what it could say: a problem first (\"empty, but in use\"), then a promise (a refresh mode), then the plain fact (green dot, \"updated {when}\"), then \"no sources yet\". A base with a schedule shows the promise, so a green \"updated\" only appears when there is nothing more urgent to report."
+    },
+    {
+      "type": "exercise",
+      "id": "ex-blurb",
+      "icon": "🎯",
+      "exerciseId": "ex-knowledge-bases-blurb",
+      "title": "Your turn: write \"What is in it\"",
+      "instruction": "Write the sentence Sandra should put in Settings → What is in it for the base \"Inkoopvoorwaarden\" at Van Dijk Groep.\n\nIt holds the general terms, three supplier framework agreements, the ISO certificate, and a live table of delivery times per supplier. It holds no prices and nothing about customer contracts.\n\nA strong answer names the material concretely, says what is not in here, and reads like something a colleague can act on. One or two plain sentences, no slogan.",
+      "placeholder": "e.g. the shape, written for a different base: \"The employee handbook, the leave policy and the 2026 travel rules. Nothing about salaries or individual contracts — those stay with HR.\"",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "action",
+      "id": "build-it",
+      "icon": "🏗️",
+      "checkId": "kb-with-doc",
+      "instruction": "Create a knowledge base, rename it to something real, and give it one line under Settings → What is in it. Then upload one document you actually have — a policy, a manual, a set of terms — open the \"Uploaded files\" source, and wait until the row reads processed or shielded. The checklist below watches your workspace.",
+      "title": "Build it — we'll verify it",
+      "launch": {
+        "navigateTo": "studio/knowledge",
+        "label": "Open Knowledge"
+      }
+    },
+    {
+      "type": "quiz",
+      "id": "q-personal",
+      "icon": "❓",
+      "question": "Sandra built Inkoopvoorwaarden under her own account. Mark in HR now needs to point an agent at it. What is true?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Nothing can be shared until she uses \"Move to my organisation\" — and that move is one-way.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "She just picks \"Entire organisation\" under \"Who may see and use it\".",
+          "correct": false,
+          "feedback": "Not while the base is personal. Settings shows \"Personal — only you can see this\" with a Move button in place of the audience choices, and the server refuses to publish a base that has no organisation."
+        },
+        {
+          "id": "c",
+          "label": "She switches on \"Agents\" under \"Where it can be used\" — that is what opens it up to colleagues.",
+          "correct": false,
+          "feedback": "That is the classic mix-up. \"Where it can be used\" only decides which pickers offer the base. The hint under it says so: it never changes who may read what is in it."
+        },
+        {
+          "id": "d",
+          "label": "An administrator can move it into the organisation for her.",
+          "correct": false,
+          "feedback": "Only the owner may move a personal base into an organisation; anyone else is refused. Once it has moved, administrators can manage it — which is exactly why the move warns you first."
+        }
+      ],
+      "explanation": "Moving a personal base into the organisation is one-way, and the warning spells out the trade: it stays unshared until you pick an audience, but administrators can see and manage it from then on. Decide before you fill a base, not after."
+    },
+    {
+      "type": "slide",
+      "id": "system-kb",
+      "icon": "🔒",
+      "title": "Bases nobody may edit",
+      "bodyMd": "Not every base you can read was made by someone at your company. A base can be **system-managed** — owned by Bee Flow itself and shipped with the product. Anyone signed in may read one and let the AI quote from it; nobody may change one.\n\nNot the person who found it, not an organisation administrator, not a super admin. Every attempt to edit is refused by the server with *\"System-managed knowledge bases are read-only\"*.\n\nSo when a rename, an **Add a source** or a delete comes back refused on such a base, stop hunting for a missing permission — there is none to grant. Build your own base beside it: that one you may fill, describe, share and delete."
+    },
+    {
+      "type": "slide",
+      "id": "deleting",
+      "icon": "🗑️",
+      "title": "Delete, and what leaves with it",
+      "bodyMd": "A week later Sandra drops seven more supplier agreements onto the same **Choose files** button. Still no second row in the Sources list — the chip on \"Uploaded files\" simply reads **\"12 files · 12 processed\"**, because every upload joins the one bucket.\n\nWhich is exactly why deleting deserves a moment. The source's ⋯ → **Delete** asks *\"Delete “Uploaded files”?\"* and tells you the size of what you are about to do: *\"Its 12 documents leave this knowledge base. The original files stay where they are.\"*\n\nRead both halves. The documents go, so every citation pointing at one of them dies and answers that used to quote them quietly stop. The files themselves are untouched — Bee Flow read them, it never held the only copy.\n\nDeleting the whole base, from the danger zone on **Settings**, is the same bargain one level up: *\"Its documents go with it.\"* That screen first lists what depends on the base, and says so when the list could not be completed."
+    },
+    {
+      "type": "sim",
+      "id": "sim-remove",
+      "icon": "🧹",
+      "title": "What actually leaves?",
+      "instruction": "Sandra is tidying up Inkoopvoorwaarden. Match each thing she presses to what it takes with it.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "source",
+            "left": "⋯ → Delete on the \"Uploaded files\" row in the Sources list",
+            "right": "The source and all 12 of its documents",
+            "note": "\"Its 12 documents leave this knowledge base. The original files stay where they are.\" Citations pointing at any of them stop working."
+          },
+          {
+            "id": "doc",
+            "left": "Delete in the row menu of one file, inside the open source",
+            "right": "That one document only",
+            "note": "The source and its other documents stay exactly as they were; the file it was read from is untouched."
+          },
+          {
+            "id": "base",
+            "left": "Delete this knowledge base, in the danger zone on Settings",
+            "right": "The base, every source in it and every document",
+            "note": "\"Its documents go with it. The original files, pages and folders they were read from stay where they are.\" The screen first shows what depended on the base."
+          },
+          {
+            "id": "copy",
+            "left": "Empty copy, under \"Make a copy\" on Settings",
+            "right": "Nothing — a second, empty base appears",
+            "note": "Documents are never copied. A copy made with its sources re-reads those files and pages on its first refresh, so it gets what is there now."
+          }
+        ]
+      }
+    },
+    {
+      "type": "slide",
+      "id": "recap",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "- **Create a base and describe it.** In **Studio → Knowledge** (the page headed *Knowledge bases*): a name people recognise, and one sentence in **What is in it** saying what this base covers and, just as usefully, what it does not.\n- **Fill it from the right kind of source.** Files you hold go in **Upload files** (20 at a time, 20 MB each, all in one bucket); a table, a page, a pasted list and a routine each have their own kind.\n- **Read the status column instead of hoping.** Processed, shielded, skipped, failed — plus *duplicate* inside a source and *\"· overlaps another source\"* between two.\n- **Read the verdict on the list.** A problem beats a promise beats a green \"updated {when}\".\n- **Know what deleting costs.** A source takes its documents and their citations; a base takes the lot. The originals stay where they were — and a system-managed base you may read but never touch.\n\nNext chapter: sources that keep themselves current, because every one you just made starts on \"Only when I ask\"."
+    }
+  ],
+  "rubrics": {
+    "ex-knowledge-bases-blurb": {
+      "title": "A usable \"What is in it\" sentence",
+      "task": "Write the Settings → What is in it sentence for the knowledge base \"Inkoopvoorwaarden\" at Van Dijk Groep: purchasing terms, three supplier framework agreements, an ISO certificate and a live table of delivery times per supplier; no prices, nothing about customer contracts.",
+      "criteria": [
+        "Names the material concretely (terms, supplier agreements, delivery times) rather than a category like 'procurement information'",
+        "States a boundary — what is not in this base, ideally with a hint of where that lives instead",
+        "Is written for someone deciding whether to point an agent at this base: plain, factual, one or two sentences, no marketing tone",
+        "Claims nothing the listed sources cannot back up, such as current prices or customer contracts"
+      ],
+      "passScore": 70,
+      "guidance": "Do not pass a restatement of the title ('the purchasing terms base'), a vague catch-all ('everything about purchasing'), or a promotional line ('your one-stop shop for procurement'). Do not pass an answer that claims prices or customer contracts are covered. Length is not a criterion: a single precise sentence that names the material and the boundary passes; three sentences of generalities do not."
+    }
+  },
+  "practiceTopic": {
+    "title": "Creating and filling a knowledge base",
+    "summary": "How a base is created, which source kind fits which material, the upload limits, and what each document status means.",
+    "facts": [
+      "The Knowledge list's right-hand freshness cell ranks a problem (red \"empty, but in use\") over a promise (live / on change / on a schedule) over the plain green \"updated {when}\".",
+      "Upload files accepts up to 20 files of 20 MB each, and every upload is added to the same \"Uploaded files\" source rather than creating a second one.",
+      "Settings → \"What is in it\" describes the base in one sentence; its placeholder reads \"A sentence an agent can read to decide whether to look here.\" and it saves when you click away.",
+      "A document's status is one of processing, processed, shielded, skipped, failed or duplicate, and a small \"not checked\" badge marks one the privacy checker could not scan.",
+      "\"Shielded\" means personal data was replaced before the text entered the base — the redacted text is the stored text, and the original is not kept.",
+      "Identical content inside one source gets the status \"duplicate\" and is not indexed twice; near-identical content in another source is ingested anyway and annotated \"· overlaps another source\".",
+      "A base with no organisation shows \"Personal — only you can see this\" and can only be shared after \"Move to my organisation\", which cannot be undone.",
+      "\"Where it can be used\" (Agents, Chat, Routines) decides which pickers offer the base; it is not access control, which lives under \"Who may see and use it\"."
+    ]
+  },
+  "actionChecks": []
+}

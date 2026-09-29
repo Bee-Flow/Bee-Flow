@@ -1,0 +1,241 @@
+{
+  "id": "research-grounded-chat",
+  "icon": "📚",
+  "estMinutes": 9,
+  "title": "Answer from our documents, not the internet",
+  "desc": "Grounding a chat on knowledge bases, and knowing when the web has no business being on.",
+  "gate": {},
+  "learningGoal": "After this lesson you can ground a chat on internal documents, keep the web out when it does not belong, and check in the base itself which passages and pages an answer leans on.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "why",
+      "icon": "🧭",
+      "title": "The most expensive mistake in research",
+      "bodyMd": "Saskia does HR at Van Dijk Groep. The works council asks how many days of parental leave the company gives.\n\nShe types the question into a chat with web search on. Back comes a confident, well-sourced answer about **Dutch law**. It is not wrong. It is also not the answer: what Van Dijk Groep actually agreed sits in the staff handbook, and no page on the internet has ever read it.\n\nThat is the failure this chapter is about. An external answer to an internal question looks exactly as polished as a right one — same tone, same links, same certainty. The only thing that separates them is **where the answer was allowed to look**.\n\nThis lesson is about setting that deliberately, and proving it afterwards."
+    },
+    {
+      "type": "slide",
+      "id": "pill",
+      "icon": "🔖",
+      "title": "The pill that says where the answer comes from",
+      "bodyMd": "In a direct chat — the one you start with **New Chat** — look at the pills beside the **+** button. One of them answers the question you cannot check yourself: what will this answer be built on.\n\n- Nothing attached: it reads **Knowledge**, and hovering says *\"What this chat is grounded on\"*.\n- Exactly one base: the pill shows **the base's own name**, so you never have to open it to learn the one thing it exists to tell you.\n- More than one: **Knowledge** with a count, and hovering spells them out — *\"Grounded on Personeelshandboek, Verlofbeleid\"*.\n\nClick it and the panel **Knowledge bases** opens — *\"Pick one or more to ground this chat.\"* Search, tick what you need, wait for **Saving…** to become a tick, then **Done**.\n\nAsk your question and the line under it reads **Preparing context…**: that is the attached bases being searched, before the model writes a word."
+    },
+    {
+      "type": "tour",
+      "id": "where",
+      "target": "[data-tour=\"chat-composer\"]",
+      "navigateTo": "agents",
+      "placement": "top",
+      "optional": true,
+      "timeoutMs": 7000,
+      "icon": "⌨️",
+      "title": "Everything happens around this box",
+      "body": "The pills sit here, beside the + button, under the box you type in. The Knowledge pill is the one that states what this chat is grounded on."
+    },
+    {
+      "type": "slide",
+      "id": "no-pill",
+      "icon": "🔑",
+      "title": "No Knowledge pill? Two honest ways round it",
+      "bodyMd": "The picker is a product gate, not a secret. You get it if you are an administrator, if your account carries the blanket permission, or if someone switched the **knowledge-bases beta** on for you. Otherwise the panel never appears.\n\nTwo things follow, and the second matters more than it looks.\n\n**You still see grounding you did not set.** If the conversation already carries bases, the pill is there as a *statement*, naming them — you simply cannot change the list. Grounding is never invisible: every turn searches those bases whether or not you may edit them.\n\n**You can ground one question without any of this.** Click **+** → **Add photos & files** and attach the document itself, up to 20 MB a file. That is one document for one conversation rather than a searchable library — but for \"what do our terms say about this\", often enough."
+    },
+    {
+      "type": "quiz",
+      "id": "q-mix",
+      "icon": "❓",
+      "question": "Saskia attaches the handbook base and leaves Web search on, then asks: \"What changed in the parental-leave law this year, and does our handbook still match it?\" What comes back?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "One answer built from both — passages out of the handbook and pages fetched from the web",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Only the handbook, because attaching a knowledge base takes the chat off the web",
+          "correct": false,
+          "feedback": "These are two independent switches. The Knowledge pill adds your documents; it never removes the web. To go internal-only you have to turn Web search off yourself, in the + menu."
+        },
+        {
+          "id": "c",
+          "label": "Only the web, because outside sources are newer than anything stored internally",
+          "correct": false,
+          "feedback": "Nothing ranks the internet above your own documents. Both tools are available for the turn, and the answer is assembled from whatever each of them actually returned."
+        },
+        {
+          "id": "d",
+          "label": "Nothing — the chat asks you to choose one source before it will answer",
+          "correct": false,
+          "feedback": "There is no such prompt. The chat will happily mix the two, which is exactly why it is worth deciding up front rather than after you have read the answer."
+        }
+      ],
+      "explanation": "Knowledge and Web search are separate switches, and here you want both: half the question is about the law, half about your own handbook. For a purely internal question, turn Web search off in the + menu — the base stays attached."
+    },
+    {
+      "type": "sim",
+      "id": "match-src",
+      "icon": "🧩",
+      "title": "Four questions, four set-ups",
+      "instruction": "Van Dijk Groep asks four things this week. Match each question to the way you would set that one chat up.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "p1",
+            "left": "\"How many days of parental leave do we give?\" — Saskia, HR",
+            "right": "Handbook attached, Web search off",
+            "note": "Only your own handbook knows what this company agreed. The internet can describe the law and nothing else, so letting it in only adds a plausible wrong answer."
+          },
+          {
+            "id": "p2",
+            "left": "\"Has our steel supplier been in the news this quarter?\" — Pieter, the buyer on the procurement desk",
+            "right": "No base needed, Web search on",
+            "note": "Nothing internal covers what the outside world published last month. This is the question web search exists for."
+          },
+          {
+            "id": "p3",
+            "left": "\"Does our leave policy still match the law that changed in January?\"",
+            "right": "Handbook attached and Web search on",
+            "note": "Half the answer is internal and half external, and you want both halves in one turn so the comparison is made for you — with both kinds of source under the answer."
+          },
+          {
+            "id": "p4",
+            "left": "\"Summarise the delivery terms on this supplier page\" — the address already copied",
+            "right": "Paste the address and ask it to open that page",
+            "note": "With a URL in hand you do not want a search for other pages about it. Say \"open this page\" and the assistant opens that page itself — you watch it happen in the live browser strip above the answer."
+          }
+        ]
+      }
+    },
+    {
+      "type": "exercise",
+      "id": "ex-setup",
+      "icon": "🎯",
+      "exerciseId": "ex-grounded-chat-setup",
+      "title": "Your turn: set up one defensible chat",
+      "instruction": "The works council has asked Saskia whether Van Dijk Groep's handbook still matches the parental-leave law that changed in January. In two or three lines, describe how you would set that single chat up: which knowledge base you would attach and how, whether Web search stays on or goes off and why, and how you would show the works council which passages of the handbook stand behind the internal half of the answer. Name the real controls rather than describing the idea in general.",
+      "placeholder": "e.g. Attach the handbook base with the Knowledge pill and click Done. Leave Web search on, because half the question is about the law itself. Then put the same question to the base in Studio → Knowledge → Test question and read the citation chips and Passages found to see which pages it leans on.",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "slide",
+      "id": "chips",
+      "icon": "🔍",
+      "title": "Reading a citation back to its page",
+      "bodyMd": "A grounded chat does show its work, but not always down to the passage. Under the answer, **How I got this answer** opens a knowledge step — yet the passages behind it only appear when the search that ran reported them, and the project-knowledge path never does.\n\nWhen a claim has to be checkable, ask the base directly.\n\nOpen **Studio → Knowledge** — the page you land on is headed *Knowledge bases* — open the base, then the **Test question** tab. Type the question and click **Ask**. The citation chips arrive first, naming the documents and adding **p. 12** where a document has pages. Expand **Passages found (3)** to read the passage behind each.\n\nA citation with no page number is normal: a spreadsheet row or a web page has no pages to count. And there is no percentage — each bar is drawn against the best hit in the same answer, because a retrieval score is not a confidence, and printing it as one would invite you to trust it."
+    },
+    {
+      "type": "quiz",
+      "id": "q-drop",
+      "icon": "❓",
+      "question": "On Monday Saskia grounds a chat on Personeelshandboek. On Wednesday she reopens the same chat and the pill no longer names it. What is the most likely explanation?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "The base itself changed — unpublished, taken out of her group, or switched off for chat — and her access was checked again when she opened the conversation",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Grounding expires; a chat only stays attached to a base for 24 hours",
+          "correct": false,
+          "feedback": "Nothing expires. The attachment sits on the conversation until someone changes it. What can change from one day to the next is whether you are still allowed to read what it points at."
+        },
+        {
+          "id": "c",
+          "label": "She went over the limit of bases on one chat, so the oldest was dropped",
+          "correct": false,
+          "feedback": "A chat can carry up to 50 bases, and going over refuses the change on the spot with \"A chat can use at most 50 knowledge bases.\" Nothing is silently dropped later to make room."
+        },
+        {
+          "id": "d",
+          "label": "The Monday answer used up the documents in the base",
+          "correct": false,
+          "feedback": "Searching a knowledge base never consumes it. The same passages can be found by a hundred chats on a hundred days."
+        }
+      ],
+      "explanation": "Being stored is not the same as being allowed. Every time the conversation is read — and on every turn — each attached base is checked against your access again, and only what survives is shown and searched. So the pill is always a statement about right now, never about the day you ticked the box."
+    },
+    {
+      "type": "slide",
+      "id": "projects",
+      "icon": "📁",
+      "title": "One place the pill tells you less than the whole truth",
+      "bodyMd": "If your chat lives inside a **project**, that project can carry knowledge bases of its own, and a chat in it searches those too.\n\nThe pill does not count them. It counts only the bases attached to **this conversation** — the ones the picker is allowed to detach. So inside a project the pill under-reports: it will never name a source that was not used, but it is not the full list of what the chat can reach.\n\nThis is the safer half of the trade, and it is worth knowing about rather than being surprised by. When you are in a project and the provenance has to be exact, open the project's own **Knowledge** tab to see what else that chat can draw on before you put the answer in front of anyone."
+    },
+    {
+      "type": "action",
+      "id": "do",
+      "icon": "🏗️",
+      "checkId": "chat-grounded-or-attached",
+      "title": "Ground one chat — we will check it",
+      "instruction": "Open a new chat. Click the Knowledge pill beside the + button, tick one base you can see, and click Done — then ask it something that base should be able to answer, and wait for the reply. No Knowledge pill? Do the honest alternative: click + → Add photos & files, attach one document, and ask about that instead. Either one counts.",
+      "launch": {
+        "navigateTo": "agents",
+        "label": "Open a new chat"
+      }
+    },
+    {
+      "type": "slide",
+      "id": "wrap",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "- **Point a chat at your own documents.** The Knowledge pill beside the + button opens *Knowledge bases*; tick, wait for the save, click **Done**. No pill? Attach the document to the message instead.\n- **Decide what the answer may look at.** Knowledge and Web search are two switches, not one. Internal question: turn Web search off. Internal plus external: leave both on and let the answer compare them.\n- **Walk a claim back to its page.** The pill states what was searched; the base's own *Test question* tab, under **Studio → Knowledge** (the page headed *Knowledge bases*), shows the citation chips and *Passages found* for that question — and a citation without a page is normal, not a fault.\n\nNext chapter: notebooks — your sources down one side, the document you are writing in the middle, and a chat grounded on exactly those sources."
+    }
+  ],
+  "rubrics": {
+    "ex-grounded-chat-setup": {
+      "title": "Setting up a defensible grounded chat",
+      "task": "Describe, in two or three lines, how to set up one chat that answers whether the company handbook still matches a law that changed: which knowledge base to attach and through which control, whether Web search stays on or goes off and why, and how to show which passages of the handbook stand behind the internal half of the answer.",
+      "criteria": [
+        "Attaches a named internal knowledge base (the handbook) through the Knowledge pill or picker, rather than describing grounding in the abstract",
+        "Treats the knowledge base and Web search as two independent switches, and gives a reason for leaving web search on for this particular question",
+        "Names a concrete way to check the internal half — putting the question to the base in Studio → Knowledge → Test question, and reading the citation chips, Passages found or the page numbers",
+        "Stays inside things that exist: one chat, real controls, no invented settings or screens"
+      ],
+      "passScore": 70,
+      "guidance": "Reward substance over polish: an informal three-line answer that names the pill, the two switches and a real way to check the sources passes. Do not pass an answer that says only \"ground the chat on our documents\" without naming the control or the base. Do not pass an answer claiming that attaching a base switches web search off, that a setting other than the Web search toggle locks a direct chat to internal sources, or that the assistant decides for itself which to use. Do not pass an answer that invents a citations library, a sources page or an export of references."
+    }
+  },
+  "practiceTopic": {
+    "title": "Grounding a chat on your own documents",
+    "summary": "How the Knowledge pill, the picker and a base's own Test question tab let you prove an internal question was answered from internal sources.",
+    "facts": [
+      "The knowledge pill in a direct chat shows the base's own name when exactly one is attached, and the word Knowledge with a count when more than one is.",
+      "The picker is titled Knowledge bases with the hint \"Pick one or more to ground this chat.\"; each row shows Personal, Org or a group count, plus Empty, 1 doc or a document count.",
+      "A chat can carry at most 50 knowledge bases; a longer list is refused outright with \"A chat can use at most 50 knowledge bases.\" and nothing is changed.",
+      "Attaching a knowledge base does not switch the web off: Web search is a separate row in the + menu, on by default, described as \"Let this turn look things up online\".",
+      "Every read of a conversation and every turn re-checks each attached base against your access, so a base that was unpublished or taken out of chat quietly disappears from the pill.",
+      "A knowledge base's own Test question tab shows the citation chips first, then Passages found (n) with the document title, p. {n} where the document has pages, and a bar drawn against the best hit — never a percentage.",
+      "The passage list under \"How I got this answer\" only appears when the search that ran reported it — the project-knowledge injection never does, so the pill stays the reliable statement of what was searched.",
+      "A chat inside a project also searches that project's own knowledge bases, and the composer pill does not count those — it counts only the conversation's own."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "chat-grounded-or-attached",
+      "existing": false,
+      "label": "Ground a chat, or attach a document to one",
+      "hint": "In a new chat, tick a base in the Knowledge pill and click Done — or attach one file with + → Add photos & files — then ask a question and wait for the answer.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/ai/direct/conversations",
+          "returns": "array of the caller's own direct conversations, newest first, each with id, title, created_at and updated_at"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "grounded",
+          "label": "A recent chat is grounded on a base or carries an attachment",
+          "hint": "Tick a knowledge base in the Knowledge pill, or attach a document with + → Add photos & files.",
+          "rule": "for a conversation updated since the lesson started: detail.knowledgeBaseIds.length > 0, or some entry in detail.messages has a non-empty attachments array"
+        }
+      ]
+    }
+  ]
+}

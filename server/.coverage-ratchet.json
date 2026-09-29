@@ -1,0 +1,5 @@
+{
+  "_comment": "Lowest line coverage (percent) server may report. Raise it with `node scripts/coverage-ratchet.mjs server --update` after adding tests; lowering it is a deliberate edit that belongs in a commit message with a reason.",
+  "_generated": "2026-09-24",
+  "lines": 80
+}

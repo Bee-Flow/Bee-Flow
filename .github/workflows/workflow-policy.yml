@@ -1,0 +1,48 @@
+# Policy gate for .github/workflows/ AND scripts/ — the repo's own plumbing.
+# See
+# scripts/check-workflow-concurrency.mjs for the table and the reasons.
+# Deliberately NOT a required context: repo ruleset 23605458 requires exactly
+# `scan`, `audit` and `checks-passed` (mirrored in .github/required-checks.json).
+# The job is named `policy` and not `scan`/`checks` precisely because
+# required-check matching is by a non-unique name.
+name: Workflow policy
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/**'
+      # scripts/ too: the repo-script unit tests live in this job rather than
+      # in secret-scan's REQUIRED `scan` context, so this is the only place
+      # that runs them — a change to scripts/ must reach them.
+      - 'scripts/**'
+      - 'package.json'
+      # The Claude Code hooks' tests (scripts/claude-hooks.test.mjs) import
+      # .claude/hooks/lib/; a hook-only change must reach them too.
+      - '.claude/hooks/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  policy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+      # No npm ci: the script and its test import nothing outside node:*,
+      # which is why this job costs ~15 s.
+      - name: Concurrency policy
+        run: node scripts/check-workflow-concurrency.mjs
+      - name: The gate refuses when it should
+        run: node --test scripts/check-workflow-concurrency.test.mjs
+      # Every scripts/*.test.mjs, including the three above's siblings
+      # (audit-ratchet, check-required-checks, check-server-manifest). Moved
+      # off the required `scan` context on purpose — see the comment in
+      # secret-scan.yml. A red here is legible and actionable; a red on a
+      # required context blocks everyone's merges.
+      - name: Repo-script unit tests
+        run: npm run test:scripts

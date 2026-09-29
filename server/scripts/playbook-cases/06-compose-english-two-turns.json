@@ -1,0 +1,54 @@
+{
+ "id": "06-compose-english-two-turns",
+ "title": "PB Invoice digest",
+ "describe": "Read the PDF invoices in the Nextcloud folder /Invoices-Q3 into a table with supplier, invoice number, invoice date, total amount and currency. Build an app with a dashboard (count of invoices, sum of totals, a table of all invoices). Then, as a second step on the same app, add a screen 'Per month' with a chart of the totals per month.",
+ "locale": "en",
+ "options": {
+  "tableMode": "new",
+  "tier": "fast",
+  "locale": "en"
+ },
+ "expect": {
+  "compose": {
+   "kinds": [
+    "table",
+    "routine",
+    "fill",
+    "design",
+    "app",
+    "app_turn"
+   ],
+   "minColumns": 4
+  },
+  "status": "done",
+  "phases": {
+   "table": "done",
+   "fill": "done",
+   "app": "done"
+  },
+  "minRows": 20,
+  "routine": {
+   "finalized": true,
+   "maxFailedCalls": 3,
+   "maxRounds": 12,
+   "triggerKind": "manual"
+  },
+  "app": {
+   "finalized": true,
+   "maxFailedCalls": 4,
+   "maxRounds": 12,
+   "linkedTable": {
+    "minRows": 1
+   },
+   "components": [
+    "stat",
+    "data_grid"
+   ],
+   "minScreens": 1,
+   "noTools": [
+    "app_seed_records",
+    "app_upsert_table"
+   ]
+  }
+ }
+}

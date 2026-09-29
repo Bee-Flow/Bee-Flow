@@ -1,0 +1,13 @@
+# Eval-only environment for fastino/GLiNER2.5-multi-Decide.
+# gliner2's [local] extra pins transformers<5. The base install is an API
+# client only and has no torch; AutoExtractor needs [local].
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.14.0+cpu
+transformers==5.17.0
+gliner2[local]==2.0.0
+# Not a gliner2 dependency, but required to load this checkpoint: its
+# tokenizer_config.json was written by transformers 5 (list-valued
+# extra_special_tokens). gliner2 retries on the AttributeError that causes, but
+# under transformers 4.57.6 without protobuf the `except` clause itself raises an
+# ImportError first, so the retry never runs.
+protobuf==7.36.2

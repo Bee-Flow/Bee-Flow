@@ -1,0 +1,331 @@
+{
+  "id": "admin-plan-and-billing",
+  "icon": "💳",
+  "estMinutes": 9,
+  "title": "Changing the plan without a surprise",
+  "desc": "Subscribe, Change plan, Manage Billing and Cancel subscription — when each one takes effect, and how to undo it.",
+  "gate": {
+    "permission": "org_admin"
+  },
+  "learningGoal": "After this lesson you can read the License & Usage card, tell a licence tier from a plan, change or cancel a subscription knowing exactly when it lands and how to undo it, and explain why the whole row is missing on a self-hosted install.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "why",
+      "icon": "🧭",
+      "title": "One screen where the answer is yes or no",
+      "bodyMd": "Van Dijk Groep runs about forty people on Bee Flow Cloud. In one week their admin, Erik, gets two requests: sales wants Meeting Notes, and procurement wants a fourth knowledge base.\n\nEverything else in this course **reports** — Usage & Monitoring shows what was spent, the cap gauge shows how close you are. Only one screen **changes** what the organisation is allowed to do: **Settings → Organisation → License & Usage**.\n\nThis lesson is about the four buttons on it — **Subscribe**, **Change plan**, **Manage Billing**, **Cancel subscription** — what each one does to the bill, on what date, and which of them you can take back."
+    },
+    {
+      "type": "slide",
+      "id": "where",
+      "icon": "📍",
+      "title": "Where it is, and who may press it",
+      "bodyMd": "In the settings sidebar, open the **Organisation** group. **License & Usage** is its first row (some cloud accounts see the same screen titled **Subscription & Usage**).\n\nThe heading reads **License & Usage** and the subtitle **\"Your current plan and usage for this billing period\"** — a reminder that every number under it follows the billing period, not the calendar month.\n\nTwo things worth knowing before you look for it:\n\n- The Organisation group is **hidden on phones**. This is a desktop screen.\n- Reading the card is harmless, but subscribing, changing and cancelling are checked again on the server: they need an organisation admin."
+    },
+    {
+      "type": "slide",
+      "id": "tier-vs-plan",
+      "icon": "🪜",
+      "title": "Two ceilings, and they answer different questions",
+      "bodyMd": "**The licence tier** — *community → enterprise → full*, each inheriting everything below it — decides which **features** exist at all. Meeting Notes, for example, sits at enterprise. The tier sets no counts: users, agents, messages and knowledge sources are unlimited on every tier.\n\n**The plan** (your subscription) decides the **numbers** for your organisation: how many Users, Agents and Knowledge Sources, and the **cost cap / month** that AI spending has to stay under.\n\nSo Erik's two requests are not the same problem. \"We can't add a knowledge source\" is a plan question. \"We don't have Meeting Notes\" is a question about what the tier and plan unlock. Both are answered on this one card — but by different rows."
+    },
+    {
+      "type": "quiz",
+      "id": "q-limits",
+      "question": "Erik opens Plan limits at Van Dijk Groep and sees only two tiles — Users and Agents. There is no Knowledge Sources tile at all. What does that mean?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "The plan sets no limit on knowledge sources, so no tile is drawn — unlimited values are hidden.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "They have used up every knowledge source the plan allows, so the tile has collapsed.",
+          "correct": false,
+          "feedback": "A limit you have reached is exactly when you want to see it. The tile is how a cap is shown; reaching it never removes it."
+        },
+        {
+          "id": "c",
+          "label": "Knowledge bases are not part of this plan's features.",
+          "correct": false,
+          "feedback": "Whether a feature exists is a licence-tier matter. The Plan limits grid only ever shows counts, never which features are unlocked."
+        },
+        {
+          "id": "d",
+          "label": "The tile appears only once the organisation has created its first knowledge base.",
+          "correct": false,
+          "feedback": "The grid renders what the plan allows, not what you have built. An empty workspace on a capped plan still shows the cap."
+        }
+      ],
+      "explanation": "Plan limits renders concrete caps only. A value that is unlimited draws no tile, and when a plan sets none of the three and carries no notes, the whole card disappears. A missing tile means \"no ceiling here\", not \"you are stuck\"."
+    },
+    {
+      "type": "slide",
+      "id": "card",
+      "icon": "🔎",
+      "title": "Reading the card, tile by tile",
+      "bodyMd": "From the top of **License & Usage**:\n\n- **The plan card** with the plan name and **Billing cycle started** plus the date the current period opened.\n- **cost cap / month** at the right — the ceiling AI spending has to stay under this period.\n- One big number below it: the percentage under **\"AI usage of cap this period\"**. With no cap set you get a dash and **\"AI usage this period\"** instead.\n- **Usage this period**, then **Plan limits** with **Users**, **Agents** and **Knowledge Sources**.\n\nThe Users tile is the odd one out: where the subscription tracks seats it shows **current seats against the plan limit** rather than the bare cap, and it always carries an **Add user** button. On a per-seat plan a note under the grid warns that inviting a user adds a seat, billed per user per month and prorated for the current period."
+    },
+    {
+      "type": "sim",
+      "id": "sim-controls",
+      "icon": "🧩",
+      "title": "Five errands, five different buttons",
+      "instruction": "Erik has a list of small jobs. Match each one to the control on License & Usage that actually does it.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "invoices",
+            "left": "The bookkeeper needs last quarter's invoices and the card on file replaced",
+            "right": "Manage Billing",
+            "note": "Opens the billing portal, and invoices are listed in the app for download. The button only appears when there is a real paying relationship."
+          },
+          {
+            "id": "upgrade",
+            "left": "Eight more people start Monday and the team can pay the difference now",
+            "right": "Change plan",
+            "note": "The inline picker lists every plan you may move to, each badged Upgrade or Downgrade."
+          },
+          {
+            "id": "subscribe",
+            "left": "The organisation is on a free plan and wants a paid one",
+            "right": "Subscribe",
+            "note": "Free or manually created plans have no Change plan picker — they go through checkout instead."
+          },
+          {
+            "id": "cancel",
+            "left": "Next year's budget is cut; stop paying once this period is over",
+            "right": "Cancel subscription",
+            "note": "A muted link at the bottom of the subscription card, shown only while the subscription is active and nothing is already scheduled."
+          },
+          {
+            "id": "undo",
+            "left": "That cancellation was a mistake, and the date has not arrived yet",
+            "right": "Keep subscription",
+            "note": "The button on the scheduled-cancel banner. It clears the flag and the subscription simply continues."
+          }
+        ]
+      }
+    },
+    {
+      "type": "slide",
+      "id": "change-plan",
+      "icon": "🔀",
+      "title": "Up is now, down is later",
+      "bodyMd": "**Change plan** opens a picker inside the page — no separate checkout. Its hint sums the whole lesson up: *\"Upgrades take effect immediately (prorated). Downgrades take effect at the end of your current billing period.\"* Each plan in the list shows its price, whatever finite user, agent and KB-source counts it sets, and a badge: **Upgrade** or **Downgrade**.\n\nPicking one opens a confirmation headed **Confirm upgrade** or **Confirm downgrade** with the plan name — and the asymmetry is in its lines:\n\n- **Upgrade** applies straight away. The dialog shows **Prorated charge today** (what you pay now) and **Then** (the price per cycle from the next renewal), and the new limits are live immediately.\n- **Downgrade** is *scheduled* to the end of the current billing period. Its dialog shows **Takes effect** with that date, a **Charge today** of 0,00 and **Then** the new price. Nothing changes today, nothing is refunded today, and a banner appears reading **\"Downgrade to …\"** with the date and **\"You keep your current plan until then.\"**\n\nWhile that schedule stands, the **Change plan** button is hidden. The banner's **Keep current plan** button releases it."
+    },
+    {
+      "type": "quiz",
+      "id": "q-downgrade",
+      "question": "On the 3rd of the month Erik picks a smaller plan and confirms the downgrade, hoping to free budget this quarter. He reopens the page an hour later. What does he see, and what has been charged?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "The old plan is still active with a banner naming the new plan and its date; nothing has been charged or refunded.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "The smaller plan is already active and the difference has been refunded to the card.",
+          "correct": false,
+          "feedback": "Money moves today only on an upgrade, as the Prorated charge today line. The downgrade dialog says Charge today 0,00: it is a schedule, not a refund."
+        },
+        {
+          "id": "c",
+          "label": "The subscription was cancelled and a new one created on the smaller plan.",
+          "correct": false,
+          "feedback": "The plan change runs on the existing subscription. Cancelling is a separate action with its own confirmation."
+        },
+        {
+          "id": "d",
+          "label": "Nothing at all — a downgrade has to be requested by e-mail.",
+          "correct": false,
+          "feedback": "Both directions are self-service in the Change plan picker; only moving above the highest available plan needs a conversation."
+        }
+      ],
+      "explanation": "Downgrades take effect at the end of the current billing period. Until then the organisation keeps the plan it is paying for, the banner shows the plan and date, and Keep current plan cancels the schedule."
+    },
+    {
+      "type": "slide",
+      "id": "cancel",
+      "icon": "🛑",
+      "title": "Cancel is a date, not a switch",
+      "bodyMd": "At the bottom of the subscription card sits a deliberately quiet **Cancel subscription** link. It appears only while the subscription is active and no cancellation is already scheduled.\n\nIts confirmation says exactly what will happen: **\"Cancel your subscription at the end of the current billing period? You keep full access until then, and no further payments will be taken.\"** You can back out with **Keep subscription**, or confirm.\n\nAfterwards the card shows a banner — **\"Subscription cancels on\"** with the date, and **\"You keep access until that date.\"** — carrying its own **Keep subscription** button that reactivates the subscription.\n\nSo nothing is destroyed on the day you press it. What you lose the moment a cancellation is scheduled is the **Change plan** button, until you reactivate."
+    },
+    {
+      "type": "sim",
+      "id": "sim-order",
+      "icon": "🧮",
+      "title": "The order that avoids the surprise",
+      "instruction": "Erik has to move Van Dijk Groep onto a bigger plan this afternoon. Put his five moves in the order that leaves no nasty discovery on the invoice.",
+      "sim": {
+        "kind": "order",
+        "items": [
+          {
+            "id": "open",
+            "label": "Open Settings → Organisation → License & Usage and read the plan card and the billing cycle date"
+          },
+          {
+            "id": "compare",
+            "label": "Compare the Plan limits tiles — Users, Agents, Knowledge Sources — and the cost cap / month with what the team is actually short of"
+          },
+          {
+            "id": "pick",
+            "label": "Press Change plan and choose a plan from the picker, noting its Upgrade or Downgrade badge"
+          },
+          {
+            "id": "read",
+            "label": "Read the confirmation dialog: on an upgrade Prorated charge today and Then, on a downgrade Takes effect, Charge today and Then"
+          },
+          {
+            "id": "verify",
+            "label": "Confirm, then check the card for the new plan name or the scheduled-change banner"
+          }
+        ],
+        "solution": [
+          "open",
+          "compare",
+          "pick",
+          "read",
+          "verify"
+        ],
+        "feedback": "Read before you press. The confirmation is the only place what you pay today and what you pay from the next renewal appear together, and knowing which tile was short is what tells you whether you needed a bigger plan at all — a seat shortage and a cost cap are different problems."
+      }
+    },
+    {
+      "type": "slide",
+      "id": "missing",
+      "icon": "🕳️",
+      "title": "When a button you expected is not there",
+      "bodyMd": "The card shows only what applies to your organisation:\n\n- **No plan bound at all** → **\"No license assigned\"** with **\"Contact your administrator to set up a plan for your organisation.\"** On cloud you also get **Choose a Plan** with a **Subscribe** button per plan — or **\"No plans are available right now.\"** if the platform offers none.\n- **A free or manually created plan** → no Change plan picker, but **Upgrade to a paid plan**: *\"You're on a free plan. Subscribe to unlock higher usage and more features\"*, plus a notice that this is a recurring subscription charged automatically each period until you cancel.\n- **Already on the highest plan** → a line telling you to contact the address shown for custom pricing.\n- **Manage Billing** appears only for a genuinely paying relationship — a free or invoice-less customer would open an empty portal."
+    },
+    {
+      "type": "slide",
+      "id": "selfhost",
+      "icon": "🏠",
+      "title": "Self-hosted: the row is gone on purpose",
+      "bodyMd": "If Van Dijk Groep ran Bee Flow on their own server, this lesson would end differently: on a self-hosted install **License & Usage is not in the Organisation list at all**. Licensing is governed from the admin dashboard's **Server licence** panel, and the subscriptions API answers *not available in self-hosted*, so plan cards and the cap gauge simply never appear. That is expected, not a fault.\n\nThere is a middle case as well. Where a **server-wide licence** covers the whole installation, the plan, usage and plan-picker cards are replaced by one read-only note — **\"Tier is managed server-wide\"**, *\"This installation is covered by a server-wide licence, so your organisation does not need a subscription. Usage and billing are managed by the platform operator.\"*\n\nIn both cases the honest answer to \"can we upgrade?\" is: not here, and not by you."
+    },
+    {
+      "type": "quiz",
+      "id": "q-selfhost",
+      "question": "A client of Van Dijk Groep runs Bee Flow on their own server. Their admin can open Users & Groups and Privacy Shield, but there is no License & Usage row anywhere. What should you tell them?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "On a self-hosted install that row is removed; the tier comes from the server licence, set by whoever runs the server.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Their organisation-admin role is missing, so the licensing row is hidden from them.",
+          "correct": false,
+          "feedback": "Without that role the entire Organisation group would be hidden, not one row inside it — and they can clearly open the other rows."
+        },
+        {
+          "id": "c",
+          "label": "Their subscription was cancelled, so the screen hides itself until a new plan is bought.",
+          "correct": false,
+          "feedback": "An organisation with no plan still gets the row: it shows \"No license assigned\" with an invitation to set one up."
+        },
+        {
+          "id": "d",
+          "label": "It moved into Usage & Monitoring, one row down.",
+          "correct": false,
+          "feedback": "Usage & Monitoring is read-only reporting. It never carried the plan controls; it only ever pointed at them."
+        }
+      ],
+      "explanation": "Self-hosted installs are licensed server-wide, so a per-organisation subscription screen would have nothing to change. Any tier question there goes to the person who runs the server, not to the organisation admin."
+    },
+    {
+      "type": "exercise",
+      "id": "ex-note",
+      "icon": "✍️",
+      "exerciseId": "ex-admin-plan-and-billing-note",
+      "title": "Your turn: the note before you press",
+      "instruction": "Sales at Van Dijk Groep wants Meeting Notes and eight extra seats. Before touching anything, write the short note you would send to the directeur. A strong note quotes what you actually read on the card (plan name, the Plan limits tile that is short, the cost cap / month), says when the change lands and what is charged today versus at the end of the period, separates a feature question from a count question, and names the button that undoes it if the board says no.",
+      "placeholder": "e.g. We are on <plan>, Plan limits shows 32 / 40 Users and no Knowledge Sources cap; the cost cap / month is not the problem, the seats are. Meeting Notes is a feature of a higher tier, not a count. An upgrade …",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "action",
+      "id": "read-plan",
+      "icon": "🧾",
+      "checkId": "licence-plan-known",
+      "title": "Read your own plan card — and press nothing",
+      "instruction": "Open Settings → Organisation → License & Usage. Write down, for yourself, the plan name, the cost cap / month and every Plan limits tile you see, and note which of Change plan, Manage Billing, Subscribe and Cancel subscription your workspace actually offers. Do not press any of them. The checklist below only confirms that your workspace answers with a licence tier — the tiles are yours to read.",
+      "launch": {
+        "navigateTo": "settings/organisation/license",
+        "label": "Open License & Usage"
+      }
+    },
+    {
+      "type": "slide",
+      "id": "recap",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "- **Read the card correctly.** Plan name and billing cycle at the top, cost cap / month at the right, and Plan limits showing only the caps that really exist — a missing tile means unlimited, not blocked.\n- **Change a plan with the date in hand.** An upgrade is immediate with a prorated charge today; a downgrade waits for the end of the billing period and can be released with Keep current plan. A cancellation keeps full access until its date and is reversed with Keep subscription.\n- **Say why a button is missing.** No plan, a free plan, the highest plan, a server-wide licence, or a self-hosted install — each hides a different control, and only the last one takes the whole row away."
+    }
+  ],
+  "rubrics": {
+    "ex-admin-plan-and-billing-note": {
+      "title": "The note before the plan change",
+      "task": "Write a short note to the directeur of Van Dijk Groep before changing the plan, based on what License & Usage actually shows: what is short, what the change costs and when, and how it can be undone.",
+      "criteria": [
+        "Quotes at least two concrete readings from the card — the plan name, a Plan limits tile (Users, Agents or Knowledge Sources), or the cost cap / month",
+        "States when the change lands: an upgrade immediately with a prorated charge today, a downgrade at the end of the current billing period",
+        "Separates a feature that the licence tier unlocks (Meeting Notes) from a count that the plan sets (seats, agents, knowledge sources)",
+        "Names the undo: Keep current plan for a scheduled downgrade, or Keep subscription for a scheduled cancellation"
+      ],
+      "passScore": 70,
+      "guidance": "Fail a note that only says \"we need a bigger plan\" with no reading from the screen. Fail any claim that a downgrade frees money or refunds today, or that a cancellation removes access immediately. Fail an answer that treats the cost cap and the seat count as the same ceiling. Wording may be Dutch or English; specificity matters more than length."
+    }
+  },
+  "practiceTopic": {
+    "title": "Plan, billing and the licence tier",
+    "summary": "The License & Usage screen: what the plan sets, what the tier sets, and what each lifecycle button does to the bill and when.",
+    "facts": [
+      "License & Usage is the first row of the Organisation group in settings; its subtitle is \"Your current plan and usage for this billing period\", and a consumer cloud account sees the same screen as Subscription & Usage.",
+      "Plan limits shows only concrete caps — Users, Agents and Knowledge Sources; unlimited values draw no tile, the whole card disappears when a plan sets none of the three and has no notes, and the Users tile carries an Add user button.",
+      "An upgrade takes effect immediately and its dialog shows Prorated charge today and Then; a downgrade's dialog shows Takes effect, Charge today 0,00 and Then, is scheduled to the end of the billing period, and is released with Keep current plan.",
+      "Cancel subscription schedules the end of the current billing period, keeps full access until that date, takes no further payment, and is reversed with Keep subscription.",
+      "With no plan the card reads \"No license assigned\" and offers Choose a Plan with a Subscribe button per plan, or \"No plans are available right now.\"",
+      "On a self-hosted install the License & Usage row is removed entirely and the subscriptions API answers not_available_in_self_hosted; where a server-wide licence covers the installation the cards are replaced by the note \"Tier is managed server-wide\"."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "licence-plan-known",
+      "existing": false,
+      "label": "Read the workspace's licence and plan",
+      "hint": "Settings → Organisation → License & Usage. The check reads your workspace's licence status; it passes once the tier and its feature list come back.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/license/status",
+          "returns": "object with tier, source, scope, license, subscription, features[], limits{}, serverLicense"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "tier",
+          "label": "Your workspace answers with its licence tier",
+          "hint": "Open License & Usage and read the plan card. This only confirms that the licence endpoint answers for your account — community is the floor, so a tier always comes back.",
+          "rule": "GET /api/license/status → tier is a non-empty string; a read-back, not an achievement (features[] is always non-empty too, so it verifies nothing extra)",
+          "endpoint": "/api/license/status",
+          "expect": {
+            "kind": "truthy",
+            "field": "tier"
+          }
+        }
+      ]
+    }
+  ]
+}

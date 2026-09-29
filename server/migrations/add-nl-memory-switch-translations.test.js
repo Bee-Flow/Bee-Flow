@@ -1,0 +1,49 @@
+/**
+ * Two silent failure modes, both pinned here: a Dutch key that matches no
+ * English key is stored and never read, and an English key with no Dutch one
+ * is a switch that says "Use memory" in the middle of a Dutch settings page.
+ *
+ * Run: node --test --test-force-exit migrations/add-nl-memory-switch-translations.test.js
+ */
+
+const test = require('node:test');
+const assert = require('node:assert');
+
+const { NL_TRANSLATIONS, SAME_AS_ENGLISH } = require('./add-nl-memory-switch-translations');
+const { GUI_DEFAULTS } = require('../i18n/defaults/en');
+
+// Exact prefixes, not `settings.memory_`: the older import/export keys under
+// that prefix are seeded elsewhere and are not this migration's to claim.
+const OWNED_PREFIXES = ['settings.memory_switch', 'settings.memory_stats_', 'settings.memory_type_'];
+const owned = (key) => OWNED_PREFIXES.some((p) => key.startsWith(p));
+
+test('every Dutch key exists in the English catalog', () => {
+    const orphans = [...Object.keys(NL_TRANSLATIONS), ...SAME_AS_ENGLISH].filter((k) => !(k in GUI_DEFAULTS));
+    assert.deepStrictEqual(orphans, [], 'these Dutch keys have no English counterpart');
+});
+
+test('no Dutch value is blank or the English one copied over', () => {
+    for (const [k, v] of Object.entries(NL_TRANSLATIONS)) {
+        assert.ok(String(v || '').trim(), `${k} has no Dutch value`);
+        assert.notStrictEqual(v, GUI_DEFAULTS[k], `${k} was never actually translated — if the Dutch really is the English word, move it to SAME_AS_ENGLISH`);
+    }
+});
+
+test('every English memory-switch key has a Dutch one (or is declared identical)', () => {
+    const same = new Set(SAME_AS_ENGLISH);
+    const untranslated = Object.keys(GUI_DEFAULTS).filter((k) => owned(k) && !(k in NL_TRANSLATIONS) && !same.has(k));
+    assert.deepStrictEqual(untranslated, []);
+});
+
+test('placeholders survive translation', () => {
+    const holes = (s) => (String(s).match(/\{[a-z_]+\}/gi) || []).sort();
+    for (const [k, v] of Object.entries(NL_TRANSLATIONS)) {
+        assert.deepStrictEqual(holes(v), holes(GUI_DEFAULTS[k]), `${k}: placeholders differ from English`);
+    }
+});
+
+test('the migration is registered, or it never runs', () => {
+    const fs = require('fs');
+    const src = fs.readFileSync(require.resolve('../boot/bootMigrations.js'), 'utf8');
+    assert.ok(src.includes("'add-nl-memory-switch-translations'"), 'add it to the NL_TRANSLATIONS list in boot/bootMigrations.js');
+});

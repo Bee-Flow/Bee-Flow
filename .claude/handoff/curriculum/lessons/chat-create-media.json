@@ -1,0 +1,269 @@
+{
+ "id": "chat-create-media",
+ "icon": "🎨",
+ "estMinutes": 7,
+ "title": "Ask for a picture, not just words",
+ "desc": "The Create image, music, video row: which generator does which job, what each panel already decided, and why there is no Generate button.",
+ "gate": {},
+ "learningGoal": "After this lesson you can make an image, an instrumental track, a spoken voice-over or a short clip straight from the chat box, and pick the right entry for each job.",
+ "steps": [
+  {
+   "type": "slide",
+   "id": "why",
+   "icon": "🎪",
+   "title": "Marieke needs a banner, not a paragraph",
+   "bodyMd": "Van Dijk Groep opens its yard to families on a Saturday. Marieke in communicatie has one afternoon and four things on her list: a banner image for the invitation, an instrumental bed under a short walk-through clip, the safety instruction read aloud in Dutch, and eight seconds of the yard in morning light.\n\nAll four come out of the same box she already types in. No separate studio, no export, no second tool. What this lesson adds is knowing **which entry does which job** and **what each panel has already decided** before she asks."
+  },
+  {
+   "type": "tour",
+   "id": "where",
+   "target": "[data-tour=\"chat-composer\"]",
+   "navigateTo": "agents",
+   "placement": "top",
+   "optional": true,
+   "timeoutMs": 7000,
+   "icon": "➕",
+   "title": "It all starts at the plus",
+   "body": "The + button beside the message box is Message tools. Everything in this lesson lives in one of its rows."
+  },
+  {
+   "type": "slide",
+   "id": "the-row",
+   "icon": "🗂️",
+   "title": "One row, up to four generators",
+   "bodyMd": "In **Message tools**, directly under **Add photos & files**, sits **Create image, music, video**. Opening it reveals a short list, and you only see the entries that are actually available to you:\n\n- **Image Generation**\n- **Music Generation**\n- **ElevenLabs**\n- **Video Generation**\n\nImage, music and video run on Google's models; the **ElevenLabs** entry covers sung music, speech and sound effects. Each entry needs two things at once: your organisation must have that generation switched on, **and** the matching key must be stored on this server.\n\nSo a missing row is an administrator's setting, not a fault. In an agent chat the row also disappears when that agent was built with external tools switched off."
+  },
+  {
+   "type": "slide",
+   "id": "no-button",
+   "icon": "✍️",
+   "title": "There is no Generate button",
+   "bodyMd": "Open **Image Generation** and you get settings, not a canvas. The panel says so itself: *\"Just ask the AI to generate an image in your message. It will automatically use these settings.\"*\n\nSo the rhythm is: open the panel once, set your defaults, close it, then type the request in the ordinary message box and press Enter, for example *\"Maak een banner voor onze open dag: het terrein, blauwe lucht, geen mensen in beeld.\"* The assistant reaches for the matching tool by itself.\n\nThe panels are a preference sheet for what you ask next, not a machine with a lever. And when a generator is not available, the assistant says so plainly instead of drawing you something in code."
+  },
+  {
+   "type": "quiz",
+   "id": "q-nothing",
+   "question": "Marieke opens Image Generation, picks 16:9, closes the panel — and nothing happens. What does she do next?",
+   "multi": false,
+   "choices": [
+    {
+     "id": "a",
+     "label": "Type what she wants in the message box and press Enter, like any other message.",
+     "correct": true
+    },
+    {
+     "id": "b",
+     "label": "Press Enter on the empty box; the panel has queued the job.",
+     "correct": false,
+     "feedback": "An empty box sends nothing. The panel stored an aspect ratio, and that is all it can do — the request itself is still a sentence you have to write."
+    },
+    {
+     "id": "c",
+     "label": "Re-open the panel and look for the Generate button at the bottom.",
+     "correct": false,
+     "feedback": "There is none. The Image panel holds a Default Aspect Ratio and a Model, and closes with the X in its corner."
+    },
+    {
+     "id": "d",
+     "label": "Attach a blank image first, so the generator has something to work on.",
+     "correct": false,
+     "feedback": "Attachments are for files you already have. Generation needs nothing but your description."
+    }
+   ],
+   "explanation": "Every generator works the same way: the panel sets defaults, your message asks for the thing. Settings first, sentence second, Enter."
+  },
+  {
+   "type": "slide",
+   "id": "image-panel",
+   "icon": "🖼️",
+   "title": "What the Image panel decides for you",
+   "bodyMd": "Two settings, both remembered in this browser until you change them:\n\n- **Default Aspect Ratio** — **1:1**, **16:9**, **9:16**, **4:3**, **3:4**. It starts on **1:1**. Marieke's banner wants **16:9**; a story for social wants **9:16**.\n- **Model** — **Flash Image (Fast)**, which is the one selected to begin with, or **Pro Image (Quality)**. Fast while you are still trying wordings, Quality once it goes in front of customers.\n\nChanging either does nothing to a picture already on screen. Change the setting, then ask again: *\"zelfde banner, maar liggend\"* is a new request, and it will use the new ratio."
+  },
+  {
+   "type": "slide",
+   "id": "sound-panels",
+   "icon": "🎶",
+   "title": "Two doors to sound, and they are not the same",
+   "bodyMd": "**Music Generation** opens the panel titled **Google Music (Lyria)** — *\"Instrumental music via Google Lyria.\"* You get **BPM** (60-200, starting at 90), **Duration** (5-30 seconds, starting at 10), **Density**, **Brightness**, **Guidance**, a **Mode** of **Quality** or **Diversity**, and toggles for **Mute Bass** and **Mute Drums**. No singing, whatever you ask.\n\n**ElevenLabs** opens one panel with three sections:\n\n- **Music (with vocals)** — **Song Duration** 3-120 seconds, starting at 30, plus **Force Instrumental** (*\"Guarantee no vocals\"*).\n- **Text-to-speech** — a **Voice** and a **Model** to pick from.\n- **Sound effects** — **Duration** 0.5-30 seconds, starting at 5, and **Prompt Influence**.\n\nA bed under a clip: Music Generation. A sung jingle or a spoken Dutch voice-over: ElevenLabs."
+  },
+  {
+   "type": "sim",
+   "id": "match-row",
+   "icon": "🧩",
+   "title": "Five jobs for the open day",
+   "instruction": "Marieke's list for Saturday. Pair each job with the entry that does it.",
+   "sim": {
+    "kind": "match",
+    "pairs": [
+     {
+      "id": "banner",
+      "left": "A wide banner image for the invitation e-mail",
+      "right": "Image Generation",
+      "note": "Set Default Aspect Ratio to 16:9 first, then describe the scene in your message."
+     },
+     {
+      "id": "bed",
+      "left": "A calm instrumental bed under the walk-through clip",
+      "right": "Music Generation (Lyria)",
+      "note": "Lyria is instrumental by design, and 5-30 seconds is exactly the length of a bed."
+     },
+     {
+      "id": "voice",
+      "left": "The safety instruction read aloud in Dutch for visitors who will not read the sign",
+      "right": "ElevenLabs — Text-to-speech",
+      "note": "Pick the Voice in the ElevenLabs panel; the words themselves go in your message."
+     },
+     {
+      "id": "beep",
+      "left": "A short beep for the countdown on the screen at the gate",
+      "right": "ElevenLabs — Sound effects",
+      "note": "Sound effects run from 0.5 to 30 seconds and start at 5 — shorten it for a beep."
+     },
+     {
+      "id": "clip",
+      "left": "Eight seconds of the yard in the morning light",
+      "right": "Video Generation (Veo)",
+      "note": "The only entry that produces moving images, and the slowest of the four."
+     }
+    ]
+   }
+  },
+  {
+   "type": "slide",
+   "id": "video-panel",
+   "icon": "🎬",
+   "title": "Video is slow, and it warns you",
+   "bodyMd": "**Video Generation** opens **Video Generation (Veo)**, which tells you up front: *\"Google Veo — AI video generation. Takes 1-3 minutes per clip.\"*\n\nSettings: **Model** — **Veo 3.1 (Quality)**, selected to begin with, or **Veo 3.0 Fast (Speed)**. **Aspect Ratio** — **16:9** or **9:16**, nothing else. **Duration** — **4s**, **6s** or **8s**, starting at **8s**.\n\nA minute or two of nothing happening is normal here. Sending the same request again does not hurry it along; it simply asks for a second clip. Try a **4s** version while you are still deciding on the shot, and go long once the wording is right."
+  },
+  {
+   "type": "quiz",
+   "id": "q-dimmed",
+   "question": "Marieke asks for a picture and is told image generation is not available. Pieter, at the next desk, gets one from the same wording. In her list, Image Generation is still there — only faint. What happened?",
+   "multi": false,
+   "choices": [
+    {
+     "id": "a",
+     "label": "She right-clicked that entry at some point, which switches the generator off for her messages. Right-clicking it again brings it back.",
+     "correct": true
+    },
+    {
+     "id": "b",
+     "label": "She has a file attached, and generation is blocked while there is an attachment.",
+     "correct": false,
+     "feedback": "The attachment rule touches only Web search, and only where the organisation set it. Generation is not tied to attachments."
+    },
+    {
+     "id": "c",
+     "label": "The organisation switched image generation off this morning.",
+     "correct": false,
+     "feedback": "Then the entry would be gone from the list altogether. The list shows only what is available, so a visible entry means the switch and the key are both in place."
+    },
+    {
+     "id": "d",
+     "label": "She has used up this month's images and is waiting for the reset.",
+     "correct": false,
+     "feedback": "A cap of that kind shows as Usage limit reached under the message, in words. It never dims a row in the menu."
+    }
+   ],
+   "explanation": "Left-click opens a generator's settings; right-click on the same entry switches that generator off and dims it, and the choice sticks in this browser until you right-click again. It is the one control in this menu you can hit by accident."
+  },
+  {
+   "type": "slide",
+   "id": "privacy",
+   "icon": "🛡️",
+   "title": "Your request still leaves the building",
+   "bodyMd": "A generation request is an ordinary message, and it travels to an outside generator to be made. So the **Privacy Shield** reads it first, exactly as it reads everything else you send.\n\nWhere your organisation is set to ask, you will see **Check this before it goes to the AI** with the findings highlighted, and **Redact and send** swaps real values for placeholders before the request travels.\n\nThe practical habit: keep people out of the prompt. *\"Een monteur van Van Dijk Groep bij een bestelbus\"* gives you the picture you wanted. A customer's name in the same sentence adds a privacy problem to solve on the way out, and makes the banner no better."
+  },
+  {
+   "type": "quiz",
+   "id": "q-jingle",
+   "question": "Marieke wants the open-day jingle sung, with a line about the yard in the lyrics. Which entry does she open?",
+   "multi": false,
+   "choices": [
+    {
+     "id": "a",
+     "label": "ElevenLabs — its Music section makes music with vocals, and Force Instrumental is the toggle she leaves off.",
+     "correct": true
+    },
+    {
+     "id": "b",
+     "label": "Music Generation, with the lyrics in her message.",
+     "correct": false,
+     "feedback": "That panel is Google Music (Lyria), and it states its own limit: instrumental music. Words in the request will not become a vocal."
+    },
+    {
+     "id": "c",
+     "label": "ElevenLabs Text-to-speech, with the lyrics as the text.",
+     "correct": false,
+     "feedback": "That reads the words in a chosen voice — right for the safety instruction, wrong for a jingle. It speaks; it does not sing over music."
+    },
+    {
+     "id": "d",
+     "label": "Video Generation, and then keep only the audio.",
+     "correct": false,
+     "feedback": "Veo makes clips of 4, 6 or 8 seconds and takes 1-3 minutes each. A long detour for at most eight seconds of sound."
+    }
+   ],
+   "explanation": "The two music doors split on one question: vocals or not. Lyria is instrumental, so anything sung goes through the ElevenLabs panel, where Song Duration runs up to 120 seconds."
+  },
+  {
+   "type": "action",
+   "id": "do",
+   "icon": "🏗️",
+   "checkId": "chat-media-made",
+   "title": "Make one thing for real",
+   "instruction": "Start a new chat. Open + → Create image, music, video and open the entry you want. Set what matters — for an image, the aspect ratio — close the panel, then describe what you want in the message box and press Enter. If the row is not in your + menu, then either your organisation has no generator switched on or the matching key is missing on this server: ask an administrator and come back to this step.",
+   "launch": {
+    "navigateTo": "agents",
+    "label": "Open chat"
+   }
+  },
+  {
+   "type": "slide",
+   "id": "now",
+   "icon": "✅",
+   "title": "What you can do now",
+   "bodyMd": "- Open **Create image, music, video** and read the list as an answer to \"what is available to me here\" — and know that a missing row is a switch and a key, not a fault.\n- Pick the right door for the job: **Image Generation** for pictures, **Music Generation** for an instrumental bed, **ElevenLabs** for a sung track, a spoken voice-over or a sound effect, **Video Generation** for a clip of 4, 6 or 8 seconds.\n- Set the panel first, then ask in plain language, and give video its one to three minutes without resending."
+  }
+ ],
+ "practiceTopic": {
+  "title": "Making media from the chat box",
+  "summary": "The Create image, music, video row, the four generators behind it, and the settings each panel holds.",
+  "facts": [
+   "The Create image, music, video row sits in Message tools under Add photos & files, and lists only the generators the organisation has enabled and has a key for.",
+   "Image Generation offers aspect ratios 1:1, 16:9, 9:16, 4:3 and 3:4, and two models: Flash Image (Fast) and Pro Image (Quality).",
+   "Music Generation opens Google Music (Lyria) and makes instrumental music only, with BPM from 60 to 200 and a duration of 5 to 30 seconds.",
+   "The ElevenLabs panel has three sections: Music (with vocals) with a Force Instrumental toggle, Text-to-speech with a Voice and Model, and Sound effects.",
+   "Video Generation (Veo) offers Veo 3.1 (Quality) or Veo 3.0 Fast (Speed), 16:9 or 9:16, clips of 4, 6 or 8 seconds, and takes 1 to 3 minutes per clip.",
+   "There is no Generate button: the panels hold defaults and you ask for the media in an ordinary chat message.",
+   "Right-clicking an entry in the media list switches that generator off for your messages and shows it dimmed."
+  ]
+ },
+ "actionChecks": [
+    {
+      "checkId": "chat-media-made",
+      "existing": false,
+      "label": "Create an image, a track, a voice-over or a clip from a chat",
+      "hint": "New Chat, then + → Create image, music, video → open an entry, set your defaults, close the panel and describe what you want in the message box.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/ai/direct/conversations",
+          "returns": "array of the caller's own direct conversations, newest first, each with id, title, created_at, updated_at"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "generated",
+          "label": "A chat of your own exists to create in",
+          "hint": "Start one with New Chat. The image, track or clip lands inside that thread, where this check cannot look — seeing it appear in the chat is your proof.",
+          "rule": "GET /ai/direct/conversations → at least one conversation of the caller (the generated media itself lives on a message and is not readable by the runtime)",
+          "endpoint": "/ai/direct/conversations",
+          "expect": {
+            "kind": "rows"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,276 @@
+{
+  "id": "org-usage",
+  "icon": "📊",
+  "estMinutes": 12,
+  "title": "What the workspace costs",
+  "desc": "The usage report: tokens, cost, sources, tiers — and why two admins see two different screens.",
+  "gate": {
+    "permission": "org_admin"
+  },
+  "learningGoal": "After this lesson you can read the Usage & Monitoring report correctly — what each number counts, which panel answers which question, and what your deployment deliberately hides.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "what-counts",
+      "icon": "📇",
+      "title": "One row per model call",
+      "bodyMd": "Sooner or later someone asks you what the AI is costing, and the answer has to be better than a total. This report is where you get it.\n\nEvery time Bee Flow asks a model something, it writes **one usage row**: who asked, which agent, which model, which part of the product, how many tokens, how long it took, and what it cost.\n\nChat, agents, routines, Studio apps, forms, web pages, datatable drafts, Cowork and knowledge embeddings all write rows into the same log.\n\nOne exclusion matters: rows created by a **tool call** are left out of every total on this page. So a tool-level count will never add up to the totals you see here — by design, not by bug."
+    },
+    {
+      "type": "tour",
+      "id": "where",
+      "target": "[data-tour=\"usage-summary\"]",
+      "navigateTo": "settings/organisation/usage",
+      "placement": "bottom",
+      "optional": true,
+      "timeoutMs": 7000,
+      "icon": "📈",
+      "title": "Settings → Organisation → Usage & Monitoring",
+      "body": "This is the report: \"Track AI consumption across your organisation\". Top right sits RANGE — Today, 24h, 7d, 30d, 90d, All, Custom. It opens on 30d, so every number you see on arrival covers the last thirty days."
+    },
+    {
+      "type": "slide",
+      "id": "tokens",
+      "icon": "🔢",
+      "title": "Four kinds of token, not one",
+      "bodyMd": "Models bill per **token** — roughly a word-piece. Van Dijk Groep's supplier-PDF agent resends the same three-page instruction sheet on every run, so the numbers behind one of its calls differ wildly from each other.\n\nEvery usage row stores them as separate counts:\n\n- **Input** (prompt) — the fresh part of what was sent: the question, the instructions, the knowledge chunks, the attachment.\n- **Output** (completion) — what came back.\n- **Cached input** — input the provider served from its prompt cache instead of reading it again. Counted apart from fresh input, and much cheaper.\n- **Cache creation** — input written *into* that cache. It carries a premium on the call that creates it — on one provider 1.25× for a five-minute cache, 2× for an hour — and pays for itself on the calls after.\n\nA fifth count rides along: **reasoning** tokens, the thinking a model does before it answers."
+    },
+    {
+      "type": "slide",
+      "id": "recorded-not-printed",
+      "icon": "🗄️",
+      "title": "Recorded, not printed",
+      "bodyMd": "All five counts are written per call. The panels print **input**, **output** and **total** — and nothing else. There is no cached row, no cache-creation row and no reasoning row anywhere on Overview: not in **By Model**, not in the **Model Usage by User** table. The split lives in the record; the screen does not surface it, and no panel here offers a download to get at it.\n\nTwo consequences to hold on to:\n\n- **Never add reasoning on top of output.** Those tokens are tracked apart for analysis but already counted inside the output number for billing. Adding them again inflates your figure.\n- **A cheap call can look expensive.** A run whose input mostly came from the cache still shows a big input count, yet costs a fraction of a run that paid full price for the same words. When tokens and cost disagree, caching is usually why — trust the cost."
+    },
+    {
+      "type": "sim",
+      "id": "sim-tokens",
+      "icon": "🧮",
+      "title": "Five numbers, five consequences",
+      "instruction": "Van Dijk's admin is walking the finance lead through last month's bill. Match each remark to the number — or the missing number — that explains it.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "cached",
+            "left": "\"Input tokens look huge this week, but the cost barely moved.\"",
+            "right": "Cached input tokens",
+            "note": "Input served from the provider's prompt cache is counted apart from fresh input and costs far less. No panel prints it, so the cost column is your only clue that it happened."
+          },
+          {
+            "id": "creation",
+            "left": "\"The first run after we rewrote the agent's instructions cost more than the ten runs after it.\"",
+            "right": "Cache-creation tokens",
+            "note": "Writing input into the cache carries a premium on that one call — 1.25× for a five-minute cache, 2× for an hour on one provider — and the calls after it read the same words back cheaply."
+          },
+          {
+            "id": "reasoning",
+            "left": "\"I added the thinking tokens to the output tokens and got about double the invoice.\"",
+            "right": "Reasoning tokens",
+            "note": "They are tracked separately for analysis but already counted inside output for billing. Never add them on top of output."
+          },
+          {
+            "id": "tools",
+            "left": "\"A tool-level count I found elsewhere does not add up to this page's totals.\"",
+            "right": "Excluded tool-call rows",
+            "note": "Every aggregate on this page leaves out rows written by a tool call, so the two figures are not meant to reconcile. By design, not a bug."
+          },
+          {
+            "id": "export",
+            "left": "\"Finance wants a monthly file with the cached-versus-fresh split per model.\"",
+            "right": "A request this page cannot serve",
+            "note": "Nothing on Overview downloads, and the cached, cache-creation and reasoning counts are never printed. Copy or screenshot what the panels do show, and promise no file."
+          }
+        ]
+      }
+    },
+    {
+      "type": "slide",
+      "id": "two-views",
+      "icon": "👓",
+      "title": "Two admins, two different screens",
+      "bodyMd": "Settle this once, now, and the rest of the lesson is unambiguous. The Overview tab renders one of two ways, and the hero tells you which in a single glance.\n\n**Full view** — your organisation runs the models itself. Eyebrow **Estimated cost** with a money value, tiles **AI calls / Tokens / Active users / Cost / day avg**, raw model names.\n\n**Customer view** — Bee Flow Cloud. Eyebrow **AI usage this period** with a percentage, and tiles **Plan** and **Billed per cycle**. An org admin here is a *customer*, not the platform operator: the server deletes every token and call count before the response leaves the building and replaces the raw provider cost with **billed cost**, what you are actually charged. Models appear as tiers, not names.\n\nRead your own hero, then read the rest of this lesson through that lens. Where a panel is named differently, this lesson prints the full-view name first and the customer-view name after a slash.\n\nOne customer-view element gets no further attention here: the bar **AI usage vs. cap** under the hero. It is measured over your billing period, and the cap itself lives on **License & Usage** — the next lesson's subject, not this one's."
+    },
+    {
+      "type": "quiz",
+      "id": "q-redaction",
+      "question": "Van Dijk Groep is on Bee Flow Cloud. Their admin opens Usage & Monitoring and finds cost figures but no token counts and no call counts anywhere. What is going on?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Nothing is broken — on cloud the token and call fields are removed from the response for everyone except the platform operator, and cost is shown marked up as billed cost.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Logging is switched off; an admin can turn token logging back on in Usage & Monitoring.",
+          "correct": false,
+          "feedback": "Usage & Monitoring is a read-only report — nothing on the page changes a setting, and there is no token-logging switch anywhere. The rows are being written; they are being filtered on the way out."
+        },
+        {
+          "id": "c",
+          "label": "The admin lacks a permission; granting them a higher role restores the token columns.",
+          "correct": false,
+          "feedback": "This is a billing and privacy gate, not a permission. It keys on the platform-operator account specifically — precisely because org admins routinely carry every permission, so a permission check would have leaked."
+        },
+        {
+          "id": "d",
+          "label": "The range is set too short, so the token panels have no data yet.",
+          "correct": false,
+          "feedback": "A short range gives you small numbers, not missing fields. Here the cost is present and the token fields are simply absent from the payload."
+        }
+      ],
+      "explanation": "On cloud the server redacts token counts, call counts and the raw provider cost for every caller except the platform operator, and returns billed cost (estimated cost plus the plan's markup) instead. Only a self-hosted deployment shows its own admin raw tokens."
+    },
+    {
+      "type": "slide",
+      "id": "panels",
+      "icon": "🧭",
+      "title": "Three questions, three lists",
+      "bodyMd": "Under the hero, the Overview tab answers \"where did it go\" from three angles — one list each, and reading them in this order gets you a cause instead of an opinion.\n\n**Who?** **Top Users** / **Top users by cost** — the eight heaviest people over the range you picked.\n\n**Which part of the product?** **By app area** — chat, an agent, a routine, a Studio app, a form.\n\n**Which model?** **By Model** / **By tier**, with **Models per Agent** underneath in the full view: expand an agent and you get its model split, input and output cost per model.\n\nOne panel is a table rather than a list. **Model Usage by User** gives one row per person per model, twenty rows at a time behind **Show more events**. That is where you go once you know *who*, and want to know what they were running.\n\nSome app areas show a raw name and a generic icon rather than a friendly label. Cosmetic, not missing data."
+    },
+    {
+      "type": "slide",
+      "id": "filtering",
+      "icon": "🎚️",
+      "title": "Click a row, and the whole page follows",
+      "bodyMd": "The panels are not only lists. In the full view, clicking a row in **Top Users**, **By Model** or **By app area** fills the matching filter pill — **All Users**, **All Agents**, **All Models**, **All Sources** — and every other panel re-queries against it. That is how you get from \"routines are expensive\" to \"this agent, on this model, for this person\" without typing a thing.\n\n**Clear** appears as soon as a filter is set, and puts the whole organisation back.\n\nIn the customer view those lists are read-only, so you set the pills by hand instead — and there is no **All Models** pill there at all, because that view never shows model names in the first place.\n\nRANGE and the pills are independent controls: changing one never resets the other."
+    },
+    {
+      "type": "sim",
+      "id": "sim-panels",
+      "icon": "🧩",
+      "title": "Which panel answers which question?",
+      "instruction": "Five things Van Dijk Groep's admin wants to know this quarter. Match each one to the panel — or, in one case, the screen — that actually answers it.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "who",
+            "left": "\"One person seems to be burning most of the budget — who?\"",
+            "right": "Top Users",
+            "note": "Top Users ranks the eight heaviest people over the range you picked, with cost beside each one; click the row to filter the whole page to them. In the customer view the same list is Top users by cost, ranked by cost share and read-only."
+          },
+          {
+            "id": "where",
+            "left": "\"Is this the chat, a routine, or one of our Studio apps?\"",
+            "right": "By app area",
+            "note": "Every usage row carries the part of the product that made the call, and By app area sums them up."
+          },
+          {
+            "id": "model",
+            "left": "\"Our supplier-PDF agent got expensive — which model is it actually calling?\"",
+            "right": "Models per Agent",
+            "note": "Expand the agent and you see its model split, with the input and output cost per model underneath. Full view only: in the customer view, set the All Agents pill to that agent and read By tier instead."
+          },
+          {
+            "id": "detail",
+            "left": "\"Our heaviest user — what exactly was she running, model by model?\"",
+            "right": "Model Usage by User",
+            "note": "The table under the lists: one row per person per model, with in/out tokens and in/out cost. It starts at twenty rows and grows by twenty behind Show more events. Full view only — the customer view has no model-level table."
+          },
+          {
+            "id": "ceiling",
+            "left": "\"What is our cost cap, and is each person on their own slice of it?\"",
+            "right": "License & Usage",
+            "note": "Not this report — it only reads. The plan, the cost cap and the pooled-versus-per-user budget toggle all live on License & Usage, one row up in the same Organisation group."
+          }
+        ]
+      }
+    },
+    {
+      "type": "slide",
+      "id": "local-zero",
+      "icon": "🏠",
+      "title": "Zero is sometimes the right answer",
+      "bodyMd": "In the full view, a model your workspace runs on its own hardware shows real token counts and a cost of **0.00**. That is deliberate: a self-hosted runtime has no per-token price, so it is priced at zero *before* the pricing database is consulted. Otherwise the same open-weight model would be billed at whatever an outside host charges for it.\n\nTwo companions to that rule:\n\n- An **unknown** model is not free — it falls back to the most expensive known rates, so a brand-new model slightly over-states cost until pricing catches up.\n- The full view prints a dollar sign, but the figure is stored in your **plan's currency** after conversion. Read it as plan currency, whatever the symbol says."
+    },
+    {
+      "type": "slide",
+      "id": "limits",
+      "icon": "🚧",
+      "title": "What this report will not do",
+      "bodyMd": "Three things admins expect here and do not get.\n\n**There is no export button.** No panel offers a download — not the lists, not the **Model Usage by User** table. So whatever the screen declines to print, such as the cached, cache-creation and reasoning counts, cannot be dug out here either. If a figure has to reach a board pack, you copy or screenshot what is on show, and you promise finance no monthly file.\n\n**It changes nothing.** The page only reads. Every control that moves money — the plan, the cost cap, the pooled-budget toggle — sits on **License & Usage**, the first entry of the same Organisation group in the settings sidebar.\n\n**Two tabs may not be there at all.** **Feedback** and **Terminations** sit beside Overview, but they need the advanced usage monitoring capability, which comes with Enterprise. Without it only Overview renders, and a deep link to either tab quietly lands you back on Overview. Those two tabs, and the cap, belong to the next lesson. This one stays on Overview — the part every plan and every deployment gets."
+    },
+    {
+      "type": "quiz",
+      "id": "q-empty",
+      "question": "Van Dijk's admin opens the report, sees empty panels reading \"No active users\" and \"No model data\", and concludes the team stopped using AI last month. What should they check first?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Whether the request actually succeeded — a failed or licence-blocked fetch renders exactly the same empty panels as genuine silence, with no error message.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Nothing — empty panels can only mean there was no usage in the period.",
+          "correct": false,
+          "feedback": "That is the trap. Every fetch on this page is swallowed: a refused request returns an empty list, and the panel draws its normal empty state. There is no error toast here."
+        },
+        {
+          "id": "c",
+          "label": "Whether someone deleted the usage rows from the report.",
+          "correct": false,
+          "feedback": "The page cannot delete anything — it is read-only. Start with why the data did not arrive, not with who removed it."
+        },
+        {
+          "id": "d",
+          "label": "Re-run the month's routines so the log fills up again.",
+          "correct": false,
+          "feedback": "That would spend real money to test a display problem. Confirm the data path first: widen the range, then check whether the tab you are on needs a licence you do not have."
+        }
+      ],
+      "explanation": "Empty is not the same as zero. Prove the data path before you believe the panel: widen the range, reload, and check whether a filter pill is still narrowing the page from an earlier click. A whole card missing rather than empty is usually the other story — the full view has no Plan card because that deployment has no subscription at all."
+    },
+    {
+      "type": "exercise",
+      "id": "ex-drivers",
+      "icon": "🎯",
+      "exerciseId": "ex-org-usage-drivers",
+      "title": "Your turn: name the three drivers",
+      "instruction": "Open Usage & Monitoring, set RANGE to 30d, and write a short note to your own management. Name your organisation's three biggest cost drivers over those thirty days — each one identified by name, not by guess: which app area, which model or tier, and which person or agent. For each driver say what you will do about it, and say which panel you read it from. If your hero reads AI usage this period, you are in the customer view: say which numbers are redacted there and what you reasoned from instead.",
+      "placeholder": "e.g. \"1. Routines, 46% of spend (By app area). The supplier-PDF agent runs on Deep Thinking (Models per Agent) — I'll move its AI step to Fast and re-check on 30d next week. 2. ...\"",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "slide",
+      "id": "recap",
+      "icon": "✅",
+      "title": "Four moves, on one real spike",
+      "bodyMd": "Van Dijk Groep's spend jumps from around 40 to 180 in the first week of the quarter. Nobody touches a cap. The admin does this:\n\n1. **Set the range.** RANGE → **7d**, so the spike is not diluted by three quiet weeks.\n2. **Read By app area.** The routine source dominates. It is not the chat.\n3. **Narrow it.** Click that row (full view) or set the **All Agents** pill (customer view) to the supplier-PDF extraction agent.\n4. **Open the detail.** **Models per Agent** / **By tier** shows Deep Thinking taking nearly all of it.\n\nThe fix lives in the routine, not in the report: move that step to the **Fast** tier and re-check next week.\n\nThat is the lesson. One row per model call with tool rows excluded, opening on the last 30 days; five token counts recorded per call, of which the screen prints only input, output and total and lets none of them out as a file; a hero that tells you which of the two views you are reading; four moves from a total to a cause; and nothing on this page you can click to change the bill."
+    }
+  ],
+  "rubrics": {
+    "ex-org-usage-drivers": {
+      "title": "Three cost drivers, named and actioned",
+      "task": "The learner opened Usage & Monitoring at a 30-day range and wrote a short management note naming their organisation's three biggest AI cost drivers, each identified by app area, model or tier, and person or agent, with an action per driver and the panel the finding came from.",
+      "criteria": [
+        "Names three distinct drivers, each pinned to something concrete — an app area, a model or tier, and/or a person or agent — rather than a vague 'chat is expensive'.",
+        "Attributes each finding to the panel that produced it (By app area, By Model or By tier, Top Users, Models per Agent, Model Usage by User) and states the range used.",
+        "Proposes a specific, proportionate action per driver (change a routine's tier, split a large attachment, fix an agent's instructions, discuss with a person, revisit the plan) instead of jumping straight to lowering the cap.",
+        "Shows awareness of which of the two views they were reading: in the customer view, acknowledges that tokens and call counts are redacted and reasons from cost share or tier instead."
+      ],
+      "passScore": 70,
+      "guidance": "Pass a note that is grounded in the real screen, even if the organisation is small and the numbers are tiny. Do not pass: generic advice with no panel or range named ('use AI less', 'switch to a cheaper model'); fewer than three drivers; a claim that the learner 'turned off' or 'capped' something from this page (it is read-only — budget controls live on License & Usage); or an answer that treats empty panels as proof of zero usage. Do not require dollar figures — a percentage share or a ranking is enough."
+    }
+  },
+  "practiceTopic": {
+    "title": "Reading Usage & Monitoring",
+    "summary": "What the organisation usage report counts, which panel answers which question, and what a cloud deployment deliberately hides from its own admins.",
+    "facts": [
+      "The page is Settings → Organisation → Usage & Monitoring, subtitled 'Track AI consumption across your organisation'; it is read-only and opens on a 30d range.",
+      "RANGE presets are Today, 24h, 7d, 30d, 90d, All and Custom; the filter pills read All Users, All Agents, All Models and All Sources, with a Clear button once a filter is set. Range and pills are independent.",
+      "On Bee Flow Cloud every caller except the platform operator gets token counts and call counts stripped from the response, and sees billed cost (estimated cost plus the plan's markup) rather than raw provider cost.",
+      "The full-view hero reads 'Estimated cost' with tiles AI calls, Tokens, Active users and Cost / day avg; the customer-view hero reads 'AI usage this period' as a percentage, over three percentage-share lists: Top users by cost, By tier and By app area.",
+      "Every usage row records input, output, cached, cache-creation and reasoning tokens, but the panels print only input, output and total: there is no cached, cache-creation or reasoning row on Overview, and reasoning tokens are already counted inside output.",
+      "Clicking a row in Top Users, By Model or By app area sets the matching filter pill and every other panel re-queries against it; in the customer view those lists are read-only, and the All Models pill is not shown there.",
+      "Rows written by a tool call are excluded from every aggregate and no panel has an export button, so tool counts never reconcile with the totals; self-hosted models are priced at zero before the pricing database is consulted, while an unknown model falls back to the most expensive known rates.",
+      "The Feedback and Terminations tabs need the advanced usage monitoring capability (Enterprise); without it only Overview renders, and failed fetches show ordinary empty states rather than an error."
+    ]
+  },
+  "actionChecks": []
+}

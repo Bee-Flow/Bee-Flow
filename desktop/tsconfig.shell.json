@@ -1,0 +1,30 @@
+{
+    // The local shell UI — the pages the app serves itself (onboarding,
+    // settings, the "cannot reach your server" screen). These run in a
+    // Chromium renderer with no bundler in front of them, so the emit has to be
+    // browser-loadable ES modules and every relative import in src/shell
+    // carries an explicit `.js` extension.
+    "compilerOptions": {
+        "target": "ES2023",
+        "lib": ["ES2023", "DOM", "DOM.Iterable"],
+        "module": "esnext",
+        "moduleResolution": "bundler",
+        "types": [],
+        "strict": true,
+        "noUncheckedIndexedAccess": true,
+        "noImplicitOverride": true,
+        "noFallthroughCasesInSwitch": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "forceConsistentCasingInFileNames": true,
+        "skipLibCheck": true,
+        "isolatedModules": true,
+        "allowImportingTsExtensions": true,
+        "rewriteRelativeImportExtensions": true,
+        "sourceMap": true,
+        "rootDir": "src",
+        "outDir": "dist/ui"
+    },
+    "include": ["src/shell/**/*.ts", "src/shared/**/*.ts"],
+    "exclude": ["src/**/*.test.ts"]
+}

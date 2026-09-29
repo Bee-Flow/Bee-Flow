@@ -1,0 +1,95 @@
+// @typecheck
+/**
+ * Token-budget helpers — rough, provider-agnostic sizing for prompt building.
+ *
+ * We deliberately do NOT depend on tiktoken or any provider-specific tokeniser
+ * here: the 4-chars-per-token rule of thumb is within ±15% for English / Dutch
+ * across OpenAI/Anthropic/Gemini tokenisers and is good enough for a "fit this
+ * into the prompt without blowing the context window" decision.
+ *
+ * Use `fitIntoTokenBudget` when preparing long content (a notebook document,
+ * a concatenated source blob) to inject into a system prompt.
+ */
+const log = require('../../telemetry/log');
+
+const CHARS_PER_TOKEN = 4;
+
+// P3.5: Optional tiktoken upgrade, gated on `OPENAI_PROMPT_COUNTER=true`.
+// Only loads if the flag is set AND the package is installed — otherwise we
+// silently fall back to the 4-char heuristic.
+let _tiktokenEncoder = null;
+let _tiktokenAttempted = false;
+
+function maybeLoadTiktoken() {
+    if (_tiktokenAttempted) return _tiktokenEncoder;
+    _tiktokenAttempted = true;
+    if (process.env.OPENAI_PROMPT_COUNTER !== 'true') return null;
+    try {
+        // @ts-ignore optional dependency (OPENAI_PROMPT_COUNTER), usually not installed
+        const tiktoken = require('@dqbd/tiktoken');
+        // o200k_base is the tokeniser for everything from GPT-4o on (and for
+        // the whole GPT-5/5.6/6 line). cl100k_base is the GPT-4 one, and it
+        // under-counts modern text — which, for a budget check, means we think
+        // content fits when it does not.
+        _tiktokenEncoder = tiktoken.get_encoding('o200k_base');
+        log.info('[tokenBudget] tiktoken o200k_base loaded');
+    } catch (err) {
+        log.warn(`[tokenBudget] OPENAI_PROMPT_COUNTER=true but @dqbd/tiktoken not installed: ${err.message}`);
+    }
+    return _tiktokenEncoder;
+}
+
+/**
+ * Rough token estimate for a string.
+ * @param {string} text
+ * @returns {number} estimated tokens
+ */
+function estimateTokens(text) {
+    if (!text) return 0;
+    const enc = maybeLoadTiktoken();
+    if (enc) {
+        try { return enc.encode(text).length; } catch (_) { /* fall through */ }
+    }
+    return Math.ceil(text.length / CHARS_PER_TOKEN);
+}
+
+/**
+ * Rough char budget for a given token budget.
+ */
+function tokensToChars(tokens) {
+    return Math.max(0, Math.floor(tokens * CHARS_PER_TOKEN));
+}
+
+/**
+ * Trim `text` so it fits inside `maxTokens`. Preserves the head of the text
+ * (most relevant for documents where the opening paragraphs carry the topic)
+ * and appends a marker the caller can match on to append its own "truncated"
+ * notice to the prompt.
+ *
+ * Returns `{ text, truncated, originalTokens, keptTokens }`.
+ */
+function fitIntoTokenBudget(text, maxTokens, { marker = '…[truncated]…' } = {}) {
+    if (!text) return { text: '', truncated: false, originalTokens: 0, keptTokens: 0 };
+    const originalTokens = estimateTokens(text);
+    if (originalTokens <= maxTokens) {
+        return { text, truncated: false, originalTokens, keptTokens: originalTokens };
+    }
+    // Reserve a little budget for the marker itself so the final string still fits.
+    const markerTokens = estimateTokens(marker);
+    const keepTokens = Math.max(0, maxTokens - markerTokens);
+    const keptChars = tokensToChars(keepTokens);
+    const slice = text.slice(0, keptChars);
+    return {
+        text: slice + marker,
+        truncated: true,
+        originalTokens,
+        keptTokens: keepTokens,
+    };
+}
+
+module.exports = {
+    estimateTokens,
+    tokensToChars,
+    fitIntoTokenBudget,
+    CHARS_PER_TOKEN,
+};

@@ -1,0 +1,185 @@
+{
+  "id": "webpages-publish-and-public",
+  "icon": "🔓",
+  "estMinutes": 11,
+  "title": "Published safely, inside and outside",
+  "desc": "Audience, republish discipline, the public address and the per-column gate.",
+  "gate": { "feature": "webpages" },
+  "learningGoal": "After this lesson you can publish a page to colleagues, keep it up to date on purpose, and decide column by column what may ever leave it.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "publish-opens",
+      "icon": "🚪",
+      "title": "Publish does not publish",
+      "bodyMd": "Your page can reach two very different audiences: colleagues inside Bee Flow, and suppliers with no account at all. Different buttons control the two — and the first does not do what its name says.\n\nThe buyer at Van Dijk Groep has finished her page **Offertestatus**. The header pill reads **Publish** — and pressing it shares nothing.\n\nIt only opens a small panel (the audience capsule) headed **Publish to…**, where she picks one of:\n\n- **Personal** — *Only you can access*\n- **Entire organisation** — *All members can access*\n- **Or specific groups** — tick the groups\n\nOnly that choice shares the page. Widening asks first: **Share more widely?** → **Share**.\n\nOnce the page is live that pill reads **Republish**: *Freeze the current version for the people who can already see this page*."
+    },
+    {
+      "type": "quiz",
+      "id": "q-stale",
+      "icon": "⏰",
+      "question": "The page has been shared with Entire organisation for a week. The buyer restyled it this morning, but her colleagues still see last week's layout. What did she forget?",
+      "multi": false,
+      "choices": [
+        { "id": "a", "label": "Press Republish in the header", "correct": true },
+        { "id": "b", "label": "Wait for the save — the page had not been saved yet", "correct": false, "feedback": "The save chip says Saved just now on its own, and Republish flushes any pending edits before it freezes anything. Saving is not publishing." },
+        { "id": "c", "label": "Tick one more group in the capsule so the page refreshes", "correct": false, "feedback": "Changing the audience is not a publish. The capsule deliberately never re-pins the snapshot, so ticking a group hands your newest, unfinished work to nobody." },
+        { "id": "d", "label": "Ask her colleagues to reload — their browsers cached the old page", "correct": false, "feedback": "It is not a cache. Non-owners are served the pinned version on purpose, so a reload fetches the same frozen copy again." }
+      ],
+      "explanation": "Publishing freezes a snapshot and pins it. Readers keep getting that pinned version until the owner presses Republish, which freezes a new one for the audience the page already has."
+    },
+    {
+      "type": "slide",
+      "id": "pinned",
+      "icon": "📌",
+      "title": "Your colleagues read a frozen copy",
+      "bodyMd": "Everyone who is not the owner reads the **pinned version**, never the file you have open in the editor. The **Who can see it** panel says it out loud: *Inside Bee Flow, readers see the version you published — not what you are editing right now.*\n\nThat is what makes the page safe to keep editing. You can break the layout at 11:00 and nobody notices, because the organisation is still reading the snapshot from Tuesday.\n\nTwo consequences worth remembering:\n\n- **Republish flushes first.** Pending keystrokes are pushed to the server before the snapshot is frozen, so you never pin yesterday's page by accident.\n- **Viewers get a smaller editor.** The **Code** and **History** tabs are not rendered at all for a non-owner, because every save they tried would be refused."
+    },
+    {
+      "type": "sim",
+      "id": "order-ship",
+      "icon": "🧩",
+      "title": "Ship a change, in order",
+      "instruction": "The buyer wants the Offertestatus page live for the whole organisation, reading the table Offertes. Put her five moves in the order that actually works.",
+      "sim": {
+        "kind": "order",
+        "items": [
+          { "id": "draft", "label": "Brief the page in its AI Chat until the draft looks right and the header chip reads Saved" },
+          { "id": "bind", "label": "In Data & links, confirm the table Offertes is bound and shows a card with its row count" },
+          { "id": "audience", "label": "Press Publish, choose Entire organisation, confirm Share more widely?" },
+          { "id": "edit", "label": "Fix the wording her manager asked for, then press Republish" },
+          { "id": "verify", "label": "Open the page the way a colleague does and check what is actually shown" }
+        ],
+        "solution": ["draft", "bind", "audience", "edit", "verify"],
+        "feedback": "Draft and bind first, because the first publish freezes whatever exists at that moment. Choosing the audience is the publish. Later edits need their own Republish — and the only honest test is looking at what a reader is served, not at your own editor."
+      }
+    },
+    {
+      "type": "slide",
+      "id": "gate",
+      "icon": "🚧",
+      "title": "The public address, and the gate in front of it",
+      "bodyMd": "Suppliers of Van Dijk Groep have no Bee Flow account, so the page needs a public address too. You set that in **Data & links → Who can see it**, in the **Public** card.\n\nPress **Make public** and a dialog opens *before* anything goes out: **What may leave this page?** Per bound table you tick exactly the columns that may appear outside. The footer counts them — *2 columns go out.* — or warns *Nothing from your tables goes out.*\n\nThere is no \"everything\" option. An empty choice means nothing leaves, and a bound table you leave out of the answer is set to **zero** columns.\n\nOnly then does Bee Flow create the address, write the public copy, and point one at the other.\n\nOn a page that is already public, that same dialog comes back as **Change what goes out**."
+    },
+    {
+      "type": "quiz",
+      "id": "q-gate",
+      "icon": "🚧",
+      "question": "The page is bound to two tables: Offertes and Contactpersonen. In the gate the buyer ticks referentie and status on Offertes and presses Make public without touching Contactpersonen. What goes out?",
+      "multi": false,
+      "choices": [
+        { "id": "a", "label": "Only referentie and status — Contactpersonen goes out at zero columns", "correct": true },
+        { "id": "b", "label": "Referentie and status, plus all of Contactpersonen, because it was never narrowed", "correct": false, "feedback": "The opposite. A bound table that is missing from the answer is reset to zero columns — the gate never defaults to open." },
+        { "id": "c", "label": "Nothing, because one table was left unanswered and the whole choice is refused", "correct": false, "feedback": "The choice is saved as given; it is not refused. Offertes goes out exactly as ticked, and the unanswered table simply contributes nothing." },
+        { "id": "d", "label": "Referentie and status now, and Contactpersonen from the moment a visitor opens it", "correct": false, "feedback": "Nothing is fetched on demand for a visitor. The rows are rendered into the public copy by the server before anyone opens it, and only ticked columns are ever written in." }
+      ],
+      "explanation": "Silence in the gate means zero, never all. That is why adding a new bound table to a live public page is a moment to reopen Change what goes out."
+    },
+    {
+      "type": "exercise",
+      "id": "ex-gate",
+      "icon": "🎯",
+      "exerciseId": "ex-webpages-column-gate",
+      "title": "Your turn: fill in the gate",
+      "instruction": "The table Offertes at Van Dijk Groep has the columns referentie, leverancier, bedrag, status, contactpersoon and telefoon. The public page lets a supplier type a reference number and see how far the quote has got. Write which columns you would tick in \"What may leave this page?\", and for each one you leave off, say in a few words why it must not leave the building. Finish with what you would do about a second table that is bound to the page but that you did not mention.",
+      "placeholder": "e.g. Tick: … — the page cannot answer the supplier without it. Leave off: … — what it would tell an outsider. Leave off: … — … And the table I did not mention: …",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "slide",
+      "id": "modes",
+      "icon": "🔑",
+      "title": "Who may open the address",
+      "bodyMd": "The **Address** card shows **Live** or **Not serving**, the URL, and a **Copy** button. Under **All options** sits the rest:\n\n- **Who may open the address** — *Anyone with the address*, *Anyone with the address and the password* (at least 6 characters), or *Only these email addresses*, one per line\n- **Stops working on** — an expiry date\n- **Apply**\n\nThe panel warns what that costs: changing the password, the email list, or the access mode **replaces the link behind the address, so links people already have stop working. The address itself stays the same.**\n\nThe readable part of the address comes from the page name as it was the first time you made the page public, plus random characters so it cannot be guessed. Renaming the page does not move it."
+    },
+    {
+      "type": "quiz",
+      "id": "q-link",
+      "icon": "🔑",
+      "question": "The page was public as \"Anyone with the address\" and a supplier bookmarked it. The buyer now switches it to \"Anyone with the address and the password\" and presses Apply. What does that supplier find?",
+      "multi": false,
+      "choices": [
+        { "id": "a", "label": "The same bookmarked address still opens the page, and now asks for the password", "correct": true },
+        { "id": "b", "label": "The bookmark is dead; everyone must be sent a brand-new address", "correct": false, "feedback": "The address is reserved for the page and does not move — only the link behind it is replaced. What stops working is that old link itself, if you handed that out instead of the address." },
+        { "id": "c", "label": "Nothing changes until the buyer also presses Republish in the header", "correct": false, "feedback": "Republish is about the version your colleagues inside Bee Flow read. The public address is governed by the Public card and Apply, not by the header pill." },
+        { "id": "d", "label": "The supplier keeps the password-free page, because the snapshot was already frozen", "correct": false, "feedback": "A new link is created and the previous one is revoked, so the old frozen copy stops being served. Column narrowing is applied to every live link of the page for exactly this reason." }
+      ],
+      "explanation": "The address is stable; the link behind it is not. Tightening access creates a new link and revokes the previous one, so anyone who was sent that old link — rather than the address — needs the new one. Any separate links you created under **External link** are managed on their own, so check those too."
+    },
+    {
+      "type": "slide",
+      "id": "snapshot",
+      "icon": "🧊",
+      "title": "A public page is a snapshot, not your page running",
+      "bodyMd": "A visitor does not get your page running: they get a frozen copy the server writes out. And that copy runs on a different clock: it is rewritten **every time you save**, so the public address never waits for **Republish**.\n\n- A **vanilla** page — plain HTML and CSS — is written **without its script file, so no JavaScript runs**. Anything that needed it is shown visibly inert, with a notice.\n- A **bf-table** — the block that puts a datatable on the page — is read while the copy is written and rendered as plain rows: only ticked columns, and at most 100 rows.\n- **React + Material UI**, which every new page starts as, refuses a bf-table outright: *This table cannot be shown on a shared link.*\n\nSo test the page at its own address, not only in **Preview**."
+    },
+    {
+      "type": "action",
+      "id": "publish-it",
+      "icon": "🏗️",
+      "checkId": "webpage-published",
+      "title": "Publish one of your pages — we'll verify it",
+      "instruction": "Open one of your own webpages, press Publish in the header and choose Entire organisation (or a group you belong to), then confirm Share more widely?. The header should flip to Published. Come back and run the check.",
+      "launch": { "navigateTo": "studio/webpages", "label": "Open Webpages" }
+    },
+    {
+      "type": "slide",
+      "id": "history",
+      "icon": "🕰️",
+      "title": "Undo, roll back, take out",
+      "bodyMd": "**History** lists every snapshot with a source chip — **Manual**, **AI**, **Publish** or **Restore point** — a line delta, and a **Published: v{seq}** chip on the pinned row. **View** opens one read-only; **Restore** asks **Restore v{seq}?** and replaces your editor content. A published page keeps serving its pinned version until you press **Republish**.\n\nTwo honest limits the product states itself:\n\n- History covers **index.html**, **style.css**, **script.js** and the page database. Other files in a project are not part of a version and are not restored. **Download ZIP** takes everything out.\n- **Used by** and the delete guard say they are incomplete, so an empty list is not proof that nothing points at the page. Check for yourself before you delete."
+    },
+    {
+      "type": "slide",
+      "id": "now",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "- **Share on purpose.** Publish opens the capsule and names the audience; only **Republish** ships a later change to the colleagues who already see the page.\n- **Answer the gate for every bound table.** Silence means zero columns, so a table you forget shows nothing — and a table you add later needs a trip back to **Change what goes out**.\n- **Treat the public address as a key.** Pick the access mode and expiry deliberately, and remember that tightening it replaces the link behind the address.\n\nOne last habit: after any publish, open the page the way your reader will. The snapshot is not your editor."
+    }
+  ],
+  "rubrics": {
+    "ex-webpages-column-gate": {
+      "title": "Filling in the column gate",
+      "task": "Decide which columns of the table Offertes (referentie, leverancier, bedrag, status, contactpersoon, telefoon) may appear on a public supplier status page, justify each exclusion, and say what to do about a second bound table that was not mentioned in the gate.",
+      "criteria": [
+        "Ticks a minimal working set — referentie and status — and explains why those two are enough for the page to do its job",
+        "Excludes contactpersoon and telefoon explicitly as personal data that must not leave, not merely as 'not needed'",
+        "Excludes leverancier and/or bedrag on commercial or confidentiality grounds rather than by omission",
+        "States that a bound table left out of the answer is set to zero columns, so nothing from it goes out"
+      ],
+      "passScore": 70,
+      "guidance": "Do not pass an answer that ticks everything, that says 'tick all and hide the rest in the code' (the gate is the only boundary — the code is not), or that claims an unmentioned table keeps its previous columns or goes out in full. An answer that names the right columns but gives no reason for the exclusions is a borderline fail; reasons are the point. Accept British or American spelling and Dutch column names as given."
+    }
+  },
+  "practiceTopic": {
+    "title": "Publishing a webpage safely",
+    "summary": "How a webpage reaches colleagues and the outside world, and what the column gate and the address options control.",
+    "facts": [
+      "On a draft page the header pill Publish only opens the audience capsule headed 'Publish to…'; the audience choice is what shares the page.",
+      "Non-owners read the pinned published version, not the owner's live edits; the header action Republish freezes and re-pins the current content.",
+      "Changing the audience — for example ticking an extra group — does not re-pin the snapshot, so it never pushes new work out.",
+      "The column gate dialog 'What may leave this page?' has no 'everything' option: an empty choice means nothing leaves, and a bound table missing from the answer is set to zero columns.",
+      "Access modes for the public address are 'Anyone with the address', 'Anyone with the address and the password' (minimum 6 characters) and 'Only these email addresses'; there is also an expiry field 'Stops working on'.",
+      "Changing the password or the email list replaces the underlying link so links people already have stop working, while the address itself stays the same.",
+      "A public snapshot of a vanilla page is written without the script file, so no JavaScript runs; a bf-table on a shared React + Material UI page is refused with 'This table cannot be shown on a shared link.' The public copy is rewritten whenever the owner saves.",
+      "Version history covers index.html, style.css, script.js and the page database only; other files in a project are not versioned or restored, and Download ZIP takes everything out."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "webpage-published",
+      "existing": false,
+      "label": "Publish a webpage",
+      "hint": "In Studio → Webpages, open one of your pages, press Publish and choose Entire organisation or a group.",
+      "endpoints": [
+        { "method": "GET", "path": "/api/webpages", "returns": "{ webpages: [ { id, userId, name, isPublished, publishedVersionId, sharedGroups, slug, … } ] } — up to 50 rows the learner can access, newest first" }
+      ],
+      "criteria": [
+        { "id": "owned", "label": "You own at least one webpage", "hint": "Create one in Studio → Webpages if the list is empty.", "rule": "webpages[] contains at least one row whose userId equals the learner's user id", "endpoint": "/api/webpages", "expect": { "kind": "rows", "field": "webpages" } },
+        { "id": "published", "label": "One of your pages is published", "hint": "Press Publish in the editor header and pick an audience in 'Publish to…'.", "rule": "at least one of those owned rows has isPublished === true" },
+        { "id": "pinned", "label": "A version is really pinned for readers", "hint": "If this stays red, press Republish — the publish could not freeze a snapshot.", "rule": "that same owned, published row has a non-null publishedVersionId" }
+      ]
+    }
+  ]
+}

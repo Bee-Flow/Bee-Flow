@@ -1,0 +1,367 @@
+# ══════════════════════════════════════════════════════════════════
+# BeeFlow — Build-From-Source Docker Compose (default file)
+# ══════════════════════════════════════════════════════════════════
+#
+# Builds the server, agent-hub, guard-service and reranker images from this
+# checkout and runs them next to PostgreSQL (pgvector), RustFS and Redis.
+#
+#   cp .env.example .env       # sets CLIENT_PORT=5176, SERVER_PUBLIC_HOST, …
+#   docker compose up -d
+#
+# NOTE: agent-hub is a static build — VITE_API_URL is baked in at image build
+# time from SERVER_PROTOCOL/SERVER_PUBLIC_HOST, so set those in .env BEFORE
+# building. To self-host from prebuilt public images instead (no source build),
+# use ./selfhost.sh / docker-compose.from-registry.yml.
+# ══════════════════════════════════════════════════════════════════
+
+services:
+  # Bee Flow PostgreSQL Database
+  postgres:
+    image: pgvector/pgvector:pg15
+    container_name: beeflow-postgres
+    # ── Performance tuning for ~50 active users ───────────────────────────────
+    # These flags override postgresql.conf defaults at container start.
+    # Adjust shared_buffers / work_mem if the host has less than 4 GB RAM:
+    #   - RAM < 4 GB: use shared_buffers=256MB, work_mem=8MB
+    #   - RAM >= 4 GB: use shared_buffers=512MB, work_mem=16MB (defaults below)
+    command: >
+      postgres
+      -c shared_buffers=512MB
+      -c work_mem=16MB
+      -c max_connections=100
+      -c effective_cache_size=1GB
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=16MB
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
+      -c log_min_duration_statement=1000
+    environment:
+      - POSTGRES_USER=${DB_USER:-beeflow}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:?Set DB_PASSWORD in .env}
+      - POSTGRES_DB=${DB_NAME:-beeflow_core}
+    volumes:
+      - beeflow-pgdata:/var/lib/postgresql/data
+      - ./docker/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
+    networks:
+      - beeflow-network
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER:-beeflow} -d ${DB_NAME:-beeflow_tasks}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  # RustFS — S3-compatible Object Storage
+  rustfs:
+    image: rustfs/rustfs:latest
+    container_name: beeflow-rustfs
+    environment:
+      - RUSTFS_ROOT_USER=${RUSTFS_ACCESS_KEY:-beeflow}
+      - RUSTFS_ROOT_PASSWORD=${RUSTFS_SECRET_KEY:?Set RUSTFS_SECRET_KEY in .env}
+    volumes:
+      - rustfs-data:/data
+      - rustfs-logs:/logs
+    networks:
+      - beeflow-network
+    restart: unless-stopped
+
+  # Bee Flow Backend Server
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: beeflow-server
+    command: npm start
+    # Loopback-only by default — see docker-compose.from-registry.yml for the
+    # full rationale, including why this is surface reduction rather than
+    # control enforcement (the rate limits live in Express, not in nginx).
+    # On 0.0.0.0 the API answers on every interface, so its routes are reachable
+    # without passing through the agent-hub nginx and its security headers.
+    # agent-hub reaches the API over the compose network, so nothing in this
+    # stack needs the mapping.
+    #
+    # This file builds agent-hub with VITE_API_URL pointing at
+    # SERVER_PUBLIC_HOST, so a deployment where browsers call the API host
+    # directly must set SERVER_BIND_HOST=0.0.0.0.
+    ports:
+      - "${SERVER_BIND_HOST:-127.0.0.1}:${SERVER_PORT:-3001}:${SERVER_PORT:-3001}"
+    environment:
+      - NODE_ENV=production
+      - PORT=${SERVER_PORT:-3001}
+      - SESSION_SECRET=${SESSION_SECRET:?Set SESSION_SECRET in .env (openssl rand -hex 32)}
+      - CORS_ORIGIN=${CLIENT_PROTOCOL:-https}://${CLIENT_PUBLIC_HOST:-beeflow.nl},${SERVER_PROTOCOL:-https}://${SERVER_PUBLIC_HOST:-server.beeflow.nl}
+      # OAuth: server must know its own public URL and the client URL for redirects
+      - SERVER_PUBLIC_HOST=${SERVER_PUBLIC_HOST:-server.beeflow.nl}
+      - SERVER_PROTOCOL=${SERVER_PROTOCOL:-https}
+      - CLIENT_PUBLIC_HOST=${CLIENT_PUBLIC_HOST:-beeflow.nl}
+      # Security keys (YubiKey / FIDO2): optional parent domain for the WebAuthn
+      # relying-party ID. Empty = the page's host, or CLIENT_PUBLIC_HOST when the
+      # page is on a subdomain of it. See auth/securityKeys/relyingParty.js.
+      - WEBAUTHN_RP_ID=${WEBAUTHN_RP_ID:-}
+      - CLIENT_PROTOCOL=${CLIENT_PROTOCOL:-https}
+      # Published in /.well-known/security.txt. Empty is valid: the route derives
+      # security@<CLIENT_PUBLIC_HOST domain> when that host has a routable mail
+      # domain, and 404s rather than guessing when it does not.
+      - SECURITY_TXT_CONTACT=${SECURITY_TXT_CONTACT:-}
+      # Cookie settings for cross-domain (frontend ↔ backend)
+      - COOKIE_SECURE=${COOKIE_SECURE:-true}
+      - COOKIE_DOMAIN=${COOKIE_DOMAIN:-.beeflow.nl}
+      - COOKIE_SAMESITE=${COOKIE_SAMESITE:-none}
+      # Demo mode - set to 'false' to disable demo login
+      - DEMO_MODE_ENABLED=${DEMO_MODE_ENABLED:-true}
+      - DEPLOYMENT_MODE=${DEPLOYMENT_MODE:-cloud}
+      # Nextcloud integration (optional)
+      - NEXTCLOUD_URL=${NEXTCLOUD_URL:-}
+      - NEXTCLOUD_CLIENT_ID=${NEXTCLOUD_CLIENT_ID:-}
+      - NEXTCLOUD_CLIENT_SECRET=${NEXTCLOUD_CLIENT_SECRET:-}
+      # AI/LLM configuration (optional)
+      - LLM_API_URL=${LLM_API_URL:-}
+      - LLM_API_KEY=${LLM_API_KEY:-}
+      # PostgreSQL database — connects to beeflow-postgres container
+      - CORE_DATABASE_URL=postgresql://${DB_USER:-beeflow}:${DB_PASSWORD:?Set DB_PASSWORD in .env}@postgres:5432/${DB_NAME:-beeflow_core}
+      - DATABASE_URL=postgresql://${DB_USER:-beeflow}:${DB_PASSWORD:?Set DB_PASSWORD in .env}@postgres:5432/beeflow_tasks
+      - MONITORING_DATABASE_URL=postgresql://${DB_USER:-beeflow}:${DB_PASSWORD:?Set DB_PASSWORD in .env}@postgres:5432/monitoring_db
+      # Encryption keys
+      - MASTER_ENCRYPTION_KEY=${MASTER_ENCRYPTION_KEY}
+      - OPAQUE_SERVER_SETUP=${OPAQUE_SERVER_SETUP}
+      # Feature flags
+      - ENABLE_TASKS=${ENABLE_TASKS:-true}
+      - ENABLE_MONITORING=${ENABLE_MONITORING:-true}
+      # Guard service (CPU PII detection). PII_SERVICE_URL is the variable the
+      # server actually reads (core/privacy/piiDetection/guardEndpoint.js); a real default is
+      # safe here because guard-service is unconditional in this file — unlike
+      # docker-compose.from-registry.yml, where it sits behind `profiles: [guard]`
+      # and an unreachable URL would fail CLOSED on a core-only install.
+      - PII_SERVICE_URL=${PII_SERVICE_URL:-http://guard-service:8100}
+      - PII_SERVICE_API_KEY=${PII_SERVICE_API_KEY:-}
+      # Topic classifier for the "is about" rule. Empty by default: the
+      # classify-service sits behind `--profile classify`, and a URL on a run
+      # without it would read as "installed" while every call fails. Set
+      # CLASSIFY_SERVICE_URL=http://classify-service:8300 with that profile.
+      - CLASSIFY_SERVICE_URL=${CLASSIFY_SERVICE_URL:-}
+      - CLASSIFY_SERVICE_API_KEY=${CLASSIFY_SERVICE_API_KEY:-}
+      # Search service (knowledge bases)
+      - SEARCH_SERVICE_URL=http://search-api:8000
+      # Website-analytics sidecar — server→Umami API base. Empty by default so
+      # the operator-set URL (Admin ▸ Website Analytics ▸ Settings) drives both
+      # server calls and the public script. ONLY set this to the internal
+      # hostname (http://umami:3000) when running the bundled 'analytics'
+      # profile and the public stats domain isn't routable from inside the
+      # network — then it overrides the configured URL for server→API calls only.
+      - UMAMI_URL=${UMAMI_URL:-}
+      # Redis cache — uses search-redis on db 1 (search-api uses db 0)
+      - REDIS_URL=redis://search-redis:6379/1
+      # RustFS object storage
+      - RUSTFS_ENDPOINT=http://rustfs:9000
+      - RUSTFS_ACCESS_KEY=${RUSTFS_ACCESS_KEY:-beeflow}
+      - RUSTFS_SECRET_KEY=${RUSTFS_SECRET_KEY:?Set RUSTFS_SECRET_KEY in .env}
+      # Local CPU reranker for KB search quality (optional)
+      - RERANKER_URL=${RERANKER_URL:-}
+      # Shared headless-browser container (browse_web, browser agent, PDF export,
+      # thumbnails, SPA ingestion).
+      - PLAYWRIGHT_RUNNER_MEMORY_MB=${PLAYWRIGHT_RUNNER_MEMORY_MB:-1024}
+      - PLAYWRIGHT_RUNNER_CPUS=${PLAYWRIGHT_RUNNER_CPUS:-1.0}
+    volumes:
+      # Persist uploaded files and generated content
+      - beeflow-data:/app/data
+      # Persist components - mount to /components to match code expectation (path.resolve(__dirname, '../components'))
+      # In Docker, server is in /app, so ../components is /components
+      - ./components:/components
+      # Persist workflows - workflows are stored in root/workflows by default in index.js
+      - ./workflows:/workflows
+      # Docker socket — allows server to spawn terminal-agent + browser containers on the host
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - beeflow-network
+      - search-network
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT:-3001}/api/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Agent Hub Frontend
+  agent-hub:
+    build:
+      context: ./agent-hub
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=${SERVER_PROTOCOL:-https}://${SERVER_PUBLIC_HOST:-server.beeflow.nl}
+    container_name: chat2
+    ports:
+      - "${CLIENT_PORT:-8080}:80"
+    environment:
+      - SERVER_HOST=${INTERNAL_SERVER_HOST:-server}
+      - SERVER_PORT=${SERVER_PORT:-3001}
+      # Content-Security-Policy source for the analytics tracker script —
+      # required for ANY external analytics origin, https included (script-src
+      # no longer carries a blanket `https:`). Empty by default.
+      # e.g. ANALYTICS_ORIGIN=https://stats.example.com
+      - ANALYTICS_ORIGIN=${ANALYTICS_ORIGIN:-}
+      # Only substitute these specific variables in the nginx config template —
+      # this keeps envsubst away from Nginx's own $uri, $host, etc. EVERY
+      # variable the template uses must be listed, or the literal ${VAR} lands
+      # in default.conf and nginx refuses to start. Kept as documentation and
+      # for older images — the image now derives this list from the template
+      # itself, so a stack file that predates a new variable no longer
+      # crash-loops.
+      - NGINX_ENVSUBST_FILTER=SERVER_HOST|SERVER_PORT|ANALYTICS_ORIGIN|NGINX_RESOLVER
+    depends_on:
+      - server
+    networks:
+      - beeflow-network
+    restart: unless-stopped
+
+  # Guard Service — CPU PII detection (GLiNER multi PII v1, Apache 2.0)
+  guard-service:
+    build:
+      context: ./guard-service
+      dockerfile: Dockerfile
+    container_name: beeflow-guard
+    ports:
+      - "127.0.0.1:8100:8100"
+    environment:
+      - GUARD_REDIS_URL=redis://guard-redis:6379/1
+      - GUARD_PII_ENABLED=${GUARD_PII_ENABLED:-true}
+      - GUARD_PII_MODEL=${GUARD_PII_MODEL:-E3-JSI/gliner-multi-pii-domains-v1}
+      - GUARD_LOG_LEVEL=${GUARD_LOG_LEVEL:-INFO}
+      - SERVICES_API_KEY=${SERVICES_API_KEY:-}
+    depends_on:
+      guard-redis:
+        condition: service_healthy
+    networks:
+      - beeflow-network
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8100/health')" ]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+
+  # Redis for Guard Service decision caching
+  guard-redis:
+    image: redis:7-alpine
+    container_name: beeflow-guard-redis
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - guard-redis-data:/data
+    networks:
+      - beeflow-network
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Umami — self-hosted, cookieless website analytics for the Website CMS
+  # (opt-in). Reuses the shared Postgres (its own `umami` database, created by
+  # docker/init-db.sh). Enable with:
+  #   docker compose --profile analytics up -d
+  # Then in Admin ▸ Website Analytics ▸ Settings, set the public URL + admin
+  # credentials. The server reaches it internally via UMAMI_URL (set on the
+  # server service); the browser loads /script.js from the public URL you
+  # configure in the admin UI.
+  # NOTE: on an EXISTING postgres volume the init script won't re-run — create
+  # the database once with: docker compose exec postgres \
+  #   psql -U $DB_USER -d $DB_NAME -c 'CREATE DATABASE umami;'
+  umami:
+    image: ghcr.io/umami-software/umami:postgresql-latest
+    container_name: beeflow-umami
+    profiles: [analytics]
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      - DATABASE_TYPE=postgresql
+      - DATABASE_URL=postgresql://${DB_USER:-beeflow}:${DB_PASSWORD:?Set DB_PASSWORD in .env}@postgres:5432/umami
+      - APP_SECRET=${UMAMI_APP_SECRET:?Set UMAMI_APP_SECRET in .env to enable analytics}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - beeflow-network
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f http://localhost:3000/api/heartbeat || exit 1" ]
+      interval: 30s
+      timeout: 10s
+      start_period: 40s
+      retries: 3
+
+  # Reranker — lightweight CPU cross-encoder for KB search reranking (optional)
+  reranker:
+    build:
+      context: ./reranker
+      dockerfile: Dockerfile
+    container_name: beeflow-reranker
+    restart: unless-stopped
+    networks:
+      - beeflow-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+
+  # Classify service — zero-shot topic classifier for the Condition node's
+  # "is about" rule (knowledgator/gliclass-multilang-mini, Apache-2.0). CPU
+  # only. Opt-in: `--profile classify`. NOT built from this checkout: the image
+  # (model baked in) is built only by CI (build-push-ghcr.yml), so this pulls
+  # it. Wire the server with CLASSIFY_SERVICE_URL=http://classify-service:8300.
+  classify-service:
+    image: ${REGISTRY:-ghcr.io/bee-flow}/classify:${TAG:-latest}
+    container_name: beeflow-classify
+    profiles: [ "classify" ]
+    ports:
+      - "127.0.0.1:8300:8300"
+    environment:
+      - CLASSIFY_LABEL_MODE=${CLASSIFY_LABEL_MODE:-joint}
+      - CLASSIFY_LOG_LEVEL=${CLASSIFY_LOG_LEVEL:-INFO}
+      - CLASSIFY_API_KEY=${CLASSIFY_API_KEY:-}
+      - SERVICES_API_KEY=${SERVICES_API_KEY:-}
+    cpus: ${CLASSIFY_CPUS:-3}
+    mem_limit: ${CLASSIFY_MEM:-3g}
+    read_only: true
+    tmpfs:
+      - /tmp
+    networks:
+      - beeflow-network
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8300/health')" ]
+      interval: 30s
+      timeout: 10s
+      start_period: 120s
+      retries: 3
+
+volumes:
+  beeflow-data:
+    name: beeflow-data
+    # Stores uploaded files, generated images, etc.
+  beeflow-pgdata:
+    name: beeflow-pgdata
+    # PostgreSQL data persistence
+  rustfs-data:
+    name: rustfs-data
+    # RustFS object storage data persistence
+  rustfs-logs:
+    name: rustfs-logs
+    # RustFS logs
+  guard-redis-data:
+    name: guard-redis-data
+    # Guard service Redis decision cache
+
+networks:
+  beeflow-network:
+    name: beeflow-network
+  search-network:
+    name: search-network
+    external: true

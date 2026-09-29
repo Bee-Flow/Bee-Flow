@@ -1,0 +1,311 @@
+{
+  "id": "apps-actions-and-routines",
+  "icon": "⚡",
+  "estMinutes": 11,
+  "title": "Make the buttons do real work",
+  "desc": "Action kinds, sequences, and wiring a button to a routine with mapped inputs.",
+  "gate": {
+    "permission": "manage_apps",
+    "feature": "app_studio"
+  },
+  "learningGoal": "After this lesson you can wire a control to a routine, map what it sends, and test it with the values standing on screen.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "start",
+      "icon": "🔘",
+      "title": "A button is a promise you have not kept yet",
+      "bodyMd": "Van Dijk Groep has an app called **Inkoopaanvragen**. Its *Nieuwe aanvraag* screen looks finished: a **form** component, a heading, and a button that says *Aanvraag indienen*. Click it and nothing happens.\n\nOne word, two objects — worth settling now. A **form component** is one of the building blocks you drop on an app screen, and a screen of a published app can be opened by someone without an account at an address of the form `/p/` plus a long token. A **Form** in Studio → Forms is a different object altogether (a routine with questions, at its own `/f/` link) and that one is for signed-in colleagues only. This lesson is about app screens throughout.\n\nSelect the button on the canvas and open the inspector's **Behaviour** tab. Under **When clicked** four cards are offered — **Run routine**, **Go to screen**, **Add a row**, **Show a message** — and a disclosure called **All options** holds the full list of twelve kinds, **Several steps (a flow)** among them.\n\nSo an action is either *one kind* with its own settings, or a **sequence**: a list of steps that run in order when the control is used."
+    },
+    {
+      "type": "quiz",
+      "id": "q-form-word",
+      "icon": "❓",
+      "question": "Van Dijk Groep wants a supplier — no Bee Flow account, outside the organisation — to type their own details in. Which route actually works?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Build the intake as a screen of an app, publish the app, then mint the screen's public /p/ address. A published app screen is the surface that opens for someone without an account.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Build it in Studio → Forms and set the form's audience to \"Everyone in the organisation\".",
+          "correct": false,
+          "feedback": "That widens it to every signed-in colleague with the link — never anyone outside the organisation. The supplier would be asked to sign in and get no further."
+        },
+        {
+          "id": "c",
+          "label": "Build it in Studio → Forms and mail the supplier the /f/ link, since that address is the public one.",
+          "correct": false,
+          "feedback": "The /f/ link leads to the signed-in form page. A Form is an internal object today, whatever its link looks like; only an app screen has a public surface."
+        },
+        {
+          "id": "d",
+          "label": "Any app screen is reachable the moment you mint a /p/ link for it, published or not.",
+          "correct": false,
+          "feedback": "Two preconditions first: the app must be published (visitors always run the frozen published copy), and the reserved role public — denied by default on every table — must be granted on the table the screen writes to, or the submission writes nothing."
+        }
+      ],
+      "explanation": "Two different objects share the word: a form component on an app screen, which can be exposed publicly at /p/<token>, and a Form in Studio → Forms, which is a routine filled in by signed-in colleagues only. When a lesson says a form is never filled in by an outsider, it means the second one."
+    },
+    {
+      "type": "slide",
+      "id": "where-it-runs",
+      "icon": "🧭",
+      "title": "Half the steps never leave the browser",
+      "bodyMd": "Steps are split in two, and the split is not cosmetic.\n\n**Client steps** run in the visitor's browser: Go to screen, Show a message, Open a web page, Open a dialog and Close a dialog, Clear a form, Download a file, Ask first, Set a variable, Reload the data — plus the flow control (If…, For each, Depending on…).\n\n**Data-mutating steps** are re-resolved and executed on the API side: Run a routine, Add / Change / Delete a row, Ask for approval, the four AI steps, Send an email, Make a file, File the attachments, Query a dataset.\n\nWhy: those steps write rows, spend model budget or send mail under a real mailbox credential, and they run **as the app's owner**. The browser is never trusted with that."
+    },
+    {
+      "type": "sim",
+      "id": "match-kinds",
+      "icon": "🧩",
+      "title": "Five controls, five choices",
+      "instruction": "Pair each control in the Inkoopaanvragen app with the action kind it should get. Read the consequence, not the wording of the label.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "p1",
+            "left": "Aanvraag indienen — hands the request to a routine that checks the supplier and files the purchase order",
+            "right": "Run routine",
+            "note": "The work is a flow with steps, per-step retries you can switch on, and a run log. That belongs in a routine, not in the app."
+          },
+          {
+            "id": "p2",
+            "left": "Volgende — opens the overview screen of the same app, carrying the request number along",
+            "right": "Go to screen",
+            "note": "Navigation inside the app, with parameters. A client step: nothing is written."
+          },
+          {
+            "id": "p3",
+            "left": "Bewaar als concept — writes a new row into the app's own aanvragen table",
+            "right": "Add a row",
+            "note": "A fresh Add a row points at no table on purpose, so you choose the table yourself."
+          },
+          {
+            "id": "p4",
+            "left": "The short confirmation the buyer reads after saving, on the same screen",
+            "right": "Show a message",
+            "note": "A toast with a tone: info, success, warning or danger."
+          },
+          {
+            "id": "p5",
+            "left": "Definitief indienen — must write the row, then run the routine, then return to the overview, in that order",
+            "right": "Several steps (a flow)",
+            "note": "Three things in one click is a sequence. Under All options, because most buttons do not need it."
+          }
+        ]
+      }
+    },
+    {
+      "type": "slide",
+      "id": "pick-routine",
+      "icon": "🔗",
+      "title": "Choose a routine, or have one made for you",
+      "bodyMd": "Pick **Run routine** and the *Which routine* tile reads **Choose a routine…**. It opens a search over *your own* routines. Routines whose trigger is **From a Studio App** sort first, badged **Built for apps**, because that trigger declares typed inputs; routines an agent can call follow, badged **Best for apps**.\n\nAbove the list sits **Make a routine for this app**: an empty routine that already carries the Studio App trigger, seeded from the form component the button sits in — *“It starts with 4 inputs matching this form.”* — and wired to the button straight away. The tile's **Open** link takes you to it when you are ready to add steps. Only the app's owner may make one, because the button runs it with the owner's permissions."
+    },
+    {
+      "type": "slide",
+      "id": "mapping",
+      "icon": "🎚️",
+      "title": "What gets sent, and what silently does not",
+      "bodyMd": "The inspector shows **What gets sent** as a read-only table; the editors sit one click down, under **Change what gets sent**. Each input gets one of two mappings:\n\n- **field** — take the value from a named form field on this screen\n- **static** — a fixed value you type once, the same on every run\n\nLeave the mapping out and the behaviour depends on the routine. With a **Studio App** trigger, each declared input takes the form field of the *same name*, and form fields that are not declared inputs are never forwarded. An older routine without that trigger gets every plain form value instead."
+    },
+    {
+      "type": "quiz",
+      "id": "q-colleague",
+      "icon": "❓",
+      "question": "Marieke wires the button to a routine her colleague Ruben built. The draft saves without complaint, but Publish is refused: \"references automation … which the owner does not have\". Why?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "A Run routine action executes as the app's owner, so it can only call routines that owner owns. Publish enforces that; a draft save lets a half-wired app through so you can keep editing.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Ruben has to publish his routine to the organisation first, and then any app may call it.",
+          "correct": false,
+          "feedback": "Routines are not published to an organisation the way apps are, and sharing would not transfer ownership. The check is simply whether the routine belongs to the person who owns the app."
+        },
+        {
+          "id": "c",
+          "label": "Publish refuses any routine that uses the Studio App trigger unless the app is published first.",
+          "correct": false,
+          "feedback": "Backwards — the Studio App trigger is the kind built for this job. The refusal names ownership, not the trigger."
+        },
+        {
+          "id": "d",
+          "label": "It is the first publish of this app, and the first publish validates more strictly than later ones.",
+          "correct": false,
+          "feedback": "Every publish validates the whole draft the same way. Nothing changes for your readers when it is refused — they keep the version you published last."
+        }
+      ],
+      "explanation": "Marieke needs her own copy of the routine, or Ruben has to hand ownership over. The same publish check has a second half: a routine that is yours but switched off is refused too, with the hint \"Activate the automation, then publish the app.\""
+    },
+    {
+      "type": "slide",
+      "id": "typed-inputs",
+      "icon": "🗂️",
+      "title": "Types decide what can travel",
+      "bodyMd": "A **Studio App** trigger does not only name its inputs, it types them, and the type decides what you may point an input at.\n\nAn input typed as a **file** only takes a field mapping onto a file-upload field on the form. The picker hides every other field, because a value you type in by hand can never become a file. Point it at an upload that accepts several files and the inspector warns that only the first one is sent.\n\nInputs the routine marks as required stop the run when they arrive empty, with one error naming what was missing. So two things are worth a second look before you click: an input with no mapping at all, and a file input on a form that has no upload field yet."
+    },
+    {
+      "type": "exercise",
+      "id": "ex-map",
+      "icon": "🎯",
+      "exerciseId": "ex-apps-actions-mapping",
+      "title": "Your turn: wire the inputs",
+      "instruction": "The Nieuwe aanvraag screen of Van Dijk Groep's app carries a form component with four fields: leverancier (text), bedrag (number), spoed (checkbox), offerte (file upload). The routine PO klaarzetten has a Studio App trigger declaring five inputs: supplier (text, required), amount (number, required), urgent (boolean), quote (file) and source (text). Write the wiring: for each of the five inputs say whether it is a field mapping or a static value and which form field it takes, and name the one input that needs the Studio App trigger to travel at all.",
+      "placeholder": "e.g. supplier — field mapping, takes leverancier. amount — field mapping, takes bedrag (required, so the run stops if it is empty). …",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "quiz",
+      "id": "q-caps",
+      "icon": "❓",
+      "question": "The Verwerk regels button is a flow with a For each step whose body holds five steps. Which statement about the limits is right?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "The five steps inside the For each count towards the 60 steps allowed in that one sequence, nesting may go six levels deep, and a For each runs at most 200 iterations.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Only top-level steps count towards the 60; steps inside a For each or an If… are free.",
+          "correct": false,
+          "feedback": "The step count is recursive — everything inside a For each, an If… or a Depending on… branch counts. That is what stops one clever button from becoming an unreadable program."
+        },
+        {
+          "id": "c",
+          "label": "Sixty is the ceiling for every action in the app added together, so a long flow leaves no room for other buttons.",
+          "correct": false,
+          "feedback": "Two separate ceilings that happen to share a number: 60 actions per app, and 60 steps inside one sequence."
+        },
+        {
+          "id": "d",
+          "label": "A For each runs once for every item in the list, however long that list is.",
+          "correct": false,
+          "feedback": "There is a hard ceiling of 200 iterations, whatever you put in Max iterations. A list longer than that is work for a routine, which is built for volume."
+        }
+      ],
+      "explanation": "A control that needs more than 60 steps or more than six levels of nesting is telling you the logic belongs in a routine. Wire the button to that routine instead."
+    },
+    {
+      "type": "slide",
+      "id": "echo",
+      "icon": "📣",
+      "title": "What the person clicking actually sees",
+      "bodyMd": "Under **What comes back** the inspector spells out three moments:\n\n- **While it runs** — *the control shows it is busy*. You do not author this; the runtime does it.\n- **Done** — whatever you set under On success: a message, a jump to another screen, or *nothing extra — the routine decides*.\n- **Failed** — *the error is shown*, with or without an On error effect. A failed run always says so.\n\nBelow it sits **Test with what is on screen**: it runs the routine for real with the values standing in the form right now and opens the run in the builder. It asks first — *\"This is the real run, not a rehearsal — anything it sends or writes actually happens.\"* File inputs are skipped in a test, so the routine runs without them."
+    },
+    {
+      "type": "action",
+      "id": "do-wire",
+      "icon": "🏗️",
+      "checkId": "app-has-action",
+      "title": "Build it — we will verify it",
+      "instruction": "Open one of your apps in Studio, select a button and set When clicked to Run routine. Either choose a routine of your own or press Make a routine for this app, map at least one input under Change what gets sent, then press Test with what is on screen and read the run.",
+      "launch": {
+        "navigateTo": "studio/apps",
+        "label": "Open Apps"
+      }
+    },
+    {
+      "type": "quiz",
+      "id": "q-empty",
+      "icon": "❓",
+      "question": "The test run finishes green but the routine clearly received nothing from the form. Where do you look first?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "At What gets sent: a field mapping pointing at a form field name that does not exist on this screen sends nothing for that input, and an optional input is then simply left out.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "At the routine's activation state — an inactive routine drops its inputs.",
+          "correct": false,
+          "feedback": "Active or inactive decides whether the routine fires on its own trigger, and whether the app may be published with it. The owner's test run works either way and it never touches the payload. This run happened; what travelled was the problem."
+        },
+        {
+          "id": "c",
+          "label": "At the app's role settings — a role without table access strips the values on the way out.",
+          "correct": false,
+          "feedback": "Roles and row rules govern which rows a person may read and write. They do not edit what a button sends to a routine."
+        },
+        {
+          "id": "d",
+          "label": "At the publish audience — an unpublished draft sends empty inputs while you are still editing.",
+          "correct": false,
+          "feedback": "The owner runs the draft exactly as the readers will run the published copy. Publishing changes who may open the app, not what travels."
+        }
+      ],
+      "explanation": "The test result names what did not travel — *“bedrag — the form has no field by that name, so nothing was sent for it.”* Before the click the inspector already warns about what can never travel from this canvas (a file, or an input with no mapping row at all), and the drift strip lists inputs the routine asks for that nothing is mapped to."
+    },
+    {
+      "type": "slide",
+      "id": "recap",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "- Pick the right shape for a control: one action kind for one job, a sequence when a single click has to do several things in order, and a routine when the work has real steps behind it.\n- Wire **Run routine** to a routine you own and map its inputs as **field** or **static** — knowing that a missing mapping means *the input of the same name* on a Studio App trigger, and everything on an older one.\n- Prove it before anyone else does, with **Test with what is on screen**, and read the three lines under What comes back so the person clicking is never left guessing."
+    }
+  ],
+  "rubrics": {
+    "ex-apps-actions-mapping": {
+      "title": "Wiring five inputs of a purchase-request routine",
+      "task": "Map five declared routine inputs (supplier, amount, urgent, quote, source) onto the four fields of a form component on an app screen, choosing field or static for each and identifying which input depends on the Studio App trigger.",
+      "criteria": [
+        "Maps supplier, amount and urgent as field mappings onto leverancier, bedrag and spoed",
+        "Chooses static for source, because it is a fixed value the form does not hold",
+        "Identifies quote as the file input and says it can only travel because the Studio App trigger declares it as a file",
+        "Shows awareness that supplier and amount are required, so an empty one stops the run with an error naming the missing inputs"
+      ],
+      "passScore": 70,
+      "guidance": "Do not pass an answer that maps every input as a field without noticing that source has no matching form field, nor one that claims a file can reach a routine that has no Studio App trigger declaring a file input. A file input IS wired as an ordinary field mapping onto the upload field — that part is correct and should not be marked wrong. A learner may mention that a file is skipped by Test with what is on screen — that is a bonus, not a requirement. Wrong direction of mapping (form field named as the input) is acceptable if the pairing itself is right."
+    }
+  },
+  "practiceTopic": {
+    "title": "App actions and routines",
+    "summary": "How a control in an app is wired to do work, and what travels with it.",
+    "facts": [
+      "A form component on an app screen is not a Form in Studio → Forms: a published app screen can be opened at /p/<token> by someone without an account, while a Studio Form is a routine filled in by signed-in members of the organisation only.",
+      "Under When clicked four kinds are offered as cards — Run routine, Go to screen, Add a row, Show a message — and the All options disclosure lists all twelve kinds, Several steps (a flow) among them.",
+      "Client steps such as Go to screen and Show a message run in the browser; data-mutating steps such as Run a routine, Add a row and Send an email are executed on the API side, as the app's owner.",
+      "An input mapping is either field (a value from a named form field) or static (a fixed value); with no mapping, a Studio App trigger takes the form field of the same name.",
+      "Make a routine for this app creates a routine that already carries a Studio App trigger, seeded with inputs matching the form the button sits in.",
+      "Publish refuses an app whose action points at a routine the app owner does not own or that is not active; draft saves still go through.",
+      "One action sequence may hold 60 steps counted recursively, nest six levels deep, and a For each step tops out at 200 iterations; an app may hold 60 actions in total.",
+      "Test with what is on screen makes a real run with the values standing in the form and opens it in the routine builder; file inputs are skipped in that test."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "app-has-action",
+      "existing": false,
+      "label": "Wire a control to a routine",
+      "hint": "In Studio, open an app you own, select a button, set When clicked to Run routine and pick a routine.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/studio-apps/mine",
+          "returns": "{ apps: [ { id, userId, name, … } ] } — only apps the caller owns"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "has-action",
+          "label": "An app you own has at least one wired action",
+          "hint": "Select a control on the canvas and choose what it should do under When clicked.",
+          "rule": "for some app in /api/studio-apps/mine, GET /api/studio-apps/:id returns definition.actions with at least 1 entry"
+        }
+      ]
+    }
+  ]
+}

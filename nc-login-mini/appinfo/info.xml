@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<info xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="https://apps.nextcloud.com/schema/apps/info.xsd">
+    <id>nc_login_mini</id>
+    <name>NC Login Mini</name>
+    <summary>Minimal ExApp — proves Nextcloud auto-login works.</summary>
+    <description><![CDATA[
+Single-page ExApp. Opens to "Hi <your Nextcloud name>" with no login screen,
+no extra clicks. Used to verify NC's AppAPI auto-authentication in isolation
+from the larger Bee Flow stack.
+        ]]></description>
+    <version>0.1.0</version>
+    <licence>AGPL-3.0-or-later</licence>
+    <author mail="tomkooy@beeflow.nl">Bee Flow</author>
+    <namespace>NcLoginMini</namespace>
+    <category>tools</category>
+    <dependencies>
+        <nextcloud min-version="30" max-version="34"/>
+    </dependencies>
+    <scopes>
+        <required>
+            <value>USER_INFO</value>
+        </required>
+    </scopes>
+    <external-app>
+        <docker-install>
+            <registry>ghcr.io</registry>
+            <image>bee-flow/nc-login-mini</image>
+            <image-tag>latest</image-tag>
+        </docker-install>
+        <routes>
+            <route><url>^$</url><verb>GET</verb><access_level>USER</access_level></route>
+            <route><url>^img\/.*</url><verb>GET</verb><access_level>PUBLIC</access_level></route>
+            <route><url>^js\/.*</url><verb>GET</verb><access_level>PUBLIC</access_level></route>
+            <route><url>^heartbeat$</url><verb>GET</verb><access_level>PUBLIC</access_level></route>
+            <route><url>^init$</url><verb>POST</verb><access_level>ADMIN</access_level></route>
+            <route><url>^enabled$</url><verb>PUT</verb><access_level>ADMIN</access_level></route>
+        </routes>
+    </external-app>
+</info>

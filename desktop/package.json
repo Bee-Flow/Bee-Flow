@@ -1,0 +1,63 @@
+{
+    "name": "@beeflow/desktop",
+    "productName": "Bee Flow",
+    "version": "1.0.0",
+    "private": true,
+    "description": "Bee Flow for the desktop — the native shell for Linux, macOS and Windows, with a bridge to the Nextcloud desktop client.",
+    "license": "SEE LICENSE IN LICENSE.md",
+    "homepage": "https://beeflow.nl",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/Bee-Flow/Bee-Flow.git",
+        "directory": "desktop"
+    },
+    "bugs": {
+        "url": "https://github.com/Bee-Flow/Bee-Flow/issues"
+    },
+    "author": {
+        "name": "Bee Flow",
+        "email": "support@beeflow.nl",
+        "url": "https://beeflow.nl"
+    },
+    "main": "dist/main/index.js",
+    "desktopName": "beeflow.desktop",
+    "engines": {
+        "node": ">=22.0.0 <23.0.0"
+    },
+    "packageManager": "npm@10.9.0",
+    "scripts": {
+        "clean": "node scripts/clean.mjs",
+        "build:main": "tsc -p tsconfig.main.json && node scripts/build-preload.mjs",
+        "build:shell": "tsc -p tsconfig.shell.json && node scripts/copy-assets.mjs",
+        "build": "npm run build:main && npm run build:shell",
+        "dev": "npm run build && electron dist/main/index.js",
+        "start": "electron dist/main/index.js",
+        "lint": "eslint .",
+        "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.shell.json --noEmit && tsc -p e2e/tsconfig.json",
+        "test": "node --test --test-force-exit \"src/**/*.test.ts\"",
+        "test:watch": "node --test --watch \"src/**/*.test.ts\"",
+        "verify": "npm run typecheck && npm run lint && npm test",
+        "pack": "npm run build && electron-builder --dir",
+        "dist": "npm run build && electron-builder",
+        "dist:linux": "npm run build && electron-builder --linux",
+        "dist:mac": "npm run build && electron-builder --mac",
+        "dist:win": "npm run build && electron-builder --win",
+        "e2e": "playwright test"
+    },
+    "dependencies": {
+        "chokidar": "^4.0.3",
+        "electron-updater": "^6.8.9"
+    },
+    "devDependencies": {
+        "@eslint/js": "^9.39.1",
+        "@playwright/test": "1.59.1",
+        "@types/node": "^22.10.2",
+        "electron": "^44.4.3",
+        "electron-builder": "^26.15.3",
+        "esbuild": "^0.25.12",
+        "eslint": "^9.39.1",
+        "globals": "^16.5.0",
+        "typescript": "^6.0.3",
+        "typescript-eslint": "^8.63.0"
+    }
+}

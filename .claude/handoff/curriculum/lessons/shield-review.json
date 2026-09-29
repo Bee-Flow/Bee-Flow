@@ -1,0 +1,234 @@
+{
+  "id": "shield-review",
+  "icon": "🔎",
+  "estMinutes": 9,
+  "title": "Block, send anyway, or redact",
+  "desc": "The review dialog: reading the highlights, marking what was missed, and choosing on purpose.",
+  "gate": {},
+  "learningGoal": "After this lesson you can make a defensible choice in the review dialog within the sixty-second window, and explain afterwards why you chose it.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "why-ask",
+      "icon": "🛑",
+      "title": "Your message stopped halfway",
+      "bodyMd": "You press Enter and no answer comes back. A window opens instead: **Check this before it goes to the AI**.\n\nNothing has left the building. Your message is paused at the last moment before it would travel to the AI service named in the subtitle — *This prompt will be sent to …* — with an **external** badge beside it when that service runs outside your organisation.\n\nSanne, who answers customer e-mail at Van Dijk Groep, meets this window most mornings. It is not an error and it is not about her. Her administrator set the outbound check to **Ask**: when personal data is found on the way out, the person sending it decides. Other organisations pick *Hide it* or *Do not send* instead. Sanne's organisation trusts her with the call — so it is worth knowing exactly what the three buttons do."
+    },
+    {
+      "type": "tour",
+      "id": "composer",
+      "target": "[data-tour=\"chat-composer\"]",
+      "navigateTo": "agents",
+      "placement": "top",
+      "optional": true,
+      "timeoutMs": 7000,
+      "icon": "⌨️",
+      "title": "The line that warned you",
+      "body": "In the row of small controls along the bottom of the message box, behind a shield icon, Bee Flow states what will happen to your text. When your organisation is set to Ask, it reads \"You are asked first when personal data is found\" — so the dialog is never a surprise."
+    },
+    {
+      "type": "slide",
+      "id": "highlights",
+      "icon": "🖍️",
+      "title": "Reading the highlights",
+      "bodyMd": "Your own text comes back to you with the findings marked in colour. A line above it counts them: **3 detected** — and once you mark something yourself, **3 detected · 1 added by you**. Your marks are counted beside the detector's, never folded into them.\n\nEach highlight carries a badge: the kind of data — Person Names, Email Addresses, IBAN Numbers — and how sure the detector is, in words:\n\n- **High confidence** — a clear match\n- **Possible match** — it fits, but it could be ordinary text\n- **Low confidence** — a weak signal\n- **Custom rule** — a pattern your organisation added itself\n- **Marked by you** — your mark, not the detector's\n\nYou never see a percentage. The word is the whole answer, and it is enough to judge by."
+    },
+    {
+      "type": "quiz",
+      "id": "labels",
+      "icon": "❓",
+      "question": "One highlight in Sanne's e-mail is labelled Possible match, and she can see it is a paint colour, not a person's name. What does that label tell her?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "That the detector is unsure and is saying so. She cannot remove its finding — Unmark works only on her own marks — so she weighs it up and picks a button",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "That the scan went wrong, so the safe move is Block and start again",
+          "correct": false,
+          "feedback": "A hesitant label is the detector being honest, not broken. Block is for when the answer is not worth the data — not for a single highlight you disagree with."
+        },
+        {
+          "id": "c",
+          "label": "That she should hover the highlight to read the percentage behind the label",
+          "correct": false,
+          "feedback": "There are no percentages anywhere in this dialog. The label is the whole answer: a word, not a number."
+        },
+        {
+          "id": "d",
+          "label": "That someone at Van Dijk Groep wrote a rule that catches paint colours",
+          "correct": false,
+          "feedback": "A pattern your organisation added shows up as Custom rule. Possible match is the detector's own hesitation, not a rule anyone wrote."
+        }
+      ],
+      "explanation": "The labels are there to be judged, not obeyed. High confidence, Possible match and Low confidence tell you how much weight a highlight deserves; Custom rule means your organisation added that pattern; Marked by you means you did. You cannot take away the detector's findings — only your own marks — so what is left to you is the choice of button."
+    },
+    {
+      "type": "slide",
+      "id": "mark-missed",
+      "icon": "➕",
+      "title": "You are the second detector",
+      "bodyMd": "Detection is good, not perfect. A nickname, a project code, an address written in an unusual way — any of these can pass unmarked. The dialog says so: *Tip: select text above to mark something the detector missed.*\n\nSelect the text with your mouse and a small menu offers **Mark as personal data**. It joins the count as *added by you*. Changed your mind? Click your own mark and choose **Unmark**. You can only unmark your own; the detector's findings stay.\n\nSometimes the dialog opens with nothing highlighted at all and reads: *No personal data detected. Do you see something anyway? Select it below.* That happens when your organisation asked for a look at every outbound message. Treat it as a blank page to proofread, not as a rubber stamp."
+    },
+    {
+      "type": "sim",
+      "id": "match-choice",
+      "icon": "🧩",
+      "title": "Three messages, three buttons",
+      "instruction": "Three people at Van Dijk Groep reach the review dialog on the same morning. Match each one to the button they can defend afterwards.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "payroll",
+            "left": "Rick pasted a payroll list into the wrong chat window. He never meant to send it anywhere at all.",
+            "right": "Block",
+            "note": "Block stops the message before it reaches the model. The chat shows \"Prompt blocked by you.\" and you can rewrite and try again. This is the right button whenever the answer is simply not worth the data."
+          },
+          {
+            "id": "ownname",
+            "left": "Pieter's only highlight is his own employer's name, \"Van Dijk Groep\". The question is about steel prices and contains no people at all.",
+            "right": "Send anyway",
+            "note": "A company name is a category the detector looks for, and here it is exactly what the model needs to answer well. Worth telling your administrator: the organisation can add it under \"Never hide these\" so it stops being flagged."
+          },
+          {
+            "id": "complaint",
+            "left": "Sanne's angry customer e-mail, from the start of this lesson. The name, e-mail address and mobile number are highlighted, but the reply she needs depends on the complaint, not on who sent it.",
+            "right": "Redact and send",
+            "note": "The values are swapped for placeholders such as [email_1] before the text leaves, and the real values are put back in the answer you read. The model helps with the complaint and never sees the customer."
+          }
+        ]
+      }
+    },
+    {
+      "type": "quiz",
+      "id": "send-anyway",
+      "icon": "❓",
+      "question": "Later the same morning Pieter pastes a different message. He selects a mobile number the detector missed, clicks Mark as personal data, and then presses Send anyway. What reaches the outside model?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "The message exactly as he typed it — the mobile number included, and every detected value too",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "The message with the number he marked replaced, because marking it is what protects it",
+          "correct": false,
+          "feedback": "Marking only changes what gets replaced when you press Redact and send. Your marks are simply not sent with Send anyway."
+        },
+        {
+          "id": "c",
+          "label": "The message with the detector's findings replaced, but his own mark left in",
+          "correct": false,
+          "feedback": "Send anyway means unchanged — the button's own tooltip reads \"Send the prompt unchanged\". Nothing at all is replaced."
+        },
+        {
+          "id": "d",
+          "label": "Nothing — marking text cancels the send and reopens the dialog",
+          "correct": false,
+          "feedback": "Marking never cancels anything. The three buttons are the only way out of the dialog, and Send anyway sends."
+        }
+      ],
+      "explanation": "Send anyway sends the original text, untouched. Marks and highlights are only acted on by Redact and send. Either way the choice is recorded: your organisation's activity log keeps a row with your name, where it happened, and what was done — \"Sent anyway\" is a visible decision, not a quiet one."
+    },
+    {
+      "type": "slide",
+      "id": "remember",
+      "icon": "🔁",
+      "title": "\"Remember my choice\" is bigger than it looks",
+      "bodyMd": "Under the highlighted text sits a checkbox: **Remember my choice for this conversation**.\n\nTick it and your answer becomes the standing rule for that conversation. A remembered **Redact and send** quietly replaces personal data in every later message of the thread. A remembered **Send anyway** quietly sends every later message unchanged — no dialog, no second look, however sensitive the next paste happens to be.\n\nTwo things keep it contained. It never remembers **Block**, so you cannot lock yourself out of your own chat. And it applies to that conversation only: start a new chat and the dialog comes back.\n\nA good habit at Van Dijk Groep: tick it for a long working session of the same kind of material, leave it untouched when you are pasting one unusual thing."
+    },
+    {
+      "type": "quiz",
+      "id": "timeout",
+      "icon": "❓",
+      "question": "Sanne's dialog opens, a colleague stops by her desk, and more than a minute passes before she looks back at the screen. What has happened to her message?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "It was refused. The chat reads \"Blocked: DLP decision timed out.\" and nothing was sent",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "It was sent unchanged, because the check cannot hold a message forever",
+          "correct": false,
+          "feedback": "The opposite: when no answer arrives the message is treated as blocked. An unanswered question never becomes permission."
+        },
+        {
+          "id": "c",
+          "label": "It was redacted and sent automatically, since Redact and send is the highlighted button",
+          "correct": false,
+          "feedback": "The highlighted button is only a suggestion for you to click. No choice is ever made on your behalf."
+        },
+        {
+          "id": "d",
+          "label": "The dialog waits as long as it needs to; it only closes when you press something",
+          "correct": false,
+          "feedback": "It expires after sixty seconds. There is a deliberate limit, so a forgotten dialog cannot leave a chat hanging open."
+        }
+      ],
+      "explanation": "The pending decision lives for sixty seconds, then expires and the message is refused — the safe direction. (DLP, in that message, is the ordinary term for this kind of outbound check: data loss prevention.) Nothing is lost: your message is still in the conversation, so you can copy it back into the box, send it again and answer the dialog this time. A restart of the server while a dialog is open ends the same way, because a pending decision is never stored."
+    },
+    {
+      "type": "exercise",
+      "id": "justify",
+      "icon": "🎯",
+      "exerciseId": "ex-shield-review-justify",
+      "title": "Your turn: justify the button",
+      "instruction": "Pieter at Van Dijk Groep pastes a supplier e-mail into chat and asks: \"Are these payment terms normal, and what should I push back on?\" The dialog highlights two contact names, one e-mail address and the supplier's IBAN. Write two or three sentences to a colleague: name the button you press, say what the model still needs in order to answer and what it does not need, and say what happens to the highlighted values once you click. Use the button's real label.",
+      "placeholder": "e.g. I press Redact and send, because the question is about the payment terms, not about who wrote the e-mail. The two names, the address and the IBAN go out as placeholders, and Bee Flow puts the real values back in the answer I read, so I can still …",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "slide",
+      "id": "attachments",
+      "icon": "📎",
+      "title": "Files get the same dialog",
+      "bodyMd": "Attach a PDF, a Word file or a spreadsheet and the same check runs on the text read out of it. The title changes to **Check this attachment before it goes to the AI** and the file appears as a document card with its name on top, its flagged text highlighted the same way. You mark what was missed exactly as in a typed message.\n\nTwo things differ. Each flagged file gets its own pause, so three of them mean three dialogs in a row. And a very large file may not be readable to the end: you review only the part that could be scanned, and the sent message then carries the badge **Scan incomplete**, which names the file and how many of its pages were scanned.\n\nRead that badge before you trust the highlights on a long document."
+    },
+    {
+      "type": "slide",
+      "id": "now",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "- **Read the label before you click.** It says what was found and how sure the detector is — High confidence through Low confidence, plus Custom rule and Marked by you. Never a percentage.\n- **Correct what it missed.** Select the text and choose Mark as personal data. Marks only take effect with **Redact and send**; **Send anyway** sends everything untouched, and **Block** sends nothing at all.\n- **Decide inside the minute, and know what you are committing to.** After sixty seconds the dialog expires and the message is refused. Ticking *Remember my choice for this conversation* hands your answer to every later message in that thread — so tick it on purpose."
+    }
+  ],
+  "rubrics": {
+    "ex-shield-review-justify": {
+      "title": "Justify your button",
+      "task": "Explain, in two or three sentences, which button you press in the review dialog for a supplier e-mail containing two contact names, an e-mail address and an IBAN, and why that choice is defensible.",
+      "criteria": [
+        "Names one real button label — Block, Send anyway, or Redact and send — rather than a vague 'I would be careful'.",
+        "Separates what the model needs to answer (the payment terms, the wording of the e-mail) from what it does not need (the two names, the e-mail address, the IBAN).",
+        "States what happens to the highlighted values after the click: nothing leaves (Block), the values leave unchanged (Send anyway), or the values are swapped for placeholders and restored in the answer (Redact and send).",
+        "Reads as a reason a colleague or an auditor could accept, not as a personal habit or a guess."
+      ],
+      "passScore": 70,
+      "guidance": "Any of the three buttons can pass if the reasoning holds; Redact and send is the most natural answer here, and Block is defensible for a learner who says the question is not worth the supplier's bank details. Do not pass an answer that names no button, that claims Send anyway removes or hides anything, that says marking text protects it regardless of the button, or that claims the values are deleted rather than replaced. Do not pass an answer that only repeats the instruction back."
+    }
+  },
+  "practiceTopic": {
+    "title": "The Privacy Shield review dialog",
+    "summary": "What the three buttons in \"Check this before it goes to the AI\" do, and how to read the highlights before choosing one.",
+    "facts": [
+      "The dialog is titled \"Check this before it goes to the AI\" and its subtitle names the AI service the prompt would be sent to, with an \"external\" badge when that service runs outside your organisation.",
+      "Its three buttons are Block, Send anyway and Redact and send; the last one reads simply Send when nothing at all is highlighted or marked.",
+      "Each highlight carries a word, never a percentage: High confidence, Possible match, Low confidence, Custom rule, or Marked by you for spans you marked yourself.",
+      "Selecting text offers \"Mark as personal data\", and clicking one of your own marks offers \"Unmark\"; your marks are only acted on by Redact and send.",
+      "The pending decision expires after sixty seconds, and the message is then refused with \"Blocked: DLP decision timed out.\" Pressing Block shows \"Prompt blocked by you.\"",
+      "The checkbox \"Remember my choice for this conversation\" applies Send anyway or Redact and send to every later message in that conversation; a Block choice is never remembered.",
+      "Attachments raise the same dialog, titled \"Check this attachment before it goes to the AI\", one pause per flagged file, with the file shown as a document card.",
+      "When a large file could not be read to the end, the sent message carries the badge \"Scan incomplete\"; clicking it lists the file with a \"Scanned 12 of 40 pages\" line."
+    ]
+  },
+  "actionChecks": []
+}

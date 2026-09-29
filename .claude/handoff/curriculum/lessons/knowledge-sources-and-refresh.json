@@ -1,0 +1,333 @@
+{
+  "id": "knowledge-sources-and-refresh",
+  "icon": "🔄",
+  "estMinutes": 12,
+  "title": "Sources that stay current",
+  "desc": "Web pages, whole sites, tables and meeting tags — and the refresh mode every source starts on.",
+  "gate": {
+    "permission": [
+      "manage_knowledge",
+      "manage_agents"
+    ]
+  },
+  "learningGoal": "After this lesson you can add a non-file source to a knowledge base and give it a refresh mode that matches how often the thing behind it actually changes.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "why",
+      "icon": "🧭",
+      "title": "A base that was true in March",
+      "bodyMd": "Sandra runs procurement at Van Dijk Groep. In the previous chapter she built the knowledge base **Inkoopvoorwaarden** and filled its one **Uploaded files** source: five PDFs to start with — the general terms, three supplier framework agreements, an ISO certificate — and seven more supplier agreements a week later, twelve documents in all. The agent that will quote from it, **Inkoopassistent**, is Marloes's; the material it may quote from is Sandra's job.\n\nThat base is already slightly wrong. The supplier's terms page has been rewritten twice since, and the delivery times in the *Leveranciers* table are edited most days.\n\nUploaded files are a photograph of a moment. The other source kinds are a subscription: they point at something that keeps changing and re-read it. This chapter is about the second sort — and about the one setting that decides whether they re-read anything at all."
+    },
+    {
+      "type": "slide",
+      "id": "kinds",
+      "icon": "🗂️",
+      "title": "Seven ways in, and what each is for",
+      "bodyMd": "The **Add a source** card on a base's **Sources** tab offers seven buttons:\n\n- **Upload files** — up to 20 files, 20 MB each.\n- **Table** — rows from a datatable: a price list, a supplier list.\n- **Meeting notes** — the notes of every meeting carrying one tag: the summary, plus decisions, open questions and actions if you tick them. Transcripts never go in.\n- **Web page / URL** — one page, or a whole site up to a cap.\n- **Paste text** — a snippet you type, up to 500,000 characters.\n- **Let an automation fill it** — no form here: give any routine a **To knowledge base** step pointed at this base and it appears in the list.\n- **Folder in Nextcloud** — visible but greyed out; this kind is not available yet.\n\nSandra needs three: the terms page, the *Leveranciers* table, and the meetings tagged *inkoop*.\n\nOne base in her list has no **Add a source** card at all, and no **⋯** menus: it is **system-managed** — it ships with Bee Flow and is read-only for everyone, administrators included. You can read it and point an agent at it; you cannot add a source to it or give it a refresh mode."
+    },
+    {
+      "type": "slide",
+      "id": "web",
+      "icon": "🌐",
+      "title": "One page, or a whole site",
+      "bodyMd": "Sandra picks **Web page / URL** and fills in **Address** — it has to start with `http://` or `https://`.\n\nLeaving the checkbox alone gives her exactly that page. Ticking **Follow links on the same site** reveals **At most this many pages**: 50 by default, 500 at the very most.\n\nThe page list comes from the site's own sitemap, so a site that publishes no sitemap contributes its entry page and nothing else. An address the server refuses to fetch — anything that is not `http`/`https`, or an internal one — is turned away on the spot with *\"That address cannot be fetched from here.\"* A page that simply will not load says *\"That page could not be reached.\"* instead."
+    },
+    {
+      "type": "quiz",
+      "id": "q-entry",
+      "icon": "❓",
+      "question": "Sandra adds the supplier's terms site with \"Follow links on the same site\" and a cap of 40 pages. Seconds later the new source shows one document. What is going on?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Normal: creating the source fetches the entry page only, and the rest of the pages arrive on the first refresh pass.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "The cap counts only pages that link to one another, so the other 39 were filtered out.",
+          "correct": false,
+          "feedback": "The cap is a ceiling, not a filter, and the page list comes from the site's sitemap rather than from links. It is a maximum for the crawl, not a rule about which pages qualify."
+        },
+        {
+          "id": "c",
+          "label": "Something failed — a whole-site source showing one document is an error state.",
+          "correct": false,
+          "feedback": "A source that failed says so: the row carries the error and its status turns to error. One document immediately after creating a crawl source is the expected state, not a fault."
+        },
+        {
+          "id": "d",
+          "label": "Whole-site sources hold one document on purpose; the other pages are fetched when somebody asks a question.",
+          "correct": false,
+          "feedback": "Nothing is fetched at question time. Retrieval only searches documents that were ingested and embedded beforehand, which is exactly why the refresh mode matters."
+        }
+      ],
+      "explanation": "Creating a source is a quick, synchronous act: it fetches the entry page so you can see something worked. Walking the rest of the site belongs to the refresh engine, which runs on its own schedule."
+    },
+    {
+      "type": "slide",
+      "id": "diff",
+      "icon": "🔁",
+      "title": "A refresh is a diff, not a re-run",
+      "bodyMd": "It is tempting to imagine a refresh throwing the source away and reading it again. It does not. Every pass compares what the source offers now against what the base already holds:\n\n- **new** — ingested and embedded;\n- **changed** — read again *under the same document id*, so citations already sitting in someone's chat history still point at something;\n- **gone** — removed from the base;\n- **unchanged** — nothing at all happens, which is the case that has to be cheap.\n\nThat is why a nightly schedule on a 40-page site is not extravagant: on a quiet night it costs almost nothing. Each pass also has a time budget, and whatever it does not finish simply stays due for the next one."
+    },
+    {
+      "type": "slide",
+      "id": "default",
+      "icon": "⏸️",
+      "title": "Every new source starts on \"Only when I ask\"",
+      "bodyMd": "This is the step people skip. Whatever the kind, a source created in the Studio is created **manual**: a table is not live, and a meeting tag does not follow meetings, until you say so.\n\nOpen the row's **⋯** menu → **Refresh schedule…**. The menu is titled **Refresh** and lists only the modes that kind supports. Between them, the kinds you can add today use four: **Only when I ask**, **On a schedule**, **After every meeting** and **Live — always current**.\n\nUploads, pasted text and automation-filled sources get the first and nothing else: a file cannot change behind your back, so there is nothing to poll for. Sandra's three living sources each have a real choice to make."
+    },
+    {
+      "type": "sim",
+      "id": "sim-modes",
+      "icon": "🧩",
+      "title": "Give each source the right rhythm",
+      "instruction": "Four sources in Van Dijk Groep's Inkoopvoorwaarden base. Match each one to the refresh mode it should be on. One of them has no choice at all — its menu holds a single mode — and for the rest the menu lists only what that kind supports.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "pdfs",
+            "left": "The Uploaded files source, twelve PDFs by now. They change when somebody signs a new agreement.",
+            "right": "Only when I ask",
+            "note": "An upload source offers no other mode — the menu holds one item. Files change when somebody uploads a new one, not on a timer."
+          },
+          {
+            "id": "terms",
+            "left": "The supplier's public terms page, rewritten a few times a year, and nobody announces it.",
+            "right": "On a schedule",
+            "note": "A web page supports manual and a schedule. Every Monday at 06:00 is one of the three presets and is plenty for a page that changes quarterly."
+          },
+          {
+            "id": "table",
+            "left": "The Leveranciers table, where buyers edit delivery times most days.",
+            "right": "Live — always current",
+            "note": "Only a table offers Live. A write to the table marks the source due and the next pass, a minute or so later, picks it up."
+          },
+          {
+            "id": "meetings",
+            "left": "Meetings tagged inkoop, whose summaries should be searchable as soon as the notes are written.",
+            "right": "After every meeting",
+            "note": "A meeting tag offers manual and this. A new meeting carrying the tag marks the source due, the same way a table write does."
+          }
+        ]
+      }
+    },
+    {
+      "type": "slide",
+      "id": "presets",
+      "icon": "🗓️",
+      "title": "Pick the preset that matches the thing",
+      "bodyMd": "Choosing **On a schedule** offers three presets: **Every day at 06:00**, **Every Monday at 06:00** and **The 1st of each month at 06:00**. The menu names the time zone underneath, because \"06:00\" means nothing without one.\n\nMatch the preset to the source, not to your nerves. Daily on a page rewritten twice a year is noise you will learn to ignore; monthly on a price list is a quote going out on last month's figures.\n\nThe summary line above the table counts what is wired up: *\"4 sources · 61 documents · 2 refresh automatically\"*. When that last number is zero, nothing in this base keeps itself current."
+    },
+    {
+      "type": "quiz",
+      "id": "q-now",
+      "icon": "⏱️",
+      "question": "Sandra chooses ⋯ → Refresh now on the terms-page source. A few seconds later the Last updated cell still shows the old time. What should she conclude?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Nothing is wrong — Refresh now marks the source due, and the engine collects due sources about once a minute.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Refresh now was refused because the source is on a schedule; the schedule has to be cleared first.",
+          "correct": false,
+          "feedback": "Refresh now sits in the row menu whatever the mode is, and a manual nudge and a schedule end up doing the same thing: both mark the source due for the same engine."
+        },
+        {
+          "id": "c",
+          "label": "Refresh now re-reads the whole site from scratch, so on 40 pages it will take roughly an hour.",
+          "correct": false,
+          "feedback": "A pass is bounded by a time budget and an item ceiling, and a refresh is a diff — unchanged pages cost nothing. Anything left over stays due for the next pass instead of blocking."
+        },
+        {
+          "id": "d",
+          "label": "Only a source with an automatic mode can be refreshed; a manual one has to be deleted and added again.",
+          "correct": false,
+          "feedback": "Manual is precisely the mode where Refresh now is the entire mechanism. Deleting a source would take its documents — and every citation pointing at them — with it."
+        }
+      ],
+      "explanation": "There is one engine and it has one entry point. Refresh now, a schedule coming round, a table write and a new tagged meeting all do the same small thing: set the source's next refresh to now. The engine then works through the due ones a batch at a time."
+    },
+    {
+      "type": "slide",
+      "id": "verdict",
+      "icon": "🟢",
+      "title": "The dot on the right is not a health check",
+      "bodyMd": "Back on the **Knowledge bases** list, every base carries one cell on the right: a dot and a few words. Three different kinds of statement land there.\n\n- Red **\"empty, but in use\"** with an alert icon — something already points at this base and there is nothing in it to quote. That outranks everything else.\n- A grey promise — **\"live\"**, **\"on change\"**, **\"after every meeting\"**, **\"on a schedule\"**, **\"refreshes on its own\"** — for a base that has received nothing yet but has a source that fetches by itself. A base with no source at all says **\"no sources yet\"**.\n- A green **\"updated {when}\"** — the plain fact of when content last landed. Sandra's base reads *updated 2 min ago*.\n\nThere is no fourth rung for failure. The verdict is worked out from documents and modes, never from how the last pass went."
+    },
+    {
+      "type": "quiz",
+      "id": "q-verdict",
+      "icon": "🔍",
+      "question": "The supplier rebuilds their site and it starts refusing Bee Flow's fetch. Sandra's weekly schedule on that source has failed every Monday for a month. What does Van Dijk Groep's Knowledge list show for Inkoopvoorwaarden, and where would she find the failure?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "A green \"updated\" cell whose time simply stopped moving — the base still holds the PDFs and the table. The failure shows on the Sources tab: that row's Last updated stays put, and opening the source shows documents with a failed status.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Red \"empty, but in use\" — a failing source is exactly what that warning is for.",
+          "correct": false,
+          "feedback": "That cell means the base has no documents at all while something depends on it. This base is full of PDFs and table rows, so it is not empty — only one of its four sources is stuck."
+        },
+        {
+          "id": "c",
+          "label": "The cell falls back to \"nothing yet\" until the source recovers.",
+          "correct": false,
+          "feedback": "\"Nothing yet\" is for a base that has never received anything from any source. Content that already landed stays in the base and keeps being quoted; a failed pass removes nothing."
+        },
+        {
+          "id": "d",
+          "label": "The source is switched back to Only when I ask after repeated failures, so the Refresh cell reads manual again.",
+          "correct": false,
+          "feedback": "The mode you set stays set. Repeated errors only widen the gap between attempts — the engine backs off and keeps trying, and the row carries the error."
+        }
+      ],
+      "explanation": "A stale base and a broken base look identical from the list: the only tell is that the \"when\" stops moving. Treat an unchanging timestamp on a base you scheduled as a question, and answer it on the Sources tab, where each row has its own Last updated and each document its own status."
+    },
+    {
+      "type": "slide",
+      "id": "table",
+      "icon": "🧮",
+      "title": "A table as a source: choose less",
+      "bodyMd": "**Table** asks three questions. **Which table?** — only tables you may open are offered. **Which columns** — everything is ticked when you pick a table, and the hint underneath is the real lesson: *\"Every column you include dilutes the ones that answer questions. Leave out what nobody would ask about.\"* **Which column names the row** — the human label, so a citation reads \"Bakker Staal\" and not \"row 412\".\n\nEach row becomes its own document up to 5,000 rows; above that, rows are grouped 50 to a document, so a huge lookup table cannot swamp the rest of the base.\n\nRead the consequence line before you click **Add this table**: rows you can read become searchable for everyone who can see the knowledge base. The table's own row permissions do not travel with them."
+    },
+    {
+      "type": "slide",
+      "id": "dupes",
+      "icon": "🗑️",
+      "title": "Doubles, overlaps, and what delete takes with it",
+      "bodyMd": "Open a source and every document has a status. Two of them are about the same text appearing twice.\n\n- **duplicate** — identical content already in *this* source. It is not embedded again, so a re-uploaded PDF costs nothing and clutters nothing.\n- **overlaps another source** — near-identical content in a *different* source. That one is kept, and the row says so in the \"What the AI took from it\" column. Sandra's terms page and one of her PDFs say much the same thing, and she would rather the agent could cite either.\n\nDeleting is the blunt one. **Delete** on a source row warns *\"Its {count} documents leave this knowledge base. The original files stay where they are\"* — and every citation pointing at them dies with them. **Delete this knowledge base**, in Settings, takes all of it and first lists what would break."
+    },
+    {
+      "type": "quiz",
+      "id": "q-delete",
+      "icon": "✂️",
+      "question": "Sandra wants to tidy Inkoopvoorwaarden. Which of these are true? Pick two.",
+      "multi": true,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Deleting the terms-page source removes its documents from the base, but the supplier's website is untouched.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Re-uploading a PDF that is already in the Uploaded files source gives it the status duplicate, and nothing is embedded again.",
+          "correct": true
+        },
+        {
+          "id": "c",
+          "label": "A PDF that says roughly what the terms page says is rejected, because the base refuses overlapping content.",
+          "correct": false,
+          "feedback": "Near-identical content in another source is kept, not rejected — it is ingested and its row is annotated \"overlaps another source\". Only an identical item inside the same source is marked duplicate."
+        },
+        {
+          "id": "d",
+          "label": "Deleting the whole knowledge base is the safe way to clear it out, because the agents linked to it keep their own copy.",
+          "correct": false,
+          "feedback": "There is no copy. The danger zone says its documents go with it, and it first lists what would break — those linked agents then answer with nothing from this base."
+        }
+      ],
+      "explanation": "Bee Flow is tolerant about the same text arriving twice and unforgiving about removal. Duplicates are quietly skipped, overlaps are kept and labelled; a delete takes documents and the citations that point at them, while whatever they were read from — files, pages, rows — stays exactly where it was."
+    },
+    {
+      "type": "exercise",
+      "id": "ex-plan",
+      "icon": "🎯",
+      "exerciseId": "ex-knowledge-sources-refresh-plan",
+      "title": "Your turn: write the refresh plan",
+      "instruction": "Van Dijk Groep's Inkoopvoorwaarden base has four sources: the Uploaded files source with its twelve PDFs, the supplier's terms page (whole site, 40 pages), the Leveranciers table, and meeting notes tagged inkoop. Write the refresh plan: for each source, the mode you would set — and which preset, where you choose a schedule — plus one sentence tying it to how often the thing behind it really changes. Then name the source whose mode you cannot choose freely, and say why the menu will not offer an alternative.",
+      "placeholder": "e.g. Leveranciers table — Live, because buyers edit delivery times most days and a quote written on yesterday's figure is a quote we have to withdraw…",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "action",
+      "id": "do",
+      "icon": "🏗️",
+      "checkId": "kb-scheduled",
+      "title": "Schedule one for real",
+      "instruction": "Open Knowledge and pick a base you may manage — the one from the previous chapter is ideal. In Add a source, create a Web page / URL or a Table source yourself. Then open that row's ⋯ menu, choose Refresh schedule…, and set it to anything other than Only when I ask. We will check that the base has a source of yours refreshing on its own.",
+      "launch": {
+        "navigateTo": "studio/knowledge",
+        "label": "Open Knowledge"
+      }
+    },
+    {
+      "type": "slide",
+      "id": "recap",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "- **Pick the right kind.** A table for rows people ask about by name, a web page for something published elsewhere, a meeting tag for summaries, an upload for documents that only change when somebody signs one.\n- **Set the mode, always.** Every source is created on **Only when I ask**. Until you open **Refresh schedule…**, nothing here keeps itself current — and the Sources tab tells you how many do.\n- **Read the verdict for what it is.** The green **\"updated {when}\"** on the Knowledge list is a fact about content, not a health check: when the \"when\" stops moving, go to the Sources tab and look at the row.\n- **Remove with care.** A duplicate costs nothing and an overlap is kept on purpose, but deleting a source takes its documents and their citations — while the files and pages themselves stay put.\n\nNext chapter: proving the base actually answers, with the **Test question** card, before an agent ever quotes from it."
+    }
+  ],
+  "rubrics": {
+    "ex-knowledge-sources-refresh-plan": {
+      "title": "A refresh plan that matches reality",
+      "task": "Assign a refresh mode to four sources of a knowledge base — uploaded files source, a whole-site web page source, a datatable and a meeting tag — justifying each by how often the underlying thing changes, and identify one source whose available modes are constrained by its kind.",
+      "criteria": [
+        "Gives all four sources a mode, using the product's own wording (Only when I ask / On a schedule / Live — always current / After every meeting) rather than inventing names.",
+        "Matches cadence to change rate: the table on Live or a frequent schedule, the terms page on a weekly or daily preset, the PDFs left manual.",
+        "Names a schedule preset (Every day at 06:00, Every Monday at 06:00, or The 1st of each month at 06:00) where a schedule is chosen, rather than a vague 'regularly'.",
+        "Correctly identifies a kind-constrained source — uploads are manual-only, a meeting tag offers only manual or After every meeting, a web page cannot be Live — and explains that the menu shows only what the kind supports."
+      ],
+      "passScore": 70,
+      "guidance": "Do not pass an answer that sets the uploaded PDFs to a schedule or to Live, or that puts the web page on Live — those modes are not offered for those kinds and the claim is simply wrong. Do not pass an answer that lists modes with no reasoning about how often the source changes. An answer that omits the constrained-source question entirely falls short even if the four assignments are right. Wording need not be verbatim, but invented mode names such as 'automatic' or 'hourly sync' should cost marks."
+    }
+  },
+  "practiceTopic": {
+    "title": "Knowledge sources and refresh modes",
+    "summary": "How each kind of knowledge source keeps itself current, and the refresh mode every new source starts on.",
+    "facts": [
+      "The Add a source card offers seven kinds: Upload files, Table, Meeting notes, Web page / URL, Paste text, Let an automation fill it, and Folder in Nextcloud, which is disabled with 'Coming soon — this kind of source is not available yet.'",
+      "Every source created in the Studio starts on Only when I ask; the refresh mode is changed from the row's ⋯ menu under Refresh schedule…",
+      "The modes a source can be given depend on its kind: upload and pasted text are manual only, a web page offers manual or a schedule, a table also offers Live — always current, and a meeting tag offers After every meeting.",
+      "The three schedule presets are Every day at 06:00, Every Monday at 06:00 and The 1st of each month at 06:00, and the menu names the time zone they are written in.",
+      "Ticking 'Follow links on the same site' reveals 'At most this many pages' (50 by default, 500 at most) and the pages come from the site's sitemap; creating the source fetches only the entry page, the rest arrives on the first refresh pass.",
+      "Refresh now does not refresh immediately — it marks the source due for an engine that collects due sources roughly once a minute, and a pass is a diff: new items ingested, changed items re-read under the same document id so citations survive, removed items deleted, unchanged items free.",
+      "A base's freshness cell reads red 'empty, but in use', or a grey promise (live / on change / after every meeting / on a schedule / refreshes on its own / no sources yet), or a green 'updated {when}'; there is no failed state — a failing scheduled source just leaves the timestamp standing still.",
+      "Identical content already in the same source gets the status duplicate and is not embedded again, while near-identical content in another source is kept and annotated 'overlaps another source'; deleting a source takes its documents out of the base, the original files stay put."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "kb-scheduled",
+      "existing": false,
+      "label": "Schedule a knowledge source",
+      "hint": "In Studio → Knowledge, open a base, add a Web page / URL or Table source, then use its ⋯ menu → Refresh schedule… and pick a mode other than Only when I ask.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/kb",
+          "returns": "array of knowledge base rows the caller can see, each with id, name and tenant_id (the owner's user id)"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "has-source",
+          "label": "A knowledge base you can see has at least one source",
+          "hint": "Open a base's Sources tab and use Add a source.",
+          "rule": "for at least one kb id from GET /api/kb, GET /api/kb/:id/sources returns totals.sourceCount > 0"
+        },
+        {
+          "id": "own-source",
+          "label": "You added that source yourself",
+          "hint": "The check looks at who created the scheduled source, so schedule one you added.",
+          "rule": "that source row's createdBy.id equals the learner's user id"
+        }
+      ]
+    }
+  ]
+}

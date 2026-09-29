@@ -1,0 +1,281 @@
+{
+  "id": "webpages-share-links",
+  "icon": "🔗",
+  "estMinutes": 9,
+  "title": "One link, one recipient",
+  "desc": "Mint an external link per recipient, gate it by password or email, keep its copy current — and revoke it when the job is done.",
+  "gate": {
+    "feature": "webpages"
+  },
+  "learningGoal": "After this lesson the learner can mint an external link for one recipient, pick the access mode that matches the proof they need, and keep that link current or revoke it.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "two-doors",
+      "icon": "🚪",
+      "title": "An address is a front door, a link is an envelope",
+      "bodyMd": "The buyer at Van Dijk Groep wants one supplier — her contact at Rensen BV — to follow the quote page **Offertestatus**. She does not want it standing open on the internet.\n\nBee Flow gives her two different routes outside:\n\n- **The address** — one public front door, set in **Data & links → Who can see it**. Everyone who is let in uses the same one.\n- **An external link** — a separate link she mints per recipient, gates on its own, and revokes on its own, without touching the address or the page's audience inside Bee Flow.\n\nThis lesson is about the second one. You will find it in the editor header: open the audience capsule — the badge that names the current audience, **Personal**, **Entire organisation** or the group you shared with; on a draft the **Publish** pill opens the same panel. It is headed **Publish to…**, and its bottom section is **External link**."
+    },
+    {
+      "type": "slide",
+      "id": "ladder",
+      "icon": "🪜",
+      "title": "Three doors on one link",
+      "bodyMd": "**+ New link** opens a small form headed **Who can access this link?**, with three modes in rising order of proof:\n\n- **Anyone with the link** — the URL is the key. No prompt at all: whoever holds it is in.\n- **Password-protected** — the visitor lands on **Enter password** (*This shared page is password-protected. Ask the sender if you don't have one.*) and presses **Unlock**. Minimum six characters.\n- **Email-gated (one-time link)** — you paste the addresses that may enter, comma- or newline-separated. The visitor types an address, sees **Check your email**, and is mailed a one-time link that expires in 24 hours. Bee Flow never says whether an address was on the list.\n\nUnder the modes sits **Expires** — 1 day, 7 days, 30 days, 90 days or No expiry — which opens on **30 days**. Then **Create link**."
+    },
+    {
+      "type": "quiz",
+      "id": "q-mode",
+      "question": "The buyer must send Offertestatus to one named contact at Rensen BV. Mail gets forwarded inside supplier offices all the time, and she wants access tied to that person. Which mode does she pick?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Email-gated (one-time link), with his address on the allow-list",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Anyone with the link, with Expires set to 1 day",
+          "correct": false,
+          "feedback": "A short expiry limits how long a forwarded URL works, not who uses it. For that whole day the URL is the key, for anyone it was forwarded to."
+        },
+        {
+          "id": "c",
+          "label": "Password-protected, with the password in the same mail",
+          "correct": false,
+          "feedback": "A password travels with the link as easily as the link itself. It proves the visitor was told a secret, not that they are the contact you chose — and in the same mail it proves nothing at all."
+        },
+        {
+          "id": "d",
+          "label": "Anyone with the link, and press Re-snapshot after every change",
+          "correct": false,
+          "feedback": "Re-snapshot updates what the link shows. It has nothing to do with who may open it."
+        }
+      ],
+      "explanation": "Email-gated is the only mode that checks the visitor: the address typed must be on the allow-list you entered, and the one-time link Bee Flow mails expires in 24 hours. A forwarded URL simply sends the next person back to the email prompt."
+    },
+    {
+      "type": "slide",
+      "id": "created",
+      "icon": "📋",
+      "title": "The link exists the moment you press Create",
+      "bodyMd": "**Create link** does two things at once: it mints the token and writes the copy that will be served, so the URL works before you have pasted it into your mail.\n\nYou then get the green banner **Share link created.** with the URL and a **Copy** button. Copy it there and then. Each active row keeps a **Copy** button afterwards for links whose URL Bee Flow can still recover, but the banner is the one moment this link is certainly in front of you.\n\nNotice what did **not** happen: nothing about the page's audience inside Bee Flow changed. The page can still read **Draft**, with no colleague able to open it, while your supplier is reading it from the link. The header does own up to it: a **Public** marker appears beside the capsule, tooltip *Anyone with the link can open this page*."
+    },
+    {
+      "type": "sim",
+      "id": "send-one",
+      "icon": "🧩",
+      "title": "Send it to one supplier",
+      "instruction": "The buyer is sending Offertestatus to Rensen BV behind a password. Put her six moves in the order that actually works.",
+      "sim": {
+        "kind": "order",
+        "items": [
+          {
+            "id": "a",
+            "label": "Open the page and click the audience capsule in the editor header"
+          },
+          {
+            "id": "b",
+            "label": "In the External link section, click + New link"
+          },
+          {
+            "id": "c",
+            "label": "Choose Password-protected and type a password of at least six characters"
+          },
+          {
+            "id": "d",
+            "label": "Set Expires to 30 days and press Create link"
+          },
+          {
+            "id": "e",
+            "label": "Copy the URL from the Share link created. banner into the mail to the supplier"
+          },
+          {
+            "id": "f",
+            "label": "Afterwards, phone the supplier with the password, so the mail alone is not enough"
+          }
+        ],
+        "solution": [
+          "a",
+          "b",
+          "c",
+          "d",
+          "e",
+          "f"
+        ],
+        "feedback": "The link only exists after Create link, so there is nothing to copy before that step — and a password pasted under the URL in the same mail is a link with extra steps."
+      }
+    },
+    {
+      "type": "slide",
+      "id": "rows",
+      "icon": "📇",
+      "title": "What the list tells you",
+      "bodyMd": "Below the form, the same **External link** section lists the links that are still alive. A revoked link, or one whose date has passed, leaves the list entirely — so \"not there\" means \"not working\".\n\nEach row carries:\n\n- the mode it was made with — **Anyone with the link**, **Password-protected**, or **Email-gated** with the number of addresses;\n- its expiry in words: *Expires in 12 days*, *Expires today*, *No expiry*;\n- a view count, *0 views* until someone opens it;\n- icon buttons whose tooltips read **Copy link** — on rows whose URL Bee Flow can still recover — plus **Re-snapshot — update the public copy to match current edits** and **Revoke link**.\n\nColleagues who can read the page see this list read-only: no recipient addresses, no creating, no revoking.\n\nOne row can be special. If the page has a public address, that address is served by one of these links — revoke that row and the address stops serving too. Revoking any other row leaves it untouched."
+    },
+    {
+      "type": "slide",
+      "id": "frozen",
+      "icon": "🧊",
+      "title": "A link serves a frozen copy",
+      "bodyMd": "What the recipient opens is not your page running. It is a snapshot: script-free, cleaned up, with table rows baked in from the column gate as they stood when it was written.\n\nTwo things rewrite it:\n\n- **Saving the page.** Your edits reach every live link on their own — a link never waits for **Republish** the way colleagues inside Bee Flow do.\n- **Re-snapshot**, on one row. It refreshes the bytes and deliberately keeps the same token, so the URL you already sent stays valid.\n\nWhen the data changes rather than the page — a row deleted, a retention sweep — Bee Flow rewrites live copies by itself, but best-effort: not instantly, and not across a restart. When something must be off an outside link right now, **Revoke** is the one control that acts immediately."
+    },
+    {
+      "type": "quiz",
+      "id": "q-fresh",
+      "question": "The buyer fixes a typo on Offertestatus and the save chip reads Saved. The supplier is holding an external link. Does he see the fix?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Yes — saving rewrites the copy behind every live link",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Not until she presses Republish in the header",
+          "correct": false,
+          "feedback": "Republish re-pins the version colleagues inside Bee Flow read. An external link does not read that pinned version; it has its own copy."
+        },
+        {
+          "id": "c",
+          "label": "Not until she presses Re-snapshot on that row",
+          "correct": false,
+          "feedback": "Re-snapshot is there for when you want to force a rewrite. After an ordinary save it has already happened."
+        },
+        {
+          "id": "d",
+          "label": "No — a link's copy is frozen at Create link and can never change",
+          "correct": false,
+          "feedback": "Frozen means it is a copy rather than your page running, not that it can never be rewritten. Saving and Re-snapshot both rewrite it, and the token stays the same."
+        }
+      ],
+      "explanation": "A link serves a snapshot, and that snapshot follows your saves. What it does not follow minute by minute are your table's live rows: those are baked in when it is written, which is why erasure has its own path."
+    },
+    {
+      "type": "exercise",
+      "id": "ex-plan",
+      "icon": "🎯",
+      "exerciseId": "ex-webpages-share-links-plan",
+      "title": "Your turn: plan the link",
+      "instruction": "Van Dijk Groep is sending the Offertestatus page to one named contact at Rensen BV for a tender that closes in six weeks. Write the link plan in four or five lines: which mode you pick under \"Who can access this link?\" and why the other two are wrong here; what you set under Expires and why; how the recipient gets what he needs to open it; and what you do on the day the tender closes. Name the buttons you press.",
+      "placeholder": "e.g. Mode: … because …  Expires: … because …  He gets the URL by …, the … by …  On closing day I …",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "action",
+      "id": "do",
+      "icon": "🏗️",
+      "checkId": "webpage-external-link",
+      "title": "Mint a link of your own",
+      "instruction": "Open one of your own webpages and click the audience capsule in the editor header (on a draft, the Publish pill opens the same panel). Under External link press + New link, pick any mode, leave Expires on 30 days and press Create link. Copy the URL from the banner, then come back and run the check.",
+      "launch": {
+        "navigateTo": "studio/webpages",
+        "label": "Open Webpages"
+      }
+    },
+    {
+      "type": "slide",
+      "id": "gone-wrong",
+      "icon": "⚠️",
+      "title": "Where owners get caught",
+      "bodyMd": "- **A link is not edited, it is replaced.** There is no mode or password control on a row that already exists. You create the link you want, then revoke the one you no longer want.\n- **Revoke is the only immediate stop.** An expiry is a date, not a decision, and a link set to **No expiry** outlives the reason you made it.\n- **The secret must not travel with the link.** A password pasted under the URL in the same mail gates nobody.\n- **A link chooses who, never what.** The column gate is set once for the page, not per link, so a second link does not give you a narrower view of the data. What a link decides is who gets in."
+    },
+    {
+      "type": "quiz",
+      "id": "q-replace",
+      "question": "The buyer made an \"Anyone with the link\" link for a supplier three weeks ago. The tender is now sensitive, so she creates a second link, Password-protected, and mails it to him. What is the state of the page?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Both links work — the first, password-free one keeps opening the page until she revokes it",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "The new link replaced the old one: the first URL now asks for the password",
+          "correct": false,
+          "feedback": "That is how the public address behaves when you change its access mode. A row under External link is never edited in place, and creating one never touches another."
+        },
+        {
+          "id": "c",
+          "label": "The first link stops working, because a page may have only one live external link",
+          "correct": false,
+          "feedback": "A page carries as many live links as you create. The list shows them side by side, each with its own mode, expiry and view count."
+        },
+        {
+          "id": "d",
+          "label": "The first link keeps working until she presses Re-snapshot, which re-mints its token",
+          "correct": false,
+          "feedback": "Re-snapshot refreshes what a link shows and deliberately keeps the same token so recipients' URLs stay valid. It is not a way to close a link."
+        }
+      ],
+      "explanation": "Adding a link is not the same as changing one. The only control that closes a door is Revoke — *Revoke this link? Existing recipients will lose access immediately.* Until she presses it, both doors are open and one of them needs no password."
+    },
+    {
+      "type": "slide",
+      "id": "now",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "- **Mint a link per recipient.** Audience capsule → **External link** → **+ New link** → a mode → **Expires** → **Create link**, and copy the URL from the banner before you close the panel.\n- **Match the mode to the proof you need.** The URL is the key; a password is a secret you must send by some other channel; email-gating is the only mode that checks who is knocking, with a one-time link good for 24 hours.\n- **Close it on purpose.** Saving keeps a link current and **Re-snapshot** forces it, but only **Revoke** ends it — immediately, and for everyone holding that URL."
+    }
+  ],
+  "rubrics": {
+    "ex-webpages-share-links-plan": {
+      "title": "A defensible external-link plan",
+      "task": "Plan one external link for one named supplier contact on the Offertestatus page: access mode and why the other two modes do not fit, the Expires value and why, how the recipient gets what he needs to open it, and what happens on the day the tender closes.",
+      "criteria": [
+        "Names one mode exactly as the form does — Anyone with the link, Password-protected, or Email-gated (one-time link) — and rejects the others on who they let in rather than on convenience.",
+        "Picks an Expires value that outlives the six-week tender (90 days, or No expiry paired with a plan to revoke) and gives a reason.",
+        "Keeps any secret off the channel that carries the URL, or picks email-gating and notes there is no secret to send.",
+        "Ends with Revoke on the closing day, and does not treat letting the link expire or creating a newer link as the same thing."
+      ],
+      "passScore": 70,
+      "guidance": "Do not pass an answer that only lists buttons without reasons, that sends a password in the same mail as the URL, that claims changing the mode later closes the old link, or that treats Re-snapshot or a second link as a way to cut off access. Password-protected instead of Email-gated may pass when the answer defends the choice and handles the secret on a separate channel."
+    }
+  },
+  "practiceTopic": {
+    "title": "External links on a webpage",
+    "summary": "How an owner mints, gates, refreshes and revokes a per-recipient link to a webpage, and how that differs from the page's public address.",
+    "facts": [
+      "The External link section sits at the bottom of the audience capsule headed 'Publish to…'; '+ New link' opens the form 'Who can access this link?'.",
+      "The three access modes are 'Anyone with the link', 'Password-protected' (minimum six characters) and 'Email-gated (one-time link)', which mails a one-time link that expires in 24 hours.",
+      "The Expires choices are 1 day, 7 days, 30 days, 90 days and No expiry; the form opens on 30 days.",
+      "'Create link' mints the token and writes the served copy at once, then shows the banner 'Share link created.' with a Copy button.",
+      "Each active row shows its mode, its expiry in words, a view count and the buttons Re-snapshot and Revoke, plus Copy on rows whose URL is still recoverable; revoked and expired links leave the list.",
+      "Re-snapshot keeps the same token so recipients' URLs stay valid, while revoking warns 'Revoke this link? Existing recipients will lose access immediately.'",
+      "Creating an external link does not change who inside the organisation can see the page — a draft nobody can open internally can still be served over a link."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "webpage-external-link",
+      "existing": false,
+      "label": "Create an external link",
+      "hint": "In Studio → Webpages, open one of your pages, click the audience capsule in the header and use + New link under External link.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/webpages",
+          "returns": "{ webpages: [ { id, userId, name, isPublished, slug, publicShareId, publicShareCount, … } ] } — up to 50 rows the learner can access, newest first"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "owned",
+          "label": "You own at least one webpage",
+          "hint": "Create one in Studio → Webpages first if the list is empty. The link you mint is stored beside the page, where this check cannot look — the banner with the URL is your proof.",
+          "rule": "GET /api/webpages → webpages[] holds a row whose userId is the learner (publicShareCount is per row and not readable by the runtime)",
+          "endpoint": "/api/webpages",
+          "expect": {
+            "kind": "rows",
+            "field": "webpages"
+          }
+        }
+      ]
+    }
+  ]
+}

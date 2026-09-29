@@ -1,0 +1,370 @@
+{
+  "id": "integrations-org-access",
+  "icon": "🎛️",
+  "estMinutes": 14,
+  "title": "Granting the organisation its tools",
+  "desc": "The grant-only access matrix, plus the estate surfaces: org-owned n8n and Maps credentials, MCP servers, GitHub Sync and Nextcloud.",
+  "gate": {
+    "permission": "org_admin"
+  },
+  "learningGoal": "Give a capability to exactly the right audience, and predict which group ends up with what.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "three-gates",
+      "icon": "🪜",
+      "title": "Three gates stand between a tool and a person",
+      "bodyMd": "Pieter, the buyer in Van Dijk Groep's Inkoop team, asks the question every admin gets sooner or later: *\"why can't the agent read our shared drive?\"* It sounds like a bug. It is almost always access — and access is three gates stacked on top of each other.\n\n1. **The ceiling** — does the subscription (cloud) or the server licence (self-hosted) include this integration at all? You cannot raise it.\n2. **The grant** — have you handed it out, in **Settings → Organisation → Integrations → Integration access**?\n3. **The connection** — has Pieter stored his own credential under **Settings → Connections**?\n\nMiss one and the tool is simply absent from the agent's toolbox. No error, no warning. Gate 2 is the one you own, and every screen in this lesson is really the same question in a different costume: *who is this for, and who owns the credential?*"
+    },
+    {
+      "type": "slide",
+      "id": "scopes",
+      "icon": "👥",
+      "title": "All members, or one group",
+      "bodyMd": "The **Integration access** tab has a left rail: **All members** at the top, then **Groups** with the count in brackets. With no groups yet it reads *\"No groups yet. Create groups under Users & Groups to grant capabilities per team.\"*\n\nPick a scope, switch an integration on, done — it saves itself after about half a second and the header shows **\"Saved\"**.\n\nTwo rules decide everything that follows.\n\n- **Grants stack.** Someone has a capability if it is granted to All members **or** to any group they belong to. The group pane says so in its header: *grants stack on top of All members*.\n- **Grants never subtract.** There is no per-group \"off\" switch. Inside a group, anything already given to everyone shows ticked, greyed and labelled **\"Granted to all members\"**."
+    },
+    {
+      "type": "quiz",
+      "id": "narrow",
+      "question": "Van Dijk granted the slide-deck integration to All members. The board now decides only Sales should have it. What is the move?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Open each other group and untick it there",
+          "correct": false,
+          "feedback": "You cannot. Inside a group, a capability that came from All members is read-only and reads \"Granted to all members\" — the matrix only ever adds."
+        },
+        {
+          "id": "b",
+          "label": "Remove the grant on All members, then grant it to the Sales group",
+          "correct": true
+        },
+        {
+          "id": "c",
+          "label": "Ask the platform administrator to drop it from the subscription",
+          "correct": false,
+          "feedback": "That lowers the ceiling for the whole organisation — Sales would lose it too. The ceiling is the wrong lever for an audience question."
+        },
+        {
+          "id": "d",
+          "label": "Ask everyone outside Sales to delete their own credential for it",
+          "correct": false,
+          "feedback": "Housekeeping by request is not access control. Anyone can simply reconnect, because the grant still says they may."
+        }
+      ],
+      "explanation": "Narrowing always means: take away the broad grant first, then hand it to the groups that should keep it. Warn Sales that the tool blinks off for a moment in between."
+    },
+    {
+      "type": "slide",
+      "id": "hidden-locked",
+      "icon": "🔒",
+      "title": "An absence has two meanings",
+      "bodyMd": "Integrations outside your subscription are **not shown at all** on the organisation page — no padlock, no greyed-out row. You can only hand out what you have — but because a missing row looks the same as a row that was never built, admins report *\"that integration does not exist\"* when they mean *\"we never bought it\"*. An empty tab reads **\"Your subscription doesn't include any integrations yet.\"**\n\nTo see what you *do* have, leave Settings and open the admin dashboard at **Admin → Access → Ceiling**: a read-only list of your organisation's capabilities, grouped as **Features**, **Beta features** and **Integrations** with a count each. Absent there means the plan or licence does not include it. Check it before you promise anything.\n\nThe **Grants** rail beside it shows an org admin only Features and Beta features — integrations stay on **Settings → Organisation → Integrations**."
+    },
+    {
+      "type": "sim",
+      "id": "route-request",
+      "icon": "🧩",
+      "title": "Four requests, four different levers",
+      "instruction": "Van Dijk Groep's inbox on a Monday morning. Match each request to the lever that actually answers it.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "p1",
+            "left": "\"Everyone here should be able to turn a chat answer into a slide deck.\"",
+            "right": "Grant it on All members",
+            "note": "One broad audience, no sensitivity — the All-members scope is exactly what it is for."
+          },
+          {
+            "id": "p2",
+            "left": "\"Only HR may reach payroll and leave planning.\"",
+            "right": "Grant it to the HR group alone",
+            "note": "Never grant a sensitive tool to All members first: you cannot take it back per group afterwards."
+          },
+          {
+            "id": "p3",
+            "left": "\"Inkoop — purchasing — wants a supplier portal, and it is on neither the Integrations tab nor the Ceiling list.\"",
+            "right": "Change the subscription — the ceiling is not yours",
+            "note": "Missing from the read-only Ceiling list means the plan or licence does not include it. No amount of granting helps."
+          },
+          {
+            "id": "p4",
+            "left": "\"Inkoop has the grant, but the agent still will not file a ticket for Pieter.\"",
+            "right": "Pieter adds his own credential under Connections",
+            "note": "Gate 3. The grant gives the right to use a tool; the credential is personal and the user supplies it."
+          }
+        ]
+      }
+    },
+    {
+      "type": "slide",
+      "id": "settings-tab",
+      "icon": "🔧",
+      "title": "The other tab: where org-owned credentials live",
+      "bodyMd": "Beside **Integration access** sits **Integration settings**, with a plain promise at the top: *\"Configure the integrations themselves — credentials, instance URLs and workflows.\"*\n\nSo far every credential has been personal. This tab holds the exceptions: tools wired **once, for the whole organisation**, where nobody is asked for an account of their own. That changes nothing about the audience question — it only moves who does the typing.\n\nThe biggest row is **n8n** — look for the n8n logo and the sub-line *\"Connect n8n workflows as AI tools\"*. n8n is a self-hosted workflow automation tool, and wiring it here turns each of its workflows into a tool your agents can call. The row opens three tabs of its own:\n\n- **Connection** — the **n8n Instance URL** (for Van Dijk: `https://flows.vandijkgroep.nl`) and the **API Key**, then **Test Connection**, which runs diagnostics and names what is wrong before anyone depends on it — including whether n8n is granted at all, and whether your own account may run its tools.\n- **Workflows** — the workflows that connection brings back, so you can see what you actually wired up.\n- **Permissions** — which groups may *run* workflows and which may *modify* them.\n\nGranting and configuring stay two separate jobs. Van Dijk had to do both before Inkoop saw a single n8n workflow."
+    },
+    {
+      "type": "sim",
+      "id": "wire-engine",
+      "icon": "🔗",
+      "title": "Wire n8n for Inkoop, in the order that works",
+      "instruction": "Van Dijk Groep runs n8n on its own server, and Inkoop wants its purchase-order workflows as agent tools. Put the six moves in the order that gets there without a dead end.",
+      "sim": {
+        "kind": "order",
+        "items": [
+          {
+            "id": "tab",
+            "label": "Open Settings → Organisation → Integrations and switch to the Integration settings tab"
+          },
+          {
+            "id": "conn",
+            "label": "In the n8n row, on Connection, fill in the n8n Instance URL and the API Key"
+          },
+          {
+            "id": "test",
+            "label": "Click Test Connection and fix whatever the diagnostics flag"
+          },
+          {
+            "id": "list",
+            "label": "Open the Workflows tab to confirm Inkoop's purchase-order workflows come back"
+          },
+          {
+            "id": "perms",
+            "label": "On Permissions, let the Inkoop group run workflows — but not modify them"
+          },
+          {
+            "id": "grant",
+            "label": "Return to Integration access and grant n8n to the Inkoop group"
+          }
+        ],
+        "solution": [
+          "tab",
+          "conn",
+          "test",
+          "list",
+          "perms",
+          "grant"
+        ],
+        "feedback": "Credentials first, proof second. Test Connection and the Workflows list are the only evidence you have that the n8n URL and key are right; deciding permissions or handing out the grant before that means Inkoop discovers your typo for you. The grant comes last because it is the switch that makes the tool visible — flip it once the thing behind it is known to work."
+      }
+    },
+    {
+      "type": "quiz",
+      "id": "workflow-perms",
+      "question": "Inkoop has the n8n grant, Test Connection is green, and they can run workflows — but the AI refuses to edit one on their behalf. Where do you fix it?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Integration settings → the n8n row → Permissions, and give the Inkoop group the right to modify workflows",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Integration access → grant n8n to the Inkoop group a second time",
+          "correct": false,
+          "feedback": "They already have the grant — that is why running works at all. The grant is one switch per capability; how far someone may go inside the tool is decided on the tool's own Permissions tab."
+        },
+        {
+          "id": "c",
+          "label": "Ask each Inkoop member to add their own n8n credential under Settings → Connections",
+          "correct": false,
+          "feedback": "This is one of the org-owned credentials: the Instance URL and API Key are stored once on the Integration settings tab. There is no personal credential for them to add."
+        },
+        {
+          "id": "d",
+          "label": "Raise the ceiling — modifying workflows is a separate subscription item",
+          "correct": false,
+          "feedback": "The ceiling decides whether n8n exists for your organisation at all, not what one group may do with it. Nothing on the Ceiling list splits running from modifying."
+        }
+      ],
+      "explanation": "Two levers, two questions. **Integration access** answers *may this group use the tool*; the row's own **Permissions** tab answers *how far may they go*. Run and modify are separate — handing out modify means the AI may create, change and delete workflows in your n8n instance on someone's behalf, so keep it with the people who own those workflows."
+    },
+    {
+      "type": "slide",
+      "id": "maps",
+      "icon": "🗺️",
+      "title": "Google Maps: one key, and the small print",
+      "bodyMd": "The same tab carries a **Google Maps** row — *\"Directions, route maps & places search in chat\"*. Paste an API key, save, and the sub-line becomes *\"Maps, directions & places — configured\"* with a green **Connected** pill.\n\nOne key, one organisation. There is no per-group key and nobody adds a personal one, so the audience is still decided where it always is: on **Integration access**. Grant Maps to Inkoop alone and only Inkoop's supplier-visit routes run on the key you stored — and on the bill behind it.\n\nThe pill only means a key is stored. Under the field sits the part most people skim: enable **Directions API**, **Places API** and **Maps Embed API** in Google Cloud Console. A key with, say, only Places enabled saves cleanly, shows green, and then fails the first time Pieter asks for a route.\n\nSo a green badge is not proof of a working tool. It is proof that somebody filled in a field — which is why the n8n row has a **Test Connection** button and this one does not. If the whole tab reads *\"No integrations are enabled for this organisation. Contact your platform administrator\"*, there is nothing here to configure."
+    },
+    {
+      "type": "slide",
+      "id": "arrivals",
+      "icon": "📥",
+      "title": "Rows you did not create, and the condition behind each",
+      "bodyMd": "Two rows in this area appear on somebody else's say-so. Recognising the condition saves an afternoon of hunting.\n\n**MCP servers.** An MCP server is an external tool server that hands your agents extra tools. Installing one means running a program on the deployment, so it is a *platform super-admin* act, and an **Enterprise** feature. Once installed it stops being special: it shows up in the **Integrations** section of the access matrix as an ordinary card, you grant it to All members or a group, and every user stores their own credential for it under **Settings → Connections**.\n\n**GitHub Sync.** The **Settings → Organisation → GitHub Sync** row — mirroring agent configurations to a repository — appears only once a GitHub personal access token with **repo** scope has been connected on **Settings → Connections**. The status check reads *your own* account, not the organisation's.\n\nSame shape as the ceiling, one step down: an absent row is usually a condition somebody has not met yet, not a missing feature."
+    },
+    {
+      "type": "quiz",
+      "id": "mcp-who",
+      "question": "Inkoop wants an MCP server the deployment does not have yet, so its agents can reach the supplier catalogue. Who does what?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "You install it from Settings → Organisation → Integrations",
+          "correct": false,
+          "feedback": "There is no install button there. The organisation page only hands out capabilities that already exist on the deployment."
+        },
+        {
+          "id": "b",
+          "label": "A platform super-admin installs it, you grant it like any integration, each user stores their own credential",
+          "correct": true
+        },
+        {
+          "id": "c",
+          "label": "Each user adds it themselves under Settings → Connections",
+          "correct": false,
+          "feedback": "Connections stores credentials for servers that already exist. It cannot define a new one — installing an MCP server means running a program on the server itself."
+        },
+        {
+          "id": "d",
+          "label": "MCP servers are instance-wide, so they cannot be limited to one group",
+          "correct": false,
+          "feedback": "Once installed, a server appears as a normal grantable card in the Integrations section, so it can go to a single group like anything else."
+        }
+      ],
+      "explanation": "Installing an MCP server is an instance-wide act reserved for a platform super-admin, and it is an Enterprise feature. After that it behaves like every other integration: your grant, their credential."
+    },
+    {
+      "type": "slide",
+      "id": "nextcloud",
+      "icon": "☁️",
+      "title": "Nextcloud breaks the rule on purpose",
+      "bodyMd": "Same question — who may use what — with the answer inverted. If your organisation is paired to a Nextcloud instance, **Integration settings** also shows **Nextcloud integrations**, and it is the one surface here that subtracts.\n\n- **Org-wide** — tick the Nextcloud apps your agents may touch. That is the default for every member.\n- **Per-group exceptions** — expand a synced group and tick **\"Disable <tool>\"**. It is a *disable* list, and **enable wins**: a user keeps a tool as long as one of their groups still allows it.\n\nSo the habit from the matrix — *grant it to the one group that should have it* — backfires here: you must switch it on for everyone and then disable it for **every** group that should not have it, or a second membership hands it straight back.\n\nA tool switched off org-wide is greyed everywhere, tooltip *\"Enable org-wide first\"*. An empty group list means nothing has synced yet — press **Sync now** on **Settings → Organisation → Nextcloud Sync**, which decides which *people* come across, while this panel decides which *apps* agents may use."
+    },
+    {
+      "type": "quiz",
+      "id": "github-row",
+      "question": "The director — Van Dijk's only organisation admin — wants to mirror agent configurations to a repository, but there is no GitHub Sync row under Organisation. Why?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "You have not connected a GitHub token yet on your own Connections screen",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "The subscription does not include it, so it is hidden like a locked integration",
+          "correct": false,
+          "feedback": "Locked integrations are hidden on the access tab, but the GitHub Sync menu row is not driven by the ceiling — it is driven by whether a GitHub account is connected."
+        },
+        {
+          "id": "c",
+          "label": "You must grant GitHub on the Integration access tab before the row appears",
+          "correct": false,
+          "feedback": "A grant never creates a menu row. The row keys off your own GitHub connection status, which comes from a personal access token."
+        },
+        {
+          "id": "d",
+          "label": "GitHub Sync only exists on self-hosted deployments",
+          "correct": false,
+          "feedback": "That is true of the Azure Configuration row, which appears only on self-hosted deployments. GitHub Sync is not deployment-specific."
+        }
+      ],
+      "explanation": "The row appears only once the status check on your own account reports a connected GitHub. The token is personal and needs repo scope — so write down whose token it is: if that person leaves, the mirroring stops."
+    },
+    {
+      "type": "action",
+      "id": "grant-group",
+      "icon": "🎛️",
+      "checkId": "org-group-grant",
+      "title": "Grant one integration to one group",
+      "instruction": "Open Integration access, pick a group in the left rail (create one under Users & Groups if the list is empty), and switch on a single integration that group actually needs — one All members does not already have, or the card will be greyed as inherited. Wait for \"Saved\", then come back: we check that at least one group carries a grant of its own.",
+      "launch": {
+        "navigateTo": "settings/organisation/integrations",
+        "label": "Open Integrations"
+      }
+    },
+    {
+      "type": "exercise",
+      "id": "aim-plan",
+      "icon": "🎯",
+      "exerciseId": "ex-org-access-aim-plan",
+      "title": "Your turn: aim three tools at three audiences",
+      "instruction": "Van Dijk Groep asks for three things in one week. (1) Everybody should be able to turn a chat answer into a slide deck. (2) Only HR may reach the payroll system — and the board hints that Finance might need it later too. (3) Inkoop wants route planning in chat for supplier visits, and its purchase-order workflows from n8n available to their agents. Write five to seven sentences: for each of the three, which scope you grant it on and why, and what still has to happen after the grant before anyone sees the tool work. Name the surface you would use for each follow-up step — and be explicit about which of these credentials you type once for the whole organisation and which each colleague must supply. Say which request you would check against the Ceiling list before you promise anything.",
+      "placeholder": "e.g. The deck tool goes on All members — nothing sensitive, everyone benefits. Payroll goes to the HR group only, never All members, because … After the grant, each of them still has to … For Inkoop the credentials are different, because …",
+      "passScore": 70,
+      "maxAttempts": 3
+    },
+    {
+      "type": "tour",
+      "id": "connections",
+      "target": "[data-tour=\"integration-card\"]",
+      "navigateTo": "settings/integrations",
+      "placement": "right",
+      "optional": true,
+      "timeoutMs": 7000,
+      "icon": "🔌",
+      "title": "The half you cannot do for them",
+      "body": "This is the personal Connections screen every colleague has. Your grant put the card here; only they can fill it in, and a connected row carries a green Connected badge. Say that in the announcement mail, or your inbox fills up with \"it does not work\"."
+    },
+    {
+      "type": "slide",
+      "id": "recap",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "- **Aim a capability.** All members for anything harmless, a group for anything sensitive — and narrow by removing the broad grant first, because a group can never un-inherit.\n- **Read an absence correctly.** Hidden on the organisation page means outside the subscription; **Admin → Access → Ceiling** tells you what you really have. A row that is missing one level down is usually an unmet condition: no paired Nextcloud, no personal GitHub token.\n- **Know who owns the credential.** Most are personal, under **Settings → Connections**. The **n8n Instance URL** and **API Key** and the **Google Maps** key are org-owned, typed once on **Integration settings** — and the audience is still the grant.\n- **Know when the rules flip.** How far a group may go inside n8n is decided on that row's own **Permissions** tab, run apart from modify; **Test Connection** is the only proof you wired it right. Nextcloud integrations subtracts instead of adding, and enable wins.\n\nEvery grant is reversible with the same toggle you used to give it. The personal connection is the half that is never yours to make — that part always belongs to the colleague."
+    }
+  ],
+  "rubrics": {
+    "ex-org-access-aim-plan": {
+      "title": "Aiming three tools at three audiences",
+      "task": "The learner had to pick a scope for three requests — a slide-deck tool for everyone, a payroll system for HR only (with Finance possibly joining later), and route planning plus n8n workflows for Inkoop — say what still has to happen after each grant before the tool works, name the surface for each follow-up, separate org-owned credentials from personal ones, and say which request they would check against the Ceiling list first.",
+      "criteria": [
+        "Puts the broad, harmless tool on All members and the sensitive payroll tool on the HR group alone, with the grant-only reason: an All-members grant cannot be taken back per group, and Finance can simply be added as a second group grant later.",
+        "Says the grant is only half of it: for the payroll and deck tools each user still stores a personal credential under Settings → Connections, and an agent stays silent until they do.",
+        "Treats Inkoop's two tools as org-owned and says so: the Google Maps key and n8n's Instance URL plus API Key are typed once on the Integration settings tab, so the audience is still decided by the grant — bonus for Test Connection or the Workflows tab as the proof step, for the Permissions tab splitting run from modify, or for the three Google Cloud APIs (Directions, Places, Maps Embed).",
+        "Checks the ceiling before promising — naming Admin → Access → Ceiling, or the fact that an integration outside the subscription is hidden rather than padlocked on the organisation page."
+      ],
+      "passScore": 70,
+      "guidance": "Pass an answer that aims all three sensibly and shows the grant-versus-credential split at least once, including that Inkoop's two tools are wired once for the organisation. Fail an answer that grants payroll to All members 'and then restricts HR', that expects users to add a personal Maps or n8n credential under Connections, or that treats a saved key or a granted card as proof the tool works. Granting payroll to HR and Finance now passes only if it says why that is acceptable here but never on All members. Ignore spelling and Dutch or English wording."
+    }
+  },
+  "practiceTopic": {
+    "title": "Organisation integrations and access",
+    "summary": "How an org admin hands out integrations to All members or a group, and which surface owns which decision.",
+    "facts": [
+      "Settings → Organisation → Integrations has two tabs: \"Integration access\" (who may use what) and \"Integration settings\", which carries the org-owned credentials — the n8n row (\"Connect n8n workflows as AI tools\") and the Google Maps row (\"Directions, route maps & places search in chat\").",
+      "The n8n row has its own Connection, Workflows and Permissions tabs: Connection holds the n8n Instance URL and API Key with a \"Test Connection\" button, Workflows lists what comes back, and Permissions decides which groups may run workflows and which may modify them.",
+      "The access matrix is grant-only: effective access is All-members grants plus every group the person belongs to, and inside a group an All-members grant is ticked, read-only and labelled \"Granted to all members\" — it can never be un-inherited.",
+      "Integrations outside the subscription are hidden on the organisation page, not padlocked; Admin → Access → Ceiling is a read-only list of the capabilities the organisation does have, grouped as Features, Beta features and Integrations.",
+      "Installing an MCP server is a platform super-admin act and an Enterprise feature; the org admin only grants the installed server, and each user stores their own credential.",
+      "The Organisation → GitHub Sync menu row appears only after you connect a GitHub personal access token with repo scope on Settings → Connections — the check reads your own account's status.",
+      "Nextcloud integrations is the exception: Org-wide defaults plus per-group \"Disable <tool>\" exceptions, where a user keeps a tool if at least one of their groups still allows it.",
+      "A grant is not a connection: the Google Maps key also needs Directions API, Places API and Maps Embed API enabled in Google Cloud Console before routes work, and a green \"Connected\" pill only means a key is stored."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "org-group-grant",
+      "existing": false,
+      "label": "Grant an integration to a group",
+      "hint": "In Settings → Organisation → Integrations → Integration access, pick a group in the left rail and switch one integration on.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/auth/me/group-access",
+          "returns": "{ orgId, capabilities[], ceiling[], everyone: [capabilityId], groups: [{ id, name, granted: [capabilityId] }] } — the caller's own organisation; requires an org-admin-like session"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "group-granted",
+          "label": "At least one group has its own grant",
+          "hint": "Pick a group in the left rail (not All members) and toggle an integration on; wait for \"Saved\".",
+          "rule": "groups.some(g => Array.isArray(g.granted) && g.granted.length > 0)"
+        },
+        {
+          "id": "not-inherited",
+          "label": "The grant is the group's own, not inherited",
+          "hint": "A card labelled \"Granted to all members\" is inherited and does not count — grant something the whole organisation does not already have.",
+          "rule": "groups.some(g => (g.granted || []).some(id => !everyone.includes(id)))"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,235 @@
+{
+  "id": "compliance-training-and-literacy",
+  "icon": "🎓",
+  "estMinutes": 10,
+  "title": "AI literacy, and who is trained",
+  "desc": "The one Art. 4 attestation in Settings, the competence record per member, and the clock that stops both going stale.",
+  "gate": { "permission": "admin_compliance", "feature": "compliance_hub_gdpr" },
+  "learningGoal": "After this lesson you can record your organisation's AI-literacy measures against EU AI Act Art. 4, keep the per-member competence record current, and put the annual re-confirmation on the obligations clock so nobody has to remember it.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "intro",
+      "icon": "🧭",
+      "title": "The question procurement will ask",
+      "bodyMd": "Van Dijk Groep is a sixty-person Dutch installation firm. Its engineers let agents draft quotations and summarise site reports. Marieke runs the workspace as organisation admin.\n\nA customer's procurement officer sends one line: *\"Under Art. 4 of the AI Act, how do you ensure the people operating these systems are AI-literate?\"*\n\nThat obligation has applied since **2 February 2025**, and it applies to **deployers** — organisations using AI systems — not only to the companies that build them.\n\nTwo places in the Compliance Hub answer it, and they are not the same place:\n\n- the rail row **Settings**, group **AI Act**\n- the register **Training & competence**, in the **Registers** group of the rail\n\nNeither of them trains anybody. Both of them record."
+    },
+    {
+      "type": "slide",
+      "id": "two-levels",
+      "icon": "🪪",
+      "title": "One date for the organisation, one row per person",
+      "bodyMd": "**AI literacy is answered once, for the whole organisation.** It is a single stamp in Compliance → **Settings**: you confirmed that guidelines, briefings or training exist for the people who operate AI here. One date, one actor.\n\n**Competence is answered per member.** Every person in the organisation gets a row under **Training & competence** with what they acknowledged, what they completed, and whether a training attestation stands.\n\nThe split follows the two rules underneath. Art. 4 asks what measures *the organisation* took. ISO 27001 control **A.6.3** — awareness, education and training — asks per person.\n\nBoth are **attestations** — human declarations with a timestamp, not something the software measured. That is why the Overview reports its score split as **automated / attestation / hybrid** rather than blending the two."
+    },
+    {
+      "type": "quiz",
+      "id": "q-which",
+      "icon": "❓",
+      "question": "Van Dijk Groep gives every engineer a 45-minute briefing on its new AI-use guideline and puts the guideline on the intranet. Which action makes the AI Act Art. 4 check stop warning?",
+      "multi": false,
+      "choices": [
+        { "id": "a", "label": "In Compliance → Settings, group AI Act, press Confirm measures now and then Save.", "correct": true },
+        { "id": "b", "label": "Press Attest training on every engineer's row under Training & competence.", "correct": false, "feedback": "Those rows are the per-person competence record. The Art. 4 check reads one organisation-level field in Settings, so it keeps warning however many rows you attest." },
+        { "id": "c", "label": "Publish the guideline as a policy document so everyone acknowledges it.", "correct": false, "feedback": "Acknowledgements of a published policy are what the Policies column counts, and publishing is worth doing — but the Art. 4 check never looks at policy acknowledgements; it reads one confirmation date." },
+        { "id": "d", "label": "Nothing — the Learning column rises by itself once people have been briefed.", "correct": false, "feedback": "That column counts modules completed in the Learning Center. A briefing you gave in a meeting room is invisible to it, and it is not what the Art. 4 check reads." }
+      ],
+      "explanation": "Art. 4 is answered by one organisation-level attestation. It lives in Compliance → Settings under the AI Act group, and it only becomes real once the page is saved."
+    },
+    {
+      "type": "slide",
+      "id": "settings-how",
+      "icon": "✍️",
+      "title": "Where the attestation is made — and the step people miss",
+      "bodyMd": "Rail → **Settings** → group **AI Act**, described as *\"AI literacy (Art. 4) and the marking of AI-generated content (Art. 50(2))\"*. Inside it sits the block **AI literacy (EU AI Act Art. 4)**, with two things to touch:\n\n- **Training material URL (optional)** — paste the intranet page or the course link.\n- a stamp with one button, **Confirm measures now**.\n\nBefore anything is confirmed the stamp reads **Not confirmed yet**. Press the button and it reads **Confirmed {date} — remember to save**.\n\nRead that ending again. The button only fills the form. At the bottom of Settings a **Save** button sits in a sticky bar, with **Unsaved changes** beside it while the form differs from what is stored. Navigate away without pressing **Save** and nothing was attested."
+    },
+    {
+      "type": "quiz",
+      "id": "q-save",
+      "icon": "❓",
+      "question": "Marieke pressed Confirm measures now, saw \"Confirmed 3 March — remember to save\", then went to the Overview and pressed Run now. The check still reports: \"No AI-literacy attestation on record.\" What happened?",
+      "multi": false,
+      "choices": [
+        { "id": "a", "label": "The stamp only sat in the form; without pressing Save at the bottom of Settings, nothing was stored.", "correct": true },
+        { "id": "b", "label": "Attestations only take effect at the next automatic sweep, six hours later.", "correct": false, "feedback": "Run now re-runs the checks immediately against stored state — that is the point of the button. The timing is not the problem; the storing is." },
+        { "id": "c", "label": "The Training material URL is required before a confirmation counts.", "correct": false, "feedback": "That field is labelled \"(optional)\". Leaving it empty only means the passing detail line does not add the note that training material is linked." },
+        { "id": "d", "label": "Confirming AI literacy needs the Data Protection Officer role, which she does not hold.", "correct": false, "feedback": "Organisation Admin, Data Protection Officer and ISMS Internal Auditor all carry the compliance permission. If she could not act, the button would not have been there." }
+      ],
+      "explanation": "The stamp writes a date into the form, and the wording says so: \"Confirmed {date} — remember to save\". The Settings page stores nothing until you press Save."
+    },
+    {
+      "type": "slide",
+      "id": "art4-check",
+      "icon": "📋",
+      "title": "What the check actually does with that date",
+      "bodyMd": "The check is called **AI literacy programme**, its home framework is the AI Act, its article is 4, its severity is **medium** and its verification label is **attestation**.\n\nIt reads two stored values — the confirmation date and the optional material URL — and then does arithmetic on one number, the age of the date:\n\n- no date at all → **warn**, with the advice to confirm your training measures under Compliance → Settings\n- older than **365 days** → **warn**: re-confirm annually, because staff and systems change\n- anything newer → **pass**, and the detail line says how many days ago you attested\n\nIt never fails, and it never verifies. Medium severity carries weight 1 in the score; a warn counts half a pass, so a stale attestation quietly costs half of its weight in the AI Act score and lands in **Needs attention**."
+    },
+    {
+      "type": "sim",
+      "id": "which-record",
+      "icon": "🧩",
+      "title": "Five things that happened at Van Dijk Groep",
+      "instruction": "Each of these landed on Marieke's desk this month. Match it to the place in the hub that actually records it.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "briefing",
+            "left": "Every engineer sat through the AI-use briefing and the guideline is now on the intranet.",
+            "right": "Settings → AI Act → Confirm measures now",
+            "note": "One organisation-level attestation, with the intranet page in Training material URL (optional). This is the only thing the Art. 4 check reads."
+          },
+          {
+            "id": "course",
+            "left": "Anne spent two days at an external security-awareness course and came back with a certificate.",
+            "right": "Attest training on Anne's row",
+            "note": "Per person, under People & competence. Record attestation stores who attested, when, and an optional note naming the course, the provider and the certificate."
+          },
+          {
+            "id": "policy",
+            "left": "Marieke wants to see who has actually read the information-security policy as published.",
+            "right": "The Policies column on the member's row",
+            "note": "Acknowledgements of the published version, counted by the platform. Nothing to attest — this one is measured."
+          },
+          {
+            "id": "modules",
+            "left": "A new colleague worked through three lessons in the Learning Center in her first week.",
+            "right": "The Learning column on the member's row",
+            "note": "Platform learning progress, also counted automatically. It says she learned something here, not that she is trained for her job."
+          },
+          {
+            "id": "nextyear",
+            "left": "Nobody at Van Dijk Groep will remember to redo any of this next March.",
+            "right": "Add obligation, with Repeat (months)",
+            "note": "The obligations clock on the same page. A repeat interval is what makes the work come back on its own."
+          }
+        ]
+      }
+    },
+    {
+      "type": "slide",
+      "id": "register-clock",
+      "icon": "⏳",
+      "title": "The competence table is a table of clocks",
+      "bodyMd": "Rail → **Training & competence**. The intro line sets the scope: *\"Who acknowledged which policy, who was trained, and what the ISMS owes itself next.\"*\n\nUnder **People & competence** each member has four columns: **Member**, **Policies**, **Learning** and **Training valid until**.\n\nThat fourth column is the one admins misread. An attestation is good for **twelve months**, and that window *is* the clock: the cell counts down from the day you attested to twelve months later.\n\nSomebody who was never attested reads **Never attested** — no clock, and deliberately not a red one. You cannot be overdue for something nobody ever claimed.\n\n**Attest training** opens a drawer with a **Note** field (*\"Optional note — course, provider, certificate…\"*) and the button **Record attestation**. Afterwards the row reads **Training attested {date}** with **Re-attest** beside it. The rail row keeps the tally as `{done}/{total}`."
+    },
+    {
+      "type": "quiz",
+      "id": "q-stale",
+      "icon": "❓",
+      "question": "Van Dijk Groep confirmed its AI-literacy measures 400 days ago and nothing has been touched since. What does the next run report for the AI literacy programme check?",
+      "multi": false,
+      "choices": [
+        { "id": "a", "label": "A warning that the attestation is 400 days old and should be re-confirmed annually.", "correct": true },
+        { "id": "b", "label": "A failure — the attestation has expired, so the check treats it as absent.", "correct": false, "feedback": "This check has only two outcomes, pass and warn. An ageing attestation is never a red item; it warns exactly as an absent one does." },
+        { "id": "c", "label": "A pass — the confirmation is stored, and a stored date does not expire.", "correct": false, "feedback": "The check measures the age of the date. Past 365 days it moves to warn, because the staff and the systems in use have probably changed since." },
+        { "id": "d", "label": "Nothing at all — the check is skipped until someone confirms again.", "correct": false, "feedback": "It is never skipped. It runs on every sweep and reports warn, which puts it into Needs attention and costs half of its weight in the AI Act score." }
+      ],
+      "explanation": "Never confirmed and confirmed too long ago produce the same warning, on purpose: both mean nobody can say today that the people operating AI here know what they are doing."
+    },
+    {
+      "type": "slide",
+      "id": "obligations",
+      "icon": "🔁",
+      "title": "The clock that brings the work back",
+      "bodyMd": "The second half of the same page is **Obligations & deadlines** — the ISMS clock for recurring work.\n\n**Add obligation** opens a drawer with:\n\n- **Kind** — Policy review, SoA review, Internal audit, Management review, **Training**, Access review, Supplier review, Penetration test, Custom\n- **Title**, and **Subject** for a policy slug, control reference or supplier\n- **Due date**\n- **Repeat (months)** — *\"With a repeat interval, completing creates the next occurrence automatically — reminders go out 30, 7 and 0 days before due.\"*\n- **Owner**, which defaults to **No owner**\n\n**Create obligation** puts it on the clock; **Mark done** completes it, after which the row reads **Done {date}**. Give it a repeat interval and completing it immediately creates the next occurrence."
+    },
+    {
+      "type": "quiz",
+      "id": "q-recur",
+      "icon": "❓",
+      "question": "Marieke adds \"Re-confirm AI literacy\" with a due date but leaves Repeat (months) empty. A year later she presses Mark done. What happens next?",
+      "multi": false,
+      "choices": [
+        { "id": "a", "label": "The row reads Done, nothing new is created, and next year nothing reminds anyone.", "correct": true },
+        { "id": "b", "label": "A new occurrence appears twelve months out, because the Art. 4 window is a year.", "correct": false, "feedback": "The roll-forward comes from Repeat (months) on the obligation, not from the check. Without an interval the obligation is a one-off." },
+        { "id": "c", "label": "Completing the obligation also refreshes the AI-literacy stamp in Settings.", "correct": false, "feedback": "Two separate records. Completing an obligation records the obligation; the attestation date only moves when someone presses Confirm measures now and saves." },
+        { "id": "d", "label": "The reminders keep arriving at 30, 7 and 0 days until someone confirms in Settings.", "correct": false, "feedback": "Reminders run ahead of a due date, not after it is completed. A finished one-off obligation is simply silent." }
+      ],
+      "explanation": "An obligation without a repeat interval fires once. The whole point of putting the annual re-confirmation on the clock is the interval, because the check itself will only start warning after the year has already passed."
+    },
+    {
+      "type": "exercise",
+      "id": "ex-measures",
+      "icon": "🎯",
+      "exerciseId": "ex-compliance-training-and-literacy-measures",
+      "title": "Your turn: the attestation Van Dijk Groep could defend",
+      "instruction": "Marieke is about to press Confirm measures now. In four or five sentences, write what she would be declaring: which AI-literacy measures actually exist at Van Dijk Groep, who they cover, where the material lives (what she would paste into Training material URL), and how the re-confirmation is scheduled so it is not forgotten. Be concrete about the organisation, not about the regulation — a strong answer names real measures, real people and a real date, and is honest about what the attestation does not prove.",
+      "placeholder": "e.g. Everyone who uses an agent at Van Dijk Groep — 38 of our 60 people — went through a 45-minute briefing on what the tools may and may not be given…",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "action",
+      "id": "do-obligation",
+      "icon": "⏰",
+      "checkId": "training-obligation-planned",
+      "title": "Put the annual re-confirmation on the clock",
+      "instruction": "Open Training & competence and press Add obligation. Set Kind to Training, give it a title your successor would understand, pick a due date, set Repeat (months) to 12 and choose an owner — then press Create obligation. This is a planning act, not an attestation: you are scheduling the work, not declaring it done.",
+      "launch": { "navigateTo": "settings/organisation/compliance", "label": "Open Compliance" }
+    },
+    {
+      "type": "slide",
+      "id": "recap",
+      "icon": "🏁",
+      "title": "What you can do now",
+      "bodyMd": "- **Answer the Art. 4 question.** Compliance → Settings → group **AI Act**: paste the material link, press **Confirm measures now**, and then press **Save** — the stamp says *remember to save* because the button alone stores nothing.\n- **Read the check honestly.** **AI literacy programme** is medium severity and labelled **attestation**: no date warns, a date over 365 days old warns, anything newer passes. It records a declaration; it never verifies that training happened.\n- **Keep the competence table current.** **Member · Policies · Learning · Training valid until**, with **Never attested** where no one has declared anything, and **Attest training** → **Record attestation** for courses taken outside the platform, valid twelve months.\n- **Make next year automatic.** An obligation of kind **Training** with **Repeat (months)** set brings the re-confirmation back on its own, with reminders 30, 7 and 0 days before it is due.\n\nEverything here is reversible: a confirmation can be re-made, an attestation re-attested, an obligation completed or left."
+    }
+  ],
+  "rubrics": {
+    "ex-compliance-training-and-literacy-measures": {
+      "title": "A defensible AI-literacy attestation",
+      "task": "Write, in four or five sentences, what Van Dijk Groep would be declaring when it presses Confirm measures now: the measures that exist, who they cover, what goes into Training material URL, and how the annual re-confirmation is scheduled.",
+      "criteria": [
+        "Names at least one concrete measure (a briefing, a written AI-use guideline, an induction step, a course) rather than repeating the words of Art. 4.",
+        "Says who the measures cover — the people who actually operate the AI systems — and does not silently claim the whole company if only part of it was trained.",
+        "Points at something that could go in Training material URL (optional): an intranet page, a guideline document or a course link.",
+        "Schedules the re-confirmation within a year, ideally as a recurring Training obligation with Repeat (months), because the check warns once the date passes 365 days.",
+        "Shows awareness that this is an attestation: a declaration with a date and an actor, not proof that anyone learned anything."
+      ],
+      "passScore": 70,
+      "guidance": "Pass a concrete, modest answer. Do not pass an answer that only paraphrases the AI Act, that claims a measure the learner has not described (\"we are fully compliant\", \"all staff are certified\") with nothing behind it, that confuses this organisation-level attestation with per-person Attest training, or that treats the confirmation as permanent with no plan to renew it."
+    }
+  },
+  "practiceTopic": {
+    "title": "AI literacy and the competence record",
+    "summary": "How EU AI Act Art. 4 is attested for the organisation, how per-member competence is recorded, and how the obligations clock keeps both from going stale.",
+    "facts": [
+      "The AI-literacy attestation lives in Compliance → Settings, group AI Act: the field Training material URL (optional) and the stamp AI literacy (EU AI Act Art. 4) with the button Confirm measures now.",
+      "Confirm measures now only fills the form — the stamp then reads \"Confirmed {date} — remember to save\", and nothing is stored until the Save button at the bottom of Settings is pressed.",
+      "The check AI literacy programme is medium severity with the verification label attestation: it warns when nothing is confirmed, warns again once the confirmation is older than 365 days, and otherwise passes.",
+      "Training & competence shows Member, Policies, Learning and Training valid until per member; someone with no attestation reads Never attested, and the rail row shows {done}/{total}.",
+      "Attest training opens a Note field (\"Optional note — course, provider, certificate…\") and Record attestation; the row then reads Training attested {date} with Re-attest, and an attestation is valid twelve months.",
+      "Obligations & deadlines on the same page: Add obligation takes Kind, Title, Subject, Due date, Repeat (months) and Owner, and Create obligation puts it on the clock.",
+      "With a repeat interval, completing an obligation with Mark done creates the next occurrence automatically, and reminders go out 30, 7 and 0 days before the due date.",
+      "Obligation kinds are Policy review, SoA review, Internal audit, Management review, Training, Access review, Supplier review, Penetration test and Custom."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "training-obligation-planned",
+      "existing": false,
+      "label": "Put a recurring obligation on the clock",
+      "hint": "In Settings → Compliance → Training & competence, press Add obligation, set Kind to Training and Repeat (months) to 12, then Create obligation.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/compliance/iso/training",
+          "returns": "{ personnel[{user_id, displayName, email, policy_acks, policy_total, learning_done, attested_at, attested_note}], obligations[{id, kind, title, subject, due_at, recur_months, owner_user_id, completed_at}] }"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "on-the-clock",
+          "label": "At least one obligation is on the clock",
+          "hint": "Press Add obligation on the Training & competence page, fill in a title and a due date, and press Create obligation. Set Repeat (months) to 12 as well — the recurrence is stored on the row, not visible here.",
+          "rule": "GET /api/compliance/iso/training → obligations is a non-empty array (personnel is NOT usable: every org has members)",
+          "endpoint": "/api/compliance/iso/training",
+          "expect": {
+            "kind": "nonEmpty",
+            "field": "obligations"
+          }
+        }
+      ]
+    }
+  ]
+}

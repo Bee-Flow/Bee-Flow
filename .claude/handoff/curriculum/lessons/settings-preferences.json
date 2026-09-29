@@ -1,0 +1,306 @@
+{
+  "id": "settings-preferences",
+  "icon": "⚙️",
+  "estMinutes": 11,
+  "title": "Make it behave the way you work",
+  "desc": "Startup, Chat History, Simple Mode, appearance and two-factor — the settings that decide how your day in Bee Flow starts.",
+  "gate": {},
+  "learningGoal": "After this lesson you can decide which startup and history settings suit your working day, find the Settings row that owns any other personal change, and say which of your choices follow your account to another machine.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "where-settings",
+      "icon": "🧭",
+      "title": "A minute a morning, and none of it is a fault",
+      "bodyMd": "Sanne is in her second week at **Van Dijk Groep**, a sixty-person installation firm near Zwolle. She is quick in Bee Flow now, and it still costs her a minute every morning: it reopens last night's agent while her day starts in Direct Chat, the sidebar lists only that one agent's conversations, and on the van's tablet the screen is too pale to read in daylight.\n\nNone of that is broken and none of it needs an administrator. All three are hers to set, which makes this lesson three decisions rather than a tour: **what should open first**, **which conversations the sidebar should list**, and **what the screen should look like**.\n\n**Settings** opens from her own name at the bottom of the sidebar and always lands on **Preferences**, where the first two live. Yours may look slightly different — a self-hosted workspace has no Help & Support row, not every organisation opens the Learning Center to everyone, and an administrator gets an extra **Organisation** group underneath."
+    },
+    {
+      "type": "tour",
+      "id": "account-row",
+      "target": "[data-tour=\"account\"]",
+      "navigateTo": "agents",
+      "placement": "top",
+      "optional": true,
+      "timeoutMs": 7000,
+      "title": "Your name is the way in",
+      "body": "The row at the bottom of the sidebar shows your avatar, your display name and a chevron. Click it and a small menu opens with Settings and Sign out — plus an Admin Dashboard row for accounts that administer the whole installation. This is the way into Settings from anywhere in the app, so it is worth knowing by touch."
+    },
+    {
+      "type": "sim",
+      "id": "which-row",
+      "icon": "🗂️",
+      "title": "Which Settings row owns this?",
+      "instruction": "Six colleagues at Van Dijk Groep want something changed. Send each to the row that owns it. The list runs in a fixed order: Preferences, Appearance, Security, Memory, Connections, Learning Center, Help & Support.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "p1",
+            "left": "\"I want Bee Flow to open on Direct Chat, not on last night's agent.\"",
+            "right": "Preferences",
+            "note": "Preferences holds the everyday rows — Interface Language, Chat History, Startup and Simple Mode — plus your avatar and the Sign out button. It is also where Settings lands by default."
+          },
+          {
+            "id": "p2",
+            "left": "\"On the tablet in the van the screen is too washed out to read in daylight.\"",
+            "right": "Appearance",
+            "note": "Colour is its own tab, one below Preferences. High Contrast exists for exactly this."
+          },
+          {
+            "id": "p3",
+            "left": "\"I have a new work phone and my authenticator app is gone with the old one.\"",
+            "right": "Security",
+            "note": "Security is your own sign-in: two-factor authentication, recovery codes and — if your account signs in with a password — Change password."
+          },
+          {
+            "id": "p4",
+            "left": "\"It keeps writing as if I were still in sales. I moved to planning in June.\"",
+            "right": "Memory",
+            "note": "The Memory row is where every fact Bee Flow has stored about you can be read, corrected or deleted. Fix it there rather than repeating the correction in every chat."
+          },
+          {
+            "id": "p5",
+            "left": "\"My mailbox stopped working in Bee Flow — it is asking me to sign in again.\"",
+            "right": "Connections",
+            "note": "Your own linked accounts live in **Settings → Connections** — that is the name it goes by throughout Bee Flow. Reconnecting an expired account is your job, not an administrator's."
+          },
+          {
+            "id": "p6",
+            "left": "\"I think I have found a bug and I want to ask someone at Bee Flow about it.\"",
+            "right": "Help & Support",
+            "note": "Help & Support is a conversation, not a form: *\"Ask Bee Flow anything. Our AI replies first; a human takes over if needed.\"* Click **New question** and your thread stays there with its status."
+          }
+        ]
+      }
+    },
+    {
+      "type": "slide",
+      "id": "simple-mode",
+      "icon": "🔻",
+      "title": "Simple Mode: fewer things, on purpose",
+      "bodyMd": "The last row under **General** is **Enable Simple Mode**. The line under it says exactly what it does: *\"Show only New Chat, Search, Agents and your chat history. Hides Studio, Meeting Notes, Notebooks, Webpages and other settings.\"*\n\nIt reaches further than the sidebar. The box you type in loses most of its buttons: the suggested prompts, the skills and apps pickers, and the depth gauge — the slider that says how hard the AI should think. Attachments and web search stay. With the gauge gone, Bee Flow picks the depth itself, on **Auto**.\n\nIt trims this screen too. While Simple Mode is on, the **Chat History** and **Startup** rows disappear from Preferences, and the settings list beside them is the **Preferences** row and nothing else. So if the two rows in the next card are not on your screen, look at the toggle first.\n\nIt is a personal preference saved with your account, and the same toggle switches it straight back off."
+    },
+    {
+      "type": "quiz",
+      "id": "q-768",
+      "question": "On a site visit Sanne opens Bee Flow on her phone. The depth gauge beside Send is gone, and so are Studio and Notebooks — but on her laptop that morning everything was there. What happened?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Any screen narrower than 768 pixels runs Simple Mode whether you asked for it or not, and her saved preference is untouched.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Her administrator removed the depth tiers from her group while she was travelling.",
+          "correct": false,
+          "feedback": "An administrator can limit which depths a group may pick, but that would change her laptop just as much — and it would never hide Studio or Notebooks."
+        },
+        {
+          "id": "c",
+          "label": "Opening Bee Flow on a phone switches the Simple Mode toggle on and saves it, so her laptop will be stripped down too.",
+          "correct": false,
+          "feedback": "The phone never writes the preference. Back on her laptop the toggle is exactly where she left it — which is why the phone shows the toggle switched on but greyed out."
+        },
+        {
+          "id": "d",
+          "label": "A rendering bug on small screens — worth a ticket to support.",
+          "correct": false,
+          "feedback": "It is deliberate. The depth gauge, the pills and the Studio surfaces are unusable at phone width, so they are held back rather than squeezed in."
+        }
+      ],
+      "explanation": "Below 768 pixels Bee Flow forces the simplified surface on top of whatever you saved. On the phone the Simple Mode toggle reads as on and is locked, with the note \"Always on for small screens.\" Nothing is lost: widen the window or go back to your laptop and the full app returns."
+    },
+    {
+      "type": "slide",
+      "id": "the-three-rows",
+      "icon": "🎛️",
+      "title": "Language, startup and how history is listed",
+      "bodyMd": "Above Simple Mode sit the rows Sanne actually changes:\n\n- **Interface Language** — only shown when your organisation has more than one language set up. No row means one language, not a fault.\n- **Chat History** — *\"Choose how conversations appear in the sidebar\"*: **Per Agent** shows only the conversations of the agent you are in, **All Chats** puts everything in one timeline.\n- **Startup** — *\"Choose what opens when you launch Bee Flow\"*: **Continue where you left off**, **Always open a specific agent** (which adds a picker underneath), or **Start with Direct Chat**.\n\nThere is no save button anywhere on this screen. Each control writes the moment you pick."
+    },
+    {
+      "type": "exercise",
+      "id": "morning-shape",
+      "icon": "🌅",
+      "exerciseId": "ex-morning-shape",
+      "title": "Say what your own morning needs",
+      "instruction": "Think about how your working day with Bee Flow actually starts. In two or three sentences, name the Startup option you will set (Continue where you left off, Always open a specific agent, or Start with Direct Chat) and the Chat History option you will set (Per Agent or All Chats) — and say what about your mornings makes that pair the right one. If one of them is the default and you are keeping it, say why it already fits.",
+      "placeholder": "Startup: … because my mornings usually begin with … · Chat History: … because when I look for yesterday's work I …",
+      "passScore": 65,
+      "maxAttempts": 4
+    },
+    {
+      "type": "slide",
+      "id": "security-row",
+      "icon": "🔐",
+      "title": "Security is your own sign-in",
+      "bodyMd": "Two rows down sits **Security** — *\"Add a second factor to protect your account at sign-in.\"* It is about you, not about the organisation's policies.\n\nWith two-factor off, the card reads **Two-factor authentication is off** and offers **Enable**: install any authenticator app on your phone, scan the QR code, type the six digits it shows. Bee Flow then prints a set of **recovery codes once** — the way back in when the phone is not with you. If your device clock is more than about thirty seconds out, the screen warns you, because every code would be rejected as invalid otherwise.\n\nOnce it is on, the card reads **Two-factor authentication is on** with **{n} recovery codes remaining**, and offers **Regenerate recovery codes** and **Disable**. Both ask you to confirm with a six-digit code or a recovery code first — nothing here can be switched off by someone who has only borrowed your screen.\n\nAccounts that sign in with a password also get a **Change password** card underneath."
+    },
+    {
+      "type": "quiz",
+      "id": "q-recovery",
+      "question": "Security tells Sanne two-factor is on, with an amber warning and \"2 recovery codes remaining\". She is swapping to a new work phone on Friday. What should she do before she does?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Regenerate the recovery codes now, while the authenticator on her old phone can still confirm it, and keep the new set somewhere she can reach without a phone.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Disable two-factor, swap phones, then enable it again from scratch on the new one.",
+          "correct": false,
+          "feedback": "It would get there, but it needs a code to confirm the disable anyway, and it leaves her account with no second factor in between. Regenerating keeps the protection on the whole time."
+        },
+        {
+          "id": "c",
+          "label": "Nothing — the recovery codes refill by themselves once the old ones have been used.",
+          "correct": false,
+          "feedback": "They never refill. The counter only goes down, which is exactly why the card turns amber at three or fewer. Regenerating replaces the whole set at once."
+        },
+        {
+          "id": "d",
+          "label": "Ask an administrator to reset her two-factor setup after the phones have been swapped.",
+          "correct": false,
+          "feedback": "That is the rescue route once she is already locked out, and worth knowing. While she can still confirm with her own code she does not need to spend anyone else's time on it."
+        }
+      ],
+      "explanation": "Both Regenerate recovery codes and Disable ask you to confirm with a six-digit code or a recovery code — so the cheap moment to act is while you still hold one, not after the phone has gone. Regenerating replaces every remaining code and shows the new set once."
+    },
+    {
+      "type": "slide",
+      "id": "appearance",
+      "icon": "🎨",
+      "title": "Appearance, and the one theme that is not about taste",
+      "bodyMd": "Colour is not in Preferences; it has the tab below it. **Appearance** offers eight themes — **Light**, **Paper**, **Sepia**, **Glass**, **Glass Dark**, **Dark**, **Obsidian** and **High Contrast**.\n\nSeven of those are preference. The eighth is a decision: **High Contrast** is built for readability rather than taste, and it is the one to reach for on a tablet held up in daylight, or by anyone who has been squinting at the screen all week. Pick **Glass** or **Glass Dark** instead and a **Mood** row appears underneath for the palette behind the translucent panels.\n\nAccent colour and typeface are not yours to set; they stay with the administrator so the organisation still looks like one product. An administrator may also lock the theme outright — then the tab shows a lock and the name of the theme you are held to instead of the cards, and there is nothing to click.\n\nYour theme is stored with your account, so it greets you on the next machine you sign in on."
+    },
+    {
+      "type": "slide",
+      "id": "what-travels",
+      "icon": "🧳",
+      "title": "What your phone hides, and what stays behind",
+      "bodyMd": "Two of those rows never appear in Settings on a phone: **Connections** and **Learning Center**. Both are desktop work — linking your Google or Microsoft account, sitting through a lesson — so the phone keeps the rows it can do justice to.\n\nThere is a second, quieter trim. **Simple Mode**, **Appearance** and your profile picture are saved on the server against your account and follow you everywhere. **Interface Language**, **Chat History** and **Startup** are remembered by the browser you set them in.\n\nSo when Sanne signs in on the shared machine in the warehouse, that machine keeps its own interface language, and her Chat History and Startup choices are not waiting for her: on a browser she has never used, those simply start at their defaults."
+    },
+    {
+      "type": "quiz",
+      "id": "q-travels",
+      "question": "Van Dijk Groep puts a shared machine in the warehouse for the fitters. Sanne signs in on it before her shift and it behaves nothing like her laptop. What is the honest thing to tell the team about that machine?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Her theme and Simple Mode came with her account. The language, Chat History and Startup on that machine belong to the machine, so whoever uses it sets those once and everyone after them inherits them.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Nothing follows her. Every preference has to be set again from scratch on every machine she signs in on.",
+          "correct": false,
+          "feedback": "Too bleak. Simple Mode, your appearance and your profile picture are stored on the server against your account — those three arrive with her wherever she signs in."
+        },
+        {
+          "id": "c",
+          "label": "Everything is meant to follow her account, so a machine that looks different has failed to sync and is worth a ticket to support.",
+          "correct": false,
+          "feedback": "There is nothing to report. Interface Language, Chat History and Startup are deliberately kept by the browser, which is what lets a shared machine stay in one language while her own laptop is in another."
+        },
+        {
+          "id": "d",
+          "label": "Anything she changes on the warehouse machine will overwrite the matching setting on her laptop the next time she signs in there.",
+          "correct": false,
+          "feedback": "Half true in exactly one place: a theme she picks on the warehouse machine does follow her account back to her laptop. The three browser-kept settings never travel in either direction."
+        }
+      ],
+      "explanation": "Two homes, and the difference is worth knowing before you blame the tool. The server keeps Simple Mode, your appearance and your profile picture against the person. The browser keeps Interface Language, Chat History and Startup against the machine — a five-second fix on a shared computer, and a setting nobody should report as lost when it never left home."
+    },
+    {
+      "type": "action",
+      "id": "make-it-yours",
+      "icon": "🏗️",
+      "checkId": "appearance-personalised",
+      "title": "Change two things — we will check one",
+      "instruction": "In Settings → Preferences, set Startup and Chat History to the pair you just argued for. Then open Appearance and pick the theme you want to work in — High Contrast if you read Bee Flow on a tablet in daylight. We verify the theme rather than the other two, because that is the one saved against your account instead of in this browser.",
+      "launch": {
+        "navigateTo": "settings/appearance",
+        "label": "Open Appearance"
+      }
+    },
+    {
+      "type": "slide",
+      "id": "recap",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "- **Shape your own morning.** Startup decides what opens, Chat History decides what the sidebar lists, and you have now said out loud which pair fits the way your day starts. Both are in Preferences, and nothing needs saving.\n- **Route any other personal change.** Appearance for the screen, Security for two-factor and your password, Memory for what Bee Flow believes about you, Connections for your own linked accounts, Help & Support to ask Bee Flow itself.\n- **Read a stripped-down screen correctly.** Simple Mode hides Studio, Meeting Notes, Notebooks and Webpages, takes the Chat History and Startup rows off this screen, and leaves Preferences as the only settings row — and anything narrower than 768 pixels runs it whether you asked or not.\n- **Know what travels.** Simple Mode and your appearance follow your account to any machine. Language, Chat History and Startup stay in the browser you set them in, which is why a shared machine never behaves like your own."
+    }
+  ],
+  "rubrics": {
+    "ex-morning-shape": {
+      "title": "Say what your own morning needs",
+      "task": "Name the Startup option and the Chat History option the learner will set, and justify the pair from how their own working day actually begins. Keeping a default counts, provided they say why it already fits.",
+      "criteria": [
+        {
+          "id": "names-both",
+          "label": "Names a real Startup option and a real Chat History option",
+          "weight": 35
+        },
+        {
+          "id": "own-morning",
+          "label": "Justifies the choice from their own working day, not from the option's description",
+          "weight": 40
+        },
+        {
+          "id": "coherent",
+          "label": "The pair hangs together — e.g. Start with Direct Chat alongside All Chats for someone who starts on a fresh question each day",
+          "weight": 25
+        }
+      ],
+      "passScore": 65,
+      "guidance": "Reward a concrete morning: the first thing they open, whether yesterday's thread matters, whether they live inside one agent. Do not require a change — \"Continue where you left off, because I always pick up last night's quote\" is a full answer. Mark down only when an option is invented, when the two choices contradict each other, or when the reason is a restatement of the label."
+    }
+  },
+  "practiceTopic": {
+    "title": "Preferences, Security and what travels",
+    "summary": "Which Settings row owns which personal change, what Simple Mode hides, how two-factor and recovery codes work, and which preferences follow the account rather than the browser.",
+    "facts": [
+      "Settings is reached from your name at the bottom of the sidebar and always opens on the Preferences tab.",
+      "The settings list runs Preferences, Appearance, Security, Memory, Connections, Learning Center, Help & Support; your own linked accounts are always \"Settings → Connections\".",
+      "The Simple Mode row is labelled \"Enable Simple Mode\"; it hides Studio, Meeting Notes, Notebooks and Webpages, and removes the Chat History and Startup rows from Preferences.",
+      "Screens narrower than 768 pixels run Simple Mode regardless of the saved preference, and the toggle shows as on but locked.",
+      "Startup offers Continue where you left off, Always open a specific agent, or Start with Direct Chat; Chat History offers Per Agent or All Chats.",
+      "Settings → Security holds two-factor authentication, recovery codes that are shown once, and a Change password card for accounts that sign in with a password.",
+      "Regenerating recovery codes or disabling two-factor both require a six-digit code or a recovery code to confirm, and the card warns at three codes or fewer.",
+      "Simple Mode and Appearance are stored against the account; Interface Language, Chat History and Startup are stored in the browser."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "appearance-personalised",
+      "existing": false,
+      "label": "Pick your own theme",
+      "hint": "In Settings → Appearance, click any theme card. If you see a padlock instead of the cards, your administrator has locked the theme and this step cannot be completed.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/branding/effective",
+          "returns": "requireAuth only. A theme OBJECT (no array): preset, accent, font, the glass/wallpaper fields, allowUserOverride, and source — 'user' when this account has its own saved theme override, otherwise 'admin' or 'default'."
+        }
+      ],
+      "criteria": [
+        {
+          "id": "own-theme",
+          "label": "Your account has a theme of its own",
+          "hint": "Open Settings → Appearance and click a theme card — it saves against your account immediately, no save button. If you see a padlock instead of the cards, your administrator has switched personal themes off and this step cannot be completed.",
+          "endpoint": "/api/branding/effective",
+          "expect": {
+            "kind": "equals",
+            "field": "source",
+            "value": "user"
+          },
+          "rule": "GET /api/branding/effective resolves to source === 'user', which the server sets only when this user has a saved personal override and the org still allows one"
+        }
+      ]
+    }
+  ]
+}

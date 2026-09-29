@@ -1,0 +1,323 @@
+{
+  "id": "compliance-setup-and-score",
+  "icon": "📊",
+  "estMinutes": 11,
+  "title": "First score on the board",
+  "desc": "The setup wizard, what the checks actually read, and how the score is built.",
+  "gate": {
+    "permission": "admin_compliance",
+    "feature": "compliance_hub_gdpr"
+  },
+  "learningGoal": "After this lesson you can complete compliance onboarding for your organisation and explain, number by number, what its score is made of.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "three-things",
+      "icon": "🧭",
+      "title": "Frameworks, registers, checks",
+      "bodyMd": "Marieke is the organisation admin at **Van Dijk Groep**, a Dutch installation firm of sixty people; Anne, the office manager, is its DPO. A large customer has just sent a security questionnaire. She opens **Settings → Compliance** and finds one rail with three groups.\n\n**Frameworks** — the rules being scored. GDPR, AI Act and ISO 27001 are core and always on; the rest of the catalogue sits under **More frameworks** until the organisation enables it.\n\n**Registers** — the lists a DPO or CISO keeps, ten rows by default, from **Requests (DSR)** and **Incidents & breaches** to **SoA (Annex A)** and the **Access log**.\n\n**Admin** — **Settings** and **Evidence connectors**.\n\nThe **checks** live inside a framework: automated tests, each naming an article and carrying a severity, returning Passing, Needs attention, Failing or Not applicable. GDPR ships fifteen, ISO 27001 twenty-three. They read your live configuration — they are not a questionnaire you fill in."
+    },
+    {
+      "type": "slide",
+      "id": "four-questions",
+      "icon": "🧾",
+      "title": "Four steps before anything scores",
+      "bodyMd": "The first time Marieke opens Compliance there are no scores, only one card at the top of the Overview: **Setup — two minutes, four steps**, under the line *\"Pre-filled from your configuration — check it and adjust. The first scan runs straight after.\"*\n\n1. **Data Protection Officer** — name, e-mail, phone, or **Pick from your organisation**. Marieke picks Anne, the office manager. *Next* stays disabled until there is a name and an address containing an @.\n2. **Legal bases you rely on** — at least one of Consent, Contract, Legal obligation, Vital interests, Public task, Legitimate interests.\n3. **Data residency & retention** — **EU-only** (the default), **Self-hosted only** or **Hybrid**, the memory-retention window (365 days) and your privacy-notice URL.\n4. **Breach notification recipients** — who is alerted when abnormal data access is detected.\n\nUntil it is finished the header pill reads **Setup · step 1 of 4** and **Run now** is disabled, titled **\"Available after setup\"**. The last button, **Finish setup and run the first scan**, stamps the organisation as onboarded and starts a full run."
+    },
+    {
+      "type": "slide",
+      "id": "verification",
+      "icon": "🔍",
+      "title": "Measured, or merely declared",
+      "bodyMd": "Every check carries a **Verification** label, and the checks table has a column for it:\n\n- **Verified automatically** — *\"evaluated from live system state and telemetry\"*: Encryption at rest, the DLP guardrail, Storage limitation enforced.\n- **Self-attested** — *\"reflects what an administrator declared — the tool cannot verify it independently\"*: DPO appointed, Privacy notice published, Processing register (ROPA) reviewed.\n- **Verified + attested** — an automated signal with a declaration on top, such as International transfers controlled.\n\nThat split is why a framework card on the Overview carries two chips. Van Dijk's GDPR card reads **automated: 9/11 passing** beside **self-attested: 3/4 passing** — the eleven automated and hybrid checks on one side, the four declarations on the other.\n\nAn auditor weighs a measurement and a declaration differently, so the product never merges them into one flattering number."
+    },
+    {
+      "type": "quiz",
+      "id": "q-formula",
+      "question": "A framework page for Van Dijk Groep shows four checks: one critical failing, one high warning, one medium passing, one low marked not applicable. What score does the framework show?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "33% — (3×0 + 2×0.5 + 1×1) divided by (3 + 2 + 1).",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "25% — one of the four checks passes outright.",
+          "correct": false,
+          "feedback": "Checks are not counted as rows. Each carries the weight of its severity, and a warning still earns half of that weight."
+        },
+        {
+          "id": "c",
+          "label": "31% — the same sum, with the low check's 0.5 included in the denominator.",
+          "correct": false,
+          "feedback": "Rows with the verdict not applicable are excluded from the denominator entirely. A check that does not apply to you can never drag your score down."
+        },
+        {
+          "id": "d",
+          "label": "50% — the critical failure is the only thing that costs points.",
+          "correct": false,
+          "feedback": "That gives the warning full credit. A warning is worth half its weight, not all of it."
+        }
+      ],
+      "explanation": "Severity sets the weight: critical 3, high 2, medium 1, low 0.5. The verdict sets the factor: pass 1.0, warn 0.5, fail 0. Not applicable leaves the denominator. So (0 + 1 + 1) ÷ 6 = 33%. And if every row of a framework were not applicable there would be no denominator at all — the card then shows no score rather than a perfect 100."
+    },
+    {
+      "type": "slide",
+      "id": "more-frameworks",
+      "icon": "➕",
+      "title": "The other eight frameworks",
+      "bodyMd": "GDPR, AI Act and ISO 27001 are **core**: always on, never switchable. The rest of the catalogue sits behind the rail row **More frameworks**, whose meta counts them — *{n} candidates*, or *{n} candidates · {m} just in force* when one became applicable within the last sixty days. Its header carries the chip *As of {date} · not legal advice*, the tabs **All frameworks · Calendar · Per automation**, and the primary button **Add framework**.\n\nWhat Marieke can add for Van Dijk Groep:\n\n- **NIS2** — nine checks; feeds **Incidents & breaches** (24 hours, 72 hours, one month).\n- **CRA** (Cyber Resilience Act) — four checks; adds the **Vulnerability register**.\n- **Data Act** — four checks; adds **Data portability**.\n- **Product liability** — one check.\n- **Accessibility (EAA)** — three checks.\n- **DORA** — three checks; also feeds Incidents, customer notice four hours.\n- **Machinery Regulation** — two checks.\n- **Own frameworks** — house rules of your own, carried by attestations valid twelve months.\n\nEvery card is in one of three states — **locked**, **disabled** or **enabled** — and two of these frameworks ask one question more before they score. The next step sorts those apart.\n\nIn this build the page still reads *\"This section arrives with the next release\"*: the switch lives in the API until that screen lands."
+    },
+    {
+      "type": "sim",
+      "id": "sim-catalogue",
+      "icon": "🗂️",
+      "title": "Locked, disabled, or just unanswered",
+      "instruction": "Marieke works down the framework catalogue for Van Dijk Groep with the customer questionnaire beside her. Drag each card's situation onto what is actually going on. Locked means the licence does not cover it; disabled means the organisation chose not to run it; a relevance gate means the framework is on but has not been told whether it applies here.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "c1",
+            "left": "The questionnaire asks about the Cyber Resilience Act. Van Dijk's plan covers it and the card is ready to switch on.",
+            "right": "Add framework",
+            "note": "Enabling runs the CRA's four checks straight away, so the new rail row arrives with a score on it — and the Vulnerability register appears beside it."
+          },
+          {
+            "id": "c2",
+            "left": "DORA is switched on, but its rail row still shows no score at all.",
+            "right": "Relevance gate",
+            "note": "DORA and the Machinery Regulation first ask whether they apply: relevant, not relevant or unknown. Until Marieke answers, they do not score."
+          },
+          {
+            "id": "c3",
+            "left": "NIS2's card is visible with a lock on it, and pressing enable is refused with a pointer to the upgrade.",
+            "right": "Locked by the licence",
+            "note": "The licence does not cover this framework. A locked card is shown locked, never hidden — you are meant to see what your plan is missing."
+          },
+          {
+            "id": "c4",
+            "left": "The Data Act was switched off by the previous admin, and none of its older rows show up anywhere.",
+            "right": "Disabled by the organisation",
+            "note": "Disabled is your own choice: its checks are not run and its rows are hidden, including results from before it was switched off. Enabling it again reverses that."
+          },
+          {
+            "id": "c5",
+            "left": "Van Dijk's own supplier-security house rules should be scored alongside the regulations.",
+            "right": "Own framework",
+            "note": "An organisation can define its own framework beside the ten built-in ones; its controls are carried by attestations, which stay valid twelve months by default."
+          }
+        ]
+      }
+    },
+    {
+      "type": "quiz",
+      "id": "q-frameworks",
+      "question": "Van Dijk's customer asks about NIS2 and DORA. In the framework catalogue NIS2's card is shown locked; DORA can be enabled. What does Marieke report back?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "NIS2 needs a plan that covers it — the card is visible but enabling is refused until then; DORA can be switched on, and it starts scoring only once she answers whether it applies to Van Dijk.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "NIS2 is locked because a colleague disabled it earlier, so she can simply switch it back on.",
+          "correct": false,
+          "feedback": "Locked and disabled are different states. Disabled is an organisation's own choice and can be reversed by enabling it again; locked means the licence does not cover the framework, and enabling answers feature-locked until the plan changes."
+        },
+        {
+          "id": "c",
+          "label": "Both can go on now, and both will show a score after the next six-hourly sweep.",
+          "correct": false,
+          "feedback": "Two things off. Enabling runs that framework's checks straight away, so the rail row appears with a score rather than waiting for the sweep — and DORA asks the relevance question before it scores at all."
+        },
+        {
+          "id": "d",
+          "label": "Neither is visible until the licence is upgraded, because frameworks outside your plan are hidden.",
+          "correct": false,
+          "feedback": "A locked framework is shown locked, never hidden — you are always able to see what your plan is missing, which is the point of showing it."
+        }
+      ],
+      "explanation": "Three states, kept apart: locked (licence does not cover it — visible, refused on enable), disabled (your choice — checks not run and rows hidden, including older ones), enabled (checks run immediately, so the row arrives with a score). DORA and the Machinery Regulation add a relevance gate — relevant, not relevant or unknown — before they score. Enabling also brings the matching registers: NIS2 and DORA to Incidents, CRA to the Vulnerability register, the Data Act to Data portability."
+    },
+    {
+      "type": "sim",
+      "id": "sim-registers",
+      "icon": "🧩",
+      "title": "Which register resolves it",
+      "instruction": "Five findings land on Marieke's desk in one week at Van Dijk Groep. Drag each one onto the rail row where it gets handled. A check tells you something is wrong; a register is where the work is recorded.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "p1",
+            "left": "A US transcription vendor shows 412 outbound calls in 180 days and no signed data-processing agreement.",
+            "right": "Processing register (ROPA)",
+            "note": "The Processors table lists operator, location and calls. Press Attest SCC on that row once procurement has signed, then Mark as reviewed."
+          },
+          {
+            "id": "p2",
+            "left": "A former monteur e-mails Anne, the DPO: please delete everything you hold about me.",
+            "right": "Requests (DSR)",
+            "note": "Record a request, with Received on set to the day it arrived — the 30-day clock runs from receipt, not from when you pick it up."
+          },
+          {
+            "id": "p3",
+            "left": "A laptop holding an export of customer records was stolen last night.",
+            "right": "Incidents & breaches",
+            "note": "Record incident starts the 72-hour Art. 33 clock. Record first, assess afterwards — the clock legally started at detection."
+          },
+          {
+            "id": "p4",
+            "left": "A new customer-facing agent scores applicants and was never assessed for risk.",
+            "right": "DPIAs",
+            "note": "High-risk agents need an Art. 35 assessment: either the built-in questionnaire or an attestation that one was done elsewhere."
+          },
+          {
+            "id": "p5",
+            "left": "An Annex A control has no applicability decision, no justification and no owner.",
+            "right": "SoA (Annex A)",
+            "note": "Fill missing rows seeds the row; the decision, justification, owner and approval stay yours."
+          }
+        ]
+      }
+    },
+    {
+      "type": "quiz",
+      "id": "q-attention",
+      "question": "The morning after setup, the Needs attention card on the Overview reads \"Could not read the attention list right now.\" What may Marieke conclude?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Nothing is wrong right now — the card is empty.",
+          "correct": false,
+          "feedback": "A genuinely clean workspace says something else entirely: \"Nothing needs attention — every check passes or is not applicable.\" The two sentences are deliberately different."
+        },
+        {
+          "id": "b",
+          "label": "The card could not read its source, so the state is unknown — she must not report \"all clear\" on the strength of it.",
+          "correct": true
+        },
+        {
+          "id": "c",
+          "label": "The checks have never run for this organisation.",
+          "correct": false,
+          "feedback": "Finishing setup starts the first run itself, and before any result exists the card is either still loading (\"Reading what needs attention…\") or genuinely empty — it never says the list could not be read."
+        },
+        {
+          "id": "d",
+          "label": "The list was too long to render, so it was cut off.",
+          "correct": false,
+          "feedback": "A long list is never hidden. The card shows the top items, then a footer line counting the rest, with View all →."
+        }
+      ],
+      "explanation": "Needs attention has three distinct sentences: still loading, could not be read, and genuinely empty. Server-side the same honesty applies — the list merges failing checks with register facts such as an overdue request, and if one of those sources fails the answer is marked incomplete instead of reporting a clean sheet."
+    },
+    {
+      "type": "exercise",
+      "id": "ex-explain",
+      "icon": "🎯",
+      "exerciseId": "ex-compliance-score-explained",
+      "title": "Your turn: explain the number",
+      "instruction": "Van Dijk Groep's enterprise customer writes back: \"Your GDPR page says 78. What does that number mean?\" Write three to five sentences for that buyer. A strong answer says how the number is built (severity weights, the pass/warn/fail factor, and that not-applicable rows are excluded), separates what the workspace measured from what an administrator declared, says how fresh the number is, and stops short of claiming any certification.",
+      "placeholder": "e.g. The 78 is a weighted score over our fifteen GDPR checks: each check counts for its severity — critical weighs most, low least — and a check scores full weight when it passes, half when it warns, nothing when it fails. Checks that do not apply to us are left out rather than counted as passes. Of those checks, eleven are read automatically from our live configuration and four are declarations we made ourselves; we report the two separately. The checks re-run every six hours…",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "slide",
+      "id": "ledger",
+      "icon": "⛓️",
+      "title": "Every material act leaves a link",
+      "bodyMd": "A score you can re-run is only half of an audit answer. The other half is proof that nobody quietly edited the history.\n\nEvery material action — an attestation, an applied auto-fix, a reviewed processing register, a generated PDF — appends a row to the evidence ledger. Each row stores the previous row's hash plus a hash of its own payload, and hashes the pair again. Change one old row and every link after it stops matching.\n\nThat is what the rail footer reports: **Evidence chain intact · 4,182 rows · SHA-256**, or, in error ink, **Evidence chain broken — check the integrity report**.\n\nOne limit worth saying out loud to Anne, or to whoever holds the DPO role: the ledger **records**, it does not **file**. *Record authority notification* stamps who reported a breach and when. Your organisation still files with the supervisory authority itself."
+    },
+    {
+      "type": "slide",
+      "id": "no-fake-zero",
+      "icon": "🚫",
+      "title": "A blank is not a zero",
+      "bodyMd": "Admins get asked to quote these numbers in questionnaires, so the dashboard is built not to flatter you.\n\n**A blank beside a rail row means unknown.** Every right-hand figure renders nothing when the server did not state it. **\"0 open\"** is a fact somebody measured; an empty space is the absence of one. The two must never look alike.\n\n**Nothing measured is not a hundred per cent.** A framework whose every check came back *not applicable* shows no score at all, because there is no denominator.\n\n**Before the first run there is no score**, and the card says so rather than starting you at zero.\n\nThe working rule: never quote a number the dashboard did not print."
+    },
+    {
+      "type": "action",
+      "id": "do-setup",
+      "icon": "🏗️",
+      "checkId": "compliance-onboarded",
+      "title": "Put your own first score on the board",
+      "instruction": "Open Compliance and work through the four setup steps: your DPO's name and e-mail, at least one legal basis, residency and retention, and at least one breach notification recipient. Press \"Finish setup and run the first scan\" — the first run starts on its own, and \"Run now\" on the Overview re-runs the checks whenever you like. Wait for the three framework cards and the Needs attention card to fill.",
+      "launch": {
+        "navigateTo": "settings/organisation/compliance",
+        "label": "Open Compliance"
+      }
+    },
+    {
+      "type": "slide",
+      "id": "recap",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "- **Onboard an organisation.** Four steps on one card — DPO, legal bases, residency and retention, breach recipients — and the first full run starts on its own. After that the checks sweep every six hours, and **Run now** re-runs them on demand.\n- **Explain the number.** Severity sets the weight, the verdict sets the factor, not-applicable rows leave the denominator, and automated results are reported separately from self-attested ones.\n- **Add a framework.** Core frameworks are always on; NIS2, CRA, the Data Act, product liability, Accessibility (EAA), DORA, the Machinery Regulation and your own frameworks are candidates you add with **Add framework** — locked means the licence does not cover it, disabled means you chose not to, enabling runs its checks at once and brings its registers, and DORA and Machinery ask whether they apply before they score.\n- **Read the dashboard honestly.** A blank is unknown, an unreadable Needs attention card is not an all-clear, and a finding belongs in the register that resolves it — ROPA, Requests, Incidents, DPIAs or the SoA."
+    }
+  ],
+  "rubrics": {
+    "ex-compliance-score-explained": {
+      "title": "Explain the score to a buyer",
+      "task": "Write three to five sentences for an enterprise customer explaining what the organisation's GDPR score of 78 is made of, in language a procurement or security reviewer can read.",
+      "criteria": [
+        "Describes the mechanics: each check is weighted by its severity, a pass earns the full weight, a warning half, a failure nothing.",
+        "States that checks returning not applicable are excluded from the calculation rather than counted as passes or failures.",
+        "Separates results read automatically from the live workspace from items an administrator self-attested.",
+        "Says how current the number is — the checks re-run on a schedule and on demand, so the score is a point in time.",
+        "Claims no certification, audit opinion or legal guarantee from the number."
+      ],
+      "passScore": 70,
+      "guidance": "Do not pass an answer that presents the score as a compliance guarantee, a certification, or proof of GDPR conformity. Do not pass an answer that treats every check as equally weighted, that counts not-applicable rows as passes, or that presents self-attested items as verified facts. Marketing tone without any of the mechanics is a fail; plain, slightly dry language that gets the mechanics right is a pass."
+    }
+  },
+  "practiceTopic": {
+    "title": "Compliance setup and the score",
+    "summary": "How an organisation is onboarded into the Compliance Hub and how its framework scores are calculated and presented.",
+    "facts": [
+      "Setup is an inline card on the Overview — \"Setup — two minutes, four steps\": Data Protection Officer, Legal bases you rely on, Data residency & retention, Breach notification recipients. Step one needs a DPO name and an e-mail containing an @; step two at least one legal basis.",
+      "Until setup is done the Overview pill reads \"Setup · step 1 of 4\" and the primary button is disabled, titled \"Available after setup\"; \"Finish setup and run the first scan\" starts a full run, after which checks sweep every 6 hours and Run now re-runs on demand.",
+      "Severity weights are critical 3, high 2, medium 1 and low 0.5; a pass earns full weight, a warning half, a failure nothing, and not-applicable rows are excluded from the denominator.",
+      "A check's Verification label is Verified automatically, Self-attested or Verified + attested, and a framework card prints an \"automated: {ok}/{n} passing\" chip beside a \"self-attested: {ok}/{n} passing\" chip.",
+      "The rail footer reads \"Evidence chain intact · {rows} rows · SHA-256\", or \"Evidence chain broken — check the integrity report\" when a link fails to verify.",
+      "Needs attention is ordered failing first, then by severity, and when it is genuinely clean it reads \"Nothing needs attention — every check passes or is not applicable.\"",
+      "Beyond the three core frameworks the catalogue holds NIS2 (9 checks), CRA (4), Data Act (4), Accessibility/EAA (3), DORA (3), Machinery Regulation (2) and product liability (1), plus org-defined own frameworks; the More frameworks header button is \"Add framework\".",
+      "Locked means the licence does not cover the framework (the card stays visible, enabling is refused as feature-locked) while disabled means the organisation chose not to run it; DORA and the Machinery Regulation also sit behind a relevance gate — relevant, not relevant or unknown — before they score."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "compliance-onboarded",
+      "existing": false,
+      "label": "Finish compliance setup and run the checks",
+      "hint": "Settings → Compliance. Answer the four steps on the Setup card, then press \"Finish setup and run the first scan\"; \"Run now\" on the Overview re-runs the checks.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/compliance/evidence",
+          "returns": "{ rows: [...], total, limit, offset } — the organisation’s evidence ledger; every check run appends rows, so the list is empty until the first scan has run"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "ran",
+          "label": "The checks have run at least once",
+          "hint": "The first scan starts the moment you finish setup; the header info chip then reads \"Last run … · every 6 h\".",
+          "rule": "GET /api/compliance/evidence returns at least one ledger row — rows are only written once the checks have actually run",
+          "endpoint": "/api/compliance/evidence",
+          "expect": {
+            "kind": "truthy",
+            "field": "total"
+          }
+        }
+      ]
+    }
+  ]
+}

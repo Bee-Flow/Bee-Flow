@@ -1,0 +1,21 @@
+{
+    "name": "Generate Random Number",
+    "description": "Generate a random number between min and max values",
+    "category": "Utilities",
+    "inputs": {
+        "min": {
+            "type": "number",
+            "default": 0
+        },
+        "max": {
+            "type": "number",
+            "default": 100
+        }
+    },
+    "outputs": {
+        "result": "number",
+        "min": "number",
+        "max": "number"
+    },
+    "agentEnabled": true
+}

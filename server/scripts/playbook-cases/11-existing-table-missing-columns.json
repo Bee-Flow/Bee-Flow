@@ -1,0 +1,39 @@
+{
+ "id": "11-existing-table-missing-columns",
+ "title": "PB verkeerde tabel",
+ "recipeId": "invoice_tracker",
+ "options": {
+  "tableMode": "existing",
+  "datatableName": "PB Wrong Columns",
+  "inputs": {
+   "folderPath": "/Invoices-Q3"
+  },
+  "tier": "fast",
+  "locale": "nl"
+ },
+ "onFail": {
+  "table": "stop"
+ },
+ "expect": {
+  "status": "stopped",
+  "phases": {
+   "table": "failed"
+  }
+ },
+ "setupTable": {
+  "name": "PB Wrong Columns",
+  "key": "pb_wrong_columns",
+  "fields": [
+   {
+    "key": "naam",
+    "name": "Naam",
+    "type": "text"
+   },
+   {
+    "key": "opmerking",
+    "name": "Opmerking",
+    "type": "text"
+   }
+  ]
+ }
+}

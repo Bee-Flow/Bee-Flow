@@ -1,0 +1,261 @@
+{
+  "id": "routine-runs-and-failures",
+  "icon": "🧯",
+  "estMinutes": 11,
+  "title": "Reading a failed run",
+  "desc": "Runs and log: the live strip, filters, step timeline, retry, and the snapshot that surprises people.",
+  "gate": {
+    "feature": "automations"
+  },
+  "learningGoal": "Go from 'it stopped working' to the exact step, the exact reason, and a green re-run.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "monday",
+      "icon": "🧯",
+      "title": "Nobody got the Monday report",
+      "bodyMd": "Every Monday at 07:00 a routine at Van Dijk Groep builds the quote pipeline report and mails it to the sales lead. This Monday it did not arrive.\n\nThe answer lives in **Studio → Runs & log**: *\"Every time a routine fired: what started it, what it did, and what went wrong.\"* It is the only Studio section about the past — you cannot create a run here, only read one.\n\nIt opens with three settings already applied: the scope on **My runs**, the range chip on **24h**, and the mode select on **Live runs**. Remember those three. They are the reason people say \"my run has disappeared\"."
+    },
+    {
+      "type": "quiz",
+      "id": "hidden",
+      "icon": "🔎",
+      "question": "Anne tested that quote routine by hand last Tuesday, and today she cannot find the test run anywhere in Runs & log. Which two controls are hiding it?",
+      "multi": true,
+      "choices": [
+        {
+          "id": "a",
+          "label": "The date range chip, still on 24h",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "The mode select, still on Live runs",
+          "correct": true
+        },
+        {
+          "id": "c",
+          "label": "The My runs / Organisation switch",
+          "correct": false,
+          "feedback": "That switch decides whose runs you see, not which ones. Her own test run belongs in My runs, so switching to Organisation would not bring it back."
+        },
+        {
+          "id": "d",
+          "label": "The ninety-day clean-up of old runs",
+          "correct": false,
+          "feedback": "Runs are kept for 90 days. A run from last Tuesday is nowhere near that line — it is the filters, not the clean-up."
+        }
+      ],
+      "explanation": "Two defaults hide it together: the range opens on 24h, and the mode opens on Live runs, which leaves test runs out. Widen the range to 7d or 30d and set the mode to Live runs and tests (or Tests only). The bar's \"Showing:\" line names only what differs from the defaults, so it will say \"last 24 hours\" and stay silent about the hidden tests — the Show everything link beside it is the safe reset, because it clears the status, the range, the trigger and the mode in one click."
+    },
+    {
+      "type": "slide",
+      "id": "timeline",
+      "icon": "🧾",
+      "title": "One run, step by step",
+      "bodyMd": "Anne clicks the **Failures** chip, widens the range to **7d**, and opens Monday's row. The run fills the screen.\n\nThe bar along the top carries the outcome, `took 4s`, what started it (`On a schedule`), a version chip like `v12`, and the reason in brackets.\n\nDown the left is the **Steps** rail: one row per step with its status word, `· took …`, its own error line, and — only when a step ran more than once — `· attempt 2 of 2`. Click a step and a panel opens under the read-only canvas on the right: what that step was handed — **Input** — beside what it produced — **Output** — with the error in red above them.\n\nThat is the whole diagnosis: which step, what went in, what came out."
+    },
+    {
+      "type": "slide",
+      "id": "stopped",
+      "icon": "🛑",
+      "title": "\"This is where it stopped\"",
+      "bodyMd": "Under the failing row the rail prints one sentence: **\"This is where it stopped. Nothing ran after this point.\"** For Anne that matters more than the error itself — it means no half-finished mail went out to anyone.\n\nClicking the step also selects that node on the canvas, and the page's web address picks up the step, so a link you paste in chat opens on exactly that step — for the person who owns the run.\n\nThe reason is phrased twice on purpose. The **Now running** strip shows only the class — `failed — a connection is no longer signed in` — because the full message can quote a customer. The full text waits inside the run."
+    },
+    {
+      "type": "sim",
+      "id": "route",
+      "icon": "🧭",
+      "title": "From \"it broke\" to a green run",
+      "instruction": "Put Anne's five moves in the order that gets the Monday report out. Drag them into place.",
+      "sim": {
+        "kind": "order",
+        "items": [
+          {
+            "id": "filter",
+            "label": "In Runs & log, click the Failures chip and widen the range to 7d"
+          },
+          {
+            "id": "open",
+            "label": "Open the failed run of the quote routine"
+          },
+          {
+            "id": "find",
+            "label": "Follow the Steps rail to the red step and the line \"This is where it stopped.\""
+          },
+          {
+            "id": "fix",
+            "label": "Press Open in editor and fix what that step needed"
+          },
+          {
+            "id": "rerun",
+            "label": "Come back to the run and press Run it again"
+          }
+        ],
+        "solution": [
+          "filter",
+          "open",
+          "find",
+          "fix",
+          "rerun"
+        ],
+        "feedback": "Narrow first, then read, then fix, then re-run. Fixing before you have found the red step is guessing, and re-running before the fix just produces a second identical failure — with the same reason, five minutes later."
+      }
+    },
+    {
+      "type": "quiz",
+      "id": "snapshot",
+      "icon": "🕰️",
+      "question": "Anne reconnects the CRM in the editor, then reopens Monday's failed run. The canvas still shows the old step, exactly as it was. What is going on?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "A run always shows the saved version it actually ran — the v-chip in the bar — not today's routine",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "The page is cached; a refresh will show the fixed step",
+          "correct": false,
+          "feedback": "It is not a caching problem. The run stores the definition as it was at the time, and renders that on purpose — a refresh changes nothing."
+        },
+        {
+          "id": "c",
+          "label": "Her fix was not saved",
+          "correct": false,
+          "feedback": "Possible in general, but not what you are seeing here: even a saved fix leaves every earlier run showing the version that ran."
+        },
+        {
+          "id": "d",
+          "label": "Failed runs are frozen and cannot be re-read after a fix",
+          "correct": false,
+          "feedback": "Failed runs stay fully readable for 90 days. What is frozen is the definition the run used, not your access to it."
+        }
+      ],
+      "explanation": "The timeline is a record, not a live view of the routine. It renders the version that ran, so the evidence still makes sense months later. Your fix shows up in the next run — which is why the bar's Run it again button is titled \"Uses the routine as it is now\"."
+    },
+    {
+      "type": "slide",
+      "id": "rerun",
+      "icon": "🔁",
+      "title": "Two ways to try again",
+      "bodyMd": "**The whole run.** In the run bar, **Run it again** starts a fresh run of the routine as it is now. It opens immediately, so you never hunt for it in the list, and its bar carries **\"This was a retry of an earlier run\"** — the link back to what you were fixing.\n\n**One step.** In the editor, a failed step offers **Retry** — *\"Retry this step and continue downstream from here\"* — and an open step offers **Execute**, which runs that step alone on the data the earlier steps already produced. Faster, and it does not send the mail twice.\n\nAnd nothing retries itself: a step tries again only if someone gave it a retry setting. Otherwise a failure stops the run right there — unless you wired that step's failure into its own **on error** path."
+    },
+    {
+      "type": "quiz",
+      "id": "journey",
+      "icon": "🧩",
+      "question": "Van Dijk's purchase-order routine pauses for approval, continues after Finance says yes, then pauses again on a second approval. How does Runs & log show that, and which run do the row's actions act on?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "One row for the whole journey, showing the newest leg's status — and the actions act on the leg that is actually live",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "One row per leg, each with its own actions",
+          "correct": false,
+          "feedback": "Legs exist underneath, but the list deliberately collapses a journey into one row. Otherwise a three-page form would fill the log with rows nobody asked for."
+        },
+        {
+          "id": "c",
+          "label": "One row showing the status of the first leg, which started it all",
+          "correct": false,
+          "feedback": "The opposite: the row shows the newest leg, because what you need to know is what it is doing now, not how it began."
+        },
+        {
+          "id": "d",
+          "label": "Nothing at all until the journey finishes",
+          "correct": false,
+          "feedback": "A paused run is visible the whole time, with the outcome Waiting for approval — that is exactly when you most want to see it."
+        }
+      ],
+      "explanation": "A routine that pauses for an approval or a form resumes in a new leg. The list shows one row per journey with the newest leg's status, and the row's actions are aimed at the live leg, so Approve — and Stop it, which the row offers while a leg is still running — hit the run that is really there. Forms pause the same way, with the outcome Waiting for a form."
+    },
+    {
+      "type": "exercise",
+      "id": "note",
+      "icon": "✉️",
+      "exerciseId": "ex-routine-runs-failures-note",
+      "title": "Your turn: tell the person who was waiting",
+      "instruction": "Write the short message Anne sends the sales lead at Van Dijk Groep about the failed Monday report — three or four sentences, no jargon. A strong note names the routine and when it should have run, names the step it stopped at and the reason in plain words, says what did and did not happen afterwards, and ends with what you changed and what the re-run did. Keep customer data out of it: describe the reason, do not paste a step's input or output.",
+      "placeholder": "e.g. The Monday 07:00 quote pipeline report did not go out today. It stopped at the step that fetches the CRM data, because that connection was no longer signed in, and nothing after it ran — so no partial report was mailed to anyone. I have reconnected it and re-run the report; it finished at 09:12 with 14 quotes. Next Monday should be normal, and I will check it.",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "action",
+      "id": "retry",
+      "icon": "🏗️",
+      "checkId": "run-retried",
+      "title": "Retry a failed run — we'll check it",
+      "instruction": "Open Studio → Runs & log, click the Failures chip and widen the range to 7d if the list looks empty. Open a failed run of your own, read the Steps rail down to the red step, fix what it needed, then press Run it again. No failure to hand? Make one on purpose: point a step in a test routine at something that does not exist, run it, then fix it and retry.",
+      "launch": {
+        "navigateTo": "studio/runs",
+        "label": "Open Runs & log"
+      }
+    },
+    {
+      "type": "slide",
+      "id": "limits",
+      "icon": "🗄️",
+      "title": "Ninety days, and what your admin sees",
+      "bodyMd": "Two limits to know before you lean on this screen.\n\n**How long runs are kept.** Runs that have finished, failed or been stopped are removed after **90 days**. Runs that are still going or waiting for a person are never touched. If something has to be provable years later — who approved what — that record lives with the approval, not in the run log.\n\n**The Organisation scope.** A colleague with an org-admin role can switch Runs & log to **Organisation** and see every routine's runs: the outcome, what happened, the error. They still cannot open someone else's run — every run page belongs to its owner — so those rows are not clickable. That view also does not refresh itself.\n\nThat is the loop: widen the filters until you find the run, follow the Steps rail to the red step, fix it in the editor, **Run it again**, and tell the person who was waiting what happened."
+    }
+  ],
+  "rubrics": {
+    "ex-routine-runs-failures-note": {
+      "title": "A failure note someone can act on",
+      "task": "Write a three-or-four-sentence message to the colleague who was waiting for a routine's output, explaining a failed run: which routine and when, which step stopped it and why, what did and did not happen afterwards, and what was done about it.",
+      "criteria": [
+        "Names the routine and the moment it should have delivered, and the step where it stopped.",
+        "Gives the reason in plain language a non-builder understands, rather than a raw error blob or a step id.",
+        "States the consequence — that nothing ran after the failing step, so the reader knows what did and did not go out.",
+        "Ends with the action taken: what was fixed and what the re-run did, or when it will be checked.",
+        "Keeps customer or colleague personal data out of the note; it describes the reason instead of quoting a step's data."
+      ],
+      "passScore": 70,
+      "guidance": "Do not pass a note that only says it failed and is being looked into, with no step and no reason. Do not pass a pasted stack trace or error dump with no sentence around it. Do not pass a note that quotes names, e-mail addresses or customer text lifted from a step's input or output. A note that honestly says the cause is not found yet still passes if it names the step, says nothing after it ran, and says when there will be news."
+    }
+  },
+  "practiceTopic": {
+    "title": "Runs & log: finding and fixing a failed run",
+    "summary": "How the runs list filters, what a run's step timeline records, how to re-run, and what is kept.",
+    "facts": [
+      "Studio → Runs & log opens on My runs, the 24h range chip and the Live runs mode, so a test run or a run from last week is hidden until you widen the range or change the mode.",
+      "The Now running strip covers a fixed 24 hours, shows at most six routines with failures first, and prints the error class rather than the free-text message, which can quote a customer.",
+      "A run's step timeline renders the saved version of the routine that actually ran — shown as a version chip in the run bar — not today's definition.",
+      "After the failing step the Steps rail prints: This is where it stopped. Nothing ran after this point.",
+      "Run it again re-runs the routine as it is now; pressed from the run's own bar the new run opens immediately, and its bar carries the note that it was a retry of an earlier run.",
+      "Nothing retries itself: a step only tries again if it carries a retry setting, which is off by default; otherwise wire the step's failure into its own on error path.",
+      "Finished, failed and stopped runs are removed after 90 days; runs still going or waiting for a person are never removed.",
+      "The Organisation scope needs an org-admin role and shows outcome and error for everyone's runs, but those rows cannot be opened because every run page belongs to its owner."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "run-retried",
+      "existing": false,
+      "label": "Retry a failed run",
+      "hint": "In Studio → Runs & log, open a failed run of your own and press Run it again.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/automation/_runs/recent",
+          "returns": "{ runs: [...] } — the caller's own runs; each row has id, status, startedAt, parentRunId, rootRunId"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "retried",
+          "label": "A run exists that was started as a retry",
+          "hint": "Open a failed run and press Run it again — the retry opens straight away and its bar says it was a retry of an earlier run.",
+          "rule": "at least one row in runs where parentRunId is not null and rootRunId equals that row's id"
+        }
+      ]
+    }
+  ]
+}

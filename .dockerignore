@@ -1,0 +1,15 @@
+**/node_modules
+npm-debug.log
+.git
+.gitignore
+*.md
+.env.local
+.env.development
+*.log
+.DS_Store
+Thumbs.db
+*.db
+*.db-journal
+.vscode
+.idea
+config.json

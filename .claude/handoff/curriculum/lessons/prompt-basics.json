@@ -1,0 +1,272 @@
+{
+  "id": "prompt-basics",
+  "icon": "🧬",
+  "estMinutes": 9,
+  "title": "Anatomy of a great prompt",
+  "desc": "Context, a clear task, an output format — and what happens when one is missing.",
+  "gate": {},
+  "learningGoal": "Diagnose which of the three ingredients a weak prompt is missing, then supply it.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "why",
+      "icon": "🧭",
+      "title": "Your answer is only as good as your ask",
+      "bodyMd": "Bas plans service jobs at **Van Dijk Groep**, an installation firm near Zwolle with sixty people. He pasted in a supplier's delivery schedule for next week and typed: \"can you do something with this?\"\n\nBack came a polite, accurate description of the schedule — which he already had. He closed the tab.\n\nThe model never had a chance. Nothing in that prompt said who Bas is, what he wanted done, or what he needed to be holding at the end of it. Every one of those is a decision, and a prompt that makes none of them leaves all three to the model.\n\nThis lesson takes a prompt apart into the three decisions it should carry, so you can see at a glance which one is missing from a prompt that disappointed you."
+    },
+    {
+      "type": "slide",
+      "id": "three",
+      "icon": "🧬",
+      "title": "The three ingredients",
+      "bodyMd": "Almost every strong prompt carries **three parts**:\n\n1. **Context** — who you are, who the answer is for, what you are trying to achieve.\n2. **A clear task** — exactly what you want done, in one verb.\n3. **The output format** — the shape you want back: a table, a bullet count, a length, a tone.\n\nMiss one and the model has to guess. It guesses towards the average of everything it has ever read — and that average is exactly what \"generic\" feels like.\n\nInclude all three and you have steered the whole answer before it starts."
+    },
+    {
+      "type": "slide",
+      "id": "compare",
+      "icon": "⚖️",
+      "title": "Vague in, vague out",
+      "bodyMd": "**Vague:** \"write an email about the delay\"\n\n**Specific:** \"I coordinate service jobs at Van Dijk Groep. Draft a three-sentence email to a customer apologising for a two-day delay on their heat-pump installation, offering a fixed new date next week, in a warm but professional tone.\"\n\nThe second one names the writer, the reader, the task, the length, what to offer and the tone — so there is almost nothing left to guess.\n\nSame model. Same amount of your time, give or take twenty seconds. A completely different answer."
+    },
+    {
+      "type": "sim",
+      "id": "diagnose",
+      "icon": "🔍",
+      "title": "Take one prompt apart",
+      "instruction": "Bas rewrote his delivery-schedule prompt. Here are its four fragments. Match each one to the ingredient it actually supplies — one of them supplies nothing at all.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "ctx",
+            "left": "\"I plan service jobs at Van Dijk Groep, and the foreman on site on Monday has to know what has landed.\"",
+            "right": "Context",
+            "note": "Who is asking, who reads the answer, what it is for. Two clauses, and the model now knows it is writing for a foreman on a site rather than for a purchasing department."
+          },
+          {
+            "id": "task",
+            "left": "\"List every item in the delivery schedule below that is due before Monday 12:00.\"",
+            "right": "The task",
+            "note": "A verb with an object: list, and exactly which items. Compare it with \"can you do something with this?\" — same schedule, but only one of the two says what to produce."
+          },
+          {
+            "id": "fmt",
+            "left": "\"Give it back as a table with the columns Item, Supplier, Expected day and Job number.\"",
+            "right": "The output format",
+            "note": "The shape you want back. Named columns are the strongest kind of format, because the answer either has them or it visibly does not."
+          },
+          {
+            "id": "noise",
+            "left": "\"This one is important, so please take your time and do a really good job.\"",
+            "right": "Nothing — it is decoration",
+            "note": "It feels like effort, but it decides nothing. \"Really good\" by whose measure? Every word here could be deleted without changing what the model has to work with."
+          }
+        ]
+      }
+    },
+    {
+      "type": "slide",
+      "id": "not-a-task",
+      "icon": "🚧",
+      "title": "\"Help me with this\" is not a task",
+      "bodyMd": "The most common missing ingredient is the task, and it hides well — the prompt *feels* like a request.\n\n\"Can you help me with this report?\" · \"Thoughts?\" · \"What do you make of this?\"\n\nNone of those say what to produce. A task needs a verb with an object:\n\n- **summarise** the maintenance report\n- **compare** these three quotes\n- **draft** a reply to this complaint\n- **rewrite** this paragraph for customers\n- **list** the risks in this contract\n\nIf you cannot put your ask in that shape, you have not decided what you want yet — and the model cannot decide it for you."
+    },
+    {
+      "type": "quiz",
+      "id": "q-allthree",
+      "icon": "❓",
+      "question": "Bas has a fourteen-page maintenance report and a site visit in ten minutes. Which prompt carries all three ingredients?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "\"Summarise this.\"",
+          "correct": false,
+          "feedback": "The task is there, but nothing else. How long? For whom? The model guesses, and its guess is the average answer you have been complaining about."
+        },
+        {
+          "id": "b",
+          "label": "\"I plan service jobs at Van Dijk Groep. Summarise the maintenance report below into 5 bullets a busy foreman can read in 30 seconds.\"",
+          "correct": true
+        },
+        {
+          "id": "c",
+          "label": "\"Can you help me with this maintenance report?\"",
+          "correct": false,
+          "feedback": "\"Help\" is not a task — summarise, rewrite, critique, translate? A prompt needs a verb with an object before anything else can go right."
+        },
+        {
+          "id": "d",
+          "label": "\"Summarise the maintenance report below thoroughly and make it really good.\"",
+          "correct": false,
+          "feedback": "\"Thoroughly\" and \"really good\" sound like a format but specify nothing. Adjectives are not instructions; a bullet count, a word cap or a named tone is."
+        }
+      ],
+      "explanation": "Option B names the context (planning service jobs), the task (summarise the report below) and the format (5 bullets, readable in 30 seconds, for a foreman) — so the model knows what \"good\" means here."
+    },
+    {
+      "type": "slide",
+      "id": "short",
+      "icon": "✂️",
+      "title": "Specific does not mean long",
+      "bodyMd": "People hear \"be specific\" and start writing essays. You do not need one. All three ingredients fit in a single sentence:\n\n\"As a purchaser at Van Dijk Groep, compare the three quotes below in a table with columns Supplier, Price excluding VAT, Lead time and Risk.\"\n\nThat is 25 words, and it carries context, task and format.\n\nA rambling 200-word prompt that never says what to produce is weaker than 25 words that do. Length is not the point. **Decisions** are the point — every decision you make is one the model no longer makes for you."
+    },
+    {
+      "type": "quiz",
+      "id": "q-fastest",
+      "icon": "❓",
+      "question": "Bas asks: \"I plan service jobs at Van Dijk Groep. Tell me what the delivery schedule below means for Monday.\" He gets two accurate paragraphs he has to re-read on site. Which single addition helps most?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Ask for the shape he needs: a table with the columns Item, Supplier, Expected day and Job number, sorted by expected day.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Send the same prompt again with \"please be clear and to the point\" on the end.",
+          "correct": false,
+          "feedback": "Clear by whose measure? Adjectives leave the shape of the answer entirely up to the model, so you get differently shaped prose. Name the table, the bullet count or the word cap instead."
+        },
+        {
+          "id": "c",
+          "label": "Leave the prompt as it is and switch the depth control from Fast to Think.",
+          "correct": false,
+          "feedback": "A deeper setting reasons harder about the same request — and the request never said what to hand back. Depth is for genuinely hard problems, not for a missing output format."
+        },
+        {
+          "id": "d",
+          "label": "Paste in the full customer records for Monday's jobs — names, addresses and phone numbers — so the model has more to go on.",
+          "correct": false,
+          "feedback": "None of that changes the shape of the answer, and it puts customers' personal data into a prompt for no gain. Describe the case, not the people."
+        }
+      ],
+      "explanation": "Context and task were both there; the shape was not, so the model chose prose. Use the symptom: an answer that is accurate but the wrong shape points at a missing format, while one that is fluent and could be about any company points at missing context."
+    },
+    {
+      "type": "slide",
+      "id": "composer",
+      "icon": "💬",
+      "title": "Context you do not have to type",
+      "bodyMd": "In Bee Flow your prompt is more than the words in the box. The chat composer can attach context for you — which of these you see depends on what your organisation has switched on for your account:\n\n- **Knowledge** — \"What this chat is grounded on\". Pick a knowledge base and the composer reads \"Grounded on …\", so the answer comes from your own documents.\n- **Skills** — \"Reusable instruction packs for this chat\", for a prompt shape you keep retyping.\n- **Add photos & files** — the quote or report itself, instead of a paraphrase.\n- **The depth control** — \"The depth the next answer runs at\": **Fast** for quick answers, **Think** for complex problems.\n\nEvery one of these is context you did not have to type."
+    },
+    {
+      "type": "slide",
+      "id": "no-names",
+      "icon": "🔒",
+      "title": "Describe the case, not the person",
+      "bodyMd": "Context does not mean personal details. \"A residents' association we quoted five days ago\" steers the answer just as well as a customer's name, e-mail address and phone number — and those three add nothing the model can use.\n\nSo: describe the case, do not paste the person. The coach later in this lesson grades it the same way: an invented customer name earns no credit.\n\nIf your organisation runs the Privacy Shield and has it set to check with you first, \"Sensitive content detected\" appears before the prompt leaves, and you can choose \"Redact and send\"."
+    },
+    {
+      "type": "exercise",
+      "id": "ex-specific",
+      "icon": "🎯",
+      "exerciseId": "ex-basics-specific",
+      "title": "Your turn: make it specific",
+      "instruction": "Van Dijk Groep has launched a new customer portal and marketing has asked for a text about it. The prompt somebody typed is: \"write something about our new feature.\" Rewrite it into a prompt you would actually send. A strong rewrite carries all three ingredients — context (who is writing, who reads it, what it should achieve), one specific task in one verb, and the format you want back (length, shape, tone). A few sentences is plenty; the AI coach scores the decisions you made, not the word count.",
+      "placeholder": "e.g. \"I do marketing at Van Dijk Groep, an installation firm near Zwolle. Draft a 150-word announcement of our new customer portal for existing maintenance customers, explaining that they can now see their service appointments themselves, in a plain, friendly tone, ending with one line telling them where to log in.\"",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "slide",
+      "id": "verdict",
+      "icon": "📊",
+      "title": "Read the verdict before you rewrite",
+      "bodyMd": "The coach answers with a score out of 100 — 70 or more passes — and two short lists: **What worked** and **To improve**, at most four bullets each.\n\nThe temptation is to rewrite everything. Do the opposite: take the improvement bullets one at a time, change that one thing, then press **Submit again**. You will see which ingredient was actually carrying the score.\n\nStuck? **Get a hint** gives you one sentence, and **Ask AI** in the lesson header opens the tutor, which nudges before it answers. After four attempts a **Skip this one** button appears — skipping still completes the lesson, so nothing here can trap you."
+    },
+    {
+      "type": "tour",
+      "id": "where",
+      "target": "[data-tour=\"chat-composer\"]",
+      "navigateTo": "agents",
+      "placement": "top",
+      "optional": true,
+      "timeoutMs": 7000,
+      "icon": "⌨️",
+      "title": "This is where you ask",
+      "body": "This is the chat composer, where every prompt you write actually lands. The controls around it are the attachment, knowledge and depth options from a moment ago — whichever of them your account has."
+    },
+    {
+      "type": "action",
+      "id": "send-one",
+      "icon": "🏗️",
+      "checkId": "direct-chat-sent",
+      "title": "Send one three-ingredient prompt",
+      "instruction": "Click New Chat in the sidebar and send one real prompt about your own work, with all three ingredients in it: who you are and who it is for, one task verb, and the shape you want back. Read the answer, then come back here — we will check that a chat of yours was used.",
+      "launch": {
+        "navigateTo": "agents",
+        "label": "Open a new chat"
+      }
+    },
+    {
+      "type": "slide",
+      "id": "recap",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "- **Name the gap.** Faced with a weak prompt, you can say whether it is missing context, a clear task or an output format — and the symptom tells you where to look: wrong shape points at the format, bland points at the context.\n- **Fix it in one sentence.** Role, reader and goal; one verb with an object; a table, a bullet count, a word cap or a tone. Two dozen words is plenty.\n- **Stop blaming the model.** \"Thoughts?\" and \"make it good\" give the model nothing to aim at, whatever it is running on.\n\nNext up: **Give it context** — how far a single line about your role, your audience and your goal moves an answer."
+    }
+  ],
+  "rubrics": {
+    "ex-basics-specific": {
+      "title": "Make it specific",
+      "task": "The learner was given the weak prompt \"write something about our new feature\" and asked to rewrite it into a prompt they would actually send, carrying context (who is writing, who reads it, what it should achieve), one specific task, and the output format they want back.",
+      "criteria": [
+        "Adds real context: who is writing or for which kind of company, and who the text is for or what it should achieve",
+        "States one specific, unambiguous task with a verb and an object (draft, announce, rewrite, summarise) rather than \"help\" or \"do something with\"",
+        "Specifies the output format: a length or word count, a shape such as bullets or a table, or a named tone",
+        "Reads as a single prompt that could be pasted into the composer as it stands, about a recognisable product or feature"
+      ],
+      "passScore": 70,
+      "guidance": "Score the decisions, not the length; a good rewrite can be one sentence. Do not pass generic context (\"for everyone\", \"to be helpful\", \"for our website\" alone) or a format made of adjectives (\"thoroughly\", \"engaging\", \"really good\") with no length, shape or tone. Do not pass if the task is still \"help me\" or \"write something\". Fluent prose that names no audience and no format fails. Do not reward inventing a customer's name, e-mail address or other personal details — it earns no credit."
+    }
+  },
+  "practiceTopic": {
+    "title": "Anatomy of a great prompt",
+    "summary": "The three ingredients of a prompt — context, a clear task, an output format — and how the lesson's coach grades your rewrite.",
+    "facts": [
+      "A strong prompt carries three ingredients: context, a clear task, and the output format. An answer that is accurate but the wrong shape points at a missing format; one that is fluent yet could be about any company points at missing context.",
+      "A clear task is a verb with an object — summarise, compare, draft, rewrite, list. \"Help me with this\" and \"Thoughts?\" are not tasks.",
+      "An output format means a bullet count, a table with named columns, a word or length cap, or a named tone; adjectives such as \"thoroughly\" or \"really good\" specify nothing.",
+      "Specific does not mean long: all three ingredients fit in roughly two dozen words, and length is never what makes a prompt strong.",
+      "The lesson's free-text exercise is graded 0 to 100 by the AI coach, and 70 or more passes.",
+      "The coach's verdict shows two lists, What worked and To improve, with at most four bullets each; Submit again sends a revised attempt.",
+      "Get a hint returns a single sentence, and after four attempts a Skip this one button appears — a skip still completes the lesson.",
+      "In the chat composer, Knowledge is described as \"What this chat is grounded on\" and the depth control reads \"The depth the next answer runs at\", with Fast for \"Quick answers\" and Think for \"Complex problems\"."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "direct-chat-sent",
+      "existing": false,
+      "label": "Send a prompt in a chat",
+      "hint": "Click New Chat in the sidebar, type a prompt with context, a task and a format, send it, and let the answer finish.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/ai/direct/conversations",
+          "returns": "array of the caller's own direct chats, each with id, title, model_tier, project_id, shared_scope, pinned, labels_json, created_at, updated_at (server filters on the session user id)"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "exists",
+          "label": "A chat of your own exists",
+          "hint": "Click New Chat in the sidebar and send your prompt — the chat is saved to your history once the answer comes back.",
+          "rule": "list length > 0",
+          "endpoint": "/ai/direct/conversations",
+          "expect": {
+            "kind": "rows"
+          }
+        },
+        {
+          "id": "recent",
+          "label": "You used a chat just now",
+          "hint": "Send the prompt in this session; we look at the most recently updated chat.",
+          "rule": "any row whose updated_at is within the last 24 hours"
+        }
+      ]
+    }
+  ]
+}

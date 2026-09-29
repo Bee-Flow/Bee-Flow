@@ -1,0 +1,247 @@
+{
+  "id": "shield-basics",
+  "icon": "🛡️",
+  "estMinutes": 8,
+  "title": "What happens before your message leaves",
+  "desc": "Detection, placeholders and restoration — the mechanism in plain words.",
+  "gate": {},
+  "learningGoal": "After this lesson you can explain, in one sentence, what the AI model saw of your message and what it never saw.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "stops-here",
+      "icon": "🛡️",
+      "title": "Your text stops here first",
+      "bodyMd": "Sanne works in admin at **Van Dijk Groep**, a Dutch SME. She wants help writing a payment reminder, so she pastes a customer's name and e-mail address into the chat.\n\nBetween pressing Send and the message leaving, Bee Flow reads her text and looks for the kinds of personal detail your own admin ticked: names, e-mail addresses, phone numbers, addresses, bank details, ID numbers, health information and more.\n\nTwo things worth knowing about that scan:\n\n- It runs on your own organisation's installation. Nothing is sent to an outside service to do the checking.\n- It runs **before** the message reaches an AI model, not after.\n\nThat is the whole reason the rule \"do not paste that into AI\" works differently here."
+    },
+    {
+      "type": "slide",
+      "id": "swap-not-delete",
+      "icon": "🔤",
+      "title": "Redaction swaps, it does not delete",
+      "bodyMd": "The shield does not cross words out. It **swaps** them for labels.\n\nSanne's sentence:\n\n> Draft a payment reminder for Jan de Vries, j.devries@vandijkgroep.nl, invoice 2026-118.\n\nWhat goes out:\n\n> Draft a payment reminder for `[person_1]`, `[email_1]`, invoice 2026-118.\n\nThe request keeps its shape, so the model can still do the work. And the labels are stable: mention Jan de Vries three times and he stays `[person_1]` all three times, so the model can still tell who is who."
+    },
+    {
+      "type": "slide",
+      "id": "restore",
+      "icon": "♻️",
+      "title": "The answer comes back with the real values",
+      "bodyMd": "The model writes its reply about `[person_1]`. On the way back, Bee Flow puts the real values in again, before the answer reaches Sanne's screen.\n\nSo she reads *\"Beste Jan de Vries\"*, ready to send, and the model itself never held that name.\n\nThe list of which placeholder stood for which value stays inside Bee Flow, kept per conversation. That is why a follow-up question in the same chat still works: `[person_1]` keeps pointing at the same person for the rest of the thread."
+    },
+    {
+      "type": "sim",
+      "id": "order",
+      "icon": "🧩",
+      "title": "Put the five moments in order",
+      "instruction": "Drag Sanne's reminder through the shield, from her keyboard to the answer on her screen.",
+      "sim": {
+        "kind": "order",
+        "items": [
+          {
+            "id": "type",
+            "label": "Sanne types the reminder and presses Send"
+          },
+          {
+            "id": "scan",
+            "label": "Bee Flow scans the text for personal data"
+          },
+          {
+            "id": "swap",
+            "label": "The name and e-mail address become [person_1] and [email_1]"
+          },
+          {
+            "id": "model",
+            "label": "The placeholder version goes to the AI model"
+          },
+          {
+            "id": "restore",
+            "label": "The real values are put back into the answer"
+          }
+        ],
+        "solution": [
+          "type",
+          "scan",
+          "swap",
+          "model",
+          "restore"
+        ],
+        "feedback": "The scan sits between Send and the model; the restore sits between the model and your screen. Everything a model can ever see of this message is what is left in the middle."
+      }
+    },
+    {
+      "type": "tour",
+      "id": "composer",
+      "target": "[data-tour=\"chat-composer\"]",
+      "navigateTo": "agents",
+      "placement": "top",
+      "optional": true,
+      "timeoutMs": 7000,
+      "icon": "⌨️",
+      "title": "The line at the bottom of the box",
+      "body": "On a desktop screen, one short sentence with a small shield icon sits in the row of controls under the text box, over on the right. It tells you what will happen to the message you are about to send. On a narrow phone screen it is hidden, but the same rules still apply."
+    },
+    {
+      "type": "slide",
+      "id": "five-lines",
+      "icon": "📋",
+      "title": "Five sentences, and what each one means",
+      "bodyMd": "The shield line says exactly one of five things:\n\n- **Personal data is replaced before sending** — the placeholder swap you just saw.\n- **Messages holding personal data are blocked** — the message is refused and you are asked to rewrite it.\n- **You are asked first when personal data is found** — a review dialog opens and you decide.\n- **Personal data is checked before sending** — it is being checked; nothing more specific is claimed.\n- **Privacy Shield is on, but personal data cannot be checked right now** — amber, with a warning icon.\n\nAnd a sixth case: **nothing at all**. No line means the shield is off, or its status could not be read. Bee Flow would rather say nothing than reassure you wrongly."
+    },
+    {
+      "type": "quiz",
+      "id": "green-shield",
+      "question": "Sanne sees the line with the green shield, \"Personal data is replaced before sending\". What has she actually been told?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "The shield is switched on and the detection service answered, so personal data found in this message will be swapped for placeholders.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Her message will not leave the organisation.",
+          "correct": false,
+          "feedback": "The line says nothing about where the message goes. The placeholder version can still travel to a model outside your organisation — what stays behind are the real values, not the message."
+        },
+        {
+          "id": "c",
+          "label": "Every piece of personal data in her message will be found.",
+          "correct": false,
+          "feedback": "No detector is perfect. The line reports what the shield is set to do, not that it catches everything — which is why the review dialog lets you select text and mark it yourself."
+        },
+        {
+          "id": "d",
+          "label": "Only that the setting is switched on; whether anything is being checked is unknown.",
+          "correct": false,
+          "feedback": "That is the amber sentence, \"Privacy Shield is on, but personal data cannot be checked right now\". The green shield is shown only when the setting is on and the detector actually answered."
+        }
+      ],
+      "explanation": "The green shield needs two facts at once: the shield is enabled and the detection service is reachable. If the setting is on but the detector is not answering, you get the amber sentence instead — a claim nobody can measure is worse than no claim at all."
+    },
+    {
+      "type": "slide",
+      "id": "under-message",
+      "icon": "🔍",
+      "title": "What the lock badge under your message tells you",
+      "bodyMd": "Once the reminder is sent, a small lock badge appears under Sanne's own message: **2 items redacted**. Hover it and it says *\"This message contained sensitive data — only placeholders were sent to the AI.\"*\n\nExpand the badge and you get the **Privacy protection** panel: **Detected** — which kinds of personal data were found — and **Sent to**, the provider that answered.\n\nIf an admin switched on **Let people see what was sent to the AI** — off unless someone turns it on — that panel also shows the original message, the version that went to the AI, the reply, and a **Token mapping** list behind **Click to reveal**: which placeholder stood for which value. Anyone who can open the conversation can reveal those values.\n\nIf part of a large attachment could not be checked, an amber **Scan incomplete** badge appears instead: that part went to the AI unredacted."
+    },
+    {
+      "type": "quiz",
+      "id": "what-trips",
+      "question": "Van Dijk Groep has the shield on with the usual categories ticked. Which of these messages would the detector find something in?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "\"Draft a reminder to Jan de Vries at j.devries@vandijkgroep.nl about invoice 2026-118.\"",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "\"Summarise this supplier quote: total 12,400 euro, delivery in six weeks, payment within 30 days.\"",
+          "correct": false,
+          "feedback": "Amounts, lead times and payment terms are not personal data — they say nothing about a person. Nothing here would be swapped."
+        },
+        {
+          "id": "c",
+          "label": "\"What is the difference between a BSN and a VAT number?\"",
+          "correct": false,
+          "feedback": "The detector looks for values, not for subjects. Asking about identity numbers contains none, so nothing is hidden — you can talk about personal data without handing any over."
+        },
+        {
+          "id": "d",
+          "label": "\"Rewrite this sentence in plainer Dutch: 'De levering wordt uiterlijk vrijdag verwacht.'\"",
+          "correct": false,
+          "feedback": "A delivery date is not a personal detail. Nothing in this sentence points at a person, so the scan finds nothing and the message goes out as you wrote it."
+        }
+      ],
+      "explanation": "A name plus an e-mail address is the clearest case: two categories, two placeholders. The other three carry business facts or a question about a topic — the shield hides values that identify a person, not the subject you are discussing."
+    },
+    {
+      "type": "exercise",
+      "id": "explain",
+      "icon": "🎯",
+      "exerciseId": "ex-shield-basics-what-model-saw",
+      "title": "Your turn: say it in one sentence",
+      "instruction": "Sanne's manager stops her in the corridor: \"You just put a customer's name into an AI. Explain to me why that is allowed.\" Write the answer in one or two sentences. A strong answer names what the model actually received, names what it never received, and says where the real values stayed. Use Sanne's reminder as the example.",
+      "placeholder": "e.g. The model got the text with [person_1] and [email_1] in place of the name and e-mail address, so it never...",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "action",
+      "id": "see-it",
+      "icon": "🏗️",
+      "checkId": "shield-seen",
+      "title": "Do it once, on a made-up customer",
+      "instruction": "Open a chat and send a short message containing an obviously invented name and e-mail address, such as: Draft a payment reminder for Jan de Vries, j.devries@vandijkgroep.nl, invoice 2026-118. When the answer arrives, find the lock badge under your own message and expand it to see the Privacy protection panel.",
+      "launch": {
+        "navigateTo": "agents",
+        "label": "Open a chat"
+      }
+    },
+    {
+      "type": "slide",
+      "id": "now",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "- **Read the line at the bottom of the message box** and know which of the five things will happen to your next message — including the amber one, which means the check is not running.\n- **Explain the mechanism** to a colleague or a manager: the scan runs on your own installation before sending, real values are swapped for placeholders like `[person_1]`, and they are put back in the answer before you read it.\n- **Expand the lock badge** under a message you sent to open **Privacy protection**, and see what was detected and which provider it went to.\n\nNext chapter: the one moment where the decision is yours — Block, Send anyway, or Redact and send."
+    }
+  ],
+  "rubrics": {
+    "ex-shield-basics-what-model-saw": {
+      "title": "What the model saw, and what it never saw",
+      "task": "Explain in one or two sentences why sending a payment reminder containing a customer's name and e-mail address to an AI model is defensible, using the placeholder mechanism.",
+      "criteria": [
+        "Names what the model received: the message with placeholders such as [person_1] / [email_1] instead of the real name and e-mail address.",
+        "Names what the model never received: the real name and e-mail address themselves.",
+        "Says where the real values stayed and when they came back — inside Bee Flow, restored into the answer before the user read it.",
+        "Stays accurate: does not claim the message never left the organisation, and does not claim the detector catches everything."
+      ],
+      "passScore": 70,
+      "guidance": "Pass a plain, correct sentence even if short. Do NOT pass: \"it is encrypted\", \"the data never leaves Bee Flow\" (the placeholder text does leave when the model is external), \"the shield deletes personal data\" (it swaps, it does not delete), or an answer that only repeats that a shield exists without saying what the model got instead of the real values. An answer that describes blocking rather than replacing does not answer this question."
+    }
+  },
+  "practiceTopic": {
+    "title": "Privacy Shield: what happens before a message is sent",
+    "summary": "How Bee Flow scans a chat message for personal data, replaces it with placeholders, and restores the real values in the answer.",
+    "facts": [
+      "The scan for personal data runs on the organisation's own installation before the message is sent; nothing is sent to an outside service to do the checking.",
+      "Redaction swaps rather than deletes: a name becomes [person_1] and an e-mail address becomes [email_1], and the same value keeps the same placeholder within a conversation.",
+      "Bee Flow puts the real values back into the answer before the reader sees it, so the reader sees the real name even though the model only saw placeholders.",
+      "The composer shield line says one of five things, including the amber \"Privacy Shield is on, but personal data cannot be checked right now\"; when the status is unknown or the shield is off, no line is shown at all.",
+      "The green shield line is shown only when the shield is enabled AND the detection service is reachable — being switched on is not enough.",
+      "Under a sent message a lock badge reads \"{n} items redacted\", with the tooltip \"This message contained sensitive data — only placeholders were sent to the AI.\"",
+      "Expanding that badge opens the Privacy protection panel with what was detected and the provider it went to; the original message, the version sent to the AI and a Token mapping list behind Click to reveal appear only when the organisation switched on \"Let people see what was sent to the AI\".",
+      "An amber Scan incomplete badge means part of a large upload could not be checked and that part was sent unredacted."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "shield-seen",
+      "existing": false,
+      "label": "Send one message the shield acts on",
+      "hint": "In a chat, send a message containing an invented name and e-mail address, then look at the line under your own message.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/ai/direct/conversations",
+          "returns": "array of the signed-in user's direct conversations with id, title, updated_at"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "chat",
+          "label": "You have at least one chat of your own",
+          "hint": "Start a new chat from the sidebar and send one message.",
+          "rule": "GET /ai/direct/conversations returns an array with length > 0",
+          "endpoint": "/ai/direct/conversations",
+          "expect": {
+            "kind": "rows"
+          }
+        }
+      ]
+    }
+  ]
+}

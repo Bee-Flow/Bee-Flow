@@ -1,0 +1,81 @@
+# Security Scan (beta) — local-test override for the registry stack.
+#
+# Layer this on top of docker-compose.from-registry.yml (and any NC override)
+# so the already-running server gets the SECURITY_* config + a scanner workdir
+# that is bind-mounted at an identical host:container path. The identical path
+# is REQUIRED: the worker spawns sibling scanner containers on the host Docker
+# daemon and bind-mounts <workdir>/<engine> into them, so that host path must
+# resolve the same inside the server container and on the host.
+#
+# Usage (you run this — preserves your NC wiring; add your NC override -f if you
+# use one, before this file so SECURITY_* still wins on its own keys):
+#
+#   docker compose \
+#     -f docker-compose.from-registry.yml \
+#     -f docker-compose.security.override.yml \
+#     up -d --force-recreate server agent-hub
+#
+# The server + agent-hub images must already be (re)built from local source and
+# tagged ghcr.io/bee-flow/server:latest and ghcr.io/bee-flow/agent-hub:latest so
+# the new code is present. Compose uses the locally-tagged image (no pull).
+#
+# Security Scan is a BETA feature: an org/user must have the `security_scan`
+# beta opt-in enabled (Admin → Beta features) AND an enterprise-tier licence for
+# the Studio "Security Scan" tab to appear.
+
+services:
+  server:
+    environment:
+      # Drain the security_scan outbox in the API process (no dedicated worker).
+      - SECURITY_DRAIN_IN_API=true
+      # Scanner workdir — MUST match the bind-mount below (identical host:container).
+      - SECURITY_SCANNER_WORKDIR=/var/lib/beeflow/scan
+      # Concurrency caps (scans are heavy; keep low for a local box).
+      - SECURITY_MAX_CONCURRENT_PER_USER=1
+      - SECURITY_MAX_CONCURRENT_PER_ORG=2
+      - SECURITY_MAX_CONCURRENT_GLOBAL=2
+      # Active/intrusive ZAP full scan + the agent's zap_active_scan tool.
+      # Sends real attack traffic — only enable for targets you own/are
+      # authorized to test (the per-scan authorization attestation still applies).
+      - SECURITY_ALLOW_ACTIVE_SCAN=true
+      # Per-engine images (pre-pulled locally).
+      - SECURITY_SCANNER_ZAP_IMAGE=ghcr.io/zaproxy/zaproxy:stable
+      - SECURITY_SCANNER_NUCLEI_IMAGE=projectdiscovery/nuclei:latest
+      - SECURITY_SCANNER_TESTSSL_IMAGE=drwetter/testssl.sh:latest
+      # Per-engine container resource caps + timeout.
+      - SECURITY_SCANNER_MEMORY_MB=1536
+      - SECURITY_SCANNER_CPUS=1.0
+      - SECURITY_SCANNER_TIMEOUT_MS=900000
+      # ── AI agent mode (live, Claude-driven scan + terminal) ──────────────
+      # Claude drives a long-lived ZAP daemon (REST API) + a free-form tools
+      # sandbox step-by-step, streaming each action/scanstat/terminal event.
+      - SECURITY_AGENT_MAX_STEPS=40
+      - SECURITY_ZAP_BOOT_TIMEOUT_MS=120000
+      - SECURITY_TERMINAL_TIMEOUT_MS=30000
+      # Locally-built sandbox image (docker build -t beeflow-security-tools:latest server/terminal-runner)
+      - SECURITY_TOOLS_IMAGE=beeflow-security-tools:latest
+      - SECURITY_TOOLS_MEMORY_MB=768
+      - SECURITY_TOOLS_CPUS=0.5
+      # ── Claude Code subscription (OAuth) — LOCAL DEV ONLY ────────────────
+      # Inert unless BEEFLOW_CLAUDE_CODE_OAUTH=1 is set in .env. When on, the Claude
+      # provider authenticates with your Claude Code Pro/Max subscription instead of an
+      # API key — either a dedicated `claude setup-token` token (CLAUDE_CODE_OAUTH_TOKEN,
+      # preferred) or the read-only creds directory mounted below. MUST stay off on any
+      # deployed / multi-tenant instance.
+      - BEEFLOW_CLAUDE_CODE_OAUTH=${BEEFLOW_CLAUDE_CODE_OAUTH:-}
+      # Preferred: a dedicated long-lived token from `claude setup-token` (no file/mount
+      # needed, decoupled from the interactive Claude Code session). Empty by default.
+      - CLAUDE_CODE_OAUTH_TOKEN=${CLAUDE_CODE_OAUTH_TOKEN:-}
+      - CLAUDE_CODE_CREDENTIALS_PATH=${CLAUDE_CODE_CREDENTIALS_PATH:-/root/.claude/.credentials.json}
+    volumes:
+      # Identical host:container path so sibling scanner-container binds resolve.
+      - /var/lib/beeflow/scan:/var/lib/beeflow/scan
+      # Claude Code creds DIRECTORY, read-only. Must be the directory, not the single
+      # .credentials.json file: Claude Code rewrites that file by atomic rename, which a
+      # single-file bind mount can't follow (it pins to the old inode → stale token).
+      # Inert empty named volume unless CLAUDE_CODE_CONFIG_SRC=<your ~/.claude> is in .env.
+      - ${CLAUDE_CODE_CONFIG_SRC:-claude-cc-noop}:/root/.claude:ro
+
+# Inert empty volume = the default (off) source for the Claude Code creds mount above.
+volumes:
+  claude-cc-noop:

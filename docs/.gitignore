@@ -1,0 +1,19 @@
+# Docusaurus
+.docusaurus/
+build/
+node_modules/
+.cache-loader/
+*.log
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Legacy MkDocs (kept while we migrate)
+site/
+.venv/
+__pycache__/
+*.pyc
+
+# OS
+.DS_Store

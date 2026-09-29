@@ -1,0 +1,24 @@
+{
+  "name": "nc-login-mini",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Minimal Nextcloud ExApp — proves AppAPI auto-login.",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test 'src/*.test.js'",
+    "test:coverage": "c8 node --test 'src/*.test.js'",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "c8": "^11.0.0",
+    "eslint": "^9.39.5",
+    "globals": "^17.12.0"
+  }
+}

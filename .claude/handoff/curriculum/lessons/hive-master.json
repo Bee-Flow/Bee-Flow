@@ -1,0 +1,254 @@
+{
+  "id": "hive-master",
+  "icon": "👑",
+  "estMinutes": 24,
+  "title": "The Hive Master challenge",
+  "desc": "Requirements only. Build it in your real workspace, have it verified, and answer for the admin decisions underneath it.",
+  "gate": {
+    "feature": "automations"
+  },
+  "learningGoal": "After this lesson the learner can meet every capstone requirement in a real workspace without step-by-step guidance, diagnose a criterion that stays unticked, and name the admin decision each thing they built depends on.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "brief",
+      "icon": "👑",
+      "title": "The requirements — the how is yours",
+      "bodyMd": "There is no walkthrough this time. A capstone hands you an outcome and lets you decide how to reach it — and what you walk away with is not a score, but a workspace that is still doing your work on Monday.\n\nThree things must exist, for real, in your workspace:\n\n1. **An automation on a schedule that has actually run.**\n2. **A cowork item you delegated.**\n3. **A builder artifact** — an agent of your own, *or* a knowledge base with at least one document.\n\nWork you did in earlier courses counts. The check step reads your live workspace, so nothing has to be rebuilt for the exam — and the next step, before any explanation, asks you to judge five real cases.\n\nThe checklist stops at three rows. The capstone does not: the last steps ask you to answer for the decisions your three things run on — who was allowed to build them, what the shield does to them, which encryption tier they sit on, and where a published agent turns up in a register. Back at **Van Dijk Groep**, the sixty-person installation firm from the earlier courses: Bilal builds, Sanne works in chat, and Marieke, the organisation admin, is the one who has to answer."
+    },
+    {
+      "type": "sim",
+      "id": "counts",
+      "icon": "🧩",
+      "title": "Does it count?",
+      "instruction": "Five things sit in Bilal's workspace this morning. Judge each one on its own and pair it with what the capstone checklist makes of it. The notes are the rules — the cards after this one only fill them in.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "sched-ran",
+            "left": "A routine \"Open quotes digest\" with an On a schedule trigger, dry-run once on Thursday",
+            "right": "Requirement one — met",
+            "note": "Requirement one pairs two things: a trigger that is On a schedule, and at least one run of that routine. A dry-run is stored as a run like any other, so it settles the second half."
+          },
+          {
+            "id": "sched-never",
+            "left": "A second schedule-triggered routine, saved and tidy, never run",
+            "right": "Not yet — it still has to fire",
+            "note": "Requirement one pairs a schedule trigger with a run. Saving is not running — a dry-run takes seconds and settles it."
+          },
+          {
+            "id": "manual",
+            "left": "A routine that starts with Trigger manually, run by hand four times",
+            "right": "Not the trigger this requirement asks for",
+            "note": "Requirement one looks for a routine whose trigger is On a schedule; however often a manual routine is run by hand, it is not that routine."
+          },
+          {
+            "id": "cowork",
+            "left": "A cowork item \"List unanswered quotes\", sent on Monday",
+            "right": "Requirement two — met",
+            "note": "Requirement two asks only that a cowork item of your own exists: you describe the work in plain language, say when it should run, and press Schedule (or Run, when the moment is \"Run now\")."
+          },
+          {
+            "id": "empty-kb",
+            "left": "A knowledge base called \"Prijslijsten\" with no files in it yet",
+            "right": "Not yet — it needs a document",
+            "note": "Requirement three takes an agent of your own, or a knowledge base holding at least one document. An empty knowledge base is neither — upload one file and the row ticks."
+          }
+        ]
+      }
+    },
+    {
+      "type": "slide",
+      "id": "req-one",
+      "icon": "⏰",
+      "title": "Requirement one: a schedule that has fired",
+      "bodyMd": "Van Dijk Groep, the sixty-person installation firm, loses an hour every Friday chasing open quotes. Bilal builds a routine in Studio → Automations: the trigger **On a schedule** (\"Run at a fixed time, over and over\"), then the steps that gather and send the summary.\n\nTwo details decide whether this requirement ticks:\n\n- The trigger must be **On a schedule**. A manual, form or webhook routine is fine work, but not this requirement.\n- A **run must exist**. The routine header carries a **Dry-run** button; its chevron opens **Dry-run (preview)** — *\"No real actions — safe preview\"* — and **Run live**. A dry-run is stored as a run like any other, so it settles this half in seconds.\n\nHow the run ended does not matter: a failed run still shows the routine fired."
+    },
+    {
+      "type": "slide",
+      "id": "req-two",
+      "icon": "🤝",
+      "title": "Requirement two: something you delegated",
+      "bodyMd": "Requirement two is a **cowork item**. Cowork is the sidebar row under New Chat: you describe the work in plain language, say when it should run, and Bee Flow reports back in your notifications.\n\nBilal writes one sentence — *Every Friday, list the quotes from this week that nobody has answered yet* — sets **Repeat** to *Every week*, picks a moment under **When**, and presses **Schedule**. (The same button reads **Run** when the moment is \"Run now\".)\n\nThe criterion ticks as soon as a cowork item of yours exists. Delegate something you genuinely want back, though: the item keeps running long after this lesson closes, and a throwaway brief becomes a throwaway e-mail every Friday."
+    },
+    {
+      "type": "quiz",
+      "id": "q-red",
+      "question": "Your automation row refuses to tick. Which two situations would actually leave it unticked?",
+      "multi": true,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Your routine starts with Trigger manually rather than On a schedule",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Nothing you own has ever run — your schedule-triggered routine has had neither a dry-run nor a live run",
+          "correct": true
+        },
+        {
+          "id": "c",
+          "label": "Your schedule-triggered routine ran this morning and finished with a failure",
+          "correct": false,
+          "feedback": "The criterion asks whether the routine has fired, not how it ended. A failed run still proves it ran — go and fix it in Runs & log, but the row ticks."
+        },
+        {
+          "id": "d",
+          "label": "Your routine sits inside a folder in the left rail instead of at the top level",
+          "correct": false,
+          "feedback": "Folders are only labels for organising the list. The check reads the automations you own, whatever folder they are filed under."
+        }
+      ],
+      "explanation": "Two things carry this criterion: the trigger kind and the existence of a run. Check the trigger node on the canvas first, then the Runs tab of that routine — and remember a dry-run settles the second half in seconds."
+    },
+    {
+      "type": "slide",
+      "id": "req-three",
+      "icon": "🛠️",
+      "title": "Requirement three: something you built",
+      "bodyMd": "The third requirement accepts either half of the builder path:\n\n- **An agent of your own** — described in the agent wizard in one plain sentence. It counts from the moment it exists; you do not have to publish it. Publishing decides who else may use the agent, not whether you built one.\n- **Or a knowledge base holding at least one document.** Upload a single file — a PDF, a document, a spreadsheet — and the row ticks.\n\nThe agents Bee Flow seeds for every workspace do not count, and neither do knowledge bases the system maintains for you. The criterion is looking for something owned by you. Bilal already has both: an agent that drafts quote replies, and the price-list knowledge base it searches. Either one alone would have been enough.\n\nPublishing still matters elsewhere, though. A **published** agent is what the organisation's processing register records as a processing activity — which is why the step after next asks you who reads that register."
+    },
+    {
+      "type": "quiz",
+      "id": "q-gap",
+      "question": "Bilal has a schedule-triggered digest routine that dry-ran on Thursday, an agent he made in the wizard but never published, and a cowork brief he typed on Monday and left sitting in the box unsent. Which requirement is still unmet?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "The cowork requirement — an unsent brief is not an item yet",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "The automation requirement — a dry-run is only a preview, so it does not count as a run",
+          "correct": false,
+          "feedback": "A dry-run executes nothing for real, but it is recorded as a run — and the capstone accepts it deliberately, so nobody has to fire a live routine to pass."
+        },
+        {
+          "id": "c",
+          "label": "The builder requirement — the agent has to be published before it counts",
+          "correct": false,
+          "feedback": "Publishing an agent decides who else may use it. The criterion asks only that an agent of your own exists, draft or not."
+        },
+        {
+          "id": "d",
+          "label": "None of them — all three are met, the checklist is just out of date",
+          "correct": false,
+          "feedback": "The checklist re-runs by itself every few seconds while the step is open, so staleness is rarely the problem. The cowork item genuinely does not exist until the brief is sent."
+        }
+      ],
+      "explanation": "Text in a composer is not an artifact. Pressing Run or Schedule creates the cowork item, and the row ticks on the next pass of the check."
+    },
+    {
+      "type": "slide",
+      "id": "gated",
+      "icon": "🔐",
+      "title": "What your role cannot reach is not counted",
+      "bodyMd": "Not every workspace lets every person build every kind of thing, so the checklist adapts before it judges.\n\nA criterion you have neither the permission nor the licence to satisfy is **hidden, not failed**. It leaves the list entirely and is left out of the pass. Sanne is a **Member** at Van Dijk Groep, and managing agents and knowledge bases belongs to **Agent Editor** and up — so her checklist shows two rows, and two ticks finish the challenge.\n\nSo a missing row is an answer, not a bug. Getting it back is an administrator's decision, and there are two ways to take it: change the person's role on the **Users** tab, or add them to a group whose **Group Role** fans the role out to everyone in it (*\"All members inherit this role\"*). Otherwise, finish with the rows you have. Nobody is blocked by a gate they cannot open, and the badge still means the same thing — everything your role can reach, actually built."
+    },
+    {
+      "type": "sim",
+      "id": "decisions",
+      "icon": "🧭",
+      "title": "The decisions behind your three things",
+      "instruction": "Everything you just built lands on somebody's desk. Match each situation in the workspace to the administrator's decision that answers it — the four admin courses, applied to your own build.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "unattended",
+            "left": "Your schedule-triggered routine fires at 16:00 with nobody watching, and its AI step handles customer names",
+            "right": "Privacy Shield → “Also protect routines”",
+            "note": "On the shield's “What happens” tab, “Also protect routines” (default on) checks a routine's data and its AI steps the same way as chat — routines run unattended, so this setting is the only eye on them. The evidence shows up on “What happened” as rows labelled “Routine — <title>”."
+          },
+          {
+            "id": "night-read",
+            "left": "A night-time routine that has to read conversations while nobody is logged in",
+            "right": "The encryption tier: Managed, not Zero-knowledge",
+            "note": "On Managed each user's key is also wrapped with the organisation's key, so background jobs — automations, 3 a.m. summaries — can read message bodies. On Zero-knowledge the server holds no key for them, and a routine that depends on reading chat cannot work. Both tiers need Enterprise."
+          },
+          {
+            "id": "no-row",
+            "left": "Sanne's checklist shows two rows: no agent-or-knowledge-base row at all",
+            "right": "A role or a group grant",
+            "note": "Managing agents and knowledge bases belongs to Agent Editor and up; Sanne is a Member. An administrator either changes her role on the Users tab or adds her to a group whose Group Role fans it out — “All members inherit this role”."
+          },
+          {
+            "id": "published-agent",
+            "left": "You publish the quote-reply agent, and Marieke is asked where that is written down",
+            "right": "The processing register (ROPA)",
+            "note": "The register is generated from live configuration: published agents are its processing activities, which is why an empty workspace reads “No published agents — no processing activities to record yet”. Somebody still has to read it and press “Mark as reviewed”."
+          },
+          {
+            "id": "cap",
+            "left": "In week three chat starts answering that the organisation has reached its monthly cost limit",
+            "right": "The cost cap on License & Usage",
+            "note": "The cap is the monthly AI ceiling. The Usage page's “AI usage vs. cap” gauge turns amber at 80 %, and a warning e-mail goes out once per billing period — so raising the cap, or switching from one pooled budget to a budget per user, is a decision taken in advance, not a surprise."
+          }
+        ]
+      }
+    },
+    {
+      "type": "action",
+      "id": "prove",
+      "icon": "🏆",
+      "checkId": "hive-master",
+      "title": "Prove it",
+      "instruction": "Make the three things exist in your own workspace — your real work is the best subject. The checklist reads exactly three rows: (1) an automation of yours whose trigger is On a schedule and that has at least one run, a dry-run included; (2) a cowork item you created; (3) an agent of your own, or a knowledge base holding at least one document. Rows your role or licence cannot reach are hidden, not failed. Anything built before today counts, the list re-runs every few seconds, and \"Check my work\" answers now.",
+      "launch": {
+        "navigateTo": "studio/routines",
+        "label": "Open Automations"
+      }
+    },
+    {
+      "type": "exercise",
+      "id": "debrief",
+      "icon": "🎯",
+      "exerciseId": "ex-hive-master-debrief",
+      "title": "Your turn: the handover note",
+      "instruction": "Write the note you would leave a colleague who takes over your workspace tomorrow, in three parts.\n\n1. Name each of the three things you built, what each one does in one line, and which requirement it satisfies.\n2. The governance line: name one admin decision your build depends on and where it is taken — the shield's \"Also protect routines\" setting, the encryption tier your unattended routine needs, the role or group that let you build at all, or the processing register a published agent lands in. If you are not the administrator, name the decision you would want confirmed, the screen it lives on, and who confirms it.\n3. One task that still repeats in your week, with the trigger you would give it (schedule, form, app event, webhook, agent call or Studio App) and why that trigger and not another.",
+      "placeholder": "e.g. \"Open quotes digest\" — a routine on a schedule, Friday 16:00, lists quotes nobody answered; requirement one. Governance: it runs unattended, so \"Also protect routines\" has to stay on under Privacy Shield → What happens — Marieke owns that. Next: the weekly supplier price import on an app event trigger, because it should react when the file lands, not at a fixed hour.",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "slide",
+      "id": "done",
+      "icon": "🐝",
+      "title": "You run a working hive",
+      "bodyMd": "That was not a quiz. Those are real, running things that keep working after this window closes. The **Hive Master** badge lands in Achievements, and four finished courses from the built-in catalogue earn the **Bee Flow AI Practitioner** certificate as well.\n\nWhat you can do now:\n\n- Build an automation that starts on a schedule, and prove it with a dry-run before it touches anything real.\n- Delegate repeating work to a cowork item instead of spending another Friday on it.\n- Ship a builder artifact — an agent of your own, or a knowledge base an agent can search.\n- Say who decided that you could, what the shield does to it, which encryption tier it runs on, and which register it shows up in.\n\nKeep the habit: read **Studio → Runs & log** the way you would check on a new colleague, pause anything you stop trusting, and when a task repeats twice, automate or delegate it the same day."
+    }
+  ],
+  "rubrics": {
+    "ex-hive-master-debrief": {
+      "title": "Handover note for the capstone build",
+      "task": "Describe the three artifacts built for the Hive Master challenge — what each does and which requirement it meets — then name one admin decision the build depends on and where it is taken, and one further repeating task with the trigger it should get and why.",
+      "criteria": [
+        "Names three concrete artifacts of the learner's own — a schedule-triggered automation that has run, a cowork item, and an agent or a knowledge base with a document — and says in one line what each actually does.",
+        "Maps each artifact to the requirement it satisfies, correctly (schedule automation, cowork, builder artifact).",
+        "Names one real admin decision the build depends on and where it is taken: \"Also protect routines\" on the Privacy Shield, the encryption tier an unattended routine needs, the role or group grant that permits building, or the processing register a published agent lands in — or, for a non-admin, the decision to be confirmed, its screen and who confirms it.",
+        "Names one further repeating task and picks a trigger for it from the real palette (schedule, form, webhook, app event, agent call, Studio App).",
+        "Justifies the trigger choice by what starts the work — a clock, a submission, an event in a connected app — not by preference."
+      ],
+      "passScore": 70,
+      "guidance": "Pass concrete, first-person notes even when short. Do not pass an answer that only restates the three requirements without naming real artifacts, that invents a setting, screen or trigger kind the product does not have, or that picks a schedule trigger for plainly event-driven work with no reason. Any one of the four admin decisions satisfies the governance line; naming the decision and its owner is enough — the learner need not have taken it. A named agent or knowledge base counts either way."
+    }
+  },
+  "practiceTopic": {
+    "title": "The Hive Master capstone",
+    "summary": "What the capstone checklist asks for, what counts as proof, why a row can be missing, and the admin decisions the three things depend on.",
+    "facts": [
+      "The capstone asks for three things: a schedule-triggered automation that has run, a cowork item of your own, and an agent of your own or a knowledge base with at least one document.",
+      "Only a routine whose trigger is \"On a schedule\" satisfies the automation requirement; manual, form and webhook routines do not.",
+      "A dry-run counts as a run — \"Dry-run (preview)\" is described in the app as \"No real actions — safe preview\" — and how a run ended is not part of the criterion, so a failed run still shows the routine has fired.",
+      "For the builder requirement an agent counts as soon as it exists and belongs to you (publishing decides who else may use it and is not required), and a knowledge base counts once it holds at least one document; system-seeded agents and system-managed knowledge bases do not count.",
+      "The checklist re-runs by itself every few seconds while the step is open, and work done before the lesson started counts immediately.",
+      "A criterion your permission or licence makes impossible is hidden from the checklist instead of failing, so nobody is blocked by a gate they cannot open.",
+      "\"Also protect routines\" on the Privacy Shield's \"What happens\" tab (default on) checks a routine's data and AI steps the same way as chat; the evidence appears on \"What happened\" as \"Routine — <title>\" rows.",
+      "On the Managed encryption tier background jobs such as automations can still read message bodies; on Zero-knowledge the server holds no key for them. Published agents are what the processing register (ROPA) records as processing activities."
+    ]
+  }
+}

@@ -1,0 +1,95 @@
+import React, { useMemo } from 'react';
+import { describeField, kindFits, KIND_WORD } from './fieldKinds';
+import { useVariablePickerContext } from './VariablePickerContext';
+import { useTranslation } from '../../../../hooks/useTranslation';
+import FieldHint from '../flow/FieldHint';
+import { fieldLabelClass, requiredMarkClass } from '../flow/settings/formStyles';
+
+/**
+ * The two pieces of chrome that belong to a value SLOT rather than to the
+ * editor inside it: the label row and the empty-required note (artboard 2a).
+ *
+ * They were BindingField's private markup until ValueBuilder became the
+ * default renderer for step-bound fields — at which point the same slot could
+ * be drawn by either editor, and the label had to stop being an accident of
+ * which one you got. Extracted verbatim: same classes, same testids, same
+ * words, so nothing that already reads them notices the move.
+ */
+
+/** Label · required mark · "expects: date" · hint · the auto-mapped pill. */
+export function FieldLabelRow({ label, required = false, expectKind = null, hint = null, autoMapped = false }) {
+    const { t } = useTranslation();
+    if (!label) return null;
+    const expectWord = expectWordFor(expectKind, t);
+    return (
+        <div className="flex items-center gap-1">
+            <label className={fieldLabelClass()}>{label}</label>
+            {required && <span className={requiredMarkClass()} title="Required">*</span>}
+            {expectWord && expectKind !== 'text' && (
+                <span className="ml-1 text-[10px] font-normal normal-case tracking-normal text-[var(--text-tertiary)]" data-testid="binding-expects">
+                    · {t('routines.builder.expects_kind', 'expects: {kind}', { kind: expectWord })}
+                </span>
+            )}
+            <FieldHint title={label}>{hint}</FieldHint>
+            {autoMapped && (
+                <span
+                    className="ml-auto text-[9px] px-1.5 py-0.5 rounded-full bg-[var(--accent)]/15 text-[var(--accent)] uppercase tracking-wide"
+                    title="Auto-mapped from an upstream step — edit to override"
+                >
+                    auto
+                </span>
+            )}
+        </div>
+    );
+}
+
+/**
+ * "still empty · expects: date · pick ▸ 2 fit" — shown only for a REQUIRED
+ * slot with a known kind that holds nothing. The count is how many upstream
+ * fields would fit, through fieldKinds.kindFits — the same "fits" the mismatch
+ * box reasons with, so the two can never disagree.
+ */
+export function EmptySlotNote({ expectKind, empty, required = true, onPick = null }) {
+    const { t } = useTranslation();
+    const ctx = useVariablePickerContext();
+    const groups = ctx.groups;
+    const previewSample = ctx.previewSample;
+    const fitCount = useMemo(() => {
+        if (!expectKind || expectKind === 'unknown') return 0;
+        let n = 0;
+        const walk = (fields) => {
+            for (const f of fields || []) {
+                if (kindFits(describeField(f, previewSample).kind, expectKind)) n += 1;
+                if (Array.isArray(f.children) && f.children.length) walk(f.children);
+            }
+        };
+        for (const g of groups || []) walk(g.fields);
+        return n;
+    }, [groups, previewSample, expectKind]);
+
+    if (!required || !empty || !expectKind || expectKind === 'unknown') return null;
+    const expectWord = expectWordFor(expectKind, t);
+    return (
+        <div
+            className="flex items-center gap-2 px-2 py-1 rounded-md border border-dashed text-[10px]"
+            style={{ borderColor: 'var(--error)', color: 'var(--error)' }}
+            data-testid="binding-empty-required"
+        >
+            <span>{t('routines.builder.still_empty', 'still empty')}</span>
+            <span className="text-[var(--text-secondary)]">· {t('routines.builder.expects_kind', 'expects: {kind}', { kind: expectWord })}</span>
+            {onPick && (
+                <button
+                    type="button"
+                    onClick={onPick}
+                    className="ml-auto underline hover:no-underline text-[var(--text-primary)]"
+                >
+                    {t('routines.builder.pick_n_fit', 'pick ▸ {n} fit', { n: fitCount })}
+                </button>
+            )}
+        </div>
+    );
+}
+
+function expectWordFor(expectKind, t) {
+    return expectKind && KIND_WORD[expectKind] ? t(KIND_WORD[expectKind].key, KIND_WORD[expectKind].en) : '';
+}

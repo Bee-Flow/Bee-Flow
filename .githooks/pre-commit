@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Pre-commit secret scan (gitleaks + test-fixture check), same scripts as CI,
+# over the STAGED content only: exactly what this commit records, whatever the
+# working tree holds, in a fraction of a second instead of a full-tree scan.
+# Enable once per clone with:  git config core.hooksPath .githooks
+# Opt-in by design: nothing changes for existing clones until you run that.
+#
+# The scripts are called with bash directly, not through `npm run`: npm's
+# script shell is cmd.exe on Windows. `git commit <paths>` and `git commit -a`
+# hand the hook a temporary index through GIT_INDEX_FILE, and the scripts'
+# git commands read that one, so --staged is right for those too.
+
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
+
+bash scripts/check-no-test-secrets.sh --staged
+bash scripts/scan-secrets.sh --staged

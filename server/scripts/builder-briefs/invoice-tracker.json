@@ -1,0 +1,26 @@
+{
+  "brief": "Can you create an app with tables. where invoices fomr different suppliers are being tracked.",
+  "tier": "fast",
+  "planMode": "never",
+  "expect": {
+    "finalized": true,
+    "maxFailedCalls": 2,
+    "maxRounds": 10,
+    "maxRepeated": 2,
+    "ownTables": {
+      "min": 2,
+      "minRows": 1
+    },
+    "components": [
+      "form",
+      "data_grid"
+    ],
+    "minComponents": 10,
+    "minScreens": 2,
+    "uniqueFormNames": true,
+    "name": {
+      "notUntitled": true
+    },
+    "maxPromptChars": 62000
+  }
+}

@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <!-- Locked to nothing but the files shipped beside this page. `file:` is
+             listed alongside 'self' because a file:// document's origin is
+             opaque in Chromium, so 'self' alone can refuse to match the page's
+             own scripts. There is no remote content on these pages at all, and
+             no network: everything they do goes over IPC. -->
+        <meta
+            http-equiv="Content-Security-Policy"
+            content="default-src 'none'; script-src 'self' file:; style-src 'self' file:; img-src 'self' file: data:; font-src 'self' file:; connect-src 'none'; base-uri 'none'; form-action 'none'"
+        />
+        <title>Bee Flow Settings</title>
+        <link rel="stylesheet" href="styles.css" />
+    </head>
+    <body>
+        <main>
+            <h1>Settings</h1>
+
+            <div class="tabs" role="tablist">
+                <button role="tab" id="tab-general" aria-controls="panel-general" aria-selected="true">General</button>
+                <button role="tab" id="tab-nextcloud" aria-controls="panel-nextcloud" aria-selected="false">Nextcloud</button>
+                <button role="tab" id="tab-updates" aria-controls="panel-updates" aria-selected="false">Updates</button>
+                <button role="tab" id="tab-about" aria-controls="panel-about" aria-selected="false">About</button>
+            </div>
+
+            <!-- General -->
+            <section class="panel" id="panel-general" role="tabpanel" aria-labelledby="tab-general">
+                <div class="card">
+                    <h2>Server</h2>
+                    <div class="row">
+                        <div class="row-text">
+                            <div class="row-title" id="server-url">Not set</div>
+                            <div class="row-hint" id="server-state"></div>
+                        </div>
+                        <button id="change-server">Change…</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>Starting and closing</h2>
+                    <div class="row">
+                        <div class="row-text">
+                            <div class="row-title">Start Bee Flow when I sign in</div>
+                            <div class="row-hint">Keeps notifications and the quick-ask shortcut working from boot.</div>
+                        </div>
+                        <input type="checkbox" id="open-at-login" />
+                    </div>
+                    <div class="row">
+                        <div class="row-text">
+                            <div class="row-title">Start hidden</div>
+                            <div class="row-hint">Opens straight to the tray rather than to a window.</div>
+                        </div>
+                        <input type="checkbox" id="start-minimised" />
+                    </div>
+                    <div class="row">
+                        <div class="row-text">
+                            <div class="row-title">Closing the window keeps Bee Flow running</div>
+                            <div class="row-hint">Turn this off to quit when the last window closes.</div>
+                        </div>
+                        <input type="checkbox" id="close-to-tray" />
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>Quick ask</h2>
+                    <label for="quick-ask">Global shortcut</label>
+                    <input id="quick-ask" type="text" placeholder="Control+Shift+Space" spellcheck="false" />
+                    <div class="row-hint hint-tight">
+                        Leave empty to switch it off. Use Command on macOS, Control elsewhere.
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>Notifications and appearance</h2>
+                    <div class="row">
+                        <div class="row-text"><div class="row-title">Show notifications</div></div>
+                        <input type="checkbox" id="notifications-enabled" />
+                    </div>
+                    <div class="row">
+                        <div class="row-text">
+                            <div class="row-title">Only when Bee Flow is not in front</div>
+                            <div class="row-hint">You can already see what is on screen.</div>
+                        </div>
+                        <input type="checkbox" id="notifications-unfocused" />
+                    </div>
+                    <div class="row">
+                        <div class="row-text"><div class="row-title">Theme</div></div>
+                        <select id="theme" class="field-narrow">
+                            <option value="system">Follow the system</option>
+                            <option value="light">Light</option>
+                            <option value="dark">Dark</option>
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="row-text">
+                            <div class="row-title">Hide the menu bar until Alt is pressed</div>
+                            <div class="row-hint">Windows and Linux only.</div>
+                        </div>
+                        <input type="checkbox" id="auto-hide-menu" />
+                    </div>
+                </div>
+            </section>
+
+            <!-- Nextcloud -->
+            <section class="panel" id="panel-nextcloud" role="tabpanel" aria-labelledby="tab-nextcloud" hidden>
+                <div class="card">
+                    <div class="row">
+                        <div class="row-text">
+                            <div class="row-title">Nextcloud desktop client</div>
+                            <div class="row-hint" id="nc-summary">Looking…</div>
+                        </div>
+                        <span class="pill off" id="nc-pill">unknown</span>
+                    </div>
+                    <div class="row">
+                        <div class="row-text">
+                            <div class="row-title">Use the Nextcloud integration</div>
+                            <div class="row-hint">
+                                Reads which folders your Nextcloud client syncs, so files you attach are referenced
+                                rather than uploaded twice.
+                            </div>
+                        </div>
+                        <input type="checkbox" id="nc-enabled" />
+                    </div>
+                    <div class="actions">
+                        <button id="nc-refresh">Look again</button>
+                        <button id="nc-pair">Link a Nextcloud account…</button>
+                    </div>
+                    <div class="status" id="nc-status" role="status" aria-live="polite"></div>
+                </div>
+
+                <h2>Synced folders</h2>
+                <div class="card" id="nc-folders"><p class="muted">Nothing found yet.</p></div>
+
+                <h2>Watched folders</h2>
+                <div class="card">
+                    <p class="muted">
+                        A watched folder keeps a knowledge base up to date: anything you drop in it is offered to Bee
+                        Flow as soon as it lands. Files inside a Nextcloud folder are referenced by their WebDAV path,
+                        so the server reads the one copy rather than storing a second.
+                    </p>
+                    <div id="watched-list"></div>
+                    <div class="actions">
+                        <input id="watch-kb" type="text" placeholder="Knowledge base ID" class="field-medium" />
+                        <button id="watch-add">Choose a folder…</button>
+                    </div>
+                    <div class="status" id="watch-status" role="status" aria-live="polite"></div>
+                </div>
+
+                <h2>Advanced</h2>
+                <div class="card">
+                    <label for="nc-config">Configuration file</label>
+                    <input id="nc-config" type="text" placeholder="Found automatically" spellcheck="false" />
+                    <div class="row-hint hint-loose">
+                        Set this if your Nextcloud client is installed somewhere Bee Flow does not look — a Flatpak or
+                        Snap with a custom data directory, for instance.
+                    </div>
+                    <label for="nc-socket">Socket / named pipe</label>
+                    <input id="nc-socket" type="text" placeholder="Found automatically" spellcheck="false" />
+                    <div class="row-hint hint-loose">
+                        Only needed for live sync state and the share dialog. Everything else works without it.
+                    </div>
+                    <label for="nc-save-folder">Save files to</label>
+                    <input id="nc-save-folder" type="text" placeholder="Your first Nextcloud sync folder" spellcheck="false" />
+                    <div class="row-hint hint-tight">
+                        Where "Save to Nextcloud" writes. It has to be inside a folder your Nextcloud client syncs —
+                        that is what makes it reach the server.
+                    </div>
+                </div>
+            </section>
+
+            <!-- Updates -->
+            <section class="panel" id="panel-updates" role="tabpanel" aria-labelledby="tab-updates" hidden>
+                <div class="card">
+                    <div class="row">
+                        <div class="row-text">
+                            <div class="row-title">Update status</div>
+                            <div class="row-hint" id="update-state">Checking…</div>
+                        </div>
+                        <button id="update-check">Check now</button>
+                    </div>
+                    <div class="row">
+                        <div class="row-text"><div class="row-title">Look for updates automatically</div></div>
+                        <input type="checkbox" id="updates-enabled" />
+                    </div>
+                    <div class="row">
+                        <div class="row-text">
+                            <div class="row-title">Download updates in the background</div>
+                            <div class="row-hint">Otherwise Bee Flow only tells you one is available.</div>
+                        </div>
+                        <input type="checkbox" id="updates-automatic" />
+                    </div>
+                    <div class="row">
+                        <div class="row-text"><div class="row-title">Channel</div></div>
+                        <select id="updates-channel" class="field-narrow">
+                            <option value="stable">Stable</option>
+                            <option value="beta">Beta</option>
+                        </select>
+                    </div>
+                    <div class="actions">
+                        <button class="primary" id="update-install" hidden>Restart and update</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- About -->
+            <section class="panel" id="panel-about" role="tabpanel" aria-labelledby="tab-about" hidden>
+                <div class="card" id="about"></div>
+                <div class="card">
+                    <div class="row">
+                        <div class="row-text">
+                            <div class="row-title">Credential storage</div>
+                            <div class="row-hint" id="secrets-state"></div>
+                        </div>
+                        <span class="pill off" id="secrets-pill">unknown</span>
+                    </div>
+                    <div class="row">
+                        <div class="row-text">
+                            <div class="row-title">Sandbox</div>
+                            <div class="row-hint" id="sandbox-state"></div>
+                        </div>
+                        <span class="pill off" id="sandbox-pill">unknown</span>
+                    </div>
+                </div>
+                <div class="actions">
+                    <button id="show-logs">Show the log file</button>
+                </div>
+            </section>
+        </main>
+        <script type="module" src="settings.js"></script>
+    </body>
+</html>

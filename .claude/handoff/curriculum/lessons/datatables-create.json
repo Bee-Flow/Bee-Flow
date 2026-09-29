@@ -1,0 +1,402 @@
+{
+  "id": "datatables-create",
+  "icon": "🗃️",
+  "estMinutes": 15,
+  "title": "A table that outlives the run",
+  "desc": "Scope, technical name, the mandatory purpose, drafting the columns with AI — and finding one row again.",
+  "gate": {
+    "feature": "automations",
+    "permission": "manage_datatables"
+  },
+  "learningGoal": "After this lesson you can create a datatable with a purpose and a technical name you will not regret — typing the columns or letting \"Build it with AI\" draft them — get rows into it, and find one row again with search, the filter builder and the table's own tabs.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "outlives",
+      "icon": "🗃️",
+      "title": "A place the rows stay put",
+      "bodyMd": "If your routine currently e-mails you its own results because there is nowhere else to put them, this chapter is the fix.\n\nA run forgets everything the moment it ends. A **datatable** does not.\n\nAnna at Van Dijk Groep, a Dutch SME, gets around 120 supplier invoices a month by e-mail. One of her routines reads the mailbox and writes a row per invoice. A second routine, every Monday, reads that same table and nudges the buyers about anything still marked *nieuw*.\n\nTwo routines, one list, and no inbox in the middle. Studio → **Datatables** says it in a line: *\"Rows that stay put after a run ends. A routine can read back what an earlier run wrote, and other routines can use the same table.\"*"
+    },
+    {
+      "type": "tour",
+      "id": "where",
+      "target": "[data-tour=\"nav-studio\"]",
+      "navigateTo": "studio/datatables",
+      "placement": "right",
+      "optional": true,
+      "timeoutMs": 7000,
+      "icon": "🧭",
+      "title": "Tables live in Studio",
+      "body": "Datatables sit in the Studio rail, described there as \"Rows your routines keep between runs\". The button top right is \"New table\"."
+    },
+    {
+      "type": "slide",
+      "id": "scope",
+      "icon": "🔐",
+      "title": "Your organisation, or this account only",
+      "bodyMd": "One question in this dialog is answered once and never again: **\"Who is it for?\"**\n\n- **\"Your organisation\"** — *\"You decide afterwards who may read or change the rows. Routines your colleagues own can use it.\"* It starts out **Private**: only you, and administrators of your organisation, can read it until you share it on the Sharing tab.\n- **\"This account only\"** — *\"Only this account can see the rows — not colleagues, not administrators. It cannot be shared later.\"*\n\nA personal table shuts everyone else out, all the way down. It still has a Sharing tab, but nothing on it to choose: where the audience controls would be, it says **\"This table cannot be shared\"**.\n\nOne thing the dialog does not say out loud: making an **organisation** table — and changing one later — needs the *manage datatables* permission, which your organisation grants to administrators and agent administrators. A table under \"This account only\" never asks for it: you are already the only account involved. This whole chapter, and the two that follow it, assume you hold that permission."
+    },
+    {
+      "type": "quiz",
+      "id": "q-scope",
+      "icon": "❓",
+      "question": "Anna at Van Dijk Groep makes the invoice table under \"This account only\" while she is still tinkering. A week later Bram's Monday routine has to read those rows. What are her options?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "None on that table — she has to create an organisation table and move the rows across.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "An administrator can grant Bram read access.",
+          "correct": false,
+          "feedback": "No. A personal table has exactly one reader: the account that created it. Colleagues and organisation administrators land in the same place — no access — and there is no setting that changes that."
+        },
+        {
+          "id": "c",
+          "label": "She opens the Sharing tab and picks \"Entire organisation\".",
+          "correct": false,
+          "feedback": "The Sharing tab is there, but on a personal table it has nothing to pick. Where the audience controls would be, it says \"This table cannot be shared\"."
+        },
+        {
+          "id": "d",
+          "label": "Bram's routine can read it anyway, because they are in the same organisation.",
+          "correct": false,
+          "feedback": "A routine looks for the table in its own organisation, and then in its owner's personal tables. Anna's personal table is neither of those for Bram."
+        }
+      ],
+      "explanation": "Personal means personal. Pick \"Your organisation\" whenever a colleague, or a colleague's routine, might ever need the rows — you can still keep it Private until you are ready to share."
+    },
+    {
+      "type": "slide",
+      "id": "techname",
+      "icon": "🔤",
+      "title": "The technical name is for keeps",
+      "bodyMd": "Beside the friendly **\"Name\"** every table carries a **technical name** — the key routines, apps and exports use. Type the Name and it is derived for you; the dialog footer shows what you will get: *Technical name: leveranciersfacturen · editable under All options*.\n\nSwitch the header toggle from **\"Simple\"** to **\"All options\"** to type it yourself. The help text is the whole rule: *\"Lowercase letters, numbers and underscores. Renaming it later means moving the data, so it is worth a moment now.\"* It must start with a lowercase letter and may be at most 63 characters long.\n\nAnd it is final. The server refuses to change a key, because it names the table's own storage."
+    },
+    {
+      "type": "quiz",
+      "id": "q-key",
+      "icon": "❓",
+      "question": "Anna switches to \"All options\" and types the technical name herself for Van Dijk Groep's supplier-invoice table. Which one will she still be glad of next year?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "leveranciersfacturen",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Leveranciersfacturen 2026",
+          "correct": false,
+          "feedback": "The box takes the text, but Create does not: the server answers \"A table key may use lowercase letters, numbers and underscores\". And a year inside a name you can never change is a promise you will not keep."
+        },
+        {
+          "id": "c",
+          "label": "tabel1",
+          "correct": false,
+          "feedback": "Accepted — and that is the trap. The key can never be changed, so every routine, every export and every app that touches this table carries \"tabel1\" for as long as the table exists."
+        },
+        {
+          "id": "d",
+          "label": "leveranciersfacturen_nieuw",
+          "correct": false,
+          "feedback": "Valid, but \"nieuw\" stops being true the day a newer table arrives, and by then you cannot rename it."
+        }
+      ],
+      "explanation": "Name the thing, not the moment. A plain noun for the rows it holds survives every reorganisation; a version, a year or a placeholder does not — and unlike the friendly name, a key cannot be corrected later."
+    },
+    {
+      "type": "slide",
+      "id": "purpose",
+      "icon": "📋",
+      "title": "\"What is it for?\" is not admin",
+      "bodyMd": "Under the name sits **\"What is it for?\"**, and its help line says why it is required: *\"Required — this sentence goes into your organisation's processing record.\"*\n\nThat record is the register of processing activities every organisation has to keep under the GDPR. A table is exactly where personal data quietly piles up, so Bee Flow asks at the one moment you actually know the answer — creation. Leave it empty and the server refuses the table with *\"Say what this table is for — it goes in your processing record\"*.\n\nWrite a sentence a colleague could read in a year: what is in the rows, where they come from, and what they are used for."
+    },
+    {
+      "type": "exercise",
+      "id": "ex-purpose",
+      "icon": "🎯",
+      "exerciseId": "ex-datatables-create-purpose",
+      "title": "Your turn: write the purpose sentence",
+      "instruction": "Write the sentence Anna should type into \"What is it for?\" for Van Dijk Groep's supplier-invoice table. The rows arrive from a routine that reads the purchasing mailbox; the buyers approve from that list and the monthly payment run works from it. A strong answer says, in one or two plain sentences, (1) what one row is, (2) where the rows come from, and (3) what the organisation does with them. Write it as a person would, not as a form field.",
+      "placeholder": "e.g. the shape, for a different table: Support calls logged by the service desk, one row per call, so the weekly review and the callback list work from the same log.",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "slide",
+      "id": "draft-ai",
+      "icon": "✨",
+      "title": "Let it draft the columns for you",
+      "bodyMd": "Almost nobody types eight columns by hand. At the top of the dialog for an ordinary table sits **\"Build it with AI\"**: *\"Describe what the rows should hold, or paste what the columns should be based on — a spreadsheet's header row, an e-mail, a list. The fields below are filled in for you to check.\"*\n\nAnna pastes the header row of the buyers' invoice sheet, or simply writes *\"Supplier invoices: supplier, invoice number, date, amount excl. VAT, VAT %, total, status (new / approved / rejected)\"*, and presses **\"Draft the columns\"**. The button reads **\"Drafting…\"**, then: *\"7 columns drafted — check them below, then Create.\"*\n\nFilled in, not created. Name, **\"What is it for?\"** and **\"Columns\"** now hold a proposal; nothing exists until **\"Create\"**. Read the purpose sentence as if you wrote it, because you are the one signing it into the processing record — and check the technical name, which is still final. You get ten drafts a minute."
+    },
+    {
+      "type": "quiz",
+      "id": "q-draft",
+      "question": "Anna pastes the invoice sheet's header row into \"Build it with AI\" and presses \"Draft the columns\". \"Drafting…\" finishes. What exists now?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Nothing in the workspace yet — Name, \"What is it for?\" and Columns are filled in on the open dialog, and the table is made only when she presses \"Create\".",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "A new table with the drafted columns, waiting for rows.",
+          "correct": false,
+          "feedback": "The panel never creates anything. Its own message says \"check them below, then Create\" — \"Create\" is still the button that makes the table."
+        },
+        {
+          "id": "c",
+          "label": "A saved draft she can come back to tomorrow.",
+          "correct": false,
+          "feedback": "There is no such thing as a draft table. The proposal lives in the unsaved dialog; close it and the columns go with it."
+        },
+        {
+          "id": "d",
+          "label": "The brief she pasted, kept with the table so the model can reuse it later.",
+          "correct": false,
+          "feedback": "Nothing from the drafting request is stored. The text is used to fill the form and is then gone — which is also why you should keep your own note of the brief if it took effort."
+        }
+      ],
+      "explanation": "\"Draft the columns\" only fills the form in front of you. Every rule from the previous cards still applies to what it produced: the purpose sentence is yours to stand behind, and the technical name becomes final the moment you press \"Create\"."
+    },
+    {
+      "type": "sim",
+      "id": "dialog-match",
+      "icon": "🧩",
+      "title": "Which box does it go in?",
+      "instruction": "Anna has the \"New datatable\" dialog open on \"All options\". Five boxes, and five things worth knowing before she fills them in. Match each one to its box.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "name",
+            "left": "The only name here she can change later",
+            "right": "Name",
+            "note": "The friendly name, shown on the card and in pickers. Rename it whenever you like from the table's menu — nothing else about the table moves when you do."
+          },
+          {
+            "id": "key",
+            "left": "Lowercase letters, numbers and underscores — and final the second she clicks Create",
+            "right": "Technical name",
+            "note": "Lowercase letters, numbers and underscores, derived from the Name unless you type it yourself under \"All options\". This one is final."
+          },
+          {
+            "id": "purpose",
+            "left": "Leave it empty and the server answers \"Say what this table is for\"",
+            "right": "What is it for?",
+            "note": "Required, because this sentence is the processing purpose that goes into your organisation's processing record."
+          },
+          {
+            "id": "scope",
+            "left": "Decides whether a colleague's routine will ever be able to read the rows",
+            "right": "Who is it for?",
+            "note": "Organisation or this account only. An organisation table still starts Private — you choose afterwards who may read or change the rows."
+          },
+          {
+            "id": "cols",
+            "left": "Safe to skip now and fill in afterwards",
+            "right": "Columns",
+            "note": "The hint beside this box says it: \"optional · can also be added later\". The Columns tab takes them just as well once the table exists."
+          }
+        ]
+      }
+    },
+    {
+      "type": "action",
+      "id": "build",
+      "icon": "🏗️",
+      "checkId": "datatable-created",
+      "title": "Build it — we will verify it",
+      "instruction": "Open Datatables, click \"New table\" and keep \"An ordinary table\". In \"Build it with AI\", describe Van Dijk Groep's invoice table in one line — supplier, invoice number, date, amount, VAT, total, status — and press \"Draft the columns\". Correct what came back: fix the purpose sentence in your own words, check the technical name under \"All options\", drop a column you do not want. Pick \"Your organisation\", then \"Create\", and keep the table open — the rest of the chapter works in it.",
+      "launch": {
+        "navigateTo": "studio/datatables",
+        "label": "Open Datatables"
+      }
+    },
+    {
+      "type": "slide",
+      "id": "rows-in",
+      "icon": "📥",
+      "title": "Getting rows in, and out",
+      "bodyMd": "A fresh table says *\"No rows yet. A routine with a Datatable step writing to this table will fill it, or you can add one here.\"* Three ways in, two of them by hand on the **\"Rows\"** tab:\n\n- **\"Add a row\"** — type the cells, then **\"Add row\"**. Good for a handful.\n- **\"Import\"** → **\"Paste from a spreadsheet\"** — copy the rows out of Excel or Google Sheets, header row included, paste, then point each pasted column at a field. Up to 5,000 rows a paste; a bad line is reported with its line number and the rest still goes in.\n- A routine's **Datatable** step — the whole point: rows arrive without anyone opening this screen.\n\nAnd out again: **\"Export CSV\"**, same toolbar."
+    },
+    {
+      "type": "slide",
+      "id": "find",
+      "icon": "🔎",
+      "title": "Finding one row in four hundred",
+      "bodyMd": "Four hundred rows in, the Rows tab is no longer a list you read — it is something you question.\n\nThe toolbar has two instruments. The search box, **\"Search the text columns…\"**, is there only when the table has a text-ish column, and it does what it says: text. No hit and the grid answers **\"No rows match that search.\"**; **\"Clear\"** puts everything back.\n\nFor anything sharper, **\"Filter\"**. The builder opens on **\"Show rows that match\"** and a choice that decides the whole answer: **\"all conditions\"** or **\"any condition\"**. Then **\"Add a condition\"** — a column, an operator in words (*is, is not, is more than, is at least, is less than, is at most, contains, does not contain, starts with, ends with, is one of, is none of, is between, is empty, is filled in*) and a value — and **\"Apply {n} conditions\"**. The button then reads **\"Filter (2)\"** so you can see at a glance that you are not looking at everything.\n\nUp to 20 conditions, and no nesting: there are no brackets, so one filter is either all-of or any-of, never a mix."
+    },
+    {
+      "type": "quiz",
+      "id": "q-filter",
+      "icon": "❓",
+      "question": "Anna needs one list for Monday: every invoice still marked *nieuw*, plus everything over €5,000 no matter what its status is. Which gets her there?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "\"Filter\" → \"any condition\", with a condition on status and a condition on the amount.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "\"Filter\" → \"all conditions\", with the same two conditions.",
+          "correct": false,
+          "feedback": "That is the other list: only the invoices that are both still nieuw and over €5,000. \"all conditions\" narrows, \"any condition\" widens — and here she is joining two groups, not intersecting them."
+        },
+        {
+          "id": "c",
+          "label": "Type nieuw 5000 into the search box.",
+          "correct": false,
+          "feedback": "The search box searches the text columns for text. It has no way to express \"is more than\", so an amount threshold is out of its reach no matter how the words are arranged."
+        },
+        {
+          "id": "d",
+          "label": "One filter with brackets: (status is nieuw) or (amount is more than 5000).",
+          "correct": false,
+          "feedback": "There are no brackets. The builder has one match mode for the whole filter — \"all conditions\" or \"any condition\" — and conditions cannot be nested inside each other."
+        }
+      ],
+      "explanation": "Read the sentence you are trying to make before you touch the builder. \"and\" between your conditions means \"all conditions\"; \"plus\", \"or\", \"either\" means \"any condition\". Everything else — the operators, up to twenty conditions — is detail next to that one switch."
+    },
+    {
+      "type": "quiz",
+      "id": "q-duplicate",
+      "icon": "❓",
+      "question": "Anna wants a second table shaped like the invoice one, for credit notes. She uses \"Duplicate\" in the table's menu. What does she get?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "The columns and the purpose sentence — and nothing else.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "The columns and the rows, so she can experiment on a copy safely.",
+          "correct": false,
+          "feedback": "The menu item spells it out underneath: \"columns only, no rows\". To carry rows across, Export CSV from the original and paste it into the copy with Import."
+        },
+        {
+          "id": "c",
+          "label": "The columns, the rows and whoever the original was shared with.",
+          "correct": false,
+          "feedback": "Neither rows nor sharing travel. A duplicate starts as a private table of its own, and you grant access to it separately."
+        },
+        {
+          "id": "d",
+          "label": "The columns and the retention window, so rows age out the same way.",
+          "correct": false,
+          "feedback": "The retention window is not copied either. The duplicate keeps rows until something deletes them, until you set retention on it yourself."
+        }
+      ],
+      "explanation": "Duplicate copies the shape and the purpose sentence: no rows, no audience, no invited people, no retention. It asks you nothing either — the copy is called \"<name> (copy)\", and its technical name is derived from that name on the spot and final from then on. When the name matters, use \"New table\" instead."
+    },
+    {
+      "type": "slide",
+      "id": "tabs",
+      "icon": "🗂️",
+      "title": "The tabs, and the repair you hope never to need",
+      "bodyMd": "Across the top of a table, in the command bar: **\"Columns\"** (where an ordinary table opens), **\"Rows\"** with the row count, **\"Retention\"**, **\"Sharing\"**, and **\"Used by\"** with its count, last. Under the bar sit the description and a line like `6 columns · 412 rows`.\n\nThere is a sixth tab you cannot add yourself: **\"Dashboard\"**. It belongs to the answers table a form makes when it collects its answers, and it is the default tab there. An ordinary table never grows one — for numbers out of your own table, filter the rows and take them out with **\"Export CSV\"**.\n\nThe ⋯ menu, **\"More about this table\"**, holds the rest: **\"Rename table\"**, **\"Duplicate\"**, **\"Export (CSV)\"**, **\"Technical name\"** (which copies the key), **\"Check & repair\"** and **\"Delete this table…\"**.\n\n**\"Check & repair\"** answers one question: does the storage still hold every column the table says it should? Either *\"Everything matches: the table and every column it should have are there.\"*, or a count of *\"column(s) … in the model but not in the storage\"* and a **\"Repair it\"** button. It is deliberately timid: *\"It only ever adds — it cannot drop a column or touch a row.\"*"
+    },
+    {
+      "type": "quiz",
+      "id": "q-repair",
+      "icon": "❓",
+      "question": "Monday's routine stops with an error about a column it cannot find, although Anna can see that column on the Columns tab. She opens ⋯ → \"Check & repair\". What can it do for her?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Report which columns are in the model but not in the storage, and add the missing ones back.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Rebuild the table from the model, rewriting the rows so they match it again.",
+          "correct": false,
+          "feedback": "It never rewrites rows. The modal says so in a line: \"It only ever adds — it cannot drop a column or touch a row.\" Repairing is safe precisely because it is that narrow."
+        },
+        {
+          "id": "c",
+          "label": "Tidy the other way round: remove anything in the storage that is no longer in the model.",
+          "correct": false,
+          "feedback": "Dropping is exactly what it will not do. Removing a column is a destructive change you make deliberately on the Columns tab, where the dialog is titled \"This throws away data\"."
+        },
+        {
+          "id": "d",
+          "label": "Fix the routine's Datatable step, since that is what threw the error.",
+          "correct": false,
+          "feedback": "Check & repair only ever touches this table's own storage. If the step is the thing that is wrong, you fix it in the routine — the \"Used by\" tab tells you which routines to open."
+        }
+      ],
+      "explanation": "Check & repair reconciles the table's model with its storage, add-only. Reach for it when a column is visibly there but something reading the table insists it is not; reach for \"Used by\" when the mismatch is between the table and the routines that read it."
+    },
+    {
+      "type": "slide",
+      "id": "now",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "- **Create a table that outlives a run**, and choose \"Your organisation\" or \"This account only\" knowing that personal can never be shared with anyone, administrators included — and that the organisation half of that choice is what needs the manage-datatables permission.\n- **Pick a technical name you can live with**, because the friendly name can be changed later and the key never can.\n- **Let \"Build it with AI\" draft the columns** from a brief or a pasted header row, and check what it filled in — nothing is created until \"Create\".\n- **Write the purpose sentence** that lands in your organisation's processing record, and fill the table by hand, by paste, or from a routine.\n- **Find one row again**: search the text columns, or build a filter and choose \"all conditions\" or \"any condition\" on purpose.\n- **Know your way round the tabs** — Columns, Rows, Retention, Sharing, Used by, plus the Dashboard only a form's answers table gets — and reach for ⋯ → \"Check & repair\" when a column is there but the storage disagrees.\n\nNext chapter: changing a table that routines already depend on — without breaking the run that happens at three in the morning."
+    }
+  ],
+  "rubrics": {
+    "ex-datatables-create-purpose": {
+      "title": "A purpose sentence for the processing record",
+      "task": "Write the sentence for \"What is it for?\" on Van Dijk Groep's supplier-invoice datatable: what one row is, where the rows come from, and what the organisation does with them.",
+      "criteria": [
+        "Says what a single row represents (one supplier invoice), not just a vague topic.",
+        "Names where the rows come from (a routine reading the purchasing mailbox, or invoices arriving by e-mail).",
+        "States what the data is used for (approving invoices, the payment run, chasing unapproved ones) — that is the processing purpose.",
+        "Reads as one or two plain sentences a colleague or an auditor could understand a year later, without jargon or placeholders."
+      ],
+      "passScore": 70,
+      "guidance": "Pass a concrete, readable sentence that covers the row, the source and the use. Do not pass a label such as \"invoices\" or \"table for invoices\", a restatement of the table name, an empty placeholder, or a sentence about how the table is built (columns, types, routines steps) rather than what it is for. Do not require legal wording — a plain business sentence is exactly right. Length alone is never a reason to pass."
+    }
+  },
+  "practiceTopic": {
+    "title": "Creating a datatable",
+    "summary": "Scope, the immutable technical name, the mandatory purpose sentence, drafting the columns with AI, the ways rows get in, and how you find one row again.",
+    "facts": [
+      "The \"New datatable\" dialog asks Name, Technical name (under \"All options\"), \"What is it for?\", Columns and \"Who is it for?\"; \"What is it for?\" is required because the sentence goes into the organisation's processing record.",
+      "The technical name is lowercase letters, numbers and underscores, must start with a lowercase letter, is at most 63 characters, and can never be changed afterwards.",
+      "\"This account only\" makes a personal table nobody else can read, colleagues and administrators included, and it can never be shared; an organisation table starts Private, and creating or changing one needs the manage-datatables permission.",
+      "Rows arrive via \"Add a row\", via \"Import\" (\"Paste from a spreadsheet\", up to 5,000 rows per paste), or from a routine's Datatable step; \"Export CSV\" takes them out; \"Duplicate\" is \"columns only, no rows\".",
+      "The Rows toolbar has a search box, \"Search the text columns…\", shown only when the table has a text-ish column; with no hit the grid says \"No rows match that search.\" and \"Clear\" resets it.",
+      "The filter builder opens on \"Show rows that match\" with \"all conditions\" or \"any condition\", then \"Add a condition\" and \"Apply {n} conditions\"; at most 20 conditions, and conditions cannot be nested.",
+      "A table's tabs are Columns, Rows, Retention, Sharing and \"Used by\", with \"Dashboard\" only on a form's answers table; ⋯ → \"Check & repair\" adds back columns missing from the storage and never drops a column or touches a row.",
+      "\"Build it with AI\" takes a description or a pasted header row and \"Draft the columns\" (\"Drafting…\") fills Name, \"What is it for?\" and Columns in the unsaved dialog — \"{count} columns drafted — check them below, then Create.\" Nothing is stored and nothing is created until Create."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "datatable-created",
+      "existing": false,
+      "label": "Create a datatable of your own",
+      "hint": "In Studio → Datatables, click \"New table\", give it a name, a purpose sentence and at least two columns, then Create.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/datatables",
+          "returns": "{ datatables: [ { id, name, key, description, rowCount, grade, ownerUserId, scopeKind, managedKind, ... } ], scope }"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "created",
+          "label": "A datatable you own exists",
+          "hint": "Studio → Datatables → \"New table\" → \"An ordinary table\" → Create.",
+          "rule": "GET /api/datatables has at least one row with ownerUserId === learner userId and grade === 'owner' and no managedKind"
+        }
+      ]
+    }
+  ]
+}

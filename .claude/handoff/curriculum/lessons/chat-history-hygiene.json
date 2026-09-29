@@ -1,0 +1,307 @@
+{
+  "id": "chat-history-hygiene",
+  "icon": "🗂️",
+  "estMinutes": 9,
+  "title": "Find it again next week",
+  "desc": "Pin, rename, label, search and filter — the five minutes of housekeeping that make chat usable after week one.",
+  "gate": {},
+  "learningGoal": "After this lesson you can retrieve a conversation from three weeks ago in under fifteen seconds — narrowing the search by scope, agent and date and sorting by relevance — and keep your chat list readable with pins, renames and labels.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "why",
+      "icon": "🧭",
+      "title": "Two weeks from now you will want this chat back",
+      "bodyMd": "Sanne at Van Dijk Groep asks the assistant to draft a price-increase letter on a Tuesday. It works. Three weeks later the customer replies, and she wants that draft again.\n\nBy then the sidebar holds forty conversations. Bee Flow does name each one for you: in a direct chat, as soon as the first answer is complete, a fast model reads that exchange and writes a title of about five words — and then **never renames it again**, however far the conversation later drifts. A chat that opened with a vague question still carries that vague title in March, and one whose titling failed stays plain **New Chat**.\n\nFive minutes of housekeeping is the difference between finding that letter and writing it twice."
+    },
+    {
+      "type": "tour",
+      "id": "where",
+      "target": "[data-tour=\"nav-new-chat\"]",
+      "navigateTo": "agents",
+      "placement": "right",
+      "optional": true,
+      "timeoutMs": 7000,
+      "icon": "📍",
+      "title": "Your chat history lives here",
+      "body": "Further down the sidebar sits every conversation you have had, grouped as Pinned, Today, Yesterday, Last 30 Days and Older. Everything in this lesson happens in that list."
+    },
+    {
+      "type": "slide",
+      "id": "menu",
+      "icon": "⋯",
+      "title": "The ⋯ menu on every chat",
+      "bodyMd": "Hover a conversation in the sidebar and a **⋯** appears on the row. Four entries matter today:\n\n- **Pin to top** — the chat moves into the **Pinned** group at the very top and keeps a small pin icon on its row. **Unpin** puts it back where it belongs by date.\n- **Rename** — the title turns into a text box. Type, press Enter.\n- **Labels** — click a label to apply it and a tick appears beside it. The first one applied shows on the row as a small coloured name pill; any extras become coloured dots. With no labels yet the list reads *No labels yet*; **New label** sits under it either way, and asks for a name and a colour.\n- **Delete** — we come back to that at the end."
+    },
+    {
+      "type": "exercise",
+      "id": "retitle",
+      "icon": "✏️",
+      "exerciseId": "ex-chat-history-hygiene-rename",
+      "title": "Your turn: rename Sanne's chat",
+      "instruction": "One of Sanne's conversations is still called *New Chat*. In it she asked the assistant to draft a price-increase letter for Van Dijk Groep's customer De Boer Bouw, to go out in January. Write the exact title she should type into **Rename**, then add one sentence saying why that title will still work for her in three weeks. A strong title is short enough to read in a narrow sidebar column, names the specific thing rather than the category, and contains a word she would actually type into search later.",
+      "placeholder": "e.g. Price increase letter — De Boer Bouw, January … and then one sentence on why that title survives three weeks.",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "slide",
+      "id": "search",
+      "icon": "🔍",
+      "title": "Search is the real index of your history",
+      "bodyMd": "Click **Search** in the sidebar, or press Ctrl+K (Cmd+K on a Mac). The box reads *Search conversations and messages…* — and it means messages: Bee Flow looks inside the text of your chats, not only at their titles. A hit shows the sentence it matched, with your words highlighted.\n\nTwo small rules. It needs **at least two characters** before it runs at all, and it runs by itself about a third of a second after you stop typing — no Enter required. Arrow down the list and press Enter to open a result.\n\nSearch only ever reaches your own conversations. What it does not do is guess which of forty hits you meant — that is the filter row's job, and it is the next card."
+    },
+    {
+      "type": "slide",
+      "id": "filters",
+      "icon": "🎚️",
+      "title": "Four controls turn forty hits into three",
+      "bodyMd": "Under the search box sits one row of pills. Left to right:\n\n- **All / Agents / Direct** — where to look. *Direct* is the chats you started with **New Chat**; *Agents* is everything you said to a saved agent.\n- An **agent** dropdown, starting at **All agents**. It greys out while *Direct* is selected — and picking one named agent drops every direct chat from the results, whichever scope is set.\n- A date dropdown: **Any time**, **Last 7 days**, **Last 30 days**, **Last 90 days**. It is a floor, not a window: *Last 30 days* means nothing older, it never hides last week.\n- On the right, the sort toggle: **Relevance** or **Date**. **Date** is where it starts.\n\nChange a filter and the search re-runs on the spot; you never retype the query. The defaults are All, All agents, Any time, Date — and when a filter leaves you with nothing, the empty screen offers **Reset filters**, which returns those three pills to their defaults and leaves your words alone."
+    },
+    {
+      "type": "sim",
+      "id": "sim-narrow",
+      "icon": "🎯",
+      "title": "Sanne hunts the scaffolding sentence",
+      "instruction": "Sanne remembers writing one line about scaffolding costs, in a chat with the raw assistant, roughly a fortnight ago. \"steiger\" alone returns thirty-eight hits. Put her six moves in the order that gets her there with the fewest wasted clicks.",
+      "sim": {
+        "kind": "order",
+        "items": [
+          {
+            "id": "open",
+            "label": "Press Ctrl+K to open Search"
+          },
+          {
+            "id": "type",
+            "label": "Type \"steiger\" — two characters minimum, then wait a moment"
+          },
+          {
+            "id": "scope",
+            "label": "Click the Direct pill to drop every agent chat"
+          },
+          {
+            "id": "date",
+            "label": "Set the date pill to Last 30 days"
+          },
+          {
+            "id": "sort",
+            "label": "Switch the sort toggle from Date to Relevance"
+          },
+          {
+            "id": "enter",
+            "label": "Arrow down to the top hit and press Enter"
+          }
+        ],
+        "solution": [
+          "open",
+          "type",
+          "scope",
+          "date",
+          "sort",
+          "enter"
+        ],
+        "feedback": "Below two characters nothing runs, so filter an empty box and nothing changes. Scope and date come next: both re-run the query. Relevance last — sorting only reorders hits you already have, putting the chat that says \"steiger\" most often on top. She never touches the agent dropdown: naming an agent would drop the direct chat she wants."
+      }
+    },
+    {
+      "type": "quiz",
+      "id": "q-minchars",
+      "icon": "❓",
+      "question": "Sanne opens Search and types a single letter. No results appear at all. What is going on?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Search needs at least two characters before it runs at all",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Search matches titles only, and none of her titles start with that letter",
+          "correct": false,
+          "feedback": "Search reads the message text as well as the title. The reason here is simpler: below two characters the search never fires."
+        },
+        {
+          "id": "c",
+          "label": "She has to press Enter to start the search",
+          "correct": false,
+          "feedback": "No Enter needed. The search runs by itself roughly a third of a second after you stop typing — it just needs two characters to work with."
+        },
+        {
+          "id": "d",
+          "label": "Conversations older than ninety days drop out of search",
+          "correct": false,
+          "feedback": "Nothing ages out. Last 90 days is one optional date filter and Any time is the default; a chat stays searchable until you delete it."
+        }
+      ],
+      "explanation": "Two characters is the minimum. Below that the search never fires, so no result can arrive however long you wait. Add one more letter and the hits land about 300 milliseconds after you stop typing."
+    },
+    {
+      "type": "sim",
+      "id": "sim-fix",
+      "icon": "🧩",
+      "title": "One week at Van Dijk Groep",
+      "instruction": "Four things Sanne runs into. Match each problem to the control that fixes it.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "pin",
+            "left": "The De Boer Bouw quotation chat has to stay at the top of the list until the deal closes next month",
+            "right": "Pin to top",
+            "note": "Pinning lifts the chat into the Pinned group above every date group, and marks its row with a pin icon."
+          },
+          {
+            "id": "rename",
+            "left": "Nine conversations in her list are all still called New Chat and she cannot tell them apart",
+            "right": "Rename",
+            "note": "The title is written once, early in the conversation, and never refreshed — renaming is the only way to fix a bad one."
+          },
+          {
+            "id": "label",
+            "left": "Six chats about the January price round are scattered through the list and she wants to spot them while scrolling",
+            "right": "Labels",
+            "note": "An applied label paints a coloured name pill onto the row, so chats that belong together stand out in a long list."
+          },
+          {
+            "id": "search",
+            "left": "She remembers one sentence about scaffolding costs but not which conversation it was in",
+            "right": "Search",
+            "note": "Search looks inside message text, so a remembered phrase is enough — the title never has to match."
+          }
+        ]
+      }
+    },
+    {
+      "type": "quiz",
+      "id": "q-recents",
+      "icon": "❓",
+      "question": "Before you type anything, the search window shows a **Recent searches** row of chips. Where do those come from?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "The last five terms you searched, kept in this browser under your own account",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "The terms colleagues in your organisation search for most",
+          "correct": false,
+          "feedback": "Nothing about search is shared. It only ever reaches your own conversations, and your search terms stay yours."
+        },
+        {
+          "id": "c",
+          "label": "Your search history on the server, so it follows you to your phone",
+          "correct": false,
+          "feedback": "They live in this browser, not on the server. On another device — or after clearing the browser — the row simply starts empty."
+        },
+        {
+          "id": "d",
+          "label": "Terms the assistant suggests after reading your chats",
+          "correct": false,
+          "feedback": "No model is involved. The chips are the terms you searched for yourself, nothing more."
+        }
+      ],
+      "explanation": "Recent searches are the last five terms you searched — each one kept the moment you open one of its results — and they are stored in this browser under your own account. Handy on your own machine, absent on a colleague's: a convenience, not a record."
+    },
+    {
+      "type": "action",
+      "id": "tidy",
+      "icon": "🏗️",
+      "checkId": "chat-organised",
+      "title": "Tidy your own list — we will check it",
+      "instruction": "Open your chat list and hover a direct chat — one you started with New Chat — that you will need again this week. Use ⋯ → Pin to top. Then open ⋯ on a different direct chat, choose New label, type a name, pick a colour and add it, then click that label so a tick appears beside it. Rename any chat whose title no longer says what it became while you are in there.",
+      "launch": {
+        "navigateTo": "agents",
+        "label": "Open my chats"
+      }
+    },
+    {
+      "type": "slide",
+      "id": "delete",
+      "icon": "🗑️",
+      "title": "Delete means gone",
+      "bodyMd": "**Delete** in the ⋯ menu removes the conversation and every message in it, plus the privacy mapping that put real names back into those answers. There is no archive, no bin, no undo.\n\nSo delete only what you genuinely want gone — the throwaway *test* chats, the question you asked twice. Everything you might want back gets a pin, a new title or a label instead."
+    },
+    {
+      "type": "slide",
+      "id": "recap",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "- **Rename the moment the auto-title misses.** It is written once, early on, and never refreshed — so the fix is yours to make.\n- **Pin what is live, label what belongs together.** The pin icon and the coloured name pill both show directly on the row, so a long list is scannable.\n- **Find anything with Ctrl+K, then narrow.** Two characters to start, then the filter row — All / Agents / Direct, one agent, Any time through Last 90 days — and **Relevance** when the list is short and you want the chat that says it most, **Date** when you want the newest. **Reset filters** undoes the pills without losing your words.\n- **Delete only what you want gone.** There is no bin and no undo.\n\nSanne spends two minutes on a Friday doing exactly that: pin what is live next week, unpin what has closed, rename anything still called **New Chat**. Her price-increase letter is now one keyboard shortcut, one word and two pills away — three weeks later."
+    }
+  ],
+  "rubrics": {
+    "ex-chat-history-hygiene-rename": {
+      "title": "A title that survives three weeks",
+      "task": "The learner had to write the exact title for a conversation in which the assistant drafted a price-increase letter for Van Dijk Groep's customer De Boer Bouw, to go out in January, plus one sentence explaining why that title still works three weeks later.",
+      "criteria": [
+        "Gives an actual title as text, not a description of what a good title would contain",
+        "The title names something specific from the case — the price increase, the letter, the customer De Boer Bouw, or January — instead of a generic word such as 'question', 'chat' or 'letter'",
+        "The title is short: a handful of words that would fit a narrow sidebar row, not a sentence of instructions to the assistant",
+        "The explanation connects the title to later retrieval — a word they would type into search, or how it is told apart from similar conversations"
+      ],
+      "passScore": 70,
+      "guidance": "Pass any answer whose title a colleague could match to this conversation without opening it. Do not pass 'New Chat', 'AI chat', a bare 'letter', a full prompt rewritten as a title, or an answer that only theorises about good titles without giving one. Do not pass an answer that supplies a title but no reason at all. Dutch or English is equally fine, and spelling does not matter."
+    }
+  },
+  "practiceTopic": {
+    "title": "Keeping chat history findable",
+    "summary": "How Bee Flow titles, pins, labels, searches and deletes the conversations in your sidebar.",
+    "facts": [
+      "In a direct chat Bee Flow writes the title once, as soon as the first answer is complete, keeps it to about five words (40 characters at most) and never regenerates it; an agent chat is titled after the second exchange.",
+      "The per-chat ⋯ menu in the sidebar holds Pin to top / Unpin, Rename, Labels with New label, and Delete.",
+      "Search opens from the sidebar or with Ctrl+K (Cmd+K); it needs at least two characters, fires about 300 ms after you stop typing, matches message text as well as titles, and only ever reaches the signed-in person's own conversations.",
+      "The search filter row is All / Agents / Direct, an agent dropdown starting at All agents, a date dropdown (Any time / Last 7 days / Last 30 days / Last 90 days) and a Relevance / Date sort toggle; the defaults are All, All agents, Any time and Date.",
+      "Changing a filter re-runs the search immediately without retyping; the agent dropdown is disabled while Direct is selected, and choosing a named agent excludes direct chats from the results.",
+      "Sorting by Relevance ranks a conversation by how often the search term appears in the matched message, with the most recently updated chat breaking a tie; Reset filters on the no-matches screen clears the three filters but keeps the query.",
+      "Recent searches are the last five terms you searched, kept in your own browser rather than on the server.",
+      "Deleting a conversation removes its messages and its privacy token mapping as well, permanently — there is no archive, bin or undo."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "chat-organised",
+      "existing": false,
+      "label": "Organise your chat history",
+      "hint": "In the sidebar, hover a direct chat and open the ⋯ menu: Pin to top for one chat, then New label on another and click the label so a tick appears.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/ai/direct/conversations",
+          "returns": "array of the caller's own direct conversations, each with id, title, pinned, labels_json, updated_at (scoped to the session user; no owner field needed)"
+        },
+        {
+          "method": "GET",
+          "path": "/ai/labels",
+          "returns": "array of the caller's conversation labels, each with id, name, color, created_at"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "pinned",
+          "label": "At least one conversation is pinned",
+          "hint": "Hover a direct chat (one started from New Chat), open ⋯ and choose Pin to top — it jumps into the Pinned group",
+          "rule": "any conversation row has pinned truthy"
+        },
+        {
+          "id": "label-exists",
+          "label": "You created at least one label",
+          "hint": "In the ⋯ menu use New label, type a name and pick a colour",
+          "rule": "labels list length > 0",
+          "endpoint": "/ai/labels",
+          "expect": {
+            "kind": "rows"
+          }
+        },
+        {
+          "id": "label-applied",
+          "label": "At least one conversation carries a label",
+          "hint": "Open ⋯ on a chat and click your label so a tick appears beside it",
+          "rule": "any conversation row's labels_json parses to a non-empty array"
+        }
+      ]
+    }
+  ]
+}

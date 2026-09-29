@@ -1,0 +1,283 @@
+{
+  "id": "admin-governance",
+  "icon": "🧭",
+  "estMinutes": 12,
+  "title": "Rolling it out without drama",
+  "desc": "Sequencing the changes, announcing them, and checking afterwards that reality matches the plan.",
+  "gate": {
+    "permission": [
+      "org_admin",
+      "manage_users"
+    ]
+  },
+  "learningGoal": "After this lesson you can write and defend a rollout plan for one real organisational change — its order, its announcement, its proof and its way back.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "stakes",
+      "icon": "🧭",
+      "title": "The doors that only open one way",
+      "bodyMd": "Van Dijk Groep has sixty people in one workspace, and Marieke, its organisation admin, is about to change something for all of them. You already know the parts: roles, groups, sign-in, the grants that give a team its tools. This chapter is the part nobody writes down — the **order** you touch them in, what you say beforehand, and which doors only open one way.\n\nAlmost everything under **Settings → Organisation** can be clicked back. Two things cannot, and a third undoes the setting but not its consequences.\n\n- **Sign-in Method.** The card warns *\"Choose carefully: Once saved, this cannot be changed.\"* After the save the row leaves the settings nav behind a lock.\n- **Reject** on a pending member. The confirm is blunt — *\"Reject and remove this user? They can sign up again later.\"* The account is deleted.\n- **The Zero-knowledge encryption level.** Pick another level tomorrow if you like; the save cannot be un-rung. Everyone was signed out, and each key now comes from its owner's own secret — so nobody, not you and not Bee Flow, can recover that data once the password and recovery key are gone.\n\nRoles, groups, tiers, grants and shield settings are adjustments. Treat those three as decisions."
+    },
+    {
+      "type": "quiz",
+      "id": "after-save",
+      "question": "Marieke switches the Privacy Shield on at Van Dijk Groep on Friday. On Monday she looks for what it caught in last Wednesday's chats, and in documents already in the knowledge base — nothing. Why?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "The shield only checks messages sent after it was saved, and knowledge bases are checked at the moment a document is added — neither works backwards.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "The What happened tab only reaches back seven days, so the older catches are hidden.",
+          "correct": false,
+          "feedback": "The range control offers 7d, 30d and 90d and opens on 30 days. But no range reaches conversations that were never checked in the first place."
+        },
+        {
+          "id": "c",
+          "label": "No kinds of personal data are ticked, so nothing can ever be found.",
+          "correct": false,
+          "feedback": "A real trap — the Overview row \"Kinds of data we look for\" reading \"0 of 21\" means the shield will never find a thing. But that would silence Monday's messages too, not only Wednesday's."
+        },
+        {
+          "id": "d",
+          "label": "Stored documents are re-checked on the next sweep, so she looked too early.",
+          "correct": false,
+          "feedback": "There is no backward sweep. Checking at the moment a document is added means the stored text is the checked text; anything stored earlier keeps whatever was stored."
+        }
+      ],
+      "explanation": "This is why policy comes first in a rollout. The shield judges what is sent after you save it, and the option \"Also check knowledge bases when documents are added\" redacts at the moment of adding — the page says it cannot be undone afterwards, because the stored text is the checked text. Switch it on before the team arrives, not after a month of pasting."
+    },
+    {
+      "type": "slide",
+      "id": "order",
+      "icon": "🧱",
+      "title": "Policy first, then access, then people",
+      "bodyMd": "A rollout has three waves, and the order is not a matter of taste.\n\n1. **Policy.** Privacy Shield, Encryption, Sign-in Method. The shield only checks messages sent *after* you save it, and the option to check knowledge bases works at the moment a document is added — never backwards over what is already stored.\n2. **Access.** Create the group, set its Group Role and Allowed tiers, then grant it what it needs under **Integrations → Integration access**. The group has to exist before anything can be granted to it.\n3. **People.** Invite or approve last, so the first thing a newcomer meets is a workspace that already has the right shape.\n\nVerification is a fourth wave, and it belongs to next week, not to this sitting."
+    },
+    {
+      "type": "sim",
+      "id": "checklist",
+      "icon": "🧩",
+      "title": "Build the checklist",
+      "instruction": "Van Dijk Groep is giving its inkoop (procurement) team AI access for the first time. Put Marieke's five steps in the order that gets it right the first time.",
+      "sim": {
+        "kind": "order",
+        "items": [
+          {
+            "id": "pol",
+            "label": "Turn the Privacy Shield on and tick the kinds of personal data that supplier files contain"
+          },
+          {
+            "id": "grp",
+            "label": "Create the group Inkoop and restrict its Allowed tiers to Fast"
+          },
+          {
+            "id": "grant",
+            "label": "Open Integrations → Integration access, select Inkoop, and switch on the integration the team needs"
+          },
+          {
+            "id": "inv",
+            "label": "Invite Pieter, Joost and Bilal with Invite User"
+          },
+          {
+            "id": "check",
+            "label": "A week later, read Usage & Monitoring and the shield's What happened tab"
+          }
+        ],
+        "solution": [
+          "pol",
+          "grp",
+          "grant",
+          "inv",
+          "check"
+        ],
+        "feedback": "Policy first, because the shield only checks what is sent after it is saved. Then the group — the Integration access panel says as much when there are none: \"No groups yet. Create groups under Users & Groups to grant capabilities per team.\" Grant to the group, then invite, so nobody spends their first hour in a half-built workspace. Verification is a separate visit, a week later."
+      }
+    },
+    {
+      "type": "quiz",
+      "id": "announce",
+      "question": "Van Dijk Groep switches to the Zero-knowledge encryption level tonight. Which line belongs in the message you send the team beforehand?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Everyone is signed out when we save, including me. Sign in again and your key is created. After that, nobody can recover your data if you lose both your password and your recovery key.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Your existing conversations are re-encrypted overnight and may be unreadable until morning.",
+          "correct": false,
+          "feedback": "Not true, and it will start a panic. The Encryption page states that the level affects new messages; existing messages are left exactly as they are and stay readable either way."
+        },
+        {
+          "id": "c",
+          "label": "Nothing changes for you — this is a background setting.",
+          "correct": false,
+          "feedback": "It signs out every member of the organisation the moment you save. An unannounced sign-out at nine in the morning reads as an outage, and your inbox will say so."
+        },
+        {
+          "id": "d",
+          "label": "You will each need a new account afterwards.",
+          "correct": false,
+          "feedback": "Accounts are untouched. People sign in again with the account they already have, which is what creates their encryption key."
+        }
+      ],
+      "explanation": "The warning on the page is the announcement, almost word for word: saving signs out everyone in the organisation, including you, and each person must sign in again so their encryption key can be created. Say the disruption and say the trade — that recovery by an administrator is what you are giving up."
+    },
+    {
+      "type": "slide",
+      "id": "verify",
+      "icon": "🔍",
+      "title": "Verify, do not assume",
+      "bodyMd": "Every change has a screen that proves it took.\n\n- **Privacy Shield → Overview** shows a posture table. Its row *Kinds of data we look for* reading *\"0 of 21\"* means protection is on and nothing will ever be found.\n- **Users & Groups** carries a count badge on each tab, a member count on every group card, and a role chip on every row.\n- **Integrations → Integration access**: pick All members or one group on the left and read its toggles. An integration your subscription does not include is not shown at all, so a missing card means \"not in the plan\", not \"not granted yet\".\n- **Usage & Monitoring** answers the week after, through Top Users and By app area.\n\nOne trap: a blank Usage page is not proof of no usage. A refused request draws the same empty panels, with no error at all."
+    },
+    {
+      "type": "sim",
+      "id": "proof",
+      "icon": "🔗",
+      "title": "Which screen proves it?",
+      "instruction": "Match each change Marieke made to the screen that shows, without arguing, that it actually happened.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "tiers",
+            "left": "She restricted the Inkoop group to the Fast tier",
+            "right": "The group card, under Allowed tiers",
+            "note": "The hint switches from \"No restriction set\" to a count of permitted tiers; no selection at all means no restriction, not \"nothing allowed\"."
+          },
+          {
+            "id": "cats",
+            "left": "She ticked seven kinds of personal data in the shield",
+            "right": "The Privacy Shield posture table",
+            "note": "The row reads \"7 of 21\". Anything reading \"0 of 21\" is a shield that will never find a thing."
+          },
+          {
+            "id": "grant",
+            "left": "She gave the supplier connector to one team only",
+            "right": "Integrations → Integration access",
+            "note": "Select the group on the left; the header then reads \"grants stack on top of All members\" — grants add, they never subtract."
+          },
+          {
+            "id": "approve",
+            "left": "She approved four colleagues who signed in with Microsoft",
+            "right": "The Users tab, filtered to Pending",
+            "note": "Set the status filter to Pending: an approved colleague has left that list, and their row now shows a role chip instead of the amber Pending chip with its Approve and Reject buttons."
+          }
+        ]
+      }
+    },
+    {
+      "type": "tour",
+      "id": "usage-anchor",
+      "target": "[data-tour=\"usage-summary\"]",
+      "navigateTo": "settings/organisation/usage",
+      "placement": "bottom",
+      "optional": true,
+      "timeoutMs": 7000,
+      "icon": "📊",
+      "title": "Where next week lives",
+      "body": "Usage & Monitoring opens on the last 30 days and is read-only. The controls that change behaviour sit higher up the same Organisation menu, on License & Usage: the plan's cap, and the toggle Share AI usage across the organisation."
+    },
+    {
+      "type": "slide",
+      "id": "duties",
+      "icon": "⚖️",
+      "title": "A role change is a rollout too",
+      "bodyMd": "Van Dijk Groep appoints Anne, its office manager, as **Data Protection Officer**. One pencil on her row in Users & Groups, and half the work you two had planned is no longer hers to do.\n\nThat role — like **ISMS Internal Auditor** beside it — opens the **Compliance Center**. Not Users & Groups, not the Privacy Shield, not Sign-in Method. So treat the change the way you treat any other: pick the day it takes effect, hand over whatever Anne had half-finished, and tell the people who used to walk up to her desk with access requests.\n\nTwo things to settle before you click the pencil:\n\n- **Where the work lands.** Back with Marieke, the organisation admin. If she is the only one, holidays become an outage — and the server refuses to demote or remove the last active Organisation Admin anyway, so promote a second one while nothing is on fire.\n- **What proves it.** Her row's role chip on the Users tab, and her own Organisation menu, which is now one item long."
+    },
+    {
+      "type": "exercise",
+      "id": "plan",
+      "icon": "🎯",
+      "exerciseId": "ex-admin-rollout",
+      "title": "Your turn: one real change, and its way back",
+      "instruction": "Pick one change you actually intend to make in your own organisation — a new group, a shield setting, a sign-in switch, a tier restriction, anything. Write the plan in five short parts: (1) the change and the exact screen it lives on; (2) who you tell beforehand, and the one sentence you tell them; (3) the order of your steps, if there is more than one; (4) what you will open afterwards to prove it took effect; (5) the rollback — or, if there is none, say so plainly and say what you did instead to lower the risk.",
+      "placeholder": "e.g. Change: restrict the Inkoop group to the Fast tier, on the group card under Allowed tiers. Tell: the three inkoop people, in their team channel — \"from Monday the assistant answers on the quick model; ask me if a job needs the slow one\". Order: create the group, add the three, then set the tier pill. Proof: the card hint no longer says \"No restriction set\", and By app area in Usage & Monitoring a week later. Rollback: Clear restrictions on the same card, takes five seconds.",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "slide",
+      "id": "changelog",
+      "icon": "📒",
+      "title": "A change log your auditor will accept",
+      "bodyMd": "You do not have to keep the first half yourself. **Compliance → Access log** already records the sign-ins, the changes to who can reach what, and the app publications — newest first, with filters on the kind of event, a date range and the account, plus an export. Filtering and export run on the server, so a date range really means that range and not the page you happen to be looking at. (The export is capped at 50 000 rows per file, and twenty exports an hour per person.)\n\nWhat no log can record is *why*. That half is yours: one line per planned change — what, when, who asked for it, how to undo it. Put the two together and you can answer an auditor without reconstructing a Tuesday from memory."
+    },
+    {
+      "type": "quiz",
+      "id": "log-gap",
+      "question": "An auditor asks Marieke why the Inkoop group was given the supplier connector last March. What does Compliance → Access log give her, and what must she have kept herself?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "The log has the change itself — when it happened, on what, and by whom. The reason it was asked for is the one thing no log records, so that line is hers to have written.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Nothing useful: the log keeps sign-ins only, so a grant from March was never recorded.",
+          "correct": false,
+          "feedback": "It records changes to who can reach what as well as sign-ins — that grant is in there. What is missing is the motive, not the event."
+        },
+        {
+          "id": "c",
+          "label": "Everything, reason included — the admin types a note when saving a grant and the log stores it.",
+          "correct": false,
+          "feedback": "There is no reason field anywhere in this flow. Bee Flow records what happened and who did it; why it was asked for lives only in your own change note."
+        },
+        {
+          "id": "d",
+          "label": "Only what fits on one screen — she pages back to March by hand and takes screenshots.",
+          "correct": false,
+          "feedback": "The filters and the export run on the server, so a date range covering March really returns March. Screenshots are what you fall back to when you have no log at all."
+        }
+      ],
+      "explanation": "A change log has two halves, and the product only writes one of them. The Access log gives the event, the subject, the actor and the timestamp, filtered and exported server-side. The other half — who asked, what was decided, how to undo it — has no field in any system and costs you one line per planned change."
+    },
+    {
+      "type": "slide",
+      "id": "now",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "- **Sequence a change**: policy, then access, then people — and verification a week later, on purpose.\n- **Spot the one-way doors** before you open them: Sign-in Method and Reject on a pending member, plus the Zero-knowledge encryption level, whose save you can never un-ring. Announce those; the rest you can simply adjust.\n- **Prove it landed** on the screen that owns it — the shield's posture table, the group card, the Integration access panel, Usage & Monitoring — and keep your one-line note beside what the Access log already writes for you.\n\nThat is the whole method. You can let all sixty of Van Dijk Groep's people in now, in an order that will not need explaining afterwards."
+    }
+  ],
+  "rubrics": {
+    "ex-admin-rollout": {
+      "title": "Rollout plan for one real change",
+      "task": "The learner names one concrete organisational change they intend to make and plans it in five parts: the change plus the screen it lives on, who is told beforehand and in what words, the order of the steps, the screen that proves it took effect afterwards, and the rollback (or an honest statement that there is none, with the mitigation).",
+      "criteria": [
+        "Names a specific, real change and the screen or setting it lives on — not 'improve our security' but something an admin could click today.",
+        "Says who is told beforehand and what they are told; the message matches what the change actually does to those people.",
+        "Gives the order of the work, with people or invitations coming after the policy and the access that governs them.",
+        "Names a concrete verification afterwards — a screen, a value, a count, a report — rather than 'check it works'.",
+        "States the rollback honestly: how to undo it, or that it cannot be undone plus what was done to reduce that risk."
+      ],
+      "passScore": 70,
+      "guidance": "Reward concreteness and honesty about irreversibility over polish. Do NOT pass: a plan with no named change; a vague verification ('monitor it', 'see if people complain'); a plan that puts invitations or approvals before the policy and access they depend on; a plan claiming an undo for the Sign-in Method, the Zero-knowledge encryption level or a rejected pending member. A plan may have no announcement if the change genuinely touches nobody — but it must say why."
+    }
+  },
+  "practiceTopic": {
+    "title": "Rolling out organisation changes",
+    "summary": "How an admin sequences, announces, verifies and logs a change that other people in the organisation will feel.",
+    "facts": [
+      "The Privacy Shield only checks messages sent after it is saved, and 'Also check knowledge bases when documents are added' redacts at the moment a document is added — neither is retroactive, so policy belongs at the start of a rollout.",
+      "Saving the Zero-knowledge encryption level signs out everyone in the organisation, including the admin who saves it; existing messages are left exactly as they are and stay readable, and the level itself can still be changed back later even though the sign-out cannot.",
+      "The Privacy Shield Overview posture table shows a row 'Kinds of data we look for'; reading '0 of 21' means protection is on but nothing will ever be found.",
+      "A group's Allowed tiers pills restrict only that group, an empty selection means no restriction at all, and a Clear restrictions link puts it back.",
+      "Demoting yourself while you are the only active Organisation Admin is refused: that change would leave the organisation without an administrator, so promote someone else first.",
+      "Usage & Monitoring is read-only and opens on the last 30 days; the plan cap and the toggle 'Share AI usage across the organisation' live higher up the same Organisation menu, on License & Usage.",
+      "In the Organisation menu the Data Protection Officer and ISMS Internal Auditor roles open the Compliance Center and nothing else — they carry compliance and monitoring, not user management.",
+      "Compliance → Access log records sign-ins, changes to who can reach what, and app publications, newest first, with server-side filters on event kind, date range and account, and an export capped at 50 000 rows per file and twenty exports an hour. It has no field for why a change was made."
+    ]
+  },
+  "actionChecks": []
+}

@@ -1,0 +1,405 @@
+{
+  "id": "research-web-and-browse",
+  "icon": "🌐",
+  "estMinutes": 13,
+  "title": "Ask the web, or make it read one page",
+  "desc": "The search toggle, short queries, Browse Web, and what 'Pages read' proves.",
+  "gate": {
+    "feature": "integrations"
+  },
+  "learningGoal": "Get a cited web answer, and steer the assistant into opening the exact page you name.",
+  "stepOutline": [
+    {
+      "kind": "slide",
+      "purpose": "Two different jobs: discover pages, or open the one you name"
+    },
+    {
+      "kind": "tour",
+      "purpose": "The composer and the \"+\" (Message tools) button beside it"
+    },
+    {
+      "kind": "slide",
+      "purpose": "Where the real web-search switch lives, and the Apps-panel lookalike"
+    },
+    {
+      "kind": "slide",
+      "purpose": "The assistant writes a two-to-six-word query, like a search box"
+    },
+    {
+      "kind": "quiz",
+      "purpose": "A long natural-language question: why the hits get worse"
+    },
+    {
+      "kind": "slide",
+      "purpose": "The three depths a search can read at, and what each costs"
+    },
+    {
+      "kind": "quiz",
+      "purpose": "A paraphrased clause: ask for the deep read, not for more results"
+    },
+    {
+      "kind": "slide",
+      "purpose": "Reading the activity line, the Sources section and How I got this answer"
+    },
+    {
+      "kind": "quiz",
+      "purpose": "Zero results: transient or too narrow, not proof of absence"
+    },
+    {
+      "kind": "sim",
+      "purpose": "Match four questions onto search, Browse Web, knowledge or no search at all"
+    },
+    {
+      "kind": "slide",
+      "purpose": "Browse Web: live thumbnail, the queue, the step and time limits"
+    },
+    {
+      "kind": "quiz",
+      "purpose": "You pasted a URL and got a summary of other pages — why"
+    },
+    {
+      "kind": "slide",
+      "purpose": "\"Pages read\" as the receipt, and checking the date on the page"
+    },
+    {
+      "kind": "exercise",
+      "purpose": "Write the message that makes it open one named page"
+    },
+    {
+      "kind": "slide",
+      "purpose": "The two org settings that take the choice away"
+    },
+    {
+      "kind": "action",
+      "purpose": "Get one cited answer, then one opened page, in a real chat"
+    },
+    {
+      "kind": "slide",
+      "purpose": "Recap: the switch, the words, the receipts"
+    }
+  ],
+  "steps": [
+    {
+      "type": "slide",
+      "id": "two-jobs",
+      "icon": "🧭",
+      "title": "Two different jobs, two different tools",
+      "bodyMd": "Bart buys steel, timber and fittings for **Van Dijk Groep**, a sixty-person installation firm near Zwolle that fits kitchens and window frames. A new supplier has sent a quote, and he has two very different questions.\n\nThe first is *\"who are these people and what is being said about them this year?\"* He has no page in mind — he needs to **find** pages. That is **web search**.\n\nThe second is *\"what exactly does article 7 of their terms say about late delivery?\"* He already has the address of that page. He does not want a search; he wants that page **opened and read**. That is **Browse Web**.\n\nBoth live inside an ordinary chat, and the assistant chooses between them. Most of the skill in this lesson is saying clearly which of the two you want."
+    },
+    {
+      "type": "tour",
+      "id": "composer",
+      "target": "[data-tour=\"chat-composer\"]",
+      "navigateTo": "agents",
+      "placement": "top",
+      "optional": true,
+      "timeoutMs": 7000,
+      "icon": "⌨️",
+      "title": "Everything happens around this box",
+      "body": "Your question goes in the box. The small \"+\" button beside it is labelled \"Message tools\" — that menu holds the Web search switch we are about to look at. Nothing in this lesson needs a separate page."
+    },
+    {
+      "type": "slide",
+      "id": "the-switch",
+      "icon": "🔀",
+      "title": "The real web-search switch",
+      "bodyMd": "Open **+** (\"Message tools\") and you will see a row with a globe called **Web search**, with a small dot when it is on. It is **on by default**, and its hint reads *\"Let this turn look things up online\"*.\n\nSwitching it off does something quite literal: the web-search tool is removed from that turn. The assistant is not asked to be restrained — it simply has no way to search, and answers from what it already knows.\n\nOne trap. The **Apps** panel in the same menu also lists a row called **Web Search**. Toggling that one does **not** switch searching off; web search is always on at user level there. The row in the **+** menu is the switch that counts."
+    },
+    {
+      "type": "slide",
+      "id": "short-query",
+      "icon": "🔎",
+      "title": "It types into a search box, not a conversation",
+      "bodyMd": "You write a sentence. The assistant does not send your sentence to the search engine — it writes its own query, and it is told to keep that query to **two to six words**, the way you would type into a search box.\n\nGood: *staalhandel Noord faillissement*. Bad: *what is the current situation regarding possible financial problems at the company Staalhandel Noord in the Netherlands in 2026*.\n\nIt is also told to search in the language most likely to give good results — Dutch for a Dutch subject, English for a technical one.\n\nSo steer the **words**, not the grammar. Bart writes: *\"Check the last year of news about Staalhandel Noord — bankruptcy, takeover, delivery problems. Search in Dutch and in English.\"*"
+    },
+    {
+      "type": "quiz",
+      "id": "q-long",
+      "icon": "❓",
+      "question": "Bart pastes one long thirty-word sentence as his question and the hits come back weak and generic. What is the most likely reason?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "The assistant builds its query out of your wording, so a long sentence tends to produce a long query — and a long string of words matches far fewer pages than a tight two-to-six-word query.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Long questions cost more, so fewer results are fetched.",
+          "correct": false,
+          "feedback": "The number of results is a setting of the search tool — five results in the default mode — not something that shrinks because your sentence was long."
+        },
+        {
+          "id": "c",
+          "label": "The search runs fine, but anything longer than a sentence is thrown away before the assistant reads it.",
+          "correct": false,
+          "feedback": "Nothing is discarded for length; the pages come back and are read either way. The damage is done earlier, in the query that was typed."
+        },
+        {
+          "id": "d",
+          "label": "A long question forces the fast, snippet-only mode.",
+          "correct": false,
+          "feedback": "The mode is picked for a different reason: the snippet-only mode is for one trivial fact, such as a date or a price. Your sentence length does not select it."
+        }
+      ],
+      "explanation": "The search tool's own instructions are blunt about this: write short queries of two to six words, and its example of a bad query is exactly a long natural sentence. Say which words must appear — the company name, the two or three terms that matter, the language — and leave the sentence-building to your instruction rather than to the search box."
+    },
+    {
+      "type": "slide",
+      "id": "how-deep",
+      "icon": "📏",
+      "title": "How much of each page comes back",
+      "bodyMd": "A search has a second knob beside the words: **how much of every page it read is handed back**. The assistant picks one of three depths per search.\n\n- **basic** — a compact summary of three to five bullets, roughly 300 words' worth. For a founding year, an opening time, a price.\n- **detailed** — key points plus the page's sections. This is the default and it suits most questions.\n- **highly_detailed** — as much of the page as can be preserved, several thousand words' worth. For a technical standard, a full article, a long set of terms.\n\nDepth is the cost dial. Deeper means more of the page for the assistant to reason over, and a slower, heavier turn; shallower is quick but throws away the sentence you may have needed. You steer it the way you steer the query — in words. Bart writes *\"just the headline figure\"* for a quick check, and *\"read the full article, I need the exact wording of the clause\"* when the detail is the point."
+    },
+    {
+      "type": "quiz",
+      "id": "q-depth",
+      "icon": "❓",
+      "question": "Bart asks the assistant to check the fire-safety standard a facade supplier keeps citing, because he needs the exact wording of one clause. The answer comes back as five tidy bullets that paraphrase the standard. What should he change?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Ask again for the deepest reading — say he needs the full text of the clause, not a summary — so the search returns as much of the page as it can preserve instead of a short bullet summary.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Ask for more results, so more pages are summarised.",
+          "correct": false,
+          "feedback": "More results widens the net; it does not deepen any single page. He would get five short summaries instead of one, and still no clause wording."
+        },
+        {
+          "id": "c",
+          "label": "Switch the turn to the fast, snippet-only mode.",
+          "correct": false,
+          "feedback": "That goes the wrong way. The snippet-only mode is for one trivial fact — a date, a price, a yes or no — and it never opens the page in full."
+        },
+        {
+          "id": "d",
+          "label": "Nothing — a search can only ever return a summary, so he has to open the standard himself.",
+          "correct": false,
+          "feedback": "The deepest setting is built to preserve the page's content for exactly this case. And if he has the address, Browse Web opens that one page and reads it end to end."
+        }
+      ],
+      "explanation": "Three depths exist: a three-to-five-bullet summary for quick facts, the default middle setting of key points plus sections, and a deep setting that preserves as much of the page as possible for technical documents and full articles. Say what you need the text for and the right depth follows — and when you already hold the address, Browse Web reads that page directly."
+    },
+    {
+      "type": "slide",
+      "id": "read-it",
+      "icon": "🧾",
+      "title": "Reading the answer like evidence",
+      "bodyMd": "While the answer is being built, one live line under your message names what is running: *\"Loading tools…\"*, then **Agent Search** (that is the display name of the web-search tool), then *\"Thinking…\"*.\n\nThe answer itself should carry links inside the text and finish with a **Sources** section. Under the answer, open **How I got this answer** to see how many tools ran and how long the turn took.\n\nIf there is no Sources section and no links, treat the answer as unsourced — it is telling you what it already knew, which for news, prices or rules is exactly the answer you cannot use."
+    },
+    {
+      "type": "quiz",
+      "id": "q-zero",
+      "icon": "❓",
+      "question": "The assistant reports that the search came back with zero results for the supplier's name. What is the sensible reading?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Something transient or too narrow — a rate limit, a hiccup upstream, or a query that was too specific. Ask again with different words, or in English.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "The company has no presence online, so there is nothing to find.",
+          "correct": false,
+          "feedback": "Zero hits is not proof of absence. A small Dutch supplier will often surface under a trade name, a parent company, or in English — which is precisely the retry the tool suggests."
+        },
+        {
+          "id": "c",
+          "label": "The search failed silently and the assistant will quietly fill the gap from memory.",
+          "correct": false,
+          "feedback": "Zero results is deliberately handed to the assistant as an error rather than as an empty success, and that error ends with an instruction not to fabricate sources or article content. This is the one case the product goes out of its way to prevent."
+        },
+        {
+          "id": "d",
+          "label": "Web search is switched off for this chat.",
+          "correct": false,
+          "feedback": "With the switch off there is no search tool in the turn at all, so there is no search step and no zero-result report — you simply get an unsourced answer."
+        }
+      ],
+      "explanation": "The message the assistant receives on an empty search literally proposes three routes: a shorter or differently-worded query, a retry in English instead of the user's language, or saying plainly that current information could not be retrieved. Your move is the same: change the words, or accept \"I could not check\" as the honest answer."
+    },
+    {
+      "type": "sim",
+      "id": "pick-tool",
+      "icon": "🧩",
+      "title": "Which tool does this question need?",
+      "instruction": "Four questions from Bart's week at Van Dijk Groep. Pair each one with what should actually handle it.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "p1",
+            "left": "Which suppliers in the Benelux carry this window profile? Bart has no page in mind yet.",
+            "right": "Web search",
+            "note": "No URL yet, so this is discovery — exactly what web search is for."
+          },
+          {
+            "id": "p2",
+            "left": "Bart has the supplier's terms-and-conditions address and wants the delivery clause summarised.",
+            "right": "Browse Web",
+            "note": "You already hold the page. The tool guidance is explicit: with a URL in hand, open it instead of searching for it."
+          },
+          {
+            "id": "p3",
+            "left": "What does Van Dijk Groep's own standard purchase contract say about late delivery?",
+            "right": "The Knowledge pill on the composer",
+            "note": "Internal documents are not on the web. Ground the chat on your own knowledge base instead — and nothing leaves the organisation."
+          },
+          {
+            "id": "p4",
+            "left": "Bart attached the quote PDF earlier in this chat and now asks for current market prices.",
+            "right": "No web search at all — organisation policy",
+            "note": "When an administrator switches on \"No web search while a file is attached\", search is stripped for the rest of that conversation, not only for the message carrying the file. Start a fresh chat."
+          }
+        ]
+      }
+    },
+    {
+      "type": "slide",
+      "id": "browse-web",
+      "icon": "🖥️",
+      "title": "Browse Web opens the page in front of you",
+      "bodyMd": "Browse Web drives a real browser: it navigates, clicks through a cookie wall, scrolls, follows links, and reads PDF documents. Inside the message you get a live thumbnail — first *\"Opening the browser…\"*, then frames of the page as it works, then a small **done**.\n\nThat browser is shared and capacity-limited. If every session is busy you see *\"Waiting for an available browser session…\"*, sometimes with how many are ahead. It queues rather than failing, and gives up after about 45 seconds with a note to try again shortly.\n\nOne browse takes **8 steps** by default (20 at the very most) inside a 90-second limit. If it runs out you still get an answer, with a note that the browser stopped at its time limit and the result may be partial."
+    },
+    {
+      "type": "quiz",
+      "id": "q-url",
+      "icon": "❓",
+      "question": "Bart pasted the supplier's terms URL and asked for the delivery terms. He got a tidy summary of three other websites. What went wrong?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "The assistant searched instead of opening his page. Saying \"open this page and …\" steers it to Browse Web.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "The page sits behind a login, so the assistant fell back to searching.",
+          "correct": false,
+          "feedback": "A login wall looks different: the browse actually runs and the answer says the page produced almost no readable content. Here no page of his was opened at all — other sites were."
+        },
+        {
+          "id": "c",
+          "label": "Browse Web only reads plain HTML, so a modern page is handed to search.",
+          "correct": false,
+          "feedback": "Browse Web runs a real browser with JavaScript, and it reads PDF documents too. The wrong tool was chosen; the page was never the problem."
+        },
+        {
+          "id": "d",
+          "label": "Web search was switched off, so the browser was used instead.",
+          "correct": false,
+          "feedback": "That is the wrong way round. Summaries of other websites are what web search produces — so search clearly ran."
+        }
+      ],
+      "explanation": "Both tools are offered on the same turn and the assistant decides. Its instructions say to open a URL you already have with Browse Web and to use search only to discover pages you do not have — but a bare pasted link with a vague request can still tip it the wrong way. Name the action: \"Open this page and give me article 7 word for word.\" On an installation with no browser backend, Browse Web is simply not there and search is all the assistant has."
+    },
+    {
+      "type": "slide",
+      "id": "pages-read",
+      "icon": "🧷",
+      "title": "\"Pages read\" is your receipt",
+      "bodyMd": "What the browser hands back ends with **Pages read:** — the addresses it actually visited — and the line *\"Read live via a headless browser. Only the content above was actually on the page(s).\"* A good Browse Web answer carries both through to the bottom of the message. If yours does not, ask which pages were opened.\n\nThat is the difference between a summary of a page and a summary of the idea of a page — and it is the line you can put in front of a colleague.\n\nTwo habits make that receipt worth having: open at least one of the addresses before you repeat a number in a meeting, and check the date on the page you land on. A result can be five years old and still come first."
+    },
+    {
+      "type": "exercise",
+      "id": "ex-open-page",
+      "icon": "🎯",
+      "exerciseId": "ex-research-web-and-browse-open-page",
+      "title": "Your turn: make it open one page",
+      "instruction": "Write the message Bart sends when he already has one address in hand. A strong answer does four things: it gives the address, it says plainly that the page should be opened and read, it names exactly what to find there (a clause, a figure, a date — not \"summarise the site\"), and it says what the answer should look like: how many bullets, which language, whether the wording should be quoted. Write it as you would actually send it.",
+      "placeholder": "e.g. Open https://staalhandelnoord.nl/algemene-voorwaarden and read article 7. Give me the delivery time, the penalty for late delivery and the payment term — three bullets in Dutch, quoting the exact wording.",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "slide",
+      "id": "policy",
+      "icon": "🛡️",
+      "title": "When searching is not yours to switch on",
+      "bodyMd": "Two settings above your head can take the choice away.\n\nAn administrator can switch on **\"No web search while a file is attached\"**. While a document sits in the composer, the Web search row is greyed out and reads *\"Web search disabled by organisation policy (files attached)\"*. The block outlasts that one message: once a file has been sent in a chat, search stays out of every later turn there, even though the row looks normal again. So keep the quote PDF and the market question in separate chats.\n\nThe second setting, **\"Protect web searches\"** (an Enterprise feature), keeps search terms containing personal data from reaching an outside search engine. The rule at Van Dijk Groep: a company name in a search box is fine, a named contact person is not."
+    },
+    {
+      "type": "action",
+      "id": "do-it",
+      "icon": "🏗️",
+      "checkId": "web-cited",
+      "title": "Get one answer you could show someone",
+      "instruction": "Open a new chat and check in the + menu that Web search is on. Ask a real question from your own work that needs current information, and read the Sources section at the bottom. Then, in the same chat, paste an address you care about and write \"open this page and …\". We look for a turn in that conversation where the web-search or Browse Web tool actually ran.",
+      "launch": {
+        "navigateTo": "agents",
+        "label": "Open a chat"
+      }
+    },
+    {
+      "type": "slide",
+      "id": "recap",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "- **Switch searching on or off knowingly.** The row that counts is **Web search** in the **+** menu; it is on by default, and turning it off removes the tool from the turn. The Apps row of the same name does not.\n- **Steer the query and the depth, not the sentence.** Name the two or three words that must appear and the language to search in, and say how deeply you need each page read — a headline figure, or the full wording of a clause. If it comes back with nothing, change the words or try English — zero results is rarely proof that nothing exists.\n- **Ask for the page you already have.** Say \"open this page\" and check the **Pages read** list the answer normally ends with; for a search answer, check the **Sources** section and click one link before you quote it."
+    }
+  ],
+  "rubrics": {
+    "ex-research-web-and-browse-open-page": {
+      "title": "A message that opens one named page",
+      "task": "The learner had to write the chat message they would send when they already hold one web address: give the address, instruct that the page be opened and read, name exactly what to extract from it, and state the shape of the answer (bullets, language, or quoting the wording).",
+      "criteria": [
+        "It instructs the assistant to open or read a page, rather than to find, search for, or look into a subject.",
+        "One specific page is given or clearly named — a pasted address is ideal, a placeholder address is fine.",
+        "It names what to extract: a clause, article, figure, price, date or named section, not \"summarise the site\".",
+        "It states the shape of the answer — a number of bullets, a language, a word limit, or that the wording should be quoted."
+      ],
+      "passScore": 70,
+      "guidance": "Grade the instruction, not the writing. Dutch or English are equally fine, and an invented or placeholder address is fine. Do not pass a bare pasted link with no task, a message phrased as discovery (\"find the terms of supplier X\", \"search for their conditions\"), or one that asks the assistant to go through several unnamed sites. If three criteria are strong and only the output shape is missing, pass at the low end and name the missing piece in the feedback."
+    }
+  },
+  "practiceTopic": {
+    "title": "Web search and Browse Web in chat",
+    "summary": "Switching web search on, steering the query and how deeply each page is read, telling search and Browse Web apart, and checking the receipts an answer leaves behind.",
+    "facts": [
+      "The web-search switch is the row named \"Web search\" in the composer's \"+\" menu (its button is labelled \"Message tools\"); it is on by default and its hint reads \"Let this turn look things up online\".",
+      "Turning that row off removes the web-search tool from the turn entirely; the row also called \"Web Search\" in the Apps panel does not switch searching off.",
+      "The assistant is instructed to write a short search-box query of two to six words and to search in the language most likely to give good results.",
+      "A search also chooses how much of each page comes back: \"basic\" is a 3-5 bullet summary of about 300 tokens for quick facts, \"detailed\" is the default (key points plus sections), and \"highly_detailed\" preserves the maximum content — 2000 tokens or more — for technical documents and full articles.",
+      "A web-search answer should carry links inside the text and end with a \"Sources\" section; the tool tells the assistant to cite only addresses that came back in the results and never to invent one.",
+      "An empty search is returned to the assistant as an error suggesting a shorter query or a retry in English, and ending with an instruction not to fabricate sources or article content.",
+      "Browse Web drives a real browser and shows a live thumbnail in the message (\"Opening the browser…\", then \"done\"); its result ends with a \"Pages read:\" list of the addresses actually visited, and one browse runs 8 steps by default and 20 at most inside a 90-second limit.",
+      "With the organisation setting \"No web search while a file is attached\" switched on, the Web search row is disabled and reads \"Web search disabled by organisation policy (files attached)\" while a file is attached, and the search tool then stays out of every later turn in that conversation."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "web-cited",
+      "existing": false,
+      "label": "Get a web-sourced answer in a chat",
+      "hint": "New chat, + menu, Web search on, ask a question that needs current information; then paste an address and write \"open this page and …\".",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/ai/direct/conversations",
+          "returns": "array of the caller's own direct conversations, newest first: id, title, model_tier, pinned, created_at, updated_at"
+        },
+        {
+          "method": "GET",
+          "path": "/ai/direct/conversations/:id",
+          "returns": "the conversation plus messages: []; an assistant message carries toolHistory: [ { name, args, status, resultPreview } ] for every tool that ran in that turn"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "web-turn",
+          "label": "A chat turn where web search or Browse Web ran",
+          "hint": "Check Web search is on in the + menu, then ask something that needs current information — or paste an address and ask for it to be opened.",
+          "rule": "for the newest conversations from GET /ai/direct/conversations, fetch each and pass when any assistant message has a toolHistory entry whose name is 'agent_search' or 'browse_web'"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+/*
+ * Security Scan module stylesheet.
+ *
+ * Tailwind v4, imported as THEME + UTILITIES only — deliberately NO preflight.
+ * The host injects this file as a global <link>, and the surrounding agent-hub
+ * page already ships Tailwind's preflight (base resets like `border-style:solid`
+ * on every element). Shipping preflight again here would reset the whole host
+ * page. The theme layer only re-declares Tailwind's standard design tokens
+ * (identical values), so it is idempotent against the host.
+ *
+ * All theming otherwise flows through the host's CSS variables
+ * (--bg-primary, --text-primary, --border-default, --accent-primary, …), which
+ * cascade into this module's DOM because it lives in the same document.
+ *
+ * Palette rule (STRICT): severity uses red / amber / blue / slate and accents
+ * use amber / slate / emerald only. NO purple / violet / indigo anywhere.
+ */
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+/* Scan the module source for the utility classes actually used. */
+@source "./";
+
+/* Popover entrance for the model-tier dropdown (host defines this globally; we
+   ship our own copy so the self-contained selector animates without the host). */
+@keyframes modelTierPanelIn {
+    from { opacity: 0; transform: translateY(4px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0)   scale(1); }
+}

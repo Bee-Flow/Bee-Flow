@@ -1,0 +1,36 @@
+{
+  "en": {
+    "compliance.mob_run_today": "run today {time}",
+    "compliance.mob_seg_overview": "Overview",
+    "compliance.mob_seg_frameworks": "Frameworks",
+    "compliance.mob_seg_registers": "Registers",
+    "compliance.mob_views_aria": "Compliance views",
+    "compliance.mob_back_home": "Back to overview",
+    "compliance.mob_needs_attention": "Needs attention",
+    "compliance.mob_attention_failed": "Could not load the open items.",
+    "compliance.mob_attention_empty": "Nothing needs attention right now.",
+    "compliance.mob_loading": "Loading…",
+    "compliance.mob_deadlines": "Deadlines",
+    "compliance.mob_deadlines_running": "{n} running",
+    "compliance.mob_deadlines_failed": "Could not load the deadlines.",
+    "compliance.mob_deadlines_empty": "No running deadlines.",
+    "compliance.mob_article": "Art. {ref}"
+  },
+  "nl": {
+    "compliance.mob_run_today": "run vandaag {time}",
+    "compliance.mob_seg_overview": "Overzicht",
+    "compliance.mob_seg_frameworks": "Kaders",
+    "compliance.mob_seg_registers": "Registers",
+    "compliance.mob_views_aria": "Compliance-weergaven",
+    "compliance.mob_back_home": "Terug naar overzicht",
+    "compliance.mob_needs_attention": "Vraagt aandacht",
+    "compliance.mob_attention_failed": "De openstaande punten konden niet worden geladen.",
+    "compliance.mob_attention_empty": "Er vraagt nu niets om aandacht.",
+    "compliance.mob_loading": "Laden…",
+    "compliance.mob_deadlines": "Termijnen",
+    "compliance.mob_deadlines_running": "{n} lopend",
+    "compliance.mob_deadlines_failed": "De termijnen konden niet worden geladen.",
+    "compliance.mob_deadlines_empty": "Geen lopende termijnen.",
+    "compliance.mob_article": "Art. {ref}"
+  }
+}

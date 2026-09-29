@@ -1,0 +1,439 @@
+{
+  "id": "meetings-capture",
+  "icon": "🎙️",
+  "estMinutes": 14,
+  "title": "Capture it properly the first time",
+  "desc": "Record, upload or import — the two fields that decide whether the note is usable, and how to find and question it afterwards.",
+  "gate": {
+    "feature": "meeting_notes"
+  },
+  "learningGoal": "After this lesson you can start a capture with the settings that make speaker names and language come out right, find a line again once the note is finished, ask questions of one meeting or several, and say what the Zero-knowledge tier does and does not cover for transcripts.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "four-doors",
+      "icon": "🚪",
+      "title": "Four ways in — and the ten seconds before you press record",
+      "bodyMd": "Most meeting notes die on the first try: the transcript comes back as **Speaker 1 / Speaker 2**, in the wrong language, and nobody opens it again. Two fields, set before you press record, decide which of those you get. This chapter is about those ten seconds.\n\nSandra at **Van Dijk Groep** gets a meeting into Bee Flow through one of four doors:\n\n- **Record audio** — live from your microphone.\n- **Upload a file** — the tile says `.mp3`, `.wav`, `.m4a` or `.mp4`; the dropzone adds `.webm` and the hint *up to ~2 hours*. The hard cap is 500 MB.\n- **Nextcloud Talk** — a recorded Talk call.\n- **Google Meet** — a recorded Meet call.\n\nThe last two tiles appear only once that connection exists. Every door ends in the same place: a transcript split by speaker, plus a summary with the action items, decisions and open questions."
+    },
+    {
+      "type": "tour",
+      "id": "where",
+      "target": "[data-tour=\"nav-studio\"]",
+      "navigateTo": "studio/meetingNotes",
+      "placement": "right",
+      "optional": true,
+      "timeoutMs": 7000,
+      "title": "Meeting Notes lives in Studio",
+      "body": "Meeting Notes is a Studio section — \"Transcripts, speakers and actions\". The left rail lists your meetings and carries the Record button. From anywhere in the app, Ctrl+Shift+M opens a small palette with quick capture actions — \"Start recording\", \"Upload audio file\" — and your five most recent meetings."
+    },
+    {
+      "type": "slide",
+      "id": "attendees",
+      "icon": "🧑‍🤝‍🧑",
+      "title": "The field that puts names on the lines",
+      "bodyMd": "The first field on every capture panel is **\"Who's in the meeting? (improves speaker names)\"**. Type the first names of the people in the room, comma separated: `Sandra, Bart, Ingrid`.\n\nThe engine can hear that two voices are different, but it cannot invent who they belong to. With the list filled in, naming becomes \"each voice is one of these six\". Leave it empty and only the voices the conversation itself identifies — someone introduces themselves, or is addressed by name and answers — get a name; the rest stay **Speaker 1 / Speaker 2** (**Spreker 1 / Spreker 2** in a Dutch note). That is the single most common reason people try meeting notes once and never again.\n\nUnderneath sits **\"Number of speakers (optional — Auto detects)\"**. Leave it blank and Bee Flow works the count out from the audio; set it (1 to 50) when you know for certain, such as a four-person stand-up."
+    },
+    {
+      "type": "sim",
+      "id": "sim-names",
+      "icon": "🔤",
+      "title": "Which move fixes which problem?",
+      "instruction": "Four moments around speaker names at Van Dijk Groep. Match each one to the move that handles it.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "names",
+            "left": "Three colleagues in the room, and Sandra wants their real names on the lines",
+            "right": "Fill in \"Who's in the meeting?\" before recording",
+            "note": "The attendee list is the strongest input to speaker naming: it turns open-ended guessing into picking from a known handful."
+          },
+          {
+            "id": "count",
+            "left": "A four-person stand-up, where she knows exactly how many voices there will be",
+            "right": "Set Number of speakers to 4",
+            "note": "Set the count when you are certain of it, and the engine has one less thing to guess."
+          },
+          {
+            "id": "auto",
+            "left": "A supplier call where two or three people may or may not dial in",
+            "right": "Leave Number of speakers blank",
+            "note": "Blank means Auto — Bee Flow works the count out from the audio itself."
+          },
+          {
+            "id": "fix",
+            "left": "The note is finished, and one speaker is carrying the wrong name",
+            "right": "Rename that speaker on the finished note",
+            "note": "The attendee list is a hint, not a contract: names stay editable afterwards, which is the next chapter."
+          }
+        ]
+      }
+    },
+    {
+      "type": "slide",
+      "id": "language",
+      "icon": "🌍",
+      "title": "The language hides behind Advanced",
+      "bodyMd": "Below the two speaker fields is a collapsed row that reads **Advanced** followed by the language that is currently selected — and by default that language is **Dutch**.\n\nOpen it and you get two settings:\n\n- **Language** — fourteen options, Dutch first, English second.\n- **Glossary (optional)** — the odd words your meetings are full of: `staalprijs, kwartaalstaffel, Van Dijk Groep`. Names and jargon come out spelled right instead of phonetically.\n\nThe collapsed row shows the active language on purpose, so you can check it without opening anything. There is no engine picker here: an administrator chooses one transcription engine for the whole workspace."
+    },
+    {
+      "type": "quiz",
+      "id": "q-language",
+      "icon": "❓",
+      "question": "Sandra records a call with an English-speaking supplier. The transcript comes back as nonsense that looks vaguely Dutch. What went wrong?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "The language was still on Dutch, its default, because she never opened Advanced to change it.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "She left \"Who's in the meeting?\" empty, so the engine had nothing to work out the language from.",
+          "correct": false,
+          "feedback": "Those two fields do different jobs. Attendees shape the speaker names; they have no effect on which language is transcribed."
+        },
+        {
+          "id": "c",
+          "label": "She picked the wrong transcription engine on the capture screen before she started recording.",
+          "correct": false,
+          "feedback": "There is no engine picker for users. An administrator selects one engine for the whole workspace, and every capture uses it."
+        },
+        {
+          "id": "d",
+          "label": "Only Dutch is supported, so an English meeting can never come back as a clean transcript.",
+          "correct": false,
+          "feedback": "The Language list holds fourteen options with Dutch first and English second — English is fully supported, it just has to be chosen."
+        }
+      ],
+      "explanation": "The default is Dutch everywhere: live recording, upload, Talk auto-transcribe and Meet auto-import. That is why the collapsed row spells out the active language — glance at it before you press the microphone."
+    },
+    {
+      "type": "sim",
+      "id": "sim-order",
+      "icon": "🧩",
+      "title": "The order that gets it right first time",
+      "instruction": "Bart is about to record the quarterly supplier review at Van Dijk Groep. Put his five moves in the order that produces a usable note.",
+      "sim": {
+        "kind": "order",
+        "items": [
+          {
+            "id": "attendees",
+            "label": "Type the people present in \"Who's in the meeting? (improves speaker names)\""
+          },
+          {
+            "id": "language",
+            "label": "Open Advanced and confirm the language (and add a glossary if the meeting is full of jargon)"
+          },
+          {
+            "id": "record",
+            "label": "Press the microphone button — the status reads \"Recording in progress\""
+          },
+          {
+            "id": "stop",
+            "label": "Press it again to stop; the status moves to \"Processing audio…\""
+          },
+          {
+            "id": "wait",
+            "label": "A row appears in the library reading \"transcribing…\" and finishes on its own"
+          }
+        ],
+        "solution": [
+          "attendees",
+          "language",
+          "record",
+          "stop",
+          "wait"
+        ],
+        "feedback": "Attendees, language and glossary are sent along with the audio at the moment you press stop, so they must be filled in before then — setting them first, while you are still thinking about the meeting, is the habit that never fails. Everything from the stop button onwards happens without you."
+      }
+    },
+    {
+      "type": "quiz",
+      "id": "q-close",
+      "icon": "❓",
+      "question": "Bart stops the recording, sees \"transcribing…\" in the library, and closes the browser tab to walk into his next meeting. What happens to the note?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "It keeps processing in the background and is waiting for him, finished, when he comes back.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "It is cancelled — transcription only runs while the page is open.",
+          "correct": false,
+          "feedback": "The detail pane says it plainly while it works: \"This runs in the background — you can close this and come back.\" The note refreshes itself every few seconds once you reopen it."
+        },
+        {
+          "id": "c",
+          "label": "It stays on \"transcribing…\" for ever, and the meeting has to be uploaded again.",
+          "correct": false,
+          "feedback": "No — and a run that genuinely gets stuck is flipped to failed after three hours, so the row stops spinning instead of lying to you."
+        },
+        {
+          "id": "d",
+          "label": "The audio is lost, because a recording only exists inside the browser.",
+          "correct": false,
+          "feedback": "That is true only while you are still recording. Once you press stop the audio is uploaded and the note exists from that moment on."
+        }
+      ],
+      "explanation": "Transcription happens on the server, not in your browser: the note is created the moment the audio arrives and finishes on its own. Closing the capture window mid-recording is safe too — Bee Flow asks \"Close while recording?\" and the recording keeps running in the background."
+    },
+    {
+      "type": "slide",
+      "id": "upcoming",
+      "icon": "📅",
+      "title": "Decide before the meeting, in Upcoming",
+      "bodyMd": "Sandra does not want to remember to press Record at all. Beside **Library** in the rail sits **Upcoming**: the meetings in her calendar for the next 48 hours that have a Nextcloud Talk conversation or a Google Meet link, each with its own record toggle — so the decision is per meeting, not once for everything.\n\nChips say where each one stands: **\"Will record\"**, **\"Recording\"**, **\"Note created\"** (click it to open the note), or **\"Decides at start\"** — Bee Flow counts who is in the call when it begins, because the invite does not say.\n\nAuto-record, auto-transcribe and auto-import are all **off** until someone switches them on. Only Talk and Meet appear here; no other meeting platform is wired in."
+    },
+    {
+      "type": "action",
+      "id": "do",
+      "icon": "🏗️",
+      "checkId": "meeting-captured",
+      "title": "Capture one real meeting",
+      "instruction": "Open Meeting Notes and press Record. Fill in who is present, check the language behind Advanced, then either record a short live item or upload an existing audio file. Wait for the row to stop reading \"transcribing…\" — then come back here and we will check it landed.",
+      "launch": {
+        "navigateTo": "studio/meetingNotes",
+        "label": "Open Meeting Notes"
+      }
+    },
+    {
+      "type": "slide",
+      "id": "finding",
+      "icon": "🔎",
+      "title": "Two searches, and they look for different things",
+      "bodyMd": "A month later Sandra remembers a sentence, not a title. There are two search fields, and picking the wrong one is why people say \"it is not in there\".\n\n- **In the library rail**: **\"Search title, tag or text…\"**. It looks across your list of meetings — titles, file names, tags and the short transcript snippet a row carries. It is how you find *which* meeting, not every word ever spoken.\n- **Inside a note, on the Transcript tab**: **\"Search transcript…\"**. This one walks that meeting's own turns; nothing matching gives you **\"No matching segments.\"**\n\nOn the Transcript tab every timestamp is a seek button: click it and the player jumps to that moment, so you can hear the sentence rather than trust the text."
+    },
+    {
+      "type": "sim",
+      "id": "sim-line",
+      "icon": "🗂️",
+      "title": "\"What is this line?\"",
+      "instruction": "Every transcript line has its own menu, called \"What is this line?\". Five things Sandra spots while reading the supplier review — match each to the entry she picks.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "action",
+            "left": "\"Bart sends the revised price list before Friday\" — somebody has to do it",
+            "right": "Action",
+            "note": "The line joins the note's action items, where it gets an owner, a due date and a done-checkbox."
+          },
+          {
+            "id": "decision",
+            "left": "\"We stay with Peeters for another quarter\" — settled, nobody needs to act",
+            "right": "Decision",
+            "note": "Decisions are the second thing the note tracks: the outcome to look up later, not a task."
+          },
+          {
+            "id": "kb",
+            "left": "\"The quarterly tier starts at 40 tonnes\" — a fact colleagues will need next quarter",
+            "right": "To a knowledge base",
+            "note": "Filed lines are listed back under \"Filed as knowledge\" on the Transcript tab, so you can see what left the note."
+          },
+          {
+            "id": "row",
+            "left": "\"Peeters, steel, 3% discount\" — one more entry in a list she keeps",
+            "right": "Row in a table",
+            "note": "The line becomes a row in a datatable, which is how a recurring meeting turns into a tidy list instead of ten transcripts."
+          },
+          {
+            "id": "quote",
+            "left": "She just wants the sentence, word for word, to paste into an email",
+            "right": "Copy quote",
+            "note": "Nothing is filed and nothing changes on the note — it only puts the line on your clipboard."
+          }
+        ]
+      }
+    },
+    {
+      "type": "slide",
+      "id": "insights",
+      "icon": "📊",
+      "title": "The Insights tab, and why it can look empty",
+      "bodyMd": "A finished note has four tabs: **Summary**, **Transcript**, **Insights** and **Used by**. The Summary tab already carries three chips — **Balance**, **Interactivity** and **Silence** — a one-glance read on how the conversation ran.\n\n**Insights** goes deeper, with sub-tabs **Overview**, **People**, **Flow**, **Topics** and **Follow-up**.\n\nTwo honest messages you may meet there:\n\n- **\"Not enough data for insights on this meeting.\"** — a two-minute clip has nothing to measure.\n- **\"Per-person statistics are disabled by your organization.\"** — an administrator turned **\"Per-person meeting insights\"** off, and then members see meeting-level metrics only. It is on unless someone changes it, and works councils often ask for it off.\n\nIt is a reading tab: nothing here edits the note."
+    },
+    {
+      "type": "quiz",
+      "id": "q-ask",
+      "icon": "❓",
+      "question": "Month end. Sandra wants one answer out of the four most recent sales meetings: which objections came up most often? What does she use?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "\"AI report\" in the library rail: click the four meetings, then \"Ask AI\" and type the question — the report cites the meetings it used.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Open each note in turn and use its \"Ask AI\" toggle, then stitch the four answers together herself.",
+          "correct": false,
+          "feedback": "That works, but it is the long way round. \"Ask AI\" in the note header is scoped to that one transcript — for a question across meetings the rail's \"AI report\" reads them together and answers once."
+        },
+        {
+          "id": "c",
+          "label": "Type the question into the library's \"Search title, tag or text…\" field.",
+          "correct": false,
+          "feedback": "That field filters your list of meetings by title, file name, tag and snippet. It matches words, it does not answer questions."
+        },
+        {
+          "id": "d",
+          "label": "Select all her sales meetings — however many there are — and ask across the lot in one go.",
+          "correct": false,
+          "feedback": "A report takes at most ten notes; the counter reads \"{selected}/10 selected\" as you click. Notes that are still transcribing or failed cannot be picked at all — they are greyed with \"This meeting is not ready yet\"."
+        }
+      ],
+      "explanation": "Two different tools with almost the same name: \"Ask AI\" in a note's header questions that transcript only, while \"AI report\" in the rail puts up to ten selected meetings in front of the AI at once and gives back a report that cites which notes it drew on."
+    },
+    {
+      "type": "slide",
+      "id": "failures",
+      "icon": "🩹",
+      "title": "When it does not work",
+      "bodyMd": "A capture can fail after it was accepted, so the reason is written onto the note itself rather than flashing past in a pop-up.\n\n- In the library, the row's icon and meta line turn red and the reason takes the place of the status phrase.\n- Open the note and you get **\"Transcription failed\"** plus, when the recording is still there, **\"Retry transcription\"**.\n- If the audio is gone it says *\"The audio is no longer available, so this note cannot be retried\"*, and **Re-transcribe** is greyed out.\n\nOne thing that looks like a failure but is not: a recording too long for the local engine — the one on your own server — goes to a cloud engine instead, with a dismissible notice naming it.\n\nA failed note has no summary to read: the reason is what it carries instead, which is why such a row reads like an error message rather than a meeting."
+    },
+    {
+      "type": "slide",
+      "id": "encrypted",
+      "icon": "🔐",
+      "title": "Who can read the recording afterwards",
+      "bodyMd": "A transcript is the most quotable thing in the workspace, so it is worth knowing where it is kept.\n\nWhen an organisation turns content encryption on, a meeting note is written into the database as an encrypted envelope: the **transcript**, the **summary**, the **segments**, the **speakers**, the **attendees** and the chapters. Deliberately left as readable text are the **title** and the **file name** — they label the rows in the library — and the **action items**, **decisions** and **questions**, because those are merged into the note as you file them.\n\nThe part people get wrong is the key. A meeting note is shareable, and the summary and insight jobs read it later with nobody signed in — so the transcript key belongs to the **organisation**, not to you. Chat messages on the strictest tier are keyed to you alone. Transcripts never are."
+    },
+    {
+      "type": "sim",
+      "id": "sim-crypto",
+      "icon": "🔐",
+      "title": "Protected, readable, or don't record it",
+      "instruction": "Van Dijk Groep runs on the strictest tier, Zero-knowledge. Match each part of a meeting note to what that actually means for it.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "body",
+            "left": "The spoken transcript, the summary, the segments and the speaker list",
+            "right": "Encrypted in the database",
+            "note": "These are the content of the note, and content is what an encryption tier covers."
+          },
+          {
+            "id": "labels",
+            "left": "The note's title and the name of the uploaded audio file",
+            "right": "Readable text, so the library can list it",
+            "note": "They are the label on the row: encrypting them would leave you scrolling a list of blanks."
+          },
+          {
+            "id": "items",
+            "left": "The action items and decisions Sandra files out of the transcript",
+            "right": "Readable text, because they are merged as you file",
+            "note": "Each one is merged into the note the moment you file it, which cannot be done through an envelope."
+          },
+          {
+            "id": "key",
+            "left": "The question \"could whoever runs our server read tonight's transcript?\"",
+            "right": "Yes — the key belongs to the organisation",
+            "note": "Transcripts are keyed to the organisation because they are shareable and the summary and insight jobs read them with no session."
+          },
+          {
+            "id": "dont",
+            "left": "The works-council meeting that genuinely nobody outside the room may read",
+            "right": "Don't record it — write it up by hand",
+            "note": "That is the honest answer, and the one Van Dijk Groep's HR team wrote down: no tier makes a recorded transcript invisible to the operator."
+          }
+        ]
+      }
+    },
+    {
+      "type": "quiz",
+      "id": "q-zk",
+      "icon": "❓",
+      "question": "Van Dijk Groep runs on the strictest encryption tier, Zero-knowledge. Before recording a works-council meeting, someone asks: is this transcript then unreadable to whoever runs the server?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "No. Transcripts are encrypted with a key held by the organisation rather than by you, so on Zero-knowledge a meeting transcript is still readable by the operator of the server.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Yes — Zero-knowledge covers everything in the workspace, meeting notes included.",
+          "correct": false,
+          "feedback": "It covers chat messages that way, and that is the point of the tier. Transcripts are the documented exception: they are shareable and the summary and insight jobs read them with nobody signed in, so their key belongs to the organisation."
+        },
+        {
+          "id": "c",
+          "label": "Yes, as long as the note's visibility stays Personal and it is never shared with a group.",
+          "correct": false,
+          "feedback": "Visibility decides which colleagues may open the note. It does not change which key the transcript was encrypted with, so it does not change what the server operator can reach."
+        },
+        {
+          "id": "d",
+          "label": "No, because meeting notes are stored in plain text on every tier and are never encrypted at all.",
+          "correct": false,
+          "feedback": "Too pessimistic. The transcript, summary, segments, speakers and attendees are encrypted; the title, file name, action items, decisions and questions are the parts that stay readable as text."
+        }
+      ],
+      "explanation": "Encryption tiers are an administrator's decision, but this consequence is yours to know before you press record: the strongest tier does not make a transcript invisible to the people running the server. For a genuinely sensitive conversation the honest options are not to record it, or to agree who may open the note — not to rely on the tier."
+    },
+    {
+      "type": "slide",
+      "id": "recap",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "- **Start a capture through any of the four doors** — record, upload, Talk or Meet — and know they all end in the same note.\n- **Set the two fields that decide quality before you press the microphone**: who is in the meeting, and the language behind Advanced (Dutch unless you change it).\n- **Read the status honestly**: \"transcribing…\" keeps running after you close the tab, a red row carries its own reason, and a retry is offered whenever the audio survived.\n- **Get back into a finished note**: the rail search finds which meeting, \"Search transcript…\" finds the line, \"What is this line?\" files it, Insights reads the conversation, and \"Ask AI\" or \"AI report\" answers questions about one meeting or up to ten.\n- **Say the caveat out loud**: the transcript, summary, speakers and attendees are stored encrypted (titles, file names, action items and decisions stay readable text), but the key belongs to the organisation — so even on Zero-knowledge a transcript stays readable by whoever runs the server. If that is not acceptable for a meeting, do not record it.\n\nNext chapter: repairing a note that already exists — right names, right shape."
+    }
+  ],
+  "practiceTopic": {
+    "title": "Capturing a meeting",
+    "summary": "The four capture sources in Meeting Notes, the settings that decide whether the note has correct names and language, and how a finished note is searched, read and questioned.",
+    "facts": [
+      "The capture screen is called \"New transcription\" and offers four tiles: Record audio, Upload a file, Nextcloud Talk and Google Meet; the last two only appear when that connection exists.",
+      "\"Who's in the meeting? (improves speaker names)\" is the strongest input to speaker naming; leave it empty and unnamed voices stay Speaker 1 / Speaker 2 (Spreker 1 / Spreker 2 in a Dutch note). \"Number of speakers\" accepts 1 to 50 and means Auto when blank.",
+      "Language and Glossary sit behind the collapsed Advanced row, which shows the active language; the default is Dutch, fourteen languages are offered with Dutch first, and there is no engine picker for users — an administrator chooses one transcription engine for the whole workspace.",
+      "Transcription runs in the background: the note exists as soon as the audio is uploaded, the library row reads \"transcribing…\", closing the tab does not stop it, and a failed note shows its reason on the row and offers \"Retry transcription\" only while the recording is still available.",
+      "The rail's \"Search title, tag or text…\" finds which meeting; the Transcript tab's \"Search transcript…\" finds the line and says \"No matching segments.\" when nothing matches; each line's \"What is this line?\" menu offers Action, Decision, To a knowledge base, Row in a table and Copy quote.",
+      "A finished note has the tabs Summary, Transcript, Insights and Used by; Insights has the sub-tabs Overview, People, Flow, Topics and Follow-up, and reads \"Per-person statistics are disabled by your organization.\" when an administrator switched that off.",
+      "\"Ask AI\" in a note header questions that one transcript; \"AI report\" in the library rail asks across up to 10 selected meetings and cites the notes it used.",
+      "A meeting note's transcript, summary, segments, speakers and attendees are stored encrypted, while its title, file name, action items, decisions and questions stay readable text; the transcript key is held by the organisation, so even on Zero-knowledge the server operator can read one."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "meeting-captured",
+      "existing": false,
+      "label": "Capture a meeting note",
+      "hint": "In Studio → Meeting Notes, press Record and either record live or upload an audio file; wait until the row no longer reads \"transcribing…\".",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/transcriptions",
+          "returns": "{ transcriptions: [ { id, title, status: 'processing'|'completed'|'failed', isOwner, ownerId, summarySnippet, createdAt } ] } — default limit 50"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "owned",
+          "label": "A meeting note of your own exists",
+          "hint": "Press Record in Meeting Notes and record or upload some audio.",
+          "rule": "transcriptions.some(t => t.isOwner === true)",
+          "endpoint": "/api/transcriptions",
+          "expect": {
+            "kind": "rows",
+            "field": "transcriptions"
+          }
+        },
+        {
+          "id": "completed",
+          "label": "It finished transcribing",
+          "hint": "Wait until the row stops reading \"transcribing…\"; if it turned red, use Retry transcription.",
+          "rule": "transcriptions.some(t => t.isOwner === true && t.status === 'completed')"
+        }
+      ]
+    }
+  ]
+}

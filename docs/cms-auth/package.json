@@ -1,0 +1,17 @@
+{
+  "name": "bee-flow-cms-auth",
+  "version": "1.0.0",
+  "private": true,
+  "description": "OAuth relay for the Bee Flow docs CMS. Cloudflare Worker.",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail"
+  },
+  "devDependencies": {
+    "wrangler": "^3.95.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

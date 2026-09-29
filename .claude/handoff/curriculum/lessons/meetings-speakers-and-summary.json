@@ -1,0 +1,377 @@
+{
+  "id": "meetings-speakers-and-summary",
+  "icon": "🧑‍🤝‍🧑",
+  "estMinutes": 12,
+  "title": "Right names, right shape",
+  "desc": "Fix speakers, read the insights and transcript tools, then shape the summary.",
+  "gate": {
+    "feature": "meeting_notes"
+  },
+  "learningGoal": "After this lesson you can repair speaker names on a finished note, work the Transcript and Insights tabs beside it, and regenerate the summary with the template you want — built-in or your own.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "intro",
+      "icon": "🧭",
+      "title": "\"Speaker 2 asked about the price tiers\"",
+      "bodyMd": "Bart at **Van Dijk Groep** recorded the quarterly price review with Peeters, his contact at their steel supplier. The transcription is finished, and it reads like this:\n\n> **Speaker 1:** and what about the tiers from October?\n> **Speaker 2:** we can hold them until the contract ends.\n\nThe summary underneath is accurate but shapeless: a heading, some bullets, no sign of the two things purchasing actually needs — the agreed price tiers and the contract dates.\n\nTwo problems, both fixable in about two minutes. The order matters: **names first, summary second**, because the summary is written out of the transcript — so the transcript has to be right before it is."
+    },
+    {
+      "type": "slide",
+      "id": "diarize",
+      "icon": "🎚️",
+      "title": "Splitting voices is not the same as naming them",
+      "bodyMd": "When a recording is processed, Bee Flow performs **diarization**: it splits the audio by *who* is speaking. That gives you anonymous labels — Speaker 1, Speaker 2, Speaker 3 — in the language of the meeting, so a Dutch recording reads \"Spreker 1\". Nothing in a sound wave says \"this is Bart\".\n\nNaming is a **separate step**, with only three possible sources of truth:\n\n- the attendee list you type before recording, under **\"Who's in the meeting? (improves speaker names)\"**\n- names that are actually spoken out loud during the conversation\n- a **voice profile**, if your workspace runs a transcription engine that supports one (last card of this lesson)\n\nGive it none of the three and you get numbers. That is not a failure of the transcription — it is a missing roster."
+    },
+    {
+      "type": "quiz",
+      "id": "q-roster",
+      "icon": "❓",
+      "question": "Ingrid recorded last week's planning meeting on the same laptop, with the same microphone, in the same room as Bart's review. Her note came out as \"Speaker 1\" and \"Speaker 2\" from top to bottom. What is the most likely difference?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Nobody was named before or during her meeting — no attendee list under \"Who's in the meeting?\", no names said out loud — so there was nothing to map the voices onto.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "The microphone caught her meeting too quietly for the names to come through.",
+          "correct": false,
+          "feedback": "Audio quality decides how accurately the words are transcribed, not who the speakers are. A pristine recording still comes out as Speaker 1 and Speaker 2 when nothing says whose voice that is."
+        },
+        {
+          "id": "c",
+          "label": "She summarised her note with a different template.",
+          "correct": false,
+          "feedback": "A template decides the shape of the summary — which sections, in which order. It never touches the speaker labels, which come from the transcript underneath."
+        },
+        {
+          "id": "d",
+          "label": "Ingrid is not the owner of that note, and speaker names are only filled in for the owner.",
+          "correct": false,
+          "feedback": "Ownership decides who may open \"Edit speakers\" and correct the names. It has no say in whether there are names at all — an unnamed speaker reads as \"Speaker 2\" for everyone, the owner included."
+        }
+      ],
+      "explanation": "Diarization always knows there were two voices; it never knows whose. Names arrive from the roster you type, from names spoken aloud, or from a voice profile — and when all three are missing, the note is still repairable afterwards. That is the next card."
+    },
+    {
+      "type": "slide",
+      "id": "editor",
+      "icon": "✏️",
+      "title": "Edit speakers: rename, merge, detect",
+      "bodyMd": "Open the note, click the **⋯ \"More actions\"** menu in the header and choose **\"Edit speakers\"**. Only the owner of a note sees it.\n\nThree repairs, all in one modal:\n\n- **Rename** — type over the name in a row. Bart types `Bart`, `Ingrid`, `Peeters`.\n- **\"Merge with…\"** — collapse two rows into one person. The diarizer split Ingrid in two when she moved away from the microphone; merging repairs that.\n- **\"Auto-detect names\"** — type who was in the meeting, click **\"Detect\"**, and the transcript is mapped onto those names. It works from the stored text, so no audio is needed — which is what rescues a note that is nothing but Speaker 1 and Speaker 2."
+    },
+    {
+      "type": "slide",
+      "id": "saving",
+      "icon": "💾",
+      "title": "What \"Save changes\" touches",
+      "bodyMd": "Two speakers cannot end up with the same name by accident. Saving is refused, and the two rows that would collide are named for you: either give them different names, or merge them on purpose.\n\n**\"Save changes\"** then rewrites the transcript, the speaker list and the exports — immediately, everywhere the note is read.\n\nA name you typed yourself is also remembered as *your* correction. A later auto-detection will not argue with it, so you never have to fix the same person twice."
+    },
+    {
+      "type": "quiz",
+      "id": "q-regen",
+      "icon": "❓",
+      "question": "Bart saved the names. The Transcript tab now says \"Bart\" and \"Peeters\" — but the summary still reads \"Speaker 2 asked about the price tiers\". Why?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "The summary is text that was written earlier, from the old labels. Renaming does not rewrite it — you regenerate the summary to get the new names into it.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "The save silently failed, so nothing was really renamed.",
+          "correct": false,
+          "feedback": "It did work: saving rewrites the segments, the speaker list and the exports straight away, which is why the Transcript tab is already correct. Only the older summary text lags behind."
+        },
+        {
+          "id": "c",
+          "label": "Summaries only refresh once the note is shared with the organisation.",
+          "correct": false,
+          "feedback": "Visibility decides who may read a note, never what its summary says. A personal note and a published note behave identically here."
+        },
+        {
+          "id": "d",
+          "label": "You have to re-transcribe the recording to get the names into the summary.",
+          "correct": false,
+          "feedback": "\"Re-transcribe\" redoes speech-to-text from the audio — slow, and impossible once the audio is gone. Regenerating reuses the stored transcript, keeps your corrected names, and rewrites the summary plus the action items, decisions and questions drawn from it."
+        }
+      ],
+      "explanation": "Right after you save, the note offers it for you: **\"Speakers updated. Regenerate the summary with the new names?\"** with a **\"Regenerate\"** button. Accept it and the summary is rewritten from the transcript as it now reads — in the **General meeting** style, which is what that quick button always uses. Wanted a different shape? Pick it from the Regenerate menu instead."
+    },
+    {
+      "type": "slide",
+      "id": "transcript-tools",
+      "icon": "🔎",
+      "title": "The transcript is a workbench, not an archive",
+      "bodyMd": "Beside the Summary sits the **Transcript** tab, and it is meant to be worked on.\n\n- **\"Search transcript…\"** takes you to the line where the tiers were actually named; nothing matching reads *\"No matching segments.\"*\n- Turns are coloured per speaker, and a timestamp seeks the player — so \"where did he say that?\" is one click, not a scrub.\n- Every line carries a menu, **\"What is this line?\"**: **\"Action\"**, **\"Decision\"**, **\"To a knowledge base\"**, **\"Row in a table\"**, **\"Copy quote\"**. A line you already filed reads **\"Already an action\"** or **\"Already a decision\"**, so the same sentence cannot quietly become two.\n\nBeside the turns, **\"Pulled from this transcript\"** keeps the score: counters for **Action items / Decisions / Open questions**, a **\"Filed as knowledge\"** list (empty: *\"No line from this transcript has been filed yet.\"*) and **\"Speakers\"**.\n\nThat last panel is where a naming problem resurfaces: *\"One speaker was not recognised — was {name} in this meeting?\"*, with a **\"Check the speakers\"** button leading straight back into the editor you used two cards ago."
+    },
+    {
+      "type": "sim",
+      "id": "match-transcript",
+      "icon": "🧰",
+      "title": "Which control for which job?",
+      "instruction": "Bart is going through the supplier review line by line. Match each thing he wants to do to the control that does it.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "find",
+            "left": "He remembers a number being named, but not where in the hour",
+            "right": "\"Search transcript…\"",
+            "note": "It filters the turns; when nothing matches you get \"No matching segments.\" rather than an empty screen."
+          },
+          {
+            "id": "commit",
+            "left": "A line is really a commitment Peeters made out loud",
+            "right": "\"What is this line?\" → \"Action\"",
+            "note": "The per-line menu promotes that sentence into the action list. If it is already there the entry reads \"Already an action\"."
+          },
+          {
+            "id": "row",
+            "left": "A price tier from the call belongs in a table the team keeps",
+            "right": "\"What is this line?\" → \"Row in a table\"",
+            "note": "Same menu, different destination — the line leaves the note as a row instead of a task."
+          },
+          {
+            "id": "quote",
+            "left": "He wants the supplier's exact wording to paste into an e-mail",
+            "right": "\"Copy quote\"",
+            "note": "Copying the one line, not the whole note — \"Copy transcript\" in the ⋯ menu is for the entire thing."
+          },
+          {
+            "id": "gap",
+            "left": "The Speakers panel asks whether a colleague was in this meeting",
+            "right": "\"Check the speakers\"",
+            "note": "That hint means a voice was never recognised. The button reopens \"Edit speakers\", where you name or merge it."
+          }
+        ]
+      }
+    },
+    {
+      "type": "slide",
+      "id": "insights",
+      "icon": "📊",
+      "title": "Insights: the meeting behind the words",
+      "bodyMd": "At the top of the **Summary** tab sit three chips — **\"Balance\"**, **\"Interactivity\"** and **\"Silence\"** — a one-glance read on how the conversation ran. The fuller view is its own tab: **Insights**, with sub-tabs **\"Overview\" / \"People\" / \"Flow\" / \"Topics\" / \"Follow-up\"**.\n\nTwo things to know before you quote a number from it:\n\n- **It rests on the speaker rows you just repaired.** One person the diarizer split into two rows reads as two half-present attendees until you merge them. Names first, insights after — the same order as the summary.\n- **A thin recording says so.** Too little material and the tab reads *\"Not enough data for insights on this meeting.\"* That is an honest empty state, not a failure.\n\nAnd the per-person part is a policy decision, not a personal one: an organisation admin has **\"Per-person meeting insights\"** under **Settings → Organisation → \"Talk Meeting Notes\"**, on by default. Switched off, the tab reads *\"Per-person statistics are disabled by your organization.\"* and everyone in the organisation sees meeting-level metrics only."
+    },
+    {
+      "type": "quiz",
+      "id": "q-insights",
+      "question": "Mireille opens the Insights tab on her interview note and reads \"Per-person statistics are disabled by your organization.\" Nothing is broken. What happened, and what does she still get?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "An organisation admin switched \"Per-person meeting insights\" off under Settings → Organisation → \"Talk Meeting Notes\" — it is on by default — so the note shows meeting-level metrics only.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Her note is still Personal; per-person statistics appear once a note is shared with the organisation.",
+          "correct": false,
+          "feedback": "Visibility decides who may read a note, never which statistics are computed for it. A personal interview note and a published sales note are treated identically here."
+        },
+        {
+          "id": "c",
+          "label": "Her speakers are still numbered, so the per-person view has nothing to put names on.",
+          "correct": false,
+          "feedback": "Unnamed speakers still get their own rows — they would simply read \"Speaker 1\" and \"Speaker 2\". A naming gap announces itself elsewhere: in the transcript's Speakers panel, as \"One speaker was not recognised — was {name} in this meeting?\""
+        },
+        {
+          "id": "d",
+          "label": "The interview was too short to compute anything per person.",
+          "correct": false,
+          "feedback": "Too little material gives a different sentence: \"Not enough data for insights on this meeting.\" The message she is reading names the organisation, which is the giveaway that it is a setting rather than a shortage of audio."
+        }
+      ],
+      "explanation": "Two empty states, two different causes. \"Not enough data for insights on this meeting.\" is about the recording; \"Per-person statistics are disabled by your organization.\" is an admin switch — the same one the works council asked for at Mireille's employer. Meeting-level metrics survive it, which is why the Balance, Interactivity and Silence chips are worth knowing by name."
+    },
+    {
+      "type": "slide",
+      "id": "builtins",
+      "icon": "🧱",
+      "title": "Five shapes, one click away",
+      "bodyMd": "On the **Summary** tab, **\"Regenerate\"** carries a small caret: click it for a menu instead of an immediate rerun. It lists the five built-in styles and ends in **\"New template…\"**; saved templates add **\"My templates\"** and **\"Organization\"** sections.\n\n- **General meeting** — summary, key topics, decisions, action items, insights\n- **Stand-up** — what was done, in progress, blockers, next steps\n- **Sales call** — customer needs, discussion points, objections, next steps, deal assessment\n- **Interview** — strengths, concerns, key responses, fit assessment, follow-up\n- **Retrospective** — what went well, what could be improved, ideas, action items\n\nEach one skips the sections it has nothing for. A line under **Summary** then names the shape used — **\"Template: Sales call\"**, or with the version for one of your own: **\"Template: Leveranciersreview (v2)\"**."
+    },
+    {
+      "type": "slide",
+      "id": "own-template",
+      "icon": "🧾",
+      "title": "When none of the five fits",
+      "bodyMd": "Choose **\"New template…\"** and you write the instructions yourself, in **\"New summary template\"**:\n\n- **Name** — for example `Leveranciersreview`\n- **\"Start from a built-in (optional)\"** — begin from Blank, or from one of the five\n- **Prompt** — the summary you want, described in words: which sections, in which order, what to focus on, which language\n- **\"Visible to\"** — anyone can save **\"Just me\"**; **\"Whole organization\"** and **\"Specific group\"** appear only if you are an organisation admin\n- **\"Use as the default for new meetings\"** — optional\n\nChoose that scope deliberately. Reopen the template later and the buttons are greyed out, with **\"Scope can't be changed after creation.\"** underneath: a *Just me* template cannot be promoted to the whole organisation — you would create it again at the wider scope. After **\"Save template\"** it sits under **\"My templates\"**."
+    },
+    {
+      "type": "sim",
+      "id": "match-templates",
+      "icon": "🧩",
+      "title": "Which shape for which meeting?",
+      "instruction": "Van Dijk Groep records five kinds of meeting. Match each one to the summary style you would reach for.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "sync",
+            "left": "The Monday ten-minute team sync: who finished what, who is stuck",
+            "right": "Stand-up",
+            "note": "Done / in progress / blockers per person is exactly this template's shape."
+          },
+          {
+            "id": "prospect",
+            "left": "A first call with a prospect who keeps coming back to the price",
+            "right": "Sales call",
+            "note": "It has a dedicated section for objections and concerns, plus next steps and a deal assessment."
+          },
+          {
+            "id": "candidate",
+            "left": "Mireille speaks with a candidate for the planning role",
+            "right": "Interview",
+            "note": "Strengths, concerns, key responses and a fit assessment — and keep that note personal or shared with the hiring group only."
+          },
+          {
+            "id": "lookback",
+            "left": "The project team looks back on a delivery that ran two weeks late",
+            "right": "Retrospective",
+            "note": "What went well, what could be improved, ideas, and improvement actions with owners."
+          },
+          {
+            "id": "supplier",
+            "left": "The quarterly supplier review, which must always list the agreed price tiers and the contract end date",
+            "right": "A template you write yourself",
+            "note": "No built-in knows about price tiers. This is the case for a Prompt of your own, saved at the scope your colleagues need."
+          }
+        ]
+      }
+    },
+    {
+      "type": "exercise",
+      "id": "ex-prompt",
+      "icon": "🎯",
+      "exerciseId": "ex-meetings-speakers-and-summary-prompt",
+      "title": "Your turn: write the Prompt",
+      "instruction": "Write what Bart would paste into the **Prompt** field of a template called `Leveranciersreview`. Three to six lines is plenty.\n\nA strong answer names the sections you want, in order — not \"a good summary\" — says what to do with a section the meeting never touched, asks for a language, and includes at least one thing only a supplier review has: agreed price tiers, contract or notice dates, quality complaints, who follows up. Write it as standing instructions to the assistant, not as the summary of one particular meeting.",
+      "placeholder": "e.g. Write a supplier review summary in Dutch. Use these sections: Afspraken over prijzen (include every tier and the date it starts), Contract & opzegtermijn, Klachten en kwaliteit, Openstaande acties met eigenaar en datum. Skip a section if the meeting says nothing about it. Keep it factual, no sales language.",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "quiz",
+      "id": "q-kept",
+      "icon": "❓",
+      "question": "Before regenerating, Bart ticked one action off, retyped the wording of another, and sent a third to the table Inkoopacties. What happens to those three when he regenerates with his new template?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "All three survive. A regeneration replaces only the actions the assistant produced that nobody has touched; anything you ticked, edited, wrote or gave a destination is kept.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "The whole action list is replaced by the freshly extracted one.",
+          "correct": false,
+          "feedback": "That would delete work with no undo, which is precisely why it does not happen. \"Regenerate\" promises to write the summary again, not to throw away your ticks and your own actions."
+        },
+        {
+          "id": "c",
+          "label": "Nothing in the action list changes at all — only the summary text is rewritten.",
+          "correct": false,
+          "feedback": "Regenerating also re-extracts action items, decisions, open questions and the chapter timeline. Untouched items from the assistant are genuinely refreshed by the new pass."
+        },
+        {
+          "id": "d",
+          "label": "The tick and the edit survive, but the action loses its destination chip.",
+          "correct": false,
+          "feedback": "An action that was sent somewhere survives as a whole, chip included — the note keeps the reference to where it went, so you can still see that the row exists."
+        }
+      ],
+      "explanation": "If the new pass no longer recognises an action you had ticked or edited, it is not deleted: it stays on the card with a **\"kept\"** badge, meaning \"the latest regeneration did not find this any more, so we left it alone\". Nothing disappears silently."
+    },
+    {
+      "type": "action",
+      "id": "do-it",
+      "icon": "🏗️",
+      "checkId": "template-exists",
+      "title": "Do it on a note of your own",
+      "instruction": "Open one of your own finished notes and use **⋯ \"More actions\" → \"Edit speakers\"** to correct at least one name, then **\"Save changes\"**. On the **Summary** tab, open the **\"Regenerate\"** menu, choose **\"New template…\"**, give it a name and a prompt, and save it. Regenerate the note with your own template — we check that a template you created exists.",
+      "launch": {
+        "navigateTo": "studio/meetingNotes",
+        "label": "Open Meeting Notes"
+      }
+    },
+    {
+      "type": "slide",
+      "id": "voice",
+      "icon": "🔊",
+      "title": "Your own name, without typing it",
+      "bodyMd": "There is a way to stop correcting your own name: **Settings → Preferences → \"Voice profile\"**. You record roughly 25 seconds of your voice once, and from then on your name lands on your own turns in meetings recorded by anyone in your organisation.\n\nThe rules around it are deliberately strict, because a voiceprint is biometric data:\n\n- **only you** can record or re-record it, and nobody can read it back. The one exception is deletion: an organisation admin can revoke a colleague's profile, for someone who has left or asks for erasure\n- you tick a consent box before the recording starts\n- the section appears only when your workspace's transcription engine supports voiceprints\n\nA speaker settled by a voice profile is locked, exactly like a name you typed by hand."
+    },
+    {
+      "type": "slide",
+      "id": "recap",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "- **Repair the people first.** ⋯ \"More actions\" → \"Edit speakers\": rename, merge a speaker the diarizer split in two, or let \"Auto-detect names\" map an attendee list onto the transcript. Your typed corrections stick.\n- **Work the Transcript tab.** Search it, seek the player from a timestamp, and use \"What is this line?\" to turn one sentence into an action, a decision, a knowledge item or a table row. \"Pulled from this transcript\" shows what you already took out, and \"Check the speakers\" catches a voice nobody recognised.\n- **Read Insights with the speakers fixed.** Balance, Interactivity and Silence on the Summary tab; Overview, People, Flow, Topics and Follow-up on the Insights tab — unless your organisation switched per-person statistics off, or the recording was too thin to say anything.\n- **Then repair the shape.** Accept \"Regenerate the summary with the new names?\" — that quick button always writes in the General meeting style — or open the Regenerate menu and pick: five built-ins, your own templates, your organisation's. Write your own when none fits, with a \"Visible to\" scope you choose once and cannot change later. Regenerating is safe: your ticks, your edits and anything you already sent onward are kept.\n\nNext chapter: getting those action items out of the note and into someone's actual work."
+    }
+  ],
+  "rubrics": {
+    "ex-meetings-speakers-and-summary-prompt": {
+      "title": "A usable template prompt",
+      "task": "Write the Prompt field for a custom summary template called Leveranciersreview, used for Van Dijk Groep's quarterly supplier reviews. It should read as instructions to the assistant about the shape of every future supplier-review summary.",
+      "criteria": [
+        "Names concrete sections in a deliberate order, rather than asking vaguely for a short or professional summary",
+        "Contains at least one element specific to a supplier review: agreed price tiers, contract or notice dates, complaints and quality, or follow-up with an owner",
+        "Says something about handling sections with no content (skip them) or about the output language or tone",
+        "Is phrased as standing instructions for any future meeting of this kind, not as the summary of one specific meeting"
+      ],
+      "passScore": 70,
+      "guidance": "Do not pass a text that is itself a meeting summary (mentions what was said or decided on a given day), nor a one-line wish such as 'make it short and clear'. Do not pass a straight copy of a built-in shape with nothing supplier-specific added. Dutch or English is equally fine; length is not a criterion — four precise lines beat a page. Reward answers that make the sections unambiguous enough that two different meetings would come out looking alike."
+    }
+  },
+  "practiceTopic": {
+    "title": "Speakers, insights and summary templates",
+    "summary": "Correcting who said what on a finished meeting note, reading its transcript tools and insights, and regenerating the summary with a built-in or custom template.",
+    "facts": [
+      "\"Edit speakers\" sits in a note's ⋯ \"More actions\" menu, is owner-only, shows each speaker's speaking time, and can rename, merge two speakers into one person, or run \"Auto-detect names\" over the stored transcript (no audio needed).",
+      "Saving speaker changes rewrites the transcript, the speaker list and the exports, but not the existing summary — the note then offers \"Speakers updated. Regenerate the summary with the new names?\", and that quick button regenerates in the General meeting style.",
+      "The five built-in summary templates are General meeting, Stand-up, Sales call, Interview and Retrospective, and a regenerated note carries a \"Template: {name}\" line under Summary — with the version for a saved template, e.g. \"Template: Leveranciersreview (v2)\".",
+      "A custom template has a Name, a Prompt and a \"Visible to\" scope — \"Just me\", \"Whole organization\" or \"Specific group\"; only an organisation admin can pick the last two, and the scope is fixed once created (\"Scope can't be changed after creation.\").",
+      "Regenerating replaces only the action items the assistant produced and nobody touched; items you wrote, edited, ticked or gave a destination are kept, and one the new pass cannot find keeps a \"kept\" badge.",
+      "The Summary tab carries three insight chips — \"Balance\", \"Interactivity\" and \"Silence\" — and the Insights tab has the sub-tabs \"Overview\", \"People\", \"Flow\", \"Topics\" and \"Follow-up\"; with too little material it reads \"Not enough data for insights on this meeting.\"",
+      "\"Per-person meeting insights\" is an org-admin setting under Settings → Organisation → \"Talk Meeting Notes\", on by default; switched off the Insights tab reads \"Per-person statistics are disabled by your organization.\" and members see meeting-level metrics only.",
+      "On the Transcript tab, \"Search transcript…\" filters the turns and the per-line menu \"What is this line?\" offers Action, Decision, To a knowledge base, Row in a table and Copy quote; beside it \"Pulled from this transcript\" warns \"One speaker was not recognised…\" with \"Check the speakers\"."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "template-exists",
+      "existing": false,
+      "label": "Create a summary template",
+      "hint": "On a finished note's Summary tab, click \"Regenerate\" to open its menu and choose \"New template…\", then fill in Name and Prompt and click \"Save template\".",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/summary-templates",
+          "returns": "{ builtins: [{id,name,prompt}], custom: [{id, scope, name, prompt, userId, organizationId, groupId, isDefault, version}], defaultTemplateId, canManageOrg, primaryOrgId }"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "created",
+          "label": "A summary template of your own is saved",
+          "hint": "On a finished note's Summary tab, open the \"Regenerate\" menu, choose \"New template…\", fill in Name and Prompt and click \"Save template\".",
+          "rule": "the custom array (never the builtins) holds at least one template whose userId/createdBy is the learner",
+          "endpoint": "/api/summary-templates",
+          "expect": {
+            "kind": "rows",
+            "field": "custom"
+          }
+        }
+      ]
+    }
+  ]
+}

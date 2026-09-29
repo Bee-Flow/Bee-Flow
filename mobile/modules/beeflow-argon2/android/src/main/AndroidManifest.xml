@@ -1,0 +1,17 @@
+<!--
+  Intentionally empty.
+
+  AGP 8 does not require a library manifest once `namespace` is set in
+  build.gradle, and this module declares no components, permissions or
+  resources of its own — the Kotlin class is registered through Expo's module
+  registry, not through the manifest.
+
+  It exists because every bundled Expo module ships one (see
+  expo-secure-store/android/src/main/AndroidManifest.xml, which is these same
+  two lines), and matching the conventional layout removes a variable from a
+  build that cannot be run locally: dl.google.com is blocked by this
+  environment's egress policy, so the Android SDK, the NDK and AGP itself
+  cannot be fetched here and CI is the only place this compiles.
+-->
+<manifest>
+</manifest>

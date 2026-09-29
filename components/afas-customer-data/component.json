@@ -1,0 +1,88 @@
+{
+  "name": "AFAS Customer Data Fetcher",
+  "description": "Retrieve customer-related data including attachments from AFAS",
+  "category": "API/REST",
+  "inputs": {
+    "afasBaseUrl": {
+      "type": "string",
+      "label": "AFAS Base URL",
+      "description": "The base URL of the AFAS instance (e.g., https://example.afas.online)",
+      "required": true,
+      "default": "https://example.afas.online"
+    },
+    "clientId": {
+      "type": "string",
+      "label": "AFAS Client ID",
+      "description": "The client ID for AFAS API authentication",
+      "required": true,
+      "secure": true,
+      "default": "test-client-id"
+    },
+    "clientSecret": {
+      "type": "string",
+      "label": "AFAS Client Secret",
+      "description": "The client secret for AFAS API authentication",
+      "required": true,
+      "secure": true,
+      "default": "test-client-secret"
+    },
+    "customerId": {
+      "type": "string",
+      "label": "Customer ID",
+      "description": "The ID of the customer to fetch data for",
+      "required": false,
+      "default": "12345"
+    },
+    "subjectId": {
+      "type": "string",
+      "label": "Subject ID",
+      "description": "The ID of the subject to fetch attachments for",
+      "required": false,
+      "default": "67890"
+    },
+    "includeAttachments": {
+      "type": "boolean",
+      "label": "Include Attachments",
+      "description": "Whether to include attachments in the response",
+      "required": false,
+      "default": true
+    },
+    "limit": {
+      "type": "number",
+      "label": "Limit",
+      "description": "Maximum number of records to return",
+      "required": false,
+      "default": 50
+    },
+    "offset": {
+      "type": "number",
+      "label": "Offset",
+      "description": "Number of records to skip for pagination",
+      "required": false,
+      "default": 0
+    }
+  },
+  "outputs": {
+    "success": {
+      "type": "boolean",
+      "label": "Success",
+      "description": "Indicates whether the request was successful"
+    },
+    "error": {
+      "type": "string",
+      "label": "Error",
+      "description": "Error message if the request failed"
+    },
+    "customers": {
+      "type": "array",
+      "label": "Customers",
+      "description": "List of customer data objects"
+    },
+    "attachments": {
+      "type": "array",
+      "label": "Attachments",
+      "description": "List of attachment objects associated with the customer or subject"
+    }
+  },
+  "agentEnabled": true
+}

@@ -1,0 +1,1080 @@
+# Every test and lint job in one workflow, so that ONE context — checks-passed —
+# can be required on main and always reports.
+#
+# Why one file: a required status check is matched by name, and a job that is
+# path-filtered at the trigger never reports on a PR that misses the filter,
+# which blocks that PR forever. So the path filters live in the `changes` job
+# below (dorny/paths-filter), every package job runs only when its tree
+# changed, and checks-passed runs ALWAYS and fails if any job that ran failed.
+# A PR that touches nothing a suite reads (a README, a blog post) is green in
+# a minute; a server PR waits for the server suite.
+#
+# Called by build-push-ghcr.yml on a push to main and on manual
+# builds (workflow_call), so no image is published from a commit this
+# workflow rejected. It therefore has no push trigger of its own. That call is
+# skipped when a green pull_request run of this workflow already tested the
+# exact tree being built (the `changes` job below records it). A PR that was
+# up to date with main when it merged lands the very tree its run tested (15
+# of 16 merges did, although the ruleset does not require it), and re-running
+# every suite on it only repeated a verdict. One that merged behind main finds
+# no match, so the call runs as before and checks the tree the PR never saw.
+name: CI
+
+on:
+  pull_request:
+    # ready_for_review: a draft PR runs only the fast checks (see DRAFT
+    # below), so marking it ready must start the full run.
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# DRAFT: agent-driven branches open draft PRs and push over and over (one
+# branch ran CI 23 times in a day). On a draft, the long test suites are
+# skipped: the server and mobile unit tests with their coverage floors, the
+# three vitest shards and their merged coverage, and the guard model eval.
+# Lint, typecheck, the ratchets, the build and the small suites still run.
+# Marking the PR ready for review starts a full run on the same commit, and
+# that run is the checks-passed a merge sees. Guarded with
+# `github.event.pull_request.draft != true`, which is also true on the
+# workflow_call from build-push-ghcr.yml (no pull_request there).
+
+# PR runs supersede each other (agent-driven branches push over a running
+# suite; measured 88 min of superseded frontend runs in 23 days). Runs that
+# are not PRs get a run_id-unique group so they are never cancelled: a verdict
+# on main is what you bisect with. Kept on one folded line on purpose — in a
+# `>-` scalar a more-indented continuation line is preserved literally.
+concurrency:
+  group: >-
+    ${{ github.event_name == 'pull_request'
+    && format('ci-{0}', github.ref)
+    || format('ci-{0}-{1}', github.ref, github.run_id) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  # ── Which trees changed ────────────────────────────────────────────────
+  # A manual run tests everything. Otherwise a job runs when its own tree
+  # changed OR any file outside it that its tests or gates read: a test that
+  # pins a contract against another package only guards it if a change on
+  # that side runs it. The outside paths below come from tracing every file
+  # a full run of each suite opened (2026-09-23); `.nvmrc` is in every Node
+  # filter because setup-node reads it.
+  #
+  # A manual Build & Push of a feature branch also tests everything. Testing
+  # only what the branch changed since its merge base would trust main for
+  # the rest, and nothing on main vouches for the whole tree: a push run
+  # tests only that push's files, so after a red suite lands, a later
+  # unrelated merge still builds green over it. Narrowing needs a per-suite
+  # record of main's last verdict first (tried and dropped, 2026-09-26).
+  #
+  # dorny/paths-filter tests a file against a filter's patterns one by one
+  # and ORs the results, so a `!pattern` on its own matches every OTHER path.
+  # Negations never narrow a filter here the way they narrow native
+  # `paths:`, which is why the one exclusion lives in its own step below.
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      server: ${{ steps.filter.outputs.server || steps.all.outputs.all }}
+      frontend: ${{ steps.filter.outputs.frontend || steps.all.outputs.all }}
+      # dorny's outputs are the strings 'true'/'false', and a non-empty
+      # 'false' is truthy in an expression, so a plain `a || b` would never
+      # look past the first step. Compared explicitly instead.
+      mobile: >-
+        ${{ (steps.filter.outputs.mobile == 'true'
+        || steps.mobile_server.outputs.mobile == 'true'
+        || steps.all.outputs.all == 'true') && 'true' || 'false' }}
+      python: ${{ steps.filter.outputs.python || steps.all.outputs.all }}
+      guard: ${{ steps.filter.outputs.guard || steps.all.outputs.all }}
+      guard-unit: ${{ steps.filter.outputs.guard-unit || steps.all.outputs.all }}
+      nextcloud: ${{ steps.filter.outputs.nextcloud || steps.all.outputs.all }}
+      hub-module-sdk: ${{ steps.filter.outputs.hub-module-sdk || steps.all.outputs.all }}
+      install-wizard: ${{ steps.filter.outputs.install-wizard || steps.all.outputs.all }}
+      nc-login-mini: ${{ steps.filter.outputs.nc-login-mini || steps.all.outputs.all }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      # The tree this PR run tests (the merge ref: the PR on top of its base).
+      # The artifact's NAME carries it, so build-push-ghcr.yml can find a
+      # passed run for the exact tree it is about to build with one API call
+      # and skip running this workflow a second time. Only a run that ends
+      # green counts there; the artifact itself proves nothing.
+      - id: tree
+        if: github.event_name == 'pull_request' && github.event.pull_request.draft != true
+        run: git rev-parse 'HEAD^{tree}' | tee tested-tree.txt | sed 's/^/tree=/' >> "$GITHUB_OUTPUT"
+      # Never on a draft: its run is green without the long suites.
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: github.event_name == 'pull_request' && github.event.pull_request.draft != true
+        with:
+          name: ci-tested-tree-${{ steps.tree.outputs.tree }}
+          path: tested-tree.txt
+          retention-days: 30
+      # The server half of the mobile filter: only what mobile reads from
+      # server/, i.e. the files two lockstep tests require() with everything
+      # those require in turn, and the files mobile tests read as text. It
+      # used to be server/** (minus the two manifests), so the ~5-min mobile
+      # job ran for every server PR. mobile/src/lib/serverClosure.test.ts
+      # recomputes the set and fails on a file no pattern here covers, or a
+      # pattern that covers none of it; ciTriggers.test.ts reads the FIRST
+      # `mobile:` block in this file, which is this one, and checks no
+      # pattern reaches the server manifests. No negations: without
+      # predicate-quantifier `every`, dorny reads `!x` as "every path except x".
+      - uses: dorny/paths-filter@0e4a8c6effa4802afeda77dc8d303f8176d7dfad # v3.0.4
+        if: github.event_name != 'workflow_dispatch'
+        id: mobile_server
+        with:
+          filters: |
+            mobile:
+              # require()d by src/features/automate/{catalog,step}Lockstep.test.ts,
+              # and what those files require in turn
+              - 'server/appStudio/{appDesignSpec,componentSpecs,mailboxTableTemplates}.js'
+              - 'server/appStudio/componentSpecs/**'
+              - 'server/automation/builtinStepTools.js'
+              - 'server/core/cms/themeSpec.js'
+              - 'server/core/documents/deckThemeOptions.js'
+              # read as text by src/api/serverContract.test.ts
+              - 'server/index.js'
+              - 'server/auth/login/setupRoutes.js'
+              - 'server/core/{agentRuntime,dlp}/**'
+              - 'server/core/meetingNotes/actionItems.js'
+              - 'server/routes/{agents,ai,knowledgeBases}/**'
+              - 'server/routes/{healthSchema,skills}.js'
+              - 'server/routes/automation/crud.js'
+              - 'server/stores/{coworkStore,notificationStore,projectStore,skillStore,transcriptionStore}.js'
+              - 'server/stores/agent/{agentTools,directConversations,initSchema}.js'
+              - 'server/stores/automationStore/rowMappers.js'
+              - 'server/stores/webpage/shared.js'
+              # read as text by src/i18n/dictionaryText.ts
+              - 'server/i18n/defaults/en/**'
+      - uses: dorny/paths-filter@0e4a8c6effa4802afeda77dc8d303f8176d7dfad # v3.0.4
+        if: github.event_name != 'workflow_dispatch'
+        id: filter
+        with:
+          filters: |
+            server:
+              - 'server/**'
+              - '.nvmrc'
+              - 'scripts/{eslint-budget,check-server-manifest,check-playwright-lockstep,source-text-tests,count-ratchet,coverage-ratchet,checkjs-ratchet,gen-i18n-defaults,i18n-key-guard,i18n-split,entry-point}.mjs'
+              - 'scripts/rotate-master-key.js'
+              - 'docs/docs/**'
+              - 'components/**'
+              - 'docker-compose.yml'
+              - 'docker-compose.from-registry.yml'
+              - 'selfhost.sh'
+              - '.claude/handoff/compliance/keys/**'
+              - 'agent-hub/src/i18n/en-defaults.js'
+              - 'agent-hub/src/utils/{bfElements,bfElementsRuntime,buildWebpagePreview,cmsPublicRouting,composeWebpageDocument}.js'
+              - 'agent-hub/src/components/automation/Builder/notificationDefaults.js'
+              - 'agent-hub/src/components/projects/solutionCounts.js'
+              - 'agent-hub/src/components/admin/Studio/AppStudio/tables/TablesManager.jsx'
+              - 'agent-hub/src/components/admin/Studio/Playbooks/stages/RoutineStage.jsx'
+              - 'agent-hub/src/components/admin/Studio/Solutions/{SolutionCard,SolutionsOverview}.jsx'
+              - 'nextcloud-connector/src/{appApiClient,config,taskProcessing}.js'
+              - '.github/workflows/ci.yml'
+            # The server side of the agent-hub tests is their transitive
+            # require graph, not only the files they name: a whole directory
+            # where the tests list it or load most of it, single files where
+            # they load one. The vitest shards install server/'s own
+            # dependencies for these tests, hence its two manifests.
+            # build-push-ghcr.yml is not listed: the one line of it a frontend
+            # test read (the beacon build arg) is checked by the last step of
+            # this job, on every run.
+            frontend:
+              - 'agent-hub/**'
+              - '.nvmrc'
+              - 'scripts/{eslint-budget,ts-ratchet,i18n-ratchet,count-ratchet,coverage-ratchet,bundle-ratchet,gen-i18n-defaults,gen-shared-mirror,entry-point}.mjs'
+              - '.claude/handoff/compliance/keys/**'
+              - '.claude/handoff/curriculum/lessons/**'
+              - 'server/package.json'
+              - 'server/package-lock.json'
+              - 'server/appStudio/**'
+              - 'server/automation/builderTools/**'
+              - 'server/core/automationRunner/**'
+              - 'server/core/dataEngine/**'
+              - 'server/i18n/defaults/**'
+              - 'server/learning/**'
+              - 'server/services/email/**'
+              - 'server/shared/**'
+              - 'server/stores/{datatableStore,lib,user}/**'
+              - 'server/stores/{datatableStore,projectStore,storageStore,studioAppDataStore,studioAppDbStore,studioAppStore,userStore}.js'
+              - 'server/auth/{audience,datatableAccess,gateMeta,orgMembership,orgScope,permissions,projectAccess}.js'
+              - 'server/automation/{approvalStages,expr}.js'
+              - 'server/automation/validate/{constants,helpers}.js'
+              - 'server/core/cms/themeSpec.js'
+              - 'server/core/documents/{deckThemeOptions,documentContract,documentDiscovery,documentTemplate}.js'
+              - 'server/core/llm/{leakedToolCalls,partialJsonScan,screenConstraints,toolCallHygiene}.js'
+              - 'server/db.js'
+              - 'server/integrations/nextcloudTablesTools.js'
+              - 'server/routes/automation/formPublic.js'
+              - 'server/scripts/content/beeflowSite.js'
+              - 'server/telemetry/{httpMetrics,log}.js'
+              - 'server/utils/{buildInfo,engineFlag}.js'
+              - '.github/workflows/ci.yml'
+            # Plus mobile_server above.
+            mobile:
+              - 'mobile/**'
+              - '.nvmrc'
+              - 'agent-hub/src/components/shared/statusTokens.ts'
+              - 'agent-hub/src/i18n/en-defaults.js'
+              - 'scripts/gen-i18n-defaults.mjs'
+              - 'agent-hub/src/index.css'
+              - 'scripts/{coverage-ratchet,count-ratchet}.mjs'
+              - '.github/workflows/ci.yml'
+              - '.github/workflows/android-release.yml'
+            python:
+              - 'guard-service/**'
+              - 'pii-service/**'
+              - 'classify-service/**'
+              - 'reranker/**'
+              - 'search-service/**'
+              - 'whisperx-service/**'
+              - 'ruff.toml'
+              - 'scripts/coverage-ratchet.mjs'
+              - '.github/workflows/ci.yml'
+            # Two filters for the guard service. `guard` drives guard-model-eval
+            # (a docker build plus a ~17-min eval, ~20 billed min), which reads
+            # nothing outside the service. It used to fire on this file and the
+            # ratchet script too, and about 10 of 23 runs paid for it without a
+            # guard-service change. A manual run tests everything, which is how
+            # an edit to the eval job itself gets exercised. `guard-unit` drives
+            # the cheap Guard tests job, which does run the ratchet script.
+            guard:
+              - 'guard-service/**'
+            guard-unit:
+              - 'guard-service/**'
+              - 'scripts/coverage-ratchet.mjs'
+              - '.github/workflows/ci.yml'
+            # The four small Node services share one lint config
+            # (scripts/eslint-service-config.cjs) and the two ratchets.
+            nextcloud:
+              - 'nextcloud-connector/**'
+              - '.nvmrc'
+              - 'server/routes/nextcloudTaskProcessing*'
+              - 'server/integrations/nextcloud*'
+              - 'server/automation/triggerSources/**'
+              - 'server/automation/triggerBus*'
+              - 'server/automation/deliverableEvents.js'
+              - 'server/automation/sideEffectMap.js'
+              - 'server/automation/builderTools/trigger*'
+              - 'server/auth/connectorJwt*'
+              - 'server/utils/ncIntegrationCatalog.js'
+              - 'server/core/integrations/ncIntegrationCatalog.js'
+              - 'server/core/integrations/integrationToolMap.js'
+              - 'scripts/{eslint-budget,coverage-ratchet,entry-point}.mjs'
+              - 'scripts/eslint-service-config.cjs'
+              - '.github/workflows/ci.yml'
+            hub-module-sdk:
+              - 'hub-module-sdk/**'
+              - '.nvmrc'
+              - 'scripts/{eslint-budget,coverage-ratchet,entry-point}.mjs'
+              - 'scripts/eslint-service-config.cjs'
+              - '.github/workflows/ci.yml'
+            install-wizard:
+              - 'install-wizard/**'
+              - '.nvmrc'
+              - 'scripts/{eslint-budget,coverage-ratchet,entry-point}.mjs'
+              - 'scripts/eslint-service-config.cjs'
+              - '.github/workflows/ci.yml'
+            nc-login-mini:
+              - 'nc-login-mini/**'
+              - '.nvmrc'
+              - 'scripts/{eslint-budget,coverage-ratchet,entry-point}.mjs'
+              - 'scripts/eslint-service-config.cjs'
+              - '.github/workflows/ci.yml'
+      - id: all
+        if: github.event_name == 'workflow_dispatch'
+        run: echo "all=true" >> "$GITHUB_OUTPUT"
+      # The published frontend image ships with the RUM beacon OFF (why:
+      # agent-hub/src/telemetry/openobserve.optIn.test.js). Every
+      # VITE_OPENOBSERVE_ENABLE= in the release workflow must say exactly
+      # `false`, and there must be at least one. This was a vitest case, which
+      # put build-push-ghcr.yml in the frontend filter: every edit to it ran
+      # Frontend checks, three shards and the merged coverage (~57 billed min)
+      # for one line. Here it is a grep on every run. A failure fails this job,
+      # which skips the package jobs and fails checks-passed.
+      - name: The published frontend image is built with the beacon off
+        run: |
+          wf=.github/workflows/build-push-ghcr.yml
+          if ! grep -q 'VITE_OPENOBSERVE_ENABLE=' "$wf"; then
+            echo "::error file=$wf::no VITE_OPENOBSERVE_ENABLE= build arg; the image build must pass VITE_OPENOBSERVE_ENABLE=false explicitly"
+            exit 1
+          fi
+          # grep exits 0 when some value is not `false`, 1 when none is, and
+          # 2 when it failed; a failure must not read as a pass.
+          rc=0
+          bad=$(grep -nP 'VITE_OPENOBSERVE_ENABLE=(?!false(\s|$))' "$wf") || rc=$?
+          if [ "$rc" -eq 0 ]; then
+            sed -E 's/^([0-9]+):[[:space:]]*/\1:/' <<< "$bad" | while IFS=: read -r n text; do
+              echo "::error file=$wf,line=$n::the published image must be built with VITE_OPENOBSERVE_ENABLE=false, found: $text"
+            done
+            exit 1
+          elif [ "$rc" -ne 1 ]; then
+            echo "::error file=$wf::grep failed (exit $rc), so the beacon build arg was not checked"
+            exit 1
+          fi
+          grep -n 'VITE_OPENOBSERVE_ENABLE=' "$wf"
+
+  # ── Server ─────────────────────────────────────────────────────────────
+  # `npm test` is server/scripts/run-tests.mjs: every colocated *.test.js minus
+  # the documented exclusions in scripts/test-exclusions.json, each file in its
+  # own process with its own timeout, and deliberately WITHOUT
+  # --test-force-exit (it was dropping results; the runner's header has the
+  # numbers). A file that keeps the event loop alive is reported by name as
+  # HUNG; the job cap is the backstop behind that. The *.integration.test.js suites run real Postgres
+  # in-process (pglite), so nothing here needs a service container.
+  server:
+    name: Server tests
+    needs: changes
+    if: needs.changes.outputs.server == 'true'
+    runs-on: ubuntu-latest
+    # 12 of the last 20 runs took 13.0-14.6 min against the old cap of 15; the
+    # suite grew from 1,087 to 1,402 to 1,698 test files in two weeks. A hung
+    # file is still named by run-tests.mjs (HUNG, per-file timeout); this cap
+    # is only the backstop, so it gets room instead of cutting a green run.
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      # Correctness floor only (see server/eslint.config.js); errors fail, and
+      # the warning count may not rise above server/.eslint-budget.json.
+      - name: Lint (errors fail, warnings budgeted)
+        run: node ../scripts/eslint-budget.mjs server
+      # The mobile job does not fire on server/package.json (see the filter
+      # above), so the invariants that make that safe — server/ stays
+      # CommonJS, mobile's jest still loads the server tree untransformed —
+      # are checked here, on the job that does fire on those commits.
+      - name: Server manifest invariants the mobile suite does not cover
+        working-directory: .
+        run: node scripts/check-server-manifest.mjs
+      # The server and bf-browser (server/pwt-runner) must pin the same
+      # Playwright, or chromium.connect() is refused with 428. build-push-ghcr.yml
+      # runs the same check before it builds either image; here it refuses the
+      # one-sided hand bump on the PR, before the merge.
+      - name: Playwright lockstep between the server and pwt-runner
+        working-directory: .
+        run: node scripts/check-playwright-lockstep.mjs
+      # A test that reads a source file and matches a regex against it pins
+      # the shape of the code, not what it does. Phase 2 is replacing them;
+      # the count may only fall (server/.source-text-ratchet.json).
+      - name: Source-text test ratchet (assertions on code text may only fall)
+        working-directory: .
+        run: node scripts/source-text-tests.mjs server --gate
+      # Three more counts that may only fall:
+      # test files that stub through the module cache instead of an injected
+      # seam, files over 800 lines, and files with Dutch comments. All three
+      # grew while nothing counted them. `--update` lowers either budget.
+      - name: Module-mock ratchet (tests stubbing via require.cache may only fall)
+        working-directory: .
+        run: node scripts/count-ratchet.mjs module-mock server
+      - name: Big-file ratchet (files over 800 lines may only fall)
+        working-directory: .
+        run: node scripts/count-ratchet.mjs big-file server
+      - name: Dutch-comment ratchet (files with Dutch comments may only fall)
+        working-directory: .
+        run: node scripts/count-ratchet.mjs dutch-comment server
+      - name: Line-reference ratchet (comments naming a line number may only fall)
+        working-directory: .
+        run: node scripts/count-ratchet.mjs line-ref server
+      # JSDoc types, checked per file: every file marked `// @typecheck` must pass
+      # tsc, and the number of such files may only rise (phase 6.4).
+      - name: Typecheck (files marked // @typecheck)
+        run: npm run typecheck
+      - name: checkJs ratchet (checked files may only rise)
+        working-directory: .
+        run: node scripts/checkjs-ratchet.mjs server
+      # agent-hub/src/i18n/en-defaults.js is GENERATED from the per-namespace
+      # server dictionary (server/i18n/defaults/en/); a hand edit or a
+      # forgotten regeneration fails here, not as drift weeks later.
+      - name: Frontend English dictionary is generated from the server's
+        working-directory: .
+        run: node scripts/gen-i18n-defaults.mjs --check
+      # A merge in which "the second wins" drops keys without a conflict git
+      # shows. Every key the PR base has must still exist, or be listed in
+      # server/i18n/defaults/removed-keys.txt. The checkout is shallow, so the
+      # base commit is fetched first.
+      - name: Fetch the PR base for the i18n key guard
+        if: github.event_name == 'pull_request'
+        working-directory: .
+        run: git fetch --no-tags --depth=1 origin ${{ github.event.pull_request.base.sha }}
+      - name: No English key lost against the PR base
+        if: github.event_name == 'pull_request'
+        working-directory: .
+        run: node scripts/i18n-key-guard.mjs --base ${{ github.event.pull_request.base.sha }}
+      - name: Unit tests
+        if: github.event.pull_request.draft != true
+        env:
+          NODE_ENV: test
+          # Throwaway CI values, never real secrets; encryption.test.js and
+          # friends assert on key derivation.
+          SESSION_SECRET: ci-session-secret-value-at-least-32-chars-long
+          MASTER_ENCRYPTION_KEY: ci-master-encryption-key-for-tests-only!!
+        # No reporter flags: the runner reads each file's TAP summary, and one
+        # lcov destination would be rewritten by every child in turn (it once
+        # held the last file's coverage only). `--coverage` is the runner's
+        # own: every process dumps V8 coverage into one directory and c8
+        # merges them after the run (.c8rc.json holds the scope).
+        run: npm test -- --coverage
+      # Line coverage may not drop under server/.coverage-ratchet.json (one
+      # point under the last measurement; `--update` only raises it).
+      - name: Coverage floor
+        if: github.event.pull_request.draft != true
+        working-directory: .
+        run: node scripts/coverage-ratchet.mjs server
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: ${{ !cancelled() && github.event.pull_request.draft != true }}
+        with:
+          name: coverage-server
+          path: server/coverage/lcov.info
+          retention-days: 14
+
+  # ── Frontend ───────────────────────────────────────────────────────────
+  frontend:
+    name: Frontend checks
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    # Lint, ratchets, typecheck and the production build. The unit tests run
+    # beside this job in three shards (frontend-tests below).
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: agent-hub
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      # No server/ install here: it only serves the cross-package tests, which
+      # run in the shards. Measured without it: eslint message for message,
+      # knip, typecheck and the bundle (bar its build timestamp) identical.
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: agent-hub/package-lock.json
+      # agent-hub/src/shared/expr/ is GENERATED from server/shared/expr/
+      # (npm run gen:shared). Checked before the install, so drift fails in
+      # seconds instead of in the vitest sync test a quarter of an hour in.
+      - name: Expression engine mirror matches the server's
+        run: node ../scripts/gen-shared-mirror.mjs --check
+      - name: Install dependencies
+        run: npm ci
+      # Errors fail; the warning count may not rise above
+      # agent-hub/.eslint-budget.json, and `--update` lowers it after a clean-up.
+      - name: Lint (errors fail, warnings budgeted)
+        run: node ../scripts/eslint-budget.mjs agent-hub
+      # Phase 3 converts src/ to TypeScript directory by directory; until it
+      # is done the honest gate is a count that may only fall, so a new .js or
+      # .jsx file under src fails here. `--update` lowers it after a conversion.
+      - name: TypeScript ratchet (the .js/.jsx count may only fall)
+        run: node ../scripts/ts-ratchet.mjs agent-hub
+      # The other direction of src/i18n/i18nGuard.test.js: that one asks whether
+      # every t('key') has a word, this one whether every word has a key. What
+      # counts as user-facing text, and the thirteen things that deliberately do
+      # not, are written out in the script's header. `--update` lowers it.
+      - name: i18n ratchet (untranslated literals may only fall)
+        run: node ../scripts/i18n-ratchet.mjs agent-hub
+      # Two more counts that may only fall, both conversions phase 3 does file
+      # set by file set: `style={{…}}` objects (the target is a Tailwind class
+      # on the theme variable), and fireEvent calls userEvent can replace. The
+      # low-level events (keyDown, drag, scroll) are not counted — see the
+      # script's header. `--update` lowers either one.
+      - name: Inline-style ratchet (style={{…}} objects may only fall)
+        run: node ../scripts/count-ratchet.mjs inline-style agent-hub
+      - name: fireEvent ratchet (calls userEvent can replace may only fall)
+        run: node ../scripts/count-ratchet.mjs fire-event agent-hub
+      # Phase 6: files pairing authFetch with useEffect (the data layer is
+      # React Query), files over 400 lines, and files with Dutch comments.
+      - name: authFetch-in-effect ratchet (hand-wired fetches may only fall)
+        run: node ../scripts/count-ratchet.mjs authfetch-effect agent-hub
+      - name: Big-file ratchet (files over 400 lines may only fall)
+        run: node ../scripts/count-ratchet.mjs big-file agent-hub
+      - name: Dutch-comment ratchet (files with Dutch comments may only fall)
+        run: node ../scripts/count-ratchet.mjs dutch-comment agent-hub
+      - name: Line-reference ratchet (comments naming a line number may only fall)
+        run: node ../scripts/count-ratchet.mjs line-ref agent-hub
+      # A source file nothing imports is a file nobody maintains. knip.json
+      # names the real entry points (main, tests, the two modules the server
+      # bundles, the build scripts); the tree is clean, so a new orphan fails.
+      # Pinned through npx rather than the lockfile: adding it there under the
+      # runner's npm rewrote 26k lockfile lines for one tool.
+      - name: No unused source files (knip)
+        run: npm run lint:dead
+      # With server/node_modules present, allowJs plus the cross-package test
+      # imports pulled the server's dependency typings into the program
+      # (12,523 files, 3.6 GB; 2048 OOM'd). This job no longer installs it:
+      # 6,143 files, ~2.0 GB peak, which passes at 2048 with no headroom,
+      # hence 3072. An OOM here most likely means those typings are back;
+      # shrink the program rather than raise the number.
+      - name: Typecheck
+        env:
+          NODE_OPTIONS: --max-old-space-size=3072
+        run: npm run typecheck
+      # What a browser downloads, gzipped: the whole build and its largest
+      # chunk, against agent-hub/.bundle-budget.json (measurement + 5%).
+      # A PR that needs more says why in the commit that raises the budget.
+      # Same heap as agent-hub/Dockerfile's image build: vite + rollup over
+      # this app need more than a runner's default ~2 GB old space (OOM'd).
+      - name: Production build
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+        run: npm run build
+      - name: Bundle-size budget
+        run: node ../scripts/bundle-ratchet.mjs agent-hub
+
+  # The vitest suite (~16,000 tests) in three shards. One runner took 40+ min
+  # for it, against a 60-min cap; three take a third each. Each shard writes a
+  # blob report with its coverage, and frontend-coverage merges them — the
+  # floor must see the whole suite, never one shard's slice.
+  frontend-tests:
+    name: Frontend tests (${{ matrix.shard }}/3)
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true' && github.event.pull_request.draft != true
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+    defaults:
+      run:
+        working-directory: agent-hub
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: |
+            agent-hub/package-lock.json
+            server/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      # A few agent-hub tests are cross-package: they require server source
+      # to pin an isomorphic contract in one place (AppStudio/rbac/* reaches
+      # server/appStudio/rlsGateway.js, which needs `pg`). Not --omit=dev: CI
+      # must test the graph contributors develop against. Only the shards
+      # need this; the Frontend checks job runs without it.
+      - name: Install server dependencies (for cross-package tests)
+        working-directory: server
+        run: npm ci
+      # --maxWorkers=100% is availableParallelism(): two workers on a 2-vCPU
+      # runner, where vitest's default (cores - 1) is one. Shard 1 measured
+      # 913 s -> 621 s, peak RSS ~2.3 GB either way (of 7 GB), the same 5,643
+      # tests green, slowest test 6.9 s against the 20 s testTimeout.
+      - name: Unit tests (vitest shard ${{ matrix.shard }}/3, with coverage)
+        run: npx vitest run --shard=${{ matrix.shard }}/3 --maxWorkers=100% --reporter=blob --reporter=dot --coverage
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: ${{ !cancelled() }}
+        with:
+          name: vitest-blob-${{ matrix.shard }}
+          path: agent-hub/.vitest-reports/*
+          include-hidden-files: true
+          retention-days: 3
+
+  frontend-coverage:
+    name: Frontend coverage (merged)
+    needs: [changes, frontend-tests]
+    if: needs.changes.outputs.frontend == 'true' && github.event.pull_request.draft != true && !cancelled()
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: agent-hub
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: agent-hub/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: vitest-blob-*
+          path: agent-hub/.vitest-reports
+          merge-multiple: true
+      # All three shards must have reported: a missing blob would merge into a
+      # lower number that reads as a coverage drop, or pass on two-thirds of
+      # the suite.
+      - name: Every shard reported
+        run: test "$(ls .vitest-reports | wc -l)" -eq 3
+      - name: Merge the shards' results and coverage
+        run: npx vitest --merge-reports --reporter=dot --coverage --coverage.reporter=text-summary --coverage.reporter=lcov --coverage.reporter=json-summary
+      # Line coverage may not drop under the floor in .coverage-ratchet.json
+      # (one point under the last measurement; `--update` only raises it).
+      - name: Coverage floor
+        run: node ../scripts/coverage-ratchet.mjs agent-hub
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: ${{ !cancelled() }}
+        with:
+          name: coverage-frontend
+          path: agent-hub/coverage/lcov.info
+          retention-days: 14
+
+  # ── Mobile ─────────────────────────────────────────────────────────────
+  # Lint, typecheck, unit tests and a dry `expo prebuild`; ~5 min on a plain
+  # Node runner. The APK itself is built by android-release.yml on merge.
+  mobile:
+    name: Mobile checks
+    needs: changes
+    if: needs.changes.outputs.mobile == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Typecheck
+        run: npm run typecheck
+      # Includes the OPAQUE interop suite: this client's pure-TypeScript OPAQUE
+      # against the real @serenity-kit/opaque the server uses. A constant that
+      # drifts on either side breaks sign-in on Android, and this is the only
+      # place that is visible before a user hits it.
+      - name: Unit tests (with coverage)
+        if: github.event.pull_request.draft != true
+        run: npm test -- --coverage --coverageReporters=text-summary --coverageReporters=lcov --coverageReporters=json-summary
+      - name: Coverage floor
+        if: github.event.pull_request.draft != true
+        run: node ../scripts/coverage-ratchet.mjs mobile
+      - name: Line-reference ratchet (comments naming a line number may only fall)
+        run: node ../scripts/count-ratchet.mjs line-ref mobile
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: ${{ !cancelled() && github.event.pull_request.draft != true }}
+        with:
+          name: coverage-mobile
+          path: mobile/coverage/lcov.info
+          retention-days: 14
+      # Config errors that only surface at prebuild time (a plugin that
+      # throws, a missing asset), without paying for the Android SDK.
+      - name: Verify the native project generates
+        run: npx expo prebuild --platform android --no-install
+        env:
+          BEEFLOW_VERSION_CODE: ${{ github.run_number }}
+          BEEFLOW_BUILD_PROFILE: ci
+          BEEFLOW_COMMIT_SHA: ${{ github.sha }}
+
+  # ── Python services ────────────────────────────────────────────────────
+  # A real gate: the tree is formatted and every remaining complexity finding
+  # carries a `# noqa` (to be removed over time). A new
+  # finding or an unformatted file fails here.
+  python-lint:
+    name: Python lint (ruff)
+    needs: changes
+    if: needs.changes.outputs.python == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.12'
+      - name: Install ruff
+        run: pip install --no-cache-dir ruff==0.16.4
+      - name: ruff check
+        run: ruff check guard-service pii-service classify-service reranker search-service whisperx-service --output-format=github
+      - name: ruff format --check
+        run: ruff format --check guard-service pii-service classify-service reranker search-service whisperx-service
+
+  # The sidecar suites exercise parsing, request models, the auth middleware,
+  # the fetch guard, KB search and the upload limits: no model, no torch, no
+  # running Postgres or Redis (search-service/tests/fakes.py). Each service
+  # lists what its tests import in its own requirements-dev.txt, at the pins
+  # its image ships, and each suite installs its own file right before it
+  # runs: dependabot bumps one service at a time, and one combined install
+  # would turn every such bump into a resolver conflict. With these files
+  # installed nothing skips, so a skip in the log means a line is missing
+  # from one of them. The guard suite is its own job below.
+  python-tests:
+    name: Python sidecar unit tests
+    needs: changes
+    if: needs.changes.outputs.python == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: |
+            pii-service/requirements-dev.txt
+            classify-service/requirements-dev.txt
+            search-service/requirements-dev.txt
+            reranker/requirements-dev.txt
+            whisperx-service/requirements-dev.txt
+      - name: pii-service unit tests
+        run: |
+          pip install -r pii-service/requirements-dev.txt
+          python -m pytest pii-service/tests --cov=pii-service/app --cov-report=term --cov-report=xml:coverage-pii.xml --cov-report=json:coverage-pii.json
+          node scripts/coverage-ratchet.mjs pii-service --summary coverage-pii.json
+      # FakeClassifier only: no torch, no gliclass, no model (tests/conftest.py).
+      - name: classify-service unit tests
+        run: |
+          pip install -r classify-service/requirements-dev.txt
+          python -m pytest classify-service/tests --cov=classify-service/app --cov-report=term --cov-report=xml:coverage-classify.xml --cov-report=json:coverage-classify.json
+          node scripts/coverage-ratchet.mjs classify-service --summary coverage-classify.json
+      - name: search-service unit tests
+        run: |
+          pip install -r search-service/requirements-dev.txt
+          python -m pytest search-service/tests --cov=search-service/app --cov-report=term --cov-report=xml:coverage-search.xml --cov-report=json:coverage-search.json
+          node scripts/coverage-ratchet.mjs search-service --summary coverage-search.json
+      # One module each, with the tests beside it: the service's own
+      # pyproject.toml omits */tests/* so only the module counts.
+      - name: reranker unit tests
+        run: |
+          pip install -r reranker/requirements-dev.txt
+          python -m pytest reranker/tests --cov=reranker --cov-config=reranker/pyproject.toml --cov-report=term --cov-report=xml:coverage-reranker.xml --cov-report=json:coverage-reranker.json
+          node scripts/coverage-ratchet.mjs reranker --summary coverage-reranker.json
+      - name: whisperx-service unit tests
+        run: |
+          pip install -r whisperx-service/requirements-dev.txt
+          python -m pytest whisperx-service/tests --cov=whisperx-service --cov-config=whisperx-service/pyproject.toml --cov-report=term --cov-report=xml:coverage-whisperx.xml --cov-report=json:coverage-whisperx.json
+          node scripts/coverage-ratchet.mjs whisperx-service --summary coverage-whisperx.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: ${{ !cancelled() }}
+        with:
+          name: coverage-python
+          path: coverage-*.xml
+          retention-days: 14
+
+  # ── Guard service ──────────────────────────────────────────────────────
+  # Model-free: FakeGliner plumbing tests, the eval harness, a corpus lock and
+  # the regex-tier eval against a checked-in baseline. No 2.5 GB download; the
+  # full GLiNER eval runs in the container (guard-service/eval/README.md).
+  guard:
+    name: Guard tests
+    needs: changes
+    if: needs.changes.outputs.guard-unit == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: guard-service
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: guard-service/requirements-dev.txt
+      # The classes that read app/config.py need pydantic-settings; they carry
+      # invariants whose violation reads as "no PII here". Pure wheels, pinned
+      # as in requirements.txt.
+      - name: Config-dependent test deps (no model, no torch)
+        run: pip install -r requirements-dev.txt
+      - name: Unit tests (FakeGliner plumbing + eval harness, with coverage)
+        run: |
+          python -m coverage run --source=app -m unittest discover -s tests -v
+          python -m coverage report
+          python -m coverage xml -o coverage-guard.xml
+          python -m coverage json -o coverage-guard.json
+          node ../scripts/coverage-ratchet.mjs guard-service --summary guard-service/coverage-guard.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: ${{ !cancelled() }}
+        with:
+          name: coverage-guard
+          path: guard-service/coverage-guard.xml
+          retention-days: 14
+      # Content lock first: it produces a reviewable failure where a byte
+      # diff only says "300 lines changed". It also enforces the per-category
+      # minimum; an under-sampled category is how a false "safe" ships.
+      - name: Corpus matches its lock file (content + per-category quotas)
+        run: python -m eval.generate_corpus --seed 42 --check
+      - name: Corpus is reproducible from the generator (no hand-edits)
+        run: |
+          python -m eval.generate_corpus --seed 42
+          git diff --exit-code -- eval/corpus \
+            || (echo "::error::eval/corpus drifted from generate_corpus.py (seed 42) — regenerate and commit" && exit 1)
+      # ~0.53 micro recall is the honest number: the corpus used to be built
+      # from the regex tier's own validators. See eval/baseline/archive/README.md.
+      - name: Regex-tier eval gate (against checked-in baseline)
+        run: |
+          python -m eval.run_eval --regex-only --gate-tier regex \
+            --baseline eval/baseline/metrics_regex_baseline.json \
+            --out eval/metrics.json
+      # A complete=True spec silences GLiNER for its category, so the claim
+      # must be earned on the corpus (recall >= 0.90).
+      - name: Completeness check (complete=True claims are earned)
+        run: python -m eval.check_completeness
+
+  # Gates the path that ships (regex tier off), against the model baseline.
+  # Reuses the service image, which bakes the ONNX graph at build time. Skips
+  # loudly while there is no baseline, so "no baseline" never reads as green.
+  # --subset ci on calibrate, never held-out: that split is spent once.
+  # Fires on guard-service/** only (the `guard` filter), not on this file.
+  guard-model-eval:
+    name: Guard model eval
+    needs: changes
+    if: needs.changes.outputs.guard == 'true' && github.event.pull_request.draft != true
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Is there a model baseline to gate against?
+        id: baseline
+        run: |
+          if [ -f guard-service/eval/baseline/metrics_model_baseline.json ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No metrics_model_baseline.json yet — the shipped (model-only) path is NOT gated by CI. Generate it with: python -m eval.run_eval --tier off --split held-out"
+          fi
+      - name: Build the guard image (bakes the ONNX graph)
+        if: steps.baseline.outputs.present == 'true'
+        run: docker build -t guard-ci:pr guard-service
+      - name: Model-only eval gate — the shipped path
+        if: steps.baseline.outputs.present == 'true'
+        run: |
+          docker run --rm -e GUARD_PII_REGEX_TIER=off guard-ci:pr \
+            python -m eval.run_eval --tier off --subset ci --split calibrate \
+              --baseline eval/baseline/metrics_model_baseline.json \
+              --out /tmp/metrics.model.json
+
+  # ── Duplication ────────────────────────────────────────────────────────
+  # Copy-pasted lines across the whole tree may only fall (phase 6.6):
+  # jscpd with .jscpd.json, budget in .jscpd-ratchet.json. It runs whenever
+  # any package changed, because a clone can span two of them.
+  duplication:
+    name: Duplication (jscpd)
+    needs: changes
+    if: >-
+      needs.changes.outputs.server == 'true' || needs.changes.outputs.frontend == 'true'
+      || needs.changes.outputs.mobile == 'true' || needs.changes.outputs.python == 'true'
+      || needs.changes.outputs.nextcloud == 'true' || needs.changes.outputs.hub-module-sdk == 'true'
+      || needs.changes.outputs.install-wizard == 'true' || needs.changes.outputs.nc-login-mini == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci
+      - name: Duplicated lines may only fall
+        run: node scripts/duplication-ratchet.mjs
+
+  # ── Nextcloud integration ──────────────────────────────────────────────
+  # The connector tree plus a fast, infra-free server subset, so a
+  # connector-only change still exercises both halves of the contract.
+  nextcloud-connector:
+    name: Connector (ExApp)
+    needs: changes
+    if: needs.changes.outputs.nextcloud == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: nextcloud-connector
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: nextcloud-connector/package-lock.json
+      - run: npm ci
+      - name: Lint (errors fail, warnings budgeted)
+        run: node ../scripts/eslint-budget.mjs nextcloud-connector
+      - name: Unit tests (with coverage)
+        # Read at import time; throwaway values, every test that needs a real
+        # secret sets its own.
+        env:
+          APP_SECRET: ci-test-secret
+          NEXTCLOUD_URL: http://nextcloud.invalid
+        run: npm run test:coverage
+      - name: Coverage floor
+        run: node ../scripts/coverage-ratchet.mjs nextcloud-connector
+
+  # The 19 files below are all in the Server tests job's `npm test` too
+  # (run-tests.mjs discovers every one, none is excluded), and everything they
+  # read outside server/ is in the server filter. So when that filter fired,
+  # Server tests already runs them; this job is for a nextcloud-only change.
+  # Except on a draft PR: a draft tier that skips the server unit tests would
+  # otherwise run these 19 nowhere, so a draft keeps this small job.
+  # dorny's outputs are strings, hence `!= 'true'` rather than a negation.
+  nextcloud-server:
+    name: Server (Nextcloud scope)
+    needs: changes
+    if: >-
+      needs.changes.outputs.nextcloud == 'true'
+      && (needs.changes.outputs.server != 'true' || github.event.pull_request.draft == true)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - run: npm ci
+      # An explicit file list, not a glob: this job's contract is that it
+      # stays infra-free and fast. No --test-force-exit: the module-level
+      # timers that once kept automation/sideEffectMap.test.js alive are
+      # unref'd now, and the flag drops whatever has not been reported yet —
+      # a hang here should fail the job, not shorten the tally.
+      - name: Unit tests
+        run: |
+          node --test \
+            integrations/nextcloudTarget.test.js \
+            integrations/nextcloudTools.officegen.test.js \
+            integrations/nextcloudTablesTools.test.js \
+            integrations/nextcloudFormsTools.test.js \
+            integrations/nextcloudTeamsTools.test.js \
+            automation/sideEffectMap.test.js \
+            automation/templates.test.js \
+            automation/builderTools/promptCatalogSync.test.js \
+            automation/triggerSources/registry.test.js \
+            automation/builderTools/triggerProviders.test.js \
+            automation/builderTools/triggerRegistry.golden.test.js \
+            automation/triggerBus.dispatch.test.js \
+            automation/triggerBus.dsl.test.js \
+            automation/triggerBus.ncfilenew.test.js \
+            routes/mcpServer.test.js \
+            routes/nextcloudTaskProcessing.agent.test.js \
+            core/integrations/integrationToolMap.test.js \
+            automation/integrationCatalog.test.js \
+            auth/connectorJwt.test.js
+
+  # ── Small Node services ────────────────────────────────────────────────
+  # The same three gates as the Nextcloud connector: lint (errors fail,
+  # warnings budgeted), the tests under c8, and a coverage floor that may only
+  # rise. hub-module-sdk's run includes the tests of the modules it ships
+  # (modules/*/test), each module installed from its own lockfile.
+  hub-module-sdk:
+    name: Hub module SDK
+    needs: changes
+    if: needs.changes.outputs.hub-module-sdk == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: hub-module-sdk
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: |
+            hub-module-sdk/package-lock.json
+            hub-module-sdk/modules/*/package-lock.json
+      - run: npm ci
+      - name: Install the bundled modules
+        run: for m in modules/*/; do (cd "$m" && npm ci); done
+      - name: Lint (errors fail, warnings budgeted)
+        run: node ../scripts/eslint-budget.mjs hub-module-sdk
+      - name: Unit tests (with coverage)
+        run: npm run test:coverage
+      - name: Coverage floor
+        run: node ../scripts/coverage-ratchet.mjs hub-module-sdk
+
+  install-wizard:
+    name: Install wizard
+    needs: changes
+    if: needs.changes.outputs.install-wizard == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: install-wizard
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: install-wizard/package-lock.json
+      - run: npm ci
+      - name: Lint (errors fail, warnings budgeted)
+        run: node ../scripts/eslint-budget.mjs install-wizard
+      - name: Unit tests (with coverage)
+        run: npm run test:coverage
+      - name: Coverage floor
+        run: node ../scripts/coverage-ratchet.mjs install-wizard
+
+  nc-login-mini:
+    name: NC login mini (ExApp)
+    needs: changes
+    if: needs.changes.outputs.nc-login-mini == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: nc-login-mini
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: nc-login-mini/package-lock.json
+      - run: npm ci
+      - name: Lint (errors fail, warnings budgeted)
+        run: node ../scripts/eslint-budget.mjs nc-login-mini
+      - name: Unit tests (with coverage)
+        run: npm run test:coverage
+      - name: Coverage floor
+        run: node ../scripts/coverage-ratchet.mjs nc-login-mini
+
+  # ── The one context the ruleset requires ───────────────────────────────
+  # (Repo ruleset 23605458; mirrored in .github/required-checks.json.) Runs
+  # always. Green when every job that ran succeeded and none was cancelled; a
+  # job skipped because its tree did not change is fine, a failed `changes`
+  # job is not (it would have skipped everything). It only blocks on what it
+  # needs, so every job above belongs in that list:
+  # scripts/check-required-checks.mjs (R8) fails otherwise.
+  checks-passed:
+    # A draft run skips the long suites, so it must never emit the required
+    # name: once the PR is marked ready, the draft run's green checks-passed
+    # on the same head SHA would satisfy the ruleset before the full run has
+    # reported (a job still waiting on needs: has no check run yet). The
+    # condition picks only the name; the job still runs always(). This exact
+    # form is what scripts/check-required-checks.mjs reads (TWO-WAY NAMES).
+    name: ${{ github.event.pull_request.draft == true && 'checks-passed (draft)' || 'checks-passed' }}
+    needs: [changes, server, frontend, mobile, python-lint, python-tests, guard, guard-model-eval, nextcloud-connector, nextcloud-server, hub-module-sdk, install-wizard, nc-login-mini, duplication, frontend-tests, frontend-coverage]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Every job that ran succeeded
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: |
+          node -e '
+            const needs = JSON.parse(process.env.NEEDS);
+            const ok = (id, r) => (id === "changes" ? r === "success" : r === "success" || r === "skipped");
+            const bad = Object.entries(needs).filter(([id, n]) => !ok(id, n.result));
+            for (const [id, n] of Object.entries(needs)) console.log(`${id}: ${n.result}`);
+            if (bad.length > 0) {
+              console.error("blocking: " + bad.map(([id, n]) => `${id}=${n.result}`).join(", "));
+              process.exit(1);
+            }
+          '

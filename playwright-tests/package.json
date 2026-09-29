@@ -1,0 +1,16 @@
+{
+  "name": "beeflow-playwright-tests",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Standalone Playwright UI tests for the Bee Flow Agent Hub (http://localhost:5176/app).",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed --workers=1",
+    "test:ui": "playwright test --ui",
+    "report": "playwright show-report",
+    "install:browsers": "playwright install chromium"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.59.1"
+  }
+}

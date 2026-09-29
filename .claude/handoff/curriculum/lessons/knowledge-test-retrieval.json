@@ -1,0 +1,260 @@
+{
+  "id": "knowledge-test-retrieval",
+  "icon": "🎯",
+  "estMinutes": 9,
+  "title": "Prove it before an agent uses it",
+  "desc": "The test question tab: reading citations first, comparing passages, and what 'nothing matched' means.",
+  "gate": {
+    "permission": [
+      "manage_knowledge",
+      "manage_agents"
+    ]
+  },
+  "learningGoal": "Judge whether a base retrieves the right passages, not whether the sentence reads nicely.",
+  "stepOutline": [
+    {
+      "kind": "slide",
+      "purpose": "You are testing retrieval, not the wording of the answer"
+    },
+    {
+      "kind": "slide",
+      "purpose": "Ask what a colleague would really ask, in their words"
+    },
+    {
+      "kind": "slide",
+      "purpose": "Read the citation chips before the answer"
+    },
+    {
+      "kind": "quiz",
+      "purpose": "'Nothing matched' — three causes and three fixes"
+    },
+    {
+      "kind": "sim",
+      "purpose": "Order steps: question → chips → passages → narrow source → retry"
+    },
+    {
+      "kind": "slide",
+      "purpose": "Why there is no percentage on the passage bars"
+    },
+    {
+      "kind": "slide",
+      "purpose": "Read the shape of the bars, not their length"
+    },
+    {
+      "kind": "exercise",
+      "purpose": "Write three test questions this base must survive"
+    },
+    {
+      "kind": "action",
+      "purpose": "Run a test question against your own base (check: kb-with-doc)"
+    },
+    {
+      "kind": "quiz",
+      "purpose": "Why the test card can be stricter than an agent's search"
+    },
+    {
+      "kind": "slide",
+      "purpose": "What you can do now, and what the next lesson covers"
+    }
+  ],
+  "steps": [
+    {
+      "type": "slide",
+      "id": "why-test",
+      "icon": "🧭",
+      "title": "A fluent answer proves nothing",
+      "bodyMd": "A capable model writes a confident, well-built paragraph out of the **wrong** document, and you cannot hear the difference. That is the whole reason this card exists.\n\nAt Van Dijk Groep, Sandra has just finished the knowledge base **Inkoopvoorwaarden**: her five uploaded PDFs (the general terms, three supplier framework agreements and an ISO certificate), the supplier's terms page, the *Leveranciers* table and the meeting notes tagged *inkoop*. Tomorrow **Inkoopassistent** — the purchasing agent her colleague Marloes built and published in the previous course — starts answering purchasing questions out of that base. Marloes owns the agent; Sandra owns the material it may quote.\n\nSo today Sandra opens **Test question**. What she judges there is not how the answer reads — it is **which passage it was built on**. The card says so in its own footer, under the box: *\"This is how you check the right source is found, before an agent uses it.\"*"
+    },
+    {
+      "type": "slide",
+      "id": "their-words",
+      "icon": "💬",
+      "title": "Ask what a colleague would really ask",
+      "bodyMd": "Colleagues ask in sentences, so a test has to be a sentence. Sandra types what her purchasing colleagues actually ask — *\"Wat is de levertijd van Bakker Staal?\"* — not the keywords *levertijd Bakker*. The box hints at the same thing with its placeholder: *\"e.g. How long is a quote valid?\"*\n\nYou will find that box in two places: on the **Sources** tab in the right-hand column, and as the whole **Test question** tab.\n\nTwo things to know before you start:\n\n- There is **no conversation here**: one question, one answer, no memory, no tools, nothing stored. A follow-up like *\"en bij Jansen BV?\"* has to be written out in full.\n- Greetings and small talk (*hoi*, *bedankt*, *thanks*) never trigger a lookup at all."
+    },
+    {
+      "type": "slide",
+      "id": "chips-first",
+      "icon": "🔖",
+      "title": "Read the chips before the answer",
+      "bodyMd": "The citation chips appear **before** the answer starts streaming. That order is deliberate: an answer that lands first invites you to read it and believe it.\n\nHere a chip gives you the **document title** — and for a table source that title is the row's own name. A chip reading *Bakker Staal* is a row out of *Leveranciers*; one reading *Inkoopvoorwaarden.pdf* is one of the five uploaded PDFs. (Elsewhere in the product a chip can add a page or a meeting date; this card's lookup passes on only the title, the passage and the score, so here you judge **which document**.)\n\nSandra's check takes a second: for *\"levertijd van Bakker Staal\"* the chip must name the row, not the PDF. Click a chip and the passage opens in full, under the heading it sits beneath — where you confirm it says what you need."
+    },
+    {
+      "type": "quiz",
+      "id": "q-nothing",
+      "question": "The card answers: \"Nothing in this knowledge base matched that question. That is a result: the sources here do not cover it yet.\" What should Sandra conclude?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "It is a result, not a fault: check the documents processed, then fix the source or the wording.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Retrieval is broken, and the base has to be emptied and rebuilt from scratch.",
+          "correct": false,
+          "feedback": "A search that cannot run looks different: it says \"Could not search this knowledge base right now.\" An empty result is a search that ran fine and found nothing above the bar."
+        },
+        {
+          "id": "c",
+          "label": "The answering model failed halfway through, so the card had nothing to show.",
+          "correct": false,
+          "feedback": "No model is called at all in that case. With no passages there is nothing to ground an answer on, so the card reports the empty result straight away."
+        },
+        {
+          "id": "d",
+          "label": "The question was too long for the box, so the card refused to search.",
+          "correct": false,
+          "feedback": "A very long question is trimmed at 2,000 characters, not refused — the first part still searches. An empty result almost always means the passage is not there, or is not found under those words."
+        }
+      ],
+      "explanation": "Three ordinary causes, three fixes. The sources genuinely do not cover it — add or narrow one. The document is in the base but never processed (it sits at processing, failed, skipped or duplicate) — nothing was indexed to find. Or the wording misses: the handbook says \"doorlooptijd\" and you asked for \"levertijd\".",
+      "icon": "❓"
+    },
+    {
+      "type": "sim",
+      "id": "order-fix",
+      "icon": "🧩",
+      "title": "One pass of a retrieval test",
+      "instruction": "Put Sandra's loop in the order the card is built for. Drag the five moves into sequence.",
+      "sim": {
+        "kind": "order",
+        "items": [
+          {
+            "id": "ask",
+            "label": "Ask the question in the words a colleague would use"
+          },
+          {
+            "id": "chips",
+            "label": "Read the citation chips that land before the answer"
+          },
+          {
+            "id": "passages",
+            "label": "Expand \"Passages found (n)\" and compare the bars against each other"
+          },
+          {
+            "id": "narrow",
+            "label": "Narrow or add the source that the chips should have named"
+          },
+          {
+            "id": "again",
+            "label": "Ask the same question again and see whether the chips changed"
+          }
+        ],
+        "solution": [
+          "ask",
+          "chips",
+          "passages",
+          "narrow",
+          "again"
+        ],
+        "feedback": "Chips before passages, passages before touching a source, and always the same question again at the end. Change the question and the source in one go and you learn nothing: you cannot tell which of the two moved the result."
+      }
+    },
+    {
+      "type": "slide",
+      "id": "no-percent",
+      "icon": "📊",
+      "title": "Why the bars carry no number",
+      "bodyMd": "Expand **Passages found (n)** and every passage gets a small bar — with no percentage anywhere. That is on purpose.\n\nA retrieval score is not a percentage of anything. With no reranker it is a fusion score that blends two rankings, so a genuinely good hit lands around **0.016**. With a cross-encoder — a model that re-reads the question and the passage together — it is that model's own relevance, and on one Dutch corpus the very same correct passage scored anywhere from 0.04 to 0.9997, depending only on how the question was phrased.\n\nPrinted as \"2%\" that reads as broken. Printed as \"68%\" it reads as confidence, and someone will want to set a threshold on it. Neither reading is available from that number."
+    },
+    {
+      "type": "slide",
+      "id": "bar-shape",
+      "icon": "📶",
+      "title": "Read the shape, not the length",
+      "bodyMd": "So the bar is scaled against the best hit **in the same answer** — the only comparison the score supports. Two shapes are worth recognising:\n\n- **One bar clear of the rest.** A crisp match: the base knows where this answer lives. Open that passage and you are done.\n- **Several bars of much the same length.** Usually a vague question, or a source too broad to pin anything down. Ask again in sharper words before you go and change a source.\n\nThe list holds up to eight passages. When all of them look alike, believe the shape: fix the question first, the source second."
+    },
+    {
+      "type": "exercise",
+      "id": "ex-three",
+      "icon": "✍️",
+      "exerciseId": "ex-knowledge-test-retrieval-questions",
+      "title": "Your turn: three questions this base must survive",
+      "instruction": "Write three test questions for Sandra's Inkoopvoorwaarden base — or for a base of your own. Phrase each one as a full sentence, the way a colleague would type it, and name the document the citation chip should show (plus the row or page inside it, where that matters). Make one of the three a question you suspect the base does not cover yet, and say what you would do if it comes back empty.",
+      "placeholder": "e.g. \"Wat is de levertijd van Bakker Staal?\" — the chip should name Bakker Staal, the row out of the Leveranciers table, not the general terms PDF. If it names the PDF instead, the table source is too thin and I add the Levertijd column.",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "action",
+      "id": "run-test",
+      "icon": "🏗️",
+      "checkId": "kb-with-doc",
+      "title": "Test one for real",
+      "instruction": "Open a knowledge base of your own, go to the Test question tab and ask one of the questions you just wrote. Read the chips before the answer, then expand \"Passages found\". Nothing is stored when you ask — the card keeps no history by design — so the checklist below confirms the other half: that your base holds processed documents for a test question to retrieve.",
+      "launch": {
+        "navigateTo": "studio/knowledge",
+        "label": "Open Knowledge"
+      }
+    },
+    {
+      "type": "quiz",
+      "id": "q-stricter",
+      "question": "Sandra's test card says nothing matched, yet Marloes' Inkoopassistent — linked to that same base — answers the question with citations. What is the most likely explanation?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "The card holds every hit to one fixed relevance floor; without a calibrated reranker, an agent's search keeps a far lower one.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "The agent has several knowledge bases attached, so it found the answer in a different one.",
+          "correct": false,
+          "feedback": "Possible in general, but then the citation would name a document from another base. It does not explain one and the same base answering in one place and staying silent in the other."
+        },
+        {
+          "id": "c",
+          "label": "The agent remembers the earlier conversation, so it simply reused an answer it had already given.",
+          "correct": false,
+          "feedback": "An agent can reword a question from its context, but the search still runs against the same base. The test card deliberately has no memory, which is exactly why each question is judged on its own."
+        },
+        {
+          "id": "d",
+          "label": "The test card only searches documents that were added to the base in the last few days.",
+          "correct": false,
+          "feedback": "The card searches everything in the base, however old. Age plays no part in what it retrieves."
+        }
+      ],
+      "explanation": "Both paths retrieve from the same index, but they cut the list off at different heights. Treat an empty test result as a strong hint that the base does not cover the question — then confirm it by asking a linked agent the same sentence. If the agent does answer, you have learned something else worth knowing: the passage exists, but it is a weak match, and it will stay a weak match for your colleagues too.",
+      "icon": "❓"
+    },
+    {
+      "type": "slide",
+      "id": "now-you-can",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "- **Test a base before an agent touches it.** Ask a real colleague's sentence, read the chips first, and check the answer against the passage rather than against your expectations.\n- **Read an empty result correctly.** \"Nothing matched\" is a finding about your sources, not a fault — and it is different from \"Could not search this knowledge base right now.\"\n- **Use the bars for shape, not for score.** One clear leader means a crisp match; a flat row of equals means a vague question or a source that needs narrowing.\n\nNext lesson in this course: who may read this base, and who is already using it."
+    }
+  ],
+  "rubrics": {
+    "ex-knowledge-test-retrieval-questions": {
+      "title": "Three test questions with expected citations",
+      "task": "Write three test questions for a knowledge base, phrased as a colleague would type them, each paired with the document, row or page the citation chip should name; one question should be one the base probably does not cover, with a stated next step if it comes back empty.",
+      "criteria": [
+        "Three distinct questions, each a full natural sentence rather than a keyword string.",
+        "Each question names a concrete expected citation — a specific document, and where it matters the row or page inside it — not just 'the right source'.",
+        "One question is deliberately outside what the base covers, and the learner says what they would do if the result is empty (add or narrow a source, or rephrase).",
+        "The answer shows retrieval thinking: it talks about which passage should be found, not about how well the answer should be worded."
+      ],
+      "passScore": 70,
+      "guidance": "Do not pass keyword lists ('levertijd Bakker'), questions with no expected citation attached, or three variations of the same question. Do not pass an answer whose success criterion is the phrasing or tone of the reply. A learner using their own base instead of the Van Dijk Groep example passes on the same terms."
+    }
+  },
+  "practiceTopic": {
+    "title": "Testing retrieval in a knowledge base",
+    "summary": "How the Test question card proves that a knowledge base finds the right passages before an agent starts answering from it.",
+    "facts": [
+      "The Test question card sits on the Sources tab in the right-hand column and again as its own Test question tab; the input placeholder is \"e.g. How long is a quote valid?\" and the button is \"Ask\".",
+      "Citation chips render before the answer streams in, deliberately, so retrieval can be judged before a paragraph built on it is read.",
+      "\"Nothing in this knowledge base matched that question\" is shown as a result, not an error; a search that genuinely fails says \"Could not search this knowledge base right now.\"",
+      "The collapsed \"Passages found (n)\" list shows up to eight passages, each with a bar scaled against the best hit in the same answer and no percentage at all.",
+      "A citation chip is built as title · page-or-row-range · meeting date, and everything after the title is optional; in the Test question card it is normally the document title alone, because the quick lookup passes on only the title, the passage text and the score.",
+      "The test question is not a conversation: no memory, no tools and nothing stored, and the question is trimmed at 2,000 characters.",
+      "Greetings and small talk never trigger a knowledge lookup, so typing \"hoi\" returns nothing by design."
+    ]
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": [
+    "src/main.jsx",
+    "src/test/setup.js",
+    "src/**/*.test.{js,jsx,ts,tsx}",
+    "src/editor/serialization/index.js",
+    "src/shared/expr/index.mjs",
+    "scripts/*.mjs",
+    "vite.config.js",
+    "vite.runtime.config.js"
+  ],
+  "project": ["src/**/*.{js,jsx,ts,tsx,mjs}", "scripts/**/*.mjs"],
+  "vite": false,
+  "vitest": false
+}

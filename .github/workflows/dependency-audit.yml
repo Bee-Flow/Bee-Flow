@@ -1,0 +1,137 @@
+# Dependency vulnerability gate — ISO/IEC 27001 A.8.8.
+#
+# Bee Flow ships an A.8.8 control that FAILS a customer's ISO readiness when a
+# critical or high Dependabot alert has been open past 30 days
+# (server/compliance/checks/iso27001/a8-8-vuln-mgmt.js). This repository ran no
+# dependency scanning of its own until this workflow. A supplier assessment by a
+# certified customer (A.5.19–A.5.22) would be right to raise that.
+#
+# WHY IT RATCHETS RATHER THAN THRESHOLDS: see scripts/audit-ratchet.mjs. Short
+# version — the tree already carries advisories, so "fail on any high" would be
+# red on day one and switched off by the end of the month.
+#
+# Non-blocking companion: .github/dependabot.yml raises the PRs that lower the
+# baseline. This job stops the number growing; that config is what shrinks it.
+#
+# `audit` is a required status check of repo ruleset 23605458 (mirrored in
+# .github/required-checks.json): a change reaches main only through a pull
+# request that is up to date and has `audit` green, and nobody can bypass it.
+name: Dependency audit
+
+on:
+  pull_request:
+  # A push to main runs it too, as belt and braces (the full reason is in
+  # secret-scan.yml): the pull request already passed `audit`, and this run
+  # records the verdict on the exact main commit build-push-ghcr.yml builds
+  # from, against the advisory database of that moment. It reports; it does
+  # not hold back the :dev image build-push-ghcr.yml makes from the same
+  # push, and should not — the ratchet reads the live advisory database, so
+  # an advisory published overnight would block an image for a reason no
+  # commit caused (the expr-eval case, 2026-09-22). main only, for the
+  # reason given in secret-scan.yml.
+  push:
+    branches: [main]
+  schedule:
+    # Monday 05:40 UTC, ahead of the Dependabot runs later that morning, so a
+    # regression that arrived over the weekend is visible before the update PRs
+    # land on top of it.
+    - cron: '40 5 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+
+      # WHY THIS NO LONGER RUNS `npm ci` (it used to install five trees here).
+      # The requirement in the old comment was right and is preserved: the
+      # audit has to see the RESOLVED tree, which is what actually ships. But
+      # the mechanism was wrong. `npm ci` is not what resolves the tree —
+      # package-lock.json is; `npm ci` only materialises it on disk. `npm audit
+      # --package-lock-only` (see scripts/audit-ratchet.mjs) audits the
+      # lockfile tree and provably ignores a range that sits in package.json
+      # but not in the lock, so it reports exactly what ships without
+      # downloading a tarball. Measured identical counts, installed tree vs
+      # lockfile-only, for every target (2026-09-21).
+      #
+      # It is also the stronger form of the supply-chain argument the old
+      # comment was making: that comment ran --ignore-scripts so a dependency's
+      # postinstall could not execute in a job that reads untrusted package
+      # metadata. Not fetching the tarballs at all beats not executing them.
+      #
+      # THE --dry-run LOOP BELOW IS NOT DECORATION. `npm ci` fails hard
+      # (EUSAGE) when package.json and package-lock.json disagree; `npm audit`
+      # does not — it reports 0/0 and exits 0 while a freshly-added vulnerable
+      # dependency sits in package.json, unaudited, absent from the lock. This
+      # job is the ONLY pull-request job that checks that for the repository
+      # root (server and agent-hub are covered by the server and frontend
+      # jobs in ci.yml, nextcloud-connector by its connector job there).
+      # Deleting this step deletes a real check.
+      # Use --dry-run, never `npm install --package-lock-only`: the latter
+      # REWRITES agent-hub's in-sync lockfile (adds six bundled
+      # @tailwindcss/oxide-wasm32-wasi entries, 921 → 927), so a `git diff
+      # --exit-code` sync check on top of it would be red on every PR.
+      #
+      # SCOPE NOTE for whoever sees the number move: `npm ci` on ubuntu-latest
+      # prunes optional dependencies that do not match linux-x64, a
+      # lockfile-only audit counts them all. Measured identical for every
+      # target today, so the committed baseline still holds. A future advisory
+      # in a win32/darwin optional binary would newly be counted — that makes
+      # the gate STRICTER, not looser. The remedy is a deliberate re-baseline
+      # with a reason in the commit message, never dropping this flag.
+      - name: Verify lockfiles are in sync with their manifests
+        run: |
+          set -euo pipefail
+          for d in . server agent-hub nextcloud-connector desktop; do
+            # Label deliberately does NOT repeat the command: audit-ratchet.test.mjs
+            # asserts there is exactly ONE `npm ci --dry-run` in this file.
+            echo "::group::lockfile sync ($d)"
+            (cd "$d" && npm ci --dry-run --ignore-scripts --no-audit --no-fund)
+            echo "::endgroup::"
+          done
+
+      # The ratchet's own unit tests: a fake `npm` on PATH, no node_modules, no
+      # network, about a second. Until this line existed nothing in CI ran them
+      # — scripts/audit-ratchet.test.mjs was written in 71f64c7 and has never
+      # been executed by a workflow. It runs HERE, inside the required `audit`
+      # context, because what it guards is this job's own shape.
+      - name: Ratchet self-tests
+        run: node --test scripts/audit-ratchet.test.mjs
+
+      # `set -o pipefail` IS the gate. A step with no `shell:` runs as
+      # `bash -e {0}`, which has no pipefail, so this pipeline used to exit
+      # with tee's 0: the ratchet's exit 1 never reached the step, and from
+      # 99238626 until 2026-09-23 this required context could not fail on a
+      # regression. The tee stays, for the Summary below.
+      # audit-ratchet.test.mjs runs this step's own body, under the shell
+      # GitHub would pick, against a failing fake ratchet.
+      - name: Ratchet
+        id: ratchet
+        run: |
+          set -o pipefail
+          node scripts/audit-ratchet.mjs | tee "$RUNNER_TEMP/audit.txt"
+
+      # Always, including on failure: the counts are the point of the job, and
+      # a reviewer should not have to open the log to see them.
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo '### Dependency audit (A.8.8)'
+            echo
+            echo '```'
+            cat "$RUNNER_TEMP/audit.txt" 2>/dev/null || echo 'the ratchet produced no output'
+            echo '```'
+            echo
+            echo 'Baseline: `.github/security/audit-baseline.json`. Lower it with `node scripts/audit-ratchet.mjs --update` after fixing something.'
+          } >> "$GITHUB_STEP_SUMMARY"

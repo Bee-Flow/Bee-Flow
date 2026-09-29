@@ -1,0 +1,7 @@
+{
+    "name": "beeflow-argon2",
+    "version": "1.0.0",
+    "private": true,
+    "description": "Native Argon2id for the Bee Flow Android client.",
+    "main": "index.ts"
+}

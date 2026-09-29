@@ -1,0 +1,20 @@
+{
+    "name": "Get Organization",
+    "description": "Retrieves organization details from the database. Can look up by ID or by name. Returns all organization fields including name, tagline, address, email, phone, website, Chamber of Commerce number, VAT number, and logo path.",
+    "category": "Admin",
+    "inputs": {
+        "organizationId": {
+            "type": "string",
+            "description": "The ID of the organization to retrieve. If not provided, 'name' will be used for lookup."
+        },
+        "name": {
+            "type": "string",
+            "description": "The name of the organization to search for (case-insensitive partial match). Used when organizationId is not provided."
+        }
+    },
+    "outputs": {
+        "organization": "object",
+        "found": "boolean"
+    },
+    "agentEnabled": true
+}

@@ -1,0 +1,289 @@
+{
+ "id": "compliance-risk-register",
+ "icon": "⚠️",
+ "estMinutes": 10,
+ "title": "Seed it, score it, own it, review it",
+ "desc": "Working the Risk register: what the seed actually reads, how likelihood × impact scores, who owns a row, and the one clock on the page.",
+ "gate": {
+  "permission": "admin_compliance",
+  "feature": "compliance_hub_gdpr"
+ },
+ "learningGoal": "After this lesson you can fill your organisation's Risk register: seed or add rows, score them likelihood × impact, give each one an owner, a Next review and a treatment plan, and tell an accepted risk from a closed one.",
+ "steps": [
+  {
+   "type": "slide",
+   "id": "why",
+   "icon": "🧭",
+   "title": "The one register a check cannot fill in",
+   "bodyMd": "Van Dijk Groep installs and maintains climate systems: sixty people, field engineers with laptops, a sickness-absence table in Bee Flow and a quote assistant that sales uses every day. An enterprise buyer's security questionnaire lands, and question nine reads: *send us your risk register*.\n\nThe Compliance Hub's checks are measured for you, against your live configuration. A register is not: it is written by hand, and this one starts empty. Open **Settings → Compliance**, and under the **Registers** group in the rail you find **Risk register**, its meta reading `{n} · {high} high`. On a fresh workspace the page says: *\"No risks in the register yet. Seed the suggested scenarios or add your first risk — clause 6.1.2 expects a maintained register.\"*\n\nThis chapter is the hour Marieke spends turning that empty page into rows with names and dates on them."
+  },
+  {
+   "type": "slide",
+   "id": "seed",
+   "icon": "🌱",
+   "title": "Seed suggested risks reads your own workspace",
+   "bodyMd": "**Seed suggested risks** is not a generic checklist. It builds its list from three places:\n\n- Up to **15 checks that are currently failing** — each becomes *\"Failing control: {check id}\"*, category **Compliance**, scored L3 × I3.\n- Up to **ten non-EU processors** seen in outbound integration traffic over the last 30 days that have no SCC attestation on record — *\"Unattested non-EU processor: {name}\"*, **Confidentiality**, L3 × I4.\n- Three scenarios every AI workspace has: **Sensitive data leaves via AI prompts** (Confidentiality, L4 × I4), **Admin account takeover** (Confidentiality, L2 × I5) and **Critical provider outage** (Availability, L3 × I3).\n\nEvery seeded row arrives with status **Open**, no owner and no review date. The button says so itself: *\"Adds common AI-workspace risk scenarios that are not in your register yet — never duplicates and never overwrites entries you already edited.\"*"
+  },
+  {
+   "type": "quiz",
+   "id": "q-seed",
+   "question": "Last month Marieke seeded the register and then rewrote the wording and the score of \"Sensitive data leaves via AI prompts\". Today two more checks started failing, and she presses Seed suggested risks again. What does she get?",
+   "multi": false,
+   "choices": [
+    {
+     "id": "a",
+     "label": "Two new rows for the newly failing checks. Her edited row is left exactly as she wrote it, and nothing is duplicated.",
+     "correct": true
+    },
+    {
+     "id": "b",
+     "label": "A refreshed register: seeded rows are re-scored from the current check results, so her wording and score are replaced.",
+     "correct": false,
+     "feedback": "Seeding only inserts. A scenario already in the register is skipped, edits and all — no row is ever re-scored by the platform. Likelihood and impact change only when a person changes them."
+    },
+    {
+     "id": "c",
+     "label": "Nothing, because seeding only works on an empty register.",
+     "correct": false,
+     "feedback": "You can seed at any time, and it is worth repeating: it adds whatever is missing today, which is how newly failing checks and new non-EU processors reach the register."
+    },
+    {
+     "id": "d",
+     "label": "A second copy of her risk, because its title no longer matches the suggested one.",
+     "correct": false,
+     "feedback": "Each suggestion carries a hidden key, and dedupe runs on that key rather than on the title. Rewriting the title, the scenario or the score never creates a duplicate."
+    }
+   ],
+   "explanation": "Seeding is insert-only and safe to repeat. Treat it as a monthly sweep that asks \"has anything new appeared that we have not written down?\" — it never undoes your judgement."
+  },
+  {
+   "type": "slide",
+   "id": "add",
+   "icon": "➕",
+   "title": "Add risk: write a scenario, not a topic",
+   "bodyMd": "**Add risk** opens a small form under the line *\"Score likelihood × impact on 1–5; the treatment decision comes after, in the drawer.\"* It asks for **Title**, **Description**, **Category**, **Likelihood (1–5)**, **Impact (1–5)** and **Owner**. It opens on Confidentiality with both scales at 3 and the owner set to **No owner**; **Add to register** stays greyed out until the Title has text.\n\nThe Description placeholder is the whole lesson in one line: *\"What could go wrong, and what would the consequence be?\"*\n\n\"Laptops\" is a topic. \"An engineer's laptop with an export of the sickness-absence table on it is stolen from the van\" is a scenario — and a colleague who was not in the room can score it."
+  },
+  {
+   "type": "exercise",
+   "id": "ex-row",
+   "icon": "🎯",
+   "exerciseId": "ex-compliance-risk-register-row",
+   "title": "Your turn: one row for Van Dijk Groep",
+   "instruction": "Write one register row exactly as you would type it into Add risk: a Title of one line, a Description that reads as a scenario (what goes wrong, and what the consequence is), a Category from Confidentiality / Integrity / Availability / Compliance, and Likelihood and Impact as numbers from 1 to 5 — each with one sentence saying what in the organisation makes that number the honest one. Use Van Dijk: sixty staff, engineers with laptops in vans, a sickness-absence table, a customer-facing quote assistant.",
+   "placeholder": "e.g. Title: Sickness-absence export leaves on a stolen laptop\nDescription: … so that …\nCategory: Confidentiality\nLikelihood: 3 because …\nImpact: 4 because …",
+   "passScore": 70,
+   "maxAttempts": 4
+  },
+  {
+   "type": "slide",
+   "id": "score",
+   "icon": "🔢",
+   "title": "One number, four bands",
+   "bodyMd": "Likelihood times impact gives a score from 1 to 25. The row shows it as a coloured pill with the arithmetic beside it — `L4 × I3` — and the colour follows the band: **16–25 critical, 10–15 high, 5–9 medium, 1–4 low**.\n\n**High** starts at 10, and that threshold drives two different things. The **High (≥ 10)** filter pill is a view of the table: it selects every row scoring 10 or more, whatever its status. The register's own High counter — the `{n} · {high} high` in the rail — counts only rows that are **not Closed**, because a risk you genuinely ended is no longer exposure. The Reviews-overdue counter skips closed rows for the same reason.\n\nSo there are exactly two honest ways to move a score: change the likelihood or change the impact — and the only honest reason to do either is that something in the workspace actually changed."
+  },
+  {
+   "type": "slide",
+   "id": "drawer",
+   "icon": "🗂️",
+   "title": "The drawer is where the work happens",
+   "bodyMd": "A row in the table reads: the reference **R-12**, the title with its category and scenario underneath, the score pill, a status pill carrying the number of treatments, and the owner (a dash when there is none).\n\nClick it and a drawer opens beside the table with the same reference in its header. Its sections are **Title**, **Score** (Likelihood, Impact, a live score pill, Category, **Status**, **Next review**), **Owner** (*\"Choose an owner…\"*, picked from your organisation's people), **Acceptance** and **Treatment plan**.\n\nOne button at the bottom writes the form: **Save changes**. Until you press it, nothing you typed is in the register. And you will notice the Status dropdown offers only Open, Treating and Closed — that is deliberate, and the next card explains why."
+  },
+  {
+   "type": "sim",
+   "id": "sim-row",
+   "icon": "🧩",
+   "title": "Work one seeded row, in order",
+   "instruction": "Marieke has just opened the Risk register for the first time. Put her next six moves in the order that leaves a defensible row behind.",
+   "sim": {
+    "kind": "order",
+    "items": [
+     {
+      "id": "seed",
+      "label": "Press Seed suggested risks and read what it inserted"
+     },
+     {
+      "id": "rescore",
+      "label": "Open R-14 \"Unattested non-EU processor\" and re-score Likelihood and Impact against what she knows"
+     },
+     {
+      "id": "owner",
+      "label": "Choose an Owner for the row — the person who will actually chase it"
+     },
+     {
+      "id": "review",
+      "label": "Set Next review to a date she will honour"
+     },
+     {
+      "id": "save",
+      "label": "Press Save changes"
+     },
+     {
+      "id": "treat",
+      "label": "Add a treatment: Mitigate · \"Sign the SCC with the vendor\" · due 30 November"
+     }
+    ],
+    "solution": [
+     "seed",
+     "rescore",
+     "owner",
+     "review",
+     "save",
+     "treat"
+    ],
+    "feedback": "Seeding hands you a scored guess; the row only becomes yours once a person re-scores it, owns it and dates it. Score, category, status, owner and Next review all travel together on one Save changes — the treatment plan is a separate list, added row by row, so it comes once the risk itself is sound."
+   }
+  },
+  {
+   "type": "slide",
+   "id": "treatment",
+   "icon": "🛠️",
+   "title": "Four ways to treat a risk",
+   "bodyMd": "The **Treatment plan** section starts at *\"No treatments recorded yet.\"* A treatment is three things: an option — **Mitigate**, **Transfer**, **Avoid** or **Accept** — a line of **What will be done**, and a due date. **Add treatment** puts it on the row.\n\nA line with a due date reads **Due {date}**; once it carries a completion date it reads **Done {date}** instead. The count rides along on the row's status pill in the table, so you can see at a glance which risks have a plan behind them and which are merely scored.\n\nMitigate means controls; Transfer means a contract or insurance carries it; Avoid means stopping the activity. **Accept** as a treatment records the plan — it is not the same act as accepting the risk."
+  },
+  {
+   "type": "quiz",
+   "id": "q-accept",
+   "question": "Management decides Van Dijk will live with R-9 rather than pay to treat it. Marieke opens the drawer and finds the Status dropdown offering only Open, Treating and Closed. What is she meant to do?",
+   "multi": false,
+   "choices": [
+    {
+     "id": "a",
+     "label": "Press Accept risk in the Acceptance section — the status moves to Accepted and the row keeps a stamp reading \"Accepted by {name} on {date}\".",
+     "correct": true
+    },
+    {
+     "id": "b",
+     "label": "Add a treatment with option Accept and leave the status at Open.",
+     "correct": false,
+     "feedback": "A treatment records the plan, not the decision. Only the Accept risk button writes the who-and-when stamp — and a row left at Open sits in the open queue forever, which is not what management decided."
+    },
+    {
+     "id": "c",
+     "label": "Set the status to Closed, since an accepted risk needs no further work.",
+     "correct": false,
+     "feedback": "Closed means the exposure has ended; closed rows fall out of the High count and stop being flagged for review. An accepted risk is still live — you decided not to treat it, not that it went away."
+    },
+    {
+     "id": "d",
+     "label": "Ask the organisation owner, because only they may set Accepted.",
+     "correct": false,
+     "feedback": "Any role carrying compliance administration — Organisation Admin, Data Protection Officer, ISMS Internal Auditor — can accept. The button exists so the decision gets a name and a date, not to restrict it to one person."
+    }
+   ],
+   "explanation": "The drawer says it plainly: *\"Accepting is a management decision: it records who accepted this risk and when. Nothing is ever accepted automatically.\"* Accepted is kept out of the Status dropdown precisely so it can never be reached during a tidy-up. Once accepted, the section prints the stamp where the button used to be."
+  },
+  {
+   "type": "slide",
+   "id": "overdue",
+   "icon": "⏰",
+   "title": "Next review is the only clock on this page",
+   "bodyMd": "Nothing on this page re-scores, re-reviews or closes a row for you; a register row changes only when a person changes it. (A check can *read* the register — with NIS2 switched on, one flags a register that is empty, a high risk with no treatment behind it, or a review that has gone past due — but no check ever edits a row.) The single date that does anything is **Next review**. Once it is in the past, the row wears a **review overdue** flag beside its title and joins the **Review overdue** filter count.\n\nIt applies to every row that is not Closed, so an **Accepted** risk keeps nagging. That is the point: you accepted it on last year's facts.\n\nThe filter pills across the top — All, Open, Treating, Accepted, Closed, **High (≥ 10)**, **Review overdue** — each carry a count, the search box matches reference, title, scenario and owner, and the table sorts Open first with the highest score at the top. The next thing to do is always the top row."
+  },
+  {
+   "type": "quiz",
+   "id": "q-overdue",
+   "question": "Van Dijk's Review overdue pill counts 7, and the audit is on Friday. Which move actually empties it without telling the auditor a story?",
+   "multi": false,
+   "choices": [
+    {
+     "id": "a",
+     "label": "Open each of the seven, do the review, set Next review to a new realistic date and save the row.",
+     "correct": true
+    },
+    {
+     "id": "b",
+     "label": "Press Accept risk on all seven — an accepted risk is a decided risk.",
+     "correct": false,
+     "feedback": "Accepting changes the status, not the date, and the overdue flag applies to every row that is not Closed. All seven still count — and each now carries her name as the person who accepted it."
+    },
+    {
+     "id": "c",
+     "label": "Clear the Next review field on all seven and save.",
+     "correct": false,
+     "feedback": "It does empty the count, since a row with no review date can never be overdue — and that is exactly the story. The register would then show seven live risks nobody has agreed to look at again."
+    },
+    {
+     "id": "d",
+     "label": "Press Seed suggested risks, which refreshes the review dates.",
+     "correct": false,
+     "feedback": "Seeding only inserts scenarios that are missing. It never touches an existing row, its dates included."
+    }
+   ],
+   "explanation": "The overdue flag is a work queue, not a score. Filter on Review overdue, work from the top, and give each row a date you will actually honour — a register full of realistic dates reads better to an auditor than one that has been silenced."
+  },
+  {
+   "type": "action",
+   "id": "do",
+   "icon": "🏗️",
+   "checkId": "risk-owned",
+   "title": "Put one real risk on the board, with your name on it",
+   "instruction": "In Settings → Compliance → Risk register, press Seed suggested risks or Add risk to get a row. Then open it, set the Owner to yourself, give it a Next review date and press Save changes. We check the register for a row you put there yourself; the owner and the date are yours to set.",
+   "launch": {
+    "navigateTo": "settings/organisation/compliance",
+    "label": "Open Compliance"
+   }
+  },
+  {
+   "type": "slide",
+   "id": "wrap",
+   "icon": "🏁",
+   "title": "What you can do now",
+   "bodyMd": "- **Start from the seed, not from a blank page.** Seed suggested risks reads your failing checks, your unattested non-EU processors of the last 30 days and three universal scenarios — insert-only, repeatable, and it never overwrites what you edited.\n- **Write rows a stranger can score.** Title, scenario, one of the four categories, Likelihood and Impact 1–5; high begins at 10, and only a real change in the workspace may move a score.\n- **Finish every row.** An owner, a Next review, and a treatment plan of Mitigate, Transfer, Avoid or Accept with a due date — saved with Save changes.\n- **Accept deliberately, close honestly.** Accept risk stamps who decided and when; Closed is only for exposure that has actually ended.\n- **Work the queue.** Filter on Review overdue and on High (≥ 10), and keep the top of the list moving."
+  }
+ ],
+ "rubrics": {
+  "ex-compliance-risk-register-row": {
+   "title": "One defensible register row",
+   "task": "Write a single Risk register row for Van Dijk Groep as it would be typed into Add risk: Title, Description as a scenario, Category from the four, and Likelihood and Impact (1-5) with one sentence of evidence for each number.",
+   "criteria": [
+    "The Description is a scenario with a cause and a consequence, not a topic or a control ('laptops', 'phishing', 'we should encrypt' do not qualify).",
+    "The Category is one of Confidentiality, Integrity, Availability or Compliance, and it matches the harm described.",
+    "Likelihood and Impact are each a number from 1 to 5, and each is justified by something observable about Van Dijk Groep rather than by the score the writer wanted.",
+    "The Title is short and specific enough to be recognised in a table of rows."
+   ],
+   "passScore": 70,
+   "guidance": "Do not pass a one-word topic, a missing or unexplained number, a number outside 1-5, a category invented outside the four, or a justification that reasons backwards from a desired score ('impact 2 so it stays under 10'). A rough but honestly argued score beats a precise-looking one with no evidence behind it."
+  }
+ },
+ "practiceTopic": {
+  "title": "Filling and working the Risk register",
+  "summary": "How rows reach the Compliance Hub's Risk register, how likelihood times impact scores them, and what owning, accepting, closing and reviewing a row each mean.",
+  "facts": [
+   "Seed suggested risks inserts only scenarios missing from the register: up to 15 currently failing checks, up to ten unattested non-EU processors seen in integration traffic over the last 30 days, and three universal AI-workspace scenarios. Seeded rows arrive Open, unowned and undated.",
+   "Add risk asks Title, Description, Category, Likelihood (1-5), Impact (1-5) and Owner; it opens at Confidentiality with 3 and 3, and Add to register stays disabled until the Title has text.",
+   "The score is likelihood times impact, 1 to 25, shown as the number plus L4 x I3; bands are 16-25 critical, 10-15 high, 5-9 medium, 1-4 low, and High means 10 or more.",
+   "Accepted cannot be picked from the Status dropdown: the Acceptance section's Accept risk button sets it and stamps 'Accepted by {name} on {date}'.",
+   "A row counts as review overdue when its Next review date has passed and its status is not Closed, so accepted risks keep nagging; the register's High and Reviews-overdue counters skip closed rows, while the High (>= 10) filter pill still lists any row scoring 10 or more.",
+   "In the drawer, Save changes writes title, scenario, category, likelihood, impact, status, owner and Next review together; treatments are added separately with Add treatment as Mitigate, Transfer, Avoid or Accept plus what will be done and a due date.",
+   "The filter pills read All, Open, Treating, Accepted, Closed, High (>= 10) and Review overdue, each with a count, and the table sorts Open first with the highest score at the top."
+  ]
+ },
+ "actionChecks": [
+    {
+      "checkId": "risk-owned",
+      "existing": false,
+      "label": "Own a risk in the register",
+      "hint": "Settings → Compliance → Risk register: seed or add a risk, open it, choose yourself as Owner, set Next review and press Save changes.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/compliance/iso/risks",
+          "returns": "{ risks[{id, title, category, likelihood, impact, score, status, owner_user_id, review_due_at, created_by}], treatments[], stats{total, open, treating, accepted, closed, high, overdue_reviews} }"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "exists",
+          "label": "The risk register holds at least one row",
+          "hint": "Press Seed suggested risks or Add risk on the Risk register page. The Owner and the Next review date are saved on the row itself, where this check cannot look — set them anyway, they are the point of the lesson.",
+          "rule": "GET /api/compliance/iso/risks → stats.total is above zero (risks[] rows are NOT usable: seeded rows carry created_by NULL, which reads as \"the learner’s own\")",
+          "endpoint": "/api/compliance/iso/risks",
+          "expect": {
+            "kind": "truthy",
+            "field": "stats.total"
+          }
+        }
+      ]
+    }
+  ]
+}

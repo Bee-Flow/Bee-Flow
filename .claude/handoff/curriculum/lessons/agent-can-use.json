@@ -1,0 +1,298 @@
+{
+ "id": "agent-can-use",
+ "icon": "🔧",
+ "estMinutes": 13,
+ "title": "What it knows and what it may do",
+ "desc": "Linking knowledge, attaching skills, and granting app actions without handing over the keys.",
+ "gate": {
+  "permission": "manage_agents"
+ },
+ "learningGoal": "After this lesson you can grant an agent exactly the actions it needs, and set confirm-first and whose-connection correctly.",
+ "steps": [
+  {
+   "type": "slide",
+   "id": "parts",
+   "icon": "🧰",
+   "title": "Three cards, three different questions",
+   "bodyMd": "Marloes is the buyer at **Van Dijk Groep**, a Dutch installation firm. Her agent **Inkoopassistent** answers questions about supplier contracts and the price list. Give it too little and it can only chat; give it too much and it can mail a supplier on its own. Everything you hand it lives in three cards on the **Can use** tab.\n\n- **Knowledge** — *Where it looks before it answers*.\n- **Skills** — *The working methods it follows*.\n- **Tools** — *What it may do in other apps*. Granted one action at a time.\n\nKnowledge changes what it **knows**. Skills change **how** it works. Tools change what it **does** — and only the third card reaches outside Bee Flow."
+  },
+  {
+   "type": "tour",
+   "id": "where-know",
+   "target": "[data-tour=\"agent-knowledge\"]",
+   "navigateTo": "studio/agents",
+   "placement": "top",
+   "optional": true,
+   "timeoutMs": 7000,
+   "icon": "📚",
+   "title": "Where a knowledge base gets linked",
+   "body": "This is the Knowledge side of an agent. Link attaches a knowledge base, and each row then shows how many documents it holds and when it was last updated. With nothing attached the card says so plainly: “Nothing linked yet — this agent answers from its instructions alone.”"
+  },
+  {
+   "type": "slide",
+   "id": "strict",
+   "icon": "🔒",
+   "title": "Two kinds of source on one card",
+   "bodyMd": "The Knowledge card takes two different things, and they do not behave alike.\n\nA **knowledge base** is a set of documents the agent searches before it answers. Its row shows how many documents it holds and when it was last updated.\n\nA **table grant** is a live datatable. Its row reads “live”, then the scope — “all rows” or “only the asker's own rows” — then **“reads, does not write”**. So Inkoopassistent can look up today's price; it can never correct one.\n\nTwo limits to carry with you: a run only ever honours the first **25** granted tables, and the setting that makes an agent refuse whatever it cannot look up — **Only answer from these documents** — does not live on this tab at all."
+  },
+  {
+   "type": "quiz",
+   "id": "q-strict",
+   "question": "Inkoopassistent's only source is a granted price table — no knowledge base is linked. Marloes switches on “Only answer from these documents”. What happens to the price questions it used to answer?",
+   "multi": false,
+   "choices": [
+    {
+     "id": "a",
+     "label": "It refuses them: that setting counts linked knowledge bases only, and there are none.",
+     "correct": true
+    },
+    {
+     "id": "b",
+     "label": "Nothing changes — the table is a source, so the rule is already satisfied.",
+     "correct": false,
+     "feedback": "It is a source, and the agent really does read it. But the refusal rule looks at linked knowledge bases only, so an agent with nothing linked ends up refusing everything."
+    },
+    {
+     "id": "c",
+     "label": "The setting cannot be switched on while no knowledge base is linked.",
+     "correct": false,
+     "feedback": "Nothing in the product stops you, and that is exactly why you read the Knowledge card before you reach for this switch."
+    },
+    {
+     "id": "d",
+     "label": "It still answers from the table, but stops naming where the answer came from.",
+     "correct": false,
+     "feedback": "Naming the source is a separate setting. This one decides whether the agent answers at all, not how it credits an answer."
+    }
+   ],
+   "explanation": "A table grant is a real source and a useful one — it is simply not what this rule counts. Link the documents as well, or leave the rule off for an agent whose sole source is a table."
+  },
+  {
+   "type": "tour",
+   "id": "where-tools",
+   "target": "[data-tour=\"agent-tools\"]",
+   "navigateTo": "studio/agents",
+   "placement": "top",
+   "optional": true,
+   "timeoutMs": 7000,
+   "icon": "🔧",
+   "title": "Actions, not apps",
+   "body": "Tools ask a narrower question than “may it use e-mail”. Behind **Choose actions for this app** sits every action that app offers, filtered by **All**, **Reads**, **Writes** and **Sends**, with a footer counting what you added or removed. Afterwards the card reads like “2 of 14 actions”."
+  },
+  {
+   "type": "slide",
+   "id": "curation",
+   "icon": "🎚️",
+   "title": "The first tick changes the rules",
+   "bodyMd": "Until you limit an agent for the first time, it gets **every** action of **every** app it has switched on. The chooser warns you before that flips: “This is the first time you limit this agent: from now on it gets only what is ticked here, and actions that send always ask a person first.”\n\nRead that warning carefully, because it is about **this app**. Ticking two actions for e-mail narrows e-mail. The supplier portal Marloes never opened is untouched and still offers everything it has.\n\nSo curating is not one decision. It is one decision per app — and an app you never open is a decision you never made."
+  },
+  {
+   "type": "quiz",
+   "id": "q-curate",
+   "question": "Inkoopassistent has e-mail and the supplier portal switched on. Marloes opens the e-mail chooser, ticks two read actions and presses Apply changes. She never opens the portal's chooser. What may the agent do in the portal?",
+   "multi": false,
+   "choices": [
+    {
+     "id": "a",
+     "label": "Everything the portal offers — limiting one app does not limit another.",
+     "correct": true
+    },
+    {
+     "id": "b",
+     "label": "Nothing, because the agent is now limited to what is ticked.",
+     "correct": false,
+     "feedback": "The warning is about the app you just curated. An app with no choice written down for it was never narrowed, so it is still wide open."
+    },
+    {
+     "id": "c",
+     "label": "Only the portal's read actions, matching what she ticked for e-mail.",
+     "correct": false,
+     "feedback": "Grants are never copied between apps. What you tick for e-mail says nothing at all about the portal."
+    },
+    {
+     "id": "d",
+     "label": "Nothing, until she presses Publish new version.",
+     "correct": false,
+     "feedback": "Publishing decides when a change reaches other people. It cannot narrow a grant that was never made."
+    }
+   ],
+   "explanation": "A tick narrows the app it belongs to and nothing else. The portal still has its whole set of actions, so the fix is to open its chooser as well — untick what it must not do and press Apply changes."
+  },
+  {
+   "type": "slide",
+   "id": "switchoff",
+   "icon": "🚫",
+   "title": "Switching an app off is an act too",
+   "bodyMd": "Taking an app away from the agent happens in the same chooser as everything else: open it, untick everything, press **Apply changes**. The hint says it out loud — *“Unticking everything switches the app off.”* An app you simply leave alone stays as wide open as it was.\n\nOne more thing to watch. Open the chooser on an older agent that was never narrowed and it starts **fully ticked**, because everything is genuinely still granted. The footer counts what you are about to add or remove; read that count before you apply, or you may hand the agent a curation you never meant to write."
+  },
+  {
+   "type": "slide",
+   "id": "confirm",
+   "icon": "✋",
+   "title": "Direct, or a person confirms first",
+   "bodyMd": "Every app row carries a second switch: **When this app is used** → **Direct** or **Confirm first**.\n\nDirect means the agent simply does it. Confirm first means a person reads the action and approves it before it happens.\n\nYou do not choose for everything. The moment a granted action **sends**, the switch locks on Confirm first and explains itself: “This app can send, so a person always confirms first.” The same lock falls when the catalogue could not read what the actions do — “Could not read what these actions do, so a person confirms first.” Unknown is treated as sending, never as harmless.\n\nFor Inkoopassistent: looking up a price runs straight through; mailing a supplier always waits for a person."
+  },
+  {
+   "type": "sim",
+   "id": "verdicts",
+   "icon": "🧩",
+   "title": "Four actions, four verdicts",
+   "instruction": "Pair each thing Inkoopassistent might do with what actually happens once you grant it.",
+   "sim": {
+    "kind": "match",
+    "pairs": [
+     {
+      "id": "read",
+      "left": "Search the purchasing mailbox for the last price agreement with a supplier",
+      "right": "Direct is allowed — it only reads",
+      "note": "A read never waits for a person: the runtime decides on the action's own effect, so it runs straight through."
+     },
+     {
+      "id": "send",
+      "left": "E-mail that supplier to ask for a fresh quote",
+      "right": "Confirm first, and the switch is locked",
+      "note": "“This app can send, so a person always confirms first.” There is no way to set it to Direct."
+     },
+     {
+      "id": "write",
+      "left": "Write a corrected price into the granted price table",
+      "right": "Not possible at all",
+      "note": "A table grant is read-only: the row says “reads, does not write”."
+     },
+     {
+      "id": "unknown",
+      "left": "Call an action whose effect the app catalogue could not read",
+      "right": "Confirm first, because unknown counts as sending",
+      "note": "“Could not read what these actions do, so a person confirms first.”"
+     }
+    ]
+   }
+  },
+  {
+   "type": "slide",
+   "id": "actas",
+   "icon": "🪪",
+   "title": "Whose connection does it use?",
+   "bodyMd": "The other control on the row is a capsule that decides **whose account** the action runs on. It offers two choices:\n\n- **As: the person asking** — “Everyone uses their own connection.” The default, and the safe one: a colleague reaches only what that colleague may reach.\n- **As: you** — “Everyone borrows your connection — never for actions that send.”\n\nAn app that uses no personal connection at all has nothing to choose between: its capsule is a plain label, **As: Bee Flow**.\n\nBorrowing is a real widening. Every colleague asking Inkoopassistent would read the purchasing mailbox through Marloes' account. Use it for a genuinely shared account, never to spare people a login."
+  },
+  {
+   "type": "exercise",
+   "id": "plan",
+   "icon": "🎯",
+   "exerciseId": "ex-agent-can-use-grants",
+   "title": "Your turn: curate the e-mail app",
+   "instruction": "Marloes wants Inkoopassistent to chase quotes by e-mail. Write the e-mail grant you would give it: name the actions you would tick, say of each whether it reads, writes or sends, and say whether the app ends up on Direct or Confirm first. Finish with one e-mail action you deliberately leave unticked, and why.",
+   "placeholder": "e.g. Tick: search messages (reads), read a message (reads), create a draft (writes), send a message (sends). Because one ticked action sends, the whole app row locks on Confirm first — so a person reads every outgoing mail before it leaves. Left unticked: delete a message. Chasing a quote never needs it, and nothing here should be able to remove evidence.",
+   "passScore": 70,
+   "maxAttempts": 4
+  },
+  {
+   "type": "quiz",
+   "id": "q-actas",
+   "question": "Months ago Marloes set the supplier portal to “As: you”. That lent connection has since been withdrawn. What does Inkoopassistent do now?",
+   "multi": false,
+   "choices": [
+    {
+     "id": "a",
+     "label": "It runs as the person asking, and the Tools card says so out loud.",
+     "correct": true
+    },
+    {
+     "id": "b",
+     "label": "It keeps borrowing Marloes' connection until she changes the setting.",
+     "correct": false,
+     "feedback": "A saved choice is not a credential. With nothing lent there is nothing to borrow, so the run falls back to the person asking — and “As: you” is only offered in the first place while a connection really is lent."
+    },
+    {
+     "id": "c",
+     "label": "The app switches itself off and its actions disappear.",
+     "correct": false,
+     "feedback": "The grant is untouched. Only whose account the actions run on changes — they still run, now on the asker's own connection."
+    },
+    {
+     "id": "d",
+     "label": "Everyone gets an error until a connection is lent again.",
+     "correct": false,
+     "feedback": "Nothing raises an error here. Colleagues who connected that app themselves carry on as normal; only someone without their own connection is stuck."
+    }
+   ],
+   "explanation": "The card refuses to show a setting nobody honours; it reads: Saved as “you”, but there is no lent connection for this app — it runs as the person asking. The grant itself is untouched: only whose account the actions run on has changed."
+  },
+  {
+   "type": "action",
+   "id": "do-grant",
+   "icon": "🏗️",
+   "checkId": "agent-can-use-grant",
+   "title": "Give your agent one source and one action",
+   "instruction": "Open one of your own agents and go to the Can use tab. Under Knowledge, press Link and attach a knowledge base. Then on the Tools card open Choose actions for this app for an app that is already switched on (use Browse apps on the Role tab if there is none yet), tick a single action that only reads, and press Apply changes. Leave anything that sends unticked for now.",
+   "launch": {
+    "navigateTo": "studio/agents",
+    "label": "Open Agents"
+   }
+  },
+  {
+   "type": "slide",
+   "id": "recap",
+   "icon": "✅",
+   "title": "What you can do now",
+   "bodyMd": "- **Tell the three cards apart.** Knowledge is where it looks, Skills is how it works, Tools is what it may do.\n- **Read the Knowledge card before you switch on “Only answer from these documents”.** It counts linked knowledge bases only; a table grant reads, it does not write, and it does not satisfy that rule.\n- **Grant per action, and finish the job.** The first tick limits that app and no other; untick everything and apply to switch one off.\n- **Set the two switches on purpose.** Anything that sends is locked on Confirm first, unknown counts as sending, and “As: you” holds only while a connection is really lent.\n\nNext: the test set that proves Inkoopassistent still answers the way it did last week."
+  }
+ ],
+ "rubrics": {
+  "ex-agent-can-use-grants": {
+   "title": "Curating the e-mail app for Inkoopassistent",
+   "task": "Write the e-mail grant for Inkoopassistent: the actions ticked, named one by one; whether each reads, writes or sends; whether the app ends up on Direct or Confirm first; and one e-mail action left unticked on purpose, with a reason.",
+   "criteria": [
+    "Names concrete e-mail actions rather than switching on the app as a whole.",
+    "Says of each named action whether it reads, writes or sends.",
+    "Lands the app on Confirm first when anything ticked sends, ideally noting that the product locks it there anyway.",
+    "Names at least one action left unticked on purpose, with a reason."
+   ],
+   "passScore": 70,
+   "guidance": "Pass only an answer built from named actions. Fail “switch e-mail on” with no actions listed; fail an answer that ticks a sending action and still puts the app on Direct; fail an answer that never says what any action does. An answer that ticks only reads and writes may stay on Direct — that is correct, as long as it says so deliberately."
+  }
+ },
+ "practiceTopic": {
+  "title": "What an agent knows and may do",
+  "summary": "The Can use tab: knowledge bases and table grants, attached skills, and per-action app grants with their confirm and connection switches.",
+  "facts": [
+   "The Can use tab holds three cards: Knowledge (“Where it looks before it answers”), Skills (“The working methods it follows”) and Tools (“What it may do in other apps”).",
+   "The setting “Only answer from these documents” is not on the Can use tab, and its refusal counts linked knowledge bases only — a table grant alone never satisfies it.",
+   "A table grant is read-only: the row shows “live”, the scope (“all rows” or “only the asker's own rows”) and “reads, does not write”. A run honours the first 25 granted tables.",
+   "The action chooser filters actions by Reads, Writes and Sends, and warns on the first curation that from then on the agent gets only what is ticked there.",
+   "Limiting one app does not limit another: an app with no choice written for it keeps every action it offers, and an older agent's chooser opens fully ticked.",
+   "If a granted action sends, the confirm switch locks — “This app can send, so a person always confirms first.” An effect the catalogue cannot read locks it the same way.",
+   "Whose connection: “As: the person asking” (the default) and “As: you” (selectable only while a connection is really lent, and never for sending actions); an app with no personal connection shows the fixed label “As: Bee Flow”.",
+   "With nothing attached the Knowledge card reads “Nothing linked yet — this agent answers from its instructions alone.”"
+  ]
+ },
+ "actionChecks": [
+  {
+   "checkId": "agent-can-use-grant",
+   "existing": false,
+   "label": "Link knowledge and grant one action",
+   "hint": "Studio → Agents → open your agent → Can use: Link a knowledge base, then tick one read action and press Apply changes.",
+   "endpoints": [
+    {
+     "method": "GET",
+     "path": "/agents",
+     "returns": "array of the caller's own agent rows (system agents included), each with id, name, owner_id and a parsed config holding knowledge_base_ids and tools"
+    }
+   ],
+   "criteria": [
+    {
+     "id": "knowledge",
+     "label": "A knowledge base is linked",
+     "hint": "Can use → Knowledge → Link, then pick a base that already holds a document.",
+     "rule": "at least one row with owner_id !== 'system' has config.knowledge_base_ids as a non-empty array"
+    },
+    {
+     "id": "action",
+     "label": "At least one app action is granted",
+     "hint": "Can use → Tools → Choose actions for this app → tick one read action → Apply changes.",
+     "rule": "that same row has a config.tools entry whose key is neither datatables nor automations and whose actions is a non-empty array"
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,33 @@
+{
+  "name": "n8n Webhook (Header Auth)",
+  "description": "Triggers an n8n workflow via Webhook using a custom header for authentication.",
+  "category": "n8n/Triggers",
+  "inputs": {
+    "webhookUrl": {
+      "type": "string",
+      "default": "",
+      "description": "The URL of the n8n Webhook (POST)"
+    },
+    "headerName": {
+      "type": "string",
+      "default": "token",
+      "description": "The name of the authentication header (e.g., 'Authorization', 'X-API-KEY')"
+    },
+    "headerValue": {
+      "type": "string",
+      "default": "",
+      "description": "The value for the header (e.g., 'Bearer <token>', 'my-secret-key')",
+      "secure": true
+    },
+    "data": {
+      "type": "array",
+      "description": "The JSON payload to send to the workflow"
+    }
+  },
+  "outputs": {
+    "response": "any",
+    "status": "number",
+    "success": "boolean"
+  },
+  "agentEnabled": true
+}

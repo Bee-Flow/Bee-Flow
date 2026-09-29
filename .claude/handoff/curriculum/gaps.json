@@ -1,0 +1,345 @@
+{
+ "projects-shared-workspace": {
+  "kind": "new",
+  "course": "course-power",
+  "severity": "high",
+  "missing": [
+   "The sidebar rows Projects / New Project and the whole workspace behind them (tabs General · Chats · Content · Knowledge · Members · Activity · Memory · Danger), Remove from project, and project memory as a third shared pool with its own types, a read-only state for view-only members and the Extract Project Memories checkbox. Also that a conversation shared into a project is re-encrypted with an org-derived key, so the operator can read it. Lessons mention 'projects' only inside a list of Studio object kinds and one clause in using-memory."
+  ],
+  "area": "Projects (collaboration workspace + project memory pool)"
+ },
+ "templates-document-assembly": {
+  "kind": "new",
+  "course": "course-research",
+  "severity": "high",
+  "missing": [
+   "A real sidebar surface for .docx templates with {{parameters}}: 'Upload .docx templates with {{parameters}} for AI to fill', per-template Fill with AI → Generate Document, the failure 'No {{parameters}} found in the document to fill.', and the notebook-side AI fill. Zero coverage — every 'template' hit in the lessons is a routine template or a meeting summary template."
+  ],
+  "area": "Templates — document assembly (/app/templates)"
+ },
+ "apps-edit-the-canvas": {
+  "kind": "new",
+  "course": "course-apps",
+  "severity": "high",
+  "missing": [
+   "The component strip (Basics · Content · Layout · Data · Input · AI, 'Click to add — or drag it onto the canvas'), Add screen / Screen options / Set as home screen / Delete screen / Manage navigation…, 'An app needs at least one screen', and per-component rules 'Hidden in the running app' / 'Only shown when {expr}' / 'Only usable when {expr}'. All four Apps lessons drive the AI builder; no learner ever adds a component or a screen."
+  ],
+  "area": "Apps — editing the canvas by hand"
+ },
+ "compliance-risk-register": {
+  "kind": "new",
+  "course": "course-admin-trust",
+  "severity": "high",
+  "missing": [
+   "Its own rail row and page: Seed suggested risks, Add risk, Likelihood 1–5 × Impact 1–5, score L×I, categories Confidentiality/Integrity/Availability/Compliance, statuses Open/Treating/Accepted/Closed, 'review overdue'. Named twice in the lessons, both times only as 'Risk register (PDF)' inside the Stage-1 evidence pack."
+  ],
+  "area": "Compliance — Risk register"
+ },
+ "compliance-training-and-literacy": {
+  "kind": "new",
+  "course": "course-admin-trust",
+  "severity": "high",
+  "missing": [
+   "The Training & competence register (per member: policies acknowledged, platform learning progress, Attest training → Record attestation, Re-attest) and the AI literacy group in Compliance Settings — a legal obligation under the EU AI Act. Neither appears in any lesson."
+  ],
+  "area": "Compliance — Training & competence and AI literacy (AI Act Art. 4)"
+ },
+ "compliance-public-dsr-form": {
+  "kind": "new",
+  "course": "course-admin-trust",
+  "severity": "high",
+  "missing": [
+   "/dsr (also /privacy/requests, no login): Privacy request, the six request types with their articles, reference number, 'Check an existing request', /dsr/verify → Identity confirmed, the DSR section's own Public form and Settings tabs, and the fact that it is rate-limited and linked from the privacy notice. The inbox lesson only notes that form requests 'are already in the list'."
+  ],
+  "area": "Compliance — the public DSR intake form"
+ },
+ "admin-ai-configuration": {
+  "kind": "new",
+  "course": "course-admin-operations",
+  "severity": "high",
+  "missing": [
+   "Which model sits behind Fast / Think / Deep Thinking (Azure Configuration → Chat Model Tiers), the Memory Extraction Model card ('Defaults to the Fast tier model when unset'), Admin → Integrations → Transcription (Active Provider: Voxtral / Azure Speech / WhisperX / Scaleway / pyannoteAI) and Admin → Integrations → Search (Azure Bing, Serper, Agent Search Service URL). Referenced by four fact sheets; no lesson opens any of it."
+  ],
+  "area": "Admin → AI configuration (the switchboard behind every tier)"
+ },
+ "datatables-rows-and-repair": {
+  "kind": "new",
+  "course": "course-data-and-forms",
+  "severity": "high",
+  "missing": [
+   "Search the text columns…, the filter builder (Show rows that match / all conditions / any condition / Add a condition / Apply {n} conditions), row edit and bulk delete, paging, the Dashboard tab, Check & repair ('The storage for this table has not been made yet.' → Repair it), Rename table, and Delete this table… / Unlink this table… — the dangerous one, on tables routines and apps already read."
+  ],
+  "area": "Datatables — rows in daily use, and destroying a table"
+ },
+ "cowork-run-as-agent": {
+  "kind": "new",
+  "course": "course-cowork",
+  "severity": "high",
+  "missing": [
+   "Chip 3 Run as agent and the Agent sheet ('Who does the work?' — 'An agent brings its own skills, knowledge and connected apps', No agent = 'Runs as a plain prompt'); linking an agent makes the result land in that agent's chat thread and forces the tier to auto; the Apps picker is a per-item allow-list where an empty list is a real answer and an unreadable list claims nothing."
+  ],
+  "area": "Cowork — Run as agent and the per-item Apps allow-list"
+ },
+ "webpages-share-links": {
+  "kind": "new",
+  "course": "course-apps",
+  "severity": "high",
+  "missing": [
+   "+ New link → 'Who can access this link?' with Anyone with the link, Password-protected, Email-gated (one-time link), Expires, Create link. The publish lesson covers audience, the public address and the per-column gate, but not the ladder an owner uses to send a page to one customer."
+  ],
+  "area": "Webpages — share links"
+ },
+ "meetings-insights-and-transcript": {
+  "kind": "new",
+  "course": "course-meeting-notes",
+  "severity": "high",
+  "missing": [
+   "Insights (Overview / People / Flow / Topics / Follow-up) with Balance, Interactivity and Silence, plus Search transcript…, 'What is this line?', Copy quote, 'Already an action', and Ask AI / AI report on a note."
+  ],
+  "area": "Meeting notes — the Insights tab and the transcript tools"
+ },
+ "org-meeting-settings-and-templates": {
+  "kind": "new",
+  "course": "course-admin-operations",
+  "severity": "high",
+  "missing": [
+   "Settings → Organisation → 'Talk Meeting Notes' (which overrides each member's personal setting) and 'Per-person meeting insights' — an org switch deciding whether staff are measured individually — plus Settings → Organisation → Meeting Templates ('Organization summary templates', Default badge, scope Just me / Whole organization / group, New template…)."
+  ],
+  "area": "Organisation meeting settings and org summary templates"
+ },
+ "chat-create-media": {
+  "kind": "new",
+  "course": "course-foundations",
+  "severity": "medium",
+  "missing": [
+   "The composer's Create image, music, video row with its panel tabs Image, Music & TTS, SFX, and the org/API-key conditions that make it appear at all."
+  ],
+  "area": "Chat — media creation"
+ },
+ "chat-voice-and-dictation": {
+  "kind": "new",
+  "course": "course-foundations",
+  "severity": "medium",
+  "missing": [
+   "Voice mode (beta) — 'Talk with your assistant instead of typing' — and the mic button ('Dictate — speak your instruction' / 'Stop recording and insert the text'), including that an empty box turns Send into Voice Chat."
+  ],
+  "area": "Chat — voice mode and dictation"
+ },
+ "agent-behavior-and-memory": {
+  "kind": "new",
+  "course": "course-build-agent",
+  "severity": "medium",
+  "missing": [
+   "Allow copying, Disable integrations & web search ('Block all integration tools and web search for this agent.'), and the agent Memory toggle — its own private bucket other agents cannot see — with the sub-toggle 'Also read from your general memory'."
+  ],
+  "area": "Agent → Advanced settings → Behavior"
+ },
+ "routine-extra-triggers": {
+  "kind": "new",
+  "course": "course-routines-production",
+  "severity": "medium",
+  "missing": [
+   "definition.triggers[]: a routine can gain extra entry points; only webhook, app_event and schedule may be secondary, while manual, form, agent_call and app_trigger can only be the single primary trigger — and dropping one asks before it replaces the current trigger."
+  ],
+  "area": "Routines — secondary triggers"
+ },
+ "routine-shield-step": {
+  "kind": "new",
+  "course": "course-routines-production",
+  "severity": "medium",
+  "missing": [
+   "One palette entry with three modes (Find personal data = scan + branch, Hide personal data = reversible placeholders minted into the run vault, Show real values again), and that a drop seeds check mode because it changes no data. Two passing mentions across ten routine lessons, in a privacy-first product."
+  ],
+  "area": "Routines — the Privacy Shield step"
+ },
+ "forms-appearance-and-stopping": {
+  "kind": "new",
+  "course": "course-data-and-forms",
+  "severity": "medium",
+  "missing": [
+   "Themes Clean / Corporate / Friendly / Night / Match visitor plus Corners, Spacing, Text size, Appearance — on a page that faces customers — and the 'Stop collecting?' confirm."
+  ],
+  "area": "Forms — appearance and switching collection off"
+ },
+ "skills-audience-and-sharing": {
+  "kind": "new",
+  "course": "course-skills-automation",
+  "severity": "medium",
+  "missing": [
+   "A skill carries the same Publish to… capsule as an agent (Personal / Entire organisation / Or specific groups) with the 'Share more widely?' confirm; without it, 'write the method once' stops at your own agents."
+  ],
+  "area": "Skills — audience"
+ },
+ "settings-account-security": {
+  "kind": "new",
+  "course": "course-power",
+  "severity": "medium",
+  "missing": [
+   "The account-security tab every user has — password change, two-factor, sessions — with the admin counterpart 'Reset two-factor authentication?' in Admin → Security → Users. Untaught, and no fact sheet covers it in depth either."
+  ],
+  "area": "Personal Settings → Security"
+ },
+ "admin-plan-and-billing": {
+  "kind": "new",
+  "course": "course-admin-operations",
+  "severity": "medium",
+  "missing": [
+   "Change plan / Manage Billing / Subscribe / Cancel subscription (and its end-of-period confirm), Plan limits (Users / Agents / Knowledge sources), cost cap per month, and 'Tier is managed server-wide' on self-host where the row disappears entirely."
+  ],
+  "area": "License & Usage as a workflow"
+ },
+ "studio-start-and-map": {
+  "kind": "new",
+  "course": "course-build-agent",
+  "severity": "medium",
+  "missing": [
+   "The builder's landing: 'Needs attention' (computed by the same grounding function the agent cards use, so the two screens cannot disagree) and the map of which object uses which — the screen a builder sees before every session."
+  ],
+  "area": "Studio Start and the Studio map"
+ },
+ "integrations-org-access": {
+  "kind": "extend",
+  "severity": "medium",
+  "missing": [
+   "The second tab beside the access matrix: the n8n panel (Connection / Workflows / Permissions, n8n Instance URL, API Key, Test Connection) and the Google Maps key with its required APIs — where org credentials actually live."
+  ],
+  "area": "Organisation integration settings (n8n, Google Maps)"
+ },
+ "compliance-setup-and-score": {
+  "kind": "extend",
+  "severity": "medium",
+  "missing": [
+   "More frameworks (NIS2 · CRA · Data Act · Product liability · EAA · DORA · Machinery · own frameworks), Add framework, the relevance gate for DORA and Machinery, and locked (licence refuses with feature_locked) versus disabled (the org chose not to enable it)."
+  ],
+  "area": "Compliance — extra frameworks"
+ },
+ "meetings-capture": {
+  "kind": "extend",
+  "severity": "medium",
+  "missing": [
+   "Transcripts are keyed to the organisation, not to a user, because summary and insight jobs read them with no session — so on Zero-knowledge a meeting transcript is readable by the server operator. The fact sheet explicitly instructs authors to say this in any meeting-notes lesson; no meetings lesson mentions encryption at all."
+  ],
+  "area": "Zero-knowledge caveat for meeting transcripts"
+ },
+ "research-notebooks": {
+  "kind": "extend",
+  "severity": "medium",
+  "missing": [
+   "The notebook Members / Activity / Danger tabs — who else can read a notebook, and what the danger zone does. The lesson teaches export but not the audience."
+  ],
+  "area": "Notebook sharing"
+ },
+ "solutions-bundle-and-check": {
+  "kind": "extend",
+  "severity": "medium",
+  "missing": [
+   "Secrets and credentials are stripped when a Solution is published or exported; bridge grants travel as REQUIRES, not as data. Relevant precisely when a bundle leaves the organisation."
+  ],
+  "area": "Solutions — the scrub"
+ },
+ "apps-roles-and-publish": {
+  "kind": "extend",
+  "severity": "medium",
+  "missing": [
+   "Where colleagues open a published app: Recently used / All apps, the category row (All · Sales · Service · Finance · HR · Internal), 'Only what you are allowed to use appears here', 'This app is shared with specific groups' and 'This app is not available to you'."
+  ],
+  "area": "The consumer Apps surface"
+ },
+ "knowledge-sources-and-refresh": {
+  "kind": "extend",
+  "severity": "medium",
+  "missing": [
+   "The freshness verdict on a base (dot plus 'updated {when}', refresh-failed state), duplicate versus overlap, system-managed bases, and what deleting a base or a single source takes with it."
+  ],
+  "area": "Knowledge — freshness and deletion"
+ },
+ "playbooks-run-a-recipe": {
+  "kind": "extend",
+  "severity": "medium",
+  "missing": [
+   "The pre-run options a playbook asks for (Pick a table…, Approver group (optional), Nextcloud folder with the invoices, Me (the owner)) and the 'Check the options.' error — the step between choosing a playbook and watching it build.",
+   "Presenter mode (Shift+P) for demoing a build, and the rule that a playbook follows the interface language."
+  ],
+  "area": "Playbooks — the options form before a run"
+ },
+ "admin-joining-and-sso": {
+  "kind": "extend",
+  "severity": "medium",
+  "missing": [
+   "Allowed Domains on the Sign-in Method screen, and the Azure AD Group Sync settings beyond Destructive sync: Auto-activate synced users, Automatic periodic sync with Sync every 1/3/6/12/24/48 h or Weekly, and the required Graph permissions."
+  ],
+  "area": "Self-hosted SSO extras"
+ },
+ "research-web-and-browse": {
+  "kind": "extend",
+  "severity": "medium",
+  "missing": [
+   "basic (~300 tokens, 3–5 bullets) / detailed / highly_detailed — the knob that decides how much of each page comes back, and therefore what a search costs and how good it is."
+  ],
+  "area": "Web search detail level"
+ },
+ "agent-publish-and-audience": {
+  "kind": "extend",
+  "severity": "low",
+  "missing": [
+   "The conflict modal 'This agent changed elsewhere' → Load latest (discards your edits) or Keep mine (overwrites) — two tabs or two people on one agent."
+  ],
+  "area": "Agent editing conflicts"
+ },
+ "admin-access-control": {
+  "kind": "extend",
+  "severity": "low",
+  "missing": [
+   "The modals Users & Groups lacks: Add new user, Edit user, Delete this user? ('The account is removed and cannot be restored.'), Delete this group? and Reset two-factor authentication? — reachable by an org admin through admin_security."
+  ],
+  "area": "Admin → Security → Users (the second user surface)"
+ },
+ "admin-groups-and-tiers": {
+  "kind": "extend",
+  "severity": "low",
+  "missing": [
+   "OrgCustomTiersPanel is reachable only by URL (/app/org-settings/users/customTiers) and has no tab button; custom tiers are named twice in admin-groups-and-tiers without the panel ever being opened."
+  ],
+  "area": "Custom model tiers panel"
+ },
+ "usage-caps-and-quality": {
+  "kind": "extend",
+  "severity": "low",
+  "missing": [
+   "The 'cost · 30d' column on each member row and its tooltip '{calls} requests · {cost} (last 30 days)' — the cheapest way for an admin to spot the heaviest user."
+  ],
+  "area": "Per-user AI cost in the member list"
+ },
+ "chat-history-hygiene": {
+  "kind": "extend",
+  "severity": "low",
+  "missing": [
+   "The filter row (All / Agents / Direct, agent dropdown, Any time / Last 7 / 30 / 90 days) and the Relevance vs Date sort — chat-history-hygiene teaches search and Recent searches but not the filters."
+  ],
+  "area": "Chat search overlay filters"
+ },
+ "datatables-create": {
+  "kind": "extend",
+  "severity": "low",
+  "missing": [
+   "Build it with AI → Draft the columns (and Drafting…) when creating a table — the path most people will actually take."
+  ],
+  "area": "Datatable AI column drafting"
+ },
+ "routine-steps-that-persist": {
+  "kind": "extend",
+  "severity": "low",
+  "missing": [
+   "The per-step reuse tick in the routine builder (with its own TTL, which must not be longer than the org TTL). Taught only as an org-wide switch."
+  ],
+  "area": "Answer Reuse at step level"
+ },
+ "org-usage": {
+  "kind": "extend",
+  "severity": "low",
+  "missing": [
+   "Cached tokens, cache-creation tokens and reasoning tokens as distinct rows in the usage report, plus the fact that there is no export button and that tool rows are excluded."
+  ],
+  "area": "Usage token kinds and the missing export"
+ }
+}

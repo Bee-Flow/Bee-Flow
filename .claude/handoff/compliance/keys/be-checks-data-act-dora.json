@@ -1,0 +1,106 @@
+{
+  "en": {
+    "compliance.check_data_act_export_coverage_title": "Every data kind can be exported",
+    "compliance.check_data_act_export_coverage_desc": "Customers must be able to take all their data when switching (Data Act Art. 30). Each kind of data held here needs a working export endpoint.",
+    "compliance.check_data_act_export_coverage_fix": "Ship an export endpoint for the listed kinds (see the Portability matrix) or remove the data kind from the product.",
+
+    "compliance.check_data_act_formats_title": "Exports use machine-readable formats",
+    "compliance.check_data_act_formats_desc": "Exported data must be in a structured, commonly used format (JSON, CSV, ZIP, DOCX). PDF-only exports do not allow migration.",
+    "compliance.check_data_act_formats_fix": "Add a JSON or CSV variant to the flagged export endpoints.",
+
+    "compliance.check_data_act_notice_period_title": "Switching notice period ≤ 2 months",
+    "compliance.check_data_act_notice_period_desc": "A customer may initiate switching with at most two months' notice regardless of contract term (Data Act Art. 25(2)(d)). Self-hosted installs are out of scope.",
+    "compliance.check_data_act_notice_period_fix": "Declare the notice period in the platform billing settings (and in your own customer terms if you resell the service).",
+
+    "compliance.check_data_act_exit_procedure_title": "Exit procedure documented and tested",
+    "compliance.check_data_act_exit_procedure_desc": "A written exit procedure plus a recent export test shows switching works in practice, not just on paper (Data Act Art. 25, DORA Art. 28(8)).",
+    "compliance.check_data_act_exit_procedure_fix": "Publish the exit-procedure policy under Compliance → Policies and perform (or attest) a full export at least yearly.",
+
+    "compliance.check_dora_incident_path_title": "Incident reporting path to financial customers",
+    "compliance.check_dora_incident_path_desc": "Financial entities must report major ICT incidents within hours; as their provider you must notify them promptly (DORA Art. 30). Customer contacts and a notice window must be in place.",
+    "compliance.check_dora_incident_path_fix": "Add customer incident contacts and the notice window under Compliance → Settings → DORA; stamp the customer notification on each incident.",
+
+    "compliance.check_dora_register_title": "Register of ICT third-party providers",
+    "compliance.check_dora_register_desc": "DORA Art. 28(3) requires a register of all ICT third-party arrangements with contract references and criticality. The register is derived from the operators your workspace actually uses.",
+    "compliance.check_dora_register_fix": "Complete the contract reference, country and criticality for each operator under Compliance → ROPA.",
+
+    "compliance.check_dora_contract_clauses_title": "Contractual clauses confirmed",
+    "compliance.check_dora_contract_clauses_desc": "Contracts with financial entities must contain the DORA Art. 30 provisions (service descriptions, locations, service levels, audit rights, exit). Confirm your template yearly.",
+    "compliance.check_dora_contract_clauses_fix": "Confirm your contract template covers Art. 30 and link it under Compliance → Settings → DORA.",
+
+    "compliance.pf_kind_automations": "Routines",
+    "compliance.pf_kind_datatables": "Tables",
+    "compliance.pf_kind_studio_apps": "App data",
+    "compliance.pf_kind_cms_sites": "Websites (CMS)",
+    "compliance.pf_kind_solutions": "Solution packages",
+    "compliance.pf_kind_meeting_notes": "Meeting notes",
+    "compliance.pf_kind_notebooks": "Notebooks",
+    "compliance.pf_kind_dsr_requests": "Data subject requests",
+    "compliance.pf_kind_access_audit": "Access audit log",
+    "compliance.pf_kind_compliance_evidence": "Compliance evidence",
+    "compliance.pf_kind_memories": "Assistant memory",
+    "compliance.pf_kind_agents": "Agents",
+    "compliance.pf_kind_knowledge_bases": "Knowledge bases",
+    "compliance.pf_kind_conversations": "Conversations",
+    "compliance.pf_kind_ai_webpages": "AI webpages",
+    "compliance.pf_kind_form_submissions": "Form submissions",
+
+    "compliance.pf_gap_agents": "No export route yet — agents can only be viewed in the product.",
+    "compliance.pf_gap_knowledge_bases": "Only single files can be downloaded — there is no bulk export of a knowledge base.",
+    "compliance.pf_gap_conversations": "No export route yet — chat history cannot be taken along.",
+    "compliance.pf_gap_ai_webpages": "Only a PDF render exists — a render is not a portable export (no HTML, CSS, scripts or files).",
+    "compliance.pf_gap_form_submissions": "No export route yet — form answers and runs cannot be taken along."
+  },
+  "nl": {
+    "compliance.check_data_act_export_coverage_title": "Elke gegevenssoort is exporteerbaar",
+    "compliance.check_data_act_export_coverage_desc": "Klanten moeten al hun gegevens kunnen meenemen bij overstappen (Data Act art. 30). Elke soort gegevens die hier wordt bewaard heeft een werkend exportendpoint nodig.",
+    "compliance.check_data_act_export_coverage_fix": "Lever een exportendpoint voor de genoemde soorten (zie de Portabiliteitsmatrix) of verwijder de gegevenssoort uit het product.",
+
+    "compliance.check_data_act_formats_title": "Exports in machineleesbare formaten",
+    "compliance.check_data_act_formats_desc": "Geëxporteerde gegevens moeten in een gestructureerd, gangbaar formaat staan (JSON, CSV, ZIP, DOCX). Alleen-PDF-exports maken migratie onmogelijk.",
+    "compliance.check_data_act_formats_fix": "Voeg een JSON- of CSV-variant toe aan de gemarkeerde exportendpoints.",
+
+    "compliance.check_data_act_notice_period_title": "Opzegtermijn bij overstappen ≤ 2 maanden",
+    "compliance.check_data_act_notice_period_desc": "Een klant mag overstappen met een opzegtermijn van maximaal twee maanden, ongeacht de contractduur (Data Act art. 25(2)(d)). Self-hosted installaties vallen buiten de scope.",
+    "compliance.check_data_act_notice_period_fix": "Leg de opzegtermijn vast in de factureringsinstellingen van het platform (en in je eigen klantvoorwaarden als je de dienst doorlevert).",
+
+    "compliance.check_data_act_exit_procedure_title": "Exitprocedure gedocumenteerd en getest",
+    "compliance.check_data_act_exit_procedure_desc": "Een schriftelijke exitprocedure plus een recente exporttest laat zien dat overstappen in de praktijk werkt, niet alleen op papier (Data Act art. 25, DORA art. 28(8)).",
+    "compliance.check_data_act_exit_procedure_fix": "Publiceer het exitprocedure-beleid onder Compliance → Beleid en voer minstens jaarlijks een volledige export uit (of leg die vast).",
+
+    "compliance.check_dora_incident_path_title": "Meldroute voor incidenten naar financiële klanten",
+    "compliance.check_dora_incident_path_desc": "Financiële instellingen moeten grote ICT-incidenten binnen uren melden; als hun leverancier moet je hen direct informeren (DORA art. 30). Klantcontacten en een meldtermijn moeten vastliggen.",
+    "compliance.check_dora_incident_path_fix": "Voeg klantcontacten voor incidenten en de meldtermijn toe onder Compliance → Instellingen → DORA; leg de klantmelding vast op elk incident.",
+
+    "compliance.check_dora_register_title": "Register van ICT-derden",
+    "compliance.check_dora_register_desc": "DORA art. 28(3) vereist een register van alle ICT-uitbestedingen met contractreferentie en kritikaliteit. Het register wordt afgeleid van de partijen die je werkruimte daadwerkelijk gebruikt.",
+    "compliance.check_dora_register_fix": "Vul per partij de contractreferentie, het land en de kritikaliteit aan onder Compliance → Verwerkingsregister.",
+
+    "compliance.check_dora_contract_clauses_title": "Contractbepalingen bevestigd",
+    "compliance.check_dora_contract_clauses_desc": "Contracten met financiële instellingen moeten de bepalingen van DORA art. 30 bevatten (dienstbeschrijving, locaties, serviceniveaus, auditrechten, exit). Bevestig je sjabloon jaarlijks.",
+    "compliance.check_dora_contract_clauses_fix": "Bevestig dat je contractsjabloon art. 30 dekt en koppel het onder Compliance → Instellingen → DORA.",
+
+    "compliance.pf_kind_automations": "Routines",
+    "compliance.pf_kind_datatables": "Tabellen",
+    "compliance.pf_kind_studio_apps": "App-gegevens",
+    "compliance.pf_kind_cms_sites": "Websites (CMS)",
+    "compliance.pf_kind_solutions": "Oplossingspakketten",
+    "compliance.pf_kind_meeting_notes": "Vergadernotities",
+    "compliance.pf_kind_notebooks": "Notitieboeken",
+    "compliance.pf_kind_dsr_requests": "Verzoeken van betrokkenen",
+    "compliance.pf_kind_access_audit": "Toegangslogboek",
+    "compliance.pf_kind_compliance_evidence": "Compliance-bewijs",
+    "compliance.pf_kind_memories": "Assistentgeheugen",
+    "compliance.pf_kind_agents": "Agents",
+    "compliance.pf_kind_knowledge_bases": "Kennisbanken",
+    "compliance.pf_kind_conversations": "Gesprekken",
+    "compliance.pf_kind_ai_webpages": "AI-webpagina's",
+    "compliance.pf_kind_form_submissions": "Formulierinzendingen",
+
+    "compliance.pf_gap_agents": "Nog geen exportroute — agents zijn alleen in het product te bekijken.",
+    "compliance.pf_gap_knowledge_bases": "Alleen losse bestanden zijn te downloaden — er is geen bulkexport van een kennisbank.",
+    "compliance.pf_gap_conversations": "Nog geen exportroute — chatgeschiedenis kan niet worden meegenomen.",
+    "compliance.pf_gap_ai_webpages": "Alleen een PDF-weergave bestaat — een weergave is geen overdraagbare export (geen HTML, CSS, scripts of bestanden).",
+    "compliance.pf_gap_form_submissions": "Nog geen exportroute — formulierantwoorden en runs kunnen niet worden meegenomen."
+  }
+}

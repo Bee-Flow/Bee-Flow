@@ -1,0 +1,56 @@
+// English GUI defaults — namespace "privacy": every key whose part before the first "." is "privacy".
+// Merged into GUI_DEFAULTS by ./index.js. The frontend copy (agent-hub/src/i18n/en-defaults.js)
+// is GENERATED from these files: after an edit, run `node scripts/gen-i18n-defaults.mjs`.
+module.exports = {
+    // ── Personal Privacy Shield (BFSF-289 / BFSF-291) ───────────
+    'privacy.scanned_no_findings': 'Scanned for personal data — nothing found.',
+    'privacy.badge_scanned': 'scanned',
+    'privacy.implicit_default_badge': 'On by default',
+    'privacy.implicit_default_note': 'These settings are already in force with the secure defaults. Save to make them your own.',
+    'privacy.guard_status_unavailable': 'Personal-data check unavailable',
+    'privacy.guard_status_unavailable_desc': 'The service that scans for personal data is not set up on this server. Your settings are saved, but nothing is being checked. Ask your administrator to switch it on.',
+    // The sensitivity picker's strings shipped client-side only, so they were
+    // untranslatable in the Languages panel — every non-English tenant saw
+    // English cards. Same keys, same values, now on both sides.
+    "privacy.sensitivity_title": "How strict should we be?",
+    "privacy.sensitivity_high": "High sensitivity",
+    "privacy.sensitivity_high_desc": "Hides as much as possible. Now and then it also hides ordinary text — a word that looks like a name, a number that looks like an ID.",
+    "privacy.sensitivity_balanced": "Balanced",
+    "privacy.sensitivity_balanced_desc": "The tested setting. Every kind of data is tuned and measured at this level. Start here.",
+    "privacy.sensitivity_recommended": "Recommended",
+    "privacy.sensitivity_strict": "Low sensitivity",
+    "privacy.sensitivity_strict_desc": "Only hides what we are very sure about. Fewer interruptions, but some personal data can slip through.",
+    "privacy.sensitivity_custom": "Custom",
+    "privacy.sensitivity_advanced_show": "Advanced: set an exact percentage",
+    "privacy.sensitivity_advanced_hide": "Hide the advanced setting",
+    "privacy.sensitivity_advanced_note": "Every kind of data has its own tuned level; this moves them all together. Lower = find more.",
+    // Chat — privacy panel
+    'privacy.action_blocked': 'Blocked',
+    'privacy.action_protected': 'Privacy active',
+    'privacy.action_restored': 'Restored from vault',
+    'privacy.action_tokenised': 'Tokenised',
+    'privacy.action_tokenised_dlp': 'Tokenised (DLP)',
+    'privacy.badge_protected': '1 item protected',
+    'privacy.badge_protected_plural': '{count} items protected',
+    'privacy.badge_redacted': '1 item redacted',
+    'privacy.badge_redacted_plural': '{count} items redacted',
+    'privacy.badge_restored': '1 item restored',
+    'privacy.badge_restored_plural': '{count} items restored',
+    'privacy.click_to_reveal': 'Click to reveal',
+    'privacy.detected': 'Detected:',
+    'privacy.from_attachments': 'From attachments:',
+    'privacy.n_items': '· 1 item',
+    'privacy.n_items_plural': '· {count} items',
+    'privacy.panel_title': 'Privacy protection',
+    'privacy.row_original': 'Original message',
+    'privacy.row_original_hint': 'stays on your device',
+    'privacy.row_returned': 'What the AI returned',
+    'privacy.row_sent': 'Sent to AI',
+    'privacy.row_sent_hint': 'via {provider}',
+    'privacy.sent_to': 'Sent to',
+    'privacy.token_mapping': 'Token mapping',
+    "privacy.sensitivity_finds_less": "finds less",
+    "privacy.sensitivity_finds_more": "finds more",
+    "privacy.sensitivity_slider_label": "Detection sensitivity",
+    "privacy.sensitivity_valuetext": "{pct}% — lower finds more",
+};

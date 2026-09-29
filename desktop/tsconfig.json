@@ -1,0 +1,40 @@
+{
+    // The Node side of the app: main process, preload, shared code and every
+    // colocated test. Type-check only — `tsconfig.main.json` does the emitting.
+    //
+    // The browser side (src/shell) has its own config because it emits ES
+    // modules a Chromium renderer loads directly, and the two module systems
+    // cannot live in one program.
+    "compilerOptions": {
+        "target": "ES2023",
+        "lib": ["ES2023"],
+        // node16 rather than the legacy "node"/"commonjs" pair: TypeScript 7
+        // removes the old resolver, and because this package declares no
+        // "type": "module", node16 still emits CommonJS — which is what a
+        // sandboxed Electron preload requires.
+        "module": "node16",
+        "moduleResolution": "node16",
+        "types": ["node"],
+        "strict": true,
+        "noUncheckedIndexedAccess": true,
+        "noImplicitOverride": true,
+        "noFallthroughCasesInSwitch": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "exactOptionalPropertyTypes": false,
+        "forceConsistentCasingInFileNames": true,
+        "esModuleInterop": true,
+        "skipLibCheck": true,
+        "resolveJsonModule": true,
+        "isolatedModules": true,
+        // Source imports carry an explicit `.ts` extension so `node --test` can
+        // run these files directly (Node 22 strips types natively). tsc rewrites
+        // the specifier to `.js` on the way out, so the compiled app is plain
+        // CommonJS with no test toolchain anywhere near it.
+        "allowImportingTsExtensions": true,
+        "rewriteRelativeImportExtensions": true,
+        "sourceMap": true,
+        "noEmit": true
+    },
+    "include": ["src/main/**/*.ts", "src/preload/**/*.ts", "src/shared/**/*.ts", "scripts/**/*.ts"]
+}

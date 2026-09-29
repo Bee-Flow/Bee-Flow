@@ -1,0 +1,5 @@
+{
+  "_comment": "Lowest line coverage (percent) classify-service may report. Raise it with `node scripts/coverage-ratchet.mjs classify-service --update` after adding tests; lowering it is a deliberate edit that belongs in a commit message with a reason.",
+  "_generated": "2026-09-26",
+  "lines": 92
+}

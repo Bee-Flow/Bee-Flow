@@ -1,0 +1,10 @@
+node_modules/
+dist/
+staging/
+*.log
+.env
+.env.*
+!.env.example
+.DS_Store
+# local-sandbox.sh state: HaRP shared key + generated nginx conf
+.sandbox/

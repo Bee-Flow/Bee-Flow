@@ -1,0 +1,32 @@
+{
+  "manifestVersion": 2,
+  "id": "example_module",
+  "name": "Example Module",
+  "description": "A minimal Bee Flow module that proves the build/pack/sign/install pipeline end-to-end.",
+  "icon": "puzzle",
+  "category": "Studio",
+  "version": "1.0.0",
+  "minAppVersion": "1.0.0",
+  "hostApiVersion": 3,
+  "permissions": ["db"],
+  "capabilities": [
+    { "id": "example_module_capability", "name": "Example capability", "kind": "beta", "lifecycle": "beta" }
+  ],
+  "server": {
+    "entry": "server/entry.cjs",
+    "routes": ["/ping", "/pings"],
+    "workers": [{ "id": "example-tick", "description": "Records a heartbeat once a minute.", "intervalMs": 60000 }],
+    "stores": ["exampleStore"]
+  },
+  "frontend": {
+    "entry": "frontend/index.js",
+    "css": ["frontend/index.css"],
+    "studioApp": {
+      "urlSegment": "example",
+      "labels": { "en": "Example" },
+      "icon": "puzzle",
+      "gateCapability": "example_module_capability"
+    }
+  },
+  "requirements": {}
+}

@@ -1,0 +1,76 @@
+{
+  "en": {
+    "compliance.check_nis2_admin_mfa_title": "MFA on every admin account",
+    "compliance.check_nis2_admin_mfa_desc": "NIS2 Art. 21(2)(j) expects multi-factor authentication for privileged access. Every organisation admin must have TOTP enabled or sign in through an SSO provider that enforces MFA.",
+    "compliance.check_nis2_admin_mfa_fix": "Ask each listed admin to enable MFA under their account settings, or enforce MFA at your identity provider and confirm it under Compliance → Settings.",
+
+    "compliance.check_nis2_policy_coverage_title": "Security policies cover every Art. 21 measure",
+    "compliance.check_nis2_policy_coverage_desc": "Each of the ten Art. 21(2) measures must be backed by a published, current policy. The check maps the measures to the ISMS policy set under Compliance → Policies.",
+    "compliance.check_nis2_policy_coverage_fix": "Publish the missing policies and complete overdue reviews under Compliance → Policies.",
+
+    "compliance.check_nis2_risk_analysis_title": "Risk analysis maintained",
+    "compliance.check_nis2_risk_analysis_desc": "A current risk register with owners and treatments is the first Art. 21(2) measure. An empty register or overdue reviews mean risks are not being managed.",
+    "compliance.check_nis2_risk_analysis_fix": "Add or review risks under Compliance → Risks and record a treatment for every high risk.",
+
+    "compliance.check_nis2_effectiveness_review_title": "Effectiveness of measures assessed",
+    "compliance.check_nis2_effectiveness_review_desc": "Art. 21(2)(f) requires assessing whether the measures work: an internal audit or management review in the last year plus continuous check sweeps.",
+    "compliance.check_nis2_effectiveness_review_fix": "Record an internal audit or management review under Compliance → Audits and keep the scheduled check sweeps running.",
+
+    "compliance.check_nis2_training_title": "Cyber-hygiene training and policy acknowledgement",
+    "compliance.check_nis2_training_desc": "Staff must acknowledge the security policies and receive basic cyber-hygiene training (Art. 21(2)(g), Art. 20(2)). Coverage counts current policy acknowledgements and training attestations from the last year.",
+    "compliance.check_nis2_training_fix": "Ask staff to acknowledge the published policies and record external training under Compliance → Training.",
+
+    "compliance.check_nis2_board_approval_title": "Management approved the security policy",
+    "compliance.check_nis2_board_approval_desc": "Art. 20 makes management accountable: the information-security policy must be published and acknowledged by every organisation admin, and management must follow cybersecurity training (recorded as an attestation).",
+    "compliance.check_nis2_board_approval_fix": "Publish the information-security policy and have every admin acknowledge it under Compliance → Policies; stamp the management training date under Compliance → Settings.",
+
+    "compliance.check_nis2_early_warning_title": "24-hour early-warning path operational",
+    "compliance.check_nis2_early_warning_desc": "Significant incidents need an early warning within 24 hours, a notification within 72 hours and a final report within a month (Art. 23). The incident register tracks all three clocks; the platform never files on your behalf, so each report is recorded as a stamp.",
+    "compliance.check_nis2_early_warning_fix": "Configure the authority channel, CSIRT contact and notification recipients under Compliance → Settings, and record each report on the incident under Compliance → Incidents.",
+
+    "compliance.check_nis2_registration_title": "Entity registered with the authority",
+    "compliance.check_nis2_registration_desc": "Essential and important entities must register with the national authority. The registration lives outside the platform, so this check records your self-classification and the registration reference and date as an attestation.",
+    "compliance.check_nis2_registration_fix": "Set your NIS2 classification and, when in scope, the registration reference and date under Compliance → Settings.",
+
+    "compliance.check_nis2_questionnaire_pack_title": "Supplier questionnaire pack ready",
+    "compliance.check_nis2_questionnaire_pack_desc": "Customers in NIS2 scope send supplier questionnaires. The ISO evidence bundle answers them when the supplier, incident, continuity and security policies are published, the SoA is seeded and the check results are fresh. This check never fails: not having exported the bundle is not a control failure.",
+    "compliance.check_nis2_questionnaire_pack_fix": "Publish the listed policies under Compliance → Policies, seed the SoA under Compliance → SoA and download the evidence bundle from the Reports tab."
+  },
+  "nl": {
+    "compliance.check_nis2_admin_mfa_title": "MFA op elk beheerdersaccount",
+    "compliance.check_nis2_admin_mfa_desc": "NIS2 art. 21(2)(j) verwacht meerfactorauthenticatie voor bevoorrechte toegang. Elke organisatiebeheerder moet TOTP ingeschakeld hebben of inloggen via een SSO-provider die MFA afdwingt.",
+    "compliance.check_nis2_admin_mfa_fix": "Vraag elke genoemde beheerder MFA in te schakelen in de accountinstellingen, of dwing MFA af bij uw identity provider en bevestig dat onder Compliance → Instellingen.",
+
+    "compliance.check_nis2_policy_coverage_title": "Beveiligingsbeleid dekt elke maatregel uit art. 21",
+    "compliance.check_nis2_policy_coverage_desc": "Elk van de tien maatregelen uit art. 21(2) moet gedragen worden door een gepubliceerd, actueel beleidsdocument. De check koppelt de maatregelen aan de ISMS-beleidsset onder Compliance → Beleid.",
+    "compliance.check_nis2_policy_coverage_fix": "Publiceer de ontbrekende beleidsdocumenten en rond achterstallige herzieningen af onder Compliance → Beleid.",
+
+    "compliance.check_nis2_risk_analysis_title": "Risicoanalyse wordt bijgehouden",
+    "compliance.check_nis2_risk_analysis_desc": "Een actueel risicoregister met eigenaren en behandelmaatregelen is de eerste maatregel uit art. 21(2). Een leeg register of achterstallige herzieningen betekenen dat risico's niet worden beheerst.",
+    "compliance.check_nis2_risk_analysis_fix": "Voeg risico's toe of herzie ze onder Compliance → Risico's en leg voor elk hoog risico een behandelmaatregel vast.",
+
+    "compliance.check_nis2_effectiveness_review_title": "Effectiviteit van maatregelen beoordeeld",
+    "compliance.check_nis2_effectiveness_review_desc": "Art. 21(2)(f) vereist dat u beoordeelt of de maatregelen werken: een interne audit of directiebeoordeling in het afgelopen jaar plus doorlopende check-sweeps.",
+    "compliance.check_nis2_effectiveness_review_fix": "Leg een interne audit of directiebeoordeling vast onder Compliance → Audits en houd de geplande check-sweeps draaiend.",
+
+    "compliance.check_nis2_training_title": "Cyberhygiënetraining en beleidsbevestiging",
+    "compliance.check_nis2_training_desc": "Medewerkers moeten het beveiligingsbeleid bevestigen en basistraining in cyberhygiëne krijgen (art. 21(2)(g), art. 20(2)). De dekking telt actuele beleidsbevestigingen en trainingsverklaringen uit het afgelopen jaar.",
+    "compliance.check_nis2_training_fix": "Vraag medewerkers het gepubliceerde beleid te bevestigen en leg externe training vast onder Compliance → Training.",
+
+    "compliance.check_nis2_board_approval_title": "Directie heeft het beveiligingsbeleid goedgekeurd",
+    "compliance.check_nis2_board_approval_desc": "Art. 20 maakt de directie verantwoordelijk: het informatiebeveiligingsbeleid moet gepubliceerd en door elke organisatiebeheerder bevestigd zijn, en de directie moet cyberbeveiligingstraining volgen (vastgelegd als verklaring).",
+    "compliance.check_nis2_board_approval_fix": "Publiceer het informatiebeveiligingsbeleid en laat elke beheerder het bevestigen onder Compliance → Beleid; leg de datum van de directietraining vast onder Compliance → Instellingen.",
+
+    "compliance.check_nis2_early_warning_title": "24-uurs vroegtijdige-waarschuwingsroute operationeel",
+    "compliance.check_nis2_early_warning_desc": "Significante incidenten vereisen een vroegtijdige waarschuwing binnen 24 uur, een melding binnen 72 uur en een eindverslag binnen een maand (art. 23). Het incidentenregister volgt alle drie de klokken; het platform meldt nooit namens u, dus elke melding wordt als stempel vastgelegd.",
+    "compliance.check_nis2_early_warning_fix": "Stel het meldkanaal bij de autoriteit, het CSIRT-contact en de ontvangers van meldingen in onder Compliance → Instellingen, en leg elke melding vast op het incident onder Compliance → Incidenten.",
+
+    "compliance.check_nis2_registration_title": "Entiteit geregistreerd bij de autoriteit",
+    "compliance.check_nis2_registration_desc": "Essentiële en belangrijke entiteiten moeten zich registreren bij de nationale autoriteit. De registratie ligt buiten het platform; deze check legt uw zelfclassificatie en het registratiekenmerk met datum vast als verklaring.",
+    "compliance.check_nis2_registration_fix": "Stel uw NIS2-classificatie in en, wanneer u binnen de reikwijdte valt, het registratiekenmerk en de datum onder Compliance → Instellingen.",
+
+    "compliance.check_nis2_questionnaire_pack_title": "Leveranciersvragenlijstpakket gereed",
+    "compliance.check_nis2_questionnaire_pack_desc": "Klanten binnen de NIS2-reikwijdte sturen leveranciersvragenlijsten. De ISO-bewijsbundel beantwoordt ze wanneer het leveranciers-, incident-, continuïteits- en beveiligingsbeleid gepubliceerd is, de SoA is gevuld en de checkresultaten vers zijn. Deze check faalt nooit: het niet exporteren van de bundel is geen falende beheersmaatregel.",
+    "compliance.check_nis2_questionnaire_pack_fix": "Publiceer de genoemde beleidsdocumenten onder Compliance → Beleid, vul de SoA onder Compliance → SoA en download de bewijsbundel via het tabblad Rapporten."
+  }
+}

@@ -1,0 +1,6 @@
+# Compiled output — `npm run build` regenerates all of it.
+dist/
+# electron-builder's staging + installer output.
+release/
+e2e-results/
+e2e-report/

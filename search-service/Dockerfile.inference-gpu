@@ -1,0 +1,35 @@
+FROM nvidia/cuda:12.4.1-runtime-ubuntu22.04@sha256:517da2300c184c9999ec203c2665244bdebd3578d12fcc7065e83667932643d9
+
+WORKDIR /app
+
+# System deps
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 python3-pip python3-dev build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy Astral uv for blazing fast pip installs
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+# PyTorch CUDA + inference stack
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv pip install --system \
+    torch --extra-index-url https://download.pytorch.org/whl/cu124 \
+    fastapi \
+    uvicorn[standard] \
+    sentence-transformers \
+    pydantic \
+    pydantic-settings \
+    numpy \
+    transformers
+
+COPY inference_server.py .
+
+RUN useradd -m appuser && \
+    mkdir -p /data/huggingface && \
+    chown -R appuser:appuser /data
+ENV HF_HOME=/data/huggingface
+USER appuser
+
+EXPOSE 8001
+
+CMD ["python3", "inference_server.py"]

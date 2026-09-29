@@ -1,0 +1,812 @@
+# ══════════════════════════════════════════════════════════════════
+# BeeFlow — Registry-Based Docker Compose
+# ══════════════════════════════════════════════════════════════════
+#
+# Mirror of docker-compose.install.yml but uses pre-built images
+# from the public GitHub Container Registry (ghcr.io/bee-flow) instead
+# of local builds. No login required — the images are public.
+#
+# Canonical self-host path: ./selfhost.sh (generates .env + brings this up).
+# No source checkout required — only this file, .env, and docker/init-db.sh.
+#
+# Profiles:
+#   core       — PostgreSQL, RustFS, server, agent-hub (always required)
+#   search     — Search API, search-postgres, search-redis
+#   search-gpu — GPU inference for embeddings + reranking
+#   search-llm — vLLM cleanup LLM (Qwen 2B)
+#   guard      — Guard API + guard-redis (CPU PII detection via GLiNER)
+#   whisperx   — WhisperX speech-to-text (GPU required)
+#   pii        — Standalone PII detection service
+#   classify   — Zero-shot topic classifier behind the Condition node's
+#                "is about" rule (GLiClass, CPU only; model baked in the image)
+#   local-llm  — Ollama, for running open-weight chat models on your own
+#                hardware. Works CPU-only; add a GPU for usable speed. The
+#                server auto-registers it via OLLAMA_URL, so its models show up
+#                in the model tier picker with no configuration.
+# ══════════════════════════════════════════════════════════════════
+
+services:
+
+  # ════════════════════════════════════════════════════════════════
+  # CORE SERVICES (profile: core)
+  # ════════════════════════════════════════════════════════════════
+
+  # ── PostgreSQL Database ────────────────────────────────────────
+  postgres:
+    image: pgvector/pgvector:pg15
+    container_name: beeflow-postgres
+    profiles: [ "core" ]
+    environment:
+      - POSTGRES_USER=${DB_USER:-beeflow}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:?Set DB_PASSWORD in .env}
+      - POSTGRES_DB=${DB_NAME:-beeflow_core}
+    volumes:
+      - beeflow-pgdata:/var/lib/postgresql/data
+      - ./docker/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
+    networks:
+      - beeflow-network
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER:-beeflow} -d ${DB_NAME:-beeflow_core}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  # ── RustFS — S3-compatible Object Storage ──────────────────────
+  rustfs:
+    image: rustfs/rustfs:latest
+    container_name: beeflow-rustfs
+    profiles: [ "core" ]
+    environment:
+      - RUSTFS_ROOT_USER=${RUSTFS_ACCESS_KEY:-beeflow}
+      - RUSTFS_ROOT_PASSWORD=${RUSTFS_SECRET_KEY:?Set RUSTFS_SECRET_KEY in .env}
+    volumes:
+      - rustfs-data:/data
+      - rustfs-logs:/logs
+    networks:
+      - beeflow-network
+    restart: unless-stopped
+
+  # ── Backend Server ─────────────────────────────────────────────
+  server:
+    image: ${REGISTRY:-ghcr.io/bee-flow}/server:${TAG:-latest}
+    container_name: beeflow-server
+    profiles: [ "core" ]
+    command: npm start
+    # Loopback-only by default. Published on 0.0.0.0 the API answers on every
+    # interface of the host, so /auth/*, /api/* and every other route can be
+    # reached WITHOUT passing through the agent-hub nginx in front of it, and
+    # anything that layer adds — security headers, the CSP, TLS termination by
+    # an outer proxy — is bypassed by simply addressing http://<host>:3001.
+    #
+    # Read that as SURFACE REDUCTION, not control enforcement, because two
+    # things are true and easy to get wrong:
+    #   • this nginx has no rate limiting or WAF of its own (no limit_req, no
+    #     limit_conn, no modsecurity). Every authentication rate limit in this
+    #     product is enforced in Express — see server/auth/loginThrottle.js and
+    #     authRateLimits.js — precisely so it cannot be walked around by
+    #     picking a different port;
+    #   • agent-hub itself is still published on 0.0.0.0 (CLIENT_PORT below) and
+    #     proxies the same API routes, so anyone on the LAN reaches them there.
+    # Closing one of two doors is still worth doing; believing it locked the
+    # building is not.
+    #
+    # Nothing in this stack needs the mapping:
+    # agent-hub talks to the API over the compose network
+    # (SERVER_HOST=${INTERNAL_SERVER_HOST:-server}), and the SPA in the public
+    # image is built with an empty VITE_API_URL so browsers use same-origin
+    # paths that nginx proxies.
+    #
+    # Set SERVER_BIND_HOST=0.0.0.0 in .env only when something OUTSIDE this
+    # machine must reach the API port itself — a reverse proxy on another host,
+    # an inbound webhook, or a frontend built with VITE_API_URL pointing at
+    # SERVER_PUBLIC_HOST. Prefer putting that proxy in front of CLIENT_PORT.
+    ports:
+      - "${SERVER_BIND_HOST:-127.0.0.1}:${SERVER_PORT:-3001}:${SERVER_PORT:-3001}"
+    environment:
+      - NODE_ENV=production
+      - PORT=${SERVER_PORT:-3001}
+      - SESSION_SECRET=${SESSION_SECRET:?Set SESSION_SECRET in .env (openssl rand -hex 32)}
+      - CORS_ORIGIN=${CLIENT_PROTOCOL:-http}://${CLIENT_PUBLIC_HOST:-localhost:5176},${SERVER_PROTOCOL:-http}://${SERVER_PUBLIC_HOST:-localhost:3001}
+      - SERVER_PUBLIC_HOST=${SERVER_PUBLIC_HOST:-localhost:3001}
+      - SERVER_PROTOCOL=${SERVER_PROTOCOL:-http}
+      - CLIENT_PUBLIC_HOST=${CLIENT_PUBLIC_HOST:-localhost:5176}
+      # Security keys (YubiKey / FIDO2): optional parent domain for the WebAuthn
+      # relying-party ID. Empty = the page's host, or CLIENT_PUBLIC_HOST when the
+      # page is on a subdomain of it. See auth/securityKeys/relyingParty.js.
+      - WEBAUTHN_RP_ID=${WEBAUTHN_RP_ID:-}
+      - CLIENT_PROTOCOL=${CLIENT_PROTOCOL:-http}
+      # Published in /.well-known/security.txt. Documented in .env.example but
+      # never passed through, so setting it had no effect and the endpoint 404'd
+      # on any host without a routable mail domain — which a pentest then filed
+      # as a regression. Empty is still valid: the route derives the address
+      # from CLIENT_PUBLIC_HOST when it can, and 404s rather than guessing.
+      - SECURITY_TXT_CONTACT=${SECURITY_TXT_CONTACT:-}
+      # Where this server stands on Privacy Shield's "Where your data went" map:
+      # an ISO country code (NL) or "lat,lon[,label]". Empty = no origin, so the
+      # map shows pins without lines; there is no default, a wrong one would draw
+      # every line from the wrong place. See server/core/http/geo/origin.js.
+      - BEEFLOW_SERVER_LOCATION=${BEEFLOW_SERVER_LOCATION:-}
+      # IP location database (DB-IP Lite, baked into the image, refreshed with
+      # each image). "monthly" also downloads each new edition into the data
+      # volume (/app/data/geo) without waiting for a new image. Empty = off.
+      - GEO_DB_AUTO_UPDATE=${GEO_DB_AUTO_UPDATE:-}
+      - COOKIE_SECURE=${COOKIE_SECURE:-false}
+      - COOKIE_DOMAIN=${COOKIE_DOMAIN:-}
+      - COOKIE_SAMESITE=${COOKIE_SAMESITE:-lax}
+      - DEMO_MODE_ENABLED=${DEMO_MODE_ENABLED:-false}
+      - DEPLOYMENT_MODE=${DEPLOYMENT_MODE:-self-hosted}
+      # ── Licence validation ──
+      # The server verifies licence-key JWTs against the licence public key
+      # (server/license/verify.js: inline PEM env var, or a file path, or a
+      # JWKS endpoint). The PEM and file variants are documented in
+      # .env.selfhost.example; LICENSE_JWKS_URL is not in the template, so this
+      # block is its reference. Either way a value only reaches the server
+      # process through this pass-through — without it a value in .env is
+      # invisible to the container and every real key fails to verify.
+      # Empty defaults keep licence-less community installs unchanged.
+      # The suggested LICENSE_PUBLIC_KEY_FILE path /app/data/license-public-key.pem
+      # sits inside the beeflow-data volume below, so the file survives
+      # container recreates and upgrades.
+      - LICENSE_PUBLIC_KEY=${LICENSE_PUBLIC_KEY:-}
+      - LICENSE_PUBLIC_KEY_FILE=${LICENSE_PUBLIC_KEY_FILE:-}
+      - LICENSE_JWKS_URL=${LICENSE_JWKS_URL:-}
+      # Where "upgrade" links in the UI point (defaults to the pricing page).
+      - LICENSE_UPGRADE_URL=${LICENSE_UPGRADE_URL:-}
+      - NEXTCLOUD_URL=${NEXTCLOUD_URL:-}
+      - NEXTCLOUD_CLIENT_ID=${NEXTCLOUD_CLIENT_ID:-}
+      - NEXTCLOUD_CLIENT_SECRET=${NEXTCLOUD_CLIENT_SECRET:-}
+      - LLM_API_URL=${LLM_API_URL:-}
+      - LLM_API_KEY=${LLM_API_KEY:-}
+      - CORE_DATABASE_URL=postgresql://${DB_USER:-beeflow}:${DB_PASSWORD:?err}@postgres:5432/${DB_NAME:-beeflow_core}
+      # Which engine serves App Studio's per-app record data:
+      #   sqlite (default) — the per-app data.db blob in object storage
+      #   pg              — a per-app Postgres SCHEMA in beeflow_core
+      # Flip to 'pg' ONLY after scripts/migrateStudioAppsToPg.js has moved this
+      # environment's apps (it stamps studio_apps.engine per app, and both
+      # engines refuse an app that is marked for the other one).
+      - STUDIO_APP_ENGINE=${STUDIO_APP_ENGINE:-sqlite}
+      # App Studio over MCP: mounts POST /mcp/studio so an external coding
+      # agent can build apps in this instance instead of shipping a template
+      # module in a new image. Empty (the default) means the route is never
+      # mounted; set STUDIO_MCP_ENABLED=1 in .env to switch it on. Still needs
+      # a per-user bfmcp.… token and the app_studio capability.
+      - STUDIO_MCP_ENABLED=${STUDIO_MCP_ENABLED:-}
+      # Routines over MCP: mounts POST /mcp/automations so that agent can build
+      # automations here too. Empty (the default) means never mounted; still
+      # needs a bfmcp.… token and the 'automations' beta feature.
+      - AUTOMATION_MCP_ENABLED=${AUTOMATION_MCP_ENABLED:-}
+      - DATABASE_URL=postgresql://${DB_USER:-beeflow}:${DB_PASSWORD:?err}@postgres:5432/beeflow_tasks
+      - MONITORING_DATABASE_URL=postgresql://${DB_USER:-beeflow}:${DB_PASSWORD:?err}@postgres:5432/monitoring_db
+      - MASTER_ENCRYPTION_KEY=${MASTER_ENCRYPTION_KEY}
+      - OPAQUE_SERVER_SETUP=${OPAQUE_SERVER_SETUP}
+      - ENABLE_TASKS=${ENABLE_TASKS:-true}
+      - ENABLE_MONITORING=${ENABLE_MONITORING:-true}
+      # Privacy Shield endpoint. PII_SERVICE_URL is the variable the server
+      # actually reads (core/privacy/piiDetection/guardEndpoint.js); empty by
+      # default because guard-service lives in the `guard` profile: on a
+      # core-only install (the selfhost.sh default) a baked-in URL would read
+      # as "guard installed" while every scan fails. Set
+      # PII_SERVICE_URL=http://guard-service:8100 in .env when running
+      # --profile guard; an admin-dashboard guard install works without it.
+      - PII_SERVICE_URL=${PII_SERVICE_URL:-}
+      - PII_SERVICE_API_KEY=${PII_SERVICE_API_KEY:-}
+      # Topic classifier for the "is about" rule. Empty by default for the same
+      # reason as PII_SERVICE_URL: classify-service lives in the `classify`
+      # profile, and a baked-in URL on a run without it would read as
+      # "classifier installed" while every call fails. selfhost.sh fills it in
+      # (http://classify-service:8300) when that profile is up.
+      - CLASSIFY_SERVICE_URL=${CLASSIFY_SERVICE_URL:-}
+      - CLASSIFY_SERVICE_API_KEY=${CLASSIFY_SERVICE_API_KEY:-}
+      # Self-hosted LLM runtimes. Any of these that is set auto-registers as a
+      # provider on boot (server/core/aiAgent.js → ensureLocalProviders), so its
+      # models are selectable under Admin → AI → Chat Models without touching a
+      # form. Defaults to the bundled Ollama when the `local-llm` profile is up;
+      # point it at your own box (http://host.docker.internal:11434) otherwise.
+      - OLLAMA_URL=${OLLAMA_URL:-}
+      - VLLM_URL=${VLLM_URL:-}
+      - LLAMACPP_URL=${LLAMACPP_URL:-}
+      # Any other OpenAI-compatible endpoint. LOCAL_LLM_TYPE picks the adapter
+      # flavour (lmstudio / sglang / localai / tgi / openai-compatible).
+      - LOCAL_LLM_URL=${LOCAL_LLM_URL:-}
+      - LOCAL_LLM_TYPE=${LOCAL_LLM_TYPE:-openai-compatible}
+      - LOCAL_LLM_API_KEY=${LOCAL_LLM_API_KEY:-}
+      # PII scan deadline contract (server/core/piiDetection.js): per-window
+      # HTTP timeout, per-window allowance, whole-scan ceiling, and
+      # windows-in-flight per scan.
+      #
+      # Big text is scanned as a sequence of 8000-char windows, so the budget
+      # is min(windows x WINDOW_BUDGET_MS, SCAN_DEADLINE_MS). WINDOW_BUDGET_MS
+      # is the knob that follows the hardware — a guard doing ~25-35s per 8k
+      # window is normal on 3 CPU cores — and SCAN_DEADLINE_MS is the ceiling
+      # that decides how much text one message may contain: past it the scan
+      # fail-closes with the "too large, split it up" message. 300s covers a
+      # ~70k-char paste on a small box; raise both together for larger ones,
+      # and keep the ceiling under the reverse proxy's read timeout.
+      # WINDOW_CONCURRENCY above 1 is only safe with
+      # GUARD_PII_MAX_CONCURRENCY >= 2 (it is, below).
+      - PII_GUARD_TIMEOUT_MS=${PII_GUARD_TIMEOUT_MS:-90000}
+      - PII_GUARD_WINDOW_BUDGET_MS=${PII_GUARD_WINDOW_BUDGET_MS:-60000}
+      - PII_GUARD_SCAN_DEADLINE_MS=${PII_GUARD_SCAN_DEADLINE_MS:-300000}
+      - PII_GUARD_WINDOW_CONCURRENCY=${PII_GUARD_WINDOW_CONCURRENCY:-1}
+      - SEARCH_SERVICE_URL=http://search-api:8000
+      # Internal base for the Umami analytics API (profile: analytics).
+      # Empty by default — the server then falls back to the public URL from
+      # the admin settings, which only works when that URL is reachable from
+      # inside the container. Set UMAMI_URL=http://umami:3000 in .env when
+      # running the bundled analytics profile.
+      - UMAMI_URL=${UMAMI_URL:-}
+      # Redis (session cache) lives in the `search` profile. On a core-only
+      # install it isn't running, so default to empty — the server then uses
+      # Postgres-backed sessions and skips Redis entirely (graceful). Pointing
+      # at a missing host instead causes a connect-retry storm that exhausts
+      # the PG pool. Set REDIS_URL (or run --profile search) to enable caching.
+      - REDIS_URL=${REDIS_URL:-}
+      - RUSTFS_ENDPOINT=http://rustfs:9000
+      - RUSTFS_ACCESS_KEY=${RUSTFS_ACCESS_KEY:-beeflow}
+      - RUSTFS_SECRET_KEY=${RUSTFS_SECRET_KEY:?err}
+      # Default: the compose-profile whisperx service. Overridable from .env so
+      # the server can point at an out-of-stack WhisperX (e.g. the experimental
+      # ROCm container, reached via http://host.docker.internal:8787).
+      - WHISPERX_URL=${WHISPERX_URL:-http://whisperx:8787}
+      - SERVICES_API_KEY=${SERVICES_API_KEY:-}
+      # ── OpenObserve telemetry + usage-push (ALL optional; empty = disabled) ──
+      # Set these (e.g. in your .env) to stream OTel traces/metrics and per-org /
+      # per-user token + cost rollups to OpenObserve. When unset, NOTHING is sent
+      # and no connection is attempted (fully env-gated no-op).
+      - OTEL_ENABLED=${OTEL_ENABLED:-}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      - OTEL_EXPORTER_OTLP_HEADERS=${OTEL_EXPORTER_OTLP_HEADERS:-}
+      - USAGE_PUSH_ENABLED=${USAGE_PUSH_ENABLED:-}
+      - USAGE_HASH_SALT=${USAGE_HASH_SALT:-}
+      - USAGE_PUSH_STREAM=${USAGE_PUSH_STREAM:-}
+      - USAGE_PUSH_BUCKET=${USAGE_PUSH_BUCKET:-}
+      - USAGE_PUSH_INTERVAL_MS=${USAGE_PUSH_INTERVAL_MS:-}
+      - USAGE_PUSH_GRACE_MS=${USAGE_PUSH_GRACE_MS:-}
+      - USAGE_PUSH_BACKFILL_DAYS=${USAGE_PUSH_BACKFILL_DAYS:-}
+      # Ops-metrics push — operational/product/security/billing gauge snapshots
+      # to OpenObserve (bee_ops/product/security/billing streams). Reuses the
+      # OTEL endpoint + headers above. No-op unless OPS_PUSH_ENABLED=true.
+      - OPS_PUSH_ENABLED=${OPS_PUSH_ENABLED:-}
+      - OPS_PUSH_STREAM_PREFIX=${OPS_PUSH_STREAM_PREFIX:-}
+      - OPS_PUSH_INTERVAL_MS=${OPS_PUSH_INTERVAL_MS:-}
+      # ── First-Boot Setup (consumed once by boot-init.js) ──
+      - INIT_ADMIN_PASSWORD=${INIT_ADMIN_PASSWORD:-}
+      - INIT_MS_CLIENT_ID=${INIT_MS_CLIENT_ID:-}
+      - INIT_MS_CLIENT_SECRET=${INIT_MS_CLIENT_SECRET:-}
+      - INIT_MS_TENANT_ID=${INIT_MS_TENANT_ID:-}
+      - INIT_AZURE_ENDPOINT=${INIT_AZURE_ENDPOINT:-}
+      - INIT_AZURE_API_KEY=${INIT_AZURE_API_KEY:-}
+      - INIT_AZURE_API_VERSION=${INIT_AZURE_API_VERSION:-}
+      - INIT_AZURE_MODELS=${INIT_AZURE_MODELS:-}
+      - INIT_BING_SEARCH_KEY=${INIT_BING_SEARCH_KEY:-}
+    volumes:
+      - beeflow-data:/app/data
+      - ./components:/components
+      - ./workflows:/workflows
+      - /var/run/docker.sock:/var/run/docker.sock
+
+    networks:
+      - beeflow-network
+      - search-network
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      # Object storage holds the only durable copy of every meeting recording.
+      # Starting before it is up used to leave the server permanently convinced
+      # storage was unavailable, so every note it created got no backup.
+      # The server now reconnects on its own, but there is no reason to race.
+      rustfs:
+        condition: service_started
+    healthcheck:
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT:-3001}/api/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # ── Agent Hub Frontend ─────────────────────────────────────────
+  agent-hub:
+    image: ${REGISTRY:-ghcr.io/bee-flow}/agent-hub:${TAG:-latest}
+    container_name: beeflow-agent-hub
+    profiles: [ "core" ]
+    ports:
+      - "${CLIENT_PORT:-5176}:80"
+    environment:
+      - SERVER_HOST=${INTERNAL_SERVER_HOST:-server}
+      - SERVER_PORT=${SERVER_PORT:-3001}
+      # Content-Security-Policy source for the analytics tracker script.
+      # REQUIRED for ANY external analytics origin now, https included: the CSP
+      # used to carry a blanket `https:` in script-src, which let a public stats
+      # domain load without configuration — and, being blanket, let a script
+      # from any other https host load too. Without this set, the tracker is
+      # blocked by the browser and analytics silently collects nothing.
+      # e.g. ANALYTICS_ORIGIN=https://stats.example.com (or http://localhost:3000)
+      - ANALYTICS_ORIGIN=${ANALYTICS_ORIGIN:-}
+      # NGINX_RESOLVER must be listed or nginx ships the literal
+      # "${NGINX_RESOLVER}" and refuses to start: the entrypoint only
+      # substitutes the variables NAMED here. The image defaults the value
+      # to Docker's embedded DNS, so nothing needs to set it.
+      - NGINX_ENVSUBST_FILTER=SERVER_HOST|SERVER_PORT|ANALYTICS_ORIGIN|NGINX_RESOLVER
+    depends_on:
+      - server
+    networks:
+      - beeflow-network
+    restart: unless-stopped
+
+  # ════════════════════════════════════════════════════════════════
+  # SEARCH SERVICE (profile: search)
+  # ════════════════════════════════════════════════════════════════
+
+  # ── Search PostgreSQL (with pgvector) ──────────────────────────
+  search-postgres:
+    image: pgvector/pgvector:pg16
+    container_name: search-postgres
+    profiles: [ "search" ]
+    environment:
+      POSTGRES_USER: ${SEARCH_DB_USER:-search}
+      POSTGRES_PASSWORD: ${SEARCH_DB_PASSWORD:-search}
+      POSTGRES_DB: ${SEARCH_DB_NAME:-search_kb}
+    volumes:
+      - search-pgdata:/var/lib/postgresql/data
+    networks:
+      - search-network
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${SEARCH_DB_USER:-search} -d ${SEARCH_DB_NAME:-search_kb}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  # ── Search Redis ───────────────────────────────────────────────
+  search-redis:
+    image: redis:7-alpine
+    container_name: search-redis
+    profiles: [ "search" ]
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - search-redis-data:/data
+    networks:
+      - search-network
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  # ── Search API (FastAPI) ───────────────────────────────────────
+  search-api:
+    image: ${REGISTRY:-ghcr.io/bee-flow}/search-api:${TAG:-latest}
+    container_name: search-api
+    profiles: [ "search" ]
+    ports:
+      - "127.0.0.1:${SEARCH_API_PORT:-8000}:8000"
+    environment:
+      SEARCH_DEBUG: ${SEARCH_DEBUG:-false}
+      SEARCH_LOG_LEVEL: ${SEARCH_LOG_LEVEL:-INFO}
+      SEARCH_DATABASE_URL: postgresql://${SEARCH_DB_USER:-search}:${SEARCH_DB_PASSWORD:-search}@search-postgres:5432/${SEARCH_DB_NAME:-search_kb}
+      SEARCH_REDIS_URL: redis://search-redis:6379/0
+      SEARCH_SERPER_API_KEY: ${SEARCH_SERPER_API_KEY:-}
+      SEARCH_SERPER_TIMEOUT: ${SEARCH_SERPER_TIMEOUT:-5.0}
+      SEARCH_SERPER_COUNTRY: ${SEARCH_SERPER_COUNTRY:-}
+      SEARCH_SERPER_LANG: ${SEARCH_SERPER_LANG:-}
+      SEARCH_INFERENCE_ENABLED: "true"
+      SEARCH_EMBED_API_URL: http://inference-gpu:8001/v1
+      SEARCH_RERANK_API_URL: http://inference-gpu:8001/v1
+      SEARCH_CLEANUP_API_URL: ${SEARCH_CLEANUP_API_URL:-http://inference-llm:8003/v1}
+      SERVICES_API_KEY: ${SERVICES_API_KEY:-}
+    networks:
+      - search-network
+    restart: unless-stopped
+    depends_on:
+      search-postgres:
+        condition: service_healthy
+      search-redis:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  # ════════════════════════════════════════════════════════════════
+  # SEARCH GPU INFERENCE (profile: search-gpu)
+  # ════════════════════════════════════════════════════════════════
+
+  inference-gpu:
+    image: ${REGISTRY:-ghcr.io/bee-flow}/search-inference-gpu:${TAG:-latest}
+    container_name: search-inference-gpu
+    profiles: [ "search-gpu" ]
+    environment:
+      EMBED_MODEL: BAAI/bge-m3
+      EMBED_DIMENSIONS: "1024"
+      RERANK_MODEL: BAAI/bge-reranker-v2-m3
+      PORT: "8001"
+      HF_HOME: /data/huggingface
+      DEVICE: "auto"
+      SERVICES_API_KEY: ${SERVICES_API_KEY:-}
+    volumes:
+      - search-hf-cache:/data/huggingface
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [ gpu ]
+    networks:
+      - search-network
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')" ]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 300s
+
+  # ════════════════════════════════════════════════════════════════
+  # SEARCH CLEANUP LLM (profile: search-llm)
+  # ════════════════════════════════════════════════════════════════
+
+  inference-llm:
+    image: vllm/vllm-openai:v0.8.0
+    container_name: search-inference-llm
+    profiles: [ "search-llm" ]
+    command:
+      - "--model"
+      - "Qwen/Qwen3.5-2B"
+      - "--port"
+      - "8003"
+      - "--max-model-len"
+      - "4096"
+      - "--dtype"
+      - "auto"
+      - "--gpu-memory-utilization"
+      - "0.20"
+    environment:
+      - HUGGING_FACE_HUB_TOKEN=${HF_TOKEN}
+      - HF_TOKEN=${HF_TOKEN}
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [ gpu ]
+    networks:
+      - search-network
+    restart: unless-stopped
+
+  # ════════════════════════════════════════════════════════════════
+  # GUARD SERVICE (profile: guard)
+  # ════════════════════════════════════════════════════════════════
+
+  guard-service:
+    image: ${REGISTRY:-ghcr.io/bee-flow}/guard:${TAG:-latest}
+    container_name: beeflow-guard
+    profiles: [ "guard" ]
+    ports:
+      - "127.0.0.1:8100:8100"
+    environment:
+      - GUARD_REDIS_URL=redis://guard-redis:6379/1
+      - GUARD_PII_ENABLED=${GUARD_PII_ENABLED:-true}
+      - GUARD_PII_MODEL=${GUARD_PII_MODEL:-E3-JSI/gliner-multi-pii-domains-v1}
+      # Force the fp32 ONNX graph (BFSF-269). Durable across recreates and
+      # works even on an image built before the fp32 default: the fp32
+      # `model.onnx` is baked alongside the INT8 one, so pointing the loader
+      # at it here guarantees correct name/PII recall regardless of image age.
+      - GUARD_PII_USE_ONNX=${GUARD_PII_USE_ONNX:-true}
+      - GUARD_PII_ONNX_FILE=${GUARD_PII_ONNX_FILE:-model.onnx}
+      # Detection tier: on | shadow | off. Defaults to `on` — identical
+      # behaviour to previous releases — so upgrading self-hosters see no
+      # change until they opt in. `shadow` runs both tiers and returns the
+      # same union while logging the per-category difference; `off` is
+      # GLiNER-only. THIS IS THE ROLLBACK LEVER: set it back to `on` and
+      # `docker compose up -d guard-service`. No image change needed.
+      - GUARD_PII_REGEX_TIER=${GUARD_PII_REGEX_TIER:-on}
+      # Which countries' identifier patterns the regex tier applies, as ISO
+      # 3166-1 alpha-2 codes; `*` (the default) means all shipped regions —
+      # NL, BE, DE, FR, ES, IT, PL, SE, AT, US.
+      #
+      # Worth knowing before narrowing this: the regex tier SUPPRESSES GLiNER for
+      # the categories it claims, and completeness is computed per active region.
+      # So narrowing regions narrows suppression with it — you never end up with
+      # a category that has neither detector. Narrow it only when a deployment is
+      # genuinely single-country and cross-country shape collisions matter more
+      # than coverage.
+      #
+      # NOTE: only has an effect when GUARD_PII_REGEX_TIER is `on` or `shadow`.
+      # Under `off` the regex tier does not run at all, so no country pattern
+      # fires regardless of what this says.
+      - GUARD_PII_REGIONS=${GUARD_PII_REGIONS:-*}
+      # Per-request work budget in characters. 0 derives it from the tier (`on`
+      # buys more characters than `shadow`/`off`, which ask GLiNER for all seven
+      # label groups). Beyond the budget the guard returns a bounded PARTIAL
+      # result instead of running past the caller's 90s timeout.
+      - GUARD_PII_SCAN_BUDGET_CHARS=${GUARD_PII_SCAN_BUDGET_CHARS:-0}
+      # Concurrent /pii requests admitted per container. Safe at >1: the
+      # tokenizer — the thing that actually raised "Already borrowed", which
+      # surfaced as "Privacy protection is temporarily unavailable" — is now
+      # per-thread. See GUARD_PII_INFERENCE_LOCK.
+      - GUARD_PII_MAX_CONCURRENCY=${GUARD_PII_MAX_CONCURRENCY:-2}
+      # How the model is protected against concurrent use:
+      #   tokenizer (default) — per-thread tokenizer, concurrent forward passes.
+      #                         ORT Run() is thread-safe on the CPU EP.
+      #   global              — the historical pod-wide lock around every model
+      #                         touch. KILL SWITCH: a restart, no rebuild.
+      - GUARD_PII_INFERENCE_LOCK=${GUARD_PII_INFERENCE_LOCK:-tokenizer}
+      # Forward passes issued concurrently WITHIN one scan (a scan is a queue of
+      # independent chunk x label-group passes). 0 = derive from the CPU quota.
+      # Measured at an 8-core quota: 395 -> 294 ms per pass. Ignored when
+      # GUARD_PII_INFERENCE_LOCK=global.
+      - GUARD_PII_PREDICT_WORKERS=${GUARD_PII_PREDICT_WORKERS:-0}
+      # ONNX Runtime intra-op threads. Empty = derive from the cgroup quota
+      # (`cpus:` below) via available_cpus(). Set it explicitly to sweep: for a
+      # ~350-token sequence the curve flattens well before the core count, and
+      # past the knee extra threads buy latency VARIANCE, not throughput. Sweep
+      # on p50 AND p95, never p50 alone.
+      - GUARD_PII_ORT_INTRA_OP_THREADS=${GUARD_PII_ORT_INTRA_OP_THREADS:-0}
+      - GUARD_LOG_LEVEL=${GUARD_LOG_LEVEL:-INFO}
+      - SERVICES_API_KEY=${SERVICES_API_KEY:-}
+    # Defaults mirror the prod k8s cgroup limits so a big-document scan can't peg
+    # the whole dev box (which has NO limit by default), and so a self-host on
+    # modest hardware behaves like production. ORT sizes its thread pool from
+    # this quota via available_cpus(). Override with GUARD_CPUS/GUARD_MEM — a
+    # developer box with spare cores should, because a PII scan is
+    # chunks x label-buckets sequential forward passes and this quota is the
+    # ceiling on all of them.
+    cpus: ${GUARD_CPUS:-3}
+    mem_limit: ${GUARD_MEM:-4g}
+    depends_on:
+      guard-redis:
+        condition: service_healthy
+    networks:
+      - beeflow-network
+      - search-network
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8100/health')" ]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+
+  # ── Guard Redis ────────────────────────────────────────────────
+  guard-redis:
+    image: redis:7-alpine
+    container_name: beeflow-guard-redis
+    profiles: [ "guard" ]
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - guard-redis-data:/data
+    networks:
+      - beeflow-network
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+
+  # ════════════════════════════════════════════════════════════════
+  # WHISPERX TRANSCRIPTION (profile: whisperx)
+  # ════════════════════════════════════════════════════════════════
+
+  whisperx:
+    image: ${REGISTRY:-ghcr.io/bee-flow}/whisperx:${TAG:-latest}
+    container_name: whisperx-service
+    profiles: [ "whisperx" ]
+    ports:
+      - "8787:8787"
+    environment:
+      - HF_TOKEN=${HF_TOKEN}
+      - WHISPER_MODEL=large-v3
+      - SERVICES_API_KEY=${SERVICES_API_KEY:-}
+    volumes:
+      - whisperx-cache:/root/.cache
+    # Without this the service lands on the compose default network while the
+    # server (whose env hardcodes WHISPERX_URL=http://whisperx:8787) lives on
+    # beeflow-network — the integration silently never connects.
+    networks:
+      - beeflow-network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
+    restart: unless-stopped
+
+  # ════════════════════════════════════════════════════════════════
+  # LOCAL LLM RUNTIME (profile: local-llm)
+  # ════════════════════════════════════════════════════════════════
+  #
+  #   docker compose --profile core --profile local-llm up -d
+  #   docker compose exec ollama ollama pull qwen3:8b
+  #
+  # Then pick the model under Admin → AI → Chat Models. Models can also be
+  # downloaded from that screen — no shell needed.
+  #
+  # The GPU reservation below is commented out because this profile is meant to
+  # start on any machine; uncomment it (and install the NVIDIA container
+  # toolkit) to get usable speed on anything above ~8B parameters.
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: beeflow-ollama
+    profiles: [ "local-llm" ]
+    # Loopback-only by default: this port is an unauthenticated inference API,
+    # and Ollama has no built-in auth. The server reaches it over the compose
+    # network regardless of whether this mapping exists.
+    ports:
+      - "127.0.0.1:${OLLAMA_PORT:-11434}:11434"
+    volumes:
+      - ollama-models:/root/.ollama
+    environment:
+      # Keep a model resident between turns — reloading weights per request
+      # dominates latency on local hardware.
+      - OLLAMA_KEEP_ALIVE=${OLLAMA_KEEP_ALIVE:-15m}
+      - OLLAMA_MAX_LOADED_MODELS=${OLLAMA_MAX_LOADED_MODELS:-2}
+      - OLLAMA_CONTEXT_LENGTH=${OLLAMA_CONTEXT_LENGTH:-8192}
+    networks:
+      - beeflow-network
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [ gpu ]
+    restart: unless-stopped
+
+  # ════════════════════════════════════════════════════════════════
+  # PII SERVICE (profile: pii)
+  # ════════════════════════════════════════════════════════════════
+
+  pii-service:
+    image: ${REGISTRY:-ghcr.io/bee-flow}/pii:${TAG:-latest}
+    container_name: beeflow-pii
+    profiles: [ "pii" ]
+    ports:
+      - "127.0.0.1:8200:8200"
+    volumes:
+      - pii-model-cache:/cache/huggingface
+    networks:
+      - beeflow-network
+    restart: unless-stopped
+
+  # ════════════════════════════════════════════════════════════════
+  # CLASSIFY SERVICE (profile: classify)
+  # ════════════════════════════════════════════════════════════════
+  #
+  # Zero-shot topic classifier (knowledgator/gliclass-multilang-mini,
+  # Apache-2.0) for the Condition node's "is about" rule. CPU only. The model
+  # is baked into the image, so the container needs no volume and no egress,
+  # and runs with a read-only root filesystem. Wire the server to it with
+  # CLASSIFY_SERVICE_URL=http://classify-service:8300 (selfhost.sh does).
+  classify-service:
+    image: ${REGISTRY:-ghcr.io/bee-flow}/classify:${TAG:-latest}
+    container_name: beeflow-classify
+    profiles: [ "classify" ]
+    ports:
+      - "127.0.0.1:8300:8300"
+    environment:
+      # 'joint' (default): all labels in one pass. 'independent': one pass
+      # per label, so a label's score never depends on the others asked.
+      - CLASSIFY_LABEL_MODE=${CLASSIFY_LABEL_MODE:-joint}
+      - CLASSIFY_MAX_CONCURRENCY=${CLASSIFY_MAX_CONCURRENCY:-1}
+      - CLASSIFY_MAX_QUEUE=${CLASSIFY_MAX_QUEUE:-8}
+      - CLASSIFY_LOG_LEVEL=${CLASSIFY_LOG_LEVEL:-INFO}
+      # CLASSIFY_API_KEY wins; otherwise the stack-wide SERVICES_API_KEY.
+      # The server sends CLASSIFY_SERVICE_API_KEY, so keep them equal.
+      - CLASSIFY_API_KEY=${CLASSIFY_API_KEY:-}
+      - SERVICES_API_KEY=${SERVICES_API_KEY:-}
+    # Threads are sized from this quota (app/cpu.py).
+    cpus: ${CLASSIFY_CPUS:-3}
+    mem_limit: ${CLASSIFY_MEM:-3g}
+    read_only: true
+    tmpfs:
+      - /tmp
+    networks:
+      - beeflow-network
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8300/health')" ]
+      interval: 30s
+      timeout: 10s
+      start_period: 120s
+      retries: 3
+
+  # ── Umami — self-hosted website analytics (profile: analytics) ──
+  #
+  # Backs the admin "Website analytics" tab. Opt-in: add `analytics` to
+  # COMPOSE_PROFILES in .env, set UMAMI_APP_SECRET (selfhost.sh generates
+  # one for you), and set UMAMI_URL=http://umami:3000 so the SERVER reaches
+  # it on the compose network. The BROWSER loads /script.js from the public
+  # URL you enter in Admin ▸ Website analytics ▸ Settings (http://localhost:3000
+  # locally) — that is a separate value on purpose, since `localhost` inside
+  # the server container would resolve to the server itself.
+  #
+  # State lives entirely in the shared Postgres (`umami` database), so no
+  # volume here. On an EXISTING postgres volume docker/init-db.sh does not
+  # re-run — create the database once with:
+  #   docker compose exec postgres psql -U $DB_USER -d $DB_NAME -c 'CREATE DATABASE umami;'
+  umami:
+    image: ghcr.io/umami-software/umami:postgresql-latest
+    container_name: beeflow-umami
+    profiles: [ "analytics" ]
+    ports:
+      - "127.0.0.1:${UMAMI_PORT:-3000}:3000"
+    environment:
+      - DATABASE_TYPE=postgresql
+      - DATABASE_URL=postgresql://${DB_USER:-beeflow}:${DB_PASSWORD:?Set DB_PASSWORD in .env}@postgres:5432/umami
+      # Deliberately NOT `:?`-required: Compose interpolates every service
+      # eagerly, active profiles or not, so a required-variable error here
+      # would fail EVERY compose command (up/down/stop/config) on installs
+      # that never opted into analytics. Left unset, umami falls back to a
+      # DATABASE_URL-derived secret; selfhost.sh generates a real value into
+      # .env (on fresh installs, and whenever the analytics profile starts).
+      - APP_SECRET=${UMAMI_APP_SECRET:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - beeflow-network
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f http://localhost:3000/api/heartbeat || exit 1" ]
+      interval: 30s
+      timeout: 10s
+      start_period: 40s
+      retries: 3
+
+# ════════════════════════════════════════════════════════════════
+# VOLUMES
+# ════════════════════════════════════════════════════════════════
+
+volumes:
+  # Core
+  beeflow-data:
+    name: beeflow-data
+  beeflow-pgdata:
+    name: beeflow-pgdata
+  rustfs-data:
+    name: rustfs-data
+  rustfs-logs:
+    name: rustfs-logs
+  # Search
+  search-pgdata:
+    name: search-pgdata
+  search-redis-data:
+    name: search-redis-data
+  search-hf-cache:
+    name: search-hf-cache
+  # Guard
+  guard-redis-data:
+    name: guard-redis-data
+  # WhisperX
+  whisperx-cache:
+    name: whisperx-cache
+  # PII
+  ollama-models:
+    driver: local
+
+  pii-model-cache:
+    name: pii-model-cache
+
+# ════════════════════════════════════════════════════════════════
+# NETWORKS
+# ════════════════════════════════════════════════════════════════
+
+networks:
+  beeflow-network:
+    name: beeflow-network
+  search-network:
+    name: search-network

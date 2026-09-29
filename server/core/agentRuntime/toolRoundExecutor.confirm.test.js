@@ -1,0 +1,609 @@
+/**
+ * The two agent-policy gates in a real streaming turn: the name whitelist and
+ * the confirmation hold.
+ *
+ * THE POINT OF THIS FILE is the invisibility claim. The confirm layer ships
+ * dark: an agent that exists today has no `config.tools`, and every assertion
+ * below that runs without one must show the pre-A1 behaviour unchanged — the
+ * tool dispatches, the draft card still comes from the tool itself, and a
+ * headless run keeps the mail tool `autoSend` exists to use. The moment a
+ * `tools` map is stored, the same call is held back instead.
+ *
+ * HOW THIS RUNS WITHOUT POSTGRES: the same harness as
+ * chatStream.turnLifecycle.test.js — the real chatWithAgentStream driven by a
+ * scripted fake provider adapter, `ephemeral: true`, and the stores/heavy
+ * collaborators swapped through testUtils/stubRequire (keys are the require
+ * strings exactly as the modules write them). The tool REGISTRY is stubbed
+ * too, so `gmail_compose` resolves to the gmail app without loading every
+ * integration module; the effect classes come from the real sideEffectMap, so
+ * "compose sends, search reads" is the product's own answer, not the test's.
+ *
+ * Run: node --test --test-force-exit core/agentRuntime/toolRoundExecutor.confirm.test.js
+ */
+
+const test = require('node:test');
+const assert = require('node:assert');
+const fs = require('node:fs');
+const path = require('node:path');
+const { installResolveStub } = require('../../testUtils/stubRequire');
+
+// ── Mutable per-test state, read by the stubs below ──────────────────
+const S = {
+    round: 0,
+    drive: null,
+    tools: [],
+    agentConfig: {},
+    dispatched: [],
+    events: [],
+    toolsOfferedPerRound: [],
+};
+
+function reset(cfg = {}) {
+    LEND.on = false;
+    S.round = 0;
+    S.drive = cfg.drive || (() => {});
+    S.tools = cfg.tools || TOOLS;
+    // `disableExternalTools` keeps getIntegrationTools out of the assembly, so
+    // the stack is exactly what getAgentTools returns and the assertions can
+    // count it.
+    S.agentConfig = { disableExternalTools: true, ...(cfg.config || {}) };
+    S.dispatched = [];
+    S.events = [];
+    S.toolsOfferedPerRound = [];
+}
+
+const fn = (name) => ({
+    type: 'function',
+    function: { name, description: name, parameters: { type: 'object', properties: {} } },
+});
+const TOOLS = [fn('gmail_search'), fn('gmail_compose')];
+
+const adapter = {
+    stream: async (apiKey, url, model, messages, options, cb) => {
+        S.toolsOfferedPerRound.push((options?.tools || []).map(t => t.function?.name));
+        await S.drive(cb, options, S.round++);
+    },
+};
+
+const AGENT_BASE = {
+    id: 'agent-1', name: 'Test Agent', model: 'claude-x', organization_id: null,
+    owner_id: 'u1', embed_enabled: false,
+};
+
+const noop = () => {};
+
+// The owner's lent Google connection, as connectionResolution would resolve it.
+const LEND = {
+    on: false,
+    override: {
+        integrationUserId: 'owner-2', integrationOrgId: 'org-2',
+        connectionId: 'conn-1', connectionLabel: 'Owner Google', grantId: 'g-1', provider: 'google',
+    },
+};
+
+// Connection lending: off unless a test turns it on, exactly like the
+// product default (INTEGRATION_CONNECTION_LENDING_ENABLED).
+const CONNECTION_RESOLUTION_STUB = {
+    isLendingEnabled: () => LEND.on,
+    providerForTool: () => 'google',
+    runningUserContext: async () => ({ orgId: null, groups: [] }),
+    resolveEffectiveIdentity: async () => (LEND.on ? LEND.override : null),
+};
+
+// The app index toolPolicy builds its grants from. Real names, so the real
+// sideEffectMap is what classifies them: search reads, compose sends.
+const TOOL_REGISTRY_STUB = {
+    TOOL_REGISTRY: [{ app: 'gmail', label: 'Gmail' }],
+    INLINE_TOOL_APPS: [],
+    // `ALL_TOOL_APPS` is de lijst die de attributie-index leest — registry
+    // PLUS de apps die hun tools inline injecteren. Zie automation/toolRegistry.js.
+    ALL_TOOL_APPS: [{ app: 'gmail', label: 'Gmail' }],
+    loadTools: () => [
+        { function: { name: 'gmail_search' } },
+        { function: { name: 'gmail_compose' } },
+    ],
+    loadToolsResult: () => ({
+        tools: [
+            { function: { name: 'gmail_search' } },
+            { function: { name: 'gmail_compose' } },
+        ],
+        ok: true,
+        reason: null,
+    }),
+};
+
+const STUBS = {
+    '../../automation/toolRegistry': TOOL_REGISTRY_STUB,
+    // `installResolveStub` keys on the require string as WRITTEN INSIDE the
+    // asking module, and toolPolicy is a folder now: its attribution index
+    // (toolPolicy/appIndex.js) sits one level deeper and asks for this string
+    // for the very same module. Without it the stub stops matching and the
+    // REAL registry answers — silently, which is the failure mode
+    // server/ARCHITECTURE.md warns about.
+    '../../../automation/toolRegistry': TOOL_REGISTRY_STUB,
+    '../aiAgent': {
+        getAIConfig: async () => ({}),
+        getProviderForModel: async () => ({
+            url: 'http://provider.invalid', apiKey: 'k',
+            providerType: 'claude', providerName: 'claude',
+        }),
+        resolveModelId: async (m) => m,
+    },
+    '../providers': { getAdapter: () => adapter },
+    '../cms/componentManager': {},
+    '../executionEngine': {},
+    '../../stores/agentStore': {
+        getAgent: async () => ({ ...AGENT_BASE, config: S.agentConfig }),
+        getForRuntime: async () => ({ ...AGENT_BASE, config: S.agentConfig }),
+        getAgentToolsWithParams: async () => [],
+        getConversationMeta: async () => ({}),
+        updateConversation: async () => {},
+        getConversationById: async () => null,
+        getOrCreateConversation: async () => ({ id: 'c1', messages: [] }),
+        createNewConversation: async () => ({ id: 'c1', messages: [] }),
+    },
+    '../../stores/usageStore': { logUsage: async () => {} },
+    '../../stores/terminationStore': { logTermination: async () => {} },
+    '../../stores/guardrailEventStore': {
+        logGuardrailEvent: async () => {},
+        logAttachmentPiiFindings: async () => {},
+        logAttachmentScanIncomplete: async () => {},
+    },
+    '../../stores/configStore': { getConfig: async () => null },
+    // Production narrows the belt to the TICKED actions long before the model
+    // sees it — integrationTools' addTools runs every candidate past
+    // toolPolicy.isToolAllowed — so the stub applies the same filter. Handing
+    // back the whole belt regardless of the grants would let a test about the
+    // NAME WHITELIST pass on the confirmation hold instead: the unticked send
+    // would still be offered, gate 2 would hold it, and gate 1 could be
+    // deleted without one assertion here turning red.
+    './agentTools': {
+        getAgentTools: async () => {
+            const policy = require('./toolPolicy');
+            const grants = policy.toolsConfigOf(S.agentConfig);
+            return grants ? S.tools.filter(t => policy.isToolAllowed(t, grants)) : S.tools;
+        },
+    },
+    './modelResolver': { resolveAgentModel: async () => 'claude-x' },
+    './contextBuilder': { buildSystemPrompt: async () => ({ systemPrompt: 'SYS', volatileSystemPrompt: '' }) },
+    './knowledgeSearch': { performKnowledgeSearch: async () => ({}), quickKBSearch: async () => [] },
+    './guardrailsRunner': { runInputGuardrails: async ({ userMessage }) => ({ processedUserMessage: userMessage }) },
+    './attachmentProcessor': { processAttachments: async () => ({}) },
+    './historyHydrator': { hydrateHistoryAttachments: async (m) => m },
+    '../llm/compaction': {
+        compactMessages: (m) => ({ messages: m, newSummary: null, didSummarize: false }),
+        needsSummarization: () => false,
+    },
+    '../../telemetry/metrics': { recordAgentRun: noop },
+    '../llm/promptClassifier': { classifyPromptComplexity: () => ({}) },
+    '../documents/ocr': { mistralOCR: async () => '' },
+    '../privacy/orgShield': {
+        resolveShieldFor: async () => null,
+        mergeWithOrgShield: (a) => a,
+        classifyToolClass: () => 'internal',
+        isBlockedForTool: () => ({ blocked: false, blockedCategories: [], toolClass: 'internal' }),
+    },
+    // Records every call that actually reached dispatch — the whole point of
+    // the two gates is which of these entries never appear.
+    '../tools/toolDispatcher': {
+        executeTool: async (name, args, ctx) => {
+            // `userId`/`lentConnection` are how a borrowed connection shows up
+            // at dispatch — the actAs tests below read them.
+            S.dispatched.push({ name, args, userId: ctx?.userId, lent: !!ctx?.lentConnection });
+            return { ok: true, message: `${name} ran` };
+        },
+    },
+    '../integrations/connectionResolution': CONNECTION_RESOLUTION_STUB,
+    // Same one-level-deeper alias, for toolPolicy/connectionLending.js.
+    '../../integrations/connectionResolution': CONNECTION_RESOLUTION_STUB,
+    '../integrations/integrationLogging': { logToolEgress: noop },
+    '../llm/promptUtils': { processSystemPrompt: async (s) => s },
+    '../llm/promptCacheStability': { toolSetFingerprint: () => 'tf', systemPrefixFingerprint: () => 'sf' },
+    '../privacy/guardrails': { checkRegexPatterns: () => [] },
+    '../dlp/dlpRunner': {
+        getConversationTokenMap: () => ({}),
+        getConversationTokenMapAsync: async () => ({}),
+        mergeTokenMap: () => {},
+    },
+};
+
+// chatStream became a FOLDER (chatStream/index.js + the turn's phases), so the
+// modules under test now write every require one '../' deeper than they used
+// to. installResolveStub matches the request string exactly as the module
+// writes it, so each stub is registered at BOTH depths: the shallow key still
+// covers the agentRuntime modules that did not move, the deeper one covers the
+// ones that did. Missing a key here fails SILENTLY — the real module loads and
+// the turn dies on a live Postgres connect somewhere unrelated.
+const atBothDepths = (map) => {
+    const out = { ...map };
+    for (const [request, exportsObj] of Object.entries(map)) {
+        const deeper = request.startsWith('./') ? '../' + request.slice(2)
+            : request.startsWith('../') ? '../' + request
+                : null;
+        if (deeper && !(deeper in out)) out[deeper] = exportsObj;
+    }
+    return out;
+};
+const restore = installResolveStub(atBothDepths(STUBS));
+
+const { chatWithAgentStream } = require('./chatStream');
+
+test.after(() => restore());
+
+async function runTurn(meta = {}) {
+    const onEvent = (type, data) => S.events.push([type, data]);
+    let result = null, error = null;
+    try {
+        result = await chatWithAgentStream(
+            'agent-1', 'u1', 'hi',
+            { userId: 'u1', encryptionKey: null, session: {} },
+            onEvent, null,
+            { ephemeral: true, ...meta },
+        );
+    } catch (e) { error = e; }
+    return { result, error, events: S.events };
+}
+
+/** Call `name` on the first round, answer in prose on every later one. */
+const callThenAnswer = (name) => (cb, options, round) => {
+    if (round === 0) cb('tool_use', { id: 'call_1', name, input: { to: 'x@example.com' } });
+    else cb('text', { text: 'All done.' });
+    cb('done', {});
+};
+
+const eventsOfType = (type) => S.events.filter(([t]) => t === type).map(([, d]) => d);
+
+/**
+ * The gmail names offered in a round. Filtered because the stack also carries
+ * the set_reminder / set_ai_task builtins that toolStackAssembly always adds —
+ * they are not what any assertion here is about, and counting them would make
+ * these tests fail the day a third builtin arrives.
+ */
+const gmailOffered = (round = 0) => (S.toolsOfferedPerRound[round] || []).filter(n => n.startsWith('gmail_')).sort();
+
+// ── Invisible without a stored map ──────────────────────────────────
+
+test('a legacy agent (no config.tools) sends exactly as it does today — no hold, no card', async () => {
+    reset({ drive: callThenAnswer('gmail_compose') });
+
+    const { result, error } = await runTurn();
+
+    assert.strictEqual(error, null);
+    assert.deepStrictEqual(S.dispatched.map(d => d.name), ['gmail_compose'],
+        'the tool must still run: today it answers with an email_draft of its own, and holding it ' +
+        'back here would take that draft card away from every agent that exists');
+    assert.deepStrictEqual(eventsOfType('tool_confirm'), [], 'nothing to confirm without a stored map');
+    assert.match(result.message, /All done/);
+    assert.deepStrictEqual(gmailOffered(), ['gmail_compose', 'gmail_search'],
+        'the whole toolbelt is offered');
+});
+
+test('a legacy agent keeps its mail tool in a headless run — autoSend still means send', async () => {
+    reset({ drive: callThenAnswer('gmail_compose') });
+
+    await runTurn({ autoSend: true });
+
+    assert.deepStrictEqual(gmailOffered(), ['gmail_compose', 'gmail_search'],
+        'dropping confirm-tools from an unattended run must not touch an agent with no grants — ' +
+        'that is every mailing routine in the product');
+    assert.deepStrictEqual(S.dispatched.map(d => d.name), ['gmail_compose']);
+});
+
+// ── The map is the opt-in ───────────────────────────────────────────
+
+test('with a stored map a send is held back: SSE tool_confirm, no dispatch, turn still finishes', async () => {
+    reset({
+        drive: callThenAnswer('gmail_compose'),
+        config: { tools: { gmail: { actions: '*', confirm: 'ask' } } },
+    });
+
+    const { result, error } = await runTurn();
+
+    assert.strictEqual(error, null, 'a held call is not an error — the turn runs on to done');
+    assert.deepStrictEqual(S.dispatched, [], 'nothing may reach the dispatcher');
+
+    const confirms = eventsOfType('tool_confirm');
+    assert.strictEqual(confirms.length, 1);
+    assert.strictEqual(confirms[0].toolName, 'gmail_compose');
+    assert.strictEqual(confirms[0].effect, 'sends', 'the effect comes from sideEffectMap, not from a name check');
+    assert.strictEqual(confirms[0].callId, 'call_1', 'the card needs the id the resume route will quote');
+    assert.deepStrictEqual(confirms[0].preview, { to: 'x@example.com' });
+
+    assert.match(result.message, /All done/, 'the model finishes its turn around the pending call');
+    const held = result.toolCalls.find(c => c.name === 'gmail_compose');
+    assert.match(held.result, /has not run/, 'the model is told the call is parked, not that it failed');
+});
+
+test('a read is never held, whatever the app entry says', async () => {
+    reset({
+        drive: callThenAnswer('gmail_search'),
+        // `confirm: 'ask'` on the whole app — a read still has nothing to approve.
+        config: { tools: { gmail: { actions: '*', confirm: 'ask' } } },
+    });
+
+    await runTurn();
+
+    assert.deepStrictEqual(S.dispatched.map(d => d.name), ['gmail_search']);
+    assert.deepStrictEqual(eventsOfType('tool_confirm'), []);
+});
+
+test('a stored "direct" cannot buy a send past the gate', async () => {
+    reset({
+        drive: callThenAnswer('gmail_compose'),
+        // The clamp on write/read would have turned this into 'ask'; the
+        // runtime must reach the same verdict on its own for a row that
+        // somehow arrived unclamped.
+        config: { tools: { gmail: { actions: '*', confirm: 'direct' } } },
+    });
+
+    await runTurn();
+
+    assert.deepStrictEqual(S.dispatched, [], 'sends is the one thing no stored config talks its way out of');
+    assert.strictEqual(eventsOfType('tool_confirm').length, 1);
+});
+
+test('a granted agent loses the tool entirely when nobody is watching', async () => {
+    reset({
+        drive: callThenAnswer('gmail_compose'),
+        config: { tools: { gmail: { actions: '*', confirm: 'ask' } } },
+    });
+
+    await runTurn({ autoSend: true });
+
+    assert.deepStrictEqual(gmailOffered(), ['gmail_search'],
+        'with no one to answer, a tool that would ask is withheld rather than run unapproved');
+    assert.deepStrictEqual(S.dispatched, []);
+    assert.deepStrictEqual(eventsOfType('tool_confirm'), [],
+        'and no card either — there is nobody to draw it for');
+});
+
+// ── A hold may not become a loop ────────────────────────────────────
+// The placeholder result asks the model to stop; nothing makes it. A model
+// that re-emits the same call every round gets a FRESH call id each time, so
+// an id-keyed dedupe never fires: before this was keyed on the action, one
+// held send produced a card per round until the iteration budget ran out and
+// the turn ended by THROWING — which skips finalizeTurn, so the user got an
+// error instead of a reply and the cards they had just seen were never
+// persisted (they vanish on reload).
+
+/** Re-call `name` for as long as tools are offered; answer once they are not. */
+const keepCalling = (name, input) => (cb, options, round) => {
+    if (options?.tools?.length) {
+        cb('tool_use', { id: `call_${round}`, name, input });
+    } else {
+        cb('text', { text: 'Waiting on you before I send that.' });
+    }
+    cb('done', {});
+};
+
+test('a model that keeps re-holding one action gets ONE card and a real answer', async () => {
+    reset({
+        drive: keepCalling('gmail_compose', { to: 'x@example.com' }),
+        config: { tools: { gmail: { actions: '*', confirm: 'ask' } } },
+    });
+
+    const { result, error } = await runTurn();
+
+    assert.strictEqual(error, null,
+        'the turn must not end on the max-iterations throw: that never reaches finalizeTurn, so the ' +
+        'user gets an error banner and the pending call is never persisted');
+    assert.strictEqual(eventsOfType('tool_confirm').length, 1,
+        'one action is one thing to approve, however often the model asks for it');
+    assert.deepStrictEqual(S.dispatched, [], 'and it still never runs');
+    assert.match(result.message, /Waiting on you/, 'the turn ends with a saved reply');
+
+    const broken = eventsOfType('tool_loop_broken');
+    assert.deepStrictEqual(broken, [{ reason: 'pending_confirmation' }],
+        'the reason must not borrow the repeated-failure wording — nothing failed here');
+    assert.ok(S.toolsOfferedPerRound.length <= 4,
+        `the hold costs the same budget as a repeated failure (3 rounds + the wrap-up), not the whole ` +
+        `iteration cap — drove ${S.toolsOfferedPerRound.length} rounds`);
+
+    const held = result.toolCalls.filter(c => c.name === 'gmail_compose');
+    assert.ok(held.length > 1, 'the model did re-ask — otherwise this test proves nothing');
+    assert.match(held[0].result, /has not run/);
+    assert.match(held[held.length - 1].result, /Still waiting/,
+        'a repeat is told plainly that asking again changes nothing');
+});
+
+test('two different pending actions each get their own card', async () => {
+    reset({
+        drive: (cb, options, round) => {
+            if (round === 0) {
+                cb('tool_use', { id: 'c1', name: 'gmail_compose', input: { to: 'a@example.com' } });
+                cb('tool_use', { id: 'c2', name: 'gmail_compose', input: { to: 'b@example.com' } });
+            } else {
+                cb('text', { text: 'Two mails are waiting for you.' });
+            }
+            cb('done', {});
+        },
+        config: { tools: { gmail: { actions: '*', confirm: 'ask' } } },
+    });
+
+    const { error } = await runTurn();
+
+    assert.strictEqual(error, null);
+    assert.deepStrictEqual(eventsOfType('tool_confirm').map(c => c.preview.to),
+        ['a@example.com', 'b@example.com'],
+        'the dedupe is per ACTION — two different mails are two decisions, not a repeat');
+});
+
+// ── The name whitelist ──────────────────────────────────────────────
+
+test('a name that was never offered is refused before anything is dispatched', async () => {
+    reset({
+        // The shape of a prompt injection: a routine name the asker owns, which
+        // the dispatcher's dynamic-name fallback would happily have run.
+        drive: callThenAnswer('automation_pay_invoice'),
+        // Curated: this gate is opt-in, like everything else here.
+        config: { tools: { gmail: { actions: '*' } } },
+    });
+
+    const { error } = await runTurn();
+
+    assert.strictEqual(error, null);
+    assert.deepStrictEqual(S.dispatched, [],
+        'an unoffered name must never reach toolDispatcher — its dynamic-name fallback runs the ' +
+        "asker's own agent_call routines outside every agent policy");
+    assert.deepStrictEqual(eventsOfType('tool_confirm'), [], 'a refusal is not a confirmation');
+});
+
+test('an UNcurated agent keeps the dispatcher path it has always had for an unoffered name', async () => {
+    // The gate shipped global for one stage, which changed what every agent in
+    // the product does with a name outside its stack — with no field anyone
+    // could set to ask for it. The dispatcher has its own answer for such a
+    // name (the caller's routines and Steps, a progressive-disclosure hint, a
+    // component tool), and that answer is what a legacy agent gets back.
+    reset({ drive: callThenAnswer('automation_pay_invoice') });
+
+    const { error } = await runTurn();
+
+    assert.strictEqual(error, null);
+    assert.deepStrictEqual(S.dispatched.map(d => d.name), ['automation_pay_invoice'],
+        'unchanged from before the grants layer — curating the agent is what closes its stack');
+    assert.deepStrictEqual(eventsOfType('tool_confirm'), []);
+});
+
+// ── actAs: the stored answer to "may this run on my connection?" ─────
+// A lend grant is the OWNER's permission for the agent; `actAs` is their
+// per-app answer for the tools. Nothing read it: with lending on, one grant
+// borrowed the connection for every tool of that provider, including apps the
+// owner had deliberately left on "as the person asking".
+
+test('a curated app left on "as the person asking" does not borrow the lent connection', async () => {
+    reset({
+        drive: callThenAnswer('gmail_search'),
+        config: { tools: { gmail: { actions: '*', actAs: 'viewer' } } },
+    });
+    LEND.on = true;
+
+    await runTurn();
+
+    assert.deepStrictEqual(S.dispatched.map(d => d.name), ['gmail_search']);
+    assert.strictEqual(S.dispatched[0].userId, 'u1',
+        'the call runs as the person asking — the stored choice decides, not the mere existence of a grant');
+    assert.strictEqual(S.dispatched[0].lent, false);
+});
+
+test('...and an app the owner DID put on "as the owner" still borrows it', async () => {
+    reset({
+        drive: callThenAnswer('gmail_search'),
+        config: { tools: { gmail: { actions: '*', actAs: 'owner' } } },
+    });
+    LEND.on = true;
+
+    await runTurn();
+
+    assert.strictEqual(S.dispatched[0].userId, 'owner-2',
+        'or the fix would just be lending switched off in a costume');
+    assert.strictEqual(S.dispatched[0].lent, true);
+});
+
+test('an agent with no grants map lends exactly as it did before', async () => {
+    reset({ drive: callThenAnswer('gmail_search') });
+    LEND.on = true;
+
+    await runTurn();
+
+    assert.strictEqual(S.dispatched[0].userId, 'owner-2',
+        'there is no stored answer to honour here, and reading the default as one would switch ' +
+        'lending off for every agent that predates the picker');
+});
+
+// ── A granted routine's own confirm ─────────────────────────────────
+// `automations[].confirm` is keyed on the automation id while the tool is
+// named per user at assembly time, so nothing married the two and the stored
+// value did nothing at all.
+
+const ROUTINE = {
+    type: 'function',
+    function: { name: 'automation_send_invoice', description: 'Send the invoice', parameters: { type: 'object', properties: {} } },
+    __automation: { id: 'auto-1', userId: 'u1' },
+};
+
+test('a routine its owner put on "ask" is held back instead of run', async () => {
+    reset({
+        drive: callThenAnswer('automation_send_invoice'),
+        tools: [...TOOLS, ROUTINE],
+        config: { tools: { automations: { 'auto-1': { confirm: 'ask' } } } },
+    });
+
+    const { error } = await runTurn();
+
+    assert.strictEqual(error, null);
+    assert.deepStrictEqual(S.dispatched, [], 'the routine must not run — that is what "ask" was for');
+    const confirms = eventsOfType('tool_confirm');
+    assert.strictEqual(confirms.length, 1);
+    assert.strictEqual(confirms[0].toolName, 'automation_send_invoice');
+});
+
+test('a routine granted without a confirm runs exactly as before', async () => {
+    reset({
+        drive: callThenAnswer('automation_send_invoice'),
+        tools: [...TOOLS, ROUTINE],
+        config: { tools: { automations: { 'auto-1': {} } } },
+    });
+
+    await runTurn();
+
+    assert.deepStrictEqual(S.dispatched.map(d => d.name), ['automation_send_invoice'],
+        'a grant is permission to call it, not an instruction to ask first');
+    assert.deepStrictEqual(eventsOfType('tool_confirm'), []);
+});
+
+test('nobody watching: the routine set to "ask" is withheld, and naming it anyway is refused', async () => {
+    reset({
+        drive: callThenAnswer('automation_send_invoice'),
+        tools: [...TOOLS, ROUTINE],
+        config: { tools: { automations: { 'auto-1': { confirm: 'ask' } } } },
+    });
+
+    await runTurn({ autoSend: true });
+
+    assert.ok(!(S.toolsOfferedPerRound[0] || []).includes('automation_send_invoice'),
+        'with no one to answer, a routine that would ask is left out of the stack');
+    assert.deepStrictEqual(S.dispatched, [],
+        'and the name gate holds: the withheld routine may not slip through the dispatcher\'s own lookup');
+});
+
+test('an unticked action of a granted app is refused, not merely un-offered', async () => {
+    reset({
+        drive: callThenAnswer('gmail_compose'),
+        // Only search is ticked. The tool is not in the stack, so a model that
+        // names it anyway is drift.
+        config: { tools: { gmail: { actions: ['gmail_search'] } } },
+    });
+
+    const { error } = await runTurn();
+
+    assert.strictEqual(error, null);
+    assert.deepStrictEqual(gmailOffered(), ['gmail_search'],
+        'the unticked send never reaches the model — assert this first, or the rest of the test ' +
+        'passes on gate 2 holding a tool that was still offered and proves nothing about gate 1');
+    assert.deepStrictEqual(S.dispatched, [], 'and naming it anyway does not run it');
+    assert.deepStrictEqual(eventsOfType('tool_confirm'), [],
+        'REFUSED, not held: a name outside the round\'s stack is drift, not a decision to put in ' +
+        'front of a person — there is nothing here anyone could sensibly approve');
+});
+
+// ── The carrier ─────────────────────────────────────────────────────
+// The pending call rides out on the assistant message like an email draft. The
+// end-to-end harness is ephemeral (nothing is persisted), so pin the carrier
+// structurally: cheap, and it catches the regression that matters — someone
+// dropping the field while the SSE event keeps firing, which would leave a
+// card that vanishes on reload.
+
+test('finalizeTurn carries pending confirmations on the assistant message', () => {
+    // Genuinely textual, given this harness: `ephemeral: true` above means the
+    // normal conversation-persistence path never runs, and finalizeTurn's
+    // return value (see finalizeTurn.js's final `return`) only carries
+    // `message`/`toolCalls`/…, never the durable `assistantMsg` object itself
+    // — so there is no stub call or return value here that this property
+    // could be observed through. The regression this pins is real and cheap
+    // to lose: someone drops the field while the SSE `tool_confirm` event (the
+    // one every test above already asserts on behaviourally) keeps firing,
+    // leaving a card that reads fine live and vanishes on reload.
+    const src = fs.readFileSync(path.join(__dirname, 'finalizeTurn.js'), 'utf8');
+    assert.match(src, /assistantMsg\.pendingToolCalls\s*=\s*_pendingToolCalls/,
+        'the held call must survive a reload the way emailDrafts does');
+});

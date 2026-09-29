@@ -1,0 +1,116 @@
+# Lint, typecheck and unit tests for the desktop client, on every PR touching
+# desktop/. Deliberately separate from desktop-release.yml: these run in about
+# two minutes on one Linux runner, while producing the actual installers means
+# up to three runners and a few hundred megabytes of downloaded Electron
+# binaries.
+#
+# Not a job in ci.yml, and so not behind the required `checks-passed` context:
+# build-push-ghcr.yml runs ci.yml before it publishes any image, and whether a
+# desktop failure should hold back a server image is a decision of its own.
+name: Desktop checks
+
+on:
+  pull_request:
+    paths:
+      - 'desktop/**'
+      - '.github/workflows/desktop-checks.yml'
+      - '.nvmrc'
+      # desktop/src/main/releaseWorkflow.test.ts parses desktop-release.yml's
+      # packaging-path list, so an edit to that list has to run it.
+      - '.github/workflows/desktop-release.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'desktop/**'
+      - '.github/workflows/desktop-checks.yml'
+      - '.nvmrc'
+      - '.github/workflows/desktop-release.yml'
+
+permissions:
+  contents: read
+
+# PR runs supersede each other. Every other run gets a group of its own (the
+# run_id), because a verdict on main is what a regression gets bisected with,
+# and `cancel-in-progress: false` alone does not keep it: GitHub holds at most
+# one PENDING run per group and replaces it with the next one to queue, so two
+# quick merges behind a running check would lose the middle verdict. Same shape
+# as ci.yml, with every line of the `>-` scalar at one indent for the same
+# reason: a more-indented continuation line is kept literally, not folded.
+concurrency:
+  group: >-
+    ${{ github.event_name == 'pull_request'
+    && format('desktop-checks-{0}', github.ref)
+    || format('desktop-checks-{0}-{1}', github.ref, github.run_id) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: desktop
+    env:
+      # ~150 MB of Electron binary that none of these steps launch. The package
+      # is still installed, so its TypeScript definitions are there and the
+      # typecheck is real; only the runtime download is skipped.
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      # Three programs: the Node side (main process, preload), the browser side
+      # (the local shell pages), and the e2e suite. They target different
+      # module systems and environments and cannot share one tsconfig.
+      - name: Typecheck
+        run: npm run typecheck
+
+      # `node --test` over the TypeScript sources directly — Node 22 strips the
+      # types itself, so there is no test toolchain in this package at all. The
+      # suites that matter most here are the security ones: the navigation
+      # policy (which URLs may load in a window that is pointed at a remote
+      # origin) and the deep-link parser (which `beeflow://` links may act
+      # without asking). Both are reachable from any web page on the machine.
+      - name: Unit tests
+        run: npm test
+
+      # Catches the mistakes that only appear at emit time — a path that does
+      # not resolve once the `.ts` specifiers are rewritten to `.js`, a shell
+      # asset that never gets copied — without building an installer. It also
+      # bundles the preload and FAILS if the bundle requires anything but
+      # `electron` (scripts/build-preload.mjs): a sandboxed preload cannot, and
+      # a tsc-emitted relative require once left every page without its bridge.
+      - name: Build
+        run: npm run build
+
+      - name: Check the compiled main process loads
+        run: |
+          set -euo pipefail
+          node -e "
+            // Everything in the main process that does not need Electron.
+            // If one of these grew an accidental top-level electron import,
+            // the app would fail at launch rather than here.
+            for (const m of [
+              './dist/main/config/store.js',
+              './dist/main/config/schema.js',
+              './dist/main/nextcloud/bridge.js',
+              './dist/main/security/policy.js',
+              './dist/main/server/probe.js',
+              './dist/main/server/chromiumFetch.js',
+              './dist/main/server/secureOrigin.js',
+              './dist/main/linux/appImageEntry.js',
+              './dist/main/deepLink.js',
+            ]) require(m);
+            console.log('main-process modules load cleanly');
+          "

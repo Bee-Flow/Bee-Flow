@@ -1,0 +1,440 @@
+{
+  "id": "apps-data-and-screens",
+  "icon": "🧩",
+  "estMinutes": 16,
+  "title": "Tables, screens and what shows when",
+  "desc": "Design an app's tables, add screens, build them from the component strip, and show a component only when it matters.",
+  "gate": {
+    "permission": "manage_apps",
+    "feature": "app_studio"
+  },
+  "learningGoal": "After this lesson you can design an app table by hand, tell it apart from a linked Studio table, add screens and build them from the component strip, choose the home screen and the menu, and show or enable a component only under a condition.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "own-database",
+      "icon": "🗄️",
+      "title": "Every app carries its own database",
+      "bodyMd": "Van Dijk Groep's purchase requests live in a shared spreadsheet that four people edit at the same time. In the previous chapter the AI built the screens for their **Inkoopaanvragen** app. The rows those screens show have to live somewhere, and that somewhere is the app's own database — private to this one app.\n\nYou open it from the editor header: switch the view control to **Data**. A dialog appears, titled **Tables** — *\"Design the data behind your app, then drop a form or grid onto the current screen.\"* Its tabs are **Tables · Rows · Relationships · Connectors · People**.\n\nThe room is generous: up to 50 tables in an app, 100 fields in a table, 100 000 rows in a table and 256 MB of database in total."
+    },
+    {
+      "type": "slide",
+      "id": "field-types",
+      "icon": "🏷️",
+      "title": "A field has a name, a column name and a type",
+      "bodyMd": "Press **New table** and give it a **Table name**: `Aanvragen`. The hint underneath, *Stored as: aanvragen*, is the name the database itself uses.\n\nThen **Add field** for each thing you want to keep. A field carries three things:\n\n- **Name** — what people read on the screen.\n- **Column name** — what the app refers to it by. It follows the name until you edit it yourself.\n- **Type** — Text, Rich text, Number, Date, Date & time, Yes / no, Select, Multi-select, Relation, File or Computed.\n\nTick **Required** or **Unique** where it matters. A Select then asks for its **Choices**, a Relation for a **Related table**, a Computed field for an expression such as `price * quantity`.\n\nFive names are taken before you start: every table already carries `id`, `created_at`, `updated_at`, `created_by` and `org_id` — so never add a \"who filled this in\" field of your own."
+    },
+    {
+      "type": "sim",
+      "id": "match-types",
+      "icon": "🧩",
+      "title": "Pick the type for each thing Van Dijk stores",
+      "instruction": "Nadia listed what a purchase request has to record. Match each one to the field type you would choose in the designer.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "bedrag",
+            "left": "The amount the site manager expects to spend, so the office can total the month",
+            "right": "Number",
+            "note": "A Number can be compared, summed and charted; the same figure as Text cannot."
+          },
+          {
+            "id": "status",
+            "left": "Whether the request is nieuw, goedgekeurd or afgewezen — always one of those three",
+            "right": "Select",
+            "note": "A Select carries the choices you define, so nobody invents a fourth status by typing."
+          },
+          {
+            "id": "nodig",
+            "left": "The day the materials have to be on site — the time of day is irrelevant",
+            "right": "Date",
+            "note": "Date is a day with no time of day; Date & time is for a moment."
+          },
+          {
+            "id": "offerte",
+            "left": "The supplier's quotation, as the PDF they e-mailed",
+            "right": "File",
+            "note": "A File field takes an attachment; 25 MB is the ceiling per file."
+          },
+          {
+            "id": "totaal",
+            "left": "The line total the app works out from price and quantity — nobody types it",
+            "right": "Computed",
+            "note": "A Computed field is worked out from other fields, which is also why a form never offers an input for it."
+          }
+        ]
+      }
+    },
+    {
+      "type": "slide",
+      "id": "save-migrates",
+      "icon": "💾",
+      "title": "Saving is what actually builds the table",
+      "bodyMd": "Until you press **Save changes**, your table exists only in the editor. Saving sends the model to the server, which compares it with what is already there and runs the difference: tables created, columns added, renamed or dropped.\n\nThe **Rows** tab stays disabled until that has happened — hover it and it says *\"Save the table first — until then there is nowhere to keep its rows.\"*\n\nA saved **Column name** then freezes: the editor shows it as *\"Fixed — the app already refers to this field by this name.\"* A **Change…** button still forces it through, and the warning is honest about the price — every form, list and chart pointing at that field stops finding it.\n\nPick the type with the same care: changing a saved field's type rewrites nothing already stored, and the AI builder refuses such a conversion outright. Add a new field and move the values across."
+    },
+    {
+      "type": "quiz",
+      "id": "q-rows",
+      "question": "You have typed six fields into the new Aanvragen table, but the Rows tab is greyed out and its tooltip says \"Save the table first — until then there is nowhere to keep its rows.\" What is going on?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "The table only exists in the editor so far. Press Save changes, the database is brought up to date, and the Rows tab opens.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "The Rows tab only works for tables the AI builder created, not for ones you typed by hand.",
+          "correct": false,
+          "feedback": "Rows makes no distinction. A table the AI made and a table you typed are the same kind of table — both are only real once the model has been saved."
+        },
+        {
+          "id": "c",
+          "label": "You have to publish the app before it can hold any rows.",
+          "correct": false,
+          "feedback": "Publishing decides who may open the app and freezes a copy of the screens. Rows are data, not part of that copy — you can fill a table long before anyone else may see the app."
+        },
+        {
+          "id": "d",
+          "label": "The screen has no grid on it yet, so there is nowhere to show the rows.",
+          "correct": false,
+          "feedback": "Rows is the editor's own row browser and needs no component on the canvas. What is missing is the table in the database, not a place to display it."
+        }
+      ],
+      "explanation": "The Data view edits a model; Save changes is what turns that model into real storage. Everything that touches rows — the Rows tab, the form generator — waits for that save."
+    },
+    {
+      "type": "slide",
+      "id": "linked-tables",
+      "icon": "🔗",
+      "title": "The second kind of table: linked",
+      "bodyMd": "Van Dijk Groep already keeps its suppliers in **Studio → Datatables**. Copying that list into the app would leave the office with two lists to maintain, so the app **links** it instead.\n\nA linked table wears a **Linked** badge and the line **Linked to a Studio table** — *\"The columns below describe what this app expects to find there. Changing them does not change the Studio table.\"* Beside it sits the mode: **Read only** or **Read and write**.\n\nIts rows are read live and the app gets no storage of its own for it, so the **Rows** tab sends you elsewhere with the hint *\"Rows come from a Studio table.\"*\n\nA link hands out no access either. What a colleague sees through it is the strictest of three answers: their own access to that Studio table, the app owner's access to it, and what their role in the app allows."
+    },
+    {
+      "type": "quiz",
+      "id": "q-rename",
+      "question": "The app's Leveranciers table is linked to a Studio datatable. In the app's Data view you rename its field's column name from contact to contactpersoon and save. What have you changed?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Only what this app expects to find in the Studio table — which now no longer matches, so the app looks for a column the source has not got.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "The column in the Studio datatable is renamed too, and everything reading that table follows along.",
+          "correct": false,
+          "feedback": "The strip above the fields says it outright: changing these columns does not change the Studio table. The app-side list only describes what the app expects to find there."
+        },
+        {
+          "id": "c",
+          "label": "Nothing — a linked table is read-only, so the editor refuses the rename.",
+          "correct": false,
+          "feedback": "Read only and Read and write describe what the app may do to the rows, not whether you can edit the app-side column list. The rename is accepted; it is the result that hurts."
+        },
+        {
+          "id": "d",
+          "label": "The app copies the rows into its own database under the new column name.",
+          "correct": false,
+          "feedback": "A linked table never gets storage inside the app — that is the whole point of linking. There is no copy for a rename to land in."
+        }
+      ],
+      "explanation": "An app-side column list on a linked table is an expectation, not a definition. Change the real column in Studio → Datatables, then ask the builder to refresh the link so the app's copy of the column names matches again."
+    },
+    {
+      "type": "slide",
+      "id": "generate",
+      "icon": "⚡",
+      "title": "Make a form, make a grid",
+      "bodyMd": "Under the field designer sits a panel called **Add to this screen**. While the table is unsaved it only says *\"Save this table first, then you can drop a form or a list onto the screen.\"* and offers **Save now**. Once saved, two buttons appear.\n\n**Make a form** drops a form onto the screen you are on, with one input per writable field: a Select becomes a dropdown carrying your choices, a File becomes an upload, a Computed field is skipped because nobody types it. Its submit button reads *Add Aanvragen*, and it arrives already wired — submitting creates the row and confirms it.\n\n**Make a grid** drops a searchable grid bound to the same table's rows, one column per field.\n\nOn a **Read only** link you get only the grid: *\"This link is read only, so there is no form to make — a grid can still show the rows.\"*"
+    },
+    {
+      "type": "slide",
+      "id": "screens-strip",
+      "icon": "🖼️",
+      "title": "Screens, and the strip you build them from",
+      "bodyMd": "The tabs along the top of the canvas are the app's **screens**. **Add screen** makes another — it arrives as **Screen {n}** — and each tab's **Screen options** menu holds **Rename**, **Set as home screen**, **Delete screen** and **Manage navigation…**. Deleting is refused on the last one: *\"An app needs at least one screen\"*. Room for 40 screens in an app, 40 sections in a screen.\n\nEverything else on a screen comes from the **Components** strip beside the canvas. Its first tab, **Start here**, is a shortcut to the eight you reach for most: heading, text, button, image, card, table, form and chart. **All** shows the complete set, split into **Basics · Content · Layout · Data · Input · AI**. There is a **Search a component…** box, and every card repeats the two ways in: *\"Click to add — or drag it onto the canvas\"*. **Hide the component strip** gives the canvas its room back.\n\nSo a form reaches a screen by either route — generated from the Data view already bound to a table, or dragged out of **Input** and wired by you."
+    },
+    {
+      "type": "quiz",
+      "id": "q-strip",
+      "question": "Nadia is standing on the Overzicht screen and wants a searchable list of the rows in the app's Aanvragen table, already bound to it, without wiring anything by hand. What does she do?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Switch the header to Data, pick the Aanvragen table and press Make a grid under Add to this screen — it lands on the screen she is standing on, bound to that table.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Drag a Table out of the component strip's Data category; a table component finds the app's rows by itself.",
+          "correct": false,
+          "feedback": "A component dragged from the strip arrives empty — you still point it at a table yourself. The generator is the route that arrives already bound."
+        },
+        {
+          "id": "c",
+          "label": "Press Add screen first — a grid can only be generated onto a fresh, empty screen.",
+          "correct": false,
+          "feedback": "The generators drop onto the screen you are on, empty or not. Add screen simply makes one more page."
+        },
+        {
+          "id": "d",
+          "label": "Open Manage navigation… and add the table to the app's menu.",
+          "correct": false,
+          "feedback": "Manage navigation groups screens into sections of the app's menu. It never puts data on a screen."
+        }
+      ],
+      "explanation": "Two routes onto the same canvas: the component strip (Basics · Content · Layout · Data · Input · AI) for anything you wire yourself, and the Data view's Make a form / Make a grid for something that arrives already bound to a table."
+    },
+    {
+      "type": "exercise",
+      "id": "ex-model",
+      "icon": "🎯",
+      "exerciseId": "ex-apps-data-and-screens-model",
+      "title": "Your turn: design the Inkoopaanvragen table",
+      "instruction": "Write the data model for Van Dijk Groep's purchase requests as a short list. For each field give a name, the type you would pick from the designer, and whether it is required. Cover at least: who is asking, the project, the supplier, what is being bought, the amount, the day it is needed, the status, and the supplier's quotation. Then add two sentences: which of these you would NOT store in the app's own table because it already exists in Studio → Datatables, and which field you deliberately did not create because every table already has it.",
+      "placeholder": "e.g. Aanvrager — Text, required · Project — Text, required · Leverancier — ... (then: the supplier list is already a Studio datatable, so I would link it rather than retype it; and I add no \"submitted by\" field because created_by ...)",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "sim",
+      "id": "order-build",
+      "icon": "🪜",
+      "title": "Put the build in order",
+      "instruction": "Nadia wants to add the table, check by hand that rows really land in it, and only then put a form on the screen. Put her five moves in the order that actually works.",
+      "sim": {
+        "kind": "order",
+        "items": [
+          {
+            "id": "design",
+            "label": "In the editor, switch the header to Data and add the table and its fields on the Tables tab"
+          },
+          {
+            "id": "save",
+            "label": "Press Save changes so the table is really made"
+          },
+          {
+            "id": "rows",
+            "label": "Open the Rows tab and type two test rows by hand"
+          },
+          {
+            "id": "make",
+            "label": "Under Add to this screen, press Make a form"
+          },
+          {
+            "id": "check",
+            "label": "Open Preview, submit the form and find the new row back under Rows"
+          }
+        ],
+        "solution": [
+          "design",
+          "save",
+          "rows",
+          "make",
+          "check"
+        ],
+        "feedback": "Everything downstream of the model waits for the save: Rows stays disabled until then, and the generator builds the form from what was actually saved. Typing a couple of rows first means the grid has something to show and the preview submit is a change you can see."
+      }
+    },
+    {
+      "type": "quiz",
+      "id": "q-readonly",
+      "question": "On the linked Leveranciers table, set to Read only, the Add to this screen panel offers Make a grid but no Make a form. Why is the form button missing?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "A form writes rows, and this link may only read — offering it would break at the first submission instead of at the moment you ask for it.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "The generator only builds forms for tables with a handful of fields; a supplier list has too many.",
+          "correct": false,
+          "feedback": "Field count has nothing to do with it. A form is generated with one input per writable field, however many there are."
+        },
+        {
+          "id": "c",
+          "label": "Forms can only be generated for tables the app created itself, never for linked ones.",
+          "correct": false,
+          "feedback": "A link set to Read and write does get the form button. It is the mode that decides, not the fact that the table is linked."
+        },
+        {
+          "id": "d",
+          "label": "The app has not been published yet, and generators are disabled in a draft.",
+          "correct": false,
+          "feedback": "The generators work in the draft — that is the only place you ever build. Publishing is about who may open the finished app."
+        }
+      ],
+      "explanation": "A Read only link says the app may look at those rows and nothing more. Refusing the form up front is kinder than a form that submits into a wall; the grid still shows the list."
+    },
+    {
+      "type": "slide",
+      "id": "home-and-nav",
+      "icon": "🏠",
+      "title": "The home screen, and the menu people see",
+      "bodyMd": "One screen is the **home screen**: the one the app opens on, marked with a little home badge on its tab. **Screen options → Set as home screen** moves it, and if you delete the home screen the badge falls to the first remaining screen.\n\n**Screen options → Manage navigation…** opens **Manage navigation** — *\"Group screens into sections. Grouped screens appear under their section in the sidebar; the tab bar shows them after the ungrouped ones.\"* Give a group a **Group label** (up to 40 characters) and an **Icon**, then tick the screens that belong to it. A screen can sit in one group only — tick it elsewhere and the dialog tells you which group already has it — and an app holds at most 10 groups.\n\nEach screen also carries its own menu entry: an icon, a **Menu description** and a **Show in navigation** toggle. Turn that off for a screen you want reachable from a button but not from the menu."
+    },
+    {
+      "type": "quiz",
+      "id": "q-home",
+      "question": "Van Dijk's app has an Overzicht screen and a Nieuwe aanvraag screen. The office should land on Overzicht, and Nieuwe aanvraag should be reachable only from the \"Nieuwe aanvraag\" button. Which pair of settings does that?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Set as home screen on Overzicht, and Show in navigation off for Nieuwe aanvraag — the button still takes people there.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Set as home screen on Overzicht, and Delete screen on Nieuwe aanvraag — the button brings it back when it is clicked.",
+          "correct": false,
+          "feedback": "Delete screen removes the screen and everything on it, and nothing recreates it. The button is then left pointing at an action that no longer exists — one of the things the editor flags on the canvas."
+        },
+        {
+          "id": "c",
+          "label": "Put both screens in one navigation group; the first screen of a group is the one the app opens on.",
+          "correct": false,
+          "feedback": "Groups only decide how the menu is arranged — grouped screens under their section, ungrouped ones first in the tab bar. Which screen opens is Set as home screen and nothing else."
+        },
+        {
+          "id": "d",
+          "label": "Set as home screen on Overzicht, and hide Nieuwe aanvraag for everyone under Roles → Screen access.",
+          "correct": false,
+          "feedback": "Screen access puts a screen out of reach for a role altogether, so the button would lead those people nowhere either. Show in navigation only keeps the screen out of the menu."
+        }
+      ],
+      "explanation": "Three separate questions, three separate controls: Set as home screen decides where people land, Show in navigation decides whether a screen appears in the menu, and Roles → Screen access decides who may open it at all."
+    },
+    {
+      "type": "slide",
+      "id": "visible-when",
+      "icon": "👁️",
+      "title": "Show a component only when it matters",
+      "bodyMd": "Select a component on the canvas and open the inspector's **Behaviour** tab. Under **Logic** sit three controls:\n\n- **Visible** — a plain toggle: *\"Hide this component from the running app.\"*\n- **Only show when** — a formula, for example `form.priority == 'high'`. The component appears only while that comes out true.\n- **Enabled when** — the same idea for usable rather than visible, for example `form.agree == true` on a submit button.\n\nEmpty the formula and the rule is gone again.\n\nThe canvas repeats every rule back at you as a badge on the node: **Hidden in the running app**, **Only shown when {expr}**, **Only usable when {expr}**. A component that has vanished in Preview is therefore never a mystery — its badge says so in Edit.\n\nThis is how a long form stays short: an *Andere leverancier* text box that only appears when the Select says so, a *Reden van afwijzing* box that waits for the status `afgewezen`."
+    },
+    {
+      "type": "sim",
+      "id": "match-visibility",
+      "icon": "🎚️",
+      "title": "Which control hides which thing",
+      "instruction": "Four things Nadia wants out of the way in the Inkoopaanvragen app. Match each to the control that actually does it.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "submit",
+            "left": "The submit button must stay greyed out until the requester ticks the \"akkoord\" box",
+            "right": "Enabled when",
+            "note": "Enabled when leaves the button in sight but unusable — the learner can see what is still missing."
+          },
+          {
+            "id": "reason",
+            "left": "An extra text box that should turn up only when the status is set to afgewezen",
+            "right": "Only show when",
+            "note": "A formula such as form.status == 'afgewezen'; empty the field and the box is simply always there."
+          },
+          {
+            "id": "draft",
+            "left": "A heading you want to keep on the canvas for later, but nobody should see in the running app",
+            "right": "Visible (toggled off)",
+            "note": "The toggle reads \"Hide this component from the running app\", and the node wears the badge Hidden in the running app."
+          },
+          {
+            "id": "screen",
+            "left": "A screen that must stay out of the app's menu, yet still open when a button sends people to it",
+            "right": "Show in navigation (toggled off)",
+            "note": "That is a screen setting, not a component one — and it is not the same as hiding the screen from a role under Roles → Screen access."
+          }
+        ]
+      }
+    },
+    {
+      "type": "action",
+      "id": "do-table",
+      "icon": "🏗️",
+      "checkId": "app-has-table",
+      "title": "Build it — we will verify it",
+      "instruction": "Open one of your own apps, or create one, and switch the header view control to Data. Add a table for the purchase requests with at least an aanvrager (Text), a bedrag (Number), a nodig op (Date) and a status (Select with nieuw, goedgekeurd, afgewezen). Press Save changes, open Rows and add one row by hand. Then press Add screen, use Make a form to put a working form on it, and set the other screen as the home screen. Finish by giving one component an Only show when rule and checking its badge on the canvas.",
+      "launch": {
+        "navigateTo": "studio/apps",
+        "label": "Open Apps"
+      }
+    },
+    {
+      "type": "slide",
+      "id": "recap",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "- **Design a table by hand.** Name, column name and type per field, Required and Unique where they matter, and **Save changes** to make it real — after which the column name is shown as fixed and changing the type rewrites nothing that is already stored.\n- **Tell the two kinds of table apart.** The app's own storage, versus a **Linked** table whose rows stay in Studio → Datatables and whose access is the strictest of viewer, owner and app role.\n- **Put data on a screen in one click.** **Make a form** for a wired form that creates rows, **Make a grid** for a searchable list — and you know why a Read only link offers only the second.\n- **Build the screens themselves.** **Add screen**, the **Components** strip (**Start here** or **Basics · Content · Layout · Data · Input · AI**), **Set as home screen** and **Manage navigation…** for the menu people meet.\n- **Show things only when they matter.** **Visible**, **Only show when** and **Enabled when** under the inspector's **Logic**, each repeated back as a badge on the node.\n\nNext chapter: making the buttons do real work, so a submitted request does more than sit in a table."
+    }
+  ],
+  "rubrics": {
+    "ex-apps-data-and-screens-model": {
+      "title": "A workable purchase-request model",
+      "task": "The learner had to list the fields of an Inkoopaanvragen table with a name, a type from the designer's picker and whether it is required, then name one thing they would link from Studio → Datatables instead of storing, and one field they deliberately did not create because every table already has it.",
+      "criteria": [
+        "Lists at least six fields, each with a type taken from the real picker (Text, Rich text, Number, Date, Date & time, Yes / no, Select, Multi-select, Relation, File, Computed) and a stated required / not required.",
+        "Picks defensible types rather than Text for everything: the amount is a Number, the date needed is a Date, the status is a Select (with its options named or implied), the quotation is a File.",
+        "Names the supplier list (or a comparable existing organisation list) as the thing to link to a Studio datatable rather than retype into the app.",
+        "Names at least one system column — id, created_at, updated_at, created_by or org_id — as the reason not to add a field of their own for it."
+      ],
+      "passScore": 70,
+      "guidance": "Do not pass an answer that types everything as Text, that invents field types the picker does not offer, or that adds its own 'submitted by' / 'created on' field without noticing created_by and created_at. An answer that lists fields well but says nothing about linking or about system columns is incomplete — both of those sentences were asked for. Dutch or English field names are equally fine, and extra sensible fields are a plus, not a fault."
+    }
+  },
+  "practiceTopic": {
+    "title": "An app's tables and screens",
+    "summary": "How an app's own tables, fields and linked Studio datatables are designed and saved, and how screens, the component strip and visibility rules put them in front of people.",
+    "facts": [
+      "The editor's Data view opens a dialog titled Tables with the tabs Tables, Rows, Relationships, Connectors and People, where the field type picker offers Text, Rich text, Number, Date, Date & time, Yes / no, Select, Multi-select, Relation, File and Computed.",
+      "Every app table already carries id, created_at, updated_at, created_by and org_id, so a field of your own can never use one of those names.",
+      "Save changes is what brings the database up to date; until it has run, the Rows tab is disabled with the tooltip 'Save the table first — until then there is nowhere to keep its rows.' A saved field's column name is then shown as fixed and needs a Change… button to rename.",
+      "A linked table shows a Linked badge, a Read only or Read and write mode, and keeps its rows in a Studio datatable; the app gets no storage of its own for it.",
+      "Under Add to this screen, Make a form drops a form with one input per writable field that creates a row on submit, and Make a grid drops a searchable grid bound to the table's rows.",
+      "Screen tabs carry Add screen and a Screen options menu with Rename, Set as home screen, Delete screen and Manage navigation…; the last screen cannot be deleted ('An app needs at least one screen'), and the home screen is the one the app opens on.",
+      "The Components strip has a Start here tab and the categories Basics, Content, Layout, Data, Input and AI, a 'Search a component…' box and the card tip 'Click to add — or drag it onto the canvas'.",
+      "A component's Logic block holds Visible ('Hide this component from the running app'), Only show when and Enabled when — formulas whose effect the canvas repeats as the badges Hidden in the running app, Only shown when {expr} and Only usable when {expr}."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "app-has-table",
+      "existing": false,
+      "label": "Design a table in one of your apps",
+      "hint": "In Studio → Apps, open an app you own, switch the header to Data, add a table with a few fields and press Save changes.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/studio-apps/mine",
+          "returns": "{ apps: [ { id, userId, name, … } ] } — only the apps the signed-in learner owns"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "app",
+          "label": "You own at least one app",
+          "hint": "Studio → Apps → New app, or open one you built in the previous chapter.",
+          "rule": "GET /api/studio-apps/mine returns apps.length > 0",
+          "endpoint": "/api/studio-apps/mine",
+          "expect": {
+            "kind": "rows",
+            "field": "apps"
+          }
+        },
+        {
+          "id": "fields",
+          "label": "That table has fields of your own",
+          "hint": "Add at least two fields beside the columns every table already carries.",
+          "rule": "that same table row has fields.length >= 2"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,296 @@
+{
+  "id": "automation-anatomy",
+  "icon": "🧬",
+  "estMinutes": 10,
+  "title": "Triggers and steps",
+  "desc": "The seven ways a routine starts, and the palette of things it can do.",
+  "gate": {
+    "feature": "automations"
+  },
+  "learningGoal": "After this lesson you can choose the right trigger for a process and name, in order, the steps it needs.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "open",
+      "icon": "🧭",
+      "title": "One trigger, then everything else",
+      "bodyMd": "Van Dijk Groep, a sixty-person installation firm, has three jobs nobody enjoys: supplier invoices arriving by mail, new colleagues to onboard, and a Monday pipeline briefing.\n\nEach of those becomes a routine, and every routine is built from the same two parts: **one trigger** and **the steps after it**.\n\nWhen you open a new routine the canvas says it plainly:\n\n> **What does this routine start with?**\n> Every routine has exactly one trigger. Pick one, or let the assistant write the routine.\n\nThat is not a style choice. A routine has exactly **one primary trigger** — the single answer to \"what starts this?\". Get that answer right and the steps almost write themselves. Get it wrong and you will fight the routine for a week."
+    },
+    {
+      "type": "slide",
+      "id": "seven",
+      "icon": "⚡",
+      "title": "The seven ways a routine starts",
+      "bodyMd": "These are the seven triggers, in the palette's own words:\n\n- **Trigger manually** — run from a button click.\n- **On form submission** — publish a form; every submission runs this.\n- **On a schedule** — run at a fixed time, over and over.\n- **On webhook call** — run when an HTTP request arrives.\n- **On app event** — run when something happens in a connected app.\n- **When an agent calls it** — expose it as a tool an AI agent can call from chat.\n- **From a Studio App** — run when a Studio App action calls it, with typed inputs.\n\nOne question picks between them: **who or what knows it is time?** A clock, a person on a page, another system, a connected app, an agent mid-chat, or a screen in an app you built.\n\nExactly one of them is the routine's **primary** trigger. Three of the seven can also be added *alongside* it — the next card says which."
+    },
+    {
+      "type": "sim",
+      "id": "match-triggers",
+      "icon": "🎯",
+      "title": "Match each job at Van Dijk to its trigger",
+      "instruction": "Ask who or what knows it is time. Then tap a situation on the left and the trigger that fits it on the right.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "schedule",
+            "left": "The sales lead wants a pipeline briefing every Monday at 08:00",
+            "right": "On a schedule",
+            "note": "A fixed, recurring moment is always a schedule — nothing outside needs to announce it."
+          },
+          {
+            "id": "app_event",
+            "left": "A supplier invoice lands in the shared mailbox",
+            "right": "On app event",
+            "note": "Something happening inside a connected app — a mail arriving, a file appearing — is an app event."
+          },
+          {
+            "id": "form",
+            "left": "HR registers a new colleague on a page you send them",
+            "right": "On form submission",
+            "note": "The routine publishes its own page and every submission is one run, carrying the answers."
+          },
+          {
+            "id": "webhook",
+            "left": "The payment provider reports a failed direct debit",
+            "right": "On webhook call",
+            "note": "An outside system that can push an HTTP request tells you the moment it happens."
+          },
+          {
+            "id": "agent_call",
+            "left": "A support agent needs to look up a warranty mid-chat",
+            "right": "When an agent calls it",
+            "note": "The routine becomes a tool; the agent decides when to call it and reads the answer back into the chat."
+          }
+        ]
+      }
+    },
+    {
+      "type": "slide",
+      "id": "trigger-detail",
+      "icon": "⏱️",
+      "title": "Three triggers with small print",
+      "bodyMd": "**On a schedule.** The editor asks for a frequency, not a cryptic pattern: *Every N minutes*, *Hourly*, *Daily*, *Weekly*, *Monthly*, or *Advanced — custom pattern*. The time zone starts at **Europe/Amsterdam**, and the panel previews the next few firing times before you save — so Van Dijk can see that \"Monday 08:00\" really means Monday.\n\n**On form submission.** The routine gets its own hosted page at a `/f/…` link. That link only opens once the routine is **active and no longer a draft**. A link handed out too early is simply dead.\n\n**On webhook call.** The routine gets a URL, but not an open door: the caller must sign the request, and each call needs a fresh one-time value, so a copied request cannot be replayed."
+    },
+    {
+      "type": "slide",
+      "id": "palette",
+      "icon": "🧱",
+      "title": "The palette, group by group",
+      "bodyMd": "After the trigger you add steps from the ribbon, in groups:\n\n- **AI** — *AI step* (reasons and calls tools) and *Extract data* (pulls named fields out of an invoice, mail or PDF).\n- **Action** — one entry per action of a connected app.\n- **Flow**, in four sections. *Flow control*: Condition, Repeat for each, Privacy Shield, Stop with an error, Back to the app, Note. *People & waiting*: the two form pages, Ask someone to approve, Wait, Notification. *Data & lists*: Datatable, To knowledge base, Edit data, Date & time, Make a document, Shorten list, Remove duplicates, Collect one field, Add up or count. *Integrations*: Call a web service and Code.\n- **Flowlets** and **Steps** — sub-flows and reusable blocks you built earlier.\n\nYou never need most at once: the invoice routine you sketch next uses five steps."
+    },
+    {
+      "type": "quiz",
+      "id": "q-outlive",
+      "question": "Van Dijk's invoice run has finished. Which TWO steps left something behind that a later run — or an agent in chat — can still read?",
+      "multi": true,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Datatable — the run wrote one row per invoice.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "To knowledge base — the run saved the supplier's payment terms as text.",
+          "correct": true
+        },
+        {
+          "id": "c",
+          "label": "Edit data — the run renamed and reorganised the extracted fields.",
+          "correct": false,
+          "feedback": "Edit data reshapes values while the run is in flight. When the run ends, that shape is gone unless a Datatable or a knowledge base kept it."
+        },
+        {
+          "id": "d",
+          "label": "Collect one field — the run gathered every invoice number into one list.",
+          "correct": false,
+          "feedback": "Collect one field builds a list inside the run, like Shorten list or Add up or count. Nothing outside the run can read it afterwards."
+        }
+      ],
+      "explanation": "The palette says it outright — Datatable: \"Keep rows that outlast the run — and share them with other routines\". To knowledge base: \"Save text where an agent can find it later\". The other Data & lists steps — Edit data, Shorten list, Remove duplicates, Collect one field, Add up or count — only reshape values while the run is still going."
+    },
+    {
+      "type": "slide",
+      "id": "bindings",
+      "icon": "🔗",
+      "title": "How a later step reads an earlier one",
+      "bodyMd": "Steps are not isolated. Each one publishes an **output**, and later steps point at it with a **binding**.\n\nTwo ways to write a field:\n\n- **Text** — \"Plain text — type a value. Use `{{ }}` to insert data from a previous step.\" So a notification body reads `Invoice {{steps.s2.output.factuurnummer}} needs approval`.\n- **Formula** — \"Expression — compute the value, e.g. `steps.s1.output.total > 100`.\" This is what a Condition evaluates.\n\nThe trigger has an output too: `{{trigger.output.…}}` is the form answer, the mail, the webhook body.\n\nYou rarely type these. A bindable field offers **Insert data from a previous step**, which lists the real fields of each earlier step. And one warning: binding a whole `{{steps.x.output}}` object drops the entire payload into your message, where you wanted one field."
+    },
+    {
+      "type": "exercise",
+      "id": "ex-anatomy",
+      "icon": "✍️",
+      "exerciseId": "ex-automation-anatomy-brief",
+      "title": "Your turn: state the anatomy",
+      "instruction": "Van Dijk Groep wants its Monday pipeline briefing automated: read the open quotes the team keeps in a table, keep only the biggest ones, have AI write five bullets and name the deals at risk, and send it to the sales lead. Write the anatomy in plain sentences: (1) which of the seven triggers you pick and why, (2) the steps in order, using palette names such as Datatable, Shorten list, AI step and Notification, and (3) one binding showing how the AI step reads the earlier step's output.",
+      "placeholder": "e.g. Trigger: On a schedule — Weekly, Monday 08:00, Europe/Amsterdam, because a fixed moment is a clock, not an event. Steps: Datatable (read open quotes) → Shorten list (top 25) → AI step → Notification. Binding: the AI step's prompt inserts {{steps.s2.output.…}} from the Datatable step…",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "slide",
+      "id": "extra-triggers",
+      "icon": "➕",
+      "title": "A second way in, for three of the seven",
+      "bodyMd": "One primary trigger is the rule, but a routine may also carry **additional triggers** — extra entry points stored beside the primary one in the routine's definition (`definition.triggers[]`).\n\nOnly three kinds may ever be secondary: **webhook**, **app event** and **schedule**. Van Dijk's invoice routine can therefore fire on the mail arriving *and* on a nightly schedule that sweeps up whatever the event missed, without duplicating the routine.\n\nThe other four — manual, form, agent call and Studio App — can only be the single primary trigger. Drop one of those onto a routine that already has a trigger and it does not join: it **replaces** the trigger you had, and the builder asks first.\n\nOn a routine with more than one way in, the run menu's **Start from** group lists the primary trigger plus every additional trigger, so a dry-run can pretend to come in through either door."
+    },
+    {
+      "type": "quiz",
+      "id": "q-secondary",
+      "question": "Van Dijk's invoice routine already starts on an app event. Which trigger kinds can be ADDED as an extra entry point beside it?",
+      "choices": [
+        {
+          "id": "a",
+          "label": "Webhook, App event and Schedule — those three may sit in definition.triggers[] beside the primary one.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Any of the seven — a routine can have as many triggers as you like.",
+          "correct": false,
+          "feedback": "Only three kinds may be secondary. Drop any of the other four on and it replaces the trigger you had — the builder asks before it does."
+        },
+        {
+          "id": "c",
+          "label": "Manual, Form and Agent call — the ones a person or an agent starts.",
+          "correct": false,
+          "feedback": "These three can only ever be the single primary trigger — and so can From a Studio App, which makes four. A form page and an agent tool each need one front door."
+        },
+        {
+          "id": "d",
+          "label": "None — one routine, one trigger, no exceptions.",
+          "correct": false,
+          "feedback": "The canvas rule is one PRIMARY trigger. A routine may still gain extra entry points, and three kinds qualify."
+        }
+      ],
+      "explanation": "Webhook, App event and Schedule may be added as additional triggers in definition.triggers[]. Manual, Form, Agent call and Studio App only work as the one primary trigger, so dropping one replaces what you had. A multi-trigger routine then shows all its ways in under Start from in the run menu."
+    },
+    {
+      "type": "sim",
+      "id": "order-invoice",
+      "icon": "🧩",
+      "title": "Sketch the invoice routine",
+      "instruction": "Van Dijk wants supplier invoices captured, with a human check on the big ones. Put the trigger and its steps in the order they run.",
+      "sim": {
+        "kind": "order",
+        "items": [
+          {
+            "id": "trigger",
+            "label": "On app event — an invoice arrives in the shared mailbox"
+          },
+          {
+            "id": "shield",
+            "label": "Privacy Shield — check the mail for personal data before it travels on"
+          },
+          {
+            "id": "extract",
+            "label": "Extract data — supplier, invoice number, date, amount"
+          },
+          {
+            "id": "condition",
+            "label": "Condition — is the total above the approval limit?"
+          },
+          {
+            "id": "approve",
+            "label": "Ask someone to approve — pause for the purchasing manager"
+          },
+          {
+            "id": "table",
+            "label": "Datatable — write the invoice row, matched on invoice number"
+          }
+        ],
+        "solution": [
+          "trigger",
+          "shield",
+          "extract",
+          "condition",
+          "approve",
+          "table"
+        ],
+        "feedback": "The trigger fires, the Shield looks at the raw mail before anything else handles it, Extract data turns the text into named fields, and only then can a Condition compare a number. The approval pauses the expensive branch, and the Datatable write comes last — it is the thing that must outlive the run."
+      }
+    },
+    {
+      "type": "slide",
+      "id": "where-flow",
+      "icon": "🚦",
+      "title": "Where a condition, a loop or a wait belongs",
+      "bodyMd": "- **Condition** — \"Keep, split or branch — one rule or many.\" It goes after the step that produced the value you test: Van Dijk cannot branch on an invoice total until Extract data has found one.\n- **Repeat for each** — \"Run the steps inside once for every item in a list.\" It needs a list to point at, and a ceiling: the **Max iterations** field says only \"Safety cap. 1–1000.\" and starts at 100.\n- **Wait** — \"Pause before the next step — seconds, minutes or hours.\" Use it for a delay, never for waiting on a person.\n- **Ask someone to approve** — that is the step for waiting on a person. Its deadline is a short list: 4 hours, 1 day, 3 days, **7 days** (the default), 14 days, 30 days, or *No deadline*."
+    },
+    {
+      "type": "quiz",
+      "id": "q-debug",
+      "question": "Van Dijk's invoice routine loops over 30 supplier invoices, and you want the purchasing manager to sign off on each one inside the loop — but \"Ask someone to approve\" is missing from the palette. What is going on?",
+      "choices": [
+        {
+          "id": "a",
+          "label": "Approval steps are hidden inside a loop or flowlet; approve once outside it, or branch with a Condition and approve after the loop.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "The licence does not cover approvals, so the step is hidden everywhere.",
+          "correct": false,
+          "feedback": "If that were it, the step would be missing on the main canvas too. Step outside the loop body and it is back — this is a placement rule, not a licence one."
+        },
+        {
+          "id": "c",
+          "label": "You need to add a Wait step first so the run has something to pause on.",
+          "correct": false,
+          "feedback": "Wait only delays for a fixed time — seconds, minutes or hours. It cannot hold a run open until a person decides; that is what the approval step is for."
+        },
+        {
+          "id": "d",
+          "label": "The search field is filtering it out; type the full name and it appears.",
+          "correct": false,
+          "feedback": "Search will not bring it back inside a loop body. The palette deliberately leaves it out there, because a pause in a sub-flow has no address to resume to."
+        }
+      ],
+      "explanation": "Ask someone to approve, the two form-page steps and Back to the app are filtered out inside a loop body or a flowlet. Keep the pause on the main flow of the routine."
+    },
+    {
+      "type": "slide",
+      "id": "hidden-steps",
+      "icon": "🚫",
+      "title": "Why the palette hides steps",
+      "bodyMd": "So the palette changes shape depending on where you are standing, and it does that on purpose: a pause inside a sub-flow has nowhere to resume to, and a step that ends the whole run cannot be the end of a sub-flow. Rather than let you build something that cannot run, the ribbon simply does not offer it there.\n\nThere is a gentler version of the same idea. Without a form trigger the two form steps are still listed, but greyed out, with the reason attached: *\"Form steps run on the routine's own form link — switch the trigger to \"Form\" to use this.\"* You can see what you are missing instead of hunting for a step that was never there."
+    },
+    {
+      "type": "slide",
+      "id": "recap",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "- **Pick the trigger by asking who knows it is time.** A clock is *On a schedule*, an app is *On app event*, a person filling in a page is *On form submission*, another system is *On webhook call*, an agent mid-chat is *When an agent calls it*.\n- **Name the steps in order, from the right group.** Reasoning from AI, app work from Action, branching and looping from Flow control, human pauses from People & waiting, anything that must outlive the run from Data & lists.\n- **Add a second way in only where it is allowed.** Webhook, App event and Schedule can join the primary trigger; the other four replace it.\n- **Connect them with bindings.** Later steps read earlier ones with `{{steps.<id>.output.<field>}}` — and the field's own \"Insert data from a previous step\" writes it for you.\n\nNext chapter you walk the real canvas and see where each of these lives."
+    }
+  ],
+  "rubrics": {
+    "ex-automation-anatomy-brief": {
+      "title": "Anatomy of the Monday briefing",
+      "task": "The learner had to state, for Van Dijk Groep's weekly pipeline briefing: which of the seven triggers they pick and why, the steps in order using real palette names, and one binding showing how a later step reads an earlier step's output.",
+      "criteria": [
+        "Picks a schedule trigger and justifies it by the fact that a fixed recurring moment needs no outside event — bonus for naming a day, a time or the time zone.",
+        "Lists steps in a runnable order that starts by reading the quotes (Datatable) and ends by delivering the result (Notification), with the AI step placed after the data it summarises.",
+        "Uses real palette names rather than invented ones — for example Datatable, Shorten list, AI step, Condition, Notification, To knowledge base.",
+        "Shows one concrete binding in the {{steps.<id>.output.<field>}} or {{trigger.output.<field>}} shape, pointing at a step that genuinely runs earlier."
+      ],
+      "passScore": 70,
+      "guidance": "Pass a clear, ordered anatomy even if the step count differs from the example. Do NOT pass an answer that only restates the assignment, that picks a manual or webhook trigger for a weekly briefing without a convincing reason, that invents step names the palette does not have, that puts the AI step before the data it is meant to read, or that omits the binding entirely. A binding that points forward to a later step is wrong, not a near miss."
+    }
+  },
+  "practiceTopic": {
+    "title": "Triggers and the step palette",
+    "summary": "How a routine starts, what the palette offers, and how one step reads another.",
+    "facts": [
+      "A routine has exactly one primary trigger; the empty canvas reads \"Every routine has exactly one trigger. Pick one, or let the assistant write the routine.\"",
+      "The seven triggers are labelled Trigger manually, On form submission, On a schedule, On webhook call, On app event, When an agent calls it and From a Studio App; the empty canvas shows the same seven as short cards — Manual, Form, Schedule, Webhook, App event, Agent call, Studio App.",
+      "Only Webhook, App event and Schedule may be added as additional entry points in definition.triggers[]; the other four kinds replace the primary trigger instead, after a confirmation. A multi-trigger routine lists every way in under Start from in the run menu.",
+      "The schedule editor offers Every N minutes, Hourly, Daily, Weekly, Monthly and Advanced — custom pattern, with the time zone defaulting to Europe/Amsterdam; a loop's Max iterations is a safety cap of 1–1000 starting at 100.",
+      "The step ribbon groups steps as Trigger, AI, Action, Flow (Flow control, People & waiting, Data & lists, Integrations), Flowlets and Steps.",
+      "Datatable keeps rows that outlast the run and To knowledge base saves text an agent can find later; the other Data & lists steps — Edit data, Shorten list, Remove duplicates, Collect one field, Add up or count — only reshape values inside the run.",
+      "A field in Text mode interpolates {{ }} bindings, while Formula mode evaluates an expression such as steps.s1.output.total > 100.",
+      "Ask someone to approve, the two form-page steps and Back to the app are filtered out inside a loop body or a flowlet; form steps are shown but disabled without a form trigger."
+    ]
+  },
+  "actionChecks": []
+}

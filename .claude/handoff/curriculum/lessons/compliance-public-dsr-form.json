@@ -1,0 +1,197 @@
+{
+  "id": "compliance-public-dsr-form",
+  "icon": "📨",
+  "estMinutes": 9,
+  "title": "The intake form with no login",
+  "desc": "The public privacy-request page at /privacy/requests: six rights with their articles, the reference number, the identity link, and the tab that manages it.",
+  "gate": { "permission": "admin_compliance", "feature": "compliance_hub_gdpr" },
+  "learningGoal": "After this lesson you can publish the account-free privacy-request form, walk a data subject from Submit request to Identity confirmed, and name the form's limits without guessing.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "why",
+      "icon": "🚪",
+      "title": "The door for people with no account",
+      "bodyMd": "Van Dijk Groep, a Dutch installation firm of ninety people, runs its workspace in Bee Flow. The people whose data sits in that workspace mostly do not: ex-employees, applicants, customers who left years ago.\n\nThe GDPR gives every one of them the right to ask what you hold — and an intake channel they cannot reach is not a channel. So Bee Flow ships one page that anyone can open without signing in.\n\nAnne is Van Dijk's appointed DPO. She does not build this form; she **publishes** it and knows what it promises. That is this lesson: the public side of the request register, and the one tab where an admin manages it."
+    },
+    {
+      "type": "slide",
+      "id": "the-page",
+      "icon": "🔗",
+      "title": "One page, two addresses",
+      "bodyMd": "The form lives on your own Bee Flow address at **/privacy/requests**, and **/dsr** serves exactly the same page — either link works, so an older privacy notice keeps working after a move.\n\nA third path, **/dsr/verify**, is that same page again with a token in the address bar. It is the link from the acknowledgement e-mail; more on it shortly.\n\nNone of the three asks for an account. The page is served ahead of any sign-in handling, so a stranger who clicks through from your website lands on the form itself and never on a login screen."
+    },
+    {
+      "type": "slide",
+      "id": "six-rights",
+      "icon": "📝",
+      "title": "What the data subject fills in",
+      "bodyMd": "The page is headed **Privacy request**, under a line that sets the expectation: *Under the GDPR you can ask what personal data we process about you, and have it corrected, exported or deleted. Submit your request below — it will be answered within 30 days.*\n\nThree fields, no more:\n\n- **Your email address**\n- **What would you like us to do?** — a list of six: Access my data (Art. 15), Correct my data (Art. 16), Delete my data (Art. 17), Export my data (Art. 20), Restrict processing (Art. 18), Object to processing (Art. 21)\n- **Anything we should know? (optional)**\n\nThen **Submit request**. The article numbers are printed on purpose: the option a person picks becomes the request type your register then works."
+    },
+    {
+      "type": "quiz",
+      "id": "q-right",
+      "icon": "❓",
+      "question": "A former customer of Van Dijk Groep is moving to another installer and asks for everything the company holds on him, in a file he can hand to the new firm. Which option on the form matches that?",
+      "multi": false,
+      "choices": [
+        { "id": "a", "label": "Export my data (Art. 20)", "correct": true },
+        { "id": "b", "label": "Access my data (Art. 15)", "correct": false, "feedback": "Access gives him sight of what you process about him. Portability is the right that exists to produce a usable copy he can take elsewhere." },
+        { "id": "c", "label": "Delete my data (Art. 17)", "correct": false, "feedback": "He is not asking you to erase anything — and erasure would destroy the very file he wants to take with him." },
+        { "id": "d", "label": "Object to processing (Art. 21)", "correct": false, "feedback": "An objection asks you to stop a processing activity. It produces no copy of anything." }
+      ],
+      "explanation": "Each option carries its article so the choice is unambiguous: Export my data (Art. 20) is portability. Whatever he picks is stored as the request type, and the thirty-day clock starts at receipt."
+    },
+    {
+      "type": "slide",
+      "id": "received",
+      "icon": "🎫",
+      "title": "The reference number is the receipt",
+      "bodyMd": "Submitting swaps the form for **Request received**, the line *Keep this reference number to check the status of your request later*, the number itself printed large, and **Answer expected by** with the date.\n\nUnderneath sits **Check an existing request**: two boxes, **Reference #** and **Your email**, and a **Check** button. Both must match, so a stray number on its own tells nobody anything.\n\nA match answers with a single line — *Status of request #41: in_progress* — and, while the request is still open, the date an answer is expected, with *deadline extended (Art. 12(3))* beside it when the deadline has been pushed. A miss answers *No request found for that reference number and email.*"
+    },
+    {
+      "type": "sim",
+      "id": "journey",
+      "icon": "🧩",
+      "title": "Put the data subject's journey in order",
+      "instruction": "Five things happen between the ex-customer opening the form and his request counting as identified. Drag them into the order they really occur.",
+      "sim": {
+        "kind": "order",
+        "items": [
+          { "id": "open", "label": "He opens /privacy/requests, types his e-mail address and picks a right" },
+          { "id": "submit", "label": "He presses Submit request; the page shows Request received and a reference number" },
+          { "id": "ack", "label": "Bee Flow sends the acknowledgement e-mail to the address he typed" },
+          { "id": "click", "label": "He clicks the link in that e-mail" },
+          { "id": "confirmed", "label": "The page shows Identity confirmed and the register marks the request identity confirmed" }
+        ],
+        "solution": ["open", "submit", "ack", "click", "confirmed"],
+        "feedback": "The reference number appears immediately, on the page — the response never waits for a mail provider. The acknowledgement e-mail follows on its own, and only the link inside it can settle who sent the request."
+      }
+    },
+    {
+      "type": "slide",
+      "id": "identity",
+      "icon": "✅",
+      "title": "Identity is settled after intake, not before",
+      "bodyMd": "An open form invites a stranger to ask for someone else's data, so Bee Flow settles identity **after** the request arrives. The acknowledgement e-mail carries a single-use link, valid **seven days**. Clicking it opens **/dsr/verify** — the same page, reading the token — which shows *Confirming your identity…* and then **Identity confirmed**: *Thank you. Your request will be handled within the legal deadline; you will hear from us by e-mail.*\n\nIn the register the row flips from *identity not yet confirmed* to *identity confirmed*. A handler can also confirm identity by hand, but the link is the cheapest proof there is: whoever received the mail clicked it."
+    },
+    {
+      "type": "quiz",
+      "id": "q-verify",
+      "icon": "❓",
+      "question": "Ten days after submitting, the ex-customer finally clicks the link in his acknowledgement mail and gets **This link could not be used**. He mails Anne in a panic. What does she tell him?",
+      "multi": false,
+      "choices": [
+        { "id": "a", "label": "The link is single-use and only valid for seven days; his request itself is unaffected and he can still follow it under Check an existing request, with his reference number and the e-mail address he used.", "correct": true },
+        { "id": "b", "label": "The request lapsed with the link, so he should submit a fresh one.", "correct": false, "feedback": "The page says the opposite in as many words: your request itself is unaffected. A second submission would only start a second clock for the same question." },
+        { "id": "c", "label": "He has to create a Bee Flow account so his identity can be checked there.", "correct": false, "feedback": "The channel is deliberately account-free. Identity is settled by the e-mail link or by hand in the register — never by making the data subject sign up." },
+        { "id": "d", "label": "Nothing can confirm his identity any more, so the request has to be rejected.", "correct": false, "feedback": "A handler can still mark the identity as confirmed by hand. A dead link is not a ground for refusing a request." }
+      ],
+      "explanation": "The failure page is written for exactly this moment: the link may have expired or already been used, the request is untouched, and the status check still works. Identity can be confirmed the manual way afterwards."
+    },
+    {
+      "type": "slide",
+      "id": "pf-tab",
+      "icon": "🧭",
+      "title": "Where an admin manages it",
+      "bodyMd": "In **Compliance → Requests (DSR)** the header carries three tabs: **Requests · Public form · Settings**.\n\n**Public form** is read-only. The first card, **Public request form**, carries the live address in a code box with **Copy** and **View form** beside it; the second spells out three things — **Rate-limited**, **Identity via e-mail link** and **What the form stores** (the e-mail address, the kind of request and the free-text note — the register shows the address masked).\n\n**Settings** holds no settings of its own. It says that the DPO contact, the acknowledgement e-mail and the form link live with the other compliance settings, and offers **Open compliance settings**."
+    },
+    {
+      "type": "quiz",
+      "id": "q-rate",
+      "icon": "❓",
+      "question": "Anne tests the form from the Van Dijk office: five submissions go through, the sixth is refused. Nobody changed a setting. What happened?",
+      "multi": false,
+      "choices": [
+        { "id": "a", "label": "She hit the intake limit — five submissions per hour per IP address — and the whole office sits behind one address.", "correct": true },
+        { "id": "b", "label": "The form blocked her because it had already seen that e-mail address.", "correct": false, "feedback": "A repeat address is never refused. One person may hold several rights at once and may file each of them." },
+        { "id": "c", "label": "After five anonymous submissions the form starts demanding a login.", "correct": false, "feedback": "There is no login path on this page at all. The limit throttles; it does not authenticate." },
+        { "id": "d", "label": "Submissions and status checks share one budget, and her earlier status checks used it up.", "correct": false, "feedback": "They are counted separately: five submissions an hour per address, and sixty for the status check and the identity link." }
+      ],
+      "explanation": "Intake is limited to five per hour per IP address; the status check and the identity link get sixty per hour per address. It is a throttle against a flood of fraudulent requests, not a quota on anybody's rights — a data subject on a home connection never meets it, a whole office behind one address can."
+    },
+    {
+      "type": "slide",
+      "id": "traps",
+      "icon": "⚠️",
+      "title": "Two things that quietly go wrong",
+      "bodyMd": "**The form nobody can find.** Nothing publishes it for you. If Van Dijk's privacy notice does not carry the address, the channel exists and stays empty — which is why the register's own footer describes where requests are supposed to come from: *through the public form (no account, rate-limited, linked from the privacy notice)*.\n\n**The sender your workspace has never seen.** Bee Flow works out which organisation a request belongs to from the e-mail address the person types. That is reliable for someone your workspace already knows. For a stranger, keep the DPO mailbox as a real second channel and record what lands there by hand, with **Arrived via** set accordingly."
+    },
+    {
+      "type": "action",
+      "id": "publish",
+      "icon": "🏗️",
+      "checkId": "privacy-notice-url",
+      "title": "Publish the form where people will look",
+      "instruction": "Copy the form's address first: Compliance → Requests (DSR) → Public form → Copy. Then open Compliance → Settings, open the General group, and put the address of your published privacy notice — the page that links, or will link, that form — into Privacy notice URL, and save.",
+      "launch": { "navigateTo": "settings/organisation/compliance", "label": "Open Compliance" }
+    },
+    {
+      "type": "exercise",
+      "id": "notice",
+      "icon": "🎯",
+      "exerciseId": "ex-compliance-public-dsr-form-notice",
+      "title": "Your turn: the paragraph in the privacy notice",
+      "instruction": "Write the short paragraph Van Dijk Groep will put in its privacy notice to point people at the form. In three or four sentences, say where the form is, that no account is needed, what the person gets back on screen straight away, and what the e-mail they then receive asks them to do. Promise only what the form really does.",
+      "placeholder": "e.g. Would you like to know what personal data we hold about you? Use our request form at https://…/privacy/requests — you do not need an account…",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "slide",
+      "id": "done",
+      "icon": "🏁",
+      "title": "What you can do now",
+      "bodyMd": "- Point anyone at the form — **/privacy/requests** or **/dsr**, no account — and explain what the reference number is for and how **Check an existing request** uses it together with their e-mail address.\n- Read **Requests (DSR) → Public form** as the single source of truth for the live address, the five-an-hour intake limit and the three things the form stores.\n- Walk the identity link end to end: acknowledgement e-mail, one click within seven days, **Identity confirmed** — and say what to do when the link has already expired."
+    }
+  ],
+  "rubrics": {
+    "ex-compliance-public-dsr-form-notice": {
+      "title": "Privacy-notice paragraph for the request form",
+      "task": "Write three or four sentences for Van Dijk Groep's privacy notice that send a data subject to the public request form and set correct expectations about what happens after they submit it.",
+      "criteria": [
+        "Names the address of the form (/privacy/requests or /dsr) as the place to go, and says plainly that no account or login is needed",
+        "Tells the reader they get a reference number on screen and that they need it, with their e-mail address, to check the status later",
+        "Mentions the acknowledgement e-mail and that its link confirms who they are",
+        "Sets the thirty-day expectation for an answer without over-promising"
+      ],
+      "passScore": 70,
+      "guidance": "Pass a paragraph a real visitor could act on. Do not pass copy that invents things the form does not have (a name field, a postal address, an identity-document upload), that tells people to sign in or create an account first, that promises an immediate answer or a named handler, or that steers the reader to e-mail personal data to a general mailbox instead of using the form. A paragraph that only says 'contact our DPO' has missed the task."
+    }
+  },
+  "practiceTopic": {
+    "title": "The public privacy-request form",
+    "summary": "The account-free intake page for data-subject requests: its six rights, its reference number, its identity link and its limits.",
+    "facts": [
+      "The public form is served at /privacy/requests and at /dsr; both addresses show the same page and neither asks for a login.",
+      "The options under 'What would you like us to do?' are Access my data (Art. 15), Correct my data (Art. 16), Delete my data (Art. 17), Export my data (Art. 20), Restrict processing (Art. 18) and Object to processing (Art. 21).",
+      "After Submit request the page shows 'Request received', the reference number and the date an answer is expected.",
+      "'Check an existing request' needs both the Reference # and the e-mail address used; a mismatch answers 'No request found for that reference number and email.'",
+      "The acknowledgement e-mail carries a single-use identity link, valid seven days, that opens /dsr/verify and ends in 'Identity confirmed'.",
+      "Intake is limited to five submissions per hour per IP address; the status check and the identity link get sixty per hour per address.",
+      "Compliance → Requests (DSR) has three tabs — Requests, Public form and Settings; Public form shows the live address with Copy and View form.",
+      "The form stores the e-mail address, the kind of request and the free-text note; in the register the address is masked and the full address is visible only to the DPO and the handler."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "privacy-notice-url",
+      "existing": false,
+      "label": "Record the privacy notice that links the form",
+      "hint": "Compliance → Settings → General → Privacy notice URL, then save.",
+      "endpoints": [
+        { "method": "GET", "path": "/api/compliance/settings", "returns": "the organisation's compliance settings row, including privacy_notice_url and the derived public_dsr_url" }
+      ],
+      "criteria": [
+        {
+          "id": "notice",
+          "label": "A privacy notice URL is recorded in Compliance settings",
+          "hint": "Compliance → Settings → General: paste the address of your published privacy notice into Privacy notice URL and save. It starts empty unless the compliance setup detected one.",
+          "endpoint": "/api/compliance/settings",
+          "expect": { "kind": "truthy", "field": "privacy_notice_url" },
+          "rule": "settings.privacy_notice_url is a non-empty string"
+        }
+      ]
+    }
+  ]
+}

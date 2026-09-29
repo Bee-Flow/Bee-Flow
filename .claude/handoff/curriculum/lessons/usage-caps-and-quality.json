@@ -1,0 +1,318 @@
+{
+  "id": "usage-caps-and-quality",
+  "icon": "🔥",
+  "estMinutes": 11,
+  "title": "Caps, spikes and bad answers",
+  "desc": "Trace a spike to its source, decide pooled versus per-user, and use feedback and terminations.",
+  "gate": {
+    "permission": "org_admin"
+  },
+  "learningGoal": "After this lesson the learner can react to an 80%-of-cap warning with a decision instead of a guess, and can tell a cost problem from a quality problem.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "the-email",
+      "icon": "✉️",
+      "title": "The email, the cap and the wall at 100%",
+      "bodyMd": "Marieke is the organisation admin at Van Dijk Groep, a sixty-person Dutch SME. One Tuesday she gets a mail: **\"Bee Flow: 80% of your monthly cost limit reached\"**.\n\nThree things are worth knowing before anyone touches a setting:\n\n- The warning is sent **once per billing period**, to at most **five** administrator addresses — so no second mail arrives when you pass 90%.\n- The **cap** is the organisation's monthly AI ceiling. Below it nothing changes.\n- At **100%** AI calls are **blocked** until the next period. The chat refuses with a message naming the amount and telling the user to contact their administrator. Reporting screens keep working — only the AI calls stop.\n\nSo the mail is a warning, not a failure. You have room to look before you act."
+    },
+    {
+      "type": "slide",
+      "id": "period-vs-range",
+      "icon": "📅",
+      "title": "The period is not the month, the range is not the gauge",
+      "bodyMd": "Two windows are easy to mix up.\n\nThe **billing period** follows the subscription's billing cycle start, not the calendar month. If Van Dijk Groep's cycle starts on the 6th, usage resets on the 6th.\n\nOn **Settings → Organisation → Usage & Monitoring**, the bar **AI usage vs. cap** is drawn against that billing period: green under 80%, amber from 80%, red from 95%.\n\nThe **RANGE** control at the top right (Today, 24h, 7d, 30d, 90d, All, Custom — 30d when you open the page) changes every list *underneath* the gauge. It never moves the gauge. Set the range to 7d and the gauge still shows the whole period."
+    },
+    {
+      "type": "tour",
+      "id": "page-header",
+      "target": "[data-tour=\"usage-summary\"]",
+      "navigateTo": "settings/organisation/usage",
+      "placement": "bottom",
+      "optional": true,
+      "timeoutMs": 7000,
+      "icon": "🧭",
+      "title": "This is the report",
+      "body": "Usage & Monitoring, with the range control on its right and the tabs Overview, Feedback and Terminations below. Nothing here changes a setting — it is a read-only report."
+    },
+    {
+      "type": "slide",
+      "id": "where-to-change",
+      "icon": "🎛️",
+      "title": "The report shows, License & Usage decides",
+      "bodyMd": "Nothing on Usage & Monitoring changes behaviour. The two controls that do sit at the top of the same Organisation group, on **Settings → Organisation → License & Usage**:\n\n- the **plan card**, with the plan limits — users, agents and knowledge sources — and the **monthly cost cap** with its own percentage-used figure;\n- the section **AI usage sharing**, with the toggle **Share AI usage across the organisation** and the caption **Pooled across the organisation** or **Each user has their own budget**.\n\nThat section only appears when the organisation has a subscription with a real cost budget. Both changes are reversible — the toggle can go back the same afternoon, and the gauge simply re-reads the new cap."
+    },
+    {
+      "type": "sim",
+      "id": "triage",
+      "icon": "🔎",
+      "title": "Triage the spike in the right order",
+      "instruction": "Van Dijk Groep's gauge shows 86%. Put the admin's five moves in the order that produces a decision instead of a guess.",
+      "sim": {
+        "kind": "order",
+        "items": [
+          {
+            "id": "gauge",
+            "label": "Read the gauge: how far into the billing period are we, and how deep into the cap?"
+          },
+          {
+            "id": "users",
+            "label": "Click the heaviest row in Top users by cost, so the All Users pill becomes that person's name"
+          },
+          {
+            "id": "tier",
+            "label": "Read By tier: which model tier the spend went on"
+          },
+          {
+            "id": "area",
+            "label": "Read By app area to see which part of the product made the calls"
+          },
+          {
+            "id": "decide",
+            "label": "Decide: change the plan, split the budget, or fix the routine that is spending"
+          }
+        ],
+        "solution": [
+          "gauge",
+          "users",
+          "tier",
+          "area",
+          "decide"
+        ],
+        "feedback": "Start with the gauge: 86% halfway through a period is a different problem from 86% on the last day. Then narrow — who, on what tier, from which part of the product. A tier is the speed-versus-depth choice behind a model: Fast is cheap, Deep Thinking is not. Clicking a row filters every panel to that person; the All Users pill brings the organisation back."
+      }
+    },
+    {
+      "type": "slide",
+      "id": "cost-30d",
+      "icon": "💶",
+      "title": "The one-line shortcut: cost · 30d",
+      "bodyMd": "Marieke does not always need the report to know who the heavy users are. On **Settings → Organisation → Users & Groups**, every row under **Organisation Members** carries an amount on the right with the caption **cost · 30d**. Hover it and the tooltip spells the figure out: *\"{calls} requests · {cost} (last 30 days)\"* — for Sanne in sales, something like *1,284 requests · $41.9032 (last 30 days)*.\n\nTwo cautions. The window is a rolling **last 30 days**: it is not the billing period the gauge measures, and the RANGE control on Usage & Monitoring does not move it. And the amount is only drawn for members with recorded spend, on wider screens — a row without it is a colleague who has spent nothing, not a figure that failed to load."
+    },
+    {
+      "type": "sim",
+      "id": "spot-heaviest",
+      "icon": "🧭",
+      "title": "Which screen answers it fastest?",
+      "instruction": "Four questions Marieke asks in one afternoon at Van Dijk Groep. Pair each one with the screen that answers it with the least work.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "who",
+            "left": "Who is spending the most, and I want the answer in ten seconds",
+            "right": "The cost · 30d amount on the member rows in Users & Groups",
+            "note": "The member list already carries each person's AI spend, so you can spot the heaviest user without opening a report at all."
+          },
+          {
+            "id": "calls",
+            "left": "Was that spend one enormous job, or thousands of small ones?",
+            "right": "The cost · 30d tooltip: {calls} requests · {cost} (last 30 days)",
+            "note": "The tooltip adds the request count next to the amount — a few costly calls and a flood of cheap ones need different fixes."
+          },
+          {
+            "id": "period",
+            "left": "How much of this billing period's cap is already gone?",
+            "right": "The AI usage vs. cap bar on Usage & Monitoring",
+            "note": "cost · 30d is a rolling 30 days. Only the gauge is drawn against the billing period, which is the window the block at 100% follows."
+          },
+          {
+            "id": "tier",
+            "left": "Which model tier did that person's budget go on?",
+            "right": "By tier on the Overview tab, with her row clicked in Top users by cost",
+            "note": "Clicking the row filters every panel to that person, so By tier then shows her spend rather than the organisation's."
+          }
+        ]
+      }
+    },
+    {
+      "type": "quiz",
+      "id": "pooling",
+      "question": "Van Dijk Groep switches Share AI usage across the organisation off. What actually changes?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "The same cap is divided into per-seat slices, so the heaviest user is blocked first instead of draining the shared pool.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "The monthly bill goes down, because each user now costs less.",
+          "correct": false,
+          "feedback": "The cap is unchanged — only the way it is divided changes. Nothing about per-call cost moves, so the bill is exactly what the usage says it is."
+        },
+        {
+          "id": "c",
+          "label": "The 80% warning email stops firing until every user is over their own slice.",
+          "correct": false,
+          "feedback": "The organisation-wide warning still fires off the pooled total, so the admin keeps seeing plan-wide pressure whichever mode is on."
+        },
+        {
+          "id": "d",
+          "label": "The gauge resets to zero for the rest of the period.",
+          "correct": false,
+          "feedback": "The gauge reads usage already recorded in this billing period. It only resets when the next period starts."
+        }
+      ],
+      "explanation": "Per-user mode gives each active seat the cap divided by the number of active seats. It is a fairness control, not a cost control: the total the organisation can spend is the same, but one heavy user can no longer take everyone else's room, and that user hits a personal block message instead of the whole team hitting the organisation-wide one."
+    },
+    {
+      "type": "slide",
+      "id": "feedback-tab",
+      "icon": "👍",
+      "title": "Feedback: complaints with the model attached",
+      "bodyMd": "\"The assistant gives wrong answers\" is not a cost problem, and the Overview tab will never show it. The **Feedback** tab will — on plans that carry it. **Feedback** and **Terminations** are Enterprise tabs; without that licence Usage & Monitoring shows **Overview** only, and a deep link to one of the other two lands on Overview.\n\nIt lists the thumbs up and down your users left on AI answers, with the cards **Positive**, **Negative**, **With Comments** and **With Conversation**, and a **Positive rate** percentage. An amber banner appears when the positive share falls below **60%** on a sample of at least **5** items.\n\nHR at Van Dijk Groep sits at 48%. Filtering to the Negative chip and reading the comments shows eight complaints pointing at one outdated policy in a knowledge base — and an entry carries a model or tier badge whenever the model behind the answer is known, so you can see whether one model is responsible."
+    },
+    {
+      "type": "quiz",
+      "id": "which-licence",
+      "question": "Marieke opens Usage & Monitoring on a colleague's screen and sees only the Overview tab — no Feedback, no Terminations. What is going on?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Those two tabs come with the Enterprise licence for advanced usage monitoring. Overview is what every organisation admin gets.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Her colleague lacks the organisation-admin role, so the page renders in a reduced form.",
+          "correct": false,
+          "feedback": "Without the organisation-admin role the whole Settings → Organisation group is out of reach — there would be no Usage & Monitoring page at all, not a page with fewer tabs."
+        },
+        {
+          "id": "c",
+          "label": "The two tabs only appear once the organisation is over 80% of its cost cap.",
+          "correct": false,
+          "feedback": "The cap gauge and the tab row are unrelated. Feedback and Terminations are there from day one on a plan that includes them, whether the gauge reads 4% or 96%."
+        },
+        {
+          "id": "d",
+          "label": "The RANGE control is set to Today, and there is nothing to show in either tab yet.",
+          "correct": false,
+          "feedback": "An empty tab still renders — you would read No feedback entries or No terminations match the filters. And the range control is hidden while those tabs are open anyway."
+        }
+      ],
+      "explanation": "Gates come in two kinds and they stack: a role decides whether you may see the Organisation settings at all, and the licence decides how much of a screen you get. Here the role is fine and the plan is the limit, so the quality half of this lesson is simply not on that workspace — the cost half on Overview still is."
+    },
+    {
+      "type": "slide",
+      "id": "terminations-tab",
+      "icon": "⛔",
+      "title": "Terminations: tasks that stopped early",
+      "bodyMd": "The **Terminations** tab is the other quality screen: *tasks that ended early — token limits, errors, or aborts*. Its cards are **Total**, **Max tokens**, **Max iterations**, **Errors**, **Aborted** (client disconnects) and **Large input**.\n\nRead the four types as four different diagnoses:\n\n- **Max tokens** — the answer ran out of room. Usually a long input or a long expected output.\n- **Max iterations** — an agent looped through tool calls without converging.\n- **Error** — the provider or a tool failed; the row carries an error code.\n- **Aborted** — the user closed the tab or navigated away.\n\nMessages are never logged here; only sanitised metadata is shown."
+    },
+    {
+      "type": "quiz",
+      "id": "which-tab",
+      "question": "Pieter's procurement routine at Van Dijk Groep dies halfway through its supplier PDFs, most days. Which tab explains why?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Terminations — it records why a task stopped early, and its By agent chart points at the offender.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Feedback — a failed routine shows up there as a negative rating.",
+          "correct": false,
+          "feedback": "Feedback only holds ratings a person deliberately left on an answer. A routine running overnight has nobody there to press a thumb."
+        },
+        {
+          "id": "c",
+          "label": "Overview — the By app area panel shows the failure rate per part of the product.",
+          "correct": false,
+          "feedback": "Overview counts calls and spend, not outcomes. A run that stopped halfway still logged its calls and looks perfectly normal there."
+        },
+        {
+          "id": "d",
+          "label": "None of them — the routine's own run history is the only place a stop is recorded.",
+          "correct": false,
+          "feedback": "The run history tells you that it stopped; Terminations tells you the kind of stop, on which model, after how many iterations, and with which error code — which is what you need to fix it."
+        }
+      ],
+      "explanation": "Terminations is the organisation-wide view of early stops. Filter the type to Max tokens, or type the routine's name into Search agent / model / error...; the row itself carries the iteration count and the duration, and opening it adds the error class and the attachment size."
+    },
+    {
+      "type": "quiz",
+      "id": "truncated",
+      "question": "Sales proposals come back cut off. Terminations shows Max tokens dominating, most rows carrying a Large input badge. Which TWO moves address that?",
+      "multi": true,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Split the RFP upload or trim the context the step sends, so the prompt stops crowding out the answer.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Move that step to a tier with more room for the answer.",
+          "correct": true
+        },
+        {
+          "id": "c",
+          "label": "Raise the cost cap on License & Usage.",
+          "correct": false,
+          "feedback": "The cap is a monthly money ceiling. It has no effect on how long a single answer may be — a truncated proposal would come back just as truncated on a higher cap."
+        },
+        {
+          "id": "d",
+          "label": "Switch AI usage sharing off so sales gets its own slice.",
+          "correct": false,
+          "feedback": "That divides the budget differently; it changes who runs out of money first, not how much room one answer has. The proposals would still be cut off."
+        }
+      ],
+      "explanation": "Max tokens plus Large input is a size problem inside one call, so both fixes work on that call: send less in, or allow more out. Budget settings live on a different axis entirely — they decide who may spend, not how long an answer may be."
+    },
+    {
+      "type": "exercise",
+      "id": "the-note",
+      "icon": "✍️",
+      "exerciseId": "ex-usage-caps-note",
+      "title": "Your turn: write the note to the heaviest user",
+      "instruction": "You are Marieke, the organisation admin at Van Dijk Groep. The gauge is at 86% with eleven days left in the billing period. Top users by cost shows Sanne in sales at roughly a third of the total, By tier shows nearly all of it on a Deep Thinking tier, and By app area points at the proposal routine. Write the short message you would send Sanne (4-6 sentences). A strong note names what you saw and where you saw it, says plainly what happens at 100% and who it hits, proposes one concrete change to the routine rather than a vague 'use it less', and offers the per-user split as the fallback if nothing changes. Keep the tone collegial: she is doing her job, the routine is the problem.",
+      "placeholder": "e.g. Hi Sanne — quick heads-up on our AI budget. We're at 86% of this period's cap with eleven days to go, and the usage report shows the proposal routine...",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "slide",
+      "id": "wrap",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "- **Read before you turn a knob.** The cost · 30d amount on a member row names the heaviest user before you open anything; the gauge then tells you how deep into the billing period you are, and Top users by cost, By tier and By app area turn a percentage into a person, a tier and a part of the product.\n- **Know which control does what.** The cap is money and lives on License & Usage. AI usage sharing splits that same cap per seat — it is fairness, not savings — and both are reversible.\n- **Separate cost from quality.** Feedback answers \"are the answers any good\", Terminations answers \"why did it stop\". Neither question is answered by the spend chart."
+    }
+  ],
+  "rubrics": {
+    "ex-usage-caps-note": {
+      "title": "A note that turns a percentage into a decision",
+      "task": "Write a short collegial message from Marieke, the organisation admin, to Sanne in sales — the heaviest AI user at Van Dijk Groep — after the cap gauge hit 86% with eleven days left in the billing period, the usage report attributed about a third of the spend to her, almost all of it on a Deep Thinking tier, from the proposal routine.",
+      "criteria": [
+        "Names the evidence and where it came from: the cap gauge percentage plus at least one of Top users by cost, By tier or By app area — not a vague 'you are using a lot'.",
+        "States the consequence correctly: at 100% of the cap AI calls are blocked until the next billing period, and in pooled mode that hits the whole team, not just her.",
+        "Proposes one concrete, specific change to the routine — for example moving that step off the Deep Thinking tier, or sending less input per proposal — rather than 'use it less'.",
+        "Mentions the per-user split (AI usage sharing on License & Usage) as a fallback, and frames it as splitting the same cap rather than as a punishment or a saving.",
+        "Stays collegial and factual: the routine's configuration is the problem, not the person's work."
+      ],
+      "passScore": 70,
+      "guidance": "Do not pass a note that only says 'please cut back' with no evidence and no proposed change. Do not pass a note claiming the per-user split lowers the bill, that the cap controls answer length, or that usage was inspected in a place that does not exist (there is no export or download on this report). Do not pass a note that threatens to remove her access, or that reports token or call counts — a cloud organisation admin never sees those. Partial credit is fine when the tone and the evidence are right but the fallback is missing."
+    }
+  },
+  "practiceTopic": {
+    "title": "Caps, spikes and quality signals",
+    "summary": "How an organisation admin reads the cap gauge, decides between a pooled and a per-user budget, and uses the Feedback and Terminations tabs.",
+    "facts": [
+      "The cap warning email is sent once per billing period to at most five administrator addresses; at 100% of the cost cap AI calls are blocked until the next period, while the reporting screens keep working.",
+      "The bar AI usage vs. cap is green below 80%, amber from 80% and red from 95%, and it measures the billing period, which follows the subscription's billing cycle start rather than the calendar month.",
+      "The RANGE presets are Today, 24h, 7d, 30d, 90d, All and Custom, with 30d selected on open; the range moves the lists under the gauge but never the gauge itself.",
+      "The cost cap and the section AI usage sharing, with the toggle Share AI usage across the organisation, live on Settings → Organisation → License & Usage, not on Usage & Monitoring.",
+      "With sharing off each active seat gets the cap divided by the number of active seats, while the organisation-wide 80% warning still fires off the pooled total, so the bill itself does not go down.",
+      "The Feedback tab (Enterprise licence, like Terminations) shows Positive, Negative, With Comments and With Conversation with a Positive rate, and warns below 60% positive on at least 5 items; without that licence only Overview renders.",
+      "The Terminations tab groups early stops as Max tokens, Max iterations, Errors and Aborted, adds a Large input signal, and logs only sanitised metadata — never message content.",
+      "Users & Groups shows an AI amount captioned cost · 30d on each member row, tooltip {calls} requests · {cost} (last 30 days); it is a rolling 30 days rather than the billing period, and only members with recorded spend get one."
+    ]
+  },
+  "actionChecks": []
+}

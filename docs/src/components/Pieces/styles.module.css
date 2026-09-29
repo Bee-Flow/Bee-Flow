@@ -1,0 +1,106 @@
+.section {
+  position: relative;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: clamp(3rem, 7vw, 6rem) 1.25rem;
+}
+
+.heading {
+  text-align: center;
+  margin-bottom: 2.6rem;
+}
+
+.kicker {
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--bf-amber-700);
+  margin-bottom: 0.7rem;
+}
+.title {
+  font-size: clamp(1.7rem, 3.4vw, 2.6rem);
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+  font-weight: 800;
+  margin: 0 0 0.6rem;
+  color: var(--bf-ink-900);
+}
+.lede {
+  font-size: 1.05rem;
+  color: var(--bf-ink-500);
+  margin: 0;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.1rem;
+}
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  padding: 1.7rem 1.5rem;
+  border-radius: var(--bf-radius);
+  border: 1px solid var(--bf-ink-200);
+  background:
+    linear-gradient(180deg, rgba(255, 248, 224, 0.5) 0%, rgba(255, 248, 224, 0) 100%),
+    var(--ifm-background-surface-color, #fff);
+  transition: transform 220ms ease, border-color 220ms ease, box-shadow 220ms ease;
+}
+.card:hover {
+  transform: translateY(-3px);
+  border-color: var(--bf-amber-300);
+  box-shadow: var(--bf-shadow);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.repo {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.78rem;
+  color: var(--bf-ink-500);
+  background: var(--bf-ink-100);
+  padding: 0.18rem 0.5rem;
+  border-radius: 6px;
+  font-weight: 500;
+}
+.chip {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--bf-amber-800);
+  background: var(--bf-amber-50);
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid var(--bf-amber-200);
+}
+.name {
+  font-size: 1.45rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.desc {
+  color: var(--bf-ink-600);
+  line-height: 1.55;
+  margin: 0;
+  font-size: 0.95rem;
+}
+.link {
+  margin-top: auto;
+  font-weight: 600;
+  color: var(--bf-amber-700);
+  text-decoration: none;
+}
+
+.link:hover { color: var(--bf-amber-800); }

@@ -1,0 +1,263 @@
+# electron-builder — one config, every platform Bee Flow ships a desktop client for.
+#
+# The Linux target list is deliberately long. "Linux" is not one thing: a
+# self-hoster on Debian wants a .deb their package manager tracks, Fedora and
+# openSUSE want an .rpm, Arch wants a pacman package, and someone on a distro
+# nobody planned for wants an AppImage that runs without root. Shipping only an
+# AppImage would be the easy answer and the wrong one — it puts the app outside
+# every update mechanism the machine already has.
+appId: nl.beeflow.desktop
+productName: Bee Flow
+copyright: Copyright © Bee Flow
+# No space in the file name, and that is load-bearing rather than cosmetic.
+# `productName` is "Bee Flow", but electron-builder writes the UPDATE metadata
+# (latest.yml / beta.yml) with spaces normalised to hyphens, while naming the
+# file itself with the space intact — and GitHub separately rewrites spaces in
+# release asset names. All three have to agree or auto-update downloads a URL
+# that does not exist, which only shows up when someone tries to update.
+artifactName: Bee-Flow-${version}-${os}-${arch}.${ext}
+# The installer/app icon. Everything else (.ico, .icns, the Linux icon set) is
+# derived from this one 1024×1024 PNG by electron-builder.
+icon: build/icon.png
+
+directories:
+  output: release
+  buildResources: build
+
+# Only what the app actually loads at runtime. `dist/` is the compiled output,
+# `resources/` holds the tray images, and the two production dependencies come
+# from node_modules. Source, tests and tsconfigs stay out of the package.
+files:
+  - dist/**/*
+  - resources/**/*
+  - package.json
+  - '!**/*.map'
+  - '!node_modules/**/{test,__tests__,docs,example,examples}/**'
+
+asar: true
+
+# Deep links. Registered on all three platforms so `beeflow://` opens the app —
+# this is what lets the server (or a Nextcloud page) hand a conversation, an
+# automation run or a file back to the desktop client.
+protocols:
+  - name: Bee Flow
+    schemes: [beeflow]
+
+# ── Linux ────────────────────────────────────────────────────────────────────
+linux:
+  # The name of the binary on disk, and the base of everything derived from it:
+  # /usr/bin/beeflow, beeflow.desktop, the AppImage's internal paths.
+  #
+  # It has to be set explicitly because the default comes from package.json's
+  # `name`, and this package is scoped — `@beeflow/desktop` reduces to
+  # `@beeflowdesktop`, and the `@` is rejected outright by the AppImage builder.
+  # A scoped name is right for the workspace and wrong for a Linux executable,
+  # so the two are simply different strings.
+  executableName: beeflow
+  # Name the installed .desktop file after that executable, so it matches the
+  # app_id Electron reports and the StartupWMClass below. Without it the desktop
+  # environment cannot link a running window to its launcher: the app shows up
+  # in the dock and in alt-tab with a generic icon and no name.
+  syncDesktopName: true
+  category: Office;Network;Utility
+  synopsis: Self-hosted, privacy-first AI workspace
+  description: >-
+    Bee Flow is a self-hosted AI workspace: agents, automations, knowledge bases
+    and documents, on infrastructure you control. This desktop client connects
+    to your own Bee Flow server and bridges it to the Nextcloud desktop client
+    already syncing your files.
+  maintainer: Bee Flow <support@beeflow.nl>
+  vendor: Bee Flow
+  desktop:
+    entry:
+      # Without the scheme handler the .desktop file is registered but
+      # `xdg-open beeflow://…` finds nothing to open it with.
+      MimeType: x-scheme-handler/beeflow;
+      # Matches the executable name, which is what Electron uses for WM_CLASS.
+      StartupWMClass: beeflow
+      Keywords: ai;agents;chat;nextcloud;automation;knowledge;
+  # The tar.gz has no install step to make Chromium's sandbox work, so it ships
+  # a launcher that checks and says what it did (see the script). Harmless in
+  # the other formats, which start /usr/bin/beeflow.
+  extraFiles:
+    - from: build/linux/beeflow.sh
+      to: beeflow.sh
+  target:
+    - target: AppImage
+      arch: [x64, arm64]
+    - target: deb
+      arch: [x64, arm64]
+    - target: rpm
+      arch: [x64, arm64]
+    - target: pacman
+      arch: [x64]
+    - target: tar.gz
+      arch: [x64, arm64]
+
+# Runtime dependencies, per package format. `depends` REPLACES electron-builder's
+# default list rather than adding to it, so each list below is that default
+# plus what this app needs on top:
+#   - libsecret: the credential store writes nothing to disk unless the OS
+#     keyring seals it, and on Linux that keyring is libsecret;
+#   - libgbm and ALSA: Electron links libgbm.so.1 and libasound.so.2 directly
+#     (check with `ldd`), and a desktop always has them — a minimal install or
+#     a container does not, and there the app would not start.
+# rpm uses rich dependencies, `(a or b)`, so one package installs on Fedora and
+# on openSUSE, which names half of these differently.
+deb:
+  depends:
+    - libgtk-3-0
+    - libnotify4
+    - libnss3
+    - libxss1
+    - libxtst6
+    - xdg-utils
+    - libatspi2.0-0
+    - libuuid1
+    - libsecret-1-0
+    - libgbm1
+    - libasound2
+  # No afterInstall/afterRemove of our own. electron-builder's templates do what
+  # a Chromium app needs, with the right `/opt/Bee Flow` path: /usr/bin/beeflow
+  # through update-alternatives, chrome-sandbox permissions, and — on Ubuntu
+  # 24.04, whose kernel restricts unprivileged user namespaces — an AppArmor
+  # profile, without which the sandbox cannot start and the app aborts. A
+  # custom script REPLACES the template rather than adding to it; the one this
+  # used to ship pointed at /opt/beeflow and dropped all three.
+
+rpm:
+  # `Name:` in an RPM spec takes a single token, and electron-builder passes
+  # productName through to fpm verbatim — so "Bee Flow" produces
+  # `error: line 1: Tag takes single token only`. The .deb target sanitises the
+  # same name to `bee-flow` on its own; rpm does not, so it is spelled here.
+  # Matching the deb keeps one package name across every package manager:
+  # `apt install bee-flow`, `dnf install bee-flow`, `pacman -S bee-flow`.
+  packageName: bee-flow
+  depends:
+    - gtk3
+    - libnotify
+    - nss
+    - (libXScrnSaver or libXss1)
+    - (libXtst or libXtst6)
+    - xdg-utils
+    - at-spi2-core
+    - (libuuid or libuuid1)
+    - (libsecret or libsecret-1-0)
+    - (mesa-libgbm or libgbm1)
+    - (alsa-lib or libasound2)
+  # The sandbox helper needs its setuid bit; rpm's default strip pass breaks
+  # the chrome-sandbox binary, so leave the payload alone.
+  fpm: ['--rpm-rpmbuild-define=_build_id_links none']
+
+pacman:
+  # Same reason as rpm above: a pacman package name cannot contain a space.
+  packageName: bee-flow
+  depends:
+    - gtk3
+    - libnotify
+    - nss
+    - libxss
+    - libxtst
+    - xdg-utils
+    - at-spi2-core
+    - libsecret
+    - mesa
+    - alsa-lib
+
+# AppImages have no install step, so the `beeflow://` scheme handler is
+# registered by the app itself when it starts from an AppImage (see
+# src/main/linux/appImageEntry.ts) rather than by a package manager hook.
+
+# ── macOS ────────────────────────────────────────────────────────────────────
+mac:
+  category: public.app-category.productivity
+  # One universal binary rather than two downloads. Apple Silicon has been the
+  # default Mac for years but plenty of Intel machines are still in service, and
+  # "which one do I need" is a support question worth not having.
+  target:
+    - target: dmg
+      arch: [universal]
+    - target: zip
+      arch: [universal]
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.inherit.plist
+  # Flipped on in CI when the signing identity and Apple credentials are
+  # present (`-c.mac.notarize=true`). Left off here so a contributor can build a
+  # local .app without an Apple Developer account.
+  notarize: false
+  extendInfo:
+    # The app keeps running in the menu bar after the last window closes.
+    LSUIElement: false
+    NSMicrophoneUsageDescription: Bee Flow uses the microphone when you dictate a message or record a meeting.
+    NSCameraUsageDescription: Bee Flow uses the camera when you attach a photo to a conversation.
+    # Reading the Nextcloud sync folder is a user-chosen location, but macOS
+    # still prompts when that folder lives under Documents or Desktop.
+    NSDocumentsFolderUsageDescription: Bee Flow reads files from your Nextcloud sync folder when you attach or watch them.
+    NSDesktopFolderUsageDescription: Bee Flow reads files from your Nextcloud sync folder when you attach or watch them.
+    NSDownloadsFolderUsageDescription: Bee Flow saves files you download from a conversation.
+    # macOS 15 asks before an app may connect to anything on the local network,
+    # and a self-hosted Bee Flow server on the LAN is the ordinary case. Without
+    # this string the request is refused without asking.
+    NSLocalNetworkUsageDescription: Bee Flow connects to your Bee Flow server, which may be on your local network.
+
+dmg:
+  contents:
+    - x: 140
+      y: 180
+      type: file
+    - x: 400
+      y: 180
+      type: link
+      path: /Applications
+
+# ── Windows ──────────────────────────────────────────────────────────────────
+win:
+  target:
+    - target: nsis
+      arch: [x64, arm64]
+    - target: portable
+      arch: [x64]
+    - target: zip
+      arch: [x64, arm64]
+  # Signing comes from the environment (CSC_LINK / CSC_KEY_PASSWORD, or an
+  # Azure Trusted Signing profile). Unsigned builds still produce a working
+  # installer — with a SmartScreen warning, which the release notes say.
+  signtoolOptions:
+    signingHashAlgorithms: [sha256]
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Bee Flow
+  deleteAppDataOnUninstall: false
+  # Ship the scheme handler with the installer rather than registering it at
+  # runtime, so a machine-wide install works for users who cannot write HKCU.
+  include: build/installer.nsh
+
+portable:
+  artifactName: Bee-Flow-${version}-windows-portable.${ext}
+
+# ── Updates ──────────────────────────────────────────────────────────────────
+# GitHub Releases is the default feed because that is where the release workflow
+# publishes. A self-hoster who would rather not have their clients talk to
+# github.com points BEEFLOW_UPDATE_FEED_URL at their own static host, and the
+# updater uses that instead (see src/main/updater.ts).
+#
+# An object rather than a one-element list, so the release workflow can override
+# one field from the command line: a dev build passes
+# `-c.publish.channel=beta`, which makes electron-builder emit `beta.yml` /
+# `beta-mac.yml` / `beta-linux.yml` instead of the `latest*.yml` set. That is
+# what makes Settings → Updates → Channel mean something: an app on the beta
+# channel reads the first file, an app on stable reads the second, and the two
+# never see each other's builds.
+publish:
+  provider: github
+  owner: Bee-Flow
+  repo: Bee-Flow-AI
+  channel: latest
+  releaseType: release

@@ -1,0 +1,52 @@
+{
+  "brief": "Build an automation that I start by hand: manual trigger, no schedule, no file event.\n1. nextcloud_list_files on folder \"/Invoices-Q3\".\n2. nextcloud_read_file for each item of step 1 (forEach over its items, path = the item's path).\n3. data_extraction for each result of step 2 on its content, with exactly these fields: datum (date), leverancier (string), factuurnummer (string), excl_btw (number), btw (number), totaal (number).\n4. datatable add_row for each result of step 3 into the EXISTING datatable \"Facturen\" (id tbl_x, key facturen). Map the fields by column key and set status to the literal \"open\".\nDo not create a table or columns. Dates as 2026-09-19; amounts as plain numbers with a dot (1554.25). Keep file order. Title \"Facturen inlezen\".",
+  "tier": "fast",
+  "expect": {
+    "finalized": true,
+    "titled": true,
+    "maxFailedCalls": 1,
+    "maxRounds": 8,
+    "triggerKind": "manual",
+    "chain": [
+      {
+        "type": "integration_action",
+        "tool": "nextcloud_list_files",
+        "inputs": {
+          "path": "/Invoices-Q3"
+        }
+      },
+      {
+        "type": "integration_action",
+        "tool": "nextcloud_read_file",
+        "forEachOver": "$0.output.items"
+      },
+      {
+        "type": "data_extraction",
+        "forEachOver": "$1.output.results",
+        "fields": [
+          "datum",
+          "leverancier",
+          "factuurnummer",
+          "excl_btw",
+          "btw",
+          "totaal"
+        ]
+      },
+      {
+        "type": "datatable",
+        "op": "add_row",
+        "datatableId": "tbl_x",
+        "forEachOver": "$2.output.results",
+        "valuesKeys": [
+          "datum",
+          "leverancier",
+          "factuurnummer",
+          "excl_btw",
+          "btw",
+          "totaal",
+          "status"
+        ]
+      }
+    ]
+  }
+}

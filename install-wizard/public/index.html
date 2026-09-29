@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BeeFlow — Install Wizard</title>
+    <meta name="description" content="Configure and deploy BeeFlow services">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/style.css">
+    <link rel="icon" type="image/svg+xml" href="/bee-flow-logo.svg">
+</head>
+<body>
+    <div class="wizard-container">
+        <div id="stepIndicators" class="step-indicators"></div>
+
+        <div class="wizard-card">
+            <div class="card-accent-line"></div>
+
+            <div class="wizard-header">
+                <div class="logo-wrap">
+                    <div class="logo-img">
+                        <img src="/bee-flow-logo.svg" alt="BeeFlow">
+                    </div>
+                </div>
+                <h1 id="stepTitle">Setup Wizard</h1>
+                <p class="subtitle" id="stepSubtitle">Step 1 of 5</p>
+            </div>
+
+            <div class="alert alert-error" id="errorAlert" style="display:none">
+                <span>⚠️</span> <span id="errorText"></span>
+            </div>
+
+            <div id="stepContent" class="step-content"></div>
+
+            <div class="wizard-actions" id="wizardActions">
+                <div class="actions-left">
+                    <button id="btnBack" class="btn btn-ghost" onclick="prevStep()">← Back</button>
+                    <button id="btnSkip" class="btn btn-skip" onclick="skipStep()" style="display:none">Skip</button>
+                </div>
+                <div class="actions-right">
+                    <button id="btnNext" class="btn btn-primary" onclick="nextStep()">Continue</button>
+                </div>
+            </div>
+        </div>
+
+        <p class="footer-note">Bee Flow AI Agent Platform — Install Wizard</p>
+    </div>
+    <script src="/wizard.js"></script>
+</body>
+</html>

@@ -1,0 +1,78 @@
+{
+  "en": {
+    "compliance.score_aria": "{score} of 100",
+    "compliance.score_aria_pending": "No score yet",
+
+    "compliance.ovw_trend": "{days} days · {delta}",
+    "compliance.ovw_trend_none": "{days} days · no trend yet",
+
+    "compliance.cal_today": "today · {date}",
+    "compliance.cal_days_ago": "{days} days ago",
+    "compliance.cal_in_days": "in {days} days",
+    "compliance.cal_in_months": "in {months} months",
+    "compliance.cal_due_today": "today",
+    "compliance.cal_not_relevant": "not relevant",
+    "compliance.cal_affects": "affects {list}",
+    "compliance.cal_affects_automations": "{n} automations",
+    "compliance.cal_affects_agents": "{n} agents",
+    "compliance.cal_affects_webpages": "{n} webpages",
+    "compliance.cal_affects_forms": "{n} forms",
+    "compliance.cal_empty": "No upcoming dates",
+    "compliance.cal_more": "{n} more dates",
+    "compliance.cal_uncertain_title": "Still uncertain",
+    "compliance.cal_expected": "expected {when}",
+
+    "compliance.tl_today": "today",
+    "compliance.tl_days_left": "{days} d",
+
+    "compliance.reg_gdpr": "GDPR",
+    "compliance.reg_aia": "AI Act",
+    "compliance.reg_iso27001": "ISO",
+    "compliance.reg_nis2": "NIS2",
+    "compliance.reg_cra": "CRA",
+    "compliance.reg_data_act": "Data Act",
+    "compliance.reg_pld": "PLD",
+    "compliance.reg_eaa": "EAA",
+    "compliance.reg_dora": "DORA",
+    "compliance.reg_machinery": "Machinery",
+    "compliance.reg_custom": ""
+  },
+  "nl": {
+    "compliance.score_aria": "{score} van 100",
+    "compliance.score_aria_pending": "Nog geen score",
+
+    "compliance.ovw_trend": "{days} dagen · {delta}",
+    "compliance.ovw_trend_none": "{days} dagen · nog geen trend",
+
+    "compliance.cal_today": "vandaag · {date}",
+    "compliance.cal_days_ago": "{days} dagen geleden",
+    "compliance.cal_in_days": "over {days} dagen",
+    "compliance.cal_in_months": "over {months} maanden",
+    "compliance.cal_due_today": "vandaag",
+    "compliance.cal_not_relevant": "niet relevant",
+    "compliance.cal_affects": "raakt {list}",
+    "compliance.cal_affects_automations": "{n} automations",
+    "compliance.cal_affects_agents": "{n} agents",
+    "compliance.cal_affects_webpages": "{n} webpagina's",
+    "compliance.cal_affects_forms": "{n} formulieren",
+    "compliance.cal_empty": "Geen komende data",
+    "compliance.cal_more": "{n} data meer",
+    "compliance.cal_uncertain_title": "Nog onzeker",
+    "compliance.cal_expected": "verwacht {when}",
+
+    "compliance.tl_today": "vandaag",
+    "compliance.tl_days_left": "{days} d",
+
+    "compliance.reg_gdpr": "AVG",
+    "compliance.reg_aia": "AI Act",
+    "compliance.reg_iso27001": "ISO",
+    "compliance.reg_nis2": "NIS2",
+    "compliance.reg_cra": "CRA",
+    "compliance.reg_data_act": "Data Act",
+    "compliance.reg_pld": "PLD",
+    "compliance.reg_eaa": "EAA",
+    "compliance.reg_dora": "DORA",
+    "compliance.reg_machinery": "Machineverordening",
+    "compliance.reg_custom": ""
+  }
+}

@@ -1,0 +1,238 @@
+{
+  "id": "chat-agents-and-skills",
+  "icon": "🤖",
+  "estMinutes": 8,
+  "title": "Borrow a colleague's specialist",
+  "desc": "The agent store, agent chat, session skills and the Apps panel — using what other people built.",
+  "gate": {},
+  "learningGoal": "After this lesson you can decide whether a question belongs to an agent, to a skill switched on for one chat, or to the bare assistant — and hold a real conversation with an agent someone else built.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "why",
+      "icon": "🧭",
+      "title": "Someone has already built this",
+      "bodyMd": "Anna at Van Dijk Groep writes quotations. Her colleague Bram has already saved an assistant that knows the quotation template and the price list, and published it to the organisation.\n\nAnna does not need to build anything. She opens **Agents** in the left sidebar, picks Bram's assistant, and asks.\n\nTwo kinds of chat share one composer:\n\n- **New Chat** — the bare assistant. You set how deep the answer should go, per message.\n- **Agent chat** — a saved agent. It brings its own instructions and runs at the depth its maker chose.\n\nYou can see which one you are in without looking anywhere else: the box says *Message AI...* in a direct chat, and *Message* followed by the agent's own name in an agent chat."
+    },
+    {
+      "type": "tour",
+      "id": "store",
+      "target": "[data-tour=\"nav-agents\"]",
+      "navigateTo": "agents",
+      "placement": "right",
+      "optional": true,
+      "timeoutMs": 7000,
+      "icon": "🛍️",
+      "title": "Where the specialists live",
+      "body": "This row opens the store, headed **Agents** with a count like \"12 of 40 agents\". Search with **Search agents...**, or use the filter chips: **Popular**, **Last Used**, then any categories your organisation has made, then **Favorites** and **All**. The list holds the agents published to your organisation or your groups, plus any you made yourself."
+    },
+    {
+      "type": "slide",
+      "id": "inside",
+      "icon": "🎒",
+      "title": "What an agent carries",
+      "bodyMd": "An agent is not just a saved prompt. Its maker gave it four things, and you inherit all four the moment you start talking:\n\n- **Instructions** — who it is and how it answers.\n- **Knowledge** — the knowledge bases it looks in before it answers, so it quotes Van Dijk Groep's own documents instead of the model's memory.\n- **Tools** — the app actions it may use, and whether a person has to confirm the ones that send.\n- **A fixed depth** — the pill beside the box reads the agent's depth and is not yours to change. Its tooltip says *The depth this agent runs at*.\n\nThe line under an agent's name in the store is the description its maker wrote. It is the only thing you get before you open it, so read it."
+    },
+    {
+      "type": "slide",
+      "id": "skills",
+      "icon": "⚡",
+      "title": "Skills: a way of working, for one chat",
+      "bodyMd": "A **skill** is a written method someone saved once — steps, always-and-never rules, and the fields it delivers.\n\nBeside the **+** in the composer sits a pill labelled **Skills**, with a count on it. Its tooltip: *Reusable instruction packs for this chat*. Open it and you can switch a skill on for the conversation you are in, up to **five active at once**; beyond that the rest grey out and their tooltip reads *Maximum 5 skills active*.\n\nNo Skills pill? Either Simple Mode is on, which strips the composer back to the basics, or your organisation has not switched Skills on. The second is a feature an admin grants; in Studio the row is then disabled with the hint *Not switched on for your organisation — ask an admin*."
+    },
+    {
+      "type": "quiz",
+      "id": "q-locked",
+      "icon": "🔒",
+      "question": "In Bram's quotation agent, one row in the Skills panel carries a small link badge, and hovering the row shows \"Attached by this agent — always on\". Clicking it does nothing. Why can you not switch it off?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "It is attached to the agent itself, so every person who talks to that agent gets it. Only someone who can edit the agent can remove it.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "You have reached the limit of five active skills, so the panel has locked everything.",
+          "correct": false,
+          "feedback": "The limit greys out skills you have not picked yet — it never locks the ones already on. Attached skills do count towards the five, but that is not what stops you switching this one off."
+        },
+        {
+          "id": "c",
+          "label": "The skill has already run in this conversation, and a skill cannot be withdrawn once it has been used.",
+          "correct": false,
+          "feedback": "Skills you switched on yourself can be switched off at any point in the chat, used or not. What is fixed here is where the skill came from, not when it ran."
+        },
+        {
+          "id": "d",
+          "label": "Skills can only be switched off in your own preferences, not from the chat box.",
+          "correct": false,
+          "feedback": "The opposite: the composer's Skills pill is exactly where you switch a skill on or off for a chat. There is no skills switch in your preferences."
+        }
+      ],
+      "explanation": "Two kinds of skill meet in that panel. The ones the maker attached live on the agent's saved configuration, so they are part of what the agent is — changing them means editing the agent. The ones you switch on are yours, for this conversation. Both kinds count towards the five."
+    },
+    {
+      "type": "sim",
+      "id": "sort",
+      "icon": "🧩",
+      "title": "Four jobs, four homes",
+      "instruction": "Anna has four things on her list this afternoon. Drag each one to the place it belongs.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "p1",
+            "left": "Tidy up a paragraph she has just typed. Nothing about Van Dijk Groep's way of working comes into it.",
+            "right": "New Chat with the bare assistant",
+            "note": "A one-off with no house rules and no company documents. Opening an agent only adds instructions she does not need, and she keeps control of the depth per message."
+          },
+          {
+            "id": "p2",
+            "left": "Answer a customer's question about the quotation template and the current price list — the same way a colleague would answer it.",
+            "right": "Bram's published quotation agent",
+            "note": "Shared knowledge plus one agreed way of answering. Because it is saved on the agent, everyone at Van Dijk Groep gets the same answer, and the maker can improve it for all of them at once."
+          },
+          {
+            "id": "p3",
+            "left": "For this afternoon only, make every answer follow the tender checklist she uses once a quarter.",
+            "right": "A skill switched on for this chat",
+            "note": "A method she needs now and not tomorrow. Switch it on from the Skills pill, up to five active, and switch it off when the afternoon is over."
+          },
+          {
+            "id": "p4",
+            "left": "Pull in a document that sits in her own Drive, which this chat cannot reach yet.",
+            "right": "The Apps panel behind the + button",
+            "note": "This is about reach, not about wording. Apps is where you decide which connected apps a chat may touch."
+          }
+        ]
+      }
+    },
+    {
+      "type": "exercise",
+      "id": "pick",
+      "icon": "🎯",
+      "exerciseId": "ex-chat-agents-and-skills-lane",
+      "title": "Your turn: pick the lane",
+      "instruction": "Think of one job you actually do in a normal week. In three or four sentences: describe the job, say which of the three you would send it to — New Chat with the bare assistant, an agent from the Agents store, or a skill switched on for one chat — and name the one thing that decides it. Good deciders: does anyone else need the same answer, does it need company documents or an app, and is it a one-off or a habit.",
+      "placeholder": "e.g. Every Monday I write the site report for the week. Colleagues send the same report, so I would look for an agent in the store first — the wording and the safety paragraph have to match across all of us. If nothing is published yet, I would do it in New Chat and switch on a skill once the format settles.",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "slide",
+      "id": "apps",
+      "icon": "🔌",
+      "title": "What this chat may reach",
+      "bodyMd": "Behind the **+** sits **Apps**, hinted as *What this chat may reach — Drive, Gmail, and the rest*. The panel is headed **Apps** with a chip like \"3/7 active\" and the line *Click to use · Toggle to enable/disable*.\n\nTwo things worth knowing:\n\n- Only apps **you** have connected, and that your organisation allows, appear in the list. An app you never connected is not hidden from you — it is simply not there.\n- The switches are a preference of yours, not a setting for this one conversation. Switch Gmail off here and it stays off in the chat you open tomorrow, until you switch it back on.\n\nWhat an agent may do on its own is a separate thing: that comes from the agent's own configuration, decided by its maker."
+    },
+    {
+      "type": "quiz",
+      "id": "q-store",
+      "icon": "⭐",
+      "question": "Anna used Bram's agent all day yesterday on her laptop. This morning she signs in on the desk computer downstairs: the All tab still lists the agent, but the Last Used tab is empty. What is going on?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Last Used is remembered by the browser she was sitting at; favourites are stored with her account, so adding the agent to favourites is what would have followed her downstairs.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Bram unpublished the agent overnight, which empties the tab.",
+          "correct": false,
+          "feedback": "An unpublished agent disappears from every tab, not just one — and Anna's conversations with it would still be in her chat list. Here the other tabs still show it."
+        },
+        {
+          "id": "c",
+          "label": "Last Used only lists agents she has marked as a favourite, and she never marked this one.",
+          "correct": false,
+          "feedback": "Favorites is its own tab. Last Used is simply the handful of agents you opened most recently — favourite or not."
+        },
+        {
+          "id": "d",
+          "label": "Conversations with an agent are cleared after a day, so the history behind the tab is gone.",
+          "correct": false,
+          "feedback": "Nothing is cleared. Your threads stay in the sidebar under Today, Yesterday, Last 30 Days and Older until you delete them."
+        }
+      ],
+      "explanation": "Add an agent to favourites and it is stored with your account, so it follows you to every machine you sign in from. Last Used is a convenience of the browser in front of you. And when you want to start clean with the same agent, use the ⋮ menu in the agent's chat header: **New Chat** there keeps the agent and empties the thread, while **New Chat** in the sidebar takes you back to the bare assistant."
+    },
+    {
+      "type": "action",
+      "id": "chat",
+      "icon": "💬",
+      "checkId": "agent-chat",
+      "title": "Talk to one agent for real",
+      "instruction": "Open Agents, pick one that has been published to you, and ask it one real question from your own week — not \"hello\". Look at the answer, then use **Add to favorites** in the ⋮ menu if you would use it again. We check that a conversation with an agent exists on your account.",
+      "launch": {
+        "navigateTo": "agents",
+        "label": "Open Agents"
+      }
+    },
+    {
+      "type": "slide",
+      "id": "now",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "- **Find someone else's work.** The Agents store, its filter chips and search box, and the description line that tells you what an agent is for before you open it.\n- **Choose the lane.** Bare assistant for a one-off, an agent when the answer has to be the same for everyone, a skill from the Skills pill when one chat needs a particular method — five active at most.\n- **Know what is yours and what is the agent's.** The depth and the attached skills belong to the agent; the skills you switch on, the apps you connect and the favourite you set belong to you."
+    }
+  ],
+  "rubrics": {
+    "ex-chat-agents-and-skills-lane": {
+      "title": "Pick the lane, and say why",
+      "task": "The learner names one real job from their own week, chooses between the bare assistant in New Chat, a published agent from the Agents store, and a skill switched on for one chat, and gives the reason that decides it.",
+      "criteria": [
+        "Describes a concrete, recognisable job — a named task with an output, not \"answering questions\" or \"using AI\".",
+        "Picks exactly one of the three and names it the way the product does: New Chat / the bare assistant, an agent from the Agents store, or a skill switched on for the chat.",
+        "Justifies the choice with a real difference between them: whether colleagues need the same answer, whether company knowledge or a connected app is needed, or whether it is a one-off versus a habit.",
+        "Shows the choice is understood rather than guessed — for example by naming what would change it, or what the chosen lane would not solve."
+      ],
+      "passScore": 70,
+      "guidance": "Pass a plain, honest answer even if short, as long as the job is concrete and the reason connects to how the three actually differ. Do not pass: a lane picked with no reason; \"I would just ask the AI\"; an answer about building or editing an agent rather than using one; a claim that a skill switched on in a chat is shared with colleagues, or that the depth can be changed inside an agent chat. If the learner picks a defensible lane with a weak reason, say which difference they missed and let them try again."
+    }
+  },
+  "practiceTopic": {
+    "title": "Using agents and skills in chat",
+    "summary": "How a published agent, a skill switched on for one conversation and the bare assistant differ, and what the chat composer lets you change.",
+    "facts": [
+      "The Agents store is headed \"Agents\" with a count like \"12 of 40 agents\", a \"Search agents...\" box and the fixed chips Popular, Last Used, Favorites and All, with any categories the organisation made sitting between Last Used and Favorites.",
+      "The composer box reads \"Message AI...\" in a direct chat and \"Message {agent name}...\" in an agent chat.",
+      "In an agent chat the depth pill is read-only, with the tooltip \"The depth this agent runs at\"; only a direct chat lets you set the depth per message.",
+      "The Skills pill, tooltip \"Reusable instruction packs for this chat\", allows at most five active skills; beyond that the others read \"Maximum 5 skills active\".",
+      "A skill attached by the agent shows a link badge and the tooltip \"Attached by this agent — always on\"; it counts towards the five and cannot be switched off from the chat.",
+      "The Skills pill only appears when the organisation has Skills switched on and Simple Mode is off; otherwise the Studio row is disabled with \"Not switched on for your organisation — ask an admin\".",
+      "The Apps panel is headed \"Apps\" with an \"{active}/{total} active\" chip and the line \"Click to use · Toggle to enable/disable\"; its switches are a personal preference that carries to your next chat.",
+      "Favourites are stored with your account, while the Last Used tab is remembered by the browser you are sitting at; the ⋮ menu in an agent chat offers New Chat, Add to favorites and Remove from favorites."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "agent-chat",
+      "existing": false,
+      "label": "Hold a conversation with an agent",
+      "hint": "Sidebar → Agents → open one that is published to you → ask it a question and read the answer.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/agents/conversations/all",
+          "returns": "array of the signed-in user's own agent conversations, newest first (ORDER BY updated_at DESC, LIMIT 50): id, agent_id, user_id, title, project_id, pinned, labels_json, created_at, updated_at, plus agent_name and agent_avatar from the joined agent"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "conversation",
+          "label": "At least one conversation with an agent exists on your account",
+          "hint": "A row appears only after you have actually sent a message to an agent — opening the store is not enough.",
+          "rule": "list length > 0",
+          "endpoint": "/agents/conversations/all",
+          "expect": {
+            "kind": "rows"
+          }
+        }
+      ]
+    }
+  ]
+}

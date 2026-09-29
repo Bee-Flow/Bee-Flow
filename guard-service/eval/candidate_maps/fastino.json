@@ -1,0 +1,73 @@
+{
+  "__doc__": [
+    "Type map for fastino/gliner2-privacy-filter-PII-multi (42 types) onto the",
+    "21 canonical categories. Consumed by tools/candidate_shim/app.py.",
+    "",
+    "Unmapped types are DROPPED, each for a recorded reason (below) — mapping a",
+    "fragment (a bare city, a CVV, a transaction date) onto a broader category",
+    "would make the emitted extent lie, the same call as the rejected DE_PLZ /",
+    "UK-postcode ports.",
+    "",
+    "COVERAGE FACT that frames the whole experiment: this model has NO type for",
+    "Organization, MedicalCondition, Medication, HealthInsuranceNumber or URL.",
+    "A full swap therefore zeroes the frozen control group and auto-REJECTs on",
+    "decision rule #1. The measurement decides whether it earns a place as an",
+    "ADDITIONAL recall arm (phones, national IDs, contact data) instead."
+  ],
+  "map": {
+    "person": "Person",
+    "full_name": "Person",
+    "first_name": "Person",
+    "middle_name": "Person",
+    "last_name": "Person",
+    "date_of_birth": "DateOfBirth",
+
+    "email": "Email",
+    "phone_number": "PhoneNumber",
+    "address": "Address",
+    "street_address": "Address",
+
+    "government_id": "NationalIdentificationNumber",
+    "national_id_number": "NationalIdentificationNumber",
+    "passport_number": "PassportNumber",
+    "drivers_license_number": "DriversLicenseNumber",
+    "license_number": "DriversLicenseNumber",
+    "tax_id": "TaxIdentificationNumber",
+    "tax_number": "TaxIdentificationNumber",
+
+    "bank_account": "BankAccountNumber",
+    "account_number": "BankAccountNumber",
+    "routing_number": "BankAccountNumber",
+    "iban": "InternationalBankingAccountNumber",
+    "payment_card": "CreditCardNumber",
+    "card_number": "CreditCardNumber",
+
+    "ip_address": "IPAddress",
+
+    "password": "ApiKeyOrSecret",
+    "secret": "ApiKeyOrSecret",
+    "api_key": "ApiKeyOrSecret",
+    "access_token": "ApiKeyOrSecret",
+    "recovery_code": "ApiKeyOrSecret"
+  },
+  "dropped": {
+    "city": "address fragment — a bare city as Address makes the extent lie (DE_PLZ precedent)",
+    "state_or_region": "address fragment — same call",
+    "postal_code": "address fragment — same call as the rejected UK-postcode port",
+    "country": "address fragment, and a country name alone is rarely PII",
+    "card_expiry": "no canonical category; as CreditCardNumber the extent would lie",
+    "card_cvv": "no canonical category; same — revisit only with a new category ticket",
+    "username": "no canonical category; as Person it would flag every handle",
+    "account_id": "any opaque id — pure FP generator against 21-category semantics",
+    "sensitive_account_id": "same as account_id",
+    "sensitive_date": "not DateOfBirth — mapping it would flag ordinary dates",
+    "document_date": "same",
+    "expiration_date": "same",
+    "transaction_date": "same"
+  },
+  "notes": {
+    "USSocialSecurityNumber": "no dedicated type; SSNs surface via government_id/national_id_number and map to NationalIdentificationNumber — the regex tier keeps the USSSN label via arbitration",
+    "URL": "no type at all — URL stays with the regex tier / current model",
+    "control_group_gap": "Organization, MedicalCondition, Medication have no type — see __doc__"
+  }
+}

@@ -1,0 +1,289 @@
+# Nextcloud connector (ExApp) release — driven from THIS repo, executed by the
+# connector repo's existing pipeline.
+#
+# The connector's source lives here in nextcloud-connector/, but the release
+# machinery lives in Bee-Flow/connector: its release.yml builds the multi-arch
+# image, cosign-signs it (keyless via OIDC), generates an SBOM, signs the App
+# Store tarball with NC_APP_SIGNING_KEY and posts the release to
+# apps.nextcloud.com. That key is deliberately NOT duplicated here — a
+# code-signing key should exist in exactly one place.
+#
+# So this workflow does the two things that must happen from the source of
+# truth, and hands off:
+#   1. mirror  — push nextcloud-connector/ to Bee-Flow/connector
+#   2. tag     — push v<version>, which is the trigger their release.yml waits on
+#
+# You start a release from this repo's Actions tab; everything downstream runs
+# where the signing key already is.
+#
+# VERSIONING: nothing to type. The version is read from
+# nextcloud-connector/appinfo/info.xml — the same value the Nextcloud App Store
+# keys the release off, and the same value CHANGELOG.md documents. There is no
+# version input and no tag to compose by hand.
+#
+# Why not synthesise a version (manifest + run number, say)? Because the App
+# Store shows the CHANGELOG entry whose heading matches that version to *users*
+# as the release notes. A generated version would have no matching entry, and
+# generating the entry too would put commit shorthand in front of Nextcloud
+# customers. The manifest is where a release is declared; this workflow just
+# refuses to guess.
+name: Connector release
+
+on:
+  workflow_dispatch:
+    inputs:
+      nightly:
+        description: 'Publish to the Nextcloud App Store NIGHTLY channel instead of stable (default: stable)'
+        type: boolean
+        default: false
+        required: false
+      dry_run:
+        description: 'Validate only — check the version, changelog and tag, then stop without pushing anything'
+        type: boolean
+        default: false
+        required: false
+
+env:
+  MIRROR_REPO: Bee-Flow/connector
+
+# The GITHUB_TOKEN only reads this repo; pushes to the mirror use a token from
+# the org's connector-release GitHub App (see "Mint a token" below).
+permissions:
+  contents: read
+
+concurrency:
+  group: connector-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    # CONNECTOR_APP_PRIVATE_KEY can live in the `release` environment,
+    # restricted to main. Only runs ON main enter it (a real release, or a dry
+    # run there); a dry run from another branch would be refused outright by
+    # that restriction, so it runs with an empty name, i.e. no environment.
+    # A real release from another branch never gets that far: the first step
+    # stops it.
+    environment: ${{ github.ref == 'refs/heads/main' && 'release' || '' }}
+    env:
+      # Whether the app key is in reach, never its value: a step's `if:`
+      # cannot read secrets. Once the key lives only in the environment, a
+      # dry run from a branch has none and skips what needs the app token.
+      HAS_APP_KEY: ${{ secrets.CONNECTOR_APP_PRIVATE_KEY != '' }}
+    steps:
+      # A real release pushes to the public mirror and hands off to the
+      # pipeline that signs the App Store tarball, so it may only ship what
+      # main holds, never an unmerged branch. A dry run pushes nothing and may
+      # run from any branch.
+      - name: Real releases run from main only
+        if: ${{ !inputs.dry_run }}
+        # A branch name can hold `$(…)`: the ref reaches the shell as a
+        # variable, never spliced into the script text.
+        env:
+          REF: ${{ github.ref }}
+        run: |
+          if [[ "$REF" != "refs/heads/main" ]]; then
+            echo "::error::A connector release must run from main (this ref: ${REF}). Merge first, or tick dry_run to validate this branch without pushing."
+            exit 1
+          fi
+
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+
+      # The mirror is written with a token from the org's connector-release
+      # GitHub App: minted per run, scoped to the mirror alone, expired within
+      # the hour. It replaced a fine-grained PAT, which belongs to one person
+      # and one resource owner — that one stopped reaching the mirror the day
+      # the repo moved from a personal account to the org (release #4). A tag
+      # pushed with an app token still triggers the mirror's release.yml; only
+      # GITHUB_TOKEN pushes don't.
+      #   vars.CONNECTOR_APP_CLIENT_ID      — the app's Client ID
+      #   secrets.CONNECTOR_APP_PRIVATE_KEY — a private key generated for it
+      - name: Mint a token for ${{ env.MIRROR_REPO }}
+        id: app-token
+        if: env.HAS_APP_KEY == 'true'
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ vars.CONNECTOR_APP_CLIENT_ID }}
+          private-key: ${{ secrets.CONNECTOR_APP_PRIVATE_KEY }}
+          owner: Bee-Flow
+          repositories: connector
+          permission-contents: write
+          permission-environments: write
+
+      # ── Preflight: everything that can be wrong, said plainly, before
+      #    anything is pushed anywhere. ────────────────────────────────────
+      - name: Resolve and validate the release
+        id: pre
+        # Every ${{ }} value reaches the scripts in this file through env:,
+        # never spliced into the script text (semgrep run-shell-injection).
+        env:
+          TOKEN: ${{ steps.app-token.outputs.token }}
+          NIGHTLY: ${{ inputs.nightly }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          set -euo pipefail
+          MANIFEST=nextcloud-connector/appinfo/info.xml
+          CHANGELOG=nextcloud-connector/CHANGELOG.md
+
+          VERSION="$(sed -n 's:.*<version>\(.*\)</version>.*:\1:p' "$MANIFEST" | head -1 | tr -d '[:space:]')"
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::$MANIFEST has no usable semver <version> (got '$VERSION')."
+            exit 1
+          fi
+          TAG="v$VERSION"
+
+          # The connector repo's release.yml hard-fails without a matching
+          # heading, and the App Store publishes that entry as the release
+          # notes users read. Catch it here rather than three repos away.
+          if ! grep -qE "^## \[$VERSION\]" "$CHANGELOG"; then
+            echo "::error::$CHANGELOG has no '## [$VERSION]' heading. The App Store shows that entry to users as the release notes — add it in the same change that bumped <version>."
+            exit 1
+          fi
+
+          # No app token: the key is out of reach. Only a dry run from a branch
+          # other than main gets here legitimately (the key lives in the
+          # main-only `release` environment); it skips the push check below
+          # and reads the public mirror's tags anonymously.
+          if [[ -z "${TOKEN:-}" ]]; then
+            if [[ "$DRY_RUN" != "true" ]]; then
+              echo "::error::CONNECTOR_APP_PRIVATE_KEY is not set (as a repository secret or in the release environment), so nothing can be pushed to ${MIRROR_REPO}."
+              exit 1
+            fi
+            echo "::notice::No CONNECTOR_APP_PRIVATE_KEY in reach from this ref, so this dry run skips the check that the connector-release app can push to ${MIRROR_REPO}."
+            MIRROR_URL="https://github.com/${MIRROR_REPO}.git"
+          else
+            # The mirror is public, so the clone and ls-remote in this job work
+            # with a token that cannot write to it — the push further down used to
+            # be the first thing to notice (release #4). Ask for the push side the
+            # way git does: GitHub answers the git-receive-pack advertisement
+            # with 200 for a token with Contents write and 403 without. Not a
+            # `git push --dry-run` from here: actions/checkout left an
+            # extraheader with this job's GITHUB_TOKEN in the checkout's config,
+            # so that would test the wrong token.
+            PUSH_CHECK="$(curl -s -o /dev/null -w '%{http_code}' -u "x-access-token:${TOKEN}" \
+              "https://github.com/${MIRROR_REPO}.git/info/refs?service=git-receive-pack")"
+            if [[ "$PUSH_CHECK" != "200" ]]; then
+              echo "::error::The connector-release app's token cannot push (HTTP ${PUSH_CHECK}) to ${MIRROR_REPO}. Check that the app has Contents (read and write) and is installed on ${MIRROR_REPO}; after a permission change, accept it on the org's installation page."
+              exit 1
+            fi
+            MIRROR_URL="https://x-access-token:${TOKEN}@github.com/${MIRROR_REPO}.git"
+          fi
+
+          # Already released? Then <version> was not bumped — say so instead of
+          # pushing a tag that collides or silently re-publishing.
+          if git ls-remote --exit-code --tags \
+              "$MIRROR_URL" "refs/tags/${TAG}" >/dev/null 2>&1; then
+            echo "::error::${MIRROR_REPO} already has tag ${TAG} — bump <version> in $MANIFEST and add the matching CHANGELOG heading for the next release."
+            exit 1
+          fi
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG"         >> "$GITHUB_OUTPUT"
+          {
+            echo "### Connector release"
+            echo ""
+            echo "| | |"
+            echo "|---|---|"
+            echo "| Version | \`$VERSION\` (from \`appinfo/info.xml\`) |"
+            echo "| Tag | \`$TAG\` on \`${MIRROR_REPO}\` |"
+            echo "| App Store channel | $([[ "$NIGHTLY" == 'true' ]] && echo '**nightly**' || echo 'stable') |"
+            echo "| Dry run | ${DRY_RUN} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Show the release notes this will publish
+        env:
+          VERSION: ${{ steps.pre.outputs.version }}
+        run: |
+          set -euo pipefail
+          awk -v v="$VERSION" '
+            $0 ~ "^## \\[" v "\\]" {p=1; print; next}
+            p && /^## \[/ {exit}
+            p {print}
+          ' nextcloud-connector/CHANGELOG.md | tee "$RUNNER_TEMP/notes.md"
+          {
+            echo ""
+            echo "<details><summary>Release notes (shown on the App Store)</summary>"
+            echo ""
+            cat "$RUNNER_TEMP/notes.md"
+            echo ""
+            echo "</details>"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # ── Channel: the mirror's release.yml reads NCAPPSTORE_NIGHTLY from its
+      #    `release` environment. Set it from the checkbox here so the channel
+      #    is chosen in the same place the release is started — and so the
+      #    default is stable, not nightly.
+      #    An environment variable needs the *Environments* permission;
+      #    *Variables* covers repo-level variables only. This step used to
+      #    downgrade the 403 to a warning, and every release up to 1.5.1 went
+      #    out on whatever the mirror happened to say, not on the checkbox.
+      #    It fails now — before anything is pushed. ──────────────────────
+      - name: Point the App Store channel at ${{ inputs.nightly && 'nightly' || 'stable' }}
+        if: ${{ !inputs.dry_run }}
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          WANT: ${{ inputs.nightly && '1' || '0' }}
+        run: |
+          set -euo pipefail
+          if gh variable set NCAPPSTORE_NIGHTLY --env release --repo "$MIRROR_REPO" --body "$WANT"; then
+            echo "NCAPPSTORE_NIGHTLY=$WANT on ${MIRROR_REPO} (release env)"
+          else
+            echo "::error::Could not set NCAPPSTORE_NIGHTLY on ${MIRROR_REPO}'s release environment, so the App Store channel selected here would not be the one used. Give the connector-release app the Environments (read and write) permission. Nothing has been pushed."
+            exit 1
+          fi
+
+      - name: Mirror nextcloud-connector/ to ${{ env.MIRROR_REPO }}
+        if: ${{ !inputs.dry_run }}
+        env:
+          TOKEN: ${{ steps.app-token.outputs.token }}
+          VERSION: ${{ steps.pre.outputs.version }}
+        run: |
+          set -euo pipefail
+          WORK="$RUNNER_TEMP/mirror"
+          git clone "https://x-access-token:${TOKEN}@github.com/${MIRROR_REPO}.git" "$WORK"
+          # Replace the tree with this subtree while keeping the mirror's own
+          # git history (and its .github/, which is where release.yml lives).
+          find "$WORK" -mindepth 1 -maxdepth 1 -not -name '.git' -not -name '.github' -exec rm -rf {} +
+          rsync -a --exclude '.git' --exclude 'node_modules' --exclude 'coverage' \
+            --exclude '.env' --exclude '.env.*' \
+            nextcloud-connector/ "$WORK/"
+          cd "$WORK"
+          git config user.name  "bee-flow-ci"
+          git config user.email "ci@beeflow.nl"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Mirror already matches this commit — tagging only."
+          else
+            git commit -m "connector ${VERSION} (from Bee-Flow-AI@${GITHUB_SHA::7})"
+            git push origin HEAD
+          fi
+
+      # Pushing the tag is the handoff: the mirror's release.yml triggers on
+      # v*.*.* and takes it from here (image → cosign → SBOM → signed tarball →
+      # App Store).
+      - name: Tag ${{ steps.pre.outputs.tag }} — hands off to the connector pipeline
+        if: ${{ !inputs.dry_run }}
+        env:
+          TOKEN: ${{ steps.app-token.outputs.token }}
+          TAG: ${{ steps.pre.outputs.tag }}
+          VERSION: ${{ steps.pre.outputs.version }}
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/mirror"
+          git tag -a "$TAG" -m "connector ${VERSION}"
+          git push origin "$TAG"
+          {
+            echo ""
+            echo "🚀 Tagged \`$TAG\` on [${MIRROR_REPO}](https://github.com/${MIRROR_REPO}/releases/tag/${TAG})."
+            echo "Its release workflow now builds and signs the image, the SBOM and the App Store tarball:"
+            echo "https://github.com/${MIRROR_REPO}/actions"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Dry run — nothing was pushed
+        if: ${{ inputs.dry_run }}
+        env:
+          VERSION: ${{ steps.pre.outputs.version }}
+        run: |
+          echo "✅ Validated \`${VERSION}\`: manifest, changelog entry and free tag all check out. Re-run with dry_run unticked to release." >> "$GITHUB_STEP_SUMMARY"

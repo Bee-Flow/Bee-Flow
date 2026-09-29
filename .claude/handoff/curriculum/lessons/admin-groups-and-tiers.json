@@ -1,0 +1,380 @@
+{
+  "id": "admin-groups-and-tiers",
+  "icon": "👥",
+  "estMinutes": 10,
+  "title": "Groups that carry policy",
+  "desc": "Staffing a group, giving it a role, and narrowing which model tiers a team may use.",
+  "gate": {
+    "permission": [
+      "org_admin",
+      "manage_users"
+    ]
+  },
+  "learningGoal": "After this lesson you can build a group that carries the right role, model tiers and capability grants for one team, define a tier of your organisation's own, and predict what each of those does to a person who is in two groups at once.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "what",
+      "icon": "🧩",
+      "title": "A group is a policy, not a mailing list",
+      "bodyMd": "Van Dijk Groep has sixty people and one administrator. Setting the same five things on sixty rows, one at a time, is how organisations end up with access nobody can explain.\n\nA group in Bee Flow is a named set of people **plus** the policy attached to them:\n\n- a **Group Role** every member also acts as\n- an **Allowed tiers** list — which AI model tiers members may pick\n- the integrations and features granted to that team\n- which agent types its members reach\n\nThe empty state says it plainly: *\"Groups let you organise users and control which agents they can access.\"* Change the group once, and everyone in it moves together."
+    },
+    {
+      "type": "slide",
+      "id": "create",
+      "icon": "🏗️",
+      "title": "Create it, then staff it",
+      "bodyMd": "Settings → Organisation → **Users & Groups** → tab **Groups**.\n\nClick **Create New Group**, fill in **Group name** (`Inkoop`) and **Description (optional)**, then **Create**. The card appears with *0 members*.\n\nTwo things worth knowing before you type the name:\n\n- The name becomes the group's internal id, lower-cased with anything that is not a letter or number turned into a hyphen. Reuse a name and you get *\"Group already exists\"*.\n- People you invite land in the organisation's **default groups** automatically, so day-one access is a property of the group rather than something an admin has to remember.\n\nTo staff it: expand the card, click **Add member**, and type in **Search users to add…** — the list shows the first twenty matches. You can also work from the other side: the person-plus button on someone's row on the **Users** tab (**Assign groups**) ticks several groups at once."
+    },
+    {
+      "type": "sim",
+      "id": "path",
+      "icon": "🧭",
+      "title": "Put the Inkoop group together",
+      "instruction": "Sanne, Joost and Bilal handle supplier quotations at Van Dijk Groep. Drag these five moves into the order you actually perform them.",
+      "sim": {
+        "kind": "order",
+        "items": [
+          {
+            "id": "open",
+            "label": "Open Settings → Organisation → Users & Groups"
+          },
+          {
+            "id": "tab",
+            "label": "Switch to the Groups tab"
+          },
+          {
+            "id": "form",
+            "label": "Click Create New Group and fill in Group name and Description"
+          },
+          {
+            "id": "save",
+            "label": "Click Create — the card appears with 0 members"
+          },
+          {
+            "id": "staff",
+            "label": "Expand the card, click Add member and search for each colleague"
+          }
+        ],
+        "solution": [
+          "open",
+          "tab",
+          "form",
+          "save",
+          "staff"
+        ],
+        "feedback": "The group has to exist before anyone can be put in it — Add member only appears on an expanded, saved group card. Everything that comes after (Group Role, Allowed tiers, integration grants) is edited on that same expanded card."
+      }
+    },
+    {
+      "type": "slide",
+      "id": "role",
+      "icon": "🎖️",
+      "title": "One role for the whole team",
+      "bodyMd": "Expand a group and you get **GROUP SETTINGS**. The **Group Role** dropdown starts at **User (default)** and then lists the six organisation roles: Organisation Admin, Data Protection Officer, ISMS Internal Auditor, Agent Admin, Agent Editor, Member.\n\nPick one and a hint appears: *\"All members inherit this role\"*. That is a fan-out, not a transfer. Everyone in the group now **also** acts as that role, on top of whatever role their own row carries.\n\nUse it when a whole team needs the same standing — \"everyone in Support may build agents\" — instead of editing six rows and forgetting the seventh. Remove someone from the group and the inherited role goes with them; their personal role on the Users tab is untouched."
+    },
+    {
+      "type": "quiz",
+      "id": "q-role",
+      "icon": "❓",
+      "question": "Sanne's own role is Member. You set the Inkoop group's Group Role to Agent Editor. What may Sanne do now?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Everything Member allows plus everything Agent Editor allows — the two are added together.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Only what Agent Editor allows; her Member role is replaced while she is in the group.",
+          "correct": false,
+          "feedback": "Nothing is replaced. Her own role and every group role she holds are merged into one permission set. A group role is a shortcut for \"everyone here also acts as this role\", never a swap."
+        },
+        {
+          "id": "c",
+          "label": "Nothing yet — you still have to change her role on her own row in the Users tab.",
+          "correct": false,
+          "feedback": "No second edit is needed. The group role reaches every member the moment you save it, and stops reaching them the moment they leave the group."
+        },
+        {
+          "id": "d",
+          "label": "Agent Editor things only inside the Inkoop group's own workspace.",
+          "correct": false,
+          "feedback": "A group is not a workspace — there is no \"inside\" for permissions to be scoped to. What a group grants applies to that person everywhere in the organisation."
+        }
+      ],
+      "explanation": "Roles add up. A person's effective permissions are the union of their own role, every group role they inherit, and anything granted to their groups directly — which is why a group role is the cheapest way to give a whole team the same standing, and why you check group membership before you wonder how someone got a permission."
+    },
+    {
+      "type": "slide",
+      "id": "tiers",
+      "icon": "⚡",
+      "title": "Allowed tiers: narrowing the model menu",
+      "bodyMd": "A **tier** is the class of AI model a person can choose for a task. Under **Allowed tiers** the group card shows a pill per tier — **Fast**, **Thinking**, **Writer**, **Deep Thinking**, plus any custom tiers your organisation has defined (you will build one in a moment).\n\nThose are the admin-side spellings of the tiers your colleagues already know from chat, so line them up before you restrict anything: **Thinking** here is the depth slider's **Think**, and **Writer** here is the **Write** pill that sits *beside* the slider, not on it. The chat slider runs **Auto → Fast → Think → Deep Thinking**; Write is a kind of work (long-form), never a rung between Think and Deep Thinking. Clicking **Writer** off removes a kind of work, it does not lower a ceiling.\n\nBy default no pill is active and the hint reads: *\"No restriction set — members can use every tier. Click a pill to restrict access to only selected tiers.\"*\n\nQuote comparison at Van Dijk Groep is cheap, high-volume work, so the office manager clicks **Fast**. The hint changes to *\"1 tier permitted…\"* and the Inkoop team's model picker narrows to match.\n\nIt is reversible in one click: the **Clear restrictions** link puts the group back to no restriction. Nothing is deleted and nobody is logged out."
+    },
+    {
+      "type": "quiz",
+      "id": "q-vocab",
+      "question": "Sanne has taken the everyday courses. She asks why the group card says Thinking and Writer when her chat shows Think on the slider and Write as a pill beside it. What do you tell her?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Same tiers, two spellings: Thinking is chat's Think, Writer is chat's Write pill — and Write is a kind of work beside the slider, not a step above Think.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Writer is a heavier tier than Thinking that only admins can hand out, so it sits between Think and Deep Thinking.",
+          "correct": false,
+          "feedback": "There is no rung between Think and Deep Thinking. The chat depth slider is Auto, Fast, Think, Deep Thinking; Write, like Flow and Swarm, renders as a pill beside it because it names a kind of work — long-form content — not an amount of effort."
+        },
+        {
+          "id": "c",
+          "label": "The group card lists model names while chat lists tiers, which is why the two never match.",
+          "correct": false,
+          "feedback": "Neither screen names a model. Bee Flow asks how deep an answer should go, not which model to run; both the group pills and the chat slider are naming the same tiers."
+        },
+        {
+          "id": "d",
+          "label": "The card is incomplete — Auto is missing from the pills, so tier restrictions cannot be trusted.",
+          "correct": false,
+          "feedback": "Nothing is missing. The Allowed tiers pills are Fast, Thinking, Writer and Deep Thinking plus any custom tiers your organisation defined; Auto is not one of them because Auto is the router choosing one of the others for you."
+        }
+      ],
+      "explanation": "One control set, two vocabularies: the admin card spells the tiers Fast, Thinking, Writer, Deep Thinking, and chat shows Fast, Think and Deep Thinking on the depth slider with Write as a pill beside it. When a colleague reports that an option vanished, translate their word into the pill name before you go looking."
+    },
+    {
+      "type": "slide",
+      "id": "customtiers",
+      "icon": "✨",
+      "title": "Where the custom pills come from",
+      "bodyMd": "\"Plus any custom tiers\" is easy to read past. A custom tier is one your organisation defines itself: your own name, your own model behind it.\n\nYou build them on **Organisation Custom Tiers** — *\"Create tiers scoped to this organisation. They appear alongside global tiers for your members.\"* Be warned: this panel has **no tab button** in Users & Groups. It opens only by typing the sub-page `customTiers` onto the Users & Groups address in the browser bar (`/app/org-settings/users/customTiers`). Bookmark it once and you never hunt for it again.\n\n**+ Add Tier** drops in *New tier 1*. Give it an icon and a tier name — the name becomes the id, lower-cased as `custom:<name>` — a **Short description (shown in tier picker)**, a **Model**, an optional **EU override**, and the **Available for** pills **Direct Chat** and **Agent Chat**. Expand the row for **Max Tokens** (16384 by default) and **Temperature**. Then **Save Organisation Tiers**.\n\nVan Dijk Groep's office manager makes one called *Offerte-check*, pinned to a small EU-hosted model and available for **Direct Chat** only. Underneath sits a **Global tiers (read-only)** block — those come from the system administrator and you cannot edit them here. Deleting your own asks first: *\"Delete this custom tier? This cannot be undone.\"*"
+    },
+    {
+      "type": "quiz",
+      "id": "q-custom",
+      "icon": "❓",
+      "question": "Offerte-check is saved and shows up as a pill. But the Inkoop group was restricted to Fast last week, and Sanne still cannot pick the new tier. Why?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "A restricted group permits only the pills that are switched on, and Offerte-check is a pill like any other — click it on for Inkoop, or use Clear restrictions.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Custom tiers belong to the organisation, so they reach every member regardless of what a group restricts.",
+          "correct": false,
+          "feedback": "Being organisation-scoped decides who may be shown the tier, not who is permitted it. Once a group's Allowed tiers list has anything selected, that list is the whole menu — your custom pill sits in it beside Fast, Thinking, Writer and Deep Thinking and has to be selected too."
+        },
+        {
+          "id": "c",
+          "label": "The tier has to be moved into the Global tiers block at the bottom of the panel before groups can see it.",
+          "correct": false,
+          "feedback": "That block is labelled \"Global tiers (read-only)\" — it lists the tiers the system administrator provides and nothing can be moved into it from here. Your organisation's tiers live in the list above it."
+        },
+        {
+          "id": "d",
+          "label": "The tier still has to be granted to the Inkoop group on the Integration access tab.",
+          "correct": false,
+          "feedback": "Integration access grants integrations, never tiers. A tier reaches a person through the Allowed tiers pills on their groups, and nowhere else."
+        }
+      ],
+      "explanation": "A custom tier changes what is on the menu; Allowed tiers still decides who may order from it. So every time you add one, walk the groups you have already restricted — an empty list widens by itself, but a restricted list never does."
+    },
+    {
+      "type": "slide",
+      "id": "union",
+      "icon": "🔓",
+      "title": "The widest group wins",
+      "bodyMd": "This is the part that surprises administrators. Bee Flow asks one question per tier: *does at least one of this person's groups permit it?* Three consequences follow.\n\n- **Two groups, two lists — you get the union.** Joost in Inkoop (Fast only) and in Sales (Thinking, Deep Thinking) may use all three.\n- **An unrestricted group re-opens everything.** A group with an empty list permits every tier, so adding a restricted person to it removes the restriction in practice.\n- **Someone in no group at all is unrestricted.** Restriction only exists through membership.\n\nThe screen warns you itself: *\"Members of other groups may still see additional tiers through those groups.\"* To hold a team to one tier, every group those people belong to has to carry the same restriction."
+    },
+    {
+      "type": "quiz",
+      "id": "q-tiers",
+      "icon": "❓",
+      "question": "Joost is in Inkoop (Allowed tiers: Fast) and in Sales (no restriction set). Which tiers can he pick?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "All of them — a tier is allowed if any one of his groups permits it, and Sales permits everything.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Only Fast — the narrowest restriction across his groups wins.",
+          "correct": false,
+          "feedback": "There is no narrowest-wins rule. The check is \"does at least one of my groups permit this tier\", so the widest group decides. Narrowing Inkoop while Sales stays open changes nothing for Joost."
+        },
+        {
+          "id": "c",
+          "label": "None — the two lists contradict each other, so his tier picker comes up empty.",
+          "correct": false,
+          "feedback": "Conflicting lists never lock anyone out. An empty Allowed tiers list means \"no restriction\", not \"nothing allowed\" — the picker can only get wider, never empty."
+        },
+        {
+          "id": "d",
+          "label": "Fast, plus whatever his personal tier setting allows on his own row.",
+          "correct": false,
+          "feedback": "There is no per-person tier setting anywhere in Users & Groups. Tiers are restricted through groups only, which is exactly why a second group can undo the first."
+        }
+      ],
+      "explanation": "Allowed tiers restricts one group, not one person. Before you promise anyone that a team cannot reach Deep Thinking, open each member's row and check every group they are in — the hint under the pills says the same thing in one line."
+    },
+    {
+      "type": "sim",
+      "id": "match",
+      "icon": "🎯",
+      "title": "Five requests, five instruments",
+      "instruction": "Van Dijk Groep has five requests this week. Match each one to the control that actually does the job — one of them is deliberately not a group setting at all.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "inkoop",
+            "left": "Inkoop compares supplier quotes all day; the director does not want that work reaching the heaviest models.",
+            "right": "Allowed tiers, set to Fast",
+            "note": "A tier restriction on the group is the control that narrows the model picker for a team — and it only holds if Inkoop is the team's only group."
+          },
+          {
+            "id": "support",
+            "left": "All six people in Support need to build and edit agents, and two more join next month.",
+            "right": "Group Role: Agent Editor",
+            "note": "Set it once on the group and next month's joiners inherit it the moment they are added — no per-person edit."
+          },
+          {
+            "id": "sales",
+            "left": "Sales needs the SignRequest e-signature integration; nobody else in the organisation should get it.",
+            "right": "A group grant on Settings → Organisation → Integrations → Integration access",
+            "note": "Integrations are granted per scope. Grant it to the Sales group rather than to All members, or everyone gets it."
+          },
+          {
+            "id": "dpo",
+            "left": "The office manager must be able to open Compliance without being able to manage users.",
+            "right": "A personal role on her own row: Data Protection Officer",
+            "note": "This one is a personal role rather than a group. The Data Protection Officer role carries exactly two things — the Compliance Center and Usage & Monitoring — and no user management."
+          },
+          {
+            "id": "starter",
+            "left": "A new colleague starts on the 1st and should land in the right teams without anyone remembering to do it.",
+            "right": "The organisation's default groups",
+            "note": "Invited joiners are placed into the organisation's default groups on arrival, so onboarding access is configuration rather than a checklist."
+          }
+        ]
+      }
+    },
+    {
+      "type": "slide",
+      "id": "access",
+      "icon": "🔌",
+      "title": "Granting a tool is not adding a member",
+      "bodyMd": "Integrations are handed out in Settings → Organisation → **Integrations** → **Integration access** — the tab that screen opens on. Pick a scope on the left — **All members**, or one group — then flip the toggles; saving is immediate.\n\nThe rule is simple: someone gets an integration if it is granted to All members **or** to any group they belong to. Pick a group and the screen says so — *\"grants stack on top of All members\"* — and anything already granted to everyone appears on the group's card marked *\"Granted to all members\"*, switched on and not clickable. Only what your subscription includes is listed here at all.\n\nSo there are two different actions on the same group: putting people in it, and granting it things. Adding Bilal to Sales gives him everything Sales has been granted — which is usually what you want, and occasionally exactly what you did not intend."
+    },
+    {
+      "type": "quiz",
+      "id": "q-grants",
+      "icon": "❓",
+      "question": "The Gamma integration is granted to the Inkoop group and also to All members. You want Bilal to lose it. What actually works?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Nothing at group level — the All members grant reaches everyone, so it has to be switched off there.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Remove Bilal from the Inkoop group.",
+          "correct": false,
+          "feedback": "That removes only the Inkoop route. He still has it through All members, because a capability arrives if it is granted to All members or to any group he is in."
+        },
+        {
+          "id": "c",
+          "label": "Add Bilal to a group that has the integration toggled off.",
+          "correct": false,
+          "feedback": "A group with the toggle off grants nothing; it does not deny anything. There is no deny switch in the access matrix, so putting someone in another group can never take an integration away from them."
+        },
+        {
+          "id": "d",
+          "label": "Clear the Inkoop group's Allowed tiers so the integration is no longer permitted.",
+          "correct": false,
+          "feedback": "Allowed tiers governs which AI model tiers members may pick, nothing else. Integrations live on the Integration access tab — two separate controls that never talk to each other."
+        }
+      ],
+      "explanation": "Grant-only is the whole model: access is the union of every route a person has, so you remove access by removing routes, starting with the widest one. When the widest route is All members, narrowing a group achieves nothing — which is the argument for keeping the All members column deliberately thin."
+    },
+    {
+      "type": "action",
+      "id": "do",
+      "icon": "👥",
+      "checkId": "group-exists",
+      "title": "Build one real group and staff it",
+      "instruction": "In Users & Groups → Groups, click Create New Group, give it a real team name and description, and click Create. Expand the card and use Add member to put at least one colleague (or yourself) in it. Optionally set a Group Role or click an Allowed tiers pill — both are reversible.",
+      "launch": {
+        "navigateTo": "settings/organisation/users",
+        "label": "Open Users & Groups"
+      }
+    },
+    {
+      "type": "slide",
+      "id": "azure",
+      "icon": "🪟",
+      "title": "Synced groups are Managed, and they push back",
+      "bodyMd": "If your organisation syncs groups from Microsoft Entra ID (Azure AD), those groups arrive on the same Groups tab with an **Azure AD** chip, a *Last synced* timestamp, and the word **Managed** where the delete button would be.\n\nSplit them in your head:\n\n- **Membership belongs to the directory.** Someone you add by hand can be removed again by the next sync, and with **Destructive sync** switched on, memberships the directory no longer lists are cleared here too.\n- **Policy stays yours.** A sync writes only the group's name, description and *Last synced* time — the **Group Role**, **Allowed tiers** and capability grants you set survive it.\n\nSo it is safe to hang policy on a synced group. It is not safe to hang membership on one."
+    },
+    {
+      "type": "slide",
+      "id": "recap",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "- **Build a team group and staff it** — Groups tab, **Create New Group**, then **Add member** on the expanded card, or **Assign groups** from a person's row.\n- **Attach policy instead of repeating it** — a **Group Role** that every member inherits, an **Allowed tiers** list that narrows the model picker — including any pill you added yourself on **Organisation Custom Tiers**, the panel that opens only via the `customTiers` address — and integration grants made per group on Settings → Organisation → Integrations → **Integration access**.\n- **Predict the outcome for someone in two groups** — roles, grants and tiers all add up, so the widest group decides and nothing a group carries can ever subtract. Check every group a person is in before promising a limit.\n\nEverything here is reversible: **Clear restrictions**, **User (default)** and an untoggled grant put a group straight back."
+    }
+  ],
+  "practiceTopic": {
+    "title": "Groups, group roles and allowed tiers",
+    "summary": "How a group in Users & Groups carries a role, a model-tier restriction and capability grants, and how those combine for someone in more than one group.",
+    "facts": [
+      "Groups live in Settings → Organisation → Users & Groups, on the Groups tab, and are created with the Create New Group button; a name clash returns \"Group already exists\".",
+      "The Group Role dropdown starts at \"User (default)\" and shows the hint \"All members inherit this role\"; the role is added to, never swapped for, the person's own role.",
+      "Allowed tiers offers the pills Fast, Thinking, Writer and Deep Thinking plus any custom tiers — the admin names for chat's Fast/Think/Deep Thinking slider plus the Write pill beside it; an empty list means \"No restriction set\".",
+      "A tier is permitted if at least one of the person's groups permits it, so an unrestricted group widens everyone in it; the Clear restrictions link returns a group to no restriction in one click.",
+      "Organisation Custom Tiers has no tab button: it opens only via the customTiers sub-page of the Users & Groups address (/app/org-settings/users/customTiers).",
+      "On that panel + Add Tier creates \"New tier 1\"; a tier takes an icon, a name (which becomes the id custom:<name>), a short description shown in the tier picker, a Model, an optional EU override and the Available for pills Direct Chat and Agent Chat.",
+      "Expanding a custom tier reveals Max Tokens (16384 by default) and Temperature; Save Organisation Tiers commits them, and the Global tiers (read-only) block below comes from the system administrator.",
+      "Integrations are granted per scope on Settings → Organisation → Integrations → Integration access: someone gets one if it is granted to All members or to any of their groups — grants stack and never subtract."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "group-exists",
+      "existing": false,
+      "label": "Create and staff a group",
+      "hint": "In Settings → Organisation → Users & Groups → Groups, use Create New Group, then Add member on the expanded card.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/auth/groups",
+          "returns": "array of group rows for the caller's organisation, each with id, name, description, userCount, source, orgRole, allowedTiers"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "created",
+          "label": "A group of your own exists",
+          "hint": "Click Create New Group on the Groups tab and give it a team name.",
+          "rule": "at least one row where id is neither 'admins' nor 'users' and source !== 'azure'"
+        },
+        {
+          "id": "staffed",
+          "label": "That group has at least one member",
+          "hint": "Expand the group card, click Add member and pick a colleague (or yourself).",
+          "rule": "that same row has userCount > 0"
+        }
+      ]
+    }
+  ]
+}

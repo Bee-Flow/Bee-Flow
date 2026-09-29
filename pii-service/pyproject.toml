@@ -1,0 +1,45 @@
+# NOT YET THE INSTALL SOURCE. The Dockerfile still installs from
+# requirements.txt, because `uv lock` cannot resolve this file where
+# download.pytorch.org is unreachable and there is then no lock to install
+# from. See the comment on [tool.uv.sources] for what unblocks it.
+#
+# This describes the DEFAULT (CPU) image. The GPU image keeps
+# requirements.gpu.txt: it differs only in the torch build (cu121 instead of
+# cpu) plus accelerate, and expressing "the same dependency from a different
+# index per image" costs more here than the one duplicated line is worth.
+[project]
+name = "beeflow-pii-service"
+version = "0.1.0"
+# Matches the base image (python:3.11-slim). A single minor is deliberate: the
+# lock then pins one wheel per package instead of a per-version fan-out the
+# image will never use.
+requires-python = ">=3.11,<3.12"
+dependencies = [
+  "fastapi>=0.110.0",
+  "uvicorn[standard]>=0.29.0",
+  "torch",
+  "transformers>=4.40.0",
+  "huggingface_hub>=0.22.0",
+  "pydantic>=2.0.0",
+]
+
+[dependency-groups]
+dev = [
+  # Plain assert-style tests, no plugins needed.
+  "pytest>=9,<10",
+]
+
+# The CPU-only torch build lives on PyTorch's own index; PyPI carries only the
+# CUDA one, which is several gigabytes of nvidia-* wheels this service does not
+# use. This mirrors the `--extra-index-url` line requirements.txt carries
+# today. Locking therefore needs egress to download.pytorch.org:443, which this
+# repo's build/agent environment answers with 403 at CONNECT. Open that host
+# and `uv lock` here completes; until then requirements.txt stays the pin of
+# record for this service.
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cpu" }

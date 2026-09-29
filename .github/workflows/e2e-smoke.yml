@@ -1,0 +1,158 @@
+# ══════════════════════════════════════════════════════════════════
+# E2E Smoke — boot the self-host stack from registry images and run
+# the Playwright smoke suite (e2e/) against it.
+#
+# Two trigger modes:
+#   • workflow_call — prepared for use as a blocking gate from the image
+#     build pipeline: the caller passes which services it just built
+#     (built_services + image_sha) so those run at :sha-<sha> while
+#     everything else falls back to :prod. NOTE: no workflow invokes it
+#     yet — build-push-ghcr.yml deliberately does not wire the gate in
+#     (see the note at the top of that file), so today this mode is
+#     plumbing waiting for a caller.
+#   • workflow_dispatch — manual run against a single tag (prod,
+#     latest, dev, sha-<fullsha>) for ad-hoc verification.
+#
+# Helper scripts live in e2e/ci/: resolve-images.sh (mixed-tag pulls),
+# write-env.sh (throwaway .env + secrets), wait-for-stack.sh (strict
+# readiness gate), collect-logs.sh (always-on diagnostics).
+# ══════════════════════════════════════════════════════════════════
+name: E2E Smoke
+
+on:
+  workflow_call:
+    inputs:
+      built_services:
+        description: 'CSV of workflow service keys built this run (e.g. server,agent-hub)'
+        type: string
+        default: ''
+      image_sha:
+        description: 'Full git sha the built images were tagged with (sha-<sha>)'
+        type: string
+        default: ''
+      fallback_tag:
+        description: 'Tag for services NOT built this run'
+        type: string
+        default: 'prod'
+    secrets:
+      E2E_ANTHROPIC_API_KEY:
+        required: true
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Image tag to smoke-test (prod, latest, dev, sha-<fullsha>)'
+        default: 'prod'
+
+env:
+  IMAGE_PREFIX: ghcr.io/bee-flow
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Runner baseline
+        run: df -h && docker system df && nproc && free -h
+
+      # In workflow_call context inputs.tag is empty; in workflow_dispatch
+      # context inputs.fallback_tag is empty — the || chain covers both.
+      - name: Resolve images
+        env:
+          BUILT: ${{ inputs.built_services }}
+          SHA: ${{ inputs.image_sha }}
+          FALLBACK_TAG: ${{ inputs.fallback_tag || inputs.tag || 'prod' }}
+        run: bash e2e/ci/resolve-images.sh
+
+      # Writes the throwaway .env (TAG=smoke + fresh secrets) and exports
+      # ADMIN_PASSWORD (masked) to GITHUB_ENV for the gate + suite steps.
+      - name: Write stack env
+        env:
+          E2E_ANTHROPIC_API_KEY: ${{ secrets.E2E_ANTHROPIC_API_KEY }}
+          CI: 'true'
+        run: bash e2e/ci/write-env.sh
+
+      - name: Start stack
+        run: >
+          docker compose
+          -f docker-compose.from-registry.yml
+          -f e2e/ci/docker-compose.ci.yml
+          --profile core --profile search
+          up -d
+
+      # ADMIN_PASSWORD is already in the step environment via GITHUB_ENV.
+      - name: Wait for stack (strict gate)
+        run: bash e2e/ci/wait-for-stack.sh
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+
+      - name: Install e2e harness
+        working-directory: e2e
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Freshness gate
+        working-directory: e2e
+        run: npm run gen:check
+
+      - name: Run smoke suite
+        working-directory: e2e
+        env:
+          BASE_URL: http://localhost:5176
+          API_URL: http://localhost:3001
+          ADMIN_USER: admin
+          ADMIN_PASSWORD: ${{ env.ADMIN_PASSWORD }}
+          ANTHROPIC_API_KEY: ${{ secrets.E2E_ANTHROPIC_API_KEY }}
+          E2E_CAPABILITIES: llm,search
+        run: npm run smoke
+
+      - name: Collect stack logs
+        if: always()
+        run: bash e2e/ci/collect-logs.sh
+
+      - name: Step summary
+        if: always()
+        run: |
+          if [ -f resolved-images.md ]; then
+            cat resolved-images.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ -f e2e/artifacts/smoke-report.md ]; then
+            cat e2e/artifacts/smoke-report.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: e2e-smoke-${{ github.run_id }}
+          path: |
+            e2e/artifacts/**
+            e2e/playwright-report/**
+            e2e/test-results/**
+            compose-logs/**
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: Teardown
+        if: always()
+        run: >
+          docker compose
+          -f docker-compose.from-registry.yml
+          -f e2e/ci/docker-compose.ci.yml
+          --profile core --profile search
+          down -v --remove-orphans

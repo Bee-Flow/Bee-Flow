@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <!-- Locked to nothing but the files shipped beside this page. `file:` is
+             listed alongside 'self' because a file:// document's origin is
+             opaque in Chromium, so 'self' alone can refuse to match the page's
+             own scripts. There is no remote content on these pages at all, and
+             no network: everything they do goes over IPC. -->
+        <meta
+            http-equiv="Content-Security-Policy"
+            content="default-src 'none'; script-src 'self' file:; style-src 'self' file:; img-src 'self' file: data:; font-src 'self' file:; connect-src 'none'; base-uri 'none'; form-action 'none'"
+        />
+        <title>Ask Bee Flow</title>
+        <link rel="stylesheet" href="styles.css" />
+    </head>
+    <body class="quick-ask">
+        <div class="quick-ask-header">
+            <span>Ask Bee Flow</span>
+            <span>Enter to send · Esc to close</span>
+        </div>
+        <div class="quick-ask-field">
+            <input id="ask" type="text" placeholder="What do you need?" autocomplete="off" spellcheck="false" autofocus />
+        </div>
+        <script type="module" src="quick-ask.js"></script>
+    </body>
+</html>

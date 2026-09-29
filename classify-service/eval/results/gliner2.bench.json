@@ -1,0 +1,121 @@
+{
+ "model": "gliner2",
+ "provenance": {
+  "model_id": "fastino/GLiNER2.5-multi-Decide",
+  "revision": "6bc1d43d201b0691e733626389af8c57eea3ea68",
+  "package": "gliner2",
+  "dtype": "torch.float32",
+  "device": "cpu",
+  "label_scoring": "joint (labels in the schema prompt with the text)",
+  "score": "multi_label confidence per label",
+  "max_len": 4096,
+  "parameters_m": 287.4
+ },
+ "env": {
+  "date": "2026-09-26T14:04:44+00:00",
+  "python": "3.12.14",
+  "packages": {
+   "torch": "2.14.0+cpu",
+   "transformers": "4.57.6",
+   "tokenizers": "0.22.2",
+   "huggingface_hub": "0.36.2",
+   "numpy": "2.5.3",
+   "gliner2": "2.0.0",
+   "protobuf": "7.36.2"
+  },
+  "cpu_model": "AMD RYZEN AI MAX+ 395 w/ Radeon 8060S",
+  "os_cpu_count": 32,
+  "affinity_cpus": 32,
+  "cgroup_cpu_max": "300000 100000",
+  "cgroup_memory_max": "4294967296",
+  "torch_threads": 3,
+  "cuda_available": false
+ },
+ "labels": [
+  "a complaint",
+  "an invoice",
+  "a job application",
+  "a question about an order",
+  "a cancellation",
+  "spam or marketing"
+ ],
+ "load_seconds": 6.0,
+ "memory_mb": {
+  "vmhwm_before_load": 196.6,
+  "vmhwm_after_load": 2855.0,
+  "vmrss_after_load": 2016.3,
+  "vmhwm_after_batches": 3329.8,
+  "peak_rss": 3329.8
+ },
+ "sizes": {
+  "64": {
+   "mean_tokens": 63.8,
+   "batch_1": {
+    "reps": 30,
+    "p50_s": 0.1749,
+    "p95_s": 0.1902,
+    "mean_s": 0.1774,
+    "min_s": 0.1648,
+    "max_s": 0.1904,
+    "texts_per_s": 5.718
+   },
+   "batch_8": {
+    "reps": 10,
+    "p50_s": 0.9066,
+    "p95_s": 1.0071,
+    "mean_s": 0.9242,
+    "min_s": 0.8779,
+    "max_s": 1.0071,
+    "texts_per_s": 8.824
+   }
+  },
+  "256": {
+   "mean_tokens": 255.9,
+   "batch_1": {
+    "reps": 30,
+    "p50_s": 0.3898,
+    "p95_s": 0.4203,
+    "mean_s": 0.393,
+    "min_s": 0.3682,
+    "max_s": 0.4323,
+    "texts_per_s": 2.566
+   },
+   "batch_8": {
+    "reps": 10,
+    "p50_s": 2.8008,
+    "p95_s": 2.9164,
+    "mean_s": 2.8116,
+    "min_s": 2.7486,
+    "max_s": 2.9164,
+    "texts_per_s": 2.856
+   }
+  },
+  "512": {
+   "mean_tokens": 512.0,
+   "batch_1": {
+    "reps": 30,
+    "p50_s": 0.7572,
+    "p95_s": 0.856,
+    "mean_s": 0.7628,
+    "min_s": 0.7078,
+    "max_s": 0.858,
+    "texts_per_s": 1.321
+   },
+   "batch_8": {
+    "reps": 10,
+    "p50_s": 5.6517,
+    "p95_s": 6.4929,
+    "mean_s": 5.7932,
+    "min_s": 5.6327,
+    "max_s": 6.4929,
+    "texts_per_s": 1.416
+   }
+  }
+ },
+ "gates": {
+  "p50_512_batch1_s": 0.7572,
+  "p95_512_batch1_s": 0.856,
+  "texts_per_s_512_batch8": 1.416,
+  "peak_rss_mb": 3329.8
+ }
+}

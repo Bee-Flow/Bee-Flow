@@ -1,0 +1,323 @@
+{
+  "id": "cowork-run-as-agent",
+  "icon": "🤝",
+  "estMinutes": 10,
+  "title": "Who does the work, and what it may touch",
+  "desc": "Run as: what a linked agent takes over, where its results pile up, and how the item's own Apps list decides what a run may reach.",
+  "gate": {},
+  "learningGoal": "After this lesson you can decide whether a cowork item should run as a plain prompt or as one of your agents, link or unlink it afterwards, and set the item's own Apps list — including the empty one — knowing what each choice changes.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "open",
+      "icon": "🧭",
+      "title": "Two answers to one question",
+      "bodyMd": "Two people at Van Dijk Groep hand over work on the same morning.\n\nBart, who buys materials, wants a supplier digest at 07:30: read the new mail, group it per supplier, name the order number and the amount. Plain work, plainly described.\n\nSaskia in HR wants a monthly progress report that sounds like the ones before it and quotes the staff handbook correctly. Her sentence cannot carry all of that.\n\nSame box, same chips. The difference is the third chip — the agent one, which reads **No agent** until you pick somebody — and the **Apps** button beside it. This chapter is about those two controls only: what a linked agent takes over, what it stops letting you decide, and how you say what a run may reach."
+    },
+    {
+      "type": "slide",
+      "id": "brings",
+      "icon": "🧑‍🔧",
+      "title": "What travels with the agent",
+      "bodyMd": "The **Run as** sheet asks *Who does the work?* and answers it in one line: *An agent brings its own skills, knowledge and connected apps.*\n\nFour things travel with it into the run:\n\n- its **instructions** — how it writes, what it must never do;\n- its **skills** — the ways of working it was given;\n- its **knowledge bases** — what it may look things up in;\n- its **connected apps**.\n\nAnd one thing stops being yours: the **model**. An agent runs on its own model, so an item with an agent is stored with tier **Auto** — the tier you left on the slider is not what runs, and **Edit** has no tier field at all. The first row of the sheet, **No agent**, is hinted *Runs as a plain prompt* — your sentence, your apps, your tier, nothing else."
+    },
+    {
+      "type": "sim",
+      "id": "sources",
+      "icon": "🧩",
+      "title": "Where does each piece come from?",
+      "instruction": "Saskia is listing what her monthly report needs. Match each requirement to the place it actually comes from once the item runs as an agent.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "brief",
+            "left": "\"A progress report over last month, with the open actions per employee\"",
+            "right": "The brief you type",
+            "note": "What to produce is always yours to say. An agent changes who does the work, never what was asked for."
+          },
+          {
+            "id": "tone",
+            "left": "Every report opens with the same three sentences and never names a salary",
+            "right": "The agent's instructions",
+            "note": "Standing rules about voice and limits live in the agent, so they apply to every run without being retyped in the brief."
+          },
+          {
+            "id": "kb",
+            "left": "The wording has to follow the staff handbook",
+            "right": "A knowledge base attached to the agent",
+            "note": "Something the run must look things up in is knowledge, and knowledge is attached to the agent — not to the cowork item."
+          },
+          {
+            "id": "apps",
+            "left": "The run has to pull last month's figures out of a mailbox",
+            "right": "An app the agent is connected to",
+            "note": "Reaching out to something is an app. An agent brings the apps it is connected to; that is the sheet's own line."
+          },
+          {
+            "id": "tier",
+            "left": "The tier pill on THE ASSIGNMENT reads Auto, whatever the slider said",
+            "right": "The agent's own model",
+            "note": "The tier is only meaningful for agent-less work. Link an agent and its own model decides how heavy the run is, so the item is saved with Auto."
+          }
+        ]
+      }
+    },
+    {
+      "type": "quiz",
+      "id": "q-thread",
+      "icon": "❓",
+      "question": "Bart's digest has run as his purchasing agent every weekday for two weeks. He opens that agent's chat. What does he find?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "One thread the item keeps using, with each run's result written into it — and every run still arrived in his notifications as usual.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "A separate new thread for every run, because each run is its own conversation.",
+          "correct": false,
+          "feedback": "The item remembers the thread its first run opened and keeps writing into that one, so the series reads as a single conversation you can scroll back through."
+        },
+        {
+          "id": "c",
+          "label": "Nothing. Once an agent is linked, the result is delivered in the agent's thread instead of in the notifications.",
+          "correct": false,
+          "feedback": "Nothing is taken away. Notifications remain the delivery channel for every cowork result; the agent's thread is an extra copy you can carry on talking in."
+        }
+      ],
+      "explanation": "An agent-linked item keeps one thread of its own. That is the practical reason to link one even when the work is simple: the results accumulate somewhere you can question them, instead of only in the bell."
+    },
+    {
+      "type": "slide",
+      "id": "memory",
+      "icon": "🧠",
+      "title": "An agent that remembers stops repeating itself",
+      "bodyMd": "There is a second effect, and it is switched off by default.\n\nIf the linked agent has **Memory** switched on — the toggle sits in the agent's **Advanced settings**, under **Behavior** — every run of this same cowork item is given the list of things earlier runs already surfaced, each with the date it was last covered, and is told to skip them unless something material has changed.\n\nFor a daily digest that is the difference between \"here are the five suppliers again\" and \"one of the five moved\". For a monthly report it keeps last month out of this month's text.\n\nWith Memory off — the state a new agent is in — every run starts from a clean sheet and will happily tell you the same thing twice."
+    },
+    {
+      "type": "slide",
+      "id": "three-states",
+      "icon": "🔌",
+      "title": "The Apps list has three answers, not two",
+      "bodyMd": "The **Apps** button beside the chips, and **Apps it may use** under **Edit**, put an item in one of three states.\n\n1. **No list of its own** — how every item starts. It follows the apps you have switched on workspace-wide, and follows them as you change them.\n2. **Its own list** — the moment you switch one app off. From then on only what is switched on here is available when it runs, whatever you have switched on elsewhere. Under **Edit** the field shows how far you narrowed it — *{count} of {total} enabled* — and the link **Follow my workspace list** hands it back.\n3. **An empty list** — everything switched off. That is not a blank, it is an answer: this item may use nothing. It stays that way until you say otherwise.\n\nOnce an item carries its own list, **THE ASSIGNMENT** shows a pill counting it — *2 apps*."
+    },
+    {
+      "type": "slide",
+      "id": "unknown",
+      "icon": "🛡️",
+      "title": "When the list cannot be read, the screen claims nothing",
+      "bodyMd": "Sometimes the workspace app list simply cannot be loaded. Then the composer says so, in place of the picker: *App list unavailable — this run follows your workspace list.* Under **Edit** the same failure reads *Your app list could not be loaded.*\n\nThat wording is deliberate. The item is never handed a list Bee Flow could not verify, and the screen never turns \"I don't know\" into \"nothing is enabled\". An unreadable list leaves the item where it was: following your workspace-wide list.\n\nSo do not read a missing picker as a narrow run, and do not read a missing **apps** pill on the assignment as \"no apps\" — a pill only appears once the item carries a list of its own."
+    },
+    {
+      "type": "quiz",
+      "id": "q-empty",
+      "icon": "❓",
+      "question": "Saskia opens Edit on her monthly HR item and, under Apps it may use, switches every app off. The counter reads 0 of 9 enabled. What has she told Bee Flow?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "That this item may use no apps at all. An empty list is a decision, and it keeps applying to every run until she clicks Follow my workspace list.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Nothing usable — an empty list counts as \"no choice made\", so the item falls back to her workspace-wide list.",
+          "correct": false,
+          "feedback": "Those are two different states. \"No list of its own\" is what an untouched item has; an empty list is something she chose, and the run honours it."
+        },
+        {
+          "id": "c",
+          "label": "That the item may use every app, since a filter with nothing in it filters nothing out.",
+          "correct": false,
+          "feedback": "The list is an allow-list: only what is switched on is available to the run. With nothing switched on, nothing is available."
+        }
+      ],
+      "explanation": "Empty and absent are not the same answer. Absent means \"follow my workspace list\"; empty means \"may use nothing\" — the strictest thing you can say about a cowork item, and a sensible one for work that should only reason over the text in the brief."
+    },
+    {
+      "type": "slide",
+      "id": "agent-apps",
+      "icon": "🔀",
+      "title": "With an agent linked, reach is the agent's business",
+      "bodyMd": "Keep the two controls in their own lanes.\n\n- **No agent** — the item's Apps list is how you narrow the run. Switch off what it has no business touching.\n- **An agent** — what the run may reach comes with the agent, which brings the apps it is connected to. Narrow that job by changing the agent, not by hunting through the item.\n\nSaskia's case is the clean example. Her report touches personnel data, so she leaves **Run as** on **No agent** and gives the item its own short Apps list — the notes source and nothing else. She can read that decision back on one screen instead of trusting an agent's configuration she did not build."
+    },
+    {
+      "type": "sim",
+      "id": "link-later",
+      "icon": "🪜",
+      "title": "Linking an agent to an item you already have",
+      "instruction": "Bart's supplier digest already runs as a plain prompt. He wants it to run as his purchasing agent from tomorrow. Put his five moves in the order the screen allows.",
+      "sim": {
+        "kind": "order",
+        "items": [
+          {
+            "id": "select",
+            "label": "Select the digest in the Cowork list on the left"
+          },
+          {
+            "id": "edit",
+            "label": "Click Edit to open the item's own form"
+          },
+          {
+            "id": "pick",
+            "label": "Set Run as to the purchasing agent (the field's first option is No agent)"
+          },
+          {
+            "id": "save",
+            "label": "Click Save — the form only writes anything on submit"
+          },
+          {
+            "id": "runnow",
+            "label": "Press Run now to see the first agent-run result land in the agent's thread"
+          }
+        ],
+        "solution": [
+          "select",
+          "edit",
+          "pick",
+          "save",
+          "runnow"
+        ],
+        "feedback": "An item that already exists is changed in one place only: you select it, open Edit, change the field, and it is the Save that writes it — leave the form without saving and the link never happened. Run now is the proof: it fires straight away without moving the next scheduled moment. Going back is the same path with No agent selected."
+      }
+    },
+    {
+      "type": "slide",
+      "id": "presets",
+      "icon": "💬",
+      "title": "The shortcut from an agent's chat",
+      "bodyMd": "There is a faster way in, and it only works from one place.\n\nOpen a chat with the agent, and while the thread is still empty, flip the header switch from **Chat** to **Cowork**. The heading and the placeholder change to the Cowork ones, and that agent is already selected as the one who does the work. Type the brief, set the chips, send.\n\nThe switch disappears as soon as the thread has its first message: you cannot turn a conversation you already started into a scheduled run halfway through. Ask there, then come back to an empty thread — or open **Cowork** in the sidebar and pick the agent in the chip yourself."
+    },
+    {
+      "type": "slide",
+      "id": "nochip",
+      "icon": "🚫",
+      "title": "The chip is not there. Why?",
+      "bodyMd": "**Run as** is drawn only when there is something to pick, so its absence has causes rather than being a fault.\n\n- **No agents to offer you.** Nothing to choose, so two chips instead of three.\n- **Your role may not manage agents.** The list behind the chip is read with the same permission that lets someone build agents — Organisation Admin, Agent Admin and Agent Editor have it, a Member does not. For a Member the chip is simply not drawn.\n- **The agent-routines feature is not enabled for the account.** An attempt made anyway is refused with *Agent routines beta is not enabled for this account*.\n- **It is not your agent.** An item may only run as an agent you own; anything else is refused with *Agent not found or not owned by you*.\n\nNone of this stops the item. It runs as a plain prompt, which is the default anyway."
+    },
+    {
+      "type": "action",
+      "id": "do",
+      "icon": "🏗️",
+      "checkId": "cowork-apps-scoped",
+      "title": "Give one item its own Apps list",
+      "instruction": "Open Cowork and select an item you own — or create one with a one-line brief first. Click Edit, and under Apps it may use switch off at least one app so the counter no longer reads all of them. Click Save. We then check that the item is there in your own Cowork list; the counter is your proof.",
+      "launch": {
+        "navigateTo": "cowork",
+        "label": "Open Cowork"
+      }
+    },
+    {
+      "type": "slide",
+      "id": "wrong",
+      "icon": "⚠️",
+      "title": "What breaks once an agent is in the picture",
+      "bodyMd": "A linked item has failure modes a plain-prompt one does not, and they all surface the same way — as a failed run with its reason on the top row of **What happened**.\n\n- **The agent was deleted.** Every cowork item pointing at it fails, with an error saying the linked agent no longer exists.\n- **The agent is no longer yours.** A run may only use an agent you own; ownership moving elsewhere stops it.\n- **The feature was switched off for the organisation.** Already-scheduled agent runs stop, and the failure names agent routines as the reason.\n- **A connection expired.** The status word becomes **Needs sign-in**, and every item of yours that could touch that provider is paused until you reconnect it under Settings → Integrations — with an agent linked, the broken connection may be one the agent reaches for rather than one your brief mentions.\n\nA repeating item keeps its series after any of these; only a one-off switches itself off."
+    },
+    {
+      "type": "quiz",
+      "id": "q-fail",
+      "icon": "❓",
+      "question": "Saskia's monthly report ran as an agent a colleague has since deleted. This morning's run failed. What is the fix?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Read the top row of What happened — it says the linked agent no longer exists — then under Edit set Run as to another agent or back to No agent, Save, and press Run now.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Rewrite What it does under Edit — a failed run always means the instruction was too vague for an unattended job.",
+          "correct": false,
+          "feedback": "Her sentence never got a chance. The run stopped before the instruction mattered, because the agent it was told to run as is gone. Read the reason before rewriting anything."
+        },
+        {
+          "id": "c",
+          "label": "Nothing — a repeating item switches itself off after a failure and picks the next available agent on its own.",
+          "correct": false,
+          "feedback": "Neither half happens. A repeating item keeps its series after an error (only a one-off deactivates itself), and no agent is ever chosen for you; the link is changed under Edit."
+        }
+      ],
+      "explanation": "The reason is always on the run row first. A missing agent, a lost ownership or a switched-off feature are all link problems, and every one of them is repaired in the Run as field rather than in the brief."
+    },
+    {
+      "type": "exercise",
+      "id": "ex-decide",
+      "icon": "🎯",
+      "exerciseId": "ex-cowork-run-as-agent-decide",
+      "title": "Your turn: decide who does the work",
+      "instruction": "Take one piece of work you would hand over this month — yours, or one of the Van Dijk Groep examples. Write four short lines: (1) the brief, in one sentence; (2) No agent or an agent, and the reason in the terms of this lesson — instructions, knowledge, connected apps, or its own thread; (3) the item's Apps list: none of its own, its own short list (name the apps), or empty — and why that is the right one of the three; (4) the one thing you will check on the item after the first run to know the choice was right.",
+      "placeholder": "e.g. (1) Every weekday at 07:30, summarise new supplier mail per supplier with order number, amount and reply-by date. (2) …, because … (3) Its own list: only the mailbox, because … (4) After the first run I open …",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "slide",
+      "id": "recap",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "- **Choose the runner on purpose.** **No agent** runs your sentence with your apps and your tier. An agent brings its instructions, skills, knowledge bases, connected apps and its own model — which is why the tier reads **Auto** — and keeps one thread where the results collect.\n- **Say what a run may reach in the right place.** For a plain-prompt item, the three states of its Apps list: none of its own, its own list, or empty. For an agent-linked item, reach comes with the agent.\n- **Repair a link, not a sentence.** A deleted agent, an agent that is no longer yours or a switched-off feature all read as a failed run — and all are fixed in **Run as** under **Edit**, then proved with **Run now**.\n\nAnd if the chip is missing: that is a role or a feature, not a fault. The item still runs."
+    }
+  ],
+  "rubrics": {
+    "ex-cowork-run-as-agent-decide": {
+      "title": "Choosing the runner and the reach",
+      "task": "Write four lines about one real delegation: the brief in one sentence; No agent or a named agent with the reason; which of the three Apps states the item should be in and why; and the one thing to check on the item after the first run.",
+      "criteria": [
+        "The brief is one sentence that says what must be produced, not just a topic.",
+        "The runner choice is justified with something an agent actually brings — its instructions, skills, knowledge bases, connected apps, its own model, or its one continuing thread — or with a reason to keep the work on the plain-prompt path.",
+        "The Apps answer names one of the three states (no list of its own, its own list with the apps named, or empty) and says why that state fits the work.",
+        "The check after the first run points at something the item really shows: the assignment and its pills, a row in What happened, or the figure cards."
+      ],
+      "passScore": 70,
+      "guidance": "Pass a concrete, honest answer even if short. Do not pass: a brief that is only a subject line; 'an agent is smarter' or any reason that is not one of the things an agent brings; an Apps answer that leaves the state ambiguous ('restrict the apps') or that claims a per-item list narrows an agent-linked run; a check that cannot be seen on the item, such as a cost figure, a colleague's view of the item, or an email confirmation."
+    }
+  },
+  "practiceTopic": {
+    "title": "Cowork: Run as, and what a run may reach",
+    "summary": "How linking an agent changes a cowork item, and how the per-item Apps list decides what a run may touch.",
+    "facts": [
+      "The Run as sheet is titled 'Who does the work?' with the subtitle 'An agent brings its own skills, knowledge and connected apps'; its first row is 'No agent', hinted 'Runs as a plain prompt'.",
+      "An item with an agent linked is stored with model tier Auto, because an agent runs on its own model; the tier is only meaningful for agent-less work, and the Edit form has no tier field.",
+      "An agent-linked run delivers its result to the notifications as usual and also writes it into that agent's chat thread, which the item keeps using for later runs.",
+      "The Apps picker puts an item in one of three states: no list of its own (it follows the workspace-wide list), its own list, or an empty list meaning it may use nothing; 'Follow my workspace list' returns it to the first state.",
+      "When the workspace app list cannot be read the composer shows 'App list unavailable — this run follows your workspace list' and the edit form shows 'Your app list could not be loaded' — the item is never given a list that could not be verified.",
+      "The Run as chip only appears when there are agents to pick from; the list behind it needs the permission that lets someone manage agents, which a Member does not have.",
+      "An item may only run as an agent you own; other attempts are refused with 'Agent not found or not owned by you', and an account without the agent-routines feature gets 'Agent routines beta is not enabled for this account'.",
+      "If the linked agent has Memory switched on, each run is given the items earlier runs of the same cowork already covered, with dates, and is told to skip them unless something material changed."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "cowork-apps-scoped",
+      "existing": false,
+      "label": "A cowork item with its own Apps list",
+      "hint": "Open a cowork item, click Edit, and under 'Apps it may use' switch at least one app off, then Save. Under Edit the field counts what is left: '{count} of {total} enabled'.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/cowork",
+          "returns": "{ schedules: [...], maxSchedules } — rows scoped to the signed-in user, each with id, userId (owner), title, enabledApps (array of app ids, or null when the item follows the workspace-wide list) and agentId"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "own-list",
+          "label": "A cowork item of your own exists",
+          "hint": "Open Cowork and create one with a one-line brief if the list is empty. The per-item Apps list is saved inside the item, where this check cannot look — the counter under \"Apps it may use\" is your proof.",
+          "rule": "GET /api/cowork → schedules[] holds a row whose userId is the learner (enabledApps itself is not readable by the runtime)",
+          "endpoint": "/api/cowork",
+          "expect": {
+            "kind": "rows",
+            "field": "schedules"
+          }
+        }
+      ]
+    }
+  ]
+}

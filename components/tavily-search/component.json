@@ -1,0 +1,50 @@
+{
+  "name": "Tavily Search",
+  "description": "Perform an optimized web search using to get search results.",
+  "category": "AI/Tools",
+  "inputs": {
+    "apiKey": {
+      "type": "string",
+      "description": "Your Tavily API Key",
+      "secure": true,
+      "default": "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"
+    },
+    "query": {
+      "type": "string",
+      "description": "The search query"
+    },
+    "search_depth": {
+      "type": "string",
+      "default": "fast",
+      "description": "Controls depth/quality of search: ultra-fast (quick), basic, advanced (best relevance).”"
+    },
+    "max_results": {
+      "type": "number",
+      "default": "3",
+      "description": "Max number of sources to return (higher = more coverage, too high = more noise)."
+    },
+    "topic": {
+      "type": "string",
+      "default": "general",
+      "description": "Biases results toward a category: general / news / finance."
+    },
+    "scoreThreshold": {
+      "type": "number",
+      "default": "0.6",
+      "description": "Filter out results below this relevance score (e.g. 0.7 keeps higher-quality hits)."
+    },
+    "include_raw_content": {
+      "type": "boolean",
+      "default": "false",
+      "description": "Include raw page text/markdown in results (larger payload; use for deep summarization)."
+    }
+  },
+  "outputs": {
+    "answer": "string",
+    "results": "array",
+    "images": "array",
+    "fullResponse": "object"
+  },
+  "agentEnabled": true,
+  "directChatEnabled": false
+}

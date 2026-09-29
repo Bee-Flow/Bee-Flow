@@ -1,0 +1,449 @@
+/*
+ * App Studio runtime — layout + skeleton primitives.
+ *
+ * .app-grid is a 12-column grid (columns set inline by the renderer); every
+ * child carries an inline `grid-column: span N`. Below 640px the layout
+ * stacks: the grid collapses to one column and children go full width — the
+ * !important is what lets the stylesheet beat the inline span.
+ */
+
+.app-grid {
+    display: grid;
+}
+
+/*
+ * A pane's children keep their natural size — the documented promise, and until
+ * now not actually true. A flex item defaults to `flex-shrink: 1`, so in a pane
+ * with a fill child plus a composer, the composer was squeezed the moment the
+ * content grew: the reply box lost rows one by one and eventually collapsed to
+ * a sliver. Only the child that asked to fill may flex.
+ */
+[data-app-pane] > .app-node {
+    flex-shrink: 0;
+}
+
+/*
+ * A VERTICAL divider (divider.orientation) separates buttons in a flex row —
+ * the page_header action area, a horizontal pane. The flex item there is the
+ * divider's wrapper CELL, not the <hr> itself, so the stretch has to land on
+ * the wrapper: make it a stretching flex box and the hr inside (self-stretch,
+ * h-auto) takes the row's full height. Horizontal dividers are untouched.
+ */
+.app-node[data-app-type='divider']:has(> [data-app-divider='vertical']) {
+    align-self: stretch;
+    display: flex;
+    width: auto;
+}
+
+/*
+ * A surface needs an edge. --bg-card is barely a shade off --bg-primary in the
+ * dark theme and IDENTICAL to it (#000000) in high contrast, so a card was a
+ * rectangle of nothing and every grouping the layout leaned on disappeared.
+ * A hairline is enough; the `border` style knob is there for authors who want
+ * more, and because that knob emits an INLINE border it always wins over this.
+ */
+.app-surface {
+    /* --border-color only exists inside the explicit light/dark appearance
+       blocks; on the default 'auto' this whole declaration was invalid and
+       the hairline simply never drew. */
+    border: 1px solid color-mix(in srgb, var(--border-color, var(--border-default)) 45%, transparent);
+}
+
+/*
+ * A stat is almost never alone: it sits in a row of tiles that reads as one
+ * band. The grid cell already stretches to the tallest sibling, but the tile
+ * drawn INSIDE it sized itself to its own content — so one two-line caption
+ * left every neighbour visibly short and the row looked misaligned rather than
+ * deliberate. Only the surface needs the height; a `plain` stat paints nothing,
+ * so this is invisible there.
+ */
+.app-stat {
+    height: 100%;
+}
+
+/*
+ * THE MIDDLE TIER — 640px to just under 1024px.
+ *
+ * There used to be exactly one breakpoint: below 640px everything stacked,
+ * above it every authored span was literal all the way down. So a three-column
+ * rail beside a nine-column workspace kept those proportions on an 800px
+ * laptop, where "three columns" is 180px — a list of filenames wrapped to four
+ * lines each, next to a detail panel too narrow to read.
+ *
+ * Quarters and thirds become halves; anything already half the row or wider
+ * takes the whole row. Two rules, and the reason it is only two: an author
+ * choosing span 3 means "one of four things side by side", and the useful
+ * answer on a middle-sized screen is "two of them", not some proportional
+ * shrink that keeps every column equally unreadable.
+ *
+ * !important because the span is written inline by the renderer.
+ */
+@media (min-width: 640px) and (max-width: 1023.98px) {
+    .app-grid > .app-span-1,
+    .app-grid > .app-span-2,
+    .app-grid > .app-span-3,
+    .app-grid > .app-span-4 {
+        grid-column: span 6 / span 6 !important;
+    }
+    .app-grid > .app-span-5,
+    .app-grid > .app-span-6,
+    .app-grid > .app-span-7,
+    .app-grid > .app-span-8,
+    .app-grid > .app-span-9,
+    .app-grid > .app-span-10,
+    .app-grid > .app-span-11 {
+        grid-column: 1 / -1 !important;
+    }
+    /*
+     * A pane is the exception, and it is the important one. Halving a card
+     * gives you two cards side by side, which is the point. Halving a PANE
+     * gives you a navigation rail at 450px with dead space beside it, because
+     * the workspace it belongs to went full width and can no longer fit next
+     * to it. A pane is a REGION — a rail, a workspace — and a region that
+     * cannot sit beside its partner should own the row instead of hovering at
+     * half width next to nothing.
+     */
+    .app-grid > .app-node[data-app-type='pane'] {
+        grid-column: 1 / -1 !important;
+    }
+    /*
+     * …with one exception, and it is the shape this rule was hurting most: a
+     * NARROW rail beside a wide workspace. Master–detail — a list of requests
+     * and the request you opened — is exactly that, and stacking it means you
+     * click something at the top of an 800px list and what you clicked is
+     * rendered below the fold. You then scroll past everything you did not
+     * pick to reach the thing you did.
+     *
+     * A rail at a third of the row is still a usable rail at 280px, so it keeps
+     * its column and its partner keeps the rest: 3/9 and 4/8 both land on 4/8,
+     * which still sums to 12. A pane that is HALF the row or wider has no such
+     * out — two 6-column regions really cannot share 800px — so those keep the
+     * blanket rule above and own the row.
+     */
+    .app-grid > .app-node[data-app-type='pane'].app-span-1,
+    .app-grid > .app-node[data-app-type='pane'].app-span-2,
+    .app-grid > .app-node[data-app-type='pane'].app-span-3,
+    .app-grid > .app-node[data-app-type='pane'].app-span-4 {
+        grid-column: span 4 / span 4 !important;
+    }
+    .app-grid > .app-node[data-app-type='pane'].app-span-8,
+    .app-grid > .app-node[data-app-type='pane'].app-span-9,
+    .app-grid > .app-node[data-app-type='pane'].app-span-10 {
+        grid-column: span 8 / span 8 !important;
+    }
+    /* An author who asked for an exact px width asked for it on a desktop; on
+       a half-width cell it is the thing that pushes a sideways scrollbar
+       across the whole app. Same reasoning — and same authority — as the
+       phone rule below. */
+    .app-grid > .app-node {
+        max-width: 100% !important;
+    }
+}
+
+@media (max-width: 639.98px) {
+    .app-grid {
+        grid-template-columns: minmax(0, 1fr) !important;
+    }
+    .app-grid > .app-node {
+        grid-column: 1 / -1 !important;
+        /* The advanced width knob (widthMode 'px'/'pct') writes an INLINE
+           width, and inline beats any stylesheet without !important. A 900px
+           card on a 390px phone would then push a horizontal scrollbar across
+           the whole app — not just its own row. The resolver already pairs
+           every width it emits with max-width:100%; this re-asserts it with
+           the authority inline styles cannot outrank, so the mobile stack wins
+           no matter where the width came from. */
+        max-width: 100% !important;
+    }
+    /* A full-height section is a desktop affordance. On a phone the grid stacks,
+       so keeping the fixed height would squash both panes of a split into a few
+       unreadable lines each — fall back to the ordinary flowing layout. */
+    .app-section-fill {
+        flex: none !important;
+        min-height: 0 !important;
+        grid-template-rows: none !important;
+    }
+    .app-section-fill > .app-node {
+        flex: none !important;
+    }
+    /* A horizontal pane is a sidebar-plus-detail, and on a phone there is no
+       room to put two things beside each other. The grid above already stacks;
+       a pane is flex and had no rule at all, so a 280px rail next to a board
+       would have survived onto a 390px screen — the rail squeezing the thing
+       it exists to navigate down to nothing. `width: auto` releases the exact
+       width the advanced knob wrote inline (which is why the !important is
+       needed: inline beats a stylesheet without it). */
+    [data-app-pane='horizontal'] {
+        flex-direction: column;
+    }
+    [data-app-pane='horizontal'] > .app-node {
+        width: auto !important;
+    }
+    /*
+     * A pane hardcodes h-full + overflow-hidden in its JSX, and it is the ONE
+     * fill-aware component that never tags itself .app-fill — so the unwind
+     * just below has never reached it. On a phone that 100% height resolves
+     * against a section which has already given up its own (.app-section-fill
+     * above drops to flex:none and clears grid-template-rows), and then
+     * overflow-hidden clips the children of a box that collapsed: the rail
+     * kept its filter bar and pills while the list vanished, and the work pane
+     * — stepper, tabs, every header button — never drew at all. Release both,
+     * exactly as .app-fill does; on a phone the PAGE scrolls, not the region.
+     */
+    [data-app-pane] {
+        height: auto !important;
+        overflow: visible !important;
+    }
+    /* Every component that honours height:'fill' tags its own root with
+       .app-fill, so this one rule unwinds all of them here. Without a shared
+       hook each new fill-aware component would need its own selector added
+       above, and the one that got forgotten would silently keep a viewport
+       height on a phone. */
+    .app-fill {
+        height: auto !important;
+        min-height: 0 !important;
+        overflow: visible !important;
+    }
+}
+
+/*
+ * Responsive visibility — the hideBelow/hideAbove style knobs.
+ *
+ * The resolver emits these as CLASSES (next to app-span-N) because the knob's
+ * whole job is to react to the viewport, and only a stylesheet can do that:
+ * an inline style would need a resize listener and a re-render per node.
+ * hideBelow 'md' = hidden on viewports NARROWER than 1024px; hideAbove 'md' =
+ * hidden at 1024px and wider. The bands are this file's own breakpoints
+ * (sm=640, md=1024, lg=1280), so a hide can never straddle a layout tier.
+ *
+ * !important because a component may carry its own display (the vertical
+ * divider above becomes a flex box) — hidden must not lose to that.
+ *
+ * The :not([data-app-edit] *) guard keeps every node visible on the EDITOR
+ * canvas (AppRenderer stamps data-app-edit on the runtime root in edit mode).
+ * Two reasons it is a guard rather than an .app-runtime scope: the knob
+ * describes the APP's viewport while the canvas width is the editor window
+ * minus its panels — hiding there would key off the wrong number and make the
+ * node unselectable — and a modal's body PORTALS out of the runtime root in
+ * run mode, so scoping on the root would silently exempt everything inside a
+ * dialog.
+ */
+@media (max-width: 639.98px) {
+    .app-hide-below-sm:not([data-app-edit] *) { display: none !important; }
+}
+@media (max-width: 1023.98px) {
+    .app-hide-below-md:not([data-app-edit] *) { display: none !important; }
+}
+@media (max-width: 1279.98px) {
+    .app-hide-below-lg:not([data-app-edit] *) { display: none !important; }
+}
+@media (min-width: 640px) {
+    .app-hide-above-sm:not([data-app-edit] *) { display: none !important; }
+}
+@media (min-width: 1024px) {
+    .app-hide-above-md:not([data-app-edit] *) { display: none !important; }
+}
+@media (min-width: 1280px) {
+    .app-hide-above-lg:not([data-app-edit] *) { display: none !important; }
+}
+
+/*
+ * A strip that scrolls sideways when it must, without growing a scrollbar that
+ * reads as a second horizontal rule under the tabs. The content is still
+ * reachable by trackpad, shift-wheel, touch and — because each tab is a real
+ * button — by tabbing, which scrolls it into view.
+ */
+.app-scroll-x {
+    scrollbar-width: none;
+}
+
+.app-scroll-x::-webkit-scrollbar {
+    height: 0;
+}
+
+/*
+ * "There is more to the right."
+ *
+ * A grid wider than its column simply cut off at the edge, with nothing to say
+ * so: the last visible column looked like the last column. The scrollbar is not
+ * the answer — on a trackpad it is invisible until you are already scrolling,
+ * which is after the moment you needed to know.
+ *
+ * Pure CSS, no measuring, no listener: two fixed shadows pinned to the viewport
+ * of the scroller (`background-attachment: local` on the white covers) reveal
+ * themselves exactly when there is content past that edge. It costs nothing on
+ * a grid that fits, which is most of them.
+ */
+.app-scroll-edges {
+    background-image:
+        linear-gradient(to right, var(--bg-primary, #fff) 30%, rgba(0, 0, 0, 0)),
+        linear-gradient(to right, rgba(0, 0, 0, 0), var(--bg-primary, #fff) 70%),
+        linear-gradient(to right, rgba(15, 23, 42, 0.13), rgba(0, 0, 0, 0)),
+        linear-gradient(to left, rgba(15, 23, 42, 0.13), rgba(0, 0, 0, 0));
+    background-position: 0 0, 100% 0, 0 0, 100% 0;
+    background-repeat: no-repeat;
+    background-size: 28px 100%, 28px 100%, 12px 100%, 12px 100%;
+    background-attachment: local, local, scroll, scroll;
+}
+
+/* Shimmering placeholder while a bound action is running. */
+.app-skeleton {
+    position: relative;
+    overflow: hidden;
+    background: var(--bg-tertiary, rgba(128, 128, 128, 0.15));
+    border-radius: var(--app-radius, 8px);
+    min-height: 0.75rem;
+}
+
+.app-skeleton::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
+    animation: app-skeleton-shimmer 1.4s infinite;
+}
+
+@keyframes app-skeleton-shimmer {
+    to {
+        transform: translateX(100%);
+    }
+}
+
+/*
+ * The two contentEditable editors — 'input_richtext' (markdown) and
+ * 'input_html' (mail HTML). Neither had a single CSS rule until now, and two
+ * things were broken because of it.
+ *
+ * Tailwind's preflight sets `list-style: none` on every ul/ol globally, and the
+ * one place that is undone (`.markdown-content`, index.css) is a different
+ * subtree. So pressing the bullet button in the editor produced a real <ul>
+ * with no visible bullet: the text jumped right and nothing else happened,
+ * which reads as a broken button rather than a list.
+ *
+ * And `data-placeholder` was written on the box by both components with no rule
+ * to display it — so an empty editor was a blank rectangle with no hint at all.
+ */
+.app-richtext ul,
+.app-richtext ol {
+    list-style-position: outside;
+    padding-left: 1.5rem;
+    margin: 0.25rem 0;
+}
+
+.app-richtext ul { list-style-type: disc; }
+.app-richtext ol { list-style-type: decimal; }
+.app-richtext li { display: list-item; }
+
+/* `:empty` alone is not enough: a contentEditable that has been typed in and
+   cleared keeps a stray <br>, so the box is not empty and the hint stays
+   hidden forever after the first keystroke. */
+.app-richtext:empty::before,
+.app-richtext:has(> br:only-child)::before {
+    content: attr(data-placeholder);
+    color: var(--text-muted);
+    pointer-events: none;
+}
+
+/* An image pasted or inserted into a mail body must not blow the editor open. */
+.app-richtext img {
+    max-width: 100%;
+    height: auto;
+}
+
+/*
+ * design.accentEdge = 'none'
+ *
+ * The coloured 3px stripe down the side of a callout, a toned table row, a
+ * message, a stat, a kanban card. Each one is defensible alone; together they
+ * are the single loudest tell of a generated interface — every region shouting
+ * its category at you in a different colour.
+ *
+ * Dropping the stripe never drops the MEANING: the tinted ground, the badge and
+ * the icon all still say what a region is. Only the stripe goes.
+ *
+ * !important throughout because every one of these is an inline style written
+ * by its component; a stylesheet cannot outrank that any other way. Scoped to
+ * the opt-in class, so an app that never chose keeps today's rendering exactly.
+ */
+.app-design--edge-none [data-app-callout],
+.app-design--edge-none [data-app-thread-side],
+.app-design--edge-none [data-app-stat],
+.app-design--edge-none [data-app-kanban-card] {
+    border-left-width: 0 !important;
+    border-right-width: 0 !important;
+}
+
+/* A message sheet keeps its hairline all round — losing that would leave the
+   body floating on the page — so the accent edge is reset to the hairline
+   rather than removed. */
+.app-design--edge-none [data-app-thread-html='true'] {
+    border-left-width: 1px !important;
+    border-right-width: 1px !important;
+    border-left-color: var(--border-default) !important;
+    border-right-color: var(--border-default) !important;
+}
+
+/* Row tone and the active row: the wash stays, the inset bar goes. */
+.app-design--edge-none tr[data-app-row-tone],
+.app-design--edge-none tr[data-app-row-active],
+.app-design--edge-none .app-grid-cards [data-app-row-tone] {
+    box-shadow: none !important;
+}
+
+/* A card with look 'accent' gets its bar from a border on the WRAPPER node
+   (AppCard.css), and a heading with accent 'bar' from a decorative span. */
+.app-design--edge-none .app-node.app-node:has(> .app-card--accent),
+.app-design--edge-none .app-node.app-node:has(> div > .app-card--accent) {
+    border-left-width: 0 !important;
+}
+
+.app-design--edge-none .app-heading--bar > span[aria-hidden='true'] {
+    display: none !important;
+}
+.app-design--edge-none .app-heading--bar {
+    gap: 0 !important;
+}
+
+/*
+ * callout `collapsible` — one line until you look at it.
+ *
+ * An AI summary is worth keeping and not worth six permanent lines above the
+ * thing it summarises. Collapsed, the note is a single truncated line; hover or
+ * keyboard focus floats the full text in a panel that OVERLAYS instead of
+ * pushing, so nothing below it jumps as you move the mouse across the page.
+ *
+ * The truncated line keeps the whole text in the DOM (the cut is CSS), so the
+ * panel is a visual convenience only — which is why it is aria-hidden.
+ */
+.app-callout--collapsed {
+    position: relative;
+}
+
+.app-callout--collapsed .app-callout__body {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.app-callout__peek {
+    display: none;
+}
+
+.app-callout--collapsed:hover .app-callout__peek,
+.app-callout--collapsed:focus-visible .app-callout__peek,
+.app-callout--collapsed:focus-within .app-callout__peek {
+    display: block;
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(100% + 4px);
+    z-index: 30;
+    padding: 0.625rem 0.75rem;
+    background: var(--bg-card, var(--bg-primary));
+    color: var(--text-secondary);
+    border: 1px solid var(--border-default);
+    border-radius: var(--app-radius, 8px);
+    box-shadow: var(--app-shadow-2, 0 6px 20px rgba(0, 0, 0, 0.18));
+    white-space: normal;
+}

@@ -1,0 +1,33 @@
+{
+  "brief": "Build a professional Dutch invoice app on my EXISTING Studio table \"Facturen\" (key facturen; read only — an automation fills it from PDF invoices). Call app_set_plan first, then app_link_datatable {datatableId:\"tbl_x\"} and use the tbl_ id it returns. Never app_upsert_table or app_seed_records.\nScreen \"Overzicht\": stat tiles — aantal facturen (count), totaal excl. btw (sum excl_btw), totaal btw (sum btw), totaal incl. btw (sum totaal); a chart of totaal per month over datum; a filter_bar on leverancier, datum, status; a data_grid with datum, leverancier, factuurnummer, excl_btw, btw, totaal, status.\nScreen \"Factuur\": record_detail of one row (all fields), opened from the grid row.\nDutch labels everywhere (Datum, Leverancier, Factuurnummer, Excl. btw, Btw, Totaal, Status). App name \"Facturen\". Finish with app_finalize.",
+  "tier": "fast",
+  "planMode": "never",
+  "expect": {
+    "finalized": true,
+    "maxFailedCalls": 2,
+    "maxRounds": 8,
+    "maxRepeated": 2,
+    "linkedTable": {
+      "key": "facturen",
+      "minRows": 1
+    },
+    "components": [
+      "stat",
+      "chart",
+      "data_grid",
+      "filter_bar",
+      "record_detail"
+    ],
+    "minComponents": 7,
+    "minScreens": 2,
+    "noTools": [
+      "app_seed_records",
+      "app_upsert_table"
+    ],
+    "name": {
+      "notUntitled": true,
+      "matches": "^Facturen$"
+    },
+    "maxPromptChars": 62000
+  }
+}

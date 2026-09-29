@@ -1,0 +1,140 @@
+{
+  "name": "2026-09-13-invoices-extract-without-source",
+  "session": "bs_mtzdxjly",
+  "recordedAt": "2026-09-13T05:42:00Z",
+  "brief": "Maak een routine die ik met de hand start.\n\nLees elke PDF-factuur in de Nextcloud-map /Invoices-Test. Haal per factuur de factuurdatum, de leverancier, het factuurnummer, het bedrag exclusief btw, de btw en het totaal op.\n\nVoeg voor elke factuur één rij toe aan de bestaande datatable (geen Nextcloud table) \"Facturen\". Die tabel bestaat al en heeft de kolommen Datum, Leverancier, Factuurnummer, Excl. btw, Btw en Totaal. Maak dus geen nieuwe tabel en geen nieuwe kolommen aan.\n\nSchrijf de datum als 2026-09-19 en de bedragen als gewoon getal met een punt als decimaalteken, dus 1554.25 en niet 1.554,25.\n\nHoud de volgorde van de bestanden in de map aan.",
+  "tool": "builder_add_steps",
+  "args": {
+    "steps": [
+      {
+        "spec": {
+          "inputs": {
+            "path": {
+              "kind": "literal",
+              "value": "/Invoices-Test"
+            }
+          },
+          "label": "Scan map /Invoices-Test",
+          "tool": "nextcloud_list_files"
+        },
+        "tempId": "list_files",
+        "type": "integration_action"
+      },
+      {
+        "spec": {
+          "fields": [
+            {
+              "name": "datum",
+              "type": "string",
+              "description": "Factuurdatum in YYYY-MM-DD formaat"
+            },
+            {
+              "name": "leverancier",
+              "type": "string",
+              "description": "Naam van de leverancier"
+            },
+            {
+              "name": "factuurnummer",
+              "type": "string",
+              "description": "Het factuurnummer"
+            },
+            {
+              "name": "excl_btw",
+              "type": "number",
+              "description": "Bedrag exclusief btw (bijv. 1554.25)"
+            },
+            {
+              "name": "btw",
+              "type": "number",
+              "description": "Het btw bedrag (bijv. 310.85)"
+            },
+            {
+              "name": "totaal",
+              "type": "number",
+              "description": "Het totaalbedrag (bijv. 1865.10)"
+            }
+          ],
+          "forEach": {
+            "itemVar": "f",
+            "overRef": "steps.$list_files.output.items"
+          },
+          "prompt": "Extraheer de factuurgegevens uit dit document.\nDatum: {{loop.f.content}}\nLeverancier: {{loop.f.content}}\nFactuurnummer: {{loop.f.content}}\nBedrag Excl. BTW: {{loop.f.content}}\nBTW: {{loop.f.content}}\nTotaal: {{loop.f.content}}\n\nLet op: \n- Datum MOET in YYYY-MM-DD formaat zijn.\n- Bedragen MOETEN getallen zijn met een punt als decimaalteken (bijv. 100.50).\n- Gebruik alleen de gevraagde velden."
+        },
+        "tempId": "extract_data",
+        "type": "data_extraction"
+      },
+      {
+        "spec": {
+          "afterStepId": "$extract_data",
+          "datatableId": {
+            "kind": "literal",
+            "value": "Facturen"
+          },
+          "fields": {
+            "btw": {
+              "kind": "ref",
+              "path": "loop.e.output.btw"
+            },
+            "datum": {
+              "kind": "ref",
+              "path": "loop.e.output.datum"
+            },
+            "excl_btw": {
+              "kind": "ref",
+              "path": "loop.e.output.excl_btw"
+            },
+            "factuurnummer": {
+              "kind": "ref",
+              "path": "loop.e.output.factuurnummer"
+            },
+            "leverancier": {
+              "kind": "ref",
+              "path": "loop.e.output.leverancier"
+            },
+            "totaal": {
+              "kind": "ref",
+              "path": "loop.e.output.totaal"
+            }
+          },
+          "forEach": {
+            "itemVar": "e",
+            "overRef": "steps.$extract_data.output.results"
+          },
+          "op": "append"
+        },
+        "tempId": "add_row",
+        "type": "datatable"
+      }
+    ],
+    "type": "integration_action"
+  },
+  "rejectedWith": "steps[1] ($extract_data): source is required — bind it to the text to read, at the TOP LEVEL of the step (a data_extraction has no inputs map), e.g. source:{kind:\"ref\", path:\"steps.read.output.content\"} (or loop.<itemVar>.output.content inside a forEach).",
+  "repeats": 1,
+  "context": {
+    "setup": [
+      {
+        "tool": "builder_propose_trigger",
+        "args": {
+          "kind": "manual"
+        }
+      }
+    ],
+    "inspected": [
+      "nextcloud_list_files",
+      "nextcloud_read_file"
+    ],
+    "datatables": "facturen"
+  },
+  "expect": {
+    "outcome": "rejected",
+    "errorIncludes": [
+      "which has no \"content\"",
+      "nextcloud_read_file",
+      "loop.r.output.content"
+    ],
+    "requires": [
+      "_fixHint"
+    ],
+    "why": "a listing has no text; the honest answer is the read step, which the model then added"
+  }
+}

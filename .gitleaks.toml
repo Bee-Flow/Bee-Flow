@@ -1,0 +1,103 @@
+# Gitleaks config for the Bee-Flow monorepo.
+#
+# Consumed by:
+#   * scripts/scan-secrets.sh   (local / pre-push scan — `npm run lint:gitleaks`,
+#                                and the required `scan` context in
+#                                .github/workflows/secret-scan.yml)
+#
+# The scan gates what is about to ship (tracked working-tree content) and, in
+# CI, the commits a pull request or a push to main adds (`--range`). It is not
+# an audit of the full history.
+#
+# We extend gitleaks' built-in ruleset and only add allowlists for material
+# that is intentionally in the repo and contains no real secrets.
+#
+# `[[allowlists]]` (gitleaks >= 8.25; CI pins 8.30.1) rather than the single
+# `[allowlist]`: an entry can then name the rules it silences (`targetRules`),
+# so "this file is a test" no longer means "no rule looks at this file".
+#
+# Paths are matched against the reported path, which is `<tmpdir>/<repo path>`
+# in the tree scan and `<repo path>` in the range scan, so anchor with `(^|/)`
+# or a suffix, never a bare `^`.
+
+title = "Bee-Flow monorepo"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Known-safe placeholders, the shipped license public key, the eval corpus, and matched-text false positives"
+paths = [
+  # *.example env templates carry placeholder values only.
+  '''\.example$''',
+  # The license-verification PUBLIC key ships with the repo on purpose; the
+  # matching private key lives only on the license server.
+  '''server/license/bundled-public-key\.pem$''',
+  # Synthetic PII eval corpus — fake test fixtures (sk-/AKIA-shaped strings,
+  # reserved-range BSN/IBAN, standard Luhn test PANs). No real secrets; the
+  # values are generated from documentation/reserved ranges (see
+  # guard-service/eval/README.md and value_banks.py).
+  '''guard-service/eval/corpus/''',
+  # False positive: gitleaks' `linkedin-client-id` rule matches the exported
+  # function name `executeLinkedInAction` here — no real credential.
+  '''server/integrations/linkedinTools\.js$''',
+]
+# Scoped to the matched TEXT rather than the file, so a real credential in the
+# same stylesheet would still be caught.
+regexes = [
+  # False positive: `generic-api-key` fires on the prose "Token-driven:
+  # distance/duration/easing from tokens.css" in a CSS comment
+  # (agent-hub/src/marketing/marketing.css) — slash-separated English words
+  # clear the rule's entropy bar.
+  '''distance/duration/easing''',
+  # False positive: `generic-api-key` fires on translation-key IDENTIFIERS —
+  # `label_key: 'compliance.fw_aia_phase_art50'`, `key: 'compliance.reg_gdpr'`
+  # — in server/compliance/frameworks.js, the demo fixture complianceCatalog.js
+  # and compliance/shared/ArticleRef.jsx. The "secret" is a dictionary key
+  # name (the value of a `*_key` field), never a credential. Anchored to the
+  # whole secret so a real token that merely mentions "compliance." is not
+  # covered.
+  '''^compliance\.[a-z0-9_]+$''',
+  # False positive: the hook signature `…, api, debounceMs=800 })` quoted in
+  # the handoff notes (.claude/handoff/) — "api," followed by an option with a
+  # number clears the rule's entropy bar.
+  '''^debounceMs=\d+$''',
+]
+
+# Test files, for `generic-api-key` ONLY. Tests set short placeholder keys
+# (MASTER_ENCRYPTION_KEY=test-…, apiKey: 'test-key-…') by the thousand, and
+# the generic rule is an entropy guess that cannot tell them from real ones.
+# Every provider-shaped rule (anthropic, openai, github-pat, aws, stripe,
+# slack, jwt, private-key, …) still runs on test files: until 2026-09-23 this
+# was a path allowlist for ALL rules, so a real `sk-ant-api03-…` pasted into
+# any of the ~3,000 test files passed the gate. A fixture that trips one of
+# those rules gets its own entry below, pinned to the file AND the value.
+[[allowlists]]
+description = "Test files: placeholder values the entropy-based generic rule mistakes for keys"
+targetRules = ["generic-api-key"]
+paths = [
+  '''(^|/)__tests__/''',
+  '''\.(test|spec)\.[jt]sx?$''',
+]
+
+# Redaction fixtures: tests of the code that MASKS tokens need token-shaped
+# input. Both conditions must hold (AND): the file is one of these two tests,
+# and the value is the fake — so a real token pasted into either file is
+# still caught.
+#   * jwt: the payload segment is exactly `{"sub":"1234567890"}`, the jwt.io
+#     placeholder claims set with no exp/iat, which no issued token carries.
+#   * private-key: a PKCS#1 header followed by a 16-character body and then
+#     straight into the END line (`\n` as a JS string escape). A real key's
+#     body is ~1,600 characters.
+[[allowlists]]
+description = "Redaction-test fixtures: jwt.io placeholder payload, truncated PEM body"
+targetRules = ["jwt", "private-key"]
+condition = "AND"
+paths = [
+  '''(^|/)server/automation/runLogRedaction\.test\.js$''',
+  '''(^|/)agent-hub/src/components/admin/security/guardrails/patterns/starterSets\.test\.js$''',
+]
+regexes = [
+  '''^eyJ[A-Za-z0-9_-]+\.eyJzdWIiOiIxMjM0NTY3ODkwIn0\.[A-Za-z0-9_-]+$''',
+  '''^-----BEGIN RSA PRIVATE KEY-----\\nMIIEpAIBAAKCAQEA\\n-----END RSA PRIVATE KEY-----''',
+]

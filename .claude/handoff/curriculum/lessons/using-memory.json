@@ -1,0 +1,272 @@
+{
+  "id": "using-memory",
+  "icon": "🧠",
+  "estMinutes": 11,
+  "title": "What Bee Flow remembers about you",
+  "desc": "How memory is written and recalled, how to manage it, and the one thing never to store in it.",
+  "gate": {},
+  "learningGoal": "Read, correct and add memories yourself, and state what should never be stored as one.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "notebook",
+      "icon": "📓",
+      "title": "You should only have to say it once",
+      "bodyMd": "Every new chat with an AI normally starts from zero: your language, your job, how your company signs things off — you type it all again. Bee Flow keeps a small notebook so you do not have to.\n\nEach entry is one short sentence: *\"Replies in Dutch, under 150 words\"*, *\"Karin de Wit approves anything above €5,000\"*. That notebook is **not** your chat history; conversations are stored separately. A memory is a single dated line that travels with you into every later chat — another day, another agent, another subject.\n\nMeet **Bas**, a buyer at **Van Dijk Groep**, a sixty-person installation firm near Zwolle. Today he mentions his approval rule exactly once. We follow that one sentence through the lesson."
+    },
+    {
+      "type": "slide",
+      "id": "seven-types",
+      "icon": "🗂️",
+      "title": "Seven drawers, and one that always opens",
+      "bodyMd": "Every memory is filed under exactly one type:\n\n- **Instructions** — standing rules (always / never do X)\n- **People** — who you work with and what they do\n- **Projects** — project details\n- **Preferences** — how you like answers\n- **Workflows** — how you like to work\n- **Facts** — facts about you or your work\n- **Context** — general background\n\nThe type is not just a label. It decides how hard a memory has to compete to be recalled, and **Instructions win outright**: they are the only type attached to every question, whatever you ask. Everything else has to be relevant enough to earn its place.\n\nFiled as a **Fact**, Bas's approval rule can be crowded out and never arrive. Filed as an **Instruction**, it arrives every single time."
+    },
+    {
+      "type": "tour",
+      "id": "manage",
+      "target": "[data-tour=\"memory-manage\"]",
+      "navigateTo": "settings/memory",
+      "placement": "top",
+      "optional": true,
+      "timeoutMs": 7000,
+      "icon": "🗃️",
+      "title": "Everything is on one screen",
+      "body": "Settings → Memory shows Stored memories with a running count and a chip per type. Manage memories opens the full list, where every single line can be searched, edited or deleted. Nothing is hidden from you."
+    },
+    {
+      "type": "slide",
+      "id": "extraction",
+      "icon": "✍️",
+      "title": "How a sentence becomes a memory",
+      "bodyMd": "Once Bee Flow has finished answering, a second, smaller AI re-reads the exchange in the background and asks one question: was anything said here that is still true tomorrow?\n\n- It runs **after** the reply, so it can never slow your answer down.\n- Very short turns are skipped — a few characters give it nothing to work with.\n- At most **5** memories come out of one exchange, each kept under about 100 characters and written in **English**, even when you chatted in Dutch.\n- Say the same thing twice and you get no duplicate: the existing line is confirmed.\n- Say something that has *changed* and the new line replaces the old one, so you only ever see the current value.\n\nNothing is instant. Give it a few seconds, then reopen the panel."
+    },
+    {
+      "type": "quiz",
+      "id": "q-skipped",
+      "question": "Bas types \"Goedemorgen! Schrijf een offerte-mail voor leverancier Jansen.\" Afterwards, nothing new has appeared in his memory list. What happened?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Greetings and one-off task requests are filtered out on purpose — only things that stay true are kept.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Memory only works in English, so a Dutch message is ignored.",
+          "correct": false,
+          "feedback": "You can chat in any language. Dutch is read perfectly well — it is only the stored memory itself that gets written in English."
+        },
+        {
+          "id": "c",
+          "label": "Extraction failed and he should report it.",
+          "correct": false,
+          "feedback": "An empty result is the normal case, not a fault. Small talk, questions and \"write me a…\" requests are dropped by design, silently."
+        },
+        {
+          "id": "d",
+          "label": "Memory is only written in agent chats, not in the main chat.",
+          "correct": false,
+          "feedback": "Both direct chat and agent chat run extraction after every reply. This message simply held nothing durable."
+        }
+      ],
+      "explanation": "Extraction hunts for things that are still true next month: rules, people, preferences, context. A greeting plus a one-off errand says nothing lasting about Bas, so nothing is stored — and that is the feature working correctly.",
+      "icon": "❓"
+    },
+    {
+      "type": "slide",
+      "id": "recall",
+      "icon": "🎯",
+      "title": "What the AI actually sees",
+      "bodyMd": "Before each answer, Bee Flow scores your stored memories against what you just typed — the type weight, how close the meaning is, how recent it is, how important it was marked — and pastes the winners into the prompt (the text the AI receives) under a heading called **Active Memory**. Standing rules sit in a sub-section headed **Standing instructions from the user**. The heading also tells the AI that no memory outranks the instructions of the agent, skill or task you are using: where the two disagree, those instructions win.\n\nThat block is small: about a paragraph. The highest scorers fill it until the space runs out, so a low-ranked line is simply left behind. Instructions go in whatever their score — which is why Bas's approval rule still surfaces two weeks on.\n\nIn an agent chat you can watch it happen: the status line reads **Recalling memory…**.\n\nMemory is never the assistant reading your whole past — just a handful of lines, picked for this one question."
+    },
+    {
+      "type": "sim",
+      "id": "order-flow",
+      "icon": "🔢",
+      "title": "Put the life of one memory in order",
+      "instruction": "Bas states the approval rule in a chat on a Tuesday. Two weeks later it changes an answer. Drag these five moments into the order they really happen.",
+      "sim": {
+        "kind": "order",
+        "items": [
+          {
+            "id": "c",
+            "label": "A background model re-reads the exchange and proposes a memory"
+          },
+          {
+            "id": "e",
+            "label": "Two weeks later, in a brand-new chat, it is pasted in under Active Memory"
+          },
+          {
+            "id": "a",
+            "label": "Bas writes: \"Anything above €5,000 goes to Karin de Wit for approval.\""
+          },
+          {
+            "id": "d",
+            "label": "The line appears in Manage memories, typed as an Instruction"
+          },
+          {
+            "id": "b",
+            "label": "Bee Flow finishes its reply to him"
+          }
+        ],
+        "solution": [
+          "a",
+          "b",
+          "c",
+          "d",
+          "e"
+        ],
+        "feedback": "Writing always comes after the answer, never before it — that is why memory can never make you wait. Storage follows, and recall happens only on a later turn, when something you type makes that line relevant again."
+      }
+    },
+    {
+      "type": "slide",
+      "id": "add-by-hand",
+      "icon": "➕",
+      "title": "Write one yourself",
+      "bodyMd": "You do not have to wait for the assistant to notice something. In **Manage memories**, click **Add Memory**, pick a type button — Instruction, Person, Preference, Workflow, Fact or Context — type one sentence and click **Save**. The card appears at the top of the list straight away and counts from the very next turn.\n\nBas adds one by hand: *\"Always ask for a delivery date and payment terms before drafting a purchase order.\"* He picks **Instruction**, because he wants it applied every time, not only when it happens to look relevant.\n\nTwo rules of thumb: **one idea per memory**, and write it as a standing rule — *always…*, *never…*, *keep…* — not as a request for one job."
+    },
+    {
+      "type": "slide",
+      "id": "never-store",
+      "icon": "🔒",
+      "title": "Store the rule, not the person",
+      "bodyMd": "Memories are stored as plain text, real values and all: the masking that protects the rest of a chat is deliberately undone here, so a line still means something weeks later. So never type someone else's bank account number, citizen service number, home address or health details into one.\n\nOn the way to the AI a privacy scrubber replaces recognised personal data with generic labels such as **[IBAN]** or **[User's email address]** — as long as your organisation has personal-data detection switched on. A good safety net, but it hides the value from the AI; it does not un-store it.\n\nGood: *\"Suppliers are paid on the 25th of the month.\"* Not good: a supplier's account number.\n\nStore the rule, never the person it is about."
+    },
+    {
+      "type": "quiz",
+      "id": "q-pause",
+      "question": "Before a sensitive chat about a supplier dispute, Bas opens the response-depth panel in the composer and clicks the brain icon in its corner, so it now reads \"Memory saving paused — click to resume\". What does that actually do?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Nothing new is written from this chat, but the memories he already has are still recalled.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "It deletes the memories he already has.",
+          "correct": false,
+          "feedback": "Nothing is deleted. The switch only governs writing — removing lines is a separate, deliberate act in Manage memories."
+        },
+        {
+          "id": "c",
+          "label": "Memory stops completely — nothing is written and nothing is recalled.",
+          "correct": false,
+          "feedback": "Reading carries on. He still gets his Active Memory block, so his language and format preferences still apply; the assistant just stops adding to the notebook."
+        },
+        {
+          "id": "d",
+          "label": "The pause follows his account onto every device he uses.",
+          "correct": false,
+          "feedback": "It is remembered per browser, not on the account. Open Bee Flow on his phone and saving starts out switched on again."
+        }
+      ],
+      "explanation": "Pause is a write switch for this browser. Recall keeps working, nothing is deleted, and another device is unaffected — so glance at the icon before a conversation you would rather not have remembered.",
+      "icon": "❓"
+    },
+    {
+      "type": "slide",
+      "id": "project-pool",
+      "icon": "👥",
+      "title": "One pool the whole project reads",
+      "bodyMd": "Your general memory belongs to you alone. **Project memory** is a different pool: every member of that project sees every line in it, and any editor can delete them.\n\nThat changes what belongs there. Anouk in HR at Van Dijk Groep keeps onboarding conventions in her project pool — *\"Send the laptop form before the first working day\"* — and never a candidate's name. A note about a person there is a note the whole project can read.\n\nSame question every time you save something: would I be comfortable if everyone on this project read this line next year?"
+    },
+    {
+      "type": "slide",
+      "id": "bulk-tools",
+      "icon": "🧹",
+      "title": "Spring cleaning, and moving in",
+      "bodyMd": "In **Manage memories** you get **Search memories...**, an **All** chip plus one small chip per type you actually have (its icon and its count), and **Select** for multi-select with **Select All** and **Delete n**. Long lists page with **Load more**.\n\nIn the footer: **Export JSON** downloads up to 1,000 lines as a file you keep, and **Clear All** wipes your whole personal memory — irreversible, so export first. A project's own pool is separate and is left alone.\n\nComing over from another assistant? Settings → Memory → **Import** hands you a ready-made prompt to run in your old tool. Paste its answer back (up to 50,000 characters) and click **Add to memory**. You get a count of what landed — *\"Added 31 memories\"* — plus how many were skipped. It is paste-only; there is no file upload."
+    },
+    {
+      "type": "exercise",
+      "id": "ex-rule",
+      "icon": "🎯",
+      "exerciseId": "ex-using-memory-instruction",
+      "title": "Your turn: one rule worth keeping forever",
+      "instruction": "Write ONE standing instruction you would want Bee Flow to follow in every chat from now on — for your own job, or for Bas at Van Dijk Groep.\n\nA strong answer is a single sentence of roughly 100 characters, phrased as a standing rule (always…, never…, keep…), specific enough that someone else could tell whether it was followed, and free of anyone else's personal data. Finish with one line naming the memory type you would file it under, and why.",
+      "placeholder": "e.g. Always answer in Dutch and keep replies under 150 words. — Type: Instruction, because standing rules are the only type that is always recalled.",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "action",
+      "id": "save-it",
+      "icon": "🏗️",
+      "checkId": "memory-instruction",
+      "title": "Save it for real — we will check",
+      "instruction": "Open Settings → Memory and click Manage memories. Click Add Memory, choose the Instruction type button, type the rule you just wrote and click Save. Come back here and we will confirm that at least one Instruction is now stored for you.",
+      "launch": {
+        "navigateTo": "settings/memory",
+        "label": "Open Memory"
+      }
+    },
+    {
+      "type": "slide",
+      "id": "recap",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "You have been round the whole loop: written, stored, recalled.\n\n- **Read and fix what is there.** Settings → Memory → **Manage memories** lists every line. Search it, correct one that has gone stale, delete one that should never have been written.\n- **Add the rules that matter.** **Add Memory**, type **Instruction**, one idea per line — and it counts from your very next question.\n- **Keep it safe.** Pause saving before a conversation you would rather not keep, store the rule and never the person, and **Export JSON** before you ever touch **Clear All**.\n\nBas said his approval rule once. From here on, so do you."
+    }
+  ],
+  "rubrics": {
+    "ex-using-memory-instruction": {
+      "title": "One standing instruction",
+      "task": "Write a single standing instruction worth keeping in memory forever — one short sentence, phrased as an always/never/keep rule, checkable by someone else, containing no other person's personal data — plus one line naming the memory type they would file it under and why.",
+      "criteria": [
+        "It is one standing rule, not a request for a single piece of work",
+        "It is concrete enough to verify: it names a language, tone, length, format, or a step that must always happen",
+        "It is short — around one sentence, near the 100-character guidance, covering one idea rather than several",
+        "It contains no third party's personal data (no bank details, ID numbers, addresses, health or HR details)",
+        "It names a memory type with a coherent reason, recognising that Instruction is the type that is always recalled"
+      ],
+      "passScore": 70,
+      "guidance": "Fail a one-off task request (\"write an offer for Jansen\"), anything too vague to check (\"be helpful\", \"be smart\", \"understand me\"), a paragraph bundling several rules, and anything containing someone else's personal data — those are exactly the three mistakes this lesson exists to prevent. Accept a rule about language, tone, length, output format, or a step that must always be taken. Accept any type choice that comes with sound reasoning, but do not pass an answer that omits the type entirely."
+    }
+  },
+  "practiceTopic": {
+    "title": "Personal memory",
+    "summary": "How Bee Flow writes, recalls and lets you manage the short facts it keeps about you.",
+    "facts": [
+      "Memory has seven types — Instructions, People, Projects, Preferences, Workflows, Facts and Context — and Instructions are the only type recalled unconditionally.",
+      "Extraction runs in the background after the reply is finished, so it never delays an answer, and it keeps at most five memories from one exchange.",
+      "Recalled memories are pasted into the prompt under a heading called Active Memory, with standing rules under Standing instructions from the user, and no memory outranks the instructions of the current agent, skill or task.",
+      "The brain icon reading \"Memory saving paused\" stops writing for that browser only: existing memories are still recalled and nothing is deleted.",
+      "Manage memories offers search, type filter chips, multi-select delete, Export JSON of up to 1,000 lines, and an irreversible Clear All.",
+      "Memories are stored as plain text with real values, so personal data such as an IBAN should never be typed into one — the read-time scrubber only hides it from the model.",
+      "Project memory is a shared pool that every member of the project can see, while general memory belongs to one person alone.",
+      "Import is paste-only, accepts up to 50,000 characters, and reports how many memories were added and how many were skipped."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "memory-instruction",
+      "existing": false,
+      "label": "Save a standing instruction",
+      "hint": "Settings → Memory → Manage memories → Add Memory → pick Instruction → Save.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/agents/memory",
+          "returns": "{ memories: [row…], total, limit, offset, hasMore } — supports ?type=instruction&limit=1 to confirm an Instruction exists"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "has-memory",
+          "label": "At least one memory is stored",
+          "hint": "The Stored memories count on Settings → Memory is above zero.",
+          "rule": "GET /agents/memory returns at least one memory row for the caller",
+          "endpoint": "/agents/memory",
+          "expect": {
+            "kind": "rows",
+            "field": "memories"
+          }
+        }
+      ]
+    }
+  ]
+}

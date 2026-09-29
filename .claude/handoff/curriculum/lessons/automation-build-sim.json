@@ -1,0 +1,500 @@
+{
+  "id": "automation-build-sim",
+  "icon": "🧱",
+  "estMinutes": 11,
+  "title": "Build one on the practice canvas",
+  "desc": "Assemble a real routine end to end in a simulation where nothing can break.",
+  "gate": {
+    "feature": "automations"
+  },
+  "learningGoal": "After this lesson you can assemble a correct trigger-to-notification graph, bind one step's output into the next, and say what a green dry-run has and has not proved.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "brief",
+      "icon": "🏗️",
+      "title": "Monday morning at Van Dijk Groep",
+      "bodyMd": "Van Dijk Groep is a sixty-person installation firm near Zwolle. Every Monday their sales lead retypes the same briefing, and every Monday it is late.\n\nHere is the job, in the words she used:\n\n> \"Every Monday at 08:00, take the open quotes out of our **offertes** table, keep the 25 biggest, let AI write a five-bullet briefing that names the three deals at risk, and send it to me.\"\n\nOver the next ten minutes you assemble exactly that graph — on a practice canvas. Nothing you click here touches your workspace, nothing is saved, and a wrong guess costs nothing but tells you why."
+    },
+    {
+      "type": "slide",
+      "id": "three-qs",
+      "icon": "🧭",
+      "title": "Every routine answers three questions",
+      "bodyMd": "The real canvas opens by asking one of them out loud: **\"What does this routine start with?\"** — and underneath, *\"Every routine has exactly one trigger.\"*\n\n1. **What starts it?** Exactly one trigger, where the flow begins. A clock, a form, an event in a connected app, an incoming call.\n2. **What happens, in order?** Steps chained after the trigger, each able to read what the steps before it produced. That chain, drawn on the canvas, is what we keep calling the *graph*.\n3. **Where does the result go?** A notification, a table row, a document, a knowledge base — an ending you can point at.\n\nA graph that cannot answer all three is not finished, however pretty it looks."
+    },
+    {
+      "type": "sim",
+      "id": "stage-one",
+      "icon": "🧩",
+      "title": "Stage 1 — the entry point and the data",
+      "instruction": "Read the brief, pick the one trigger that fits, then tap in the steps that get the data ready — in the order they should run. One thing to know first: Shorten list keeps only the first — or last — few items of a list, so the sorting has to happen in the table read.",
+      "sim": {
+        "kind": "flow-build",
+        "scenarios": [
+          {
+            "id": "briefing-start",
+            "brief": "\"Every Monday at 08:00, take the open quotes out of our offertes table and keep the 25 biggest.\" (Just the front half for now — the AI and the message come later.)",
+            "trigger": {
+              "options": [
+                {
+                  "id": "manual",
+                  "label": "Trigger manually",
+                  "desc": "Run from a button click"
+                },
+                {
+                  "id": "form",
+                  "label": "On form submission",
+                  "desc": "Publish a form; every submission runs this"
+                },
+                {
+                  "id": "schedule",
+                  "label": "On a schedule",
+                  "desc": "Run at a fixed time, over and over"
+                },
+                {
+                  "id": "webhook",
+                  "label": "On webhook call",
+                  "desc": "Run when an HTTP request arrives"
+                },
+                {
+                  "id": "app_event",
+                  "label": "On app event",
+                  "desc": "Run when something happens in a connected app"
+                }
+              ],
+              "correct": "schedule",
+              "feedback": {
+                "manual": "Manual means somebody has to remember, every Monday, before 08:00. That is the chore we are removing.",
+                "form": "Nobody fills in a form here — the brief names a moment on the clock, not a submission.",
+                "webhook": "A webhook waits for another system to call in. No outside system announces that it is Monday.",
+                "app_event": "App events fire when something happens in a connected app — a mail arrives, a file lands. \"08:00 on Monday\" is the clock's job."
+              }
+            },
+            "steps": {
+              "palette": [
+                {
+                  "id": "read",
+                  "label": "Datatable: read the open quotes, biggest first"
+                },
+                {
+                  "id": "shorten",
+                  "label": "Shorten list: keep the first 25"
+                },
+                {
+                  "id": "wait",
+                  "label": "Wait: pause before the next step"
+                },
+                {
+                  "id": "formpage",
+                  "label": "Form: ask for more info"
+                },
+                {
+                  "id": "code",
+                  "label": "Code: run custom JavaScript"
+                }
+              ],
+              "solution": [
+                "read",
+                "shorten"
+              ],
+              "feedback": {
+                "wait": "There is nothing to wait for — the schedule already decided the moment this run happens.",
+                "formpage": "Form pages run on a routine's own form link, so the canvas only offers them on a routine with the Form trigger. On this one the item is shown but disabled, with that reason attached.",
+                "code": "Nothing here needs hand-written code. A Code step would work, but a ready-made step is easier for the next person to read, so reach for one first."
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "slide",
+      "id": "bindings",
+      "icon": "🔗",
+      "title": "Picking the source while you build",
+      "bodyMd": "You already know the grammar: `{{steps.<id>.output.<field>}}` for what a step produced, `{{trigger.output.<field>}}` for what started the run. On the canvas the question is never *how do I write it* — it is **which source is the right one**, and the builder answers that for you.\n\n- **Insert data from a previous step** lists only the steps *above* this one. If the field you want is not in that list, the problem is the order of your steps, not your typing.\n- **Fields of {step}** shows what one particular earlier step actually hands on — the fastest way to learn a step's real field names.\n- Stuck in a field? **What can I write here?** and **Syntax help** sit right there.\n\nTwo sources look alike and are not: an incoming webhook's body arrives under `trigger.output`, while its request headers land under `trigger.headers`. Pick the wrong one and the field is simply empty at run time."
+    },
+    {
+      "type": "quiz",
+      "id": "q-binding",
+      "question": "Your Datatable step has the id s1. In an AI step further along the flow you want the rows it just read. What do you put in the field?",
+      "choices": [
+        {
+          "id": "a",
+          "label": "{{steps.s1.output.rows}}",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "{{s1.rows}}",
+          "correct": false,
+          "feedback": "A binding always starts at a root the run knows: steps, or trigger. Without one, there is nothing to look the name up in."
+        },
+        {
+          "id": "c",
+          "label": "{{trigger.output.rows}}",
+          "correct": false,
+          "feedback": "trigger.output is whatever STARTED the run. On a schedule that is little more than the moment it fired — the rows came from a step, so ask the step."
+        },
+        {
+          "id": "d",
+          "label": "{{steps.s1.input.rows}}",
+          "correct": false,
+          "feedback": "input is what went INTO that step — the filter you set. What it found on the way out is its output."
+        }
+      ],
+      "explanation": "steps.<id>.output.<field> is the whole grammar: which step, its output, which field. Insert data from a previous step writes exactly this for you, which is also how you learn the field names."
+    },
+    {
+      "type": "sim",
+      "id": "wire-it",
+      "icon": "🔌",
+      "title": "Wire five values to the right source",
+      "instruction": "Van Dijk's builder needs these five values in five different fields. Match each one to where it actually comes from.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "rows",
+            "left": "The 25 items the Shorten list step (id: s2) handed on",
+            "right": "{{steps.s2.output...}}",
+            "note": "Data produced by a step is read from that step's output, by its id."
+          },
+          {
+            "id": "subject",
+            "left": "The subject line of the e-mail that started a mail-triggered routine",
+            "right": "{{trigger.output.subject}}",
+            "note": "What the trigger delivered lives under trigger.output."
+          },
+          {
+            "id": "header",
+            "left": "A header that arrived with an incoming webhook call",
+            "right": "{{trigger.headers....}}",
+            "note": "Request headers are deliberately kept out of trigger.output and land under trigger.headers."
+          },
+          {
+            "id": "formula",
+            "left": "\"Is this deal worth more than 100?\" — a value that has to be worked out",
+            "right": "Formula mode: steps.s1.output.total > 100",
+            "note": "Formula mode evaluates an expression; Text mode would just print the sentence."
+          },
+          {
+            "id": "sentence",
+            "left": "A fixed sentence with one number dropped into it",
+            "right": "Text mode: \"Open quotes: {{steps.s1.output.count}}\"",
+            "note": "Text mode interpolates: everything outside the braces stays literal."
+          }
+        ]
+      }
+    },
+    {
+      "type": "slide",
+      "id": "ai-step",
+      "icon": "🧠",
+      "title": "What an AI step is, and what it is not",
+      "bodyMd": "The palette's **AI step** — *\"Reason and call tools with AI\"* — is the one place in the graph where judgement happens. It needs two things: an instruction in plain language, and the data bound into it. \"Write five bullets about the pipeline\" with nothing bound in will happily invent a pipeline.\n\nIts model tier sits under **Advanced** and defaults to `auto`, so you can ignore it until you have a reason not to.\n\nIf you only need named fields out of a piece of text — supplier, invoice number, amount — use **Extract data** instead. Its field names *are* the shape of its output, and it has no model picker at all."
+    },
+    {
+      "type": "sim",
+      "id": "whole-graph",
+      "icon": "🧱",
+      "title": "Stage 2 — finish the graph, then do it again from cold",
+      "instruction": "Two briefs. Pick the trigger, then lay out every step in order. In the first one, put the empty-check as early as it can possibly go.",
+      "sim": {
+        "kind": "flow-build",
+        "scenarios": [
+          {
+            "id": "briefing-full",
+            "brief": "\"Every Monday at 08:00: take the open quotes out of our offertes table, keep the 25 biggest, let AI write a five-bullet briefing naming the three deals at risk, and send it to me. On a quiet week with nothing open, skip the whole thing.\"",
+            "trigger": {
+              "options": [
+                {
+                  "id": "manual",
+                  "label": "Trigger manually",
+                  "desc": "Run from a button click"
+                },
+                {
+                  "id": "form",
+                  "label": "On form submission",
+                  "desc": "Publish a form; every submission runs this"
+                },
+                {
+                  "id": "schedule",
+                  "label": "On a schedule",
+                  "desc": "Run at a fixed time, over and over"
+                },
+                {
+                  "id": "webhook",
+                  "label": "On webhook call",
+                  "desc": "Run when an HTTP request arrives"
+                },
+                {
+                  "id": "app_event",
+                  "label": "On app event",
+                  "desc": "Run when something happens in a connected app"
+                }
+              ],
+              "correct": "schedule",
+              "feedback": {
+                "manual": "Same brief, same answer: a fixed weekly moment is a schedule. Manual would put the chore back on a person.",
+                "form": "Still nobody submitting anything — the quotes are already in the table.",
+                "webhook": "Nothing outside Van Dijk calls in to say the week has started.",
+                "app_event": "The quotes sit in a Bee Flow datatable, so no connected app raises an event here."
+              }
+            },
+            "steps": {
+              "palette": [
+                {
+                  "id": "read",
+                  "label": "Datatable: read the open quotes, biggest first"
+                },
+                {
+                  "id": "empty",
+                  "label": "Condition: is anything open at all?"
+                },
+                {
+                  "id": "shorten",
+                  "label": "Shorten list: keep the first 25"
+                },
+                {
+                  "id": "ai",
+                  "label": "AI step: write the five-bullet briefing"
+                },
+                {
+                  "id": "notify",
+                  "label": "Notification: send it to the sales lead"
+                },
+                {
+                  "id": "approve",
+                  "label": "Ask someone to approve"
+                },
+                {
+                  "id": "loop",
+                  "label": "Repeat for each: run the steps inside once per item"
+                }
+              ],
+              "solution": [
+                "read",
+                "empty",
+                "shorten",
+                "ai",
+                "notify"
+              ],
+              "feedback": {
+                "approve": "Nobody asked to sign off a briefing. An approval pauses the run until a person decides — every Monday, the briefing would sit and wait.",
+                "loop": "The AI step reads the whole list in one go. A loop would run it 25 times and produce 25 briefings."
+              }
+            }
+          },
+          {
+            "id": "invoices",
+            "brief": "Second brief, from Van Dijk's bookkeeper: \"When a supplier e-mail with an invoice attached lands in our inbox, pull out the supplier and the amount, have the purchasing manager approve anything over 2500 euro, and put the row in our inkoopfacturen table.\"",
+            "trigger": {
+              "options": [
+                {
+                  "id": "manual",
+                  "label": "Trigger manually",
+                  "desc": "Run from a button click"
+                },
+                {
+                  "id": "form",
+                  "label": "On form submission",
+                  "desc": "Publish a form; every submission runs this"
+                },
+                {
+                  "id": "schedule",
+                  "label": "On a schedule",
+                  "desc": "Run at a fixed time, over and over"
+                },
+                {
+                  "id": "webhook",
+                  "label": "On webhook call",
+                  "desc": "Run when an HTTP request arrives"
+                },
+                {
+                  "id": "app_event",
+                  "label": "On app event",
+                  "desc": "Run when something happens in a connected app"
+                }
+              ],
+              "correct": "app_event",
+              "feedback": {
+                "manual": "Invoices arrive at all hours. Nobody is there at 23:40 to press the button.",
+                "form": "The supplier sends an e-mail, not one of Van Dijk's forms.",
+                "schedule": "A schedule would poll the inbox and handle everything in batches. The brief says WHEN one arrives — react to the event itself.",
+                "webhook": "Close: a webhook is the answer when an outside system posts to you. A connected mailbox already raises its own app events, with no plumbing."
+              }
+            },
+            "steps": {
+              "palette": [
+                {
+                  "id": "extract",
+                  "label": "Extract data: supplier, invoice number, amount"
+                },
+                {
+                  "id": "cond",
+                  "label": "Condition: is the amount over 2500?"
+                },
+                {
+                  "id": "approve",
+                  "label": "Ask the purchasing manager to approve"
+                },
+                {
+                  "id": "row",
+                  "label": "Datatable: add the row to inkoopfacturen"
+                },
+                {
+                  "id": "doc",
+                  "label": "Make a document: render a PDF"
+                },
+                {
+                  "id": "kb",
+                  "label": "To knowledge base: save the mail text"
+                }
+              ],
+              "solution": [
+                "extract",
+                "cond",
+                "approve",
+                "row"
+              ],
+              "feedback": {
+                "doc": "There is already a PDF — the supplier sent it. Make a document is for turning text from an earlier step into a new file.",
+                "kb": "Nobody asked for the mail to be searchable in chat, and a knowledge base is a long-lived home for text — a deliberate decision, not a default."
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "quiz",
+      "id": "q-condition",
+      "question": "On a quiet Monday the offertes table comes back empty. Where does the Condition that checks for that belong?",
+      "choices": [
+        {
+          "id": "a",
+          "label": "Directly after the Datatable step — before the AI step and before the Notification.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "At the very end, so the notification can say \"nothing this week\".",
+          "correct": false,
+          "feedback": "By then the AI step has already written a briefing about nothing and the message is already on its way. A check that runs after the work it was meant to prevent is decoration."
+        },
+        {
+          "id": "c",
+          "label": "Inside the AI step's instruction: \"say nothing if the list is empty\".",
+          "correct": false,
+          "feedback": "That hands a flow decision to the model — and the step still runs, still costs a call, and still hands something to the notification. Flow control belongs on the canvas, where the run timeline shows which way it went."
+        },
+        {
+          "id": "d",
+          "label": "On the trigger, so the schedule does not fire on a quiet week.",
+          "correct": false,
+          "feedback": "A schedule fires on the clock and knows nothing about your data. Only a step that has read the table can tell whether it is empty."
+        }
+      ],
+      "explanation": "Put a check immediately after the step that produces the thing being checked, and before anything expensive or visible to a person. Every step below it then runs on data you already know is worth the trouble."
+    },
+    {
+      "type": "slide",
+      "id": "validation",
+      "icon": "🛂",
+      "title": "What the canvas checks, and what Activate checks",
+      "bodyMd": "Two different gates, and the difference matters.\n\n**While you build**, the node panel keeps a live list under **\"Fix this before the routine can run:\"** (hard problems) and **\"Worth checking:\"** (warnings). Saving only guards integrity, so a half-finished draft is allowed to exist.\n\n**Activate** is the strict pass, and it refuses outright on: a step calling a tool that does not exist or that you may not use, a required input left empty, a knowledge base you are not authorised for, a schedule it cannot read (*\"Cannot activate — invalid schedule …\"*) or one with no upcoming run at all. A step left **pinned** to a saved sample is the one thing that does *not* block: activation only warns that live runs will serve that saved sample instead of fresh data — which is exactly the warning people wave through."
+    },
+    {
+      "type": "quiz",
+      "id": "q-activate",
+      "question": "Van Dijk's briefing saves all week without a complaint. On Friday you press Activate and it refuses. Which of these is a refusal the strict pass actually makes?",
+      "choices": [
+        {
+          "id": "a",
+          "label": "The weekly schedule on the trigger has no upcoming run time — the day-and-month combination never comes round.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "The Datatable step is still pinned to a saved sample, so live runs would read frozen rows.",
+          "correct": false,
+          "feedback": "That one lets you through: pinned output is a non-blocking warning — \"live runs will use that saved sample, not fresh data\". It is a refusal by you, not by the server."
+        },
+        {
+          "id": "c",
+          "label": "The AI step's briefing came out waffly in the last preview.",
+          "correct": false,
+          "feedback": "Nothing validates the quality of an answer. The strict pass checks the definition — tools, required inputs, knowledge-base access, the schedule — never the prose."
+        },
+        {
+          "id": "d",
+          "label": "The routine has never been dry-run, and Activate demands a green preview first.",
+          "correct": false,
+          "feedback": "Dry-run is a habit, not a gate: you can activate a routine you never previewed. Which is precisely why the habit matters."
+        }
+      ],
+      "explanation": "Saving only guards integrity, so a broken draft survives all week. Activate is the strict pass and refuses on things it can decide for itself: an unknown or unpermitted tool, an empty required input, a knowledge base you are not authorised for, and a schedule it cannot read or that has no next run. Anything about judgement — pinned samples, weak wording — is left to you, as a warning or as nothing at all."
+    },
+    {
+      "type": "exercise",
+      "id": "ex-dryrun",
+      "icon": "🎯",
+      "exerciseId": "ex-automation-build-sim-dryrun",
+      "title": "Your turn: read the green tick honestly",
+      "instruction": "Van Dijk's briefing has just dry-run green. In three to five sentences, write (1) two specific things that green result has NOT proved about this routine, and (2) the first two things you would go and look at after the first real Monday run. Be concrete about this graph — the table read, the AI step, the notification — not about automation in general.",
+      "placeholder": "e.g. \"Green only means the graph holds together. It does not prove the notification actually reached the sales lead, because…\"",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "tour",
+      "id": "where-real",
+      "target": "[data-tour=\"routine-create\"]",
+      "navigateTo": "studio/routines",
+      "placement": "bottom",
+      "optional": true,
+      "timeoutMs": 7000,
+      "icon": "📍",
+      "title": "The real canvas starts here",
+      "body": "Same three questions, same ribbon, same trigger cards — except this one saves. In the next chapter you build a routine of your own here, and we verify it."
+    },
+    {
+      "type": "slide",
+      "id": "recap",
+      "icon": "🚀",
+      "title": "What you can do now",
+      "bodyMd": "You assembled two complete graphs without risking a thing.\n\n- **Pick a trigger from the brief.** A fixed moment is a schedule; \"when something arrives in an app\" is an app event; a form submission is the Form trigger.\n- **Bind rather than retype.** `{{steps.<id>.output.<field>}}` for a step, `{{trigger.output.<field>}}` for whatever started the run — and let *Insert data from a previous step* write it.\n- **Put your checks early and read your green ticks sceptically.** A Condition belongs right after the step it judges; a dry-run proves the wiring, never the delivery."
+    }
+  ],
+  "rubrics": {
+    "ex-automation-build-sim-dryrun": {
+      "title": "Reading a dry-run honestly",
+      "task": "Name two things a green dry-run of the Van Dijk briefing has not proved, and the first two things to check after the first live run.",
+      "criteria": [
+        "Names at least two concrete limits of a dry-run for THIS graph — e.g. the notification was synthesised so nobody actually received it, or the data was a stand-in so the real table's shape is untested.",
+        "Distinguishes the graph being correct (wiring, bindings, branches) from the routine working end to end in the real world.",
+        "Gives at least two specific things to inspect after the live run — the run's step timeline and which step errored, whether the sales lead really got the message, whether the empty-week branch behaved.",
+        "Stays with the actual routine (offertes table, AI step, notification) instead of generic advice about testing."
+      ],
+      "passScore": 70,
+      "guidance": "Pass a learner who separates 'the graph is sound' from 'the work really happened' and points at something checkable. Do not pass an answer that only repeats 'a dry-run is safe' or 'always test first', one that claims the dry-run proved delivery, or one that is entirely generic with no reference to this routine's steps. Sloppy grammar is fine; vagueness is not."
+    }
+  },
+  "practiceTopic": {
+    "title": "Assembling a routine on the canvas",
+    "summary": "Choosing a trigger from a brief, ordering steps, binding one step's output into the next, and knowing the limits of a dry-run.",
+    "facts": [
+      "The canvas empty state asks \"What does this routine start with?\" and states that every routine has exactly one trigger; the trigger cards are Manual, Form, Schedule, Webhook, App event, Agent call and Studio App.",
+      "Bindings are written as {{steps.<id>.output.<field>}} for a step's result and {{trigger.output.<field>}} for what started the run; incoming webhook headers land under trigger.headers, never inside trigger.output.",
+      "Every value field has a Text mode ({{ }} interpolates) and a Formula mode (steps.s1.output.total > 100); the field helpers are \"Insert data from a previous step\", \"Fields of {step}\" and \"Syntax help\", and the step list offers only steps above the current one.",
+      "The AI step is described as \"Reason and call tools with AI\" and its model tier sits under Advanced, defaulting to auto; Extract data has no model picker and its field names are its output shape.",
+      "The Condition step is one node described as \"Keep, split or branch — one rule or many\", and belongs immediately after the step whose output it judges; Shorten list keeps only the first — or last — few items and does no sorting, so the sort order and row limit are set on the Datatable read.",
+      "In a dry-run, side-effecting actions are synthesised instead of executed — a Notification step returns what it would have sent rather than sending it, and a Privacy Shield block becomes a \"would block\" annotation instead of failing the run — so green never proves a message was delivered.",
+      "Activate runs the strict validation pass and refuses on an unknown or unpermitted tool, an empty required input, an unauthorised knowledge base or a schedule with no upcoming run time; a pinned step only warns, and no dry-run is required before activating.",
+      "The schedule editor offers Every N minutes, Hourly, Daily, Weekly, Monthly and a custom pattern, defaults to the Europe/Amsterdam timezone, and previews the next three firing times before you save."
+    ]
+  },
+  "actionChecks": []
+}

@@ -1,0 +1,269 @@
+{
+ "id": "studio-start-and-map",
+ "icon": "🗺️",
+ "estMinutes": 7,
+ "title": "The Studio front door",
+ "desc": "Read Studio Start before you build: what \"Needs attention\" is really telling you, and what the map says about which block uses which.",
+ "gate": {
+  "permissionsAll": [
+   "manage_agents",
+   "manage_knowledge"
+  ]
+ },
+ "learningGoal": "After this lesson the learner can read Studio Start — telling an empty \"Needs attention\" list apart from an unchecked one, acting on the row that matters first, and using the map to see which building block uses which.",
+ "steps": [
+  {
+   "type": "slide",
+   "id": "why",
+   "icon": "🚪",
+   "title": "Start where the work already is",
+   "bodyMd": "Sanne builds for **Van Dijk Groep**, a Dutch installation firm of about forty people. She has an agent that answers quote questions, a knowledge base called Handbook, a routine that mails a nightly hours report, and an intake app for the fuse cupboard.\n\nOn Monday she opens Studio to build the next thing. Before she does, one screen tells her what is already broken and how the pieces she owns hang together.\n\nThat screen is **Start**, and it is worth two minutes at the beginning of every session."
+  },
+  {
+   "type": "tour",
+   "id": "where",
+   "target": "[data-tour=\"nav-studio\"]",
+   "placement": "right",
+   "optional": true,
+   "timeoutMs": 7000,
+   "icon": "🧭",
+   "title": "Studio, then Start",
+   "body": "Open Studio from the left rail. It opens on “Start” — “Everything you build, in one place” — which is also the section Studio shows when no section is chosen."
+  },
+  {
+   "type": "slide",
+   "id": "parts",
+   "icon": "🧱",
+   "title": "Four things on one page",
+   "bodyMd": "Start is read top to bottom:\n\n- **The header** — how many makers you can see (\"Everyone who owns something you can see in Studio.\"), a **New** menu holding every kind you may create, and **\"Describe it — AI picks the building blocks\"** when you would rather say it in words.\n- **Needs attention** — what is asking for a person right now.\n- **Recently edited** — where you left off, across the Studio sections this version can list.\n- **The sections**, grouped exactly as the left rail groups them, and at the bottom a map called **\"How the pieces fit together\"**.\n\nA section your licence or your rights do not cover still appears, greyed, with a lock and a line saying why. A signpost, never a door."
+  },
+  {
+   "type": "slide",
+   "id": "attention",
+   "icon": "⚠️",
+   "title": "What \"Needs attention\" looks at",
+   "bodyMd": "Six sources, each behind the same rights and the same scoping as the section it covers:\n\n- **App has validation problems**\n- **Agent has no knowledge base** (published agents only)\n- **Knowledge base is used but holds no documents**\n- **Routine failed several times in a row**\n- **Solution has blocking findings**\n- **Knowledge source could not refresh**\n\nRows are sorted by **severity** — errors, then warnings, then advice — never grouped by source, so the worst thing is always the first line. Two rows of the same severity fall back to a fixed order of the six sources, not to whichever source answered first."
+  },
+  {
+   "type": "quiz",
+   "id": "q-empty",
+   "icon": "❓",
+   "question": "Sanne opens Start. \"Needs attention\" lists no rows and reads: \"Some checks could not run, so this is not the whole picture — not a clean bill of health.\" What does she now know?",
+   "multi": false,
+   "choices": [
+    {
+     "id": "a",
+     "label": "Nothing was found in what was checked, but not everything could be checked — so this is not an all-clear.",
+     "correct": true
+    },
+    {
+     "id": "b",
+     "label": "Van Dijk Groep is in good shape; there is simply nothing wrong today.",
+     "correct": false,
+     "feedback": "The screen prints \"Nothing needs attention.\" only when every source actually answered. An empty list on its own is never the all-clear."
+    },
+    {
+     "id": "c",
+     "label": "The organisation is too big, so only its busiest part was checked.",
+     "correct": false,
+     "feedback": "That is a different sentence: \"Some checks covered only the busiest part of {sections}.\" A budget is a size, not a breakdown, and the screen keeps the two apart."
+    },
+    {
+     "id": "d",
+     "label": "Some checks are hidden from her because she may not act on them.",
+     "correct": false,
+     "feedback": "That case has its own line too — \"Some checks only run for the people who can act on them.\" A source you are not entitled to see is a known absence, not a hole in the answer."
+    }
+   ],
+   "explanation": "\"We looked and found nothing\" and \"we could not look everywhere\" are different answers, and Start refuses to render the first over the second. When it can name the sources that fell over, the screen adds \"Not checked: …\" with their names, so you can tell today's gap from yesterday's."
+  },
+  {
+   "type": "slide",
+   "id": "four-states",
+   "icon": "🔍",
+   "title": "Four answers, not two",
+   "bodyMd": "Each of the six sources comes back in one of four states, and Start says which:\n\n- **checked** — it ran; a result of zero is real news.\n- **capped** — it ran over the busiest part of a large organisation, not all of it.\n- **unavailable** — it fell over, or could only answer in part.\n- **gated** — not yours to see. Not a gap.\n\nRows the screen cannot draw are still counted: the number in the heading is the true total, not the drawn one, and a leftover is announced (\"{count} more were found but are not shown here.\").\n\nA row whose target the screen can name carries a **Show me** link straight to it."
+  },
+  {
+   "type": "sim",
+   "id": "sim-sources",
+   "icon": "🧩",
+   "title": "Which row does Van Dijk see?",
+   "instruction": "Five things went wrong at Van Dijk Groep this week. Pair each one with the \"Needs attention\" row it produces.",
+   "sim": {
+    "kind": "match",
+    "pairs": [
+     {
+      "id": "p1",
+      "left": "The quote agent is published, but nothing was ever linked for it to look in.",
+      "right": "Agent has no knowledge base",
+      "note": "Only published agents raise this one — a draft nobody can reach is not yet a problem for anyone."
+     },
+     {
+      "id": "p2",
+      "left": "Two sources under the Handbook base failed their last refresh.",
+      "right": "Knowledge source could not refresh",
+      "note": "Each row carries the producer's own sentence, so it already names the thing it is about."
+     },
+     {
+      "id": "p3",
+      "left": "The nightly hours report has fallen over three runs running.",
+      "right": "Routine failed several times in a row",
+      "note": "One bad night is noise; a streak is a person's problem."
+     },
+     {
+      "id": "p4",
+      "left": "The fuse-cupboard intake app is saved with problems its own validation flags.",
+      "right": "App has validation problems",
+      "note": "Rows here use the same finding row the builders' canvas draws, so a thing that needs a person looks the same wherever it appears."
+     },
+     {
+      "id": "p5",
+      "left": "An agent reads a base that contains no documents at all.",
+      "right": "Knowledge base is used but holds no documents",
+      "note": "An empty base that nothing reads is merely unfinished; one that something reads is answering from nothing."
+     }
+    ]
+   }
+  },
+  {
+   "type": "slide",
+   "id": "map",
+   "icon": "🗺️",
+   "title": "How the pieces fit together",
+   "bodyMd": "At the bottom of Start sits a map of the building blocks: form, web page, app, routine, table, meeting, knowledge base, agent, skill, playbook and solution, laid out in the same three groups as the sections above it.\n\nIt is a **legend, not an inventory**. It draws the kinds of block the product has and the kinds of link between them — never your own objects.\n\n**\"Pick a building block to see what it connects to.\"** Choose one and the map shows the connections that touch it, in plain sentences: *An agent is grounded in a knowledge base. A form triggers a routine. A routine reads and writes a table.*"
+  },
+  {
+   "type": "quiz",
+   "id": "q-edge",
+   "icon": "🔗",
+   "question": "One connection on the map carries a footnote: \"Not recorded anywhere yet, so no solution shows it.\" Which one?",
+   "multi": false,
+   "choices": [
+    {
+     "id": "a",
+     "label": "An app uses a table.",
+     "correct": true
+    },
+    {
+     "id": "b",
+     "label": "A routine reads and writes a table.",
+     "correct": false,
+     "feedback": "That one is recorded. Note that the map keeps it as two verbs — reads and writes — rather than flattening them into \"uses\", because they are not the same risk."
+    },
+    {
+     "id": "c",
+     "label": "An agent is grounded in a knowledge base.",
+     "correct": false,
+     "feedback": "Recorded, and heavily used: it is the link whose absence produces the \"Agent has no knowledge base\" row higher up the same screen."
+    },
+    {
+     "id": "d",
+     "label": "A routine calls another routine.",
+     "correct": false,
+     "feedback": "Recorded. It is the one connection on the map that loops back to its own box."
+    }
+   ],
+   "explanation": "The app-to-table link exists as a kind of connection, so the legend draws it — but nothing in the product writes it down yet, so you will not find it again anywhere else. The map says so on the tile rather than quietly pretending the link is tracked."
+  },
+  {
+   "type": "slide",
+   "id": "numbers",
+   "icon": "🔢",
+   "title": "The numbers on the tiles",
+   "bodyMd": "Each block on the map carries a count, so it reads as an inventory of your kinds rather than a diagram. **Approval** is the exception: it is drawn as a box because an app and a routine can both ask a person to approve, but it never gets a number — \"An approval is not something you make, so there is nothing to count.\"\n\nA missing number is never a zero. Two different hints say why:\n\n- **\"The number is not in yet.\"** — the reading is still on its way.\n- **\"No number for this one: either it is not yours to see, or it could not be read. That is not the same as none.\"**\n\nStart reads those counts **once**, when it opens. No timer ticks them forward while you sit there — reopening the screen is what refreshes them."
+  },
+  {
+   "type": "quiz",
+   "id": "q-count",
+   "icon": "🧮",
+   "question": "The routines tile on Van Dijk's map shows no number, with the hint \"No number for this one: either it is not yours to see, or it could not be read.\" What is the right move?",
+   "multi": false,
+   "choices": [
+    {
+     "id": "a",
+     "label": "Treat it as unknown and open the Routines section to look for yourself.",
+     "correct": true
+    },
+    {
+     "id": "b",
+     "label": "Read it as zero and build the organisation's first routine.",
+     "correct": false,
+     "feedback": "That is exactly the mistake the wording exists to prevent. A zero nobody measured is a false inventory, and you may be about to build the second copy of something that already runs."
+    },
+    {
+     "id": "c",
+     "label": "Wait half a minute on this screen for the next reading to arrive.",
+     "correct": false,
+     "feedback": "Start does not poll — it reads the counts once when it opens. A reading still on its way says so with a different hint: \"The number is not in yet.\""
+    },
+    {
+     "id": "d",
+     "label": "Ignore it; the map is decorative anyway.",
+     "correct": false,
+     "feedback": "The drawing is a legend, but the counts beside it are real. They are the reason the map reads as an inventory of kinds instead of a diagram."
+    }
+   ],
+   "explanation": "Everything on this screen is built to refuse a confident answer it did not earn — an unread count, an unchecked source, an undrawn row. When it says \"unknown\", go and look."
+  },
+  {
+   "type": "action",
+   "id": "do",
+   "icon": "🏗️",
+   "checkId": "agent-grounded",
+   "title": "Clear one row from your own Start screen",
+   "instruction": "Open Studio, read \"Needs attention\", and if you see \"Agent has no knowledge base\", follow it. Open that agent and link a knowledge base so it has something to look in, then come back to Start — the row should be gone. No such row? Link a knowledge base to any agent of yours anyway; that same grounding check is what puts \"Answers from memory — connect a knowledge base\" on an agent card.",
+   "launch": {
+    "navigateTo": "studio/agents",
+    "label": "Open Studio → Agents"
+   }
+  },
+  {
+   "type": "slide",
+   "id": "recap",
+   "icon": "✅",
+   "title": "What you can do now",
+   "bodyMd": "- **Read Start before you build.** \"Needs attention\" gathers six sources; \"Recently edited\" picks your work back up; the sections and the map sit below.\n- **Tell an empty list from an unchecked one.** \"Nothing needs attention.\" is the only all-clear. \"Not checked: …\", a capped check and a gated source each mean something else.\n- **Use the map as a legend.** It shows which kind of block uses which, with a count per kind — and it says \"unknown\" out loud rather than printing a zero it did not measure."
+  }
+ ],
+ "practiceTopic": {
+  "title": "Studio Start and the Studio map",
+  "summary": "The screen Studio opens with: what needs a person, what you last touched, and how the building blocks connect.",
+  "facts": [
+   "Studio's front door is the section \"Start\" — \"Everything you build, in one place\"; Studio with no section chosen opens it, and an unknown section falls back to Agents.",
+   "\"Needs attention\" draws on six sources: app validation problems, a published agent with no knowledge base, an empty knowledge base something reads, a routine that failed several times in a row, a Solution with blocking findings, and a knowledge source that could not refresh.",
+   "Rows are ordered by severity — errors, then warnings, then advice — and never grouped by source; a row whose target can be named carries a \"Show me\" link.",
+   "\"Nothing needs attention.\" is printed only when every source answered; otherwise the screen says \"Not checked: {sections}.\", or that a check covered only the busiest part, or that some checks only run for the people who can act on them.",
+   "The map at the bottom is titled \"How the pieces fit together\" and is a legend of kinds — form, web page, app, routine, table, meeting, knowledge base, agent, skill, playbook, solution — never your own objects; \"Pick a building block to see what it connects to.\"",
+   "Approval is drawn on the map but never counted: \"An approval is not something you make, so there is nothing to count.\"; the connection \"An app uses a table\" carries the note that nothing records it yet.",
+   "\"Agent has no knowledge base\" comes from the same grounding check as the agent card's \"Answers from memory — connect a knowledge base\", so the two screens cannot disagree."
+  ]
+ },
+ "actionChecks": [
+  {
+   "checkId": "agent-grounded",
+   "existing": false,
+   "label": "Give one of your agents something to look in",
+   "hint": "Studio → Agents → open an agent → link a knowledge base. Back on Studio Start, its \"Agent has no knowledge base\" row is gone.",
+   "endpoints": [
+    {
+     "method": "GET",
+     "path": "/agents",
+     "returns": "array of the caller's own agent rows, each with id, name, owner_id and a parsed config object containing knowledge_base_ids"
+    }
+   ],
+   "criteria": [
+    {
+     "id": "grounded",
+     "label": "An agent of your own exists to ground",
+     "hint": "Studio → Agents — create one first if you have none. The knowledge base you link is stored in the agent’s config, where this check cannot look; the \"Needs attention\" row leaving Start is your proof.",
+     "rule": "GET /agents → at least one row whose owner_id is the learner (config.knowledge_base_ids is per row and not readable by the runtime)",
+     "endpoint": "/agents",
+     "expect": {
+      "kind": "rows"
+     }
+    }
+   ]
+  }
+ ]
+}

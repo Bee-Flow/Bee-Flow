@@ -1,0 +1,59 @@
+{
+  "name": "Webpage to Markdown",
+  "description": "Convert a webpage to clean Markdown format on the server using cheerio. Fetches the HTML, strips non-content elements, and produces well-formatted Markdown.",
+  "category": "Integration",
+  "inputs": {
+    "url": {
+      "type": "string",
+      "description": "The URL of the webpage to convert to Markdown"
+    },
+    "timeout": {
+      "type": "number",
+      "default": 15000,
+      "description": "Maximum time to wait for the HTTP request in milliseconds"
+    },
+    "userAgent": {
+      "type": "string",
+      "default": "Mozilla/5.0 (compatible; BeeFlowBot/1.0; +https://beeflow.nl)",
+      "description": "User agent string to use for the HTTP request"
+    },
+    "includeLinks": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether to include hyperlinks in the Markdown output"
+    },
+    "includeImages": {
+      "type": "boolean",
+      "description": "Whether to include image references in the Markdown output"
+    }
+  },
+  "outputs": {
+    "markdown": {
+      "type": "string",
+      "label": "Markdown",
+      "description": "The webpage content converted to Markdown format"
+    },
+    "title": {
+      "type": "string",
+      "label": "Page Title",
+      "description": "The title of the webpage"
+    },
+    "url": {
+      "type": "string",
+      "label": "Source URL",
+      "description": "The original URL that was fetched"
+    },
+    "success": {
+      "type": "boolean",
+      "label": "Success",
+      "description": "Whether the conversion completed successfully"
+    },
+    "error": {
+      "type": "string",
+      "label": "Error Message",
+      "description": "Error message if the conversion failed"
+    }
+  },
+  "agentEnabled": true,
+  "directChatEnabled": false
+}

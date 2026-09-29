@@ -1,0 +1,21 @@
+# ══════════════════════════════════════════════════════════════════
+# BeeFlow — Local Development Override
+# ══════════════════════════════════════════════════════════════════
+#
+# Layer on top of docker-compose.yml for local runs: publishes Postgres on
+# host port 5433 (the base file doesn't publish it), pins a fixed dev
+# SESSION_SECRET, and restarts server + agent-hub automatically.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.local.yml up -d
+# ══════════════════════════════════════════════════════════════════
+
+services:
+  postgres:
+    ports: !override
+      - "5433:5432"
+  server:
+    restart: unless-stopped
+    environment:
+      - SESSION_SECRET=local-dev-session-secret-change-me-32chars
+  agent-hub:
+    restart: unless-stopped

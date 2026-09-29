@@ -1,0 +1,142 @@
+# Container image scanning — ISO/IEC 27001 A.8.8, the half npm audit cannot see.
+#
+# `npm audit` reads package.json trees. It says nothing about the base image:
+# the OpenSSL, glibc, curl and Python packages that ship inside every container
+# and that a self-hosting customer runs on their own infrastructure. Those are
+# the CVEs a customer's own scanner finds first, and being told about your
+# product's base image by your customer is a bad way to learn.
+#
+# REPORT, NOT GATE — deliberately, and for a different reason than the
+# dependency ratchet. A base-image CVE is usually fixed by rebuilding on a newer
+# base rather than by changing this repository, so failing a pull request for it
+# would block work that cannot fix it. This runs on a schedule against the
+# images that are actually published, which is where the answer is useful.
+#
+# It scans :dev. Production images are built from the same Dockerfiles by the
+# same workflow, so a finding here is a finding there — with the caveat that a
+# :prod tag built weeks earlier carries whatever its base had then, which is
+# itself worth knowing when the numbers diverge.
+name: Image scan
+
+on:
+  schedule:
+    # Tuesday 04:00 UTC — after Monday's Dependabot run, so a rebuild triggered
+    # by a dependency PR is reflected before this reads the images.
+    - cron: '0 4 * * 2'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Image tag to scan'
+        required: false
+        default: dev
+
+permissions:
+  contents: read
+  # The images are pulled with this run's token (TRIVY_USERNAME/PASSWORD
+  # below). pii, search-api and reranker are PRIVATE packages, and without
+  # packages: read the pull is refused before anything is scanned.
+  # Packages this repository publishes grant it Actions access by default; a
+  # package created any other way needs it added under Package settings.
+  packages: read
+
+jobs:
+  # Job id deliberately NOT `scan`: that literal string is a REQUIRED status
+  # check on main (ruleset 23605458) and secret-scan.yml is the job that
+  # produces it. Today this job is a matrix, so it emits `scan (server)`,
+  # `scan (guard)`, … and never a bare `scan`. Collapse the matrix to one
+  # image and a job called `scan` WOULD emit it — from a job that sets
+  # exit-code: '0' and fail-fast: false and therefore essentially cannot
+  # fail, i.e. a permanently-green required check. scripts/check-required-checks.mjs
+  # enforces this; see .github/required-checks.json.
+  scan-image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        # The images a customer actually runs. GPU images (whisperx,
+        # search-inference-gpu) are excluded: they are enormous, rarely
+        # deployed, and would dominate the runtime of this job without changing
+        # what anyone does on a Tuesday morning.
+        # Names as build-push-ghcr.yml publishes them (`guard`, not
+        # `guard-service`) — a wrong name here scans nothing and reports a clean
+        # summary, which is the worst outcome a scanner can produce.
+        image: [server, agent-hub, guard, pii, classify, search-api, reranker]
+    env:
+      # Whether the full report may be shown. This repository is public, so a
+      # run's summary and artifacts are readable by anyone. For a PUBLIC image
+      # that adds nothing (anyone can pull it and run the same scan); for a
+      # PRIVATE one (pii, search-api, reranker, ...) it would publish the
+      # known-vulnerable packages of images outsiders cannot inspect. An
+      # allow-list of the public packages, not a list of private ones: an
+      # image added to the matrix later stays count-only until someone
+      # decides otherwise. Keep it in step with the packages' visibility.
+      REPORT_PUBLIC: ${{ contains(fromJSON('["server", "agent-hub", "guard", "classify", "pwt-runner"]'), matrix.image) }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Scan ghcr.io/bee-flow/${{ matrix.image }}
+        # Pinned by commit. Upstream deleted its un-prefixed tags (0.28.0 and
+        # friends now 404) and re-published v-prefixed ones, so the tag that
+        # stood here failed every leg of every run at setup, before scanning.
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ghcr.io/bee-flow/${{ matrix.image }}:${{ inputs.tag || 'dev' }}
+          # A private image's report is only counted (see REPORT_PUBLIC), and
+          # JSON counts reliably where the table would have to be parsed.
+          format: ${{ env.REPORT_PUBLIC == 'true' && 'table' || 'json' }}
+          output: trivy-${{ matrix.image }}.${{ env.REPORT_PUBLIC == 'true' && 'txt' || 'json' }}
+          severity: HIGH,CRITICAL
+          # OS packages and language libraries both — the base image is the
+          # point of this job, but a vendored library inside the image is just
+          # as much part of what ships.
+          scanners: vuln
+          ignore-unfixed: false
+          exit-code: '0'
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Summary
+        if: always()
+        # The tag is operator input: it reaches the shell as a variable, never
+        # spliced into the script text.
+        env:
+          IMAGE: ${{ matrix.image }}
+          TAG: ${{ inputs.tag || 'dev' }}
+        run: |
+          if [[ "$REPORT_PUBLIC" == "true" ]]; then
+            {
+              echo "### ${IMAGE}:${TAG}"
+              echo
+              echo '```'
+              head -c 60000 "trivy-${IMAGE}.txt" 2>/dev/null || echo 'no scan output — the image may not exist for this tag'
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          # Private image: counts only. "no scan output" and a report jq
+          # cannot read are said as such, never shown as zero findings.
+          COUNTS="$(jq -r '[.Results[]?.Vulnerabilities[]?.Severity]
+                           | "CRITICAL: \(map(select(. == "CRITICAL")) | length), HIGH: \(map(select(. == "HIGH")) | length)"' \
+                      "trivy-${IMAGE}.json" 2>/dev/null)" || COUNTS=''
+          [[ -n "$COUNTS" ]] || COUNTS='no scan output — the image may not exist for this tag'
+          {
+            echo "### ${IMAGE}:${TAG}"
+            echo
+            echo "${COUNTS}"
+            echo
+            echo "Private image: the findings are counted, not listed, because this repository's run summaries and artifacts are public. Run the same scan locally for the details."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # Public images only, for the reason at REPORT_PUBLIC.
+      - name: Keep the report
+        if: always() && env.REPORT_PUBLIC == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: trivy-${{ matrix.image }}
+          path: trivy-${{ matrix.image }}.txt
+          # Long enough to compare one month against the next, which is what
+          # makes a trend visible; short enough not to become an archive.
+          retention-days: 90
+          if-no-files-found: warn

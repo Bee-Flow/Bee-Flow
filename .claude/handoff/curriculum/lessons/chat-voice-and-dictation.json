@@ -1,0 +1,282 @@
+{
+  "id": "chat-voice-and-dictation",
+  "icon": "🎙️",
+  "estMinutes": 7,
+  "title": "Speak instead of type",
+  "desc": "The mic button dictates into the box; voice mode holds the conversation out loud — two controls, and two different journeys for your voice.",
+  "gate": {},
+  "learningGoal": "After this lesson the learner can dictate a message with the mic button, start and leave voice mode, say where their voice is processed in each case, and work out why either control is missing.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "why",
+      "icon": "🚐",
+      "title": "Ninety seconds in the car park",
+      "bodyMd": "Ruben from Van Dijk Groep has just walked out of a customer site in Apeldoorn. Everything that matters is still in his head: what was agreed, which profile they want, when the fitter can come. In ten minutes on the motorway it will be half gone.\n\nHe does not want to thumb it into a phone. He wants to say it.\n\nBee Flow gives him two ways to use his voice, and they are not the same thing:\n\n- **the mic button** — you speak, the words land in the message box as text, you read them and press Enter;\n- **voice mode (Beta)** — you and the assistant talk, out loud, back and forth.\n\nThis lesson is about telling the two apart and knowing which one to reach for."
+    },
+    {
+      "type": "tour",
+      "id": "where",
+      "target": "[data-tour=\"chat-composer\"]",
+      "navigateTo": "agents",
+      "placement": "top",
+      "optional": true,
+      "timeoutMs": 7000,
+      "icon": "⌨️",
+      "title": "Both of them live here",
+      "body": "This is the composer. At its right-hand end sit the microphone and the round Send button — that small corner is where everything in this lesson happens. If you cannot see a microphone there, do not worry: a later card explains the four reasons it can be missing."
+    },
+    {
+      "type": "slide",
+      "id": "mic",
+      "icon": "🎤",
+      "title": "The mic button: one take, then text",
+      "bodyMd": "Hover the microphone and it says **\"Dictate — speak your instruction\"**.\n\n1. Click it once. It turns into a red stop square, a counter starts beside it at `00:00`, and the tooltip changes to **\"Stop recording and insert the text\"**.\n2. Speak. Ruben talks for about ninety seconds; the counter reads `01:30`.\n3. Click again. The button becomes a spinner and cannot be clicked while it works.\n4. The transcript drops into the message box.\n\nTwo things worth knowing straight away. A take is capped at **two minutes** — at `02:00` it stops itself. And nothing has been sent: the words sit in the box like anything you typed, so you read them, fix the name it misheard, and press Enter yourself."
+    },
+    {
+      "type": "slide",
+      "id": "local",
+      "icon": "🔒",
+      "title": "Where your voice goes when you dictate",
+      "bodyMd": "Dictation audio goes to your own Bee Flow server and is turned into text there, by a speech model running on that machine. Nothing you dictate leaves the installation to be recognised.\n\nThat is the recording. The **text** is a different matter.\n\nOnce the transcript is in the box it is ordinary composer text, so everything you already know applies to it. When you press Enter the Privacy Shield inspects it exactly as it inspects typing, and the line beside the composer still tells you what will happen — for example *\"Personal data is replaced before sending\"*.\n\nSo saying a customer's name out loud is safe at the moment you say it, and handled at the moment you send."
+    },
+    {
+      "type": "quiz",
+      "id": "q-append",
+      "question": "Ruben has already typed \"Bezoekverslag Apeldoorn:\" in the box. He then clicks the mic and dictates for forty seconds. What does he find in the box afterwards?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "His typed words, then a space, then the transcript after them",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Only the transcript — dictation replaces whatever was in the box",
+          "correct": false,
+          "feedback": "It never overwrites. Dictation adds to what is already there, so you can type a heading, dictate the body, and keep both."
+        },
+        {
+          "id": "c",
+          "label": "Nothing in the box: the transcript is sent as a message on its own",
+          "correct": false,
+          "feedback": "Dictation stops at the box. It fills the composer and waits; you are still the one who presses Enter."
+        },
+        {
+          "id": "d",
+          "label": "Nothing at all — the mic only works when the box is empty",
+          "correct": false,
+          "feedback": "An empty box changes what the Send button does, not whether the mic works. You can dictate into a half-written message any time."
+        }
+      ],
+      "explanation": "The transcript is appended after whatever is already in the box, separated by a space — including anything you typed while the recording was still being transcribed."
+    },
+    {
+      "type": "sim",
+      "id": "pick",
+      "icon": "🧩",
+      "title": "Which control for which moment?",
+      "instruction": "Four moments from Ruben's week. Match each one to the control it calls for.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "p1",
+            "left": "A visit report he wants to read over and correct before anything is sent",
+            "right": "The mic button",
+            "note": "Dictation puts text in the box and stops there, which is exactly the pause he wants."
+          },
+          {
+            "id": "p2",
+            "left": "Hands busy unpacking samples, wanting to ask something and hear the answer",
+            "right": "Voice mode (Beta)",
+            "note": "Voice mode is a spoken conversation: it listens, answers out loud, and keeps going."
+          },
+          {
+            "id": "p3",
+            "left": "Starting a spoken conversation without opening any menu",
+            "right": "An empty box turns Send into a mic",
+            "note": "With nothing typed and nothing attached, the round Send button becomes a microphone."
+          },
+          {
+            "id": "p4",
+            "left": "A twenty-minute customer meeting he wants written up in full",
+            "right": "Neither — a take stops at two minutes",
+            "note": "Dictation is built for a paragraph, not a meeting. It cuts itself off at 02:00."
+          }
+        ]
+      }
+    },
+    {
+      "type": "slide",
+      "id": "voice",
+      "icon": "☎️",
+      "title": "Voice mode: the conversation itself",
+      "bodyMd": "There are two ways into it from the composer. Open the **+** button (**Message tools**) and pick **Voice mode**, marked **beta**, hinted *\"Talk with your assistant instead of typing\"*. Or simply leave the box empty with nothing attached: the round Send button turns into a microphone reading **\"Voice Chat (Beta) — talk with your assistant\"**. Start typing and it turns back into Send.\n\nThe composer is then replaced by a panel headed **Beta · Voice mode · live · using chat history**. There is no press-to-talk: *\"The mic stays on. Just start speaking — I'll pick it up automatically.\"*\n\nA status line tells you where you are — **\"Listening — just start speaking.\"**, **\"Hearing you…\"**, **\"Thinking…\"**, **\"Speaking — just start talking to interrupt.\"** Finished turns appear in the thread as ordinary chat bubbles. The hang-up icon, **Exit voice mode**, puts you back.\n\nOne difference from dictation worth carrying with you: voice mode runs on an external speech service. It only appears once an administrator has set a Mistral API key on the server, and that is where the spoken half of the conversation is handled — not on your own machine, the way dictation is."
+    },
+    {
+      "type": "slide",
+      "id": "gates",
+      "icon": "🚦",
+      "title": "Four reasons a mic is not there",
+      "bodyMd": "**Voice mode is not switched on for you.** It is a beta feature: it has to be switched on for your account, the licence has to include it, and an administrator has to have set a Mistral API key on the server. Miss any one and the row is simply absent from the **+** menu and Send stays an arrow.\n\n**You are on an insecure page.** Browsers only hand a microphone to a page served over HTTPS or on localhost. Opened over a plain address on the office network, the mic button does not render — it is not a permission you can grant.\n\n**Simple Mode is on.** It strips the composer back to attachments and web search, and hides the mic and voice with it.\n\n**You are on a phone.** Simple Mode is forced on every screen narrower than 768 pixels, whatever your setting says."
+    },
+    {
+      "type": "quiz",
+      "id": "q-nomic",
+      "question": "In the van, Ruben opens Bee Flow on his phone and there is no microphone in the composer. On his laptop at the office it is there every time, same account, same address. What is going on?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "His phone screen is narrower than 768 pixels, so Simple Mode is forced on — and Simple Mode hides the mic",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "He has not been given the voice chat beta feature",
+          "correct": false,
+          "feedback": "That gate governs voice mode, not dictation. It would also take the control away on his laptop, and it does not."
+        },
+        {
+          "id": "c",
+          "label": "He has used up the two-minute dictation limit for the day",
+          "correct": false,
+          "feedback": "The two minutes are the length of one take, not a daily allowance. Reaching it stops that recording and nothing else."
+        },
+        {
+          "id": "d",
+          "label": "His organisation's Privacy Shield blocks microphones on mobile devices",
+          "correct": false,
+          "feedback": "The Shield inspects the text of a message before it is sent. It has no say over which buttons the composer draws."
+        }
+      ],
+      "explanation": "Under 768 pixels Simple Mode is forced regardless of the stored preference, and it deliberately hides the tier gauge, the pills, apps and voice. On a phone, plan to type — or dictate from a laptop or tablet."
+    },
+    {
+      "type": "slide",
+      "id": "trouble",
+      "icon": "🩺",
+      "title": "When dictation says no",
+      "bodyMd": "A failure shows up as a small line of text beside the mic. Click it to dismiss it. The wording tells you who has to fix it:\n\n- **\"No speech detected.\"** — the recording held nothing recognisable. Muted input, or too far from the microphone.\n- **\"Microphone access was blocked. Allow it in your browser settings.\"** — you refused the browser's prompt once. Bee Flow cannot ask again; change it in the browser's settings for this site.\n- **\"Speech recognition is not available on this server right now.\"** — your server's speech model is not answering. One for whoever runs your Bee Flow.\n- **\"That recording is too large (max 25 MB). Dictate in shorter bursts.\"** — split it into takes.\n\nAnd if there is no microphone to click at all, that is not a failure message but one of the four reasons on the previous card — the address, Simple Mode, the screen width, or the beta."
+    },
+    {
+      "type": "quiz",
+      "id": "q-error",
+      "question": "Ruben taps the mic, the counter runs to 00:04, he taps stop — and a moment later the line beside the mic reads \"No speech detected.\" What most likely happened?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "What was recorded was effectively silence — a muted headset, or he was too far from the microphone",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "He hit the two-minute cap, so the take was discarded",
+          "correct": false,
+          "feedback": "The counter says four seconds, and reaching the cap does not throw the take away — it stops the recording and transcribes what it has."
+        },
+        {
+          "id": "c",
+          "label": "The Privacy Shield removed the transcript before it reached the box",
+          "correct": false,
+          "feedback": "The Shield acts on text when you press Enter, and it announces itself with a review dialog or a redaction badge — never with this line."
+        },
+        {
+          "id": "d",
+          "label": "He spoke Dutch and dictation only understands English",
+          "correct": false,
+          "feedback": "Dictation is sent with a language and Dutch is the default here. A language mismatch gives you strange words, not an empty result."
+        }
+      ],
+      "explanation": "A near-silent take comes back with no text, and that is the message you get. Check the input device, get closer, and take two — very short taps are treated as a slip of the finger rather than speech."
+    },
+    {
+      "type": "exercise",
+      "id": "ex",
+      "icon": "🎯",
+      "exerciseId": "ex-chat-voice-say-it-out-loud",
+      "title": "Your turn: write what you would say",
+      "instruction": "Write the words Ruben should speak into the mic after the Apeldoorn visit — as one continuous spoken instruction of three to five sentences, the way you would actually say it standing by the van. A strong answer asks for something concrete (a visit report and a follow-up mail), carries the facts the assistant cannot know (what was agreed, which product, the date the fitter can come, who has to confirm), reads as speech rather than as a typed note, and is short enough to fit comfortably inside one two-minute take.",
+      "placeholder": "e.g. Maak hier een kort bezoekverslag van en daarna een follow-upmail. We waren vandaag bij de klant in Apeldoorn, ze willen…",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "action",
+      "id": "do",
+      "icon": "🏗️",
+      "checkId": "chat-spoken",
+      "title": "Dictate one real message",
+      "instruction": "Open a new chat, click the microphone, and speak a real question you have today instead of typing it. Click the stop square, read what landed in the box and correct anything it misheard, then press Enter and let the answer finish. If your composer has no microphone, work back through the four reasons card first.",
+      "launch": {
+        "navigateTo": "agents",
+        "label": "Open a new chat"
+      }
+    },
+    {
+      "type": "slide",
+      "id": "now",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "- **Dictate a message.** Mic, speak up to two minutes, stop, read it back, press Enter. It adds to the box rather than replacing it, and it never sends on your behalf.\n- **Hold a spoken conversation.** The **+** menu's **Voice mode**, or an empty box where Send has turned into a microphone. The mic stays on, you interrupt by talking, and the hang-up icon gets you out.\n- **Explain the difference to a colleague.** Dictation is transcribed on your own server; voice mode is handled by an external speech service, so it stays off until an administrator has set a Mistral API key and the beta is switched on for you.\n\nAnd when the microphone is not there at all, you now know where to look first: the screen width, then the address, then the beta."
+    }
+  ],
+  "rubrics": {
+    "ex-chat-voice-say-it-out-loud": {
+      "title": "A dictated instruction that survives the transcript",
+      "task": "Write, in three to five sentences, exactly what Ruben would speak into the mic after a customer visit in Apeldoorn, so that the transcript is usable as a chat message without being rewritten.",
+      "criteria": [
+        "Names what should come out of it — a visit report, a follow-up mail, or both — rather than only recounting the visit",
+        "Supplies concrete facts the assistant could not know: what was agreed, which product or quantity, a date or a next step, who confirms",
+        "Reads as continuous speech: no dictated punctuation, no bullet markers, no 'new paragraph' instructions",
+        "Stays short enough for one two-minute take and does not ask for a twenty-minute meeting write-up"
+      ],
+      "passScore": 70,
+      "guidance": "Pass a plain, slightly rambling spoken paragraph that states a deliverable and real details — spoken language is the point. Do not pass a one-line prompt with no facts in it ('maak een verslag'), a tidy typed memo with headings and bullets, or an answer that spells out punctuation. Content in Dutch or English is equally fine."
+    }
+  },
+  "practiceTopic": {
+    "title": "Voice and dictation in chat",
+    "summary": "The mic button dictates text into the composer; voice mode is a spoken conversation, and each sends your voice somewhere different.",
+    "facts": [
+      "The mic button reads 'Dictate — speak your instruction', and while recording it reads 'Stop recording and insert the text' with a counter beside it.",
+      "One dictation take is capped at two minutes; the recording stops itself at 02:00 and the transcript is added after whatever is already in the box.",
+      "Dictation audio is transcribed on your own Bee Flow server; the resulting text is then checked by the Privacy Shield when you press Enter, like any typed message.",
+      "Voice mode is opened from the + menu (Message tools) row 'Voice mode', badged beta, hinted 'Talk with your assistant instead of typing'.",
+      "With an empty box and no attachment, the Send button becomes a microphone titled 'Voice Chat (Beta) — talk with your assistant'; typing turns it back into Send.",
+      "The voice panel shows Beta, 'Voice mode', '· live · using chat history', status lines such as 'Hearing you…' and 'Speaking — just start talking to interrupt.', and an Exit voice mode button.",
+      "Voice mode needs the voice chat beta feature, a licence that includes it, and a Mistral API key configured on the server; otherwise the row is absent.",
+      "Simple Mode hides the mic and voice, and Simple Mode is forced on every screen narrower than 768 pixels."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "chat-spoken",
+      "existing": false,
+      "label": "Send a dictated message and get an answer",
+      "hint": "New Chat, click the microphone, speak your question, click stop, tidy the transcript and press Enter.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/ai/direct/conversations",
+          "returns": "array of the caller's own direct conversations, newest first; each row has id, title, created_at, updated_at (the query is scoped to the session user, so there is no owner field to filter on)"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "conversation",
+          "label": "You have a direct conversation of your own",
+          "hint": "Click New Chat in the sidebar; the conversation appears once the first message goes out. Whether you typed or dictated it is not visible here — the words that landed in the box are your proof.",
+          "rule": "GET /ai/direct/conversations → the list is non-empty (it is already scoped to the session user)",
+          "endpoint": "/ai/direct/conversations",
+          "expect": {
+            "kind": "rows"
+          }
+        }
+      ]
+    }
+  ]
+}

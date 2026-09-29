@@ -1,0 +1,13 @@
+# Test-only dependencies. Run from the repo root: pytest whisperx-service/tests
+# No model and no torch: tests/conftest.py stubs torch, whisperx and
+# huggingface_hub when they are absent, so this is the rest of what app.py
+# needs to import. python-multipart is not optional:
+# FastAPI refuses to register a Form() route without it. Pins as in
+# pyproject.toml.
+pytest==9.1.1
+pytest-cov==7.1.0
+fastapi==0.141.1
+pydantic-settings==2.15.0
+python-multipart==0.0.32
+# TestClient's transport; not in the image.
+httpx==0.28.1

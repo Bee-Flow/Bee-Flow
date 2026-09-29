@@ -1,0 +1,5 @@
+{
+  "_comment": "Lowest number of server source files that must carry // @typecheck. Raise it with `node scripts/checkjs-ratchet.mjs server --update` after opting more files in; lowering it is a deliberate edit that belongs in a commit message with a reason.",
+  "_generated": "2026-09-24",
+  "checkedFiles": 493
+}

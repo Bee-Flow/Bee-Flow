@@ -1,0 +1,280 @@
+{
+  "id": "agent-publish-and-audience",
+  "icon": "📣",
+  "estMinutes": 9,
+  "title": "The two publish buttons",
+  "desc": "Audience versus version: who may see it, and which configuration actually runs.",
+  "gate": {
+    "permission": "manage_agents"
+  },
+  "learningGoal": "After this lesson you can ship an agent to exactly the right people, running the configuration you intended — and tell which of the two buttons fixes a complaint.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "two-verbs",
+      "icon": "🚪",
+      "title": "Two buttons, two different questions",
+      "bodyMd": "Two complaints reach **Marloes at Van Dijk Groep** on the same morning. She is the buyer who built **Inkoopassistent** — the agent that answers questions about supplier contracts and the price list — and she owns it. The material it quotes from is somebody else's: the knowledge base **Inkoopvoorwaarden**, kept by her colleague **Sandra in procurement**, which the agent is linked to.\n\nOne colleague cannot find the agent at all. Another has found it, but says it still answers the way it did last week. The two sound alike and have nothing to do with each other.\n\nThat is because two separate controls sit in the header of the agent editor.\n\n- The **visibility capsule** — the small pill showing who the agent is shared with — answers **who**. Its popover is titled **\"Publish to…\"** and offers **Personal**, **Entire organisation** and **Or specific groups**.\n- The **Publish** button answers **what runs**. It copies your current configuration into the version the product serves to everyone else.\n\nThey are separate on purpose. Sharing does not ship your edits, and shipping your edits does not share anything."
+    },
+    {
+      "type": "slide",
+      "id": "ahead",
+      "icon": "📐",
+      "title": "How far ahead your draft is",
+      "bodyMd": "Everything you type in the editor saves itself — the indicator flickers **\"Saving…\"** then **\"Saved\"** — but it saves into your **draft**. Nobody else is reading it yet.\n\nThe header also says which version they *are* reading: the chip **\"Saved · v1\"**. There is deliberately no \"v0\" — before your first publish the chip simply is not there.\n\nHow far ahead you are only shows up where it is measured. The **Test** tab says it in a sentence — **\"Live is v1, with 3 unpublished changes.\"** — because a run exercises the published agent, not your draft.\n\nThe primary button changes wording with the situation: **\"Publish\"** the first time, **\"Publish new version\"** ever after."
+    },
+    {
+      "type": "slide",
+      "id": "elsewhere",
+      "icon": "⚠️",
+      "title": "Your draft is not private to your screen",
+      "bodyMd": "A draft is not a scratchpad only you can reach. Anyone who may edit the agent — its owner, and colleagues whose role lets them manage agents — writes into the same draft. So does your own second browser tab, left open on the laptop at home.\n\nAutosave then does exactly what it was built for, into work that moved on without you. When that happens the editor stops and asks: **\"This agent changed elsewhere\"** — *\"Someone (or another tab) saved this agent since you opened it. Choose how to continue:\"*\n\nThere are two buttons and no safe default, which is why nothing retries on its own:\n\n- **Load latest** — take what is now on the server. **Your unsaved edits are discarded.**\n- **Keep mine** — send your screen over theirs. **Their save is overwritten.**\n\nRead the sentence as \"one of these two pieces of work is about to be lost, and you are choosing which\"."
+    },
+    {
+      "type": "quiz",
+      "id": "elsewhere-q",
+      "icon": "❓",
+      "question": "Marloes is rewriting the Inkoopassistent's instructions. Sandra — who may also edit agents at Van Dijk Groep — has meanwhile fixed a typo in the agent's description, and her change saved. Marloes' next autosave raises \"This agent changed elsewhere\". What should she do?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Copy her rewritten instructions out of the editor first, press Load latest, and paste them back on top of Sandra's saved version.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Press Keep mine — it is the option that saves her work, and Sandra only changed a description.",
+          "correct": false,
+          "feedback": "It does save her work, by overwriting Sandra's. Keep mine sends Marloes' whole screen, including the old description she still has on it, so the typo comes back and nobody is told. Choose it only when you know what you are overwriting is worth less than what you have."
+        },
+        {
+          "id": "c",
+          "label": "Press Load latest straight away — nothing is lost, the modal only reloads the page.",
+          "correct": false,
+          "feedback": "Load latest discards her unsaved rewrite. The modal says so, and there is no undo afterwards: rescue the text out of the editor before pressing it."
+        },
+        {
+          "id": "d",
+          "label": "Wait — the editor retries the save by itself and merges both changes.",
+          "correct": false,
+          "feedback": "There is deliberately no auto-retry and no merge. The product cannot know which of two people is right, so it stops and makes a person decide."
+        }
+      ],
+      "explanation": "Neither button merges. Load latest keeps the server's copy and drops yours; Keep mine keeps yours and drops the server's. The safe move is almost always to rescue your text, load the latest, and re-apply it — and, when you and a colleague are both working on one agent, to say so before you start rather than after a modal appears."
+    },
+    {
+      "type": "sim",
+      "id": "symptoms",
+      "icon": "🩺",
+      "title": "Which button fixes this?",
+      "instruction": "Five things people at Van Dijk Groep report about the Inkoopassistent. Match each one to what actually fixes it.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "stale",
+            "left": "\"It still answers the way it did last week\" — you rewrote the instructions yesterday and saved them.",
+            "right": "Press Publish new version",
+            "note": "Your edits live in the draft. Once a version exists, the product keeps serving that version until you publish the next one."
+          },
+          {
+            "id": "invisible",
+            "left": "The Inkoop team cannot find the agent in their agent list at all.",
+            "right": "Open the capsule and pick the group",
+            "note": "That is an audience problem. No amount of publishing versions makes an agent visible to someone it was never shared with."
+          },
+          {
+            "id": "stop",
+            "left": "The agent must stop being available to the whole organisation while Marloes rethinks it.",
+            "right": "Open the capsule and pick Personal",
+            "note": "That is an audience change, not a version. Try instead to untick the last remaining group and the capsule refuses, with the hint \"Choose Personal to stop sharing\"."
+          },
+          {
+            "id": "kb",
+            "left": "Sandra drops the new quarterly price list into **Inkoopvoorwaarden**, the knowledge base Marloes' agent is already linked to.",
+            "right": "Nothing — it counts straight away",
+            "note": "A publish freezes the agent's configuration, not the documents. The linked knowledge base is searched at the moment somebody asks — and it does not matter that the base belongs to a colleague rather than to the agent's builder."
+          },
+          {
+            "id": "regret",
+            "left": "The new version answers worse than the old one and Marloes wants yesterday's configuration back.",
+            "right": "Advanced settings, Version History",
+            "note": "Every publish also writes a snapshot you can restore from."
+          }
+        ]
+      }
+    },
+    {
+      "type": "quiz",
+      "id": "never-published",
+      "question": "Marloes shares the Inkoopassistent with the entire organisation but has never pressed Publish. A colleague opens it and asks a question. What does he get?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "The agent exactly as it stands in her editor right now — and every save she makes after this reaches him immediately.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Nothing — an agent without a published version cannot answer.",
+          "correct": false,
+          "feedback": "It answers. Until an agent has its first published version, the product simply follows the draft. That is why the Test tab says \"Nothing is published yet, so this is also what people would get.\""
+        },
+        {
+          "id": "c",
+          "label": "An empty agent: the name and avatar are shared, the instructions and knowledge are not.",
+          "correct": false,
+          "feedback": "Configuration is never split like that. Either the draft is being served in full, or a published version is being served in full."
+        },
+        {
+          "id": "d",
+          "label": "The draft, but only after she also presses Publish new version once.",
+          "correct": false,
+          "feedback": "The button reads \"Publish\" the first time, and pressing it is what ends this state rather than starting it."
+        }
+      ],
+      "explanation": "Before the first publish there is no gap to mind: the draft is what people get. Pressing Publish once changes the rules — from then on colleagues get the published version, and your later edits wait for the next publish. That flip is the part builders trip over."
+    },
+    {
+      "type": "slide",
+      "id": "groups",
+      "icon": "👥",
+      "title": "A narrower audience, and the way back",
+      "bodyMd": "Contracts are not everybody's business, so Marloes scrolls to **\"Or specific groups\"** in the capsule and ticks **Inkoop**.\n\nWidening always asks first — **\"Share more widely?\"** with **Share** and **Keep as is** — because more people seeing an agent is the change that cannot be quietly undone in someone's memory. Narrowing does not ask: it takes effect at once.\n\nAnd it takes effect properly. Every message a colleague sends is checked against their current groups, so someone removed from Inkoop this morning is cut off in their open chat window, without a reload. Stepping back to **Personal** is a normal, reversible move."
+    },
+    {
+      "type": "slide",
+      "id": "used-by",
+      "icon": "🔗",
+      "title": "Used by: what breaks if this disappears",
+      "bodyMd": "An agent is rarely alone. The **Used by** tab lists everything that would break without it: scheduled tasks, Cowork schedules, support inboxes, routines, apps and webpages.\n\nTwo details are worth knowing before you rely on that list.\n\n- Items built by other people are **counted but not named**. You learn that something depends on this agent without learning what a colleague called it.\n- If the list cannot be read, the tab refuses to guess: **\"Could not load who uses this agent, so nothing is claimed here.\"** with a **Retry**. What is unknown is never drawn as nothing."
+    },
+    {
+      "type": "exercise",
+      "id": "ship-plan",
+      "icon": "🎯",
+      "exerciseId": "ex-agent-publish-two-changes",
+      "title": "Your turn: two changes, one release",
+      "instruction": "Two things change around the live Inkoopassistent (currently \"Saved · v1\", shared with the group Inkoop) on the same morning. First Sandra uploads the new quarterly price list into Inkoopvoorwaarden, the knowledge base the agent is linked to. Then Marloes, who owns the agent, adds a line to its instructions telling it to always name the contract a figure came from. Write, in a few sentences, which of the two changes reaches the Inkoop team on its own, which one does not, and exactly what Marloes should do before she walks away — including what the agent's test questions would score if she pressed Run before publishing.",
+      "placeholder": "e.g. Sandra's price list counts immediately because… The instruction line does not, because… So before Marloes walks away she…",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "quiz",
+      "id": "delete",
+      "question": "A colleague at Van Dijk Groep tidying up Studio deletes an old agent, sees \"This agent is still in use\", and presses \"Delete anyway\". What happens?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Nothing is repaired afterwards: what used the agent keeps pointing at something that is gone — without its knowledge, its tools and its guardrails — and colleagues' conversations with the agent are deleted with it.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Everything that pointed at the agent is switched off automatically, so nothing runs half-equipped.",
+          "correct": false,
+          "feedback": "Nothing is scrubbed afterwards. That is precisely why the dialog warns you first: \"They keep running without this agent — without its knowledge, its tools and its guardrails.\""
+        },
+        {
+          "id": "c",
+          "label": "The agent is archived and can be brought back from Version History.",
+          "correct": false,
+          "feedback": "The first dialog says this cannot be undone. Version History restores an earlier configuration of an agent that still exists — it is not a recycle bin."
+        },
+        {
+          "id": "d",
+          "label": "Colleagues keep their chat history; only the agent itself disappears.",
+          "correct": false,
+          "feedback": "Their conversations are removed with the agent — that is part of what \"cannot be undone\" means here, and it is not limited to the builder's own chats."
+        }
+      ],
+      "explanation": "The block is a warning, not a lock. Repoint the routine or remove the app block first, then delete — and note that a kind the check could not read counts as in use, because guessing wrong here is unrecoverable."
+    },
+    {
+      "type": "action",
+      "id": "ship-it",
+      "icon": "🚀",
+      "checkId": "agent-published",
+      "title": "Ship one agent — we'll verify it",
+      "instruction": "Open one of your own agents in Studio. Use the visibility capsule in the header to give it an audience (your organisation, or one group), confirm \"Share more widely?\", then press Publish so the chip reads \"Saved · v1\". Both halves have to be done for this to count.",
+      "launch": {
+        "navigateTo": "studio/agents",
+        "label": "Open Agents"
+      }
+    },
+    {
+      "type": "slide",
+      "id": "after",
+      "icon": "🕰️",
+      "title": "After the publish: history, and one public door",
+      "bodyMd": "Two things sit in **Advanced settings** that belong to this lesson.\n\n**Version History** keeps every published snapshot, so a v3 that reads worse than v2 is a restore away rather than a rewrite.\n\n**Embed & bubble** is a different animal. Turning on **Web embed** creates a public chat page, and the confirmation says what that means: anyone who knows the URL chats with this agent without an account, running its full configuration — instructions, attached skills and knowledge bases. It needs an audience as well as the switch. For an agent that reads supplier contracts, the answer is no."
+    },
+    {
+      "type": "slide",
+      "id": "recap",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "- **Read the header as two facts, then ship.** The capsule says who may see the agent; the chip **\"Saved · v{n}\"** says which version they are getting. Edit, check the Test tab for \"unpublished changes\", press **Publish new version** — and remember that documents in a linked knowledge base, even one a colleague such as Sandra keeps, need no publish at all.\n- **Treat the draft as shared.** If **\"This agent changed elsewhere\"** appears, someone — or your own other tab — saved before you: **Load latest** discards your edits, **Keep mine** overwrites theirs, and nothing merges. Rescue your text first.\n- **Retire carefully.** Check **Used by** before deleting: consumers are not repaired afterwards, and colleagues' conversations go with the agent."
+    }
+  ],
+  "rubrics": {
+    "ex-agent-publish-two-changes": {
+      "title": "Two changes, one release",
+      "task": "Explain which of two changes around a live agent (a colleague's new document in the linked knowledge base; a new line in the agent's own instructions) reaches colleagues on its own, which one waits, what the agent's builder should do before walking away, and what a test run before publishing would actually be scoring.",
+      "criteria": [
+        "Says the uploaded price list counts immediately, because a publish freezes the agent's configuration, not the contents of a linked knowledge base — and that it makes no difference that the base is Sandra's rather than Marloes'.",
+        "Says the instruction line does NOT reach anyone until a new version is published, because editing writes the draft only.",
+        "Names the concrete act: press Publish new version (and recognises that the audience/capsule does not need touching — it is already shared with Inkoop).",
+        "Knows a test run scores the PUBLISHED agent: pressing Run before publishing still scores v1 (the tab says \"Live is v1, with 3 unpublished changes.\"), so the honest order is publish, then run."
+      ],
+      "passScore": 70,
+      "guidance": "Do not pass an answer that treats the two changes the same way, that says the knowledge-base upload also needs a publish, or that has Marloes re-link the base because a colleague put the document there. Do not pass an answer that fixes the stale instructions by changing the audience or re-sharing with the group. An answer that gets both halves right but says nothing about what a test run scores may pass at the low end; one that only says 'press Publish' with no reasoning should not, and neither should one claiming a run before publishing would test the new instruction line."
+    }
+  },
+  "practiceTopic": {
+    "title": "Publishing an agent: audience and version",
+    "summary": "How the visibility capsule and the Publish button divide the job of shipping an agent, and what each one does not do.",
+    "facts": [
+      "The visibility capsule is titled \"Publish to…\" and offers Personal (\"Only you can access\"), Entire organisation (\"All members can access\") and \"Or specific groups\"; widening asks \"Share more widely?\" with the buttons Share and Keep as is, while narrowing takes effect without a confirmation.",
+      "The header status chip reads \"Saved · v{version}\" and only appears once the agent has a published version — there is deliberately no v0 — and the primary button reads \"Publish\" on an agent that was never published and \"Publish new version\" once one exists.",
+      "Until the first published version the product serves the draft, so a shared-but-never-published agent answers with the builder's current draft.",
+      "A test run exercises the published agent, not the draft: the Test tab says \"Live is v1, with 3 unpublished changes.\" and \"This answer came from the published agent, not from your draft.\"",
+      "Documents added to a linked knowledge base reach people without a publish, whoever owns that base; changes to the agent's own configuration do not.",
+      "Deleting an agent that is still in use does not repair its consumers, and colleagues' conversations with that agent are deleted with it.",
+      "A draft is shared by everyone who may edit the agent and by your own second tab; saving on top of someone else's save raises \"This agent changed elsewhere\", offering only \"Load latest\" (discards your unsaved edits) or \"Keep mine\" (overwrites theirs). Nothing retries and nothing merges."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "agent-published",
+      "existing": false,
+      "label": "Publish an agent and give it an audience",
+      "hint": "In Studio → Agents, open an agent you own: set the audience with the capsule in the header, then press Publish.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/agents",
+          "returns": "array of the caller's own agents (plus the built-in system agents, owner_id 'system'), each carrying id, name, owner_id, is_published, shared_groups, rev and published_version"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "audience",
+          "label": "An agent of yours is shared with colleagues",
+          "hint": "Use the visibility capsule in the agent editor header and pick Entire organisation or a group.",
+          "rule": "GET /agents contains at least one row where owner_id equals the learner's user id and is_published is true"
+        },
+        {
+          "id": "version",
+          "label": "That same agent has a published version",
+          "hint": "Press Publish in the header; the status chip then reads \"Saved · v1\".",
+          "rule": "the same row has published_version > 0"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,49 @@
+{
+  "category": "InternationalBankingAccountNumber",
+  "labels": {
+    "IBAN": {
+      "covered_gold": 29,
+      "exact_boundary": 0.5179,
+      "precision_approx": 0.7073,
+      "predicted_spans": 41,
+      "recall": 0.5179
+    },
+    "IBAN+iban": {
+      "covered_gold": 40,
+      "exact_boundary": 0.7143,
+      "precision_approx": 0.3419,
+      "predicted_spans": 117,
+      "recall": 0.7143
+    },
+    "IBAN+iban+credit card number": {
+      "covered_gold": 31,
+      "exact_boundary": 0.5536,
+      "precision_approx": 0.3069,
+      "predicted_spans": 101,
+      "recall": 0.5536
+    },
+    "iban": {
+      "covered_gold": 45,
+      "exact_boundary": 0.8036,
+      "precision_approx": 0.298,
+      "predicted_spans": 151,
+      "recall": 0.8036
+    },
+    "iban+internationaal bankrekeningnummer": {
+      "covered_gold": 40,
+      "exact_boundary": 0.6964,
+      "precision_approx": 0.3252,
+      "predicted_spans": 123,
+      "recall": 0.7143
+    },
+    "internationaal bankrekeningnummer": {
+      "covered_gold": 51,
+      "exact_boundary": 0.8929,
+      "precision_approx": 0.3446,
+      "predicted_spans": 148,
+      "recall": 0.9107
+    }
+  },
+  "n_gold": 56,
+  "n_records": 30
+}

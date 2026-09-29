@@ -1,0 +1,267 @@
+{
+  "id": "chat-first-answer",
+  "icon": "💬",
+  "estMinutes": 8,
+  "title": "Your first real answer",
+  "desc": "Ask a work question, read the answer properly, and use the answer actions instead of retyping.",
+  "gate": {},
+  "learningGoal": "Send a real work question and get usable output out of Bee Flow without retyping it by hand.",
+  "stepOutline": [
+    { "kind": "slide", "purpose": "An answer is a draft you steer, not a verdict" },
+    { "kind": "tour", "purpose": "Spotlight chat-composer: placeholder, send key, Shift+Enter" },
+    { "kind": "slide", "purpose": "Suggestion pills fill the box — they never send on their own" },
+    { "kind": "slide", "purpose": "Reading the phase lines while it streams, and Stop generating" },
+    { "kind": "quiz", "purpose": "What Enter does on desktop versus on a true touch device" },
+    { "kind": "slide", "purpose": "Answer actions: Copy, Copy as Markdown, Export as PDF" },
+    { "kind": "slide", "purpose": "'How I got this answer': tools used, Auto → tier, sources" },
+    { "kind": "sim", "purpose": "Match four afternoon moments to the button that settles each" },
+    { "kind": "slide", "purpose": "Retry, Retry with different model, Edit message, the thumbs" },
+    { "kind": "quiz", "purpose": "The answer is 90% right — retry, new chat, or follow up here" },
+    { "kind": "exercise", "purpose": "Write the real question you came to Bee Flow with today" },
+    { "kind": "action", "purpose": "Send it and copy the answer somewhere real (check: chat-first — GET /ai/direct/conversations returns a conversation of your own)" },
+    { "kind": "slide", "purpose": "Recap, and the handover to choosing an answer depth" }
+  ],
+  "steps": [
+    {
+      "type": "slide",
+      "id": "draft-not-verdict",
+      "icon": "🧭",
+      "title": "An answer is a draft you steer",
+      "bodyMd": "This is the first chapter of the course, so we start where everybody starts: the chat box.\n\nSanne answers customer e-mail in the sales office at **Van Dijk Groep**, a sixty-person installation firm near Zwolle. A customer has just written in: the profiles her fitters need came in two days late on supplier order 4412, so his job has slipped a week. She has ten minutes before her next call and no idea how to open the reply.\n\nThat is what a chat is for. Her first answer will not come back perfect — it is not meant to. Treat it as a **draft**: read it, say what is off, and the next one is closer.\n\nThe people who get value out of Bee Flow in their first week are not better at writing prompts. They simply do not stop at the first reply."
+    },
+    {
+      "type": "tour",
+      "id": "composer",
+      "target": "[data-tour=\"chat-composer\"]",
+      "navigateTo": "agents",
+      "placement": "top",
+      "optional": true,
+      "timeoutMs": 7000,
+      "title": "This is where you ask",
+      "body": "The box reads \"Message AI...\" in a direct chat. Press Enter to send — the send button's own tooltip says \"Send message (Enter)\". Shift+Enter gives you a new line without sending, and the reminder sits in small print under the box.",
+      "icon": "⌨️"
+    },
+    {
+      "type": "slide",
+      "id": "starters",
+      "icon": "✨",
+      "title": "The suggestions only fill the box",
+      "bodyMd": "Click **New Chat** in the sidebar and Bee Flow greets you — *\"How can I help you today?\"* is one of ten — with three suggestion pills under the composer, drawn at random from a list of twenty-four. They are ordinary work sentences such as *\"Summarize my latest meeting notes into action items\"*, so the three you see will not be the three your neighbour sees.\n\nClicking a pill **puts that text in the box and stops there**. Nothing is sent. A suggestion is a starting sentence, not a command: Sanne clicks the nearest one, rewrites it into her own words about order 4412, and only then presses Enter."
+    },
+    {
+      "type": "slide",
+      "id": "streaming",
+      "icon": "📡",
+      "title": "What the lines above the answer mean",
+      "bodyMd": "Between pressing Enter and the first words of the answer, Bee Flow narrates its own preparation. Short lines appear such as *\"Selecting best model…\"*, *\"Using …\"*, *\"Protecting your data…\"*, *\"Searching knowledge base…\"* and finally *\"Thinking…\"*.\n\nThey are not decoration. *\"Protecting your data…\"* is the Privacy Shield checking your text for personal details before anything leaves Bee Flow. *\"Searching knowledge base…\"* means the answer is being built on your own documents.\n\nWhile text is streaming, the ↑ send button turns into a red **Stop generating** button. Sanne uses it halfway through her first try, when the reply starts discussing the wrong order — and the words that already arrived stay on screen."
+    },
+    {
+      "type": "quiz",
+      "id": "q-enter",
+      "question": "Sanne wants a blank line between two paragraphs before she sends. She is on her laptop; a colleague is typing the same message on a tablet. What does Enter do for each of them?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "On the laptop Enter sends, so she needs Shift+Enter; on the tablet Enter breaks the line and the ↑ button sends.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Enter sends on both devices, so each of them needs Shift+Enter to get the blank line.",
+          "correct": false,
+          "feedback": "On a true touch device Enter deliberately makes a new line — a tablet keyboard has no comfortable Shift+Enter, so sending is the ↑ button's job."
+        },
+        {
+          "id": "c",
+          "label": "Enter never sends on either device — the ↑ button is the only way to send a message.",
+          "correct": false,
+          "feedback": "On a desktop or laptop Enter does send — the send button even labels itself \"Send message (Enter)\"."
+        },
+        {
+          "id": "d",
+          "label": "It is the other way round: Shift+Enter sends and Enter makes the new line.",
+          "correct": false,
+          "feedback": "Shift+Enter never sends. It is the shortcut for a line break, and the hint under the box says \"Shift+Enter for new line\"."
+        }
+      ],
+      "explanation": "Enter sends on desktop and Shift+Enter breaks the line. On a true touch device the two swap roles: Enter breaks the line and you tap the ↑ button to send.",
+      "icon": "❓"
+    },
+    {
+      "type": "slide",
+      "id": "get-it-out",
+      "icon": "🧰",
+      "title": "Getting the answer out without retyping it",
+      "bodyMd": "The reply is finished and it is good enough. Now it has to reach the place the work actually lives — and not by being typed again.\n\nUnder every finished answer sits a small row of buttons. **Copy** puts the whole answer on your clipboard as Markdown text, so headings, lists and table rows survive the paste. The chevron beside it opens **More export options**: **Copy as Markdown** — the same text, named so you know what you are getting — and **Export as PDF**, which opens the answer in a print window you save as a PDF.\n\nSanne's reply goes into her mail client; the delivery table in it keeps its rows."
+    },
+    {
+      "type": "slide",
+      "id": "trace",
+      "icon": "🔍",
+      "title": "\"How I got this answer\"",
+      "bodyMd": "Under an answer sits a foldable line, **How I got this answer**, with small chips beside it:\n\n- **\"2 tools · 5.8s\"** — how many tools ran, and how long they took.\n- **\"Auto → Think\"** — you left the depth on **Auto**, and Bee Flow picked the Think depth for this message.\n- **\"4 sources\"** — how many passages from your knowledge bases went into it.\n\nOpen it and you see the steps themselves. With **Auto** the depth is settled while the answer is being written, so that chip can only appear once the answer is back, and the whole panel is hidden in Simple Mode, which switches itself on when your window is narrow. On a normal screen this panel is your evidence when a colleague asks where a number came from."
+    },
+    {
+      "type": "sim",
+      "id": "pick-action",
+      "icon": "🎯",
+      "title": "Which button does Sanne need?",
+      "instruction": "Four moments from one afternoon at Van Dijk Groep. Match each one to the button that settles it in a single click.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "stop",
+            "left": "The answer is only half written and she can already see it is about the wrong order.",
+            "right": "Stop generating",
+            "note": "The red button that replaces ↑ while text is streaming. What already arrived stays on screen, so nothing usable is lost."
+          },
+          {
+            "id": "md",
+            "left": "The answer holds a delivery table she wants in the purchasing memo, headings and rows intact.",
+            "right": "Copy as Markdown",
+            "note": "Copy and Copy as Markdown both put the answer on the clipboard as Markdown, so an editor that reads Markdown rebuilds the table."
+          },
+          {
+            "id": "pdf",
+            "left": "She wants to hand the answer to the project leader on the job, who does not use Bee Flow yet.",
+            "right": "Export as PDF",
+            "note": "Behind the chevron next to Copy, under More export options: the answer opens in a print window and you save it as a PDF anyone can open."
+          },
+          {
+            "id": "trace",
+            "left": "She wonders whether the answer actually looked anything up, or only used what it already knew.",
+            "right": "How I got this answer",
+            "note": "The foldable panel under the answer counts the tools it used and the sources it read, and lists the steps."
+          }
+        ]
+      }
+    },
+    {
+      "type": "slide",
+      "id": "fix-it",
+      "icon": "🔁",
+      "title": "Three repairs, and they are not interchangeable",
+      "bodyMd": "- **Retry response** re-runs the very same question. The chevron beside it offers **Retry with different model**, which runs it again at another depth. The depth control holds four settings — **Auto**, **Fast**, **Think**, **Deep Thinking** — and nothing else: **Write**, **Flow** and **Swarm** are kinds of work you can ask for, not deeper rungs on that ladder. The next chapter takes the depths apart.\n- **Edit message** is the pencil under **your own** message. It reopens what you typed, and **Save & Regenerate** replaces the question and runs it again, dropping everything that came after it. That is the tool for \"I forgot to mention the deadline\".\n- **Good response** and **Bad response** record a rating for the people who look after your workspace. They do not rewrite the answer in front of you.\n\nRetry when the question was fine. Edit when the question was not. And when only one detail is off, the cheapest repair of all is the next paragraph you type."
+    },
+    {
+      "type": "quiz",
+      "id": "q-ninety",
+      "question": "Sanne's reply to the customer is 90% right: the tone is spot on, but it promises the fitting in week 45 instead of week 47. What gets her to a usable version fastest?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Type a follow-up in the same chat: \"Week 47, not week 45 — redo that paragraph and keep the rest.\"",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Open a New Chat and paste the whole question again, this time with the right delivery week in it.",
+          "correct": false,
+          "feedback": "A new chat starts empty: it has none of the wording you already liked, and you retype everything. Follow-ups in the same thread keep what worked."
+        },
+        {
+          "id": "c",
+          "label": "Click Retry response over and over until a version with the right week finally comes out.",
+          "correct": false,
+          "feedback": "Retry re-runs the same question, and that question never mentioned week 47 — so retrying can only guess again."
+        },
+        {
+          "id": "d",
+          "label": "Click Bad response, so that it learns the week was wrong and puts the answer right itself.",
+          "correct": false,
+          "feedback": "The thumbs record your rating for the people who tune the workspace. They do not rewrite the answer in front of you."
+        }
+      ],
+      "explanation": "A chat is a conversation. Correcting one detail in a follow-up keeps everything you already liked; Retry and a fresh chat both throw that away. Use Edit message instead when the question itself was wrong from the start.",
+      "icon": "❓"
+    },
+    {
+      "type": "exercise",
+      "id": "ex-question",
+      "icon": "✍️",
+      "exerciseId": "ex-chat-first-answer-real-question",
+      "title": "Your turn: write the question you actually came with",
+      "instruction": "Write out, in two or three sentences, a question from your own work that you would send today. A strong one says three things: what you want made, what it is for and who will read it, and what the result should look like — length, language, format. Add at least one fact Bee Flow cannot guess: a date, an order number, a product name. Do not write a topic like \"something about invoices\"; write the actual request, ready to paste into the box.",
+      "placeholder": "e.g. Write a reply to a customer whose installation slipped because the profiles on supplier order 4412 came in two days late. Friendly but not apologetic, Dutch, at most 120 words, and promise the fitting in week 47.",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "action",
+      "id": "send-it",
+      "icon": "🚀",
+      "checkId": "chat-first",
+      "title": "Send it — we'll check the answer arrived",
+      "instruction": "Open New Chat, paste the question you just wrote, and press Enter. Watch the lines above the answer while it builds. When it is done, use Copy as Markdown or Export as PDF to put the result where the work really lives, then come back here.",
+      "launch": {
+        "navigateTo": "agents",
+        "label": "Open a new chat"
+      }
+    },
+    {
+      "type": "slide",
+      "id": "recap",
+      "icon": "🏁",
+      "title": "What you can do now",
+      "bodyMd": "- **Ask and steer.** Enter sends, Shift+Enter breaks the line, the red button stops a runaway answer — and a follow-up in the same chat beats starting over.\n- **Read the screen.** The lines above an answer say what is happening; **How I got this answer** says what it used afterwards.\n- **Get it out.** **Copy** or **Copy as Markdown** for a document, **Export as PDF** for someone outside, **Edit message** when the question itself was wrong.\n\nYour conversation is now in the sidebar under **Today**, with a title Bee Flow wrote for it. Next chapter: choosing how deep an answer should think."
+    }
+  ],
+  "rubrics": {
+    "ex-chat-first-answer-real-question": {
+      "title": "A question you could actually send",
+      "task": "The learner had to write, in two or three sentences, a real request from their own work: what should be made, what it is for and who reads it, what the result should look like (length, language, format), plus at least one fact the assistant could not guess.",
+      "criteria": [
+        "It is a concrete request from real work, not a topic or a general question about what Bee Flow can do.",
+        "It says what the output should be: a form, a length, a language, or who will read it.",
+        "It supplies at least one specific detail the assistant could not invent — a date, a number, a name, a deadline.",
+        "It could be pasted into the composer as it stands and produce something usable."
+      ],
+      "passScore": 70,
+      "guidance": "Pass a plain, short answer that meets the criteria; writing style is not being graded and a mix of languages is fine. Do not pass one-liners such as \"summarise my emails\" or \"tell me about our products\", a bare topic with no request in it, or anything that only describes the lesson back. Missing output shape or missing every concrete fact is a fail with a hint about which one is absent. Real names are not required — an order number, a date or a product name is enough of a concrete detail."
+    }
+  },
+  "practiceTopic": {
+    "title": "Asking in chat and using the answer",
+    "summary": "Sending a first question in a direct chat, reading the phase lines while it builds, and using the actions under the answer instead of retyping it.",
+    "facts": [
+      "In a direct chat the composer placeholder reads \"Message AI...\"; in an agent chat it reads \"Message {agent name}...\".",
+      "The send button's tooltip is \"Send message (Enter)\"; while an answer streams that same button becomes \"Stop generating\".",
+      "On desktop Enter sends and Shift+Enter makes a new line; on a true touch device Enter makes a new line and you send with the ↑ button.",
+      "Clicking one of the three suggestion pills on the empty chat screen — three drawn at random from twenty-four — only drops its text into the composer; it never sends on its own.",
+      "Under a finished answer sit Copy, Good response and Bad response, Retry response and Retry with different model; Copy as Markdown and Export as PDF sit behind More export options, and the pencil under your own message is Edit message, confirmed with Save & Regenerate.",
+      "The depth control offers Auto, Fast, Think and Deep Thinking and nothing else; Write, Flow and Swarm are separate kinds of work, not deeper settings on that scale.",
+      "The panel How I got this answer carries chips such as \"2 tools · 5.8s\", \"Auto → Think\" and \"4 sources\", and is hidden in Simple Mode.",
+      "Phase lines shown while an answer is being prepared include \"Selecting best model…\", \"Searching knowledge base…\", \"Protecting your data…\" and \"Thinking…\"."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "chat-first",
+      "existing": false,
+      "label": "Send a first chat and get an answer",
+      "hint": "Sidebar → New Chat, type your question, press Enter and wait for the reply to finish.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/ai/direct/conversations",
+          "returns": "array of the caller's own direct conversations, newest first; each row has id, title, model_tier, pinned, created_at, updated_at (the query is scoped to the session user, so there is no owner field to filter on)"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "conversation",
+          "label": "You have a direct conversation of your own",
+          "hint": "Click New Chat in the sidebar and send a message; the chat then appears under Today.",
+          "rule": "GET /ai/direct/conversations returns at least one row",
+          "endpoint": "/ai/direct/conversations",
+          "expect": {
+            "kind": "rows"
+          }
+        }
+      ]
+    }
+  ]
+}

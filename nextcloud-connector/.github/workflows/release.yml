@@ -1,0 +1,297 @@
+name: release
+
+# Triggered by tags shaped like v0.1.0. Runs only after the connector has
+# been extracted to its own public repo and the Nextcloud signing cert has
+# been merged into github.com/nextcloud/app-certificate-requests.
+#
+# Build strategy: each architecture is built NATIVELY in parallel — amd64 on
+# ubuntu-latest, arm64 on the free ubuntu-24.04-arm runner (free because this
+# repo is public). No QEMU emulation. The per-arch images are pushed by digest
+# and stitched into a multi-arch manifest list in the `merge` job. Per-platform
+# GHA build cache keeps the expensive spa-build stage (hive clone + npm ci +
+# Vite build) warm across releases.
+#
+# Required GitHub Actions secrets (configure on the `release` environment):
+#   NC_APP_SIGNING_KEY  — RSA private key matching the merged cert
+#   NCAPPSTORE_TOKEN    — apps.nextcloud.com API token (Settings → API tokens)
+#   GITHUB_TOKEN        — provided automatically; used for the GHCR push and
+#                         the GitHub release upload
+#
+# Third-party actions are pinned to a full commit, the version in a comment:
+# `merge` holds the App Store signing key and token, and a tag can be moved
+# upstream.
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+  packages: write
+
+env:
+  APP_ID: bee_flow
+  # Must match <docker-install><image> in appinfo/info.xml so AppAPI pulls
+  # the same image admins see referenced in the manifest.
+  IMAGE: ghcr.io/bee-flow/connector
+  HIVE_REPO: Bee-Flow/hive
+
+jobs:
+  # ── prepare: resolve version + frontend ref, fail fast on metadata drift ──
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.ver.outputs.version }}
+      hive_sha: ${{ steps.hive.outputs.sha }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+
+      - name: Resolve version
+        id: ver
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Verify info.xml version matches tag
+        run: |
+          xml_ver=$(grep -oPm1 '(?<=<version>)[^<]+' appinfo/info.xml)
+          if [ "$xml_ver" != "${{ steps.ver.outputs.version }}" ]; then
+            echo "::error::info.xml version ($xml_ver) does not match tag (${{ steps.ver.outputs.version }})"
+            exit 1
+          fi
+
+      - name: Verify CHANGELOG has matching heading
+        run: |
+          if ! grep -qE "^## \[?${{ steps.ver.outputs.version }}\]?" CHANGELOG.md; then
+            echo "::error::CHANGELOG.md is missing a heading for ${{ steps.ver.outputs.version }}"
+            exit 1
+          fi
+
+      # Resolve hive main → an immutable commit SHA, ONCE. Both arch builds and
+      # the SBOM then reference the identical frontend commit, and the GHA cache
+      # key for the spa-build stage is stable for the whole release (pinning to
+      # the moving `main` ref instead would defeat reproducibility).
+      - name: Resolve hive main SHA
+        id: hive
+        run: |
+          sha=$(git ls-remote "https://github.com/${HIVE_REPO}.git" refs/heads/main | cut -f1)
+          if [ -z "$sha" ]; then echo "::error::could not resolve ${HIVE_REPO} main"; exit 1; fi
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "hive main → $sha"
+
+  # ── build: one native runner per arch, push by digest (no tags) ──
+  build:
+    needs: prepare
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      # Don't let one arch flaking kill an already-finished arch; `merge`
+      # requires both via `needs`, so a partial failure still blocks release.
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+            arch: amd64
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+            arch: arm64
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      # No setup-qemu-action: each job runs on its own native architecture.
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+
+      - name: Log in to GHCR
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push by digest
+        id: build
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: ${{ matrix.platform }}
+          # Pin the frontend to the exact hive commit resolved in `prepare`.
+          build-args: |
+            HIVE_REF=${{ needs.prepare.outputs.hive_sha }}
+          cache-from: type=gha,scope=connector-${{ matrix.arch }}
+          cache-to: type=gha,scope=connector-${{ matrix.arch }},mode=max
+          # Reproducible builds matter for App Store audits.
+          provenance: true
+          sbom: true
+          # Push by digest only — no tags. Each arch produces an untagged image
+          # in GHCR; the merge job stitches them into the tagged manifest list.
+          outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
+
+      - name: Export digest
+        run: |
+          mkdir -p /tmp/digests
+          digest="${{ steps.build.outputs.digest }}"
+          touch "/tmp/digests/${digest#sha256:}"
+
+      - name: Upload digest
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: digest-${{ matrix.arch }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  # ── merge: assemble the multi-arch manifest, then publish once ──
+  merge:
+    needs: [prepare, build]
+    runs-on: ubuntu-latest
+    environment: release
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Download digests
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          path: /tmp/digests
+          pattern: digest-*
+          merge-multiple: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+
+      - name: Log in to GHCR
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Stitch the per-arch digests into one multi-arch manifest list, tagged
+      # :<version> and :latest. AppAPI pulls :latest (info.xml
+      # <image-tag>latest</image-tag>), so :latest MUST cover both arches.
+      - name: Create manifest list and push
+        working-directory: /tmp/digests
+        run: |
+          docker buildx imagetools create \
+            -t ${{ env.IMAGE }}:${{ needs.prepare.outputs.version }} \
+            -t ${{ env.IMAGE }}:latest \
+            $(printf '${{ env.IMAGE }}@sha256:%s ' *)
+
+      # Fail loudly if a platform is missing rather than silently shipping a
+      # single-arch :latest that breaks arm64 installs.
+      - name: Inspect manifest
+        run: |
+          docker buildx imagetools inspect ${{ env.IMAGE }}:${{ needs.prepare.outputs.version }}
+          for plat in linux/amd64 linux/arm64; do
+            if ! docker buildx imagetools inspect ${{ env.IMAGE }}:${{ needs.prepare.outputs.version }} \
+                --format '{{range .Manifest.Manifests}}{{.Platform.OS}}/{{.Platform.Architecture}} {{end}}' \
+                | grep -qw "$plat"; then
+              echo "::error::manifest is missing $plat"; exit 1
+            fi
+          done
+
+      - name: Build app tarball
+        run: |
+          mkdir -p dist staging/${{ env.APP_ID }}
+          cp -r appinfo img CHANGELOG.md README.md LICENSE staging/${{ env.APP_ID }}/
+          tar -czf dist/${{ env.APP_ID }}.tar.gz -C staging ${{ env.APP_ID }}
+
+      - name: Sign tarball
+        env:
+          SIGNING_KEY: ${{ secrets.NC_APP_SIGNING_KEY }}
+        run: |
+          keyfile=$(mktemp)
+          # The secret is stored as PEM; mktemp+chmod prevents it leaking via
+          # /proc/<pid>/environ during the openssl call.
+          printf '%s' "$SIGNING_KEY" > "$keyfile"
+          chmod 600 "$keyfile"
+          openssl dgst -sha512 -sign "$keyfile" dist/${{ env.APP_ID }}.tar.gz \
+            | openssl base64 -A > dist/${{ env.APP_ID }}.tar.gz.sig
+          shred -u "$keyfile"
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
+        with:
+          # Force published (not draft) and explicit name so the v0.1.11
+          # incident — where the release sat as Draft titled "v0.1.10" and
+          # the download URLs 404'd publicly — can't repeat.
+          draft: false
+          name: ${{ github.ref_name }}
+          files: |
+            dist/${{ env.APP_ID }}.tar.gz
+            dist/${{ env.APP_ID }}.tar.gz.sig
+
+      - name: Register release on apps.nextcloud.com
+        env:
+          NCAPPSTORE_TOKEN: ${{ secrets.NCAPPSTORE_TOKEN }}
+          # First production release should set this secret to '0'. While
+          # iterating on the listing, leave it '1' to publish to the nightly
+          # channel where only admins who explicitly opt in see it.
+          NIGHTLY: ${{ vars.NCAPPSTORE_NIGHTLY || '1' }}
+        run: |
+          download_url="https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/${{ env.APP_ID }}.tar.gz"
+          # `openssl base64 -A` already emits a single line and bash's $(…)
+          # strips trailing newlines, but tr -d is belt-and-suspenders against
+          # any future change to the signing step that could re-introduce
+          # whitespace and trip a strict server-side parser.
+          signature=$(tr -d '[:space:]' < "dist/${{ env.APP_ID }}.tar.gz.sig")
+          nightly_val=$([ "$NIGHTLY" = "1" ] && echo true || echo false)
+          payload=$(jq -nc \
+            --arg url "$download_url" \
+            --arg sig "$signature" \
+            --argjson nightly "$nightly_val" \
+            '{download:$url, signature:$sig, nightly:$nightly}')
+
+          # Probe a known-stable endpoint to distinguish a site-wide outage
+          # from an auth/payload error. /api/v1/categories.json is unauthenticated
+          # and changes independently of the apps backend, so it stays 200 even
+          # when /api/v1/apps/<id> endpoints are 5xx.
+          probe=$(curl -sS --max-time 15 -o /dev/null -w '%{http_code}' https://apps.nextcloud.com/api/v1/categories.json || echo "000")
+          if ! [[ "$probe" =~ ^2 ]]; then
+            echo "::warning::apps.nextcloud.com is unhealthy (categories probe → $probe)."
+            echo "::warning::Skipping release registration; the GHCR image and GitHub Release are unaffected."
+            echo "::warning::Re-run this job (Actions → run → Re-run failed jobs) once apps.nextcloud.com recovers."
+            exit 0
+          fi
+
+          # apps.nextcloud.com occasionally returns 5xx for individual release
+          # submissions even when the wider API is healthy. Retry on 5xx (and
+          # on network failures, which curl reports as exit-non-zero → "000")
+          # with linear backoff. The API is documented as idempotent: posting
+          # the same tag again returns 200 with the release re-validated, so
+          # we don't need to special-case "already exists" — it just succeeds.
+          attempts=2
+          for i in $(seq 1 "$attempts"); do
+            http=$(curl -sS --max-time 60 -o /tmp/ncresp.txt -w '%{http_code}' \
+              -X POST https://apps.nextcloud.com/api/v1/apps/releases \
+              -H "Authorization: Token $NCAPPSTORE_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "$payload" || echo "000")
+            case "$http" in
+              2??)
+                echo "✓ registered ($http)"
+                exit 0 ;;
+              5??|000)
+                echo "apps.nextcloud.com $http on attempt $i/$attempts — retrying"
+                echo "--- response body ---"
+                cat /tmp/ncresp.txt 2>/dev/null || echo "(no body — network failure)"
+                echo "--- end response ---"
+                sleep $((i * 30)) ;;
+              *)
+                echo "::error::apps.nextcloud.com returned $http (not retryable)"
+                cat /tmp/ncresp.txt
+                exit 1 ;;
+            esac
+          done
+          echo "::error::apps.nextcloud.com still 5xx after $attempts attempts"
+          cat /tmp/ncresp.txt
+          exit 1

@@ -1,0 +1,23 @@
+{
+  "name": "beeflow-e2e",
+  "version": "0.1.0",
+  "private": true,
+  "description": "E2E smoke-test harness for Bee Flow AI. Scenarios are Markdown files in scenarios/; Claude generates committed Playwright specs from them (npm run gen) and can also drive the browser agentically (npm run agentic). npm run smoke orchestrates the full gate.",
+  "engines": {
+    "node": ">=22.12 <23"
+  },
+  "scripts": {
+    "gen": "node runner/gen.mjs",
+    "gen:check": "node runner/gen-check.mjs",
+    "test": "playwright test",
+    "agentic": "node runner/agentic.mjs",
+    "analyze": "node runner/analyze.mjs",
+    "smoke": "node runner/smoke.mjs"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.125.0",
+    "@playwright/test": "1.59.1",
+    "gray-matter": "^4.0.3",
+    "playwright": "1.59.1"
+  }
+}

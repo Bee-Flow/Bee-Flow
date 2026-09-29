@@ -1,0 +1,44 @@
+{
+  "en": {
+    "compliance.check_cra_vuln_clocks_title": "Vulnerability reporting clocks operational",
+    "compliance.check_cra_vuln_clocks_desc": "Actively exploited vulnerabilities and severe incidents must be reported within 24 hours (early warning), 72 hours (notification) and 14 days (final report) via MijnNCSC / the ENISA single reporting platform (CRA Art. 14). The check reads the vulnerability register: every open CRA-regime record must carry its report stamps before each clock runs out, and the reporting channel, PSIRT contact and incident-response procedure must be in place.",
+    "compliance.check_cra_vuln_clocks_fix": "Set the reporting channel and PSIRT contact in Compliance → Settings, make sure the incident-response policy covers vulnerability handling, and stamp each report on the vulnerability record under Compliance → Vulnerabilities.",
+
+    "compliance.check_cra_sbom_title": "Software bill of materials ships with this release",
+    "compliance.check_cra_sbom_desc": "The running build must carry a machine-readable SBOM (CycloneDX or SPDX) matching its build hash, so components can be traced the moment a vulnerability is disclosed (CRA Annex I Part II(1); PLD Art. 9 evidence). The check looks for the artefact CI produced for this build — SBOM_PATH, /app/sbom/cyclonedx.json, the repository's sbom/ folder — and falls back to the human-readable licence list.",
+    "compliance.check_cra_sbom_fix": "Generate the SBOM in CI (npm sbom --sbom-format=cyclonedx, or scripts/generate-sbom.sh), copy sbom/cyclonedx.json into the image and point SBOM_PATH at it if it lives elsewhere. This is an operator task on the deployment pipeline, not an admin setting.",
+
+    "compliance.check_cra_disclosure_policy_title": "Vulnerability disclosure policy published",
+    "compliance.check_cra_disclosure_policy_desc": "Researchers must find how to report vulnerabilities without guessing: a valid /.well-known/security.txt with a contact, an expiry date and a link to your coordinated-disclosure policy (CRA Annex I Part II(5), RFC 9116). The check fetches the public file and, when a policy URL is attested, confirms it answers.",
+    "compliance.check_cra_disclosure_policy_fix": "Enter the disclosure-policy URL and PSIRT contact in Compliance → Settings, then apply the fix to publish them in security.txt.",
+
+    "compliance.check_cra_support_period_title": "Support period and end-of-support date declared",
+    "compliance.check_cra_support_period_desc": "Manufacturers must decide how long security updates are provided and publish the end-of-support date (CRA Art. 13(8), Annex II(7)); under the PLD the same window is the period in which updates remain under the manufacturer's control (Art. 11(2)(c)). This is an attestation: the platform cannot know the business decision, so an admin records it.",
+    "compliance.check_cra_support_period_fix": "Record the support policy URL, the end-of-support date and the security-update channel under Compliance → Settings. Renew or announce a successor when the date comes within twelve months.",
+
+    "compliance.check_pld_release_record_title": "Release version and date recorded",
+    "compliance.check_pld_release_record_desc": "Strict liability attaches to the version placed on the market and to its date (PLD Art. 9, Art. 2(1)); a substantial modification starts a new liability window (Art. 8(2)). The running build and every published solution or webpage must have a recorded release, and entities modified long after their last release are flagged for a substantial-modification assessment.",
+    "compliance.check_pld_release_record_fix": "Publish a release for the flagged solution or webpage from Studio; set APP_BUILD_SHA in the deployment so the platform release is stamped in the release log."
+  },
+  "nl": {
+    "compliance.check_cra_vuln_clocks_title": "Meldklokken voor kwetsbaarheden operationeel",
+    "compliance.check_cra_vuln_clocks_desc": "Actief uitgebuite kwetsbaarheden en ernstige incidenten moeten binnen 24 uur (vroegtijdige waarschuwing), 72 uur (melding) en 14 dagen (eindrapport) worden gemeld via MijnNCSC / het centrale meldplatform van ENISA (CRA art. 14). De controle leest het kwetsbaarhedenregister: elk open dossier onder het CRA-regime moet vóór het aflopen van elke klok zijn meldstempels dragen, en het meldkanaal, het PSIRT-contact en de incidentresponsprocedure moeten zijn ingericht.",
+    "compliance.check_cra_vuln_clocks_fix": "Stel het meldkanaal en het PSIRT-contact in onder Compliance → Instellingen, zorg dat het incidentresponsbeleid de afhandeling van kwetsbaarheden dekt en stempel elke melding op het kwetsbaarheidsdossier onder Compliance → Kwetsbaarheden.",
+
+    "compliance.check_cra_sbom_title": "Softwarestuklijst (SBOM) wordt met deze release meegeleverd",
+    "compliance.check_cra_sbom_desc": "De draaiende build moet een machineleesbare SBOM (CycloneDX of SPDX) dragen die bij zijn build-hash hoort, zodat componenten direct te traceren zijn zodra een kwetsbaarheid bekend wordt (CRA bijlage I deel II(1); bewijs onder PLD art. 9). De controle zoekt het artefact dat CI voor deze build heeft gemaakt — SBOM_PATH, /app/sbom/cyclonedx.json, de map sbom/ in de repository — en valt terug op de leesbare licentielijst.",
+    "compliance.check_cra_sbom_fix": "Genereer de SBOM in CI (npm sbom --sbom-format=cyclonedx of scripts/generate-sbom.sh), kopieer sbom/cyclonedx.json in de image en verwijs met SBOM_PATH naar de locatie als die afwijkt. Dit is een beheerderstaak in de deploy-pipeline, geen instelling in het beheerscherm.",
+
+    "compliance.check_cra_disclosure_policy_title": "Beleid voor het melden van kwetsbaarheden gepubliceerd",
+    "compliance.check_cra_disclosure_policy_desc": "Onderzoekers moeten zonder gissen kunnen vinden hoe ze een kwetsbaarheid melden: een geldige /.well-known/security.txt met een contact, een vervaldatum en een link naar uw beleid voor gecoördineerde openbaarmaking (CRA bijlage I deel II(5), RFC 9116). De controle haalt het publieke bestand op en controleert, als een beleids-URL is vastgelegd, of die antwoordt.",
+    "compliance.check_cra_disclosure_policy_fix": "Vul de URL van het meldbeleid en het PSIRT-contact in onder Compliance → Instellingen en pas daarna de fix toe om ze in security.txt te publiceren.",
+
+    "compliance.check_cra_support_period_title": "Ondersteuningsperiode en einddatum van ondersteuning vastgelegd",
+    "compliance.check_cra_support_period_desc": "Fabrikanten moeten bepalen hoe lang beveiligingsupdates worden geleverd en de einddatum van de ondersteuning publiceren (CRA art. 13(8), bijlage II(7)); onder de PLD is datzelfde venster de periode waarin updates onder controle van de fabrikant blijven (art. 11(2)(c)). Dit is een verklaring: het platform kan de bedrijfsbeslissing niet kennen, dus een beheerder legt haar vast.",
+    "compliance.check_cra_support_period_fix": "Leg de URL van het ondersteuningsbeleid, de einddatum van de ondersteuning en het kanaal voor beveiligingsupdates vast onder Compliance → Instellingen. Verleng of kondig een opvolger aan zodra de datum binnen twaalf maanden komt.",
+
+    "compliance.check_pld_release_record_title": "Releaseversie en -datum vastgelegd",
+    "compliance.check_pld_release_record_desc": "Risicoaansprakelijkheid hecht aan de versie die op de markt is gebracht en aan de datum waarop dat gebeurde (PLD art. 9, art. 2(1)); een substantiële wijziging start een nieuw aansprakelijkheidsvenster (art. 8(2)). De draaiende build en elke gepubliceerde oplossing of webpagina moeten een vastgelegde release hebben; entiteiten die lang na hun laatste release zijn gewijzigd worden gemarkeerd voor een beoordeling op substantiële wijziging.",
+    "compliance.check_pld_release_record_fix": "Publiceer vanuit Studio een release voor de gemarkeerde oplossing of webpagina; stel APP_BUILD_SHA in de deployment in zodat de platformrelease in het releaselogboek wordt gestempeld."
+  }
+}

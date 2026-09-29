@@ -1,0 +1,46 @@
+{
+ "model": "gliclass",
+ "env": {
+  "date": "2026-09-26T14:10:15+00:00",
+  "python": "3.12.14",
+  "packages": {
+   "torch": "2.14.0+cpu",
+   "transformers": "5.17.0",
+   "tokenizers": "0.23.2",
+   "huggingface_hub": "1.33.0",
+   "numpy": "2.5.3",
+   "gliclass": "0.1.20"
+  },
+  "cpu_model": "AMD RYZEN AI MAX+ 395 w/ Radeon 8060S",
+  "os_cpu_count": 32,
+  "affinity_cpus": 32,
+  "cgroup_cpu_max": "300000 100000",
+  "cgroup_memory_max": "4294967296",
+  "torch_threads": 16,
+  "cuda_available": false
+ },
+ "tokens": 512,
+ "labels": 6,
+ "by_batch": [
+  {
+   "batch": 1,
+   "vmhwm_after_load_mb": 1989.6,
+   "peak_rss_mb": 1989.6
+  },
+  {
+   "batch": 2,
+   "vmhwm_after_load_mb": 1990.5,
+   "peak_rss_mb": 1998.8
+  },
+  {
+   "batch": 4,
+   "vmhwm_after_load_mb": 1990.8,
+   "peak_rss_mb": 2212.3
+  },
+  {
+   "batch": 8,
+   "vmhwm_after_load_mb": 1990.4,
+   "peak_rss_mb": 2668.4
+  }
+ ]
+}

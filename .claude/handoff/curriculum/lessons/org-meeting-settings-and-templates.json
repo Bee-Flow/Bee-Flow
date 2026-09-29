@@ -1,0 +1,298 @@
+{
+ "id": "org-meeting-settings-and-templates",
+ "icon": "🗓️",
+ "estMinutes": 10,
+ "title": "Who gets recorded, and who gets measured",
+ "desc": "The two org screens behind Meeting Notes: the Talk recording switches that outrank everyone's own, and organisation-wide summary templates.",
+ "gate": {
+  "permission": "org_admin",
+  "feature": "meeting_notes"
+ },
+ "learningGoal": "After this lesson you can set the organisation's Talk Meeting Notes switches knowing they override each member's own, decide the Per-person meeting insights question deliberately, and publish a summary template at organisation or group scope that lands as the default on new meetings.",
+ "steps": [
+  {
+   "type": "slide",
+   "id": "why",
+   "icon": "🧭",
+   "title": "Two decisions that are not the member's to make",
+   "bodyMd": "At Van Dijk Groep every colleague can already record a meeting, name the speakers and regenerate a summary. Three things, though, are not theirs to decide:\n\n- whether Nextcloud Talk calls are recorded and turned into notes **automatically**, for everyone;\n- whether the meeting statistics are broken down **per person** — that is, whether staff are measured individually;\n- what a supplier call summary should **look like**, so that every buyer's note has the same sections.\n\nAll three live in **Settings → Organisation**, on two screens, and both screens need the Organisation Admin role. Nothing you touch here is destructive: every switch is reversible, and no transcript, note or template is deleted by flipping one."
+  },
+  {
+   "type": "slide",
+   "id": "where",
+   "icon": "🧱",
+   "title": "Two screens, and what hides them",
+   "bodyMd": "**Settings → Organisation → Nextcloud Sync** carries the panel **\"Talk Meeting Notes\"**, under the Nextcloud sync settings. Its own description says it plainly: *\"These org settings override each member's personal settings.\"* The **Nextcloud Sync** entry itself only appears when your organisation is bound to a Nextcloud, so without that connection you will not find the panel at all.\n\n**Settings → Organisation → Meeting templates** carries **\"Organization summary templates\"**. Without the Organisation Admin role the request comes back as *\"Org admin required\"* and the panel silently disappears rather than showing an error.\n\nMembers have their own copy of the recording switches under **Settings → Preferences → \"Nextcloud Talk Meeting Notes\"**. Yours outranks theirs."
+  },
+  {
+   "type": "slide",
+   "id": "rows",
+   "icon": "🎛️",
+   "title": "The panel, row by row",
+   "bodyMd": "On **Talk Meeting Notes** you get, in order:\n\n- **Auto-record Talk meetings** — when on, two more rows appear: **Which calls** (*Calendar meetings* or *Any moderated call*) and **Recording quality** (*Audio-only* or *Video*).\n- **Auto-transcribe Talk recordings** — a new recording becomes a Meeting Note by itself.\n- **Post summary back into Talk** — the summary and action items are posted into the conversation.\n- **Recordings folder** — the Nextcloud Files folder Talk saves to, normally `/Talk/Recording`.\n- **Per-person meeting insights**.\n- **Default language** — Dutch out of the box.\n\nAuto-record and auto-transcribe are **off** by default. Nothing on the panel applies until you click **Save**."
+  },
+  {
+   "type": "quiz",
+   "id": "q-override",
+   "question": "Bart switched \"Auto-transcribe my Talk recordings\" on in his own Preferences months ago. Marieke opens the org panel to turn Auto-record Talk meetings on, and clicks Save while Auto-transcribe on that panel is showing off. What happens to Bart's recordings?",
+   "multi": false,
+   "choices": [
+    {
+     "id": "a",
+     "label": "They stop becoming notes by themselves: Save commits the whole panel as the organisation's answer, and where the organisation has an answer it beats the member's own.",
+     "correct": true
+    },
+    {
+     "id": "b",
+     "label": "Bart keeps his own setting, because the more specific setting always wins over the broader one.",
+     "correct": false,
+     "feedback": "The other way round here. The panel's own description says these org settings override each member's personal settings — so treat Save as speaking for all 60 colleagues, including on rows you never touched."
+    },
+    {
+     "id": "c",
+     "label": "Nothing changes for Bart until he opens his Preferences and saves them again.",
+     "correct": false,
+     "feedback": "His personal screen is not consulted again. The organisation's answer is applied when a recording turns up, not when Bart last saved."
+    },
+    {
+     "id": "d",
+     "label": "Bart's earlier notes and recordings are removed along with his setting.",
+     "correct": false,
+     "feedback": "No switch on this panel deletes anything. It only decides what happens to recordings from now on; existing notes are untouched."
+    }
+   ],
+   "explanation": "Read the panel as one organisation-wide statement rather than as six separate opinions: clicking Save writes every row on it, including the ones you left alone. So do not open it merely to look and then press Save. To hand auto-transcribe back to Bart, switch that row on and Save — reversible in one click, and his old notes were never at risk."
+  },
+  {
+   "type": "slide",
+   "id": "insights",
+   "icon": "⚖️",
+   "title": "Per-person meeting insights: the works-council row",
+   "bodyMd": "**Per-person meeting insights** is the only row on this panel with no personal counterpart — there is no member setting to override, because it is an organisation-level decision by design. It is **on** by default: the Insights tab of a note shows per-person statistics such as talk time and longest monologue.\n\nSwitch it off and the panel's own wording applies: *\"Off = members see only meeting-level metrics.\"* On a note, the Insights tab then reads *\"Per-person statistics are disabled by your organization.\"*\n\nNothing is deleted. The transcript still carries who said what, the summary is unchanged, and switching the row back on brings the statistics straight back. What you are deciding is whether the workspace reports on individuals — a works-council question at Van Dijk Groep, not a technical one."
+  },
+  {
+   "type": "sim",
+   "id": "sim-control",
+   "icon": "🧩",
+   "title": "Which control answers which request?",
+   "instruction": "Five requests landed in Marieke's inbox this week. Pair each one with the setting that answers it.",
+   "sim": {
+    "kind": "match",
+    "pairs": [
+     {
+      "id": "wc",
+      "left": "The works council asks that the workspace stops reporting how long each employee talked.",
+      "right": "Per-person meeting insights, switched off",
+      "note": "An org-only row. Members then see meeting-level metrics only; nothing is deleted."
+     },
+     {
+      "id": "org",
+      "left": "Every supplier call summary must come out in the same sections, for all 60 colleagues.",
+      "right": "A template with Visible to = Whole organization, set as the default",
+      "note": "Organisation scope plus the default tick is what makes it the house style for new meetings."
+     },
+     {
+      "id": "grp",
+      "left": "Only the sales team should get the Klantgesprek style; the rest of the company has no use for it.",
+      "right": "A template with Visible to = Specific group",
+      "note": "Group scope keeps a style off everyone else's Regenerate menu."
+     },
+     {
+      "id": "auto",
+      "left": "Nobody should have to press anything for a scheduled Talk meeting to end up as a note.",
+      "right": "Auto-record Talk meetings plus Auto-transcribe Talk recordings",
+      "note": "Recording alone yields a file; the second switch turns that file into a note."
+     },
+     {
+      "id": "back",
+      "left": "People who missed the call want the outcome in the conversation itself.",
+      "right": "Post summary back into Talk",
+      "note": "After transcription the summary and action items are posted into the Talk conversation."
+     }
+    ]
+   }
+  },
+  {
+   "type": "slide",
+   "id": "templates",
+   "icon": "📄",
+   "title": "Organization summary templates",
+   "bodyMd": "**Settings → Organisation → Meeting templates** opens **\"Organization summary templates\"**: *\"Add Meeting Notes summary styles for your whole organization or a specific group. Members pick them from the Regenerate menu; a default is applied to new meetings automatically.\"* Empty, it reads *\"No organization or group templates yet.\"*\n\nEach row shows the template name, a **Default** badge when it is the default, and its scope — **Whole organization** or the group's name; this panel lists the organisation's and its groups' templates, never anyone's personal ones. **New template…** opens the editor: **Name**, **Start from a built-in (optional)**, **Prompt** (the instructions the AI follows), **Visible to**, **Group** when you chose a group, and the tick **Use as the default for new meetings**. Name is capped at 120 characters, the prompt at 20 000."
+  },
+  {
+   "type": "quiz",
+   "id": "q-default",
+   "question": "Marieke publishes \"Klantgesprek NL\" at Whole organization scope and ticks it as the default. Bart already has a template of his own ticked as default, and the Verkoop group has a group template ticked as default too. Which style does Bart's next meeting summary come out in?",
+   "multi": false,
+   "choices": [
+    {
+     "id": "a",
+     "label": "Bart's own: a personal default wins over a group default, which in turn wins over the organisation default.",
+     "correct": true
+    },
+    {
+     "id": "b",
+     "label": "Marieke's, because an organisation setting overrides a personal one — as it did on the Talk panel.",
+     "correct": false,
+     "feedback": "That rule belongs to the recording switches. Templates resolve the other way round: personal first, then group, then organisation. Two screens, two different rules — this is the one admins get wrong."
+    },
+    {
+     "id": "c",
+     "label": "The Verkoop group's, because a group is narrower than the whole organisation.",
+     "correct": false,
+     "feedback": "Narrower does win between group and organisation, but only after the personal default has been checked and found. Bart has one, so the group's never comes up."
+    },
+    {
+     "id": "d",
+     "label": "Bart is asked which of the three to use when the note is created.",
+     "correct": false,
+     "feedback": "Nothing asks. One default is resolved silently; Bart can still pick another style afterwards from the Regenerate menu."
+    }
+   ],
+   "explanation": "The resolver looks for a default in this order: the member's own, then any group they are in, then the organisation. Your organisation default is therefore a floor, not a ceiling — it shapes the notes of everyone who has not chosen for themselves. At most one default can exist per person, per group and per organisation, so there is never a tie to break, and any member can override the outcome on a single note through Regenerate."
+  },
+  {
+   "type": "slide",
+   "id": "wrong",
+   "icon": "🚧",
+   "title": "What goes wrong, and how you notice",
+   "bodyMd": "- **The scope is wrong.** The editor states *\"Scope can't be changed after creation.\"* A template saved as **Just me** never reaches colleagues; the only fix is a new one at the right scope and **Delete** on the old.\n- **You saved the panel to look at it.** Every row on Talk Meeting Notes is now the organisation's answer. Put the row back the way members had it and Save.\n- **The Meeting templates panel is not there.** Either the account is not an Organisation Admin, or the workspace has no Meeting Notes licence — the panel hides itself rather than complaining.\n- **Old notes did not change.** A default is applied to **new** meetings. Existing notes keep their style until someone regenerates them.\n- **Recordings pile up but no notes appear.** Auto-record is on, auto-transcribe is not."
+  },
+  {
+   "type": "quiz",
+   "id": "q-scope",
+   "question": "Marieke wrote a template called \"Inkoopverslag\" and saved it with Visible to on Just me. Buyers say it is nowhere in their Regenerate menu under Organization. What is the fix?",
+   "multi": false,
+   "choices": [
+    {
+     "id": "a",
+     "label": "Create it again with Visible to = Whole organization, then delete the first one.",
+     "correct": true
+    },
+    {
+     "id": "b",
+     "label": "Open the template and switch Visible to over to Whole organization.",
+     "correct": false,
+     "feedback": "The editor says it under the scope buttons: \"Scope can't be changed after creation.\" Only the name, the prompt and the default tick can still be edited."
+    },
+    {
+     "id": "c",
+     "label": "Ask each buyer to tick the template as their own default so it shows up for them.",
+     "correct": false,
+     "feedback": "They cannot tick what they cannot see. A Just me template is listed for its creator only — no colleague can reach it from their Regenerate menu."
+    },
+    {
+     "id": "d",
+     "label": "Nothing — an organisation-wide template appears once someone regenerates a summary with it.",
+     "correct": false,
+     "feedback": "Scope decides who sees a template, and it was fixed the moment the template was saved. Regenerating changes nothing about who it is visible to."
+    }
+   ],
+   "explanation": "Scope is immutable because it decides who a template belongs to. Copy the prompt text out of the wrong template, create a new one with Visible to = Whole organization (or Specific group plus the Group), tick Use as the default for new meetings if it should be the house style, and delete the stray. Take the moment to check the Default badge afterwards — one default per scope, so the badge tells you which style new meetings will get."
+  },
+  {
+   "type": "sim",
+   "id": "sim-rollout",
+   "icon": "📋",
+   "title": "The rollout, in the order that avoids rework",
+   "instruction": "Van Dijk Groep wants every scheduled Talk meeting to arrive as a note in the house style. Put Marieke's five moves in the order that gets there without redoing anything.",
+   "sim": {
+    "kind": "order",
+    "items": [
+     {
+      "id": "check",
+      "label": "Open Settings → Organisation → Nextcloud Sync and confirm the Talk Meeting Notes panel is even there."
+     },
+     {
+      "id": "tpl",
+      "label": "Under Meeting templates, add the style at Whole organization scope and tick \"Use as the default for new meetings\"."
+     },
+     {
+      "id": "toggles",
+      "label": "Back on the panel, set Default language, switch Auto-record Talk meetings on with Which calls = Calendar meetings, and switch Auto-transcribe Talk recordings on."
+     },
+     {
+      "id": "save",
+      "label": "Click Save on the panel."
+     },
+     {
+      "id": "test",
+      "label": "Record one short call yourself and open the note to check the summary carries the template stamp."
+     }
+    ],
+    "solution": [
+     "check",
+     "tpl",
+     "toggles",
+     "save",
+     "test"
+    ],
+    "feedback": "Confirm the panel exists first: without a Nextcloud connection the Nextcloud Sync entry is not there at all. The template comes before the switches, because a default applies to new meetings only — notes made in the gap arrive in the built-in style and need regenerating one by one. Nothing counts until Save, and one real call is the proof."
+   }
+  },
+  {
+   "type": "action",
+   "id": "do-template",
+   "icon": "🏗️",
+   "checkId": "org-summary-template",
+   "title": "Publish your organisation's house style",
+   "instruction": "Open Meeting templates and click New template…. Give it a name your colleagues will recognise, optionally start from a built-in, and write the Prompt as instructions: the sections you want, the tone, and what to leave out. Set Visible to = Whole organization (or Specific group plus the Group), and tick Use as the default for new meetings only if every new note should arrive in this shape. Save template — we then check that your organisation has a template.",
+   "launch": {
+    "navigateTo": "settings/organisation/meeting-templates",
+    "label": "Open Meeting templates"
+   }
+  },
+  {
+   "type": "slide",
+   "id": "done",
+   "icon": "✅",
+   "title": "What you can do now",
+   "bodyMd": "- **Set the recording switches deliberately.** Talk Meeting Notes on **Organisation → Nextcloud Sync** speaks for everyone, and Save commits every row on the panel — so open it to change something, not to browse.\n- **Answer the measurement question on purpose.** **Per-person meeting insights** is on by default; off leaves members with meeting-level metrics only, deletes nothing, and can be turned back on.\n- **Give the organisation a house style.** A template at **Whole organization** or group scope, ticked as default, shapes every new note — unless the member has a default of their own, because templates resolve personal, then group, then organisation."
+  }
+ ],
+ "practiceTopic": {
+  "title": "Organisation meeting settings and summary templates",
+  "summary": "How an org admin sets the Talk Meeting Notes switches, decides per-person insights, and publishes organisation or group summary templates.",
+  "facts": [
+   "The Talk Meeting Notes panel sits on Settings → Organisation → Nextcloud Sync and states that these org settings override each member's personal settings; the Nextcloud Sync entry only appears for an organisation that is bound to a Nextcloud.",
+   "Its rows are Auto-record Talk meetings (Which calls: Calendar meetings or Any moderated call; Recording quality: Audio-only or Video), Auto-transcribe Talk recordings, Post summary back into Talk, Recordings folder, Per-person meeting insights and Default language.",
+   "Auto-record and auto-transcribe are off by default, the recordings folder defaults to /Talk/Recording and the default language is Dutch.",
+   "Per-person meeting insights is on by default and has no personal counterpart; off means members see only meeting-level metrics and a note's Insights tab reads \"Per-person statistics are disabled by your organization.\"",
+   "Settings → Organisation → Meeting templates shows \"Organization summary templates\"; rows carry the template name, a Default badge and the scope label Whole organization or the group's name (the panel lists only org- and group-scoped templates), and New template… opens the editor.",
+   "The template editor has Name, Start from a built-in (optional), Prompt, Visible to, Group and \"Use as the default for new meetings\", and warns that \"Scope can't be changed after creation.\"",
+   "A template name is capped at 120 characters and its prompt at 20 000, and there can be at most one default per person, per group and per organisation.",
+   "A personal default template beats a group default, which beats the organisation default, and a default is applied to new meetings only — existing notes keep their style until someone regenerates them."
+  ]
+ },
+ "actionChecks": [
+  {
+   "checkId": "org-summary-template",
+   "existing": false,
+   "label": "Publish an organisation or group summary template",
+   "hint": "Settings → Organisation → Meeting templates → New template…: fill in Name and Prompt, set Visible to = Whole organization (or Specific group plus a Group), then Save template.",
+   "endpoints": [
+    {
+     "method": "GET",
+     "path": "/api/summary-templates/org",
+     "returns": "{ orgId, templates, groups } for the caller's own organisation — org admin only, which is exactly this lesson's gate; templates is the array of organisation and group scoped summary templates"
+    }
+   ],
+   "criteria": [
+    {
+     "id": "exists",
+     "endpoint": "/api/summary-templates/org",
+     "expect": {
+      "kind": "nonEmpty",
+      "field": "templates"
+     },
+     "label": "Your organisation has a summary template",
+     "hint": "Save it with Visible to = Whole organization or Specific group — a Just me template belongs to you, not to the organisation.",
+     "rule": "GET /api/summary-templates/org → templates is a non-empty array; gated on meeting_notes because the mount requires that licence feature",
+     "gate": {
+      "feature": "meeting_notes"
+     }
+    }
+   ]
+  }
+ ]
+}

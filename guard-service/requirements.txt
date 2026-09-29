@@ -1,0 +1,38 @@
+# Still a requirements file while reranker, search-service and
+# whisperx-service moved to pyproject.toml + uv.lock. gliner needs torch, and
+# the Dockerfile installs the CPU build from download.pytorch.org in the layer
+# above this one, so pip finds it already satisfied. A lock resolved against
+# PyPI instead records torch 2.14 plus fifteen nvidia-* CUDA packages — a
+# different and far larger image — and the CPU wheel index that would keep it
+# honest is not readable from the pinning box. This service waits for a box
+# that can read download.pytorch.org.
+fastapi==0.141.1
+uvicorn[standard]==0.53.0
+pydantic==2.13.5
+pydantic-settings==2.15.0
+httpx==0.28.1
+redis==5.3.1
+# GLiNER multilingual PII NER (Apache 2.0) — CPU PII detection backend.
+# PINNED: every eval baseline records the library version in its provenance;
+# a floating floor let a rebuild silently drift the engine underneath the
+# frozen baselines. Bump deliberately, with an equivalence gate run.
+# 0.2.29 adopted 2026-09-26: detection BIT-IDENTICAL to 0.2.28 on the dev
+# split, same code on both stacks (eval/metrics.off.dev.g0229.json against
+# eval/metrics.off.dev.g0228-head.json; decision record in
+# eval/MODEL-DECISIONS.md). A bare version bump does NOT work: 0.2.29 rejects
+# low_cpu_mem_usage with an ONNX runtime, see model_loading.py.
+# The [onnx] extra: since 0.2.29 gliner no longer pulls onnxruntime in itself.
+gliner[onnx]==0.2.29
+# gliner's own dependencies that decide what the model sees, pinned for the
+# same reason. They floated before 2026-09-26 and drifted under the baselines
+# (measured on transformers 5.6.2; the image shipped 5.13.1 ungated). The
+# per-thread tokenizer fix (_ThreadLocalTokenizer) leans on transformers and
+# tokenizers internals, so these move only with a gate run too. torch is
+# pinned in the Dockerfile, where the CPU build is installed.
+transformers==5.16.1
+tokenizers==0.23.2
+huggingface_hub==1.33.0
+# ONNX runtime for fp32 CPU inference (much faster than fp32 PyTorch; we do
+# NOT INT8-quantize — that collapsed person-name recall, BFSF-269)
+onnx==1.23.0
+onnxruntime==1.30.0

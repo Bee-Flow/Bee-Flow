@@ -1,0 +1,49 @@
+{
+  "_comment": [
+    "The status-check contexts that BLOCK a merge to main. Mirror of GitHub",
+    "repo ruleset 23605458 'main: PR + required checks', read back 2026-09-25",
+    "(read-only GETs, org on the Team plan): enforcement: active, target",
+    "~DEFAULT_BRANCH, no bypass actors. Its rules: deletion and",
+    "non_fast_forward (main cannot be deleted or force-pushed), pull_request",
+    "(no direct push to main; zero approvals required), and",
+    "required_status_checks on exactly the contexts below (integration_id",
+    "15368, GitHub Actions) with strict_required_status_checks_policy: false",
+    "(`strict` below; it was true only 2026-09-23 15:39Z-20:50Z, ruleset",
+    "history v50656329 -> v50691329). So a PR can merge while behind main:",
+    "its checks ran on its merge with an older main, not on the tree that",
+    "lands. What verifies that tree before any image is published is the",
+    "ci.yml call in build-push-ghcr.yml on the push to main.",
+    "",
+    "This file is the source of truth for scripts/check-required-checks.mjs,",
+    "which runs on every PR (npm run lint:checks). Keep it and the ruleset in",
+    "step: a context added here but not there is checked by nobody on GitHub,",
+    "one added there but not here is not checked for uniqueness. Refresh the",
+    "`ruleset` block (read-only GET, starts no Action) with:",
+    "  curl -sS -H \"Authorization: Bearer $GH_TOKEN\" -H 'Accept: application/vnd.github+json' \\",
+    "    https://api.github.com/repos/Bee-Flow/Bee-Flow-AI/rulesets/23605458",
+    "",
+    "BEFORE ADDING A CONTEXT HERE, read what the checker enforces. A context is",
+    "only safe to require if exactly one job emits it, that job is not a matrix,",
+    "its workflow has a pull_request trigger, that trigger has NO paths: filter,",
+    "and the job is unconditional or an `if: always()` aggregate that needs",
+    "every other job in its workflow.",
+    "",
+    "`checks-passed` is ci.yml's aggregate: every test and lint job lives in",
+    "that one workflow, path-filtered per job (not at the trigger), and the",
+    "aggregate runs always and fails if any job that ran failed. That is what",
+    "lets a single context gate server, frontend, mobile, Python, guard and",
+    "Nextcloud tests without blocking a docs-only PR."
+  ],
+  "ruleset": {
+    "id": 23605458,
+    "name": "main: PR + required checks",
+    "target": "~DEFAULT_BRANCH",
+    "strict": false,
+    "verified_at": "2026-09-25"
+  },
+  "required_contexts": [
+    "scan",
+    "audit",
+    "checks-passed"
+  ]
+}

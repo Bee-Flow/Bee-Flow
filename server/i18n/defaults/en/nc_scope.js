@@ -1,0 +1,38 @@
+// English GUI defaults — namespace "nc_scope": every key whose part before the first "." is "nc_scope".
+// Merged into GUI_DEFAULTS by ./index.js. The frontend copy (agent-hub/src/i18n/en-defaults.js)
+// is GENERATED from these files: after an edit, run `node scripts/gen-i18n-defaults.mjs`.
+module.exports = {
+    // Nextcloud per-user access scope (Settings → Integrations → Nextcloud)
+    "nc_scope.all_files_root": "All files",
+    "nc_scope.clear": "Clear",
+    "nc_scope.collapse": "Collapse",
+    "nc_scope.done": "Done",
+    "nc_scope.everything": "Everything",
+    "nc_scope.expand": "Expand",
+    "nc_scope.intro": "Share parts of your Nextcloud with Bee Flow the way you would with a colleague — and take them back any time. Enforced on the server for chats, automations and apps alike.",
+    "nc_scope.items": "items",
+    "nc_scope.list_error": "Could not list resources",
+    "nc_scope.load_error": "Could not load access settings",
+    "nc_scope.loading": "Loading…",
+    "nc_scope.mode_all": "Everything",
+    "nc_scope.mode_for": "Access mode for {name}",
+    "nc_scope.mode_off": "Off",
+    "nc_scope.mode_selected": "Only selected",
+    "nc_scope.no_matches": "Nothing found",
+    "nc_scope.no_subfolders": "No subfolders",
+    "nc_scope.none_hint": "Nothing selected yet — Bee Flow can reach none of your {items} until you tick some.",
+    "nc_scope.none_selected": "Nothing selected",
+    "nc_scope.off": "Off",
+    "nc_scope.orphaned": "no longer found",
+    "nc_scope.reset": "Reset to default",
+    "nc_scope.revoke": "Revoke all Nextcloud access",
+    "nc_scope.revoke_confirm": "Turn off all Nextcloud access?",
+    "nc_scope.revoke_no": "Keep",
+    "nc_scope.revoke_yes": "Yes, revoke",
+    "nc_scope.save_error": "⚠ Not saved — try again",
+    "nc_scope.saved": "✓ Saved",
+    "nc_scope.saving": "Saving…",
+    "nc_scope.search": "Search…",
+    "nc_scope.title": "What Bee Flow may access",
+    "nc_scope.tree_error": "Could not load folders",
+};

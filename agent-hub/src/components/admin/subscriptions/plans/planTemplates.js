@@ -1,0 +1,447 @@
+// Curated catalogue of plan templates shown in the "+ From Template" gallery.
+//
+// Each template is a complete payload for the PlanEditor form (the shape comes
+// from initPlanForm in usePlanForm.js). Selecting a template seeds the editor
+// pre-populated so an admin can adjust before saving — nothing is persisted
+// until they hit "Create plan".
+//
+// Tier slugs (`allowed_models`) match TIER_META keys in
+// agent-hub/src/components/tierMeta.js so the AI Configuratie layer can
+// resolve them to concrete vendor models (Claude primary, Mistral as EU
+// fallback).
+//
+// Caps + prices were sized against May 2026 model pricing
+// (Claude Haiku 4.5 / Sonnet 4.6 / Opus 4.7; Mistral Small / Medium / Large)
+// targeting ~75% gross margin at 50% utilisation and ≥50% at cap-hit, with
+// a 70/30 Claude/Mistral mix and a 4,000-input + 600-output token average
+// per message. See the plan file for full math.
+//
+// White-label is intentionally **not** included on any cloud template — it's
+// a self-hosted-only feature gated by license-key activation.
+
+// ── Beta feature buckets ────────────────────────────────────────────────────
+const BETA_FREE      = [];
+const BETA_PLUS      = ['knowledge_bases_beta'];
+const BETA_TEAM      = ['automations', 'agent_routines', 'knowledge_bases_beta'];
+const BETA_BUSINESS  = [
+    'knowledge_bases_beta',
+    'automations', 'agent_routines',
+    'meeting_notes', 'voice_chat',
+    'webpages', 'skills',
+];
+const BETA_ENTERPRISE = [
+    ...BETA_BUSINESS,
+    'swarm', 'advanced_analytics', 'custom_themes',
+    // 'white_label' intentionally omitted — self-hosted only.
+];
+
+// ── Integration buckets ────────────────────────────────────────────────────
+const INT_NEXTCLOUD_CORE = ['nextcloud'];
+const INT_NEXTCLOUD_FULL = [
+    'nextcloud', 'nextcloud-mail', 'nextcloud-calendar', 'nextcloud-contacts',
+    'nextcloud-deck', 'nextcloud-notifications', 'nextcloud-talk',
+    'nextcloud-tasks', 'nextcloud-notes', 'nextcloud-activity', 'nextcloud-status',
+];
+const INT_GOOGLE_WORKSPACE = [
+    'gmail', 'google-calendar', 'google-drive', 'google-docs', 'google-sheets',
+    'google-slides', 'google-contacts', 'google-keep', 'google-groups', 'maps',
+];
+const INT_MICROSOFT_365 = ['outlook', 'ms-calendar', 'onedrive', 'ms-contacts'];
+const INT_GOOGLE_PERSONAL = ['gmail', 'google-calendar', 'google-drive', 'google-docs', 'google-contacts'];
+const INT_MS_PERSONAL = ['outlook', 'ms-calendar', 'onedrive', 'ms-contacts'];
+const INT_AI = ['image-gen', 'music-gen', 'video-gen', 'elevenlabs', 'agent-search', 'transcription', 'kb-search'];
+const INT_THIRD_PARTY = ['fireflies', 'youtrack', 'gamma', 'afas-profit', 'nmbrs', 'vplan', 'n8n', 'linkedin', 'github', 'signrequest', 'webpages'];
+
+// ── Core feature buckets ───────────────────────────────────────────────────
+const FEAT_FREE  = ['chat', 'direct_chat'];
+const FEAT_PLUS  = ['chat', 'direct_chat', 'agents', 'knowledge_base'];
+const FEAT_TEAM  = ['chat', 'direct_chat', 'agents', 'knowledge_base', 'workspace'];
+const FEAT_FULL  = ['chat', 'direct_chat', 'agents', 'knowledge_base', 'workspace', 'embed_chat', 'encryption'];
+
+// ── Templates ──────────────────────────────────────────────────────────────
+export const PLAN_TEMPLATES = [
+    // ─── Organization tiers ─────────────────────────────────────────────────
+    {
+        id: 'org-free',
+        audience: 'organization',
+        display: {
+            title: 'Bee Flow Free (Org)',
+            subtitle: 'Permanent free tier for small teams kicking the tires. Flat per-org, 3 seats included.',
+            priceLabel: '€0 / month · per org',
+            highlights: ['150 messages / month (org-wide)', '3 users · 2 agents', 'Fast model tier', 'Nextcloud Files only'],
+            badge: 'FREE',
+        },
+        plan: {
+            name: 'Bee Flow Free',
+            description: 'Permanent free plan for small organisations. Flat per-org pricing with 3 seats and a shared 150-message monthly cap. Fast tier only, Nextcloud Files integration. Never expires; not a trial.',
+            tagline: 'Try Bee Flow with no card, forever',
+            plan_type: 'organization',
+            tier: '',
+            max_cost_per_month: 2,
+            max_users: 3,
+            max_agents: 2,
+            max_knowledge_sources: 5,
+            allowed_features: FEAT_FREE,
+            allowed_models: ['fast'],
+            allowed_integrations: INT_NEXTCLOUD_CORE,
+            allowed_beta_features: BETA_FREE,
+            billing_model: 'fixed',
+            markup_percent: 0,
+            per_seat: false,
+            price: 0,
+            currency: 'EUR',
+            billing_interval: 'monthly',
+            trial_days: 0,
+            sort_order: 10,
+            is_public: true,
+            is_default: false,
+            nc_recommended: false,
+        },
+    },
+    {
+        id: 'org-team',
+        audience: 'organization',
+        display: {
+            title: 'Bee Flow Team',
+            subtitle: 'Per-seat SMB tier with Fast + Thinking model tiers and automations.',
+            priceLabel: '€15 / seat / month',
+            highlights: ['1,000 messages per seat / month', 'Up to 25 users · 10 agents', 'Fast + Thinking tiers', 'Automations & agent routines'],
+            badge: 'PER SEAT',
+        },
+        plan: {
+            name: 'Bee Flow Team',
+            description: 'Per-seat tier for growing teams. €15 / active user / month. Each seat includes 1,000 messages/month (org cap scales with seat count). Adds Thinking model tier, automations, agent routines, Google Workspace + Microsoft 365 + full Nextcloud suite.',
+            tagline: 'For growing teams that need more horsepower',
+            plan_type: 'organization',
+            tier: 'pro',
+            max_cost_per_month: null,
+            max_users: 25,
+            max_agents: 10,
+            max_knowledge_sources: 25,
+            allowed_features: FEAT_TEAM,
+            allowed_models: ['fast', 'thinking'],
+            allowed_integrations: [...INT_NEXTCLOUD_FULL, ...INT_GOOGLE_WORKSPACE, ...INT_MICROSOFT_365, 'agent-search', 'kb-search'],
+            allowed_beta_features: BETA_TEAM,
+            billing_model: 'fixed',
+            markup_percent: 0,
+            per_seat: true,
+            price: 15,
+            currency: 'EUR',
+            billing_interval: 'monthly',
+            trial_days: 14,
+            sort_order: 20,
+            is_public: true,
+            is_default: false,
+            nc_recommended: false,
+        },
+    },
+    {
+        id: 'org-business',
+        audience: 'organization',
+        display: {
+            title: 'Bee Flow Business',
+            subtitle: 'Per-seat Business tier — all three model tiers, full beta suite, all 41+ integrations.',
+            priceLabel: '€39 / seat / month',
+            highlights: ['1,800 messages per seat / month', 'Up to 100 users · 50 agents', 'Fast + Thinking + Deep Thinking', 'Voice chat · Meeting notes · Webpages'],
+            badge: 'PER SEAT',
+        },
+        plan: {
+            name: 'Bee Flow Business',
+            description: 'Per-seat tier for production-grade deployments. €39 / active user / month with 1,800 messages per seat. Unlocks Deep Thinking, meeting notes, voice chat, webpages, skills, and the full integration catalogue.',
+            tagline: 'The full Bee Flow product, per seat',
+            plan_type: 'organization',
+            tier: 'pro',
+            max_cost_per_month: null,
+            max_users: 100,
+            max_agents: 50,
+            max_knowledge_sources: 100,
+            allowed_features: FEAT_FULL,
+            allowed_models: ['fast', 'thinking', 'deep_thinking', 'writer'],
+            allowed_integrations: [...INT_NEXTCLOUD_FULL, ...INT_GOOGLE_WORKSPACE, ...INT_MICROSOFT_365, ...INT_AI, ...INT_THIRD_PARTY],
+            allowed_beta_features: BETA_BUSINESS,
+            billing_model: 'fixed',
+            markup_percent: 0,
+            per_seat: true,
+            price: 39,
+            currency: 'EUR',
+            billing_interval: 'monthly',
+            trial_days: 14,
+            sort_order: 30,
+            is_public: true,
+            is_default: false,
+            nc_recommended: true,
+        },
+    },
+    {
+        id: 'org-enterprise',
+        audience: 'organization',
+        display: {
+            title: 'Bee Flow Enterprise',
+            subtitle: 'Per-seat Enterprise — compliance, SSO, audit, swarm. White-label is self-hosted only.',
+            priceLabel: '€99 / seat / month',
+            highlights: ['3,500 messages per seat / month', 'Unlimited users + agents', 'Swarm + advanced analytics', 'Compliance Hub · SSO · audit export'],
+            badge: 'PER SEAT',
+        },
+        plan: {
+            name: 'Bee Flow Enterprise',
+            description: 'Per-seat Enterprise tier for regulated organisations. €99 / active user / month with 3,500 messages per seat. All model tiers, swarm agents, custom themes, Compliance Hub (GDPR + AIA), SSO (SAML), and audit-log export. White-label branding is available only on self-hosted deployments with an Enterprise license key.',
+            tagline: 'Compliance, scale, and full control',
+            plan_type: 'organization',
+            tier: 'enterprise',
+            max_cost_per_month: null,
+            max_users: null,
+            max_agents: null,
+            max_knowledge_sources: null,
+            allowed_features: FEAT_FULL,
+            allowed_models: null,
+            allowed_integrations: null,
+            allowed_beta_features: BETA_ENTERPRISE,
+            billing_model: 'fixed',
+            markup_percent: 0,
+            per_seat: true,
+            price: 99,
+            currency: 'EUR',
+            billing_interval: 'monthly',
+            trial_days: 14,
+            sort_order: 40,
+            is_public: true,
+            is_default: false,
+            nc_recommended: false,
+        },
+    },
+    {
+        id: 'org-payg',
+        audience: 'organization',
+        display: {
+            title: 'Bee Flow Pay-as-you-go (Org)',
+            subtitle: 'No monthly fee — billed monthly on actual AI usage + 25% markup. Flat per-org.',
+            priceLabel: 'PAYG · +25% · per org',
+            highlights: ['No flat fee', 'Up to 25 users · 25 agents', 'All model tiers unlocked', 'Stripe meter billing'],
+            badge: 'PAYG',
+        },
+        plan: {
+            name: 'Bee Flow PAYG (Org)',
+            description: 'No flat fee — pay only for the AI usage you consume, billed monthly via Stripe usage meters with a 25% margin on raw model cost. Flat per-org (not per seat).',
+            tagline: 'Pay for what you use, nothing else',
+            plan_type: 'organization',
+            tier: '',
+            max_cost_per_month: null,
+            max_users: 25,
+            max_agents: 25,
+            max_knowledge_sources: 50,
+            allowed_features: FEAT_FULL,
+            allowed_models: null,
+            allowed_integrations: null,
+            allowed_beta_features: BETA_BUSINESS,
+            billing_model: 'metered',
+            markup_percent: 25,
+            per_seat: false,
+            price: 0,
+            currency: 'EUR',
+            billing_interval: 'monthly',
+            trial_days: 0,
+            sort_order: 50,
+            is_public: true,
+            is_default: false,
+            nc_recommended: false,
+        },
+    },
+
+    // ─── Consumer tiers (per personal account) ──────────────────────────────
+    {
+        id: 'consumer-free',
+        audience: 'consumer',
+        display: {
+            title: 'Bee Flow Free (Consumer)',
+            subtitle: 'Permanent free tier for personal accounts.',
+            priceLabel: '€0 / month · per account',
+            highlights: ['50 messages / month', '1 agent', 'Fast model tier', 'No integrations'],
+            badge: 'FREE',
+        },
+        plan: {
+            name: 'Bee Flow Free',
+            description: 'Permanent free plan for personal accounts — chat with the Fast tier, build one agent, no card required. Not a trial — never expires.',
+            tagline: 'Get started for free',
+            plan_type: 'consumer',
+            tier: '',
+            max_cost_per_month: 2,
+            max_users: 1,
+            max_agents: 1,
+            max_knowledge_sources: 1,
+            allowed_features: FEAT_FREE,
+            allowed_models: ['fast'],
+            allowed_integrations: [],
+            allowed_beta_features: [],
+            billing_model: 'fixed',
+            markup_percent: 0,
+            per_seat: false,
+            price: 0,
+            currency: 'EUR',
+            billing_interval: 'monthly',
+            trial_days: 0,
+            sort_order: 10,
+            is_public: true,
+            is_default: true,
+            nc_recommended: false,
+        },
+    },
+    {
+        id: 'consumer-plus',
+        audience: 'consumer',
+        display: {
+            title: 'Bee Flow Plus',
+            subtitle: 'Entry tier for personal use — undercuts ChatGPT Plus.',
+            priceLabel: '€9.99 / month · per account',
+            highlights: ['600 messages / month', '3 agents · 10 KB sources', 'Fast + Thinking tiers', 'Personal Google / Microsoft'],
+        },
+        plan: {
+            name: 'Bee Flow Plus',
+            description: 'Per-account tier for everyday personal use. Adds the Thinking model tier, personal knowledge bases, and personal Google + Microsoft integrations. 600 messages / month delivers ~77% margin on average users.',
+            tagline: 'For everyday personal use',
+            plan_type: 'consumer',
+            tier: 'pro',
+            max_cost_per_month: 10,
+            max_users: 1,
+            max_agents: 3,
+            max_knowledge_sources: 10,
+            allowed_features: FEAT_PLUS,
+            allowed_models: ['fast', 'thinking'],
+            allowed_integrations: [...INT_GOOGLE_PERSONAL, ...INT_MS_PERSONAL],
+            allowed_beta_features: BETA_PLUS,
+            billing_model: 'fixed',
+            markup_percent: 0,
+            per_seat: false,
+            price: 9.99,
+            currency: 'EUR',
+            billing_interval: 'monthly',
+            trial_days: 14,
+            sort_order: 20,
+            is_public: true,
+            is_default: false,
+            nc_recommended: false,
+        },
+    },
+    {
+        id: 'consumer-pro',
+        audience: 'consumer',
+        display: {
+            title: 'Bee Flow Pro (Consumer)',
+            subtitle: 'All three tiers, voice chat, meeting notes, webpages.',
+            priceLabel: '€19.99 / month · per account',
+            highlights: ['800 messages / month', '10 agents · 50 KB sources', 'All three model tiers', 'Voice chat · Meeting notes'],
+        },
+        plan: {
+            name: 'Bee Flow Pro',
+            description: 'Per-account tier for power users. Unlocks Deep Thinking, voice chat, meeting notes, automations, agent routines, and personal webpages. 800 msgs / month delivers ~77% margin on average users.',
+            tagline: 'For power users',
+            plan_type: 'consumer',
+            tier: 'pro',
+            max_cost_per_month: 20,
+            max_users: 1,
+            max_agents: 10,
+            max_knowledge_sources: 50,
+            allowed_features: FEAT_PLUS,
+            allowed_models: ['fast', 'thinking', 'deep_thinking'],
+            allowed_integrations: [...INT_GOOGLE_PERSONAL, ...INT_MS_PERSONAL, ...INT_AI, 'fireflies', 'youtrack', 'github', 'linkedin', 'webpages'],
+            allowed_beta_features: [
+                ...BETA_PLUS,
+                'meeting_notes', 'voice_chat', 'automations', 'agent_routines', 'webpages',
+            ],
+            billing_model: 'fixed',
+            markup_percent: 0,
+            per_seat: false,
+            price: 19.99,
+            currency: 'EUR',
+            billing_interval: 'monthly',
+            trial_days: 14,
+            sort_order: 30,
+            is_public: true,
+            is_default: false,
+            nc_recommended: false,
+        },
+    },
+    {
+        id: 'consumer-power',
+        audience: 'consumer',
+        display: {
+            title: 'Bee Flow Power',
+            subtitle: 'Top consumer tier for prosumers and freelancers — unlimited agents.',
+            priceLabel: '€39.99 / month · per account',
+            highlights: ['1,500 messages / month', 'Unlimited agents', 'All model tiers + Writer', 'Skills · advanced analytics'],
+        },
+        plan: {
+            name: 'Bee Flow Power',
+            description: 'Per-account top consumer tier for prosumers and freelancers who lean on Bee Flow daily. Unlimited agents, all model tiers, plus skills, advanced analytics, and code execution. ~76% margin on average use.',
+            tagline: 'For prosumers who live in Bee Flow',
+            plan_type: 'consumer',
+            tier: 'enterprise',
+            max_cost_per_month: 40,
+            max_users: 1,
+            max_agents: null,
+            max_knowledge_sources: 200,
+            allowed_features: FEAT_FULL,
+            allowed_models: null,
+            allowed_integrations: null,
+            allowed_beta_features: [
+                ...BETA_PLUS,
+                'meeting_notes', 'voice_chat', 'automations', 'agent_routines', 'webpages',
+                'skills', 'advanced_analytics',
+            ],
+            billing_model: 'fixed',
+            markup_percent: 0,
+            per_seat: false,
+            price: 39.99,
+            currency: 'EUR',
+            billing_interval: 'monthly',
+            trial_days: 14,
+            sort_order: 40,
+            is_public: true,
+            is_default: false,
+            nc_recommended: false,
+        },
+    },
+    {
+        id: 'consumer-payg',
+        audience: 'consumer',
+        display: {
+            title: 'Bee Flow Pay-as-you-go (Consumer)',
+            subtitle: 'No monthly fee — billed monthly on actual usage + 30% markup.',
+            priceLabel: 'PAYG · +30% · per account',
+            highlights: ['No flat fee', '10 agents · 25 KB sources', 'All model tiers unlocked', 'Stripe meter billing'],
+            badge: 'PAYG',
+        },
+        plan: {
+            name: 'Bee Flow PAYG (Consumer)',
+            description: 'No flat fee — pay only for the AI usage you consume, billed monthly via Stripe usage meters with a 30% margin. Per personal account.',
+            tagline: 'Pay for what you use, nothing else',
+            plan_type: 'consumer',
+            tier: '',
+            max_cost_per_month: null,
+            max_users: 1,
+            max_agents: 10,
+            max_knowledge_sources: 25,
+            allowed_features: FEAT_PLUS,
+            allowed_models: null,
+            allowed_integrations: [...INT_GOOGLE_PERSONAL, ...INT_MS_PERSONAL, ...INT_AI],
+            allowed_beta_features: [
+                ...BETA_PLUS,
+                'meeting_notes', 'voice_chat', 'automations', 'agent_routines', 'webpages',
+            ],
+            billing_model: 'metered',
+            markup_percent: 30,
+            per_seat: false,
+            price: 0,
+            currency: 'EUR',
+            billing_interval: 'monthly',
+            trial_days: 0,
+            sort_order: 50,
+            is_public: true,
+            is_default: false,
+            nc_recommended: false,
+        },
+    },
+];
+
+export function getTemplate(id) {
+    return PLAN_TEMPLATES.find(t => t.id === id) || null;
+}

@@ -1,0 +1,197 @@
+{
+  "id": "settings-account-security",
+  "icon": "🔐",
+  "estMinutes": 9,
+  "title": "Put a second lock on your account",
+  "desc": "Turn on two-factor authentication, keep the ten recovery codes, change your password safely — and know why the administrator's two-factor reset is the rescue to ask for, and a password reset is not.",
+  "gate": {},
+  "learningGoal": "After this lesson the learner can enable two-factor authentication on their own account from Settings → Security, store the ten one-time recovery codes, change their own password, and say what the administrator's \"Reset two-factor authentication?\" does and does not repair.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "why",
+      "icon": "🧭",
+      "title": "One stolen password should not be enough",
+      "bodyMd": "Sanne does purchasing at **Van Dijk Groep**. Her Bee Flow account can read supplier quotes, customer correspondence and every chat she has ever had. All of that sits behind one password — and that password is also on a webshop that leaked last spring.\n\nA second factor fixes exactly that hole: even with the right password, a stranger is stopped by a six-digit code that only lives on Sanne's phone.\n\nYou switch it on yourself. No ticket, no admin, about two minutes. This lesson walks the tab where you do it, and shows what happens on the day the phone is gone."
+    },
+    {
+      "type": "tour",
+      "id": "where",
+      "target": "[data-tour=\"account\"]",
+      "placement": "right",
+      "optional": true,
+      "timeoutMs": 7000,
+      "icon": "👤",
+      "title": "Your own settings start here",
+      "body": "Everything in this lesson lives under your own account, not under the organisation. From here you reach Settings, and inside Settings the row called Security."
+    },
+    {
+      "type": "slide",
+      "id": "tab",
+      "icon": "🗂️",
+      "title": "What is on Settings → Security",
+      "bodyMd": "The page opens with the heading **Security** and one line of purpose: *\"Add a second factor to protect your account at sign-in.\"*\n\nUnderneath there are two cards that matter here:\n\n- **Two-factor authentication** — off by default, with a short line: *\"Use an authenticator app for an extra layer of security.\"* and an **Enable** button.\n- **Change password** — the fields **Current password**, **New password**, **Confirm new password** and the button **Update password**.\n\nThe second card is not always there. It appears only for accounts that actually have a password in Bee Flow. Sign in with Google or Microsoft and there is nothing for Bee Flow to change — your password lives with that provider."
+    },
+    {
+      "type": "quiz",
+      "id": "q-nopw",
+      "question": "Bilal at Van Dijk Groep signs in with his Microsoft account. He opens Settings → Security to change his password and only sees the two-factor card. Why?",
+      "multi": false,
+      "choices": [
+        { "id": "a", "label": "The Change password card is only shown for accounts that have a password in Bee Flow; his password is held by Microsoft.", "correct": true },
+        { "id": "b", "label": "His organisation role is too low to change his own password.", "correct": false, "feedback": "Changing your own password is not permission-gated — everybody who has one may change it. The card is hidden because his account has no Bee Flow password at all." },
+        { "id": "c", "label": "He has to enable two-factor authentication first; the password card unlocks afterwards.", "correct": false, "feedback": "The two cards are independent. Enabling a second factor never makes a password appear on an account that signs in through Microsoft." },
+        { "id": "d", "label": "An administrator switched password changes off for the whole organisation.", "correct": false, "feedback": "There is no such organisation switch on this screen. What decides it is simply whether the account carries a password of its own." }
+      ],
+      "explanation": "Bee Flow shows the Change password card only when the account has a password to change. Single sign-on accounts change their password at Microsoft or Google instead — but they can still turn on Bee Flow's own second factor."
+    },
+    {
+      "type": "slide",
+      "id": "enrol",
+      "icon": "📱",
+      "title": "Enabling it: three steps on screen",
+      "bodyMd": "Click **Enable** and the card unfolds into a numbered list and a QR code:\n\n1. *\"Install an authenticator app on your phone — for example Google Authenticator, Microsoft Authenticator, 1Password or Bitwarden (any TOTP app works).\"*\n2. *\"In the app, choose “Scan QR code” and scan the code below.\"*\n3. *\"Enter the 6-digit code the app shows to confirm.\"*\n\nCamera refusing to cooperate? Open **Can’t scan? Enter this key manually** and type the key into the app by hand.\n\nThe code box holds six characters and **Enable** stays greyed out until you have typed six. Confirm with **Enable**; **Cancel** leaves everything as it was. Nothing is switched on until a code you typed has been accepted, so a half-finished setup can never lock you out."
+    },
+    {
+      "type": "sim",
+      "id": "sim-order",
+      "icon": "🧩",
+      "title": "Put Sanne's set-up in order",
+      "instruction": "Sanne already has an authenticator app on her phone. Drag the five screen actions into the order she performs them.",
+      "sim": {
+        "kind": "order",
+        "items": [
+          { "id": "enable", "label": "Click Enable on the \"Two-factor authentication is off\" card" },
+          { "id": "scan", "label": "Choose \"Scan QR code\" in the app and scan the code the panel shows" },
+          { "id": "confirm", "label": "Type the 6-digit code the app shows and confirm with Enable" },
+          { "id": "copy", "label": "Copy the ten recovery codes into her password manager" },
+          { "id": "save", "label": "Click \"I’ve saved them\" to close the recovery-codes panel" }
+        ],
+        "solution": ["enable", "scan", "confirm", "copy", "save"],
+        "feedback": "Enable comes first because that is what produces the QR code; the numbered instructions and the key only exist inside that panel. The recovery codes appear last, after a valid six-digit code has been accepted — and copying them has to happen before \"I’ve saved them\", because that click is the last moment they are on screen."
+      }
+    },
+    {
+      "type": "slide",
+      "id": "codes",
+      "icon": "🔑",
+      "title": "The ten codes you only see once",
+      "bodyMd": "The moment two-factor is on, Bee Flow shows **ten recovery codes** with a blunt warning: *\"Save these one-time recovery codes somewhere safe. Each can be used once if you lose access to your authenticator. They won’t be shown again.\"*\n\nUse **Copy**, put them where you keep real keys — a password manager, or paper in a drawer at the office — then click **I’ve saved them**. Bee Flow keeps only hashes, so there is no second chance to read them.\n\nAfterwards the card counts down: *\"N recovery codes remaining\"*. At three or fewer it warns you to *\"Regenerate a fresh set while you still have one to confirm with\"* — because regenerating has to be confirmed, with a six-digit code or one of the codes you have left."
+    },
+    {
+      "type": "quiz",
+      "id": "q-lostphone",
+      "question": "Sanne's phone is stolen on the train. Her ten recovery codes are in her password manager. What gets her working again on a new phone?",
+      "multi": false,
+      "choices": [
+        { "id": "a", "label": "Sign in using one recovery code, then in Settings → Security use Disable, and enable two-factor again by scanning a fresh QR code on the new phone.", "correct": true },
+        { "id": "b", "label": "Type a recovery code into the authenticator app on the new phone so it starts producing the right six-digit codes.", "correct": false, "feedback": "A recovery code is a stand-in for a six-digit code at sign-in, not a seed for the app. The new phone only gets working codes by scanning a fresh QR code during a new set-up." },
+        { "id": "c", "label": "Nothing — once the phone with the authenticator is gone, the account is unreachable.", "correct": false, "feedback": "That is exactly what the recovery codes prevent. And if those were lost too, there is still an administrator's reset — the account is never simply gone." },
+        { "id": "d", "label": "Change her password; that clears the second factor and she can start over.", "correct": false, "feedback": "Password and second factor are separate locks. A password change leaves two-factor switched on, and she still cannot pass the code prompt at sign-in." }
+      ],
+      "explanation": "Each recovery code works once, which is enough to get back in. There is no \"move to a new phone\" button: the enabled card offers only Regenerate recovery codes and Disable, so re-enrolling means disabling and enabling again — and Disable accepts a six-digit code or a recovery code as proof."
+    },
+    {
+      "type": "slide",
+      "id": "password",
+      "icon": "🔤",
+      "title": "Changing your own password",
+      "bodyMd": "Fill in **Current password**, **New password** and **Confirm new password**, then **Update password**. Success is a green line: *\"Password changed successfully.\"*\n\nWhat Bee Flow refuses: fewer than **8** characters (**12** for administrator and organisation-admin accounts), more than **256**, and any password that is known to have been breached, is repetitive, is sequential, or contains your own username or e-mail address.\n\nWhy it asks for the current one: your stored content is encrypted with keys tied to your password. Supplying the old password lets Bee Flow carry those keys across. That is the whole difference with an administrator's reset — see the next card."
+    },
+    {
+      "type": "sim",
+      "id": "sim-match",
+      "icon": "🧭",
+      "title": "Which lever for which trouble",
+      "instruction": "Five things that happen to real people at Van Dijk Groep. Match each one with the move that solves it.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          { "id": "qr", "left": "The office laptop's screen is too dim for the phone camera to read the QR code", "right": "Can’t scan? Enter this key manually", "note": "The same secret, typed in by hand." },
+          { "id": "clock", "left": "Every code is rejected and the panel says the device clock is off by about 90 seconds", "right": "Switch the phone to automatic time", "note": "Codes are time-based; a drifting clock produces codes the server has already passed." },
+          { "id": "low", "left": "Two recovery codes left after a year of laptop swaps", "right": "Regenerate recovery codes", "note": "Do it while a code is still there — the new set has to be confirmed first." },
+          { "id": "phone", "left": "Phone gone, recovery codes safe in the password manager", "right": "Sign in with a recovery code", "note": "One code, used once, gets you back in to re-enrol." },
+          { "id": "both", "left": "Phone gone and the recovery codes were never written down", "right": "Ask an administrator to reset two-factor", "note": "The last escape hatch — and the only one that needs somebody else." }
+        ]
+      }
+    },
+    {
+      "type": "slide",
+      "id": "admin",
+      "icon": "🛟",
+      "title": "What an administrator can — and must not — do",
+      "bodyMd": "Your organisation admin has one button for you, in **Admin → Security → Users**: **Reset two-factor authentication?** The confirmation says it plainly — *\"Their authenticator and recovery codes stop working immediately; they will be asked to enroll again at their next sign-in.\"* Clean, reversible by simply enrolling again, and it never touches your data.\n\nGiving you a new password is not a substitute for it. That happens elsewhere on the same screen — the **Edit user** form has a field *\"New Password (blank to keep)\"* — and it never asks for your old password, so your keys cannot be carried across: your previously encrypted content then needs your recovery key. A second-factor problem is never a reason to reset somebody's password."
+    },
+    {
+      "type": "quiz",
+      "id": "q-admin",
+      "question": "Joost lost his phone and never saved his recovery codes. The office manager at Van Dijk Groep is organisation admin. Which action gets him back in with the least damage?",
+      "multi": false,
+      "choices": [
+        { "id": "a", "label": "Admin → Security → Users, on Joost's row: \"Reset two-factor authentication?\" — he enrols again at his next sign-in.", "correct": true },
+        { "id": "b", "label": "Give Joost a new password in the Edit user form; a fresh password clears the account's locks.", "correct": false, "feedback": "An admin-set password arrives without his old password, so his encrypted content afterwards needs his recovery key — and two-factor would still be switched on. Maximum damage, problem unsolved." },
+        { "id": "c", "label": "Delete Joost's account and invite him again with a clean one.", "correct": false, "feedback": "The dialog warns that the account is removed and cannot be restored. His chats, agents and history go with it, to avoid one re-enrolment." },
+        { "id": "d", "label": "Tell Joost to open Settings → Security himself and press Disable.", "correct": false, "feedback": "He cannot reach Settings — he is stuck at the code prompt during sign-in. And Disable demands a six-digit code or a recovery code, which is precisely what he no longer has." }
+      ],
+      "explanation": "The 2FA reset is narrow on purpose: it clears the authenticator and the recovery codes, nothing else, and the person enrols again. Password resets and account deletion are destructive and solve a different problem."
+    },
+    {
+      "type": "slide",
+      "id": "traps",
+      "icon": "⚠️",
+      "title": "Three things people expect that are not there",
+      "bodyMd": "**A list of active sessions.** This tab does not show where you are signed in and has no \"sign out everywhere\" button. If you fear someone else is in your account, change your password and ask your admin to reset your second factor.\n\n**Unlimited guessing.** The code-checking endpoints allow about ten attempts per quarter of an hour. After that you get *\"Too many attempts — wait a few minutes and try again.\"* Waiting is the fix.\n\n**A forced set-up you can postpone.** If your admin requires two-factor on password accounts, you meet **Set up two-factor authentication** right after sign-in, with only Enable or sign out. Have the authenticator app installed before that day."
+    },
+    {
+      "type": "action",
+      "id": "do",
+      "icon": "🏗️",
+      "checkId": "mfa-enabled",
+      "title": "Switch it on for real",
+      "instruction": "Open Settings → Security, click Enable on the two-factor card, scan the QR code with your authenticator app and confirm with the six-digit code. Copy the ten recovery codes into your password manager before you click \"I’ve saved them\" — they are shown only once.",
+      "launch": { "navigateTo": "settings/security", "label": "Open Security" }
+    },
+    {
+      "type": "slide",
+      "id": "done",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "- **Enable and re-enrol two-factor yourself** from Settings → Security, including the move to a new phone: Disable with a code, then Enable and scan again.\n- **Treat the ten recovery codes as keys.** Stored once, counted down on the card, regenerated while you still have one left.\n- **Ask for the right rescue.** \"Reset two-factor authentication?\" is the safe one; an admin password reset costs you your encrypted content unless you have your recovery key."
+    }
+  ],
+  "practiceTopic": {
+    "title": "Account security: two-factor, recovery codes and passwords",
+    "summary": "How a Bee Flow user protects their own account from Settings → Security, and where the administrator's reset fits in.",
+    "facts": [
+      "Settings → Security carries the two-factor card and, only for accounts that have a Bee Flow password, a Change password card with Current, New and Confirm fields.",
+      "Enrolment is Enable → install any TOTP authenticator app → scan the QR code (or use \"Can’t scan? Enter this key manually\") → confirm with a 6-digit code.",
+      "Enabling two-factor issues ten one-time recovery codes, shown once, with the card afterwards reporting \"N recovery codes remaining\".",
+      "At three or fewer recovery codes the card advises regenerating a fresh set while one code is still available to confirm with.",
+      "Disabling two-factor or regenerating recovery codes both accept either a 6-digit code or an unused recovery code as proof.",
+      "Passwords need at least 8 characters, 12 for administrator and organisation-admin accounts, at most 256, and are refused when breached, repetitive, sequential, or containing the username or e-mail.",
+      "An organisation admin uses \"Reset two-factor authentication?\" in Admin → Security → Users; the authenticator and recovery codes stop working at once and the user enrols again at next sign-in.",
+      "An admin password reset is destructive in the zero-knowledge sense: without the old password the account is re-keyed and the user's encrypted content needs their recovery key."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "mfa-enabled",
+      "existing": false,
+      "label": "Two-factor authentication is on for your account",
+      "hint": "Settings → Security → Enable, scan the QR code, confirm the 6-digit code, then save the recovery codes.",
+      "endpoints": [
+        { "method": "GET", "path": "/auth/mfa/status", "returns": "object { enabled: boolean, recoveryCodesRemaining: number, hasPassword: boolean } for the calling user" }
+      ],
+      "criteria": [
+        {
+          "id": "enabled",
+          "label": "Your account has a second factor enabled",
+          "hint": "The card should read \"Two-factor authentication is on\".",
+          "rule": "GET /auth/mfa/status returns enabled === true",
+          "endpoint": "/auth/mfa/status",
+          "expect": { "kind": "truthy", "field": "enabled" }
+        }
+      ]
+    }
+  ]
+}

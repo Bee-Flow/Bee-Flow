@@ -1,0 +1,85 @@
+# ══════════════════════════════════════════════════════════════════
+# LOCAL module-hub override — for testing the Modules Marketplace.
+#
+# Runs the Bee Flow Hub (license-server) next to the from-registry stack
+# and points the product server at it over the docker network.
+#
+#   docker compose -f docker-compose.from-registry.yml \
+#                  -f docker-compose.hub.local.yml up -d license-server server
+#
+# NOTE: this flips the server to NODE_ENV=development, because the product
+# (correctly) refuses a plain-http hub URL in production mode. That makes this
+# file LOCAL-ONLY — never use it on a real deployment. Remove the override
+# (recreate server without this -f) to go back to production behaviour.
+#
+# BEE FLOW-INTERNAL: the hub's source is private (the Bee-Flow-AI-internal
+# repository), and so is its image. Building it needs that repository checked
+# out next to this one (or LICENSE_SERVER_SRC pointing at its license-server/).
+# ══════════════════════════════════════════════════════════════════
+
+services:
+  server:
+    environment:
+      # Development mode so the http:// hub below is accepted (hubClient
+      # enforces https-only in production).
+      - NODE_ENV=development
+      # Module hub — reached over the shared beeflow-network.
+      - BEEFLOW_HUB_URL=http://license-server:4400
+      # Lets the product verify hub-issued license / module-grant tokens.
+      - LICENSE_JWKS_URL=http://license-server:4400/v1/jwks.json
+
+  # ── Module Hub / License Server ────────────────────────────────
+  # Serves the /hub/v1/* marketplace API behind Admin ▸ Modules ▸ Marketplace.
+  # On a fresh DB the command seeds a signing keypair + one published sample
+  # module (seed-dev.js is idempotent — a no-op afterwards), then boots.
+  # Runs the image below. When compose builds it (--build, or no such image
+  # to pull) it builds from the private checkout; a relative
+  # LICENSE_SERVER_SRC resolves against the repo root. The usual rebuild is
+  # scripts/build-images.sh build dev license-server --recreate.
+  license-server:
+    image: ${REGISTRY:-ghcr.io/bee-flow}/license-server:${TAG:-dev}
+    build:
+      context: ${LICENSE_SERVER_SRC:-../Bee-Flow-AI-internal/license-server}
+    container_name: beeflow-license-server
+    profiles: [ "core" ]
+    command: sh -c "node scripts/seed-dev.js || true; node index.js"
+    ports:
+      - "127.0.0.1:4400:4400"
+    environment:
+      - NODE_ENV=development
+      - PORT=4400
+      # Its own database on the shared postgres. NOTE: on an EXISTING postgres
+      # volume docker/init-db.sh won't re-run — create it once with:
+      #   docker exec beeflow-postgres psql -U beeflow -d beeflow_core \
+      #     -c 'CREATE DATABASE beeflow_hub;'
+      - LICENSE_DB_URL=postgresql://${DB_USER:-beeflow}:${DB_PASSWORD:?Set DB_PASSWORD in .env}@postgres:5432/beeflow_hub
+      # Shared secret the product uses for /v1/issue + /v1/revoke (dev value).
+      - LICENSE_API_KEYS=${LICENSE_API_KEYS:-dev-hub-api-key}
+      # Boot without Stripe — free / admin-issued module flows work offline.
+      - LICENSE_STRIPE_VERIFY=false
+      - HUB_PUBLIC_URL=${HUB_PUBLIC_URL:-http://localhost:4400}
+      - HUB_SESSION_SECRET=${HUB_SESSION_SECRET:-dev-hub-session-secret-change-me-32chars}
+      # Password for the seeded admin@beeflow.nl hub user (printed once in logs).
+      - SEED_ADMIN_PASSWORD=${SEED_ADMIN_PASSWORD:-}
+    volumes:
+      # Signing keypair + stored .bfmod blobs survive restarts (stable JWKS).
+      - beeflow-license-keys:/app/keys
+      - beeflow-license-packages:/app/packages-store
+    networks:
+      - beeflow-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:4400/v1/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  beeflow-license-keys:
+    name: beeflow-license-keys
+  beeflow-license-packages:
+    name: beeflow-license-packages

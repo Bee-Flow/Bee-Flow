@@ -1,0 +1,29 @@
+{
+  "name": "hub-module-sdk",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Build, pack and sign Bee Flow Hub modules (.bfmod).",
+  "bin": {
+    "bfmod-build": "scripts/build.mjs",
+    "bfmod-pack": "scripts/pack.mjs",
+    "bfmod-sign": "scripts/sign.mjs"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "pack": "node scripts/pack.mjs",
+    "sign": "node scripts/sign.mjs",
+    "test": "node --test 'test/*.test.mjs' 'modules/*/test/*.test.js'",
+    "test:coverage": "c8 node --test 'test/*.test.mjs' 'modules/*/test/*.test.js'",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "esbuild": "^0.25.12",
+    "jszip": "^3.10.1"
+  },
+  "devDependencies": {
+    "c8": "^11.0.0",
+    "eslint": "^9.39.5",
+    "globals": "^17.12.0"
+  }
+}

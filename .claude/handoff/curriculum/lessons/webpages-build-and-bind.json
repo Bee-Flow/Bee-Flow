@@ -1,0 +1,239 @@
+{
+  "id": "webpages-build-and-bind",
+  "icon": "🌐",
+  "estMinutes": 15,
+  "title": "A page of your own",
+  "desc": "Brief a webpage, bind a datatable, and understand the grants that run as you.",
+  "gate": { "feature": "webpages" },
+  "learningGoal": "Produce a page bound to real data and roll back a bad edit.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "what",
+      "icon": "🧭",
+      "title": "One page, one owner, one job",
+      "bodyMd": "Miriam buys for **Van Dijk Groep**, a Dutch SME. Ten times a week a supplier e-mails to ask where their quote stands, and every answer means opening the datatable `Offertes` and copying two cells across.\n\nA **Webpage** in Studio is a small web app that the AI writes for you and that lives inside Bee Flow. It can show rows from your datatables, run your routines, call apps you have connected, and carry an inline chat with one of your agents.\n\nOne person owns it: the owner edits the code, the chat and the settings, and everyone else only reads it. It is not the organisation's marketing website — that is a separate, admin-only editor.\n\nMiriam's page will be **Offertestatus**: a supplier types a quote reference and sees where that quote stands."
+    },
+    {
+      "type": "tour",
+      "id": "where",
+      "target": "[data-tour=\"nav-studio\"]",
+      "placement": "right",
+      "optional": true,
+      "timeoutMs": 7000,
+      "icon": "🗂️",
+      "title": "Webpages lives in Studio",
+      "body": "Open Studio in the left menu and pick Webpages under Build. The overview lists the 50 pages you can open, the most recently updated first, with a search box for the ones that have dropped off the list."
+    },
+    {
+      "type": "slide",
+      "id": "create",
+      "icon": "✏️",
+      "title": "Create by name, brief it in the chat",
+      "bodyMd": "Create the page first, describe it after.\n\n1. On the Webpages overview click **\"All options\"** (**\"+ New webpage\"** opens the same panel).\n2. Type a name in **\"New webpage name…\"** — Miriam types *Offertestatus*.\n3. Press **\"Create\"**. The hint says what you get: *\"Creates an empty page you can describe later in its chat.\"*\n\nThe editor opens on the new page with the status pill on **Draft**, and nothing has reached the AI yet.\n\nAbout the card above that panel — the brief field **\"Describe the page you want\"**, the **\"Pick a source\"** chooser and a **\"Build\"** button: in this build the screen is not wired to it, so **\"Build\"** stays disabled. The server side of describe-to-build already exists, so the bar may come alive in a later release. Creating by name keeps working either way."
+    },
+    {
+      "type": "slide",
+      "id": "chat",
+      "icon": "💬",
+      "title": "The chat is the builder",
+      "bodyMd": "Open the **Code** tab. The right-hand pane is **\"AI Chat\"**, and above the box sits **\"How the assistant edits\"** with two modes:\n\n- **\"Edit automatically\"** — the AI changes the files itself. This is the default.\n- **\"Propose first\"** — it stops and shows you what it wants to change.\n\nEvery turn leaves a card under the reply with **\"How I did this\"**, **\"Keep\"**, **\"Undo\"** and **\"Change in code\"**. The page saves itself while you work: the header chip reads **\"Saving…\"**, then **\"Saved 2m ago\"** — and **\"Save failed — retry\"** if something went wrong, which you can click."
+    },
+    {
+      "type": "quiz",
+      "id": "q-undo",
+      "question": "Miriam's last chat turn rewrote the layout and the preview is now blank. She has good work from earlier turns that she wants to keep. What is the cheapest fix?",
+      "multi": false,
+      "choices": [
+        { "id": "a", "label": "Press \"Undo\" on that turn's card in the chat.", "correct": true },
+        { "id": "b", "label": "Open History and restore an older version.", "correct": false, "feedback": "That is the blunt instrument. A version rolls the page back wholesale, so anything good that happened after it goes too — and a version holds only index.html, style.css, script.js and the page database, so on a React project there may be nothing useful in it. Undo targets exactly the turn that caused the damage." },
+        { "id": "c", "label": "Switch the mode to \"Propose first\" and ask again.", "correct": false, "feedback": "\"Propose first\" only changes how future turns behave. It does not put back what the last turn already overwrote." },
+        { "id": "d", "label": "Delete the page and create it again under the same name.", "correct": false, "feedback": "Deleting throws away the chat, the sources, the grants and every version. The damage was one turn wide; the repair should be too." }
+      ],
+      "explanation": "Each AI turn carries its own card with \"Undo\". After it, the chat confirms: \"Undone — the page is back to how it was before this turn.\" History is still there for older mistakes — it is just a bigger hammer."
+    },
+    {
+      "type": "slide",
+      "id": "project",
+      "icon": "📦",
+      "title": "React by default, vanilla if you ask",
+      "bodyMd": "Every new page starts as a **React + Material UI** project: the AI writes the app under `src/`, beginning with `src/main.jsx` and `src/App.jsx`. The files `index.html`, `style.css` and `script.js` exist, but they are not what renders.\n\nAsk in the chat for plain HTML, CSS and JavaScript and the project switches to vanilla — and then those three files *are* the page.\n\nIt is worth choosing on purpose, because the History tab snapshots exactly that trio plus the page database. On a React project your code lives outside the snapshot; we come back to what that means at the end of the lesson."
+    },
+    {
+      "type": "slide",
+      "id": "elements",
+      "icon": "🧱",
+      "title": "Five elements reach into Studio",
+      "bodyMd": "Whichever project you are in, five special elements connect the page to the rest of your workspace:\n\n- **`bf-table`** — rows from a datatable this page is linked to, as a plain table. It shows at most 100 rows.\n- **`bf-stat`** — one number from such a table: a count, sum, average, minimum or maximum, over at most 500 rows.\n- **`bf-button`** — runs one of the routines this page is allowed to run.\n- **`bf-form`** — hands the submitted fields to one of those routines.\n- **`bf-agent`** — an inline chat block, for signed-in readers only.\n\nYou rarely type them yourself: you ask the chat for the thing you want, and the AI writes the element. In the Code tab the strip beside the editor marks those lines — legend *\"Highlighted = Studio link\"*."
+    },
+    {
+      "type": "quiz",
+      "id": "q-element",
+      "question": "Miriam wants one figure at the top of Offertestatus: how many quotes in the table `Offertes` are still open. Which element does that job?",
+      "multi": false,
+      "choices": [
+        { "id": "a", "label": "`bf-stat`, set to count the rows that match.", "correct": true },
+        { "id": "b", "label": "`bf-table`, showing only the open rows, so readers can count them.", "correct": false, "feedback": "bf-table renders rows, not an aggregate — and at most 100 of them. You would be putting the quotes themselves on screen to communicate a number that bf-stat works out over as many as 500 rows." },
+        { "id": "c", "label": "`bf-button`, running a routine that works out the number.", "correct": false, "feedback": "bf-button starts one of the routines the page may run, which means somebody has to press it. A headline figure should already be there when the page loads." },
+        { "id": "d", "label": "`bf-agent`, and ask the agent on the page to count them.", "correct": false, "feedback": "bf-agent is an inline chat block, and only signed-in readers get it at all. A chat answer is also a one-off reply, not a figure that refreshes with the table." }
+      ],
+      "explanation": "bf-stat is the aggregate element: one count, sum, average, minimum or maximum over at most 500 rows of a linked table. bf-table is for rows, bf-button and bf-form for routines, bf-agent for a chat block."
+    },
+    {
+      "type": "exercise",
+      "id": "ex-brief",
+      "icon": "🎯",
+      "exerciseId": "ex-webpages-build-and-bind-brief",
+      "title": "Your turn: write the brief",
+      "instruction": "Write the message Miriam should type into the page's chat for Offertestatus. A strong brief says who the page is for and what it must do, names the datatable `Offertes` and exactly which of its columns belong on screen, describes the one interaction (a supplier types a quote reference and sees the matching row), and says what must stay off the page — supplier name, amount, contact person and phone number are not for outside eyes. Keep it to one screen's worth of page.",
+      "placeholder": "e.g. A lookup page for suppliers of Van Dijk Groep. One input for a quote reference, then show the matching rows from table Offertes as a table with only the reference and status columns — never the amount or the contact details. Under it, one line explaining who to email with questions.",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "slide",
+      "id": "grants",
+      "icon": "🔑",
+      "title": "The page runs as you",
+      "bodyMd": "Go to **Data & links → Actions → \"Apps & data\"**. The subtitle is the whole mental model: *\"What this page may call, running as you. Visitors never need their own accounts.\"*\n\nGrant the page a routine or a connected app and it runs with **your** access. A colleague reading the page can press a button that starts a routine they could not start themselves, and mail can leave through the mailbox you connected without that reader connecting one.\n\nTable reads are the exception: for a signed-in reader they run as that reader, with that reader's own grade on the table. So a button on your page may do more than its reader could — while the rows they see are never more than they were already allowed to see."
+    },
+    {
+      "type": "slide",
+      "id": "pinned",
+      "icon": "📌",
+      "title": "Pin what a visitor must not choose",
+      "bodyMd": "One kind of grant carries an extra field. Add an **app** under **\"Apps & data\"** and you get **\"Pinned arguments (optional JSON)\"**, with the safety rule right in its hint: *\"Pinned values always win over what the page sends — pin anything a visitor must not choose (recipient, channel, sheet id).\"*\n\nThe server merges those pinned values on top of whatever the page sent. That matters because the page's code runs in the reader's browser, where it can be edited. Pin the recipient and it stays the recipient, whatever the browser asked for.\n\nA routine grant has no such field: the page may start the routine, and what happens next is whatever that routine does."
+    },
+    {
+      "type": "quiz",
+      "id": "q-pin",
+      "question": "Miriam's page confirms a quote by e-mail through the mailbox app she granted it. A colleague reading the page edits the form in their own browser and posts a different recipient address. Which control stops that?",
+      "multi": false,
+      "choices": [
+        { "id": "a", "label": "Pin the recipient in the app grant's \"Pinned arguments (optional JSON)\".", "correct": true },
+        { "id": "b", "label": "Hide the recipient field with CSS so nobody can see it.", "correct": false, "feedback": "The page's code runs in the reader's browser, so anything hidden there can be unhidden or edited there. Hiding is decoration, not a control." },
+        { "id": "c", "label": "Check the recipient in the page's JavaScript before the form is sent.", "correct": false, "feedback": "That check runs in the reader's browser too, on code they can edit or skip entirely. A rule only holds if the server applies it, which is exactly what a pinned argument is." },
+        { "id": "d", "label": "Set the page's audience back to \"Personal\" so only you can open it.", "correct": false, "feedback": "That takes the page away from the people who need it, and it still says nothing about what gets sent once someone is allowed in. Narrowing the audience is not the same as fixing the payload." }
+      ],
+      "explanation": "The server merges the pinned values in on top of whatever the page sent, so the pinned value always wins. Recipients, channels and target ids are exactly what you pin — and the field sits on an app grant, not on a routine grant."
+    },
+    {
+      "type": "sim",
+      "id": "sim-wire",
+      "icon": "🧩",
+      "title": "Five needs, five places to wire them",
+      "instruction": "Van Dijk Groep wants five things on the Offertestatus page. Match each one to the mechanism it belongs to.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          { "id": "rows", "left": "Show the newest rows of the datatable Offertes on the page", "right": "A table link in the page's grants, shown with bf-table", "note": "bf-table may only name a table this page is linked to, and the read runs as the signed-in reader with that reader's own access to the table." },
+          { "id": "routine", "left": "A button that starts the routine \"Offerte bevestigen\"", "right": "A routine grant plus bf-button", "note": "Add the routine under Apps & data; for a signed-in reader the button then runs it as the page's owner." },
+          { "id": "brand", "left": "Let the builder AI copy the company's house style from a PDF", "right": "A file added under Sources", "note": "Sources are reference material for the AI, not data the page shows. They land in a knowledge base the builder AI can search." },
+          { "id": "mail", "left": "Send mail through the connected mailbox without every reader connecting their own", "right": "An app grant under Apps & data", "note": "A granted app runs as the owner, so a reader needs no connection of their own — and this is the grant whose arguments you can pin." },
+          { "id": "local", "left": "Remember which notices a visitor has dismissed, for this page only", "right": "The page's own database", "note": "Every page has its own small database, visible under Data & links → Database. Nothing else in the workspace reads it." }
+        ]
+      }
+    },
+    {
+      "type": "slide",
+      "id": "cards",
+      "icon": "🗃️",
+      "title": "Data & links tells you what is really wired",
+      "bodyMd": "**Data & links → Overview** draws one card per bound table: **\"Read only\"** or **\"Read and write\"**, the size as *\"{count} rows (approximate)\"*, and a chip per column.\n\nThis screen reports links; it does not make them. A page you just created has no table card at all — it reads **\"No table is linked to this page yet.\"** A card appears once you ask the chat for that table's rows and the AI binds it.\n\nAnd when the panel cannot read its data, it says so: **\"Could not load what is linked to this page.\"** with a **\"Try again\"** button. It never shows an empty list as if it meant nothing is linked."
+    },
+    {
+      "type": "slide",
+      "id": "signals",
+      "icon": "⚠️",
+      "title": "Two cards worth stopping for",
+      "bodyMd": "A dashed **\"Not used on this page\"** chip means the binding exists but no line of the page's code names that table. Sometimes the code is still coming; more often the brief moved on and a link was left behind.\n\nA warning card — *\"{routine} writes straight into table {table}.\"* — means the page's content can change without anyone editing the page: the routine writes, the table changes, the next reader sees something else. Often that is exactly what you wanted; now at least you know it is happening. **\"Set up\"** takes you to that table's sharing screen."
+    },
+    {
+      "type": "quiz",
+      "id": "q-chip",
+      "question": "The Offertestatus card for `Offertes` loads fine, but carries a dashed \"Not used on this page\" chip. What has Bee Flow just told Miriam?",
+      "multi": false,
+      "choices": [
+        { "id": "a", "label": "The page is allowed to read that table, but no line of its code names it.", "correct": true },
+        { "id": "b", "label": "The table has no rows yet, so there is nothing to show.", "correct": false, "feedback": "The card reports size separately, as \"{count} rows (approximate)\". The chip is about the page's code, not about how full the table is." },
+        { "id": "c", "label": "The binding could not be read, so the card is unreliable.", "correct": false, "feedback": "A read that fails is never a quiet chip: the whole panel says \"Could not load what is linked to this page.\" and offers \"Try again\". This card loaded." },
+        { "id": "d", "label": "Nobody has opened the page since the table was bound.", "correct": false, "feedback": "The chip is drawn by comparing grants against code, not from visits. It would read the same on a page opened a thousand times." }
+      ],
+      "explanation": "The panel knows two things — what the page may call and what its code actually calls — and the chip is where those disagree. Resolve it in the chat: either ask for the table to be used, or ask for the link to go."
+    },
+    {
+      "type": "slide",
+      "id": "history",
+      "icon": "🕰️",
+      "title": "What a version actually holds",
+      "bodyMd": "The **History** tab is **\"Version history\"**. While you edit, the page snapshots itself about every five minutes — the empty state says so: *\"No versions yet. Auto-snapshots are created every 5 minutes when you edit.\"*\n\nKnow what a version is before you lean on it: a frozen copy of `index.html`, `style.css`, `script.js` and the page database. For a vanilla project that is the whole page.\n\nA React project keeps its code under `src/`, outside that snapshot — the tab tells you its coverage rather than quietly leaving files out. So on a React page History is a coarse net, and **\"Undo\"** on the turn card stays your first tool."
+    },
+    {
+      "type": "slide",
+      "id": "restore",
+      "icon": "🕰️",
+      "title": "Reading a row, and restoring one",
+      "bodyMd": "Each row says where it came from: a chip reading **Manual**, **AI**, **Publish** or **Restore point**, a line-count difference, and who did it — **\"You\"** or **\"Unknown\"**.\n\n**\"View\"** opens a version read-only, so you can look before you leap. **\"Restore\"** asks **\"Restore v{seq}?\"**, then replaces what is in the editor; the restored content is saved as the current content, like any other edit.\n\nA page keeps its last 200 versions, and versions made by publishing are never cleaned away. Code and History are the owner's tabs: for a colleague reading your page they are not rendered at all."
+    },
+    {
+      "type": "action",
+      "id": "build-it",
+      "icon": "🏗️",
+      "checkId": "webpage-created",
+      "title": "Build it — we'll verify it",
+      "instruction": "In Studio → Webpages, open \"All options\", type a name of your own and press \"Create\". In its Code tab, brief the page in the chat — for example: \"A lookup page where a supplier types a quote reference and sees its status.\" Watch the turn card appear under the reply, then open Data & links → Overview to read what the page is linked to so far.",
+      "launch": { "navigateTo": "studio/webpages", "label": "Open Webpages" }
+    },
+    {
+      "type": "slide",
+      "id": "done",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "- **Create and brief a page.** Name it under **\"All options\"**, then describe it in its own chat — with **\"Edit automatically\"** for speed or **\"Propose first\"** when you want to look before it writes.\n- **Wire it to real work.** A linked table behind `bf-table` or `bf-stat`, a granted routine behind `bf-button` or `bf-form`, and pinned arguments on an app grant for anything a reader must not choose.\n- **Undo at the right size.** One bad turn: **\"Undo\"** on its card. Something older: **History → Restore**.\n\nThe next lesson takes the page outside the building — the public address, and the column gate that decides what may leave with it."
+    }
+  ],
+  "rubrics": {
+    "ex-webpages-build-and-bind-brief": {
+      "title": "A brief a builder AI can act on",
+      "task": "Write the chat message that briefs the Offertestatus page for Van Dijk Groep: a lookup page where a supplier types a quote reference and sees the status of that quote, built on the datatable Offertes, with the commercial and personal columns kept off the page.",
+      "criteria": [
+        "Says who the page is for and what it must do in one or two plain sentences.",
+        "Names the datatable (Offertes) and the specific columns or rows that should appear, rather than saying 'the data'.",
+        "Describes the interaction concretely: an input for the quote reference and what happens after it is entered.",
+        "States what must NOT appear on the page (amount, supplier name, contact person, phone number).",
+        "Keeps the scope to one page the AI can actually build, not a multi-screen application."
+      ],
+      "passScore": 70,
+      "guidance": "Pass a brief that a builder could hand over without a follow-up question. Do not pass a one-liner like 'make a nice status page' or 'build a page for our quotes' with no table, no columns and no interaction. Do not pass a brief that asks for things outside a page's reach, such as changing permissions, creating the datatable's columns, or emailing without naming a routine. A brief that lists columns to show but never says what has to stay off the page misses the exclusion criterion; grade it below the pass mark unless everything else is unusually strong."
+    }
+  },
+  "practiceTopic": {
+    "title": "Building and binding a webpage",
+    "summary": "Creating a webpage in Studio, briefing it in its chat, binding datatables and routines to it, and undoing edits at the right size.",
+    "facts": [
+      "A webpage is created by name under \"All options\" on the Webpages overview; the describe-to-build bar's \"Build\" button is disabled in this build.",
+      "The chat mode selector is \"How the assistant edits\", with \"Edit automatically\" (the default) and \"Propose first\"; each AI turn gets a card with \"How I did this\", \"Keep\", \"Undo\" and \"Change in code\".",
+      "Every new page is a React + Material UI project with its code under src/; asking the chat for plain HTML, CSS and JavaScript switches it to vanilla, where index.html, style.css and script.js are the page.",
+      "The five Studio elements are bf-table, bf-stat, bf-button, bf-form and bf-agent; bf-table shows at most 100 rows, bf-stat aggregates at most 500, and bf-agent is for signed-in readers only.",
+      "Granted routines and apps run as the page's owner (\"What this page may call, running as you. Visitors never need their own accounts.\"), while table reads run as the signed-in reader with that reader's own access.",
+      "Only an app grant has \"Pinned arguments (optional JSON)\"; pinned values always win over what the page sends, which is how a recipient, channel or sheet id is kept out of a visitor's hands.",
+      "Data & links → Overview shows each bound table with \"Read only\" or \"Read and write\", an approximate row count, a dashed \"Not used on this page\" chip when no code names the table, and a warning when a routine writes straight into a bound table.",
+      "History auto-snapshots about every five minutes while you edit, keeps 200 versions per page, labels each row Manual, AI, Publish or Restore point, and covers only index.html, style.css, script.js and the page database."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "webpage-created",
+      "existing": false,
+      "label": "Create a webpage and bind a table to it",
+      "hint": "In Studio → Webpages, create a page under \"All options\", then ask its chat to show the rows of one of your datatables.",
+      "endpoints": [
+        { "method": "GET", "path": "/api/webpages", "returns": "{ webpages: [ { id, userId (owner), name, bridgeGrants: { tables[], automations[], integrations[], agent }, isPublished, slug, updatedAt } ] } — max 50 rows, newest first" }
+      ],
+      "criteria": [
+        { "id": "page", "label": "A webpage you own exists", "hint": "Studio → Webpages → \"All options\" → type a name → \"Create\".", "rule": "webpages[] contains at least one row whose userId equals the learner's user id", "endpoint": "/api/webpages", "expect": { "kind": "rows", "field": "webpages" } },
+        { "id": "bound", "label": "That page is bound to a datatable", "hint": "In the page's Code tab, ask the chat to show the rows of one of your datatables.", "rule": "that row's bridgeGrants.tables is a non-empty array" }
+      ]
+    }
+  ]
+}

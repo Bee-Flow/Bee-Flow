@@ -1,0 +1,343 @@
+{
+  "id": "compliance-dsr-and-incidents",
+  "icon": "⏱️",
+  "estMinutes": 12,
+  "title": "The two clocks",
+  "desc": "A data-subject request end to end, and a breach with the 72-hour clock running.",
+  "gate": {
+    "permission": "admin_compliance",
+    "feature": "compliance_hub_gdpr"
+  },
+  "learningGoal": "After this lesson you can take a data-subject request from receipt to a fulfilled letter, and run a suspected breach through the incident register with the stamps that prove what was done and when.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "two-clocks",
+      "icon": "⏱️",
+      "title": "Two registers, two clocks",
+      "bodyMd": "Van Dijk Groep is a sixty-person installation firm in Zwolle. Two things will arrive one day without warning.\n\nA person asks what you hold about them: **30 days**, GDPR Art. 12–22. A laptop with a customer export walks out of a van: **72 hours**, Art. 33.\n\nEach has its own row in the Compliance rail — **Requests (DSR)** and **Incidents & breaches** — and each row keeps its own count: how many requests are past the deadline, and how many hours are left on the newest incident. Neither clock was started by you.\n\nOne rule runs through both: Bee Flow **records**, your organisation **files**. Nothing you press in this lesson reaches a supervisory authority."
+    },
+    {
+      "type": "slide",
+      "id": "receipt",
+      "icon": "📮",
+      "title": "The 30-day clock starts at receipt",
+      "bodyMd": "A former monteur mails the privacy address on Tuesday at 09:14: *verwijder al mijn gegevens*. Anne, the office manager Van Dijk appointed as its DPO, opens the mailbox on Friday.\n\nThe clock started on Tuesday. That is the single most expensive mistake in this register, and it is why the capture form has a **Received on** field of its own. It opens on today's date and time, so correcting it is the job.\n\nThe header chip spells out the window: **Art. 12–22 · 30 days, +60 with reason**. Rows sort **By deadline**, and the **Deadline** column counts down the days left, turning urgent once five days or fewer remain and flagging the row once the date has passed. **Status** is a different thing: where the work stands. The filter pills above the table — **Open · Overdue · Completed · Rejected** — let you pick either view, and the header pill reads **All requests within the deadline**, or **{n} past the deadline** in error ink."
+    },
+    {
+      "type": "quiz",
+      "id": "q-receipt",
+      "question": "The monteur's mail reached the privacy mailbox on Tuesday at 09:14. Anne opens it on Friday and records it that afternoon. What belongs in **Received on**?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Tuesday 09:14 — the deadline falls 30 days after that, so the row opens with about 27 days left",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Friday, the day it was recorded, because that is what the register can prove",
+          "correct": false,
+          "feedback": "The register already stamps who recorded it and when, separately. Putting Friday in Received on quietly awards you three days you do not legally have."
+        },
+        {
+          "id": "c",
+          "label": "Friday, with Tuesday written into Notes as the real date of arrival",
+          "correct": false,
+          "feedback": "Notes are free text: no clock, no state pill and no overdue flag ever reads them. Received on is the field that drives the deadline."
+        },
+        {
+          "id": "d",
+          "label": "Tuesday 09:14, with the deadline 30 working days later",
+          "correct": false,
+          "feedback": "The window is 30 calendar days from receipt. The only thing that moves it is the single Art. 12(3) extension, to 90 days from receipt."
+        }
+      ],
+      "explanation": "Received on means received, not noticed. The deadline is calculated from it, so a request that sat unopened for three days arrives in the register already three days old — and the intake note says exactly that: the clock starts at receipt, not when work starts."
+    },
+    {
+      "type": "slide",
+      "id": "record",
+      "icon": "📝",
+      "title": "Recording what did not come through the form",
+      "bodyMd": "Requests sent through the public form are already in the list. A request that arrived by mail, phone or letter has to be put there by hand.\n\nHeader primary **Record a request** — *\"For a request that arrived by e-mail, phone or letter. The 30-day clock starts at receipt.\"* Five fields: **Kind of request**, **E-mail address of the data subject**, **Arrived via** (E-mail to DPO, Phone, Letter, Other — the public form records itself, so it is not on the list), **Received on**, **Notes**.\n\nAnne picks *Delete my data (Art. 17)*, the address, *E-mail to DPO*, and Tuesday 09:14. **Record**. The row appears in the list with its deadline already counting down. A receipt date in the future is refused."
+    },
+    {
+      "type": "quiz",
+      "id": "q-who",
+      "question": "Marieke runs the Van Dijk workspace as organisation admin. Anne, the office manager, is the appointed DPO and has to work both registers. What does Marieke give her?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "The org role **Data Protection Officer**, which carries the compliance permission on its own",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Organisation Admin, because the Compliance entry sits behind the org-admin gate",
+          "correct": false,
+          "feedback": "It does not. Compliance is shown to a pure DPO who has no other org rights, so handing over full org admin gives away the whole workspace for access she already gets from her own role."
+        },
+        {
+          "id": "c",
+          "label": "Nothing — every member can open Requests (DSR), since the intake form is public",
+          "correct": false,
+          "feedback": "The public intake form is reachable by anyone, deliberately. Every admin handler behind it still demands the compliance permission, and the member role does not grant it."
+        },
+        {
+          "id": "d",
+          "label": "Agent Admin, the widest role short of organisation admin",
+          "correct": false,
+          "feedback": "Agent Admin and Agent Editor are about agents; neither grants the compliance permission. The registers stay invisible to Anne."
+        }
+      ],
+      "explanation": "Three roles carry the compliance permission: **Organisation Admin**, **Data Protection Officer** and **ISMS Internal Auditor**. That is how a DPO or an auditor gets the registers without getting the rest of the organisation — and why Jeroen, who leads sales, sees neither register."
+    },
+    {
+      "type": "slide",
+      "id": "discovery",
+      "icon": "🔍",
+      "title": "Found in Bee Flow — and what it never opens",
+      "bodyMd": "Click the row, press **Start working**, and read **Found in Bee Flow**. It is a read-only scan for that address across memories, datatable rows grouped per table, form answers, knowledge-base documents and earlier requests; the drawer shows the counts it came back with. It never deletes anything — erasure stays your decision.\n\nTwo things matter more than the counts. Conversations are never scanned — message bodies are encrypted per organisation, so nothing can read them. And rows held under a statutory duty are flagged: *{n} rows fall under a statutory retention duty — those are anonymised, not deleted.* Van Dijk's sick-leave table is one of those.\n\nA source that does not answer in time is simply missing from the counts. Treat the result as a lead list, not a completeness proof."
+    },
+    {
+      "type": "quiz",
+      "id": "q-extend",
+      "question": "Anne needs more time: the monteur's data sits in four tables and legal still has to rule on the retention duty. What can she do to the deadline?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Press Extend +60 d once, give a reason, and the data subject is e-mailed about it automatically",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Extend twice by 30 days each, as long as the reason holds up",
+          "correct": false,
+          "feedback": "Art. 12(3) allows a single extension. A second attempt is refused outright: the request has already been extended once."
+        },
+        {
+          "id": "c",
+          "label": "Pause the clock while legal reviews, then start it again",
+          "correct": false,
+          "feedback": "No clock in the hub can be paused. The deadline moves only through the one extension, which puts it at 90 days from receipt."
+        },
+        {
+          "id": "d",
+          "label": "Extend without typing a reason, since the extension is stamped anyway",
+          "correct": false,
+          "feedback": "The reason is part of the extension (Art. 12(3): complexity or the number of requests). It lands in the timeline and in the notice the data subject receives."
+        }
+      ],
+      "explanation": "**Extend +60 d** → type the reason → **Extend by 60 days**. Once, ever: 30 days becomes 90 from receipt, the data subject gets a notice by e-mail, and the timeline records who extended it and why."
+    },
+    {
+      "type": "slide",
+      "id": "finish",
+      "icon": "✉️",
+      "title": "Fulfil or reject — both write a letter",
+      "bodyMd": "Anne deletes what can go, anonymises the rest, and writes the **Summary of the handling**. That summary is not optional: fulfilling without one is refused, because it is the accountability record.\n\nThen **Fulfil and e-mail the data subject**, or **Reject…** → reason → **Reject and e-mail the data subject**. The row moves to *Completed* or *Rejected*.\n\nThe note under the drawer is the whole privacy rule in one line: *\"Personal data leaves Bee Flow only by e-mail to the data subject. The export is the file of this request, not the data.\"* **Export** hands you the dossier — how the request was handled, not the person's data.\n\nIf the letter cannot be sent, the status change still stands and the timeline says the e-mail failed. Read the timeline before calling it done."
+    },
+    {
+      "type": "slide",
+      "id": "record-first",
+      "icon": "🚨",
+      "title": "Record the breach first, assess it afterwards",
+      "bodyMd": "Monday 07:40: a projectleider's laptop, holding an exported table of customer addresses, is taken from a van. Marieke hears about it at 11:15.\n\nThe instinct is to find out how bad it is first. The register asks the opposite. **Record incident** takes **What happened?**, **Details**, **Severity**, **Occurred at (if known)** and the tick **High risk for the people involved (triggers Art. 34)** — and states the reason plainly: *\"Recording starts the 72-hour clock from now. If the breach was detected earlier, the clock legally started then — do not delay recording.\"*\n\nPress **Record — start the clock**. The incident now counts down: *{hours}h to Art. 33 deadline*, and past due, *{hours}h past the 72h deadline*. Waiting buys no time — it only loses the record."
+    },
+    {
+      "type": "quiz",
+      "id": "q-attest",
+      "question": "Van Dijk files the breach with the Autoriteit Persoonsgegevens through the authority's own portal. What does **Record authority notification** then do in the incident?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Stamps who notified and when, plus the authority case or reference number if there is one",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Files the Art. 33 notification with the supervisory authority for you",
+          "correct": false,
+          "feedback": "Bee Flow never files with a regulator or a CSIRT. Your organisation files; the register records that it happened, by whom and when."
+        },
+        {
+          "id": "c",
+          "label": "E-mails the people whose data was breached, as Art. 34 requires",
+          "correct": false,
+          "feedback": "That is a separate stamp — Record data-subject notification. Art. 33 (the authority) and Art. 34 (the people involved) are two duties and two buttons."
+        },
+        {
+          "id": "d",
+          "label": "Moves the incident to Closed, since the authority has now been told",
+          "correct": false,
+          "feedback": "Closing is its own action, Close incident, and it comes after the assessment. Notifying changes the status to Authority notified, not to Closed."
+        }
+      ],
+      "explanation": "The drawer says it in as many words: it is an attestation — your organisation files with the supervisory authority itself, and Bee Flow records that it was done, by whom and when. SCC, training and CRA report stamps work exactly the same way."
+    },
+    {
+      "type": "sim",
+      "id": "s-order",
+      "icon": "🧩",
+      "title": "Put Monday morning in order",
+      "instruction": "Van Dijk's stolen laptop, from the phone call to a closed file. Drag the five actions into the order the incident register expects.",
+      "sim": {
+        "kind": "order",
+        "items": [
+          {
+            "id": "detect",
+            "label": "The projectleider phones: the laptop with the customer export is gone"
+          },
+          {
+            "id": "record",
+            "label": "Record incident — what happened, severity, high risk — then Record — start the clock"
+          },
+          {
+            "id": "notify",
+            "label": "Notify breach recipients — the internal list is mailed and the stamp is set"
+          },
+          {
+            "id": "assess",
+            "label": "Start assessment — how many people, which data, is this high risk"
+          },
+          {
+            "id": "close",
+            "label": "Close incident — after the authority stamp and, where needed, the Art. 34 stamp"
+          }
+        ],
+        "solution": [
+          "detect",
+          "record",
+          "notify",
+          "assess",
+          "close"
+        ],
+        "feedback": "Recording comes before knowing. The clock legally started at detection, so the register entry goes in first; only then are your own people alerted and the assessment opened. Closing is last, because it should sit behind the stamps that prove what was notified."
+      }
+    },
+    {
+      "type": "quiz",
+      "id": "q-norecip",
+      "question": "Marieke presses **Notify breach recipients** and gets an error instead of a mail: \"Add breach notification recipients under Compliance → Settings first.\" What is missing?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Not one address is listed under Breach notification recipients in Compliance → Settings",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "The supervisory authority's address was never filled in",
+          "correct": false,
+          "feedback": "There is no field for a regulator's address, because nothing is ever sent to one. The recipients are your own people — whoever has to act tonight."
+        },
+        {
+          "id": "c",
+          "label": "The incident was recorded without ticking High risk, so no one is alerted",
+          "correct": false,
+          "feedback": "High risk drives the Art. 34 duty towards the people involved. It has nothing to do with the internal notification list."
+        },
+        {
+          "id": "d",
+          "label": "The 72-hour deadline has already passed, so notifying is blocked",
+          "correct": false,
+          "feedback": "An overdue incident still notifies, stamps and closes. The clock is recorded, never enforced — being late is a fact in the register, not a lock."
+        }
+      ],
+      "explanation": "Breach notification recipients is its own group in Compliance → Settings, and the last of the four setup-wizard steps. Until at least one address is there, the button refuses — and Needs attention flags an incident clock running with nobody to alert."
+    },
+    {
+      "type": "action",
+      "id": "do-recipients",
+      "icon": "🛟",
+      "checkId": "breach-recipients",
+      "title": "Decide now who gets woken up",
+      "instruction": "Open the Compliance hub and go to the rail row **Settings**. Find the group **Breach notification recipients** and add at least one address — the person who actually answers at 07:40, not a shared alias nobody reads. Press **Save**. We will check that the list is no longer empty.",
+      "launch": {
+        "navigateTo": "settings/organisation/compliance",
+        "label": "Open Compliance"
+      }
+    },
+    {
+      "type": "exercise",
+      "id": "ex-first-hour",
+      "icon": "🎯",
+      "exerciseId": "ex-compliance-dsr-first-hour",
+      "title": "Your turn: Van Dijk's first hour",
+      "instruction": "Write the first-hour checklist your organisation would follow when a breach is suspected — five or six numbered lines, in the order someone half-awake can follow. A strong answer records the incident before the facts are complete, names who is alerted from the breach recipients list, keeps the Art. 33 notification of the authority separate from the Art. 34 notification of the people involved, says who actually files with the supervisory authority, and says what has to be true before the incident may be closed.",
+      "placeholder": "e.g. 1. Record it in Incidents & breaches within the hour, even if all we know is that a laptop is missing — the clock started when we heard, not when we understand it…",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "slide",
+      "id": "now-you-can",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "- **Run a request from receipt to letter.** Record it with the real **Received on** date, work it with **Found in Bee Flow**, extend once with a reason if you must, and close it with a **Summary of the handling** and a mail to the data subject.\n- **Start a breach clock before you know anything.** Record first, notify your recipients, then assess — and read every clock as a fact you are keeping, not a deadline the tool will enforce.\n- **Tell an auditor what the stamps mean.** Authority notified, subjects notified, SCC attested: each one is a recorded human declaration with a name and a timestamp. Your organisation files; Bee Flow proves you did."
+    }
+  ],
+  "rubrics": {
+    "ex-compliance-dsr-first-hour": {
+      "title": "First-hour breach checklist",
+      "task": "Write a five-to-six-step checklist for the first hour after a suspected personal-data breach at a Dutch SME, built around the incident register: recording, internal notification, assessment, the two statutory notifications, and closing.",
+      "criteria": [
+        "Recording the incident comes first, explicitly before the facts are complete, and the answer ties the 72-hour clock to detection rather than to confirmation",
+        "Names the internal alert as a step of its own — the breach notification recipients configured in compliance settings",
+        "Keeps the Art. 33 notification of the supervisory authority separate from the Art. 34 notification of the people involved, and links the latter to high risk",
+        "States that the organisation itself files with the authority and that the register only records the notification as a stamp",
+        "Closing is last and conditional on the assessment and the relevant stamps being in place"
+      ],
+      "passScore": 70,
+      "guidance": "Fail a checklist that begins with investigating or confirming before recording — that is the mistake the lesson exists to prevent. Fail any answer claiming the platform notifies or files with a supervisory authority or CSIRT. Fail one that treats Art. 33 and Art. 34 as a single notification, or that never says who is alerted internally. Generic incident-response boilerplate with no recording, recipients or stamps fails even when it reads well. An answer meeting three of the five criteria clearly, with nothing factually wrong, passes."
+    }
+  },
+  "practiceTopic": {
+    "title": "DSR and breach clocks",
+    "summary": "How the two deadline-driven registers work: a data-subject request from receipt to letter, and a breach from detection to a closed file with its stamps.",
+    "facts": [
+      "A data-subject request must be answered within 30 days counted from receipt, which is why the capture modal has a Received on field and a future date is refused.",
+      "Extend +60 d is allowed exactly once under Art. 12(3) and needs a reason; the extension puts the deadline at 90 days from receipt and the data subject is e-mailed about it.",
+      "Found in Bee Flow scans memories, datatable rows, form answers, knowledge-base documents and earlier requests; conversations are never scanned because message bodies are encrypted per organisation.",
+      "Fulfil and e-mail the data subject requires a Summary of the handling, and e-mail to the data subject is the only channel by which personal data leaves Bee Flow.",
+      "Record — start the clock begins the 72-hour Art. 33 window; the incident shows hours to the Art. 33 deadline and, once past it, hours past the 72h deadline.",
+      "Record authority notification is an attestation with an optional authority case or reference number: the organisation files with the supervisory authority itself.",
+      "Notify breach recipients refuses with \"Add breach notification recipients under Compliance → Settings first.\" while that list is empty.",
+      "Organisation Admin, Data Protection Officer and ISMS Internal Auditor are the roles that carry the compliance permission; agent roles and plain members cannot open the DSR or incident register."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "breach-recipients",
+      "existing": false,
+      "label": "Set the breach notification recipients",
+      "hint": "Compliance → Settings → Breach notification recipients: add an address and press Save.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/compliance/settings",
+          "returns": "the organisation's compliance settings row, including breach_recipients (array of e-mail addresses) and the derived public_dsr_url"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "recipient",
+          "label": "At least one breach notification recipient is listed in Compliance → Settings",
+          "hint": "Compliance → Settings → Breach notification recipients: add a reachable address and press Save. The list starts empty.",
+          "endpoint": "/api/compliance/settings",
+          "expect": {
+            "kind": "nonEmpty",
+            "field": "breach_recipients"
+          },
+          "rule": "GET /api/compliance/settings answers with the org's settings object; breach_recipients is a JSON array defaulting to [] — the criterion passes once it holds at least one entry"
+        }
+      ]
+    }
+  ]
+}

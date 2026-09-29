@@ -1,0 +1,8 @@
+[
+  ["person", "organization", "address"],
+  ["medical condition", "medication", "health insurance id number", "health insurance number", "national health insurance number"],
+  ["email address", "phone number", "url", "ip address"],
+  ["iban", "credit card number"],
+  ["national id number", "identity card number", "social security number", "passport number", "driver's license number"],
+  ["date of birth", "license plate number", "tax identification number", "bank account number"]
+]

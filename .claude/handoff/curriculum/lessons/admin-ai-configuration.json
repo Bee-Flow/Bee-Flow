@@ -1,0 +1,342 @@
+{
+ "id": "admin-ai-configuration",
+ "icon": "🎛️",
+ "estMinutes": 12,
+ "title": "The switchboard behind every tier",
+ "desc": "Which model Fast, Think and Deep Thinking really use — and the three other engines that are chosen once for everyone.",
+ "gate": {
+  "permission": "org_admin"
+ },
+ "learningGoal": "After this lesson you can say which model and which token budget sits behind each depth tier, who is allowed to change them, and where the memory, transcription and search engines are picked — and you can write a precise change request when the switch is not yours to flip.",
+ "steps": [
+  {
+   "type": "slide",
+   "id": "why",
+   "icon": "🎛️",
+   "title": "A depth is not a model",
+   "bodyMd": "Van Dijk Groep, forty people, gets the 80%-of-cap email. Marieke, their org admin, tells the team to stay on **Fast**. A fortnight later the spend has barely moved.\n\nShe assumed Fast meant a cheaper model. It often does not. On a default install **Fast**, **Think** and **Deep Thinking** point at the *same* model and differ only in how hard it is told to think and how much it may write back.\n\nWhat each depth really resolves to is decided on one screen almost nobody opens. The same screen also settles three questions that have nothing to do with chat: what reads your memory, what transcribes your meetings, and what searches the web."
+  },
+  {
+   "type": "slide",
+   "id": "doors",
+   "icon": "🚪",
+   "title": "Two doors to the same switchboard",
+   "bodyMd": "**Admin → AI Configuration** is the full panel. Its left rail reads **API Keys · Chat Models · Embeddings · Direct Chat · Web Search Inference · Limits & Self-host**. It belongs to the platform operator — the super admin who runs the deployment.\n\nOn a self-hosted workspace an org admin gets a second door: **Settings → Organisation → Azure Configuration**, with the sub-sections **Azure OpenAI**, **Chat Model Tiers**, **Document Processing** and **Microsoft SSO**. The Chat Model Tiers row carries a badge such as *2/4 tiers* — how many of Fast, Thinking, Writer and Deep Thinking actually have a model.\n\nIf neither is in your menu, you are on a hosted deployment. You still read every consequence on Usage & Monitoring; you just ask instead of click."
+  },
+  {
+   "type": "slide",
+   "id": "tier-card",
+   "icon": "🃏",
+   "title": "Inside one tier card",
+   "bodyMd": "Under **Chat Models** sits the section **Chat Model Tiers** — *\"Assign a model to each tier for Direct Chat mode\"*. Expand a tier and you get the model picker plus **Max Tokens**, **Temperature**, **Reasoning Effort** (called **Thinking Effort** on Claude reasoning models), **Reasoning Summary** and **Verbosity**.\n\nThe built-in defaults *of this panel* are worth memorising, because they explain most complaints:\n\n- **Fast** — 4096 max tokens, temperature 0.2, verbosity low\n- **Thinking** and **Writer** — 32768 max tokens, temperature 0.7\n- **Deep Thinking** — 64000 max tokens, temperature 0.7, verbosity high\n\nWatch out: the self-hosted **Azure Configuration → Chat Model Tiers** screen has its own tier cards with their own built-in defaults, so read the number in front of you rather than reciting these.\n\nWhen a tier points at a Claude model, a **Bee Flow recommends** line appears with the model, token budget and effort Bee Flow would pick. Nothing takes effect until **Save Tier Configuration** is pressed — so note the old values first, and any change is a one-minute walk back."
+  },
+  {
+   "type": "quiz",
+   "id": "q-fast",
+   "question": "Marieke tells everyone at Van Dijk Groep to stay on Fast. The next month's bill is lower, but only slightly. What is the most likely explanation?",
+   "multi": false,
+   "choices": [
+    {
+     "id": "a",
+     "label": "Fast, Think and Deep Thinking can all be assigned the same model; what really differs is the reasoning effort and the Max Tokens budget, so only part of the cost moves.",
+     "correct": true
+    },
+    {
+     "id": "b",
+     "label": "The tier picked in the composer is ignored in direct chat and only applies to agents.",
+     "correct": false,
+     "feedback": "The depth chosen in the composer is exactly what Chat Model Tiers resolves for direct chat — the section's own subtitle says it assigns a model to each tier for Direct Chat mode."
+    },
+    {
+     "id": "c",
+     "label": "Max Tokens only caps the answer, and output tokens are not billed — so the tier cannot change the bill at all.",
+     "correct": false,
+     "feedback": "Output tokens are billed as well as the tokens that were sent. Max Tokens caps the answer, which is one real part of the cost; the prompt that went out is the other."
+    },
+    {
+     "id": "d",
+     "label": "Fast is a fixed tiny model that no administrator can change.",
+     "correct": false,
+     "feedback": "Every standard tier — Fast included — is an assignment an administrator makes on a tier card, and it can point at any model the workspace has connected."
+    }
+   ],
+   "explanation": "A tier is a bundle of settings, not a price. Until somebody looks at the tier card and sees which model, which effort and which token budget Fast carries, 'use Fast' is a hope rather than a control."
+  },
+  {
+   "type": "slide",
+   "id": "six-tiers",
+   "icon": "🗂️",
+   "title": "Six tiers, plus the ones you invent",
+   "bodyMd": "The panel lists more than the three depths a user sees on the slider:\n\n- **Fast** — *\"Quick responses for simple questions\"*\n- **Flow (Direct)** — a direct-chat tier with per-chat orchestrated stages\n- **Swarm (Direct)** — runs a multi-agent swarm and synthesises one answer\n- **Thinking** — *\"Complex reasoning and analysis\"*\n- **Writer** — *\"Long-form content and reports\"*\n- **Deep Thinking** — *\"Maximum quality output\"*\n\nBelow them, **Custom Tiers** (empty state: *\"No custom tiers yet.\"*) with **+ Add Custom Tier**. Further down sits a whole second table, **EU Chat Model Tiers** — *\"EU-hosted models used when an organization has EU mode enabled in their Privacy Shield\"*.\n\nWho is *allowed* to pick a tier is a different screen again: **Allowed tiers** on a group."
+  },
+  {
+   "type": "sim",
+   "id": "match",
+   "icon": "🧩",
+   "title": "Five complaints, five different switches",
+   "instruction": "Van Dijk Groep reports five problems in one week. Match each to the setting that decides it.",
+   "sim": {
+    "kind": "match",
+    "pairs": [
+     {
+      "id": "p1",
+      "left": "Nobody gets a web result in chat, whatever depth they pick.",
+      "right": "The search provider setting",
+      "note": "Web search is a provider choice under Admin → Integrations → Search — Disabled is one of the options, and it makes the tool quietly absent."
+     },
+     {
+      "id": "p2",
+      "left": "Works-council audio must stay on hardware Van Dijk owns.",
+      "right": "Transcription Active Provider",
+      "note": "One engine is chosen for the whole workspace under Admin → Integrations → Transcription; WhisperX is the self-hosted option."
+     },
+     {
+      "id": "p3",
+      "left": "On the single-slot self-hosted server, every reply is followed by a pause before the next turn starts.",
+      "right": "Memory Extraction Model",
+      "note": "Extraction runs a background call after each reply and inherits the Fast tier model unless a smaller one is named."
+     },
+     {
+      "id": "p4",
+      "left": "Long Deep Thinking answers stop mid-sentence.",
+      "right": "Max Tokens on that tier card",
+      "note": "Max Tokens caps what the model may write back — 64000 is only the default for Deep Thinking, not a law."
+     },
+     {
+      "id": "p5",
+      "left": "The organisation runs in EU mode but answers keep coming from a model outside the EU.",
+      "right": "EU Chat Model Tiers",
+      "note": "EU mode reads the second table. An unfilled EU tier is a different fault from an unfilled standard tier."
+     }
+    ]
+   }
+  },
+  {
+   "type": "slide",
+   "id": "memory-model",
+   "icon": "🧠",
+   "title": "The card that explains the pause",
+   "bodyMd": "Further down the same page sits **Memory Extraction Model**:\n\n> *\"Model that reads each finished exchange for facts worth remembering — a small background call after every reply, thinking off. On a self-hosted single-slot server pick a tiny model here so extraction never queues in front of the next turn. Defaults to the Fast tier model when unset.\"*\n\nThe picker is labelled **Memory extraction model** and reads **— Use Fast tier model —** while it is empty, saved with **Save Memory Extraction Model**.\n\nThat default is the whole story for Van Dijk's self-hosted box: unset means extraction borrows whatever Fast points at, which is the same model the chat just used. On one GPU slot, the memory work queues in front of the next question."
+  },
+  {
+   "type": "slide",
+   "id": "engines",
+   "icon": "🔌",
+   "title": "Two engines that are not tiers",
+   "bodyMd": "**Admin → Integrations** (operator only) has its own sections, among them **Search** and **Transcription**.\n\n**Transcription → Active Provider** — *\"Choose which engine will be used when you transcribe audio in Meeting Notes.\"* The options are **Voxtral**, **Azure Speech**, **WhisperX** (self-hosted), **Scaleway** (EU Whisper large-v3 with a local diarizer), **pyannoteAI** (the best diarisation, and what voice profiles need) and the local CPU Whisper. One engine serves the whole workspace; nobody chooses per upload.\n\n**Search** — a provider dropdown with **Disabled**, **Azure Bing Search**, **Cloud-only (Serper + provider APIs)** and **Self-hosted (Agent Search + Serper)**, plus **Agent Search Service URL** and **Agent Search Default Options**."
+  },
+  {
+   "type": "quiz",
+   "id": "q-engine",
+   "question": "HR at Van Dijk Groep records a works-council meeting and the audio may not leave company hardware. Marieke opens Meeting Notes to pick a different engine for that one recording. What happens?",
+   "multi": false,
+   "choices": [
+    {
+     "id": "a",
+     "label": "There is no per-recording choice. Active Provider is one setting for the whole workspace, under Admin → Integrations → Transcription, and it belongs to the platform operator.",
+     "correct": true
+    },
+    {
+     "id": "b",
+     "label": "She picks WhisperX for this note only; the engine is chosen per upload.",
+     "correct": false,
+     "feedback": "Users do not choose an engine per upload — an administrator picks one Active Provider and every transcription in the workspace uses it."
+    },
+    {
+     "id": "c",
+     "label": "The transcription engine follows the model tier, so recording on Fast keeps it local.",
+     "correct": false,
+     "feedback": "Speech-to-text and the chat tiers are separate settings. No depth tier routes audio anywhere."
+    },
+    {
+     "id": "d",
+     "label": "Long recordings are routed to the local engine automatically, so a big works-council recording stays in-house anyway.",
+     "correct": false,
+     "feedback": "The automatic switch runs the other way round: a recording too long for the on-device model is sent to a cloud engine instead, and the page says so — *\"Your recording was too long for the on-device model — transcribed via {provider} instead.\"* Length never forces audio to stay local. If it must stay in-house, the Active Provider itself has to be a self-hosted one."
+    }
+   ],
+   "explanation": "Transcription is a workspace-wide decision with a legal edge to it. The org admin's job is to state the requirement clearly — audio stays on our own machines — and get the operator to set an Active Provider that meets it."
+  },
+  {
+   "type": "slide",
+   "id": "fails",
+   "icon": "🚨",
+   "title": "How an empty box announces itself",
+   "bodyMd": "**A tier with no model** fails loudly and usefully. Ask for Swarm where nothing is assigned and the answer is *\"No model is configured for the Swarm tier. Ask an admin to set one in Chat Model Tiers → Swarm (Direct).\"*\n\n**A missing search backend fails silently.** Web search only appears when the provider is not Disabled, a usable backend exists (an Agent Search URL, a Serper key or a Bing key), the organisation's integrations include agent-search, the agent has not disabled external tools, and the user's own Web search toggle is on. Break any link and the tool is simply not there.\n\n**Memory extraction never errors** — it just borrows the Fast tier and slows the queue."
+  },
+  {
+   "type": "quiz",
+   "id": "q-search",
+   "question": "A routine at Van Dijk that used to cite web pages now cites none. The Web search toggle is on, the agent allows external tools, and the routine is unchanged. What do you have someone check first?",
+   "multi": false,
+   "choices": [
+    {
+     "id": "a",
+     "label": "Admin → Integrations → Search: whether the provider went to Disabled, or the Agent Search Service URL or the search key behind it stopped working.",
+     "correct": true
+    },
+    {
+     "id": "b",
+     "label": "The tier on the routine's AI step — Fast cannot use tools.",
+     "correct": false,
+     "feedback": "Depth tiers set how hard the model thinks and how much it may write, not which tools exist. A tool that is missing is missing on every tier."
+    },
+    {
+     "id": "c",
+     "label": "The Memory Extraction Model, because search results are stored as memories.",
+     "correct": false,
+     "feedback": "That model only reads a finished exchange for facts worth remembering. It has no part in fetching or citing a web page."
+    },
+    {
+     "id": "d",
+     "label": "The organisation's Privacy Shield, because redaction deletes every URL before the answer is shown.",
+     "correct": false,
+     "feedback": "The Shield replaces personal data with placeholders and puts the real values back afterwards; it does not strip links. Protect web searches can hold back a query that contains personal data, which is a narrower symptom than no results at all."
+    }
+   ],
+   "explanation": "Web search has a chain of preconditions and only the first one is on this switchboard. Start at the provider: Disabled, or a backend that no longer answers, removes the tool for everyone at once."
+  },
+  {
+   "type": "sim",
+   "id": "order",
+   "icon": "🪜",
+   "title": "Change one tier without a surprise",
+   "instruction": "Marieke has permission to edit the tier cards on Van Dijk's self-hosted install. Put her five moves in the order that leaves her able to prove — and undo — the change.",
+   "sim": {
+    "kind": "order",
+    "items": [
+     {
+      "id": "a",
+      "label": "Read Usage & Monitoring to see which tier the spend actually sits in"
+     },
+     {
+      "id": "b",
+      "label": "Write down that tier's current model, Max Tokens and Temperature"
+     },
+     {
+      "id": "c",
+      "label": "Change one field on one tier card"
+     },
+     {
+      "id": "d",
+      "label": "Press Save Tier Configuration"
+     },
+     {
+      "id": "e",
+      "label": "Have one colleague redo the expensive work and compare the result and the cost"
+     }
+    ],
+    "solution": [
+     "a",
+     "b",
+     "c",
+     "d",
+     "e"
+    ],
+    "feedback": "Evidence first, then a written-down starting point, then one change — never three at once, or you will not know which one helped. Saving is a separate click, and a change nobody re-tests is a rumour."
+   }
+  },
+  {
+   "type": "exercise",
+   "id": "ask",
+   "icon": "✉️",
+   "exerciseId": "ex-admin-ai-configuration-request",
+   "title": "Your turn: ask the operator properly",
+   "instruction": "Most of this switchboard is not yours to touch, so your real skill is the request. In three or four lines, write to Van Dijk Groep's platform operator. Name the exact screen and setting you want changed (screen, section, field), say which value and why, in terms of an effect you have measured or a rule you must meet, and say what you will check afterwards to prove it worked. Pick any one case from this lesson.",
+   "placeholder": "e.g. Please change Admin → Integrations → Transcription, Active Provider, from ... to ... , because ...",
+   "passScore": 70,
+   "maxAttempts": 4
+  },
+  {
+   "type": "action",
+   "id": "read-it",
+   "icon": "🔎",
+   "checkId": "ai-switchboard-read",
+   "title": "Find out what is behind Fast",
+   "instruction": "Open the switchboard your install gives you — on a self-hosted workspace that is Settings → Organisation → Azure Configuration → Chat Model Tiers — and answer two questions: which model sits behind Fast, and does web search have a provider or is it Disabled? If that row is missing, your deployment is hosted: write the two questions down for the operator instead. The check reads what your own account can already see.",
+   "launch": {
+    "navigateTo": "settings/organisation/azure",
+    "label": "Open Azure Configuration"
+   }
+  },
+  {
+   "type": "slide",
+   "id": "done",
+   "icon": "✅",
+   "title": "What you can do now",
+   "bodyMd": "- **Read a depth as a bundle.** Fast, Think and Deep Thinking are a model plus an effort plus a Max Tokens budget on a tier card — not three prices. On the operator's Chat Models panel Fast starts at 4096 tokens and 0.2 temperature and Deep Thinking at 64000 and 0.7 — other screens carry their own defaults, so read the card.\n- **Name the right screen.** Chat Model Tiers for what a depth resolves to, Memory Extraction Model for the pause after every reply, Active Provider for what hears your meetings, the search provider for whether web results exist at all.\n- **Ask like an engineer.** Screen, section, field, the value you want, the effect you measured, and the check you will run afterwards. That request gets answered; \"AI is too expensive\" does not."
+  }
+ ],
+ "rubrics": {
+  "ex-admin-ai-configuration-request": {
+   "title": "A change request an operator can act on",
+   "task": "Write three or four lines to the platform operator asking for one change on the AI switchboard: the exact screen and setting, the value wanted and the reason, and how the writer will verify the effect afterwards.",
+   "criteria": [
+    "Names a real location precisely — for example Chat Model Tiers and a named tier, the Memory Extraction Model card, Admin → Integrations → Transcription → Active Provider, or the search provider setting — not just 'the AI settings'.",
+    "States the concrete change: which field and which value, or which provider instead of which.",
+    "Gives a reason tied to evidence or an obligation (a measured cost or truncation, a queue on a single-slot server, a rule that audio must stay in-house), not a preference.",
+    "Says what will be checked afterwards to prove it worked, and ideally that the old value was noted so the change can be reversed."
+   ],
+   "passScore": 70,
+   "guidance": "Pass a short, specific request even if the wording is blunt. Do not pass a vague complaint ('please make it cheaper'), a request that names no screen or field, or one that asks for several unrelated changes at once with no way to tell which one helped. A learner who invents a setting that does not exist in this lesson should be corrected rather than passed."
+  }
+ },
+ "practiceTopic": {
+  "title": "The AI configuration switchboard",
+  "summary": "Which model, token budget and engine sits behind each depth tier, plus the memory, transcription and search choices that are made once for the whole workspace.",
+  "facts": [
+   "Admin → AI Configuration has six sections in its left rail: API Keys, Chat Models, Embeddings, Direct Chat, Web Search Inference and Limits & Self-host; the tier tables live under Chat Models.",
+   "Chat Model Tiers assigns a model to each tier for Direct Chat mode and lists Fast, Flow (Direct), Swarm (Direct), Thinking, Writer and Deep Thinking, plus Custom Tiers with + Add Custom Tier; nothing applies until Save Tier Configuration is pressed.",
+   "On that panel the per-tier defaults are Fast 4096 max tokens at temperature 0.2 with low verbosity, Thinking and Writer 32768 at 0.7, and Deep Thinking 64000 at 0.7 with high verbosity; the self-hosted Azure Configuration tier cards carry their own, different defaults.",
+   "A tier card also carries Reasoning Effort — labelled Thinking Effort on Claude reasoning models — plus Reasoning Summary and Verbosity, and on a Claude model a Bee Flow recommends line naming the model, token budget and effort it would pick.",
+   "The Memory Extraction Model card says it defaults to the Fast tier model when unset, and its picker shows '— Use Fast tier model —' while empty.",
+   "EU Chat Model Tiers is a second table of EU-hosted models, used when an organisation has EU mode enabled in its Privacy Shield.",
+   "Admin → Integrations → Transcription has one Active Provider for the whole workspace — Voxtral, Azure Speech, WhisperX, Scaleway, pyannoteAI or the local CPU Whisper — and users do not choose per upload.",
+   "Admin → Integrations → Search offers Disabled, Azure Bing Search, Cloud-only (Serper + provider APIs) or Self-hosted (Agent Search + Serper), plus an Agent Search Service URL and Agent Search Default Options."
+  ]
+ },
+ "actionChecks": [
+    {
+      "checkId": "ai-switchboard-read",
+      "existing": false,
+      "label": "Look up what your workspace actually has configured",
+      "hint": "Self-hosted: Settings → Organisation → Azure Configuration → Chat Model Tiers shows the model behind each tier. The two criteria below read the same facts from your own account, so they pass on a hosted deployment too.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/ai/providers",
+          "returns": "object with a providers array (id, name, type, masked apiKey) and defaultProvider — the list a tier card picks its model from; readable by any authenticated user"
+        },
+        {
+          "method": "GET",
+          "path": "/ai/config/chat-models",
+          "returns": "the chat_model_tiers config: an object with fast / standard / swarm / thinking / writer / pro, each { modelId, label }; modelId is an empty string while nobody has picked a model for that tier"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "providers",
+          "endpoint": "/ai/providers",
+          "expect": {
+            "kind": "nonEmpty",
+            "field": "providers"
+          },
+          "label": "At least one AI provider is connected to this workspace",
+          "hint": "If this is empty, no tier can resolve to anything and the operator has to connect a provider under API Keys first.",
+          "rule": "GET /api/ai/providers → the providers array has at least one entry"
+        },
+        {
+          "id": "fast-model",
+          "endpoint": "/ai/config/chat-models",
+          "expect": {
+            "kind": "truthy",
+            "field": "fast.modelId"
+          },
+          "label": "The Fast tier has a model behind it",
+          "hint": "Empty means nobody picked a model for Fast yet, so every Auto answer falls back. On a self-hosted workspace the operator sets it under Chat Model Tiers; on a hosted one, ask them.",
+          "rule": "GET /ai/config/chat-models → fast.modelId is a non-empty string (it is \"\" until a model is chosen)"
+        }
+      ]
+    }
+  ]
+}

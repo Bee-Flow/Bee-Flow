@@ -1,0 +1,5929 @@
+{
+ "name": "playbook-refusals",
+ "recordedAt": "2026-09-13",
+ "model": "gemma-4-26b-a4b",
+ "note": "The refused app-builder calls of the first playbook live runs (cases 01, 02, 03 — routes/playbooks.js driving BuilderChatPane's stream with the recipe briefs). Args verbatim; screen/table ids are the run's and are mapped by the replay test. Calls marked case 07b/09b/10b were recorded 2026-09-14 on the rebuilt container (after the first repairs): the app's own tbl_ id re-linked, parent-less batches on a retry with several screens, typeless entries from broken JSON tails, removals of invented ids, null recordIds.",
+ "calls": [
+  {
+   "n": 1,
+   "case": "01",
+   "phase": "app",
+   "tool": "app_update_component",
+   "args": {
+    "id": "cmp_zaae7t",
+    "updates": [
+     {
+      "id": "cmp_zaae7t",
+      "props": {
+       "fields": [
+        {
+         "format": "date",
+         "key": "datum",
+         "label": "Datum"
+        },
+        {
+         "key": "leverancier",
+         "label": "Leverancier"
+        },
+        {
+         "key": "factuurnummer",
+         "label": "Factuurnummer"
+        },
+        {
+         "format": "cad",
+         "key": "excl_btw",
+         "label": "Excl. btw"
+        },
+        {
+         "format": "cad",
+         "key": "btw",
+         "label": "Btw"
+        },
+        {
+         "format": "cad",
+         "key": "totaal",
+         "label": "Totaal"
+        },
+        {
+         "format": "badge",
+         "key": "status",
+         "label": "Status"
+        },
+        {
+         "format": "document",
+         "key": "bestand",
+         "label": "Bijlage"
+        }
+       ]
+      }
+     }
+    ]
+   },
+   "observed": {
+    "accepted": false,
+    "error": "Pass EITHER the single form (id) or the batch form (updates) — not both."
+   }
+  },
+  {
+   "n": 2,
+   "case": "01",
+   "phase": "app",
+   "tool": "app_set_action",
+   "args": {
+    "action": {
+     "kind": "navigate",
+     "fields": {
+      "screenId": "scr_ewbjih",
+      "params": {
+       "recordId": {
+        "kind": "formula",
+        "expr": "item.id"
+       }
+      }
+     }
+    },
+    "actionId": "act_nav_factuur"
+   },
+   "observed": {
+    "accepted": false,
+    "error": "This action would fail validation — nothing was created. action: Action \"act_lfsbaj\" has unknown fields for kind \"navigate\": fields. Legal fields: screenId, params. | action.screenId: Action \"act_lfsbaj\" (navigate) needs a screenId. Use a screen id from definition.screens."
+   }
+  },
+  {
+   "n": 3,
+   "case": "01",
+   "phase": "approvals",
+   "tool": "app_set_action",
+   "args": {
+    "action": {
+     "kind": "sequence",
+     "steps": [
+      {
+       "expiresInHours": 168,
+       "kind": "request_approval",
+       "onDecided": {
+        "recordId": "{kind:\\\"formula\\\",expr:\\\"screen.params.recordId\\\"}",
+        "set": {
+         "approved": {
+          "status": "goedgekeurd"
+         },
+         "rejected": {
+          "status": "afgewezen"
+         }
+        },
+        "tableId": "tbl_90c246"
+       },
+       "prompt": {
+        "kind": "static",
+        "value": "Deze factuur goedkeuren?"
+       },
+       "rule": "first",
+       "stages": [
+        {
+         "approvers": [
+          {
+           "userId": "nc_nc-nextcloud-nc-host-bee_admin"
+          }
+         ],
+         "key": "owner",
+         "name": "Eigenaar"
+        }
+       ]
+      }
+     ],
+     "resultVar": "approval"
+    }
+   },
+   "observed": {
+    "accepted": false,
+    "error": "This action would fail validation — nothing was created. action: Action \"act_t4yqjd\" has unknown fields for kind \"sequence\": resultVar. Legal fields: steps. | action.steps[0].onDecided.recordId: `recordId` must be a binding object. Use one of: {kind:'static', …}, {kind:'actionResult', …}, {kind:'for"
+   }
+  },
+  {
+   "n": 4,
+   "case": "02",
+   "phase": "app",
+   "tool": "app_link_datatable",
+   "args": {
+    "name": "Facturen"
+   },
+   "observed": {
+    "accepted": false,
+    "error": "\"Facturen\" matches 3 Studio tables: \"Facturen\" (id tbl_ac8bd9ea1182, key facturen, 32 rows, Nextcloud mirror); \"Facturen\" (id tbl_88ff3a6d4fed, key facturen_2, 32 rows); \"Facturen\" (id tbl_e1c141437d3e, key facturen_3, 32 rows) — pass the id."
+   }
+  },
+  {
+   "n": 5,
+   "case": "02",
+   "phase": "app",
+   "tool": "app_set_action",
+   "args": {
+    "action": {
+     "kind": "navigate",
+     "params": {
+      "screenId": "scr_881sul"
+     }
+    },
+    "actionId": "act_view_detail"
+   },
+   "observed": {
+    "accepted": false,
+    "error": "This action would fail validation — nothing was created. action.screenId: Action \"act_ssywga\" (navigate) needs a screenId. Use a screen id from definition.screens. | action.params.screenId: Action \"act_ssywga\" (navigate) param \"screenId\" must be {kind:'static',value} or {kind:'formula',expr}. Wrap p"
+   }
+  },
+  {
+   "n": 6,
+   "case": "02",
+   "phase": "app",
+   "tool": "app_set_action",
+   "args": {
+    "action": {
+     "kind": "navigate",
+     "params": {
+      "screenId": {
+       "kind": "static",
+       "value": "scr_881sul"
+      }
+     }
+    },
+    "actionId": "act_view_detail"
+   },
+   "observed": {
+    "accepted": false,
+    "error": "This action would fail validation — nothing was created. action.screenId: Action \"act_g2djwk\" (navigate) needs a screenId. Use a screen id from definition.screens."
+   }
+  },
+  {
+   "n": 7,
+   "case": "02",
+   "phase": "app",
+   "tool": "app_set_action",
+   "args": {
+    "actions": [
+     {
+      "action": {
+       "fields": {},
+       "kind": "navigate",
+       "params": {
+        "recordId": {
+         "kind": "formula",
+         "expr": "item.id"
+        },
+        "screenId": "scr_881sul"
+       }
+      },
+      "actionId": "act_view_detail"
+     }
+    ]
+   },
+   "observed": {
+    "accepted": false,
+    "error": "All 1 action(s) failed — nothing was created or updated."
+   }
+  },
+  {
+   "n": 8,
+   "case": "03",
+   "phase": "app",
+   "tool": "app_add_components",
+   "args": {
+    "components": [
+     {
+      "children": [
+       {
+        "children": [
+         {
+          "props": {
+           "icon": "FileCheck",
+           "label": "Aantal facturen",
+           "look": "tile",
+           "value": {
+            "aggregates": [
+             {
+              "as": "n",
+              "fn": "count}],kind:"
+             },
+             "pick:{column:"
+            ],
+            "tableId": "tbl_4f645b"
+           }
+          },
+          "style": {
+           "span": 3
+          },
+          "type": "stat"
+         },
+         {
+          "props": {
+           "icon": "Euro",
+           "label": "Totaal excl. btw",
+           "look": "accent",
+           "value": {
+            "aggregates": [
+             {
+              "as": "excl",
+              "field": "excl_btw",
+              "fn": "sum"
+             }
+            ],
+            "kind": "aggregate",
+            "pick": {
+             "column": "excl",
+             "row": "first"
+            },
+            "tableId": "tbl_4f645b"
+           }
+          },
+          "style": {
+           "span": 3
+          },
+          "type": "stat"
+         },
+         {
+          "props": {
+           "icon": "Percent",
+           "label": "Totaal btw",
+           "look": "tile",
+           "tinted<|\"|>,value": {
+            "aggregates": [
+             {
+              "as": "btw_sum",
+              "field": "btw",
+              "fn": "sum"
+             }
+            ],
+            "kind": "aggregate",
+            "pick": {
+             "column": "btw_sum",
+             "row": "first"
+            },
+            "tableId": "tbl_4f645b"
+           }
+          },
+          "style": {
+           "span": 3
+          },
+          "type": "stat"
+         },
+         {
+          "props": {
+           "icon": "Wallet",
+           "label": "Totaal incl. btw",
+           "look": "gradient",
+           "value": {
+            "aggregates": [
+             {
+              "as": "incl",
+              "field": "totaal",
+              "fn": "sum"
+             }
+            ],
+            "kind": "aggregate",
+            "pick": {
+             "column": "incl",
+             "row": "first"
+            },
+            "tableId": "tbl_4f645b"
+           }
+          },
+          "style": {
+           "span": 3
+          },
+          "type": "stat"
+         }
+        ],
+        "props": {
+         "title": "Factuur Statistieken"
+        },
+        "style": {
+         "span": 12
+        },
+        "type": "card"
+       },
+       {
+        "children": [
+         {
+          "props": {
+           "chartType": "bar",
+           "series": [
+            {
+             "key": "totaal",
+             "label": "Totaal"
+            }
+           ],
+           "source": {
+            "aggregates": [
+             {
+              "as": "totaal_m",
+              "field": "totaal",
+              "fn": "sum"
+             }
+            ],
+            "groupBy": [
+             {
+              "as": "maand",
+              "bucket": "month",
+              "field": "datum"
+             }
+            ],
+            "kind": "aggregate",
+            "tableId": "tbl_4f645b"
+           },
+           "title": "Totaal per maand",
+           "valueFormat": "currency",
+           "xKey": "maand",
+           "xType": "time"
+          },
+          "style": {
+           "span": 12
+          },
+          "type": "chart"
+         }
+        ],
+        "props": {
+         "title": "Trend"
+        },
+        "style": {
+         "span": 12
+        },
+        "type": "card"
+       },
+       {
+        "props": {
+         "fields": [
+          {
+           "name": "leverancier",
+           "type": "select"
+          },
+          {
+           "name": "datum",
+           "type": "date"
+          },
+          {
+           "name": "status",
+           "type": "select"
+          }
+         ]
+        },
+        "style": {
+         "span": 12
+        },
+        "type": "filter_bar"
+       },
+       {
+        "props": {
+         "columns": [
+          {
+           "format": "date",
+           "key": "datum",
+           "label": "Datum"
+          },
+          {
+           "key": "leverancier",
+           "label": "Leverancier"
+          },
+          {
+           "key": "factuurnummer",
+           "label": "Factuurnummer"
+          },
+          {
+           "format": "currency",
+           "key": "excl_btw",
+           "label": "Excl. btw"
+          },
+          {
+           "format": "currency",
+           "key": "btw",
+           "label": "Btw"
+          },
+          {
+           "format": "currency",
+           "key": "totaal",
+           "label": "Totaal"
+          },
+          {
+           "format": "badge",
+           "key": "status",
+           "label": "Status"
+          }
+         ],
+         "emptyText": "Geen facturen gevonden.",
+         "rowActions": [
+          {
+           "actionId": "act_view_factuur",
+           "label": "Bekijk"
+          }
+         ],
+         "searchable": true,
+         "source": {
+          "filter": [
+           {
+            "field": "leverancier",
+            "op": "contains",
+            "value": {
+             "expr": "vars.filters.leverancier",
+             "kind": "formula"
+            }
+           },
+           {
+            "field": "datum",
+            "op": "between",
+            "value": {
+             "expr": "vars.filters.datum",
+             "kind": "formula"
+            }
+           },
+           {
+            "field": "status",
+            "op": "eq",
+            "value": {
+             "expr": "vars.filters.status",
+             "kind": "formula"
+            }
+           }
+          ],
+          "kind": "records",
+          "tableId": "tbl_4f645b"
+         }
+        },
+        "style": {
+         "span": 12
+        },
+        "type": "data_grid"
+       }
+      ],
+      "parentId": "sec_lxyxdu"
+     }
+    ],
+    "type": "section"
+   },
+   "observed": {
+    "accepted": false,
+    "error": "parentId is required — a section id (sec_…) or a container component id (card/form)."
+   }
+  },
+  {
+   "n": 9,
+   "case": "03",
+   "phase": "app",
+   "tool": "app_add_components",
+   "args": {
+    "components": [
+     {
+      "children": [
+       {
+        "children": [
+         {
+          "props": {
+           "fields": [
+            {
+             "key": "datum",
+             "label": "Datum",
+             "format": "date"
+            },
+            {
+             "key": "leverancier",
+             "label": "Leverancier"
+            },
+            {
+             "key": "factuurnummer",
+             "label": "Factuurnummer"
+            },
+            {
+             "key": "excl_btw",
+             "label": "Excl. btw",
+             "format": "currency"
+            },
+            {
+             "key": "btw",
+             "label": "Btw",
+             "format": "currency"
+            },
+            {
+             "key": "totaal",
+             "label": "Totaal",
+             "format": "currency"
+            },
+            {
+             "key": "status",
+             "label": "Status",
+             "format": "badge"
+            },
+            {
+             "key": "bestand",
+             "label": "Bestand",
+             "format": "document"
+            }
+           ],
+           "layout": "rows",
+           "source": {
+            "kind": "record",
+            "tableId": "tbl_4f645b"
+           }
+          },
+          "style": {
+           "span": 12
+          },
+          "type": "record_detail"
+         }
+        ],
+        "props": {
+         "title": "Factuur Details"
+        },
+        "style": {
+         "span": 12
+        },
+        "type": "card"
+       }
+      ],
+      "parentId": "sec_5vssf4",
+      "type": "section"
+     },
+     {
+      "children": [
+       {
+        "children": [
+         {
+          "props": {
+           "icon": "FileCheck",
+           "label": "Aantal facturen",
+           "look": "tile",
+           "value": {
+            "aggregates": [
+             {
+              "as": "n",
+              "fn": "count"
+             }
+            ],
+            "kind": "aggregate",
+            "pick": {
+             "column": "n",
+             "row": "first"
+            },
+            "tableId": "tbl_4f645b"
+           }
+          },
+          "style": {
+           "span": 3
+          },
+          "type": "stat"
+         },
+         {
+          "props": {
+           "icon": "Euro",
+           "label": "Totaal excl. btw",
+           "look": "accent",
+           "value": {
+            "aggregates": [
+             {
+              "as": "excl",
+              "field": "excl_btw",
+              "fn": "sum"
+             }
+            ],
+            "kind": "aggregate",
+            "pick": {
+             "column": "excl",
+             "row": "first"
+            },
+            "tableId": "tbl_4f645b"
+           }
+          },
+          "style": {
+           "span": 3
+          },
+          "type": "stat"
+         },
+         {
+          "props": {
+           "icon": "Percent",
+           "label": "Totaal btw",
+           "look": "tile",
+           "value": {
+            "aggregates": [
+             {
+              "as": "btw_sum",
+              "field": "btw",
+              "fn": "sum"
+             }
+            ],
+            "kind": "aggregate",
+            "pick": {
+             "column": "btw_sum",
+             "row": "first"
+            },
+            "tableId": "tbl_4f645b"
+           }
+          },
+          "style": {
+           "span": 3
+          },
+          "type": "stat"
+         },
+         {
+          "props": {
+           "icon": "Wallet",
+           "label": "Totaal incl. btw",
+           "look": "gradient",
+           "value": {
+            "aggregates": [
+             {
+              "as": "incl",
+              "field": "totaal",
+              "fn": "sum"
+             }
+            ],
+            "kind": "aggregate",
+            "pick": {
+             "column": "incl",
+             "row": "first"
+            },
+            "tableId": "tbl_4f645b"
+           }
+          },
+          "style": {
+           "span": 3
+          },
+          "type": "stat"
+         }
+        ],
+        "props": {
+         "title": "Factuur Statistieken"
+        },
+        "style": {
+         "span": 12
+        },
+        "type": "card"
+       },
+       {
+        "children": [
+         {
+          "props": {
+           "chartType": "bar",
+           "series": [
+            {
+             "key": "totaal",
+             "label": "Totaal"
+            }
+           ],
+           "source": {
+            "aggregates": [
+             {
+              "as": "totaal_m",
+              "field": "totaal",
+              "fn": "sum"
+             }
+            ],
+            "groupBy": [
+             {
+              "as": "maand",
+              "bucket": "month",
+              "field": "datum"
+             }
+            ],
+            "kind": "aggregate",
+            "tableId": "tbl_4f645b"
+           },
+           "title": "Totaal per maand",
+           "valueFormat": "currency",
+           "xKey": "maand",
+           "xType": "time"
+          },
+          "style": {
+           "span": 12
+          },
+          "type": "chart"
+         }
+        ],
+        "props": {
+         "title": "Trend"
+        },
+        "style": {
+         "span": 12
+        },
+        "type": "card"
+       },
+       {
+        "props": {
+         "fields": [
+          {
+           "name": "leverancier",
+           "type": "select"
+          },
+          {
+           "name": "datum",
+           "type": "date"
+          },
+          {
+           "name": "status",
+           "type": "select"
+          }
+         ]
+        },
+        "style": {
+         "span": 12
+        },
+        "type": "filter_bar"
+       },
+       {
+        "props": {
+         "columns": [
+          {
+           "format": "date",
+           "key": "datum",
+           "label": "Datum"
+          },
+          {
+           "key": "leverancier",
+           "label": "Leverancier"
+          },
+          {
+           "key": "factuurnummer",
+           "label": "Factuurnummer"
+          },
+          {
+           "format": "currency",
+           "key": "excl_btw",
+           "label": "Excl. btw"
+          },
+          {
+           "format": "currency",
+           "key": "btw",
+           "label": "Btw"
+          },
+          {
+           "format": "currency",
+           "key": "totaal",
+           "label": "Totaal"
+          },
+          {
+           "format": "badge",
+           "key": "status",
+           "label": "Status"
+          }
+         ],
+         "emptyText": "Geen facturen gevonden.",
+         "rowActions": [
+          {
+           "actionId": "act_view_factuur",
+           "label": "Bekijk"
+          }
+         ],
+         "searchable": true,
+         "source": {
+          "filter": [
+           {
+            "field": "leverancier",
+            "op": "contains",
+            "value": {
+             "expr": "vars.filters.leverancier",
+             "kind": "formula"
+            }
+           },
+           {
+            "field": "datum",
+            "op": "between",
+            "value": {
+             "expr": "vars.filters.datum",
+             "kind": "formula"
+            }
+           },
+           {
+            "field": "status",
+            "op": "eq",
+            "value": {
+             "expr": "vars.filters.status",
+             "kind": "formula"
+            }
+           }
+          ],
+          "kind": "records",
+          "tableId": "tbl_4f645b"
+         }
+        },
+        "style": {
+         "span": 12
+        },
+        "type": "data_grid"
+       }
+      ],
+      "parentId": "sec_lxyxdu",
+      "type": "section"
+     }
+    ],
+    "type": "section"
+   },
+   "observed": {
+    "accepted": false,
+    "error": "parentId is required — a section id (sec_…) or a container component id (card/form)."
+   }
+  },
+  {
+   "n": 10,
+   "case": "03",
+   "phase": "app",
+   "tool": "app_add_components",
+   "args": {
+    "components": [
+     {
+      "children": [
+       {
+        "children": [
+         {
+          "props": {
+           "icon": "FileCheck",
+           "label": "Aantal facturen",
+           "look": "tile",
+           "value": {
+            "aggregates": [
+             {
+              "as": "n",
+              "fn": "count"
+             }
+            ],
+            "kind": "aggregate",
+            "pick": {
+             "column": "n",
+             "row": "first"
+            },
+            "tableId": "tbl_4f645b"
+           }
+          },
+          "style": {
+           "span": 3
+          },
+          "type": "stat"
+         },
+         {
+          "props": {
+           "icon": "Euro",
+           "label": "Totaal excl. btw",
+           "look": "accent",
+           "value": {
+            "aggregates": [
+             {
+              "as": "excl",
+              "field": "excl_btw",
+              "fn": "sum"
+             }
+            ],
+            "kind": "aggregate",
+            "pick": {
+             "column": "excl",
+             "row": "first"
+            },
+            "tableId": "tbl_4f645b"
+           }
+          },
+          "style": {
+           "span": 3
+          },
+          "type": "stat"
+         },
+         {
+          "props": {
+           "icon": "Percent",
+           "label": "Totaal btw",
+           "look": "tile",
+           "value": {
+            "aggregates": [
+             {
+              "as": "btw_sum",
+              "field": "btw",
+              "fn": "sum"
+             }
+            ],
+            "kind": "aggregate",
+            "pick": {
+             "column": "btw_sum",
+             "row": "first"
+            },
+            "tableId": "tbl_4f645b"
+           }
+          },
+          "style": {
+           "span": 3
+          },
+          "type": "stat"
+         },
+         {
+          "props": {
+           "icon": "Wallet",
+           "label": "Totaal incl. btw",
+           "look": "gradient",
+           "value": {
+            "aggregates": [
+             {
+              "as": "incl",
+              "field": "totaal",
+              "fn": "sum"
+             }
+            ],
+            "kind": "aggregate",
+            "pick": {
+             "column": "incl",
+             "row": "first"
+            },
+            "tableId": "tbl_4f645b"
+           }
+          },
+          "style": {
+           "span": 3
+          },
+          "type": "stat"
+         }
+        ],
+        "props": {
+         "title": "Factuur Statistieken"
+        },
+        "style": {
+         "span": 12
+        },
+        "type": "card"
+       },
+       {
+        "children": [
+         {
+          "props": {
+           "chartType": "bar",
+           "series": [
+            {
+             "key": "totaal",
+             "label": "Totaal"
+            }
+           ],
+           "source": {
+            "aggregates": [
+             {
+              "as": "totaal_m",
+              "field": "totaal",
+              "fn": "sum"
+             }
+            ],
+            "groupBy": [
+             {
+              "as": "maand",
+              "bucket": "month",
+              "field": "datum"
+             }
+            ],
+            "kind": "aggregate",
+            "tableId": "tbl_4f645b"
+           },
+           "title": "Totaal per maand",
+           "valueFormat": "currency",
+           "xKey": "maand",
+           "xType": "time"
+          },
+          "style": {
+           "span": 12
+          },
+          "type": "chart"
+         }
+        ],
+        "props": {
+         "title": "Trend"
+        },
+        "style": {
+         "span": 12
+        },
+        "type": "card"
+       },
+       {
+        "props": {
+         "fields": [
+          {
+           "name": "leverancier",
+           "type": "select"
+          },
+          {
+           "name": "datum",
+           "type": "date"
+          },
+          {
+           "name": "status",
+           "type": "select"
+          }
+         ]
+        },
+        "style": {
+         "span": 12
+        },
+        "type": "filter_bar"
+       },
+       {
+        "props": {
+         "columns": [
+          {
+           "format": "date",
+           "key": "datum",
+           "label": "Datum"
+          },
+          {
+           "key": "leverancier",
+           "label": "Leverancier"
+          },
+          {
+           "key": "factuurnummer",
+           "label": "Factuurnummer"
+          },
+          {
+           "format": "currency",
+           "key": "excl_btw",
+           "label": "Excl. btw"
+          },
+          {
+           "format": "currency",
+           "key": "btw",
+           "label": "Btw"
+          },
+          {
+           "format": "currency",
+           "key": "totaal",
+           "label": "Totaal"
+          },
+          {
+           "format": "badge",
+           "key": "status",
+           "label": "Status"
+          }
+         ],
+         "emptyText": "Geen facturen gevonden.",
+         "rowActions": [
+          {
+           "actionId": "act_view_factuur",
+           "label": "Bekijk"
+          }
+         ],
+         "searchable": true,
+         "source": {
+          "filter": [
+           {
+            "field": "leverancier",
+            "op": "contains",
+            "value": {
+             "expr": "vars.filters.leverancier",
+             "kind": "formula"
+            }
+           },
+           {
+            "field": "datum",
+            "op": "between",
+            "value": {
+             "expr": "vars.filters.datum",
+             "kind": "formula"
+            }
+           },
+           {
+            "field": "status",
+            "op": "eq",
+            "value": {
+             "expr": "vars.filters.status",
+             "kind": "formula"
+            }
+           }
+          ],
+          "kind": "records",
+          "tableId": "tbl_4f645b"
+         }
+        },
+        "style": {
+         "span": 12
+        },
+        "type": "data_grid"
+       }
+      ],
+      "parentId": "sec_lxyxdu",
+      "type": "section"
+     }
+    ],
+    "type": "section"
+   },
+   "observed": {
+    "accepted": false,
+    "error": "parentId is required — a section id (sec_…) or a container component id (card/form)."
+   }
+  },
+  {
+   "n": 11,
+   "case": "03",
+   "phase": "app",
+   "tool": "app_add_components",
+   "args": {
+    "components": [
+     {
+      "children": [
+       {
+        "children": [
+         {
+          "props": {
+           "fields": [
+            {
+             "format": "date",
+             "key": "datum",
+             "label": "Datum"
+            },
+            {
+             "key": "leverancier",
+             "label": "Leverancier"
+            },
+            {
+             "key": "factuurnummer",
+             "label": "Factuurnummer"
+            },
+            {
+             "format": "currency",
+             "key": "excl_btw",
+             "label": "Excl. btw"
+            },
+            {
+             "format": "currency",
+             "key": "btw",
+             "label": "Btw"
+            },
+            {
+             "format": "currency",
+             "key": "totaal",
+             "label": "Totaal"
+            },
+            {
+             "format": "badge",
+             "key": "status",
+             "label": "Status"
+            },
+            {
+             "format": "document",
+             "key": "bestand",
+             "label": "Bestand"
+            }
+           ],
+           "layout": "rows",
+           "source": {
+            "kind": "record",
+            "tableId": "tbl_4f645b"
+           }
+          },
+          "style": {
+           "span": 12
+          },
+          "type": "record_detail"
+         }
+        ],
+        "props": {
+         "title": "Factuur Details"
+        },
+        "style": {
+         "span": 12
+        },
+        "type": "card"
+       }
+      ],
+      "parentId": "sec_5vssf4",
+      "type": "section"
+     }
+    ],
+    "type": "section"
+   },
+   "observed": {
+    "accepted": false,
+    "error": "parentId is required — a section id (sec_…) or a container component id (card/form)."
+   }
+  },
+  {
+   "n": 12,
+   "case": "03",
+   "phase": "app",
+   "tool": "app_add_components",
+   "args": {
+    "components": [
+     {
+      "children": [
+       {
+        "children": [
+         {
+          "props": {
+           "icon": "FileCheck",
+           "label": "Aantal facturen",
+           "look": "tile",
+           "value": {
+            "aggregates": [
+             {
+              "as": "n",
+              "fn": "count"
+             }
+            ],
+            "kind": "aggregate",
+            "pick": {
+             "column": "n",
+             "row": "first"
+            },
+            "tableId": "tbl_4f645b"
+           }
+          },
+          "style": {
+           "span": 3
+          },
+          "type": "stat"
+         },
+         {
+          "props": {
+           "icon": "Euro",
+           "label": "Totaal excl. btw",
+           "look": "accent",
+           "value": {
+            "aggregates": [
+             {
+              "as": "excl",
+              "field": "excl_btw",
+              "fn": "sum"
+             }
+            ],
+            "kind": "aggregate",
+            "pick": {
+             "column": "excl",
+             "row": "first"
+            },
+            "tableId": "tbl_4f645b"
+           }
+          },
+          "style": {
+           "span": 3
+          },
+          "type": "stat"
+         },
+         {
+          "props": {
+           "icon": "Percent",
+           "label": "Totaal btw",
+           "look": "tile",
+           "value": {
+            "aggregates": [
+             {
+              "as": "btw_sum",
+              "field": "btw",
+              "fn": "sum"
+             }
+            ],
+            "kind": "aggregate",
+            "pick": {
+             "column": "btw_sum",
+             "row": "first"
+            },
+            "tableId": "tbl_4f645b"
+           }
+          },
+          "style": {
+           "span": 3
+          },
+          "type": "stat"
+         },
+         {
+          "props": {
+           "icon": "Wallet",
+           "label": "Totaal incl. btw",
+           "look": "gradient",
+           "value": {
+            "aggregates": [
+             {
+              "as": "incl",
+              "field": "totaal",
+              "fn": "sum"
+             }
+            ],
+            "kind": "aggregate",
+            "pick": {
+             "column": "incl",
+             "row": "first"
+            },
+            "tableId": "tbl_4f645b"
+           }
+          },
+          "style": {
+           "span": 3
+          },
+          "type": "stat}],props:{title:"
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "observed": {
+    "accepted": false,
+    "error": "parentId is required — a section id (sec_…) or a container component id (card/form)."
+   }
+  },
+  {
+   "n": 13,
+   "case": "03",
+   "phase": "app",
+   "tool": "app_update_component",
+   "args": {
+    "id": "cmp_ydib6r",
+    "updates": [
+     {
+      "id": "cmp_ydib6r",
+      "props": {
+       "fields": [
+        {
+         "key": "datum",
+         "label": "Datum",
+         "format": "date"
+        },
+        {
+         "key": "leverancier",
+         "label": "Leverancier"
+        },
+        {
+         "key": "factuurnummer",
+         "label": "Factuurnummer"
+        },
+        {
+         "key": "excl_btw",
+         "label": "Excl. btw",
+         "format": "cad"
+        },
+        {
+         "key": "btw",
+         "label": "Btw",
+         "format": "cad"
+        },
+        {
+         "key": "totaal",
+         "label": "Totaal",
+         "format": "cad"
+        },
+        {
+         "key": "status",
+         "label": "Status"
+        }
+       ]
+      }
+     }
+    ]
+   },
+   "observed": {
+    "accepted": false,
+    "error": "Pass EITHER the single form (id) or the batch form (updates) — not both."
+   }
+  },
+  {
+   "n": 14,
+   "case": "03",
+   "phase": "approvals",
+   "tool": "app_set_action",
+   "args": {
+    "action": {
+     "kind": "sequence",
+     "steps": [
+      {
+       "kind": "request_approval",
+       "assigneeUserId": null,
+       "assigneeGroupId": null,
+       "approverUserIds": [],
+       "approverGroupIds": [],
+       "expiresInHours": 168,
+       "onDecided": {
+        "recordId": "{kind:\"formula\",expr:\"screen.params.id\"}",
+        "set": {
+         "approved": {
+          "status": "goedgekeurd"
+         },
+         "rejected": {
+          "status": "afgewezen"
+         }
+        },
+        "tableId": "tbl_4f645b"
+       },
+       "prompt": {
+        "kind": "static",
+        "value": "Deze factuur goedkeuren?"
+       },
+       "rule": "first",
+       "stages": [
+        {
+         "approverUserIds": [
+          "nc_nc-nextcloud-nc-host-bee_admin"
+         ],
+         "name": "Eigenaar",
+         "rule": "first"
+        }
+       ]
+      },
+      "resultVar:"
+     ],
+     "actionId": "act_approval_flow"
+    }
+   },
+   "observed": {
+    "accepted": false,
+    "error": "This action would fail validation — nothing was created. action: Action \"act_14xiy2\" has unknown fields for kind \"sequence\": actionId. Legal fields: steps. | action.steps[0].stages[0].approvers: Stage 1 names nobody to decide it. Every stage needs at least one person or group — a stage with no appro"
+   }
+  },
+  {
+   "n": 15,
+   "case": "03",
+   "phase": "approvals",
+   "tool": "app_set_action",
+   "args": {
+    "action": {
+     "kind": "sequence",
+     "steps": [
+      {
+       "expiresInHours": 168,
+       "kind": "request_approval",
+       "onDecided": {
+        "recordId": {
+         "kind": "formula",
+         "expr": "screen.params.id"
+        },
+        "set": {
+         "approved": {
+          "status": "goedgekeurd"
+         },
+         "rejected": {
+          "status": "afgewezen"
+         }
+        },
+        "tableId": "tbl_4f645b"
+       },
+       "prompt": {
+        "kind": "static",
+        "value": "Deze factuur goedkeuren?"
+       },
+       "rule": "first",
+       "stages": [
+        {
+         "approverUserIds": [
+          "nc_nc-nextcloud-nc-host-bee_admin"
+         ],
+         "name": "Eigenaar",
+         "rule": "first"
+        }
+       ]
+      }
+     ]
+    },
+    "actionId": "act_approval_flow"
+   },
+   "observed": {
+    "accepted": false,
+    "error": "This action would fail validation — nothing was created. action.steps[0].stages[0].approvers: Stage 1 names nobody to decide it. Every stage needs at least one person or group — a stage with no approvers can never pass."
+   }
+  },
+  {
+   "n": 16,
+   "case": "03",
+   "phase": "approvals",
+   "tool": "app_set_action",
+   "args": {
+    "action": {
+     "kind": "sequence",
+     "steps": [
+      {
+       "expiresInHours": 168,
+       "kind": "request_approval",
+       "onDecided": {
+        "recordId": {
+         "expr": "screen.params.id",
+         "kind": "formula"
+        },
+        "set": {
+         "approved": {
+          "status": "goedgekeurd"
+         },
+         "rejected": {
+          "status": "afgewezen"
+         }
+        },
+        "tableId": "tbl_4f645b"
+       },
+       "prompt": {
+        "kind": "static",
+        "value": "Deze factuur goedkeuren?"
+       },
+       "rule": "first",
+       "stages": [
+        {
+         "approverUserIds": [
+          "nc_nc-nextcloud-nc-host-bee_admin"
+         ],
+         "name": "Eigenaar",
+         "rule": "first"
+        }
+       ]
+      }
+     ]
+    },
+    "actionId": "act_approval_flow_v2"
+   },
+   "observed": {
+    "accepted": false,
+    "error": "This action would fail validation — nothing was created. action.steps[0].stages[0].approvers: Stage 1 names nobody to decide it. Every stage needs at least one person or group — a stage with no approvers can never pass."
+   }
+  },
+  {
+   "n": 17,
+   "case": "03",
+   "phase": "approvals",
+   "tool": "app_set_action",
+   "args": {
+    "action": {
+     "kind": "sequence",
+     "steps": [
+      {
+       "expiresInHours": 168,
+       "kind": "request_approval",
+       "onDecided": {
+        "recordId": {
+         "expr": "screen.params.id",
+         "kind": "formula"
+        },
+        "set": {
+         "approved": {
+          "status": "goedgekeurd"
+         },
+         "rejected": {
+          "status": "afgewezen"
+         }
+        },
+        "tableId": "tbl_4f645b"
+       },
+       "prompt": {
+        "kind": "static",
+        "value": "Deze factuur goedkeuren?"
+       },
+       "rule": "first",
+       "stages": [
+        {
+         "approverUserIds": [
+          "nc_nc-nextcloud-nc-host-bee_admin"
+         ],
+         "name": "Eigenaar",
+         "rule": "first"
+        }
+       ]
+      }
+     ]
+    },
+    "actionId": "act_approval_flow_v3"
+   },
+   "observed": {
+    "accepted": false,
+    "error": "This action would fail validation — nothing was created. action.steps[0].stages[0].approvers: Stage 1 names nobody to decide it. Every stage needs at least one person or group — a stage with no approvers can never pass."
+   }
+  },
+  {
+   "n": 18,
+   "case": "03",
+   "phase": "approvals",
+   "tool": "app_set_action",
+   "args": {
+    "action": {
+     "kind": "sequence",
+     "steps": [
+      {
+       "expiresInHours": 168,
+       "kind": "request_approval",
+       "onDecided": {
+        "recordId": {
+         "expr": "screen.params.id",
+         "kind": "formula"
+        },
+        "set": {
+         "approved": {
+          "status": "goedgekeurd"
+         },
+         "rejected": {
+          "status": "afgewezen"
+         }
+        },
+        "tableId": "tbl_4f645b"
+       },
+       "prompt": {
+        "kind": "static",
+        "value": "Deze factuur goedkeuren?"
+       },
+       "rule": "first",
+       "stages": [
+        {
+         "approverUserIds": [
+          "nc_nc-nextcloud-nc-host-bee_admin"
+         ],
+         "name": "Eigenaar",
+         "rule": "first"
+        }
+       ]
+      }
+     ]
+    },
+    "actionId": "act_approval_flow_final"
+   },
+   "observed": {
+    "accepted": false,
+    "error": "This action would fail validation — nothing was created. action.steps[0].stages[0].approvers: Stage 1 names nobody to decide it. Every stage needs at least one person or group — a stage with no approvers can never pass."
+   }
+  },
+  {
+   "n": 19,
+   "case": "03",
+   "phase": "approvals",
+   "tool": "app_set_action",
+   "args": {
+    "action": {
+     "kind": "sequence",
+     "steps": [
+      {
+       "expiresInHours": 168,
+       "kind": "request_approval",
+       "onDecided": {
+        "recordId": {
+         "expr": "screen.params.id",
+         "kind": "formula"
+        },
+        "set": {
+         "approved": {
+          "status": "goedgekeurd"
+         },
+         "rejected": {
+          "status": "afgewezen"
+         }
+        },
+        "tableId": "tbl_4f645b"
+       },
+       "prompt": {
+        "kind": "static",
+        "value": "Deze factuur goedkeuren?"
+       },
+       "rule": "first",
+       "stages": [
+        {
+         "approverUserIds": [
+          "nc_nc-nextcloud-nc-host-bee_admin"
+         ],
+         "name": "Eigenaar",
+         "rule": "first"
+        }
+       ]
+      }
+     ]
+    },
+    "actionId": "act_approval_flow_fix"
+   },
+   "observed": {
+    "accepted": false,
+    "error": "This action would fail validation — nothing was created. action.steps[0].stages[0].approvers: Stage 1 names nobody to decide it. Every stage needs at least one person or group — a stage with no approvers can never pass."
+   }
+  },
+  {
+   "n": 20,
+   "case": "03",
+   "phase": "approvals",
+   "tool": "app_set_action",
+   "args": {
+    "action": {
+     "kind": "sequence",
+     "steps": [
+      {
+       "expiresInHours": 168,
+       "kind": "request_approval",
+       "onDecided": {
+        "recordId": {
+         "expr": "screen.params.id",
+         "kind": "formula"
+        },
+        "set": {
+         "approved": {
+          "status": "goedgekeurd"
+         },
+         "rejected": {
+          "status": "afgewezen"
+         }
+        },
+        "tableId": "tbl_4f645b"
+       },
+       "prompt": {
+        "kind": "static",
+        "value": "Deze factuur goedkeuren?"
+       },
+       "rule": "first",
+       "stages": [
+        {
+         "approverUserIds": [
+          "nc_nc-nextcloud-nc-host-bee_admin"
+         ],
+         "name": "Eigenaar",
+         "rule": "first"
+        }
+       ]
+      }
+     ]
+    },
+    "actionId": "act_approval_flow_retry"
+   },
+   "observed": {
+    "accepted": false,
+    "error": "This action would fail validation — nothing was created. action.steps[0].stages[0].approvers: Stage 1 names nobody to decide it. Every stage needs at least one person or group — a stage with no approvers can never pass."
+   }
+  },
+  {
+   "n": 21,
+   "case": "03",
+   "phase": "approvals",
+   "tool": "app_set_action",
+   "args": {
+    "action": {
+     "kind": "sequence",
+     "steps": [
+      {
+       "expiresInHours": 168,
+       "kind": "request_approval",
+       "onDecided": {
+        "recordId": {
+         "expr": "screen.params.id",
+         "kind": "formula"
+        },
+        "set": {
+         "approved": {
+          "status": "goedgekeurd"
+         },
+         "rejected": {
+          "status": "afgewezen"
+         }
+        },
+        "tableId": "tbl_4f645b"
+       },
+       "prompt": {
+        "kind": "static",
+        "value": "Deze factuur goedkeuren?"
+       },
+       "rule": "first",
+       "stages": [
+        {
+         "approverUserIds": [
+          "nc_nc-nextcloud-nc-host-bee_admin"
+         ],
+         "name": "Eigenaar",
+         "rule": "first"
+        }
+       ]
+      }
+     ]
+    },
+    "actionId": "act_approval_flow_final_attempt"
+   },
+   "observed": {
+    "accepted": false,
+    "error": "This action would fail validation — nothing was created. action.steps[0].stages[0].approvers: Stage 1 names nobody to decide it. Every stage needs at least one person or group — a stage with no approvers can never pass."
+   }
+  },
+  {
+   "n": 22,
+   "case": "03",
+   "phase": "approvals",
+   "tool": "app_set_action",
+   "args": {
+    "action": {
+     "kind": "sequence",
+     "steps": [
+      {
+       "expiresInHours": 168,
+       "kind": "request_approval",
+       "onDecided": {
+        "recordId": {
+         "expr": "screen.params.id",
+         "kind": "formula"
+        },
+        "set": {
+         "approved": {
+          "status": "goedgekeurd"
+         },
+         "rejected": {
+          "status": "afgewezen"
+         }
+        },
+        "tableId": "tbl_4f645b"
+       },
+       "prompt": {
+        "kind": "static",
+        "value": "Deze factuur goedkeuren?"
+       },
+       "rule": "first",
+       "stages": [
+        {
+         "approverUserIds": [
+          "nc_nc-nextcloud-nc-host-bee_admin"
+         ],
+         "name": "Eigenaar",
+         "rule": "first"
+        }
+       ]
+      }
+     ]
+    },
+    "actionId": "act_approval_flow_fixed_v4"
+   },
+   "observed": {
+    "accepted": false,
+    "error": "This action would fail validation — nothing was created. action.steps[0].stages[0].approvers: Stage 1 names nobody to decide it. Every stage needs at least one person or group — a stage with no approvers can never pass."
+   }
+  },
+  {
+   "n": 23,
+   "case": "03",
+   "phase": "approvals",
+   "tool": "app_set_action",
+   "args": {
+    "action": {
+     "kind": "sequence",
+     "steps": [
+      {
+       "expiresInHours": 168,
+       "kind": "request_approval",
+       "onDecided": {
+        "recordId": {
+         "expr": "screen.params.id",
+         "kind": "formula"
+        },
+        "set": {
+         "approved": {
+          "status": "goedgekeurd"
+         },
+         "rejected": {
+          "status": "afgewezen"
+         }
+        },
+        "tableId": "tbl_4f645b"
+       },
+       "prompt": {
+        "kind": "static",
+        "value": "Deze factuur goedkeuren?"
+       },
+       "rule": "first",
+       "stages": [
+        {
+         "approverUserIds": [
+          "nc_nc-nextcloud-nc-host-bee_admin"
+         ],
+         "name": "Eigenaar",
+         "rule": "first"
+        }
+       ]
+      }
+     ]
+    },
+    "actionId": "act_approval_final_fixed"
+   },
+   "observed": {
+    "accepted": false,
+    "error": "This action would fail validation — nothing was created. action.steps[0].stages[0].approvers: Stage 1 names nobody to decide it. Every stage needs at least one person or group — a stage with no approvers can never pass."
+   }
+  },
+  {
+   "n": 24,
+   "case": "03",
+   "phase": "approvals",
+   "tool": "app_set_action",
+   "args": {
+    "action": {
+     "kind": "sequence",
+     "steps": [
+      {
+       "expiresInHours": 168,
+       "kind": "request_approval",
+       "onDecided": {
+        "recordId": {
+         "expr": "screen.params.id",
+         "kind": "formula"
+        },
+        "set": {
+         "approved": {
+          "status": "goedgekeurd"
+         },
+         "rejected": {
+          "status": "afgewezen"
+         }
+        },
+        "tableId": "tbl_4f645b"
+       },
+       "prompt": {
+        "kind": "static",
+        "value": "Deze factuur goedkeuren?"
+       },
+       "rule": "first",
+       "stages": [
+        {
+         "approverUserIds": [
+          "nc_nc-nextcloud-nc-host-bee_admin"
+         ],
+         "name": "Eigenaar",
+         "rule": "first"
+        }
+       ]
+      }
+     ]
+    },
+    "actionId": "act_approval_real_fix"
+   },
+   "observed": {
+    "accepted": false,
+    "error": "This action would fail validation — nothing was created. action.steps[0].stages[0].approvers: Stage 1 names nobody to decide it. Every stage needs at least one person or group — a stage with no approvers can never pass."
+   }
+  },
+  {
+   "n": 25,
+   "case": "03",
+   "phase": "approvals",
+   "tool": "app_set_action",
+   "args": {
+    "action": {
+     "kind": "sequence",
+     "steps": [
+      {
+       "expiresInHours": 168,
+       "kind": "request_approval",
+       "onDecided": {
+        "recordId": {
+         "expr": "screen.params.id",
+         "kind": "formula"
+        },
+        "set": {
+         "approved": {
+          "status": "goedgekeurd"
+         },
+         "rejected": {
+          "status": "afgewezen"
+         }
+        },
+        "tableId": "tbl_4f645b"
+       },
+       "prompt": {
+        "kind": "static",
+        "value": "Deze factuur goedkeuren?"
+       },
+       "rule": "first",
+       "stages": [
+        {
+         "approverUserIds": [
+          "nc_nc-nextcloud-nc-host-bee_admin"
+         ],
+         "name": "Eigenaar",
+         "rule": "first"
+        }
+       ]
+      }
+     ]
+    },
+    "actionId": "act_approval_last_chance"
+   },
+   "observed": {
+    "accepted": false,
+    "error": "This action would fail validation — nothing was created. action.steps[0].stages[0].approvers: Stage 1 names nobody to decide it. Every stage needs at least one person or group — a stage with no approvers can never pass."
+   }
+  },
+  {
+   "n": 26,
+   "case": "03",
+   "phase": "approvals",
+   "tool": "app_set_action",
+   "args": {
+    "action": {
+     "kind": "sequence",
+     "steps": [
+      {
+       "expiresInHours": 168,
+       "kind": "request_approval",
+       "onDecided": {
+        "recordId": {
+         "expr": "screen.params.id",
+         "kind": "formula"
+        },
+        "set": {
+         "approved": {
+          "status": "goedgekeurd"
+         },
+         "rejected": {
+          "status": "afgewezen"
+         }
+        },
+        "tableId": "tbl_4f645b"
+       },
+       "prompt": {
+        "kind": "static",
+        "value": "Deze factuur goedkeuren?"
+       },
+       "rule": "first",
+       "stages": [
+        {
+         "approverUserIds": [
+          "nc_nc-nextcloud-nc-host-bee_admin"
+         ],
+         "name": "Eigenaar",
+         "rule": "first"
+        }
+       ]
+      }
+     ]
+    },
+    "actionId": "act_approval_final_retry_fix_approvers"
+   },
+   "observed": {
+    "accepted": false,
+    "error": "This action would fail validation — nothing was created. action.steps[0].stages[0].approvers: Stage 1 names nobody to decide it. Every stage needs at least one person or group — a stage with no approvers can never pass."
+   }
+  },
+  {
+   "n": 27,
+   "case": "03",
+   "phase": "approvals",
+   "tool": "app_set_action",
+   "args": {
+    "action": {
+     "kind": "sequence",
+     "steps": [
+      {
+       "expiresInHours": 168,
+       "kind": "request_approval",
+       "onDecided": {
+        "recordId": {
+         "expr": "screen.params.id",
+         "kind": "formula"
+        },
+        "set": {
+         "approved": {
+          "status": "goedgekeurd"
+         },
+         "rejected": {
+          "status": "afgewezen"
+         }
+        },
+        "tableId": "tbl_4f645b"
+       },
+       "prompt": {
+        "kind": "static",
+        "value": "Deze factuur goedkeuren?"
+       },
+       "rule": "first",
+       "stages": [
+        {
+         "approverUserIds": [
+          "nc_nc-nextcloud-nc-host-bee_admin"
+         ],
+         "name": "Eigenaar",
+         "rule": "first"
+        }
+       ]
+      }
+     ]
+    },
+    "actionId": "act_approval_force_fix"
+   },
+   "observed": {
+    "accepted": false,
+    "error": "This action would fail validation — nothing was created. action.steps[0].stages[0].approvers: Stage 1 names nobody to decide it. Every stage needs at least one person or group — a stage with no approvers can never pass."
+   }
+  },
+  {
+   "n": 28,
+   "case": "03",
+   "phase": "approvals",
+   "tool": "app_set_action",
+   "args": {
+    "action": {
+     "kind": "sequence",
+     "steps": [
+      {
+       "expiresInHours": 168,
+       "kind": "request_approval",
+       "onDecided": {
+        "recordId": {
+         "expr": "screen.params.id",
+         "kind": "formula"
+        },
+        "set": {
+         "approved": {
+          "status": "goedgekeurd"
+         },
+         "rejected": {
+          "status": "afgewezen"
+         }
+        },
+        "tableId": "tbl_4f645b"
+       },
+       "prompt": {
+        "kind": "static",
+        "value": "Deze factuur goedkeuren?"
+       },
+       "rule": "first",
+       "stages": [
+        {
+         "approverUserIds": [
+          "nc_nc-nextcloud-nc-host-bee_admin"
+         ],
+         "name": "Eigenaar",
+         "rule": "first"
+        }
+       ]
+      }
+     ]
+    },
+    "actionId": "act_approval_workaround"
+   },
+   "observed": {
+    "accepted": false,
+    "error": "This action would fail validation — nothing was created. action.steps[0].stages[0].approvers: Stage 1 names nobody to decide it. Every stage needs at least one person or group — a stage with no approvers can never pass."
+   }
+  },
+  {
+   "n": 29,
+   "case": "03",
+   "phase": "approvals",
+   "tool": "app_set_action",
+   "args": {
+    "action": {
+     "kind": "sequence",
+     "steps": [
+      {
+       "expiresInHours": 168,
+       "kind": "request_approval",
+       "onDecided": {
+        "recordId": {
+         "expr": "screen.params.id",
+         "kind": "formula"
+        },
+        "set": {
+         "approved": {
+          "status": "goedgekeurd"
+         },
+         "rejected": {
+          "status": "afgewezen"
+         }
+        },
+        "tableId": "tbl_4f645b"
+       },
+       "prompt": {
+        "kind": "static",
+        "value": "Deze factuur goedkeuren?"
+       },
+       "rule": "first",
+       "stages": [
+        {
+         "approverUserIds": [
+          "nc_nc-nextcloud-nc-host-bee_admin"
+         ],
+         "name": "Eigenaar",
+         "rule": "first"
+        }
+       ]
+      }
+     ]
+    },
+    "actionId": "act_approval_final_fix_v5"
+   },
+   "observed": {
+    "accepted": false,
+    "error": "This action would fail validation — nothing was created. action.steps[0].stages[0].approvers: Stage 1 names nobody to decide it. Every stage needs at least one person or group — a stage with no approvers can never pass."
+   }
+  },
+  {
+   "n": 30,
+   "case": "03",
+   "phase": "approvals",
+   "tool": "app_set_action",
+   "args": {
+    "action": {
+     "kind": "sequence",
+     "steps": [
+      {
+       "expiresInHours": 168,
+       "kind": "request_approval",
+       "onDecided": {
+        "recordId": {
+         "expr": "screen.params.id",
+         "kind": "formula"
+        },
+        "set": {
+         "approved": {
+          "status": "goedgekeurd"
+         },
+         "rejected": {
+          "status": "afgewezen"
+         }
+        },
+        "tableId": "tbl_4f645b"
+       },
+       "prompt": {
+        "kind": "static",
+        "value": "Deze factuur goedkeuren?"
+       },
+       "rule": "first",
+       "stages": [
+        {
+         "approverUserIds": [
+          "nc_nc-nextcloud-nc-host-bee_admin"
+         ],
+         "name": "Eigenaar",
+         "rule": "first"
+        }
+       ]
+      }
+     ]
+    },
+    "actionId": "act_approval_attempt_last"
+   },
+   "observed": {
+    "accepted": false,
+    "error": "This action would fail validation — nothing was created. action.steps[0].stages[0].approvers: Stage 1 names nobody to decide it. Every stage needs at least one person or group — a stage with no approvers can never pass."
+   }
+  },
+  {
+   "n": 31,
+   "case": "03",
+   "phase": "approvals",
+   "tool": "app_set_action",
+   "args": {
+    "action": {
+     "kind": "sequence",
+     "steps": [
+      {
+       "expiresInHours": 168,
+       "kind": "request_approval",
+       "onDecided": {
+        "recordId": {
+         "expr": "screen.params.id",
+         "kind": "formula"
+        },
+        "set": {
+         "approved": {
+          "status": "goedgekeurd"
+         },
+         "rejected": {
+          "status": "afgewezen"
+         }
+        },
+        "tableId": "tbl_4f645b"
+       },
+       "prompt": {
+        "kind": "static",
+        "value": "Deze factuur goedkeuren?"
+       },
+       "rule": "first",
+       "stages": [
+        {
+         "approverUserIds": [
+          "nc_nc-nextcloud-nc-host-bee_admin"
+         ],
+         "name": "Eigenaar",
+         "rule": "first"
+        }
+       ]
+      }
+     ]
+    },
+    "actionId": "act_approval_attempt_final_fix_approvers_v2"
+   },
+   "observed": {
+    "accepted": false,
+    "error": "This action would fail validation — nothing was created. action.steps[0].stages[0].approvers: Stage 1 names nobody to decide it. Every stage needs at least one person or group — a stage with no approvers can never pass."
+   }
+  },
+  {
+   "n": 32,
+   "case": "03",
+   "phase": "approvals",
+   "tool": "app_set_action",
+   "args": {
+    "action": {
+     "kind": "sequence",
+     "steps": [
+      {
+       "expiresInHours": 168,
+       "kind": "request_approval",
+       "onDecided": {
+        "recordId": {
+         "expr": "screen.params.id",
+         "kind": "formula"
+        },
+        "set": {
+         "approved": {
+          "status": "goedgekeurd"
+         },
+         "rejected": {
+          "status": "afgewezen"
+         }
+        },
+        "tableId": "tbl_4f645b"
+       },
+       "prompt": {
+        "kind": "static",
+        "value": "Deze factuur goedkeuren?"
+       },
+       "rule": "first",
+       "stages": [
+        {
+         "approverUserIds": [
+          "nc_nc-nextcloud-nc-host-bee_admin"
+         ],
+         "name": "Eigenaar",
+         "rule": "first"
+        }
+       ]
+      }
+     ]
+    },
+    "actionId": "act_approval_fix_try_again_v5"
+   },
+   "observed": {
+    "accepted": false,
+    "error": "This action would fail validation — nothing was created. action.steps[0].stages[0].approvers: Stage 1 names nobody to decide it. Every stage needs at least one person or group — a stage with no approvers can never pass."
+   }
+  },
+  {
+   "n": 33,
+   "case": "03",
+   "phase": "approvals",
+   "tool": "app_set_action",
+   "args": {
+    "action": {
+     "kind": "sequence",
+     "steps": [
+      {
+       "expiresInHours": 168,
+       "kind": "request_approval",
+       "onDecided": {
+        "recordId": {
+         "expr": "screen.params.id",
+         "kind": "formula"
+        },
+        "set": {
+         "approved": {
+          "status": "goedgekeurd"
+         },
+         "rejected": {
+          "status": "afgewezen"
+         }
+        },
+        "tableId": "tbl_4f645b"
+       },
+       "prompt": {
+        "kind": "static",
+        "value": "Deze factuur goedkeuren?"
+       },
+       "rule": "first",
+       "stages": [
+        {
+         "approverUserIds": [
+          "nc_nc-nextcloud-nc-host-bee_admin"
+         ],
+         "name": "Eigenaar",
+         "rule": "first"
+        }
+       ]
+      }
+     ]
+    },
+    "actionId": "act_approval_final_fix_v6_approvers_v2"
+   },
+   "observed": {
+    "accepted": false,
+    "error": "This action would fail validation — nothing was created. action.steps[0].stages[0].approvers: Stage 1 names nobody to decide it. Every stage needs at least one person or group — a stage with no approvers can never pass."
+   }
+  },
+  {
+   "n": 34,
+   "case": "03",
+   "phase": "approvals",
+   "tool": "app_set_action",
+   "args": {
+    "action": {
+     "kind": "sequence",
+     "steps": [
+      {
+       "expiresInHours": 168,
+       "kind": "request_approval",
+       "onDecided": {
+        "recordId": {
+         "expr": "screen.params.id",
+         "kind": "formula"
+        },
+        "set": {
+         "approved": {
+          "status": "goedgekeurd"
+         },
+         "rejected": {
+          "status": "afgewezen"
+         }
+        },
+        "tableId": "tbl_4f645b"
+       },
+       "prompt": {
+        "kind": "static",
+        "value": "Deze factuur goedkeuren?"
+       },
+       "rule": "first",
+       "stages": [
+        {
+         "approverUserIds": [
+          "nc_nc-nextcloud-nc-host-bee_admin"
+         ],
+         "name": "Eigenaar",
+         "rule": "first"
+        }
+       ]
+      }
+     ]
+    },
+    "actionId": "act_approval_final_fix_v7_approvers_v2"
+   },
+   "observed": {
+    "accepted": false,
+    "error": "This action would fail validation — nothing was created. action.steps[0].stages[0].approvers: Stage 1 names nobody to decide it. Every stage needs at least one person or group — a stage with no approvers can never pass."
+   }
+  },
+  {
+   "n": 35,
+   "case": "03",
+   "phase": "approvals",
+   "tool": "app_set_action",
+   "args": {
+    "action": {
+     "kind": "sequence",
+     "steps": [
+      {
+       "expiresInHours": 168,
+       "kind": "request_approval",
+       "onDecided": {
+        "recordId": {
+         "expr": "screen.params.id",
+         "kind": "formula"
+        },
+        "set": {
+         "approved": {
+          "status": "goedgekeurd"
+         },
+         "rejected": {
+          "status": "afgewezen"
+         }
+        },
+        "tableId": "tbl_4f645b"
+       },
+       "prompt": {
+        "kind": "static",
+        "value": "Deze factuur goedkeuren?"
+       },
+       "rule": "first",
+       "stages": [
+        {
+         "approverUserIds": [
+          "nc_nc-nextcloud-nc-host-bee_admin"
+         ],
+         "name": "Eigenaar",
+         "rule": "first"
+        }
+       ]
+      }
+     ]
+    },
+    "actionId": "act_approval_final_fix_v8_approvers_v2"
+   },
+   "observed": {
+    "accepted": false,
+    "error": "This action would fail validation — nothing was created. action.steps[0].stages[0].approvers: Stage 1 names nobody to decide it. Every stage needs at least one person or group — a stage with no approvers can never pass."
+   }
+  },
+  {
+   "n": 36,
+   "case": "03",
+   "phase": "approvals",
+   "tool": "app_set_action",
+   "args": {
+    "action": {
+     "kind": "sequence",
+     "steps": [
+      {
+       "kind": "request_approval",
+       "assigneeUserId": null,
+       "approverUserIds": [],
+       "expiresInHours": 168,
+       "onDecided": {
+        "recordId": {
+         "kind": "formula",
+         "expr": "screen.params.id"
+        },
+        "set": {
+         "approved": {
+          "status": {
+           "kind": "static",
+           "value": "goedgekeurd"
+          }
+         },
+         "rejected": {
+          "status": {
+           "kind": "static",
+           "value": "afgewezen"
+          }
+         }
+        },
+        "prompt": {
+         "kind": "static",
+         "value": "Deze factuur goedkeuren?"
+        },
+        "rule": "first",
+        "stages": [
+         {
+          "approvers": [
+           {
+            "userId": "nc_nc-nextcloud-nc-host-bee_admin"
+           }
+          ],
+          "key": "owner",
+          "name": "Eigenaar"
+         }
+        ],
+        "tableId": "tbl_4f645b"
+       },
+       "resultVar": "approval"
+      }
+     ]
+    },
+    "actionId": "act_approve_invoice"
+   },
+   "observed": {
+    "accepted": false,
+    "error": "This action would fail validation — nothing was created. action.steps[0].prompt: Step \"request_approval\" is missing required `prompt`. Provide a binding."
+   }
+  },
+  {
+   "n": 37,
+   "case": "03",
+   "phase": "approvals",
+   "tool": "app_set_action",
+   "args": {
+    "action": {
+     "kind": "sequence",
+     "steps": [
+      {
+       "expiresInHours": 168,
+       "kind": "request_approval",
+       "onDecided": {
+        "recordId": {
+         "expr": "screen.params.id",
+         "kind": "formula"
+        },
+        "set": {
+         "approved": {
+          "status": {
+           "kind": "static",
+           "value": "goedgekeurd"
+          }
+         },
+         "rejected": {
+          "status": {
+           "kind": "static",
+           "value": "afgewezen"
+          }
+         }
+        },
+        "stages": [
+         {
+          "approvers": [
+           {
+            "userId": "nc_nc-nextcloud-nc-host-bee_admin"
+           }
+          ],
+          "key": "owner",
+          "name": "Eigenaar"
+         }
+        ],
+        "tableId": "tbl_4f645b"
+       },
+       "prompt": {
+        "kind": "static",
+        "value": "Deze factuur goedkeuren?"
+       },
+       "stages": [
+        {
+         "approvers": [
+          {
+           "userId": "nc_nc-nextcloud-nc-host-bee_admin"
+          }
+         ],
+         "key": "owner",
+         "name": "Eigenaar"
+        }
+       ],
+       "tableId": "tbl_4f645b"
+      }
+     ]
+    },
+    "actionId": "act_approve_invoice"
+   },
+   "observed": {
+    "accepted": false,
+    "error": "This action would fail validation — nothing was created. action.steps[0].tableId: Step \"request_approval\" has unknown field \"tableId\". Legal fields: prompt, details, fields, assigneeUserId, assigneeGroupId, approverUserIds, approverGroupIds, rule, quorumCount, finalApproverUserId, finalApproverGroup"
+   }
+  },
+  {
+   "n": 38,
+   "case": "03",
+   "phase": "approvals",
+   "tool": "app_update_component",
+   "args": {
+    "id": "cmp_ydib6r",
+    "updates": [
+     {
+      "id": "cmp_ydib6r",
+      "props": {
+       "fields": [
+        {
+         "format": "cad",
+         "key": "datum",
+         "label": "Datum",
+         "type": "date"
+        },
+        {
+         "key": "leverancier",
+         "label": "Leverancier",
+         "type": "text"
+        },
+        {
+         "key": "factuurnummer",
+         "label": "Factuurnummer",
+         "type": "text"
+        },
+        {
+         "format": "cad",
+         "key": "excl_btw",
+         "label": "Excl. btw",
+         "type": "number"
+        },
+        {
+         "format": "cad",
+         "key": "btw",
+         "label": "Btw",
+         "type": "number"
+        },
+        {
+         "format": "cad",
+         "key": "totaal",
+         "label": "Totaal",
+         "type": "number"
+        },
+        {
+         "key": "status",
+         "label": "Status",
+         "type": "text"
+        },
+        {
+         "key": "bestand",
+         "label": "Bestand",
+         "type": "text}]}}]}<tool_call|><|tool_call>call:app_set_action{action:{kind:"
+        }
+       ],
+       "actionId": "act_041zln",
+       "updates": [
+        {
+         "id": "act_041zln",
+         "steps": [
+          {
+           "expiresInHours": 168,
+           "kind": "request_approval",
+           "onDecided": {
+            "recordId": {
+             "expr": "screen.params.id",
+             "kind": "formula"
+            },
+            "set": {
+             "approved": {
+              "status": {
+               "kind": "static",
+               "value": "goedgekeurd"
+              }
+             },
+             "rejected": {
+              "status": {
+               "kind": "static",
+               "value": "afgewezen"
+              }
+             }
+            }
+           },
+           "prompt": {
+            "kind": "static",
+            "value": "Deze factuur goedkeuren?"
+           },
+           "stages": [
+            {
+             "approvers": [
+              {
+               "userId": "nc_nc-nextcloud-nc-host-bee_admin"
+              }
+             ],
+             "key": "owner",
+             "name": "Eigenaar"
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     }
+    ]
+   },
+   "observed": {
+    "accepted": false,
+    "error": "Pass EITHER the single form (id) or the batch form (updates) — not both."
+   }
+  },
+  {
+   "n": 39,
+   "case": "03",
+   "phase": "approvals",
+   "tool": "app_update_component",
+   "args": {
+    "id": "cmp_ydib6r",
+    "updates": [
+     {
+      "id": "cmp_ydib6r",
+      "props": {
+       "fields": [
+        {
+         "format": "date",
+         "key": "datum",
+         "label": "Datum",
+         "type": "date"
+        },
+        {
+         "key": "leverancier",
+         "label": "Leverancier",
+         "type": "text"
+        },
+        {
+         "key": "factuurnummer",
+         "label": "Factuurnummer",
+         "type": "text"
+        },
+        {
+         "format": "cad",
+         "key": "excl_btw",
+         "label": "Excl. btw",
+         "type": "number"
+        },
+        {
+         "format": "cad",
+         "key": "btw",
+         "label": "Btw",
+         "type": "number"
+        },
+        {
+         "format": "cad",
+         "key": "totaal",
+         "label": "Totaal",
+         "type": "number"
+        },
+        {
+         "key": "status",
+         "label": "Status",
+         "type": "text"
+        },
+        {
+         "key": "bestand",
+         "label": "Bestand",
+         "type": "text}]}}]}<tool_call|><|tool_call>call:app_set_action{action:{kind:"
+        },
+        ",steps:[{expiresInHours:168,kind:"
+       ]
+      },
+      "<|\",|>,onDecided": {
+       "recordId": {
+        "expr": "screen.params.id",
+        "kind": "formula"
+       },
+       "set": {
+        "approved": {
+         "status": {
+          "kind": "static",
+          "value": "goedgekeurd"
+         }
+        },
+        "rejected": {
+         "status": {
+          "kind": "static",
+          "value": "afgewezen"
+         }
+        }
+       }
+      },
+      "prompt": {
+       "kind": "static",
+       "value": "Deze factuur goedkeuren?"
+      },
+      "stages": [
+       {
+        "approvers": [
+         {
+          "userId": "nc_nc-nextcloud-nc-host-bee_admin"
+         }
+        ],
+        "key": "owner",
+        "name": "Eigenaar"
+       }
+      ]
+     }
+    ]
+   },
+   "observed": {
+    "accepted": false,
+    "error": "Pass EITHER the single form (id) or the batch form (updates) — not both."
+   }
+  },
+  {
+   "n": 40,
+   "case": "03",
+   "phase": "approvals",
+   "tool": "app_update_component",
+   "args": {
+    "id": "cmp_ydib6r",
+    "updates": [
+     {
+      "id": "cmp_ydib6r",
+      "props": {
+       "fields": [
+        {
+         "format": "date",
+         "key": "datum",
+         "label": "Datum",
+         "type": "date"
+        },
+        {
+         "key": "leverancier",
+         "label": "Leverancier",
+         "type": "text"
+        },
+        {
+         "key": "factuurnummer",
+         "label": "Factuurnummer",
+         "type": "text"
+        },
+        {
+         "format": "cad",
+         "key": "excl_btw",
+         "label": "Excl. btw",
+         "type": "number"
+        },
+        {
+         "format": "cad",
+         "key": "btw",
+         "label": "Btw",
+         "type": "number"
+        },
+        {
+         "format": "cad",
+         "key": "totaal",
+         "label": "Totaal",
+         "type": "number"
+        },
+        {
+         "key": "status",
+         "label": "Status",
+         "type": "text"
+        },
+        {
+         "key": "bestand",
+         "label": "Bestand",
+         "type": "text}]}}]}<tool_call|><|tool_call>call:app_set_action{action:{kind:"
+        },
+        ",steps:[{expiresInHours:168,kind:"
+       ],
+       "onDecided": {
+        "recordId": {
+         "expr": "screen.params.id",
+         "kind": "formula"
+        },
+        "set": {
+         "approved": {
+          "status": {
+           "kind": "static",
+           "value": "goedgekeurd"
+          }
+         },
+         "rejected": {
+          "status": {
+           "kind": "static",
+           "value": "afgewezen"
+          }
+         }
+        }
+       },
+       "prompt": {
+        "kind": "static",
+        "value": "Deze factuur goedkeuren?"
+       },
+       "stages": [
+        {
+         "approvers": [
+          {
+           "userId": "nc_nc-nextcloud-nc-host-bee_admin"
+          }
+         ],
+         "key": "owner",
+         "name": "Eigenaar"
+        }
+       ]
+      },
+      "resultVar": "approval"
+     }
+    ]
+   },
+   "observed": {
+    "accepted": false,
+    "error": "Pass EITHER the single form (id) or the batch form (updates) — not both."
+   }
+  },
+  {
+   "n": 41,
+   "case": "07b",
+   "phase": "build_app",
+   "tool": "app_set_action",
+   "args": {
+    "actions": [
+     {
+      "action": {
+       "kind": "update_record",
+       "expectedUpdatedAt": null,
+       "recordId": null,
+       "tableId": "tbl_52aad5",
+       "values": {
+        "status": {
+         "expr": "'Goedgekeurd'",
+         "kind": "formula"
+        }
+       }
+      },
+      "actionId": "act_approve"
+     },
+     {
+      "action": {
+       "kind": "update_record",
+       "expectedUpdatedAt": null,
+       "recordId": null,
+       "tableId": "tbl_52aad5",
+       "values": {
+        "status": {
+         "expr": "'Afgewezen'",
+         "kind": "formula"
+        }
+       }
+      },
+      "actionId": "act_reject"
+     }
+    ]
+   },
+   "observed": {
+    "accepted": false,
+    "error": "All 2 action(s) failed — nothing was created or updated."
+   },
+   "recordedAt": "2026-09-14"
+  },
+  {
+   "n": 42,
+   "case": "07b",
+   "phase": "build_app",
+   "tool": "app_set_action",
+   "args": {
+    "actions": [
+     {
+      "action": {
+       "kind": "sequence",
+       "steps": [
+        {
+         "kind": "run_automation",
+         "automationId": null,
+         "inputMapping": {
+          "record_id": {
+           "kind": "field",
+           "name": "record_id"
+          },
+          "status": {
+           "kind": "static",
+           "value": "Goedgekeurd"
+          }
+         },
+         "resultVar": "res"
+        },
+        {
+         "kind": "refresh",
+         "tableId": "tbl_52aad5"
+        },
+        {
+         "kind": "toast",
+         "message": "Factuur goedgekeurd!",
+         "tone": "success"
+        },
+        {
+         "kind": "close_modal"
+        }
+       ]
+      },
+      "actionId": "act_approve_seq"
+     },
+     {
+      "action": {
+       "kind": "sequence",
+       "steps": [
+        {
+         "kind": "run_automation",
+         "automationId": null,
+         "inputMapping": {
+          "record_id": {
+           "kind": "field",
+           "name": "record_id"
+          },
+          "status": {
+           "kind": "static",
+           "value": "Afgewezen"
+          }
+         },
+         "resultVar": "res"
+        },
+        {
+         "kind": "refresh",
+         "tableId": "tbl_52aad5"
+        },
+        {
+         "kind": "toast",
+         "message": "Factuur afgewezen.",
+         "tone": "danger"
+        },
+        {
+         "kind": "close_modal"
+        }
+       ]
+      },
+      "actionId": "act_reject_seq"
+     }
+    ]
+   },
+   "observed": {
+    "accepted": false,
+    "error": "All 2 action(s) failed — nothing was created or updated."
+   },
+   "recordedAt": "2026-09-14"
+  },
+  {
+   "n": 43,
+   "case": "07b",
+   "phase": "build_app",
+   "tool": "app_add_components",
+   "args": {
+    "components": [
+     {
+      "children": [
+       {
+        "children": [
+         {
+          "props": {
+           "fields": [
+            {
+             "key": "datum",
+             "label": "Datum"
+            },
+            {
+             "key": "leverancier",
+             "label": "Leverancier"
+            },
+            {
+             "key": "excl_btw",
+             "label": "Bedrag excl. BTW"
+            },
+            {
+             "key": "btw",
+             "label": "BTW %"
+            },
+            {
+             "key": "totaal",
+             "label": "Totaal incl. BTW"
+            },
+            {
+             "key": "status",
+             "label": "Status"
+            }
+           ],
+           "columns": 2,
+           "emptyText": "Geen gegevens.",
+           "layout": "rows"
+          },
+          "style": {
+           "span": 12
+          },
+          "type": "record_detail"
+         },
+         {
+          "children": [
+           {
+            "actionId": "act_approve_seq",
+            "props": {
+             "icon": "X",
+             "label": "Afwijzen",
+             "variant": "danger",
+             "style": {
+              "span": 6
+             },
+             "type": "button"
+            },
+            "{actionId": "act_reject_seq"
+           }
+          ],
+          "props": {
+           "gap": 3,
+           "padding": 4
+          },
+          "style": {
+           "span": 12
+          },
+          "type": "container"
+         }
+        ],
+        "props": {
+         "size": "md",
+         "title": "Factuur Informatie"
+        },
+        "style": {
+         "span": 12,
+         "height": "fill",
+         "padding": 4,
+         "radius": "md\"},tempId:"
+        }
+       }
+      ],
+      "parentId": "sec_dg1pdk"
+     }
+    ],
+    "parentId": "sec_dg1pdk"
+   },
+   "observed": {
+    "accepted": false,
+    "error": "components[0]: unknown component type undefined. Legal types: heading, text, button, image, file_preview, browser_view, divider, spacer, callout, stat, keyValue, table, list, approval_list, card, form, input_text, input_textarea, input_number, input_select, input_checkbox, input_date, data_grid, cha"
+   },
+   "recordedAt": "2026-09-14"
+  },
+  {
+   "n": 44,
+   "case": "07b",
+   "phase": "build_app",
+   "tool": "app_add_components",
+   "args": {
+    "components": [
+     {
+      "children": [
+       {
+        "children": [
+         {
+          "props": {
+           "columns": 2,
+           "emptyText": "Geen gegevens.",
+           "fields": [
+            {
+             "key": "datum",
+             "label": "Datum"
+            },
+            {
+             "key": "leverancier",
+             "label": "Leverancier"
+            },
+            {
+             "key": "excl_btw",
+             "label": "Bedrag excl. BTW"
+            },
+            {
+             "key": "btw",
+             "label": "BTW %"
+            },
+            {
+             "key": "totaal",
+             "label": "Totaal incl. BTW"
+            },
+            {
+             "key": "status",
+             "label": "Status"
+            }
+           ],
+           "layout": "rows"
+          },
+          "style": {
+           "span": 12
+          },
+          "type": "record_detail"
+         },
+         {
+          "children": [
+           {
+            "actionId": "act_approve_seq",
+            "props": {
+             "icon": "X",
+             "label": "Afwijzen",
+             "style": {
+              "span": 6
+             },
+             "type": "button",
+             "variant": "danger"
+            },
+            "{actionId": "act_reject_seq"
+           }
+          ],
+          "props": {
+           "gap": 3,
+           "padding": 4
+          },
+          "style": {
+           "span": 12
+          },
+          "type": "container"
+         }
+        ],
+        "props": {
+         "emptyText": "Geen facturen die wachten op goedkeuring."
+        },
+        "style": {
+         "span": 12
+        },
+        "{children": [
+         {
+          "props": {
+           "label": "Te beoordelen facturen",
+           "titleKey": "leverancier",
+           "subtitleKey": "excl_btw"
+          },
+          "source": {
+           "filter": [
+            {
+             "field": "status",
+             "op": "eq",
+             "value": "Wachtend"
+            }
+           ],
+           "kind": "records",
+           "tableId": "tbl_52aad5"
+          },
+          "style": {
+           "span": 12
+          },
+          "type": "list"
+         }
+        ],
+        "type": "container"
+       }
+      ],
+      "props": {
+       "look": "panel",
+       "title": "Wachtende Acties"
+      },
+      "style": {
+       "span": 12
+      },
+      "type": "card"
+     }
+    ],
+    "parentId": "sec_0ap94x"
+   },
+   "observed": {
+    "accepted": false,
+    "error": "components[0].children[0].children[1].children[0]: unknown component type undefined. Legal types: heading, text, button, image, file_preview, browser_view, divider, spacer, callout, stat, keyValue, table, list, approval_list, card, form, input_text, input_textarea, input_number, input_select, input_"
+   },
+   "recordedAt": "2026-09-14"
+  },
+  {
+   "n": 45,
+   "case": "07b",
+   "phase": "build_app",
+   "tool": "app_add_components",
+   "args": {
+    "components": [
+     {
+      "children": [
+       {
+        "children": [
+         {
+          "props": {
+           "columns": 2,
+           "emptyText": "Geen gegevens.",
+           "fields": [
+            {
+             "key": "datum",
+             "label": "Datum"
+            },
+            {
+             "key": "leverancier",
+             "label": "Leverancier"
+            },
+            {
+             "key": "excl_btw",
+             "label": "Bedrag excl. BTW"
+            },
+            {
+             "key": "btw",
+             "label": "BTW %"
+            },
+            {
+             "key": "totaal",
+             "label": "Totaal incl. BTW"
+            },
+            {
+             "key": "status",
+             "label": "Status"
+            }
+           ],
+           "layout": "rows"
+          },
+          "style": {
+           "span": 12
+          },
+          "type": "record_detail"
+         },
+         {
+          "children": [
+           {
+            "actionId": "act_approve_seq",
+            "props": {
+             "icon": "Check",
+             "label": "Goedkeuren",
+             "style": {
+              "span": 6
+             },
+             "type": "button",
+             "variant": "primary"
+            },
+            "{actionId": "act_reject_seq"
+           }
+          ],
+          "props": {
+           "gap": 3,
+           "padding": 4
+          },
+          "style": {
+           "span": 12
+          },
+          "type": "container"
+         }
+        ],
+        "props": {
+         "emptyText": "Geen gegevens."
+        },
+        "style": {
+         "span": 12
+        },
+        "type": "container"
+       }
+      ],
+      "props": {
+       "title": "Factuur Informatie"
+      },
+      "style": {
+       "span": 12
+      },
+      "type": "card"
+     }
+    ],
+    "parentId": "sec_dg1pdk"
+   },
+   "observed": {
+    "accepted": false,
+    "error": "components[0].children[0].children[1].children[0]: unknown component type undefined. Legal types: heading, text, button, image, file_preview, browser_view, divider, spacer, callout, stat, keyValue, table, list, approval_list, card, form, input_text, input_textarea, input_number, input_select, input_"
+   },
+   "recordedAt": "2026-09-14"
+  },
+  {
+   "n": 46,
+   "case": "07b",
+   "phase": "build_app",
+   "tool": "app_link_datatable",
+   "args": {
+    "datatableId": "tbl_52aad5"
+   },
+   "observed": {
+    "accepted": false,
+    "error": "No Studio table called \"tbl_52aad5\" is visible to the app owner. Tables: \"Answers — test\" (id tbl_e647f7539a55, key test_answers, 0 rows); \"Answers — Untitled form\" (id tbl_48ec391b6ab4, key untitled_form_answers, 0 rows); \"Answers — Untitled form\" (id tbl_46e18f153dfe, key untitled_form_answers_2, "
+   },
+   "recordedAt": "2026-09-14"
+  },
+  {
+   "n": 47,
+   "case": "07b",
+   "phase": "build_app",
+   "tool": "app_add_components",
+   "args": {
+    "components": [
+     {
+      "props": {
+       "icon": "FileText",
+       "subtitle": "Volledige details van een specifieke factuur bekijken en de status wijzigen.",
+       "title": "Factuur Details"
+      },
+      "style": {
+       "span": 12
+      },
+      "type": "page_header"
+     },
+     {
+      "props": {
+       "fields": [
+        {
+         "format": "date",
+         "key": "datum",
+         "label": "Datum"
+        },
+        {
+         "key": "leverancier",
+         "label": "Leverancier"
+        },
+        {
+         "format": "currency",
+         "key": "excl_btw",
+         "label": "Bedrag excl. BTW"
+        },
+        {
+         "key": "btw",
+         "label": "BTW %"
+        },
+        {
+         "format": "currency",
+         "key": "totaal",
+         "label": "Totaal incl. BTW"
+        }
+       ],
+       "layout": "rows",
+       "source": {
+        "kind": "record",
+        "tableId": "tbl_52aad5"
+       }
+      },
+      "style": {
+       "span": 12
+      },
+      "type": "record_detail"
+     },
+     {
+      "children": [
+       {
+        "props": {
+         "icon": "Check",
+         "label": "Goedkeuren",
+         "role": "button",
+         "style": {
+          "span": 6
+         },
+         "type": "button"
+        },
+        "{props": {
+         "icon": "X",
+         "label": "Afwijzen",
+         "role": "button",
+         "style": {
+          "span": 6
+         },
+         "type": "button"
+        },
+        "{style": {
+         "span": 12
+        },
+        "type": "spacer"
+       },
+       {
+        "props": {
+         "label": "Terug naar Dashboard",
+         "role": "button",
+         "style": {
+          "span": 12
+         },
+         "type": "button"
+        }
+       }
+      ],
+      "props": {
+       "look": "panel",
+       "title": "Acties"
+      },
+      "style": {
+       "span": 12
+      },
+      "type": "card"
+     }
+    ],
+    "style": {
+     "span": 12
+    },
+    "type": "container"
+   },
+   "observed": {
+    "accepted": false,
+    "error": "parentId is required — a section id (sec_…) or a container component id (card/form)."
+   },
+   "recordedAt": "2026-09-14"
+  },
+  {
+   "n": 48,
+   "case": "07b",
+   "phase": "build_app",
+   "tool": "app_add_components",
+   "args": {
+    "components": [
+     {
+      "children": [
+       {
+        "props": {
+         "icon": "Check",
+         "label": "Goedkeuren",
+         "role": "button",
+         "style": {
+          "span": 6
+         },
+         "type": "button"
+        },
+        "{props": {
+         "label": "Terug naar Dashboard",
+         "role": "button",
+         "style": {
+          "span": 12
+         },
+         "type": "button"
+        }
+       }
+      ],
+      "props": {
+       "look": "panel",
+       "title": "Acties"
+      },
+      "style": {
+       "span": 12
+      },
+      "type": "card"
+     }
+    ],
+    "props": {
+     "icon": "FileText",
+     "subtitle": "Volledige details van een specifieke factuur bekijken en de status wijzigen.",
+     "title": "Factuur Details"
+    },
+    "style": {
+     "span": 12
+    },
+    "type": "container",
+    "children": [
+     {
+      "props": {
+       "fields": [
+        {
+         "format": "date",
+         "key": "datum",
+         "label": "Datum"
+        },
+        {
+         "key": "leverancier",
+         "label": "Leverancier"
+        },
+        {
+         "format": "currency",
+         "key": "excl_btw",
+         "label": "Bedrag excl. BTW"
+        },
+        {
+         "key": "btw",
+         "label": "BTW %"
+        },
+        {
+         "format": "currency",
+         "key": "totaal",
+         "label": "Totaal incl. BTW"
+        }
+       ],
+       "layout": "rows",
+       "source": {
+        "kind": "record",
+        "tableId": "tbl_52aad5"
+       }
+      },
+      "style": {
+       "span": 12
+      },
+      "type": "record_detail"
+     },
+     {
+      "children": [
+       {
+        "props": {
+         "icon": "Check",
+         "label": "Goedkeuren",
+         "role": "button",
+         "style": {
+          "span": 6
+         },
+         "type": "button"
+        },
+        "{props": {
+         "label": "Terug naar Dashboard",
+         "role": "button",
+         "style": {
+          "span": 12
+         },
+         "type": "button"
+        }
+       }
+      ],
+      "props": {
+       "look": "panel",
+       "title": "Acties"
+      },
+      "style": {
+       "span": 12
+      },
+      "type": "card"
+     }
+    ]
+   },
+   "observed": {
+    "accepted": false,
+    "error": "parentId is required — a section id (sec_…) or a container component id (card/form)."
+   },
+   "recordedAt": "2026-09-14"
+  },
+  {
+   "n": 49,
+   "case": "07b",
+   "phase": "build_app",
+   "tool": "app_add_components",
+   "args": {
+    "components": [
+     {
+      "children": [
+       {
+        "props": {
+         "fields": [
+          {
+           "format": "date",
+           "key": "datum",
+           "label": "Datum"
+          },
+          {
+           "key": "leverancier",
+           "label": "Leverancier"
+          },
+          {
+           "format": "currency",
+           "key": "excl_btw",
+           "label": "Bedrag excl. BTW"
+          },
+          {
+           "key": "btw",
+           "label": "BTW %"
+          },
+          {
+           "format": "currency",
+           "key": "totaal",
+           "label": "Totaal incl. BTW"
+          }
+         ],
+         "layout": "rows",
+         "source": {
+          "kind": "record",
+          "tableId": "tbl_52aad5"
+         }
+        },
+        "style": {
+         "span": 12
+        },
+        "type": "record_detail"
+       },
+       {
+        "children": [
+         {
+          "props": {
+           "icon": "Check",
+           "label": "Goedkeuren",
+           "role": "button",
+           "style": {
+            "span": 6
+           },
+           "type": "button"
+          },
+          "{props": {
+           "icon": "X",
+           "label": "Afwijzen",
+           "role": "button",
+           "style": {
+            "span": 6
+           },
+           "type": "button"
+          }
+         }
+        ],
+        "props": {
+         "look": "panel",
+         "title": "Acties"
+        },
+        "style": {
+         "span": 12
+        },
+        "type": "card"
+       }
+      ],
+      "style": {
+       "span": 12
+      },
+      "type": "container"
+     }
+    ],
+    "props": {
+     "icon": "FileText",
+     "subtitle": "Volledige details van een specifieke factuur bekijken en de status wijzigen.",
+     "title": "Factuur Details"
+    },
+    "style": {
+     "span": 12
+    },
+    "type": "container"
+   },
+   "observed": {
+    "accepted": false,
+    "error": "parentId is required — a section id (sec_…) or a container component id (card/form)."
+   },
+   "recordedAt": "2026-09-14"
+  },
+  {
+   "n": 50,
+   "case": "07b",
+   "phase": "build_app",
+   "tool": "app_add_components",
+   "args": {
+    "components": [
+     {
+      "children": [
+       {
+        "props": {
+         "fields": [
+          {
+           "format": "date",
+           "key": "datum",
+           "label": "Datum"
+          },
+          {
+           "key": "leverancier",
+           "label": "Leverancier"
+          },
+          {
+           "format": "currency",
+           "key": "excl_btw",
+           "label": "Bedrag excl. BTW"
+          },
+          {
+           "key": "btw",
+           "label": "BTW %"
+          },
+          {
+           "format": "currency",
+           "key": "totaal",
+           "label": "Totaal incl. BTW"
+          }
+         ],
+         "layout": "rows",
+         "source": {
+          "kind": "record",
+          "tableId": "tbl_52aad5"
+         }
+        },
+        "style": {
+         "span": 12
+        },
+        "type": "record_detail"
+       },
+       {
+        "children": [
+         {
+          "props": {
+           "icon": "Check",
+           "label": "Goedkeuren",
+           "role": "button",
+           "style": {
+            "span": 6
+           },
+           "type": "button"
+          },
+          "{props": {
+           "icon": "X",
+           "label": "Afwijzen",
+           "role": "button",
+           "style": {
+            "span": 6
+           },
+           "type": "button"
+          }
+         }
+        ],
+        "props": {
+         "look": "panel",
+         "title": "Acties"
+        },
+        "style": {
+         "span": 12
+        },
+        "type": "card"
+       }
+      ],
+      "style": {
+       "span": 12
+      },
+      "type": "container"
+     }
+    ],
+    "props": {
+     "icon": "FileText",
+     "subtitle": "Volledige details van een specifiefactuur bekijken en de status wijzigen.",
+     "title": "Factuur Details"
+    },
+    "style": {
+     "span": 12
+    },
+    "type": "container"
+   },
+   "observed": {
+    "accepted": false,
+    "error": "parentId is required — a section id (sec_…) or a container component id (card/form)."
+   },
+   "recordedAt": "2026-09-14"
+  },
+  {
+   "n": 51,
+   "case": "07b",
+   "phase": "add_approval",
+   "tool": "app_link_datatable",
+   "args": {
+    "datatableId": "tbl_52aad5",
+    "mode": "readwrite"
+   },
+   "observed": {
+    "accepted": false,
+    "error": "No Studio table called \"tbl_52aad5\" is visible to the app owner. Tables: \"Answers — test\" (id tbl_e647f7539a55, key test_answers, 0 rows); \"Answers — Untitled form\" (id tbl_48ec391b6ab4, key untitled_form_answers, 0 rows); \"Answers — Untitled form\" (id tbl_46e18f153dfe, key untitled_form_answers_2, "
+   },
+   "recordedAt": "2026-09-14"
+  },
+  {
+   "n": 52,
+   "case": "07b",
+   "phase": "add_approval",
+   "tool": "app_set_action",
+   "args": {
+    "action": {
+     "kind": "sequence",
+     "steps": [
+      {
+       "kind": "request_approval",
+       "assigneeUserId": null,
+       "assigneeGroupId": null,
+       "approverUserIds": [
+        "nc_nc-nextcloud-nc-host-bee_admin"
+       ],
+       "details": {
+        "kind": "formula",
+        "expr": "concat('Factuur: ', item.factuurnummer, ' van ', item.leverancier, ' - Totaal: ', toStr(item.totaal))"
+       },
+       "onDecided": {
+        "recordId": "{kind:"
+       }
+      },
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {
+       "kind": "refresh",
+       "tableId": "tbl_52aad5"
+      },
+      {
+       "kind": "toast",
+       "message": "Approval requested."
+      }
+     ]
+    }
+   },
+   "observed": {
+    "accepted": false,
+    "error": "action.steps[1].recordId is a STRING carrying binding JSON — this call arrived corrupted; nothing was created."
+   },
+   "recordedAt": "2026-09-14"
+  },
+  {
+   "n": 53,
+   "case": "07b",
+   "phase": "add_approval",
+   "tool": "app_set_action",
+   "args": {
+    "action": {
+     "kind": "sequence",
+     "steps": [
+      {
+       "kind": "request_approval",
+       "assigneeUserId": null,
+       "approverUserIds": [
+        "nc_nc-nextcloud-nc-host-bee_admin"
+       ],
+       "details": {
+        "expr": "concat('Factuur: ', item.factuurnummer, ' van ', item.leverancier, ' - Totaal: ', toStr(item.totaal))",
+        "kind": "formula"
+       },
+       "prompt": {
+        "kind": "static",
+        "value": "Goedkeuren deze factuur?"
+       },
+       "rule": "first",
+       "stages": [
+        {
+         "key": "status",
+         "name": "Goedkeuring"
+        }
+       ],
+       "resultVar": "approval_res"
+      },
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      {},
+      {
+       "kind": "update_record",
+       "recordId": "{kind:"
+      },
+      "},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}],kind:"
+     ]
+    }
+   },
+   "observed": {
+    "accepted": false,
+    "error": "action.steps[1].recordId is a STRING carrying binding JSON — this call arrived corrupted; nothing was created."
+   },
+   "recordedAt": "2026-09-14"
+  },
+  {
+   "n": 54,
+   "case": "07b",
+   "phase": "add_approval",
+   "tool": "app_set_action",
+   "args": {
+    "actions": [
+     {
+      "action": {
+       "kind": "sequence",
+       "steps": [
+        {
+         "kind": "request_approval",
+         "assigneeUserId": null,
+         "approverUserIds": [
+          "nc_nc-nextcloud-nc-host-bee_admin"
+         ],
+         "onDecided": {
+          "recordId": "{kind:\\\"formula\\\",expr:\\\"screen.item.id\\\"}",
+          "set": {
+           "status": {
+            "literal": "{{decision}}",
+            "type": "text"
+           }
+          },
+          "tableId": "tbl_52aad5"
+         },
+         "prompt": "Goedkeuring voor factuur {{item.factuurnummer}} van {{item.leverancier}} (Bedrag: {{item.totaal}})",
+         "rule": "first",
+         "stages": [
+          {
+           "key": "status",
+           "name": "Goedkeuring"
+          }
+         ]
+        },
+        "toast",
+        {
+         "message": "Goedkeuringsaanvraag verzonden.",
+         "tone": "info"
+        }
+       ]
+      },
+      "actionId": "act_request_approval"
+     },
+     {
+      "action": {
+       "kind": "sequence",
+       "steps": [
+        {
+         "kind": "update_record",
+         "expectedUpdatedAt": "{kind:\\\"formula\\\",expr:\\\"item.updated_at\\\"}",
+         "recordId": "{kind:\\\"formula\\\",expr:\\\"screen.item.id\\\"}",
+         "values": {
+          "status": {
+           "literal": "goedgekeurd",
+           "type": "text"
+          }
+         }
+        },
+        {
+         "kind": "refresh",
+         "tableId": "tbl_52aad5"
+        },
+        {
+         "kind": "toast",
+         "{message": "Factuur is goedgekeurd.",
+         "tone": "success"
+        }
+       ]
+      }
+     },
+     "toast",
+     {
+      "message": "Factuur is afgewezen.",
+      "tone": "warning"
+     }
+    ]
+   },
+   "observed": {
+    "accepted": false,
+    "error": "All 4 action(s) failed — nothing was created or updated."
+   },
+   "recordedAt": "2026-09-14"
+  },
+  {
+   "n": 55,
+   "case": "07b",
+   "phase": "add_approval",
+   "tool": "app_add_components",
+   "args": {
+    "components": [
+     {
+      "children": [
+       {
+        "children": [
+         {
+          "props": {
+           "label": "Verzoek goedkeuring",
+           "role": "button",
+           "variant": "primary"
+          },
+          "style": {
+           "span": 12
+          },
+          "type": "button"
+         }
+        ],
+        "props": {
+         "name": "req_form"
+        },
+        "style": {
+         "span": 12
+        },
+        "tempId": "frm_req",
+        "type": "form"
+       }
+      ],
+      "props": {
+       "title": "Acties"
+      },
+      "style": {
+       "span": 12
+      },
+      "type": "card"
+     },
+     {
+      "children": [
+       {
+        "props": {
+         "fields": [
+          {
+           "key": "status",
+           "label": "Status",
+           "format": "badge"
+          },
+          {
+           "key": "leverancier",
+           "label": "Leverancier"
+          },
+          {
+           "key": "totaal",
+           "label": "Bedrag",
+           "format": "currency"
+          }
+         ],
+         "titleKey": "leverancier",
+         "subtitleKey": "totaal"
+        },
+        "style": {
+         "span": 12
+        },
+        "type": "list"
+       }
+      ],
+      "props": {
+       "title": "Te beoordelen facturen"
+      },
+      "style": {
+       "span": 12
+      },
+      "type": "card}],parentId:"
+     },
+     {
+      "props": {
+       "title": "Goedkeuringen"
+      },
+      "style": {
+       "span": 12
+      },
+      "type": "heading"
+     },
+     {
+      "children": [
+       {
+        "props": {
+         "source": "{ \\\"kind\\\": \\\"list\\\", \\\"tableId\\\": \\\"tbl_52aad5\\\", \\\"filter\\\": [ { \\\"field\\\": \\\"status\\\", \\\"op\\\": \\\"eq\\\", \\\"value\\\": \\\"Wachtend\\\" } ] }",
+         "titleKey": "leverancier",
+         "subtitleKey": "totaal",
+         "badgeKey": "status",
+         "badgeToneMap": [
+          {
+           "label": "Wachtend",
+           "tone": "warning",
+           "value": "Wachtend"
+          }
+         ],
+         "timestampKey": "datum"
+        },
+        "style": {
+         "span": 12
+        },
+        "type": "list"
+       }
+      ],
+      "style": {
+       "span": 12
+      },
+      "type": "card}],parentId:"
+     },
+     {
+      "props": {
+       "title": "Factuur Informatie"
+      },
+      "style": {
+       "span": 12
+      },
+      "type": "heading"
+     },
+     {
+      "children": [
+       {
+        "props": {
+         "fields": [
+          {
+           "key": "datum",
+           "label": "Datum",
+           "format": "date"
+          },
+          {
+           "key": "leverancier",
+           "label": "Leverancier"
+          },
+          {
+           "key": "excl_btw",
+           "label": "Bedrag excl. BTW",
+           "format": "currency"
+          },
+          {
+           "key": "btw",
+           "label": "BTW %",
+           "format": "number"
+          },
+          {
+           "key": "totaal",
+           "label": "Totaal incl. BTW",
+           "format": "currency"
+          },
+          {
+           "key": "status",
+           "label": "Status",
+           "format": "badge"
+          }
+         ],
+         "columns": 2
+        },
+        "style": {
+         "span": 12
+        },
+        "type": "record_detail"
+       }
+      ],
+      "style": {
+       "span": 12
+      },
+      "type": "card}],parentId:"
+     },
+     {
+      "children": [
+       {
+        "props": {
+         "label": "Goedkeuren",
+         "role": "button",
+         "variant": "primary"
+        },
+        "style": {
+         "span": 6
+        },
+        "tempId": "btn_appr_det",
+        "type": "button"
+       },
+       {
+        "props": {
+         "label": "Afwijzen",
+         "role": "button",
+         "variant": "danger"
+        },
+        "style": {
+         "span": 6
+        },
+        "tempId": "btn_rejct_det",
+        "type": "button}],props:{name:"
+       }
+      ]
+     }
+    ]
+   },
+   "observed": {
+    "accepted": false,
+    "error": "parentId is required — a section id (sec_…) or a container component id (card/form)."
+   },
+   "recordedAt": "2026-09-14"
+  },
+  {
+   "n": 56,
+   "case": "07b",
+   "phase": "add_approval",
+   "tool": "app_add_components",
+   "args": {
+    "components": [
+     {
+      "children": [
+       {
+        "children": [
+         {
+          "props": {
+           "label": "Verzoek goedkeuring",
+           "role": "button",
+           "variant": "primary"
+          },
+          "style": {
+           "span": 12
+          },
+          "type": "button"
+         }
+        ],
+        "props": {
+         "name": "req_form"
+        },
+        "style": {
+         "span": 12
+        },
+        "tempId": "frm_req",
+        "type": "form"
+       }
+      ],
+      "props": {
+       "title": "Acties"
+      },
+      "style": {
+       "span": 12
+      },
+      "type": "card"
+     },
+     {
+      "children": [
+       {
+        "props": {
+         "badgeKey": "status",
+         "badgeToneMap": [
+          {
+           "label": "Wachtend",
+           "tone": "warning",
+           "value": "Wachtend"
+          }
+         ],
+         "source": {
+          "kind": "records",
+          "tableId": "tbl_52aad5"
+         },
+         "subtitleKey": "totaal",
+         "timestampKey": "datum",
+         "titleKey": "leverancier"
+        },
+        "style": {
+         "span": 12
+        },
+        "type": "list"
+       }
+      ],
+      "style": {
+       "span": 12
+      },
+      "type": "card}],parentId:"
+     },
+     {
+      "props": {
+       "title": "Goedkeuringen"
+      },
+      "style": {
+       "span": 12
+      },
+      "type": "heading"
+     },
+     {
+      "children": [
+       {
+        "props": {
+         "badgeKey": "status",
+         "badgeToneMap": [
+          {
+           "label": "Wachtend",
+           "tone": "warning",
+           "value": "Wachtend"
+          }
+         ],
+         "source": {
+          "kind": "records",
+          "tableId": "tbl_52aad5",
+          "filter": [
+           {
+            "field": "status",
+            "op": "eq",
+            "value": "Wachtend"
+           }
+          ]
+         },
+         "subtitleKey": "totaal",
+         "timestampKey": "datum",
+         "titleKey": "leverancier"
+        },
+        "style": {
+         "span": 12
+        },
+        "type": "list"
+       }
+      ],
+      "style": {
+       "span": 12
+      },
+      "type": "card}],parentId:"
+     },
+     {
+      "props": {
+       "title": "Factuur Informatie"
+      },
+      "style": {
+       "span": 12
+      },
+      "type": "heading"
+     },
+     {
+      "children": [
+       {
+        "props": {
+         "columns": 2,
+         "fields": [
+          {
+           "format": "date",
+           "key": "datum",
+           "label": "Datum"
+          },
+          {
+           "key": "leverancier",
+           "label": "Leverancier"
+          },
+          {
+           "format": "currency",
+           "key": "excl_btw",
+           "label": "Bedrag excl. BTW"
+          },
+          {
+           "format": "number",
+           "key": "btw",
+           "label": "BTW %"
+          },
+          {
+           "format": "currency",
+           "key": "totaal",
+           "label": "Totaal incl. BTW"
+          },
+          {
+           "format": "badge",
+           "key": "status",
+           "label": "Status"
+          }
+         ]
+        },
+        "style": {
+         "span": 12
+        },
+        "type": "record_detail"
+       }
+      ],
+      "style": {
+       "span": 12
+      },
+      "type": "card}],parentId:"
+     },
+     {
+      "children": [
+       {
+        "props": {
+         "label": "Goedkeuren",
+         "role": "button",
+         "variant": "primary"
+        },
+        "style": {
+         "span": 6
+        },
+        "tempId": "btn_appr_det",
+        "type": "button"
+       },
+       {
+        "props": {
+         "label": "Afwijzen",
+         "role": "button",
+         "variant": "danger"
+        },
+        "style": {
+         "span": 6
+        },
+        "tempId": "btn_rejct_det",
+        "type": "button}],props:{name:"
+       }
+      ]
+     }
+    ]
+   },
+   "observed": {
+    "accepted": false,
+    "error": "parentId is required — a section id (sec_…) or a container component id (card/form)."
+   },
+   "recordedAt": "2026-09-14"
+  },
+  {
+   "n": 57,
+   "case": "07b",
+   "phase": "add_approval",
+   "tool": "app_add_components",
+   "args": {
+    "components": [
+     {
+      "children": [
+       {
+        "children": [
+         {
+          "props": {
+           "label": "Verzoek goedkeuring",
+           "role": "button",
+           "variant": "primary"
+          },
+          "style": {
+           "span": 12
+          },
+          "type": "button"
+         }
+        ],
+        "props": {
+         "name": "req_form"
+        },
+        "style": {
+         "span": 12
+        },
+        "tempId": "frm_req",
+        "type": "form"
+       }
+      ],
+      "props": {
+       "title": "Acties"
+      },
+      "style": {
+       "span": 12
+      },
+      "type": "card"
+     },
+     {
+      "children": [
+       {
+        "props": {
+         "badgeKey": "status",
+         "badgeToneMap": [
+          {
+           "label": "Wachtend",
+           "tone": "warning",
+           "value": "Wachtend"
+          }
+         ],
+         "source": {
+          "kind": "records",
+          "tableId": "tbl_52aad5"
+         },
+         "subtitleKey": "totaal",
+         "timestampKey": "datum",
+         "titleKey": "leverancier"
+        },
+        "style": {
+         "span": 12
+        },
+        "type": "list"
+       }
+      ],
+      "style": {
+       "span": 12
+      },
+      "type": "card}],parentId:"
+     },
+     {
+      "props": {
+       "title": "Goedkeuringen"
+      },
+      "style": {
+       "span": 12
+      },
+      "type": "heading"
+     },
+     {
+      "children": [
+       {
+        "props": {
+         "badgeKey": "status",
+         "badgeToneMap": [
+          {
+           "label": "Wachtend",
+           "tone": "warning",
+           "value": "Wachtend"
+          }
+         ],
+         "source": {
+          "filter": [
+           {
+            "field": "status",
+            "op": "eq",
+            "value": "Wachtend"
+           }
+          ],
+          "kind": "records",
+          "tableId": "tbl_52aad5"
+         },
+         "subtitleKey": "totaal",
+         "timestampKey": "datum",
+         "titleKey": "leverancier"
+        },
+        "style": {
+         "span": 12
+        },
+        "type": "heading",
+        "【card<|\"|>],parentId": "},{props:{title:",
+        "【Factuur Informatie<|\"|>,style": {
+         "span": 12
+        }
+       },
+       {
+        "children": [
+         {
+          "props": {
+           "columns": 2,
+           "fields": [
+            {
+             "format": "date",
+             "key": "datum",
+             "label": "Datum"
+            },
+            {
+             "key": "leverancier",
+             "label": "Leverancier"
+            },
+            {
+             "format": "currency",
+             "key": "excl_btw",
+             "label": "Bedrag excl. BTW"
+            },
+            {
+             "format": "number",
+             "key": "btw",
+             "label": "BTW %"
+            },
+            {
+             "format": "currency",
+             "key": "totaal",
+             "label": "Totaal incl. BTW"
+            },
+            {
+             "format": "badge",
+             "key": "status",
+             "label": "Status"
+            }
+           ]
+          },
+          "style": {
+           "span": 12
+          },
+          "type": "record_detail"
+         }
+        ],
+        "style": {
+         "span": 12
+        },
+        "type": "card}],parentId:"
+       },
+       {
+        "children": [
+         {
+          "props": {
+           "label": "Goedkeuren",
+           "role": "button",
+           "variant": "primary"
+          },
+          "style": {
+           "span": 6
+          },
+          "tempId": "btn_appr_det",
+          "type": "button"
+         },
+         {
+          "props": {
+           "label": "Afwijzen",
+           "role": "button",
+           "variant": "danger"
+          },
+          "style": {
+           "span": 6
+          },
+          "tempId": "btn_rejct_det",
+          "type": "button}],props:{name:"
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "observed": {
+    "accepted": false,
+    "error": "parentId is required — a section id (sec_…) or a container component id (card/form)."
+   },
+   "recordedAt": "2026-09-14"
+  },
+  {
+   "n": 58,
+   "case": "09b",
+   "phase": "app",
+   "tool": "app_add_components",
+   "args": {
+    "components": [
+     {
+      "children": [
+       {
+        "children": [
+         {
+          "props": {
+           "icon": "FileCheck",
+           "label": "Aantal Facturen",
+           "look": "tile",
+           "value": {
+            "aggregates": [
+             {
+              "as": "n",
+              "fn": "count"
+             }
+            ],
+            "kind": "aggregate",
+            "pick": {
+             "column": "n",
+             "row": "first"
+            },
+            "tableId": "tbl_0e9fc4"
+           }
+          },
+          "style": {
+           "span": 3
+          },
+          "type": "stat"
+         },
+         {
+          "props": {
+           "icon": "Euro",
+           "label": "Totaal Excl. BTW",
+           "look": "accent",
+           "value": {
+            "aggregates": [
+             {
+              "as": "t",
+              "field": "excl_btw",
+              "fn": "sum"
+             }
+            ],
+            "kind": "aggregate",
+            "pick": {
+             "column": "t",
+             "row": "first"
+            },
+            "tableId": "tbl_0e9fc4"
+           }
+          },
+          "style": {
+           "span": 3
+          },
+          "type": "stat"
+         },
+         {
+          "props": {
+           "icon": "Info",
+           "label": "Totaal BTW",
+           "look": "tile",
+           "value": {
+            "aggregates": [
+             {
+              "as": "t",
+              "field": "btw",
+              "fn": "sum"
+             }
+            ],
+            "kind": "aggregate",
+            "pick": {
+             "column": "t",
+             "row": "first"
+            },
+            "tableId": "tbl_0e9fc4"
+           }
+          },
+          "style": {
+           "span": 3
+          },
+          "type": "stat"
+         },
+         {
+          "props": {
+           "icon": "CheckCircle",
+           "label": "Totaal Incl. BTW",
+           "look": "tile",
+           "value": {
+            "aggregates": [
+             {
+              "as": "t",
+              "field": "totaal",
+              "fn": "sum"
+             }
+            ],
+            "kind": "aggregate",
+            "pick": {
+             "column": "t",
+             "row": "first"
+            },
+            "tableId": "tbl_0e9fc4"
+           }
+          },
+          "style": {
+           "span": 3
+          },
+          "type": "stat"
+         }
+        ],
+        "props": {
+         "look": "banner",
+         "subtitle": "Live overzicht van de facturen",
+         "title": "Dashboard"
+        },
+        "style": {
+         "span": 12
+        },
+        "type": "page_header"
+       },
+       {
+        "children": [
+         {
+          "children": [
+           {
+            "props": {
+             "chartType": "bar",
+             "series": [
+              {
+               "key": "totaal",
+               "label": "Totaal"
+              }
+             ],
+             "source": {
+              "aggregates": [
+               {
+                "as": "totaal",
+                "field": "totaal",
+                "fn": "sum"
+               }
+              ],
+              "groupBy": [
+               {
+                "as": "mnd",
+                "bucket": "month",
+                "field": "datum"
+               }
+              ],
+              "kind": "aggregate",
+              "sort": [
+               {
+                "dir": "asc",
+                "field": "mnd"
+               }
+              ],
+              "tableId": "tbl_0e9fc4"
+             },
+             "title": "Maandelijkse Omzet",
+             "xKey": "mnd",
+             "xType": "time"
+            },
+            "style": {
+             "span": 12
+            },
+            "type": "chart"
+           }
+          ],
+          "props": {
+           "look": "panel",
+           "title": "Trendanalyse"
+          },
+          "style": {
+           "span": 12
+          },
+          "type": "card"
+         },
+         {
+          "children": [
+           {
+            "props": {
+             "fields": [
+              {
+               "name": "leverancier",
+               "type": "select"
+              },
+              {
+               "name": "datum",
+               "type": "date"
+              },
+              {
+               "name": "status",
+               "type": "select"
+              }
+             ],
+             "type": "filter_bar"
+            },
+            "style": {
+             "span": 12
+            },
+            "type": "filter_bar"
+           },
+           {
+            "props": {
+             "columns": [
+              {
+               "format": "date",
+               "key": "datum",
+               "label": "Datum"
+              },
+              {
+               "key": "leverancier",
+               "label": "Leverancier"
+              },
+              {
+               "key": "factuurnummer",
+               "label": "Factuurnummer"
+              },
+              {
+               "format": "currency",
+               "key": "excl_btw",
+               "label": "Excl. btw"
+              },
+              {
+               "format": "currency",
+               "key": "btw",
+               "label": "Btw"
+              },
+              {
+               "format": "currency",
+               "key": "totaal",
+               "label": "Totaal"
+              },
+              {
+               "key": "status",
+               "label": "Status"
+              }
+             ],
+             "emptyText": "Geen facturen gevonden.",
+             "look": "striped",
+             "searchable": true,
+             "source": {
+              "filter": [
+               {
+                "field": "leverancier",
+                "op": "contains",
+                "value": {
+                 "expr": "vars.filters.leverancier",
+                 "kind": "formula"
+                }
+               },
+               {
+                "field": "datum",
+                "op": "between",
+                "value": {
+                 "expr": "vars.filters.datum",
+                 "kind": "formula"
+                }
+               },
+               {
+                "field": "status",
+                "op": "eq",
+                "value": {
+                 "expr": "vars.filters.status",
+                 "kind": "formula"
+                }
+               }
+              ],
+              "kind": "records",
+              "sort": [
+               {
+                "dir": "desc",
+                "field": "datum"
+               }
+              ],
+              "tableId": "tbl_0e9fc4"
+             }
+            },
+            "style": {
+             "span": 12
+            },
+            "type": "data_grid"
+           }
+          ],
+          "props": {
+           "look": "panel",
+           "title": "Alle Facturen"
+          },
+          "style": {
+           "span": 12
+          },
+          "type": "card"
+         }
+        ],
+        "parentId": "sec_yt6bzo"
+       }
+      ],
+      "[children": [
+       {
+        "children": [
+         {
+          "props": {
+           "fields": [
+            {
+             "key": "datum",
+             "label": "Datum"
+            },
+            {
+             "key": "leverancier",
+             "label": "Leverancier"
+            },
+            {
+             "key": "factuurnummer",
+             "label": "Factuurnummer"
+            },
+            {
+             "key": "excl_btw",
+             "label": "Excl. btw"
+            },
+            {
+             "key": "btw",
+             "label": "Btw"
+            },
+            {
+             "key": "totaal",
+             "label": "Totaal"
+            },
+            {
+             "key": "status",
+             "label": "Status"
+            },
+            {
+             "key": "bestand",
+             "label": "Bestand"
+            }
+           ],
+           "layout": "rows",
+           "source": {
+            "kind": "record",
+            "recordId": "screen.params.id",
+            "tableId": "tbl_0e9fc4"
+           }
+          },
+          "style": {
+           "span": 12
+          },
+          "type": "record_detail"
+         }
+        ],
+        "props": {
+         "look": "panel",
+         "title": "Factuur Informatie"
+        },
+        "style": {
+         "span": 12
+        },
+        "type": "card"
+       }
+      ],
+      "props": {
+       "look": "banner",
+       "title": "Factuur Details"
+      },
+      "style": {
+       "span": 12
+      },
+      "type": "page_header"
+     }
+    ],
+    "parentId": "sec_5ujdch"
+   },
+   "observed": {
+    "accepted": false,
+    "error": "components[0].children[1]: unknown component type undefined. Legal types: heading, text, button, image, file_preview, browser_view, divider, spacer, callout, stat, keyValue, table, list, approval_list, card, form, input_text, input_textarea, input_number, input_select, input_checkbox, input_date, da"
+   },
+   "recordedAt": "2026-09-14"
+  },
+  {
+   "n": 59,
+   "case": "10b",
+   "phase": "app",
+   "tool": "app_add_components",
+   "args": {
+    "components": [
+     {
+      "children": [
+       {
+        "props": {
+         "fields": [
+          {
+           "name": "status",
+           "type": "select"
+          }
+         ],
+         "style": {
+          "span": 12
+         },
+         "type": "filter_bar"
+        },
+        "{props": {
+         "emptyText": "Geen facturen die goedkeuring vereisen.",
+         "look": "cards",
+         "source": {
+          "filter": [
+           {
+            "field": "status",
+            "op": "eq",
+            "value": "Wacht op goedkeuring"
+           }
+          ],
+          "kind": "records",
+          "sort": [
+           {
+            "dir": "desc",
+            "field": "datum"
+           }
+          ],
+          "tableId": "tbl_e815d7"
+         },
+         "style": {
+          "span": 12
+         },
+         "subtitleKey": "factuurnummer",
+         "titleKey": "leverancier",
+         "type": "list"
+        }
+       }
+      ],
+      "parentId": "cmp_n3ruae",
+      "type": "container"
+     }
+    ],
+    "parentId": "sec_stjbmu",
+    "type": "container"
+   },
+   "observed": {
+    "accepted": false,
+    "error": "components[0].children[0]: unknown component type undefined. Legal types: heading, text, button, image, file_preview, browser_view, divider, spacer, callout, stat, keyValue, table, list, approval_list, card, form, input_text, input_textarea, input_number, input_select, input_checkbox, input_date, da"
+   },
+   "recordedAt": "2026-09-14"
+  },
+  {
+   "n": 60,
+   "case": "10b",
+   "phase": "app",
+   "tool": "app_add_components",
+   "args": {
+    "components": [
+     {
+      "children": [
+       {
+        "children": [
+         {
+          "props": {
+           "fields": [
+            {
+             "key": "datum",
+             "label": "Datum"
+            },
+            {
+             "key": "leverancier",
+             "label": "Leverancier"
+            },
+            {
+             "key": "factuurnummer",
+             "label": "Factuurnummer"
+            },
+            {
+             "key": "excl_btw",
+             "label": "Excl. btw"
+            },
+            {
+             "key": "btw",
+             "label": "Btw"
+            },
+            {
+             "key": "totaal",
+             "label": "Totaal"
+            },
+            {
+             "key": "status",
+             "label": "Status"
+            },
+            {
+             "key": "bestand",
+             "label": "Bestand"
+            }
+           ],
+           "columns": 2,
+           "layout": "rows",
+           "source": {
+            "kind": "record",
+            "filter": {
+             "field": "id",
+             "op": "eq",
+             "value": {
+              "expr": "screen.params.factuur_id",
+              "kind": "formula"
+             }
+            },
+            "tableId": "tbl_e815d7}},style:{span:12},type:"
+           }
+          },
+          "{children": [
+           {
+            "props": {
+             "label": "Bestand Openen",
+             "variant": "primary",
+             "role": "button"
+            },
+            "style": {
+             "span": 6
+            },
+            "type": "button"
+           },
+           {
+            "props": {
+             "label": "Goedkeuren",
+             "variant": "secondary",
+             "role": "button"
+            },
+            "style": {
+             "span": 6
+            },
+            "type": "button},{props:{label:"
+           },
+           "variant:"
+          ]
+         },
+         "type:"
+        ]
+       },
+       "style: {span:12},\n        "
+      ]
+     },
+     "parentId: \"sec_xe3rx9\",\n      "
+    ]
+   },
+   "observed": {
+    "accepted": false,
+    "error": "parentId is required — a section id (sec_…) or a container component id (card/form)."
+   },
+   "recordedAt": "2026-09-14"
+  },
+  {
+   "n": 61,
+   "case": "10b",
+   "phase": "app",
+   "tool": "app_remove_node",
+   "args": {
+    "id": "cmp_n3u0i8"
+   },
+   "observed": {
+    "accepted": false,
+    "error": "Unknown component id \"cmp_n3u0i8\"."
+   },
+   "recordedAt": "2026-09-14"
+  },
+  {
+   "n": 62,
+   "case": "10b",
+   "phase": "app",
+   "tool": "app_remove_node",
+   "args": {
+    "id": "cmp_7kd0f5"
+   },
+   "observed": {
+    "accepted": false,
+    "error": "Unknown component id \"cmp_7kd0f5\"."
+   },
+   "recordedAt": "2026-09-14"
+  },
+  {
+   "n": 63,
+   "case": "10b",
+   "phase": "app",
+   "tool": "app_remove_node",
+   "args": {
+    "id": "cmp_viy2av"
+   },
+   "observed": {
+    "accepted": false,
+    "error": "Unknown component id \"cmp_viy2av\"."
+   },
+   "recordedAt": "2026-09-14"
+  },
+  {
+   "n": 64,
+   "case": "10b",
+   "phase": "app",
+   "tool": "app_remove_node",
+   "args": {
+    "id": "cmp_siu5dy"
+   },
+   "observed": {
+    "accepted": false,
+    "error": "Unknown component id \"cmp_siu5dy\"."
+   },
+   "recordedAt": "2026-09-14"
+  },
+  {
+   "n": 65,
+   "case": "10b",
+   "phase": "app",
+   "tool": "app_remove_node",
+   "args": {
+    "id": "cmp_f7j9lp"
+   },
+   "observed": {
+    "accepted": false,
+    "error": "Unknown component id \"cmp_f7j9lp\"."
+   },
+   "recordedAt": "2026-09-14"
+  },
+  {
+   "n": 66,
+   "case": "10b",
+   "phase": "app",
+   "tool": "app_remove_node",
+   "args": {
+    "id": "cmp_tly2tc"
+   },
+   "observed": {
+    "accepted": false,
+    "error": "Unknown component id \"cmp_tly2tc\"."
+   },
+   "recordedAt": "2026-09-14"
+  },
+  {
+   "n": 67,
+   "case": "10b",
+   "phase": "approvals",
+   "tool": "app_add_components",
+   "args": {
+    "components": [
+     {
+      "children": [
+       {
+        "props": {
+         "label": "Ter goedkeuring",
+         "role": "button",
+         "variant": "primary"
+        },
+        "style": {
+         "span": 12
+        },
+        "type": "button"
+       }
+      ],
+      "props": {
+       "name": "trigger_approval",
+       "showSubmit": false
+      },
+      "style": {
+       "gap": 3,
+       "padding": 3,
+       "span": 12
+      },
+      "tempId": "frm_trigger",
+      "type": "form"
+     }
+    ],
+    "parentId": "sec_xe3rx9"
+   },
+   "observed": {
+    "accepted": false,
+    "error": "Nothing new: this exact batch already landed this turn under sec_xe3rx9 as form cmp_kvb1lo, button cmp_3pc3ll — the draft is unchanged."
+   },
+   "recordedAt": "2026-09-14"
+  }
+ ]
+}

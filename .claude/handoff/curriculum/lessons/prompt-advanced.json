@@ -1,0 +1,303 @@
+{
+  "id": "prompt-advanced",
+  "icon": "🧪",
+  "estMinutes": 10,
+  "title": "Advanced techniques",
+  "desc": "Few-shot examples and plan-first prompting — the two moves that rescue stubborn tasks.",
+  "gate": {},
+  "learningGoal": "Choose between showing an example and asking for a plan, and apply the right one.",
+  "stepOutline": [
+    { "kind": "slide", "purpose": "When a better sentence stops helping: shape problems and approach problems" },
+    { "kind": "slide", "purpose": "Show, don't tell: worked input→output examples" },
+    { "kind": "slide", "purpose": "What makes an example work: two, same shape, the awkward case, a boundary line" },
+    { "kind": "quiz", "purpose": "A format it keeps missing: which technique fixes it" },
+    { "kind": "slide", "purpose": "Ask for a plan in three steps, then the work" },
+    { "kind": "slide", "purpose": "Make the plan stop and wait" },
+    { "kind": "sim", "purpose": "Match pairs: four stubborn tasks onto few-shot or plan-first" },
+    { "kind": "slide", "purpose": "Depth pays off once you asked for a plan — and Write is not a deeper stop" },
+    { "kind": "quiz", "purpose": "Depth ladder vs modes: Think/Deep Thinking against Write, and the admin-side names" },
+    { "kind": "quiz", "purpose": "Why two examples usually beat five more sentences of instruction" },
+    { "kind": "slide", "purpose": "Three ways these two backfire" },
+    { "kind": "slide", "purpose": "The example that names a customer: the Privacy Shield review" },
+    { "kind": "quiz", "purpose": "Plan-first on a nearly-right draft is overhead" },
+    { "kind": "slide", "purpose": "Where a winning prompt should live: memory, a skill, an agent, a Cowork brief" },
+    { "kind": "exercise", "purpose": "ex-advanced-technique: a prompt that visibly uses one technique" },
+    { "kind": "slide", "purpose": "Badge earned — and where to practise so it sticks" }
+  ],
+  "steps": [
+    {
+      "type": "slide",
+      "id": "stuck",
+      "icon": "🧱",
+      "title": "When a better sentence stops helping",
+      "bodyMd": "You already know the four moves: context, a clear task, a format, then one targeted follow-up. On most work that is enough.\n\nThen there is the stubborn ten per cent - the task that comes back wrong in the same way, three rewrites running. At **Van Dijk Groep**, a sixty-person installation firm, Anouk in HR keeps getting job ads in a shape she never asked for, and Bas in procurement gets a supplier comparison that quietly skipped the delivery times.\n\nMore adjectives will not fix either one. Two different moves will:\n\n- **Show an example** of what good looks like.\n- **Ask for a plan** before any work happens.\n\nThis lesson is about knowing which one a stubborn task needs."
+    },
+    {
+      "type": "slide",
+      "id": "fewshot",
+      "icon": "🖼️",
+      "title": "Show, don't tell",
+      "bodyMd": "Van Dijk's engineers write terse notes after a service call. Anouk wants one friendly line per note for the customer. Describing the tone (\"warm, plain, no jargon\") drifts every time. Showing it does not:\n\n```\nTurn an engineer's note into one line the customer can read.\n\nExamples:\n\"kp verv. + drukv. bijgevuld\" -> \"We replaced the pressure sensor and topped the system back up.\"\n\"F-gas lek, afgeperst, ok\" -> \"We found and sealed a small refrigerant leak, then pressure-tested the system.\"\n\nNow do: \"exp.vat vervangen, ontlucht\" ->\n```\n\nTwo examples carry the shape, the length and the tone at once. That is **few-shot** prompting: a couple of worked input-to-output pairs instead of a paragraph describing them."
+    },
+    {
+      "type": "slide",
+      "id": "fewshot-craft",
+      "icon": "✂️",
+      "title": "What makes an example work",
+      "bodyMd": "Four things separate an example that fixes a task from one that makes it worse:\n\n- **Two is usually enough.** One reads as a coincidence, five start to narrow the answer to whatever those five had in common.\n- **Keep the pair identical in shape** — same kind of input in, same kind of output out, every time.\n- **Include the awkward case.** If some notes mention a part that had to be ordered, one example should show exactly how you want that said.\n- **Label the boundary.** \"Examples:\" then \"Now do:\" so the model cannot mistake your examples for the material it must process.\n\nThe model copies whatever your examples contain — including their length, their punctuation and any mistake you left in."
+    },
+    {
+      "type": "quiz",
+      "id": "q-format",
+      "question": "Anouk asks for a job ad in Van Dijk's house shape and keeps getting something else, however carefully she describes it. What is most likely to fix it?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Paste two vacancies that came out right and ask for the new one in the same shape and tone.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Repeat \"please use the correct format\" a few times in the prompt.",
+          "correct": false,
+          "feedback": "Repetition adds emphasis, not information. The model is not ignoring her - it cannot tell from the words alone what her house shape actually looks like."
+        },
+        {
+          "id": "c",
+          "label": "Move the depth control from Fast to Deep Thinking and send the same prompt.",
+          "correct": false,
+          "feedback": "Depth changes how hard the model thinks, not what shape it aims at. A thoroughly reasoned answer in the wrong format is still the wrong format."
+        },
+        {
+          "id": "d",
+          "label": "Start a fresh chat so the earlier wrong answers stop influencing it.",
+          "correct": false,
+          "feedback": "A restart throws away the context she has built and changes nothing about the missing information. Showing one worked example is the cheaper move."
+        }
+      ],
+      "explanation": "A format that words keep missing is the textbook case for few-shot: one or two worked examples pin down a pattern that adjectives leave open."
+    },
+    {
+      "type": "slide",
+      "id": "plan-first",
+      "icon": "🪜",
+      "title": "Ask for a plan, then the work",
+      "bodyMd": "The other stubborn kind is not about shape - it is about work with several stages, where a wrong turn early ruins everything after it.\n\nBas has three quotes for steel profiles and a six-week window. Last time the comparison looked convincing and silently left out the delivery times.\n\nThe fix is one sentence in front of the task:\n\n> Before you answer, outline your approach in 3 steps, then carry it out.\n\nNow the first thing back is a plan you can read in ten seconds. If step two says \"compare on price and warranty\", Bas corrects it there - before a full comparison has been written on the wrong basis."
+    },
+    {
+      "type": "slide",
+      "id": "plan-craft",
+      "icon": "✋",
+      "title": "Make the plan stop and wait",
+      "bodyMd": "On anything big, go one step further and put a pause in it:\n\n> Give me the plan first, in 3 numbered steps, and wait for my OK. In the plan, name which of the three quotes you will read for each step and any assumption you are making.\n\nThree things earn their place there:\n\n- **A number of steps** - so you get an outline, not a second essay.\n- **What the plan must mention** - the documents it will use, the assumptions it is making, the open questions.\n- **An explicit wait** - the model stops, and you approve or correct one line.\n\nOne corrected line beats one rewritten draft. On a tender that runs to weeks of work, this is the single highest-leverage sentence in the prompt."
+    },
+    {
+      "type": "sim",
+      "id": "sim-pick",
+      "icon": "🧩",
+      "title": "Which move does this task need?",
+      "instruction": "Four stubborn tasks at Van Dijk Groep. Tap a task on the left, then the move that fits it on the right - two need an example, two need a plan, and the wording tells you which is which.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "notes",
+            "left": "Engineer notes must become customer-friendly lines; Anouk knows the right tone when she sees it but cannot describe it",
+            "right": "Two notes rewritten your way, then \"Now do:\"",
+            "note": "A tone you can recognise but not describe travels in worked pairs, not adjectives. Two carry it; describing it drifts every batch."
+          },
+          {
+            "id": "letters",
+            "left": "Rejection letters come back either ice-cold or far too chatty; Anouk has one that landed well and one that missed",
+            "right": "One example to copy and one to avoid, each labelled",
+            "note": "She can miss in both directions, so show both edges. A counter-example draws the line far more sharply than \"not too formal\"."
+          },
+          {
+            "id": "quotes",
+            "left": "Three supplier quotes to compare, and last time the delivery times were quietly left out",
+            "right": "A 3-step outline naming what it will compare, before it compares",
+            "note": "The comparison went wrong in the approach, not the wording. Read the basis in ten seconds and correct it there."
+          },
+          {
+            "id": "tender",
+            "left": "A tender response worth weeks of work, where one wrong assumption costs a full rewrite",
+            "right": "A plan that states its assumptions, then waits for your OK",
+            "note": "Both plan moves would help here, but only an explicit pause protects weeks of work from a single unchecked assumption."
+          }
+        ]
+      }
+    },
+    {
+      "type": "slide",
+      "id": "depth",
+      "icon": "🎚️",
+      "title": "Depth pays off once you asked for a plan",
+      "bodyMd": "In the composer sits the depth pill - **\"The depth the next answer runs at\"**. The depth ladder has four rungs: **Auto** (\"Optimal choice\"), **Fast** (\"Quick answers\"), **Think** (\"Complex problems\") and **Deep Thinking** (\"Advanced reasoning\").\n\nThe same menu also holds **Write** (\"Long-form content\") and the beta **Flow** and **Swarm** tiers. Those are separate modes, not deeper rungs - Write is not \"a bit more than Think\", it is a different job. And when an admin restricts a group's **Allowed tiers**, the same set appears under its admin-side names: **⚡ Fast**, **🧠 Thinking**, **✍️ Writer**, **✨ Deep Thinking**.\n\nMatch depth to the move you just picked:\n\n- **Few-shot on a rewrite** - Fast is fine. The examples do the work; there is little to reason about.\n- **Plan-first on three quotes or a tender** - Think or Deep Thinking. You asked for reasoning, so give it room.\n\nAsking for a plan at the shallowest depth is asking a model told to hurry for a thoughtful outline. On Auto you are not left guessing: the pill then reads **\"Auto · Deep Thinking\"**, naming the depth it chose."
+    },
+    {
+      "type": "quiz",
+      "id": "q-depth",
+      "question": "Bas is about to ask for a three-step plan before the quote comparison. He opens the depth pill, sees Write sitting there, and wonders whether it is a rung above Think. What is the right read?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Pick Think or Deep Thinking: those are the deep rungs, while Write is a separate mode for long-form content.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Pick Write - it sits between Think and Deep Thinking, so it reasons harder than Think.",
+          "correct": false,
+          "feedback": "The menu is not one ranking. Auto, Fast, Think and Deep Thinking are the depth ladder; Write, Flow and Swarm are modes that share the menu. Putting Write between Think and Deep Thinking claims an order that does not exist."
+        },
+        {
+          "id": "c",
+          "label": "Leave it on Fast and write \"think carefully about this\" into the prompt instead.",
+          "correct": false,
+          "feedback": "Words in the prompt do not change the depth the answer runs at. Asking a tier told to hurry for a careful outline is exactly the mismatch this lesson warns about."
+        },
+        {
+          "id": "d",
+          "label": "Ask an admin to turn on the Writer tier for his group so the plan comes back richer.",
+          "correct": false,
+          "feedback": "Allowed tiers only restricts which tiers a group may pick - and Writer is just the admin-side name for Write, the long-form mode. A longer answer is not a better plan."
+        }
+      ],
+      "explanation": "Depth answers \"how hard should it think\", and it runs Auto, Fast, Think, Deep Thinking. Write, Flow and Swarm answer a different question and share the same menu. One control set, two vocabularies: the admin screen calls Think \"Thinking\" and Write \"Writer\"."
+    },
+    {
+      "type": "quiz",
+      "id": "q-two",
+      "question": "Why do two worked examples usually beat five more sentences of instruction?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "An example settles shape, length and tone at once; \"professional\" leaves all three to be guessed.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Examples take up less room in the prompt than instructions do.",
+          "correct": false,
+          "feedback": "They usually take up more. The gain is not in length - it is that an example removes ambiguity instead of describing it."
+        },
+        {
+          "id": "c",
+          "label": "The model treats examples as binding and stops applying your written instructions.",
+          "correct": false,
+          "feedback": "Both still apply. Examples do not switch the instructions off; they settle the details the instructions could not express."
+        },
+        {
+          "id": "d",
+          "label": "Long instructions confuse a model, so the shortest prompt always scores best.",
+          "correct": false,
+          "feedback": "Length is not the problem - vagueness is. A long, specific prompt beats a short, vague one every time."
+        }
+      ],
+      "explanation": "Instructions describe a pattern; an example is one. Anything an adjective cannot measure - house tone, line length, how much jargon survives - travels far better as a worked pair."
+    },
+    {
+      "type": "slide",
+      "id": "traps",
+      "icon": "⚠️",
+      "title": "Three ways these two backfire",
+      "bodyMd": "- **A plan for a one-line job.** Asking for a three-step outline before trimming a sentence gets you an outline and a fresh draft, when one follow-up in the same chat would have fixed it.\n- **Examples from one narrow case.** Five examples all drawn from heat-pump jobs, and every answer starts to read like a heat-pump job. Vary them, or stop at two.\n- **Examples with real people in them.** The letter you would most like to copy is a real one, addressed to a real customer - and pasting it sends that customer along with the shape you wanted."
+    },
+    {
+      "type": "slide",
+      "id": "shield",
+      "icon": "🛡️",
+      "title": "The example that names a customer",
+      "bodyMd": "That third trap is the easy one to walk into, because the best examples are always real work.\n\nIf your organisation has the Privacy Shield's last check before an outside AI set to **Ask**, sending that message raises **\"Check this before it goes to the AI\"**: your own text with the sensitive parts highlighted, the model it would go to named above it, and the buttons **\"Redact and send\"**, **\"Send anyway\"** and **\"Block\"**.\n\nRedacting there works. The cleaner habit is to strip the name and the address out of the example before you send it - an example teaches shape, not identity."
+    },
+    {
+      "type": "quiz",
+      "id": "q-trap",
+      "question": "Jeroen, Van Dijk's sales lead, has a quote follow-up mail that comes back 90% right - just too long and a little salesy. He adds \"Before answering, outline your approach in 3 steps\" and sends the whole prompt again. What happens?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "He gets an outline plus a brand-new draft, instead of the small trim he was after.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "The mail improves, because the instruction makes the model think harder about the wording.",
+          "correct": false,
+          "feedback": "A plan restructures the approach to a task. It does not sharpen a sentence - and it starts the draft over instead of trimming the one that was nearly right."
+        },
+        {
+          "id": "c",
+          "label": "Nothing changes: with a short task like a mail, that instruction is ignored.",
+          "correct": false,
+          "feedback": "It will be followed, and that is the problem. You get the outline you asked for and a fresh start you did not want."
+        },
+        {
+          "id": "d",
+          "label": "It is the safe default - every prompt gets better with a plan in front of it.",
+          "correct": false,
+          "feedback": "Plan-first earns its keep on multi-stage work where an early wrong turn is expensive. On a trim, it is overhead."
+        }
+      ],
+      "explanation": "Match the move to the failure. Wrong shape means show an example; a wrong approach on multi-stage work means ask for a plan; nearly right means one follow-up in the same chat, naming the length and the words to drop."
+    },
+    {
+      "type": "slide",
+      "id": "where",
+      "icon": "📦",
+      "title": "Where a winning prompt should live",
+      "bodyMd": "Once the examples or the plan sentence work, do not leave them in yesterday's chat:\n\n- **Stay in the thread** while you are still steering - a follow-up keeps everything you built up.\n- **Memory** holds standing facts about you, your projects and your preferences, so that context stops being retyped.\n- **A Skill** is the home of a prompt you keep pasting - the composer calls skills **\"Reusable instruction packs for this chat\"**, and one holds what it does, **\"When to use it\"**, its steps and its rules. Creating one needs the skills permission; if the button is not there, ask an admin.\n- **An agent's system prompt** carries role, tone and always/never rules into every conversation with that agent. That needs the agents permission.\n- **A Cowork brief** is the version that runs without you watching."
+    },
+    {
+      "type": "exercise",
+      "id": "ex",
+      "icon": "🎯",
+      "exerciseId": "ex-advanced-technique",
+      "title": "Your turn: use one of the two",
+      "instruction": "Pick a stubborn task - one of Van Dijk's or one of your own - and write the prompt itself, not a description of it. Few-shot: the task, two worked input-to-output examples in the same shape, then a \"Now do:\" line. Plan-first: the task, a numbered plan in a set number of steps, what the plan must mention, and whether it waits for your OK. A coach scores it out of 100; 70 passes.",
+      "placeholder": "e.g. Classify each incoming service mail as Fault / Quote / Invoice. Examples: \"boiler makes noise since yesterday\" -> Fault; \"what does an annual service cost?\" -> Quote. Now classify: ...",
+      "passScore": 70,
+      "maxAttempts": 4
+    },
+    {
+      "type": "slide",
+      "id": "done",
+      "icon": "🏁",
+      "title": "What you can do now",
+      "bodyMd": "- **Diagnose before you rewrite.** Wrong shape calls for an example; a wrong approach on multi-stage work calls for a plan; nearly right calls for one follow-up.\n- **Write examples that travel** - two of them, same shape in and out, the awkward case included, and no real customer left inside.\n- **Ask for a plan that stops**, at a depth that can produce one, and correct a line instead of a draft.\n\nThis is the last of the five lessons in Prompt Engineering. With the other four done, the end screen shows **\"Badge earned\"** with **Prompt Smith**.\n\nTo make it stick: **\"Practice with AI\"** on the course screen generates fresh questions, and **\"Review\"** in the rail rebuilds a short session from your own mistakes."
+    }
+  ],
+  "rubrics": {
+    "ex-advanced-technique": {
+      "title": "Apply an advanced technique",
+      "task": "Write a prompt that visibly uses few-shot examples OR an explicit plan-first instruction to get a stubborn task right, specific enough that a model could follow it.",
+      "criteria": [
+        "Clearly applies one of the two techniques: at least two worked input-to-output examples in a consistent shape, or an explicit request for a numbered plan before the work",
+        "The technique fits the task - examples for a shape or tone that keeps being missed, a plan for multi-stage work where an early wrong turn is costly",
+        "The task itself is named concretely, so it is clear what the model is being asked to produce",
+        "The prompt is specific enough to follow: a boundary such as \"Now do:\", a step count, or what the plan must mention"
+      ],
+      "passScore": 70,
+      "guidance": "Reward a genuine, well-formed use of few-shot or plan-first prompting. Do not pass a submission that only names the technique (\"use few-shot\", \"think step by step\" with nothing else), that shows a single vague example, or that describes a tone instead of demonstrating it. A single strong example plus an explicit awkward case may pass if the pattern is unmistakable. Do not reward length."
+    }
+  },
+  "practiceTopic": {
+    "title": "Few-shot and plan-first prompting",
+    "summary": "Choosing between showing worked examples and asking for a plan, and applying each one well.",
+    "facts": [
+      "Few-shot prompting means giving one or two worked input-to-output examples; it is the most reliable fix when a format or tone keeps being missed.",
+      "Two examples are usually enough - five drawn from one narrow case start to narrow every answer to that case.",
+      "A boundary line such as \"Now do:\" stops the model treating your examples as the material it should process.",
+      "Plan-first prompting asks for a short numbered outline, and optionally an explicit wait for approval, before any of the work is written.",
+      "The composer's depth ladder is Auto, Fast, Think and Deep Thinking (on Auto the pill reads \"Auto · <tier>\"); Write (Long-form content), Flow and Swarm share that menu but are modes, not deeper rungs - and an admin's Allowed tiers pills call the same set Fast, Thinking, Writer, Deep Thinking.",
+      "Plan-first is wasted on a nearly-right answer; a targeted follow-up in the same chat is the cheaper fix there.",
+      "A prompt worth reusing can become a Skill, described in the composer as a reusable instruction pack for this chat; a skill holds what it does, when to use it, its steps and its rules.",
+      "When the Privacy Shield's last check before an outside AI is set to Ask, the \"Check this before it goes to the AI\" review offers Redact and send, Send anyway, or Block."
+    ]
+  },
+  "actionChecks": []
+}

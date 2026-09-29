@@ -1,0 +1,190 @@
+# ── Dependencies ────────────────────────────────────────────────
+**/node_modules/
+**/__pycache__/
+**/.venv/
+*.pyc
+
+# ── AI tooling (per-machine config & caches) ────────────────────
+# .claude/ (settings, hooks, commands, skills) and CLAUDE.md are intentionally
+# TRACKED as a reference snapshot. settings.local.json is NOT: it is one
+# machine's permissions (home paths, prod contexts, permission mode), and the
+# repo is meant to be publishable.
+# Its worktrees/ is the exception: a subagent working in isolation gets a git
+# worktree there, which is a second checkout of this very repo. Committing one
+# would put the tree inside itself, and it is gone the moment the agent is.
+.claude/worktrees/
+.claude/settings.local.json
+.claude/settings.local.json.*
+.serena/
+.playwright-mcp/
+
+# ── SBOM (regenerate via scripts/generate-sbom.sh) ──────────────
+sbom/
+
+# ── Environment / Secrets ───────────────────────────────────────
+.env
+.env.local
+.env.development
+.env.production
+.env.staging
+.env.dev
+.env.test
+.env.selfhost
+.env.dockerhub
+.env.portainer
+server/.env
+search-service/.env
+guard-service/.env
+
+# Seed/test users — bcrypt hashes are offline-crackable, never commit
+server/config/users.json
+server/config/users.*.json
+config/users.json
+
+# Benchmark / scratch files — typically contain real-looking PII fixtures
+server/test-bench-*.js
+server/test-huge*.js
+server/retry-test*.js
+server/bench-*.js
+server/scratch-*.js
+
+# ── SSH Keys & Credentials ──────────────────────────────────────
+*.ppk
+*.pub
+*.pem
+*.key
+ssh-key-*
+*-vpn-key*
+config.json
+scripts/pubkey_fedora
+
+# Exception reserved for a bundled licence-verification PUBLIC key, so
+# self-hosted installs could validate JWTs out of the box. The matching
+# private key lives ONLY on the license server. (Currently the public key is
+# supplied via LICENSE_PUBLIC_KEY / LICENSE_PUBLIC_KEY_FILE / JWKS instead —
+# see server/license/verify.js.)
+!server/license/bundled-public-key.pem
+
+# ── Databases ───────────────────────────────────────────────────
+*.db
+*.db-shm
+*.db-wal
+*.db-journal
+*.sqlite
+*.sqlite3
+data/
+# `data/` above is UN-ANCHORED, so it matches a directory named "data" at ANY
+# depth — not just the database directory it was written for. That silently
+# swallowed a React data-layer directory: the files existed on every developer's
+# disk and were absent from the repo, so the app built locally and the CI image
+# build failed on an unresolvable import.
+#
+# Anchoring it to /data/ is NOT the fix: server/data/ alone is ~550 MB of user
+# uploads and recordings, and training/data/ is ML corpora. Both must stay out.
+# So the source directory is re-included by name instead. Re-include the
+# DIRECTORY, not a glob inside it — git will not descend into an excluded
+# directory to evaluate a pattern for the files under it.
+#
+# Anything under src/ named data/ needs a line here. If that happens twice more,
+# swap this for an explicit list of the real data directories.
+!agent-hub/src/components/admin/compliance/data/
+# The IP location databases (DB-IP Lite, ~140 MB, `npm run geo:fetch`). Already
+# covered by the unanchored `data/` above; named so nobody un-ignores it by accident.
+server/data/geo/
+
+# ── Backups & Archives ──────────────────────────────────────────
+backups/
+*.zip
+*.tar.gz
+*.tgz
+
+# ── Build Artifacts ─────────────────────────────────────────────
+agent-hub/dist/
+agent-hub/dist-embed/
+server/dist/
+beeflow-desktop/src-tauri/target/
+
+# ── Logs ────────────────────────────────────────────────────────
+*.log
+npm-debug.log*
+
+# ── OS Files ────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── IDE / Editor ────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ── Docker runtime data (not compose files) ─────────────────────
+docker-data/
+pgdata/
+
+# ── Deploy Scripts & Infrastructure ─────────────────────────────
+deploy-*.sh
+deploy.sh
+deploy-scaleway/
+deploy/
+test-services.sh
+**/deploy-*.sh
+**/deploy/
+deploy/scaleway-kapsule/.env.scaleway*
+deploy/scaleway-kapsule/.rendered/
+
+# ── Internal Docs ───────────────────────────────────────────────
+SECURITY.md
+!/SECURITY.md
+!nextcloud-connector/SECURITY.md
+!agent-hub/SECURITY.md
+DOCKER.md
+
+# ── Misc ────────────────────────────────────────────────────────
+tmp/
+.pytest_cache/
+.coverage
+htmlcov/
+.env.services
+
+# ── Portainer / Local Deploy ─────────────────────────────────
+portainer-stack*.yml
+.env.portainer*
+# Whitelist the template file: it has no real secrets, just placeholders.
+!.env.portainer.example
+init-multi-db.sh
+
+# ── Install Wizard runtime artifacts (.install-env.json holds generated secrets) ──
+.install-env*
+.install-config*
+.install-log*
+# Keep docker-compose.install.yml tracked — it's the canonical compose, no secrets.
+
+# ── Coverage reports ──────────────────────────────────────────
+**/coverage/
+
+# ── Local buildx layer cache (scripts/build-images.sh) ─────────
+.buildx-cache/
+
+# ── Legacy docs (kept locally, not shipped) ────────────────────
+docs_old/
+/hub-stripe-settings.png
+
+# Leftovers of the removed local builder model. The pipeline itself is gone;
+# these are ~6.4 GB of local artifacts (a GGUF model, llama.cpp binaries) plus
+# captured builder traces that may contain live tool results. Kept ignored so
+# they cannot be committed by accident — delete `training/` when you no longer
+# want them on disk, then drop these lines.
+training/data/
+training/serve/llama.cpp/
+training/serve/models/
+
+# ── Customer sample packages — real order data, never commit ────
+# Tests run on generated fixtures (server/appStudio/fixtures/), never real data.
+example obs files/
+
+# Transcripts of scripts/builder-live-run.sh (one real builder run each)
+builder-run.*.json
+app-builder-run.*.json
+playbook-runs/
