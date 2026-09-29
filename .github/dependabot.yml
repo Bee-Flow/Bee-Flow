@@ -185,6 +185,22 @@ updates:
       # and the Expo SDK both admit 7.x.
       - dependency-name: typescript
         update-types: ["version-update:semver-major"]
+      # Expo SDK majors move together in the SDK upgrade, never one by one
+      # (#29, #30: SDK 58 modules from npm's `next` tag need compileSdk 37).
+      # expo-share-intent is third-party, but its majors also follow the SDK
+      # (7 = expo ^56, 8 = expo ^57). With the major ignored, each module's
+      # newest allowed version is its SDK patch, so mobile-patch-minor picks it
+      # up instead of leaving it behind (#26).
+      - dependency-name: "expo"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "expo-*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "jest-expo"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "eslint-config-expo"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@expo/vector-icons"
+        update-types: ["version-update:semver-major"]
     labels: [dependencies]
 
   - package-ecosystem: npm
@@ -224,6 +240,14 @@ updates:
       guard-service-patch-minor:
         patterns: ["*"]
         update-types: [minor, patch]
+    ignore:
+      # gliner 0.2.29 (pinned, newest) requires transformers<5.17.0 (#14). Lift
+      # when a gliner release admits it; bump both together with a gate run.
+      - dependency-name: transformers
+        versions: [">=5.17.0"]
+      # transformers 5.x and tokenizers 0.23 require huggingface-hub<2.0 (#15).
+      - dependency-name: huggingface-hub
+        update-types: ["version-update:semver-major"]
     labels: [dependencies, security]
 
   - package-ecosystem: pip
@@ -235,6 +259,10 @@ updates:
       pii-service-patch-minor:
         patterns: ["*"]
         update-types: [minor, patch]
+    ignore:
+      # transformers 5.17 and tokenizers 0.23 require huggingface-hub<2.0 (#11).
+      - dependency-name: huggingface-hub
+        update-types: ["version-update:semver-major"]
     labels: [dependencies, security]
 
   # classify-service reads customer text too (it scores it against labels),
@@ -248,9 +276,17 @@ updates:
       classify-service-patch-minor:
         patterns: ["*"]
         update-types: [minor, patch]
+    ignore:
+      # transformers 5.17 and tokenizers 0.23 require huggingface-hub<2.0 (#13).
+      - dependency-name: huggingface-hub
+        update-types: ["version-update:semver-major"]
     labels: [dependencies, security]
 
-  - package-ecosystem: pip
+  # search-service, reranker and whisperx-service build from uv.lock
+  # (`uv export --locked` in their Dockerfiles). Under the pip updater a PR only
+  # moved pyproject.toml, left uv.lock behind, and broke the image build after
+  # merge while CI stayed green (#6, #9, #12). The uv updater moves both.
+  - package-ecosystem: uv
     directory: /search-service
     schedule: { interval: monthly, time: "05:00", timezone: Europe/Amsterdam }
     open-pull-requests-limit: 3
@@ -261,7 +297,7 @@ updates:
         update-types: [minor, patch]
     labels: [dependencies]
 
-  - package-ecosystem: pip
+  - package-ecosystem: uv
     directory: /reranker
     schedule: { interval: monthly }
     open-pull-requests-limit: 2
@@ -272,7 +308,7 @@ updates:
         update-types: [minor, patch]
     labels: [dependencies]
 
-  - package-ecosystem: pip
+  - package-ecosystem: uv
     directory: /whisperx-service
     schedule: { interval: monthly }
     open-pull-requests-limit: 2
@@ -281,6 +317,11 @@ updates:
       whisperx-patch-minor:
         patterns: ["*"]
         update-types: [minor, patch]
+    ignore:
+      # whisperx 3.3.1 (locked) pins pyannote.audio==3.3.2; pyannote 4 needs
+      # torch>=2.8 while this service caps torch/torchaudio <2.6 (#10). It moves
+      # with whisperx, torch and torchaudio as one upgrade.
+      - dependency-name: pyannote-audio
     labels: [dependencies]
 
   # ── The supply chain of the build itself ──────────────────────────
@@ -290,8 +331,11 @@ updates:
   # Monthly. Every third-party action in .github/workflows is pinned to a
   # commit, and GitHub raises no Dependabot alert (so no security-update PR)
   # for an action pinned that way: this entry is the only thing that moves
-  # them. Most actions/* uses sit on a major tag (@v4), where the only update
-  # is a major, and a major stays its own PR as the header says.
+  # them. actions/* are pinned the same way, with a `# vX.Y.Z` comment, and a
+  # major stays its own PR as the header says.
+  # This entry only scans .github/workflows. The connector's own workflows
+  # (nextcloud-connector/.github/workflows, mirrored to Bee-Flow/connector) are
+  # not scanned: bump their pins by hand to the versions used here.
   - package-ecosystem: github-actions
     directory: /
     schedule: { interval: monthly, time: "05:00", timezone: Europe/Amsterdam }
@@ -301,6 +345,12 @@ updates:
       actions-patch-minor:
         patterns: ["*"]
         update-types: [minor, patch]
+    ignore:
+      # setup-gradle v6 makes the proprietary gradle-actions-caching component
+      # (Gradle's own terms, not MIT) the default cache provider (#21). v5 is
+      # node24 and MIT; take that.
+      - dependency-name: "gradle/actions/setup-gradle"
+        versions: [">= 6"]
     labels: [dependencies, security, ci]
 
   # ── Base images ───────────────────────────────────────────────────
