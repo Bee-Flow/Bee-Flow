@@ -7,7 +7,7 @@
 # honest is not readable from the pinning box. This service waits for a box
 # that can read download.pytorch.org.
 fastapi==0.141.1
-uvicorn[standard]==0.53.0
+uvicorn[standard]==0.54.0
 pydantic==2.13.5
 pydantic-settings==2.15.0
 httpx==0.28.1
@@ -29,7 +29,7 @@ gliner[onnx]==0.2.29
 # per-thread tokenizer fix (_ThreadLocalTokenizer) leans on transformers and
 # tokenizers internals, so these move only with a gate run too. torch is
 # pinned in the Dockerfile, where the CPU build is installed.
-transformers==5.16.1
+transformers==5.17.0
 tokenizers==0.23.2
 huggingface_hub==1.33.0
 # ONNX runtime for fp32 CPU inference (much faster than fp32 PyTorch; we do
