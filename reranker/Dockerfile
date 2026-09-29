@@ -1,5 +1,5 @@
 # ── Stage 1: Export model to ONNX ────────────────────────────────────
-FROM python:3.11-slim@sha256:da047cb8f9d1d98e5c070f5300ba9f7274e33b8fc0e5be5ed88740aed1b95ba9 AS builder
+FROM python:3.11-slim@sha256:e41613d42d4891e4930f79523f93f81bbc7632584ec65e36ab055f41a800b41e AS builder
 
 WORKDIR /build
 
@@ -19,7 +19,7 @@ RUN --mount=type=secret,id=HF_TOKEN \
     /build/model
 
 # ── Stage 2: Lightweight runtime ────────────────────────────────────
-FROM python:3.11-slim@sha256:da047cb8f9d1d98e5c070f5300ba9f7274e33b8fc0e5be5ed88740aed1b95ba9
+FROM python:3.11-slim@sha256:e41613d42d4891e4930f79523f93f81bbc7632584ec65e36ab055f41a800b41e
 
 WORKDIR /app
 
