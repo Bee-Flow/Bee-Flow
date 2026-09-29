@@ -306,6 +306,24 @@ jobs:
           BEEFLOW_DEFAULT_SERVER_URL: ${{ inputs.server_url }}
         run: npx expo prebuild --platform android --no-install
 
+      # Expo's template gives the Gradle daemon a 2 GB heap, and with
+      # org.gradle.parallel R8 (release only) and lint run in it at the same
+      # time. The first release build in this repo died there after 48 minutes:
+      # "R8: java.lang.OutOfMemoryError: Java heap space" in
+      # :app:minifyReleaseWithR8. The runner has 16 GB. Written AFTER prebuild,
+      # which rewrites gradle.properties.
+      - name: Give Gradle enough memory
+        working-directory: mobile/android
+        run: |
+          set -euo pipefail
+          jvmargs='org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g'
+          if grep -q '^org\.gradle\.jvmargs=' gradle.properties; then
+            sed -i "s/^org\.gradle\.jvmargs=.*/$jvmargs/" gradle.properties
+          else
+            printf '\n%s\n' "$jvmargs" >> gradle.properties
+          fi
+          grep '^org\.gradle\.jvmargs=' gradle.properties
+
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4.4.3
         with:
@@ -317,16 +335,74 @@ jobs:
           cache-read-only: false
           gradle-home-cache-cleanup: true
 
-      # Dev builds an APK for arm64-v8a only. The NDK work is per-ABI, so
-      # building all four quadruples the slowest part of the build to produce
-      # three binaries nobody installs: every Android phone shipped since
-      # roughly 2019 is arm64-v8a, and a dev APK exists to be side-loaded onto
-      # a real device.
+      # ccache for the native C++, which is most of this build: about 300
+      # files from React Native's generated code, Reanimated, Worklets,
+      # Screens, Gesture Handler and Expo's modules, compiled once per ABI.
+      # CMAKE_C/CXX_COMPILER_LAUNCHER, read from the environment by every CMake
+      # (3.17+) configure, routes every library through it; React Native only
+      # wraps the app's own CMake project when it finds ccache on the PATH, and
+      # the two together are harmless. Measured on a local rebuild: 305 of 309
+      # compile calls cacheable, 100% hits, native build 62 s -> 16 s.
       #
-      # Prod builds only the AAB, for all four ABIs, because Google Play has to
-      # serve the devices that are not arm64 too. An APK from this run would be
-      # debug-signed and so of no use to anyone; the one for direct download
-      # comes from Play (see the header).
+      # A binary pinned by digest, like bundletool in the release pipeline:
+      # this job builds what Google Play ships.
+      - name: Set up ccache
+        env:
+          CCACHE_VERSION: '4.14.1'
+          CCACHE_SHA256: ad63d19f5d09ea13f749651653a561c98a59994e673504a4266617b8754218f7
+        run: |
+          set -euo pipefail
+          tarball="$RUNNER_TEMP/ccache.tar.xz"
+          curl -sSfL -o "$tarball" "https://github.com/ccache/ccache/releases/download/v${CCACHE_VERSION}/ccache-${CCACHE_VERSION}-linux-x86_64-glibc.tar.xz"
+          echo "$CCACHE_SHA256  $tarball" | sha256sum -c --quiet -
+          mkdir -p "$RUNNER_TEMP/ccache-bin"
+          tar -xJf "$tarball" -C "$RUNNER_TEMP/ccache-bin" --strip-components=1
+          echo "$RUNNER_TEMP/ccache-bin" >> "$GITHUB_PATH"
+          {
+            echo "CCACHE_DIR=$HOME/.cache/ccache"
+            # Content, not mtime: `npm ci` gives every header a new timestamp.
+            echo "CCACHE_COMPILERCHECK=content"
+            echo "CCACHE_SLOPPINESS=include_file_mtime,include_file_ctime,time_macros,pch_defines"
+            echo "CCACHE_BASEDIR=$GITHUB_WORKSPACE"
+            echo "CCACHE_NOHASHDIR=true"
+            echo "CCACHE_MAXSIZE=1G"
+            echo "CMAKE_C_COMPILER_LAUNCHER=ccache"
+            echo "CMAKE_CXX_COMPILER_LAUNCHER=ccache"
+          } >> "$GITHUB_ENV"
+
+      # One cache for dev and prod: the C++ flags are the same, so the arm64
+      # objects a push to main compiles are reused by the next release. A key
+      # per run makes every run save what it added; restore takes the newest.
+      # A pull request reads main's cache but writes only its own, so neither a
+      # branch nor a fork can plant objects in what a release build uses.
+      - name: Restore the ccache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ccache
+          key: ccache-android-${{ hashFiles('mobile/package-lock.json') }}-${{ github.run_id }}
+          restore-keys: |
+            ccache-android-${{ hashFiles('mobile/package-lock.json') }}-
+            ccache-android-
+
+      - name: Reset ccache statistics
+        run: ccache --zero-stats
+
+      # Both channels build for arm64-v8a only. The NDK work is per-ABI, so
+      # every extra ABI multiplies the slowest part of the build, and with one
+      # ABI a release reuses everything a push to main already put in the
+      # ccache. Decided 2026-09-29, for an app that business users run:
+      #   - arm64-v8a is practically every Android phone and tablet in use,
+      #     and it satisfies Google Play's 64-bit requirement;
+      #   - armeabi-v7a (32-bit ARM budget and Android Go phones) is a small,
+      #     shrinking share;
+      #   - x86_64 (Intel/AMD Chromebooks) is better served by the web app;
+      #   - 32-bit x86 is practically extinct.
+      # Adding an ABI back is one entry in `-PreactNativeArchitectures` below
+      # and a new release.
+      #
+      # Prod builds only the AAB. An APK from this run would be debug-signed
+      # and so of no use to anyone; the one for direct download comes from
+      # Play (see the header).
       - name: Build APK
         if: steps.meta.outputs.channel != 'prod'
         working-directory: mobile/android
@@ -355,10 +431,15 @@ jobs:
           NODE_ENV: production
         run: |
           set -euo pipefail
-          echo "::notice::Building the AAB for armeabi-v7a, arm64-v8a, x86, x86_64"
+          echo "::notice::Building the AAB for arm64-v8a"
           ./gradlew --no-daemon bundleRelease \
-            -PreactNativeArchitectures=armeabi-v7a,arm64-v8a,x86,x86_64 \
+            -PreactNativeArchitectures=arm64-v8a \
             --build-cache
+
+      # How much the ccache saved, in the log of every run.
+      - name: ccache statistics
+        if: ${{ !cancelled() }}
+        run: ccache --show-stats
 
       - name: Name the outputs
         id: outputs
