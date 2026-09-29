@@ -190,7 +190,7 @@ Community feature — building automations is in the free core. Sharing them acr
 
 ¹ HMAC-SHA256 signature in `X-BeeFlow-Signature` plus a single-use `X-BeeFlow-Nonce`, no token. See [Automations → Webhook trigger format](../features/automations.md#webhook-trigger-format).
 
-## Webpages (Enterprise)
+## Webpages (Community; sharing is Enterprise)
 
 | Method | Path | Auth | Purpose |
 |--------|------|:----:|---------|
@@ -211,7 +211,7 @@ Community feature — building automations is in the free core. Sharing them acr
 
 ## Skills
 
-Community feature, but the whole mount also sits behind the **Skills beta** opt-in
+Enterprise feature (since the 2026-10 enterprise split), and the whole mount also sits behind the **Skills beta** opt-in
 (`requireCapability('skills')`), so an org that has not enabled the beta gets no route at
 all. Every write additionally needs the `manage_skills` permission. There is no
 marketplace: skills are written, not browsed or installed.

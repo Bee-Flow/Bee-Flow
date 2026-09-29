@@ -20,18 +20,37 @@
 // a self-hosted-only feature gated by license-key activation.
 
 // ── Beta feature buckets ────────────────────────────────────────────────────
+// The enterprise split (2026-10): paid capabilities that every PAID template
+// carries (a flat price or metered billing), mirroring what
+// server/migrations/enterprise-split-2026-10.js appends to existing paid
+// plans. Free templates carry none of them. `webpage_sharing` is not in this
+// list: it travels with `webpages` (a plan that sells webpages also sells
+// sharing them), in the buckets below and in the migration alike.
+const BETA_PAID_SPLIT = [
+    'studio_documents',
+    'automation_privacy_steps',
+    'datatable_retention',
+    'kb_datatable_sources',
+    'kb_scheduled_refresh',
+];
 const BETA_FREE      = [];
-const BETA_PLUS      = ['knowledge_bases_beta'];
-const BETA_TEAM      = ['automations', 'agent_routines', 'knowledge_bases_beta'];
+const BETA_PLUS      = ['knowledge_bases_beta', ...BETA_PAID_SPLIT];
+const BETA_TEAM      = ['automations', 'agent_routines', 'knowledge_bases_beta', ...BETA_PAID_SPLIT];
 const BETA_BUSINESS  = [
     'knowledge_bases_beta',
     'automations', 'agent_routines',
     'meeting_notes', 'voice_chat',
-    'webpages', 'skills',
+    'webpages', 'webpage_sharing', 'skills',
+    ...BETA_PAID_SPLIT,
 ];
 const BETA_ENTERPRISE = [
     ...BETA_BUSINESS,
     'swarm', 'advanced_analytics', 'custom_themes',
+    // Both are GA betas, so a plan with a restricted list only has them when it
+    // lists them. The Enterprise template promises the Compliance Hub in its
+    // description and highlights, and App Studio is Enterprise on self-hosted;
+    // without this line a plan created from the template shipped neither.
+    'compliance_hub_gdpr', 'app_studio',
     // 'white_label' intentionally omitted — self-hosted only.
 ];
 
@@ -345,7 +364,7 @@ export const PLAN_TEMPLATES = [
             allowed_integrations: [...INT_GOOGLE_PERSONAL, ...INT_MS_PERSONAL, ...INT_AI, 'fireflies', 'youtrack', 'github', 'linkedin', 'webpages'],
             allowed_beta_features: [
                 ...BETA_PLUS,
-                'meeting_notes', 'voice_chat', 'automations', 'agent_routines', 'webpages',
+                'meeting_notes', 'voice_chat', 'automations', 'agent_routines', 'webpages', 'webpage_sharing',
             ],
             billing_model: 'fixed',
             markup_percent: 0,
@@ -384,7 +403,7 @@ export const PLAN_TEMPLATES = [
             allowed_integrations: null,
             allowed_beta_features: [
                 ...BETA_PLUS,
-                'meeting_notes', 'voice_chat', 'automations', 'agent_routines', 'webpages',
+                'meeting_notes', 'voice_chat', 'automations', 'agent_routines', 'webpages', 'webpage_sharing',
                 'skills', 'advanced_analytics',
             ],
             billing_model: 'fixed',
@@ -425,7 +444,7 @@ export const PLAN_TEMPLATES = [
             allowed_integrations: [...INT_GOOGLE_PERSONAL, ...INT_MS_PERSONAL, ...INT_AI],
             allowed_beta_features: [
                 ...BETA_PLUS,
-                'meeting_notes', 'voice_chat', 'automations', 'agent_routines', 'webpages',
+                'meeting_notes', 'voice_chat', 'automations', 'agent_routines', 'webpages', 'webpage_sharing',
             ],
             billing_model: 'metered',
             markup_percent: 30,

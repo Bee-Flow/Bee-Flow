@@ -14,7 +14,7 @@ update this page as it settles.
 
 Bee Flow ships in three tiers. The **Community** tier is fully functional
 with no licence key — every product feature (chat, automations, voice,
-meeting notes, vector knowledge bases, web crawl, skills, agent routines,
+meeting notes, vector knowledge bases, web crawl, personal webpages, agent routines,
 multi-user, the Nextcloud connector and every integration) is enabled out of
 the box, with no caps on users, agents, messages or knowledge sources.
 
@@ -34,7 +34,7 @@ The full feature × tier matrix lives in [Licensing → Tiers](../licensing/tier
 
 Community installs get the whole product:
 
-- **Workflows** — Automations, agent routines, the Component Designer, the Skills marketplace.
+- **Workflows** — Automations, agent routines, the Component Designer.
 - **Conversation** — Push-to-talk voice, voice call, meeting-notes transcription.
 - **Knowledge** — Knowledge Bases and Webpage creation.
 - **Integrations** — Every Nextcloud-bridge feature, all 30+ tool integrations, OAuth-write Nextcloud access.
@@ -64,7 +64,7 @@ Counter state is in Postgres; nothing is sent off-machine.
 ## Feature flags (premium gates)
 
 The server uses a `requireLicenseFeature(name)` middleware that returns 403
-to any user/org without the feature. Community-tier features (`skills`,
+to any user/org without the feature. Community-tier features (`webpages`,
 `kb_unlimited`, `custom_themes`, etc.) pass through silently. The gates
 that actually fire are the paid ones:
 

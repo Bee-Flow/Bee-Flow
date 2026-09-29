@@ -47,11 +47,11 @@ const enterprise = t.getFeaturesForTier('enterprise');
 const full = t.getFeaturesForTier('full');
 
 // Community is the free self-hosted core: chat + KB + Nextcloud + multi-user
-// + skills. Studio-class capabilities (voice, webpages, automations, agent
-// routines, meeting notes, ticket assistant, notebooks, component designer,
-// projects), the advanced Privacy Shield modes (tokenize PII, web-search
-// guard), and the non-overview Usage tabs were promoted to Enterprise in
-// the tier tightening — see docs/docs/licensing/tiers.md.
+// + the free builder + personal webpages. Studio-class capabilities (voice,
+// meeting notes, ticket assistant, notebooks, component designer, projects,
+// skills), the advanced Privacy Shield modes (tokenize PII, web-search guard),
+// and the non-overview Usage tabs are Enterprise — see
+// docs/docs/licensing/tiers.md.
 assert.ok(community.includes('chat_basic'));
 assert.ok(community.includes('kb_local_small'));
 assert.ok(community.includes('kb_unlimited'), 'community must include kb_unlimited');
@@ -59,7 +59,13 @@ assert.ok(community.includes('nextcloud_basic'));
 assert.ok(community.includes('nextcloud_oauth'));
 assert.ok(community.includes('single_user_login'));
 assert.ok(community.includes('multi_user'), 'community must include multi_user');
-assert.ok(community.includes('skills'), 'community must include skills');
+// Enterprise split (2026-10): skills is Enterprise. It is a non-GA beta, so a
+// Community install never had it at runtime; the tier list now says so too.
+assert.ok(!community.includes('skills'), 'community must NOT include skills (Enterprise since the enterprise split)');
+assert.ok(enterprise.includes('skills'), 'enterprise must include skills');
+// Personal webpages are free: building your own pages is Community, sharing
+// them (webpage_sharing, below) is the paid act.
+assert.ok(community.includes('webpages'), 'community must include personal webpages');
 // All built-in integrations + the MCP marketplace are part of the free
 // Community core (declarative markers — integration usage is ungated at
 // runtime). Guard against a future edit silently gating them behind Enterprise.
@@ -80,7 +86,6 @@ assert.ok(enterprise.includes('mcp_marketplace'), 'enterprise must include the M
 // agent_routines were demoted BACK to community above — n8n-style free builder.)
 for (const f of [
     'voice_chat',
-    'webpages',
     'meeting_notes',
     'component_designer',
     'notebooks',
@@ -91,6 +96,24 @@ for (const f of [
     'advanced_usage_monitoring',
 ]) {
     assert.ok(!community.includes(f), `community must NOT include promoted feature ${f}`);
+}
+
+// The enterprise split (2026-10): six paid capabilities, each ALSO a GA beta
+// whose id equals the licence feature (core/entitlements/betaFeatures.js).
+// Listed in the enterprise tier ONLY — a community entry would make the
+// self-hosted GA-community filter hand them to every Community install.
+const ENTERPRISE_SPLIT = [
+    'automation_privacy_steps',
+    'studio_documents',
+    'webpage_sharing',
+    'datatable_retention',
+    'kb_datatable_sources',
+    'kb_scheduled_refresh',
+];
+for (const f of ENTERPRISE_SPLIT) {
+    assert.ok(enterprise.includes(f), `enterprise must include ${f}`);
+    assert.ok(!community.includes(f), `community must NOT include ${f}`);
+    assert.ok(t.TIER_FEATURES.enterprise.includes(f), `${f} is declared in TIER_FEATURES.enterprise itself`);
 }
 
 // The paid collaboration boundary for the free builder: org-wide sharing of
@@ -188,7 +211,8 @@ assert.strictEqual(t.getLimitsForTier('community').max_agents, -1, 'getLimitsFor
 
 // ── tierHasFeature ──────────────────────────────────────────────────────
 assert.strictEqual(t.tierHasFeature('community', 'chat_basic'), true);
-assert.strictEqual(t.tierHasFeature('community', 'skills'), true);
+assert.strictEqual(t.tierHasFeature('community', 'skills'), false, 'skills is enterprise');
+assert.strictEqual(t.tierHasFeature('enterprise', 'skills'), true, 'enterprise gets skills');
 assert.strictEqual(t.tierHasFeature('community', 'integrations'), true, 'built-in integrations are community');
 assert.strictEqual(t.tierHasFeature('community', 'mcp_marketplace'), false, 'MCP marketplace is enterprise');
 assert.strictEqual(t.tierHasFeature('enterprise', 'mcp_marketplace'), true, 'MCP marketplace is enterprise');
@@ -199,7 +223,9 @@ assert.strictEqual(t.tierHasFeature('community', 'automations'), true, 'automati
 assert.strictEqual(t.tierHasFeature('community', 'automation_sharing'), false, 'automation sharing is enterprise (collaboration is paid)');
 assert.strictEqual(t.tierHasFeature('enterprise', 'automation_sharing'), true, 'enterprise gets automation sharing');
 assert.strictEqual(t.tierHasFeature('community', 'voice_chat'), false, 'voice_chat is enterprise');
-assert.strictEqual(t.tierHasFeature('community', 'webpages'), false);
+assert.strictEqual(t.tierHasFeature('community', 'webpages'), true, 'personal webpages are community');
+assert.strictEqual(t.tierHasFeature('community', 'webpage_sharing'), false, 'sharing a webpage is enterprise');
+assert.strictEqual(t.tierHasFeature('enterprise', 'webpage_sharing'), true, 'enterprise gets webpage sharing');
 assert.strictEqual(t.tierHasFeature('community', 'meeting_notes'), false);
 assert.strictEqual(t.tierHasFeature('community', 'component_designer'), false);
 assert.strictEqual(t.tierHasFeature('community', 'notebooks'), false);

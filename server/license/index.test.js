@@ -142,7 +142,11 @@ const now = Math.floor(Date.now() / 1000);
     assert.strictEqual(status.source, 'default');
     assert.strictEqual(status.license, null);
     assert.ok(status.features.includes('chat_basic'));
-    assert.ok(status.features.includes('skills'), 'community keeps skills');
+    // Enterprise split (2026-10): personal webpages are Community, skills and
+    // webpage sharing are Enterprise.
+    assert.ok(status.features.includes('webpages'), 'community has personal webpages');
+    assert.ok(!status.features.includes('skills'), 'skills is enterprise, not community');
+    assert.ok(!status.features.includes('webpage_sharing'), 'webpage sharing is enterprise, not community');
     // n8n-style free builder: automations + agent_routines are Community features
     // (building is free). The paid line is collaboration: automation_sharing +
     // projects stay enterprise.
@@ -364,18 +368,21 @@ const now = Math.floor(Date.now() / 1000);
     assert.strictEqual(await license.getMaxSeatsForOrg('org_seatcapped'), null);
 
     // ── Cloud: plan's beta allow-list derives licence-feature grants ────
-    // A compound beta (e.g. webpages, licenseFeature 'webpages') granted by the
-    // plan must satisfy the LICENCE gate too — otherwise an enterprise feature
-    // granted on a Free/community plan would 403 feature_locked. The grant is
-    // derived from the plan's allowed_beta_features surfaced on getEffectiveLimits,
-    // using only the static compound-gated registry mapping (no extra DB).
-    fakeUserStore._limits['org_beta_grant'] = { allowed_features: [], allowed_beta_features: ['webpages'] };
+    // A compound beta (e.g. studio_documents, licenseFeature 'studio_documents')
+    // granted by the plan must satisfy the LICENCE gate too — otherwise an
+    // enterprise feature granted on a Free/community plan would 403
+    // feature_locked. (The example used to be webpages, which is a Community
+    // feature since the enterprise split and so passes on the tier alone.)
+    // The grant is derived from the plan's allowed_beta_features surfaced on
+    // getEffectiveLimits, using only the static compound-gated registry
+    // mapping (no extra DB).
+    fakeUserStore._limits['org_beta_grant'] = { allowed_features: [], allowed_beta_features: ['studio_documents'] };
     const betaGranted = await license.getOrgGrantedFeatures('org_beta_grant');
-    assert.ok(betaGranted.includes('webpages'),
-        'cloud: plan allowed_beta_features=[webpages] derives the webpages licence grant');
+    assert.ok(betaGranted.includes('studio_documents'),
+        'cloud: plan allowed_beta_features=[studio_documents] derives the studio_documents licence grant');
     assert.ok(!betaGranted.includes('voice_chat'),
         'cloud: a compound beta NOT in the plan list is not granted');
-    assert.strictEqual(await license.hasFeature({ organizationId: 'org_beta_grant' }, 'webpages'), true,
+    assert.strictEqual(await license.hasFeature({ organizationId: 'org_beta_grant' }, 'studio_documents'), true,
         'cloud: licence gate passes for a beta-derived grant on a community plan');
     assert.strictEqual(await license.hasFeature({ organizationId: 'org_beta_grant' }, 'voice_chat'), false,
         'cloud: a feature neither in tier nor derived stays gated');
@@ -384,13 +391,13 @@ const now = Math.floor(Date.now() / 1000);
     // licenseFeature is granted.
     fakeUserStore._limits['org_beta_all'] = { allowed_features: [], allowed_beta_features: null };
     const allGranted = await license.getOrgGrantedFeatures('org_beta_all');
-    assert.ok(allGranted.includes('webpages') && allGranted.includes('voice_chat') && allGranted.includes('swarm'),
+    assert.ok(allGranted.includes('studio_documents') && allGranted.includes('voice_chat') && allGranted.includes('swarm'),
         'cloud: a null (unrestricted) plan grants every compound licence feature');
 
-    // Downgrade — drop webpages from the plan → grant revoked live (no re-seed).
+    // Downgrade — drop studio_documents from the plan → grant revoked live (no re-seed).
     fakeUserStore._limits['org_beta_grant'].allowed_beta_features = [];
     const afterDowngrade = await license.getOrgGrantedFeatures('org_beta_grant');
-    assert.ok(!afterDowngrade.includes('webpages'),
+    assert.ok(!afterDowngrade.includes('studio_documents'),
         'cloud: dropping the beta from the plan revokes the derived licence grant');
 
     // Self-hosted must NOT derive licence grants from beta lists — the admin
@@ -398,7 +405,7 @@ const now = Math.floor(Date.now() / 1000);
     const prevMode = process.env.DEPLOYMENT_MODE;
     process.env.DEPLOYMENT_MODE = 'self-hosted';
     const selfHosted = await license.getOrgGrantedFeatures('org_beta_grant');
-    assert.ok(!selfHosted.includes('webpages'),
+    assert.ok(!selfHosted.includes('studio_documents'),
         'self-hosted: beta allow-list must not leak into the licence gate');
     if (prevMode === undefined) delete process.env.DEPLOYMENT_MODE; else process.env.DEPLOYMENT_MODE = prevMode;
 

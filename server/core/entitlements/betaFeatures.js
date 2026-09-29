@@ -123,7 +123,11 @@ const BETA_FEATURES = [
     { id: 'voice_chat', name: 'Voice Chat (Beta)', description: 'Realtime voice conversation with direct chat or agents, powered by Mistral Voxtral (STT + TTS). Requires a configured Mistral API key.', licenseFeature: 'voice_chat', lifecycle: BetaLifecycle.BETA },
     { id: 'swarm', name: 'Swarm Agents', description: 'Multi-agent swarms (Deep Research, etc.) that run specialised AI workers in parallel phases and synthesise a single answer. Workers share findings via a Hive Mind notebook.', licenseFeature: 'swarm', lifecycle: BetaLifecycle.BETA },
     { id: 'knowledge_bases_beta', name: 'Knowledge Bases (Beta badge)', description: 'Show a "beta" badge on the Knowledge Bases sidebar item. Cosmetic — does not gate access.', lifecycle: BetaLifecycle.BETA },
-    { id: 'webpages', name: 'Webpages', description: 'AI-built full-stack web apps. Vanilla (HTML/CSS/JS) or React + Material UI projects with a real per-page database, a sandboxed acts-as-author backend (integrations + automations), live preview, auto-versioning, KB-grounded AI chat, publishing/sharing, and ZIP download.', licenseFeature: 'webpages', lifecycle: BetaLifecycle.GA },
+    // Personal webpages are Community-licensed since the enterprise split
+    // (2026-10; `webpages` sits in tiers.js community), so like the free builder
+    // below this GA beta lights up on a Community install. Publishing and
+    // sharing a page is the separate Enterprise beta `webpage_sharing`.
+    { id: 'webpages', name: 'Webpages', description: 'AI-built full-stack web apps. Vanilla (HTML/CSS/JS) or React + Material UI projects with a real per-page database, a sandboxed acts-as-author backend (integrations + automations), live preview, auto-versioning, KB-grounded AI chat, and ZIP download. Publishing and sharing a page is Webpage sharing.', licenseFeature: 'webpages', lifecycle: BetaLifecycle.GA },
     // n8n-style free builder: GA (auto-on, no opt-in panel) and Community-
     // licensed. The blanket BETA_TIER_FLOOR short-circuit in getUserBetaFeatures
     // is exempted for GA betas whose licenceFeature is in the Community tier, so
@@ -176,6 +180,26 @@ const BETA_FEATURES = [
     // capabilityRegistry.listCustomIntegrationCapabilities) — this beta gates
     // only the builder surface and the per-org ceiling injection.
     { id: 'ai_integration_builder', name: 'AI Integration Builder', description: 'Org admins build custom org-scoped integrations (REST or remote MCP) with an AI builder agent. Gates the builder UI and APIs; built integrations are granted like normal integrations.', lifecycle: BetaLifecycle.BETA },
+    // ── The enterprise split (2026-10) ──────────────────────────────────────
+    // Six paid capabilities, each in the compliance_hub_gdpr shape above: GA
+    // (no opt-in panel), and the id deliberately EQUALS its licence feature,
+    // which is listed ONLY in tiers.js TIER_FEATURES.enterprise. So:
+    //   - self-hosted Community excludes them automatically (the ceiling only
+    //     admits GA betas whose licence feature is in the community tier);
+    //   - self-hosted Enterprise gets them (all betas, compound term satisfied);
+    //   - cloud: the plan's allowed_beta_features decides (null => included),
+    //     and a stored org access menu narrows it. migrations/
+    //     enterprise-split-2026-10.js grandfathers existing paid plans and
+    //     stored menus so nobody loses what they have on deploy.
+    // House rule for the gates built on these: only new creation or widening is
+    // refused; existing data and shares keep working; removing access is never
+    // gated. The route and step gates themselves live with each surface.
+    { id: 'automation_privacy_steps', name: 'Automation privacy steps', description: 'The privacy steps an author places in an automation: Guard (check a value for personal data and branch on the result), Tokenize (hide personal data reversibly) and Untokenize (put the real values back). The org-wide Privacy Shield under every run does not depend on this.', licenseFeature: 'automation_privacy_steps', lifecycle: BetaLifecycle.GA },
+    { id: 'studio_documents', name: 'Studio Documents', description: 'Invoices, quotes, letters and presentations in the organisation\'s house style: drafted in chat, edited by hand, downloaded as PDF or PowerPoint, and shared within the organisation.', licenseFeature: 'studio_documents', lifecycle: BetaLifecycle.GA },
+    { id: 'webpage_sharing', name: 'Webpage sharing', description: 'Share webpages beyond their author: publish a page to the organisation or to groups, grant it to people, and create public share links. Building and previewing your own pages does not need it.', licenseFeature: 'webpage_sharing', lifecycle: BetaLifecycle.GA },
+    { id: 'datatable_retention', name: 'Datatable retention', description: 'Retention windows on datatables: rows are deleted automatically once they are older than the number of days the table owner sets.', licenseFeature: 'datatable_retention', lifecycle: BetaLifecycle.GA },
+    { id: 'kb_datatable_sources', name: 'Datatables as knowledge sources', description: 'Use a datatable as a knowledge-base source, so agents answer from the live rows (a price list, a product catalogue) instead of an exported file.', licenseFeature: 'kb_datatable_sources', lifecycle: BetaLifecycle.GA },
+    { id: 'kb_scheduled_refresh', name: 'Scheduled knowledge refresh', description: 'Refresh knowledge-base sources on a schedule, so web pages, datatables and other sources stay current without anyone refreshing them by hand.', licenseFeature: 'kb_scheduled_refresh', lifecycle: BetaLifecycle.GA },
 ];
 
 function getFeatureLifecycle(featureOrId) {
@@ -408,7 +432,8 @@ async function getUserBetaFeatures(userId, session = null, { tierHint = null } =
     // Self-hosted ONLY: below the enterprise beta floor (a Community install),
     // the only betas available are the GA features whose licence feature is part
     // of the Community tier — the n8n-style free builder (Automations + Agent
-    // Routines). Everything else stays Enterprise-gated. Derived from the
+    // Routines), personal Webpages and the Learning Center. Everything else
+    // stays Enterprise-gated. Derived from the
     // registry + the licence tier so it self-tracks tiers.js (no hand-maintained
     // id list).
     //

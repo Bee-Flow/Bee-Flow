@@ -16,8 +16,9 @@ Bee Flow ships in three tiers. **Community** is the default state of a fresh
 install — no licence key, no caps. Community covers the free self-hosted
 core: chat with agents, knowledge bases, the Nextcloud connector (including
 **signing in to Bee Flow from the Nextcloud App Store app** via Nextcloud
-OAuth), multi-user with groups, themes, the skills marketplace, and **all
-built-in integrations** (Google, Microsoft, AI image/music/video generation,
+OAuth), multi-user with groups, themes, **personal webpages** (building and
+previewing your own pages; sharing them is Enterprise), and **all built-in
+integrations** (Google, Microsoft, AI image/music/video generation,
 third-party connectors and the Nextcloud module family).
 
 Community also ships the **no-code [automation builder](../features/automations.md)
@@ -36,7 +37,9 @@ builder themselves — those are free in Community. What Enterprise adds is the
 beta — a later implementation; see [Integrations → MCP](../integrations/index.md))*,
 **SSO beyond Nextcloud** (Google / Microsoft / SAML — Nextcloud OAuth login stays
 Community) together with the rest of the Studio-class capabilities (voice chat,
-webpage creation, meeting notes, notebooks, component designer), the
+Skills, sharing webpages, Studio Documents, meeting notes, notebooks, component
+designer), the automation privacy steps, datatable retention, datatables as
+knowledge sources and scheduled knowledge refresh, the
 advanced Privacy Shield modes, guardrail DLP, the compliance hub (GDPR + AI
 Act) — **the remaining beta features also require Enterprise** (the automation
 builder + agent routines are the exception: they are GA features free in
@@ -73,7 +76,11 @@ may move at any time.
 | Voice (push-to-talk + voice call) | — | ✅ | ✅ |
 | **Knowledge** |
 | Knowledge Bases | ✅ | ✅ | ✅ |
-| Webpage creation | — | ✅ | ✅ |
+| Datatables as knowledge sources | — | ✅ | ✅ |
+| Scheduled knowledge refresh | — | ✅ | ✅ |
+| Webpage creation (personal) | ✅ | ✅ | ✅ |
+| Webpage sharing (publish to the organisation or groups, grants, public links) | — | ✅ | ✅ |
+| Studio Documents (invoices, quotes, letters, presentations) | — | ✅ | ✅ |
 | **Integrations** |
 | Built-in integrations — connect & use in chat (Google, Microsoft, AI generation, third-party, Nextcloud) | ✅ | ✅ | ✅ |
 | Nextcloud connector + sign-in to Bee Flow from the NC App Store app (Nextcloud OAuth) | ✅ | ✅ | ✅ |
@@ -82,9 +89,11 @@ may move at any time.
 | **Workflow** |
 | Automation builder (no-code, personal) | ✅ | ✅ | ✅ |
 | Agent routines (scheduled, personal) | ✅ | ✅ | ✅ |
+| Privacy steps in automations (guard, tokenize, untokenize) | — | ✅ | ✅ |
+| Datatable retention windows | — | ✅ | ✅ |
 | [App Studio](../studio/apps.md) — full-stack AI app builder (GA) | — | ✅ | ✅ |
 | Share automations / routines across a team | — | ✅ | ✅ |
-| Skills marketplace | ✅ | ✅ | ✅ |
+| Skills | — | ✅ | ✅ |
 | Projects (team workspaces) | — | ✅ | ✅ |
 | Notebooks (per-user research) | — | ✅ | ✅ |
 | **Productivity** |
@@ -145,7 +154,14 @@ you'll see in 403 responses:
 | Flag | Min tier | Routes / surfaces |
 |------|:--------:|--------------------|
 | `voice_chat` | Enterprise | Realtime voice chat (Voxtral STT/TTS), `/ai/voice` |
-| `webpages` | Enterprise | AI-built static webpages, `/api/webpages` |
+| `webpages` | Community | AI-built webpages you build and keep for yourself, `/api/webpages`. A GA beta whose licence feature is Community |
+| `webpage_sharing` | Enterprise | Sharing a webpage beyond its author: publishing to the organisation or groups, grants, public share links |
+| `skills` | Enterprise | Skills, `/api/skills` |
+| `studio_documents` | Enterprise | Studio Documents, `/api/studio-documents` |
+| `automation_privacy_steps` | Enterprise | The guard, tokenize and untokenize steps in automations |
+| `datatable_retention` | Enterprise | Retention windows on datatables (rows deleted after N days) |
+| `kb_datatable_sources` | Enterprise | A datatable as a knowledge-base source |
+| `kb_scheduled_refresh` | Enterprise | Refreshing knowledge-base sources on a schedule |
 | `automations` | Community | No-code automation builder, `/api/automation*`. Personal use is free; a GA beta that's Community-exempt from the beta tier floor |
 | `agent_routines` | Community | Scheduled agent runs (Studio → Routines), `/api/ai-tasks`. Free personal use; GA beta, Community |
 | `automation_sharing` | Enterprise | Sharing automations/routines across a team. **Reserve gate** — pins the paid collaboration boundary for the free builder; no route consumes it yet |
@@ -169,7 +185,7 @@ you'll see in 403 responses:
 | `license_issuance` | Full | Sub-licence minting |
 
 Community-tier features (`chat_basic`, `kb_local_small`, `kb_unlimited`,
-`nextcloud_basic`, `nextcloud_oauth`, `multi_user`, `skills`, `automations`,
+`nextcloud_basic`, `nextcloud_oauth`, `multi_user`, `webpages`, `automations`,
 `agent_routines`) are still passed through `requireLicenseFeature` at their mount
 sites — the gate is a no-op because the feature lives in `TIER_FEATURES.community`.
 The `integrations` flag is a **capability marker** rather than a mounted gate:
@@ -182,10 +198,17 @@ higher: on a Community install every `requireBetaFeature(...)` call
 short-circuits to a 403 with
 `{ error: 'feature_locked', reason: 'beta_requires_enterprise', required:
 'enterprise', upgrade_url: … }` so the UI can route the user to the right
-CTA. **The exception is the free automation builder:** `automations` and
-`agent_routines` are GA betas whose licence feature lives in Community, so they
-are *exempt* from the beta tier floor and work on a Community install
-(`server/core/betaFeatures.js` returns them below the floor). Super-admins bypass
+CTA. **The exception is the free core:** `automations`, `agent_routines`,
+`webpages` and `learning_center` are GA betas whose licence feature lives in
+Community, so they are *exempt* from the beta tier floor and work on a Community
+install (`server/core/betaFeatures.js` returns them below the floor). The
+Enterprise features `webpage_sharing`, `studio_documents`,
+`automation_privacy_steps`, `datatable_retention`, `kb_datatable_sources` and
+`kb_scheduled_refresh` are GA betas too, but their licence feature is
+Enterprise-only, so a Community install does not get them. When a licence
+lapses or an organisation moves to a lower plan, these gates only refuse new
+creation or widening: existing data and shares keep working, and removing
+access is always possible. Super-admins bypass
 the tier check (same exemption that already exists for licensed-feature gates).
 
 ## Limit enforcement
@@ -207,8 +230,8 @@ Counters reset on the first day of each calendar month at 00:00 UTC.
 
 | Need | Suggested tier |
 |------|----------------|
-| Free self-hosted core — chat, KB, agents, skills, **all built-in integrations**, the **no-code automation builder + scheduled agent routines** (personal use), and the Nextcloud connector (incl. signing in from the NC App Store app) | Community |
-| Team that wants **collaboration** on top of the free builder (sharing automations/routines across a team, **Projects** team workspaces), the MCP Server Marketplace, the rest of Studio (voice, webpage creation, notebooks, meeting notes, component designer), the advanced Privacy Shield modes (tokenize PII, web-search guard), the paid admin tabs (Agents, Monitoring, Compliance, Support, Appearance, Product Website), the remaining beta features, or compliance (SSO, GDPR/AI-Act) | Enterprise |
+| Free self-hosted core — chat, KB, agents, personal webpages, **all built-in integrations**, the **no-code automation builder + scheduled agent routines** (personal use), and the Nextcloud connector (incl. signing in from the NC App Store app) | Community |
+| Team that wants **collaboration** on top of the free builder (sharing automations/routines across a team, sharing webpages, **Projects** team workspaces), the MCP Server Marketplace, the rest of Studio (voice, Skills, Studio Documents, notebooks, meeting notes, component designer), privacy steps and retention in automations, datatable-fed and scheduled knowledge sources, the advanced Privacy Shield modes (tokenize PII, web-search guard), the paid admin tabs (Agents, Monitoring, Compliance, Support, Appearance, Product Website), the remaining beta features, or compliance (SSO, GDPR/AI-Act) | Enterprise |
 | Reseller / private-label deployment | Full |
 
 Custom plans (e.g. capped seats, specific feature sets) are available —

@@ -94,6 +94,14 @@ const LOOSE_MIGRATIONS = [
     // transaction. Throws on failure so the ledger does not record it and the
     // next boot retries; a no-op once the index exists.
     'agent-categories-dedupe-2026-09',
+    // Enterprise split (2026-10): six formerly free capabilities became paid
+    // GA betas. Appends them to every PAID plan's restricted beta list
+    // (webpage_sharing only where the list already has webpages, free plans
+    // included) and to every stored org access menu, so nobody loses on deploy
+    // what they have today. One-shot per id via a config marker, so a later
+    // un-tick in the plan editor or the menu survives every re-run; throws on
+    // failure so the next boot retries.
+    'enterprise-split-2026-10',
 ];
 
 /**

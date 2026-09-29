@@ -143,9 +143,10 @@ signpost rather than a door you keep walking into.
 
 There is no separate "Studio policy" screen. What governs Studio is the combination of:
 
-- **Your licence tier**, per feature. Automations, Datatables, Forms, Runs & log, Skills
-  and Knowledge are in the free Community core; Approvals, Webpages, App Studio,
-  Solutions, Meeting Notes and Components are Enterprise. See
+- **Your licence tier**, per feature. Automations, Datatables, Forms, Runs & log,
+  Knowledge and your own Webpages are in the free Community core; Approvals, Skills,
+  sharing Webpages, Documents, App Studio, Solutions, Meeting Notes and Components are
+  Enterprise. See
   [Licensing → Tiers](../licensing/tiers.md).
 - **Your organisation role** and the permissions on it — `manage_agents`,
   `manage_skills`, `manage_knowledge`, `manage_automations`, `manage_datatables`,

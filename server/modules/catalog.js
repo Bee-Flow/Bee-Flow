@@ -67,13 +67,30 @@ function availableByEdition(id) {
 //                 public site), never core/cms/.
 //   core/voice/ — used by Voice Chat (its own capability) and the chat
 //                 transcription tool, not just meeting notes.
+//
+// Capabilities that belong to core surfaces are deliberately in NO module
+// either, because a module's capabilities vanish when it is not imported:
+//   studio_documents     — Studio Documents mounts without requireModule
+//                          (/api/studio-documents, server/index.js) and the
+//                          document steps run in both routines and apps.
+//   kb_scheduled_refresh — knowledge bases are core, and so is their
+//                          refresh engine (core/kb/sources).
 const MODULES = [
     {
         id: 'automation',
         name: 'Automations',
         description: 'No-code automation builder, scheduled agent routines and the step runner.',
         category: 'Orchestration',
-        capabilityIds: ['automations', 'agent_routines', 'automation_sharing'],
+        // The enterprise-split ids (2026-10) that live on this module's own
+        // surfaces: the privacy steps are automation steps, retention windows
+        // are a datatables setting, and a knowledge base can only be fed by a
+        // datatable when datatables exist (/api/datatables mounts behind
+        // requireModule('automation')). Without the module those capabilities
+        // have nothing to act on, so they leave the projection with it.
+        capabilityIds: [
+            'automations', 'agent_routines', 'automation_sharing',
+            'automation_privacy_steps', 'datatable_retention', 'kb_datatable_sources',
+        ],
         defaultImported: true,
         available: availableByEdition('automation'),
     },
@@ -124,7 +141,9 @@ const MODULES = [
         name: 'Webpages',
         description: 'AI-generated shareable web pages and their preview/runtime surface.',
         category: 'Build',
-        capabilityIds: ['webpages'],
+        // webpage_sharing (2026-10): publishing, grants and public share links
+        // are this module's routes (/api/webpages, /share, /w, /api/public-share).
+        capabilityIds: ['webpages', 'webpage_sharing'],
         defaultImported: true,
         available: availableByEdition('webpages'),
     },

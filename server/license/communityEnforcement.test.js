@@ -3,8 +3,8 @@
  *
  * Mounts the `requireFeature(name)` middleware against a fake handler and
  * asserts that every Studio-class feature promoted in the tier tightening
- * (voice_chat, webpages, approvals, meeting_notes,
- * component_designer, notebooks) returns the documented `feature_locked`
+ * (voice_chat, approvals, meeting_notes, component_designer, notebooks,
+ * skills, and the enterprise-split features) returns the documented `feature_locked`
  * 403 body on a community session and reaches the handler on an
  * enterprise session.
  *
@@ -21,7 +21,8 @@ const { buildKey } = require('../utils/buildInfo');
 
 const FEATURES = [
     'voice_chat',
-    'webpages',
+    // `webpages` is NOT here any more: personal webpages are Community since
+    // the enterprise split (2026-10). Sharing them is `webpage_sharing`, below.
     'meeting_notes',
     'component_designer',
     'notebooks',
@@ -55,6 +56,17 @@ const FEATURES = [
     'swarm',
     'advanced_analytics',
     'custom_themes',
+    // Skills moved from the community list to enterprise (2026-10).
+    'skills',
+    // The enterprise split (2026-10): six paid capabilities, each also a GA
+    // beta whose id equals the licence feature. Their licence term must lock
+    // on community exactly like every other enterprise feature.
+    'automation_privacy_steps',
+    'studio_documents',
+    'webpage_sharing',
+    'datatable_retention',
+    'kb_datatable_sources',
+    'kb_scheduled_refresh',
 ];
 
 const RESOLUTION_TTL_MS = 60_000;
@@ -126,7 +138,7 @@ async function runGate(featureName, tier) {
         assert.strictEqual(res.statusCode, null, `${feature}: legacy pro must not 403`);
     }
 
-    // ── Community keeps the core: chat_basic / skills / kb_unlimited
+    // ── Community keeps the core: chat_basic / webpages / kb_unlimited
     //    / multi_user / nextcloud_basic / nextcloud_oauth must NOT fall behind
     //    the gate, and neither may the built-in integrations or the MCP
     //    marketplace — `integrations` + `mcp_marketplace` are Community
@@ -138,7 +150,9 @@ async function runGate(featureName, tier) {
     //    Community must keep them (building is free; sharing is paid).
     //    (projects, pii_tokenize, web_search_guard and advanced_usage_monitoring
     //    were promoted to Enterprise in earlier waves.)
-    for (const feature of ['chat_basic', 'skills', 'kb_unlimited', 'multi_user', 'nextcloud_basic', 'nextcloud_oauth', 'integrations', 'automations', 'agent_routines']) {
+    //    Personal `webpages` joined in the enterprise split (2026-10): building
+    //    your own pages is free, sharing them (`webpage_sharing`) is not.
+    for (const feature of ['chat_basic', 'webpages', 'kb_unlimited', 'multi_user', 'nextcloud_basic', 'nextcloud_oauth', 'integrations', 'automations', 'agent_routines']) {
         const { res, calledNext } = await runGate(feature, 'community');
         assert.strictEqual(calledNext, true, `${feature}: community must keep this`);
         assert.strictEqual(res.statusCode, null, `${feature}: community core must not 403`);

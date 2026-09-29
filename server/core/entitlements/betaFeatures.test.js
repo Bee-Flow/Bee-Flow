@@ -147,18 +147,23 @@ function buildRes() {
 
     // Community tier → only the GA features whose licence feature is in the
     // Community tier (the n8n-style free builder — automations + agent_routines —
-    // plus the Learning Center, also free Community core), even when the org has
-    // *enterprise* betas both allowed and active. The set is derived from the
-    // registry + the licence tier, so it ignores the org allow-list below the floor.
+    // plus the Learning Center and, since the enterprise split, personal
+    // webpages), even when the org has *enterprise* betas both allowed and
+    // active. The set is derived from the registry + the licence tier, so it
+    // ignores the org allow-list below the floor. The enterprise-split betas are
+    // GA too, but their licence feature is Enterprise-only, so they stay out.
     resetMocks();
     mockTier = 'community';
-    mockOrgBetaFeatures = ['meeting_notes', 'voice_chat'];
-    mockOrgActiveFeatures = ['meeting_notes', 'voice_chat'];
+    mockOrgBetaFeatures = ['meeting_notes', 'voice_chat', 'studio_documents', 'webpage_sharing'];
+    mockOrgActiveFeatures = ['meeting_notes', 'voice_chat', 'studio_documents', 'webpage_sharing'];
     let features = await beta.getUserBetaFeatures('u1', { user: mockUser });
-    assert.deepStrictEqual(features.sort(), ['agent_routines', 'automations', 'learning_center'],
+    assert.deepStrictEqual(features.sort(), ['agent_routines', 'automations', 'learning_center', 'webpages'],
         'community must yield exactly the Community GA features');
     assert.ok(!features.includes('meeting_notes') && !features.includes('voice_chat'),
         'community must NOT yield enterprise betas even when org-allowed/active');
+    for (const id of ['automation_privacy_steps', 'studio_documents', 'webpage_sharing', 'datatable_retention', 'kb_datatable_sources', 'kb_scheduled_refresh', 'skills']) {
+        assert.ok(!features.includes(id), `community must NOT yield the Enterprise beta ${id}`);
+    }
 
     // Enterprise tier → returns the intersection.
     resetMocks();

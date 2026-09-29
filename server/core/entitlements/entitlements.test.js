@@ -123,6 +123,37 @@ describe('registry shape', () => {
             assert.ok(!cap.userFacing, `${id} is org-level, not per-user togglable`);
         }
     });
+    it('the enterprise-split ids are GA beta capabilities with licenseFeature = id', () => {
+        // The beta row claims the id, so no core row shadows it even though the
+        // same string sits in tiers.js enterprise. GA ⇒ on by default wherever
+        // the ceiling allows it; user-facing and group-togglable like every
+        // other beta, and NOT in USER_FACING_CORE (they are not core).
+        const MODULE_OF = {
+            automation_privacy_steps: 'automation',
+            datatable_retention: 'automation',
+            kb_datatable_sources: 'automation',
+            webpage_sharing: 'webpages',
+            studio_documents: null,
+            kb_scheduled_refresh: null,
+        };
+        for (const id of ENTERPRISE_SPLIT) {
+            const cap = registry.getCapability(id);
+            assert.ok(cap, `${id} is registered`);
+            assert.strictEqual(cap.kind, 'beta', `${id} is beta-kind`);
+            assert.strictEqual(cap.licenseFeature, id, `${id} licenseFeature = id`);
+            assert.strictEqual(cap.lifecycle, 'ga', `${id} is GA`);
+            assert.strictEqual(cap.defaultState, 'on', `${id} defaults on`);
+            assert.ok(cap.userFacing && cap.groupTogglable, `${id} is a matrix toggle`);
+            assert.strictEqual(cap.moduleId, MODULE_OF[id], `${id} belongs to module ${MODULE_OF[id]}`);
+            assert.ok(!registry.USER_FACING_CORE.has(id), `${id} is not in USER_FACING_CORE`);
+            assert.strictEqual(caps.filter(c => c.id === id).length, 1, `${id} is listed once`);
+        }
+    });
+    it('skills and webpages stay beta capabilities after their tier moves', () => {
+        assert.strictEqual(registry.getCapability('skills').kind, 'beta');
+        assert.strictEqual(registry.getCapability('skills').licenseFeature, 'skills');
+        assert.strictEqual(registry.getCapability('webpages').licenseFeature, 'webpages');
+    });
     it('gmail is an integration', () => {
         assert.strictEqual(registry.getCapability('gmail').kind, 'integration');
     });
@@ -162,6 +193,13 @@ function baseMocks() {
 const COMPLIANCE_FRAMEWORK_CAPS = [
     'compliance_hub_nis2', 'compliance_hub_cra', 'compliance_hub_data_act', 'compliance_hub_pld',
     'compliance_hub_eaa', 'compliance_hub_dora', 'compliance_hub_machinery', 'compliance_hub_custom',
+];
+
+// The enterprise split (2026-10): GA betas whose id equals an Enterprise-only
+// licence feature, in the compliance_hub_gdpr shape.
+const ENTERPRISE_SPLIT = [
+    'automation_privacy_steps', 'studio_documents', 'webpage_sharing',
+    'datatable_retention', 'kb_datatable_sources', 'kb_scheduled_refresh',
 ];
 
 const AS_USER = { userId: 'u1', orgId: 'o1', session: { user: { id: 'u1', role: 'user' } } };
@@ -315,6 +353,29 @@ before(async () => {
     await resolve('complianceSelfHosted', () => {
         license.serverLicenseGovernsOrgs = () => true;
         license.getBestTierForOrgs = async () => 'enterprise';
+    }, AS_USER);
+
+    // THE ENTERPRISE SPLIT (2026-10): the same subscription-togglable shape as
+    // the hub. On cloud the plan's beta list alone decides — in the list ⇒
+    // granted even on a community-tier plan; left out of a restricted list ⇒
+    // out of the ceiling even on an enterprise-tier plan. Self-hosted: the
+    // enterprise tier gets them, community does not (see E3/E4 above).
+    await resolve('splitInPlan', () => {
+        license.getBestTierForOrgs = async () => 'community';
+        license.getTierForUser = async () => 'community';
+        betaFeatures.getEffectiveOrgBetaAllowList = async () => [...ENTERPRISE_SPLIT];
+        license.orgGrantsFeature = async () => false; // plan list alone must carry them
+    }, AS_USER);
+    await resolve('splitExcluded', () => {
+        license.getBestTierForOrgs = async () => 'enterprise';            // paid plan…
+        betaFeatures.getEffectiveOrgBetaAllowList = async () => ['webpages']; // …whose restricted list predates the split
+    }, AS_USER);
+    // A stored org access menu narrows them like any other beta — the reason
+    // migrations/enterprise-split-2026-10.js appends them to stored menus.
+    await resolve('splitMenu', () => {
+        license.serverLicenseGovernsOrgs = () => true;
+        license.getBestTierForOrgs = async () => 'enterprise';
+        userStore.getOrgAvailableCapabilities = async () => ['webpages', 'webpage_sharing'];
     }, AS_USER);
 
     // Per-framework capabilities (NIS2, CRA, …): plain enterprise-tier core
@@ -517,9 +578,22 @@ describe('E3/E4 self-hosted community GA betas auto-on', () => {
         const snap = S.e3e4;
         assert.ok(snap.ceiling.beta.includes('agent_routines'), 'GA agent_routines in community ceiling (E3)');
     });
+    it('personal webpages (GA, Community licence since the enterprise split) in community ceiling', () => {
+        const snap = S.e3e4;
+        assert.ok(snap.ceiling.beta.includes('webpages'), 'GA webpages in community ceiling');
+        assert.ok(snap.effective.beta.includes('webpages'), 'and auto-on like the free builder');
+    });
     it('non-GA beta excluded on community', () => {
         const snap = S.e3e4;
-        assert.ok(!snap.ceiling.beta.includes('webpages'), 'non-GA beta excluded on community');
+        assert.ok(!snap.ceiling.beta.includes('skills'), 'non-GA skills excluded on community');
+        assert.ok(!snap.ceiling.beta.includes('meeting_notes'), 'non-GA meeting_notes excluded on community');
+    });
+    it('GA betas with an Enterprise-only licence feature excluded on community (app_studio + the enterprise split)', () => {
+        const snap = S.e3e4;
+        for (const id of ['app_studio', ...ENTERPRISE_SPLIT]) {
+            assert.ok(!snap.ceiling.beta.includes(id), `${id} excluded on community`);
+            assert.strictEqual(snap.reasons[id], 'ceiling', `${id}: reason is ceiling (upgrade CTA)`);
+        }
     });
     it('GA auto-on (absence ⇒ on) even with empty org list (E4)', () => {
         const snap = S.e3e4;
@@ -706,6 +780,39 @@ describe('per-framework compliance capabilities (compliance_hub_nis2 … complia
     });
     it('self-hosted community has none of them either', () => {
         for (const id of COMPLIANCE_FRAMEWORK_CAPS) assert.ok(!S.e3e4.ceiling.core.includes(id), id);
+    });
+});
+
+describe('ENTERPRISE SPLIT governed per subscription plan and org menu', () => {
+    it('plan-included ⇒ effective, even on a community-tier plan with no licence grant', () => {
+        const snap = S.splitInPlan;
+        for (const id of ENTERPRISE_SPLIT) {
+            assert.ok(snap.ceiling.beta.includes(id), `${id}: the plan list alone puts it in the ceiling`);
+            assert.ok(snap.effective.beta.includes(id), `${id}: granted org-wide`);
+        }
+    });
+    it('left out of a restricted list ⇒ out of the ceiling even on an enterprise-tier plan', () => {
+        const snap = S.splitExcluded;
+        for (const id of ENTERPRISE_SPLIT) {
+            assert.ok(!snap.ceiling.beta.includes(id), `${id}: restricted list overrides the enterprise tier`);
+            assert.strictEqual(snap.reasons[id], 'ceiling', `${id}: reason is ceiling`);
+        }
+        assert.ok(snap.effective.beta.includes('webpages'), 'the listed beta is unaffected');
+    });
+    it('self-hosted enterprise gets every one of them', () => {
+        const snap = S.complianceSelfHosted; // self-hosted enterprise, no menu
+        for (const id of ENTERPRISE_SPLIT) {
+            assert.ok(snap.ceiling.beta.includes(id), `${id} in the self-hosted enterprise ceiling`);
+            assert.ok(snap.effective.beta.includes(id), `${id} effective`);
+        }
+    });
+    it('a stored org access menu narrows them: only the listed ones survive', () => {
+        const snap = S.splitMenu;
+        assert.ok(snap.effective.beta.includes('webpage_sharing'), 'in the menu ⇒ effective');
+        for (const id of ENTERPRISE_SPLIT.filter(x => x !== 'webpage_sharing')) {
+            assert.ok(snap.ceiling.beta.includes(id), `${id} is still sellable (ceiling)`);
+            assert.ok(!snap.effective.beta.includes(id), `${id} missing from the menu ⇒ not effective`);
+        }
     });
 });
 

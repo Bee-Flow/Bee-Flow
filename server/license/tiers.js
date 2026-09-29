@@ -15,16 +15,19 @@
  * self-hosted core: chat with agents, knowledge bases (local, vector, hybrid,
  * reranked), the Nextcloud connector (including logging into Bee Flow from the
  * Nextcloud App Store app via `nextcloud_oauth`), multi-user with groups, the
- * skills marketplace and ALL built-in integrations (`integrations` — Google,
- * Microsoft, AI generation, third-party connectors, the Nextcloud module
- * family). Enterprise does NOT add the integrations themselves — it adds the
- * orchestration layer on top (no-code automation builder, scheduled agent
- * routines), the MCP server marketplace (`mcp_marketplace`, an enterprise beta),
- * SSO beyond Nextcloud (`sso_saml` — Google/Microsoft/SAML; Nextcloud OAuth
- * login stays Community via `nextcloud_oauth`) and the rest of the
- * Studio-class capabilities (voice chat,
- * webpages, automations, agent routines, meeting notes, ticket assistant,
- * notebooks, component designer, projects) on top, plus the advanced
+ * no-code automation builder and agent routines (personal use), personal
+ * webpages (`webpages`; SHARING a page is Enterprise via `webpage_sharing`) and
+ * ALL built-in integrations (`integrations` — Google, Microsoft, AI generation,
+ * third-party connectors, the Nextcloud module family). Enterprise does NOT add
+ * the integrations or the builder themselves — it adds the collaboration layer
+ * on top (sharing, approvals, projects), the MCP server marketplace
+ * (`mcp_marketplace`, an enterprise beta), Skills (`skills`), SSO beyond
+ * Nextcloud (`sso_saml` — Google/Microsoft/SAML; Nextcloud OAuth login stays
+ * Community via `nextcloud_oauth`) and the rest of the Studio-class
+ * capabilities (voice chat, meeting notes, ticket assistant, notebooks,
+ * component designer, projects, Studio Documents, webpage sharing, the
+ * automation privacy steps, datatable retention, datatable-fed and scheduled
+ * knowledge-base sources) on top, plus the advanced
  * Privacy Shield modes (tokenize PII, web-search guard), the non-overview
  * Usage & Monitoring tabs, and compliance / SSO / audit / themes / swarm
  * / analytics — and beta features in general are an enterprise+ benefit
@@ -80,7 +83,14 @@ const TIER_FEATURES = {
         'nextcloud_oauth',
         'single_user_login',
         'multi_user',
-        'skills',
+        // Personal webpages are free: building, previewing and keeping your own
+        // pages is Community. `webpages` is also a GA beta
+        // (core/entitlements/betaFeatures.js), so the self-hosted GA-community
+        // filter admits it from this line alone. What stays paid is SHARING a
+        // page with anyone else (`webpage_sharing`, Enterprise, below): the same
+        // "building is free, collaborating is paid" line the automation builder
+        // draws. `skills` is NOT here: it is Enterprise (see below).
+        'webpages',
         // Built-in integrations are part of the free Community core. This is a
         // declarative capability MARKER (it surfaces in
         // getLicenseStatus().features so the UI/docs can reference a real flag)
@@ -141,13 +151,59 @@ const TIER_FEATURES = {
         // Community automation cannot park rows nobody may list.
         'approvals',
         'voice_chat',
-        'webpages',
+        // NOTE: `webpages` is NOT here any more: personal webpages moved to the
+        // Community core above. Sharing them is `webpage_sharing`, below.
         'meeting_notes',
         'component_designer',
         'notebooks',
         'projects',
         'security_scan',
         'support_inbox',
+        // Skills: reusable instruction packs. Enterprise. It used to sit in the
+        // community list, but `skills` is a non-GA beta, and the self-hosted
+        // Community ceiling only admits GA betas, so a Community install never
+        // had it. Listing it here makes the tier list, the 403 bodies and the
+        // docs say what the runtime already did.
+        'skills',
+        // ── The enterprise split (2026-10) ─────────────────────────────────
+        // Six paid capabilities carved out of surfaces that were ungated until
+        // now. Each is ALSO a GA beta whose id equals this licence feature
+        // (core/entitlements/betaFeatures.js, the compliance_hub_gdpr
+        // pattern). Self-hosted Community therefore excludes them on its own
+        // (its ceiling only admits GA betas whose licence feature is in the
+        // community list), and on cloud each one is switchable per plan
+        // ("Included beta features") and per org access menu. The one-shot
+        // migrations/enterprise-split-2026-10.js grandfathers them into
+        // existing paid plans and stored org menus.
+        //
+        // House rule for every gate below: only NEW creation or WIDENING is
+        // refused. Existing data and shares keep working after a lapse or a
+        // downgrade, and REMOVING access (unsharing, revoking a grant) is
+        // never gated.
+        //
+        // The privacy steps an author places in an automation: guard ("does
+        // this contain personal data"), tokenize and untokenize. The
+        // org-wide Privacy Shield underneath every run is not affected.
+        'automation_privacy_steps',
+        // Studio Documents: invoices, quotes, letters and presentations in the
+        // organisation's house style, with PDF and .pptx output
+        // (/api/studio-documents).
+        'studio_documents',
+        // Sharing a webpage beyond its author: publishing it to the
+        // organisation or to groups, per-person grants and public share links.
+        // Building and previewing your own pages stays Community (`webpages`).
+        'webpage_sharing',
+        // Datatable retention windows ("delete rows after N days"). Setting a
+        // window is the paid act; the sweeper (jobs/datatableRetention.js)
+        // keeps honouring every window that already exists, because a
+        // retention promise must never stop on a lapse.
+        'datatable_retention',
+        // A datatable as a knowledge-base source (core/kb/sources/datatable.js):
+        // an agent answers from the live rows instead of an exported file.
+        'kb_datatable_sources',
+        // Scheduled refresh of knowledge-base sources: the refresh engine
+        // (core/kb/sources) re-syncing a source on a schedule.
+        'kb_scheduled_refresh',
         // App Studio — Enterprise + beta opt-in. Visual app builder: AI
         // assembles structured component-tree apps whose forms/buttons run
         // the owner's Routines; publishable to org/groups.

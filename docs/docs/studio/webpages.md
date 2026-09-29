@@ -11,11 +11,14 @@ dashboard on a run's result. You then refine it, decide who may see it, and publ
 URL: `/app/studio/webpages` · one page opens at `/app/studio/webpages/:id`.
 The legacy `/app/webpages[/<id>]` paths resolve into the same Studio section.
 
-**Tier:** Enterprise. The section is gated on `webpages` — the same entitlement the
-server puts in front of `/api/webpages`. A Community organisation sees the row in the
-Studio rail **disabled with an upgrade hint** rather than not at all; opening it anyway
-lands on a panel that says Webpages is not enabled for this account and to ask an
-admin, rather than a screen that 403s on every request.
+**Tier:** Community for building and keeping your own pages; sharing a page beyond
+its author (publishing it to the organisation or to groups, per-person grants, public
+share links) is Enterprise (`webpage_sharing`). The section is gated on `webpages`, the
+same entitlement the server puts in front of `/api/webpages`. An organisation whose plan
+leaves Webpages out sees the row in the Studio rail **disabled with an upgrade hint**
+rather than not at all; opening it anyway lands on a panel that says Webpages is not
+enabled for this account and to ask an admin, rather than a screen that 403s on every
+request.
 
 ## The list
 

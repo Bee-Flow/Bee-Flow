@@ -26,7 +26,7 @@
 module.exports = {
     // ── Gated routes (require a license feature) ─────────────────────
     // The gate is a no-op only for features that live in
-    // TIER_FEATURES.community (chat_basic / skills / kb_* / etc.). The
+    // TIER_FEATURES.community (chat_basic / webpages / kb_* / etc.). The
     // Studio-class features below were promoted to enterprise in the tier
     // tightening — see docs/docs/licensing/tiers.md — and now enforce on
     // every community install.
@@ -42,10 +42,10 @@ module.exports = {
     '/api/compliance': { gate: 'compliance_hub_gdpr', beta: null, notes: 'Enterprise tier self-hosted; on cloud the id is a GA compound feature flag (betaFeatures.js) so subscription plans include/exclude the hub per org via allowed_beta_features. One gate covers the whole Compliance Hub incl. AI Act and ISO 27001 checks; compliance_hub_aia and compliance_hub_iso27001 are declared in tiers.js but reserved for a future per-regulation route split (e.g. ISO as paid add-on)' },
     '/api/dsr': { gate: null, beta: null, notes: 'Public DSR channel must stay reachable per GDPR Art. 12; admin endpoints inside the router enforce admin_compliance' },
     '/api/notebooks': { gate: 'notebooks', beta: null, notes: 'Enterprise tier; configStore.feature_notebooks_enabled remains as a per-deployment kill switch (runs AFTER the licence gate so the frontend sees the actionable feature_locked body first)' },
-    '/api/webpages': { gate: 'webpages', beta: 'webpages', notes: 'Enterprise tier + beta opt-in' },
+    '/api/webpages': { gate: 'webpages', beta: 'webpages', notes: 'Community tier since the enterprise split (2026-10): personal webpages are free, and webpages is a GA beta, so a Community install gets it without opting in. Sharing a page beyond its author (publishing to the organisation or groups, grants, public share links) is the separate Enterprise feature webpage_sharing, a GA beta with the same id.' },
     '/api/transcriptions': { gate: 'meeting_notes', beta: 'meeting_notes', notes: 'Enterprise tier + beta opt-in' },
     '/api/gmeet-notes-settings': { gate: 'meeting_notes', beta: null, notes: 'License-only (no beta gate) — Google Meet → Meeting Notes org/user settings; kept on requireLicenseFeature like /api/talk-notes-settings so it is not over-gated.' },
-    '/api/skills': { gate: 'skills', beta: 'skills', notes: 'Community tier + beta opt-in (skills stays in community)' },
+    '/api/skills': { gate: 'skills', beta: 'skills', notes: 'Enterprise tier + beta opt-in. skills moved from the community list to enterprise in the enterprise split (2026-10); no runtime change on self-hosted, because a non-GA beta was never inside the Community ceiling.' },
     // '/api/security' is intentionally absent: Security Scan moved out of core to
     // a downloadable .bfmod (Hub marketplace); the module owns + gates that mount.
     '/api/support-inbox': { gate: 'support_inbox', beta: 'support_inbox', notes: 'Enterprise tier + beta opt-in — Studio Support tab (tenant customer-support inbox: connect Gmail/Outlook mailbox, inbound→ticket, AI reply, KB-ingest routine). Org-level support_inbox permission additionally gates per-user access.' },
