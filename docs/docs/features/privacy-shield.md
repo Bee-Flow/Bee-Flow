@@ -6,6 +6,22 @@ title: Privacy shield
 
 The Privacy Shield is the in-tenant filter that scans every prompt and tool result before it reaches the language model. It's available in **every tier**, including Community.
 
+## Free and Enterprise
+
+| | Community | Enterprise |
+|---|:---:|:---:|
+| Detection of all 21 categories, on your own server | ✅ | ✅ |
+| **Block** a message that contains personal data | ✅ | ✅ |
+| **Tokenize**: placeholders instead of real values, restored in the reply | — | ✅ |
+| **Web search guard**: personal data filtered out of web search | — | ✅ |
+| **Your own data**: your own words, formats and AI labels | — | ✅ |
+| The **Guard** and **Tokenize** steps in automations (Untokenize is not gated) | — | ✅ |
+| The **What happened** tab (where your data went) | — | ✅ |
+
+The org-wide shield under every chat and every automation run works the same on both
+tiers. What Enterprise adds is the reversible placeholders, the extra guards, and the
+privacy steps an author places in an automation (`automation_privacy_steps`).
+
 ## Detected categories
 
 Bee Flow detects **21 categories** of sensitive data. Detection runs against
@@ -94,7 +110,7 @@ Configure per-org in **Settings → Organisation → Privacy**, or per-agent in 
 | `piiFailureMode` | `fail_closed` | What to do when detection is unavailable. Server-side only — deliberately not exposed in the UI, because the safe value is the one you want. |
 | `showRawPayload` | `false` | Emit tokenised prompt + token map as SSE events for transparency (debug). |
 | `euModeEnabled` | `false` | GDPR-aware data handling (logs minimised). |
-| `webSearchGuardEnabled` | `true` | Apply PII filter to web-search results before injection. |
+| `webSearchGuardEnabled` | `true` | Apply PII filter to web-search results before injection. Enterprise; a Community save forces it off. |
 | `customDataTypes` | `[]` | Your own kinds of data (see [Your own data](#your-own-data)). Each one is switched on by its id in `piiDetectionCategories` and the two tool lists. |
 | `customSensitiveTerms` | `[]` | The old list of your own words and patterns. Kept for one release as a copy of your own words and fixed formats; edit them under Your own data instead. |
 

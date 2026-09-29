@@ -4,9 +4,12 @@ title: Automations
 
 # Automations
 
-:::warning[Pro tier feature]
+:::info[Free in Community]
 
-Requires a Pro or higher licence key. See [Tiers](../getting-started/tiers.md).
+Building and running automations is free: no licence key and no cap on how many you
+run. A few parts are Enterprise (approval steps, sharing, the privacy steps and the
+compliance checks); see [Tiers](#tiers) below and
+[Free vs paid features](../getting-started/tiers.md).
 
 :::
 
@@ -435,11 +438,37 @@ at `trigger.headers.<name>`, lowercased with dashes turned into underscores:
 `x-*` header. `X-BeeFlow-Signature` and `X-BeeFlow-Nonce` are never passed
 on.
 
-## Tier limits
+## Tiers
 
-- **Pro** — up to 100 active automations per org. Min cron interval: 5 min.
-- **Enterprise** — unlimited active automations. Min cron interval: 1 min. Approval steps. Webhook IP-allowlist.
-- **Full** — same as Enterprise plus white-labelled webhook URLs.
+**Community** has the whole builder: every trigger (schedule, webhook, app event,
+form, button, chat), AI steps, integration actions, logic, loops, datatables, dry runs
+and run history, with no cap on the number of automations. Automations are private to
+the person who builds them.
+
+**Enterprise** adds four things on top:
+
+| What | Licence feature |
+|---|---|
+| **Approval steps**: a person decides before a step acts on your behalf | `approvals` |
+| **Sharing** a routine with people or groups (run, view, edit) | `automation_sharing` |
+| The **Guard** and **Tokenize** privacy steps (**Untokenize**, which only puts values back, is not gated) | `automation_privacy_steps` |
+| The **compliance checks** on a routine, from the Compliance Center | `compliance_hub_gdpr` |
+
+The org-wide [Privacy Shield](privacy-shield.md) under every run is the same on both
+tiers; only the steps an author places in a routine are Enterprise.
+
+The check sits where a routine starts to act without its author watching: switching it
+on, publishing a version, and the builder's test runs of a copy that is not live yet.
+A refusal is a readable 403 that names each step.
+
+When a licence lapses, what is already live keeps working. A Guard or Tokenize step in
+the live version keeps running, and publishing a new version that still carries it is
+allowed. Approvals that are already pending can still be decided, so the paused run
+behind them completes, and the people a routine is already shared with keep their
+access; removing a share always works. What a lapse refuses is new: a routine with a
+new Guard or Tokenize step cannot go live, sharing further is refused, and approval
+steps need the licence every time (a run that reaches one stops there with a message
+saying approvals need Enterprise).
 
 ## Where to next
 

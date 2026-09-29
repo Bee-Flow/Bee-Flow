@@ -8,6 +8,17 @@ This page is the UI walkthrough. For the technical underpinnings (embeddings, ch
 
 URL: `/app/studio/knowledge`. A knowledge base, its tab and an opened source all live in the path — `/app/studio/knowledge/<id>/<tab>/<sourceId>` — so every one of these screens is a link you can send someone.
 
+**Tier:** Knowledge bases are Community: files, pasted text and web pages, refreshed by
+hand with **Refresh now**. Two things are Enterprise: a **datatable as a source**
+(`kb_datatable_sources`) and refreshing a source **on a schedule**
+(`kb_scheduled_refresh`). A meeting-notes source needs meeting notes, which are
+Enterprise as well. When a licence lapses, existing sources and their documents stay
+searchable. A scheduled source runs the pass that is due and is then not armed again:
+from then on it refreshes when someone presses **Refresh now**, until the plan has the
+feature again. A datatable source keeps refreshing, because that pass is also how rows
+deleted upstream leave the knowledge base. What a lapse refuses is adding a datatable
+source or a new schedule.
+
 ![Knowledge bases list](../img/screenshots/studio/knowledge-bases-list/)
 
 ## The list
@@ -41,8 +52,8 @@ A source is a *standing arrangement* to read something, not a one-off import: a 
 |---|---|
 | **Folder in Nextcloud** | *Coming soon.* The button is visible but disabled with that tooltip. |
 | **Upload files** | Up to 20 files at a time, 20 MB each. Files over the limit are named and refused before they upload. |
-| **Table** | A datatable; its columns become the row's description. |
-| **Meeting notes** | Everything tagged with a chosen meeting tag. |
+| **Table** *(Enterprise)* | A datatable; its columns become the row's description. |
+| **Meeting notes** *(Enterprise)* | Everything tagged with a chosen meeting tag. |
 | **Web page / URL** | An address, optionally following links on the same site up to a page limit. |
 | **Paste text** | One pasted snippet. |
 | **Let an automation fill it** | Not a form. It explains that a source of this kind appears when a routine writes to this base — which you set up in the routine, and the panel links you there. |
@@ -54,6 +65,9 @@ Each row shows the kind's icon, the source's name, and a second line in the sour
 ### Keeping a source current
 
 The refresh cell says the rule; the column beside it says when it last ran, or **never**. The row's ⋯ menu has **Refresh now**, **Rename**, **Refresh schedule…**, **Open** and **Delete**.
+
+**Refresh now** works on every tier. A refresh **on a schedule** is Enterprise
+(`kb_scheduled_refresh`).
 
 The schedule menu offers only what the kind supports, because the server refuses the rest:
 

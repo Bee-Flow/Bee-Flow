@@ -65,6 +65,17 @@ The primary action is **Publish** (**Republish** once the page has been publishe
 - **Sources** — the documents and URLs the AI reads while building the page.
 - **Database** — the page's own table viewer.
 
+### Sharing needs Enterprise
+
+Everything in **Who can see it** beyond *Personal* is Enterprise (`webpage_sharing`):
+publishing a page to the organisation or to groups, granting it to people, and the
+public address and share links. On Community a page stays with its author, who can
+still build, preview, version and download it.
+
+When a licence lapses, a page that is already shared stays shared, and making it
+narrower (back to *Personal*, removing a grant, turning Public off) always works. What
+a lapse refuses is sharing it further.
+
 ### What "Public" actually means
 
 A public webpage is a **snapshot**, not a live page, and three things follow from that:

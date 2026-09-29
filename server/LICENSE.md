@@ -43,16 +43,25 @@ paid service to third parties.
 
 ## License-gated features
 
-Several features (Automations, Webpages, Meeting Notes, Skills,
-DLP/Guardrails, White-label, License issuance) require a valid
-Bee Flow license key signed by the Bee Flow licence-server. The validation
-public key bundled in this repository (`server/license/bundled-public-key.pem`)
-is the **only** key against which licenses verify; you are explicitly
-forbidden from replacing it with your own key to bypass paid features. Doing
-so terminates your license under "Termination" below.
+Several features require a valid Bee Flow license key signed by the Bee Flow
+license server: the Privacy Shield placeholders, web search guard and
+automation steps; the Compliance Center; approval steps and sharing in
+automations; Studio Apps, Documents, Playbooks and Solutions; sharing web
+pages; data table retention and sharing; data tables as a knowledge source and
+scheduled knowledge refresh; Skills; Meeting Notes; Notebooks; the support
+inbox; advanced usage monitoring and analytics; encryption at rest; single
+sign-on; audit log export; custom themes; White-label; and License issuance.
+License keys are verified against the Bee Flow license server's public key,
+which the software reads from `LICENSE_PUBLIC_KEY` or `LICENSE_PUBLIC_KEY_FILE`,
+or from the license server's key set at `LICENSE_JWKS_URL`. You are explicitly
+forbidden from replacing that verification key, or pointing the software at a
+key or key set of your own, to bypass paid features. Doing so terminates your
+license under "Termination" below.
 
-The community tier (single user, basic chat, local KB) is fully functional
-without any license key.
+The community tier (multiple users, chat and assistants, knowledge bases,
+automations, data tables and web pages for personal use, integrations, the
+Nextcloud connector, the Learning Center and Privacy Shield detection that
+blocks personal data) is fully functional without any license key.
 
 ## Patents
 

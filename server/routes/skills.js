@@ -1,7 +1,9 @@
 /**
  * Skills API — CRUD routes for reusable instruction packs.
  *
- * Mounted at /api/skills (server/index.js: `requireCapability('skills')`).
+ * Mounted at /api/skills (server/index.js: `requireCapability('skills')`,
+ * wrapped by core/skills/creationGate.exceptRemoval so DELETE /:id passes
+ * without it: removing a skill is never gated, even after a lapse).
  *
  * ── S1 additions (Bee Flow Builder redesign, Sep 2026) ──────────────
  *   GET  /               rows carry `canEdit` and `lastTest {status, adviceCount, ranAt}|null`

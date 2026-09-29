@@ -13,6 +13,10 @@ const http = require('node:http');
 const Module = require('module');
 
 const createCalls = [];
+const skillCreateCalls = [];
+// Skills are Enterprise (core/skills/creationGate.js). Switchable per test.
+let skillsAllowed = true;
+const gateCalls = [];
 
 // Reconfigurable LLM stub. chatImpl(messages, options) → { content }.
 let chatImpl = null;
@@ -28,7 +32,16 @@ const MOCKS = {
     '../../stores/agentStore': {
         createAgent: async (...args) => { createCalls.push(args); return { id: 'new-agent', name: args[0] }; },
     },
-    '../../stores/skillStore': { getAvailableSkills: async () => [] },
+    '../../stores/skillStore': {
+        getAvailableSkills: async () => [{ id: 'lib-1', name: 'Invoices', description: 'Reads invoices' }],
+        createSkill: async (row) => { skillCreateCalls.push(row); return { id: `new-${skillCreateCalls.length}`, name: row.name }; },
+    },
+    // The real refusal body, loaded by ABSOLUTE path so this directory's
+    // relative-resolve cache cannot hand wizard.js the real gate.
+    '../../core/skills/creationGate': {
+        canCreateSkills: async (ctx) => { gateCalls.push(ctx); return skillsAllowed; },
+        skillsLockedBody: require(require('node:path').join(__dirname, '..', '..', 'core', 'skills', 'creationGate')).skillsLockedBody,
+    },
     '../../stores/userStore': {
         getUser: async () => ({}),
         getOrganization: async () => null,
@@ -138,7 +151,7 @@ const CURRENT = {
     knowledge_base_ids: ['kb1'],
 };
 
-test.beforeEach(() => { chatCalls.length = 0; });
+test.beforeEach(() => { chatCalls.length = 0; skillsAllowed = true; gateCalls.length = 0; skillCreateCalls.length = 0; });
 
 test('preserves apps/skills/model (incl. custom tier) when the plan omits them', async () => {
     // Model returns a valid plan but drops the curated apps/skills/kbs and only
@@ -365,4 +378,94 @@ test('a commit without a plan is refused by name', async () => {
     assert.strictEqual(res.status, 400);
     assert.ok(res.body.details.some(d => d.path === 'body.plan'), JSON.stringify(res.body.details));
     assert.strictEqual(createCalls.length, before, 'and no agent is created');
+});
+
+// ═══ Skills are Enterprise ══════════════════════════════════════════
+//
+// The wizard itself is Community; the skills it proposes are not. Without
+// Skills the plan comes back without them, the model is not shown the library,
+// and a commit still creates the agent, just without skills.
+
+const PLAN_WITH_SKILLS = () => ({
+    name: 'Invoice Bot',
+    description: 'Handles invoices',
+    capabilities: ['Read invoices'],
+    systemPrompt: 'You handle invoices.',
+    enabledIntegrations: [],
+    skills: [
+        { id: 'lib-1', name: 'Invoices' },
+        { id: null, name: 'Dunning letters', instructions: 'Write a polite reminder.' },
+    ],
+});
+
+test('draft without Skills: no library in the prompt, no skills in the plan', async () => {
+    skillsAllowed = false;
+    chatImpl = () => ({ content: JSON.stringify(PLAN_WITH_SKILLS()) });
+    const res = await post('/agents/wizard/draft', { prompt: 'an invoice agent', locale: 'en' });
+    assert.strictEqual(res.status, 200, JSON.stringify(res.body));
+    assert.deepStrictEqual(res.body.plan.skills, [], 'the model proposed skills anyway; they are dropped');
+    const system = chatCalls[0].messages[0].content;
+    assert.doesNotMatch(system, /Invoices/, 'the skill library is not shown to the model');
+    assert.match(system, /Skills are not available in this workspace/);
+    assert.strictEqual(gateCalls.length, 1);
+    assert.strictEqual(gateCalls[0].userId, 'owner');
+    assert.strictEqual(gateCalls[0].orgId, 'orgA');
+});
+
+test('draft with Skills: the library is offered and proposals come through', async () => {
+    chatImpl = () => ({ content: JSON.stringify(PLAN_WITH_SKILLS()) });
+    const res = await post('/agents/wizard/draft', { prompt: 'an invoice agent', locale: 'en' });
+    assert.strictEqual(res.status, 200, JSON.stringify(res.body));
+    assert.strictEqual(res.body.plan.skills.length, 2);
+    const system = chatCalls[0].messages[0].content;
+    assert.match(system, /id="lib-1" name="Invoices"/);
+    assert.match(system, /skills: propose 0-5 skills/);
+});
+
+test('refine without Skills keeps the preserved skill ids, so an attached skill is not dropped', async () => {
+    skillsAllowed = false;
+    chatImpl = () => ({ content: JSON.stringify({ ...PLAN_WITH_SKILLS(), name: 'Legal Bot' }) });
+    const res = await refine({
+        plan: { name: 'Legal Bot', systemPrompt: 'old' },
+        current: CURRENT,
+        refinement: 'friendlier',
+        locale: 'en',
+    });
+    assert.strictEqual(res.status, 200, JSON.stringify(res.body));
+    assert.deepStrictEqual(res.body.plan.skills, []);
+    assert.deepStrictEqual(res.body.preserved.attachedSkillIds, ['s1']);
+});
+
+test('commit without Skills creates the agent, creates and attaches no skill, and says so', async () => {
+    skillsAllowed = false;
+    createCalls.length = 0;
+    const res = await post('/agents/wizard/commit', { plan: PLAN_WITH_SKILLS(), locale: 'en' });
+    assert.strictEqual(res.status, 200, JSON.stringify(res.body));
+    assert.strictEqual(createCalls.length, 1, 'the agent is still created');
+    assert.deepStrictEqual(createCalls[0][9].attachedSkillIds, [], 'no skill attached, not even an existing one');
+    assert.strictEqual(skillCreateCalls.length, 0, 'no skill created');
+    assert.deepStrictEqual(res.body.createdSkills, []);
+    assert.strictEqual(res.body.skillsSkipped.code, 'feature_locked');
+    assert.strictEqual(res.body.skillsSkipped.feature, 'skills');
+    assert.match(res.body.skillsSkipped.message, /Enterprise plan/);
+    assert.deepStrictEqual(res.body.skillsSkipped.names, ['Invoices', 'Dunning letters']);
+    assert.strictEqual(res.body.error, undefined, 'a 200 carries no error key');
+});
+
+test('commit with Skills reuses the library skill and creates the new one', async () => {
+    createCalls.length = 0;
+    const res = await post('/agents/wizard/commit', { plan: PLAN_WITH_SKILLS(), locale: 'en' });
+    assert.strictEqual(res.status, 200, JSON.stringify(res.body));
+    assert.strictEqual(skillCreateCalls.length, 1);
+    assert.strictEqual(skillCreateCalls[0].name, 'Dunning letters');
+    assert.deepStrictEqual(createCalls[0][9].attachedSkillIds, ['lib-1', 'new-1']);
+    assert.strictEqual(res.body.skillsSkipped, undefined);
+});
+
+test('a commit that plans no skills never asks the gate', async () => {
+    skillsAllowed = false;
+    const res = await post('/agents/wizard/commit', { plan: { ...PLAN_WITH_SKILLS(), skills: [] }, locale: 'en' });
+    assert.strictEqual(res.status, 200);
+    assert.strictEqual(gateCalls.length, 0);
+    assert.strictEqual(res.body.skillsSkipped, undefined);
 });

@@ -921,7 +921,10 @@ app.use('/api/summary-templates', requireModule('meetingNotes'), requireLicenseF
 // router additionally refuses everything unless pyannoteAI is the active
 // transcription provider.
 app.use('/api/voiceprints', requireModule('meetingNotes'), requireCapability('meeting_notes'), require('./routes/voiceprints'));
-app.use('/api/skills', requireCapability('skills'), requireTraining('skills'), require('./routes/skills'));
+// Skills are Enterprise, but REMOVING one is never gated (the enterprise-split
+// house rule): DELETE /api/skills/:id skips the capability, every other route
+// here still needs it. See core/skills/creationGate.js exceptRemoval.
+app.use('/api/skills', require('./core/skills/creationGate').exceptRemoval(requireCapability('skills')), requireTraining('skills'), require('./routes/skills'));
 // Customer Support — Bee Flow's own AI-first support inbox. Mounted publicly
 // (no license/beta gate) because the POST /threads endpoint accepts anonymous
 // submissions from the marketing site; staff-only endpoints enforce

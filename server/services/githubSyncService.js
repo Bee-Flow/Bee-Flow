@@ -230,6 +230,12 @@ function serializeSkillMeta(skill) {
  * precedence rule lets the structure win and regenerates the text.
  * A format-1 file (no structure) yields no structured keys at all, so the
  * store parses the .md text instead of overwriting structure with [].
+ *
+ * Sync is push-only today: nothing turns this output into a NEW skill. Skills
+ * are Enterprise, so the pull that eventually does must ask
+ * core/skills/creationGate.canCreateSkills before skillStore.createSkill, the
+ * way the wizard and the session-skill import do. Pushing existing skills out
+ * is not gated: it copies data the organisation already has.
  */
 function deserializeSkillMeta(json) {
     const meta = typeof json === 'string' ? JSON.parse(json) : (json || {});

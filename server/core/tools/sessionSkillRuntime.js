@@ -513,6 +513,9 @@ async function executePublishSessionSkill({
     sessionSkills = [],
     orgId,
     userId,
+    session = null,
+    // Test seam; defaults to core/skills/creationGate.canCreateSkills.
+    canCreateSkills = null,
 }) {
     const skillId = typeof args?.skill_id === 'string' ? args.skill_id : '';
     if (!skillId) return { error: 'skill_id is required.' };
@@ -520,6 +523,15 @@ async function executePublishSessionSkill({
 
     const src = (sessionSkills || []).find(s => s.id === skillId);
     if (!src) return { error: `Session skill not found: ${skillId}` };
+
+    // Publishing puts a NEW skill in the library, and Skills are Enterprise.
+    // The session skill keeps working in this chat either way, so the refusal
+    // goes back to the model as a sentence it can pass on.
+    const gate = require('../skills/creationGate');
+    const allowed = await (canCreateSkills || gate.canCreateSkills)({ userId, orgId, session });
+    if (!allowed) {
+        return { error: gate.SKILLS_LOCKED_MESSAGE, code: 'feature_locked', feature: 'skills' };
+    }
 
     const created = await skillStore.createSkill({
         orgId,

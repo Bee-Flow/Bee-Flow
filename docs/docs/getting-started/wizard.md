@@ -74,9 +74,9 @@ The detection backend is configurable independently of the level (Azure AI Text 
 
 ## Step 4 — License key (optional)
 
-Stay on the free **Community** tier or paste a JWT licence key from [https://beeflow.nl/pricing](https://beeflow.nl/pricing) to unlock automations, multi-user, voice, compliance hub and other premium features.
+Stay on the free **Community** tier (chat, assistants, knowledge bases, automations, multiple users and every built-in integration) or paste a JWT licence key from [https://beeflow.nl/pricing](https://beeflow.nl/pricing) to unlock the Enterprise features, such as skills, meeting notes, voice, the Compliance Center, approvals and sharing. See [Free vs paid features](tiers.md).
 
-The server verifies the JWT signature against a bundled public key (`license/bundled-public-key.pem`). If valid, the active tier updates immediately — no restart needed. Premium navigation entries appear, and gated endpoints become reachable.
+The server verifies the JWT signature against the Bee Flow licence server's public key (`LICENSE_PUBLIC_KEY`, `LICENSE_PUBLIC_KEY_FILE` or the key set at `LICENSE_JWKS_URL`). If valid, the active tier updates immediately, with no restart needed. Premium navigation entries appear, and gated endpoints become reachable.
 
 You can paste, rotate, or remove a key any time later under **Settings → Organisation → License & usage**. See [Applying a licence key](../licensing/apply.md).
 

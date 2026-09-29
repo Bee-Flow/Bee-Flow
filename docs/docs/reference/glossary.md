@@ -34,7 +34,7 @@ title: Glossary
 | **Integration** | A connector to an external service (Gmail, Outlook, GitHub, …). Each exposes one or more tools. |
 | **JWT** | JSON Web Token. Used for sessions, NC handshakes, and licence keys. |
 | **Knowledge Base (KB)** | A document collection the agent can search. Local (Postgres) or vector (pgvector / Qdrant). |
-| **Licence key** | A signed JWT that unlocks premium tiers. Verified against `bundled-public-key.pem`. |
+| **Licence key** | A signed JWT that unlocks the paid tiers. Verified against the Bee Flow licence server's public key (`LICENSE_PUBLIC_KEY`, `LICENSE_PUBLIC_KEY_FILE` or `LICENSE_JWKS_URL`). |
 | **Memory** | Per-user (or per-agent) facts the **Memory Extractor** system agent populates over time. |
 | **Moderation** | Post-generation safety check via Azure Content Safety. |
 | **NC** | Nextcloud. |
@@ -42,7 +42,7 @@ title: Glossary
 | **Org / Organisation / Tenant** | A self-contained Bee Flow workspace. Has users, groups, agents, settings, licence. |
 | **PGVector** | Postgres extension providing native vector similarity search. Used for KBs in default deploys. |
 | **PII** | Personally Identifiable Information — what the Privacy Shield detects + redacts. |
-| **Pro tier** | 25 users, 20 agents, 50k msg/mo. Includes automations, voice, web pages, meeting notes, skills. |
+| **Pro tier** | A retired paid tier. Keys that still carry `tier: "pro"` resolve to Enterprise. |
 | **Privacy Shield** | The in-tenant PII filter that redacts sensitive content before it reaches the model. Always-on; level configurable. |
 | **Reranker** | A cross-encoder that re-orders top-K KB search results for better quality. Optional. |
 | **Routine** | The end-user name for an automation in the SPA (`/app/routines`). |

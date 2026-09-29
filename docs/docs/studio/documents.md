@@ -7,6 +7,11 @@ Documents stores printable HTML and CSS, with a shared definition of parameters,
 conditional sections and styling. The editor, AI builders, automation runs and
 app actions use that same definition.
 
+**Tier:** Enterprise (`studio_documents`, the `/api/studio-documents` surface). On
+Bee Flow Cloud the subscription plan decides whether Documents is included. When a
+licence lapses, the house rule of every paid feature applies: what already exists
+keeps working and can be removed, and what is refused is creating new documents.
+
 ## Organize and create
 
 Use the **Documents**, **Templates** and **Reusable sections** views to search,

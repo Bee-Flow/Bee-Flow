@@ -211,10 +211,11 @@ Community feature — building automations is in the free core. Sharing them acr
 
 ## Skills
 
-Enterprise feature (since the 2026-10 enterprise split), and the whole mount also sits behind the **Skills beta** opt-in
-(`requireCapability('skills')`), so an org that has not enabled the beta gets no route at
-all. Every write additionally needs the `manage_skills` permission. There is no
-marketplace: skills are written, not browsed or installed.
+Enterprise feature (since the 2026-10 enterprise split), and the mount also sits behind the **Skills beta** opt-in
+(`requireCapability('skills')`), so an org without it gets no route at all, with one
+exception: `DELETE /api/skills/:id` skips the capability, because removing a skill is never
+gated. Every write except that delete additionally needs the `manage_skills` permission.
+There is no marketplace: skills are written, not browsed or installed.
 
 | Method | Path | Auth | Purpose |
 |--------|------|:----:|---------|

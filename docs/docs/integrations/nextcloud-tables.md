@@ -53,7 +53,7 @@ Two kinds, both ending up as a *link to a row* column:
 |-------|---------|
 | `GET /api/datatables/nextcloud/linkable` | Tables and views the caller could link, with what is already linked. |
 | `GET /api/datatables/nextcloud/describe?ncTableId=` | The columns a link would arrive with. |
-| `POST /api/datatables/nextcloud/link` | Link tables (`{scope, tables:[{ncTableId|ncViewId, name, key}], relations:[{from:{ncTableId,ncColumnId}, to:{…}}]}`). |
+| `POST /api/datatables/nextcloud/link` | Link tables (`{scope, tables:[{ncTableId\|ncViewId, name, key}], relations:[{from:{ncTableId,ncColumnId}, to:{…}}]}`). |
 | `GET /api/datatables/:id/nextcloud` | The mirror's source and sync state. |
 | `POST /api/datatables/:id/nextcloud/refresh` | Refresh now. |
 | `PUT /api/datatables/:id/nextcloud` | Schedule and refresh-on-open. |

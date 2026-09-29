@@ -12,7 +12,7 @@ After purchase, you receive a JWT in your inbox. To apply it:
 2. Go to **Settings → Organisation → Licence & usage**.
 3. Paste the JWT into the **Licence key** field and click **Apply**.
 
-The server verifies the signature against the bundled public key (`license/bundled-public-key.pem`) and updates the active tier immediately. Premium features become available without a restart.
+The server verifies the signature against the Bee Flow licence server's public key (configured with `LICENSE_PUBLIC_KEY` or `LICENSE_PUBLIC_KEY_FILE`, or fetched from the key set at `LICENSE_JWKS_URL`) and updates the active tier immediately. Paid features become available without a restart.
 
 ![Applying a licence key](../img/screenshots/admin/license-apply/)
 
@@ -80,20 +80,20 @@ Returns:
 
 ```json
 {
-  "tier": "pro",
+  "tier": "enterprise",
   "expiresAt": "2027-05-09T00:00:00Z",
   "features": [
     "automations",
     "webpages",
     "meeting_notes",
     "skills",
-    "voice"
+    "voice_chat"
   ],
   "limits": {
-    "users": 25,
-    "agents": 20,
-    "messages": 50000,
-    "knowledgeBases": 100
+    "max_users": -1,
+    "max_agents": -1,
+    "max_messages_per_month": -1,
+    "max_kb_sources": -1
   },
   "tenantId": "org_abc",
   "issuedAt": "2026-05-09T00:00:00Z",
@@ -132,11 +132,11 @@ Verification logic lives in [`server/license/verify.js`](https://github.com/Bee-
 Paste a new key at any time — it overwrites the old one. Two situations:
 
 - **Renewal** — same tier, new `exp`. Replace and you're done.
-- **Upgrade** (Pro → Enterprise) — premium features that were 403 immediately become reachable. Routes that were UI-hidden appear in the nav.
+- **Upgrade** (Community → Enterprise): paid features that answered 403 become reachable immediately, and routes that were hidden appear in the nav.
 
 ## Removing
 
-Clear the field and click **Apply**. The org reverts to the Community tier. Premium features become unavailable but **all data is preserved** — automations stop firing, but the definitions stay; vector KBs stay indexed but only local search is available; the guardrail audit log keeps its existing rows.
+Clear the field and click **Apply**. The org reverts to the Community tier. Paid features become unavailable but **all data is preserved**: automations keep running (they are Community), skills already attached to assistants keep working, shares that already exist stay in place, and the guardrail audit log keeps its existing rows. What the Community tier refuses is new use of a paid feature, such as adding a skill, an approval step or a share. See [Tiers → When a licence lapses](tiers.md#when-a-licence-lapses).
 
 Re-applying a valid key restores everything.
 

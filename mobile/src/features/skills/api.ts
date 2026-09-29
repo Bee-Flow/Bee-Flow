@@ -13,10 +13,53 @@
  * both: it never retries a 403 (so the screen shows describeError's "not
  * available on your plan" immediately) and it does retry the 503, which is the
  * one the server is asking us to come back for.
+ *
+ * Skills are Enterprise. That 403's body is `{ error: 'feature_locked', … }`:
+ * a CODE where the client looks for a sentence (src/api/client.ts takes
+ * `error` as the message), so the plan screen would read "feature_locked".
+ * `readableRefusal` below swaps the code for words before the screen sees it.
+ * The one route that never asks for Skills is DELETE /:id: removing a skill
+ * works on every plan (server/core/skills/creationGate.js exceptRemoval).
  */
 
 import type { Skill, SkillDraft } from './types';
-import { api } from '../../api/client';
+import { ApiError, api } from '../../api/client';
+import { translate } from '../../i18n';
+
+/** The two answers the capability gate writes into `error` as bare codes. */
+const ENTITLEMENT_CODES = new Set(['feature_locked', 'feature_disabled']);
+
+/**
+ * A 403 whose `error` is an entitlement CODE, rewritten as a sentence; any
+ * other error comes back untouched. A refusal that already carries a sentence
+ * (`not_editable`, or the server's own "Adding skills needs Skills…" from the
+ * wizard and the chat import, which put the code in `code`) is left alone,
+ * because the server's words are better than ours.
+ */
+export function readableRefusal(error: unknown): unknown {
+    if (!(error instanceof ApiError) || error.status !== 403) return error;
+    const body = error.body as { error?: unknown } | null | undefined;
+    const code = body && typeof body === 'object' && typeof body.error === 'string' ? body.error : '';
+    if (!ENTITLEMENT_CODES.has(code)) return error;
+    const message = code === 'feature_locked'
+        ? translate(
+            'mobile.skills.plan_locked',
+            'Skills are part of the Enterprise plan. Ask an administrator if you need them.',
+        )
+        : translate(
+            'mobile.skills.plan_disabled',
+            'Skills are not switched on for you. Ask an administrator if you need them.',
+        );
+    return new ApiError(message, { status: error.status, body: error.body });
+}
+
+async function readable<T>(call: Promise<T>): Promise<T> {
+    try {
+        return await call;
+    } catch (error) {
+        throw readableRefusal(error);
+    }
+}
 
 export const skillKeys = {
     all: ['skills'] as const,
@@ -25,16 +68,16 @@ export const skillKeys = {
 };
 
 export async function listSkills(signal?: AbortSignal): Promise<Skill[]> {
-    return (await api.get<Skill[]>('/api/skills', { signal })) ?? [];
+    return (await readable(api.get<Skill[]>('/api/skills', { signal }))) ?? [];
 }
 
 export async function getSkill(id: string, signal?: AbortSignal): Promise<Skill | null> {
-    return api.get<Skill>(`/api/skills/${encodeURIComponent(id)}`, { signal });
+    return readable(api.get<Skill>(`/api/skills/${encodeURIComponent(id)}`, { signal }));
 }
 
 /** Answers 201 with the created row. Requires the `manage_skills` permission. */
 export async function createSkill(draft: SkillDraft): Promise<Skill | null> {
-    return api.post<Skill>('/api/skills', draft);
+    return readable(api.post<Skill>('/api/skills', draft));
 }
 
 /**
@@ -44,13 +87,14 @@ export async function createSkill(draft: SkillDraft): Promise<Skill | null> {
  * rather than trying to reconcile locally.
  */
 export async function updateSkill(id: string, patch: Partial<SkillDraft>): Promise<void> {
-    await api.put(`/api/skills/${encodeURIComponent(id)}`, patch);
+    await readable(api.put(`/api/skills/${encodeURIComponent(id)}`, patch));
 }
 
 /**
  * Owner-or-admin. The server also scrubs the id out of every agent in the org
  * that had the skill attached, so a delete is genuinely a delete and no agent
- * is left pointing at nothing.
+ * is left pointing at nothing. Never plan-gated: an organisation whose plan
+ * lost Skills can still remove what it made.
  */
 export async function deleteSkill(id: string): Promise<void> {
     await api.delete(`/api/skills/${encodeURIComponent(id)}`);

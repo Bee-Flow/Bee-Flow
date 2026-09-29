@@ -8,8 +8,10 @@
  * crash, so they are pinned here.
  */
 
-import { canEditSkill } from './api';
+import { canEditSkill, readableRefusal } from './api';
 import { draftFromSkill, type Skill } from './types';
+import { ApiError } from '../../api/client';
+import { describeError } from '../../ui/Feedback';
 
 const skill = (over: Partial<Skill> = {}): Skill => ({
     id: 'sk1',
@@ -116,5 +118,53 @@ describe('draftFromSkill — a facet the Studio owns is never sent back', () => 
             isShared: false,
             dynamicActivation: false,
         });
+    });
+});
+
+describe('readableRefusal: Skills are Enterprise, and the plan screen says so in words', () => {
+    // requireCapability's 403 puts a CODE in `error`, and the client takes
+    // `error` as the message, so without this the screen read "feature_locked".
+    const locked = () => new ApiError('feature_locked', {
+        status: 403,
+        body: { error: 'feature_locked', feature: 'skills', required: 'enterprise' },
+    });
+
+    it('turns the capability code into a sentence and keeps status and body', () => {
+        const out = readableRefusal(locked());
+        expect(out).toBeInstanceOf(ApiError);
+        const err = out as ApiError;
+        expect(err.status).toBe(403);
+        expect(err.message).not.toBe('feature_locked');
+        expect(err.message).toMatch(/Enterprise plan/);
+        expect((err.body as { feature?: string }).feature).toBe('skills');
+    });
+
+    it('is what describeError prints under "Not available on your plan"', () => {
+        const shown = describeError(readableRefusal(locked()));
+        expect(shown.title).toBe('Not available on your plan');
+        expect(shown.message).toMatch(/Enterprise plan/);
+        expect(shown.retryable).toBe(false);
+    });
+
+    it('words the in-plan-but-not-granted refusal differently', () => {
+        const disabled = new ApiError('feature_disabled', { status: 403, body: { error: 'feature_disabled', feature: 'skills' } });
+        const err = readableRefusal(disabled) as ApiError;
+        expect(err.message).not.toBe('feature_disabled');
+        expect(err.message).not.toMatch(/Enterprise plan/);
+    });
+
+    it('leaves a refusal that already carries a sentence alone', () => {
+        const sentence = 'Adding skills needs Skills, which is part of the Enterprise plan.';
+        const fromServer = new ApiError(sentence, { status: 403, body: { error: sentence, code: 'feature_locked' } });
+        expect(readableRefusal(fromServer)).toBe(fromServer);
+        const notEditable = new ApiError('Not yours', { status: 403, body: { error: 'Not yours', code: 'not_editable' } });
+        expect(readableRefusal(notEditable)).toBe(notEditable);
+    });
+
+    it('leaves every other error alone', () => {
+        const missing = new ApiError('feature_locked', { status: 404, body: { error: 'feature_locked' } });
+        expect(readableRefusal(missing)).toBe(missing);
+        const plain = new Error('boom');
+        expect(readableRefusal(plain)).toBe(plain);
     });
 });

@@ -160,7 +160,7 @@ module.exports = {
     "settings.beta_features": "Beta features",
     "settings.beta_features_intro": "Experimental features available on your account",
     "settings.beta_requires_enterprise": "Beta features require Enterprise",
-    "settings.beta_upgrade_blurb": "Beta capabilities — voice chat, webpages, automations, meeting notes — ship with the Enterprise tier.",
+    "settings.beta_upgrade_blurb": "Beta capabilities such as voice chat, meeting notes, skills and the support inbox ship with the Enterprise tier. Automations and your own webpages are free.",
     "settings.academy": "Academy",
     "settings.general_section": "General",
     "settings.help_support": "Help & Support",

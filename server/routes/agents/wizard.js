@@ -10,6 +10,7 @@ const llmClient = require('../../core/llm/llmClient');
 const { resolveModelForTier, getTierConfig } = require('../../core/llm/modelResolver');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 const log = require('../../telemetry/log');
+const { canCreateSkills, skillsLockedBody } = require('../../core/skills/creationGate');
 
 const router = express.Router();
 const { validate } = require('../../core/http/validate');
@@ -207,7 +208,15 @@ const PLAN_SCHEMA = `{
 
 const LOCALE_NAMES = { en: 'English', nl: 'Dutch', de: 'German', fr: 'French', es: 'Spanish', it: 'Italian', pt: 'Portuguese' };
 
-function planSystemPrompt(locale, availableIntegrations, existingSkills, currentConfig = null) {
+// Skills are Enterprise (license/tiers.js). Without them the plan still has
+// the "skills" key (the schema and the client expect it), but the model is told
+// to leave it empty and is not shown the library. normalizePlan's caller empties
+// it again anyway, because a model does not always do as it is told.
+const NO_SKILLS_SECTION = 'Skills are not available in this workspace. Always return "skills": [].';
+const NO_SKILLS_RULE = '- skills: always an empty array. Put what a skill would say in persona and systemPrompt instead.';
+const SKILLS_RULE = '- skills: propose 0-5 skills. Reuse existing ones by id when there\'s a clear match; otherwise propose new skills with id=null and meaningful instructions.';
+
+function planSystemPrompt(locale, availableIntegrations, existingSkills, currentConfig = null, { skillsAllowed = true } = {}) {
     const langName = LOCALE_NAMES[(locale || 'en').toLowerCase().split('-')[0]] || 'English';
     const integrationList = availableIntegrations.length
         ? availableIntegrations.map(i => `  - ${i.id}: ${i.label} — ${i.description}`).join('\n')
@@ -215,6 +224,9 @@ function planSystemPrompt(locale, availableIntegrations, existingSkills, current
     const skillList = existingSkills.length
         ? existingSkills.map(s => `  - id="${s.id}" name="${s.name}"${s.description ? ` — ${s.description}` : ''}`).join('\n')
         : '  (no existing skills)';
+    const skillsSection = skillsAllowed
+        ? `Existing skills in the user's organization (reuse by setting "id" to one of these; otherwise propose a new skill with id=null):\n${skillList}`
+        : NO_SKILLS_SECTION;
 
     // When refining an EXISTING agent, spell out its current curated
     // configuration and instruct the model to preserve it. This is the core of
@@ -244,8 +256,7 @@ ${PLAN_SCHEMA}
 Available integrations (pick from these ids only — do NOT invent others):
 ${integrationList}
 
-Existing skills in the user's organization (reuse by setting "id" to one of these; otherwise propose a new skill with id=null):
-${skillList}
+${skillsSection}
 ${currentSection}
 Rules:
 - PRESERVE the current configuration. Return ALL currently-enabled integrations and ALL currently-attached skills (with their existing "id"), and the current knowledge_base_ids, UNLESS the feedback explicitly asks to add, remove or replace them. Never drop a curated app/skill/KB the user did not mention.
@@ -254,7 +265,7 @@ Rules:
 - Capabilities are short user-visible bullets, not technical jargon.
 - model: recommend "fast" for simple lookups and Q&A, "thinking" for analysis, writing and deep multi-step reasoning. Default to "fast" when unsure.
 - enabledIntegrations: APPS ARE OFF BY DEFAULT. Add an id ONLY when the agent's stated job clearly requires it (e.g. include "gmail" only if the agent must read or send email). Do not enable apps speculatively. If unsure, leave the array empty — the user can flip apps on later in the editor.
-- skills: propose 0-5 skills. Reuse existing ones by id when there's a clear match; otherwise propose new skills with id=null and meaningful instructions.
+${skillsAllowed ? SKILLS_RULE : NO_SKILLS_RULE}
 - persona is the SOURCE of the agent's role: "who", "tone", "does" and "doesNot" are the fields its owner edits afterwards, so put the real substance there and write them in ${langName}. Say the same things you would put in systemPrompt, split across the fields: scope and responsibility in "who", house style in "tone", the concrete rules in "does", and the hard limits ("never promise a refund") in "doesNot". Keep each does/doesNot entry to one short sentence.
 - persona and systemPrompt must agree. Fill in persona ALWAYS; systemPrompt stays the prose version for agents whose owner writes their instructions by hand.
 - systemPrompt must be self-contained: tone, scope, what to do, what to avoid.
@@ -361,18 +372,18 @@ function normalizePlan(plan, availableIntegrationIds) {
     return plan;
 }
 
-async function generatePlan({ userPrompt, priorPlan, refinement, modelTier, locale, userOrgId, userId, currentConfig = null }) {
+async function generatePlan({ userPrompt, priorPlan, refinement, modelTier, locale, userOrgId, userId, currentConfig = null, skillsAllowed = true }) {
     const tier = modelTier || 'fast';
     const modelId = await resolveModelForTier(`tier:${tier}`, { userOrgId, userId, fallbackTier: 'fast' });
     const tierConfig = await getTierConfig(tier, { userOrgId, userId });
 
     const [availableIntegrations, existingSkills] = await Promise.all([
         getAvailableIntegrations(userId).catch(() => []),
-        userOrgId ? skillStore.getAvailableSkills(userOrgId, userId).catch(() => []) : Promise.resolve([]),
+        (skillsAllowed && userOrgId) ? skillStore.getAvailableSkills(userOrgId, userId).catch(() => []) : Promise.resolve([]),
     ]);
     const availableIds = availableIntegrations.map(i => i.id);
 
-    const messages = [{ role: 'system', content: planSystemPrompt(locale, availableIntegrations, existingSkills, currentConfig) }];
+    const messages = [{ role: 'system', content: planSystemPrompt(locale, availableIntegrations, existingSkills, currentConfig, { skillsAllowed }) }];
     if (priorPlan) {
         // When refining a wizard-created agent we have the original prompt and
         // can prime the model with the original-request → prior-plan turn.
@@ -417,7 +428,20 @@ async function generatePlan({ userPrompt, priorPlan, refinement, modelTier, loca
         throw err;
     }
 
-    return normalizePlan(plan, availableIds);
+    const normalized = normalizePlan(plan, availableIds);
+    // The screen must not show skills that commit will not create. On refine
+    // an empty list means "keep what the agent has" (refineMerge.js), so an
+    // agent's already-attached skills are not dropped by this.
+    if (!skillsAllowed) normalized.skills = [];
+    return normalized;
+}
+
+/**
+ * May this wizard request add skills? Skills are Enterprise; the wizard itself
+ * is not. Asked once per request, fails closed (core/skills/creationGate.js).
+ */
+function skillsAllowedFor(req, userId, orgId) {
+    return canCreateSkills({ userId, orgId, session: req.session, req });
 }
 
 // Shared error mapping for the plan-generating endpoints. A malformed model
@@ -458,7 +482,8 @@ router.post('/wizard/draft', requirePermission('manage_agents'), wizardLimiter, 
         const orgIds = await resolveUserOrgIds(req);
         const userOrgId = orgIds && orgIds.size > 0 ? Array.from(orgIds)[0] : null;
 
-        const plan = await generatePlan({ userPrompt: prompt, modelTier, locale, userOrgId, userId });
+        const skillsAllowed = await skillsAllowedFor(req, userId, userOrgId);
+        const plan = await generatePlan({ userPrompt: prompt, modelTier, locale, userOrgId, userId, skillsAllowed });
         res.json({ plan });
     } catch (err) {
         respondPlanError(res, next, err, 'draft');
@@ -473,7 +498,8 @@ router.post('/wizard/refine', requirePermission('manage_agents'), wizardLimiter,
         const userOrgId = orgIds && orgIds.size > 0 ? Array.from(orgIds)[0] : null;
 
         const currentConfig = current && typeof current === 'object' ? current : null;
-        const updated = await generatePlan({ userPrompt: prompt, priorPlan: plan, refinement, modelTier, locale, userOrgId, userId, currentConfig });
+        const skillsAllowed = await skillsAllowedFor(req, userId, userOrgId);
+        const updated = await generatePlan({ userPrompt: prompt, priorPlan: plan, refinement, modelTier, locale, userOrgId, userId, currentConfig, skillsAllowed });
         // `preserved` lets the client keep curated apps/skills/model/KBs even if
         // the model imperfectly echoes them. See buildPreserved.
         res.json({ plan: updated, preserved: buildPreserved(current) });
@@ -542,9 +568,21 @@ router.post('/wizard/commit', requirePermission('manage_agents'), wizardLimiter,
     const orgId = orgIds && orgIds.size > 0 ? Array.from(orgIds)[0] : null;
 
     // ── Skills: reuse existing by id, create new ones ──────────────
+    // Skills are Enterprise. Without them the agent is still created, just
+    // without skills: the wizard is how nearly every agent is born, and a
+    // plan with skills in it (an old screen, a hand-built request) must not
+    // cost a Community user the agent. The response names what was left out.
     let attachedSkillIds = [];
     const createdSkills = [];
-    if (orgId && Array.isArray(plan.skills) && plan.skills.length > 0) {
+    let skillsSkipped = null;
+    const plannedSkills = Array.isArray(plan.skills) ? plan.skills.filter(s => s && s.name) : [];
+    if (orgId && plannedSkills.length > 0 && !(await skillsAllowedFor(req, userId, orgId))) {
+        // A 200 carries no `error` key: the agent WAS created. The sentence
+        // goes in `message`, the refusal's machine-readable part alongside.
+        const { error: message, ...locked } = skillsLockedBody();
+        skillsSkipped = { ...locked, message, names: plannedSkills.map(s => String(s.name)) };
+        log.info(`[Wizard commit] skills not available: left out ${plannedSkills.length} planned skill(s)`);
+    } else if (orgId && plannedSkills.length > 0) {
         // Best-effort lookup of existing skills — but a failure here must NOT
         // block creation of new ones. Default to empty list on error.
         let orgSkills = [];
@@ -556,9 +594,7 @@ router.post('/wizard/commit', requirePermission('manage_agents'), wizardLimiter,
         const knownIds = new Set((orgSkills || []).map(s => s.id));
         const byName = new Map((orgSkills || []).map(s => [String(s.name || '').toLowerCase().trim(), s.id]));
 
-        for (const s of plan.skills) {
-            if (!s || !s.name) continue;
-
+        for (const s of plannedSkills) {
             // Reuse existing skill by id when valid
             if (s.id && knownIds.has(s.id)) { attachedSkillIds.push(s.id); continue; }
 
@@ -678,7 +714,7 @@ router.post('/wizard/commit', requirePermission('manage_agents'), wizardLimiter,
         }
     }
 
-    res.json({ agent, createdSkills, routine: createdRoutine });
+    res.json({ agent, createdSkills, routine: createdRoutine, ...(skillsSkipped ? { skillsSkipped } : {}) });
 });
 
 module.exports = router;

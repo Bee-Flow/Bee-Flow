@@ -28,6 +28,7 @@ const {
     buildSessionSkillInjection,
     executeActivateSessionSkill,
     executeCompleteSessionSkill,
+    executePublishSessionSkill,
     initialActivatedSkillIds,
     deriveCompletedSkillIds,
     describeStepMachineState,
@@ -483,6 +484,56 @@ async function bootstrapWith(adapterContent) {
         // pipeline can schedule.
         const anyRoot = skills.some(s => (s.dependsOn || []).length === 0);
         assert.ok(anyRoot, 'cycle broken — at least one root remains');
+    }
+
+    // ── publish: Skills are Enterprise, so a library write needs them ──
+    {
+        const stubStore = require.cache[skillStorePath].exports;
+        const created = [];
+        const originalCreate = stubStore.createSkill;
+        stubStore.createSkill = async (row) => { created.push(row); return { id: 'lib-1' }; };
+        try {
+            const ss = [{ id: 's1', name: 'Draft', description: 'd', instructions: 'i' }];
+            const gateCalls = [];
+
+            const refused = await executePublishSessionSkill({
+                args: { skill_id: 's1' },
+                sessionSkills: ss,
+                orgId: 'o1',
+                userId: 'u1',
+                canCreateSkills: async (ctx) => { gateCalls.push(ctx); return false; },
+            });
+            assert.strictEqual(refused.success, undefined, 'no success without Skills');
+            assert.strictEqual(refused.code, 'feature_locked');
+            assert.strictEqual(refused.feature, 'skills');
+            assert.match(refused.error, /Enterprise plan/, 'the model gets a sentence it can pass on');
+            assert.strictEqual(created.length, 0, 'a refused publish writes nothing to the library');
+            assert.deepStrictEqual(gateCalls[0], { userId: 'u1', orgId: 'o1', session: null });
+
+            const ok = await executePublishSessionSkill({
+                args: { skill_id: 's1', name: 'Kept' },
+                sessionSkills: ss,
+                orgId: 'o1',
+                userId: 'u1',
+                canCreateSkills: async () => true,
+            });
+            assert.strictEqual(ok.success, true);
+            assert.strictEqual(ok.librarySkillId, 'lib-1');
+            assert.strictEqual(created.length, 1);
+            assert.strictEqual(created[0].name, 'Kept');
+
+            // The cheap refusals still come first: no gate round-trip for a
+            // call that names no skill.
+            gateCalls.length = 0;
+            const missing = await executePublishSessionSkill({
+                args: {}, sessionSkills: ss, orgId: 'o1', userId: 'u1',
+                canCreateSkills: async (ctx) => { gateCalls.push(ctx); return true; },
+            });
+            assert.strictEqual(missing.error, 'skill_id is required.');
+            assert.strictEqual(gateCalls.length, 0);
+        } finally {
+            stubStore.createSkill = originalCreate;
+        }
     }
 
     console.log('[sessionSkillRuntime.test] all assertions passed ✓');

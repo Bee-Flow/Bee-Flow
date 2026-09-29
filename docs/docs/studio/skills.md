@@ -12,9 +12,17 @@ URL: `/app/studio/skills` (the Studio rail, under **AI**). There is no `/app/ski
 
 ## Availability
 
-`skills` is a **Community** feature — it is in the free core, not behind a paid tier. It is also a **beta**, so the licence alone is not enough: the section stays visible but disabled until an admin switches the Skills beta on under **Admin → Beta features**.
+Skills are an **Enterprise** feature (`skills`). They are also a **beta**, so on an Enterprise licence the section stays visible but disabled until an admin switches the Skills beta on under **Admin → Beta features**. On Bee Flow Cloud the subscription plan decides whether Skills are included.
 
-That combination is deliberate. `/api/skills` sits behind a compound capability — licence **and** beta opt-in — so an org that never enabled the beta sees a locked row with a hint, instead of an open section whose list quietly returns nothing.
+That combination is deliberate. `/api/skills` sits behind a compound capability (licence **and** beta opt-in), so an organisation without it sees a locked row with a hint, instead of an open section whose list quietly returns nothing.
+
+The same check applies wherever a skill is **created** outside this section:
+
+- the [agent wizard](./agent-wizard.md) only proposes and creates skills when the organisation has them. Without Skills it still creates the agent, just without skills, and says which planned skills it left out;
+- importing a chat's session skill into the library answers 403 with a sentence saying Skills are part of the Enterprise plan;
+- the model's *publish to library* tool refuses with the same sentence.
+
+**When a licence lapses**, nothing that exists stops working. Skills already attached to an agent or an AI step keep running, and **deleting** a skill never needs the licence (`DELETE /api/skills/:id` is exempt from the gate). What a lapse refuses is adding new skills.
 
 ## The landing is a table
 

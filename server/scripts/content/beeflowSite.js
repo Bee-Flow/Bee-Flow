@@ -619,7 +619,7 @@ const home = {
             items: [
                 {
                     question: 'Is the free version crippled?',
-                    answer: 'No. The Community tier needs no licence key and has no cap on users, assistants, messages or knowledge sources. Chat, knowledge bases, skills, integrations, automations and the learning centre are all included. Paid tiers add specific modules — meeting notes, the app builder, the compliance hub — not permission to keep using what you already had.',
+                    answer: 'No. The Community tier needs no licence key and has no cap on users, assistants, messages or knowledge sources. Chat, assistants, knowledge bases, integrations, automations, your own data tables and web pages, and the learning centre are all included. Enterprise adds specific modules, such as skills, meeting notes, the app builder and the compliance hub, and the collaboration on top: approvals and sharing. It never charges for permission to keep using what you already had.',
                 },
                 {
                     question: 'Do my prompts train someone else\'s model?',
@@ -1714,7 +1714,7 @@ const routines = {
                 { question: 'Can an automation touch production systems?', answer: 'Only the ones you connect, only with the tools you enable, and only within the permissions of the account you connected. Read-only connectors stay read-only — the AFAS and NMBRS integrations, for example, cannot write back.' },
                 { question: 'What stops a runaway loop?', answer: 'Loops carry a maximum iteration count, runs have timeouts, code steps execute in an isolated sandbox behind an SSRF guard, and concurrency is bounded per automation. A run that misbehaves fails rather than spreading.' },
                 { question: 'Does the AI see everything in the workflow?', answer: 'Only what a step passes to it, and that still goes through Privacy Shield on the way out. If a step needs no model, do not use an AI step — most of the 27 step types are ordinary logic.' },
-                { question: 'Is this available on the free tier?', answer: 'Yes. Automations and scheduled routines are Community features, with no cap on how many you run.' },
+                { question: 'Is this available on the free tier?', answer: 'Yes. Automations and scheduled routines are Community features, with no cap on how many you run. Approval steps, sharing a routine with colleagues and the privacy steps are part of Enterprise.' },
             ],
         }),
         b('cta', {
@@ -1966,7 +1966,7 @@ const agentsPage = demoPage({
         { question: 'Who can see the assistants I build?', answer: 'You choose: personal, or shared with your organisation or a specific group. Group permissions also decide which integrations it may use on that person\'s behalf, so sharing an assistant never widens anyone\'s access.' },
         { question: 'Do I have to write the instructions myself?', answer: 'You can, and there is a designer that drafts and refines them for you. Eleven assistants also ship ready-made, including a meeting summariser and a system-prompt designer.' },
         { question: 'Which model does it use?', answer: 'Whichever you configure. Six provider adapters ship, plus any OpenAI-compatible endpoint - so an assistant can run against a local model and never leave your network.' },
-        { question: 'Is this on the free tier?', answer: 'Yes. Assistants, skills and knowledge bases are Community features, with no cap on how many you create.' },
+        { question: 'Is this on the free tier?', answer: 'Yes. Assistants and knowledge bases are Community features, with no cap on how many you create. Skills, and a data table as a knowledge source, are part of Enterprise.' },
     ],
     closing: { title: 'Build the assistant your team keeps asking for', lead: 'Most teams start with the one that answers questions about their own documents.' },
 });
@@ -2601,9 +2601,18 @@ const sovereignty = {
  *   - A feature belongs in the Enterprise column only if a gate ACTUALLY
  *     STOPS a Community install. Several ids in the enterprise tier are
  *     declared and never enforced (audit_log_export, guardrails_dlp,
- *     automation_sharing, white_label, compliance_hub_aia/iso27001) — they
- *     are reserve boundaries, not shipped differences, and putting them in
- *     the table would sell something the product does not withhold.
+ *     white_label, custom_themes, advanced_analytics,
+ *     compliance_hub_aia/iso27001): they are reserve boundaries, not shipped
+ *     differences, and putting them in the table would sell something the
+ *     product does not withhold. automation_sharing left that list when
+ *     routes/automation/sharing.js started refusing it, and the enterprise
+ *     split (2026-10) added enforced rows: skills, approvals, sharing,
+ *     webpage sharing, datatable retention, Studio Documents, the privacy
+ *     steps, and datatable-fed and scheduled knowledge sources.
+ *   - The website builder (Product Website) is cloud-only
+ *     (AdminDashboard.jsx cloudOnly), so it is not a self-hosted row.
+ *   - MCP: adding a server (/ai/mcp-servers*) is gated on mcp_marketplace,
+ *     which is Enterprise, so Community has no MCP row of its own.
  *   - The `full` tier is an operator tier for us, not a customer edition. It
  *     is not on this page.
  *   - `pro` is a legacy alias that normalises to enterprise
@@ -2634,7 +2643,7 @@ const editionsPage = {
                 { text: 'Two editions, ', gradient: false },
                 { text: 'and one of them is free', gradient: true },
             ],
-            lead: 'Both run on your own hardware, on the same source. Community is the whole workspace with no caps and no licence key: chat, assistants, automations, knowledge bases, the privacy shield and every built-in integration. Enterprise adds the specialist modules and the identity features a larger organisation runs into, and it is priced per deployment because deployments differ.',
+            lead: 'Both run on your own hardware, on the same source. Community is the whole workspace with no caps and no licence key: chat, assistants, automations, knowledge bases, your own data tables and web pages, the privacy shield and every built-in integration. Enterprise adds the collaboration a team runs into (approvals and sharing), the specialist modules and the identity features, and it is priced per deployment because deployments differ.',
             primaryCta: { enabled: true, label: 'Start with Community', style: 'primary', link: pageLink('self-hosting') },
             secondaryCta: { enabled: true, label: 'Talk to us about Enterprise', style: 'secondary', link: pageLink('contact') },
             mockup: { enabled: false, chatBubbles: [] },
@@ -2649,22 +2658,24 @@ const editionsPage = {
             leftLabel: 'Community',
             rightLabel: 'Enterprise',
             rows: [
-                { aspect: 'What it costs', left: 'Nothing. No licence key, no account, no checkout.', right: 'Priced per deployment - talk to us.' },
+                { aspect: 'What it costs', left: 'Nothing. No licence key, no account, no checkout.', right: 'Priced per deployment. Talk to us.' },
                 { aspect: 'Where it runs', left: 'Your own hardware, air-gapped if you want.', right: 'Your own hardware, air-gapped if you want.' },
                 { aspect: 'People', left: 'No user limit.', right: 'No user limit.' },
                 { aspect: 'Assistants, messages, knowledge bases', left: 'No limit on any of them.', right: 'No limit on any of them.' },
                 { aspect: 'Built-in integrations', left: 'All of them, including Google Workspace and Microsoft 365.', right: 'All of them.' },
-                { aspect: 'MCP servers', left: 'Connect any MCP server by hand.', right: 'Same, plus the in-app catalogue for installing them.' },
-                { aspect: 'Automations and routines', left: 'The full builder, scheduling and execution.', right: 'The same builder.' },
-                { aspect: 'Skills and knowledge bases', left: 'Included, with cited answers.', right: 'Included.' },
-                { aspect: 'Privacy Shield', left: 'Detection on your own hardware across all 21 categories, with block or redact.', right: 'Adds tokenise-and-restore, the web-search guard, and holding personal data back from outbound tools.' },
+                { aspect: 'MCP servers', left: 'Not included.', right: 'Add any MCP server, by hand or from the in-app catalogue.' },
+                { aspect: 'Automations and routines', left: 'The full builder, scheduling and execution, for your own routines.', right: 'Adds approval steps, sharing a routine with colleagues, the privacy steps and the compliance checks.' },
+                { aspect: 'Knowledge bases', left: 'Files, pasted text and web pages, with cited answers. You refresh a source by hand.', right: 'Adds a data table as a source, and refreshing sources on a schedule.' },
+                { aspect: 'Skills', left: 'Not included.', right: 'Included.' },
+                { aspect: 'Data tables and web pages', left: 'Build and use your own.', right: 'Adds sharing them with the organisation, groups or people, and retention windows on data tables.' },
+                { aspect: 'Privacy Shield', left: 'Detection on your own hardware across all 21 categories, blocking what it finds.', right: 'Adds tokenise-and-restore, the web-search guard, your own data types, the privacy steps in automations, and holding personal data back from outbound tools.' },
                 { aspect: 'Single sign-on', left: 'Nextcloud.', right: 'Google and Microsoft Entra ID, with automatic group sync.' },
                 { aspect: 'Meeting notes and transcription', left: 'Not included.', right: 'Included, including speaker recognition.' },
                 { aspect: 'Notebooks', left: 'Not included.', right: 'Included.' },
-                { aspect: 'App Studio', left: 'Not included.', right: 'Included.' },
+                { aspect: 'Studio Apps, Documents, Playbooks and Solutions', left: 'Not included.', right: 'Included.' },
                 { aspect: 'Support inbox', left: 'Not included.', right: 'Included.' },
-                { aspect: 'Website builder and its analytics', left: 'Not included.', right: 'Included.' },
-                { aspect: 'Compliance Center', left: 'Not included.', right: 'Included - and still in development.' },
+                { aspect: 'Compliance Center', left: 'Not included.', right: 'Included, and still in development.' },
+                { aspect: 'Encryption at rest', left: 'Not included.', right: 'Per organisation, with managed or zero-knowledge keys.' },
                 { aspect: 'Usage and monitoring', left: 'The overview: spend, calls, tokens, per model and per person.', right: 'Adds the safety, egress, termination and feedback reporting.' },
                 { aspect: 'Licence checks', left: 'None to make.', right: 'Verified offline against a bundled public key. No phone-home, so an air-gapped install keeps working.' },
             ],
@@ -2680,7 +2691,7 @@ const editionsPage = {
                 {
                     icon: 'Users', span: 2,
                     title: 'Nobody is counting your users',
-                    body: 'There is no seat cap, no message cap, no assistant cap and no knowledge-base cap in either edition — and that is a property of the code rather than a pledge. The usage-limit checks return immediately unless the deployment is our cloud, so on your own server there is nothing to hit. Growing your team is not a billing event.',
+                    body: 'There is no seat cap, no message cap, no assistant cap and no knowledge-base cap in either edition, and that is a property of the code rather than a pledge. The usage-limit checks return immediately unless the deployment is our cloud, so on your own server there is nothing to hit. Growing your team is not a billing event.',
                     techTag: '', media: media('', ''),
                 },
                 {
@@ -2715,7 +2726,7 @@ const editionsPage = {
                         id: 'el_ed_lapse', kind: 'text', align: 'left',
                         heading: 'What happens if the key expires',
                         subheading: 'The part most licence pages leave out',
-                        body: 'The install falls back to Community and keeps running. Nothing is deleted, nothing is locked, and no screen holds your work hostage: the specialist modules stop opening and say why, and everything else — your assistants, automations, knowledge bases, conversations — carries on exactly as before. If you renew, they come back. We would rather write that down than let you discover the answer at the worst possible moment, and it is also the honest consequence of an offline check: there is no kill switch to press.',
+                        body: 'The install falls back to Community and keeps running. Nothing is deleted, nothing is locked, and no screen holds your work hostage: the specialist modules stop opening and say why, and everything else (your assistants, automations, knowledge bases, conversations) carries on exactly as before. What you already shared stays shared and you can always unshare it; what stops is adding new Enterprise things. If you renew, they come back. We would rather write that down than let you discover the answer at the worst possible moment, and it is also the honest consequence of an offline check: there is no kill switch to press.',
                     }],
                 },
                 {
@@ -2724,7 +2735,7 @@ const editionsPage = {
                         id: 'el_ed_price', kind: 'text', align: 'left',
                         heading: 'Why Enterprise has no number here',
                         subheading: 'And what to send us',
-                        body: 'Because the deployments genuinely differ, and a number on a page would be a guess dressed up as a price. What decides it is how many people will use it, which modules you actually need, and whether you want help with the installation or just the key. Tell us those three things and you get a real figure rather than a range. If Community already covers you — and for a lot of teams it does — we will say so instead of selling you a key you do not need.',
+                        body: 'Because the deployments genuinely differ, and a number on a page would be a guess dressed up as a price. What decides it is how many people will use it, which modules you actually need, and whether you want help with the installation or just the key. Tell us those three things and you get a real figure rather than a range. If Community already covers you, and for a lot of teams it does, we will say so instead of selling you a key you do not need.',
                     }],
                 },
             ],
@@ -2745,13 +2756,13 @@ const editionsPage = {
             eyebrow: 'FAQ',
             title: 'The awkward edition questions',
             items: [
-                { question: 'Is Community a trial?', answer: 'No. It does not expire, it is not time-limited, and it does not degrade. It needs no licence key and no account with us — you download it, run it, and we never find out. The modules listed in the right-hand column above are what a key adds; everything else is yours permanently.' },
+                { question: 'Is Community a trial?', answer: 'No. It does not expire, it is not time-limited, and it does not degrade. It needs no licence key and no account with us: you download it, run it, and we never find out. The modules listed in the right-hand column above are what a key adds; everything else is yours permanently.' },
                 { question: 'Is Bee Flow open source?', answer: LICENCE_ANSWER },
                 { question: 'What may I not do with the free edition?', answer: 'Two things, both from the licence rather than from the code. You may not offer Bee Flow to third parties as a hosted or managed service that competes with us, and you may not strip out the licensing notices. Running it internally for your own organisation, modifying it, and sharing it free of charge for non-commercial purposes are all explicitly allowed.' },
                 { question: 'Does the Enterprise key phone home?', answer: 'No. It is a signed token verified offline against a public key bundled with the software. There is a refresh endpoint for monthly licences, but it is opt-in and unset by default, and even when it is on a failure gives you a ten-day grace period rather than an immediate lockout.' },
-                { question: 'Can I move from Community to Enterprise without reinstalling?', answer: 'Yes. It is the same code and the same database — you paste a key into the admin screen and the modules appear. There is no migration, no export and no second installation, and going back is just as uneventful.' },
-                { question: 'How does this relate to the hosted plans?', answer: 'It does not, directly. This page is about the two editions of the software you run yourself. The hosted version on beeflow.nl is a subscription with its own plans, where the monthly price is also your monthly AI budget — the pricing page has the current plans, generated from our live billing configuration.' },
-                { question: 'Do I get support with Community?', answer: 'You get the source, the documentation and the issue tracker. What Enterprise adds is a direct line to us — the specifics are part of the conversation about your deployment rather than a tier on a page, because pretending otherwise would mean publishing a commitment we had not agreed with you.' },
+                { question: 'Can I move from Community to Enterprise without reinstalling?', answer: 'Yes. It is the same code and the same database: you paste a key into the admin screen and the modules appear. There is no migration, no export and no second installation, and going back is just as uneventful.' },
+                { question: 'How does this relate to the hosted plans?', answer: 'It does not, directly. This page is about the two editions of the software you run yourself. The hosted version on beeflow.nl is a subscription with its own plans, where the monthly price is also your monthly AI budget. The pricing page has the current plans, generated from our live billing configuration.' },
+                { question: 'Do I get support with Community?', answer: 'You get the source, the documentation and the issue tracker. What Enterprise adds is a direct line to us. The specifics are part of the conversation about your deployment rather than a tier on a page, because pretending otherwise would mean publishing a commitment we had not agreed with you.' },
             ],
         }),
 
@@ -3865,6 +3876,7 @@ const skillsPage = demoPage({
         { question: 'How is a skill different from a knowledge base?', answer: 'A knowledge base is material the assistant reads to find facts. A skill is guidance on how to behave \u2014 tone, format, what to check before answering. Most useful assistants have both: the knowledge to answer, and the skill to answer the way you would.' },
         { question: 'Can an assistant use more than one?', answer: 'Yes, and most do. Activation keywords keep it sane \u2014 a skill loads when the conversation is about that work rather than being carried into every reply.' },
         { question: 'Who can edit them?', answer: 'Whoever you share them with as an editor. Because a skill is shared rather than copied, an edit reaches every assistant using it, which is the point and also the reason to be deliberate about who holds the pen.' },
+        { question: 'Is this on the free tier?', answer: 'No. Skills are part of Enterprise. If a licence lapses, the skills your assistants already use keep working and you can still delete one; what stops is adding new ones.' },
     ],
     closing: {
         title: 'Write one and see how far it travels',
@@ -4562,9 +4574,9 @@ const langdockAlternative = {
             eyebrow: '',
             title: 'What the free tier already holds',
             stats: [
-                { number: '44', label: 'integrations built in, plus any MCP server' },
+                { number: '44', label: 'integrations built in' },
                 { number: '21', label: 'PII categories detected on your own hardware' },
-                { number: '27', label: 'automation step types, with approval gates' },
+                { number: '0', label: 'licence keys needed for the automation builder' },
                 { number: '0', label: 'user, agent or message caps in any tier' },
             ],
         }, { band: 'dark' }),

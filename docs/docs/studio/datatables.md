@@ -11,12 +11,22 @@ canvas: a table outlives the automation that created it.
 
 URL: `/app/studio/datatables` · one table opens at `/app/studio/datatables/:id`.
 
-**Tier:** Community. The section is gated on the `automations` entitlement — the same
-one the server puts in front of `/api/datatables` — and `automations` is part of the
-free Community core. A Community organisation therefore sees Datatables in full.
-*Sharing* a table is the separate paid line (`automation_sharing`, Enterprise) and is
-refused per request, never by hiding the section: reading your own rows must not stop
-working when a licence lapses.
+**Tier:** Community for building and using your own tables. The section is gated on
+the `automations` entitlement, the same one the server puts in front of
+`/api/datatables`, and `automations` is part of the free Community core. Two settings
+of a table are Enterprise:
+
+- **Sharing** a table with the organisation, groups or people (`automation_sharing`);
+- a **retention window** under *Data & retention* (`datatable_retention`).
+
+Both are refused per request, never by hiding the section. When a licence lapses,
+nothing that exists stops: reading and writing your rows keeps working, a table that is
+already shared stays shared (narrowing it always works), and the retention sweep keeps
+honouring every window that was already set. What a lapse refuses is sharing further
+or setting a new window.
+
+Using a table as a knowledge-base source is Enterprise too (`kb_datatable_sources`);
+see [Knowledge bases](knowledge-bases.md).
 
 ## The list
 
@@ -71,14 +81,14 @@ Five tabs, and the fifth is the one that earns its place.
   Excel actually writes, reads `ja`/`nee` as true/false and treats "1.234,56" and
   "1,234.56" as the same amount. The whole paste goes in one request that answers with
   per-row errors and their line numbers.
-- **Data & retention** — how long rows are kept. Presets are *Never*, 7, 30 and 90
+- **Data & retention** (retention windows are Enterprise): how long rows are kept. Presets are *Never*, 7, 30 and 90
   days, or a custom window; beside it, *About to expire* counts what the next sweep
   takes. The window and the **date column it counts from** always travel together:
   the API refuses a retention window that does not name a column, because a window
   that silently inherits a default is one submission away from deleting rows on a rule
   nobody chose. On a *Web service answers* table the column is fixed (`fetched_at`) and
   shown disabled.
-- **Sharing** — two cards side by side: *Who can read the rows* (private / entire
+- **Sharing** (Enterprise): two cards side by side: *Who can read the rows* (private / entire
   organisation / specific groups) and *People and teams* invited by name, the owner
   always on it. Two axes, deliberately not one: *who may read* is the audience; *who
   may change* is either the invitation list or a second, separate decision to open

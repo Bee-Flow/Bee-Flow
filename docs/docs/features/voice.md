@@ -4,9 +4,9 @@ title: Voice
 
 # Voice
 
-:::warning[Pro tier feature]
+:::warning[Enterprise feature]
 
-Requires a Pro or higher licence key.
+Requires an Enterprise licence key (`voice_chat`). See [Free vs paid features](../getting-started/tiers.md).
 
 :::
 

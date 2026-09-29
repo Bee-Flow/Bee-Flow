@@ -78,9 +78,9 @@ The minimum-scope principle applies: Bee Flow asks only for what's needed by the
 
 ## Google Meet meeting notes
 
-:::warning[Pro tier feature]
+:::warning[Enterprise feature]
 
-Meeting Notes requires a Pro or higher licence key.
+Meeting Notes requires an Enterprise licence key.
 
 :::
 
@@ -104,7 +104,7 @@ The audio track is extracted (the video is discarded immediately), transcribed w
 | Recording was started | Someone must press record in the meeting, or the organizer pre-configures auto-recording (see below). Unrecorded meetings are skipped quietly. |
 | Meet scopes granted | The Google connection must include the two Meet scopes (see below). |
 | WhisperX reachable | `WHISPERX_URL` (or the URL in Admin → Integrations → Transcription) must point at your WhisperX service — see the self-hosting notes. |
-| Bee Flow licence | Pro or higher (`meeting_notes` feature). |
+| Bee Flow licence | Enterprise (`meeting_notes` feature). |
 
 ### Organizer vs attendee
 
