@@ -21,9 +21,18 @@ async function asJson(res, fallback) {
     let body = null;
     try { body = await res.json(); } catch { /* empty or non-JSON body */ }
     if (!res.ok) {
-        const err = new Error((body && body.error) || fallback);
+        // A licence refusal (requireCapability) carries its reason in `error`
+        // and no `code`: `feature_locked` or `feature_disabled`, plus the
+        // `feature`. Those travel as the code, and the message becomes a
+        // sentence, so no caller shows the bare token. The Documents pages
+        // word it in the reader's language (./documentsLock.ts).
+        const licence = body && res.status === 403 && /^feature_(locked|disabled)$/.test(body.error || '') ? body.error : null;
+        const err = new Error(licence
+            ? 'Making and changing documents is not included for you. You can still open, download and archive your documents.'
+            : ((body && body.error) || fallback));
         err.status = res.status;
-        err.code = body && body.code;
+        err.code = (body && body.code) || licence || undefined;
+        err.feature = body && body.feature;
         throw err;
     }
     // A 2xx whose body will not parse is not "no data" — it is the wrong

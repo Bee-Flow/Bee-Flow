@@ -59,6 +59,7 @@ const { requireAuth } = require('../auth/permissions');
 const { validate } = require('../core/http/validate');
 const { z } = require('zod');
 const { worded, bodyOf, choice } = require('./webpages/schemas');
+const sharingGate = require('./webpages/sharingGate');
 
 // ── Wat "openbaar" mag dragen ───────────────────────────────────────
 //
@@ -323,6 +324,20 @@ router.put('/:id/audience/public', requireAuth, validate({ body: PublicBody }), 
         //    bf-table uit precies deze lijst, dus dit moet al opgeslagen zijn
         //    voordat er ook maar één byte naar buiten gaat.
         const current = await bridgeGrants.getBridgeGrants(wp.id);
+
+        // 0. the licence. Making a page public, or making a public page wider
+        //    (more columns, a later expiry, weaker protection), is Enterprise:
+        //    `webpage_sharing` (./webpages/sharingGate). It is asked before
+        //    step 1, so a refusal leaves the column choice as it was. The
+        //    canonical share is read here once, because "is it public yet"
+        //    decides the question, and step 3 reuses that read. An unreadable
+        //    share counts as widening: without the licence, nothing may be
+        //    published on a state nobody could check.
+        const canonical = await liveCanonicalShare(wp);
+        const widens = !canonical.known
+            || sharingGate.publicRequestWidens({ existing: canonical.share, currentTables: current.tables, body });
+        if (widens && !(await sharingGate.allow(req, res))) return;
+
         const narrowed = audience.applyColumnChoice(current.tables, body.publicColumns);
         const saved = await bridgeGrants.updateBridgeGrants(wp.id, userId, { tables: narrowed });
         if (!saved) return res.status(404).json({ error: 'Webpage not found' });
@@ -346,7 +361,7 @@ router.put('/:id/audience/public', requireAuth, validate({ body: PublicBody }), 
         // 3. de share. Bestaat er al een levende canonieke met dezelfde
         //    toegangsinstelling, dan blijft die — een nieuw token zou elke
         //    gedeelde link breken zonder dat iemand daarom vroeg.
-        const { share: existing, known: canonicalKnown } = await liveCanonicalShare(wp);
+        const { share: existing, known: canonicalKnown } = canonical;
         // ONBEKEND IS HIER GEEN "er is er nog geen". Kon de huidige canonieke
         // share niet gelezen worden, dan leest `existing === null` hieronder als
         // "maak er maar een": er komt een TWEEDE levende link bij en het

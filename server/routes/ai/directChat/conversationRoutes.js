@@ -14,6 +14,7 @@ const agentStore = require('../../../stores/agentStore');
 const { getProviderForModel } = require('../../../core/aiAgent');
 const { getAdapter } = require('../../../core/providers');
 const { bootstrapSessionSkills } = require('../../../core/tools/sessionSkillRuntime');
+const { canCreateSkills, skillsLockedBody } = require('../../../core/skills/creationGate');
 const { requireAuth } = require('../../../auth/permissions');
 const { usableKbIdsForRequest } = require('../../../support/kbAccess');
 const { MAX_ATTACHED_KB_IDS } = require('../../../core/kb/kbSelection');
@@ -262,6 +263,12 @@ router.post('/direct/conversations/:id/session-skills/:skillId/import', requireA
         const user = await userStore.getUser(userId);
         const orgId = user?.organizationId || null;
         if (!orgId) return res.status(400).json({ error: 'No organization found' });
+
+        // Importing puts a NEW skill in the library, and Skills are Enterprise.
+        // The session skill itself stays usable in this chat either way.
+        if (!(await canCreateSkills({ userId, orgId, session: req.session, req }))) {
+            return res.status(403).json(skillsLockedBody());
+        }
 
         const created = await skillStore.createSkill({
             orgId,

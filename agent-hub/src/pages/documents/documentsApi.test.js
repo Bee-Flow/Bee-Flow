@@ -108,6 +108,21 @@ describe('documentsApi — errors carry the server\'s own words', () => {
         });
     });
 
+    it('turns the licence refusal into a sentence, and keeps the reason as the code', async () => {
+        // requireCapability('studio_documents') answers with the token in
+        // `error` and no `code`. The token must not become the message.
+        fetchMock.mockResolvedValue({
+            ok: false,
+            status: 403,
+            json: async () => ({ error: 'feature_locked', feature: 'studio_documents', required: 'enterprise' }),
+            headers: { get: () => null },
+        });
+        const err = await createDocument({ name: 'Offerte' }).catch((e) => e);
+        expect(err).toMatchObject({ status: 403, code: 'feature_locked', feature: 'studio_documents' });
+        expect(err.message).not.toMatch(/feature_locked/);
+        expect(err.message).toMatch(/open, download and archive/);
+    });
+
     it('falls back to a readable message when the body is not JSON', async () => {
         fetchMock.mockResolvedValue({
             ok: false,

@@ -28,6 +28,19 @@
  * so a document id from another tenant is a 404 here rather than a leak — the
  * same line routes/webpagesUsage.js draws.
  *
+ * THE LICENCE LINE (enterprise split, 2026-10). Studio Documents is the
+ * Enterprise capability `studio_documents`. What it gates is MAKING and
+ * CHANGING: creating a document, a folder, a copy or a reusable section,
+ * editing by hand or with the assistant, the editor's draft previews and
+ * restoring a revision (`documentsGate` below). Reading, the composed preview,
+ * validating, the PDF and .pptx downloads, the version list and archiving stay
+ * open: a document somebody made keeps working after a lapse or a downgrade,
+ * and removing something is never a paid act. The house style routes stay
+ * open too, because the letterhead is the organisation's and the
+ * generate_document step prints presentations on it outside this feature.
+ * GET /:id answers `editable: false` without the capability, so every editor
+ * opens such a document read-only instead of failing on its first autosave.
+ *
  * WHY THE PREVIEW IS A ROUTE AND NOT A srcdoc STRING. The editor could compose
  * the document in the browser and hand the iframe a srcdoc. It deliberately
  * does not: composition is where sanitising happens, and a sanitiser that runs
@@ -153,6 +166,35 @@ async function previewHtmlFor(req, doc, { mode = 'print', values = null, section
         return out.html;
     }
     return composeDocument(doc, { mode, houseStyleCss: await houseStyleCssFor(req, doc) });
+}
+
+// ── The licence gate ─────────────────────────────────────────────────
+//
+// The real requireCapability middleware, built on first use: the 403 body
+// (`feature_locked` with `required`, or `feature_disabled`), the 503 on a
+// degraded resolve and the telemetry are the ones every other gate has. It
+// runs AFTER the body schema on the routes that have one, so a malformed
+// request is still a 400 that never reaches the entitlement resolver.
+let documentsGateMiddleware = null;
+function documentsGate(req, res, next) {
+    if (!documentsGateMiddleware) {
+        documentsGateMiddleware = require('../core/entitlements/entitlements').requireCapability('studio_documents');
+    }
+    return documentsGateMiddleware(req, res, next);
+}
+
+/** Whether this caller may make and change documents: the question the gate asks, as a value. */
+async function documentsLicensed(req) {
+    try {
+        const { hasCapability } = require('../core/entitlements/entitlements');
+        const user = req.session.user || {};
+        return await hasCapability('studio_documents', {
+            userId: user.id, orgId: user.organizationId || user.orgId || null, session: req.session, req,
+        });
+    } catch (e) {
+        log.warn('[StudioDocuments] licence check failed, answering read-only:', e && e.message);
+        return false;
+    }
 }
 
 function sendStoreError(res, err, fallback) {
@@ -311,7 +353,7 @@ router.get('/', requireAuth, validate({ query: ListQuery }), async (req, res) =>
     }
 });
 
-router.post('/', requireAuth, async (req, res) => {
+router.post('/', requireAuth, documentsGate, async (req, res) => {
     try {
         const { name, docType, description, bodyHtml, css, settings, kind, visibility, folderId, categories, starterId, locale } = req.body || {};
         const starter = starterId ? require('../core/documents/documentStarters').starters(locale).find(x => x.id === starterId) : null;
@@ -335,7 +377,7 @@ router.get('/folders', requireAuth, async (req, res) => {
     try { res.json({ folders: await documentStore.listFolders(req.session.user.id) }); }
     catch (e) { sendStoreError(res,e,'Failed to load folders'); }
 });
-router.post('/folders', requireAuth, validate({ body: bodies.folder }), async (req, res) => {
+router.post('/folders', requireAuth, validate({ body: bodies.folder }), documentsGate, async (req, res) => {
     try { res.status(201).json({ folder: await documentStore.createFolder(req.session.user.id,req.body?.name,req.body?.parentId) }); }
     catch (e) { sendStoreError(res,e,'Failed to create folder'); }
 });
@@ -373,7 +415,7 @@ router.get('/:id/updates', requireAuth, async (req,res) => {
         res.json({updates});
     }catch(e){sendStoreError(res,e,'Could not check updates');}
 });
-router.post('/:id/review-update', requireAuth, validate({ body: bodies.reviewUpdate }), async(req,res)=>{
+router.post('/:id/review-update', requireAuth, validate({ body: bodies.reviewUpdate }), documentsGate, async(req,res)=>{
     try {
         const doc=await documentStore.getDocument(req.params.id,req.session.user.id);
         if(!doc) return res.status(404).json({error:'Document not found'});
@@ -394,7 +436,7 @@ router.post('/:id/review-update', requireAuth, validate({ body: bodies.reviewUpd
             validation:prepareDocument(next,next.settings.sampleValues || {},next.settings.sectionOverrides || {})});
     }catch(e){sendStoreError(res,e,'Could not prepare update');}
 });
-router.post('/:id/preview-changes',requireAuth,validate({ body: bodies.previewChanges }),async(req,res)=>{
+router.post('/:id/preview-changes',requireAuth,validate({ body: bodies.previewChanges }),documentsGate,async(req,res)=>{
     try {
         const doc=await documentStore.getDocument(req.params.id,req.session.user.id);
         if(!doc)return res.status(404).json({error:'Document not found'});
@@ -403,7 +445,7 @@ router.post('/:id/preview-changes',requireAuth,validate({ body: bodies.previewCh
         res.json({patch,expectedVersionId:doc.versionId,explanation:'Review design changes',html:await previewHtmlFor(req,proposed)});
     }catch(e){sendStoreError(res,e,'Could not preview changes');}
 });
-router.post('/:id/sections/:sectionId/save',requireAuth,async(req,res)=>{
+router.post('/:id/sections/:sectionId/save',requireAuth,documentsGate,async(req,res)=>{
     try {
         const doc=await documentStore.getDocument(req.params.id,req.session.user.id);
         if(!doc)return res.status(404).json({error:'Document not found'});
@@ -413,7 +455,7 @@ router.post('/:id/sections/:sectionId/save',requireAuth,async(req,res)=>{
         res.status(201).json({document});
     }catch(e){sendStoreError(res,e,'Could not save reusable section');}
 });
-router.post('/:id/ai-proposal', requireAuth, require('express-rate-limit').rateLimit({windowMs:60000,limit:10,standardHeaders:true,legacyHeaders:false}), validate({ body: bodies.aiProposal }), async (req,res) => {
+router.post('/:id/ai-proposal', requireAuth, require('express-rate-limit').rateLimit({windowMs:60000,limit:10,standardHeaders:true,legacyHeaders:false}), validate({ body: bodies.aiProposal }), documentsGate, async (req,res) => {
     try {
         const doc = await documentStore.getDocument(req.params.id,req.session.user.id);
         if (!doc) return res.status(404).json({error:'Document not found'});
@@ -438,7 +480,7 @@ router.post('/:id/validate', requireAuth, validate({ body: bodies.check }), asyn
         res.json({ ...fill, html });
     } catch(e) { sendStoreError(res,e,'Failed to validate document'); }
 });
-router.post('/:id/duplicate', requireAuth, validate({ body: bodies.duplicate }), async (req,res) => {
+router.post('/:id/duplicate', requireAuth, validate({ body: bodies.duplicate }), documentsGate, async (req,res) => {
     try {
         const doc = await documentStore.getDocument(req.params.id,req.session.user.id);
         if (!doc) return res.status(404).json({ error:'Document not found' });
@@ -450,7 +492,7 @@ router.post('/:id/duplicate', requireAuth, validate({ body: bodies.duplicate }),
             organizationId:undefined, folderId:null, name:req.body?.name || `${doc.name} — copy`, kind, visibility:'private', settings }) });
     } catch(e) { sendStoreError(res,e,'Failed to copy document'); }
 });
-router.post('/:id/insert-section', requireAuth, validate({ body: bodies.insertSection }), async (req,res) => {
+router.post('/:id/insert-section', requireAuth, validate({ body: bodies.insertSection }), documentsGate, async (req,res) => {
     try {
         const doc = await documentStore.getDocument(req.params.id,req.session.user.id);
         const source = await documentStore.getDocument(req.body?.sourceId,req.session.user.id);
@@ -473,14 +515,19 @@ router.get('/:id', requireAuth, async (req, res) => {
     try {
         const doc = await documentStore.getDocument(req.params.id, req.session.user.id);
         if (!doc) return res.status(404).json({ error: 'Document not found' });
-        const editable = doc.userId === req.session.user.id || (doc.visibility === 'team' && await hasPermission(req.session.user.id, 'org_admin', req.session));
+        const mayEdit = doc.userId === req.session.user.id || (doc.visibility === 'team' && await hasPermission(req.session.user.id, 'org_admin', req.session));
+        // Without the licence the document is still yours to read, download
+        // and archive; it is only no longer editable, and saying so here is
+        // what opens the editor read-only rather than letting it autosave
+        // into a 403.
+        const editable = mayEdit && await documentsLicensed(req);
         res.json({ document: { ...doc, editable, contract: getContract(doc) } });
     } catch (err) {
         sendStoreError(res, err, 'Failed to load document');
     }
 });
 
-router.patch('/:id', requireAuth, async (req, res) => {
+router.patch('/:id', requireAuth, documentsGate, async (req, res) => {
     try {
         const userId = req.session.user.id;
         const existing = await documentStore.getDocument(req.params.id, userId);
@@ -536,7 +583,7 @@ router.get('/:id/preview', requireAuth, validate({ query: PreviewQuery }), async
  * what the editor draws while a person is still typing or choosing, before
  * anything is saved. Nothing is stored; the same CSP as the saved preview.
  */
-router.post('/:id/preview', requireAuth, validate({ body: bodies.deckDraft }), async (req, res) => {
+router.post('/:id/preview', requireAuth, validate({ body: bodies.deckDraft }), documentsGate, async (req, res) => {
     try {
         const doc = await documentStore.getDocument(req.params.id, req.session.user.id);
         if (!doc) return res.status(404).json({ error: 'Document not found' });
@@ -652,7 +699,7 @@ router.get('/:id/versions', requireAuth, async (req, res) => {
     }
 });
 
-router.post('/:id/versions/:versionId/restore', requireAuth, validate({ body: bodies.restore }), async (req, res) => {
+router.post('/:id/versions/:versionId/restore', requireAuth, validate({ body: bodies.restore }), documentsGate, async (req, res) => {
     try {
         if (!await documentStore.getDocument(req.params.id,req.session.user.id)) return res.status(404).json({error:'Document not found'});
         if (!req.body?.expectedVersionId) return res.status(428).json({error:'Read the current document revision before restoring history.',code:'document_revision_required'});

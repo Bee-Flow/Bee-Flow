@@ -299,9 +299,12 @@ function WebpagesPageInner({ user, onBack, initialWebpageId, onWebpageChange, em
     );
 }
 
-// Licence-gated wrapper. Community-tier sessions see the upgrade panel
-// instead of an unauthenticated WebpagesPage that would 403 on every
-// /api/webpages request.
+// Licence-gated wrapper. A session without `webpages` sees the upgrade panel
+// instead of a WebpagesPage that would 403 on every /api/webpages request.
+// Personal webpages are Community since the enterprise split (2026-10), so on
+// a Community install this passes; SHARING a page (`webpage_sharing`) is
+// locked inside the editor, on the controls that add an audience
+// (webpages/webpageSharingLock.ts).
 export default function WebpagesPage(props) {
     return (
         <RequireTier feature="webpages">

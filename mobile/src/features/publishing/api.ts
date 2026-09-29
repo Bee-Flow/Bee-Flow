@@ -16,11 +16,14 @@
  * answer that each screen renders next to the thing it gates rather than as a
  * screen-wide failure:
  *   webpages     → requireModule('webpages') + requireCapability('webpages')
- *                  (a compound beta: the licence AND the beta flag)
+ *                  (Community since the enterprise split of 2026-10; SHARING a
+ *                  page, publishing it or a new link, is `webpage_sharing`,
+ *                  Enterprise, refused per request: ./sharingRefusal)
  *   automations  → requireModule('automation') + requireLicenseFeature('automations')
  *   mcp-servers  → requireFeature('mcp_marketplace'), an Enterprise feature
  */
 
+import { sharingRequest } from './sharingRefusal';
 import type {
     CreatedWebpageShare,
     FormSubmission,
@@ -95,15 +98,18 @@ export async function getWebpage(id: string, signal?: AbortSignal): Promise<Webp
  * `sharedGroups` is omitted rather than sent empty when the caller does not
  * mean to change it: the server treats undefined as "leave as-is" and an empty
  * array as "the whole organisation" (routes/webpages.js PATCH /:id/publish).
+ *
+ * Publishing is Enterprise (`webpage_sharing`); withdrawing never is. A
+ * licence refusal arrives worded (./sharingRefusal).
  */
 export async function setWebpagePublished(
     id: string,
     isPublished: boolean,
 ): Promise<boolean> {
-    const res = await api.patch<{ success: boolean; isPublished: boolean }>(
+    const res = await sharingRequest(() => api.patch<{ success: boolean; isPublished: boolean }>(
         `/api/webpages/${encodeURIComponent(id)}/publish`,
         { isPublished },
-    );
+    ));
     return res?.isPublished ?? isPublished;
 }
 
@@ -150,20 +156,23 @@ export async function listWebpageShares(
  * store throws before anything is written. Recipient allow-lists exist too but
  * are left to the desktop: typing a list of colleagues' addresses on a phone
  * to guard a link is a worse experience than sending them the link.
+ *
+ * A new link is Enterprise (`webpage_sharing`); its refusal arrives worded
+ * (./sharingRefusal). Refreshing and revoking an existing link are not gated.
  */
 export async function createWebpageShare(
     id: string,
     options: { title?: string; password?: string } = {},
 ): Promise<CreatedWebpageShare | null> {
     const password = options.password?.trim();
-    const res = await api.post<{ share: WebpageShare; url: string }>(
+    const res = await sharingRequest(() => api.post<{ share: WebpageShare; url: string }>(
         `/api/webpages/${encodeURIComponent(id)}/public-shares`,
         {
             accessMode: password ? 'password' : 'unlisted',
             ...(password ? { password } : {}),
             ...(options.title ? { title: options.title } : {}),
         },
-    );
+    ));
     if (!res?.share || !res.url) return null;
     return { share: res.share, url: res.url };
 }

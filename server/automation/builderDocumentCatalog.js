@@ -19,6 +19,17 @@
  * where a datatable belongs to an organisation with per-table grades. A
  * routine runs as its owner, so the owner's documents are exactly the ones it
  * can fill — there is no second scope to walk.
+ *
+ * THE LICENCE LINE (enterprise split, 2026-10). Filling a designed document is
+ * Studio Documents, the Enterprise capability `studio_documents`. Without it
+ * the catalogue is EMPTY, which both builders already read as "a fill_document
+ * step cannot be built" (automation/builderTools/stepBuilders/documentSteps.js
+ * refuses the step, the prompt tells the model to stop), so the builders do
+ * not offer the step to someone whose runs would refuse it
+ * (core/automationRunner/execFillDocument.js). The capability is asked of the
+ * same user the list is read for, and hasCapability fails closed, so an
+ * entitlement outage leaves the catalogue empty rather than offering a step
+ * nobody can tell is licensed.
  */
 
 'use strict';
@@ -30,12 +41,22 @@ const CATALOG_LIMIT = 25;
 
 /**
  * @param {string} userId
+ * @param {object} [opts]
+ * @param {object} [opts.session]        the caller's session, when there is one
+ * @param {string} [opts.orgId]          the caller's organisation, when known
+ * @param {Function} [opts.hasCapability] injectable entitlements check (tests)
+ * @param {object} [opts.documentStore]   injectable store (tests)
  * @returns {Promise<Array<{id, name, docType, description,
  *          placeholders: Array<{key, kind, fields?}>}>>} newest first
  */
-async function buildDocumentCatalogForUser(userId) {
+async function buildDocumentCatalogForUser(userId, opts = {}) {
     if (!userId) return [];
-    const documentStore = require('../stores/documentStore');
+    const hasCapability = opts.hasCapability || require('../core/entitlements/entitlements').hasCapability;
+    const licensed = await hasCapability('studio_documents', {
+        userId, orgId: opts.orgId || null, session: opts.session || null,
+    });
+    if (!licensed) return [];
+    const documentStore = opts.documentStore || require('../stores/documentStore');
     const templates = await documentStore.listTemplates(userId, { limit: CATALOG_LIMIT });
     return templates.map(t => ({
         ...t,

@@ -28,6 +28,9 @@ const Module = require('module');
 const touched = [];
 const note = (what) => (...args) => { touched.push({ what, args }); return true; };
 
+// Skills are Enterprise: importing a session skill creates a library skill.
+let skillsAllowed = true;
+
 const CONV = { id: 'c1', user_id: 'alice', title: 'Chat', sessionSkills: [{ id: 's1', name: 'Stage' }], messages: [] };
 
 const MOCKS = {
@@ -65,6 +68,15 @@ const MOCKS = {
     '../../../core/aiAgent': { getProviderForModel: async () => ({ providerType: 'claude', url: '' }) },
     '../../../core/providers': { getAdapter: () => ({}) },
     '../../../core/tools/sessionSkillRuntime': { bootstrapSessionSkills: async () => [] },
+    // The real refusal body, a switchable verdict: the entitlement resolver
+    // itself would reach for the database. The real module is loaded by
+    // ABSOLUTE path: requiring the same relative string from this directory
+    // would seed Node's per-directory resolve cache, and the router (same
+    // directory) would then get the real gate instead of this mock.
+    '../../../core/skills/creationGate': {
+        canCreateSkills: async (ctx) => { touched.push({ what: 'canCreateSkills', args: [ctx] }); return skillsAllowed; },
+        skillsLockedBody: require(require('node:path').join(__dirname, '..', '..', '..', 'core', 'skills', 'creationGate')).skillsLockedBody,
+    },
 };
 
 const MOCK_IDS = {};
@@ -106,7 +118,7 @@ function dispatch({ method, url, body = {}, session = { user: { id: 'alice' } } 
     });
 }
 
-test.beforeEach(() => { touched.length = 0; });
+test.beforeEach(() => { touched.length = 0; skillsAllowed = true; });
 
 /** Assert: refused with 400, the named field is in `details`, nothing stored. */
 async function refuses(request, field) {
@@ -205,6 +217,28 @@ test('the import defaults live in the schema: private, dynamically activated', a
     assert.strictEqual(created.isShared, false);
     assert.strictEqual(created.dynamicActivation, true);
     assert.strictEqual(created.name, 'Stage', 'no name given means the session skill keeps its own');
+});
+
+test('without Skills the import is refused in words, and no skill is created', async () => {
+    skillsAllowed = false;
+    const res = await dispatch({ method: 'POST', url: '/direct/conversations/c1/session-skills/s1/import', body: {} });
+    assert.strictEqual(res.statusCode, 403);
+    assert.strictEqual(res.body.code, 'feature_locked');
+    assert.strictEqual(res.body.feature, 'skills');
+    // The web client toasts `error` verbatim, so it is a sentence, not the code.
+    assert.match(res.body.error, /Enterprise plan/);
+    const gate = touched.find((t) => t.what === 'canCreateSkills');
+    assert.ok(gate, 'the route asks the gate');
+    assert.strictEqual(gate.args[0].userId, 'alice');
+    assert.strictEqual(gate.args[0].orgId, 'orgA');
+    assert.ok(!touched.some((t) => t.what === 'createSkill'), 'a refused import must not create a skill');
+});
+
+test('deleting a session skill never asks for Skills', async () => {
+    skillsAllowed = false;
+    const res = await dispatch({ method: 'DELETE', url: '/direct/conversations/c1/session-skills/s1' });
+    assert.strictEqual(res.statusCode, 200);
+    assert.ok(!touched.some((t) => t.what === 'canCreateSkills'));
 });
 
 // ═══ Regenerating session skills ════════════════════════════════════

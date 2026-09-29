@@ -85,11 +85,20 @@ const automationStore = {
     async recordGeneratedFile(row) { return { id: 'file-1', ...row }; },
 };
 
+// The licence (`studio_documents`). Granted unless a test says otherwise, and
+// every question is recorded so a test can say WHO was asked.
+const licence = {
+    granted: true,
+    asked: [],
+    async hasCapability(capId, who) { licence.asked.push({ capId, ...who }); return licence.granted; },
+};
+
 const restore = installResolveStub({
     '../../stores/documentStore': documentStore,
     '../../stores/storageStore': storage,
     '../../stores/automationStore': automationStore,
     '../documents/renderFilledDocument': renderFilled,
+    '../entitlements/entitlements': licence,
 });
 const { execFillDocument, _test } = require('./execFillDocument');
 after(() => restore());
@@ -196,6 +205,55 @@ test('unavailable file storage fails the step rather than losing the file silent
     } finally {
         storage.isAvailable = () => true;
     }
+});
+
+// ── the licence ────────────────────────────────────────────────────────────
+
+test('without Studio Documents the step fails with a sentence, and nothing is read, rendered or stored', async () => {
+    const readBefore = renderCalls.length;
+    const uploadsBefore = storage.uploads.length;
+    const realRead = documentStore.getDocumentVersion;
+    let read = false;
+    documentStore.getDocumentVersion = async (...args) => { read = true; return realRead(...args); };
+    licence.granted = false;
+    licence.asked.length = 0;
+    try {
+        for (const mode of ['live', 'dry_run']) {
+            await assert.rejects(() => run(STEP, RUN_STATE, mode), (e) => {
+                assert.strictEqual(e.errorClass, 'license_required');
+                assert.match(e.message, /Enterprise feature \(Studio Documents\)/);
+                assert.match(e.message, /generate_document/, 'the refusal names what can be done instead');
+                return true;
+            });
+        }
+    } finally {
+        licence.granted = true;
+        documentStore.getDocumentVersion = realRead;
+    }
+    assert.strictEqual(read, false, 'the document is not even read');
+    assert.strictEqual(renderCalls.length, readBefore);
+    assert.strictEqual(storage.uploads.length, uploadsBefore);
+    // Asked for the routine's owner, in the run's organisation.
+    assert.deepStrictEqual(licence.asked.map(a => [a.capId, a.userId, a.orgId]), [
+        ['studio_documents', 'user-1', 'org-1'], ['studio_documents', 'user-1', 'org-1'],
+    ]);
+});
+
+test('the owner\'s home organisation answers when the run carries no organisation', async () => {
+    licence.asked.length = 0;
+    await execFillDocument(STEP, { ...CTX, orgId: null, userHomeOrgId: 'home-org' }, RUN_STATE, 'dry_run');
+    assert.strictEqual(licence.asked.at(-1).orgId, 'home-org');
+});
+
+test('a step with no document selected says so before the licence is asked', async () => {
+    licence.granted = false;
+    licence.asked.length = 0;
+    try {
+        await assert.rejects(() => run({ ...STEP, documentId: '' }), (e) => e.errorClass === 'document_missing');
+    } finally {
+        licence.granted = true;
+    }
+    assert.strictEqual(licence.asked.length, 0);
 });
 
 // ── dry run ────────────────────────────────────────────────────────────────

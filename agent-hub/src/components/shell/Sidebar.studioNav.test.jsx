@@ -227,7 +227,9 @@ describe('Sidebar — Studio flyout (registry-driven)', () => {
         // `disabled` attribute (Firefox shows no title on one, and the
         // keyboard cannot reach it): aria-disabled, and the hint as a
         // visible line under the label as well as the tooltip.
-        for (const id of ['webpages', 'apps', 'meetingNotes', 'solutions', 'aiTasks', 'datatables']) {
+        // Documents is among them since the enterprise split (2026-10):
+        // Studio Documents is Enterprise (`studio_documents`).
+        for (const id of ['webpages', 'documents', 'apps', 'meetingNotes', 'solutions', 'aiTasks', 'datatables']) {
             const row = screen.getByTestId(`nav-studio-${id}`);
             expect(row.disabled, `${id} disabled`).toBe(false);
             expect(row.getAttribute('aria-disabled')).toBe('true');
@@ -279,12 +281,14 @@ describe('Sidebar — Studio flyout (registry-driven)', () => {
         for (const id of ['webpages', 'apps', 'meetingNotes', 'solutions', 'aiTasks', 'datatables']) {
             expect(screen.queryByTestId(`nav-studio-${id}`)).toBeNull();
         }
-        // Build survives as a heading because Documents is ungated on purpose
-        // — it replaces the ```quote``` block every chat could already render,
-        // so there is no licence to fail. The assertion is therefore "only the
-        // ungated row is left", not "the group is gone": a group that empties
-        // out still disappears, which is what Bundle proves on the next line.
+        // Build survives as a heading because Documents has no org-role leg:
+        // its gate is the `studio_documents` capability alone, and `can` says
+        // yes here, so there is no permission for this role to fail. The
+        // assertion is therefore "only that row is left", not "the group is
+        // gone": a group that empties out still disappears, which is what
+        // Bundle proves on the next line.
         expect(screen.queryByTestId('nav-studio-documents')).toBeTruthy();
+        expect(screen.queryByTestId('nav-studio-documents').getAttribute('data-locked')).toBeNull();
         expect(screen.queryByTestId('flyout-group-bundle')).toBeNull();
     });
 
@@ -307,7 +311,10 @@ describe('Sidebar — Studio flyout (registry-driven)', () => {
     it('a failed entitlements fetch locks nothing either', () => {
         asCommunityOrg();
         entitlementsMock.error = 'HTTP 503';
-        renderSidebar({ user: { isAdmin: true, permissions: [] }, hasPermission: () => false });
+        // The role carries the Community sections, so the Studio row has
+        // something to open. (It used to open on Documents alone, which had no
+        // gate before the enterprise split.)
+        renderSidebar({ user: { isAdmin: true, permissions: [] }, hasPermission: (p) => ['manage_agents', 'manage_skills', 'manage_knowledge'].includes(p) });
         openStudioFlyout();
         expect(document.querySelectorAll('[data-locked="true"]').length).toBe(0);
         expect(screen.queryByText('Available on a higher plan')).toBeNull();

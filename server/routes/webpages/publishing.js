@@ -12,6 +12,7 @@ const { hasPermission, validateSharedGroupsForOrg } = require('../../auth');
 const { requireAuth } = require('../../auth/permissions');
 const webpageUsageSync = require('../../core/webpages/webpageUsageSync');
 const { liveMatchesPin, pinPublishedVersion } = require('./publishedSnapshot');
+const sharingGate = require('./sharingGate');
 const { validate } = require('../../core/http/validate');
 const { z } = require('zod');
 const { bodyOf, idList, NO_QUERY } = require('./schemas');
@@ -115,6 +116,14 @@ function register(router) {
             }
 
             const { isPublished, sharedGroups } = req.body;
+
+            // Webpage sharing is Enterprise (`webpage_sharing`, see
+            // ./sharingGate). Asked only when this request hands the page to
+            // someone who could not see it: a first publish, another group, or
+            // groups becoming the whole organisation. Unpublishing, dropping
+            // groups and republishing for the audience the page already has
+            // stay open, and nothing below has been written yet.
+            if (sharingGate.publishWidens(wp, req.body) && !(await sharingGate.allow(req, res))) return;
 
             // NOTE: React + Material UI pages ARE publishable to an org/group. That
             // audience views the page as authenticated users through the same

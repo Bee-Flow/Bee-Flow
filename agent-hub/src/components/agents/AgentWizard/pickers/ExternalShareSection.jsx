@@ -14,6 +14,8 @@
 
 import { ExternalLink, Globe, Lock, Mail, Copy, Check, Trash2, Plus, RefreshCw } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import useTranslation from '../../../../hooks/useTranslation';
+import { sharingRefusalText, useWebpageSharingLock } from '../../../../pages/webpages/webpageSharingLock';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 import useConfirm from '../../../shared/useConfirm';
 
@@ -31,6 +33,9 @@ function plusDays(days) {
     return d.toISOString();
 }
 
+/** A failed create in words: a licence refusal (webpage_sharing) as a sentence, never its token. */
+const failureText = (res, data, t) => sharingRefusalText(res.status, data, t) || data.error || `Failed (${res.status})`;
+
 function formatExpiry(iso) {
     if (!iso) return 'No expiry';
     const d = new Date(iso);
@@ -45,6 +50,10 @@ function formatExpiry(iso) {
 
 export default function ExternalShareSection({ webpageId, webpageName, readOnly = false }) {
     const { confirm, confirmDialog } = useConfirm();
+    const { t } = useTranslation();
+    // A NEW link is Enterprise (`webpage_sharing`); refreshing and revoking
+    // the ones that exist is not. The capsule says why, above this section.
+    const sharingLocked = !!useWebpageSharingLock();
     const [shares, setShares] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -123,7 +132,7 @@ export default function ExternalShareSection({ webpageId, webpageName, readOnly 
                 body: JSON.stringify(body),
             });
             const data = await res.json();
-            if (!res.ok) throw new Error(data.error || `Failed (${res.status})`);
+            if (!res.ok) throw new Error(failureText(res, data, t));
             setJustCreated({ url: data.url, shareId: data.share?.id });
             resetForm();
             await fetchShares();
@@ -132,7 +141,7 @@ export default function ExternalShareSection({ webpageId, webpageName, readOnly 
         } finally {
             setCreating(false);
         }
-    }, [creating, webpageId, accessMode, password, emailsRaw, expiry, webpageName, fetchShares]);
+    }, [creating, webpageId, accessMode, password, emailsRaw, expiry, webpageName, fetchShares, t]);
 
     const handleRevoke = useCallback(async (shareId) => {
         if (!webpageId) return;
@@ -200,7 +209,7 @@ export default function ExternalShareSection({ webpageId, webpageName, readOnly 
                 <div className="text-[11px] uppercase tracking-wide text-[var(--text-tertiary)]">
                     External link
                 </div>
-                {!readOnly && !showForm && (
+                {!readOnly && !showForm && !sharingLocked && (
                     <button
                         type="button"
                         onClick={() => { setShowForm(true); setJustCreated(null); }}

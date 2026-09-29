@@ -1,6 +1,8 @@
 import { FileText, Folder, Plus, Search, Stamp, Copy, Trash2, ChevronRight, Loader2, Presentation } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
 import DocumentEditor from './DocumentEditor';
+import { documentsRefusalText, useDocumentsLock } from './documentsLock';
+import DocumentsLockNote from './DocumentsLockNote';
 import HouseStylePanel from './HouseStylePanel';
 import useDocumentText from './useDocumentText';
 import useTranslation from '../../hooks/useTranslation';
@@ -12,6 +14,10 @@ const input = 'rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-seco
 export default function DocumentsPage({ initialDocumentId = null, onDocumentChange }) {
     const d = useDocumentText();
     const { locale } = useTranslation();
+    // Studio Documents is Enterprise (`studio_documents`). Without it the
+    // library stays readable: open, download, archive and delete a folder all
+    // keep working, and only what MAKES or CHANGES a document is left out.
+    const docsLock = useDocumentsLock();
     const [selectedId, setSelectedId] = useState(initialDocumentId);
     const [documents,setDocuments] = useState([]);
     const [folders,setFolders] = useState([]);
@@ -49,7 +55,7 @@ export default function DocumentsPage({ initialDocumentId = null, onDocumentChan
     },[kind,query,folderId,category,visibility,format,sort,offset,refreshKey]);
     useEffect(()=> {window.addEventListener('beeflow:document-updated',refresh);return ()=>window.removeEventListener('beeflow:document-updated',refresh);},[refresh]);
     const select = id => {setSelectedId(id);onDocumentChange?.(id);};
-    const act = async fn => {setBusy(true);try {await fn();refresh();}catch(e){setError(e.message);}finally{setBusy(false);}};
+    const act = async fn => {setBusy(true);try {await fn();refresh();}catch(e){setError(documentsRefusalText(e,d) || e.message);}finally{setBusy(false);}};
     const create = starter => act(async()=> {
         // `deck` = a blank presentation: no starter, the presentation type, an
         // empty outline the editor opens straight into.
@@ -76,8 +82,9 @@ export default function DocumentsPage({ initialDocumentId = null, onDocumentChan
             <header className="flex flex-wrap items-start gap-3">
                 <div className="flex-1"><h1 className="text-2xl font-bold">{d('Documents','Documenten')}</h1><p className="text-sm text-[var(--text-muted)] mt-1">{d('Documents and presentations. Design once. Adapt to every customer.','Documenten en presentaties. Eenmaal ontwerpen. Aanpassen aan iedere klant.')}</p></div>
                 <button className={button} data-testid="documents-house-style" onClick={()=>setShowHouseStyle(true)}><Stamp size={16}/>{d('House style','Huisstijl')}</button>
-                <button className={button+' bg-[var(--accent-primary)] text-white'} disabled={busy} onClick={()=>act(async()=>setGallery((await documentRequest('/starters?locale='+encodeURIComponent(locale || 'en'))).starters))}><Plus size={16}/>{d('New document','Nieuw document')}</button>
+                {!docsLock && <button className={button+' bg-[var(--accent-primary)] text-white'} disabled={busy} onClick={()=>act(async()=>setGallery((await documentRequest('/starters?locale='+encodeURIComponent(locale || 'en'))).starters))}><Plus size={16}/>{d('New document','Nieuw document')}</button>}
             </header>
+            <DocumentsLockNote reason={docsLock} d={d} iconSize={15} className="p-3 rounded-lg text-sm border border-[var(--border-subtle)] bg-[var(--bg-secondary)]"/>
             <nav className="flex gap-2 border-b border-[var(--border-subtle)] pb-3" aria-label={d('Library views','Bibliotheekweergaven')}>
                 {[['document',d('Documents','Documenten')],['template',d('Templates','Sjablonen')],['section',d('Reusable sections','Herbruikbare onderdelen')]].map(([key,label])=><button key={key} aria-pressed={kind===key} onClick={()=>setKind(key)} className={button+(kind===key?' bg-[var(--bg-tertiary)] font-semibold':'')}>{label}</button>)}
             </nav>
@@ -95,14 +102,14 @@ export default function DocumentsPage({ initialDocumentId = null, onDocumentChan
                     <button className={button+' w-full'} onClick={()=>setFolderId('')}>{d('Root folder','Hoofdmap')}</button>
                     {parent && <div className="flex items-center gap-1 text-sm"><button onClick={()=>setFolderId(parent.parentId || '')}>{d('Back','Terug')}</button><ChevronRight size={14}/>{parent.name}<button className="ml-auto p-1" aria-label={d('Delete folder','Map verwijderen')} onClick={()=>act(async()=>{await documentRequest(`/folders/${parent.id}`,undefined,'DELETE');setFolderId(parent.parentId || '');})}><Trash2 size={13}/></button></div>}
                     {visibleFolders.map(f=><button className={button+' w-full text-left'} key={f.id} onClick={()=>setFolderId(f.id)}><Folder size={15}/>{f.name}</button>)}
-                    <form className="flex gap-1 pt-2" onSubmit={e=>{e.preventDefault();act(async()=>{await documentRequest('/folders',{name:folderName,parentId:folderId || null});setFolderName('');});}}><input className={input+' w-full'} value={folderName} onChange={e=>setFolderName(e.target.value)} placeholder={d('New folder','Nieuwe map')} aria-label={d('New folder name','Nieuwe mapnaam')}/><button className={button} disabled={!folderName.trim() || busy} aria-label={d('Create folder','Map maken')}><Plus size={14}/></button></form>
+                    {!docsLock && <form className="flex gap-1 pt-2" onSubmit={e=>{e.preventDefault();act(async()=>{await documentRequest('/folders',{name:folderName,parentId:folderId || null});setFolderName('');});}}><input className={input+' w-full'} value={folderName} onChange={e=>setFolderName(e.target.value)} placeholder={d('New folder','Nieuwe map')} aria-label={d('New folder name','Nieuwe mapnaam')}/><button className={button} disabled={!folderName.trim() || busy} aria-label={d('Create folder','Map maken')}><Plus size={14}/></button></form>}
                 </aside>
                 <main className="space-y-3 min-w-0">
                     {!!selection.length && <div className="flex flex-wrap gap-2 p-3 rounded-lg bg-[var(--bg-tertiary)]"><span className="self-center text-sm">{selection.length} {d('selected','geselecteerd')}</span><select className={input} value="" aria-label={d('Move selected','Selectie verplaatsen')} onChange={e=>bulk({folderId:e.target.value==='root'?null:e.target.value})}><option value="">{d('Move to…','Verplaatsen naar…')}</option><option value="root">{d('Root','Hoofdmap')}</option>{folders.map(f=><option key={f.id} value={f.id}>{f.name}</option>)}</select><input className={input} value={bulkCategory} onChange={e=>setBulkCategory(e.target.value)} placeholder={d('Categories, separated by commas','Categorieën, gescheiden door komma’s')}/><button className={button} disabled={busy} onClick={()=>bulk({categories:bulkCategory.split(',').map(x=>x.trim()).filter(Boolean)})}>{d('Set categories','Categorieën instellen')}</button></div>}
                     {loading ? <Loader2 className="animate-spin mx-auto my-16"/> : !documents.length ? <div className="border border-dashed rounded-xl p-12 text-center"><FileText className="mx-auto mb-3"/><p>{d('No documents here yet. Start from a template or create your own.','Nog geen documenten. Begin met een sjabloon of maak er zelf een.')}</p></div> : <ul className="space-y-2">{documents.map(doc=><li key={doc.id} className="flex gap-3 items-center p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)]">
-                        <input type="checkbox" checked={selection.includes(doc.id)} aria-label={`${d('Select','Selecteer')} ${doc.name}`} onChange={e=>setSelection(prev=>e.target.checked?[...prev,doc.id]:prev.filter(x=>x!==doc.id))}/>{doc.docType==='presentation' ? <Presentation size={20} className="shrink-0 text-[var(--accent-primary)]" data-testid="document-deck-icon"/> : <FileText size={20} className="shrink-0 text-[var(--accent-primary)]"/>}
+                        {!docsLock && <input type="checkbox" checked={selection.includes(doc.id)} aria-label={`${d('Select','Selecteer')} ${doc.name}`} onChange={e=>setSelection(prev=>e.target.checked?[...prev,doc.id]:prev.filter(x=>x!==doc.id))}/>}{doc.docType==='presentation' ? <Presentation size={20} className="shrink-0 text-[var(--accent-primary)]" data-testid="document-deck-icon"/> : <FileText size={20} className="shrink-0 text-[var(--accent-primary)]"/>}
                         <button className="flex-1 min-w-0 text-left" onClick={()=>select(doc.id)}><span className="block font-medium truncate">{doc.name}</span><span className="block text-xs text-[var(--text-muted)] mt-1">{typeLabel(doc)} · {new Date(doc.updatedAt).toLocaleDateString()} · {doc.visibility==='team'?'Team':d('Private','Privé')}</span>{!!doc.categories?.length && <span className="block text-xs mt-1">{doc.categories.join(' · ')}</span>}</button>
-                        <button className={button} title={d('Duplicate / use template','Dupliceren / sjabloon gebruiken')} aria-label={d('Duplicate / use template','Dupliceren / sjabloon gebruiken')} onClick={()=>act(async()=>select((await documentRequest(`/${doc.id}/duplicate`,{kind:'document'})).document.id))}><Copy size={15}/></button>
+                        {!docsLock && <button className={button} title={d('Duplicate / use template','Dupliceren / sjabloon gebruiken')} aria-label={d('Duplicate / use template','Dupliceren / sjabloon gebruiken')} onClick={()=>act(async()=>select((await documentRequest(`/${doc.id}/duplicate`,{kind:'document'})).document.id))}><Copy size={15}/></button>}
                         {confirmDelete===doc.id ? <><button className={button} onClick={()=>act(async()=>{await deleteDocument(doc.id);setConfirmDelete(null);})}>{d('Archive','Archiveren')}</button><button className={button} onClick={()=>setConfirmDelete(null)}>{d('Cancel','Annuleren')}</button></> : <button className={button} aria-label={d('Archive document','Document archiveren')} onClick={()=>setConfirmDelete(doc.id)}><Trash2 size={15}/></button>}
                     </li>)}</ul>}
                     <div className="flex justify-end items-center gap-3"><button className={button} disabled={!offset || loading} onClick={()=>setOffset(Math.max(0,offset-30))}>{d('Previous','Vorige')}</button><span className="text-sm">{Math.floor(offset/30)+1}</span><button className={button} disabled={documents.length<30 || loading} onClick={()=>setOffset(offset+30)}>{d('Next','Volgende')}</button></div>

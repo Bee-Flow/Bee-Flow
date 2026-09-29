@@ -17,6 +17,7 @@ const { resolveAudienceContext } = require('../../auth/audience');
 const { requireAuth } = require('../../auth/permissions');
 const shareUrls = require('../webpageShareUrls');
 const shareReconciler = require('../../core/webpages/webpageShareReconciler');
+const sharingGate = require('./sharingGate');
 const { validate } = require('../../core/http/validate');
 const { z } = require('zod');
 const { worded, bodyOf, choice, NOTHING, NO_QUERY } = require('./schemas');
@@ -151,6 +152,10 @@ function register(router) {
             const userId = req.session.user.id;
             const wp = await webpageStore.getWebpage(req.params.id, userId);
             if (!wp) return res.status(404).json({ error: 'Webpage not found' });
+            // A new public link is new sharing: Enterprise (`webpage_sharing`,
+            // ./sharingGate). Links that already exist keep working, and
+            // refreshing or revoking them below is not gated.
+            if (!(await sharingGate.allow(req, res))) return;
 
             const { accessMode, password, allowedEmails, expiresAt, title } = req.body;
             let expiry;
@@ -237,6 +242,10 @@ function register(router) {
             let expiry;
             try { expiry = parseExpiresAt(req.body.expiresAt); }
             catch (e) { return res.status(400).json({ error: e.message }); }
+            // Keeping a link open longer (a later date, no date, or reopening
+            // an expired one) widens it, so it is Enterprise; an earlier date
+            // only narrows and stays open to everyone.
+            if (sharingGate.expiryExtends(share.expiresAt, expiry) && !(await sharingGate.allow(req, res))) return;
             await publicShareStore.updateExpiry(share.id, userId, expiry);
             const updated = await publicShareStore.getShareById(share.id);
             res.json({ success: true, share: updated });

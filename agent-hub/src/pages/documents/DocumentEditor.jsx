@@ -8,6 +8,8 @@ import useDocumentText from './useDocumentText';
 import {
     getDocument, updateDocument, downloadPdf, downloadPptx, previewDeckDraft, listVersions, restoreVersion, createDocument,
 } from './documentsApi';
+import { useDocumentsLock } from './documentsLock';
+import DocumentsLockNote from './DocumentsLockNote';
 
 const AUTOSAVE_MS = 1500;
 // How long after the last keystroke or look change the slides are redrawn.
@@ -52,6 +54,10 @@ export default function DocumentEditor({
     const isPanel = variant === 'panel';
     const { t } = useTranslation();
     const d = useDocumentText();
+    // Studio Documents is Enterprise (`studio_documents`). Without it the
+    // server answers `editable: false`, so this editor is read-only; the line
+    // under the tools says why, and that reading and downloading still work.
+    const docsLock = useDocumentsLock();
     const [tab, setTab] = useState(null);
     const canvasRef = useRef(null);
     const workspaceRef = useRef(null);
@@ -445,6 +451,7 @@ export default function DocumentEditor({
                 ).map(([key,label])=><button key={key} aria-pressed={tab===key} className={'text-xs rounded px-3 py-1.5 '+(tab===key?'bg-[var(--bg-tertiary)] font-semibold':'')} onClick={async()=>{try{await workspaceRef.current?.flush();setTab(tab===key?null:key);}catch(e){setError(e.message);}}}>{label}</button>)}
                 {isDeck && slideCount > 0 && <span className="ml-auto text-xs" style={{ color: 'var(--text-muted)' }} data-testid="document-slide-count">{t('documents.slides_count', '{count} slides').replace('{count}', String(slideCount))}</span>}
             </nav>
+            <DocumentsLockNote reason={docsLock} d={d} className="px-4 py-2 text-xs shrink-0 border-b border-[var(--border-subtle)]" />
             {recovery && <div className="px-4 py-2 text-sm bg-amber-500/10"><span>{d('An unsaved draft was recovered.','Een niet-opgeslagen concept is teruggevonden.')}</span> <button className="underline" onClick={async()=>{try{await createDocument({...doc,name:doc.name+' — recovered',bodyHtml:recovery,visibility:'private',kind:'document'});sessionStorage.removeItem(`document-draft:${documentId}`);setRecovery(null);}catch(e){setError(e.message);}}}>{d('Save recovered copy','Herstelde kopie opslaan')}</button></div>}
             {saveState==='error' && <div className="px-4 py-2 flex gap-3 text-xs"><button className="underline" onClick={()=>flush().catch(()=>{})}>{d('Retry save','Opslaan opnieuw proberen')}</button><button className="underline" onClick={()=>setRecovery(pendingHtmlRef.current)}>{d('Recover as a copy','Als kopie herstellen')}</button></div>}
             {(error || notice) && (
@@ -524,7 +531,7 @@ export default function DocumentEditor({
                                             {new Date(v.createdAt).toLocaleString()}
                                         </p>
                                     </div>
-                                    <button
+                                    {doc.editable !== false && <button
                                         onClick={() => handleRestore(v.id)}
                                         className="p-1 rounded hover:opacity-80 shrink-0"
                                         aria-label={t('documents.restore', 'Restore this version')}
@@ -532,7 +539,7 @@ export default function DocumentEditor({
                                         style={{ color: 'var(--text-muted)' }}
                                     >
                                         <RotateCcw size={13} />
-                                    </button>
+                                    </button>}
                                 </li>
                             ))}
                         </ul>

@@ -43,6 +43,22 @@ export const DEMO_CAPABILITIES = [
     // canUse('app_studio')`, studioApps.jsx) — nothing INSIDE the tree gates
     // today, but the entitlements should describe the product being shown.
     'app_studio',
+    // The enterprise split (2026-10) carved six paid capabilities out of
+    // surfaces that were ungated before. Five of them sit on screens a demo
+    // shows, and each of those screens checks its own lock before the server
+    // does, so without these the demo would sell locks:
+    //   - the routines demo mounts the builder, whose palette offers the
+    //     Privacy Shield steps (automation_privacy_steps), the "fill a
+    //     document" step (studio_documents) and datatable steps whose tables
+    //     carry retention windows (datatable_retention);
+    //   - the App Studio demo's action inspector fills documents too
+    //     (studio_documents);
+    //   - the knowledge demo shows a source on a refresh schedule
+    //     (kb_scheduled_refresh) beside the "add a source" panel that offers a
+    //     datatable (kb_datatable_sources).
+    // `webpage_sharing` is not here: no demo mounts the webpages editor.
+    'automation_privacy_steps', 'studio_documents', 'datatable_retention',
+    'kb_scheduled_refresh', 'kb_datatable_sources',
 ];
 
 // Per-member permissions the demos need. NotebooksPage checks these directly

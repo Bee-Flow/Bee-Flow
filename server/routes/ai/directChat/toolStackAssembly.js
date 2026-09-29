@@ -158,12 +158,13 @@ async function assembleToolStack({ req, send, userId, conversationId, resolvedTi
         }
 
         // ─── Built-in: document tools ────────────────────────────────
-        // Deliberately NOT behind the webpages beta. A rendered document is
-        // the replacement for the old ```quote``` block every chat could emit,
-        // so putting it behind a beta gate would take a capability away from
-        // the people who already had it. Simple mode still opts out: it exists
-        // to keep the tool list short.
-        if (!userSimpleMode) {
+        // Not behind the webpages beta: a document is its own thing. Since the
+        // enterprise split (2026-10) it is the Enterprise capability
+        // `studio_documents`, and these tools create and change documents, so
+        // they are offered only to someone who holds it: the same line
+        // routes/studioDocuments.js draws for its write routes. Simple mode
+        // still opts out: it exists to keep the tool list short.
+        if (await documentToolsAllowed({ userId, req, userSimpleMode })) {
             for (const tool of DOCUMENT_TOOLS) {
                 if (!directChatTools.find(t => t.function.name === tool.function.name)) {
                     directChatTools.push(tool);
@@ -314,4 +315,29 @@ async function assembleToolStack({ req, send, userId, conversationId, resolvedTi
         return { toolDisclosure, activatedToolGroups, disclosureLazyByGroup, activatedLibrarySkillIds, skillApps, directChatTools, baseDirectToolNames, n8nOrgId, notebooksEnabled, canUseNotebooks, toolCatalogText, notebookWriteGate };
 }
 
-module.exports = { assembleToolStack };
+/**
+ * Whether this turn offers the Studio Documents tools (create_document,
+ * document_read, document_write, document_edit).
+ *
+ * Simple mode says no before anything is resolved. Otherwise the answer is
+ * the `studio_documents` capability, asked the way requireCapability asks it
+ * (the session's user and organisation). hasCapability fails closed, so an
+ * entitlement outage leaves the tools out rather than offering tools whose
+ * every call the document routes would refuse. `hasCapability` is injectable
+ * for the test beside this file.
+ */
+async function documentToolsAllowed({ userId, req = null, userSimpleMode = false, hasCapability = null } = {}) {
+    if (userSimpleMode) return false;
+    const check = hasCapability || require('../../../core/entitlements/entitlements').hasCapability;
+    const user = req?.session?.user || {};
+    try {
+        return !!(await check('studio_documents', {
+            userId, orgId: user.organizationId || user.orgId || null, session: req?.session || null, req,
+        }));
+    } catch (e) {
+        log.warn('[DirectChat] document tools left out, the licence check failed:', e?.message);
+        return false;
+    }
+}
+
+module.exports = { assembleToolStack, documentToolsAllowed };

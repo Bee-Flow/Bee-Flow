@@ -3,6 +3,8 @@ import {
 } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Card, Chip } from './WebpageDataCards';
+import { sharingRefusalText, useWebpageSharingLock } from './webpageSharingLock';
+import WebpageSharingLockNote from './WebpageSharingLockNote';
 import AudienceRows from '../../components/shared/AudienceRows';
 import useTranslation from '../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../utils/helpers';
@@ -196,7 +198,7 @@ function PublicAiNotes({ t, ai }) {
 
 // ── de vierde rij ────────────────────────────────────────────────────
 
-function PublicRow({ t, model, busy, onOpen, onTurnOff, disabled }) {
+function PublicRow({ t, model, busy, onOpen, onTurnOff, disabled, locked = false }) {
     const on = !!model?.public?.on;
     // Driewaardig, net als `agent.known` in de kolom hiernaast: kon de share
     // niet gelezen worden, dan is "Off" een bewering over blootstelling die we
@@ -231,7 +233,9 @@ function PublicRow({ t, model, busy, onOpen, onTurnOff, disabled }) {
                     <button
                         type="button"
                         data-testid="public-toggle"
-                        disabled={disabled || busy}
+                        // Turning public ON is Enterprise (`webpage_sharing`);
+                        // turning it off never is.
+                        disabled={disabled || busy || (!on && locked)}
                         onClick={on ? onTurnOff : onOpen}
                         className="text-xs underline disabled:opacity-50 inline-flex items-center gap-1"
                     >
@@ -580,6 +584,9 @@ export default function WebpageAudiencePanel({
     const [busy, setBusy] = useState(false);
     const [saveError, setSaveError] = useState(null);
     const [options, setOptions] = useState({ accessMode: 'unlisted', password: '', emails: '', expiresAt: '' });
+    // Sharing beyond the owner is Enterprise (`webpage_sharing`). The server
+    // refuses only what widens, so the lock only closes what adds an audience.
+    const sharingLock = useWebpageSharingLock();
 
     /**
      * Neem het servermodel over als lokale staat.
@@ -640,7 +647,7 @@ export default function WebpageAudiencePanel({
                 body: JSON.stringify(body),
             });
             const out = await readJson(res);
-            if (!res.ok) throw new Error((out && out.error) || `HTTP ${res.status}`);
+            if (!res.ok) throw new Error(sharingRefusalText(res.status, out, t) || (out && out.error) || `HTTP ${res.status}`);
             adopt(out);
             setGateOpen(false);
         } catch (e) {
@@ -675,6 +682,7 @@ export default function WebpageAudiencePanel({
             <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
                 {t('webpages.audience.subtitle', 'Who can see this page, and where it lives.')}
             </p>
+            <WebpageSharingLockNote reason={sharingLock} />
 
             <AudienceRows
                 t={t}
@@ -714,6 +722,7 @@ export default function WebpageAudiencePanel({
                         model={model}
                         busy={busy && !gateOpen}
                         disabled={gateOpen}
+                        locked={!!sharingLock}
                         onOpen={openGate}
                         onTurnOff={() => send({ on: false })}
                     />

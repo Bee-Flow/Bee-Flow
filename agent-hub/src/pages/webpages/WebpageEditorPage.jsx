@@ -8,10 +8,13 @@ import WebpageHistoryTab from './WebpageHistoryTab';
 import WebpageIDE from './WebpageIDE';
 import WebpagePreview from './WebpagePreview';
 import { api, fetchExtraContent } from './webpagesApi';
+import { sharingRefusalText, useWebpageSharingLock } from './webpageSharingLock';
+import WebpageSharingLockNote from './WebpageSharingLockNote';
 import WebpageUsedByTab from './WebpageUsedByTab';
 import ExternalShareSection from '../../components/agents/AgentWizard/pickers/ExternalShareSection';
 import ShareLinksMenu from '../../components/agents/AgentWizard/pickers/ShareLinksMenu';
 import useChatEngine from '../../hooks/useChatEngine';
+import useTranslation from '../../hooks/useTranslation';
 import computeWebpageDiff from '../../utils/computeWebpageDiff';
 import downloadWebpageZip from '../../utils/downloadWebpageZip';
 import { API_BASE, authFetch } from '../../utils/helpers';
@@ -79,6 +82,10 @@ export default function WebpageEditorPage({
     const pageId = loaded.webpage.id;
     const [page, setPage] = useState(loaded.webpage);
     const isOwner = page.userId === user?.id;
+    const { t } = useTranslation();
+    // Sharing this page beyond its owner is Enterprise (`webpage_sharing`).
+    // Null when it is not locked, or while the answer is not in yet.
+    const sharingLock = useWebpageSharingLock();
     /* ── The five sections (plan W2) ──────────────────────────────
      * One `activeTab` replaced three booleans that used to disagree with each
      * other (`viewMode`, the IDE's own `devMode`, and the overlay flag the
@@ -667,7 +674,9 @@ export default function WebpageEditorPage({
             });
             if (!res.ok) {
                 const data = await res.json().catch(() => ({}));
-                throw new Error(data.error || `Publish failed (${res.status})`);
+                // A licence refusal (webpage_sharing) reads as a sentence, not
+                // as the bare `feature_locked` token the gate answers with.
+                throw new Error(sharingRefusalText(res.status, data, t) || data.error || `Publish failed (${res.status})`);
             }
             // The server answers with the version it actually pinned. Take it
             // from the response rather than assuming: a publish that could not
@@ -685,7 +694,7 @@ export default function WebpageEditorPage({
         } catch (err) {
             if (mountedRef.current) setError(err.message);
         }
-    }, [pageId, onMetaChange]);
+    }, [pageId, onMetaChange, t]);
 
     /**
      * The header's one primary action — and it does TWO different things,
@@ -807,7 +816,12 @@ export default function WebpageEditorPage({
                 onSetPersonal={handleSetPersonal}
                 onSetEntireOrg={handleSetEntireOrg}
                 onToggleGroup={handleToggleGroup}
-                capsuleExtra={<ExternalShareSection webpageId={pageId} webpageName={page.name} />}
+                capsuleExtra={(
+                    <>
+                        <WebpageSharingLockNote reason={sharingLock} className="px-4 pt-2" />
+                        <ExternalShareSection webpageId={pageId} webpageName={page.name} />
+                    </>
+                )}
                 onAddImage={isOwner ? () => headerUploadRef.current?.click() : undefined}
                 onDownloadZip={handleDownloadZip}
                 extras={!isOwner ? <ShareLinksMenu webpageId={pageId} webpageName={page.name} /> : null}

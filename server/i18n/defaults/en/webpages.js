@@ -457,4 +457,7 @@ module.exports = {
     'webpages.address.save_options': 'Apply',
     'webpages.address.other_links': 'There are {n} external links on this page in total. Only this one is the address; the others are separate share links.',
     'webpages.address.part_of_solution': 'Part of solution {name}',
+    // Webpage sharing is Enterprise (`webpage_sharing`, the enterprise split of 2026-10).
+    'webpages.sharing.locked_upgrade': 'Sharing a webpage with others is available on a higher plan. Your own pages keep working, what is already shared stays shared, and you can always stop sharing.',
+    'webpages.sharing.locked_not_granted': 'Sharing webpages is not switched on for your organisation, so ask an admin. Your own pages keep working, and what is already shared stays shared.',
 };

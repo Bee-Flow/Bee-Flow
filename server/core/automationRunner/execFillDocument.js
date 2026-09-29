@@ -117,6 +117,32 @@ function fillReport(fill) {
     };
 }
 
+/**
+ * The licence line (enterprise split, 2026-10): filling a designed document is
+ * Studio Documents, the Enterprise capability `studio_documents`.
+ *
+ * Asked for the routine's OWNER (ctx.userId), the identity the whole run acts
+ * as, and in a dry run too: a dry run exists to show what the live run will
+ * do, and one that passes a step the live run then refuses is the confusing
+ * outcome. hasCapability fails closed, so an entitlement outage fails the step
+ * here rather than rendering on an unknown licence. The refusal is a readable
+ * sentence with `errorClass: 'license_required'`, as execApproval's is, so
+ * the run log says what to do instead of showing a stack.
+ */
+async function assertDocumentsLicensed(ctx) {
+    const { hasCapability } = require('../entitlements/entitlements');
+    const licensed = await hasCapability('studio_documents', {
+        userId: ctx?.userId || null,
+        orgId: (ctx && (ctx.orgId || ctx.userHomeOrgId)) || null,
+        session: ctx?.session || null,
+    });
+    if (!licensed) {
+        const err = new Error('fill_document: filling a Studio document is an Enterprise feature (Studio Documents), and it is not included for the owner of this routine. Use a generate_document step to turn text into a PDF instead, or ask an administrator about Studio Documents.');
+        err.errorClass = 'license_required';
+        throw err;
+    }
+}
+
 async function execFillDocument(step, ctx, runState, mode) {
     const documentId = String(step.documentId || '').trim();
     if (!documentId) {
@@ -125,6 +151,8 @@ async function execFillDocument(step, ctx, runState, mode) {
             { errorClass: 'document_missing' },
         );
     }
+
+    await assertDocumentsLicensed(ctx);
 
     const values = buildValues(step.values, runState);
     const nameBinding = interpolateTemplate(step.fileName || '', runState).trim();
