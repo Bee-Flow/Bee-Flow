@@ -61,6 +61,10 @@ updates:
     # scripts/check-playwright-lockstep.mjs and fail when the two disagree.
     ignore:
       - dependency-name: playwright
+      # The runtime is Node 22 (.nvmrc, engines, node:22 images); the types
+      # follow the runtime major, not the newest Node (#33).
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
     labels: [dependencies, security]
 
   - package-ecosystem: npm
