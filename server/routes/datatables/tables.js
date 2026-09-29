@@ -21,7 +21,7 @@ const {
     gradeForPrincipal, resolveDatatablePrincipal, datatableScopesFor, defaultCreateScope,
 } = require('../../auth/datatableAccess');
 const { PG, DATA_LIMITS, keyOf, MAX_RETENTION_DAYS } = require('./engine');
-const { quota, answerDatatableError } = require('./refusals');
+const { quota, answerDatatableError, capabilityAllows } = require('./refusals');
 const { publicTable, scopeDescriptor } = require('./projection');
 const { validate } = require('../../core/http/validate');
 const { z } = require('zod');
@@ -252,6 +252,11 @@ function register(router) {
      * `retention_field` is the kind's own timestamp column and `retention_days` the
      * window, so jobs/datatableRetention is what removes an old answer. One
      * mechanism, two features: there is no second, invisible clock to reason about.
+     *
+     * The kind's own default window comes with the kind on every plan, and so
+     * does any shorter one the caller picks. A window LONGER than the default,
+     * or one on a kind that has no default, is a retention setting like any
+     * other and needs `datatable_retention` (see PATCH /:id).
      */
     router.post('/managed', validate({ body: ManagedBody }), async (req, res) => {
         let scope = null;
@@ -316,6 +321,10 @@ function register(router) {
                 return res.status(400).json({ error: 'Say what this table is for — it goes in your processing record' });
             }
             const retentionDays = req.body.retentionDays ?? spec.defaultRetentionDays;
+            const chosen = req.body.retentionDays;
+            if (chosen !== undefined
+                && (spec.defaultRetentionDays == null || chosen > spec.defaultRetentionDays)
+                && !await capabilityAllows('datatable_retention', req, res)) return;
 
             // Through the same normaliser every other create uses, so a managed
             // table's fields are byte-identical in shape to an author's. The ids

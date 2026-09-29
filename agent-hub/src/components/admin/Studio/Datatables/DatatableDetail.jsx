@@ -1,8 +1,9 @@
 import {
-    BarChart3, Check, ClipboardList, Columns3, Copy, Download, Ellipsis, ExternalLink, Loader2, Pencil, Rows3, ShieldAlert, Share2, Stethoscope,
+    BarChart3, Check, ClipboardList, Columns3, Copy, Download, Ellipsis, ExternalLink, Loader2, Lock, Pencil, Rows3, ShieldAlert, Share2, Stethoscope,
     Tag, Timer, Trash2, Workflow,
 } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCapabilityLock } from './CapabilityLock';
 import ColumnDesigner from './ColumnDesigner';
 import { GRADE_LABEL, gradeAtLeast, isFormAnswers, isNcMirror, isSourceMirror, keyFromName, sourceKindSpec, sourceNameOf, sourceUrlOf, tableKindOf } from './datatableDisplay';
 import { datatablesApi } from './datatablesApi';
@@ -88,6 +89,10 @@ export default function DatatableDetail({
     const columns = useColumns(table.id, true);
 
     const syncStatus = mirror?.sync?.status;
+    // The Retention tab stays, locked or not: switching a window off or
+    // shortening it is free on every plan. It wears the lock only when there
+    // is no window to act on, because then everything on it is the paid part.
+    const retentionLocked = !!useCapabilityLock('datatable_retention') && !table.retentionDays;
     const tabs = useMemo(() => [
         ...(answers ? [{ id: 'dashboard', label: t('datatables.frm_tab_dashboard', 'Dashboard'), icon: <BarChart3 className="w-3.5 h-3.5" /> }] : []),
         // A mirror has a source tab and NO Retention tab: its rows are not
@@ -101,11 +106,15 @@ export default function DatatableDetail({
         }] : []),
         { id: 'columns', label: t('datatables.tab_columns', 'Columns'), icon: <Columns3 className="w-3.5 h-3.5" /> },
         { id: 'rows', label: t('datatables.tab_rows', 'Rows'), count: table.rowCount ?? undefined, icon: <Rows3 className="w-3.5 h-3.5" /> },
-        ...(isMirror ? [] : [{ id: 'retention', label: t('datatables.tab_data', 'Retention'), icon: <Timer className="w-3.5 h-3.5" /> }]),
+        ...(isMirror ? [] : [{
+            id: 'retention',
+            label: t('datatables.tab_data', 'Retention'),
+            icon: retentionLocked ? <Lock className="w-3.5 h-3.5" /> : <Timer className="w-3.5 h-3.5" />,
+        }]),
         { id: 'sharing', label: t('datatables.tab_sharing', 'Sharing'), icon: <Share2 className="w-3.5 h-3.5" /> },
         // Always last: it is the tab the destructive actions send you to.
         { id: 'usage', label: t('datatables.tab_usage', 'Used by'), count: usage ? usage.length : undefined, icon: <Workflow className="w-3.5 h-3.5" /> },
-    ], [t, isMirror, answers, spec, Glyph, syncStatus, table.rowCount, usage]);
+    ], [t, isMirror, answers, spec, Glyph, syncStatus, table.rowCount, usage, retentionLocked]);
 
     // The ⋯ menu's "Rename table" opens the header's own inline edit.
     const [renameRequest, setRenameRequest] = useState(0);

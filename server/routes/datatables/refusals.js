@@ -101,6 +101,27 @@ function confirmedBreaking(req) {
     return CONFIRMED.has(req.body?.confirmBreaking) || CONFIRMED.has(req.query?.confirmBreaking);
 }
 
+/**
+ * The requireCapability gate, run INSIDE a handler.
+ *
+ * For a licence line that depends on what the request asks for rather than on
+ * the route itself: a longer retention window, a wider audience. Shortening a
+ * window, or taking access away, must stay free, so the gate can only be
+ * decided once the body has been read and compared with the table.
+ *
+ * It runs the real middleware instead of asking hasCapability and writing a
+ * body here, so the answer is the one every mounted gate gives: 403
+ * `feature_locked` outside the plan, 403 `feature_disabled` inside it but not
+ * switched on, 503 while entitlements cannot be read. Resolves true when the
+ * caller may go on, false when the gate has already answered.
+ */
+async function capabilityAllows(capId, req, res) {
+    const { requireCapability } = require('../../core/entitlements/entitlements');
+    let allowed = false;
+    await requireCapability(capId)(req, res, () => { allowed = true; });
+    return allowed;
+}
+
 /** A 400 the handler below can throw from anywhere in its validation. */
 function bad(message, code) {
     const e = new Error(message);
@@ -143,6 +164,6 @@ function rejectSqlKeys(req, res, next) {
 }
 
 module.exports = {
-    quota, assertQuota, answerDatatableError, bad,
+    quota, assertQuota, answerDatatableError, bad, capabilityAllows,
     confirmedBreaking, breakingColumnUsage, rejectSqlKeys,
 };

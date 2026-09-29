@@ -56,6 +56,10 @@ const fx = {
     // `u1` is de aanroeper van vrijwel elke test hier.
     users: {},
     allGroups: [],
+    // Capabilities the caller's plan lacks. Empty: everything is licensed.
+    locked: new Set(),
+    // datatable (K8): the tables the stubbed resolver will hand back.
+    datatables: {},
 };
 
 const KB = { id: 'kb1', tenant_id: 'owner1', name: 'Handbook', organization_id: 'org1', last_content_at: '2026-09-01T10:00:00.000Z' };
@@ -79,6 +83,8 @@ function resetFx() {
         u2: { id: 'u2', name: null, email: 'x@y.z', organizationId: 'org2', groups: [] },
     };
     fx.allGroups = [{ id: 'g-sales', organizationId: 'org-via-groep' }];
+    fx.locked = new Set();
+    fx.datatables = {};
     for (const k of ['ingested', 'reingested', 'created', 'updated', 'removed', 'refreshed', 'statusUpdates', 'chunkDeletes', 'listCalls', 'extracted', 'tagProbes', 'transcriptProbes']) fx[k].length = 0;
     fx.chunkDeleteFails.clear();
 }
@@ -221,6 +227,24 @@ const MOCKS = {
         resolveUserGroups: async (id) => (fx.users[id]?.groups || []),
     },
     '../core/entitlements/betaFeatures': { userHasBetaFeature: async () => false },
+    // The licence gate answers the way the real one does when the plan lacks
+    // the capability: 403 `feature_locked`, naming it.
+    '../core/entitlements/entitlements': {
+        requireCapability: (id) => (req, res, next) => (fx.locked.has(id)
+            ? res.status(403).json({ error: 'feature_locked', feature: id, required: 'enterprise' })
+            : next()),
+    },
+    '../core/automationRunner/datatableResolve': {
+        resolveDatatableForStep: async (id) => {
+            const table = fx.datatables[id];
+            if (!table) throw new Error('not available');
+            return { table, tableMeta: { fields: table.fields }, scope: { kind: 'org', id: 'org1' } };
+        },
+    },
+    '../core/kb/sources/datatable': {
+        pickColumns: (cfg, meta) => (cfg.columns && cfg.columns.length ? cfg.columns : meta.fields.map(f => f.key)),
+        reconcileUsage: async () => {},
+    },
     '../core/serviceAuth': { getServiceHeaders: () => ({}) },
     '../support/kbAccess': {
         canAccessKB: async () => fx.canAccess,
@@ -1079,4 +1103,112 @@ test('someone who may only READ the knowledge base cannot point it at meetings',
     const res = await dispatch({ method: 'POST', url: '/kb1/sources', body: { kind: 'meeting_tag', config: { tag: 'sales' } } });
     assert.strictEqual(res.statusCode, 403);
     assert.strictEqual(fx.sources.length, 0);
+});
+
+// ═══ The licence line ═══════════════════════════════════════════════
+//
+// `kb_datatable_sources` and `kb_scheduled_refresh` refuse NEW use only: a
+// datatable source that exists keeps working, renaming is always free, and so
+// is switching a schedule off. A mode the kind does not have is a 400 about
+// the request on every plan, never hidden behind "not on your plan".
+
+const PRICES = { id: 'dt-prices', name: 'Prices', fields: [{ key: 'name' }, { key: 'price' }] };
+
+test('without kb_datatable_sources, a datatable source is refused and nothing is made', async () => {
+    resetFx();
+    fx.locked.add('kb_datatable_sources');
+    fx.datatables = { [PRICES.id]: PRICES };
+
+    const res = await dispatch({ method: 'POST', url: '/kb1/sources', body: { kind: 'datatable', config: { datatableId: PRICES.id } } });
+    assert.strictEqual(res.statusCode, 403, JSON.stringify(res.body));
+    assert.strictEqual(res.body.error, 'feature_locked');
+    assert.strictEqual(res.body.feature, 'kb_datatable_sources');
+    assert.deepStrictEqual(fx.sources, []);
+});
+
+test('with kb_datatable_sources, the same request makes the source', async () => {
+    resetFx();
+    fx.datatables = { [PRICES.id]: PRICES };
+
+    const res = await dispatch({ method: 'POST', url: '/kb1/sources', body: { kind: 'datatable', config: { datatableId: PRICES.id } } });
+    assert.strictEqual(res.statusCode, 201, JSON.stringify(res.body));
+    assert.strictEqual(res.body.source.kind, 'datatable');
+    assert.strictEqual(fx.sources.length, 1);
+});
+
+test('an existing datatable source keeps working without the licence', async () => {
+    // Its sync is also how a row erased upstream leaves the base, so nothing
+    // about a source that exists may stop on a lapse.
+    resetFx();
+    fx.locked = new Set(['kb_datatable_sources', 'kb_scheduled_refresh']);
+    fx.sources = [source({ id: 's1', kind: 'datatable', name: 'Prices', config: { datatableId: PRICES.id }, refreshMode: 'live' })];
+
+    const renamed = await dispatch({ method: 'PATCH', url: '/kb1/sources/s1', body: { name: 'Price list' } });
+    assert.strictEqual(renamed.statusCode, 200, JSON.stringify(renamed.body));
+    const refresh = await dispatch({ method: 'POST', url: '/kb1/sources/s1/refresh' });
+    assert.strictEqual(refresh.statusCode, 202, JSON.stringify(refresh.body));
+    assert.deepStrictEqual(fx.refreshed, ['s1']);
+    const manual = await dispatch({ method: 'PATCH', url: '/kb1/sources/s1', body: { refresh: { mode: 'manual' } } });
+    assert.strictEqual(manual.statusCode, 200, JSON.stringify(manual.body));
+});
+
+test('without kb_scheduled_refresh, a source cannot be created on a schedule, but can be made manual', async () => {
+    resetFx();
+    fx.locked.add('kb_scheduled_refresh');
+
+    const scheduled = await dispatch({
+        method: 'POST', url: '/kb1/sources',
+        body: { kind: 'webpage', config: { url: 'https://example.com/terms' }, refresh: { mode: 'schedule', cron: '0 7 * * *' } },
+    });
+    assert.strictEqual(scheduled.statusCode, 403, JSON.stringify(scheduled.body));
+    assert.strictEqual(scheduled.body.feature, 'kb_scheduled_refresh');
+    assert.deepStrictEqual(fx.sources, []);
+    assert.deepStrictEqual(fx.ingested, [], 'nothing was fetched or stored for a refused source');
+
+    const manual = await dispatch({
+        method: 'POST', url: '/kb1/sources',
+        body: { kind: 'webpage', config: { url: 'https://example.com/terms' }, refresh: { mode: 'manual' } },
+    });
+    assert.strictEqual(manual.statusCode, 201, JSON.stringify(manual.body));
+    assert.strictEqual(manual.body.source.refreshMode, 'manual');
+});
+
+test('without kb_scheduled_refresh, PATCH cannot start or change a schedule', async () => {
+    resetFx();
+    fx.locked.add('kb_scheduled_refresh');
+    fx.sources = [
+        source({ id: 's1', kind: 'webpage', config: { url: 'https://example.com' } }),
+        source({ id: 's2', kind: 'webpage', config: { url: 'https://example.com/b' }, refreshMode: 'schedule', refreshCron: '0 7 * * *' }),
+    ];
+
+    const start = await dispatch({ method: 'PATCH', url: '/kb1/sources/s1', body: { refresh: { mode: 'schedule', cron: '0 7 * * *' } } });
+    assert.strictEqual(start.statusCode, 403, JSON.stringify(start.body));
+    assert.strictEqual(start.body.feature, 'kb_scheduled_refresh');
+    const change = await dispatch({ method: 'PATCH', url: '/kb1/sources/s2', body: { refresh: { cron: '30 23 * * *' } } });
+    assert.strictEqual(change.statusCode, 403, JSON.stringify(change.body));
+    assert.deepStrictEqual(fx.updated, [], 'a refused PATCH writes nothing');
+});
+
+test('without kb_scheduled_refresh, renaming a scheduled source and switching it off still work', async () => {
+    resetFx();
+    fx.locked.add('kb_scheduled_refresh');
+    fx.sources = [source({ id: 's2', kind: 'webpage', refreshMode: 'schedule', refreshCron: '0 7 * * *' })];
+
+    const renamed = await dispatch({ method: 'PATCH', url: '/kb1/sources/s2', body: { name: 'Terms page' } });
+    assert.strictEqual(renamed.statusCode, 200, JSON.stringify(renamed.body));
+    const off = await dispatch({ method: 'PATCH', url: '/kb1/sources/s2', body: { refresh: { mode: 'manual' } } });
+    assert.strictEqual(off.statusCode, 200, JSON.stringify(off.body));
+    const patch = fx.updated.at(-1).patch;
+    assert.strictEqual(patch.refreshMode, 'manual');
+    assert.strictEqual(patch.nextRefreshAt, null, 'switched off means nothing stays armed');
+});
+
+test('a refresh mode the kind does not have is a 400 before the licence line', async () => {
+    resetFx();
+    fx.locked.add('kb_scheduled_refresh');
+    fx.sources = [source({ id: 's1', kind: 'text' })];
+
+    const res = await dispatch({ method: 'PATCH', url: '/kb1/sources/s1', body: { refresh: { mode: 'schedule' } } });
+    assert.strictEqual(res.statusCode, 400, JSON.stringify(res.body));
+    assert.strictEqual(res.body.code, 'refresh_mode_not_available');
 });

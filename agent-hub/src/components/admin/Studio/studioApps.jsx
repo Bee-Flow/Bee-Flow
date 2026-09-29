@@ -586,6 +586,10 @@ export const STUDIO_APPS = [
         // intersection of licence × beta and includes webpages automatically
         // when the tier matches, but we re-check the licence explicitly so a
         // stale session can't keep the tab visible after a downgrade.
+        // Personal webpages are Community since the enterprise split
+        // (2026-10), so this row opens on a Community org; SHARING a page is
+        // the separate Enterprise capability `webpage_sharing`, locked inside
+        // the section (pages/webpages/webpageSharingLock.ts), not here.
         gate: ({ hasLicenseFeature, canUse, hasPermission }) =>
             hasLicenseFeature('webpages') && canUse('webpages') && hasPermission('use_webpages'),
         gateCapability: 'webpages',
@@ -608,11 +612,13 @@ export const STUDIO_APPS = [
         // thing visited or printed?" is the one question that decides which of
         // the two you want, and the model is told to choose between them too.
         //
-        // NO GATE. Every other build section is behind a licence feature; this
-        // one replaces the ```quote``` block that every chat could already
-        // render, so gating it would withdraw a capability rather than add
-        // one. The server agrees — /api/studio-documents carries requireAuth
-        // and nothing else.
+        // Enterprise since the enterprise split (2026-10): `studio_documents`,
+        // a GA capability whose id is its licence feature, so ctx.can resolves
+        // the same effective set the server's requireCapability does. It locks
+        // rather than hides, like the other licensed rows. The lock is about
+        // MAKING and CHANGING: the server keeps reading, downloading and
+        // archiving open without it, and the page itself (reached from a chat
+        // link or its address) shows existing documents read-only.
         id: 'documents',
         urlSegment: 'documents',
         labelKey: 'studio.tab.documents',
@@ -622,12 +628,12 @@ export const STUDIO_APPS = [
         Icon: FileText,
         kind: 'document',
         category: 'build',
-        // Unconditional, and the registry contract requires it to be stated
-        // rather than omitted: this section replaces a capability every chat
-        // already had, so there is nothing to withhold. The server draws the
-        // same line — /api/studio-documents carries requireAuth and no
-        // licence or beta gate.
-        gate: () => true,
+        // The capability alone, no org-role leg: there is no documents role
+        // permission, and a failed gate is therefore always a licence matter
+        // (locked, never hidden).
+        gate: ({ can }) => can('studio_documents'),
+        gateCapability: 'studio_documents',
+        lockOn: 'disable',
         create: { labelKey: 'studio.new.document', labelFallback: 'Document', onCreate: navigateTo('studio/documents') },
         Component: lazy(() => import('../../../pages/documents/DocumentsPage')),
         getProps: ({ initialDocumentId, onNavigate }) => ({

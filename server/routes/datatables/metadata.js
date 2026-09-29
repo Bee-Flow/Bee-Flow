@@ -14,7 +14,7 @@ const { retentionFieldError } = require('../../core/dataEngine/dataModel/datatab
 const { isDefinitionManagedKind } = require('../../core/dataEngine/dataModel/managedTables');
 const { DATA_LIMITS, MAX_RETENTION_DAYS } = require('./engine');
 const { requireDatatableGrade, requireManageForOrgScope } = require('./grade');
-const { bad, answerDatatableError } = require('./refusals');
+const { bad, answerDatatableError, capabilityAllows } = require('./refusals');
 const { publicTable } = require('./projection');
 const { validate } = require('../../core/http/validate');
 const { z } = require('zod');
@@ -90,6 +90,26 @@ const PatchBody = z.preprocess(
     }),
 );
 
+/**
+ * Does this PATCH set a retention window, or make one keep rows for longer?
+ *
+ * That is the paid part (`datatable_retention`). Everything else a PATCH can
+ * do to the window stays free on every plan: switching it off, leaving it as
+ * it is, or shortening it. GDPR Art. 5(1)(e) asks for data to be kept no
+ * longer than needed, and an owner acting on that must never meet a licence.
+ *
+ * "Shorter" means the same date column and fewer days. Moving a live window
+ * to another column is a new rule rather than a shorter one: it can keep a
+ * row far longer than the rule it replaces, so it counts as setting one.
+ */
+function widensRetention(table, body) {
+    const current = table.retentionDays ?? null;
+    const next = body.retentionDays === undefined ? current : body.retentionDays;
+    if (next === null) return false;
+    if (current === null || next > current) return true;
+    return body.retentionField !== undefined && body.retentionField !== table.retentionField;
+}
+
 function register(router) {
     router.get('/:id', requireDatatableGrade('viewer'), (req, res) => {
         res.json({ datatable: publicTable(req.datatable, req.datatableGrade) });
@@ -117,6 +137,14 @@ function register(router) {
      * "only the person who added it" would become visible to every viewer of the
      * table, retroactively. That is a disclosure, not a setting, so it is a 409
      * with the reason rather than a silent success.
+     *
+     * ── A LONGER WINDOW IS THE PAID PART, A SHORTER ONE NEVER IS ────────
+     * Setting a window or lengthening one needs `datatable_retention`
+     * (widensRetention above); shortening it or switching it off does not.
+     * The check comes last, after every refusal that says what is wrong with
+     * the request itself, so "that column is not a date" is never hidden
+     * behind "that is on a higher plan". The sweep that enforces a window
+     * already set is never gated (jobs/datatableRetention.js).
      */
     router.patch('/:id',
         requireDatatableGrade('owner'),
@@ -202,6 +230,9 @@ function register(router) {
                     }
                     patch.subjectColumn = body.subjectColumn;
                 }
+
+                if (widensRetention(req.datatable, body)
+                    && !await capabilityAllows('datatable_retention', req, res)) return;
 
                 const t = await datatableStore.updateDatatableMeta(req.datatable.id, req.datatableScope, patch);
                 if (!t) return res.status(404).json({ error: 'Not found' });

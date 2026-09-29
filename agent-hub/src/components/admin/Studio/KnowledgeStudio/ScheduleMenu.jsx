@@ -1,7 +1,9 @@
 import { Check } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
+import { scheduleLockText, sourceLicenceMessage, useSourceLocks } from './sourceLocks';
 import useTranslation from '../../../../hooks/useTranslation';
 import AnchoredMenu from '../../../shared/AnchoredMenu';
+import { LockNote } from '../Datatables/CapabilityLock';
 
 /**
  * How often should this source fetch itself? (Knowledge artboard 1a's ⋯ menu
@@ -27,6 +29,14 @@ import AnchoredMenu from '../../../shared/AnchoredMenu';
  * zone is what the schedule is written in, and the menu names it, because
  * someone in another office reading "06:00" would otherwise reasonably assume
  * theirs.
+ *
+ * ── A SCHEDULE IS A PLAN FEATURE ────────────────────────────────────
+ * Without `kb_scheduled_refresh` the schedule rows are locked and the menu
+ * says what still works. "Only when I ask" is never locked: switching a
+ * schedule off is free. A source that was scheduled before the plan changed
+ * is not refreshed on its schedule any more (jobs/kbSourceRefresh.js), and
+ * the menu says that too, rather than showing a schedule that no longer runs
+ * as if it did.
  */
 
 /** What the menu can produce. Anything else came from an operator's PATCH. */
@@ -56,7 +66,11 @@ export function presetFor(cron) {
 export default function ScheduleMenu({ open, onClose, anchorRef, source, onChange, align = 'right' }) {
     const { t } = useTranslation();
     const [busy, setBusy] = useState(false);
+    const [error, setError] = useState(null);
     const tz = useMemo(browserTimezone, []);
+    const locked = useSourceLocks().schedule;
+    // Every row is off while saving; a schedule row also for good without the licence.
+    const offFor = (m) => busy || (m === 'schedule' && !!locked);
 
     const modes = Array.isArray(source?.supportsModes) && source.supportsModes.length
         ? source.supportsModes
@@ -66,7 +80,9 @@ export default function ScheduleMenu({ open, onClose, anchorRef, source, onChang
 
     const choose = async (next) => {
         setBusy(true);
+        setError(null);
         try { await onChange?.(next); onClose?.(); }
+        catch (e) { setError(scheduleError(t, e)); }
         finally { setBusy(false); }
     };
 
@@ -89,7 +105,7 @@ export default function ScheduleMenu({ open, onClose, anchorRef, source, onChang
                 <Row
                     key={m}
                     selected={mode === m && (m !== 'schedule' || !preset)}
-                    disabled={busy}
+                    disabled={offFor(m)}
                     onClick={() => choose(m === 'schedule'
                         ? { mode: 'schedule', cron: CRON_PRESETS[1].cron, tz }
                         : { mode: m })}
@@ -105,7 +121,7 @@ export default function ScheduleMenu({ open, onClose, anchorRef, source, onChang
                         <Row
                             key={p.id}
                             selected={mode === 'schedule' && preset?.id === p.id}
-                            disabled={busy}
+                            disabled={offFor('schedule')}
                             onClick={() => choose({ mode: 'schedule', cron: p.cron, tz })}
                         >
                             {t(p.labelKey, p.labelFallback)}
@@ -119,10 +135,44 @@ export default function ScheduleMenu({ open, onClose, anchorRef, source, onChang
                     <div className="px-3 pt-1.5" style={{ color: 'var(--text-tertiary)' }}>
                         {t('knowledge.schedule.tz_note', 'Times are in {tz}.', { tz: source?.refreshTz || tz })}
                     </div>
+                    <ScheduleLock t={t} locked={locked} mode={mode} source={source} />
                 </>
             )}
+            <MenuError error={error} />
         </AnchoredMenu>
     );
+}
+
+/**
+ * Why a schedule cannot be chosen here, and, for one that exists, that it no
+ * longer runs. A TABLE source is the exception: its scheduled sync keeps
+ * running without the licence (it is how an erased row leaves the base), so
+ * it is never called paused.
+ */
+function ScheduleLock({ t, locked, mode, source }) {
+    if (!locked) return null;
+    const paused = mode === 'schedule' && source?.kind !== 'datatable';
+    return (
+        <div className="px-3 pt-1.5 flex flex-col gap-1">
+            {paused && (
+                <LockNote testId="kb-schedule-paused">
+                    {t('knowledge.schedule.paused', 'This source no longer refreshes on its schedule. It refreshes when you ask.')}
+                </LockNote>
+            )}
+            <LockNote testId="kb-schedule-locked">{scheduleLockText(t, locked)}</LockNote>
+        </div>
+    );
+}
+
+function MenuError({ error }) {
+    return error ? <p role="alert" className="px-3 pt-1.5 text-[var(--error)]">{error}</p> : null;
+}
+
+/** A refused change in words: the licence sentence when it was the licence. */
+function scheduleError(t, e) {
+    return sourceLicenceMessage(t, e)
+        || e?.message
+        || t('knowledge.schedule.err', 'Could not change how this source refreshes.');
 }
 
 /**

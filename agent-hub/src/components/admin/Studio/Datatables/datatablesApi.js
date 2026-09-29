@@ -19,7 +19,10 @@
  *         "deleted", so nothing here retries or explains.
  *   403 — a grade, but too low. Say which, and offer the person the ask.
  *   409 — someone else changed the columns while this editor was open.
- *   402 — sharing is the paid boundary; reading and writing rows never is.
+ *   403 `feature_locked` / `feature_disabled` (in `.body.error`, no `.code`) —
+ *         a licence line: sharing, or setting a longer retention window.
+ *         Reading and writing rows never is; CapabilityLock.licenceRefusal
+ *         turns it into a lock reason.
  */
 
 import { API_BASE, authFetch } from '../../../../utils/helpers';

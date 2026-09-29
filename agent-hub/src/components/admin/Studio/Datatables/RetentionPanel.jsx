@@ -1,5 +1,6 @@
 import { History, Loader2, ShieldAlert, Timer } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
+import { LockNote, licenceRefusal, useCapabilityLock } from './CapabilityLock';
 import { ColumnKindIcon } from './ColumnKind';
 import { columnLabel, columnTypeKind, expiringSoonCutoffIso } from './datatableDisplay';
 import { datatablesApi } from './datatablesApi';
@@ -34,6 +35,13 @@ import { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
  * this tab carried, and they stay: what the rows hold (managed tables), that
  * the window IS the whole expiry story for a cache, and that a run keeps its
  * own copy in the run history — the one people are surprised by.
+ *
+ * ── A LONGER WINDOW IS PAID, A SHORTER ONE NEVER IS ─────────────────
+ * Without `datatable_retention` the choices that would set a window or make
+ * it longer are locked, and so is moving a live window to another column
+ * (a new rule, not a shorter one). "Never", and every shorter window, stay
+ * one click away: keeping data no longer than needed must never wait on a
+ * plan. The server draws the same line (PATCH /:id).
  */
 
 const PRESETS = [7, 30, 90];
@@ -53,6 +61,10 @@ export default function RetentionPanel({ table, canEdit, columns = [], onChanged
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState(null);
     const [note, setNote] = useState(null);
+    // Without the licence: any new window, and any longer than the current one.
+    const lock = useCapabilityLock('datatable_retention');
+    const current = table.retentionDays ?? null;
+    const widens = (d) => !!lock && d !== null && (current === null || d > current);
 
     // The table object is replaced on every refresh, so the panel follows the
     // server rather than holding a stale draft after somebody else's save.
@@ -89,9 +101,11 @@ export default function RetentionPanel({ table, canEdit, columns = [], onChanged
                 : t('datatables.retention_saved', 'Saved. Rows are deleted {n} days after their {field}.', { n: nextDays, field: labelOf(t, columns, nextField) }));
             onChanged?.();
         } catch (e) {
+            const refused = licenceRefusal(e);
             setError(e.code === 'retention_field_required'
                 ? t('datatables.retention_field_required', 'Pick the date column the age is measured from.')
-                : (e.message || t('datatables.err_retention', 'Could not change the retention window')));
+                : refused ? lockText(t, refused)
+                    : (e.message || t('datatables.err_retention', 'Could not change the retention window')));
         } finally {
             setBusy(false);
         }
@@ -143,11 +157,15 @@ export default function RetentionPanel({ table, canEdit, columns = [], onChanged
                             onChange={choose}
                             options={[
                                 { value: 'off', label: t('datatables.retention_never', 'Never') },
-                                ...PRESETS.map(d => ({ value: d, label: t('datatables.retention_days', '{n} days', { n: d }) })),
-                                { value: 'custom', label: t('datatables.retention_other', 'Other…') },
+                                ...PRESETS.map(d => ({ value: d, label: t('datatables.retention_days', '{n} days', { n: d }), disabled: widens(d) })),
+                                // Custom is how a window gets shorter than the presets, so
+                                // it only locks when there is no window to shorten.
+                                { value: 'custom', label: t('datatables.retention_other', 'Other…'), disabled: !!lock && current === null },
                             ]}
                         />
                     </div>
+
+                    {lock && canEdit && <LockNote testId="retention-locked">{lockText(t, lock)}</LockNote>}
 
                     {custom && (
                         <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
@@ -164,7 +182,7 @@ export default function RetentionPanel({ table, canEdit, columns = [], onChanged
                             />
                             <button
                                 type="button"
-                                disabled={!canEdit || busy || !days || days < 1 || days > MAX_DAYS || !effectiveField}
+                                disabled={!canEdit || busy || !days || days < 1 || days > MAX_DAYS || !effectiveField || widens(days)}
                                 onClick={() => save(days, effectiveField)}
                                 className="text-xs px-2.5 py-1 rounded-lg font-medium disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
                                 style={{ ...PRIMARY_ACTION_STYLE, outlineColor: 'var(--accent-primary)' }}
@@ -181,7 +199,7 @@ export default function RetentionPanel({ table, canEdit, columns = [], onChanged
                                 style={{ color: 'var(--text-tertiary)', flexShrink: 0 }} />
                             <select
                                 value={effectiveField || ''}
-                                disabled={!canPickField || busy}
+                                disabled={!canPickField || busy || (!!lock && !!table.retentionDays)}
                                 aria-label={t('datatables.retention_field', 'Date column the age is measured from')}
                                 onChange={(e) => { setField(e.target.value); if (table.retentionDays) save(table.retentionDays, e.target.value); }}
                                 className="px-2 py-1 rounded border text-xs focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1"
@@ -239,6 +257,13 @@ const CONTROL = {
     background: 'var(--bg-primary)', borderColor: 'var(--border-default)',
     color: 'var(--text-primary)', outlineColor: 'var(--accent-primary)',
 };
+
+/** Why a window cannot be set or lengthened here, and that shortening still works. */
+function lockText(t, reason) {
+    return reason === 'not_granted'
+        ? t('datatables.retention_locked_not_granted', 'Setting a retention window, or making one longer, is not switched on for your organisation. Ask an admin. You can always shorten a window or switch it off.')
+        : t('datatables.retention_locked', 'Setting a retention window, or making one longer, is available on a higher plan. You can always shorten a window or switch it off.');
+}
 
 /** The column a new window would count from, when the table has an obvious one. */
 function defaultField(table, columns) {

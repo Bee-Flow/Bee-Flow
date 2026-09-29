@@ -1,5 +1,6 @@
 import { Building2, Eye, Loader2, Lock, Plus, ShieldAlert, ShieldCheck, User, UserPlus, Users, X } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { licenceRefusal } from './CapabilityLock';
 import { audienceOf, describeAccess, joinNames, GROUPS, ORG, PRIVATE } from './datatableDisplay';
 import { datatablesApi } from './datatablesApi';
 import useTranslation from '../../../../hooks/useTranslation';
@@ -36,8 +37,11 @@ import { useOrgDirectory } from '../AppStudio/rbac/useAppRoles';
  *
  * Sharing is also the licence boundary — reading and writing rows on a table
  * you already hold a grade on stays free, so a lapsed licence can never turn a
- * nightly automation into a hole in the org's data. A 402 here therefore reads
- * as "this is the paid part", not as a failure.
+ * nightly automation into a hole in the org's data. The server's refusal (403
+ * `feature_locked`, or `feature_disabled` when the plan has it but the
+ * organisation has not switched it on) therefore reads as "this is the paid
+ * part", not as a failure. Making the table private again, and taking write
+ * access back, are never refused: removing access is free on every plan.
  *
  * WIDENING ASKS, NARROWING DOES NOT. Going private → groups, private →
  * organisation, groups → organisation, or turning on write-by-audience each
@@ -87,7 +91,8 @@ function OrgSharing({ table, canEdit, onChanged }) {
     const [grants, setGrants] = useState([]);
     const [error, setError] = useState(null);
     const [busy, setBusy] = useState(false);
-    const [paywalled, setPaywalled] = useState(false);
+    // Why sharing was refused, as a lock reason ('ceiling' | 'not_granted'), or null.
+    const [paywalled, setPaywalled] = useState(null);
     // "Specific groups" picked, but no group chosen yet. Local only — see
     // chooseAudience for why this cannot be a request.
     const [audienceDraft, setAudienceDraft] = useState(null);
@@ -120,7 +125,7 @@ function OrgSharing({ table, canEdit, onChanged }) {
     const patchSharing = useCallback(async (descriptor) => {
         setBusy(true);
         setError(null);
-        setPaywalled(false);
+        setPaywalled(null);
         try {
             await datatablesApi.setSharing(table.id, descriptor);
             // Anything but a groups descriptor settles the question the draft
@@ -128,7 +133,8 @@ function OrgSharing({ table, canEdit, onChanged }) {
             if (descriptor.audience && descriptor.audience !== GROUPS) setAudienceDraft(null);
             onChanged?.();
         } catch (e) {
-            if (e.status === 402 || e.code === 'capability_required') setPaywalled(true);
+            const refused = licenceRefusal(e);
+            if (refused) setPaywalled(refused);
             else setError(e.message || t('datatables.err_sharing', 'Could not update sharing'));
         } finally {
             setBusy(false);
@@ -297,7 +303,7 @@ function OrgSharing({ table, canEdit, onChanged }) {
                 canEdit={canEdit}
                 directory={directory}
                 onChanged={loadGrants}
-                onPaywalled={() => setPaywalled(true)}
+                onPaywalled={setPaywalled}
             />
           </div>
 
@@ -305,8 +311,10 @@ function OrgSharing({ table, canEdit, onChanged }) {
                 focus, so without it the only feedback is visual. */}
             <div aria-live="polite">
                 {paywalled && (
-                    <p className="text-xs px-3 py-2 rounded-lg" style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
-                        {t('datatables.share_paywalled', 'Sharing a datatable with colleagues is part of a paid plan. Your own tables, and every table already shared with you, keep working exactly as they do now.')}
+                    <p className="text-xs px-3 py-2 rounded-lg" style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }} data-testid="sharing-paywalled">
+                        {paywalled === 'not_granted'
+                            ? t('datatables.share_not_granted', 'Sharing a datatable with colleagues is not switched on for your organisation. Ask an admin. Making a table private again always works.')
+                            : t('datatables.share_paywalled', 'Sharing a datatable with colleagues is part of a paid plan. Your own tables, and every table already shared with you, keep working exactly as they do now.')}
                     </p>
                 )}
                 {error && <p className="text-xs px-3 py-2 rounded-lg" style={{ background: 'var(--bg-secondary)', color: 'var(--warning)' }}>{error}</p>}
@@ -416,7 +424,8 @@ function GrantList({ table, grants, canEdit, directory, onChanged, onPaywalled }
             setAdding(false);
             onChanged();
         } catch (e) {
-            if (e.status === 402 || e.code === 'capability_required') onPaywalled();
+            const refused = licenceRefusal(e);
+            if (refused) onPaywalled(refused);
             else setError(e.message || t('datatables.err_grant_add', 'Could not share the table'));
         } finally {
             setBusy(false);
@@ -432,7 +441,8 @@ function GrantList({ table, grants, canEdit, directory, onChanged, onPaywalled }
             await datatablesApi.addGrant(table.id, { granteeType: g.granteeType, granteeId: g.granteeId, grade: nextGrade });
             onChanged();
         } catch (e) {
-            if (e.status === 402 || e.code === 'capability_required') onPaywalled();
+            const refused = licenceRefusal(e);
+            if (refused) onPaywalled(refused);
             else setError(e.message || t('datatables.err_grant_add', 'Could not share the table'));
         }
     };

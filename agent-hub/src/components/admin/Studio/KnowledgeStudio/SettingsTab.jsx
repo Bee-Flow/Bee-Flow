@@ -1,11 +1,13 @@
 import { Bot, Building2, MessageSquare, Workflow } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { knowledgeApi } from './knowledgeApi';
+import { useSourceLocks } from './sourceLocks';
 import useTranslation from '../../../../hooks/useTranslation';
 import CategoryField from '../../../agents/AgentWizard/CategoryField';
 import AudienceRows from '../../../shared/AudienceRows';
 import DangerZone from '../../../shared/DangerZone';
 import { kindColorVar } from '../../../shared/kindColors';
+import { LockNote } from '../Datatables/CapabilityLock';
 
 /**
  * Instellingen (Knowledge artboard 1c-left): name, description, where the
@@ -85,6 +87,10 @@ export default function SettingsTab({
     onNavigate,
 }) {
     const { t } = useTranslation();
+    // A copy is new use, so it gets what the viewer's plan includes: the
+    // server leaves table sources out and copies schedules as manual when
+    // the plan lacks them, and says so here before the button is pressed.
+    const locks = useSourceLocks();
     const [name, setName] = useState(kb?.name || '');
     const [description, setDescription] = useState(kb?.description || '');
     const [categories, setCategories] = useState([]);
@@ -315,6 +321,8 @@ export default function SettingsTab({
                     <p className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
                         {t('knowledge.settings.duplicate_hint', 'Documents are never copied. A copied source reads its own files and pages again on its first refresh, so the copy gets what is there now.')}
                     </p>
+                    {locks.datatable && <LockNote testId="kb-duplicate-locked-datatable">{t('knowledge.settings.duplicate_locked_datatable', 'A copy with its sources leaves out table sources: tables as knowledge sources are not available to you.')}</LockNote>}
+                    {locks.schedule && <LockNote testId="kb-duplicate-locked-schedule">{t('knowledge.settings.duplicate_locked_schedule', 'A copied source that refreshes on a schedule will refresh only when you ask: scheduled refresh is not available to you.')}</LockNote>}
                 </section>
             )}
 

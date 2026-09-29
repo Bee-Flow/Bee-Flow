@@ -446,6 +446,10 @@ const NL_TRANSLATIONS = {
     'datatables.usage_count_one': 'gebruikt door 1',
     'datatables.usage_hint': 'Nog een routine koppelen: voeg daar een Tabel-stap toe en kies deze tabel.',
     'datatables.usage_none_short': 'nog niet gebruikt',
+    // Licence refusals for retention and sharing (enterprise split, 2026-10).
+    'datatables.retention_locked': 'Een bewaartermijn instellen of verlengen kan met een hoger abonnement. Een termijn verkorten of uitzetten kan altijd.',
+    'datatables.retention_locked_not_granted': 'Een bewaartermijn instellen of verlengen staat niet aan voor je organisatie. Vraag een beheerder. Een termijn verkorten of uitzetten kan altijd.',
+    'datatables.share_not_granted': 'Een datatabel delen met collega\'s staat niet aan voor je organisatie. Vraag een beheerder. Een tabel weer privé maken kan altijd.',
 };
 
 /**

@@ -505,6 +505,41 @@ function refreshPatchFor(refresh, kind) {
     return patch;
 }
 
+// ── The licence line ────────────────────────────────────────────────
+//
+// Two things a source can do only on a plan that includes them:
+//   - `kb_datatable_sources`: pointing a knowledge base at a datatable;
+//   - `kb_scheduled_refresh`: refreshing on a schedule (any kind that has one).
+// Both refuse NEW use only. A datatable source that already exists keeps
+// syncing, deleted rows included (core/kb/sources/datatable.js: erasure and
+// retention upstream depend on that pass), renaming a source is always free,
+// and so is switching a schedule OFF. What an existing schedule does once the
+// plan no longer has it is the refresh job's call (jobs/kbSourceRefresh.js).
+
+/**
+ * The requireCapability gate, run inside a handler, for a line that depends
+ * on the body (which kind, which mode) rather than on the route. The real
+ * middleware answers, so the refusal is the standard one: 403
+ * `feature_locked` / `feature_disabled`, or 503 while entitlements cannot be
+ * read. Resolves true when the caller may go on.
+ */
+async function capabilityAllows(capId, req, res) {
+    const { requireCapability } = require('../../core/entitlements/entitlements');
+    let allowed = false;
+    await requireCapability(capId)(req, res, () => { allowed = true; });
+    return allowed;
+}
+
+/**
+ * Does this refresh patch put a source on a schedule, or change the one it
+ * has? `storedMode` is the row's mode on PATCH (null on create): a new cron
+ * on a source that is already scheduled is still using the schedule.
+ */
+function arrangesSchedule(patch, storedMode = null) {
+    if (patch.refreshMode !== undefined) return patch.refreshMode === 'schedule';
+    return storedMode === 'schedule' && (patch.refreshCron !== undefined || patch.refreshTz !== undefined);
+}
+
 // ── Web page fetching ───────────────────────────────────────────────
 
 /**
@@ -613,6 +648,12 @@ router.post('/:id/sources', requireAuth, requirePermission('manage_knowledge'), 
             });
         }
 
+        // Before the licence line: a mode this kind does not have is a 400
+        // about the request, and must not hide behind "not on your plan".
+        const refreshPatch = refreshPatchFor(refresh, kind);
+        if (kind === 'datatable' && !await capabilityAllows('kb_datatable_sources', req, res)) return;
+        if (arrangesSchedule(refreshPatch) && !await capabilityAllows('kb_scheduled_refresh', req, res)) return;
+
         // Entitlement — checked against the live count, never a stored number.
         const max = await maxSourcesFor(kb, getUserId(req));
         if (max >= 0) {
@@ -627,7 +668,6 @@ router.post('/:id/sources', requireAuth, requirePermission('manage_knowledge'), 
         }
 
         const cfg = config;
-        const refreshPatch = refreshPatchFor(refresh, kind);
 
         const userId = getUserId(req);
         const { ingestDocument } = helpers();
@@ -1020,6 +1060,10 @@ router.patch('/:id/sources/:sid', requireAuth, requirePermission('manage_knowled
 
         const { name, refresh } = req.body;
         const patch = refreshPatchFor(refresh, source.kind);
+        // Scheduling (or rescheduling) is the paid part; a rename, and
+        // switching back to manual, never are.
+        if (arrangesSchedule(patch, source.refreshMode)
+            && !await capabilityAllows('kb_scheduled_refresh', req, res)) return;
         if (name !== undefined) patch.name = name;
         // Switching back to manual clears the schedule so no stale cron fires.
         if (patch.refreshMode === 'manual') {

@@ -54,13 +54,67 @@ let _inFlight = false;
 let _timer = null;
 
 /**
+ * Is this source's SCHEDULE still part of its organisation's plan?
+ *
+ * ── THE SCHEDULE IS THE PAID PART, NEVER THE PASS ───────────────────
+ * Refreshing on a schedule is `kb_scheduled_refresh`. Without it a
+ * scheduled source is treated as a manual one. The pass that is due still
+ * runs, because this job cannot tell a "Refresh now" from a schedule coming
+ * due (both are `next_refresh_at <= now()`), and refreshing by hand is free
+ * on every plan. Its documents stay. It is simply not armed again, so from
+ * then on it refreshes when somebody asks, like any manual source. Once the
+ * plan has the feature again, the next pass (or saving the schedule) arms it
+ * as before; nothing about the source itself was changed.
+ *
+ * A DATATABLE source is never asked. Its pass is also how a row deleted
+ * upstream (by the retention sweep, or an erasure request) leaves the
+ * knowledge base, and a job that protects people's data is never gated.
+ *
+ * An outage is not a downgrade: when entitlements cannot be read, or the
+ * base cannot be found, the schedule is kept. Failing closed here would
+ * disarm a paying organisation's schedules for good on one bad minute, with
+ * nothing on screen to say why; failing open costs at most one extra pass.
+ */
+async function scheduleLicensed(source, { kbStore = null, entitlements = null } = {}) {
+    if (!source || source.refreshMode !== 'schedule' || source.kind === 'datatable') return true;
+    try {
+        const kb = await (kbStore || require('../stores/knowledgeBases')).getKB(source.knowledgeBaseId);
+        if (!kb) return true;
+        const set = await (entitlements || require('../core/entitlements/entitlements')).resolveCapabilitySet({
+            userId: kb.tenant_id || null,
+            orgId: kb.organization_id || null,
+        });
+        if (!set || set.degraded) return true;
+        return set.has('kb_scheduled_refresh');
+    } catch (e) {
+        log.warn(`[KBSourceRefresh] could not check the schedule licence of source ${source.id}:`, e.message);
+        return true;
+    }
+}
+
+/**
  * Refresh one claimed source and release the claim.
  *
  * Always calls `finish`: a claim that is never released is a source that
  * never refreshes again until the reaper notices, which is fifteen minutes
  * of silence for something that failed in one.
+ *
+ * `scheduleAllowed` decides whether a scheduled source is armed again after
+ * this pass (see scheduleLicensed); it never decides whether the pass runs.
  */
-async function refreshOne(source, { sources = require('../core/kb/sources'), store = kbSourcesStore } = {}) {
+async function refreshOne(source, {
+    sources = require('../core/kb/sources'),
+    store = kbSourcesStore,
+    scheduleAllowed = scheduleLicensed,
+} = {}) {
+    let keepSchedule = true;
+    try { keepSchedule = await scheduleAllowed(source); } catch (_) { keepSchedule = true; }
+    if (!keepSchedule) {
+        log.info(`[KBSourceRefresh] source ${source.id}: scheduled refresh is not in its organisation's plan; refreshing this once, not scheduling it again`);
+    }
+    // What the schedule would do next, as the plan allows it: a manual
+    // source is never armed, so neither is a schedule the plan lost.
+    const asPlanned = keepSchedule ? source : { ...source, refreshMode: 'manual' };
     try {
         const result = await sources.syncSource(source, {
             reason: 'schedule',
@@ -72,14 +126,14 @@ async function refreshOne(source, { sources = require('../core/kb/sources'), sto
             // next tick continues it rather than waiting for the schedule.
             nextRefreshAt: (result.truncated || result.cancelled)
                 ? new Date().toISOString()
-                : result.nextRefreshAt,
+                : (keepSchedule ? result.nextRefreshAt : null),
         });
         return { ok: true, result };
     } catch (e) {
         // The engine swallows per-document failures, so reaching here means
         // the whole pass failed — a dead host, a revoked credential. finish()
         // bumps the streak, and nextRefreshFor widens the gap from it.
-        const next = sources.nextRefreshFor(source, {
+        const next = sources.nextRefreshFor(asPlanned, {
             consecutiveErrors: (Number(source.consecutiveErrors) || 0) + 1,
         });
         await store.finish(source.id, { ok: false, error: e, nextRefreshAt: next });
@@ -289,7 +343,7 @@ async function onMeetingProcessed(payload, { store = kbSourcesStore } = {}) {
 }
 
 module.exports = {
-    start, processDueSources, refreshOne, onMeetingProcessed,
+    start, processDueSources, refreshOne, scheduleLicensed, onMeetingProcessed,
     onDatatableChanged, armStaleLiveSources,
     LOCK_KEY, MAX_PER_TICK, REFRESH_CONCURRENCY, STUCK_MINUTES, TIME_BUDGET_MS,
 };

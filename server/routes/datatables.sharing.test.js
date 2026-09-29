@@ -45,7 +45,11 @@ let USERS = {};        // id → the `users` row a fresh getUser returns
 let GROUPS = [];       // the `groups` rows getAllGroups returns
 let TABLE = null;      // the one `datatables` row under test
 let WRITES = [];       // every setSharing patch that actually reached the store
+let GRANT_WRITES = []; // every grant add/remove that reached the store
 let WARNINGS = [];
+// Capabilities the caller's plan does NOT include. Empty means everything is
+// licensed, which is what the mapping tests above the licence section assume.
+const LOCKED = new Set();
 
 function resetState() {
     USERS = { 'u-owner': { id: 'u-owner', organizationId: 'org-a', orgRole: 'member', groups: [] } };
@@ -65,7 +69,9 @@ function resetState() {
         rowCount: 3, retentionDays: null, projectId: null, updatedAt: null,
     };
     WRITES = [];
+    GRANT_WRITES = [];
     WARNINGS = [];
+    LOCKED.clear();
 }
 
 mock(path.join(SERVER, 'stores/userStore'), {
@@ -89,6 +95,8 @@ mock(path.join(SERVER, 'stores/datatableStore'), {
         if (patch.writeMode !== undefined) TABLE.writeMode = patch.writeMode;
         return TABLE;
     },
+    addGrant: async (id, scope, grant) => { GRANT_WRITES.push({ op: 'add', id, grant }); return [grant]; },
+    removeGrant: async (id, grantId) => { GRANT_WRITES.push({ op: 'remove', id, grantId }); return []; },
 });
 mock(path.join(SERVER, 'stores/datatableDbStore'), {
     applyMigration: async () => {},
@@ -99,7 +107,13 @@ mock(path.join(SERVER, 'stores/datatableDbStore'), {
 // The gate chain is routes/datatables.test.js's job, not this file's.
 const pass = () => (req, res, next) => next();
 mock(path.join(SERVER, 'core/entitlements/betaFeatures'), { requireBetaFeature: pass, userHasBetaFeature: async () => false });
-mock(path.join(SERVER, 'core/entitlements/entitlements'), { requireCapability: pass });
+// The licence gate answers the way the real one does when the plan lacks the
+// capability: 403 `feature_locked`, naming it.
+mock(path.join(SERVER, 'core/entitlements/entitlements'), {
+    requireCapability: (id) => (req, res, next) => (LOCKED.has(id)
+        ? res.status(403).json({ error: 'feature_locked', feature: id, required: 'enterprise' })
+        : next()),
+});
 mock(path.join(SERVER, 'utils/perUserRateLimit'), { perUserRateLimit: pass });
 
 // The REAL group validator — the requireNonEmpty option is half of what this
@@ -385,4 +399,89 @@ test('a PERSONAL table refuses a grant too — there is nobody to grant it to', 
         share({ granteeType: 'user', granteeId: 'u-other', grade: 'viewer' }));
     assert.strictEqual(res.statusCode, 400, JSON.stringify(res.body));
     assert.strictEqual(res.body.code, 'personal_table_not_shareable');
+});
+
+// ── The licence line: widening is paid, narrowing never is ──────────────────
+//
+// `automation_sharing` guards publishing, granting and opening write access.
+// Taking access away must work on every plan: a lapsed licence that kept a
+// table published to the whole organisation, with the owner unable to close
+// it, would turn a billing state into a disclosure.
+
+test('without the licence, making a table private again still works', async () => {
+    resetState();
+    LOCKED.add('automation_sharing');
+    TABLE.isPublished = true;
+    TABLE.sharedGroups = ['g-sales'];
+
+    const res = await runRoute('put', '/:id/sharing', share({ audience: 'private' }));
+    assert.strictEqual(res.statusCode, 200, JSON.stringify(res.body));
+    assert.strictEqual(WRITES.length, 1);
+    assert.strictEqual(WRITES[0].patch.isPublished, false);
+    assert.deepStrictEqual(WRITES[0].patch.sharedGroups, []);
+});
+
+test('without the licence, taking write access back to the invited people still works', async () => {
+    resetState();
+    LOCKED.add('automation_sharing');
+    TABLE.isPublished = true;
+    TABLE.writeMode = 'audience';
+
+    for (const body of [{ writeMode: 'grants' }, { audience: 'private', writeMode: 'grants' }]) {
+        const res = await runRoute('put', '/:id/sharing', share(body));
+        assert.strictEqual(res.statusCode, 200, `${JSON.stringify(body)} → ${JSON.stringify(res.body)}`);
+    }
+    assert.strictEqual(WRITES.length, 2);
+    assert.strictEqual(TABLE.writeMode, 'grants');
+});
+
+test('without the licence, every widening is the standard 403 feature_locked, and writes nothing', async () => {
+    resetState();
+    LOCKED.add('automation_sharing');
+
+    for (const body of [
+        { audience: 'organisation' },
+        { audience: 'groups', sharedGroups: ['g-sales'] },
+        { writeMode: 'audience' },
+        // Private reading, but write access opened to that audience: still
+        // a widening, so the narrowing half does not carry it through.
+        { audience: 'private', writeMode: 'audience' },
+        // Says nothing at all: not a narrowing, so the gate still decides.
+        {},
+    ]) {
+        const res = await runRoute('put', '/:id/sharing', share(body));
+        assert.strictEqual(res.statusCode, 403, JSON.stringify(body));
+        assert.strictEqual(res.body.error, 'feature_locked');
+        assert.strictEqual(res.body.feature, 'automation_sharing');
+    }
+    assert.deepStrictEqual(WRITES, []);
+    assert.strictEqual(TABLE.isPublished, false);
+});
+
+test('without the licence, granting is refused but removing a grant is not', async () => {
+    resetState();
+    LOCKED.add('automation_sharing');
+
+    const add = await runRoute('post', '/:id/grants',
+        share({ granteeType: 'user', granteeId: 'u-other', grade: 'viewer' }));
+    assert.strictEqual(add.statusCode, 403, JSON.stringify(add.body));
+    assert.strictEqual(add.body.error, 'feature_locked');
+
+    const req = share(undefined);
+    req.params.grantId = 'grant-1';
+    const remove = await runRoute('delete', '/:id/grants/:grantId', req);
+    assert.strictEqual(remove.statusCode, 200, JSON.stringify(remove.body));
+    assert.deepStrictEqual(GRANT_WRITES, [{ op: 'remove', id: 'tbl_a', grantId: 'grant-1' }]);
+});
+
+test('with the licence, widening goes through as before', async () => {
+    resetState();
+    const res = await runRoute('put', '/:id/sharing', share({ audience: 'organisation' }));
+    assert.strictEqual(res.statusCode, 200, JSON.stringify(res.body));
+    assert.strictEqual(WRITES[0].patch.isPublished, true);
+
+    const add = await runRoute('post', '/:id/grants',
+        share({ granteeType: 'user', granteeId: 'u-other', grade: 'viewer' }));
+    assert.strictEqual(add.statusCode, 200, JSON.stringify(add.body));
+    assert.strictEqual(GRANT_WRITES[0].op, 'add');
 });

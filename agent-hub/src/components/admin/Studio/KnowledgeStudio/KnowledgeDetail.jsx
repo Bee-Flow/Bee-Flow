@@ -191,9 +191,11 @@ export default function KnowledgeDetail({
             await knowledgeApi.updateSource(kbId, source.id, { refresh });
             await loadSources();
         } catch (e) {
-            setSourcesError(e.message);
+            // messageFor, so a licence refusal reads as a sentence and not
+            // as the bare word `feature_locked`.
+            setSourcesError(messageFor(t, e));
         }
-    }, [kbId, loadSources]);
+    }, [kbId, loadSources, t]);
 
     const setAudience = useCallback(async (body) => {
         try {

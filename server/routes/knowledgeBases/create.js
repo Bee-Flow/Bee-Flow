@@ -105,6 +105,18 @@ router.post('/:id/duplicate', requireAuth, requirePermission('manage_knowledge')
     let usageContexts = null;
     try { usageContexts = Array.isArray(source.usage_contexts) ? source.usage_contexts : JSON.parse(source.usage_contexts || 'null'); } catch (_) { usageContexts = null; }
 
+    // What the requester's plan lets the copy carry over, read BEFORE the copy
+    // exists: an entitlement outage is then a 503 with nothing half-made,
+    // rather than a copy that quietly lacks the sources it should have had.
+    let features = null;
+    if (req.query.withSources === '1') {
+        features = await copyableSourceFeatures(req, userId, assignOrgId);
+        if (!features) {
+            res.set('Retry-After', '1');
+            return res.status(503).json({ error: 'entitlement_unavailable', retry_after: 1 });
+        }
+    }
+
     const copy = await kbStore.createKB(
         userId,
         `Copy of ${source.name}`.slice(0, 200),
@@ -138,8 +150,19 @@ router.post('/:id/duplicate', requireAuth, requirePermission('manage_knowledge')
      * runs, and failing the response over one source that would not copy
      * would leave the person with a knowledge base they were told they did
      * not get.
+     *
+     * ── A COPY IS NEW USE, SO THE LICENCE LINE APPLIES ──────────────
+     * The copy is a knowledge base the requester is making now, so it gets
+     * what THEIR plan includes, whatever the original has. Without
+     * `kb_datatable_sources` a datatable source is left out; without
+     * `kb_scheduled_refresh` a scheduled source is copied as manual. Both
+     * are named in the answer (`sourcesNotCopied`, `sourcesMadeManual`,
+     * and a sentence each in `notes`), never dropped in silence. The
+     * original is not touched.
      */
     let sourcesCopied = 0;
+    const sourcesNotCopied = [];
+    const sourcesMadeManual = [];
     if (req.query.withSources === '1') {
         try {
             const kbSourcesStore = require('../../stores/kbSources');
@@ -147,6 +170,11 @@ router.post('/:id/duplicate', requireAuth, requirePermission('manage_knowledge')
             const sources = await kbSourcesStore.listByKb(source.id);
             for (const src of (sources || [])) {
                 if (src.kind === 'upload') continue;
+                if (src.kind === 'datatable' && !features.datatableSources) {
+                    sourcesNotCopied.push({ name: src.name || '', kind: src.kind, feature: 'kb_datatable_sources' });
+                    continue;
+                }
+                const keepSchedule = src.refreshMode !== 'schedule' || features.scheduledRefresh;
                 try {
                     /**
                      * ── DE CONFIG IS NIET ALTIJD ALLEEN INHOUD ────────
@@ -181,12 +209,13 @@ router.post('/:id/duplicate', requireAuth, requirePermission('manage_knowledge')
                         // deliberately left for the arming logic to set,
                         // so the copy does not inherit a due time that has
                         // already passed and fire the moment it exists.
-                        refreshMode: src.refreshMode || 'manual',
-                        refreshCron: src.refreshCron || null,
-                        refreshTz: src.refreshTz || null,
+                        refreshMode: keepSchedule ? (src.refreshMode || 'manual') : 'manual',
+                        refreshCron: keepSchedule ? (src.refreshCron || null) : null,
+                        refreshTz: keepSchedule ? (src.refreshTz || null) : null,
                         createdBy: userId,
                     });
                     sourcesCopied += 1;
+                    if (!keepSchedule) sourcesMadeManual.push(src.name || '');
                 } catch (e) {
                     log.warn(`[KB] Duplicate: source "${src.name || src.kind}" did not copy: ${e.message}`);
                 }
@@ -198,6 +227,44 @@ router.post('/:id/duplicate', requireAuth, requirePermission('manage_knowledge')
         }
     }
 
-    res.status(201).json({ ...copy, sourcesCopied });
+    res.status(201).json({
+        ...copy,
+        sourcesCopied,
+        sourcesNotCopied,
+        sourcesMadeManual,
+        notes: duplicateNotes(sourcesNotCopied, sourcesMadeManual),
+    });
 });
+
+/**
+ * Which licensed source features the requester has, for a copy made now.
+ * Null when entitlements cannot be read: that is an outage, not a "no", and
+ * the route answers it before anything is made.
+ */
+async function copyableSourceFeatures(req, userId, orgId) {
+    const { resolveCapabilitySet } = require('../../core/entitlements/entitlements');
+    const set = await resolveCapabilitySet({ userId, orgId: orgId || null, session: req.session, req });
+    if (!set || set.degraded) return null;
+    return {
+        datatableSources: set.has('kb_datatable_sources'),
+        scheduledRefresh: set.has('kb_scheduled_refresh'),
+    };
+}
+
+/** One sentence per thing the copy left out or changed, for the person who asked. */
+function duplicateNotes(notCopied, madeManual) {
+    const notes = [];
+    if (notCopied.length === 1) {
+        notes.push(`The table source "${notCopied[0].name}" was not copied: datatables as knowledge sources are not available to you.`);
+    } else if (notCopied.length > 1) {
+        notes.push(`${notCopied.length} table sources were not copied: datatables as knowledge sources are not available to you.`);
+    }
+    if (madeManual.length === 1) {
+        notes.push(`The copy of "${madeManual[0]}" refreshes only when you ask: scheduled refresh is not available to you.`);
+    } else if (madeManual.length > 1) {
+        notes.push(`${madeManual.length} copied sources refresh only when you ask: scheduled refresh is not available to you.`);
+    }
+    return notes;
+}
+
 module.exports = router;

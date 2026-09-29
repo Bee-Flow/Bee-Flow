@@ -133,7 +133,15 @@ mock(path.join(SERVER, 'auth'), {
     Permissions: { MANAGE_DATATABLES: 'manage_datatables' },
 });
 mock(path.join(SERVER, 'core/entitlements/betaFeatures'), { requireBetaFeature: pass });
-mock(path.join(SERVER, 'core/entitlements/entitlements'), { requireCapability: pass });
+// Capabilities the caller's plan lacks; empty for every test but the licence
+// section at the end, which fills it and clears it again. The refusal is the
+// real gate's: 403 `feature_locked`, naming the capability.
+const LOCKED = new Set();
+mock(path.join(SERVER, 'core/entitlements/entitlements'), {
+    requireCapability: (id) => (req, res, next) => (LOCKED.has(id)
+        ? res.status(403).json({ error: 'feature_locked', feature: id, required: 'enterprise' })
+        : next()),
+});
 mock(path.join(SERVER, 'utils/perUserRateLimit'), { perUserRateLimit: pass });
 
 const router = require('./datatables');
@@ -1367,4 +1375,133 @@ test('rows of a managed table are swept by the SAME retention job', async () => 
     // decremented, which is what makes the quota gate honest afterwards.
     const after = await datatableStore.getDatatable(managedId, SC);
     assert.strictEqual(after.rowCount, 1);
+});
+
+// ── The licence line on retention ───────────────────────────────────────────
+//
+// `datatable_retention` is what SETTING a window, or making one keep rows
+// longer, needs. Shortening a window and switching it off stay free on every
+// plan: an owner acting on GDPR storage limitation must never meet a
+// licence. And the sweep that enforces a window already set is never gated.
+
+let retentionId = null;
+const patchRetention = (body) => call('patch', '/:id', as(OWNER, { params: { id: retentionId }, body }));
+async function withoutLicence(fn) {
+    LOCKED.add('datatable_retention');
+    try { return await fn(); } finally { LOCKED.delete('datatable_retention'); }
+}
+const windowOf = async () => {
+    const t = await datatableStore.getDatatable(retentionId, SC);
+    return { days: t.retentionDays, field: t.retentionField };
+};
+
+test('without the licence, setting a retention window is refused and the table is untouched', async () => {
+    retentionId = await makeTable('retention_gate', [
+        { key: 'email', name: 'E-mail', type: 'text' },
+        { key: 'signed_at', name: 'Signed on', type: 'datetime' },
+    ]);
+    const res = await withoutLicence(() => patchRetention({ retentionDays: 30, retentionField: 'signed_at' }));
+    assert.strictEqual(res.statusCode, 403, JSON.stringify(res.body));
+    assert.strictEqual(res.body.error, 'feature_locked');
+    assert.strictEqual(res.body.feature, 'datatable_retention');
+    assert.strictEqual((await windowOf()).days, null);
+});
+
+test('a request that is wrong in itself says so, rather than "not on your plan"', async () => {
+    // The licence check comes after the refusals about the request: a window
+    // with no column is a 400 on every plan.
+    const res = await withoutLicence(() => patchRetention({ retentionDays: 30 }));
+    assert.strictEqual(res.statusCode, 400, JSON.stringify(res.body));
+    assert.strictEqual(res.body.code, 'retention_field_required');
+});
+
+test('with the licence, the window is set', async () => {
+    const res = await patchRetention({ retentionDays: 90, retentionField: 'signed_at' });
+    assert.strictEqual(res.statusCode, 200, JSON.stringify(res.body));
+    assert.deepStrictEqual(await windowOf(), { days: 90, field: 'signed_at' });
+});
+
+test('without the licence, a longer window, or the window moved to another column, is refused', async () => {
+    for (const body of [
+        { retentionDays: 120, retentionField: 'signed_at' },
+        // Fewer days, but counted from another date: a different rule, which
+        // can keep a row far longer than the one it replaces.
+        { retentionDays: 30, retentionField: 'created_at' },
+        { retentionField: 'created_at' },
+    ]) {
+        const res = await withoutLicence(() => patchRetention(body));
+        assert.strictEqual(res.statusCode, 403, `${JSON.stringify(body)} → ${JSON.stringify(res.body)}`);
+        assert.strictEqual(res.body.feature, 'datatable_retention');
+    }
+    assert.deepStrictEqual(await windowOf(), { days: 90, field: 'signed_at' }, 'no refusal may have half-written');
+});
+
+test('without the licence, keeping, shortening and switching off a window all still work', async () => {
+    await withoutLicence(async () => {
+        const same = await patchRetention({ retentionDays: 90, retentionField: 'signed_at' });
+        assert.strictEqual(same.statusCode, 200, JSON.stringify(same.body));
+        const rename = await patchRetention({ name: 'Signed forms' });
+        assert.strictEqual(rename.statusCode, 200, JSON.stringify(rename.body));
+
+        const shorter = await patchRetention({ retentionDays: 14, retentionField: 'signed_at' });
+        assert.strictEqual(shorter.statusCode, 200, JSON.stringify(shorter.body));
+        assert.deepStrictEqual(await windowOf(), { days: 14, field: 'signed_at' });
+
+        const off = await patchRetention({ retentionDays: null });
+        assert.strictEqual(off.statusCode, 200, JSON.stringify(off.body));
+        assert.strictEqual((await windowOf()).days, null);
+    });
+});
+
+test('POST /managed: the kind\'s own window and a shorter one come free, a longer one is the paid part', async () => {
+    await withoutLicence(async () => {
+        const standard = await call('post', '/managed', as(OWNER, {
+            body: { kind: 'http_cache', name: 'Default window', key: 'gate_default_answers' },
+        }));
+        assert.strictEqual(standard.statusCode, 200, JSON.stringify(standard.body));
+        assert.strictEqual(standard.body.datatable.retentionDays, 30);
+
+        const shorter = await call('post', '/managed', as(OWNER, {
+            body: { kind: 'http_cache', name: 'Short window', key: 'gate_short_answers', retentionDays: 7 },
+        }));
+        assert.strictEqual(shorter.statusCode, 200, JSON.stringify(shorter.body));
+        assert.strictEqual(shorter.body.datatable.retentionDays, 7);
+
+        const longer = await call('post', '/managed', as(OWNER, {
+            body: { kind: 'http_cache', name: 'Long window', key: 'gate_long_answers', retentionDays: 90 },
+        }));
+        assert.strictEqual(longer.statusCode, 403, JSON.stringify(longer.body));
+        assert.strictEqual(longer.body.feature, 'datatable_retention');
+        const left = await rawQuery(`SELECT id FROM datatables WHERE key = 'gate_long_answers'`);
+        assert.strictEqual(left.rows.length, 0, 'a refused create makes nothing');
+    });
+
+    const licensed = await call('post', '/managed', as(OWNER, {
+        body: { kind: 'http_cache', name: 'Long window', key: 'gate_long_answers', retentionDays: 90 },
+    }));
+    assert.strictEqual(licensed.statusCode, 200, JSON.stringify(licensed.body));
+    assert.strictEqual(licensed.body.datatable.retentionDays, 90);
+});
+
+test('the sweep keeps enforcing a window already set, with or without the licence', async () => {
+    // Existing windows are a promise to the people in the rows; a licence
+    // lapse must never turn "deleted after N days" into "kept for ever".
+    const set = await patchRetention({ retentionDays: 30, retentionField: 'signed_at' });
+    assert.strictEqual(set.statusCode, 200, JSON.stringify(set.body));
+    const old = new Date(Date.now() - 60 * 24 * 3600 * 1000).toISOString();
+    const fresh = new Date().toISOString();
+    for (const [email, signedAt] of [['old@b.c', old], ['new@b.c', fresh]]) {
+        const res = await call('post', '/:id/rows', as(OWNER, {
+            params: { id: retentionId }, body: { values: { email, signed_at: signedAt } },
+        }));
+        assert.strictEqual(res.statusCode, 200, JSON.stringify(res.body));
+    }
+
+    const { datatableRetentionPass } = require('../jobs/datatableRetention');
+    await withoutLicence(async () => {
+        const out = await datatableRetentionPass();
+        assert.ok(out.deleted >= 1, JSON.stringify(out));
+    });
+    const left = await realRows(ORG, 'retention_gate');
+    assert.deepStrictEqual(left.map(r => r.email), ['new@b.c']);
 });

@@ -1,16 +1,18 @@
 /**
  * Who else may see this table, and who else already uses it.
  *
- * Publishing, granting and flipping write_mode are the paid boundary
- * (`automation_sharing`); REMOVING access deliberately is not gated at all, and
- * a personal table refuses the whole family outright. The usage answer sits
- * here because it is the same question from the other side: who else would
- * notice if this table changed.
+ * Publishing, granting and opening write access to the audience are the paid
+ * boundary (`automation_sharing`); REMOVING access deliberately is not gated
+ * at all (making a table private again, taking write access back to the
+ * invited people, deleting a grant), and a personal table refuses the whole
+ * family outright. The usage answer sits here because it is the same question
+ * from the other side: who else would notice if this table changed.
  */
 
 'use strict';
 
 const { validateSharedGroupsForOrg } = require('../../auth');
+const { tagGate, readGate } = require('../../auth/gateMeta');
 const { requireCapability } = require('../../core/entitlements/entitlements');
 const datatableStore = require('../../stores/datatableStore');
 const {
@@ -70,6 +72,36 @@ const GrantBody = bodyOf({
 
 const NO_QUERY = z.object({}).strict();
 
+/**
+ * A sharing descriptor that only takes access away.
+ *
+ * `private` hands nobody anything (it unpublishes and clears the group list),
+ * and `writeMode: 'grants'` takes write access back to the people invited by
+ * name. Either, or both together, is a narrowing, and a lapsed licence must
+ * never stand between an owner and closing a table. Anything else, including
+ * an empty body, still meets the gate.
+ */
+function onlyNarrows(body) {
+    const b = body || {};
+    if (b.audience === undefined && b.writeMode === undefined) return false;
+    if (b.sharedGroups !== undefined || b.isPublished !== undefined) return false;
+    return (b.audience === undefined || b.audience === 'private')
+        && (b.writeMode === undefined || b.writeMode === 'grants');
+}
+
+/**
+ * The sharing gate, stepped over for a descriptor that only narrows. It sits
+ * after the schema, so it reads the trimmed audience word rather than the raw
+ * one, and it carries the gate's own tag so the route walk still sees which
+ * capability guards this route.
+ */
+function unlessNarrowing(gate) {
+    return tagGate(function sharingGate(req, res, next) {
+        if (onlyNarrows(req.body)) return next();
+        return gate(req, res, next);
+    }, readGate(gate) || { axis: 'capability', id: 'automation_sharing' });
+}
+
 function register(router) {
     /**
      * PUT /:id/sharing — who may read this table, and separately who may write it.
@@ -88,13 +120,17 @@ function register(router) {
      * sharedGroups:[]}` is what the Studio's "Specific groups" option sent on a
      * table that had no groups yet: the NARROWEST choice on screen published the
      * rows to everyone. A word cannot say that.
+     *
+     * The licence gate stands aside for `audience: 'private'` and for
+     * `writeMode: 'grants'` (see onlyNarrows): taking access away is free on
+     * every plan. Widening in any direction stays behind `automation_sharing`.
      */
     router.put('/:id/sharing',
         requireDatatableGrade('owner'),
         refuseWhenPersonal,
         requireManageForOrgScope(),
-        requireCapability('automation_sharing'),
         validate({ body: SharingBody, query: NO_QUERY }),
+        unlessNarrowing(requireCapability('automation_sharing')),
         async (req, res) => {
             try {
                 const body = req.body;

@@ -1,6 +1,7 @@
-import { ArrowLeft, Loader2, Upload as UploadIcon, Workflow } from 'lucide-react';
+import { ArrowLeft, Loader2, Lock, Upload as UploadIcon, Workflow } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import { ADD_SOURCE_KINDS, isOfferable, sourceKind } from './sourceKinds';
+import { datatableLockText, sourceLicenceMessage, useSourceLocks } from './sourceLocks';
 import useTranslation from '../../../../hooks/useTranslation';
 import { kindColorVar } from '../../../shared/kindColors';
 import { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
@@ -34,11 +35,18 @@ export const MAX_FILE_BYTES = 20 * 1024 * 1024;
  * which is the honest shape of that relationship — and a third state the
  * disabled/enabled pair could not express, since "coming soon" and "fill in
  * this form" would both be lies.
+ *
+ * ── A TABLE IS A PLAN FEATURE ───────────────────────────────────────
+ * Without `kb_datatable_sources` the Table card is disabled with the lock and
+ * a tooltip that says what still works (sources.js refuses the create with
+ * 403 `feature_locked` either way). The card stays visible for the same
+ * reason the unbuilt ones do: hidden, it would read as "cannot be done".
  */
 export default function AddSourcePanel({ canManage = false, onCreate, onUpload, busy = false, kbName = '', onNavigate = null, sources = [] }) {
     const { t } = useTranslation();
     const [openKind, setOpenKind] = useState(null);
     const [error, setError] = useState(null);
+    const locks = useSourceLocks();
 
     const close = () => { setOpenKind(null); setError(null); };
 
@@ -78,18 +86,23 @@ export default function AddSourcePanel({ canManage = false, onCreate, onUpload, 
 
             {!openKind ? (
                 <div className="p-2.5 grid gap-1.5" style={{ gridTemplateColumns: '1fr 1fr' }}>
-                    {ADD_SOURCE_KINDS.map(kind => (
-                        <KindButton
-                            key={kind}
-                            t={t}
-                            kind={kind}
-                            disabled={!canManage || !isOfferable(kind)}
-                            reason={!canManage
-                                ? t('knowledge.add_source_no_permission', 'You need "manage knowledge" to add a source.')
-                                : t('knowledge.add_source_soon', 'Coming soon — this kind of source is not available yet.')}
-                            onClick={() => { setError(null); setOpenKind(kind); }}
-                        />
-                    ))}
+                    {ADD_SOURCE_KINDS.map(kind => {
+                        const locked = kind === 'datatable' && !!locks.datatable;
+                        return (
+                            <KindButton
+                                key={kind}
+                                t={t}
+                                kind={kind}
+                                locked={locked}
+                                disabled={!canManage || !isOfferable(kind) || locked}
+                                reason={!canManage
+                                    ? t('knowledge.add_source_no_permission', 'You need "manage knowledge" to add a source.')
+                                    : locked ? datatableLockText(t, locks.datatable)
+                                        : t('knowledge.add_source_soon', 'Coming soon — this kind of source is not available yet.')}
+                                onClick={() => { setError(null); setOpenKind(kind); }}
+                            />
+                        );
+                    })}
                 </div>
             ) : (
                 <div className="p-3.5">
@@ -182,7 +195,7 @@ export function AutomationSignpost({ t, kbName = '', onNavigate = null, sources 
     );
 }
 
-function KindButton({ t, kind, disabled, reason, onClick }) {
+function KindButton({ t, kind, disabled, reason, onClick, locked = false }) {
     const meta = sourceKind(kind);
     const Icon = meta.icon;
     const wide = kind === 'automation';
@@ -203,6 +216,7 @@ function KindButton({ t, kind, disabled, reason, onClick }) {
                     {t('knowledge.kind.automation_hint', 'the “To knowledge base” step')}
                 </span>
             )}
+            {locked && <Lock className="w-3 h-3 ml-auto shrink-0 text-[var(--text-tertiary)]" data-testid={`kb-add-kind-${kind}-locked`} aria-hidden="true" />}
         </button>
     );
     return (
@@ -697,6 +711,10 @@ function Submit({ t, busy, disabled }) {
  * many.
  */
 export function messageFor(t, e) {
+    // A licence refusal carries no `code`, only `body.error`; it gets its
+    // own sentence, which says what still works, rather than the bare word.
+    const licence = sourceLicenceMessage(t, e);
+    if (licence) return licence;
     switch (e?.code) {
         case 'kind_not_available':
             return t('knowledge.err_kind', 'That kind of source is not available yet.');

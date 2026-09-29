@@ -35,6 +35,11 @@ const fx = {
     transcriptProbeFails: false,
     users: {},
     allGroups: [],
+    // Capabilities the requester's plan lacks, and whether the entitlement
+    // read itself is down. Empty and false: everything is licensed.
+    locked: new Set(),
+    degraded: false,
+    capabilityReads: [],
 };
 
 function resetFx() {
@@ -51,6 +56,9 @@ function resetFx() {
     fx.transcriptProbes.length = 0;
     fx.users = { 'gebruiker-b': { id: 'gebruiker-b', organizationId: 'org1', groups: [] } };
     fx.allGroups = [];
+    fx.locked = new Set();
+    fx.degraded = false;
+    fx.capabilityReads = [];
 }
 
 const mw = (req, res, next) => next();
@@ -84,6 +92,12 @@ const MOCKS = {
         requirePermission: () => mw,
         assertUserCanUseOrg: async (_req, orgId) => orgId || null,
         resolveUserGroups: async (id) => (fx.users[id]?.groups || []),
+    },
+    '../core/entitlements/entitlements': {
+        resolveCapabilitySet: async (ctx) => {
+            fx.capabilityReads.push({ userId: ctx.userId, orgId: ctx.orgId });
+            return { degraded: fx.degraded, has: (id) => !fx.degraded && !fx.locked.has(id) };
+        },
     },
     './shared': {
         getUserId: (req) => req.session?.user?.id || null,
@@ -223,4 +237,77 @@ test('geen leesrecht op de bron-kennisbank → 404, en niets gekopieerd', async 
     const res = await dispatch({ url: '/kb-src/duplicate?withSources=1' });
     assert.strictEqual(res.statusCode, 404);
     assert.deepStrictEqual(fx.created, []);
+});
+
+// ═══ The licence line: a copy is new use ═══════════════════════════
+//
+// A copy is a knowledge base the requester makes NOW, so it carries what the
+// requester's plan includes. Without kb_datatable_sources a table source is
+// left out; without kb_scheduled_refresh a scheduled source is copied as
+// manual. Both are named in the answer, never dropped in silence.
+
+const TABLE_SOURCE = { id: 's-table', knowledgeBaseId: 'kb-src', kind: 'datatable', name: 'Prijzen', config: { datatableId: 'dt1', columns: ['naam'] }, refreshMode: 'live' };
+const SCHEDULED_PAGE = { id: 's-page', knowledgeBaseId: 'kb-src', kind: 'webpage', name: 'Voorwaarden', config: { url: 'https://example.com/terms' }, refreshMode: 'schedule', refreshCron: '0 6 * * 1', refreshTz: 'Europe/Amsterdam' };
+
+test('without kb_datatable_sources the table source is left out, and the answer says so', async () => {
+    fx.locked.add('kb_datatable_sources');
+    fx.sources = [TABLE_SOURCE, SCHEDULED_PAGE];
+
+    const res = await dispatch({ url: '/kb-src/duplicate?withSources=1' });
+    assert.strictEqual(res.statusCode, 201);
+    assert.deepStrictEqual(fx.created.map(c => c.kind), ['webpage']);
+    assert.strictEqual(res.body.sourcesCopied, 1);
+    assert.deepStrictEqual(res.body.sourcesNotCopied, [{ name: 'Prijzen', kind: 'datatable', feature: 'kb_datatable_sources' }]);
+    assert.strictEqual(res.body.notes.length, 1);
+    assert.match(res.body.notes[0], /Prijzen/);
+    // The schedule is licensed here, so it comes along as it was.
+    assert.strictEqual(fx.created[0].refreshMode, 'schedule');
+    assert.strictEqual(fx.created[0].refreshCron, '0 6 * * 1');
+});
+
+test('without kb_scheduled_refresh a scheduled source is copied as manual, and the answer says so', async () => {
+    fx.locked.add('kb_scheduled_refresh');
+    fx.sources = [SCHEDULED_PAGE];
+
+    const res = await dispatch({ url: '/kb-src/duplicate?withSources=1' });
+    assert.strictEqual(res.statusCode, 201);
+    assert.strictEqual(fx.created.length, 1);
+    assert.strictEqual(fx.created[0].refreshMode, 'manual');
+    assert.strictEqual(fx.created[0].refreshCron, null);
+    assert.strictEqual(fx.created[0].refreshTz, null);
+    assert.deepStrictEqual(res.body.sourcesMadeManual, ['Voorwaarden']);
+    assert.match(res.body.notes[0], /only when you ask/);
+});
+
+test('with both, the copy carries the table source and the schedule, and has nothing to say', async () => {
+    fx.sources = [TABLE_SOURCE, SCHEDULED_PAGE];
+
+    const res = await dispatch({ url: '/kb-src/duplicate?withSources=1' });
+    assert.strictEqual(res.statusCode, 201);
+    assert.deepStrictEqual(fx.created.map(c => [c.kind, c.refreshMode]), [['datatable', 'live'], ['webpage', 'schedule']]);
+    assert.deepStrictEqual(res.body.sourcesNotCopied, []);
+    assert.deepStrictEqual(res.body.sourcesMadeManual, []);
+    assert.deepStrictEqual(res.body.notes, []);
+    assert.deepStrictEqual(fx.capabilityReads, [{ userId: 'gebruiker-b', orgId: 'org1' }],
+        'the REQUESTER\'s plan decides, for the organisation the copy lands in');
+});
+
+test('an entitlement outage is a 503 before anything is made, not a copy missing sources', async () => {
+    fx.degraded = true;
+    fx.sources = [TABLE_SOURCE];
+
+    const res = await dispatch({ url: '/kb-src/duplicate?withSources=1' });
+    assert.strictEqual(res.statusCode, 503);
+    assert.strictEqual(res.body.error, 'entitlement_unavailable');
+    assert.deepStrictEqual(fx.createdKbs, []);
+    assert.deepStrictEqual(fx.created, []);
+});
+
+test('an empty copy never asks about the licence at all', async () => {
+    fx.locked = new Set(['kb_datatable_sources', 'kb_scheduled_refresh']);
+    fx.sources = [TABLE_SOURCE];
+    const res = await dispatch({ url: '/kb-src/duplicate' });
+    assert.strictEqual(res.statusCode, 201);
+    assert.deepStrictEqual(fx.capabilityReads, []);
+    assert.deepStrictEqual(res.body.notes, []);
 });

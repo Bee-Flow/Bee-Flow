@@ -104,7 +104,10 @@ describe('studioApps registry shape', () => {
 
     it('lockOn: every licence-gated section locks; only the permission-style gates (agents, knowledge, approvals) hide', () => {
         const locking = STUDIO_APPS.filter((a) => a.lockOn === 'disable').map((a) => a.id);
-        expect(locking).toEqual(['skills', 'aiTasks', 'datatables', 'webpages', 'apps', 'forms', 'playbooks', 'solutions', 'runs', 'meetingNotes']);
+        expect(locking).toEqual(['skills', 'aiTasks', 'datatables', 'webpages', 'documents', 'apps', 'forms', 'playbooks', 'solutions', 'runs', 'meetingNotes']);
+        // Documents locks on its own Enterprise capability (the enterprise
+        // split, 2026-10), the id requireCapability enforces on its writes.
+        expect(app('documents').gateCapability).toBe('studio_documents');
         // Automations, Datatables and Forms share the one entitlement they
         // gate on — all three mirror the /api/automation mount.
         expect(app('aiTasks').gateCapability).toBe('automations');
@@ -237,6 +240,17 @@ describe('gates — legacy canSee* truth tables', () => {
         const licensed = { features: ALL_FEATURES, canUseIds: ALL_FEATURES, canIds: [...ALL_FEATURES, 'skills'] };
         expect(app(id).gate(ctx({ ...licensed, perms: ALL_PERMS }))).toBe(true);
         expect(app(id).gate(ctx({ ...licensed, perms: without(perm) }))).toBe(false);
+    });
+
+    it('documents: the studio_documents capability, and the capability only (mirrors requireCapability)', () => {
+        // /api/studio-documents refuses its writes with
+        // requireCapability('studio_documents'). There is no org-role leg, so
+        // the effective set alone decides: neither the licence flag nor
+        // canUse stands in for it.
+        const gate = app('documents').gate;
+        expect(gate(ctx({ canIds: ['studio_documents'] }))).toBe(true);
+        expect(gate(ctx({ features: ['studio_documents'], canUseIds: ['studio_documents'], perms: ALL_PERMS }))).toBe(false);
+        expect(gate(ctx({ perms: ALL_PERMS }))).toBe(false);
     });
 
     it('skills: the skills capability, and the capability only (mirrors requireCapability)', () => {
@@ -439,18 +453,19 @@ describe('resolveStudioNav — hide vs. lock', () => {
     });
 
     it('registry end-to-end: a Community org sees the licence-gated rows locked, Skills locked on the beta', () => {
+        // The Community org after the enterprise split (2026-10): the builder
+        // and personal webpages are in, Studio Documents is Enterprise.
         const nav = resolveStudioNav(STUDIO_APPS, ctx({
-            features: ['automations'], canUseIds: ['automations'], perms: ALL_PERMS,
-            locks: { skills: 'not_granted', app_studio: 'ceiling', webpages: 'ceiling', meeting_notes: 'ceiling', projects: 'ceiling' },
+            features: ['automations', 'webpages'], canUseIds: ['automations', 'webpages'], perms: ALL_PERMS,
+            locks: { skills: 'not_granted', app_studio: 'ceiling', studio_documents: 'ceiling', meeting_notes: 'ceiling', projects: 'ceiling' },
         }));
         expect(Object.fromEntries(nav.map((a) => [a.id, a.locked]))).toEqual({
             agents: null, skills: 'not_granted', knowledge: null, aiTasks: null, datatables: null,
-            // Documents is the one Build row a Community org keeps: it replaces
-            // the ```quote``` block every chat could already render, so gating
-            // it would withdraw a capability rather than add one. Asserted
-            // rather than left implicit — the day somebody gives it a gate,
-            // this line should be what objects.
-            webpages: 'ceiling', documents: null, apps: 'ceiling', forms: null, playbooks: 'ceiling',
+            // Personal webpages open on Community; sharing one is locked
+            // inside the section. Documents is a signpost: the org learns the
+            // feature exists, and a document it already has still opens from
+            // its link, read-only.
+            webpages: null, documents: 'ceiling', apps: 'ceiling', forms: null, playbooks: 'ceiling',
             solutions: 'ceiling', runs: null, meetingNotes: 'ceiling',
         });
         // Approvals hides on its licence (lockOn defaults to hide) — the
