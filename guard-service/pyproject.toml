@@ -27,7 +27,7 @@ dependencies = [
   "gliner[onnx]==0.2.29",
   # gliner's own dependencies that decide what the model sees, pinned for the
   # same reason (see requirements.txt, the pin of record).
-  "transformers==5.17.0",
+  "transformers==5.16.1",
   "tokenizers==0.23.2",
   "huggingface_hub==1.33.0",
   # ONNX runtime for fp32 CPU inference (much faster than fp32 PyTorch; we do
