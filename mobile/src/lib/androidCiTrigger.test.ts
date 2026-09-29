@@ -140,18 +140,18 @@ describe('android-release.yml native-path filter', () => {
 
     it('keeps the public-repository fences wired', () => {
         // Textual tripwires, like the rest of this file. A fork's APK is never
-        // uploaded, and every step that reads a secret runs only for a prod
-        // run from main, checked on the step itself rather than left to guard.
+        // uploaded, and no step reads a repository secret at all: the upload
+        // key lives with Bee Flow's private release pipeline, which signs the
+        // AAB this workflow publishes (see NO SIGNING KEY LIVES HERE in its
+        // header). A `secrets.` reference coming back means a key is about to
+        // be handed to whatever code a branch holds.
         const lines = workflowText.split('\n');
         const uploads = lines.flatMap((l, i) => (l.includes('uses: actions/upload-artifact@') ? [lines[i - 1]?.trim()] : []));
         expect(uploads).toEqual([
             "if: ${{ !(github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository) }}",
         ]);
         const secretSteps = workflowText.split(/\n(?= {6}- )/).filter((step) => step.includes('secrets.'));
-        expect(secretSteps.length).toBeGreaterThan(0);
-        for (const step of secretSteps) {
-            expect(step).toMatch(/\n {8}if: \$\{\{ github\.event_name == 'workflow_dispatch' && inputs\.channel == 'prod' && github\.ref == 'refs\/heads\/main'/);
-        }
+        expect(secretSteps).toEqual([]);
     });
 
     it('keeps non-PR events and API failures building', () => {

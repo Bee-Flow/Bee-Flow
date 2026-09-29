@@ -1,10 +1,22 @@
-# Build the Bee Flow Android APK.
+# Build the Bee Flow Android app.
 #
 #   pull request touching mobile/**   → dev APK, uploaded as a build artifact
 #                                       (a fork's PR: built, never uploaded)
 #   push to main (mobile/** changed)  → dev APK, uploaded as a build artifact
 #   manual run, channel=dev           → same, on demand, any branch
-#   manual run, channel=prod (main)   → signed APK + AAB + a GitHub Release
+#   manual run, channel=prod (main)   → AAB + build provenance + a GitHub Release
+#
+# NO SIGNING KEY LIVES HERE. This repository is (or will be) public and takes
+# pull requests from strangers, so it never holds the key Google Play trusts.
+# Every build is signed by Gradle with the debug key: fine for trying a dev
+# APK on a phone, never for distribution. A prod run publishes the AAB as a
+# GitHub Release; Bee Flow's release pipeline (a private repository that holds
+# the upload key and the Play access) takes it from there. That pipeline checks
+# that the commit is on main and that the provenance attestation made below
+# holds, replaces the debug signature with the upload key, and releases the
+# bundle on Google Play. The APK for direct download is the universal APK that
+# Google Play generates from that bundle. It carries Play's app signing key, so
+# a direct install and a Play install update each other.
 #
 # WHY THE PR TRIGGER IS CONDITIONAL (the superseded reason is kept on purpose).
 #
@@ -42,18 +54,29 @@
 # gates nothing. The saving is runner minutes only, ~$3/month. Do not
 # "simplify" this back to an unconditional build without re-reading the above.
 #
-# Why the APK is a first-class output and not just a Play Store upload: Bee
-# Flow is a self-hosted, privacy-first product. A meaningful share of its users
-# install from a direct download onto a device that may not have Google Play
-# Services at all — the app ships without Firebase for exactly that reason (see
-# mobile/app.config.ts). So every run produces an installable APK; the AAB is
-# built alongside it for the operators who do want the Play Store.
+# Why a direct download stays first-class even though releases go through
+# Google Play: Bee Flow is a self-hosted, privacy-first product. A meaningful
+# share of its users install from a direct download onto a device that may not
+# have Google Play Services at all, and the app ships without Firebase for
+# exactly that reason (see mobile/app.config.ts). The Play-generated universal
+# APK serves them, and it installs without Google services like any other APK.
+# Dev runs still produce an APK directly, because that is what goes on a phone
+# to try a branch.
+#
+# versionCode must never repeat and never go down, across every repository this
+# workflow ever runs in: Play refuses a versionCode it has seen before, and the
+# release pipeline identifies a build by it. The run number restarts at 1 in a
+# new repository (this code is moving to a public one), so it is not used.
+# Instead a build takes the minutes since 2026-01-01 UTC ("Resolve build
+# metadata"). That only grows, and it is already far above every run number
+# used before. Prod builds are serialised (concurrency below), so two cannot
+# share a minute.
 #
 # The native android/ directory is NOT in the repository. `expo prebuild`
 # generates it from mobile/app.config.ts and mobile/plugins/withBeeFlowAndroid.js
 # on every run, which is what keeps the manifest single-sourced. If you find
 # yourself wanting to edit a generated file, edit the plugin instead.
-name: Android APK
+name: Android app
 
 on:
   pull_request:
@@ -74,7 +97,7 @@ on:
   workflow_dispatch:
     inputs:
       channel:
-        description: 'dev (artifact only) or prod (signed + GitHub Release, main only)'
+        description: 'dev (APK artifact only) or prod (AAB + GitHub Release for Google Play, main only)'
         type: choice
         options: [dev, prod]
         default: dev
@@ -102,16 +125,16 @@ concurrency:
   cancel-in-progress: ${{ !(github.event_name == 'workflow_dispatch' && inputs.channel == 'prod') }}
 
 env:
-  # versionCode must increase monotonically for every build Android ever sees.
-  # The run number is the only monotonic thing CI has; it is never reset.
-  BEEFLOW_VERSION_CODE: ${{ github.run_number }}
+  # BEEFLOW_VERSION_CODE is set per build in "Resolve build metadata" (see the
+  # header for why it is not the run number).
   BEEFLOW_COMMIT_SHA: ${{ github.sha }}
   EXPO_NO_TELEMETRY: '1'
 
 jobs:
   guard:
-    # A prod build off a feature branch would produce a signed, release-tagged
-    # APK from unreviewed code. Refuse early and say why.
+    # A prod build off a feature branch would produce a release-tagged bundle
+    # for Google Play from unreviewed code. Refuse early and say why. (The
+    # release pipeline checks main again on its side.)
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -198,7 +221,8 @@ jobs:
       contents: read
     outputs:
       version_name: ${{ steps.meta.outputs.version_name }}
-      signed: ${{ steps.signing.outputs.signed }}
+      version_code: ${{ steps.meta.outputs.version_code }}
+      tag: ${{ steps.meta.outputs.tag }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
@@ -217,8 +241,8 @@ jobs:
           java-version: '17'
 
       # Pinned to a commit, like softprops/action-gh-release below. These two
-      # "only set up a toolchain", but they run in the job that holds the
-      # upload keystore on a prod build, and a tag can be moved upstream (it
+      # "only set up a toolchain", but they run in the job that builds the
+      # bundle Google Play will ship, and a tag can be moved upstream (it
       # happened to trivy-action's). Dependabot's github-actions entry keeps
       # the pins current, so the floating major bought nothing a PR does not.
       - name: Set up Android SDK
@@ -239,9 +263,20 @@ jobs:
         run: |
           set -euo pipefail
           APP_VERSION="$(node -p "require('./package.json').version")"
+          # Minutes since 2026-01-01T00:00:00Z: see the header for why this,
+          # and not the run number. Exported for app.config.ts, which reads
+          # BEEFLOW_VERSION_CODE during prebuild.
+          VERSION_CODE=$(( ( $(date -u +%s) - 1767225600 ) / 60 ))
+          echo "BEEFLOW_VERSION_CODE=$VERSION_CODE" >> "$GITHUB_ENV"
           if [[ "$CHANNEL" == "prod" ]]; then
             TAG="$(echo "${INPUT_VERSION:-}" | tr -d '[:space:]')"
-            [[ -n "$TAG" ]] || TAG="android-$(date -u +%Y.%m.%d)-${{ github.run_number }}"
+            [[ -n "$TAG" ]] || TAG="android-$(date -u +%Y.%m.%d)-${VERSION_CODE}"
+            # The release pipeline accepts only this shape, and the tag also
+            # becomes part of a path there.
+            if [[ ! "$TAG" =~ ^android-[A-Za-z0-9._-]+$ || "$TAG" == *..* ]]; then
+              echo "::error::'$TAG' is not a usable release tag: it must look like android-<letters, digits, . _ ->."
+              exit 1
+            fi
           else
             TAG="dev-${GITHUB_SHA::7}"
           fi
@@ -249,48 +284,17 @@ jobs:
             echo "channel=$CHANNEL"
             echo "tag=$TAG"
             echo "version_name=$APP_VERSION"
+            echo "version_code=$VERSION_CODE"
           } >> "$GITHUB_OUTPUT"
-          echo "Building Bee Flow $APP_VERSION (versionCode ${{ github.run_number }}), channel=$CHANNEL, tag=$TAG"
+          echo "Building Bee Flow $APP_VERSION (versionCode $VERSION_CODE), channel=$CHANNEL, tag=$TAG"
 
-      # Signing is OPTIONAL on purpose. A build without the upload key (a fork's
-      # PR never sees repository secrets) still produces an installable APK —
-      # it is just signed with the debug key, and the artifact name says so.
-      # That is worth far more than a build that fails for contributors. (A
-      # fork's APK is built but not uploaded; see `Upload artifacts`.)
-      #
-      # And the upload key is staged for a PROD run only. A pull request or a
-      # channel=dev dispatch builds whatever code the branch holds, unreviewed;
-      # signing that with the key the Play Store trusts would make any branch a
-      # route to a "release-signed" APK. Those builds stay debug-signed even
-      # once the ANDROID_* secrets exist. Prod is main only: `guard` refuses it
-      # anywhere else, and the ref is checked here again so the key never
-      # depends on how another job's failure skips this one.
-      - id: signing
-        name: Stage the upload keystore
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.channel == 'prod' && github.ref == 'refs/heads/main' }}
-        working-directory: mobile
-        env:
-          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: |
-          set -euo pipefail
-          if [[ -z "${KEYSTORE_B64:-}" ]]; then
-            echo "signed=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::No ANDROID_KEYSTORE_BASE64 secret — building a debug-signed APK. Not for distribution."
-            exit 0
-          fi
-          for var in KEYSTORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
-            if [[ -z "${!var:-}" ]]; then
-              echo "::error::ANDROID_KEYSTORE_BASE64 is set but ANDROID_${var} is missing."
-              exit 1
-            fi
-          done
-          mkdir -p "$RUNNER_TEMP/signing"
-          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/signing/upload.jks"
-          echo "signed=true" >> "$GITHUB_OUTPUT"
-          echo "::notice::Release signing key staged."
+      # No signing step, and no ANDROID_* secrets: see NO SIGNING KEY LIVES
+      # HERE in the header. The debug signature Gradle puts on a release build
+      # is what a contributor's fork gets too, so the same workflow works there
+      # (a fork's PR builds its APK but never uploads it; see `Upload
+      # artifacts`). plugins/withBeeFlowAndroid.js still reads BEEFLOW_UPLOAD_*
+      # Gradle properties, so a self-hoster can sign a LOCAL build with their
+      # own key.
 
       # Generates android/ from app.config.ts + plugins/. --no-install because
       # node_modules is already installed and prebuild's own install would
@@ -301,26 +305,6 @@ jobs:
           BEEFLOW_BUILD_PROFILE: ${{ steps.meta.outputs.channel }}
           BEEFLOW_DEFAULT_SERVER_URL: ${{ inputs.server_url }}
         run: npx expo prebuild --platform android --no-install
-
-      # Written AFTER prebuild: prebuild rewrites gradle.properties, so these
-      # would be lost if they went in first. The values are read by the
-      # signingConfig that plugins/withBeeFlowAndroid.js injects.
-      - name: Point Gradle at the keystore
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.channel == 'prod' && github.ref == 'refs/heads/main' && steps.signing.outputs.signed == 'true' }}
-        working-directory: mobile/android
-        env:
-          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: |
-          set -euo pipefail
-          {
-            echo ""
-            echo "BEEFLOW_UPLOAD_STORE_FILE=$RUNNER_TEMP/signing/upload.jks"
-            echo "BEEFLOW_UPLOAD_STORE_PASSWORD=$KEYSTORE_PASSWORD"
-            echo "BEEFLOW_UPLOAD_KEY_ALIAS=$KEY_ALIAS"
-            echo "BEEFLOW_UPLOAD_KEY_PASSWORD=$KEY_PASSWORD"
-          } >> gradle.properties
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4.4.3
@@ -333,16 +317,20 @@ jobs:
           cache-read-only: false
           gradle-home-cache-cleanup: true
 
-      # Dev builds target arm64-v8a only. The NDK work is per-ABI, so building
-      # all four quadruples the slowest part of the build to produce three
-      # binaries nobody installs: every Android phone shipped since roughly
-      # 2019 is arm64-v8a, and a dev APK exists to be side-loaded onto a real
-      # device. Prod still builds all four, because a Play Store artifact has
-      # to serve the devices that are not.
+      # Dev builds an APK for arm64-v8a only. The NDK work is per-ABI, so
+      # building all four quadruples the slowest part of the build to produce
+      # three binaries nobody installs: every Android phone shipped since
+      # roughly 2019 is arm64-v8a, and a dev APK exists to be side-loaded onto
+      # a real device.
+      #
+      # Prod builds only the AAB, for all four ABIs, because Google Play has to
+      # serve the devices that are not arm64 too. An APK from this run would be
+      # debug-signed and so of no use to anyone; the one for direct download
+      # comes from Play (see the header).
       - name: Build APK
+        if: steps.meta.outputs.channel != 'prod'
         working-directory: mobile/android
         env:
-          CHANNEL: ${{ steps.meta.outputs.channel }}
           # expo-constants' createExpoConfig task warns "NODE_ENV is required
           # but was not specified" and falls back to reading only .env.local and
           # .env. That fallback is the problem: which env files Expo loads, and
@@ -355,11 +343,9 @@ jobs:
           NODE_ENV: production
         run: |
           set -euo pipefail
-          ARCHS='armeabi-v7a,arm64-v8a,x86,x86_64'
-          [[ "$CHANNEL" == "prod" ]] || ARCHS='arm64-v8a'
-          echo "::notice::Building for $ARCHS"
+          echo "::notice::Building the APK for arm64-v8a"
           ./gradlew --no-daemon assembleRelease \
-            -PreactNativeArchitectures="$ARCHS" \
+            -PreactNativeArchitectures=arm64-v8a \
             --build-cache
 
       - name: Build AAB
@@ -367,31 +353,38 @@ jobs:
         working-directory: mobile/android
         env:
           NODE_ENV: production
-        run: ./gradlew --no-daemon bundleRelease --build-cache
+        run: |
+          set -euo pipefail
+          echo "::notice::Building the AAB for armeabi-v7a, arm64-v8a, x86, x86_64"
+          ./gradlew --no-daemon bundleRelease \
+            -PreactNativeArchitectures=armeabi-v7a,arm64-v8a,x86,x86_64 \
+            --build-cache
 
       - name: Name the outputs
         id: outputs
         working-directory: mobile
         env:
           CHANNEL: ${{ steps.meta.outputs.channel }}
-          SIGNED: ${{ steps.signing.outputs.signed }}
           # Read from mobile/package.json, i.e. whatever the branch says: a
           # variable in the shell, never spliced into the script text.
           VERSION_NAME: ${{ steps.meta.outputs.version_name }}
+          VERSION_CODE: ${{ steps.meta.outputs.version_code }}
         run: |
           set -euo pipefail
-          APK="$(find android/app/build/outputs/apk/release -name '*.apk' | head -1)"
-          if [[ -z "$APK" ]]; then
-            echo "::error::Gradle reported success but produced no APK."
+          NAME="beeflow-${CHANNEL}-${VERSION_NAME}-${VERSION_CODE}"
+          mkdir -p dist
+          if [[ "$CHANNEL" == "prod" ]]; then
+            OUT="$(find android/app/build/outputs/bundle/release -name '*.aab' 2>/dev/null | head -1 || true)"
+            EXT=aab
+          else
+            OUT="$(find android/app/build/outputs/apk/release -name '*.apk' 2>/dev/null | head -1 || true)"
+            EXT=apk
+          fi
+          if [[ -z "$OUT" ]]; then
+            echo "::error::Gradle reported success but produced no .$EXT."
             exit 1
           fi
-          SUFFIX=""
-          [[ "$SIGNED" == "true" ]] || SUFFIX="-unsigned"
-          NAME="beeflow-${CHANNEL}-${VERSION_NAME}-${{ github.run_number }}${SUFFIX}"
-          mkdir -p dist
-          cp "$APK" "dist/${NAME}.apk"
-          AAB="$(find android/app/build/outputs/bundle/release -name '*.aab' 2>/dev/null | head -1 || true)"
-          [[ -n "$AAB" ]] && cp "$AAB" "dist/${NAME}.aab"
+          cp "$OUT" "dist/${NAME}.${EXT}"
           echo "name=$NAME" >> "$GITHUB_OUTPUT"
           ls -lh dist/
 
@@ -416,18 +409,13 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      # For the build provenance attestation below.
+      id-token: write
+      attestations: write
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
-
-      - id: ver
-        env:
-          INPUT_VERSION: ${{ inputs.version }}
-        run: |
-          V="$(echo "${INPUT_VERSION:-}" | tr -d '[:space:]')"
-          if [[ -z "$V" ]]; then V="android-$(date -u +%Y.%m.%d)-${{ github.run_number }}"; fi
-          echo "version=$V" >> "$GITHUB_OUTPUT"
 
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
@@ -435,33 +423,46 @@ jobs:
           path: dist
           merge-multiple: true
 
-      - name: Refuse to release an unsigned build
-        if: needs.build.outputs.signed != 'true'
+      # The release pipeline takes exactly one .aab from the release.
+      - name: Check the bundle
         run: |
-          echo "::error::The build was not signed with the upload key, so it cannot be published."
-          echo "Set the ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS and"
-          echo "ANDROID_KEY_PASSWORD repository secrets, then run again."
-          exit 1
+          set -euo pipefail
+          shopt -s nullglob
+          files=(dist/*)
+          aabs=(dist/*.aab)
+          if (( ${#aabs[@]} != 1 || ${#files[@]} != 1 )); then
+            echo "::error::Expected exactly one .aab and nothing else, found: ${files[*]:-nothing}"
+            exit 1
+          fi
+
+      # The release pipeline refuses a bundle without this once the repository
+      # is public: it proves the .aab came out of this workflow at this commit.
+      # GitHub does not attest builds in a private repository on this plan (the
+      # action fails there), so it is skipped while the repository is private.
+      - name: Attest build provenance
+        if: ${{ !github.event.repository.private }}
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: dist/*.aab
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
-          tag_name: ${{ steps.ver.outputs.version }}
+          tag_name: ${{ needs.build.outputs.tag }}
           name: Bee Flow for Android ${{ needs.build.outputs.version_name }}
           target_commitish: ${{ github.sha }}
           generate_release_notes: true
-          files: dist/*
+          files: dist/*.aab
           body: |
             Bee Flow for Android — version ${{ needs.build.outputs.version_name }},
-            versionCode ${{ github.run_number }}, built from `${{ github.sha }}`.
+            versionCode ${{ needs.build.outputs.version_code }}, built from `${{ github.sha }}`.
 
-            **Install the APK directly.** Bee Flow is self-hosted and
-            privacy-first; the app ships without Firebase and works on a device
-            with no Google Play Services. Download the `.apk` below and allow
-            installation from your browser or file manager when Android asks.
-
-            The `.aab` is for publishing to the Play Store and cannot be
-            installed directly.
+            The `.aab` below is this build exactly as it goes into the release
+            pipeline for Google Play, before any release signing. It cannot be
+            installed directly. Bee Flow is self-hosted and privacy-first: the
+            app ships without Firebase and runs on a device without Google Play
+            Services. The installable APK for direct download is the one Google
+            Play generates from this bundle.
 
             On first launch the app asks which Bee Flow server to connect to.
             Enter your own host — for example `https://ai.example.com` — and it
