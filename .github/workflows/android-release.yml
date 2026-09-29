@@ -306,6 +306,24 @@ jobs:
           BEEFLOW_DEFAULT_SERVER_URL: ${{ inputs.server_url }}
         run: npx expo prebuild --platform android --no-install
 
+      # Expo's template gives the Gradle daemon a 2 GB heap, and with
+      # org.gradle.parallel R8 (release only) and lint run in it at the same
+      # time. The first release build in this repo died there after 48 minutes:
+      # "R8: java.lang.OutOfMemoryError: Java heap space" in
+      # :app:minifyReleaseWithR8. The runner has 16 GB. Written AFTER prebuild,
+      # which rewrites gradle.properties.
+      - name: Give Gradle enough memory
+        working-directory: mobile/android
+        run: |
+          set -euo pipefail
+          jvmargs='org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g'
+          if grep -q '^org\.gradle\.jvmargs=' gradle.properties; then
+            sed -i "s/^org\.gradle\.jvmargs=.*/$jvmargs/" gradle.properties
+          else
+            printf '\n%s\n' "$jvmargs" >> gradle.properties
+          fi
+          grep '^org\.gradle\.jvmargs=' gradle.properties
+
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4.4.3
         with:
