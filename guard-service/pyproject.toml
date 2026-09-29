@@ -29,7 +29,7 @@ dependencies = [
   # same reason (see requirements.txt, the pin of record).
   "transformers==5.16.1",
   "tokenizers==0.23.2",
-  "huggingface_hub==1.33.0",
+  "huggingface_hub==2.0.0",
   # ONNX runtime for fp32 CPU inference (much faster than fp32 PyTorch; we do
   # NOT INT8-quantize — that collapsed person-name recall, BFSF-269)
   "onnx>=1.16.0,<2.0.0",
