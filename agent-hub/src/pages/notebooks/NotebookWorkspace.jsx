@@ -10,8 +10,7 @@
  */
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import {
-    ArrowLeft, Loader2, AlertCircle, CheckCircle2, Circle,
-    PanelLeft, MessageSquare, Command as CommandIcon,
+    ArrowLeft, PanelLeft, MessageSquare, Command as CommandIcon,
 } from 'lucide-react';
 import useTranslation from '../../hooks/useTranslation';
 import useViewport from '../../hooks/useViewport';
@@ -22,42 +21,6 @@ import CommandPalette from './shell/CommandPalette';
 import buildCommands from './shell/buildCommands';
 
 const LEFT_WIDTH = 248;
-
-/* ── Save-state indicator (extracted from both pages) ─────────── */
-function SaveStateIndicator({ saveState, lastSavedAt, onRetry, dirty, t }) {
-    if (saveState === 'saving') {
-        return (
-            <span className="flex items-center gap-1 text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                <Loader2 className="w-3 h-3 animate-spin" />{t('notebooks.saving', 'Saving…')}
-            </span>
-        );
-    }
-    if (saveState === 'error') {
-        return (
-            <button onClick={onRetry} className="flex items-center gap-1 text-xs text-red-500 hover:underline" title={t('notebooks.retry', 'Retry')}>
-                <AlertCircle className="w-3 h-3" />{t('notebooks.save_failed_retry', 'Save failed — retry')}
-            </button>
-        );
-    }
-    // Typed but not yet sent. The editor debounces for 2 s before it even asks
-    // for a save, and nothing represented that window — "Saved" from the
-    // previous save just lingered while newer edits sat unpersisted.
-    if (dirty) {
-        return (
-            <span className="flex items-center gap-1 text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                <Circle className="w-2 h-2 fill-current" />{t('notebooks.unsaved_changes', 'Unsaved changes')}
-            </span>
-        );
-    }
-    if (saveState === 'idle' && lastSavedAt && (Date.now() - lastSavedAt < 4000)) {
-        return (
-            <span className="flex items-center gap-1 text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                <CheckCircle2 className="w-3 h-3" />{t('notebooks.saved', 'Saved')}
-            </span>
-        );
-    }
-    return null;
-}
 
 /* ── A header toggle button with active highlight ─────────────── */
 function HeaderToggle({ icon: Icon, label, active, disabled, onClick }) {
@@ -83,15 +46,13 @@ export default function NotebookWorkspace({
     title,
     meta,
     onBack,
-    saveState,
-    lastSavedAt,
-    onRetrySave,
-    dirty,
+    saveStatus = null,          // the save-status node (detail/NotebookSaveStatus)
     headerActions,
     headerExtras = [],          // [{ id, icon, label, active, disabled, onClick }]
     leftDrawer,                 // { label, icon, node } | null
     rightDrawer,                // { label, icon, node } | null
     secondaryLeft = null,       // optional node between left drawer and editor (e.g. TOC)
+    secondaryRight = null,      // optional node between editor and right drawer (e.g. comments)
     commandContext = null,      // passed to buildCommands; shell injects view toggles
     banners = null,
     overlays = null,
@@ -122,17 +83,23 @@ export default function NotebookWorkspace({
         else setOverlayDrawer((d) => (d === 'right' ? null : 'right'));
     }, [isDesktop, toggleRightDesktop]);
 
-    // ⌘K / Ctrl+K toggles the palette from anywhere in the workspace.
+    const hasRight = !!rightDrawer;
+    // ⌘K / Ctrl+K toggles the palette, ⌘J / Ctrl+J the chat, from anywhere
+    // in the workspace.
     useEffect(() => {
         const onKey = (e) => {
-            if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
+            if (!(e.metaKey || e.ctrlKey) || e.altKey || e.shiftKey) return;
+            if (e.key === 'k' || e.key === 'K') {
                 e.preventDefault();
                 setPaletteOpen((p) => !p);
+            } else if ((e.key === 'j' || e.key === 'J') && hasRight) {
+                e.preventDefault();
+                toggleRight();
             }
         };
         window.addEventListener('keydown', onKey);
         return () => window.removeEventListener('keydown', onKey);
-    }, []);
+    }, [hasRight, toggleRight]);
 
     const commands = useMemo(() => {
         if (!commandContext) return [];
@@ -165,9 +132,7 @@ export default function NotebookWorkspace({
                     {meta && <p className="text-[11px] truncate mt-0.5" style={{ color: 'var(--text-tertiary)' }}>{meta}</p>}
                 </div>
 
-                <div className="shrink-0 flex items-center">
-                    <SaveStateIndicator saveState={saveState} lastSavedAt={lastSavedAt} onRetry={onRetrySave} dirty={dirty} t={t} />
-                </div>
+                {saveStatus && <div className="shrink-0 flex items-center">{saveStatus}</div>}
 
                 {/* View toggles */}
                 <div className="flex items-center gap-0.5 shrink-0 pl-2 ml-1 border-l" style={{ borderColor: 'var(--border-subtle)' }}>
@@ -202,6 +167,7 @@ export default function NotebookWorkspace({
                 <div className="flex-1 min-w-0 flex flex-col overflow-hidden" style={{ background: 'var(--bg-primary)' }}>
                     {children}
                 </div>
+                {secondaryRight}
                 {rightDrawer && (
                     <Drawer side="right" open={rightEffectiveOpen} width={isDesktop ? rightWidth : Math.min(rightWidth, 380)} resizable={isDesktop} mode={drawerMode} onResizeStart={startDrag} onClose={closeOverlay} label={rightDrawer.label}>
                         {rightDrawer.node}

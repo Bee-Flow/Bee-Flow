@@ -41,6 +41,10 @@ function fakeDeps(over = {}) {
             logAccessAudit: async (...args) => { state.audits.push(args); },
         },
         memoryStore: { countActiveMemoriesForUser: async (uid) => (uid === 'u_1' ? 4 : 0) },
+        // Pinned like the rest: the count is asked for the scanning org only.
+        projectChatStore: {
+            countMessagesByAuthor: async (uid, { organizationId }) => (uid === 'u_1' && organizationId === 'org_a' ? 7 : 0),
+        },
         datatableStore: {
             listDatatablesForScope: async () => tables,
             getModel: async () => ({
@@ -84,6 +88,7 @@ test('output names every source, counts only, never the address', async () => {
     const byKind = Object.fromEntries(out.sources.map(s => [s.kind, s]));
     assert.strictEqual(byKind.user_account.count, 1);
     assert.strictEqual(byKind.memories.count, 4);
+    assert.strictEqual(byKind.team_chat_messages.count, 7);
     assert.strictEqual(byKind.datatable_rows.count, 3);
     assert.deepStrictEqual(byKind.datatable_rows.items.map(i => i.id), ['a', 'b']);
     assert.strictEqual(byKind.datatable_rows.items[1].retention_note, 'legal_obligation');
@@ -93,7 +98,7 @@ test('output names every source, counts only, never the address', async () => {
     assert.strictEqual(byKind.kb_chunks.count, 3);
     assert.strictEqual(byKind.kb_chunks.items[0].document_id, 'doc9');
     assert.strictEqual(byKind.prior_dsrs.count, 2);
-    assert.deepStrictEqual(out.not_scanned, ['conversations']);
+    assert.deepStrictEqual(out.not_scanned, ['conversations', 'team_chats', 'project_comments', 'co_edited_documents']);
     assert.strictEqual(out.partial, false);
     assert.ok(out.retention_notes.some(n => n.id === 'b' && n.note === 'legal_obligation'));
     for (const s of out.sources) assert.ok(typeof s.label_key === 'string' && s.label_key.startsWith('compliance.dsr_discovery_'));
@@ -367,4 +372,99 @@ test('the memo is bounded — an unbounded Map would grow with every request sca
     assert.ok(discovery._memoSize() <= discovery.MEMO_MAX_ENTRIES, `memo holds ${discovery._memoSize()}`);
     assert.strictEqual(discovery.peek('org_a', 1, { now }), null, 'the oldest entry went out first');
     assert.ok(discovery.peek('org_a', discovery.MEMO_MAX_ENTRIES + 10, { now }), 'the newest is still there');
+});
+
+test('team chat messages are counted by author, in the scanning organisation, and never without a user', async () => {
+    const asked = [];
+    const { deps } = fakeDeps({ tables: [] });
+    deps.projectChatStore = {
+        countMessagesByAuthor: async (uid, scope) => { asked.push([uid, scope]); return 3; },
+    };
+    const foreign = await discovery.run('org_b', REQ, { deps });
+    assert.strictEqual(foreign.sources.find(s => s.kind === 'team_chat_messages').count, 0);
+    assert.deepStrictEqual(asked, [], 'a subject outside the org is not counted at all');
+
+    const own = await discovery.run('org_a', REQ, { deps, force: true });
+    assert.strictEqual(own.sources.find(s => s.kind === 'team_chat_messages').count, 3);
+    assert.deepStrictEqual(asked, [['u_1', { organizationId: 'org_a' }]]);
+
+    deps.projectChatStore = { countMessagesByAuthor: async () => { throw new Error('relation does not exist'); } };
+    const down = await discovery.run('org_a', REQ, { deps, force: true });
+    assert.strictEqual(down.sources.find(s => s.kind === 'team_chat_messages').count, null, 'unknown, never a fake zero');
+});
+
+test('project participation is counted by user id in the scanning organisation, never opening content', async () => {
+    // The real project DDL (and the few columns of the other tables the counts
+    // name), so the shipped SQL runs where its columns exist.
+    const { PGlite } = require('@electric-sql/pglite');
+    const { applyProjectCheckSchema } = require('../projects/testSchema');
+    const pg = new PGlite();
+    try {
+        await applyProjectCheckSchema(pg, { versions: false });
+        await pg.exec(`
+            INSERT INTO projects (id, name, owner_id, organization_id, kind) VALUES
+                ('p1', 'One', 'u_1', 'org_a', 'workspace'), ('p2', 'Two', 'u_9', 'org_a', 'workspace'),
+                ('px', 'Elsewhere', 'u_1', 'org_b', 'workspace');
+            INSERT INTO project_shares (id, project_id, shared_with_type, shared_with_id) VALUES
+                ('s1', 'p2', 'user', 'u_1'), ('s2', 'px', 'user', 'u_1');
+            INSERT INTO direct_conversations (id, user_id, project_id, shared_scope) VALUES ('d1', 'u_1', 'p2', 'project'), ('d2', 'u_1', 'p2', 'private');
+            INSERT INTO notebooks (id, user_id, project_id) VALUES ('n1', 'u_1', 'p1'), ('n2', 'u_1', NULL);
+            INSERT INTO studio_documents (id, user_id, project_id) VALUES ('sd1', 'u_1', 'p2'), ('sd2', 'u_1', 'px');
+            INSERT INTO project_comments (id, thread_id, project_id, author_user_id) VALUES
+                ('c1', 't1', 'p2', 'u_1'), ('c2', 't1', 'p2', 'u_1'), ('c3', 't1', 'p2', 'u_9'), ('c4', 't2', 'px', 'u_1');
+        `);
+        const { deps } = fakeDeps({ tables: [] });
+        const prior = deps.db.getOne;
+        deps.db.getOne = async (sql, params) => (/project/.test(sql) && !/dsr_requests/.test(sql)
+            ? (await pg.query(sql, params)).rows[0]
+            : prior(sql, params));
+        const out = await discovery.run('org_a', REQ, { deps, force: true });
+        const participation = out.sources.find(s => s.kind === 'project_participation');
+        assert.strictEqual(participation.label_key, 'compliance.dsr_discovery_project_participation');
+        assert.deepStrictEqual(Object.fromEntries(participation.items.map(i => [i.kind, i.count])), {
+            memberships: 1, owned_projects: 1, shared_chats: 1, project_notebooks: 1, project_documents: 1, project_comments: 2,
+        }, 'org_b\'s project, the private chat and a colleague\'s comment are not counted');
+        assert.strictEqual(participation.count, 7);
+        assert.ok(!JSON.stringify(participation).includes(EMAIL));
+    } finally {
+        await pg.close();
+    }
+});
+
+test('a project count that fails is unknown, never a fake zero; a missing table is a true zero', async () => {
+    const { deps } = fakeDeps({ tables: [] });
+    deps.db.getOne = async (sql) => {
+        if (/FROM notebooks/.test(sql)) { const e = new Error('relation "notebooks" does not exist'); e.code = '42P01'; throw e; }
+        if (/project_shares/.test(sql)) throw new Error('statement timeout');
+        if (/dsr_requests/.test(sql)) return { n: 0 };
+        return { n: 0 };
+    };
+    const out = await discovery.run('org_a', REQ, { deps, force: true });
+    const participation = out.sources.find(s => s.kind === 'project_participation');
+    assert.strictEqual(participation.count, null);
+    assert.strictEqual(participation.items.find(i => i.kind === 'memberships').count, null);
+    assert.strictEqual(participation.items.find(i => i.kind === 'project_notebooks').count, 0);
+    const outsider = await discovery.run('org_b', REQ, { deps, force: true });
+    assert.strictEqual(outsider.sources.find(s => s.kind === 'project_participation').count, 0, 'no member, nothing counted');
+});
+
+test('an outside data subject: sealed project bodies are reported as not scanned, never as searched and empty', async () => {
+    // Team chats, comments and co-edited documents are sealed with the project
+    // key; the scan counts by author id only. For a subject who is not a user
+    // those counts are 0 while messages naming them were never looked at.
+    const { deps } = fakeDeps();
+    const out = await discovery.run('org_b', { id: 12, subject_email: 'outsider@example.net' }, { deps });
+    const byKind = Object.fromEntries(out.sources.map(s => [s.kind, s]));
+    assert.strictEqual(byKind.team_chat_messages.count, 0);
+    for (const sealed of ['team_chats', 'project_comments', 'co_edited_documents']) {
+        assert.ok(out.not_scanned.includes(sealed), `${sealed} must be listed as not scanned`);
+    }
+    assert.deepStrictEqual(discovery.summarize(out).not_scanned, out.not_scanned, 'the dossier summary carries them too');
+
+    // Every entry has an explanation in the English catalogue.
+    const { GUI_DEFAULTS } = require('../../i18n/defaults/en');
+    for (const name of discovery.NEVER_SCANNED) {
+        assert.ok(GUI_DEFAULTS[`compliance.dsr_discovery_not_scanned_${name}`], `no label for ${name}`);
+    }
+    assert.match(GUI_DEFAULTS['compliance.dsr_discovery_team_chat_messages'], /written by this person/);
 });

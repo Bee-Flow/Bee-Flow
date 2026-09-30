@@ -345,9 +345,11 @@ const KINDS = [
         },
     },
     {
-        // routes/projects.js GET / → listUserProjects(userId, groups); the
-        // mount is requireModule('projects') + requireCapability('projects')
-        // + the operator kill switch (feature_projects_enabled).
+        // routes/projects.js GET /?kind=solution → listUserProjects(userId,
+        // groups, { kind: 'solution' }): Solutions plus the legacy projects
+        // nobody has classified yet, never a collaborative project. The mount
+        // is requireModule('projects') + requireCapability('projects') + the
+        // operator kill switch (feature_projects_enabled).
         key: 'solutions',
         gate: async (req, d) => {
             if (!(await moduleActive(d, 'projects'))) return false;
@@ -357,7 +359,9 @@ const KINDS = [
         },
         count: async (req, d) => {
             const userId = userIdOf(req);
-            const projects = await d.projectStore.listUserProjects(userId, await d.auth.resolveUserGroups(userId));
+            const projects = await d.projectStore.listUserProjects(
+                userId, await d.auth.resolveUserGroups(userId), { kind: 'solution' },
+            );
             return { count: projects.length, owners: projects.map(ownerOf) };
         },
     },

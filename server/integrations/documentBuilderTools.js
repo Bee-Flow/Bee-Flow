@@ -20,8 +20,50 @@
 
 const documentStore = require('../stores/documentStore');
 const houseStyle = require('../core/documents/documentHouseStyle');
+const documentFeed = require('../core/documents/documentFeed');
 const { applyFindReplace } = require('../core/text/findReplace');
+const { wordStats } = require('../stores/lib/documentText');
+const { canEditAs } = require('../stores/lib/projectRole');
 const log = require('../telemetry/log');
+
+/**
+ * A reader who may see this document but not change it: a project viewer.
+ * Asked BEFORE any write, because a page edited live is written through the
+ * live layer, which takes an actor and no role (the stored-body path would
+ * have refused them in updateDocument; the live one would not).
+ */
+const readOnlyFor = (doc) => !!doc.projectRole && !canEditAs(doc.projectRole);
+const READ_ONLY = { error: 'Document is read-only.' };
+
+// A page edited live has no stored revision that says what the model read: the
+// live state moves with every keystroke. document_read hands out a versionId
+// that also names the live update it read (`<versionId>@live:<seq>`), and a
+// full write is applied only while that is still the newest.
+const LIVE_MARK = '@live:';
+const liveToken = (versionId, seq) => `${versionId || ''}${LIVE_MARK}${seq}`;
+function parseExpected(value) {
+    const text = typeof value === 'string' ? value : '';
+    const at = text.lastIndexOf(LIVE_MARK);
+    if (at < 0) return { versionId: text || null, seq: null };
+    const seq = Number(text.slice(at + LIVE_MARK.length));
+    return { versionId: text.slice(0, at) || null, seq: Number.isInteger(seq) && seq >= 0 ? seq : null };
+}
+
+/** The live state of a page and the update it is at (seq null when the facade cannot say). */
+async function readLive(live, id) {
+    if (typeof live.read === 'function') {
+        const state = await live.read('document', id);
+        if (state) return { html: state.html ?? '', seq: Number.isInteger(state.seq) ? state.seq : null };
+    }
+    return { html: typeof live.readHtml === 'function' ? await live.readHtml('document', id) : null, seq: null };
+}
+
+// What an AI edit is in the history: its own version, marked as the AI's,
+// made for the person whose chat asked for it (never folded into their typing).
+const aiRevision = (userId, summary) => ({
+    source: 'ai', summary: typeof summary === 'string' && summary.trim() ? summary.trim().slice(0, 500) : 'AI edit',
+    contributors: [{ userId, kind: 'ai' }],
+});
 
 const APP_PATH = 'app/studio/documents';
 
@@ -44,7 +86,9 @@ const DOCUMENT_TOOLS = [
                     },
                     docType: {
                         type: 'string',
-                        enum: [...documentStore.DOC_TYPES],
+                        // A page is written in the rich-text editor and made from a
+                        // project; what the chat creates is designed (body + css).
+                        enum: documentStore.DOC_TYPES.filter((t) => t !== 'page'),
                         description: 'What kind of document this is. Used for the icon and grouping in the Documents list; it does not change how the document renders.',
                     },
                     description: {
@@ -199,15 +243,29 @@ async function executeDocumentTool(toolName, args = {}, ctx = {}) {
     if (toolName === 'document_read') {
         const doc = await documentStore.getDocument(String(args.documentId || ''), userId);
         if (!doc) return { error: 'Document not found.' };
+        // A page edited live: what people see now is the live state, and the
+        // versionId names the live update it was read at.
+        const live = await documentFeed.liveCollabFor(doc);
+        let versionId = doc.versionId;
+        if (live) {
+            const state = await readLive(live, doc.id);
+            if (typeof state.html === 'string') doc.bodyHtml = state.html;
+            if (state.seq != null) versionId = liveToken(doc.versionId, state.seq);
+        }
         const deck = doc.docType === 'presentation';
+        const readOnly = readOnlyFor(doc);
+        let message = deck ? `Read the outline of "${doc.name}" (a presentation: bodyHtml is the slide outline, there is no css).` : `Read "${doc.name}".`;
+        if (live) message += ' This page is being edited live by others: prefer document_edit; a full document_write is refused once anybody has typed since this read.';
+        if (readOnly) message += ' You may read this document but not change it (the user is a viewer of its project).';
         return {
             documentId: doc.id,
             name: doc.name,
             docType: doc.docType,
-            versionId: doc.versionId, settings: doc.settings, contract: require('../core/documents/documentContract').getContract(doc),
+            versionId, settings: doc.settings, contract: require('../core/documents/documentContract').getContract(doc),
             bodyHtml: doc.bodyHtml,
             ...(deck ? { outline: doc.bodyHtml } : { css: doc.css }),
-            message: deck ? `Read the outline of "${doc.name}" (a presentation: bodyHtml is the slide outline, there is no css).` : `Read "${doc.name}".`,
+            ...(readOnly ? { readOnly: true } : {}),
+            message,
         };
     }
 
@@ -215,7 +273,9 @@ async function executeDocumentTool(toolName, args = {}, ctx = {}) {
         const documentId = String(args.documentId || '');
         const existing = await documentStore.getDocument(documentId, userId);
         if (!existing) return { error: 'Document not found.' };
+        if (readOnlyFor(existing)) return READ_ONLY;
         if (existing.versionId && (existing.bodyHtml || existing.css) && !args.expectedVersionId) return { error: 'Read document_read first and pass its versionId as expectedVersionId.' };
+        const expected = parseExpected(args.expectedVersionId);
 
         const updates = {};
         const deck = existing.docType === 'presentation';
@@ -229,23 +289,34 @@ async function executeDocumentTool(toolName, args = {}, ctx = {}) {
             return { error: deck ? 'Nothing to write — pass bodyHtml (the slide outline). A presentation has no css.' : 'Nothing to write — pass bodyHtml, css, or both.' };
         }
 
-        // Snapshot the state being replaced. Same rule as the PATCH route: the
-        // user's hand-edits are what this most often overwrites, so the undo
-        // has to exist before the write, not after.
-        try {
-            await documentStore.snapshotVersion(documentId, userId, args.summary || 'Before AI edit');
-        } catch (e) {
-            log.warn('[DocumentTools] Version snapshot failed:', e.message);
+        // A page has no stylesheet, and a page edited live is written through
+        // the live layer, so every open editor shows the change at once.
+        if (existing.docType === 'page') {
+            delete updates.css;
+            if (Object.keys(updates).length === 0) return { error: 'A page has no stylesheet — pass bodyHtml.' };
+            const live = await documentFeed.liveCollabFor(existing);
+            if (live) {
+                if (Object.keys(updates).some((k) => k !== 'bodyHtml')) return { error: 'This page is being edited live — write only bodyHtml.' };
+                // A whole-body write makes the page equal to what the model
+                // wrote: only from the live state it read, never over what
+                // somebody typed since.
+                if (expected.seq == null) return { error: `This page is being edited live. Call document_read({ documentId: "${documentId}" }) and pass its versionId as expectedVersionId, or change it with document_edit.` };
+                const liveOut = await writeLive(existing, userId, updates.bodyHtml, live, expected.seq);
+                if (liveOut) return liveOut;
+            }
         }
 
         let updated;
         try {
-            updated = await documentStore.updateDocument(documentId, userId, { ...updates, expectedVersionId: args.expectedVersionId || existing.versionId });
+            updated = await documentStore.updateDocument(documentId, userId, {
+                ...updates, expectedVersionId: expected.versionId || existing.versionId, ...aiRevision(userId, args.summary),
+            });
         } catch (e) {
-            if (e.errorClass === 'document_too_large') return { error: e.message };
+            if (e.errorClass === 'document_too_large' || e.errorClass === 'document_conflict') return { error: e.message };
             throw e;
         }
 
+        if (updated) await reportAiEdit(existing, updated, userId);
         if (!updated) return { error: 'Document is read-only.' };
         return {
             documentId,
@@ -264,39 +335,43 @@ async function executeDocumentTool(toolName, args = {}, ctx = {}) {
         }
         const doc = await documentStore.getDocument(documentId, userId);
         if (!doc) return { error: 'Document not found.' };
+        if (readOnlyFor(doc)) return READ_ONLY;
         if (slot === 'css' && doc.docType === 'presentation') return { error: 'A presentation has no stylesheet — edit slot "body" (the slide outline); its look is settings.deck.' };
 
         const field = slot === 'body' ? 'bodyHtml' : 'css';
         if (doc.versionId && !args.expectedVersionId) return { error: 'Read document_read first and pass its versionId as expectedVersionId.' };
         const label = slot === 'body' ? (doc.docType === 'presentation' ? 'The slide outline' : 'The document body') : 'The stylesheet';
-
-        // The find/replace IS the concurrency guard. A full-slot write would
-        // overwrite a hand-edit without noticing; a snippet that no longer
-        // matches tells the model the user has changed that part, and the hint
-        // says what is there now.
-        const out = applyFindReplace(doc[field] || '', {
+        const edit = (text) => applyFindReplace(text, {
             findText: args.find_text,
             replaceText: args.replace_text ?? '',
             replaceAll: args.replace_all === true,
             label,
             readHint: `Call document_read({ documentId: "${documentId}" })`,
         });
-        if (out.error) return { error: out.error };
 
-        try {
-            await documentStore.snapshotVersion(documentId, userId, args.summary || 'Before AI edit');
-        } catch (e) {
-            log.warn('[DocumentTools] Version snapshot failed:', e.message);
+        // The find/replace IS the concurrency guard. A full-slot write would
+        // overwrite a hand-edit without noticing; a snippet that no longer
+        // matches tells the model the user has changed that part, and the hint
+        // says what is there now.
+        const live = slot === 'body' ? await documentFeed.liveCollabFor(doc) : null;
+        if (live) {
+            const liveOut = await editLive(doc, userId, live, edit);
+            if (liveOut) return liveOut.error ? liveOut : { ...liveOut, slot };
         }
+        const out = edit(doc[field] || '');
+        if (out.error) return { error: out.error };
 
         let updated;
         try {
-            updated = await documentStore.updateDocument(documentId, userId, { [field]: out.content, expectedVersionId: args.expectedVersionId || doc.versionId });
+            updated = await documentStore.updateDocument(documentId, userId, {
+                [field]: out.content, expectedVersionId: parseExpected(args.expectedVersionId).versionId || doc.versionId, ...aiRevision(userId, args.summary),
+            });
         } catch (e) {
-            if (e.errorClass === 'document_too_large') return { error: e.message };
+            if (e.errorClass === 'document_too_large' || e.errorClass === 'document_conflict') return { error: e.message };
             throw e;
         }
 
+        if (updated) await reportAiEdit(doc, updated, userId);
         if (!updated) return { error: 'Document is read-only.' };
         return {
             documentId,
@@ -308,6 +383,62 @@ async function executeDocumentTool(toolName, args = {}, ctx = {}) {
     }
 
     return { error: `Unknown document tool: ${toolName}` };
+}
+
+const LIVE_STALE = 'Somebody changed this page since you read it. Call document_read again and make your change with document_edit, so what they typed stays.';
+// A find/replace re-reads the live state, so a keystroke landing between that
+// read and the write is simply read again; after this many, it gives up.
+const LIVE_EDIT_ATTEMPTS = 3;
+
+/**
+ * Write a page's body through the live layer when the page is being edited
+ * live: the change reaches every open editor, and the live layer's checkpoint
+ * records it as the AI's. `expectSeq` is the live update the body was made
+ * from: when anybody typed since, nothing is written and the answer says so
+ * (`{ error }`), because the body would undo what they typed. Null when the
+ * page is not live (the caller then saves the stored body with its revision
+ * check).
+ */
+async function writeLive(doc, userId, html, live, expectSeq) {
+    if (!live || typeof live.applyServerEdit !== 'function') return null;
+    const out = await live.applyServerEdit('document', doc.id, { origin: 'ai', actorId: userId }, { replaceWith: { html }, expectSeq });
+    if (out?.stale) return { error: LIVE_STALE };
+    if (!out?.applied) return null;
+    return {
+        documentId: doc.id,
+        url: documentUrl(doc.id),
+        name: doc.name,
+        versionId: Number.isInteger(out.seq) ? liveToken(doc.versionId, out.seq) : doc.versionId,
+        wrote: ['bodyHtml'],
+        message: `Updated the page "${doc.name}" for everyone who has it open. Reply with a clickable link of the form "[${doc.name}](${documentUrl(doc.id)})".`,
+    };
+}
+
+/**
+ * A find/replace on a page edited live: applied to the live state and written
+ * only from the update it was computed on. Null when the page turns out not to
+ * be live (the caller edits the stored body).
+ */
+async function editLive(doc, userId, live, edit) {
+    for (let attempt = 0; attempt < LIVE_EDIT_ATTEMPTS; attempt += 1) {
+        const state = await readLive(live, doc.id);
+        if (typeof state.html !== 'string') return null;
+        const out = edit(state.html);
+        if (out.error) return { error: out.error };
+        const written = await writeLive(doc, userId, out.content, live, state.seq ?? undefined);
+        if (!written) return null;
+        if (!written.error) return { ...written, message: out.message };
+    }
+    return { error: LIVE_STALE };
+}
+
+/** Tell the project's change feed about an AI edit to a filed document. */
+async function reportAiEdit(before, after, userId) {
+    if (after.versionId === before.versionId) return;
+    await documentFeed.recordContentChange(after, {
+        actorId: userId, source: 'ai', versionId: after.versionId,
+        contributors: [{ userId, kind: 'ai' }], stats: wordStats(before.bodyHtml, after.bodyHtml),
+    });
 }
 
 module.exports = {

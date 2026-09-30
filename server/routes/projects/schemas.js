@@ -52,7 +52,20 @@ const settings = {
     extractMemories: flag('extractMemories is true or false.').nullish(),
 };
 
-const CreateBody = bodyOf({ name, ...settings }, 'Creating a project');
+// Which side of the split a project is on: a collaborative project, or a
+// Studio Solution. Not in UpdateBody: classifying is its own owner-only
+// action (PUT /:id/kind, routes/projects/kind.js), allowed once, on a legacy
+// project or one whose kind the backfill only guessed.
+const KIND_TEXT = 'kind is workspace (a collaborative project) or solution (a Studio Solution).';
+const projectKind = choice(['workspace', 'solution'], KIND_TEXT);
+
+const CreateBody = bodyOf({ name, ...settings, kind: projectKind.optional() }, 'Creating a project');
+
+// GET / — the Projects page asks for workspaces, Studio for Solutions; a
+// legacy project is in both answers. Without `kind`, every project.
+const ListQuery = queryOf({ kind: projectKind.optional() }, 'The project list');
+
+const KindBody = bodyOf({ kind: projectKind }, 'Classifying a project');
 
 const UpdateBody = bodyOf({
     name: name.optional(),
@@ -87,10 +100,6 @@ const SummaryQuery = queryOf({
     since: text(64, 'since is a date, like 2026-09-24T00:00:00Z.').optional(),
     checks: choice(['0', '1'], 'checks is 0 to skip the completeness checks.').optional(),
 }, 'The Solutions overview');
-
-const StreamQuery = queryOf({
-    since: wholeNumber('since is the id of the last event you received.', { min: 0 }).optional(),
-}, 'The project stream');
 
 const ShareThreadBody = bodyOf({
     conversationId: anId('conversationId is required'),
@@ -138,7 +147,7 @@ const InstallBody = bodyOf({
 }, 'Installing a Blueprint');
 
 module.exports = {
-    CreateBody, UpdateBody, ShareBody, MemberRoleBody, TypeQuery, PageQuery, SummaryQuery,
-    StreamQuery, ShareThreadBody, TypingBody, ResourceBody, ConversationsBody,
+    CreateBody, ListQuery, KindBody, UpdateBody, ShareBody, MemberRoleBody, TypeQuery, PageQuery, SummaryQuery,
+    ShareThreadBody, TypingBody, ResourceBody, ConversationsBody,
     ExportBody, UpgradeBody, InstallBody,
 };

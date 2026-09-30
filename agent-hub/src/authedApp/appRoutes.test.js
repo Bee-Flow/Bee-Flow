@@ -209,6 +209,8 @@ describe('FROZEN_LEGACY: paths the server has minted into mailboxes and tickets'
             ['/app/forms/tok3n', 'formView'],
             ['/app/notebooks/n1', 'notebooks'],
             ['/app/projects/p1', 'projects'],
+            ['/app/projects/p1/chats/c1', 'projects'],
+            ['/app/projects/new', 'projects'],
         ];
         const wrong = aliases
             .map(([path, page]) => {
@@ -284,6 +286,14 @@ describe('mobile allow-list is frozen', () => {
         expect(mobilePageKey('studio/agents')).toBe('studio');
         expect(MOBILE_ALLOWED_PAGES.has('approvals')).toBe(true);
         expect(MOBILE_ALLOWED_PAGES.has('studio')).toBe(false);
+    });
+
+    it('keeps every projects page off the phone, down to one item in a workspace', () => {
+        // navigateToPage speaks project pages as 'projects/<id>/<tab>/<sub>';
+        // the workspace is a desktop layout, so none of them may slip past.
+        expect(mobilePageKey('projects')).toBe('projects');
+        expect(mobilePageKey('projects/p1/chats/c1')).toBe('projects');
+        expect(MOBILE_ALLOWED_PAGES.has('projects')).toBe(false);
     });
 
     it('reads the approvals slice from ONE predicate, in both of its shapes', () => {

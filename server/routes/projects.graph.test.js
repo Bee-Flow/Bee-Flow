@@ -53,8 +53,7 @@ const fx = {
 const MOCKS = {
     '../stores/projectStore': {
         getProject: async (id) => ({ id, name: 'P', ownerId: 'alice', organizationId: 'org1', knowledgeBaseIds: fx.projectKbIds }),
-        logActivity: async () => {},
-        appendProjectEvent: async () => ({ seq: 1, id: 'e1' }),
+        recordActivityEvent: async () => null,
         normalizePermission: (p) => p,
     },
     '../stores/automationStore': {

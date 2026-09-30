@@ -1,8 +1,8 @@
 import { AlertTriangle, HelpCircle, Info, Loader2 } from 'lucide-react';
 import React, { useMemo } from 'react';
 import { readInstalls } from './releaseModel';
+import { Strip } from './solutionNotices';
 import { useTranslation } from '../../../../hooks/useTranslation';
-import { Strip } from '../../../projects/solutionNotices';
 import { nOf } from '../KnowledgeStudio/plural';
 
 /**

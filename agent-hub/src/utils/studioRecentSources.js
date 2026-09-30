@@ -307,10 +307,6 @@ export const STUDIO_RECENT_SOURCES = {
             return RECENT_STATUS.PROCESSING;
         },
     },
-    // Solutions — /api/projects is a bare array of the projects you own or
-    // are a member of (routes/projects.js GET /, projectStore.listUserProjects),
-    // which is exactly the list the Solutions section shows. It was the one
-    // live built-in with no entry here, so its row had no sub-panel.
     playbooks: {
         url: '/api/playbooks',
         pick: (d) => d?.playbooks,
@@ -328,8 +324,14 @@ export const STUDIO_RECENT_SOURCES = {
             return p?.status === 'active' ? RECENT_STATUS.PROCESSING : RECENT_STATUS.UNKNOWN;
         },
     },
+    // Solutions — /api/projects is a bare array of the projects you own or
+    // are a member of (routes/projects.js GET /, projectStore.listUserProjects).
+    // `kind=solution` narrows it to the Studio bundles (plus the rows from
+    // before the split nobody has classified yet), which is exactly the list
+    // the Solutions section shows. Collaborative project workspaces are not
+    // Studio items and never appear here.
     solutions: {
-        url: '/api/projects',
+        url: '/api/projects?kind=solution',
         pick: (d) => (Array.isArray(d) ? d : d?.projects),
         map: (p) => ({ id: p.id, name: p.name, description: p.description, updatedAt: p.updatedAt || p.updated_at }),
         // NO status accessor: /api/projects carries none. A Solution's health

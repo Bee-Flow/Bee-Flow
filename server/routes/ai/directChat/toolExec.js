@@ -224,7 +224,9 @@ async function executeDirectChatToolCall(toolCall, ctx) {
             toolResult = await executeDocumentTool(toolName, toolArgs, { userId: ctx.userId, orgId: ctx.userOrgId || null });
             // Tells the open Documents editor to reload: the user may be
             // looking at this very document while the model rewrites it.
-            if (toolResult && toolResult.documentId && !toolResult.error) {
+            // Only for a tool that WROTE: a read that reloaded the editor
+            // threw away the reader's caret and scroll position for nothing.
+            if (toolName !== 'document_read' && toolResult && toolResult.documentId && !toolResult.error) {
                 ctx.send('document_update', {
                     documentId: toolResult.documentId,
                     name: toolResult.name,

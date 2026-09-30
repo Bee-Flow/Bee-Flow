@@ -71,6 +71,7 @@ import { clearSessionCaches } from './hooks/sessionCaches';
 // verbatim extractions — this file keeps the same public surface.
 import { PAGE_ROUTES, pageFromPath, parseAITasksUrl, parseAdminPath, parseAgentDesignerUrl, parseAgentUrl, parseCoworkUrl, parseDirectChatUrl, parseNcStudioAppParam, parseNotebookUrl, parseOrgSettingsPath } from './authedApp/appRoutes';
 import { MobileRouteGuard, SubscriptionGate } from './authedApp/guards';
+import { projectHistoryMode } from './authedApp/projectNavigation';
 import { AppBackdrop, LoadingScreen, NoOrganizationScreen, PendingApprovalScreen, RouteFallback, ServerUnavailableScreen } from './authedApp/shellScreens';
 import { useAuthSession } from './authedApp/useAuthSession';
 import { useNavigateToPage } from './authedApp/useNavigateToPage';
@@ -329,6 +330,8 @@ function App() {
         setShowSettings,
         setShowSkillsPanel,
         setShowNotebooks,
+        setShowProjects,
+        setInitialProjectRoute,
     });
 
     // Tell the (above-auth-boundary) EntitlementsProvider to re-resolve whenever
@@ -659,30 +662,29 @@ function App() {
                 setCurrentPage('agents');
                 window.history.pushState({ page: 'agents' }, '', '/app');
             }
-        }} initialAITaskId={initialAITaskId} initialCoworkId={initialCoworkId} formViewToken={formViewToken} showProjects={showProjects} initialProjectRoute={initialProjectRoute} onProjectRouteChange={(projectId, tab) => {
-            // Drives the URL from the app, so a project view can be linked,
-            // bookmarked and reached with the back button. Before this, the
-            // active project lived only in AgentHub state and a reload dropped
-            // the user back to an empty chat with no way to return.
-            // `''` means "open the create form" — keep it distinct from the
-            // list (null), or the New Project button navigates nowhere.
+        }} initialAITaskId={initialAITaskId} initialCoworkId={initialCoworkId} formViewToken={formViewToken} showProjects={showProjects} initialProjectRoute={initialProjectRoute} onProjectRouteChange={(projectId, tab, sub) => {
+            // Drives the URL from the app, so a project view — down to one
+            // team chat or document inside it — can be linked, bookmarked and
+            // reached with the back button. `''` means "open the create form":
+            // keep it distinct from the list (null), or the New Project button
+            // navigates nowhere.
             const isCreate = projectId === '';
-            const path = projectRoutePath(projectId, tab);
-            setInitialProjectRoute({
+            const route = {
                 projectId: isCreate ? '' : (projectId || null),
-                tab: isCreate ? null : (tab || null),
-            });
+                tab: isCreate || !projectId ? null : (tab || null),
+                sub: isCreate || !projectId || !tab ? null : (sub || null),
+            };
+            const path = projectRoutePath(route.projectId, route.tab, route.sub);
+            setInitialProjectRoute(route);
             setShowProjects(true);
             setCurrentPage('projects');
-            if (window.location.pathname !== path) {
-                // Leaving the create form for the project it just created:
-                // replace, so Back doesn't land on a stale empty form.
-                const leavingCreate = !isCreate && projectId
-                    && window.location.pathname === '/app/projects/new';
-                const state = { page: 'projects', projectId };
-                if (leavingCreate) window.history.replaceState(state, '', path);
-                else window.history.pushState(state, '', path);
-            }
+            // Leaving the create form for the project it just created, or a
+            // workspace normalising its own address, replaces rather than
+            // pushes, so Back doesn't land on a page that sends you forward.
+            const mode = projectHistoryMode(window.location.pathname, path);
+            const state = { page: 'projects', projectId: route.projectId };
+            if (mode === 'replace') window.history.replaceState(state, '', path);
+            else if (mode === 'push') window.history.pushState(state, '', path);
         }} onCloseProjects={() => {
             setShowProjects(false);
             setInitialProjectRoute(null);

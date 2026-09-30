@@ -212,7 +212,7 @@ const ROUTE_KINDS = Object.freeze([
     },
     {
         key: 'solution',
-        blurb: 'A solution: a workspace that groups the routines, tables, agents and pages that serve one goal.',
+        blurb: 'A solution: a package that groups the routines, tables, agents and pages that serve one goal, and can be exported and installed elsewhere.',
         gate: async (req, d) => {
             if (!(await moduleActive(d, 'projects'))) return false;
             if (!(await capability(d, req, 'projects'))) return false;

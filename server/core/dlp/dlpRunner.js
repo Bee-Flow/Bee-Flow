@@ -362,11 +362,21 @@ async function getConversationTokenMapAsync(conversationId) {
     return getConversationTokenMap(conversationId);
 }
 
-function clearConversationState(conversationId) {
+/**
+ * Drop everything held for a conversation. With `ephemeral`, the scope was a
+ * per-run one (see `scan`) that never had a row, so there is nothing in the
+ * database to clear either.
+ * @param {string} conversationId
+ * @param {{ ephemeral?: boolean }} [opts]
+ */
+function clearConversationState(conversationId, { ephemeral = false } = {}) {
     if (!conversationId) return;
     conversationDlpPrefs.delete(conversationId);
     conversationTokenMaps.delete(conversationId);
     _hydratedConversations.delete(conversationId);
+    _persistWarned.delete(conversationId);
+    _ownerCache.delete(conversationId);
+    if (ephemeral) return;
     // Best-effort DB clear so a deleted-then-recreated conversation doesn't
     // inherit stale tokens. Fire-and-forget.
     (async () => {
@@ -433,7 +443,7 @@ function _normalisePiiEntities(entities) {
  * Returns { tokenizedText, tokenMap, summary } where summary is a compact
  * `{ category → count }` for logging and the UI.
  */
-async function _tokeniseAll(text, findings, conversationId = null) {
+async function _tokeniseAll(text, findings, conversationId = null, { ephemeral = false } = {}) {
     // Pass the conversation's accumulated token map so counters continue across
     // turns and repeated values reuse their existing tokens. Without this,
     // turn 2's [email_1] would silently overwrite turn 1's mapping in the
@@ -444,7 +454,8 @@ async function _tokeniseAll(text, findings, conversationId = null) {
     // across every conversation they have. The precedence rules live in the
     // store (buildSeed) because five other call sites need exactly the same
     // ones — a second copy here is how the two would drift apart.
-    const userId = await _vaultUserFor(conversationId);
+    // An ephemeral scope has no conversation row, so it has no owner to look up.
+    const userId = ephemeral ? null : await _vaultUserFor(conversationId);
     const vault = require('../../stores/piiVaultStore');
     const { tokenMap: seeded, counterFloors } = await vault.buildSeed(userId, findings, existing);
 
@@ -575,6 +586,15 @@ function preWarmPiiScan({ messages, orgShieldConfig, providerConfig }) {
  * @param {function} [params.onProgress]      Called per scanned window of a big paste
  *                                            ({ done, total, ... }); the caller renders it.
  * @param {boolean} [params.hasAttachments]  the turn also carries attachments
+ * @param {boolean} [params.ephemeral]       `conversationId` is a per-run scope of
+ *                                            a server-side AI call (a project chat
+ *                                            answer, a relevance gate) with no
+ *                                            conversation row: its token map lives
+ *                                            in process for the run only, so it is
+ *                                            never written through to the database
+ *                                            and no owner is looked up for it.
+ *                                            Release it with
+ *                                            clearConversationState(id, { ephemeral: true }).
  * @returns {Promise<DlpResult>}
  *
  * @typedef {object} DlpResult
@@ -587,7 +607,7 @@ function preWarmPiiScan({ messages, orgShieldConfig, providerConfig }) {
  * @property {object}   summary              { label → count }
  * @property {string}   [reason]             why a block was chosen, when it was
  */
-async function scan({ messages, orgShieldConfig, conversationId, providerConfig, onProgress, hasAttachments = false }) {
+async function scan({ messages, orgShieldConfig, conversationId, providerConfig, onProgress, hasAttachments = false, ephemeral = false }) {
     const dlpEnabled = !!orgShieldConfig?.dlpEnabled;
     if (!dlpEnabled) {
         return { action: 'allow', findings: [], provider: { isExternal: false, reason: 'dlp_disabled' }, redactedText: null, tokenMap: null, scanStatus: 'skipped', summary: {} };
@@ -728,9 +748,9 @@ async function scan({ messages, orgShieldConfig, conversationId, providerConfig,
     }
 
     if (effectiveChoice === 'redact' || mode === 'auto_redact') {
-        const { tokenizedText, tokenMap, summary } = await _tokeniseAll(text, all, conversationId);
+        const { tokenizedText, tokenMap, summary } = await _tokeniseAll(text, all, conversationId, { ephemeral });
         _mergeIntoTokenMap(conversationId, tokenMap);
-        _writeMapToDb(conversationId).catch(() => { /* logged in helper */ });
+        if (!ephemeral) _writeMapToDb(conversationId).catch(() => { /* logged in helper */ });
         return { action: 'redact', findings: all, provider, redactedText: tokenizedText, tokenMap, scanStatus: 'ok', summary };
     }
 
@@ -748,10 +768,10 @@ async function scan({ messages, orgShieldConfig, conversationId, providerConfig,
  * Helper for the callers who chose 'redact' via an interactive decision — apply
  * tokenisation now that the user has said yes.
  */
-async function applyRedactionChoice({ conversationId, text, findings }) {
-    const { tokenizedText, tokenMap, summary } = await _tokeniseAll(text, findings, conversationId);
+async function applyRedactionChoice({ conversationId, text, findings, ephemeral = false }) {
+    const { tokenizedText, tokenMap, summary } = await _tokeniseAll(text, findings, conversationId, { ephemeral });
     _mergeIntoTokenMap(conversationId, tokenMap);
-    _writeMapToDb(conversationId).catch(() => { /* logged in helper */ });
+    if (!ephemeral) _writeMapToDb(conversationId).catch(() => { /* logged in helper */ });
     return { tokenizedText, tokenMap, summary };
 }
 

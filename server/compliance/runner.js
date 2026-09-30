@@ -4,7 +4,13 @@
  * Check contract (see registry.js for full docs):
  *   - `scope: 'global' | 'per-source'`
  *     Per-source checks must also export `listSubjects(orgId) -> [{ id, label }]`.
- *     The runner invokes evaluate() once per subject, persisting one row each.
+ *     The runner invokes evaluate() once per subject, persisting one row each,
+ *     and hands evaluate() the subject object exactly as listSubjects built it.
+ *   - OPTIONAL: `retiresVanished: true` — the check's list is its WHOLE
+ *     population, so a slot whose subject is no longer listed is retired
+ *     (one `not_applicable {retired:true}` row, worded by `retiredDetails`).
+ *     Such a check may return `{ subjects, complete: false }` for a run that
+ *     hit its own limit; that run retires nothing. See _asListing.
  *   - OPTIONAL: `listCoverage(orgId) -> { kind, label, total, examined,
  *     unexamined: [{ id, label }], link, examined_as, next_step }` — see
  *     COVERAGE below. `examined_as` and `next_step` let the check supply the
@@ -120,6 +126,20 @@ function _humanTimeout(ms) {
 }
 
 /**
+ * What of a subject enters the evidence chain: its id and nothing else.
+ *
+ * The chain is append-only and can never be corrected, so a subject's LABEL —
+ * a project name that is a client's name, an agent called after a person —
+ * must not be written into it. The id is enough to join back to the live
+ * record, whose current name the Compliance Center resolves at read time; the
+ * check's own evidence is responsible for carrying ids and counts only.
+ */
+function _evidenceSubject(subject) {
+    if (!subject) return null;
+    return { id: subject.id ?? null };
+}
+
+/**
  * Persist one result row + its evidence link. `scope` overrides the slot the
  * row occupies; without it the slot is derived from the subject, which is what
  * every check verdict does. The coverage row passes its own slot so it sits
@@ -149,7 +169,7 @@ async function _persistResult(check, orgId, result, runType, subject, scope = nu
         evidence: result.evidence,
         details: result.details,
         run_type: runType,
-        subject: subject || null,
+        subject: _evidenceSubject(subject),
     };
     await complianceStore.addEvidence({
         organization_id: orgId,
@@ -337,16 +357,92 @@ function _coverageSummary(results) {
     return { total, examined, unexamined, unknown_populations: unknown, complete: unexamined === 0 && unknown === 0, populations };
 }
 
+/**
+ * What a check's listSubjects() answered, in one shape: the subjects, and
+ * whether that list is the check's WHOLE population — the only kind of list
+ * that may retire a slot (see _retireVanished).
+ *
+ * A list is complete only when BOTH of these hold:
+ *   - the check opted in with `retiresVanished: true`. Most checks list a
+ *     capped window (the 200 most recently updated pages, the 500 newest
+ *     routines) or swallow a failed read into `[]`; for them a subject that is
+ *     missing from this run's list says nothing about whether it still exists,
+ *     so their slots keep their last verdict, as they always did;
+ *   - this particular run did not say otherwise: listSubjects may return
+ *     `{ subjects, complete: false }` when it hit its own limit, and a subject
+ *     flagged `capped: true` marks the list as a window too.
+ *
+ * Anything that is neither an array nor `{ subjects: [] }` is an empty list
+ * that proves nothing.
+ */
+function _asListing(check, listed) {
+    const optedIn = check.retiresVanished === true;
+    let subjects = [];
+    let complete = false;
+    if (Array.isArray(listed)) {
+        subjects = listed;
+        complete = optedIn;
+    } else if (listed && typeof listed === 'object' && Array.isArray(listed.subjects)) {
+        subjects = listed.subjects;
+        complete = optedIn && listed.complete !== false;
+    }
+    if (complete && subjects.some(s => s && s.capped === true)) complete = false;
+    return { subjects, complete };
+}
+
+/**
+ * Retire the per-source slots whose subject `listSubjects` no longer returns.
+ *
+ * getLatestPerCheck keeps the newest row of every slot forever, so without
+ * this a deleted project (or agent, or table) would keep its last warning in
+ * the check table, the attention list, the rail count and the score, for good.
+ * A full run of the check therefore writes ONE `not_applicable` row marked
+ * `{retired:true}` into every slot it did not visit — once: a slot whose
+ * newest row is already a retirement is left alone, so a subject that is gone
+ * costs one row, not four a day.
+ *
+ * Only ever called with a COMPLETE subject list (_asListing). A list that
+ * could not be read, or that is only a window of the population, retires
+ * nothing: "we could not look" must never be written down as "it no longer
+ * exists" — the row enters an evidence chain that can never be corrected.
+ * The words are the check's own when it has them (`retiredDetails`): a team
+ * chat whose AI was switched back to "on mention" did not stop existing.
+ */
+async function _retireVanished(check, orgId, runType, liveIds) {
+    if (typeof complianceStore.listLatestScopes !== 'function') return 0;
+    let slots;
+    try {
+        slots = await complianceStore.listLatestScopes(orgId, check.id) || [];
+    } catch (e) {
+        log.warn(`[ComplianceRunner] ${check.id} could not read its slots to retire vanished subjects:`, e.message);
+        return 0;
+    }
+    let retired = 0;
+    for (const slot of slots) {
+        if (!slot || slot.scope_type !== 'per-source' || slot.scope_id == null || slot.scope_id === '') continue;
+        if (liveIds.has(String(slot.scope_id))) continue;
+        if (slot.status === 'not_applicable' && slot.evidence && slot.evidence.retired === true) continue;
+        const details = typeof check.retiredDetails === 'string' && check.retiredDetails ? check.retiredDetails : 'No longer exists.';
+        const result = { status: 'not_applicable', evidence: { retired: true }, details };
+        await _persistResult(check, orgId, result, runType, { id: String(slot.scope_id) });
+        retired++;
+    }
+    if (retired && DEBUG) log.debug(`[ComplianceRunner] ${check.id} retired ${retired} vanished subject(s) for org="${orgId}"`);
+    return retired;
+}
+
 /** The check's own verdicts: one row for a global check, one per subject otherwise. */
 async function _runVerdicts(check, orgId, runType) {
     const results = [];
     if (check.scope === 'per-source' && typeof check.listSubjects === 'function') {
-        let subjects = [];
+        // A list that could not be read is incomplete by definition.
+        let listing = { subjects: [], complete: false };
         try {
-            subjects = await check.listSubjects(orgId) || [];
+            listing = _asListing(check, await check.listSubjects(orgId));
         } catch (e) {
             log.warn(`[ComplianceRunner] ${check.id} listSubjects failed:`, e.message);
         }
+        const { subjects, complete } = listing;
         if (!subjects.length) {
             const naResult = {
                 status: 'not_applicable',
@@ -355,6 +451,7 @@ async function _runVerdicts(check, orgId, runType) {
             };
             results.push({ check_id: check.id, regulation: check.regulation, scope: 'per-source', subject: null, ...naResult });
             await _persistResult(check, orgId, naResult, runType, null);
+            if (complete) await _retireVanished(check, orgId, runType, new Set());
             return results;
         }
         for (const subj of subjects) {
@@ -362,6 +459,7 @@ async function _runVerdicts(check, orgId, runType) {
             results.push({ check_id: check.id, regulation: check.regulation, scope: 'per-source', subject: subj, ...r });
             await _persistResult(check, orgId, r, runType, subj);
         }
+        if (complete) await _retireVanished(check, orgId, runType, new Set(subjects.map(s => String(s?.id))));
         return results;
     }
     const r = await _runSafe(check, orgId, null);
@@ -545,11 +643,11 @@ async function runForSubject(orgId, subjectIds, { runType = 'event' } = {}) {
         if (!active.has(check.regulation)) continue;
         let subjects;
         try {
-            subjects = await _withTimeout(
+            subjects = _asListing(check, await _withTimeout(
                 Promise.resolve().then(() => check.listSubjects(orgId)),
                 CHECK_TIMEOUT_MS,
                 'listSubjects',
-            ) || [];
+            )).subjects;
         } catch (e) {
             // One check that cannot enumerate its population must not stop the
             // others from judging this routine. Nothing is persisted for it —
@@ -574,6 +672,12 @@ async function runForSubject(orgId, subjectIds, { runType = 'event' } = {}) {
  * unless a `subjectId` is provided to scope down to one. Refuses a check
  * whose home framework is not active for the org — a manual "re-run" from
  * a stale tab must not write rows for a framework that was switched off.
+ *
+ * Without a `subjectId` this is a full run of that check, so — exactly like
+ * the sweep — it retires the slots of subjects that are gone when the list is
+ * complete. That is what makes the re-run after an auto-fix, or after an event
+ * that changed who the subjects are, show the fixed state at once instead of
+ * leaving the fixed subjects' last `fail` rows standing until the next sweep.
  */
 async function runOne(orgId, checkId, { runType = 'manual', subjectId = null } = {}) {
     const check = registry.get(checkId);
@@ -582,7 +686,9 @@ async function runOne(orgId, checkId, { runType = 'manual', subjectId = null } =
     if (!active.has(check.regulation)) throw new FrameworkDisabledError(check.id, check.regulation);
 
     if (check.scope === 'per-source' && typeof check.listSubjects === 'function') {
-        let subjects = await check.listSubjects(orgId) || [];
+        const listing = _asListing(check, await check.listSubjects(orgId));
+        const whole = !subjectId && listing.complete;
+        let subjects = listing.subjects;
         if (subjectId) subjects = subjects.filter(s => String(s.id) === String(subjectId));
         if (!subjects.length) {
             const naResult = {
@@ -591,6 +697,7 @@ async function runOne(orgId, checkId, { runType = 'manual', subjectId = null } =
                 details: subjectId ? 'Subject not found.' : 'No subjects to evaluate.',
             };
             await _persistResult(check, orgId, naResult, runType, null);
+            if (whole) await _retireVanished(check, orgId, runType, new Set());
             return { check_id: check.id, scope: 'per-source', subject: null, ...naResult };
         }
         const out = [];
@@ -599,6 +706,7 @@ async function runOne(orgId, checkId, { runType = 'manual', subjectId = null } =
             await _persistResult(check, orgId, r, runType, subj);
             out.push({ check_id: check.id, scope: 'per-source', subject: subj, ...r });
         }
+        if (whole) await _retireVanished(check, orgId, runType, new Set(subjects.map(s => String(s?.id))));
         return out.length === 1 ? out[0] : { check_id: check.id, scope: 'per-source', results: out };
     }
     const r = await _runSafe(check, orgId, null);
@@ -639,6 +747,7 @@ async function autoFix(orgId, checkId, opts = {}) {
 module.exports = {
     runAll, runFramework, runOne, runForSubject, autoFix,
     FrameworkDisabledError, CHECK_TIMEOUT_MS, COVERAGE_SCOPE,
-    // Exported for the tests: the two pure pieces of the coverage answer.
-    _coverageVerdict, _coverageSummary,
+    // Exported for the tests: the pure pieces of the coverage answer and of
+    // "is this subject list the whole population".
+    _coverageVerdict, _coverageSummary, _asListing,
 };

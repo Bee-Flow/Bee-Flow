@@ -54,21 +54,59 @@ const CHAT_LIST_KINDS = new Set([
     'thread_shared', 'thread_unshared', 'conversation_assigned', 'conversation_unassigned',
     'run.finished', 'message.created',
 ]);
-const DETAIL_KINDS = new Set(['project_updated', 'instructions_updated', 'kind_set']);
+const DETAIL_KINDS = new Set(['project_updated', 'instructions_updated']);
+const DOC_DURABLE_KINDS = new Set(['doc.edited', 'doc.restored']);
+
+/** Keystroke-rate co-editing frames: never an invalidation, never activity. */
+function isDocFrame(kind: string): boolean {
+    return kind.startsWith('doc.') && !DOC_DURABLE_KINDS.has(kind);
+}
 
 /** Which cached lists an event kind makes stale. First matching rule wins. */
 const INVALIDATION_RULES: Array<[(kind: string) => boolean, (id: string) => ReadonlyArray<readonly unknown[]>]> = [
+    // The reader was removed while the page was open: re-read the project (it
+    // now answers 404, and the page says it is no longer available) and every
+    // project list, so the sidebar drops it too.
+    [k => k === 'forbidden', id => [projectKeys.detail(id), [...projectKeys.all, 'list']]],
+    // The server could not replay the gap (the backlog was too long): every
+    // list of this project may be stale, so re-read all of them once.
+    [k => k === 'resync', id => [projectKeys.project(id)]],
+    // A co-editing session was checkpointed, a version was restored, or an
+    // item was created, edited, renamed or moved (the change feed): the
+    // content lists show names and who changed what and when.
+    [k => DOC_DURABLE_KINDS.has(k) || k.startsWith('content.'), id => [projectKeys.resources(id)]],
+    // Classifying a legacy project changes which sections it holds and which
+    // list (projects, or Studio Solutions) it appears in.
+    [k => k === 'kind_set', id => [projectKeys.detail(id), projectKeys.resources(id), [...projectKeys.all, 'list']]],
     [k => k.startsWith('member_'), id => [projectKeys.members(id), projectKeys.detail(id)]],
     [k => CHAT_LIST_KINDS.has(k), id => [projectKeys.threads(id), projectKeys.myChats(id)]],
     [k => k.startsWith('resource_') || k.startsWith('kb_') || k.startsWith('approval.'), id => [projectKeys.resources(id), projectKeys.detail(id)]],
     [k => k.startsWith('file.'), id => [projectKeys.files(id), projectKeys.resources(id)]],
-    [k => k.startsWith('chat.'), id => [projectKeys.chats(id)]],
+    [k => k.startsWith('chat.') && !k.startsWith('chat.ai.'), id => [projectKeys.chats(id)]],
     [k => DETAIL_KINDS.has(k), id => [projectKeys.detail(id)]],
 ];
 
 export function keysForEvent(projectId: string, kind: string): ReadonlyArray<readonly unknown[]> {
     const rule = INVALIDATION_RULES.find(([matches]) => matches(kind));
     return rule ? rule[1](projectId) : [];
+}
+
+/**
+ * Conversation traffic: team-chat messages, edits and mentions, comment
+ * replies, AI turns in shared chats. It is the most frequent kind of event and
+ * none of it writes a project_activity row, which is all the Activity tab
+ * reads; re-reading it would refetch every page that tab has loaded, for
+ * nothing. The few traffic kinds that do log a row are listed. Every other
+ * durable event may have logged one, so it still refreshes the tab.
+ */
+const TRAFFIC_PREFIXES = ['chat.', 'comment.', 'message.', 'run.', 'presence.'];
+const LOGGED_TRAFFIC = new Set(['chat.created', 'chat.deleted', 'comment.thread.created']);
+
+/** May this event have added a row to the project's activity? */
+export function affectsActivity(kind: string, event: ProjectLiveEvent): boolean {
+    if (event.transient || isDocFrame(kind) || kind === 'resync') return false;
+    if (TRAFFIC_PREFIXES.some(p => kind.startsWith(p))) return LOGGED_TRAFFIC.has(kind);
+    return true;
 }
 
 /** The conversation or team chat a typing/message event is about, if any. */
@@ -151,8 +189,7 @@ export function ProjectLiveProvider({ projectId, currentUserId, enabled = true, 
         const event = (raw && typeof raw === 'object' ? raw : {}) as ProjectLiveEvent;
         trackPeople(kind, event);
         for (const key of keysForEvent(projectId, kind)) qc.invalidateQueries({ queryKey: key });
-        // Activity reflects every durable event; transient ones are not in it.
-        if (!event.transient) qc.invalidateQueries({ queryKey: projectKeys.activity(projectId) });
+        if (affectsActivity(kind, event)) qc.invalidateQueries({ queryKey: projectKeys.activity(projectId) });
         for (const handler of handlers.current) {
             try { handler(kind, event); } catch { /* one panel's bug must not stop the others */ }
         }

@@ -73,6 +73,23 @@ const MOCKS = {
     '../../../core/aiAgent': { getProviderForModel: async () => ({}) },
     '../../../core/providers': { getAdapter: () => ({}) },
     '../../../core/tools/sessionSkillRuntime': { bootstrapSessionSkills: async () => [] },
+    // Who a non-owner reader is to a shared thread: their project role.
+    '../../../stores/agent/conversationAccess': {
+        resolveConversationAccess: async (id, viewerId) => {
+            const conv = fx.conversations[id];
+            if (!conv || !conv.sharedViewers?.includes(viewerId)) return null;
+            const role = conv.roles?.[viewerId] || 'viewer';
+            return {
+                id, ownerId: conv.user_id, projectId: conv.project_id || null, projectRole: role,
+                isOwner: false, canRead: true, canPost: role !== 'viewer', canManage: false,
+            };
+        },
+    },
+    '../../../core/privacy/piiDetection': { restoreTokens: (text) => text },
+    '../../../core/dlp/dlpRunner': { getConversationTokenMapAsync: async () => null },
+    '../../../integrations/workspaceTools': {
+        resolveWorkspaceContent: async ({ fallbackContent }) => fallbackContent,
+    },
 };
 
 const MOCK_IDS = {};
@@ -283,4 +300,66 @@ test('when the check cannot be run the read shows no bases at all', async () => 
     // The route's own catch answers 500 rather than serving an unchecked list.
     assert.strictEqual(res.statusCode, 500);
     assert.ok(!JSON.stringify(res.body || {}).includes('kb-a'));
+});
+
+// ═══ A colleague's shared thread: the transcript, not the owner's state ═══
+
+function sharedThread() {
+    Object.assign(fx.conversations.c1, {
+        project_id: 'p1', shared_scope: 'project', sharedViewers: ['bob', 'carol'], roles: { carol: 'editor' },
+        messages: [{ role: 'user', content: 'Draft the launch mail' }],
+        model_tier: 'balanced',
+        pii_token_map: { '[email_1]': 'ann@example.test' },
+        workspace_content: 'the owner\'s private notes',
+        workspace_notebook_id: 'nb-owner',
+        pinned: true, labels_json: '["lbl-1"]', meta_json: '{}',
+        sessionSkills: [{ id: 's1' }], meta: { sessionSkills: [{ id: 's1' }] },
+    });
+}
+
+test('a project viewer reads a shared thread as a read-only projection', async () => {
+    reset();
+    sharedThread();
+    const res = await dispatch({ method: 'GET', url: '/direct/conversations/c1', session: BOB });
+    assert.strictEqual(res.statusCode, 200);
+    assert.deepStrictEqual(res.body.messages, [{ role: 'user', content: 'Draft the launch mail' }]);
+    assert.strictEqual(res.body.title, 'Chat');
+    assert.strictEqual(res.body.ownerId, 'alice');
+    assert.strictEqual(res.body.model_tier, 'balanced');
+    assert.strictEqual(res.body.readOnly, true);
+    assert.deepStrictEqual(res.body.access, { isOwner: false, role: 'viewer', canPost: false, canManage: false });
+    for (const key of ['pii_token_map', 'workspace_content', 'workspace_notebook_id', 'pinned', 'labels_json', 'meta_json', 'meta', 'sessionSkills']) {
+        assert.ok(!(key in res.body), `${key} stays with the owner`);
+    }
+    assert.ok(!JSON.stringify(res.body).includes('ann@example.test'));
+});
+
+test('a project editor may post into the shared thread, and is told so', async () => {
+    reset();
+    sharedThread();
+    const res = await dispatch({ method: 'GET', url: '/direct/conversations/c1', session: { user: { id: 'carol' } } });
+    assert.strictEqual(res.statusCode, 200);
+    assert.strictEqual(res.body.readOnly, false);
+    assert.strictEqual(res.body.access.canPost, true);
+});
+
+test('the owner still gets the whole conversation', async () => {
+    reset();
+    sharedThread();
+    const res = await dispatch({ method: 'GET', url: '/direct/conversations/c1', session: ALICE });
+    assert.strictEqual(res.statusCode, 200);
+    assert.strictEqual(res.body.workspace_content, 'the owner\'s private notes');
+    assert.ok(!('readOnly' in res.body));
+});
+
+test('the workspace of a shared thread stays with its owner', async () => {
+    reset();
+    sharedThread();
+    const member = await dispatch({ method: 'GET', url: '/direct/conversations/c1/workspace', session: BOB });
+    assert.strictEqual(member.statusCode, 404);
+    assert.ok(!JSON.stringify(member.body).includes('private notes'));
+
+    const owner = await dispatch({ method: 'GET', url: '/direct/conversations/c1/workspace', session: ALICE });
+    assert.strictEqual(owner.statusCode, 200);
+    assert.strictEqual(owner.body.content, 'the owner\'s private notes');
 });

@@ -20,9 +20,23 @@ export const API = (import.meta.env.VITE_API_URL || '') + '/api/compliance';
 export const API_DSR = (import.meta.env.VITE_API_URL || '') + '/api/dsr';
 export const OPTS = Object.freeze({ credentials: 'include' });
 
+/**
+ * A refused request throws an Error whose message stays `"<status> <statusText>"`
+ * (callers test it with /^404\b/), and which also carries what the server
+ * said: `status`, `code` and `serverMessage` from its `{ error, code }` body,
+ * so a control can word the refusal instead of saying only "failed".
+ */
 export async function fetchJson(url, init) {
     const r = await authFetch(url, { ...OPTS, ...(init || {}) });
-    if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
+    if (!r.ok) {
+        const err = new Error(`${r.status} ${r.statusText}`);
+        let body = null;
+        try { body = typeof r.json === 'function' ? await r.json() : null; } catch { body = null; }
+        err.status = r.status;
+        err.code = body && typeof body.code === 'string' ? body.code : null;
+        err.serverMessage = body && typeof body.error === 'string' ? body.error : null;
+        throw err;
+    }
     return r.json();
 }
 

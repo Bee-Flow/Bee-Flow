@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
+import AiParticipationSection from './AiParticipationSection';
 import AvatarPicker from './AvatarPicker';
+import useProjectsAvailable from '../../hooks/useProjectsAvailable';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useViewport } from '../../hooks/useViewport';
 import { Check, ChevronDown } from 'lucide-react';
@@ -137,6 +139,8 @@ const PreferencesSection = ({
     useEffect(() => { if (user) setLocalUser(user); }, [user]);
 
     const isSimpleMode = !!localUser?.simpleMode;
+    // "AI in team chats" acts only in projects: shown where they can be used.
+    const projectsOn = useProjectsAvailable(localUser);
     // Phone-sized screens force Simple Mode on (see AgentHub's `simpleMode`
     // derivation). The stored preference is still what we read/write here, but
     // the toggle is shown on + locked so it matches the simplified surface the
@@ -325,6 +329,10 @@ const PreferencesSection = ({
 
             {/* ── Editor preferences (the automation editor; hidden in Simple Mode) ── */}
             {!isSimpleMode && <EditorPreferencesSection />}
+
+            {/* ── AI in team chats: one's own opt-out from the AI joining by itself
+                   (self-hides on a server without the feature) ── */}
+            <AiParticipationSection enabled={projectsOn} />
 
             {/* ── Nextcloud Talk Meeting Notes (self-hides when not licensed) ── */}
             <MeetingNotesSection />

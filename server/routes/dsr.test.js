@@ -180,6 +180,7 @@ const STUBS = [
     ['../compliance/runner.js', mockRunner],
     // Discovery's lazy stores: stubbed so no real store boots against the fake db.
     ['../stores/memoryStore.js', { countActiveMemoriesForUser: async () => 0 }],
+    ['../stores/projectChatStore.js', { countMessagesByAuthor: async () => 0 }],
     ['../stores/datatableStore.js', { listDatatablesForScope: async () => [], getModel: async () => ({ model: { tables: [] } }) }],
     ['../stores/datatableDbStore.js', { scopeKey: (s) => `${s.kind}:${s.id}`, query: async () => ({ rows: [] }) }],
     ['../stores/configStore.js', { setSecretIfAbsent: async () => null, getSecret: async () => null }],
@@ -527,7 +528,7 @@ test('GET /:id/discovery returns the allow-listed scan without the address', asy
     assert.strictEqual(res.status, 200);
     assert.strictEqual(res.body.subject.email_masked, 'p***@example.org');
     assert.strictEqual(res.body.subject.user_id, 'u_person');
-    assert.deepStrictEqual(res.body.not_scanned, ['conversations']);
+    assert.deepStrictEqual(res.body.not_scanned, ['conversations', 'team_chats', 'project_comments', 'co_edited_documents']);
     assert.ok(Array.isArray(res.body.sources));
     assert.ok(!res.text.includes(EMAIL));
     assert.ok(state.audits.some(a => a.action === 'dsr.discovery_run' && a.targetId === String(id)));

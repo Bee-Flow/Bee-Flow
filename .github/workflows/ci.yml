@@ -169,7 +169,7 @@ jobs:
               - 'agent-hub/src/i18n/en-defaults.js'
               - 'agent-hub/src/utils/{bfElements,bfElementsRuntime,buildWebpagePreview,cmsPublicRouting,composeWebpageDocument}.js'
               - 'agent-hub/src/components/automation/Builder/notificationDefaults.js'
-              - 'agent-hub/src/components/projects/solutionCounts.js'
+              - 'agent-hub/src/components/admin/Studio/Solutions/solutionCounts.js'
               - 'agent-hub/src/components/admin/Studio/AppStudio/tables/TablesManager.jsx'
               - 'agent-hub/src/components/admin/Studio/Playbooks/stages/RoutineStage.jsx'
               - 'agent-hub/src/components/admin/Studio/Solutions/{SolutionCard,SolutionsOverview}.jsx'

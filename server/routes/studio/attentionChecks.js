@@ -714,9 +714,12 @@ const SOURCES = [
             const { gaps, miss } = gapCollector();
             const userId = userIdOf(req);
             // listUserProjects (owner + shares) IS the authorisation; nothing
-            // below widens it and no id comes out of the request.
+            // below widens it and no id comes out of the request. Solutions
+            // (and unclassified legacy projects) only: a collaborative project
+            // is never published, so it has no "cannot be published yet" row
+            // and must not spend the budget of MAX_SOLUTIONS_CHECKED.
             const projects = asArray(await d.projectStore.listUserProjects(
-                userId, await d.auth.resolveUserGroups(userId),
+                userId, await d.auth.resolveUserGroups(userId), { kind: 'solution' },
             ));
             const budget = projects.slice(0, MAX_SOLUTIONS_CHECKED);
             if (projects.length > budget.length) miss('solutions:budget');

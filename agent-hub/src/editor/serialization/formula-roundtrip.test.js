@@ -65,4 +65,30 @@ describe('formula serialization', () => {
     expect(html).toContain('>11<'); // A2(1) + 10
     expect(html).toContain('>3<');  // SUM(A2,A3) = 1 + 2
   });
+
+  // Regression: renderTable read cell.content[0].content[0] and threw a
+  // TypeError whenever the formula atom was not the very first inline of the
+  // first paragraph, which isFormulaCell allows (leading whitespace text, an
+  // empty paragraph before it). The export must find the atom wherever it is.
+  it('exports a formula that is not the first inline of the first paragraph', () => {
+    const formula = { type: 'formula', attrs: { src: '=A2+10' } };
+    const cellOf = (content) => ({ type: 'tableCell', attrs: {}, content });
+    const leadingSpace = cellOf([{ type: 'paragraph', content: [{ type: 'text', text: ' ' }, formula] }]);
+    const emptyFirst = cellOf([{ type: 'paragraph', content: [] }, { type: 'paragraph', content: [formula] }]);
+    expect(isFormulaCell(leadingSpace)).toBe(true);
+    expect(isFormulaCell(emptyFirst)).toBe(true);
+    const plain = (text) => cellOf([{ type: 'paragraph', content: [{ type: 'text', text }] }]);
+    const table = {
+      type: 'table',
+      content: [
+        { type: 'tableRow', content: [plain('A'), plain('B')] },
+        { type: 'tableRow', content: [plain('1'), leadingSpace] },
+        { type: 'tableRow', content: [plain('2'), emptyFirst] },
+      ],
+    };
+    let html = '';
+    expect(() => { html = astToHtml({ type: 'doc', content: [table] }); }).not.toThrow();
+    expect(html.match(/data-formula="=A2\+10"/g)).toHaveLength(2);
+    expect(html).toContain('>11<');
+  });
 });

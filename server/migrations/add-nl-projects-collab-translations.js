@@ -19,7 +19,8 @@ const NL_TRANSLATIONS = {
     'projects.unshare_thread': 'Delen stoppen',
     'projects.shared_badge': 'Gedeeld met het project',
     'projects.shared_threads': 'Gedeelde gesprekken',
-    'projects.no_shared_threads': 'Nog geen gedeelde gesprekken. Deel er een om samen verder te werken.',
+    // projects.no_shared_threads was retired with the old project detail page
+    // (2026-09, see removed-keys.txt); no component reads it any more.
     // De encryptie-waarschuwing bij het delen. Bewust expliciet: op de
     // zero-knowledge-tier is dit een echte, opzettelijke verzwakking, en die
     // hoort te staan op het moment dat de gebruiker de keuze maakt.
@@ -44,7 +45,7 @@ const NL_TRANSLATIONS = {
     'projects.conflict':
         'Dit project is ondertussen door iemand anders gewijzigd. Herlaad om hun wijzigingen te zien — '
         + 'jouw invoer staat nog in het formulier.',
-    'projects.viewer_readonly': 'Je hebt alleen leesrechten op dit project.',
+    // projects.viewer_readonly: retired with the old project detail page (2026-09).
     'projects.access_revoked': 'Je toegang tot dit project is ingetrokken.',
 };
 

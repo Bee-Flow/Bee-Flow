@@ -12,7 +12,7 @@
  */
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-    BadgeCheck, BookOpen, ClipboardList, FileJson, MailCheck, MessageSquareText, Play, ShieldCheck, Table,
+    BadgeCheck, BookOpen, ClipboardList, FileJson, MailCheck, MessageSquareText, Play, ShieldCheck, Table, FolderKanban, MessagesSquare,
 } from 'lucide-react';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import SideDrawer, { DrawerId, DrawerSection } from '../../../../shared/SideDrawer';
@@ -71,6 +71,10 @@ function count(v) {
 }
 
 const SOURCE_KIND = [
+    // Before the broad patterns below: 'project_participation' and
+    // 'team_chat_messages' must never be read as documents or rows.
+    ['team_chat', /team_chat/i],
+    ['projects', /project_participation/i],
     ['memories', /memor/i],
     ['rows', /datatable|table|row/i],
     ['form_answers', /form/i],
@@ -85,7 +89,7 @@ const SOURCE_KIND = [
  */
 export function readDiscovery(discovery) {
     if (!discovery || typeof discovery !== 'object') return null;
-    const out = { memories: null, rows: null, tables: [], form_answers: null, kb_documents: null, retention_notes: [] };
+    const out = { memories: null, rows: null, tables: [], form_answers: null, kb_documents: null, team_chat: null, projects: null, retention_notes: [] };
     if (Array.isArray(discovery.sources)) {
         for (const src of discovery.sources) {
             const kindWord = String(src?.kind ?? src?.id ?? '');
@@ -121,6 +125,8 @@ export function discoveryChips(t, discovery) {
     }
     if (d.form_answers !== null) chips.push({ id: 'form_answers', icon: ClipboardList, color: 'var(--type-pause)', muted: d.form_answers === 0, label: t('compliance.dsr_found_form_answers', '{n} form answers', { n: d.form_answers }) });
     if (d.kb_documents !== null) chips.push({ id: 'kb_documents', icon: BookOpen, color: null, muted: d.kb_documents === 0, label: t('compliance.dsr_found_kb_docs', '{n} knowledge-base documents', { n: d.kb_documents }) });
+    if (d.team_chat !== null) chips.push({ id: 'team_chat', icon: MessagesSquare, color: null, muted: d.team_chat === 0, label: t('compliance.dsr_found_team_chat', '{n} team chat messages they wrote', { n: d.team_chat }) });
+    if (d.projects !== null) chips.push({ id: 'projects', icon: FolderKanban, color: null, muted: d.projects === 0, label: t('compliance.dsr_found_projects', '{n} project items', { n: d.projects }) });
     return chips;
 }
 

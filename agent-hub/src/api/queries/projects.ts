@@ -8,6 +8,7 @@
 
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ApiError, apiClient } from '../client';
+import { toProjectError } from './projectErrors';
 
 /** A collaborative workspace, or a Studio Solution. `null` is a project from
  *  before the split that nobody has classified yet; it shows in both places. */
@@ -26,6 +27,8 @@ export interface Project {
     ownerId?: string;
     organizationId?: string;
     kind?: ProjectKind | null;
+    /** True while `kind` is only the upgrade's guess, which the owner may correct once. */
+    kindGuessed?: boolean;
     /** The caller's role, as `GET /api/projects` names it. */
     permission?: ProjectRole;
     /** The caller's role, as `GET /api/projects/:id` names it. */
@@ -58,7 +61,8 @@ export interface ProjectShare {
     createdAt?: string;
 }
 
-export interface ProjectPerson { name?: string; email?: string }
+/** A member as any viewer of the project sees them: a display name, never an e-mail address. */
+export interface ProjectPerson { name?: string }
 
 export interface ProjectMembers {
     ownerId: string;
@@ -96,6 +100,7 @@ export interface ProjectResources {
 export interface ProjectThread {
     id: string;
     type: 'direct' | 'agent';
+    /** The agent an agent chat is opened through; null for a direct chat. */
     agentId?: string | null;
     ownerId: string;
     title?: string;
@@ -127,15 +132,6 @@ export const projectKeys = {
     messages: (id: string, chatId: string) => ['projects', id, 'chats', chatId, 'messages'] as const,
     files: (id: string) => ['projects', id, 'files'] as const,
 };
-
-/** The message the server sent, or the given fallback. */
-export function projectErrorMessage(e: unknown, fallback: string): string {
-    if (e instanceof ApiError) {
-        const body = e.body as { error?: string } | null;
-        return body?.error || fallback;
-    }
-    return fallback;
-}
 
 /** A PUT refused because someone else saved first. `current` is their version. */
 export class ProjectConflictError extends Error {
@@ -182,7 +178,7 @@ export function useCreateProject() {
             try {
                 created = await apiClient.post<Project>('/api/projects', { kind: 'workspace', ...form });
             } catch (e) {
-                throw new Error(projectErrorMessage(e, 'Could not create the project'));
+                throw toProjectError(e, 'Could not create the project');
             }
             if (!created?.id) throw new Error('Could not create the project');
             return created;
@@ -205,7 +201,7 @@ export function useUpdateProject(projectId: string) {
                     throw new ProjectConflictError(body?.error || 'Someone else changed this project', body?.current || null);
                 }
                 if (e instanceof ProjectConflictError) throw e;
-                throw new Error(projectErrorMessage(e, 'Could not save the project'));
+                throw toProjectError(e, 'Could not save the project');
             }
         },
         onSuccess: (saved) => {
@@ -223,15 +219,17 @@ export function useDeleteProject() {
             try {
                 await apiClient.delete(`/api/projects/${enc(projectId)}`, { retry: false });
             } catch (e) {
-                throw new Error(projectErrorMessage(e, 'Could not delete the project'));
+                throw toProjectError(e, 'Could not delete the project');
             }
         },
         onSuccess: () => qc.invalidateQueries({ queryKey: ['projects', 'list'] }),
     });
 }
 
-/** Classify a project from before the split (kind `null`). Owner only; the
- *  server refuses once a kind is set. */
+/** Classify a project from before the split (kind `null`), or correct the
+ *  upgrade's guess once (`kindGuessed`). Owner only; the server refuses once
+ *  the owner's kind is set, and while the project holds what the other side
+ *  cannot hold (KIND_HOLDS_OTHER_CONTENT). */
 export function useSetProjectKind(projectId: string) {
     const qc = useQueryClient();
     return useMutation<Project, Error, ProjectKind>({
@@ -240,7 +238,7 @@ export function useSetProjectKind(projectId: string) {
                 const saved = await apiClient.put<Project>(`/api/projects/${enc(projectId)}/kind`, { kind }, { retry: false });
                 return saved as Project;
             } catch (e) {
-                throw new Error(projectErrorMessage(e, 'Could not change the project type'));
+                throw toProjectError(e, 'Could not change the project type');
             }
         },
         onSuccess: () => qc.invalidateQueries({ queryKey: projectKeys.all }),
@@ -274,7 +272,7 @@ function useMemberMutation<TVars>(projectId: string, run: (vars: TVars) => Promi
             try {
                 await run(vars);
             } catch (e) {
-                throw new Error(projectErrorMessage(e, fallback));
+                throw toProjectError(e, fallback);
             }
         },
         onSuccess: () => {
@@ -343,7 +341,7 @@ export function useAttachResource(projectId: string) {
             try {
                 await apiClient.put(`/api/projects/${enc(projectId)}/resources`, body, { retry: false });
             } catch (e) {
-                throw new Error(projectErrorMessage(e, 'Could not update the project'));
+                throw toProjectError(e, 'Could not update the project');
             }
         },
         onSuccess: () => {
@@ -389,7 +387,7 @@ export function useShareThread(projectId: string) {
                 if (share) await apiClient.post(`/api/projects/${enc(projectId)}/threads`, { conversationId, type }, { retry: false });
                 else await apiClient.delete(`/api/projects/${enc(projectId)}/threads/${enc(conversationId)}`, { query: { type }, retry: false });
             } catch (e) {
-                throw new Error(projectErrorMessage(e, share ? 'Could not share this chat' : 'Could not stop sharing this chat'));
+                throw toProjectError(e, share ? 'Could not share this chat' : 'Could not stop sharing this chat');
             }
         },
         onSuccess: () => {

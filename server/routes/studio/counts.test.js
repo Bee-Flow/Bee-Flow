@@ -418,3 +418,20 @@ test('a whole body still carries makers', async () => {
     const b = await (await get()).json();
     assert.strictEqual(typeof b.makers, 'number');
 });
+
+test('solutions counts Solutions and unclassified legacy projects, never a collaborative project', async () => {
+    let asked = null;
+    const d = makeDeps({
+        projectStore: {
+            listUserProjects: async (userId, groupIds, opts) => {
+                asked = opts;
+                return [{ id: 'pr1', ownerId: 'u1' }];
+            },
+        },
+    });
+    await listen(mount(d));
+    const body = await (await get()).json();
+    assert.deepStrictEqual(asked, { kind: 'solution' },
+        'the store narrows the listing; legacy rows stay on both sides until classified');
+    assert.strictEqual(body.counts.solutions, 1);
+});

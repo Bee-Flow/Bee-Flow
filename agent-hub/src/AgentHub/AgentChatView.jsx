@@ -2,6 +2,8 @@ import { EyeOff, Menu, MoreVertical, Pencil, PenLine } from 'lucide-react';
 import EmptyChatState from './EmptyChatState';
 import InputArea from '../components/chat/InputArea';
 import MessageItem from '../components/chat/MessageItem';
+import ProjectContextPill from '../components/chat/ProjectContextPill';
+import SharedChatReadOnly, { isReadOnlySharedChat } from '../components/chat/SharedChatReadOnly';
 import CoworkModeToggle from '../components/cowork/CoworkModeToggle';
 import WelcomeScreen from '../components/shell/WelcomeScreen';
 import { isImageAvatar, pickAgentAvatar, resolveAvatarSrc } from '../utils/agentAvatar';
@@ -27,6 +29,7 @@ const AgentChatView = ({
     handleVoiceTurnComplete, coworkComposer,
     currentConversation, retryMessage, editAndRegenerate, modelTiers,
     renderSidePanels,
+    activeProject = null, onOpenActiveProject, onLeaveActiveProject,
 }) => {
     return (
                     <>
@@ -109,6 +112,14 @@ const AgentChatView = ({
                                         </>
                                     )}
                                 </div>
+                                {activeProject && (
+                                    <ProjectContextPill
+                                        project={activeProject}
+                                        compact={isMobile}
+                                        onOpen={() => onOpenActiveProject?.(activeProject)}
+                                        onLeave={() => onLeaveActiveProject?.()}
+                                    />
+                                )}
                             </div>
                             {/* Centred on the pane, not tucked in with Notebook and
                                 Webpage: those open a panel beside the conversation,
@@ -220,7 +231,9 @@ const AgentChatView = ({
                                 </div>
 
 
-                                {messages.length > 0 && (
+                                {/* A viewer reading a colleague's shared thread cannot post into it. */}
+                                {messages.length > 0 && isReadOnlySharedChat(currentConversation) && <SharedChatReadOnly />}
+                                {messages.length > 0 && !isReadOnlySharedChat(currentConversation) && (
                                     <div className="w-full flex flex-col shrink-0">
                                         <InputArea
                                             onSendMessage={(text, attachments, parentId) => {

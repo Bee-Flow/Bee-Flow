@@ -55,7 +55,10 @@ const projectStoreMock = {
     },
     getProject: async (id) => {
         const p = fx.projects[id];
-        return p ? { id, name: `Project ${id}`, ownerId: p.ownerId, extractMemories: !!p.extractMemories } : null;
+        return p ? {
+            id, name: `Project ${id}`, ownerId: p.ownerId, extractMemories: !!p.extractMemories,
+            kind: p.kind === undefined ? 'workspace' : p.kind,
+        } : null;
     },
 };
 
@@ -217,6 +220,29 @@ test('resolveRequestedProject rejects junk without touching the store', async ()
         assert.strictEqual(await projectAccess.resolveRequestedProject('bob', bad), null, String(bad));
     }
     assert.strictEqual(fx.roleCalls.length, 0, 'no role lookup for a non-string id');
+});
+
+// ═══ Chats are filed into collaborative projects, never into a Solution ═
+
+test('resolveRequestedProject returns null for a Solution, even to its owner', async () => {
+    resetFx();
+    fx.projects.sol = { ownerId: 'alice', shares: [{ type: 'user', id: 'bob', permission: 'editor' }], kind: 'solution' };
+
+    // Its instructions, knowledge and memories are not a chat's context, and a
+    // new conversation must not be filed under it.
+    assert.strictEqual(await projectAccess.resolveRequestedProject('alice', 'sol'), null);
+    assert.strictEqual(await projectAccess.resolveRequestedProject('bob', 'sol'), null);
+    // The role itself is untouched: Studio still needs it.
+    assert.strictEqual(await projectAccess.getProjectRole('alice', 'sol'), 'owner');
+});
+
+test('a workspace and a legacy (unclassified) project still resolve', async () => {
+    resetFx();
+    fx.projects.ws = { ownerId: 'alice', shares: [], kind: 'workspace' };
+    fx.projects.old = { ownerId: 'alice', shares: [], kind: null };
+
+    assert.strictEqual((await projectAccess.resolveRequestedProject('alice', 'ws')).projectId, 'ws');
+    assert.strictEqual((await projectAccess.resolveRequestedProject('alice', 'old')).projectId, 'old');
 });
 
 test('a nonexistent project resolves to null, not a crash', async () => {

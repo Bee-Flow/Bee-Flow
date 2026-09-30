@@ -102,6 +102,9 @@ export default function AttentionList({
                             confirming={confirmId === item.id}
                             busy={autoFixingId != null && autoFixingId === (item.code ?? item.check_id)}
                             onAction={() => runAction(item)}
+                            onOpenSubject={item.meta?.link && onNavigate
+                                ? () => { const p = complianceActionPath({ type: 'navigate', target: item.meta.link }); if (p) onNavigate(p); }
+                                : null}
                             onCancel={() => setConfirmId(null)}
                             t={t}
                             testId={`${testId}-row`}
@@ -149,13 +152,15 @@ export function actionLabel(action, t) {
     return base;
 }
 
-function AttentionRow({ item, confirming, busy, onAction, onCancel, t, testId }) {
+function AttentionRow({ item, confirming, busy, onAction, onOpenSubject, onCancel, t, testId }) {
     const tone = toneOfCheckStatus(item.status);
     const Glyph = glyphOfCheckStatus(item.status);
     const refs = Array.isArray(item.meta?.frameworks) ? item.meta.frameworks : [];
     const severity = item.meta?.severity || item.severity;
     const verification = item.meta?.verification;
     const detail = item.meta?.detail;
+    // A per-source check collapses into one item; it says how many subjects.
+    const affected = Number(item.meta?.subject_count) > 1 ? Number(item.meta.subject_count) : null;
     const label = actionLabel(item.action, t);
     const showSeverity = item.status === 'fail' || item.status === 'warn';
 
@@ -169,7 +174,13 @@ function AttentionRow({ item, confirming, busy, onAction, onCancel, t, testId })
                     {refs.length && showSeverity && severity ? <Dot /> : null}
                     {showSeverity && severity ? <SeverityTag severity={severity} /> : null}
                     {verification ? <><Dot /><VerificationChip verification={verification} minimal /></> : null}
+                    {affected ? <><Dot /><span data-testid={`${testId}-affected`}>{t('compliance.attention_subjects', '{n} affected', { n: affected })}</span></> : null}
                     {detail ? <><Dot /><span className="truncate">{detail}</span></> : null}
+                    {onOpenSubject ? (
+                        <><Dot /><button type="button" onClick={onOpenSubject} className="inline-flex items-center gap-0.5 font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:underline" data-testid={`${testId}-open-subject`}>
+                            {t('compliance.attention_open_subject', 'Open')} <ArrowUpRight size={10} aria-hidden />
+                        </button></>
+                    ) : null}
                 </div>
             </div>
             {label ? (

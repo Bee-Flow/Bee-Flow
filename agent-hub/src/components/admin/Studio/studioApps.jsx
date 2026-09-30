@@ -767,12 +767,12 @@ export const STUDIO_APPS = [
         getProps: ({ user, initialPlaybookId, onNavigate, hasPermission, setEditing }) => ({ user, initialPlaybookId, onNavigate, hasPermission, onEditingChange: setEditing }),
     },
     {
-        // Solutions — the builder's view of a project: the routines, apps and
-        // webpages that work together, the wiring between them, and the
-        // Blueprint you package it into. The same project's COLLABORATION side
-        // (chats, members, memory) stays on /app/projects — this tab is for
-        // whoever builds the thing, which is why it lives next to the tabs it
-        // bundles. Gate mirrors Approvals: the licence key alone is
+        // Solutions — the builder's bundle: the routines, apps and webpages
+        // that work together, the wiring between them, and the Blueprint you
+        // package it into. A Solution is its own concept, separate from the
+        // collaborative project workspaces on /app/projects: neither list shows
+        // the other's rows. It lives next to the tabs it bundles because it is
+        // built out of exactly those. Gate mirrors Approvals: the licence key alone is
         // authoritative ('projects' is Enterprise and not beta-gated, so a
         // canUse check would hide the tab from ordinary members).
         id: 'solutions',

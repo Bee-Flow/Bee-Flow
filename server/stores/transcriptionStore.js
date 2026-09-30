@@ -8,6 +8,8 @@
  *   - Owner always
  *   - Published to org: same-org member sees it
  *   - Published with shared_groups: only members of one of those groups
+ *   - Filed into a project (project_id): any member of that project, any role
+ * Writes stay with the owner, whoever else may read.
  */
 
 const crypto = require('crypto');
@@ -15,7 +17,7 @@ const fs = require('fs');
 const path = require('path');
 const { run, getOne, getAll, exec } = require('../db');
 const { makeStoreInit } = require('./lib/storeInit');
-const { runDdl } = require('./lib/_ddl');
+const { runDdl, CODES } = require('./lib/_ddl');
 const { buildUpdate } = require('./lib/sqlBuilder');
 // Request-scoped, via AsyncLocalStorage — so a store this deep does not need
 // every caller to thread the client down to it. Returns 'unknown' outside a
@@ -24,6 +26,7 @@ const { currentClient } = require('../telemetry/requestClient');
 // Content-column encryption for this store — policy, key, and the two derived
 // columns the list query needs. See stores/transcriptCrypto.js.
 const transcriptCrypto = require('./transcriptCrypto');
+const { projectRoleOf } = require('./lib/projectRole');
 const log = require('../telemetry/log');
 
 // Saved audio lives under server/data/uploads (audio/ + saved-recordings/).
@@ -358,6 +361,20 @@ async function _initDB() {
         // Idempotent (IF EXISTS) — en via runDdl niet langer een stille DROP
         // die de _schemaQueue passeerde.
         `DROP TABLE IF EXISTS meet_bot_sessions`,
+        // Project membership (projects/membership.js, kind 'meeting'). NULL is
+        // the note as it always was; a set id makes it readable to every member
+        // of that collaborative project. Soft reference, like notebooks: a
+        // project delete detaches (clearProjectFromTranscriptions), never
+        // deletes, and the sweep below clears ids whose project is gone.
+        `ALTER TABLE transcriptions ADD COLUMN IF NOT EXISTS project_id TEXT`,
+        `CREATE INDEX IF NOT EXISTS idx_transcriptions_project ON transcriptions(project_id, created_at DESC)
+            WHERE project_id IS NOT NULL`,
+        {
+            sql: `UPDATE transcriptions SET project_id = NULL
+                WHERE project_id IS NOT NULL AND project_id NOT IN (SELECT id FROM projects)`,
+            tolerate: CODES.UNDEFINED_TABLE,
+            reden: 'projects table may not exist yet on a cold boot',
+        },
     ]);
 
     // Only claim to be initialised when the schema actually is. THROWING is
@@ -380,7 +397,7 @@ async function _initDB() {
 // Adding a column means adding it in THREE places: here, the column list, and
 // the values array. A column holding CONTENT means a fourth: the list in
 // stores/transcriptCrypto.js, or it goes to disk in plaintext.
-async function createTranscription({ userId, organizationId, title, fileName, language, durationSeconds, speakerCount, segmentCount, fullText, transcript, segments, speakers, summary, status, audioPath, provider, actionItems, source, sourceUri, talkRoomToken, meetMeetingCode, attendees, chapters, numSpeakers, audioStorageKey, decisions, questions, tags, sharedWith, client, summaryTemplateId, summaryTemplateVersion }) {
+async function createTranscription({ userId, organizationId, title, fileName, language, durationSeconds, speakerCount, segmentCount, fullText, transcript, segments, speakers, summary, status, audioPath, provider, actionItems, source, sourceUri, talkRoomToken, meetMeetingCode, attendees, chapters, numSpeakers, audioStorageKey, decisions, questions, tags, sharedWith, client, summaryTemplateId, summaryTemplateVersion, projectId }) {
     await initDB();
     const id = crypto.randomUUID();
     // Content columns are sealed here, before anything reaches the driver. The
@@ -399,10 +416,10 @@ async function createTranscription({ userId, organizationId, title, fileName, la
         chapters: JSON.stringify(toArray(chapters)),
     }, ctx);
     const { rowCount } = await run(
-        `INSERT INTO transcriptions (id, user_id, organization_id, title, file_name, language, duration_seconds, speaker_count, segment_count, full_text, transcript, segments, speakers, summary, status, audio_path, provider, action_items, source, source_uri, talk_room_token, meet_meeting_code, attendees, chapters, num_speakers, audio_storage_key, decisions, questions, tags, shared_with, client, summary_template_id, summary_template_version, full_text_snippet_enc, summary_snippet_enc)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35)
+        `INSERT INTO transcriptions (id, user_id, organization_id, title, file_name, language, duration_seconds, speaker_count, segment_count, full_text, transcript, segments, speakers, summary, status, audio_path, provider, action_items, source, source_uri, talk_room_token, meet_meeting_code, attendees, chapters, num_speakers, audio_storage_key, decisions, questions, tags, shared_with, client, summary_template_id, summary_template_version, full_text_snippet_enc, summary_snippet_enc, project_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36)
          ON CONFLICT (source_uri) WHERE source_uri IS NOT NULL DO NOTHING`,
-        [id, userId, organizationId || null, title || fileName || 'Untitled', fileName, language || 'nl', durationSeconds || 0, speakerCount || 0, segmentCount || 0, sealed.full_text, sealed.transcript, sealed.segments, sealed.speakers, sealed.summary, status || 'completed', audioPath || '', provider || 'voxtral', JSON.stringify(toArray(actionItems)), source || 'upload', sourceUri || null, talkRoomToken || null, meetMeetingCode || null, sealed.attendees, sealed.chapters, Number.isFinite(numSpeakers) && numSpeakers >= 1 ? Math.round(numSpeakers) : null, audioStorageKey || null, JSON.stringify(toArray(decisions)), JSON.stringify(toArray(questions)), JSON.stringify(toArray(tags)), JSON.stringify(toArray(sharedWith)), client || currentClient(), summaryTemplateId || null, Number.isInteger(summaryTemplateVersion) ? summaryTemplateVersion : null, snippet, summarySnippet]
+        [id, userId, organizationId || null, title || fileName || 'Untitled', fileName, language || 'nl', durationSeconds || 0, speakerCount || 0, segmentCount || 0, sealed.full_text, sealed.transcript, sealed.segments, sealed.speakers, sealed.summary, status || 'completed', audioPath || '', provider || 'voxtral', JSON.stringify(toArray(actionItems)), source || 'upload', sourceUri || null, talkRoomToken || null, meetMeetingCode || null, sealed.attendees, sealed.chapters, Number.isFinite(numSpeakers) && numSpeakers >= 1 ? Math.round(numSpeakers) : null, audioStorageKey || null, JSON.stringify(toArray(decisions)), JSON.stringify(toArray(questions)), JSON.stringify(toArray(tags)), JSON.stringify(toArray(sharedWith)), client || currentClient(), summaryTemplateId || null, Number.isInteger(summaryTemplateVersion) ? summaryTemplateVersion : null, snippet, summarySnippet, projectId || null]
     );
     // Lost the race (same source_uri already ingested concurrently) — return the winner.
     if (rowCount === 0 && sourceUri) {
@@ -413,7 +430,7 @@ async function createTranscription({ userId, organizationId, title, fileName, la
         }
     }
     log.info(`[TranscriptionStore] Created transcription "${title}" (${status || 'completed'}) via ${provider || 'voxtral'} for user ${userId}`);
-    return { id, userId, organizationId: organizationId || null, title, fileName, language, durationSeconds, speakerCount, segmentCount, status: status || 'completed', provider: provider || 'voxtral', source: source || 'upload', sourceUri: sourceUri || null, talkRoomToken: talkRoomToken || null, meetMeetingCode: meetMeetingCode || null, createdAt: new Date().toISOString() };
+    return { id, userId, organizationId: organizationId || null, title, fileName, language, durationSeconds, speakerCount, segmentCount, status: status || 'completed', provider: provider || 'voxtral', source: source || 'upload', sourceUri: sourceUri || null, talkRoomToken: talkRoomToken || null, meetMeetingCode: meetMeetingCode || null, projectId: projectId || null, createdAt: new Date().toISOString() };
 }
 
 /**
@@ -522,7 +539,7 @@ async function getTranscriptions(userId, { limit = 50, offset = 0, orgIds = [], 
     if (isSuperAdmin) {
         const rows = await getAll(
             `SELECT id, user_id, organization_id, title, file_name, language, duration_seconds, speaker_count, segment_count,
-                    shared_with, is_published, shared_groups, created_at, updated_at, provider, status, source, talk_room_token, meet_meeting_code, tags,
+                    shared_with, is_published, shared_groups, created_at, updated_at, provider, status, source, talk_room_token, meet_meeting_code, tags, project_id,
                     LEFT(COALESCE(full_text, ''), 2000) AS full_text_snippet,
                     full_text_snippet_enc,
                     LEFT(COALESCE(summary, ''), 400) AS summary_snippet,
@@ -560,7 +577,7 @@ async function getTranscriptions(userId, { limit = 50, offset = 0, orgIds = [], 
     }
     const rows = await getAll(
         `SELECT id, user_id, organization_id, title, file_name, language, duration_seconds, speaker_count, segment_count,
-                shared_with, is_published, shared_groups, created_at, updated_at, provider, status, source, talk_room_token, meet_meeting_code, tags,
+                shared_with, is_published, shared_groups, created_at, updated_at, provider, status, source, talk_room_token, meet_meeting_code, tags, project_id,
                 LEFT(COALESCE(full_text, ''), 2000) AS full_text_snippet,
                 full_text_snippet_enc,
                 LEFT(COALESCE(summary, ''), 400) AS summary_snippet,
@@ -701,8 +718,30 @@ async function getTranscription(id, userId, ctx = {}) {
         `SELECT *, ${DB_CLOCK_ISO} AS read_at FROM transcriptions WHERE id = $1 AND (${clauses.join(' OR ')})`,
         params
     );
-    if (!r) return null;
-    return shapeRow(r, userId, await transcriptCrypto.resolveTranscriptCrypto(r.organization_id || null));
+    if (r) return shapeRow(r, userId, await transcriptCrypto.resolveTranscriptCrypto(r.organization_id || null));
+    // Not readable by the ACL above; it may still be a meeting note filed into
+    // a project the caller is a member of. A second read, taken only on a miss,
+    // so the common owner path stays one query.
+    const filed = await readableThroughProject(id, userId, `*, ${DB_CLOCK_ISO} AS read_at`);
+    if (!filed) return null;
+    const note = shapeRow(filed.row, userId, await transcriptCrypto.resolveTranscriptCrypto(filed.row.organization_id || null));
+    return { ...note, projectRole: filed.role };
+}
+
+/**
+ * A note filed into a project the caller is a member of (ANY role; reading is
+ * all membership buys here), as `{ row, role }`, or null.
+ *
+ * @param {string} id
+ * @param {string} userId
+ * @param {string} columns  what to select; the detail read wants the whole row
+ */
+async function readableThroughProject(id, userId, columns = 'id, project_id') {
+    if (!id || !userId) return null;
+    const row = await getOne(`SELECT ${columns} FROM transcriptions WHERE id = $1 AND project_id IS NOT NULL`, [id]);
+    if (!row) return null;
+    const role = await projectRoleOf(userId, row.project_id);
+    return role ? { row, role } : null;
 }
 
 /**
@@ -722,7 +761,10 @@ async function canReadTranscription(id, userId, ctx = {}) {
         `SELECT 1 AS ok FROM transcriptions WHERE id = $1 AND (${clauses.join(' OR ')})`,
         params
     );
-    return !!r;
+    if (r) return true;
+    // The same second path getTranscription takes, so "readable" and "actually
+    // returned" cannot disagree about a project member.
+    return !!(await readableThroughProject(id, userId));
 }
 
 /**
@@ -1089,6 +1131,102 @@ async function deleteTranscription(id, userId) {
     return rowCount > 0;
 }
 
+// ── Project membership ───────────────────────────────────
+
+/**
+ * File a meeting note into a project (projects/membership.js, kind 'meeting').
+ *
+ * Owner-only: filing makes the note readable to every member of the project,
+ * and that is the owner's call. The route checks the caller's role on the
+ * TARGET project; the statement checks the rest with no gap before the write:
+ * the caller owns the note, and the project exists in the note's own
+ * organisation (an empty organisation matches only an empty one).
+ * `updated_at` is left alone on purpose: filing is not an edit, and a
+ * knowledge source that follows a meeting tag re-reads notes by it.
+ */
+async function setTranscriptionProject(id, userId, projectId) {
+    await initDB();
+    if (!id || !userId || !projectId) return false;
+    const { rowCount } = await run(
+        `UPDATE transcriptions t SET project_id = $1
+          WHERE t.id = $2 AND t.user_id = $3
+            AND EXISTS (SELECT 1 FROM projects p
+                         WHERE p.id = $1 AND COALESCE(p.organization_id, '') = COALESCE(t.organization_id, ''))`,
+        [projectId, id, userId]
+    );
+    return (rowCount || 0) > 0;
+}
+
+/**
+ * Take a meeting note out of ONE project. With `userId`, only when that person
+ * owns it; with null, whoever owns it, which projects/membership.js allows only
+ * the owner of that project. Scoped to `projectId` either way.
+ */
+async function detachTranscriptionFromProject(id, projectId, userId = null) {
+    await initDB();
+    if (!id || !projectId) return false;
+    const { rowCount } = await run(
+        `UPDATE transcriptions SET project_id = NULL
+          WHERE id = $1 AND project_id = $2 AND ($3::text IS NULL OR user_id = $3)`,
+        [id, projectId, userId]
+    );
+    return (rowCount || 0) > 0;
+}
+
+/**
+ * The meeting notes filed into a project, as cards: what a list row shows and
+ * nothing it does not. No transcript, summary or snippet leaves here: those
+ * are the note's content, read through getTranscription when someone opens it.
+ */
+async function listProjectMeetings(projectId, { limit = 100, offset = 0 } = {}) {
+    await initDB();
+    if (!projectId) return [];
+    const rows = await getAll(
+        `SELECT id, title, user_id, project_id, status, duration_seconds, created_at, updated_at,
+                COALESCE(jsonb_array_length(CASE WHEN jsonb_typeof(action_items) = 'array' THEN action_items ELSE '[]'::jsonb END), 0)::int AS action_item_count
+           FROM transcriptions
+          WHERE project_id = $1
+          ORDER BY created_at DESC, id
+          LIMIT $2 OFFSET $3`,
+        [projectId, Math.min(Math.max(Number(limit) || 100, 1), 200), Math.max(Number(offset) || 0, 0)]
+    );
+    return rows.map(r => ({
+        id: r.id,
+        title: r.title,
+        userId: r.user_id,
+        projectId: r.project_id || null,
+        status: r.status || 'completed',
+        durationSeconds: Number(r.duration_seconds) || 0,
+        actionItemCount: Number(r.action_item_count) || 0,
+        createdAt: r.created_at ? new Date(r.created_at).toISOString() : null,
+        updatedAt: r.updated_at ? new Date(r.updated_at).toISOString() : null,
+    }));
+}
+
+/**
+ * How many meeting notes each of these projects holds, in ONE query. Missing
+ * from the map means none; a failed read rejects.
+ */
+async function countProjectMeetings(projectIds) {
+    await initDB();
+    const ids = (Array.isArray(projectIds) ? projectIds : []).filter(id => typeof id === 'string' && id);
+    if (!ids.length) return new Map();
+    const rows = await getAll(
+        `SELECT project_id, COUNT(*)::int AS n FROM transcriptions
+          WHERE project_id = ANY($1::text[]) GROUP BY project_id`,
+        [ids]
+    );
+    return new Map(rows.map(r => [r.project_id, Number(r.n) || 0]));
+}
+
+/** Detach every meeting note from a deleted project; the notes stay their owners'. */
+async function clearProjectFromTranscriptions(projectId) {
+    await initDB();
+    if (!projectId) return 0;
+    const { rowCount } = await run('UPDATE transcriptions SET project_id = NULL WHERE project_id = $1', [projectId]);
+    return rowCount || 0;
+}
+
 /**
  * The most recent earlier note in the same recurring series (same Google Meet
  * code or Talk room), under the caller's normal read ACL — powers the
@@ -1171,6 +1309,8 @@ function mapRow(r, ctx = transcriptCrypto.PLAINTEXT_CONTEXT) {
         // auto-generated topic tags render straight from the list query.
         ...(r.tags !== undefined ? { tags: parseJsonArray(r.tags) } : {}),
         organizationId: r.organization_id || null,
+        // The project this note is filed into, where the query selected it.
+        ...(r.project_id !== undefined ? { projectId: r.project_id || null } : {}),
         createdAt: r.created_at ? new Date(r.created_at).toISOString() : null,
         updatedAt: r.updated_at ? new Date(r.updated_at).toISOString() : null,
         // Short transcript prefix surfaced for client-side search; only present
@@ -1212,6 +1352,11 @@ module.exports = {
     timeoutStuckTranscriptions,
     setPublished,
     deleteTranscription,
+    setTranscriptionProject,
+    detachTranscriptionFromProject,
+    listProjectMeetings,
+    countProjectMeetings,
+    clearProjectFromTranscriptions,
 };
 
 // Awaitbare init-ingang voor migrateDb (memoised — zelfde promise als de load-time init).

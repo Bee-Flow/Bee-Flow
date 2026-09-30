@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { FileText, ArrowDown, Info, MessageSquare, Sparkles } from 'lucide-react';
+import { ArrowDown, Info, Lock, MessageSquare, MessageSquarePlus, Sparkles } from 'lucide-react';
 import MessageItem from '../../components/chat/MessageItem';
 import InputArea from '../../components/chat/InputArea';
 import EmptyState from '../../components/shared/EmptyState';
@@ -17,6 +17,12 @@ export default function NotebookChat({
     // a pill that counts it promises reach the next question will not have.
     // `null` (the default) shows no pill at all rather than "0 sources".
     sourceCount = null,
+    // A notebook shared through a project: say that this chat is the
+    // caller's own (the document is shared, the conversation is not).
+    privateHint = false,
+    // Start over: the caller's history is deleted, nobody else's.
+    onNewChat = null,
+    clearingChat = false,
 }) {
     const { t } = useTranslation();
     const endRef = useRef(null);
@@ -64,10 +70,28 @@ export default function NotebookChat({
             <div className="shrink-0 px-3 py-2 border-b flex items-center gap-2" style={{ borderColor: 'var(--border-subtle)' }}>
                 <MessageSquare className="w-3.5 h-3.5" style={{ color: 'var(--accent-primary)' }} />
                 <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{t('notebooks.ai_chat', 'AI Chat')}</span>
-                <span className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>
+                <span className="text-[10px] flex-1 min-w-0 truncate" style={{ color: 'var(--text-tertiary)' }}>
                     {t('notebooks.chat_subtitle', 'Ask questions about your sources')}
                 </span>
+                {onNewChat && messages.length > 0 && (
+                    <button
+                        type="button"
+                        onClick={onNewChat}
+                        disabled={clearingChat || isLoading}
+                        className="shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[11px] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-50"
+                        title={t('notebooks.new_chat_hint', 'Start a new chat (this history is deleted)')}
+                        data-testid="notebook-new-chat"
+                    >
+                        <MessageSquarePlus className="w-3.5 h-3.5" aria-hidden="true" />{t('notebooks.new_chat', 'New chat')}
+                    </button>
+                )}
             </div>
+            {privateHint && (
+                <p className="shrink-0 m-0 px-3 py-1.5 flex items-center gap-1.5 text-[11.5px] border-b border-[var(--border-subtle)] text-[var(--text-tertiary)]" data-testid="notebook-chat-private">
+                    <Lock className="w-3 h-3 shrink-0" aria-hidden="true" />
+                    {t('notebooks.chat_private_hint', 'Only you see this chat. The document and its sources are shared with the project.')}
+                </p>
+            )}
 
             {/* Messages */}
             <div ref={containerRef} onScroll={onScroll} className="flex-1 overflow-y-auto custom-scrollbar px-3 py-3 space-y-3">

@@ -7,6 +7,7 @@ require('../../auth');
 require('../../stores/memoryStore');
 require('../../auth');
 const { getEffectiveUserId } = require('../../utils/routeHelpers');
+const { makeReadAgentConversation } = require('./sharedThreadRead');
 const { validate } = require('../../core/http/validate');
 const { z } = require('zod');
 
@@ -120,16 +121,13 @@ router.post('/:id/conversations', validate({ body: NewConversationBody }), async
     res.json(conversation);
 });
 
-// Get a specific conversation
-router.get('/:id/conversations/:convId', async (req, res) => {
-    const userId = getEffectiveUserId(req);
-    const conversation = await agentStore.getConversationById(req.params.convId, req.session?.encryptionKey);
-    if (!conversation || conversation.user_id !== userId) {
-        return res.status(404).json({ error: 'Conversation not found' });
-    }
-
-    res.json(conversation);
-});
+// Get a specific conversation: the owner, or — read-only — a project member
+// when the owner shared the thread into that project. The whole rule, and why
+// access is resolved before the row is opened, is in ./sharedThreadRead.js.
+router.get('/:id/conversations/:convId', makeReadAgentConversation({
+    getConversationById: (...a) => agentStore.getConversationById(...a),
+    getEffectiveUserId,
+}));
 
 // Update conversation title / pin / labels
 router.patch('/:id/conversations/:convId', validate({ body: ConversationPatch }), async (req, res) => {
@@ -209,6 +207,12 @@ router.put('/:id/conversations/:convId/workspace', validate({ body: WorkspaceBod
     // Size, not shape: too large is a 413, which `validate` cannot answer.
     if (typeof content === 'string' && content.length > MAX_WORKSPACE_BYTES) {
         return res.status(413).json({ error: `content exceeds ${MAX_WORKSPACE_BYTES} bytes` });
+    }
+    // A NEW link needs edit rights on the notebook: the chat's notebook
+    // tools write through it (integrations/workspaceTools.js).
+    if (notebookId && notebookId !== conversation.workspace_notebook_id) {
+        const refusal = await require('../../integrations/workspaceTools').notebookLinkRefusal(notebookId, userId);
+        if (refusal) return res.status(refusal.status).json({ error: refusal.error });
     }
     await agentStore.updateConversationWorkspace(req.params.convId, content || '', notebookId !== undefined ? notebookId : null);
     res.json({ success: true });

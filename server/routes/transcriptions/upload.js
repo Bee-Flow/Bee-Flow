@@ -23,6 +23,7 @@ const {
     VOXTRAL_TIMEOUT_MS,
 } = require('./shared');
 const { stampForTemplate } = require('../../core/meetingNotes/summaryStamp');
+const meetingFiling = require('../../projects/meetingFiling');
 
 // Multer for audio file upload
 const uploadsDir = path.resolve(__dirname, '../../data/uploads/audio');
@@ -127,6 +128,9 @@ const UploadBody = bodyOf({
     num_speakers: z.coerce.number({ invalid_type_error: 'num_speakers is een getal.' })
         .int('num_speakers is een heel getal.').optional(),
     provider: worded('provider is de naam van een transcriptiedienst.').trim().min(1).optional(),
+    // Files the new note into a collaborative project (editor or owner there;
+    // see projects/meetingFiling.js). Empty means none: a form field is always text.
+    projectId: worded('projectId is the id of a project.').trim().max(200, 'projectId is the id of a project.').optional(),
 });
 
 // ── Upload & transcribe ──────────────────────────────────
@@ -137,6 +141,27 @@ router.post('/', requireAuth, upload.single('audio'), validate({ body: UploadBod
 
     if (!req.file) {
         return res.status(400).json({ error: 'No audio file uploaded' });
+    }
+
+    // A project to file the note into is checked BEFORE anything is saved or
+    // transcribed: a refusal here must cost nothing and leave nothing behind.
+    let projectId = null;
+    if (req.body.projectId) {
+        const dropUpload = () => { try { fs.unlinkSync(req.file.path); } catch (_) { /* multer's temp file may already be gone */ } };
+        let target;
+        try {
+            target = await meetingFiling.resolve(userId, userOrgId, req.body.projectId);
+        } catch (err) {
+            // The access check could not be answered: refuse, never file blind.
+            dropUpload();
+            log.error('[Transcriptions] project access check failed:', err.message);
+            return res.status(503).json({ error: 'Could not check access to that project. Try again in a moment.', code: 'project_check_unavailable' });
+        }
+        if (!target.ok) {
+            dropUpload();
+            return res.status(target.status).json({ error: target.error, code: target.code });
+        }
+        projectId = target.projectId;
     }
 
     const language = req.body.language || 'nl';
@@ -262,13 +287,16 @@ router.post('/', requireAuth, upload.single('audio'), validate({ body: UploadBod
             // audio is later missing: for a recording there is no original file
             // anywhere, so "upload it again" is not something the user can do.
             source: req.body.capture_mode || 'upload',
+            projectId,
         });
         transcriptionId = processingNote.id;
+        // Members see the note appear (still processing) the moment it exists.
+        if (projectId) await meetingFiling.announce(projectId, userId, transcriptionId);
         // What we just wrote. The AI title lands minutes later, and the note is
         // openable and renameable the whole time — so the final write must only
         // replace this exact placeholder, never a name the user typed meanwhile.
         const placeholderTitle = title;
-        res.status(202).json({ id: transcriptionId, status: 'processing', title, fileName });
+        res.status(202).json({ id: transcriptionId, status: 'processing', title, fileName, projectId });
 
         let response;
         // Tracks an automatic engine switch (e.g. local → voxtral when an upload

@@ -26,6 +26,20 @@ describe('compliance data/api — the one network seam', () => {
         await expect(fetchJson(`${API}/checks`)).rejects.toThrow('403 Forbidden');
     });
 
+    it('fetchJson keeps the status and the server\'s code and sentence on the thrown error', async () => {
+        authFetch.mockResolvedValue({ ok: false, status: 400, statusText: 'Bad Request', json: async () => ({ error: 'until must be in the future.', code: 'invalid_request' }) });
+        const err = await fetchJson(`${API}/checks/x/state`).catch((e) => e);
+        expect(err.message).toBe('400 Bad Request');
+        expect(err).toMatchObject({ status: 400, code: 'invalid_request', serverMessage: 'until must be in the future.' });
+    });
+
+    it('fetchJson still throws "<status> <statusText>" when the refusal has no JSON body', async () => {
+        authFetch.mockResolvedValue({ ok: false, status: 502, statusText: 'Bad Gateway', json: async () => { throw new SyntaxError('Unexpected token <'); } });
+        const err = await fetchJson(`${API}/overview`).catch((e) => e);
+        expect(err.message).toBe('502 Bad Gateway');
+        expect(err).toMatchObject({ status: 502, code: null, serverMessage: null });
+    });
+
     it('jsonInit/json build a JSON write; an undefined body still sends "{}"', () => {
         expect(jsonInit('PUT', { x: 1 })).toEqual({ method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: '{"x":1}' });
         expect(json()).toEqual({ method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });

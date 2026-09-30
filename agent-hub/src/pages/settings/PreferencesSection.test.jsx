@@ -47,7 +47,9 @@ vi.mock('./MeetingNotesSection', () => ({ default: () => <div data-testid="meeti
 vi.mock('./GoogleMeetNotesSection', () => ({ default: () => <div data-testid="google-meet-notes" /> }));
 vi.mock('./SummaryTemplatesSection', () => ({ default: () => <div data-testid="summary-templates" /> }));
 vi.mock('./VoiceprintSection', () => ({ default: () => <div data-testid="voiceprint" /> }));
+vi.mock('./AiParticipationSection', () => ({ default: ({ enabled }) => <div data-testid="ai-participation" data-enabled={String(enabled)} /> }));
 
+import LicenseContext from '../../components/licensing/LicenseContext';
 import PreferencesSection from './PreferencesSection';
 import { authFetch } from '../../utils/helpers';
 import scopedStorage from '../../utils/scopedStorage';
@@ -389,5 +391,27 @@ describe('PreferencesSection — sign out and sub-sections', () => {
         for (const id of ['meeting-notes', 'google-meet-notes', 'summary-templates', 'voiceprint']) {
             expect(screen.getByTestId(id)).toBeInTheDocument();
         }
+    });
+});
+
+describe('PreferencesSection — AI in team chats', () => {
+    // The setting acts only in project team chats and comment threads.
+    const withPlan = (hasProjects, user = USER) => render(
+        <LicenseContext.Provider value={{ hasFeature: (name) => hasProjects && name === 'projects' }}>
+            <PreferencesSection defaultAgentMode="last-used" setDefaultAgentMode={vi.fn()} defaultAgentId="" setDefaultAgentId={vi.fn()} agents={AGENTS} user={user} />
+        </LicenseContext.Provider>,
+    );
+
+    it('is offered where Projects can be used', () => {
+        withPlan(true);
+        expect(screen.getByTestId('ai-participation')).toHaveAttribute('data-enabled', 'true');
+    });
+
+    it('is not offered on a plan without Projects, or where the operator switched them off', () => {
+        const { unmount } = withPlan(false);
+        expect(screen.getByTestId('ai-participation')).toHaveAttribute('data-enabled', 'false');
+        unmount();
+        withPlan(true, { ...USER, featureFlags: { projects: false } });
+        expect(screen.getByTestId('ai-participation')).toHaveAttribute('data-enabled', 'false');
     });
 });

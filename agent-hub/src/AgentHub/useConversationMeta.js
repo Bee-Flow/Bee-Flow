@@ -1,3 +1,4 @@
+import { projectErrorText } from '../components/projects/workspace/projectErrorText';
 import { toast } from '../components/shared/Toast';
 import { API_BASE, authFetch } from '../utils/helpers';
 
@@ -60,32 +61,38 @@ const useConversationMeta = ({
         }
     };
 
+    /**
+     * File a conversation under a project (or take it out). Private
+     * bookkeeping: nothing is shared by this.
+     *
+     * The conversation's own shape says what it is — the same rule sharing
+     * uses — rather than the mode the hub happens to be in: in the all-chats
+     * view an agent conversation is listed while the hub is in direct mode.
+     * A refusal (a Solution holds no chats, a project that is gone) is said
+     * out loud instead of leaving the row where it was without a word.
+     */
     const handleMoveToProject = async (conv, targetProject) => {
+        const type = conv.agent_id ? 'agent' : 'direct';
+        const projectId = targetProject ? targetProject.id : conv.project_id;
+        if (!projectId) return;
+        const change = targetProject ? { assign: [{ id: conv.id, type }] } : { unassign: [{ id: conv.id, type }] };
+        const failed = t('sidebar.project_move_failed', 'Could not move this chat. It is still where it was.');
         try {
-            const type = directChatMode ? 'direct' : 'agent';
-            if (targetProject) {
-                // Assign to project
-                await authFetch(`${API_BASE}/api/projects/${targetProject.id}/conversations`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ assign: [{ id: conv.id, type }] }),
-                });
-            } else {
-                // Find current project and unassign
-                const currentProjId = conv.project_id;
-                if (currentProjId) {
-                    await authFetch(`${API_BASE}/api/projects/${currentProjId}/conversations`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ unassign: [{ id: conv.id, type }] }),
-                    });
-                }
+            const res = await authFetch(`${API_BASE}/api/projects/${encodeURIComponent(projectId)}/conversations`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(change),
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                toast.error(projectErrorText(t, err, failed));
+                return;
             }
             // Refresh conversation lists to reflect project_id changes
             if (directChatMode) loadDirectConversations();
             else if (selectedAgent) loadConversations(selectedAgent.id);
-        } catch (e) {
-            console.error('Failed to move conversation to project:', e);
+        } catch {
+            toast.error(failed);
         }
     };
 

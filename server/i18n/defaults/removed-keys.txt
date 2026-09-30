@@ -158,3 +158,14 @@ routines.settings.files_rename
 routines.settings.files_share
 routines.settings.start_manual_detail
 routines.settings.start_manual_hint
+
+# Projects workspace split (2026-09): the old project detail page and its
+# threads/resources tabs were replaced by the collaborative project workspace
+# (project_home / project_chat / project_content), and a Studio Solution no
+# longer links to the projects pages ("Manage access" replaced "Open in Projects").
+projects.no_shared_threads
+projects.run_active
+projects.shared_by_colleague
+projects.shared_threads_editor_hint
+projects.viewer_readonly
+solutions.open_project
