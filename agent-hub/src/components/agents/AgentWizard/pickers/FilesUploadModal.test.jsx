@@ -145,12 +145,12 @@ describe('FilesUploadModal — one count, shared with the pill (BFSF-392)', () =
         const { onDocCountChange, onKbsChange } = renderModal({ agent: SAVED, agentName: 'Saved', knowledgeBaseIds: ['kb-a'] });
 
         expect(await screen.findByText(documentsHeading(2))).toBeTruthy();
-        expect(onDocCountChange).toHaveBeenLastCalledWith('kb-a', 2);
+        await waitFor(() => expect(onDocCountChange).toHaveBeenLastCalledWith('kb-a', 2));
 
         await user.upload(screen.getByTestId('files-drop-zone'), new File(['x'], 'three.txt', { type: 'text/plain' }));
 
         expect(await screen.findByText(documentsHeading(3))).toBeTruthy();
-        expect(onDocCountChange).toHaveBeenLastCalledWith('kb-a', 3);
+        await waitFor(() => expect(onDocCountChange).toHaveBeenLastCalledWith('kb-a', 3));
         expect(onKbsChange).toHaveBeenCalledTimes(1);
     });
 
@@ -159,7 +159,7 @@ describe('FilesUploadModal — one count, shared with the pill (BFSF-392)', () =
         const { onDocCountChange } = renderModal({ agent: SAVED, agentName: 'Saved', knowledgeBaseIds: ['kb-a'] });
 
         expect(await screen.findByText(documentsHeading(250))).toBeTruthy();
-        expect(onDocCountChange).toHaveBeenLastCalledWith('kb-a', 250);
+        await waitFor(() => expect(onDocCountChange).toHaveBeenLastCalledWith('kb-a', 250));
     });
 
     it('uploads into the base created with the agent, as the pill counts it', async () => {
@@ -168,7 +168,7 @@ describe('FilesUploadModal — one count, shared with the pill (BFSF-392)', () =
         const { onDocCountChange } = renderModal({ agent, agentName: 'Saved', knowledgeBaseIds: ['kb-other', 'kb-primary'] });
 
         expect(await screen.findByText(documentsHeading(2))).toBeTruthy();
-        expect(onDocCountChange).toHaveBeenLastCalledWith('kb-primary', 2);
+        await waitFor(() => expect(onDocCountChange).toHaveBeenLastCalledWith('kb-primary', 2));
     });
 
     it('draws the knowledge-bases heading once, with a document count per base', () => {
