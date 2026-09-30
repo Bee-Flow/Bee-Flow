@@ -77,7 +77,7 @@ export const PAGE_ROUTES = {
 // top-level sidebar row for one of them (Notebooks, Meetings) therefore needs
 // either a phone-shaped page and an entry here, or the row hidden below 768px;
 // without one of the two, tapping it bounces to /app via MobileRouteGuard.
-export const MOBILE_ALLOWED_PAGES = new Set(['agents', 'settings', 'appRun', 'apps', 'forms', 'formView', 'cowork', 'approvals']);
+export const MOBILE_ALLOWED_PAGES = new Set(['agents', 'projects', 'settings', 'appRun', 'apps', 'forms', 'formView', 'cowork', 'approvals']);
 export const isPageAllowedOnMobile = (page) => MOBILE_ALLOWED_PAGES.has(page);
 
 // ── The approvals slice of Studio (B2) ─────────────────────────────────

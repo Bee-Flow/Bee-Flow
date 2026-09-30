@@ -108,7 +108,7 @@ function DocumentsList({ projectId, role, currentUser, onOpenSub, intent }: Cont
     const onRemove = (doc: ProjectDocument) => removal.remove(doc.id, {
         title: t('project_content.document_remove_title', 'Remove this document from the project?'),
         description: t('project_content.document_remove_desc', '"{name}" stays with its owner. Members of this project will no longer see it.', { name: doc.name }),
-        confirmLabel: t('project_content.remove', 'Remove'),
+        confirmLabel: t('project_content.remove_from_project', 'Remove from project'),
     });
 
     const actions = canEdit ? (

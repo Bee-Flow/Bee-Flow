@@ -388,6 +388,6 @@ test('deleteUser deletes owned projects through the project teardown, never a ba
 
     assert.strictEqual(runCalls.filter(c => /DELETE\s+FROM\s+projects\s+WHERE\s+owner_id/i.test(c.sql)).length, 0,
         'the owner-wide DELETE must be gone');
-    const byId = deletesFrom('projects').filter(c => /WHERE id = \$1/i.test(c.sql));
+    const byId = deletesFrom('projects').filter(c => /DELETE\s+FROM\s+projects\s+WHERE id = \$1/i.test(c.sql));
     assert.deepStrictEqual(byId.map(c => c.params), [['p-owned']], 'each owned project is deleted on its own');
 });

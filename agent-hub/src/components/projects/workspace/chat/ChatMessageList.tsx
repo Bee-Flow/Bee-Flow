@@ -2,13 +2,12 @@
 // while the reader is at the bottom, stays put when they scrolled back, and
 // keeps its place when an older page is added above.
 
-import { Loader2, MessagesSquare } from 'lucide-react';
+import { ArrowDown, Loader2, MessagesSquare } from 'lucide-react';
 import type { TranslateFn } from '../../../../hooks/useTranslation';
 import React, { useCallback, useLayoutEffect, useMemo, useRef } from 'react';
 import {
     useDeleteTeamChatMessage, useEditTeamChatMessage, useLoadOlderMessages, useTeamChatFeedback, useTeamChatMessages, type TeamChatMessage,
 } from '../../../../api/queries/projectChats';
-import useStickToBottom from '../../../../hooks/useStickToBottom';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { toast } from '../../../shared/Toast';
 import useConfirm from '../../../shared/useConfirm';
@@ -16,6 +15,7 @@ import { projectErrorText } from '../projectErrorText';
 import { GhostButton, Notice } from '../workspaceUi';
 import type { MessageContext } from './ChatMessageBubble';
 import ChatMessageGroup from './ChatMessageGroup';
+import { useFollowNewest, useThreadRoot } from './listHooks';
 import { formatDayLabel, groupMessages, isNewDay, mainConversation, summarizeThreads, threadConversation, type MessageGroup } from './messageGroups';
 
 export type BaseMessageContext = Omit<MessageContext, 'findMessage' | 'onDelete' | 'onEdit' | 'onNotHelpful'>;
@@ -100,6 +100,36 @@ function EmptyChat() {
     );
 }
 
+/** The start of a thread that is not on screen: loading it, or why it cannot be shown. */
+function ThreadRootPlaceholder({ loading, onRetry }: { loading: boolean; onRetry: () => void }) {
+    const { t } = useTranslation();
+    return (
+        <div className="px-4 py-6 border-b border-[var(--border-subtle)]" data-testid="team-chat-thread-root-missing">
+            {loading ? (
+                <div className="flex items-center justify-center gap-2 text-[13px] text-[var(--text-secondary)]" role="status">
+                    <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />{t('project_chat.thread_loading', 'Loading the start of this thread…')}
+                </div>
+            ) : (
+                <Notice tone="warning" role="alert" action={<GhostButton onClick={onRetry}>{t('project_chat.retry', 'Try again')}</GhostButton>}>
+                    {t('project_chat.thread_root_missing', 'The message that started this thread could not be loaded.')}
+                </Notice>
+            )}
+        </div>
+    );
+}
+
+/** "3 new messages": shown while the list is scrolled away from its newest end. */
+function NewMessagesPill({ count, onClick }: { count: number; onClick: () => void }) {
+    const { t } = useTranslation();
+    return (
+        <button type="button" onClick={onClick} data-testid="team-chat-new-messages"
+            className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-[12px] font-semibold shadow-lg bg-[var(--accent-primary)] text-white hover:opacity-90">
+            <ArrowDown className="w-3.5 h-3.5" aria-hidden="true" />
+            {count === 1 ? t('project_chat.new_messages_one', '1 new message') : t('project_chat.new_messages_many', '{count} new messages', { count })}
+        </button>
+    );
+}
+
 export default function ChatMessageList({ projectId, chatId, base, footer, threadId = null }: {
     projectId: string;
     chatId: string;
@@ -134,7 +164,10 @@ export default function ChatMessageList({ projectId, chatId, base, footer, threa
     }, [messages, data, threadId]);
 
     const containerRef = useRef<HTMLDivElement>(null);
-    const { onScroll } = useStickToBottom({ containerRef });
+    const { onScroll, jumpToNewest, unseen } = useFollowNewest({
+        containerRef, projectId, chatId, threadId, groups, messages, currentUserId: base.currentUserId,
+    });
+    const root = useThreadRoot(projectId, chatId, threadId, data);
     const keepPlace = useKeepPlace(containerRef, messages[0]?.id);
     const loadOlder = () => {
         keepPlace();
@@ -142,52 +175,57 @@ export default function ChatMessageList({ projectId, chatId, base, footer, threa
     };
 
     return (
-        <div ref={containerRef} onScroll={onScroll} className="flex-1 min-h-0 overflow-y-auto custom-scrollbar" data-testid={threadId ? 'team-chat-thread-messages' : 'team-chat-messages'}>
-            <div>
-                {!threadId && data?.hasOlder && (
-                    <div className="flex justify-center py-2">
-                        <GhostButton onClick={loadOlder} disabled={older.isPending}>
-                            {older.isPending && <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />}
-                            {t('project_chat.load_older', 'Load earlier messages')}
-                        </GhostButton>
-                    </div>
-                )}
-                {query.isPending && (
-                    <div className="flex items-center justify-center gap-2 py-16 text-[13px] text-[var(--text-secondary)]" role="status">
-                        <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />{t('project_chat.loading_messages', 'Loading messages…')}
-                    </div>
-                )}
-                {query.isError && !data && (
-                    <div className="p-4">
-                        <Notice tone="error" role="alert" action={<GhostButton onClick={() => query.refetch()}>{t('project_chat.retry', 'Try again')}</GhostButton>}>
-                            {t('project_chat.messages_failed', 'Could not load the messages of this chat.')}
-                        </Notice>
-                    </div>
-                )}
-                {data && !groups.length && !threadId && <EmptyChat />}
-                {rootGroups.length > 0 && (
-                    <div className="pt-3 pb-1 border-b border-[var(--border-subtle)] bg-[var(--bg-secondary)]/40" data-testid="team-chat-thread-root">
-                        <ol className="list-none m-0 p-0">{rootGroups.map(group => <ChatMessageGroup key={group.key} group={group} ctx={ctx} />)}</ol>
-                        <p className="m-0 px-4 pb-2 pl-[60px] text-[11.5px] font-medium text-[var(--text-secondary)]">
-                            {groups.length === 0 ? t('project_chat.thread_no_replies', 'No replies yet') : t('project_chat.thread_replies_heading', 'Replies')}
-                        </p>
-                    </div>
-                )}
-                {groups.length > 0 && (
-                    <ol className="list-none m-0 py-3 flex flex-col gap-1 max-w-4xl mx-auto" aria-label={t('project_chat.messages_label', 'Messages')}>
-                        {groups.map((group, i) => (
-                            <React.Fragment key={group.key}>
-                                {(i === 0 ? !threadId : isNewDay(lastAt(groups[i - 1]), group.createdAt)) && (
-                                    <DaySeparator iso={group.createdAt} t={t} />
-                                )}
-                                <ChatMessageGroup group={group} ctx={ctx} />
-                            </React.Fragment>
-                        ))}
-                    </ol>
-                )}
-                {footer}
+        <div className="relative flex-1 min-h-0 flex flex-col">
+            <div ref={containerRef} onScroll={onScroll} className="flex-1 min-h-0 overflow-y-auto custom-scrollbar" data-testid={threadId ? 'team-chat-thread-messages' : 'team-chat-messages'}>
+                <div>
+                    {!threadId && data?.hasOlder && (
+                        <div className="flex justify-center py-2">
+                            <GhostButton onClick={loadOlder} disabled={older.isPending}>
+                                {older.isPending && <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />}
+                                {t('project_chat.load_older', 'Load earlier messages')}
+                            </GhostButton>
+                        </div>
+                    )}
+                    {query.isPending && (
+                        <div className="flex items-center justify-center gap-2 py-16 text-[13px] text-[var(--text-secondary)]" role="status">
+                            <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />{t('project_chat.loading_messages', 'Loading messages…')}
+                        </div>
+                    )}
+                    {query.isError && !data && (
+                        <div className="p-4">
+                            <Notice tone="error" role="alert" action={<GhostButton onClick={() => query.refetch()}>{t('project_chat.retry', 'Try again')}</GhostButton>}>
+                                {t('project_chat.messages_failed', 'Could not load the messages of this chat.')}
+                            </Notice>
+                        </div>
+                    )}
+                    {data && !groups.length && !threadId && <EmptyChat />}
+                    {threadId && data && root.state !== 'found' && <ThreadRootPlaceholder loading={root.state === 'loading'} onRetry={root.retry} />}
+                    {rootGroups.length > 0 && (
+                        <div className="pt-3 pb-1 border-b border-[var(--border-subtle)] bg-[var(--bg-secondary)]/40" data-testid="team-chat-thread-root">
+                            <ol className="list-none m-0 p-0">{rootGroups.map(group => <ChatMessageGroup key={group.key} group={group} ctx={ctx} />)}</ol>
+                            <p className="m-0 px-4 pb-2 pl-[60px] text-[11.5px] font-medium text-[var(--text-secondary)]">
+                                {groups.length === 0 ? t('project_chat.thread_no_replies', 'No replies yet') : t('project_chat.thread_replies_heading', 'Replies')}
+                            </p>
+                        </div>
+                    )}
+                    {groups.length > 0 && (
+                        <ol className="list-none m-0 py-3 flex flex-col gap-1 max-w-4xl mx-auto" aria-label={t('project_chat.messages_label', 'Messages')}
+                            aria-live={older.isPending ? 'off' : 'polite'} aria-relevant="additions">
+                            {groups.map((group, i) => (
+                                <React.Fragment key={group.key}>
+                                    {(i === 0 ? !threadId : isNewDay(lastAt(groups[i - 1]), group.createdAt)) && (
+                                        <DaySeparator iso={group.createdAt} t={t} />
+                                    )}
+                                    <ChatMessageGroup group={group} ctx={ctx} />
+                                </React.Fragment>
+                            ))}
+                        </ol>
+                    )}
+                    {footer}
+                </div>
+                {confirmDialog}
             </div>
-            {confirmDialog}
+            {unseen > 0 && <NewMessagesPill count={unseen} onClick={jumpToNewest} />}
         </div>
     );
 }

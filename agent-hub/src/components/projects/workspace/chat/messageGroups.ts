@@ -37,6 +37,9 @@ const timeOf = (iso: string) => {
 
 function continues(group: MessageGroup, lastAt: string, author: Author): boolean {
     if (group.authorKind !== author.authorKind || author.authorKind === 'system') return false;
+    // A run that crosses midnight is cut there: the day separator and the new
+    // group's time would otherwise never show inside it.
+    if (isNewDay(lastAt, author.createdAt)) return false;
     const sameWho = author.authorKind === 'assistant'
         ? group.agentId === author.agentId
         : group.authorUserId === author.authorUserId;

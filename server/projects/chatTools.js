@@ -8,6 +8,10 @@
  *                     document as a reusable TEMPLATE with {{fields}}
  *   create_notebook   a notebook in the project, optionally with a first text
  *
+ *   agent_search      a web search, run the way the administrator configured search
+ *                     (the same tool and provider routing a normal chat uses); it
+ *                     reads the web, and makes nothing
+ *
  * That is the whole list. The AI has none of the tools a normal chat carries
  * for the person's other apps (mail, calendar, routines, web, knowledge bases
  * outside the project, memory, ...): they are not offered, and a call to a name
@@ -41,7 +45,11 @@ const CSS_MAX = 50_000;
 const DESIGNED_TYPES = Object.freeze(['document', 'invoice', 'quote', 'letter', 'report', 'security']);
 const DESCRIPTION_MAX = 1000;
 
-const TOOL_NAMES = Object.freeze(['create_document', 'create_notebook']);
+const TOOL_NAMES = Object.freeze(['create_document', 'create_notebook', 'agent_search']);
+const SEARCH_TOOL = 'agent_search';
+const MAX_SEARCHES = 4;
+const QUERY_MAX = 300;
+const SEARCH_RESULT_MAX = 24_000;
 
 const DEFINITIONS = Object.freeze({
     create_document: {
@@ -92,21 +100,36 @@ const str = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
  * @param {object} [deps]
  * @param {Function} [deps.getProjectRole]   (userId, projectId) => role|null
  * @param {Function} [deps.getUser]          (id) => user row
+ * @param {object}   [deps.projectOrg]       projects/projectOrg surface: projectOrgOf, belongsToProjectOrg, itemOrgFor
  * @param {object}   [deps.documents]        stores/documentStore surface: createDocument
  * @param {object}   [deps.notebooks]        stores/notebookStore surface: createNotebook, updateNotebook
  * @param {object}   [deps.membership]       projects/membership surface: isAllowedIn
  * @param {Function} [deps.recordCreated]    ({ projectId, itemType, itemId, actorId }) => void, one "created" entry in the project feed
  * @param {Function} [deps.markdownToHtml]   (md) => html
+ * @param {Function} [deps.searchDefinition]  () => the agent_search tool definition, as a normal chat offers it
+ * @param {Function} [deps.searchAvailable]   () => whether a web search is configured on this installation
+ * @param {Function} [deps.runSearch]         (name, args) => the search result text, through the configured provider
  * @param {Function} [deps.notebooksAllowed] ({ userId, orgId, session }) => boolean: the switch, the plan and the permission
  */
 function makeProjectChatTools(deps = {}) {
     const getProjectRole = deps.getProjectRole || ((userId, projectId) => require('../auth/projectAccess').getProjectRole(userId, projectId));
     const getUser = deps.getUser || ((id) => require('../stores/userStore').getUser(id));
+    const projectOrg = () => deps.projectOrg || require('./projectOrg');
     const documents = () => deps.documents || require('../stores/documentStore');
     const notebooks = () => deps.notebooks || require('../stores/notebookStore');
     const membership = () => deps.membership || require('./membership');
     const recordCreated = deps.recordCreated || ((e) => require('./changeFeed').recordItemCreated(e));
     const markdownToHtml = deps.markdownToHtml || ((md) => require('../core/markdown').markdownToHtml(md));
+    const searchDefinition = deps.searchDefinition || (() => require('../integrations/agentSearchTools').AGENT_SEARCH_TOOLS[0]);
+    const runSearch = deps.runSearch || ((name, args) => require('../integrations/agentSearchTools').executeWebSearch(name, args));
+    // A search is offered only where the administrator set one up: the service, the Serper key, or a provider.
+    const searchAvailable = deps.searchAvailable || (async () => {
+        const configStore = require('../stores/configStore');
+        const provider = await configStore.getConfig('search_provider');
+        if (provider === 'bing' || provider === 'node-search') return true;
+        if (process.env.SEARCH_SERVICE_URL || await configStore.getConfig('agent_search_url')) return true;
+        return !!(await configStore.getSecret('serper_api_key'));
+    });
     const notebooksAllowed = deps.notebooksAllowed || (async ({ userId, orgId, session }) => {
         const enabled = (await require('../stores/configStore').getConfig('feature_notebooks_enabled')) !== false;
         if (!enabled) return false;
@@ -123,6 +146,7 @@ function makeProjectChatTools(deps = {}) {
             if (role !== 'owner' && role !== 'editor') return [];
             if (membership().isAllowedIn('document', project.kind ?? null)) out.push(DEFINITIONS.create_document);
             if (membership().isAllowedIn('notebook', project.kind ?? null) && await notebooksAllowed({ userId, orgId, session })) out.push(DEFINITIONS.create_notebook);
+            if (await searchAvailable()) out.push(searchDefinition());
         } catch (err) {
             log.warn(`[ProjectChatTools] tools not offered for ${project && project.id}: ${err && err.message}`);
             return [];
@@ -137,6 +161,7 @@ function makeProjectChatTools(deps = {}) {
     function forAnswer({ project, userId, orgId, session: authSession }) {
         /** @type {{ kind: 'document'|'notebook'|'template', id: string, name: string }[]} */
         const created = [];
+        let searches = 0;
         const refuse = (error) => JSON.stringify({ ok: false, error });
 
         async function checked(kind, noun) {
@@ -145,7 +170,8 @@ function makeProjectChatTools(deps = {}) {
             if (role !== 'owner' && role !== 'editor') return { error: 'The person who asked can no longer add to this project.' };
             if (!membership().isAllowedIn(kind, project.kind ?? null)) return { error: `This project holds no ${noun}.` };
             const user = await getUser(userId);
-            if ((user?.organizationId || '') !== (project.organizationId || '')) return { error: 'This project belongs to another organization.' };
+            const { projectOrgOf, belongsToProjectOrg } = projectOrg();
+            if (!await belongsToProjectOrg(userId, await projectOrgOf(project))) return { error: 'This project belongs to another organization.' };
             return { user };
         }
 
@@ -160,7 +186,7 @@ function makeProjectChatTools(deps = {}) {
             const content = str(args.content, CONTENT_MAX);
             const doc = await documents().createDocument({
                 userId, name, docType: 'page', bodyHtml: content ? markdownToHtml(content) : '',
-                kind: 'document', visibility: 'private', projectId: project.id,
+                kind: 'document', visibility: 'private', projectId: project.id, projectOrgChecked: true,
             });
             await recordCreated({ projectId: project.id, itemType: 'document', itemId: doc.id, actorId: userId });
             created.push({ kind: 'document', id: doc.id, name: doc.name || name });
@@ -180,7 +206,7 @@ function makeProjectChatTools(deps = {}) {
                 userId, name, docType, bodyHtml, css,
                 settings: args.useHouseStyle === false ? { houseStyle: false } : {},
                 kind: template ? 'template' : 'document', visibility: 'private',
-                ...(template ? {} : { projectId: project.id }),
+                ...(template ? {} : { projectId: project.id, projectOrgChecked: true }),
             });
             if (template) {
                 created.push({ kind: 'template', id: doc.id, name: doc.name || name });
@@ -203,7 +229,7 @@ function makeProjectChatTools(deps = {}) {
             if (gate.error) return refuse(gate.error);
             const nb = await notebooks().createNotebook({
                 userId, name, description: str(args.description, DESCRIPTION_MAX), projectId: project.id,
-                organizationId: gate.user?.organizationId || null,
+                organizationId: projectOrg().itemOrgFor(project, gate.user),
             });
             if (content) await notebooks().updateNotebook(nb.id, userId, { documentContent: content });
             await recordCreated({ projectId: project.id, itemType: 'notebook', itemId: nb.id, actorId: userId });
@@ -211,11 +237,32 @@ function makeProjectChatTools(deps = {}) {
             return JSON.stringify({ ok: true, kind: 'notebook', id: nb.id, name: nb.name || name, url: `/app/projects/${project.id}/notebooks/${nb.id}` });
         }
 
+        /** A web search: read-only, so it makes nothing and counts against its own small budget. */
+        async function search(args) {
+            const query = str(args.query, QUERY_MAX);
+            if (!query) return refuse('A search needs a query.');
+            if (searches >= MAX_SEARCHES) return refuse(`At most ${MAX_SEARCHES} searches can be made in one answer.`);
+            const role = await getProjectRole(userId, project.id);
+            if (role !== 'owner' && role !== 'editor') return refuse('The person who asked can no longer use this project.');
+            searches += 1;
+            const out = await runSearch(SEARCH_TOOL, { ...args, query });
+            const text = typeof out === 'string' ? out : JSON.stringify(out);
+            return text.length > SEARCH_RESULT_MAX ? `${text.slice(0, SEARCH_RESULT_MAX)}\n…` : text;
+        }
+
         /** @param {string} name @param {any} args */
         async function execute(name, args) {
             // The allow-list is enforced here, not only by what was offered: a model can name any tool.
             if (!TOOL_NAMES.includes(name)) return refuse('That tool is not available in a team chat.');
             const input = args && typeof args === 'object' ? args : {};
+            if (name === SEARCH_TOOL) {
+                try {
+                    return await search(input);
+                } catch (err) {
+                    log.warn(`[ProjectChatTools] search failed in project ${project.id}: ${err && err.message}`);
+                    return refuse('The search could not be run.');
+                }
+            }
             try {
                 return name === 'create_document' ? await createDocument(input) : await createNotebook(input);
             } catch (err) {
@@ -232,4 +279,4 @@ function makeProjectChatTools(deps = {}) {
     return { offered, forAnswer };
 }
 
-module.exports = { makeProjectChatTools, TOOL_NAMES, MAX_ITEMS_PER_ANSWER, MAX_ROUNDS };
+module.exports = { makeProjectChatTools, TOOL_NAMES, SEARCH_TOOL, MAX_ITEMS_PER_ANSWER, MAX_SEARCHES, MAX_ROUNDS };

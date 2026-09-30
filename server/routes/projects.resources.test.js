@@ -281,7 +281,7 @@ Module._resolveFilename = function (request, parent, ...rest) {
     // knowledge-base section would fall through to a real store, throw at load,
     // be caught by the route's `load()` wrapper and come back as null while
     // every existing assertion stayed green.
-    if (parent && /(routes[\\/]projects|projects[\\/](membership|knowledgeBaseMembership))\.js$/.test(parent.filename)
+    if (parent && /(routes[\\/]projects|projects[\\/](membership|knowledgeBaseMembership)|auth[\\/]orgScope)\.js$/.test(parent.filename)
         && Object.prototype.hasOwnProperty.call(MOCK_IDS, request)) {
         return MOCK_IDS[request];
     }

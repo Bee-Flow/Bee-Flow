@@ -27,6 +27,7 @@ const membership = require('../../projects/membership');
 const { makeContentRouter } = require('./content');
 const { makeChangeFeed } = require('../../projects/changeFeed');
 const { makeNotebookGate } = require('./notebookGate');
+const { makeSwaps } = require('../../testUtils/swaps');
 
 const OWNER = { id: 'u_owner', organizationId: 'org1' };
 const EDITOR = { id: 'u_editor', organizationId: 'org1' };
@@ -35,7 +36,7 @@ const STRANGER = { id: 'u_stranger', organizationId: 'org1' };
 const FOREIGN_EDITOR = { id: 'u_foreign', organizationId: 'org2' };
 
 const ROLES = {
-    p1: { u_owner: 'owner', u_editor: 'editor', u_viewer: 'viewer', u_foreign: 'editor' },
+    p1: { u_owner: 'owner', u_editor: 'editor', u_viewer: 'viewer', u_foreign: 'editor', u_group: 'editor' },
     legacy: { u_owner: 'owner', u_editor: 'editor' },
     sol: { u_owner: 'owner', u_editor: 'editor' },
     gone: { u_editor: 'editor' },
@@ -51,7 +52,14 @@ const USERS = {
     u_editor: { id: 'u_editor', organizationId: 'org1' },
     u_viewer: { id: 'u_viewer', organizationId: 'org1' },
     u_foreign: { id: 'u_foreign', organizationId: 'org2' },
+    // Organisation only through a group: none on the account row.
+    u_group: { id: 'u_group', organizationId: '', groups: '["g1"]' },
 };
+const GROUPS = [{ id: 'g1', organizationId: 'org1' }];
+// The membership check reads the caller's organisations through auth/orgScope, which reads the user store.
+const userStore = require('../../stores/userStore');
+makeSwaps().swap(userStore, 'getUser', async (id) => USERS[id] || null);
+makeSwaps().swap(userStore, 'getAllGroups', async () => GROUPS);
 const ORDER = { viewer: 0, editor: 1, owner: 2 };
 
 // ── Recording fakes ───────────────────────────────────────────────────
@@ -151,6 +159,7 @@ test('an editor creates a document: theirs, private, filed in the project, annou
     assert.deepStrictEqual(rec.documents, [{
         userId: 'u_editor', name: 'Launch plan', docType: 'report', description: undefined,
         bodyHtml: undefined, css: undefined, settings: undefined, kind: 'document', visibility: 'private', projectId: 'p1',
+        projectOrgChecked: true,
     }]);
     // One "created" entry, not a `resource_added` next to it: the document was
     // made here, and "since your last visit" must count it once.
@@ -200,6 +209,16 @@ test('a Studio Solution holds no documents: 409, and nothing is made', async () 
     assert.strictEqual(res.body.code, 'KIND_NOT_ALLOWED');
     assert.match(res.body.error, /Solution/);
     nothingHappened();
+});
+
+test('a member whose organisation only comes from a group can make documents and notebooks in the project', async () => {
+    reset();
+    const asGroupMember = { user: USERS.u_group };
+    const doc = await api.call('POST', '/api/projects/p1/documents', { body: { name: 'Plan' }, ...asGroupMember });
+    assert.strictEqual(doc.status, 201, doc.text);
+    const nb = await api.call('POST', '/api/projects/p1/notebooks', { body: { name: 'Notes' }, ...asGroupMember });
+    assert.strictEqual(nb.status, 201, nb.text);
+    assert.strictEqual(rec.notebooks[0].organizationId, 'org1', 'the notebook carries the organisation the project stores');
 });
 
 test('a member from another organisation cannot make content in this one', async () => {

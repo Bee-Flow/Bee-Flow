@@ -69,7 +69,11 @@ export default function useStickToBottom(
         const contentNow = () => (contentRef && contentRef.current) || el.firstElementChild || el;
 
         const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(follow) : null;
-        if (ro) ro.observe(contentNow());
+        if (ro) { ro.observe(el); ro.observe(contentNow()); }
+        // The scroller's own box shrinks when something beside it grows (a
+        // composer taking a third line, a reply chip, a notice row, the
+        // on-screen keyboard): scrollTop stays, so the newest rows slide under
+        // whatever grew unless a pinned list re-pins.
         // A row that appears without changing the measured height (an image
         // swapped in, a <details> opening, markdown landing a beat late) still
         // moves the bottom — and this is what catches the node swap.

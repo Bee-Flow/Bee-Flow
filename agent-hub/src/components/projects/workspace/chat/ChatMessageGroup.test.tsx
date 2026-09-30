@@ -82,9 +82,9 @@ describe('a person\'s colour in the chat', () => {
         expect(style).not.toMatch(/(?:[3-9]\d|100)%/);
     });
 
-    it('gives your own bubble your colour', () => {
+    it('uses the shared Direct chat theme for your own bubble', () => {
         renderGroup(g(own, 'me'), withColors());
-        expect(screen.getByTestId('team-chat-message-u1').getAttribute('style')).toContain('#22c55e');
+        expect(screen.getByTestId('team-chat-message-u1').getAttribute('style')).toContain('var(--user-bubble-bg)');
     });
 
     it('paints a colleague\'s name in their colour, kept readable by the theme\'s ink', () => {

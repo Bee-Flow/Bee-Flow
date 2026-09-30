@@ -2,6 +2,18 @@
 // Merged into GUI_DEFAULTS by ./index.js. The frontend copy (agent-hub/src/i18n/en-defaults.js)
 // is GENERATED from these files: after an edit, run `node scripts/gen-i18n-defaults.mjs`.
 module.exports = {
+    "project_chat.start_together": "Start a conversation",
+    "project_chat.project_prompt": "Share an update, discuss an idea, or mention @AI for help…",
+    "project_chat.shared_ai_hint": "Everyone in this project can read along. Mention @AI when you want its help.",
+    "project_chat.empty_unified": "Start a conversation with your project members. Mention @AI whenever you need help.",
+    "project_chat.filter_unread": "Unread",
+    "project_chat.filter_shared": "Shared",
+    "project_chat.no_matches": "No conversations match",
+    "project_chat.try_filter": "Try another search or show all conversations.",
+    "project_chat.conversations": "Conversations",
+    "project_chat.overview_hint": "Your team, decisions and AI help in one place.",
+    "project_chat.search": "Search conversations",
+    "project_chat.context_used": "Sources provided to AI",
     'project_chat.agent_chat': 'Agent chat',
     'project_chat.agent_fallback': 'Agent',
     'project_chat.agent_label': 'Who answers',
@@ -180,4 +192,8 @@ module.exports = {
     'project_chat.trace_title': 'How I got this answer',
     'project_chat.mention_meeting_hint': 'meeting',
     'project_chat.ref_meeting': 'Meeting',
+    'project_chat.new_messages_one': '1 new message',
+    'project_chat.new_messages_many': '{count} new messages',
+    'project_chat.thread_loading': 'Loading the start of this thread…',
+    'project_chat.thread_root_missing': 'The message that started this thread could not be loaded.',
 };

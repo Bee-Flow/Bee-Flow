@@ -16,14 +16,16 @@ export interface ThreadPanelProps {
     /** The chat's message context without quote-reply and thread actions. */
     base: BaseMessageContext;
     canPost: boolean;
-    composer: Pick<ChatComposerProps, 'candidates' | 'aiEnabled' | 'onSend' | 'onTyping' | 'tier'>;
+    composer: Pick<ChatComposerProps, 'candidates' | 'aiEnabled' | 'onSend' | 'onTyping' | 'tier' | 'draftKey'>;
+    /** What the AI said about a post made here (shown above the box, in sight of where it was typed). */
+    notice?: React.ReactNode;
     footer?: React.ReactNode;
     onClose: () => void;
     /** Make a task about this thread. */
     onCreateTask?: () => void;
 }
 
-export default function ThreadPanel({ projectId, chatId, threadId, base, canPost, composer, footer, onClose, onCreateTask }: ThreadPanelProps) {
+export default function ThreadPanel({ projectId, chatId, threadId, base, canPost, composer, notice, footer, onClose, onCreateTask }: ThreadPanelProps) {
     const { t } = useTranslation();
     return (
         <aside className="absolute inset-0 z-10 md:static md:inset-auto md:w-[380px] md:flex-shrink-0 flex flex-col min-h-0 border-l border-[var(--border-default)] bg-[var(--bg-primary)]"
@@ -42,6 +44,7 @@ export default function ThreadPanel({ projectId, chatId, threadId, base, canPost
                 </button>
             </div>
             <ChatMessageList projectId={projectId} chatId={chatId} base={base} threadId={threadId} footer={footer} />
+            {notice}
             {canPost && (
                 <ChatComposer {...composer} reply={null} onCancelReply={() => undefined}
                     placeholder={t('project_chat.thread_placeholder', 'Reply in the thread. Type @ to mention someone, the AI, a document, a notebook or a meeting.')} />

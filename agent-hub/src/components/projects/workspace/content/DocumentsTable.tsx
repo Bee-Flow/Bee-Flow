@@ -1,3 +1,4 @@
+import { useViewport } from '../../../../hooks/useViewport';
 // The documents filed in a project, as a table: name (with a dot when
 // somebody else changed it since the reader last looked), type, owner, and
 // when and by whom it was last changed.
@@ -45,11 +46,20 @@ export default function DocumentsTable({ documents, loading, empty, ownerName, m
     const rel = useRelativeTime();
     const typeLabel = useDocTypeLabel();
     const columns = useColumns();
+    const { isMobile } = useViewport();
     const [nameCol, typeCol, ownerCol, updatedCol, actionsCol] = columns;
     return (
         <DataTable
             columns={columns}
             rows={documents}
+            isMobile={isMobile}
+            renderCard={(doc: ProjectDocumentRow) => <div className="flex items-start gap-2 w-full min-w-0">
+                <button type="button" onClick={() => onOpen(doc)} className="min-w-0 flex-1 text-left py-1">
+                    <span className="block text-sm font-medium text-[var(--text-primary)] break-words">{doc.name}</span>
+                    <span className="block text-xs text-[var(--text-secondary)]">{typeLabel(doc.docType)} · {ownerName(doc.userId)} · {rel(doc.updatedAt || doc.createdAt)}</span>
+                </button>
+                {mayRemove(doc) && <RemoveButton label={t('project_content.remove_from_project', 'Remove from project')} disabled={removingId === doc.id} onClick={() => onRemove(doc)} />}
+            </div>}
             loading={loading}
             skeletonRows={4}
             empty={empty}

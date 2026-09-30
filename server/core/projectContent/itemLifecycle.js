@@ -30,7 +30,7 @@
  *   leftProject(kind, id, from)    after the item left project `from`
  *   beforeDelete(kind, id, userId) foldBack before the owner deletes (a
  *                                  document: archives) the item
- *   deleted(kind, id)              after the item was deleted for good
+ *   deleted(kind, id)              after the item was deleted for good (task links to it go too)
  *   beforeProjectDeleted(id)       every co-edited item of a project, folded
  *                                  back before the project (and with it the
  *                                  co-editing state and threads) is deleted
@@ -52,6 +52,7 @@ const SIGNAL_SUBJECT = Object.freeze({ notebook: 'notebook_document', document: 
  *     detachProject: (projectId: string) => Promise<any> },
  *   comments?: { deleteForTarget: Function, deleteForTargetInProject: Function },
  *   signals?: { deleteSignal: (subjectKind: string, subjectId: string) => Promise<any> },
+ *   tasks?: { dropLinksTo: (projectId: string|null, kind: string, id: string) => Promise<number> },
  *   placement?: (kind: string, id: string) => Promise<{ projectId: string|null, ownerId: string|null }|null>,
  *   log?: { warn: Function },
  * }} [deps]
@@ -60,6 +61,7 @@ function makeItemLifecycle(deps = {}) {
     const collab = () => deps.collab || require('../collab');
     const comments = () => deps.comments || require('../../stores/projectCommentStore');
     const signals = () => deps.signals || require('../../stores/contentPiiSignalStore');
+    const tasks = () => deps.tasks || require('../../stores/projectTaskStore');
     const placement = deps.placement || ((kind, id) => require('../collab/resources').makeResources().load(kind, id));
     const log = deps.log || require('../../telemetry/log');
 
@@ -145,6 +147,8 @@ function makeItemLifecycle(deps = {}) {
      */
     async function deleted(kind, id) {
         if (!KINDS.includes(kind) || !id) return { threads: 0 };
+        // Tasks that linked it keep existing; the link goes, in every project.
+        await step('dropping task links', kind, id, () => tasks().dropLinksTo(null, kind, id));
         return release(kind, id, 'deleted', () => comments().deleteForTarget(kind, id));
     }
 

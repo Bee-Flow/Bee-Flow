@@ -15,11 +15,13 @@ export interface DirectoryUser {
     id: string;
     name: string;
     email?: string;
+    organizationId?: string;
 }
 
 export interface DirectoryGroup {
     id: string;
     name: string;
+    organizationId?: string;
 }
 
 const agentRows = (rows: unknown): AgentSummary[] => (Array.isArray(rows)
@@ -84,7 +86,7 @@ export function useDirectoryUsers(enabled = true) {
         staleTime: 60_000,
         queryFn: ({ signal }) => directoryList<DirectoryUser>('/auth/users', signal, (u) => (
             u && typeof u.id === 'string' && !u.isSystem
-                ? { id: u.id, name: String(u.displayName || u.username || u.email || u.id), email: u.email || undefined }
+                ? { id: u.id, name: String(u.displayName || u.username || u.email || u.id), email: u.email || undefined, organizationId: u.organizationId || '' }
                 : null
         )),
     });
@@ -96,7 +98,7 @@ export function useDirectoryGroups(enabled = true) {
         enabled,
         staleTime: 60_000,
         queryFn: ({ signal }) => directoryList<DirectoryGroup>('/auth/groups', signal, (g) => (
-            g && typeof g.id === 'string' ? { id: g.id, name: String(g.name || g.id) } : null
+            g && typeof g.id === 'string' ? { id: g.id, name: String(g.name || g.id), organizationId: g.organizationId || '' } : null
         )),
     });
 }

@@ -27,7 +27,8 @@ const LINK_KINDS = Object.freeze(['document', 'notebook', 'chat', 'thread', 'mee
 const PRIORITIES = Object.freeze(['low', 'normal', 'high', 'urgent']);
 /** Room left between two neighbours in a column, so a move usually changes one row. */
 const RANK_STEP = 1000;
-const MAX_TASKS_LISTED = 500;
+/** The board shows every to-do and doing task; only the finished ones are cut, to the most recently completed. */
+const MAX_DONE_LISTED = 500;
 
 const DDL = `
     CREATE TABLE IF NOT EXISTS project_tasks (
@@ -47,6 +48,11 @@ const DDL = `
     );
     CREATE INDEX IF NOT EXISTS idx_project_tasks_project
         ON project_tasks(project_id, status, created_at DESC);
+    ALTER TABLE project_tasks ADD COLUMN IF NOT EXISTS start_date DATE;
+    DO $$ BEGIN
+        ALTER TABLE project_tasks ADD CONSTRAINT project_tasks_date_range CHECK (start_date IS NULL OR due_date IS NULL OR start_date <= due_date);
+    EXCEPTION WHEN duplicate_object THEN NULL;
+    END $$;
     ALTER TABLE project_tasks ADD COLUMN IF NOT EXISTS priority TEXT NOT NULL DEFAULT 'normal';
     ALTER TABLE project_tasks ADD COLUMN IF NOT EXISTS labels TEXT NOT NULL DEFAULT '';
     ALTER TABLE project_tasks ADD COLUMN IF NOT EXISTS checklist TEXT NOT NULL DEFAULT '';
@@ -59,6 +65,17 @@ const DDL = `
     END $$;
     CREATE INDEX IF NOT EXISTS idx_project_tasks_source
         ON project_tasks ((source->>'id')) WHERE source IS NOT NULL;
+    -- A meeting item becomes a task once. Rows an earlier race already doubled lose their source
+    -- (the task stays, only the claim on the item goes) so the unique index below can always be built.
+    UPDATE project_tasks t SET source = NULL
+      FROM (SELECT id, ROW_NUMBER() OVER (
+                     PARTITION BY project_id, source->>'id', source->>'itemId', COALESCE(source->>'textHash', '')
+                     ORDER BY created_at, id) AS n
+              FROM project_tasks WHERE source IS NOT NULL) d
+     WHERE t.id = d.id AND d.n > 1;
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_project_tasks_source_item
+        ON project_tasks (project_id, (source->>'id'), (source->>'itemId'), (COALESCE(source->>'textHash', '')))
+        WHERE source IS NOT NULL;
 `;
 
 class ProjectTaskStoreError extends Error {
@@ -70,11 +87,17 @@ class ProjectTaskStoreError extends Error {
     }
 }
 
-/** Where a task came from: `{ kind: 'meeting', id, itemId }`, or null. */
+/**
+ * Where a task came from: `{ kind: 'meeting', id, itemId }`, or null. `textHash` (projects/taskFromMeeting
+ * itemTextHash) pins which action item the positional `itemId` meant when the task was made; a task
+ * from before it existed has none.
+ */
 function parseSource(v) {
     const s = parseJson(v, null);
     if (!s || s.kind !== 'meeting' || typeof s.id !== 'string' || !s.id || typeof s.itemId !== 'string' || !s.itemId) return null;
-    return { kind: 'meeting', id: s.id, itemId: s.itemId };
+    const out = { kind: 'meeting', id: s.id, itemId: s.itemId };
+    if (typeof s.textHash === 'string' && s.textHash) out.textHash = s.textHash;
+    return out;
 }
 
 const toIso = (v) => (v ? new Date(v).toISOString() : null);
@@ -118,6 +141,7 @@ function rowToTask(r) {
         status: r.status,
         assigneeIds: parseAssignees(r.assignee_ids),
         links: parseLinks(r.links),
+        startDate: toDay(r.start_date),
         dueDate: toDay(r.due_date),
         priority: r.priority || 'normal',
         labels: r.labels || '',
@@ -146,7 +170,8 @@ function makeProjectTaskStore(db, { ready = async () => {} } = {}) {
     /**
      * @param {{ id: string, projectId: string, title: string, description: string, createdBy: string,
      *           status?: string, priority?: string, labels?: string, checklist?: string, assigneeIds?: string[],
-     *           links?: object[], dueDate?: string|null, source?: object|null }} t  title, description, labels and checklist sealed
+     *           links?: object[], startDate?: string|null, dueDate?: string|null, source?: object|null }} t  title, description, labels and checklist sealed
+     * @returns {Promise<ReturnType<typeof rowToTask>|null>} null when the meeting item of `source` already became a task here
      */
     async function createTask(t) {
         await ready();
@@ -157,14 +182,15 @@ function makeProjectTaskStore(db, { ready = async () => {} } = {}) {
         const r = await db.query(
             `INSERT INTO project_tasks
                 (id, project_id, title, description, status, assignee_ids, links, due_date, created_by, completed_at,
-                 priority, labels, checklist, sort_order, source)
-             VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7::jsonb, $8, $9, $10, $11, $12, $13, $14, $15::jsonb)
+                 priority, labels, checklist, sort_order, source, start_date)
+             VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7::jsonb, $8, $9, $10, $11, $12, $13, $14, $15::jsonb, $16)
+             ON CONFLICT DO NOTHING
              RETURNING *`,
             [t.id, t.projectId, t.title, t.description, status, JSON.stringify(t.assigneeIds || []), JSON.stringify(t.links || []),
                 t.dueDate || null, t.createdBy, status === 'done' ? new Date() : null,
-                priority, t.labels || '', t.checklist || '', await endRank(t.projectId, status), t.source ? JSON.stringify(t.source) : null],
+                priority, t.labels || '', t.checklist || '', await endRank(t.projectId, status), t.source ? JSON.stringify(t.source) : null, t.startDate || null],
         );
-        return rowToTask(r.rows[0]);
+        return rowToTask(r.rows[0] || null);
     }
 
     /** One task, only when it belongs to this project. */
@@ -174,14 +200,35 @@ function makeProjectTaskStore(db, { ready = async () => {} } = {}) {
         return rowToTask(r.rows[0] || null);
     }
 
-    /** The project's tasks, in board order (rank), newest last within a column. */
-    async function listTasks(projectId) {
+    /**
+     * The board: every to-do and doing task, and the most recently finished ones (older done tasks are
+     * left out, `truncated` says so). In board order (rank), newest last within a column.
+     */
+    async function listBoard(projectId) {
         await ready();
         const r = await db.query(
-            'SELECT * FROM project_tasks WHERE project_id = $1 ORDER BY sort_order ASC, created_at ASC, id LIMIT $2',
-            [projectId, MAX_TASKS_LISTED],
+            `SELECT * FROM (
+                 SELECT p.*, NULL::bigint AS recent FROM project_tasks p WHERE p.project_id = $1 AND p.status <> 'done'
+                 UNION ALL
+                 (SELECT p.*, ROW_NUMBER() OVER (ORDER BY p.completed_at DESC NULLS LAST, p.created_at DESC, p.id) AS recent
+                    FROM project_tasks p WHERE p.project_id = $1 AND p.status = 'done'
+                   ORDER BY p.completed_at DESC NULLS LAST, p.created_at DESC, p.id LIMIT $2)
+             ) b ORDER BY sort_order ASC, created_at ASC, id`,
+            [projectId, MAX_DONE_LISTED + 1],
         );
-        return r.rows.map(rowToTask);
+        // The one extra finished row only proves there are more.
+        const shown = r.rows.filter((row) => row.recent == null || Number(row.recent) <= MAX_DONE_LISTED);
+        return { tasks: shown.map(rowToTask), truncated: shown.length < r.rows.length };
+    }
+
+    async function listSearchTasks(projectId) {
+        await ready();
+        return (await db.query('SELECT * FROM project_tasks WHERE project_id = $1 ORDER BY id', [projectId])).rows.map(rowToTask);
+    }
+
+    /** The project's tasks as listBoard returns them, without the `truncated` flag. */
+    async function listTasks(projectId) {
+        return (await listBoard(projectId)).tasks;
     }
 
     /**
@@ -193,7 +240,7 @@ function makeProjectTaskStore(db, { ready = async () => {} } = {}) {
      * @param {string} projectId
      * @param {string} taskId
      * @param {{ title?: string, description?: string, labels?: string, checklist?: string, status?: string, priority?: string,
-     *           assigneeIds?: string[], links?: object[], dueDate?: string|null }} patch
+     *           assigneeIds?: string[], links?: object[], startDate?: string|null, dueDate?: string|null }} patch
      */
     async function updateTask(projectId, taskId, patch) {
         await ready();
@@ -219,6 +266,7 @@ function makeProjectTaskStore(db, { ready = async () => {} } = {}) {
         }
         if (patch.assigneeIds !== undefined) add('assignee_ids', JSON.stringify(patch.assigneeIds), '::jsonb');
         if (patch.links !== undefined) add('links', JSON.stringify(patch.links), '::jsonb');
+        if (patch.startDate !== undefined) add('start_date', patch.startDate || null);
         if (patch.dueDate !== undefined) {
             add('due_date', patch.dueDate || null);
             sets.push('notified_due_tier = NULL');
@@ -279,14 +327,19 @@ function makeProjectTaskStore(db, { ready = async () => {} } = {}) {
         return rowToTask(r.rows[0] || null);
     }
 
-    /** The action items of a meeting that already became a task in this project: `itemId → taskId`. */
+    /**
+     * The action items of a meeting that already became a task in this project: `key → taskId`, where the
+     * key is `itemId#textHash` (projects/taskFromMeeting itemKey), or the bare `itemId` for a task made
+     * before the hash was kept. Look a key up with `itemKey` / `createdTaskFor`, not with the raw id.
+     */
     async function tasksFromMeeting(projectId, meetingId) {
         await ready();
         const r = await db.query(
-            `SELECT id, source->>'itemId' AS item FROM project_tasks WHERE project_id = $1 AND source->>'id' = $2`,
+            `SELECT id, source->>'itemId' AS item, source->>'textHash' AS hash
+               FROM project_tasks WHERE project_id = $1 AND source->>'id' = $2`,
             [projectId, meetingId],
         );
-        return new Map(r.rows.map((row) => [row.item, row.id]));
+        return new Map(r.rows.map((row) => [row.hash ? `${row.item}#${row.hash}` : row.item, row.id]));
     }
 
     /** @returns {Promise<boolean>} whether a task was removed */
@@ -311,7 +364,10 @@ function makeProjectTaskStore(db, { ready = async () => {} } = {}) {
         return r.rowCount || 0;
     }
 
-    /** Tasks that point at a chat, thread of it, document or notebook go on existing; the link is dropped. */
+    /**
+     * Tasks that point at a chat, thread of it, document, notebook or meeting go on existing; the link is
+     * dropped. `projectId` null drops it in every project (the item itself was deleted).
+     */
     async function dropLinksTo(projectId, kind, id) {
         await ready();
         const r = await db.query(
@@ -319,13 +375,14 @@ function makeProjectTaskStore(db, { ready = async () => {} } = {}) {
                 SET links = COALESCE((SELECT jsonb_agg(l) FROM jsonb_array_elements(links) l
                                        WHERE NOT (l->>'kind' = $2 AND l->>'id' = $3)), '[]'::jsonb),
                     updated_at = NOW()
-              WHERE project_id = $1 AND links @> jsonb_build_array(jsonb_build_object('kind', $2::text, 'id', $3::text))`,
-            [projectId, kind, id],
+              WHERE ($1::text IS NULL OR project_id = $1)
+                AND links @> jsonb_build_array(jsonb_build_object('kind', $2::text, 'id', $3::text))`,
+            [projectId || null, kind, id],
         );
         return r.rowCount || 0;
     }
 
-    return { createTask, getTask, listTasks, updateTask, moveTask, tasksFromMeeting, deleteTask, unassignUser, dropLinksTo };
+    return { createTask, getTask, listBoard, listTasks, listSearchTasks, updateTask, moveTask, tasksFromMeeting, deleteTask, unassignUser, dropLinksTo };
 }
 
 const initDB = makeStoreInit('ProjectTaskStore', _initDB);

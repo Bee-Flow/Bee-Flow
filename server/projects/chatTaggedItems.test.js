@@ -37,5 +37,5 @@ test('a document and a notebook are still read the way they were, and a failing 
     const documents = { getDocument: async () => ({ name: 'Plan', bodyHtml: '<p>Hello <b>world</b></p>' }) };
     const notebooks = { getNotebook: async () => { throw new Error('db down'); } };
     const items = await loadTaggedItems([{ kind: 'document', id: 'd1' }, { kind: 'notebook', id: 'n1' }], { userId: 'ann' }, { documents, notebooks });
-    assert.deepStrictEqual(items, [{ kind: 'document', name: 'Plan', text: 'Hello world' }]);
+    assert.deepStrictEqual(items, [{ id: 'd1', kind: 'document', name: 'Plan', text: 'Hello world' }]);
 });

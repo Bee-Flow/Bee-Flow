@@ -4,7 +4,7 @@
 // Share / Stop sharing for the chats the caller owns. With `sub` set (a team
 // chat id) the tab shows that chat instead.
 
-import { Archive, MessageSquare, RotateCcw } from 'lucide-react';
+import { Archive, MessageSquare, Plus, Search, RotateCcw } from 'lucide-react';
 import React, { useCallback, useMemo, useState } from 'react';
 import { useShareThread } from '../../../../api/queries/projects';
 import { useTranslation, type TranslateFn } from '../../../../hooks/useTranslation';
@@ -17,13 +17,13 @@ import { StudioSectionHeader } from '../studioParts';
 import { THREAD_SEP } from '../tasks/taskLinks';
 import { useTaskDialog } from '../tasks/useTaskDialog';
 import { canEditProject, type ChatsTabProps } from '../types';
-import { GhostButton, LoadingRow, Notice, PrimaryButton } from '../workspaceUi';
+import { GhostButton, INPUT_CLASS, LoadingRow, Notice, PrimaryButton } from '../workspaceUi';
 import ChatListRow, { type ChatRowContext } from './ChatListRow';
 import { useChatPeople } from './chatPeople';
 import NewChatComposer, { type NewChatMode } from './NewChatComposer';
-import NewChatMenu from './NewChatMenu';
+import { hasUnread } from '../../../../api/queries/projectChats';
 import ProjectTeamChat from './ProjectTeamChat';
-import { filterChatItems, useChatList, type ChatListFilter, type ChatListItem } from './useChatList';
+import { useChatList, type ChatListFilter, type ChatListItem } from './useChatList';
 import { useAnsweringIds } from './useTeamChatLive';
 
 type ListSources = ReturnType<typeof useChatList>['sources'];
@@ -79,7 +79,7 @@ function emptyCopy(filter: ChatListFilter, canEdit: boolean, t: TranslateFn) {
     return {
         title: t('project_chat.empty_title_all', 'No chats in this project yet'),
         body: canEdit
-            ? t('project_chat.empty_body_all', 'Start a team chat with the members, or an AI chat that knows this project.')
+            ? t('project_chat.empty_unified', 'Start a conversation with your project members. Mention @AI whenever you need help.')
             : t('project_chat.empty_body_viewer', 'Chats the members start or share will show up here.'),
     };
 }
@@ -120,33 +120,36 @@ function ArchivedSection({ show, onToggle, items, source, ctx, answering }: {
     );
 }
 
-function FilterBar({ filter, onChange, items, loading }: {
-    filter: ChatListFilter; onChange: (f: ChatListFilter) => void; items: ChatListItem[]; loading: boolean;
-}) {
+type ConversationFilter = 'all' | 'unread' | 'shared' | 'private';
+function visibleChats(items: ChatListItem[], filter: ConversationFilter, search = '') {
+    const needle = search.trim().toLocaleLowerCase();
+    return items.filter(i => (!needle || `${i.title} ${i.kind === 'team' ? i.chat.lastMessage?.excerpt || '' : ''}`.toLocaleLowerCase().includes(needle))
+        && (filter === 'all' || (filter === 'unread' && i.kind === 'team' && hasUnread(i.chat))
+            || (filter === 'shared' && (i.kind === 'team' || i.shared)) || (filter === 'private' && i.kind === 'ai' && !i.shared)));
+}
+function FilterBar({ filter, onChange, items, loading }: { filter: ConversationFilter; onChange: (f: ConversationFilter) => void; items: ChatListItem[]; loading: boolean }) {
     const { t } = useTranslation();
-    const team = items.filter(i => i.kind === 'team').length;
-    const badge = (n: number) => (loading ? null : n);
-    return (
-        <SegmentedControl size="sm" value={filter} onChange={onChange} ariaLabel={t('project_chat.filter_label', 'Show')}
-            options={[
-                { value: 'all', label: t('project_chat.filter_all', 'All'), badge: badge(items.length) },
-                { value: 'team', label: t('project_chat.filter_team', 'Team'), badge: badge(team) },
-                { value: 'ai', label: t('project_chat.filter_ai', 'AI'), badge: badge(items.length - team) },
-            ]} />
-    );
+    return <SegmentedControl size="sm" value={filter} onChange={onChange} ariaLabel={t('project_chat.filter_label', 'Show')}
+        options={[
+            { value: 'all', label: t('project_chat.filter_all', 'All'), badge: loading ? null : items.length },
+            { value: 'unread', label: t('project_chat.filter_unread', 'Unread'), badge: loading ? null : visibleChats(items, 'unread').length },
+            { value: 'shared', label: t('project_chat.filter_shared', 'Shared') },
+            { value: 'private', label: t('project_chat.private', 'Private') },
+        ]} />;
 }
 
 /** Loading, the rows, or an empty state that explains the feature — never "empty" when a source failed. */
-function ChatsBody({ list, filter, canEdit, ctx, answering, onNew }: {
-    list: ReturnType<typeof useChatList>; filter: ChatListFilter; canEdit: boolean;
+function ChatsBody({ list, filter, search, canEdit, ctx, answering, onNew }: {
+    list: ReturnType<typeof useChatList>; filter: ConversationFilter; search: string; canEdit: boolean;
     ctx: ChatRowContext; answering: ReadonlySet<string>; onNew: () => void;
 }) {
     const { t } = useTranslation();
-    const visible = filterChatItems(list.items, filter);
+    const visible = visibleChats(list.items, filter, search);
     if (visible.length) return <ChatRows items={visible} ctx={ctx} answering={answering} label={t('project_chat.title', 'Chats')} />;
     if (!list.settled) return <LoadingRow label={t('project_chat.loading', 'Loading chats…')} />;
     if (list.failed) return null;
-    const empty = emptyCopy(filter, canEdit, t);
+    if (search || filter !== 'all') return <EmptyState icon={<Search className="w-7 h-7" />} title={t('project_chat.no_matches', 'No conversations match')} description={t('project_chat.try_filter', 'Try another search or show all conversations.')} />;
+    const empty = emptyCopy('all', canEdit, t);
     return (
         <EmptyState icon={<MessageSquare className="w-8 h-8" />} title={empty.title} description={empty.body}
             action={canEdit ? <PrimaryButton onClick={onNew}>{t('project_chat.new_chat', 'New chat')}</PrimaryButton> : undefined} />
@@ -165,7 +168,8 @@ function useRowContext(props: ChatsTabProps, canEdit: boolean, share: ReturnType
 function ChatsOverview(props: ChatsTabProps) {
     const { t } = useTranslation();
     const canEdit = canEditProject(props.role);
-    const [filter, setFilter] = useState<ChatListFilter>('all');
+    const [filter, setFilter] = useState<ConversationFilter>('all');
+    const [search, setSearch] = useState('');
     const [mode, setMode] = useState<NewChatMode | null>(props.intent === 'create' && canEdit ? 'team' : null);
     const [showArchived, setShowArchived] = useState(false);
     const list = useChatList(props.projectId, props.currentUser?.id || null, showArchived);
@@ -176,18 +180,22 @@ function ChatsOverview(props: ChatsTabProps) {
     return (
         <div className="h-full flex flex-col min-h-0" data-testid="project-chats-tab">
             <StudioSectionHeader icon={MessageSquare} title={t('project_chat.title', 'Chats')} testId="project-chats-header"
-                statusChip={list.loading ? null : String(list.items.length)} primary={canEdit ? <NewChatMenu onPick={setMode} /> : undefined} />
+                statusChip={list.loading ? null : String(list.items.length)} primary={canEdit ? <PrimaryButton onClick={() => setMode('team')}><Plus className="w-4 h-4" />{t('project_chat.new_chat', 'New chat')}</PrimaryButton> : undefined} />
             <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
-                <div className="max-w-3xl mx-auto px-6 py-5 space-y-4">
+                <div className="max-w-6xl mx-auto px-4 sm:px-8 py-6 space-y-5">
                     {mode && canEdit && (
                         <NewChatComposer mode={mode} project={props.project} onModeChange={setMode} onClose={() => setMode(null)}
                             onStartChat={props.onStartChat} onOpenTeamChat={id => props.onOpenSub(id)} />
                     )}
+                    <div className="flex flex-wrap items-center gap-3 justify-between">
+                        <div><h2 className="text-xl font-semibold m-0">{t('project_chat.conversations', 'Conversations')}</h2><p className="text-sm text-[var(--text-secondary)] mt-1">{t('project_chat.overview_hint', 'Your team, decisions and AI help in one place.')}</p></div>
+                        <label className="relative w-full sm:w-72"><Search className="absolute left-3 top-3 w-4 h-4 text-[var(--text-tertiary)]" /><input type="search" value={search} onChange={e => setSearch(e.target.value)} className={`${INPUT_CLASS} pl-9`} placeholder={t('project_chat.search', 'Search conversations')} aria-label={t('project_chat.search', 'Search conversations')} /></label>
+                    </div>
                     <FilterBar filter={filter} onChange={setFilter} items={list.items} loading={list.loading} />
                     <SourceErrors sources={list.sources} />
-                    <ChatsBody list={list} filter={filter} canEdit={canEdit} ctx={ctx} answering={answering}
-                        onNew={() => setMode(filter === 'ai' ? 'ai' : 'team')} />
-                    {filter !== 'ai' && (
+                    <ChatsBody list={list} filter={filter} search={search} canEdit={canEdit} ctx={ctx} answering={answering}
+                        onNew={() => setMode('team')} />
+                    {filter !== 'private' && (
                         <ArchivedSection show={showArchived} onToggle={() => setShowArchived(v => !v)} items={list.archivedItems}
                             source={list.sources.archived} ctx={ctx} answering={answering} />
                     )}

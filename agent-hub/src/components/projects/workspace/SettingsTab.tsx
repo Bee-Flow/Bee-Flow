@@ -7,7 +7,7 @@
 
 import { useQueryClient } from '@tanstack/react-query';
 import { AlertTriangle, Check, Save, Settings } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     ProjectConflictError, projectKeys, useUpdateProject, type Project,
 } from '../../../api/queries/projects';
@@ -16,6 +16,7 @@ import Toggle from '../../shared/Toggle';
 import {
     ColorSwatches, DescriptionField, IconPicker, InstructionsField, NameField,
 } from './ProjectIdentityFields';
+import { projectErrorText } from './projectErrorText';
 import { DEFAULT_PROJECT_COLOR, DEFAULT_PROJECT_ICON } from './projectVisuals';
 import SettingsDanger from './SettingsDanger';
 import { StudioSectionHeader } from './studioParts';
@@ -61,6 +62,7 @@ const baseOf = (p: Project): Base => ({ draft: draftOf(p), version: versionOf(p)
  * server's conflict check instead of silently overwriting the colleague.
  */
 function useSettingsForm(projectId: string, project: Project) {
+    const { t } = useTranslation();
     const qc = useQueryClient();
     const update = useUpdateProject(projectId);
     const [draft, setDraft] = useState<SettingsDraft>(() => draftOf(project));
@@ -119,7 +121,7 @@ function useSettingsForm(projectId: string, project: Project) {
             setSaved(true);
         } catch (e) {
             if (e instanceof ProjectConflictError) await reloadAfterConflict(e, mine);
-            else setError(e instanceof Error ? e.message : String(e));
+            else setError(projectErrorText(t, e, t('project_home.settings.save_failed', 'Could not save the settings.')));
         }
     };
 
@@ -167,12 +169,19 @@ function statusChipFor(form: ReturnType<typeof useSettingsForm>, t: ReturnType<t
     return null;
 }
 
-export default function SettingsTab({ projectId, project, role, currentUser, onDeleted, onLeft }: WorkspaceTabProps & {
+export default function SettingsTab({ projectId, project, role, currentUser, onDeleted, onLeft, onDirtyChange }: WorkspaceTabProps & {
     onDeleted?: (id: string) => void;
     onLeft?: () => void;
+    /** Tells the shell whether there are unsaved edits, so it can ask before leaving the tab. */
+    onDirtyChange?: (dirty: boolean) => void;
 }) {
     const { t } = useTranslation();
     const form = useSettingsForm(projectId, project);
+    const { dirty } = form;
+    useEffect(() => {
+        onDirtyChange?.(dirty);
+        return () => onDirtyChange?.(false);
+    }, [dirty, onDirtyChange]);
     const canEdit = canEditProject(role);
     const locked = !canEdit || form.saving;
     const { draft, edit } = form;

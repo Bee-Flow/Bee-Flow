@@ -72,6 +72,8 @@ export interface ProjectPerson {
 
 export interface ProjectMembers {
     ownerId: string;
+    /** The organisation of the project, '' for none: only its own people and groups can be invited. */
+    organizationId?: string;
     members: ProjectShare[];
     /** Display names for the owner and user members, keyed by user id. */
     people: Record<string, ProjectPerson>;
@@ -152,6 +154,10 @@ export class ProjectConflictError extends Error {
 
 const enc = encodeURIComponent;
 
+/** A refusal (404 removed or deleted, 403 no longer a member) will not change on a second try: show it at once. */
+export const retryUnlessRefused = (failures: number, error: unknown): boolean =>
+    !(error instanceof ApiError && typeof error.status === 'number' && error.status >= 400 && error.status < 500 && error.status !== 408 && error.status !== 429) && failures < 2;
+
 // ── Projects ────────────────────────────────────────────────────────────────
 
 export function useProjectsQuery(kind: ProjectKind = 'workspace', enabled = true) {
@@ -169,6 +175,7 @@ export function useProjectQuery(projectId: string | null | undefined) {
     return useQuery<Project, Error>({
         queryKey: projectKeys.detail(projectId || ''),
         enabled: !!projectId,
+        retry: retryUnlessRefused,
         queryFn: async ({ signal }) => {
             const row = await apiClient.get<Project>(`/api/projects/${enc(projectId!)}`, { signal, retry: false });
             if (!row) throw new Error('Could not load project');
@@ -262,6 +269,8 @@ export function useProjectMembersQuery(projectId: string | null | undefined) {
             const body = await apiClient.get<Partial<ProjectMembers>>(`/api/projects/${enc(projectId!)}/members`, { signal });
             return {
                 ownerId: body?.ownerId || '',
+                // Absent from an older server: then nothing is filtered by organisation.
+                organizationId: typeof body?.organizationId === 'string' ? body.organizationId : undefined,
                 members: Array.isArray(body?.members) ? body!.members! : [],
                 people: body?.people || {},
                 groups: body?.groups || {},
@@ -362,6 +371,8 @@ export function useAttachResource(projectId: string) {
             qc.invalidateQueries({ queryKey: projectKeys.resources(projectId) });
             qc.invalidateQueries({ queryKey: projectKeys.detail(projectId) });
             qc.invalidateQueries({ queryKey: projectKeys.activity(projectId) });
+            // The pickers say "in another project" from these lists.
+            qc.invalidateQueries({ queryKey: ['project-content', 'mine'] });
         },
     });
 }

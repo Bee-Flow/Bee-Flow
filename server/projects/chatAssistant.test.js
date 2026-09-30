@@ -94,7 +94,7 @@ test('the transcript keeps the newest messages when it must cut', () => {
 function world(overrides = {}) {
     const key = crypto.randomBytes(32);
     const chatCrypto = makeChatCrypto({ getProjectKey: async () => key });
-    const log = { transient: [], durable: [], usage: [], llm: [], released: [], acquired: [], appended: [], knowledge: [], persona: [], protect: [], cleared: [], replies: [], audience: [] };
+    const log = { transient: [], durable: [], usage: [], llm: [], released: [], acquired: [], appended: [], knowledge: [], persona: [], protect: [], cleared: [], replies: [], audience: [], listed: [] };
     const messages = [];
     const chat = { id: 'c1', projectId: 'p1', agentId: overrides.agentId ?? null, aiMode: 'mention' };
 
@@ -110,9 +110,11 @@ function world(overrides = {}) {
     }
 
     const store = {
-        async listMessages(chatId, { limit }) {
+        async listMessages(chatId, { limit, threadId }) {
             assert.strictEqual(chatId, 'c1');
-            return { messages: messages.slice(-limit), hasMore: false };
+            log.listed.push({ limit, threadId });
+            const scoped = typeof threadId === 'string' ? messages.filter((m) => m.id === threadId || m.threadId === threadId) : messages;
+            return { messages: scoped.slice(-limit), hasMore: false };
         },
         async appendMessage(m) {
             log.appended.push(m);
@@ -156,6 +158,7 @@ function world(overrides = {}) {
                 forModel: async (content) => content,
             };
         },
+        searchGuard: () => async (query) => { (log.searchChecks = log.searchChecks || []).push(query); return overrides.blockSearch ? { modelError: 'guard says no' } : null; },
         restoreArgs: (args, map) => (map ? JSON.parse(JSON.stringify(args).split('[phone_1]').join(map['[phone_1]'])) : args),
     };
 
@@ -181,9 +184,11 @@ function world(overrides = {}) {
         publishTransient: async (projectId, ev) => { log.transient.push({ projectId, ...ev }); },
         logUsage: async (entry) => { log.usage.push(entry); },
         timeoutMs: overrides.timeoutMs ?? 5000,
+        lockPollMs: 5,
+        ...(overrides.lockWaitMs ? { lockWaitMs: overrides.lockWaitMs } : {}),
         newId: (() => { let i = 0; return () => `id-${++i}`; })(),
     });
-    return { assistant, chatCrypto, log, messages, chat, seed };
+    return { assistant, chatCrypto, log, messages, chat, seed, releaseLock: () => { lockHeld = false; } };
 }
 
 async function ask(w, triggerText = '@ai what is the plan?', extra = {}) {
@@ -206,12 +211,44 @@ test('a subscription limit or a missing model means no answer, and no turn is cl
     assert.deepStrictEqual(noModel.log.transient, []);
 });
 
-test('a chat whose turn is held answers busy and calls nothing', async () => {
+test('an automatic answer that finds the turn held yields: busy, nothing called, no lock of ours released', async () => {
     const w = world({ lockHeld: true });
-    assert.deepStrictEqual(await ask(w), { status: 'busy' });
+    assert.deepStrictEqual(await askAuto(w), { status: 'busy' });
     assert.strictEqual(w.log.llm.length, 0);
     assert.deepStrictEqual(w.log.transient, []);
     assert.strictEqual(w.log.released.length, 0, 'a lock we did not take is not ours to release');
+});
+
+test('an explicit ask that finds the turn held waits for it and is then answered, not lost', async () => {
+    const w = world({ lockHeld: true });
+    const reply = await ask(w);
+    assert.strictEqual(reply.status, 'queued');
+    assert.deepStrictEqual(w.log.transient, [], 'nothing is running yet');
+    assert.strictEqual(w.log.llm.length, 0);
+    setTimeout(() => w.releaseLock(), 30);
+    assert.deepStrictEqual(await reply.done, { status: 'answered', messageId: 'id-2' });
+    assert.ok(w.log.acquired.length > 1, 'it polled for the turn');
+    assert.deepStrictEqual(w.log.transient.map((e) => e.status), ['running', 'answered']);
+    assert.strictEqual(w.log.released.length, 1);
+});
+
+test('an explicit ask gives up with busy when the turn never frees within the wait bound', async () => {
+    const w = world({ lockHeld: true, lockWaitMs: 40 });
+    const reply = await ask(w);
+    assert.strictEqual(reply.status, 'queued');
+    assert.deepStrictEqual(await reply.done, { status: 'busy' });
+    assert.strictEqual(w.log.llm.length, 0);
+    assert.strictEqual(w.log.released.length, 0, 'a lock we never took is not released');
+    assert.deepStrictEqual(w.log.transient, []);
+});
+
+test('the lock of an explicit answer outlasts the tool loop, an automatic one only the model call', async () => {
+    const explicit = world({});
+    await (await ask(explicit)).done;
+    assert.strictEqual(explicit.log.acquired[0].ttlMs, 5000 * 3 + 30000);
+    const auto = world({});
+    await (await askAuto(auto, { gateLastSeq: 99 })).done;
+    assert.strictEqual(auto.log.acquired[0].ttlMs, 5000 + 30000);
 });
 
 test('a queued answer: context, persona, knowledge, sealed answer, usage, events, lock released', async () => {
@@ -225,7 +262,7 @@ test('a queued answer: context, persona, knowledge, sealed answer, usage, events
     assert.deepStrictEqual(await reply.done, { status: 'answered', messageId: 'id-2' });
 
     assert.deepStrictEqual(w.log.acquired[0], {
-        conversationId: 'c1', conversationType: 'project_chat', projectId: 'p1', userId: 'ann', runId: 'id-1', ttlMs: 35000,
+        conversationId: 'c1', conversationType: 'project_chat', projectId: 'p1', userId: 'ann', runId: 'pc::id-1', ttlMs: 45000,
     });
     assert.deepStrictEqual(w.log.persona, [{ agentId: 'agent-1', userId: 'ann' }]);
     assert.deepStrictEqual(w.log.knowledge.map((k) => [k.project.id, k.userId, k.query, k.shield.marker]), [['p1', 'ann', '@ai what is the plan?', 'shield']]);
@@ -270,8 +307,8 @@ test('a queued answer: context, persona, knowledge, sealed answer, usage, events
         payload: { chatId: 'c1', messageId: saved.id, seq: 4, authorKind: 'assistant' },
     }]);
     assert.ok(!JSON.stringify([w.log.transient, w.log.durable]).includes('Here is my take'));
-    assert.deepStrictEqual(w.log.released, [{ conversationId: 'c1', runId: 'id-1' }]);
-    assert.deepStrictEqual(w.log.cleared, ['project-chat-c1-id-1']);
+    assert.deepStrictEqual(w.log.released, [{ conversationId: 'c1', runId: 'pc::id-1' }]);
+    assert.deepStrictEqual(w.log.cleared, ['project-chat-c1-pc::id-1']);
     assert.strictEqual(saved.aiTrigger, 'ask', 'why the AI spoke is stored');
     assert.strictEqual(saved.aiReason, null);
     assert.strictEqual(saved.unlessHumanAfterSeq, null, 'an asked-for answer is never stale');
@@ -325,7 +362,7 @@ test('a failing model: status failed, no raw error text anywhere in the feed, lo
     const feed = JSON.stringify([w.log.transient, w.log.durable]);
     assert.ok(!feed.includes('upstream') && !feed.includes('0612345678'));
     assert.deepStrictEqual(w.log.transient.map((e) => e.status), ['running', 'failed']);
-    assert.deepStrictEqual(w.log.released, [{ conversationId: 'c1', runId: 'id-1' }]);
+    assert.deepStrictEqual(w.log.released, [{ conversationId: 'c1', runId: 'pc::id-1' }]);
 
     // The turn is free again: the next question is not busy.
     const again = await w.assistant.requestReply({ project: PROJECT, chat: w.chat, trigger: w.messages.at(-1), triggerText: 'retry', userId: 'ann', orgId: 'org1' });
@@ -388,7 +425,7 @@ test('an automatic answer: short prompt with the reason, stored with its trigger
     assert.deepStrictEqual(w.log.replies, [], 'the engine logs its own decision');
     assert.deepStrictEqual(w.log.audience, ['p1']);
     assert.deepStrictEqual(w.log.knowledge[0].audienceIds, ['ann', 'bob'], 'knowledge from what every member may read');
-    assert.deepStrictEqual(w.log.released, [{ conversationId: 'c1', runId: 'id-1' }]);
+    assert.deepStrictEqual(w.log.released, [{ conversationId: 'c1', runId: 'pc::id-1' }]);
 });
 
 test('an automatic [[SKIP]] stores nothing and says nothing', async () => {
@@ -683,6 +720,39 @@ test('the shield can refuse a tool call: nothing is made, and the model hears wh
     assert.deepStrictEqual(w.log.appended.find((m) => m.authorKind === 'assistant').refs, []);
 });
 
+const SEARCH_DEFINITIONS = [{ type: 'function', function: { name: 'agent_search' } }];
+
+test('a search is offered with its own prompt lines, and its query keeps the placeholders', async () => {
+    let told = null;
+    const { w, calls, loops } = toolsWorld({
+        definitions: SEARCH_DEFINITIONS,
+        world: { tokenise: true },
+        script: async (executeTool) => { told = await executeTool('agent_search', { query: 'who owns 0612345678 [phone_1]' }); return { content: 'Found it.', usage: {} }; },
+    });
+    const reply = await ask(w, '@ai look up 0612345678');
+    await reply.done;
+    assert.match(loops[0].messages[0].content, /search the web with agent_search/);
+    assert.match(loops[0].messages[0].content, /never put names, e-mail addresses/);
+    assert.doesNotMatch(loops[0].messages[0].content, /create documents and notebooks/, 'no document talk when none is offered');
+    const exec = calls.find((c) => c[0] === 'execute');
+    assert.strictEqual(exec[2].query, 'who owns 0612345678 [phone_1]', 'the query keeps its placeholders: no real value goes to a search provider');
+    assert.deepStrictEqual(w.log.searchChecks, ['who owns 0612345678 [phone_1]']);
+    assert.ok(told);
+});
+
+test('the Web Search Guard can stop a search: it never runs, and the model hears why', async () => {
+    let told = null;
+    const { w, calls } = toolsWorld({
+        definitions: SEARCH_DEFINITIONS,
+        world: { blockSearch: true },
+        script: async (executeTool) => { told = await executeTool('agent_search', { query: 'jan de vries bsn' }); return { content: 'I could not search.', usage: {} }; },
+    });
+    const reply = await ask(w);
+    await reply.done;
+    assert.match(told, /guard says no/);
+    assert.ok(!calls.some((c) => c[0] === 'execute'));
+});
+
 test('a member who cannot make things gets the plain call, with no tool talk in the prompt', async () => {
     const { w, loops } = toolsWorld({ definitions: [] });
     const reply = await ask(w);
@@ -717,4 +787,72 @@ test('a template the AI made is not linked to the answer as a project document',
     await reply.done;
     const stored = w.log.appended.find((m) => m.authorKind === 'assistant');
     assert.deepStrictEqual(stored.refs, [{ kind: 'document', id: 'd1' }, { kind: 'notebook', id: 'n1' }], 'only what is in the project becomes a chip');
+});
+
+test('a tool call that comes after the answer was given up on makes nothing', async () => {
+    let late = null;
+    const { w, calls, made } = toolsWorld({
+        world: { timeoutMs: 10 },
+        script: async (executeTool) => {
+            await new Promise((resolve) => setTimeout(resolve, 80));
+            late = JSON.parse(await executeTool('create_document', { name: 'Too late', content: 'x' }));
+            return { content: 'Done.', usage: {} };
+        },
+    });
+    const reply = await ask(w, '@ai make a document');
+    assert.deepStrictEqual(await reply.done, { status: 'failed' });
+    await new Promise((resolve) => setTimeout(resolve, 120));
+    assert.strictEqual(late.ok, false);
+    assert.ok(!calls.some((c) => c[0] === 'execute'), 'the tool never ran');
+    assert.deepStrictEqual(made, []);
+});
+
+// ── Threads ──────────────────────────────────────────────────────────────
+
+test('a thread answer loads its own conversation by root, so an old thread keeps its root', async () => {
+    const w = world({});
+    const box = await w.chatCrypto.forProject(PROJECT);
+    await w.seed(box, [['bob', 'Root of the old thread'], ['ann', 'A reply in the thread']]);
+    w.messages[0].threadId = null;
+    w.messages[1].threadId = 'm1';
+    for (let i = 0; i < 40; i++) {
+        const id = `n${i}`;
+        w.messages.push({ id, chatId: 'c1', seq: 10 + i, authorKind: 'user', authorUserId: 'bob', threadId: null, content: box.sealContent('c1', id, `Newer main message ${i}`), deletedAt: null });
+    }
+    const trigger = { id: 'm2', threadId: 'm1' };
+    const reply = await w.assistant.requestReply({
+        project: PROJECT, chat: w.chat, trigger, triggerText: '@ai summarise this thread', userId: 'ann', orgId: 'org1',
+    });
+    await reply.done;
+    assert.deepStrictEqual(w.log.listed.at(-1), { limit: 30, threadId: 'm1' });
+    const sent = w.log.llm[0].msgs[1].content;
+    assert.match(sent, /Root of the old thread/);
+    assert.match(sent, /A reply in the thread/);
+    assert.ok(!sent.includes('Newer main message'));
+});
+
+test('a main-conversation answer asks the store for the main conversation only', async () => {
+    const w = world({});
+    await (await ask(w)).done;
+    assert.deepStrictEqual(w.log.listed.at(-1), { limit: 30, threadId: null });
+});
+
+test('current AI status comes from the shared turn lock and identifies the thread', async () => {
+    let turn = { runId: 'pc:thread-1:run', acquiredAt: '2026-10-01T10:00:00Z' };
+    const assistant = makeChatAssistant({ locks: { getTurn: async () => turn } });
+    assert.deepStrictEqual(await assistant.getStatus('c'), { status: 'running', threadId: 'thread-1', startedAt: turn.acquiredAt });
+    turn = null;
+    assert.deepStrictEqual(await assistant.getStatus('c'), { status: 'idle', threadId: null });
+});
+
+
+test('Auto answers a direct natural-language address without waiting for participation or cooldown', () => {
+    for (const content of ['hoi ai, wat is het weer vandaag', 'Ai kan jij antwoord geven ?', 'AI, can you help?', 'Wat kan je nog meer doen ai?']) {
+        assert.deepEqual(decideAiTrigger({ aiMode: 'auto', content }), { trigger: true, kind: 'ask' });
+        assert.equal(decideAiTrigger({ aiMode: 'mention', content }).trigger, false);
+        assert.equal(decideAiTrigger({ aiMode: 'off', content }).trigger, false);
+    }
+    for (const content of ['We bespreken AI morgen', 'hoi allemaal', 'AI tooling vergelijken', 'AI kan helpen.', 'Wat weet Bob over AI?']) {
+        assert.deepEqual(decideAiTrigger({ aiMode: 'auto', content }), { trigger: false, reason: 'auto_pending' });
+    }
 });

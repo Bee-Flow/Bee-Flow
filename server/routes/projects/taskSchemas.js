@@ -76,6 +76,7 @@ const fields = {
     checklist: checklist.optional(),
     assigneeIds: assigneeIds.optional(),
     links: links.optional(),
+    startDate: dueDate.optional(),
     dueDate: dueDate.optional(),
 };
 

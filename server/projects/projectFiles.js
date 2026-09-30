@@ -298,6 +298,21 @@ function makeProjectFiles(deps = {}) {
      * Every file in the project, newest first.
      * @returns {Promise<{files: object[], kbId: string|null}>}
      */
+    async function fileContent(project, fileId) {
+        const kb = await getFilesKb(project);
+        if (!kb) return null;
+        const doc = await kbStore().getDocument(fileId);
+        if (!doc || String(doc.knowledge_base_id) !== String(kb.id)) return null;
+        const file = toFile(doc, now());
+        // Only successfully processed, shielded content can be shown.
+        let content = '';
+        if (file.status === 'ready') {
+            content = await kbStore().getDocumentOriginalContent(doc.id) || '';
+            if (!content) content = await (deps.getDocumentContent || require('../core/kb/localKBIngest').getDocumentContent)(kb.tenant_id, kb.id, doc.id) || '';
+        }
+        return { file, content, available: !!content };
+    }
+
     async function listFiles(project) {
         const kb = await getFilesKb(project);
         if (!kb) return { files: [], kbId: null };
@@ -552,7 +567,7 @@ function makeProjectFiles(deps = {}) {
     }
 
     return {
-        getFilesKb, ensureFilesKb, listFiles, fileNames, nameFileActivity, addFile, removeFile, removeFilesKb, settle,
+        getFilesKb, ensureFilesKb, listFiles, fileContent, fileNames, nameFileActivity, addFile, removeFile, removeFilesKb, settle,
     };
 }
 

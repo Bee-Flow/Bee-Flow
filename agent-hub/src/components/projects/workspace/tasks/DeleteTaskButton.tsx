@@ -17,7 +17,7 @@ export default function DeleteTaskButton({ task, onDelete, className = '' }: { t
     return (
         <button type="button" aria-label={label} title={t('project_tasks.delete', 'Delete')} data-testid={`delete-task-${task.id}`}
             onClick={(e) => { e.stopPropagation(); onDelete(task); }}
-            onPointerDown={e => e.stopPropagation()}
+            onPointerDown={e => e.stopPropagation()} onMouseDown={e => e.stopPropagation()} onTouchStart={e => e.stopPropagation()}
             className={`grid place-items-center w-7 h-7 rounded-md text-[var(--text-tertiary)] hover:text-[var(--error-ink)] hover:bg-[var(--item-hover-bg)] transition-colors ${className}`.trim()}>
             <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
         </button>

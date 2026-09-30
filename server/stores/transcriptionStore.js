@@ -1151,7 +1151,7 @@ async function deleteTranscription(id, userId) {
  * who can read it. (The publish route refuses the other direction: a filed
  * note cannot be published.)
  */
-async function setTranscriptionProject(id, userId, projectId) {
+async function setTranscriptionProject(id, userId, projectId, callerOrgIds = []) {
     await initDB();
     if (!id || !userId || !projectId) return false;
     const held = await getOne('SELECT is_published, shared_groups, shared_with FROM transcriptions WHERE id = $1 AND user_id = $2', [id, userId]);
@@ -1165,8 +1165,9 @@ async function setTranscriptionProject(id, userId, projectId) {
         `UPDATE transcriptions t SET project_id = $1
           WHERE t.id = $2 AND t.user_id = $3
             AND EXISTS (SELECT 1 FROM projects p
-                         WHERE p.id = $1 AND COALESCE(p.organization_id, '') = COALESCE(t.organization_id, ''))`,
-        [projectId, id, userId]
+                         WHERE p.id = $1 AND (COALESCE(p.organization_id, '') = COALESCE(t.organization_id, '')
+                            OR (COALESCE(t.organization_id, '') = '' AND p.organization_id = ANY($4::text[]))))`,
+        [projectId, id, userId, [...callerOrgIds]]
     );
     return (rowCount || 0) > 0;
 }

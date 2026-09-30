@@ -7,6 +7,7 @@
  */
 
 const BaseProvider = require("./base");
+const { qualifiesForStrict } = require("./openaiModelCaps");
 const {
     describeClaudeModel,
     resolveEffort,
@@ -229,6 +230,13 @@ function isThinkingReplayRejection(err) {
 }
 
 class ClaudeProvider extends BaseProvider {
+    // Modern Claude models can reject forced tool_choice. Use native JSON for
+    // closed structured-output schemas; actual action tools keep their own path.
+    supportsStructuredOutput(modelId, schema) {
+        const match = describeClaudeModel(modelId).id.match(/^claude-(?:sonnet|opus|haiku|fable|mythos)-(\d+)/);
+        return !!match && Number(match[1]) >= 5 && (schema === undefined || qualifiesForStrict(schema));
+    }
+
     constructor() {
         super("claude");
     }
@@ -871,6 +879,10 @@ class ClaudeProvider extends BaseProvider {
             }
         }
 
+        if (options.responseFormat?.type === 'json_schema' && options.responseFormat.json_schema?.schema) {
+            params.output_config = { ...params.output_config,
+                format: { type: 'json_schema', schema: options.responseFormat.json_schema.schema } };
+        }
         return params;
     }
 

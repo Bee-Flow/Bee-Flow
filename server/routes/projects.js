@@ -48,6 +48,7 @@ const { perUserRateLimit } = require('../utils/perUserRateLimit');
 const { validate } = require('../core/http/validate');
 const { HttpError, notFound } = require('../core/http/errors');
 const S = require('./projects/schemas');
+const { orgScope } = require('../auth/orgScope');
 
 // Single shared budget across all membership mutations (invite / role change /
 // removal / unshare). Keeps a runaway client or accidental spam loop from
@@ -208,6 +209,8 @@ function memberAvatar(projectId, userId, user) {
 /** The display name a member list shows for a user row (the same rule as the documents' people). */
 const { displayNameOf } = require('../core/documents/documentPeople');
 
+const { projectOrgOf, belongsToProjectOrg } = require('../projects/projectOrg');
+
 /**
  * Names for the owner and the member rows of one project.
  *
@@ -224,7 +227,7 @@ const { displayNameOf } = require('../core/documents/documentPeople');
  * @returns {Promise<{ people: Record<string, {name?: string}>, groups: Record<string, {name?: string}> }>}
  */
 async function describeMembers(project, shares) {
-    const org = project.organizationId || '';
+    const org = await projectOrgOf(project);
     const userIds = new Set([project.ownerId]);
     const groupIds = new Set();
     for (const share of shares) {
@@ -238,7 +241,7 @@ async function describeMembers(project, shares) {
         try { user = await userStore.getUser(id); } catch (err) {
             log.warn('[Projects] member lookup failed:', err.message);
         }
-        if (!user || (user.organizationId || '') !== org) return;
+        if (!user || !await belongsToProjectOrg(id, org).catch(() => false)) return;
         const name = displayNameOf(user);
         const entry = name ? { name } : {};
         const picture = memberAvatar(project.id, id, user);
@@ -301,7 +304,9 @@ router.post('/', validate({ body: S.CreateBody }), async (req, res) => {
         const lenError = validateLengths({ name, description, customInstructions });
         if (lenError) return res.status(400).json({ error: lenError });
 
-        const organizationId = req.session?.user?.organizationId || '';
+        // The organisation the account acts in: the one on the session, else the one the account resolves to
+        // (a member whose organisation comes from a group has none on the session), else none.
+        const organizationId = req.session?.user?.organizationId || (await orgScope(req)).orgId || '';
 
         if (knowledgeBaseIds !== undefined) {
             const kbCheck = await validateKnowledgeBaseIds(req, knowledgeBaseIds, organizationId);
@@ -595,7 +600,7 @@ router.post('/:id/share', memberMutationLimiter, requireRole('owner'), validate(
         // Compare normalised values instead: '' is a real bucket, and only an
         // equally org-less counterpart matches it.
         const project = await projectStore.getProject(req.params.id);
-        const projectOrg = project?.organizationId || '';
+        const projectOrg = await projectOrgOf(project);
         if (sharedWithType === 'group') {
             const targetGroup = await userStore.getGroup(sharedWithId);
             if (!targetGroup || targetGroup.id !== sharedWithId) return res.status(400).json({ error: 'Unknown group' });
@@ -605,7 +610,7 @@ router.post('/:id/share', memberMutationLimiter, requireRole('owner'), validate(
         } else if (sharedWithType === 'user') {
             const targetUser = await userStore.getUser(sharedWithId);
             if (!targetUser) return res.status(400).json({ error: 'Unknown user' });
-            if ((targetUser.organizationId || '') !== projectOrg) {
+            if (!await belongsToProjectOrg(targetUser.id, projectOrg)) {
                 return res.status(400).json({ error: 'User does not belong to this project\'s organisation' });
             }
         }
@@ -666,7 +671,9 @@ router.get('/:id/members', requireRole('viewer'), async (req, res) => {
     } catch (err) {
         log.warn('[Projects] member colours unavailable:', err.message);
     }
-    res.json({ ownerId: project.ownerId, members: shares, people, groups });
+    // The organisation the project belongs to ('' for none): only its own people and groups can be invited,
+    // so the invite picker offers no others (a platform admin's directory lists every organisation).
+    res.json({ ownerId: project.ownerId, organizationId: await projectOrgOf(project), members: shares, people, groups });
 });
 
 // PUT /:id/members/:memberId — change role (owner only)
@@ -746,7 +753,7 @@ router.get('/:id/avatars/:userId', requireRole('viewer'), async (req, res) => {
     const isMember = project.ownerId === req.params.userId
         || shares.some((s) => s.sharedWithType === 'user' && s.sharedWithId === req.params.userId);
     const user = isMember ? await userStore.getUser(req.params.userId) : null;
-    const match = user && (user.organizationId || '') === (project.organizationId || '') && typeof user.avatar === 'string'
+    const match = user && typeof user.avatar === 'string' && await belongsToProjectOrg(user.id, await projectOrgOf(project))
         ? AVATAR_DATA_URL.exec(user.avatar) : null;
     if (!match) throw notFound();
     res.set({
@@ -1160,6 +1167,21 @@ router.put('/:id/conversations', requireRole('editor'), validate({ body: S.Conve
             return res.status(400).json({ error: `At most ${MAX_CONVERSATION_BATCH} conversations per request` });
         }
 
+        // A chat shared into a project is sealed under THAT project's key and its shared scope requires a project:
+        // moving it would leave it unreadable in the new one, and detaching it would violate that constraint.
+        // Checked for the whole batch before anything is applied, so a refusal leaves nothing half done.
+        // Stopping the sharing (DELETE /conversations/:convId) is the way out.
+        for (const conv of [...(assign || []).map(c => ({ ...c, into: true })), ...(unassign || [])]) {
+            const table = conv.type === 'agent' ? 'agent_conversations' : 'direct_conversations';
+            const filing = await projectStore.getOwnConversationFiling(conv.id, userId, table);
+            if (filing?.shared && !(conv.into && filing.projectId === req.params.id)) {
+                return res.status(409).json({
+                    error: 'A chat shared with a project cannot be moved or detached. Stop sharing it first.',
+                    code: 'CONVERSATION_SHARED', conversationId: conv.id,
+                });
+            }
+        }
+
         // Filing chats INTO a Solution is refused. Taking them out is not:
         // a legacy project classified as a Solution may still hold some.
         if (Array.isArray(assign) && assign.length > 0) {
@@ -1217,6 +1239,8 @@ router.use('/', require('./projects/chats'));
 router.use('/', require('./projects/tasks'));
 router.use('/', require('./projects/memberColors'));
 router.use('/', require('./projects/workspace'));
+router.use('/', require('./projects/discovery'));
+router.use('/', require('./projects/board'));
 router.use('/', require('./projects/content'));
 // Real-time co-editing of notebooks and project pages (the HTTP half of the
 // sync; the other half rides on GET /:id/stream above).

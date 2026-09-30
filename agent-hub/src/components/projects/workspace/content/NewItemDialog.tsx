@@ -40,7 +40,7 @@ function Footer({ onClose, submitLabel, busy, disabled, formId }: { onClose: () 
     const { t } = useTranslation();
     return (
         <div className="flex justify-end gap-2">
-            <button type="button" onClick={onClose} className="h-8 px-3 rounded-lg text-[13px] border border-[var(--border-default)] text-[var(--text-secondary)] hover:bg-[var(--item-hover-bg)]">
+            <button type="button" onClick={onClose} disabled={busy} className="h-8 px-3 rounded-lg text-[13px] border border-[var(--border-default)] text-[var(--text-secondary)] hover:bg-[var(--item-hover-bg)] disabled:opacity-50 disabled:cursor-not-allowed">
                 {t('project_content.cancel', 'Cancel')}
             </button>
             <button
@@ -82,6 +82,8 @@ export default function NewItemDialog(props: NewItemDialogProps) {
     const [type, setType] = useState(typeOptions?.[0]?.value || '');
     const [description, setDescription] = useState('');
     const clean = name.trim();
+    // While it is being made there is no going back: the new item opens as soon as it exists.
+    const close = () => { if (!busy) onClose(); };
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -90,8 +92,8 @@ export default function NewItemDialog(props: NewItemDialogProps) {
     };
 
     return (
-        <Modal open={open} onClose={onClose} title={title} size="sm" disableEscapeClose={busy}
-            footer={<Footer onClose={onClose} submitLabel={submitLabel} busy={busy} disabled={!clean || busy} formId={`${ids}-form`} />}>
+        <Modal open={open} onClose={close} title={title} size="sm" disableEscapeClose={busy}
+            footer={<Footer onClose={close} submitLabel={submitLabel} busy={busy} disabled={!clean || busy} formId={`${ids}-form`} />}>
             <form id={`${ids}-form`} onSubmit={submit} className="space-y-3">
                 <div>
                     <label htmlFor={`${ids}-name`} className={LABEL}>{nameLabel}</label>

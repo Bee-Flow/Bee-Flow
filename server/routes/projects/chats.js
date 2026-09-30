@@ -108,6 +108,7 @@ function excerptOf(text) {
  * @param {object}   [deps.assistant]           { requestReply(...) } (projects/chatAssistant)
  * @param {Function} [deps.isChatAgentAllowed]  (project, {agentId, userId}) => boolean: an agent every member may use
  * @param {Function} [deps.listChatAgents]      (project, {userId}) => the agents a chat here may answer as
+ * @param {object}   [deps.taskStore]          stores/projectTaskStore surface (drops task links to a deleted chat or thread)
  * @param {Function} [deps.filedIds]            (projectId, kind) => Set of ids of documents, notebooks or meeting notes filed in the project
  * @param {Function} [deps.resolveAgent]        ({agentId, userId}) => { agentId, name } | null
  * @param {Function} [deps.resolveOrgs]         (req) => { orgId, limitOrgId }
@@ -131,6 +132,15 @@ function makeProjectChatsRouter(deps = {}) {
     // A chat's AI mode is something the project compliance checks read.
     const aiModeChanged = (project) => (deps.signalProjectChanged || require('./complianceSignal').signalProjectChanged)(project, 'ai_mode');
     const store = () => deps.store || require('../../stores/projectChatStore');
+    const taskStore = () => deps.taskStore || require('../../stores/projectTaskStore');
+    /** What a task linked to (a chat, or the thread of a message) is gone: the link goes, the task stays. Best effort. */
+    async function dropTaskLinks(projectId, kind, id) {
+        try {
+            await taskStore().dropLinksTo(projectId, kind, id);
+        } catch (err) {
+            log.warn(`[ProjectChat] task links to ${kind} ${id} not dropped: ${err && err.message}`);
+        }
+    }
     const chatCrypto = () => deps.chatCrypto || require('../../projects/chatCrypto');
     let defaultAssistant = null;
     const assistant = () => deps.assistant
@@ -221,6 +231,18 @@ function makeProjectChatsRouter(deps = {}) {
             }
         } catch (err) {
             log.warn(`[ProjectChat] auto notice not posted in chat ${chat.id}: ${err && err.message}`);
+        }
+    }
+
+    /** Undo a chat that was created together with a first message that failed to store. */
+    async function rollBackNewChat(project, chat, userId) {
+        try {
+            if (!(await store().deleteChat(project.id, chat.id))) return;
+            await emit(project.id, chatEvent('chat.deleted', userId, chat.id));
+            if (chat.aiMode === 'auto') await participation().cancelContainer('chat', chat.id);
+            if (chat.aiMode === 'auto' || chat.aiMode === 'always') aiModeChanged(project);
+        } catch (err) {
+            log.warn(`[ProjectChat] chat ${chat.id} could not be rolled back after its first message failed: ${err && err.message}`);
         }
     }
 
@@ -397,48 +419,55 @@ function makeProjectChatsRouter(deps = {}) {
         }
 
         const stored = result.message;
-        await emit(project.id, chatEvent('chat.message.created', userId, chat.id, { messageId: stored.id, seq: stored.seq, authorKind: 'user' }));
-        if (kept.length > 0) {
-            await emit(project.id, chatEvent('chat.mention', userId, chat.id, { messageId: stored.id, mentionedUserIds: kept }));
-        }
-
-        const { decideAiTrigger, mentionsAssistant } = require('../../projects/chatAssistant');
-        // `always` sends every post to the model, so it is re-checked against
-        // the organisation on every post: a withdrawn `always` acts as
-        // `mention`. (`auto` is re-checked by the participation engine itself.)
-        const aiMode = chat.aiMode === 'always' ? effectiveAiMode(chat.aiMode, await aiPolicyFor(project)) : chat.aiMode;
-        let agentName = null;
-        // The agent's name only matters for "@<agent name>" in mention and
-        // auto mode, and only an agent the poster may use can be addressed by them.
-        if ((aiMode === 'mention' || aiMode === 'auto') && !askAi && chat.agentId && content.includes('@') && !mentionsAssistant(content)) {
-            try {
-                agentName = (await resolveAgent({ agentId: chat.agentId, userId }))?.name || null;
-            } catch (err) {
-                log.warn(`[ProjectChat] agent lookup failed for chat ${chat.id}: ${err && err.message}`);
-            }
-        }
-        const decision = decideAiTrigger({ aiMode, content, askAi, agentName });
         /** @type {{ status: string, reason?: string }} */
         let ai;
-        const notice = { containerId: chat.id, messageId: stored.id, authorUserId: userId, projectId: project.id };
-        if (decision.trigger === false && decision.reason === 'auto_pending' && threadId) {
-            // The AI joins the main conversation on its own, not a thread; asked outright it answers there too.
-            ai = { status: 'skipped', reason: 'auto' };
-        } else if (decision.trigger === false && decision.reason === 'auto_pending') {
-            // The engine decides later, quietly; the poster is told nothing more.
-            const { orgId, limitOrgId } = await resolveOrgs(req);
-            tellParticipation({ ...notice, orgId, limitOrgId });
-            ai = { status: 'skipped', reason: 'auto' };
-        } else if (decision.trigger === false) {
-            ai = { status: 'skipped', reason: aiMode !== chat.aiMode ? 'ai_mode_not_allowed' : decision.reason };
-        } else {
-            const { orgId, limitOrgId } = await resolveOrgs(req);
-            // Asked outright in an auto chat: whatever the engine had queued is moot.
-            if (chat.aiMode === 'auto') tellParticipation({ ...notice, orgId, limitOrgId, explicit: true });
-            const reply = await assistant().requestReply({
-                project, chat, trigger: stored, triggerText: content, userId, orgId, limitOrgId, session: req.session, aiTrigger: decision.kind, modelTier,
-            });
-            ai = reply.reason ? { status: reply.status, reason: reply.reason } : { status: reply.status };
+        // The message is stored and visible: whatever fails from here on must not turn
+        // the post into an error, or a retry would hit `duplicate` and never be answered.
+        try {
+            await emit(project.id, chatEvent('chat.message.created', userId, chat.id, { messageId: stored.id, seq: stored.seq, authorKind: 'user' }));
+            if (kept.length > 0) {
+                await emit(project.id, chatEvent('chat.mention', userId, chat.id, { messageId: stored.id, mentionedUserIds: kept }));
+            }
+
+            const { decideAiTrigger, mentionsAssistant } = require('../../projects/chatAssistant');
+            // `always` sends every post to the model, so it is re-checked against
+            // the organisation on every post: a withdrawn `always` acts as
+            // `mention`. (`auto` is re-checked by the participation engine itself.)
+            const aiMode = chat.aiMode === 'always' ? effectiveAiMode(chat.aiMode, await aiPolicyFor(project)) : chat.aiMode;
+            let agentName = null;
+            // The agent's name only matters for "@<agent name>" in mention and
+            // auto mode, and only an agent the poster may use can be addressed by them.
+            if ((aiMode === 'mention' || aiMode === 'auto') && !askAi && chat.agentId && content.includes('@') && !mentionsAssistant(content)) {
+                try {
+                    agentName = (await resolveAgent({ agentId: chat.agentId, userId }))?.name || null;
+                } catch (err) {
+                    log.warn(`[ProjectChat] agent lookup failed for chat ${chat.id}: ${err && err.message}`);
+                }
+            }
+            const decision = decideAiTrigger({ aiMode, content, askAi, agentName });
+            const notice = { containerId: chat.id, messageId: stored.id, authorUserId: userId, projectId: project.id };
+            if (decision.trigger === false && decision.reason === 'auto_pending' && threadId) {
+                // The AI joins the main conversation on its own, not a thread; asked outright it answers there too.
+                ai = { status: 'skipped', reason: 'auto' };
+            } else if (decision.trigger === false && decision.reason === 'auto_pending') {
+                // The engine decides later, quietly; the poster is told nothing more.
+                const { orgId, limitOrgId } = await resolveOrgs(req);
+                tellParticipation({ ...notice, orgId, limitOrgId });
+                ai = { status: 'skipped', reason: 'auto' };
+            } else if (decision.trigger === false) {
+                ai = { status: 'skipped', reason: aiMode !== chat.aiMode ? 'ai_mode_not_allowed' : decision.reason };
+            } else {
+                const { orgId, limitOrgId } = await resolveOrgs(req);
+                // Asked outright in an auto chat: whatever the engine had queued is moot.
+                if (chat.aiMode === 'auto') tellParticipation({ ...notice, orgId, limitOrgId, explicit: true });
+                const reply = await assistant().requestReply({
+                    project, chat, trigger: stored, triggerText: content, userId, orgId, limitOrgId, session: req.session, aiTrigger: decision.kind, modelTier,
+                });
+                ai = reply.reason ? { status: reply.status, reason: reply.reason } : { status: reply.status };
+            }
+        } catch (err) {
+            log.warn(`[ProjectChat] message ${stored.id} in chat ${chat.id} stored, but the AI step failed: ${err && err.message}`);
+            ai = { status: 'skipped', reason: 'unavailable' };
         }
         return { created: true, message: presentMessage(box, stored, content), ai };
     }
@@ -512,7 +541,16 @@ function makeProjectChatsRouter(deps = {}) {
         /** @type {{ status: string, reason?: string }} */
         let ai = { status: 'skipped', reason: 'no_message' };
         if (message) {
-            const out = await postMessage(req, { project, chat, box, content: message, messageId });
+            let out;
+            try {
+                out = await postMessage(req, { project, chat, box, content: message, messageId });
+            } catch (err) {
+                // The first message never landed (what follows the store cannot throw out of
+                // postMessage): take the chat back, or it stays as an empty orphan and a
+                // retry makes a second one.
+                await rollBackNewChat(project, chat, userId);
+                throw err;
+            }
             posted = out.message;
             ai = out.ai;
             chat = (await store().getChat(project.id, chat.id)) || chat;
@@ -525,7 +563,8 @@ function makeProjectChatsRouter(deps = {}) {
         const chat = await loadChat(project, req.params.chatId);
         const box = await chatCrypto().forProject(project);
         const aiPolicy = await aiPolicyFor(project);
-        res.json({ chat: presentChat(box, chat, aiPolicy), role: req.projectRole, aiPolicy });
+        const aiState = await assistant().getStatus?.(chat.id);
+        res.json({ chat: { ...presentChat(box, chat, aiPolicy), ...(aiState ? { aiState } : {}) }, role: req.projectRole, aiPolicy });
     });
 
     router.patch('/:id/chats/:chatId', requireRole('editor'), validate({ body: S.UpdateChatBody }), async (req, res) => {
@@ -567,6 +606,7 @@ function makeProjectChatsRouter(deps = {}) {
         if (!(await store().deleteChat(project.id, chat.id))) {
             throw notFound('chat_not_found', 'This chat does not exist in this project.');
         }
+        await dropTaskLinks(project.id, 'chat', chat.id);
         await audit(project.id, userId, 'chat.deleted', chat.id);
         await emit(project.id, chatEvent('chat.deleted', userId, chat.id));
         if (chat.aiMode === 'auto') await participation().cancelContainer('chat', chat.id);
@@ -643,6 +683,7 @@ function makeProjectChatsRouter(deps = {}) {
         if (message.deletedAt) return res.json({ success: true });
         // A title taken from this message goes with it (the store resets it in the same step).
         const deleted = await store().softDeleteMessage(chat.id, message.id);
+        if (deleted) await dropTaskLinks(project.id, 'thread', message.id);
         if (deleted) await emit(project.id, chatEvent('chat.message.deleted', userId, chat.id, { messageId: deleted.id, seq: deleted.seq }));
         if (deleted && deleted.titleReset) await emit(project.id, chatEvent('chat.updated', userId, chat.id));
         res.json({ success: true });

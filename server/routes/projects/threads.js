@@ -35,7 +35,7 @@
 const express = require('express');
 const { validate } = require('../../core/http/validate');
 const { lazyProjectRoleGate } = require('./roleGate');
-const { HttpError, notFound } = require('../../core/http/errors');
+const { HttpError, notFound, unauthorized, conflict } = require('../../core/http/errors');
 const S = require('./schemas');
 
 // Chats are shared into collaborative projects only. A legacy project (kind
@@ -44,6 +44,7 @@ const SOLUTION_HOLDS_NO_CHATS = Object.freeze({
     code: 'SOLUTION_HOLDS_NO_CHATS',
     error: 'This is a Studio Solution. Chats belong in a project, not in a Solution.',
 });
+const solutionHoldsNoChats = () => conflict(SOLUTION_HOLDS_NO_CHATS.code, SOLUTION_HOLDS_NO_CHATS.error);
 
 const tableOf = (/** @type {unknown} */ type) => (type === 'agent' ? 'agent_conversations' : 'direct_conversations');
 const typeOf = (/** @type {unknown} */ type) => (type === 'agent' ? 'agent' : 'direct');
@@ -114,9 +115,9 @@ function makeThreadsRouter(deps = {}) {
      */
     async function requireOwnThreadMw(/** @type {any} */ req, /** @type {any} */ res, /** @type {Function} */ next) {
         const userId = userIdOf(req);
-        if (!userId) return res.status(401).json({ error: 'Not authenticated' });
+        if (!userId) throw unauthorized('not_authenticated', 'Not authenticated');
         const filing = await store().getOwnConversationFiling(req.params.convId, userId, tableOf(req.query?.type));
-        if (!filing || filing.projectId !== req.params.id) return res.status(404).json({ error: 'Conversation not found' });
+        if (!filing || filing.projectId !== req.params.id) throw notFound('not_found', 'Conversation not found');
         req.threadFiling = filing;
         return next();
     }
@@ -130,7 +131,7 @@ function makeThreadsRouter(deps = {}) {
     // caller's user id.
     router.delete('/conversations/:convId', validate({ query: S.TypeQuery }), async (req, res) => {
         const userId = userIdOf(req);
-        if (!userId) return res.status(401).json({ error: 'Not authenticated' });
+        if (!userId) throw unauthorized('not_authenticated', 'Not authenticated');
         const table = tableOf(req.query.type);
         const filing = await store().getOwnConversationFiling(req.params.convId, userId, table);
         if (!filing) throw notFound('not_found', 'Conversation not found');
@@ -156,11 +157,10 @@ function makeThreadsRouter(deps = {}) {
     router.post('/:id/threads', requireRole('editor'), validate({ body: S.ShareThreadBody }), async (req, res) => {
         const userId = userIdOf(req);
         const { conversationId, type } = req.body || {};
-        if (!conversationId) return res.status(400).json({ error: 'conversationId is required' });
 
         const project = await store().getProject(req.params.id);
         if (!project) throw notFound();
-        if (project.kind === 'solution') return res.status(409).json(SOLUTION_HOLDS_NO_CHATS);
+        if (project.kind === 'solution') throw solutionHoldsNoChats();
 
         let result;
         try {

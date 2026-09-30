@@ -274,7 +274,7 @@ describe('FROZEN_LEGACY: paths the server has minted into mailboxes and tickets'
 describe('mobile allow-list is frozen', () => {
     it('matches the frozen set exactly', () => {
         expect([...MOBILE_ALLOWED_PAGES].sort(), MOVE_HINT).toEqual(
-            ['agents', 'approvals', 'appRun', 'apps', 'cowork', 'formView', 'forms', 'settings'].sort(),
+            ['agents', 'approvals', 'appRun', 'apps', 'cowork', 'formView', 'forms', 'projects', 'settings'].sort(),
         );
     });
 
@@ -288,12 +288,12 @@ describe('mobile allow-list is frozen', () => {
         expect(MOBILE_ALLOWED_PAGES.has('studio')).toBe(false);
     });
 
-    it('keeps every projects page off the phone, down to one item in a workspace', () => {
+    it('allows responsive projects pages on phones, including item routes', () => {
         // navigateToPage speaks project pages as 'projects/<id>/<tab>/<sub>';
-        // the workspace is a desktop layout, so none of them may slip past.
+        // the workspace now has a labelled mobile section selector.
         expect(mobilePageKey('projects')).toBe('projects');
         expect(mobilePageKey('projects/p1/chats/c1')).toBe('projects');
-        expect(MOBILE_ALLOWED_PAGES.has('projects')).toBe(false);
+        expect(MOBILE_ALLOWED_PAGES.has('projects')).toBe(true);
     });
 
     it('reads the approvals slice from ONE predicate, in both of its shapes', () => {

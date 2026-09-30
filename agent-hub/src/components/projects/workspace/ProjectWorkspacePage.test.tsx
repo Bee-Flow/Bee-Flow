@@ -103,7 +103,7 @@ describe('ProjectWorkspacePage — navigation', () => {
         renderPage();
         expect(await screen.findByTestId('project-overview-tab')).toBeInTheDocument();
         expect(screen.getByTestId('project-rail-name')).toHaveTextContent('Launch plan');
-        await waitFor(() => expect(screen.getByTestId('project-rail-members-count')).toHaveTextContent('4'));
+        await waitFor(() => expect(screen.getByTestId('project-rail-members-count')).toHaveTextContent('3'));
         expect(screen.getByTestId('project-rail-documents-count')).toHaveTextContent('1');
         expect(screen.queryByTestId('project-rail-meetings-count')).toBeNull();
         expect(api.callsTo('POST', '/api/projects/p1/presence').length).toBeGreaterThan(0);
@@ -142,6 +142,56 @@ describe('ProjectWorkspacePage — navigation', () => {
         expect(screen.getByTestId('project-rail-activity')).toHaveAttribute('aria-current', 'page');
     });
 
+    it('asks before leaving Settings with unsaved edits, and keeps them when the person stays', async () => {
+        serve();
+        const { props, user } = renderPage({ initialTab: 'settings' });
+        const name = await screen.findByTestId('project-field-name');
+        await user.type(name, ' 2');
+        await user.click(screen.getByTestId('project-rail-activity'));
+        expect(await screen.findByText('Leave without saving?')).toBeInTheDocument();
+        expect(props.onRouteChange).not.toHaveBeenCalled();
+        await user.click(screen.getByRole('button', { name: 'Keep editing' }));
+        expect(screen.getByTestId('project-field-name')).toHaveValue('Launch plan 2');
+        await user.click(screen.getByTestId('project-rail-activity'));
+        await user.click(await screen.findByRole('button', { name: 'Leave without saving' }));
+        expect(await screen.findByTestId('project-activity-tab')).toBeInTheDocument();
+        expect(props.onRouteChange).toHaveBeenLastCalledWith('activity', null);
+    });
+
+    it('protects All projects, browser traversal and reload while settings are dirty', async () => {
+        serve();
+        const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+        try {
+            const { props, user } = renderPage({ initialTab: 'settings' });
+            await user.type(await screen.findByTestId('project-field-name'), ' draft');
+            await user.click(screen.getByTestId('project-rail-back'));
+            expect(confirm).toHaveBeenCalledOnce();
+            expect(props.onClose).not.toHaveBeenCalled();
+            const unload = new Event('beforeunload', { cancelable: true });
+            window.dispatchEvent(unload);
+            expect(unload.defaultPrevented).toBe(true);
+            const downstream = vi.fn();
+            window.addEventListener('popstate', downstream);
+            try {
+                window.dispatchEvent(new PopStateEvent('popstate'));
+                expect(downstream).not.toHaveBeenCalled();
+                expect(screen.getByTestId('project-field-name')).toHaveValue('Launch plan draft');
+            } finally { window.removeEventListener('popstate', downstream); }
+            confirm.mockReturnValue(true);
+            await user.click(screen.getByTestId('project-rail-back'));
+            expect(props.onClose).toHaveBeenCalledOnce();
+        } finally { confirm.mockRestore(); }
+    });
+
+    it('leaves Settings at once when nothing was edited', async () => {
+        serve();
+        const { user } = renderPage({ initialTab: 'settings' });
+        await screen.findByTestId('project-field-name');
+        await user.click(screen.getByTestId('project-rail-activity'));
+        expect(await screen.findByTestId('project-activity-tab')).toBeInTheDocument();
+        expect(screen.queryByText('Leave without saving?')).not.toBeInTheDocument();
+    });
+
     it('maps an old tab id and follows the URL on back/forward', async () => {
         serve();
         const { props, view } = renderPage({ initialTab: 'general' });
@@ -169,7 +219,7 @@ describe('ProjectWorkspacePage — navigation', () => {
         expect(await screen.findByTestId('section-knowledge')).toHaveTextContent('|upload');
         expect(props.onRouteChange).toHaveBeenLastCalledWith('knowledge', null);
     });
-    it('starts afresh when the sidebar moves to another project, keeping no draft or share switch', async () => {
+    it('starts afresh when the sidebar moves to another project, keeping no draft', async () => {
         const p2 = makeProject({ id: 'p2', name: 'Budget 2027' });
         serve(undefined, {
             'GET /api/projects/p2': p2,
@@ -191,12 +241,11 @@ describe('ProjectWorkspacePage — navigation', () => {
         const user = userEvent.setup();
         const view = render(withQueryClient(<ProjectWorkspacePage {...props} />, client));
         await user.type(await screen.findByTestId('composer-input'), 'Salary bands for the reorg');
-        await user.click(screen.getByRole('checkbox', { name: 'Share with members' }));
 
         view.rerender(withQueryClient(<ProjectWorkspacePage {...props} projectId="p2" />, client));
         await waitFor(() => expect(screen.getByTestId('project-rail-name')).toHaveTextContent('Budget 2027'));
         expect(screen.getByTestId('composer-input')).toHaveValue('');
-        expect(screen.getByRole('checkbox', { name: 'Share with members' })).not.toBeChecked();
+        expect(screen.queryByRole('checkbox', { name: 'Share with members' })).not.toBeInTheDocument();
     });
 });
 

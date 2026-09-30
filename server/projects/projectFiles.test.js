@@ -62,6 +62,7 @@ function world({ projects = {}, now = Date.parse('2026-09-29T12:00:00Z') } = {})
             docs.set(doc.id, doc);
             return { ...doc };
         },
+        async getDocumentOriginalContent(id) { return docs.get(id)?.storedText || null; },
         async getDocument(id) { const d = docs.get(id); return d ? { ...d } : null; },
         async listDocuments(kbId) { return [...docs.values()].filter(d => d.knowledge_base_id === kbId).reverse().map(d => ({ ...d })); },
         async countDocuments(kbId) { return [...docs.values()].filter(d => d.knowledge_base_id === kbId).length; },
@@ -115,7 +116,7 @@ function world({ projects = {}, now = Date.parse('2026-09-29T12:00:00Z') } = {})
             calls.push(['reingest', { tenantId, kbId, docId, text, opts }]);
             const d = docs.get(docId);
             if (!d) throw Object.assign(new Error('Document not found'), { code: 'NOT_FOUND' });
-            Object.assign(d, { status: opts.status, status_reason: null, content_hash: hash(text), chunk_count: 3, pii_status: opts.piiStatus || d.pii_status });
+            Object.assign(d, { storedText: text, status: opts.status, status_reason: null, content_hash: hash(text), chunk_count: 3, pii_status: opts.piiStatus || d.pii_status });
             const result = { document: { ...d }, chunks: 3, status: opts.status };
             if (state.afterReingest) await state.afterReingest(docId);
             return result;
@@ -136,6 +137,7 @@ function world({ projects = {}, now = Date.parse('2026-09-29T12:00:00Z') } = {})
     const transients = [];
     const files = makeProjectFiles({
         kbStore, projectStore, helpers,
+        getDocumentContent: async () => null,
         // The real module's vocabulary (core/kb/ingestPrivacy OUTCOME).
         ingestPrivacy: { applyShield, OUTCOME: { PASS: 'pass', REDACTED: 'redacted', SKIPPED: 'skipped' } },
         ensureKbSource: async (kbId, kind) => ({ id: `src_${kind}_${kbId}` }),
@@ -424,4 +426,25 @@ test('the outside shape: a queued row is processing until it stalls; never the t
     assert.strictEqual(toFile({ ...queued, status: 'error', status_reason: 'Timed out' }, now).statusReason, 'Timed out');
     assert.strictEqual(cleanName(' a\tb\u0000c.pdf '), 'a b c.pdf');
     assert.strictEqual(cleanName(''), 'Untitled file');
+});
+
+
+test('source inspection exposes only stored shielded text and stays within the project', async () => {
+    const w = world({ projects: { p1: {}, p2: {} } });
+    w.state.shield = { outcome: 'redacted' };
+    const { added } = await addAndProcess(w, 'Anna owns the launch.');
+    const result = await w.files.fileContent(await w.project(), added.file.id);
+    assert.equal(result.content, '[person_1] owns the launch.');
+    assert.equal(result.available, true);
+    assert.equal(result.file.redacted, true);
+    assert.equal(await w.files.fileContent(await w.project('p2'), added.file.id), null);
+    const row = w.docs.get(added.file.id);
+    row.status = 'skipped';
+    row.status_reason = 'Held for privacy review';
+    const held = await w.files.fileContent(await w.project(), added.file.id);
+    assert.equal(held.content, '');
+    assert.equal(held.available, false);
+    row.status = 'processed';
+    row.storedText = '';
+    assert.equal((await w.files.fileContent(await w.project(), added.file.id)).available, false);
 });

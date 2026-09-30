@@ -112,6 +112,7 @@ function MeetingsList({ projectId, role, currentUser, onOpenSub, intent, capture
     const { t } = useTranslation();
     const canEdit = canEditContent(role);
     const me = currentUser?.id || null;
+    const [search, setSearch] = useState('');
     const [pickerOpen, setPickerOpen] = useState(() => canEdit && intent === 'add');
     const section = useProjectSection<ProjectMeeting>(projectId, 'meetings');
     const ownerName = useMemberNames(projectId, me);
@@ -122,7 +123,7 @@ function MeetingsList({ projectId, role, currentUser, onOpenSub, intent, capture
     const onRemove = (m: ProjectMeeting) => removal.remove(m.id, {
         title: t('project_content.meeting_remove_title', 'Remove this meeting from the project?'),
         description: t('project_content.meeting_remove_desc', '"{name}" stays with the person who recorded it. Members of this project will no longer see it.', { name: m.title || t('project_content.meeting_untitled', 'Untitled meeting') }),
-        confirmLabel: t('project_content.remove', 'Remove'),
+        confirmLabel: t('project_content.remove_from_project', 'Remove from project'),
     });
 
     const actions = canEdit ? (
@@ -136,13 +137,14 @@ function MeetingsList({ projectId, role, currentUser, onOpenSub, intent, capture
         <ContentColumn testId="project-meetings-tab">
             <ContentToolbar
                 title={t('project_content.meetings_title', 'Meetings')}
+                search={search} onSearch={setSearch} searchLabel={t('project_content.meetings_search', 'Search meetings')}
                 count={section.status === 'ok' ? section.items.length : null}
                 actions={actions}
             />
             {!canEdit && <ReadOnlyNote>{t('project_content.meetings_viewer_note', 'You can read the meeting notes in this project. Ask the owner for editor access to add meetings.')}</ReadOnlyNote>}
             <CaptureNotice capture={capture} />
-            <MeetingsBody
-                status={section.status} meetings={section.items} onRetry={section.refetch}
+            {search.trim() && section.status === 'ok' && !section.items.some(m => (m.title || '').toLocaleLowerCase().includes(search.trim().toLocaleLowerCase())) ? <p className="text-sm text-[var(--text-secondary)]">{t('project_content.no_matches', 'Nothing matches your search.')}</p> : <MeetingsBody
+                status={section.status} meetings={section.items.filter(m => (m.title || '').toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()))} onRetry={section.refetch}
                 onCapture={canEdit ? capture.start : null}
                 table={{
                     ownerName, removingId: removal.pendingId, onRemove,
@@ -150,6 +152,7 @@ function MeetingsList({ projectId, role, currentUser, onOpenSub, intent, capture
                     onOpen: (m) => onOpenSub(m.id),
                 }}
             />
+            }
             {pickerOpen && <MeetingPicker projectId={projectId} open onClose={() => setPickerOpen(false)} inProject={inProject} />}
             {removal.confirmDialog}
         </ContentColumn>

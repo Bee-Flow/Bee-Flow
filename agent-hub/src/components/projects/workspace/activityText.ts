@@ -23,6 +23,8 @@ export interface ActivityNames {
     person: (id: string | null | undefined) => string | null;
     group: (id: string | null | undefined) => string | null;
     currentUserId?: string | null;
+    /** True once the member list has loaded: an id it does not know is then somebody who left. */
+    rosterKnown?: boolean;
 }
 
 const str = (v: unknown): string => (typeof v === 'string' ? v.trim() : '');
@@ -43,13 +45,17 @@ export function isContentChange(action: string): boolean {
 function actorOf(item: ActivityEntry, names: ActivityNames, t: TFn): string {
     if (item.actorId && item.actorId === names.currentUserId) return t('project_home.activity.you', 'You');
     if (!item.actorId && item.actorKind === 'ai') return t('project_home.activity.the_ai', 'The AI');
-    return names.person(item.actorId) || t('project_home.activity.someone', 'Someone');
+    const name = names.person(item.actorId);
+    if (name) return name;
+    return item.actorId && names.rosterKnown ? t('project_home.activity.former_member', 'A former member') : t('project_home.activity.someone', 'Someone');
 }
 
 function subjectOf(item: ProjectActivityItem, names: ActivityNames, t: TFn): string {
     if (item.targetType === 'group') return names.group(item.targetId) || t('project_home.activity.a_group', 'a group');
     if (item.targetId && item.targetId === names.currentUserId) return t('project_home.activity.you_lower', 'you');
-    return names.person(item.targetId) || t('project_home.activity.a_person', 'someone');
+    const name = names.person(item.targetId);
+    if (name) return name;
+    return item.targetId && names.rosterKnown ? t('project_home.activity.former_member_lower', 'a former member') : t('project_home.activity.a_person', 'someone');
 }
 
 function roleWord(role: unknown, t: TFn): string {

@@ -217,6 +217,8 @@ const STORES = {
 function recordFiling(swap, spec, { owner = 'alice', filedIn = 'p1' } = {}) {
     const calls = [];
     const store = require(spec.module);
+    // The filing path reads the caller's organisations (auth/orgScope) for the stores' check.
+    swap(require('../stores/userStore'), 'getUser', async (id) => ({ id, organizationId: '', groups: '[]' }));
     swap(store, spec.attach, async (id, userId, projectId) => {
         calls.push(['attach', id, userId, projectId]);
         return userId === owner;

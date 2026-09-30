@@ -15,6 +15,7 @@ vi.mock('../../../../api/client', async (importOriginal) => ({
 vi.mock('../../../../api/queries/modelTiers', () => ({ useModelTiersQuery: () => ({ data: {} }) }));
 
 import TasksTab from './TasksTab';
+import scopedStorage, { setCurrentUser } from '../../../../utils/scopedStorage';
 
 const task = (id: string, extra: Partial<ProjectTask> = {}): ProjectTask => ({
     id, title: `Task ${id}`, description: '', status: 'todo', priority: 'normal', labels: [], checklist: [], sortOrder: 1000, source: null,
@@ -30,7 +31,8 @@ function renderTab(role: 'owner' | 'editor' | 'viewer' = 'editor') {
 }
 
 beforeEach(() => {
-    try { localStorage.clear(); } catch { /* none */ }
+    setCurrentUser(EDITOR_ID);
+    try { localStorage.clear(); scopedStorage.setItem('projectTasksView', 'list'); } catch { /* none */ }
     tasks = [
         task('1', { assigneeIds: [EDITOR_ID], priority: 'urgent', labels: ['launch'], checklist: [{ id: 'c1', text: 'a', done: true }, { id: 'c2', text: 'b', done: false }] }),
         task('2', { status: 'doing', sortOrder: 1000 }),
@@ -38,6 +40,7 @@ beforeEach(() => {
     ];
     for (const m of ['get', 'post', 'put', 'patch', 'delete'] as const) client[m] = vi.fn();
     client.get.mockImplementation(getRouter({
+        '/api/projects/p1/board': { columns: ['todo','doing','done'].map(id => ({ id, title: '', status: id, wipLimit: null })), assignments: {}, version: 0 },
         '/api/projects/p1/tasks': () => ({ tasks, role: 'editor' }),
         '/api/projects/p1/members': MEMBERS,
         '/api/projects/p1/resources': { role: 'editor', documents: [], notebooks: [], meetings: [{ id: 'mt-1', title: 'Weekly', actionItemCount: 2 }] },
@@ -80,8 +83,8 @@ describe('TasksTab', () => {
         await user.selectOptions(within(screen.getByTestId('board-task-1')).getByLabelText('Move to'), 'doing');
         await waitFor(() => expect(client.patch).toHaveBeenCalled());
         const [path, body] = client.patch.mock.calls[0];
-        expect(path).toBe('/api/projects/p1/tasks/1');
-        expect(body).toEqual({ status: 'doing', beforeId: null });
+        expect(path).toBe('/api/projects/p1/board/tasks/1');
+        expect(body).toEqual({ columnId: 'doing', beforeId: null });
     });
 
     it('ticks a task done from the list', async () => {
@@ -197,6 +200,7 @@ describe('TasksTab', () => {
     describe('a person\'s colour on the tasks', () => {
         beforeEach(() => {
             client.get.mockImplementation(getRouter({
+        '/api/projects/p1/board': { columns: ['todo','doing','done'].map(id => ({ id, title: '', status: id, wipLimit: null })), assignments: {}, version: 0 },
                 '/api/projects/p1/tasks': () => ({ tasks, role: 'editor' }),
                 '/api/projects/p1/members': { ...MEMBERS, people: { ...MEMBERS.people, [EDITOR_ID]: { name: 'Eddie Editor', color: '#f97316' } } },
                 '/api/projects/p1/resources': { role: 'editor', documents: [], notebooks: [], meetings: [] },
@@ -227,3 +231,117 @@ describe('TasksTab', () => {
     });
 });
 
+
+describe('TasksTab: keyboard and saving', () => {
+    it('ticks a task from the keyboard without opening it', async () => {
+        const user = userEvent.setup();
+        renderTab();
+        const row = await screen.findByTestId('project-task-2');
+        within(row).getByRole('button', { name: 'Mark as done' }).focus();
+        await user.keyboard('{Enter}');
+        await waitFor(() => expect(client.patch).toHaveBeenCalledWith('/api/projects/p1/tasks/2', { status: 'done' }, expect.anything()));
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+
+    it('still opens a task with Enter on the row itself', async () => {
+        const user = userEvent.setup();
+        renderTab();
+        (await screen.findByTestId('project-task-2')).focus();
+        await user.keyboard('{Enter}');
+        expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    });
+
+    it('opens a board card with Enter on its title: the drag does not take the key', async () => {
+        const user = userEvent.setup();
+        renderTab();
+        await screen.findByTestId('project-task-1');
+        await user.click(screen.getByRole('radio', { name: 'Board' }));
+        const card = await screen.findByTestId('board-task-2');
+        within(card).getByRole('button', { name: 'Task 2' }).focus();
+        await user.keyboard('{Enter}');
+        expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    });
+
+    it('saves only what was changed, so a colleague\'s change to another field is not undone', async () => {
+        const user = userEvent.setup();
+        renderTab();
+        await user.click(await screen.findByTestId('project-task-2'));
+        const title = await screen.findByDisplayValue('Task 2');
+        await user.clear(title);
+        await user.type(title, 'Renamed');
+        await user.click(screen.getByRole('button', { name: 'Save' }));
+        await waitFor(() => expect(client.patch).toHaveBeenCalled());
+        expect(client.patch.mock.calls[0][1]).toEqual({ title: 'Renamed' });
+    });
+
+    it('sends nothing when nothing was changed', async () => {
+        const user = userEvent.setup();
+        renderTab();
+        await user.click(await screen.findByTestId('project-task-2'));
+        await screen.findByDisplayValue('Task 2');
+        await user.click(screen.getByRole('button', { name: 'Save' }));
+        await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+        expect(client.patch).not.toHaveBeenCalled();
+    });
+
+    describe('Improve with AI', () => {
+        const suggestion = { title: 'Task 2', description: 'A clearer description.', priority: 'normal', labels: [], checklist: [], assigneeId: null };
+
+        it('does not replace a description the person just typed: it offers the suggestion beside it', async () => {
+            const user = userEvent.setup();
+            client.post.mockImplementation(async () => ({ suggestion }));
+            renderTab();
+            await user.click(await screen.findByTestId('project-task-2'));
+            await user.type(await screen.findByLabelText('Description'), 'My own words');
+            await user.click(screen.getByTestId('task-improve-ai'));
+            const offer = await screen.findByTestId('task-ai-description');
+            expect(screen.getByLabelText('Description')).toHaveValue('My own words');
+            expect(offer).toHaveTextContent('A clearer description.');
+            await user.click(within(offer).getByRole('button', { name: 'Use this description' }));
+            expect(screen.getByLabelText('Description')).toHaveValue('A clearer description.');
+            expect(screen.queryByTestId('task-ai-description')).not.toBeInTheDocument();
+        });
+    });
+});
+
+it('searches task descriptions and restores the search after reopening the tab', async () => {
+    const user = userEvent.setup();
+    tasks[1].description = 'Unique handover notes';
+    const mounted = render(withQueryClient(<TasksTab {...tabProps('editor', { onOpenSub: vi.fn(), onNavigate: vi.fn() })} />));
+    await screen.findByTestId('project-task-2');
+    await user.type(screen.getByRole('searchbox', { name: 'Search tasks' }), 'handover');
+    expect(screen.queryByTestId('project-task-1')).not.toBeInTheDocument();
+    expect(screen.getByTestId('project-task-2')).toBeInTheDocument();
+    mounted.unmount();
+    renderTab();
+    await screen.findByTestId('project-task-2');
+    expect(screen.getByRole('searchbox', { name: 'Search tasks' })).toHaveValue('handover');
+});
+
+it('opens planning, edits a task date range, and sends only changed fields', async () => {
+    const user = userEvent.setup();
+    renderTab();
+    await user.click(await screen.findByRole('radio', { name: 'Planning' }));
+    expect(await screen.findByTestId('task-planning')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Task 1' }));
+    const dialog = screen.getByRole('dialog', { name: 'Task' });
+    const start = within(dialog).getByLabelText('Start date');
+    const due = within(dialog).getByLabelText('Due date');
+    // Date inputs are edited as ISO dates in every locale.
+    const { fireEvent } = await import('@testing-library/react');
+    fireEvent.change(start, { target: { value: '2026-10-02' } });
+    fireEvent.change(due, { target: { value: '2026-10-06' } });
+    await user.click(within(dialog).getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(client.patch).toHaveBeenCalledWith('/api/projects/p1/tasks/1', { startDate: '2026-10-02', dueDate: '2026-10-06' }, expect.anything()));
+});
+
+it('keeps edited task details when closing is cancelled', async () => {
+    const user = userEvent.setup(); renderTab();
+    await user.click(await screen.findByText('Task 1'));
+    const dialog = screen.getByRole('dialog', { name: 'Task' });
+    await user.type(within(dialog).getByLabelText('What needs to be done?'), ' updated');
+    await user.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    await user.click(await screen.findByRole('button', { name: 'Keep editing' }));
+    expect(within(dialog).getByLabelText('What needs to be done?')).toHaveValue('Task 1 updated');
+    expect(client.patch).not.toHaveBeenCalled();
+});

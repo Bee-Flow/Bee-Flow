@@ -13,13 +13,14 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 const { makeItemFiling } = require('./itemFiling');
 
-function world({ where = null, moves = true } = {}) {
+function world({ where = null, moves = true, failingTasks = false } = {}) {
     const calls = [];
     const filing = makeItemFiling({
         feed: {
             recordProjectChange: async (pid, actor, action, details) => { calls.push(['change', pid, action, details.targetType, details.targetId]); },
             recordItemMoved: async (e) => { calls.push(['moved', e.projectId, e.direction, e.itemType, e.itemId, e.actorId]); },
         },
+        tasks: { dropLinksTo: async (pid, kind, id) => { calls.push(['taskLinks', pid, kind, id]); if (failingTasks) throw new Error('down'); return 1; } },
         lifecycle: {
             beforeMove: async (m) => { calls.push(['beforeMove', m.targetProjectId, m.fromProjectId]); return where; },
             leftProject: async (kind, id, pid) => { calls.push(['left', kind, id, pid]); },
@@ -50,6 +51,7 @@ test('moved straight from another project: in here, out there, and that project\
         ['moved', 'p1', 'in', 'document', 'x1', 'ann'],
         ['moved', 'p0', 'out', 'document', 'x1', 'ann'],
         ['left', 'document', 'x1', 'p0'],
+        ['taskLinks', 'p0', 'document', 'x1'],
     ]);
 });
 
@@ -61,7 +63,17 @@ test('taken out: content.moved_out and the project-bound state goes', async () =
         ['setProject', 'x1', null],
         ['moved', 'p1', 'out', 'notebook', 'x1', 'ann'],
         ['left', 'notebook', 'x1', 'p1'],
+        ['taskLinks', 'p1', 'notebook', 'x1'],
     ]);
+});
+
+test('taken out: the tasks of that project stop linking it, and a failure there does not undo the move', async () => {
+    const w = world({ failingTasks: true });
+    assert.strictEqual(await file(w, 'meeting', false), true);
+    assert.deepStrictEqual(w.calls.at(-1), ['taskLinks', 'p1', 'meeting', 'x1']);
+    const inOnly = world();
+    await file(inOnly, 'meeting', true);
+    assert.ok(!inOnly.calls.some((c) => c[0] === 'taskLinks'), 'filing in drops nothing');
 });
 
 test('filed where it already is, or refused by the store: nothing is recorded', async () => {

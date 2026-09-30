@@ -118,7 +118,7 @@ export function useTeamChatAgents(projectId: string | null | undefined, enabled 
         enabled: enabled && !!projectId,
         staleTime: 30_000,
         queryFn: async ({ signal }) => {
-            const body = await apiClient.get<{ agents?: { id: string; name?: string; icon?: string }[] }>(`${chatsPath(projectId!)}-agents`, { signal });
+            const body = await apiClient.get<{ agents?: { id: string; name?: string; icon?: string }[] }>(`/api/projects/${enc(projectId!)}/chat-agents`, { signal });
             return Array.isArray(body?.agents) ? body!.agents! : [];
         },
     });

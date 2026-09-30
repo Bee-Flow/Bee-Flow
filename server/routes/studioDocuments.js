@@ -628,6 +628,9 @@ router.delete('/:id', requireAuth, async (req, res) => {
             }
             return res.status(404).json({ error: 'Document not found' });
         }
+        // A task that linked this document keeps existing; the link goes (in every project).
+        try { await require('../stores/projectTaskStore').dropLinksTo(null, 'document', req.params.id); }
+        catch (err) { log.warn(`[Documents] task links to document ${req.params.id} not dropped: ${err.message}`); }
         res.json({ success: true });
     } catch (err) {
         sendStoreError(res, err, 'Failed to delete document');

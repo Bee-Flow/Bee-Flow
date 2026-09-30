@@ -306,7 +306,7 @@ function makeRelevanceGate(deps = {}) {
             result = await withTimeout(Promise.resolve(chat(model.modelId, [
                 { role: 'system', content: SYSTEM_PROMPT },
                 { role: 'user', content: outbound.text },
-            ], PARTICIPATION_TOOL, { maxTokens: 250, temperature: 0, reasoningEffort: 'none', budgetTokens: 0 })), timeoutMs);
+            ], PARTICIPATION_TOOL, { maxTokens: 1024, temperature: 0, reasoningEffort: 'none', budgetTokens: 0 })), timeoutMs);
         } catch (err) {
             const skipReason = err?.code === 'PRIVACY_BLOCKED' ? 'blocked' : (err?.code === 'GATE_TIMEOUT' ? 'timeout' : 'error');
             // The reason is a code; the message may quote a provider error, never the conversation.

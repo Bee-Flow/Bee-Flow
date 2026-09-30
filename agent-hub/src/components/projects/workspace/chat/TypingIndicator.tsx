@@ -15,9 +15,12 @@ export function typingSentence(names: string[], t: TranslateFn): string {
 export default function TypingIndicator({ names, aiAnswering, aiName }: { names: string[]; aiAnswering: boolean; aiName: string }) {
     const { t } = useTranslation();
     const typing = typingSentence(names, t);
-    if (!typing && !aiAnswering) return <div className="h-6 flex-shrink-0" aria-hidden="true" />;
+    // The live region stays mounted and only its content changes: a region that
+    // arrives together with its text is skipped by many screen readers.
+    const busy = !!typing || aiAnswering;
     return (
-        <div className="h-6 flex-shrink-0 flex items-center gap-3 px-4 text-[12px] text-[var(--text-secondary)]" role="status" aria-live="polite" data-testid="team-chat-typing">
+        <div className="h-6 flex-shrink-0 flex items-center gap-3 px-4 text-[12px] text-[var(--text-secondary)]" role="status" aria-live="polite"
+            data-testid={busy ? 'team-chat-typing' : undefined}>
             {aiAnswering && (
                 <span className="inline-flex items-center gap-1.5 text-[var(--accent-primary)]">
                     <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />

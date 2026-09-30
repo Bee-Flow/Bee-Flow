@@ -10,13 +10,15 @@ import useStickToBottom from './useStickToBottom';
 
 let resizeCb = null;
 let mutateCb = null;
+let observed = [];
 
 beforeEach(() => {
     resizeCb = null;
+    observed = [];
     mutateCb = null;
     vi.stubGlobal('ResizeObserver', class {
         constructor(cb) { resizeCb = cb; }
-        observe() {}
+        observe(target) { observed.push(target); }
         disconnect() {}
     });
     vi.stubGlobal('MutationObserver', class {
@@ -61,6 +63,17 @@ describe('useStickToBottom', () => {
         box(el, { scrollHeight: 1400, clientHeight: 400, scrollTop: 600 });   // a build step lands
         act(() => resizeCb([]));
         expect(el.scrollTop).toBe(1400);
+    });
+
+    it('re-pins when the scroller itself shrinks (a composer grows beside it) while stuck', () => {
+        const ctx = mount();
+        const el = ctx.containerRef.current;
+        expect(observed).toContain(el);
+        box(el, { scrollHeight: 1000, clientHeight: 400, scrollTop: 600 });   // at the bottom
+        act(() => ctx.api.onScroll());
+        box(el, { scrollHeight: 1000, clientHeight: 300, scrollTop: 600 });   // viewport lost 100px
+        act(() => resizeCb([]));
+        expect(el.scrollTop).toBe(1000);
     });
 
     it('leaves the reader alone once they scroll up', () => {

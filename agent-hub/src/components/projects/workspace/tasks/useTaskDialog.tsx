@@ -3,7 +3,7 @@
 
 import React, { useCallback, useState } from 'react';
 import {
-    useCreateTask, useDeleteTask, useUpdateTask, type ProjectTask, type TaskInput, type TaskLink,
+    useCreateTask, useDeleteTask, useUpdateTask, type ProjectTask, type TaskInput, type TaskLink, type TaskPatch,
 } from '../../../../api/queries/projectTasks';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import useConfirm from '../../../shared/useConfirm';
@@ -36,11 +36,13 @@ export function useTaskDialog(props: Pick<WorkspaceTabProps, 'projectId' | 'role
     const openLink = useOpenTaskLink(props);
     const close = useCallback(() => { setOpen(null); setError(null); }, []);
 
-    const submit = (input: TaskInput) => {
+    const submit = (input: TaskInput, changes: TaskPatch) => {
         setError(null);
         const done = { onSuccess: close, onError: (e: Error) => setError(projectErrorText(t, e)) };
-        if (open?.task) update.mutate({ id: open.task.id, patch: input }, done);
-        else create.mutate(input, done);
+        // An edit sends only what the person changed, so a colleague's change to another field is not undone.
+        if (!open?.task) create.mutate(input, done);
+        else if (!Object.keys(changes).length) close();
+        else update.mutate({ id: open.task.id, patch: changes }, done);
     };
     const onDelete = async () => {
         const task = open?.task;

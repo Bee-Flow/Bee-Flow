@@ -37,6 +37,7 @@ export interface ProjectTask {
     assigneeIds: string[];
     links: TaskLink[];
     /** `YYYY-MM-DD` or null. */
+    startDate?: string | null;
     dueDate: string | null;
     createdBy: string;
     completedAt: string | null;
@@ -54,6 +55,7 @@ export interface TaskInput {
     checklist?: ChecklistItem[];
     assigneeIds?: string[];
     links?: TaskLink[];
+    startDate?: string | null;
     dueDate?: string | null;
     source?: TaskSource;
 }
@@ -108,7 +110,9 @@ export function useCreateTask(projectId: string) {
 export function useUpdateTask(projectId: string) {
     const qc = useQueryClient();
     const key = projectKeys.tasks(projectId);
+    const mutationKey = [...key, 'update'];
     return useMutation<ProjectTask, Error, { id: string; patch: TaskPatch }, { previous?: { tasks: ProjectTask[]; role: ProjectRole | null } }>({
+        mutationKey,
         mutationFn: async ({ id, patch }) => {
             const body = await write('Could not change the task', () => apiClient.patch<{ task?: ProjectTask }>(`${tasksPath(projectId)}/${enc(id)}`, patch, { retry: false }));
             if (!body?.task) throw new Error('Could not change the task');
@@ -116,7 +120,8 @@ export function useUpdateTask(projectId: string) {
         },
         // A status change or a hand-over shows at once; the server's answer replaces it.
         onMutate: async ({ id, patch }) => {
-            await qc.cancelQueries({ queryKey: key });
+            // Only the list: the key is also a prefix of the meeting suggestions, which this change does not touch.
+            await qc.cancelQueries({ queryKey: key, exact: true });
             const previous = qc.getQueryData<{ tasks: ProjectTask[]; role: ProjectRole | null }>(key);
             if (previous) {
                 const { beforeId, ...fields } = patch;
@@ -138,7 +143,9 @@ export function useUpdateTask(projectId: string) {
             return { previous };
         },
         onError: (_e, _v, ctx) => { if (ctx?.previous) qc.setQueryData(key, ctx.previous); },
-        onSettled: () => { qc.invalidateQueries({ queryKey: key }); },
+        // While a newer change is still on its way, a refetch now would bring back the server's older order over it.
+        // The last one to settle refetches (this one still counts as mutating here).
+        onSettled: () => { if (qc.isMutating({ mutationKey }) <= 1) qc.invalidateQueries({ queryKey: key }); },
     });
 }
 

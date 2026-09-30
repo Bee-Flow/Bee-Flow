@@ -1,10 +1,12 @@
+import { useProjectBoard, useBoardActions } from '../../../../api/queries/projectBoard';
+import BoardSettings from './BoardSettings';
 // The Tasks tab of a project: what needs doing, who has it, and what it is
 // about — as a list (to do, in progress, done) or as a board you drag cards
 // on. Filters by person, priority, label and lateness; a tick finishes a
 // task; a dialog holds the rest. "From a meeting" turns the action items of a
 // meeting note into tasks.
 
-import { CheckSquare, Kanban, List, Mic } from 'lucide-react';
+import { CheckSquare, CalendarRange, Kanban, List, Mic, Settings2 } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
     TASK_PRIORITIES, TASK_STATUSES, useDeleteTask, useProjectTasksQuery, useUpdateTask, type ProjectTask, type TaskStatus,
@@ -19,20 +21,21 @@ import { useChatPeople } from '../chat/chatPeople';
 import { projectErrorText } from '../projectErrorText';
 import { StudioSectionHeader } from '../studioParts';
 import { canEditProject, type WorkspaceTabProps } from '../types';
-import { GhostButton, LoadingRow, Notice, PrimaryButton, SecondaryButton, SELECT_CLASS } from '../workspaceUi';
+import { GhostButton, INPUT_CLASS, LoadingRow, Notice, PrimaryButton, SecondaryButton, SELECT_CLASS } from '../workspaceUi';
 import { mayDeleteTask } from './DeleteTaskButton';
 import MeetingTasksDialog from './MeetingTasksDialog';
 import TaskBoard from './TaskBoard';
+import TaskPlanning from './TaskPlanning';
 import { allLabels, applyFilters, hasFilters, NO_FILTERS, sortTasks, type TaskFilters, type TaskSort } from './taskFilters';
 import TaskRow from './TaskRow';
 import { priorityLabel, statusLabel, todayKey } from './taskText';
 import { useTaskDialog } from './useTaskDialog';
 
-type View = 'list' | 'board';
+type View = 'list' | 'board' | 'planning';
 const VIEW_KEY = 'projectTasksView';
 
 function storedView(): View {
-    try { return scopedStorage.getItem(VIEW_KEY) === 'board' ? 'board' : 'list'; } catch { return 'list'; }
+    try { const saved = scopedStorage.getItem(VIEW_KEY); return saved === 'list' || saved === 'planning' ? saved : 'board'; } catch { return 'board'; }
 }
 
 function FilterBar({ filters, onChange, sort, onSort, view, people, me, labels }: {
@@ -43,6 +46,7 @@ function FilterBar({ filters, onChange, sort, onSort, view, people, me, labels }
     const set = (patch: Partial<TaskFilters>) => onChange({ ...filters, ...patch });
     return (
         <div className="flex flex-wrap items-center gap-2" role="group" aria-label={t('project_tasks.filters', 'Filter tasks')}>
+            <input type="search" className={`${INPUT_CLASS} max-w-xs`} value={filters.search || ''} onChange={e => set({ search: e.target.value })} aria-label={t('project_tasks.search', 'Search tasks')} placeholder={t('project_tasks.search', 'Search tasks')} />
             <select className={SELECT_CLASS} value={filters.who} onChange={e => set({ who: e.target.value })} aria-label={t('project_tasks.show', 'Show')}>
                 <option value="all">{t('project_tasks.who_all', 'All tasks')}</option>
                 {me && <option value="me">{t('project_tasks.who_me', 'Given to me')}</option>}
@@ -117,6 +121,9 @@ export default function TasksTab(props: WorkspaceTabProps) {
     const canEdit = canEditProject(role);
     const me = currentUser?.id || null;
     const query = useProjectTasksQuery(projectId);
+    const board = useProjectBoard(projectId);
+    const boardActions = useBoardActions(projectId);
+    const [configure, setConfigure] = useState(false);
     const update = useUpdateTask(projectId);
     const people = useChatPeople(projectId, currentUser);
     const all = useMemo(() => query.data?.tasks || [], [query.data]);
@@ -141,14 +148,31 @@ export default function TasksTab(props: WorkspaceTabProps) {
         });
     };
     const [view, setView] = useState<View>(storedView);
-    const [filters, setFilters] = useState<TaskFilters>(NO_FILTERS);
+    const filterKey = `projectTaskFilters:${projectId}:${me || ''}`;
+    const [filters, setFilters] = useState<TaskFilters>(() => {
+        try {
+            const saved = JSON.parse(scopedStorage.getItem(filterKey) || 'null');
+            if (!saved || typeof saved !== 'object') return NO_FILTERS;
+            return { who: typeof saved.who === 'string' ? saved.who : 'all',
+                priority: ['all', ...TASK_PRIORITIES].includes(saved.priority) ? saved.priority : 'all',
+                label: typeof saved.label === 'string' ? saved.label : '', overdueOnly: saved.overdueOnly === true,
+                search: typeof saved.search === 'string' ? saved.search : '' };
+        } catch { return NO_FILTERS; }
+    });
+    useEffect(() => { try { scopedStorage.setItem(filterKey, JSON.stringify(filters)); } catch { /* optional preference */ } }, [filterKey, filters]);
     const [sort, setSort] = useState<TaskSort>('due');
     const [fromMeeting, setFromMeeting] = useState(false);
     useOpenFromRoute(props.sub, query.data?.tasks, openTask);
 
-    const shown = useMemo(() => applyFilters(all, filters, me, todayKey()), [all, filters, me]);
+    const shown = useMemo(() => applyFilters(all, filters, me, todayKey()).filter(task => !filters.search?.trim() || `${task.title} ${task.description || ''}`.toLocaleLowerCase().includes(filters.search.trim().toLocaleLowerCase())), [all, filters, me]);
     const setStatus = (task: ProjectTask, status: TaskStatus) => update.mutate({ id: task.id, patch: { status } }, { onError });
-    const move = (task: ProjectTask, status: TaskStatus, beforeId: string | null) => update.mutate({ id: task.id, patch: { status, beforeId } }, { onError });
+    const move = (task: ProjectTask, status: TaskStatus, beforeId: string | null, columnId?: string) => {
+        if (columnId) boardActions.move.mutate({ taskId: task.id, columnId, beforeId }, { onError });
+        else update.mutate({ id: task.id, patch: { status, beforeId } }, { onError });
+    };
+    const quickCreate = async (columnId: string, title: string) => {
+        try { await boardActions.create.mutateAsync({ columnId, title }); } catch (e) { onError(e as Error); throw e; }
+    };
     const changeView = (next: View) => { setView(next); try { scopedStorage.setItem(VIEW_KEY, next); } catch { /* the choice just does not outlive the page */ } };
     const open = all.filter(x => x.status !== 'done').length;
 
@@ -158,19 +182,22 @@ export default function TasksTab(props: WorkspaceTabProps) {
                 statusChip={query.data ? t('project_tasks.open_count', '{count} open', { count: open }) : null}
                 primary={canEdit ? <PrimaryButton onClick={() => openNew()}>{t('project_tasks.new', 'New task')}</PrimaryButton> : undefined} />
             <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
-                <div className={`${view === 'board' ? 'max-w-6xl' : 'max-w-3xl'} mx-auto px-6 py-5 space-y-5`}>
+                <div className={`${view !== 'list' ? 'w-full' : 'max-w-6xl'} mx-auto px-4 sm:px-6 py-5 space-y-5 min-w-0`}>
                     <div className="flex flex-wrap items-center gap-2 justify-between">
                         <SegmentedControl size="sm" value={view} onChange={changeView} ariaLabel={t('project_tasks.view', 'View')}
                             options={[
                                 { value: 'list', label: t('project_tasks.view_list', 'List'), icon: <List className="w-3.5 h-3.5" aria-hidden="true" /> },
+                                { value: 'planning', label: t('project_tasks.planning', 'Planning'), icon: <CalendarRange className="w-3.5 h-3.5" aria-hidden="true" /> },
                                 { value: 'board', label: t('project_tasks.view_board', 'Board'), icon: <Kanban className="w-3.5 h-3.5" aria-hidden="true" /> },
                             ]} />
                         {canEdit && (
-                            <SecondaryButton onClick={() => setFromMeeting(true)} data-testid="tasks-from-meeting">
+                            <div className="flex gap-2"><SecondaryButton onClick={() => setConfigure(v => !v)} disabled={!board.data} aria-expanded={configure}><Settings2 className="w-4 h-4" />{t('project_tasks.configure_board', 'Configure board')}</SecondaryButton><SecondaryButton onClick={() => setFromMeeting(true)} data-testid="tasks-from-meeting">
                                 <Mic className="w-3.5 h-3.5" aria-hidden="true" />{t('project_tasks.from_meeting_button', 'From a meeting')}
-                            </SecondaryButton>
+                            </SecondaryButton></div>
                         )}
                     </div>
+                    {configure && board.data && <BoardSettings projectId={projectId} board={board.data} onClose={() => setConfigure(false)} />}
+                    {board.isError && <Notice tone="error" role="alert" action={<GhostButton onClick={() => board.refetch()}>{t('project_chat.retry', 'Try again')}</GhostButton>}>{t('project_tasks.board_failed', 'Could not load the board columns.')}</Notice>}
                     {all.length > 0 && <FilterBar filters={filters} onChange={setFilters} sort={sort} onSort={setSort} view={view} people={people} me={me} labels={labels} />}
                     {query.isPending && <LoadingRow label={t('project_tasks.loading', 'Loading tasks…')} />}
                     {query.isError && (
@@ -178,7 +205,7 @@ export default function TasksTab(props: WorkspaceTabProps) {
                             {t('project_tasks.load_failed', 'Could not load the tasks of this project.')}
                         </Notice>
                     )}
-                    {query.data && all.length === 0 && (
+                    {query.data && all.length === 0 && view === 'list' && (
                         <EmptyState icon={<CheckSquare className="w-10 h-10" />}
                             title={t('project_tasks.empty_title', 'No tasks yet')}
                             description={t('project_tasks.empty_desc', 'Write down what needs doing, give it to someone, and link the documents, notebooks and chats it is about. Or make tasks from the action items of a meeting.')}
@@ -188,7 +215,8 @@ export default function TasksTab(props: WorkspaceTabProps) {
                         <p className="text-sm text-[var(--text-tertiary)]">{t('project_tasks.no_matches', 'No tasks match this filter.')}</p>
                     )}
                     {shown.length > 0 && view === 'list' && <TaskList tasks={shown} sort={sort} canEdit={canEdit} people={people} onOpen={openTask} onStatus={setStatus} onDelete={deleteTask} mayDelete={mayDelete} />}
-                    {shown.length > 0 && view === 'board' && <TaskBoard tasks={shown} canEdit={canEdit} people={people} onOpen={openTask} onMove={move} onDelete={deleteTask} mayDelete={mayDelete} />}
+                    {query.data && view === 'planning' && <TaskPlanning tasks={shown} canEdit={canEdit} busy={update.isPending} people={people} onOpen={openTask} onDates={(task, dates) => update.mutate({ id: task.id, patch: dates }, { onError })} />}
+                    {query.data && board.data && view === 'board' && <TaskBoard allTasks={all} columns={board.data.columns} assignments={board.data.assignments} onCreate={quickCreate} busy={boardActions.move.isPending} tasks={shown} canEdit={canEdit} people={people} onOpen={openTask} onMove={move} onDelete={deleteTask} mayDelete={mayDelete} />}
                 </div>
             </div>
             {dialog}
