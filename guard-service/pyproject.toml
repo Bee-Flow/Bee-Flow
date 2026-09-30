@@ -13,7 +13,7 @@ dependencies = [
   "pydantic>=2.7.0,<3.0.0",
   "pydantic-settings>=2.2.0,<3.0.0",
   "httpx>=0.27.0,<1.0.0",
-  "redis>=5.0.0,<6.0.0",
+  "redis>=8.1.0,<9.0.0",
   # GLiNER multilingual PII NER (Apache 2.0) — CPU PII detection backend.
   # PINNED: every eval baseline records the library version in its provenance;
   # a floating floor let a rebuild silently drift the engine underneath the
