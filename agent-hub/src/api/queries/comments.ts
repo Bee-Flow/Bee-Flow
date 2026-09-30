@@ -123,11 +123,16 @@ export const commentKeys = {
 const basePath = (projectId: string) => `/api/projects/${enc(projectId)}/comments`;
 const threadPath = (projectId: string, threadId: string) => `${basePath(projectId)}/${enc(threadId)}`;
 
+/** 10 random bytes as hex, from the CSPRNG (randomUUID needs a secure context, this does not). */
+function randomHex(c: Crypto): string {
+    return Array.from(c.getRandomValues(new Uint8Array(10)), b => b.toString(16).padStart(2, '0')).join('');
+}
+
 /** A 64-character-or-shorter id that makes a resend idempotent. */
 export function newCommentClientId(): string {
     const c = globalThis.crypto;
     if (c && typeof c.randomUUID === 'function') return c.randomUUID();
-    return `c-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+    return `c-${Date.now().toString(36)}-${randomHex(c)}`;
 }
 
 // ── Pure cache helpers (exported for tests) ─────────────────────────────────

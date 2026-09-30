@@ -15,7 +15,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
+const { spawnSync } = require('node:child_process');
 const path = require('node:path');
 const Y = require('yjs');
 const { JSDOM } = require('jsdom');
@@ -37,10 +37,20 @@ function fragmentOf(doc) {
 test('the bundle exposes the co-editing API and keeps Yjs external', () => {
     for (const name of API) assert.equal(typeof C[name], 'function', name);
     assert.equal(C.FRAGMENT_NAME, 'content');
-    const src = fs.readFileSync(BUNDLE, 'utf8');
-    assert.match(src.split('\n')[0], /GENERATED/);
-    assert.match(src, /require\("yjs"\)/);
-    assert.doesNotMatch(src, /Yjs was already imported/);
+    // Yjs is required from the server's node_modules, not inlined: the
+    // bundle's own module children include the very module `require('yjs')`
+    // resolves to here.
+    const children = require.cache[BUNDLE].children.map(m => m.id);
+    assert.ok(children.includes(require.resolve('yjs')), 'the bundle requires the server Yjs');
+});
+
+test('loading the bundle next to the server Yjs does not load a second Yjs copy', () => {
+    // Yjs warns on stderr when a second copy is imported into one process.
+    const run = spawnSync(process.execPath, ['-e', `require('yjs'); require(${JSON.stringify(BUNDLE)});`], {
+        cwd: __dirname, encoding: 'utf8',
+    });
+    assert.equal(run.status, 0, run.stderr);
+    assert.equal(run.stderr, '');
 });
 
 test('Markdown survives a trip through a shared document made with the server Yjs', () => {

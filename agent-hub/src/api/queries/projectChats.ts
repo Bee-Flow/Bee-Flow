@@ -46,11 +46,16 @@ export function hasUnread(chat: Pick<TeamChat, 'unread'>): boolean {
     return typeof chat.unread === 'number' ? chat.unread > 0 : !!chat.unread;
 }
 
+/** 10 random bytes as hex, from the CSPRNG (randomUUID needs a secure context, this does not). */
+function randomHex(c: Crypto): string {
+    return Array.from(c.getRandomValues(new Uint8Array(10)), b => b.toString(16).padStart(2, '0')).join('');
+}
+
 /** A 64-character-or-shorter id the server uses to make a resend idempotent. */
 export function newClientMsgId(): string {
     const c = globalThis.crypto;
     if (c && typeof c.randomUUID === 'function') return c.randomUUID();
-    return `m-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+    return `m-${Date.now().toString(36)}-${randomHex(c)}`;
 }
 
 // ── Pure cache helpers (exported for tests) ─────────────────────────────────

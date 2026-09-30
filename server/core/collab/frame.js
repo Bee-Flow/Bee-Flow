@@ -86,7 +86,7 @@ const checkpointAad = (/** @type {string} */ docId, /** @type {number} */ seq) =
  */
 function sealFrame(plain, key, aad) {
     const iv = crypto.randomBytes(IV_LEN);
-    const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+    const cipher = crypto.createCipheriv('aes-256-gcm', key, iv, { authTagLength: TAG_LEN });
     cipher.setAAD(Buffer.from(aad, 'utf8'));
     const ct = Buffer.concat([cipher.update(plain), cipher.final()]);
     return Buffer.concat([Buffer.from([FRAME_AES_GCM_V1]), iv, cipher.getAuthTag(), ct]);
@@ -113,7 +113,7 @@ function openFrame(frame, { key, aad, allowPlain = false }) {
     try {
         const iv = buf.subarray(1, 1 + IV_LEN);
         const tag = buf.subarray(1 + IV_LEN, 1 + IV_LEN + TAG_LEN);
-        const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+        const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv, { authTagLength: TAG_LEN });
         decipher.setAAD(Buffer.from(aad, 'utf8'));
         decipher.setAuthTag(tag);
         return Buffer.concat([decipher.update(buf.subarray(1 + IV_LEN + TAG_LEN)), decipher.final()]);

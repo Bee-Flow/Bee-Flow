@@ -533,9 +533,15 @@ describe('project rows (server/stores/projectStore.js)', () => {
     // Mirrored by Project in src/features/automate/types.ts. `permission` is
     // list-only (the detail route calls it `role`) and is computed by the
     // SELECT's CASE, so it is part of this mapper's contract, not the table's.
+    // Each list row is the shared project mapper (mapProjectRow, which
+    // getProject uses too) plus `permission`, so the mapped fields are the
+    // union of both functions.
     it('listUserProjects still maps every field the solution screens read', () => {
+        const store = read('stores/projectStore.js');
+        const list = functionSlice(store, 'listUserProjects');
+        expect(list).toContain('mapProjectRow(row)');
         expect(
-            missingFrom(functionSlice(read('stores/projectStore.js'), 'listUserProjects'), [
+            missingFrom(list + functionSlice(store, 'mapProjectRow'), [
                 'id', 'name', 'description', 'customInstructions',
                 'knowledgeBaseIds', 'color', 'icon', 'ownerId',
                 'organizationId', 'extractMemories', 'version', 'permission',
