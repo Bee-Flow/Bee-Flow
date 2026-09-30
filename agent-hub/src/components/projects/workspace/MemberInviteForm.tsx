@@ -24,19 +24,23 @@ function useCandidates(type: InviteType, members: ProjectMembers | undefined): {
     const users = useDirectoryUsers(true);
     const groups = useDirectoryGroups(true);
     return useMemo(() => {
+        // The server refuses anybody outside the project's organisation, so the picker does not offer them.
+        // Without the project's organisation (an older server) nothing is filtered out.
+        const org = members?.organizationId;
+        const inOrg = (e: { organizationId?: string }) => org === undefined || (e.organizationId || '') === org;
         const taken = new Set((members?.members || []).filter((m) => m.sharedWithType === type).map((m) => m.sharedWithId));
         if (type === 'user') {
             if (members?.ownerId) taken.add(members.ownerId);
             if (users.isPending) return { options: [], loading: true };
             if (!users.data) return { options: null, loading: false };
             return {
-                options: users.data.filter((u) => !taken.has(u.id)).map((u) => ({ id: u.id, label: u.email && u.email !== u.name ? `${u.name} (${u.email})` : u.name })),
+                options: users.data.filter((u) => !taken.has(u.id) && inOrg(u)).map((u) => ({ id: u.id, label: u.email && u.email !== u.name ? `${u.name} (${u.email})` : u.name })),
                 loading: false,
             };
         }
         if (groups.isPending) return { options: [], loading: true };
         if (!groups.data) return { options: null, loading: false };
-        return { options: groups.data.filter((g) => !taken.has(g.id)).map((g) => ({ id: g.id, label: g.name })), loading: false };
+        return { options: groups.data.filter((g) => !taken.has(g.id) && inOrg(g)).map((g) => ({ id: g.id, label: g.name })), loading: false };
     }, [type, members, users.isPending, users.data, groups.isPending, groups.data]);
 }
 

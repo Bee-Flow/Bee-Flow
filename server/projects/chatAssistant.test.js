@@ -156,6 +156,7 @@ function world(overrides = {}) {
                 forModel: async (content) => content,
             };
         },
+        searchGuard: () => async (query) => { (log.searchChecks = log.searchChecks || []).push(query); return overrides.blockSearch ? { modelError: 'guard says no' } : null; },
         restoreArgs: (args, map) => (map ? JSON.parse(JSON.stringify(args).split('[phone_1]').join(map['[phone_1]'])) : args),
     };
 
@@ -681,6 +682,39 @@ test('the shield can refuse a tool call: nothing is made, and the model hears wh
     assert.ok(!calls.some((c) => c[0] === 'execute'));
     assert.deepStrictEqual(made, []);
     assert.deepStrictEqual(w.log.appended.find((m) => m.authorKind === 'assistant').refs, []);
+});
+
+const SEARCH_DEFINITIONS = [{ type: 'function', function: { name: 'agent_search' } }];
+
+test('a search is offered with its own prompt lines, and its query keeps the placeholders', async () => {
+    let told = null;
+    const { w, calls, loops } = toolsWorld({
+        definitions: SEARCH_DEFINITIONS,
+        world: { tokenise: true },
+        script: async (executeTool) => { told = await executeTool('agent_search', { query: 'who owns 0612345678 [phone_1]' }); return { content: 'Found it.', usage: {} }; },
+    });
+    const reply = await ask(w, '@ai look up 0612345678');
+    await reply.done;
+    assert.match(loops[0].messages[0].content, /search the web with agent_search/);
+    assert.match(loops[0].messages[0].content, /never put names, e-mail addresses/);
+    assert.doesNotMatch(loops[0].messages[0].content, /create documents and notebooks/, 'no document talk when none is offered');
+    const exec = calls.find((c) => c[0] === 'execute');
+    assert.strictEqual(exec[2].query, 'who owns 0612345678 [phone_1]', 'the query keeps its placeholders: no real value goes to a search provider');
+    assert.deepStrictEqual(w.log.searchChecks, ['who owns 0612345678 [phone_1]']);
+    assert.ok(told);
+});
+
+test('the Web Search Guard can stop a search: it never runs, and the model hears why', async () => {
+    let told = null;
+    const { w, calls } = toolsWorld({
+        definitions: SEARCH_DEFINITIONS,
+        world: { blockSearch: true },
+        script: async (executeTool) => { told = await executeTool('agent_search', { query: 'jan de vries bsn' }); return { content: 'I could not search.', usage: {} }; },
+    });
+    const reply = await ask(w);
+    await reply.done;
+    assert.match(told, /guard says no/);
+    assert.ok(!calls.some((c) => c[0] === 'execute'));
 });
 
 test('a member who cannot make things gets the plain call, with no tool talk in the prompt', async () => {

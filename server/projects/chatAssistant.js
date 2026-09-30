@@ -79,7 +79,7 @@ const { makeChatShield } = require('./chatShield');
 const { loadTaggedItems, taggedItemsBlock } = require('./chatTaggedItems');
 const { resolveChatModel } = require('./chatModel');
 const { answerRecord } = require('./chatTrace');
-const { answerWithTools, TOOLS_PROMPT, TOOL_MAX_TOKENS } = require('./chatToolRun');
+const { answerWithTools, toolsPrompt, TOOL_MAX_TOKENS } = require('./chatToolRun');
 
 const CONTEXT_MESSAGES = 30;
 const PER_MESSAGE_CHARS = 4000;
@@ -576,7 +576,7 @@ function makeChatAssistant(deps = {}) {
                 knowledge,
                 tokenAddendum: shield.tokenAddendum(outbound.tokenMap),
                 auto: auto ? { reasonText: reasonText(reasonCode) } : null,
-            }) + (definitions.length ? `\n\n${TOOLS_PROMPT}` : '');
+            }) + (definitions.length ? `\n\n${toolsPrompt(definitions)}` : '');
 
             const options = { ...(model.options || {}), timeoutMs };
             if (auto) options.maxTokens = Math.min(Number(options.maxTokens) || AUTO_MAX_TOKENS, AUTO_MAX_TOKENS);

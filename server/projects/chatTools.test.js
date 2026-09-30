@@ -2,12 +2,12 @@
 
 const { test } = require('node:test');
 const assert = require('node:assert');
-const { makeProjectChatTools, TOOL_NAMES, MAX_ITEMS_PER_ANSWER } = require('./chatTools');
+const { makeProjectChatTools, TOOL_NAMES, MAX_ITEMS_PER_ANSWER, MAX_SEARCHES } = require('./chatTools');
 
 const PROJECT = { id: 'p1', name: 'Launch', organizationId: 'org1', kind: 'workspace' };
 
 function kit(over = {}) {
-    const calls = { docs: [], nbs: [], updates: [], feed: [] };
+    const calls = { docs: [], nbs: [], updates: [], feed: [], searches: [] };
     const roles = { ann: 'editor', vic: 'viewer', ...(over.roles || {}) };
     const tools = makeProjectChatTools({
         getProjectRole: async (userId) => roles[userId] || null,
@@ -21,6 +21,9 @@ function kit(over = {}) {
         recordCreated: async (e) => { calls.feed.push(e); },
         markdownToHtml: (md) => `<p>${md}</p>`,
         notebooksAllowed: async () => over.notebooks !== false,
+        searchAvailable: async () => over.search === true,
+        searchDefinition: () => ({ type: 'function', function: { name: 'agent_search', description: 'search', parameters: { type: 'object', properties: {} } } }),
+        runSearch: async (name, args) => { calls.searches.push([name, args]); if (over.searchError) throw over.searchError; return over.searchResult || 'result'; },
     });
     return { tools, calls };
 }
@@ -33,7 +36,6 @@ test('an editor is offered documents and notebooks; nobody else, and nothing els
     assert.deepStrictEqual(await tools.offered({ ...ask, userId: 'zed' }), [], 'not a member');
     assert.deepStrictEqual((await kit({ notebooks: false }).tools.offered(ask)).map((t) => t.function.name), ['create_document'], 'no notebooks without the permission');
     assert.deepStrictEqual(await tools.offered({ ...ask, project: { ...PROJECT, kind: 'solution' } }), [], 'a Studio Solution holds neither');
-    assert.deepStrictEqual([...TOOL_NAMES], ['create_document', 'create_notebook']);
 });
 
 test('a document is made in the project as the asker, private, as a page from the Markdown, and shows up in the feed', async () => {
@@ -155,4 +157,43 @@ test('the tool says how to make a styled document, and the size of what one call
     await run.execute('create_document', { ...DESIGNED, bodyHtml: 'x'.repeat(400_000), css: 'y'.repeat(200_000) });
     assert.strictEqual(calls.docs[0].bodyHtml.length, 150_000);
     assert.strictEqual(calls.docs[0].css.length, 50_000);
+});
+
+test('a web search is offered to an editor only where a search is set up, and never to a viewer', async () => {
+    assert.ok(!(await kit().tools.offered(ask)).some((t) => t.function.name === 'agent_search'), 'no search configured');
+    const on = kit({ search: true }).tools;
+    assert.deepStrictEqual((await on.offered(ask)).map((t) => t.function.name), ['create_document', 'create_notebook', 'agent_search']);
+    assert.deepStrictEqual(await on.offered({ ...ask, userId: 'vic' }), [], 'a viewer gets no tools');
+});
+
+test('a search runs through the configured search, with a trimmed query, and makes nothing', async () => {
+    const { tools, calls } = kit({ search: true, searchResult: 'Found: https://example.org' });
+    const run = tools.forAnswer(ask);
+    assert.strictEqual(await run.execute('agent_search', { query: `  ${'q'.repeat(400)}  `, mode: 'web' }), 'Found: https://example.org');
+    assert.strictEqual(calls.searches[0][0], 'agent_search');
+    assert.strictEqual(calls.searches[0][1].query.length, 300);
+    assert.strictEqual(calls.searches[0][1].mode, 'web');
+    assert.deepStrictEqual(run.created, []);
+    assert.deepStrictEqual(calls.docs, []);
+});
+
+test('a search needs a query, has a budget per answer, and re-checks the role', async () => {
+    const { tools, calls } = kit({ search: true });
+    const run = tools.forAnswer(ask);
+    assert.strictEqual(JSON.parse(await run.execute('agent_search', { query: '  ' })).ok, false);
+    for (let i = 0; i < MAX_SEARCHES; i++) assert.strictEqual(await run.execute('agent_search', { query: `q${i}` }), 'result');
+    assert.match(JSON.parse(await run.execute('agent_search', { query: 'one more' })).error, /At most/);
+    assert.strictEqual(calls.searches.length, MAX_SEARCHES);
+    const viewer = JSON.parse(await tools.forAnswer({ ...ask, userId: 'vic' }).execute('agent_search', { query: 'x' }));
+    assert.strictEqual(viewer.ok, false);
+});
+
+test('a search that fails answers a refusal, not the error', async () => {
+    const { tools } = kit({ search: true, searchError: new Error('serper key sk-secret rejected') });
+    const out = JSON.parse(await tools.forAnswer(ask).execute('agent_search', { query: 'x' }));
+    assert.deepStrictEqual(out, { ok: false, error: 'The search could not be run.' });
+});
+
+test('the allow-list names the search and nothing that is not a project tool', () => {
+    assert.deepStrictEqual([...TOOL_NAMES], ['create_document', 'create_notebook', 'agent_search']);
 });

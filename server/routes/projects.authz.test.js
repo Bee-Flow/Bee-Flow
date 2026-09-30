@@ -120,7 +120,7 @@ Module._resolveFilename = function (request, parent, ...rest) {
     // inside the validator counts every id as invalid, and a test named
     // "linking a readable KB succeeds" starts failing for a reason that has
     // nothing to do with access.
-    if (parent && /(routes[\\/]projects|projects[\\/]knowledgeBaseMembership)\.js$/.test(parent.filename)
+    if (parent && /(routes[\\/]projects|projects[\\/]knowledgeBaseMembership|auth[\\/]orgScope)\.js$/.test(parent.filename)
         && Object.prototype.hasOwnProperty.call(MOCK_IDS, request)) {
         return MOCK_IDS[request];
     }
@@ -290,6 +290,28 @@ test('sharing an ORG-LESS project with an org user is rejected', async () => {
     assert.deepStrictEqual(fx.shared, [], 'an org-less project is not a wildcard');
 });
 
+test('a project with no organisation of its own is the organisation of its owner', async () => {
+    // Made by an account whose organisation the session did not hold: the owner acts in org1, the project says ''.
+    resetFx();
+    fx.projects.p1.organizationId = '';
+    fx.users.alice = { id: 'alice', displayName: 'Alice A', organizationId: 'org1' };
+    fx.users.bob = { id: 'bob', displayName: 'Bob B', organizationId: 'org1' };
+    fx.users.carol = { id: 'carol', organizationId: 'org2' };
+    fx.groups = [{ id: 'g-own', name: 'Ours', organizationId: 'org1' }, { id: 'g-other', name: 'Theirs', organizationId: 'org2' }];
+
+    const share = (sharedWithType, sharedWithId) => dispatch({ method: 'POST', url: '/p1/share', body: { sharedWithType, sharedWithId, permission: 'viewer' }, session: ALICE });
+    assert.strictEqual((await share('user', 'bob')).statusCode, 200);
+    assert.strictEqual((await share('group', 'g-own')).statusCode, 200);
+    assert.strictEqual((await share('user', 'carol')).statusCode, 400, 'another organisation is still refused');
+    assert.strictEqual((await share('group', 'g-other')).statusCode, 400);
+    assert.deepStrictEqual(fx.shared.map((s) => s.id), ['bob', 'g-own']);
+
+    fx.role = 'viewer';
+    const res = await dispatch({ method: 'GET', url: '/p1/members', session: ALICE });
+    assert.strictEqual(res.body.organizationId, 'org1');
+    assert.strictEqual(res.body.people.alice.name, 'Alice A', 'the owner is named');
+});
+
 test('sharing an org project with an ORG-LESS user is rejected', async () => {
     resetFx();
     fx.users.drifter = { id: 'drifter', organizationId: '' };
@@ -313,6 +335,34 @@ test('sharing with a same-org user succeeds', async () => {
     assert.strictEqual(res.statusCode, 200);
     assert.strictEqual(fx.shared.length, 1);
     assert.strictEqual(fx.shared[0].perm, 'editor');
+});
+
+test('REGRESSION: a user whose organisation comes from a group can be invited', async () => {
+    // Seen on dev: the account row holds no organisation, only a group in org1,
+    // and the invite was refused as "User does not belong to this project's organisation".
+    resetFx();
+    fx.groups = [{ id: 'team', organizationId: 'org1' }];
+    fx.users.martijn = { id: 'martijn', organizationId: '', groups: ['team'] };
+
+    const res = await dispatch({
+        method: 'POST', url: '/p1/share',
+        body: { sharedWithType: 'user', sharedWithId: 'martijn' }, session: ALICE,
+    });
+    assert.strictEqual(res.statusCode, 200);
+    assert.strictEqual(fx.shared.length, 1);
+});
+
+test('a group membership in ANOTHER org does not let a user in', async () => {
+    resetFx();
+    fx.groups = [{ id: 'eng', organizationId: 'org2' }];
+    fx.users.mallory = { id: 'mallory', organizationId: '', groups: ['eng'] };
+
+    const res = await dispatch({
+        method: 'POST', url: '/p1/share',
+        body: { sharedWithType: 'user', sharedWithId: 'mallory' }, session: ALICE,
+    });
+    assert.strictEqual(res.statusCode, 400);
+    assert.deepStrictEqual(fx.shared, []);
 });
 
 test('sharing with a group from another org is rejected', async () => {
@@ -524,6 +574,7 @@ test('members come with names for the owner and the members of the project\'s or
     const res = await dispatch({ method: 'GET', url: '/p1/members', session: BOB });
     assert.strictEqual(res.statusCode, 200);
     assert.strictEqual(res.body.ownerId, 'alice');
+    assert.strictEqual(typeof res.body.organizationId, 'string', 'the project\'s organisation, so the invite picker can offer only its own people and groups');
     assert.strictEqual(res.body.members.length, 5);
     assert.deepStrictEqual(res.body.people, {
         alice: { name: 'Alice A' },

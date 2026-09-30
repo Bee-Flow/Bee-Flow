@@ -48,6 +48,7 @@ const { perUserRateLimit } = require('../utils/perUserRateLimit');
 const { validate } = require('../core/http/validate');
 const { HttpError, notFound } = require('../core/http/errors');
 const S = require('./projects/schemas');
+const { orgScope } = require('../auth/orgScope');
 
 // Single shared budget across all membership mutations (invite / role change /
 // removal / unshare). Keeps a runaway client or accidental spam loop from
@@ -209,6 +210,41 @@ function memberAvatar(projectId, userId, user) {
 const { displayNameOf } = require('../core/documents/documentPeople');
 
 /**
+ * The organisation a project belongs to, for deciding who may be invited and named. A project that
+ * carries none (older projects, and ones made by an account whose organisation only comes from a group,
+ * which the session does not hold) is the organisation its owner acts in; only an owner without any
+ * organisation leaves it '' — and then only org-less people and groups match.
+ *
+ * @param {{ organizationId?: string|null, ownerId?: string }|null|undefined} project
+ * @returns {Promise<string>}
+ */
+async function projectOrgOf(project) {
+    if (project?.organizationId) return project.organizationId;
+    if (!project?.ownerId) return '';
+    try {
+        const scope = await orgScope({ session: { user: { id: project.ownerId } } });
+        return scope.homeOrgId || scope.orgId || '';
+    } catch (err) {
+        log.warn('[Projects] owner organisation unavailable:', err.message);
+        return '';
+    }
+}
+
+/**
+ * Whether a person belongs to the project's organisation: their own, or one a group of theirs is in (a member
+ * whose organisation comes from a group has none on the account). An org-less project ('') matches only an
+ * org-less person. A failed read refuses rather than guessing.
+ *
+ * @param {string} userId
+ * @param {string} projectOrg  from projectOrgOf
+ * @returns {Promise<boolean>}
+ */
+async function belongsToProjectOrg(userId, projectOrg) {
+    const { orgIds } = await orgScope({ session: { user: { id: userId } } }, { strict: true });
+    return projectOrg ? orgIds.has(projectOrg) : orgIds.size === 0;
+}
+
+/**
  * Names for the owner and the member rows of one project.
  *
  * Only principals of the PROJECT'S organisation are described (org-less
@@ -224,7 +260,7 @@ const { displayNameOf } = require('../core/documents/documentPeople');
  * @returns {Promise<{ people: Record<string, {name?: string}>, groups: Record<string, {name?: string}> }>}
  */
 async function describeMembers(project, shares) {
-    const org = project.organizationId || '';
+    const org = await projectOrgOf(project);
     const userIds = new Set([project.ownerId]);
     const groupIds = new Set();
     for (const share of shares) {
@@ -301,7 +337,9 @@ router.post('/', validate({ body: S.CreateBody }), async (req, res) => {
         const lenError = validateLengths({ name, description, customInstructions });
         if (lenError) return res.status(400).json({ error: lenError });
 
-        const organizationId = req.session?.user?.organizationId || '';
+        // The organisation the account acts in: the one on the session, else the one the account resolves to
+        // (a member whose organisation comes from a group has none on the session), else none.
+        const organizationId = req.session?.user?.organizationId || (await orgScope(req)).orgId || '';
 
         if (knowledgeBaseIds !== undefined) {
             const kbCheck = await validateKnowledgeBaseIds(req, knowledgeBaseIds, organizationId);
@@ -595,7 +633,7 @@ router.post('/:id/share', memberMutationLimiter, requireRole('owner'), validate(
         // Compare normalised values instead: '' is a real bucket, and only an
         // equally org-less counterpart matches it.
         const project = await projectStore.getProject(req.params.id);
-        const projectOrg = project?.organizationId || '';
+        const projectOrg = await projectOrgOf(project);
         if (sharedWithType === 'group') {
             const targetGroup = await userStore.getGroup(sharedWithId);
             if (!targetGroup || targetGroup.id !== sharedWithId) return res.status(400).json({ error: 'Unknown group' });
@@ -605,7 +643,7 @@ router.post('/:id/share', memberMutationLimiter, requireRole('owner'), validate(
         } else if (sharedWithType === 'user') {
             const targetUser = await userStore.getUser(sharedWithId);
             if (!targetUser) return res.status(400).json({ error: 'Unknown user' });
-            if ((targetUser.organizationId || '') !== projectOrg) {
+            if (!await belongsToProjectOrg(targetUser.id, projectOrg)) {
                 return res.status(400).json({ error: 'User does not belong to this project\'s organisation' });
             }
         }
@@ -666,7 +704,9 @@ router.get('/:id/members', requireRole('viewer'), async (req, res) => {
     } catch (err) {
         log.warn('[Projects] member colours unavailable:', err.message);
     }
-    res.json({ ownerId: project.ownerId, members: shares, people, groups });
+    // The organisation the project belongs to ('' for none): only its own people and groups can be invited,
+    // so the invite picker offers no others (a platform admin's directory lists every organisation).
+    res.json({ ownerId: project.ownerId, organizationId: await projectOrgOf(project), members: shares, people, groups });
 });
 
 // PUT /:id/members/:memberId — change role (owner only)
@@ -746,7 +786,7 @@ router.get('/:id/avatars/:userId', requireRole('viewer'), async (req, res) => {
     const isMember = project.ownerId === req.params.userId
         || shares.some((s) => s.sharedWithType === 'user' && s.sharedWithId === req.params.userId);
     const user = isMember ? await userStore.getUser(req.params.userId) : null;
-    const match = user && (user.organizationId || '') === (project.organizationId || '') && typeof user.avatar === 'string'
+    const match = user && typeof user.avatar === 'string' && await belongsToProjectOrg(user.id, await projectOrgOf(project))
         ? AVATAR_DATA_URL.exec(user.avatar) : null;
     if (!match) throw notFound();
     res.set({

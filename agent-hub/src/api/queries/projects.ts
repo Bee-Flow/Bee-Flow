@@ -72,6 +72,8 @@ export interface ProjectPerson {
 
 export interface ProjectMembers {
     ownerId: string;
+    /** The organisation of the project, '' for none: only its own people and groups can be invited. */
+    organizationId?: string;
     members: ProjectShare[];
     /** Display names for the owner and user members, keyed by user id. */
     people: Record<string, ProjectPerson>;
@@ -262,6 +264,8 @@ export function useProjectMembersQuery(projectId: string | null | undefined) {
             const body = await apiClient.get<Partial<ProjectMembers>>(`/api/projects/${enc(projectId!)}/members`, { signal });
             return {
                 ownerId: body?.ownerId || '',
+                // Absent from an older server: then nothing is filtered by organisation.
+                organizationId: typeof body?.organizationId === 'string' ? body.organizationId : undefined,
                 members: Array.isArray(body?.members) ? body!.members! : [],
                 people: body?.people || {},
                 groups: body?.groups || {},

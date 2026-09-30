@@ -24,7 +24,7 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 const { makeChatShield, PrivacyBlocked } = require('./chatShield');
 
-function harness({ shield = null, aiConfig = {}, scan, apply, validate, resolveThrows = false, source } = {}) {
+function harness({ shield = null, aiConfig = {}, scan, apply, validate, resolveThrows = false, source, detect } = {}) {
     const calls = { scan: [], apply: [], validate: [], cleared: [], audit: [] };
     const s = makeChatShield({
         resolveShieldFor: async (args) => {
@@ -39,6 +39,7 @@ function harness({ shield = null, aiConfig = {}, scan, apply, validate, resolveT
             clearConversationState(id, opts) { calls.cleared.push(id); calls.clearOpts = opts; },
         },
         validateInputForPii: async (...args) => { calls.validate.push(args); return validate(...args); },
+        detectPii: async (...args) => { calls.detect = (calls.detect || []).concat([args]); return detect(...args); },
         logGuardrailEvent: async (ev) => { calls.audit.push(ev); },
         ...(source ? { source } : {}),
     });
@@ -179,4 +180,29 @@ test('every DLP call runs on an ephemeral scope: no write-through, no owner look
     assert.strictEqual(ask.calls.apply[0].ephemeral, true);
     ask.s.release(base.conversationId);
     assert.deepStrictEqual(ask.calls.clearOpts, { ephemeral: true });
+});
+
+test('the Web Search Guard: a hit blocks when the guard is on, and only monitors when it is off', async () => {
+    const found = async () => ({ hasPii: true, entities: [{ label: 'Email' }, { label: 'Email' }] });
+    const on = harness({ detect: found });
+    const shield = { enabled: true, webSearchGuardEnabled: true, webSearchGuardPiiCategories: ['Email'] };
+    const refused = await on.s.searchGuard({ shield, orgId: 'org1', userId: 'u1' })('mail jan@example.org');
+    assert.match(refused.modelError, /Web search blocked.*Email/);
+    assert.deepStrictEqual(on.calls.detect[0], ['mail jan@example.org', ['Email']]);
+    assert.strictEqual(on.calls.audit[0].action_taken, 'search_blocked');
+    assert.strictEqual(on.calls.audit[0].violation_categories, 'Email');
+    assert.ok(!JSON.stringify(on.calls.audit).includes('jan@example.org'), 'the audit names categories, never the query');
+
+    const off = harness({ detect: found });
+    assert.strictEqual(await off.s.searchGuard({ shield: { ...shield, webSearchGuardEnabled: false }, orgId: 'org1', userId: 'u1' })('x'), null);
+    assert.strictEqual(off.calls.audit[0].action_taken, 'pii_detected');
+});
+
+test('the Web Search Guard: no shield, no categories or a failing detector lets the search through', async () => {
+    const h = harness({ detect: async () => { throw new Error('down'); } });
+    const shield = { enabled: true, webSearchGuardEnabled: true, webSearchGuardPiiCategories: ['Email'] };
+    assert.strictEqual(await h.s.searchGuard({ shield, orgId: 'o', userId: 'u' })('x'), null, 'fail-open, as in a normal chat');
+    assert.strictEqual(await h.s.searchGuard({ shield: null, orgId: 'o', userId: 'u' })('x'), null);
+    assert.strictEqual(await h.s.searchGuard({ shield: { ...shield, webSearchGuardPiiCategories: [] }, orgId: 'o', userId: 'u' })('x'), null);
+    assert.strictEqual(h.calls.detect.length, 1, 'only the first one ran a detector');
 });
