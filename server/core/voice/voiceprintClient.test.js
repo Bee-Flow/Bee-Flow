@@ -155,7 +155,7 @@ test('enrollment: uploads, submits, polls, returns the template, cleans up', asy
     const out = await vc.createVoiceprint('rec.webm', { language: 'nl' });
 
     assert.strictEqual(out.voiceprint, 'VGhpcy1pcy1hLXZvaWNlcHJpbnQ=');
-    assert.strictEqual(out.model, 'precision-2');
+    assert.strictEqual(out.model, 'precision-3');
     assert.strictEqual(Math.round(out.durationSeconds), 25);
     assert.ok(calls.some(c => c.url.endsWith('/media/input')));
     assert.ok(calls.some(c => c.url.endsWith('/voiceprint') && c.method === 'POST'));

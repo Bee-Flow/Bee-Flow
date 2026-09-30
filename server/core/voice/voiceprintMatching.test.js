@@ -298,8 +298,8 @@ test('empty / absent identify output degrades to nothing, never throws', () => {
 });
 
 test('a missing confidence value does not block a well-covered match', () => {
-    // `confidence: true` is always requested, but the field is optional in the
-    // schema — absence must not be read as "zero".
+    // The identify match score comes back without asking, but the field is
+    // optional in the schema — absence must not be read as "zero".
     const diar = [{ speakerId: 'SPEAKER_00', start: 0, end: 30 }];
     const out = {
         identification: [{ speaker: 'SPEAKER_A', start: 0, end: 30 }],

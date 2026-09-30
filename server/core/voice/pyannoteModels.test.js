@@ -27,7 +27,7 @@ const {
 
 test('diarization uses pyannoteAI\'s best model', () => {
     // community-1 is weaker; live-1 is streaming-only. There is no third option.
-    assert.strictEqual(DIARIZATION_MODEL, 'precision-2');
+    assert.strictEqual(DIARIZATION_MODEL, 'precision-3');
 });
 
 test('the two languages this product cares about get the STRONGER model', () => {

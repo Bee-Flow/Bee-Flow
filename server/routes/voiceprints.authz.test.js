@@ -38,7 +38,7 @@ const fx = {
     deleted: [],
     enrolled: [],
     consentRows: [],
-    createResult: { voiceprint: 'VEVNUExBVEU=', jobId: 'j1', durationSeconds: 25, model: 'precision-2' },
+    createResult: { voiceprint: 'VEVNUExBVEU=', jobId: 'j1', durationSeconds: 25, model: 'precision-3' },
     createError: null,
 };
 

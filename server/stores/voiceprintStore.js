@@ -167,7 +167,7 @@ async function markFailed(userId, provider, errorCode) {
  * @param {{userId: string, organizationId: string, provider?: string, model?: string, voiceprintBase64: string, durationSeconds?: number|null, language?: string|null, jobId?: string|null, consent?: {at?: Date, version?: number, ip?: string, userAgent?: string}}} opts
  */
 async function upsertVoiceprint({
-    userId, organizationId, provider = DEFAULT_PROVIDER, model = 'precision-2',
+    userId, organizationId, provider = DEFAULT_PROVIDER, model = 'precision-3',
     voiceprintBase64, durationSeconds = null, language = null, jobId = null, consent = {},
 }) {
     await initDB();

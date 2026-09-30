@@ -152,11 +152,11 @@ test('the meeting LANGUAGE picks the speech model', async () => {
         'Japanese is outside Parakeet\'s 25 languages and must fall back');
 });
 
-test('diarization always asks for precision-2', async () => {
+test('diarization always asks for precision-3', async () => {
     const body = {};
     installFetch({ submitBody: body });
     await transcribeWithPyannote('meeting.mp4', { language: 'nl' });
-    assert.strictEqual(body.value.model, 'precision-2');
+    assert.strictEqual(body.value.model, 'precision-3');
 });
 
 test('numSpeakers is sent in the diarize body when provided (exact count)', async () => {
@@ -165,7 +165,7 @@ test('numSpeakers is sent in the diarize body when provided (exact count)', asyn
     await transcribeWithPyannote('meeting.mp4', { language: 'nl', numSpeakers: 5 });
     assert.strictEqual(submitBody.value.numSpeakers, 5);
     assert.strictEqual(submitBody.value.transcription, true);
-    assert.strictEqual(submitBody.value.model, 'precision-2');
+    assert.strictEqual(submitBody.value.model, 'precision-3');
 });
 
 test('numSpeakers omitted (Auto) when not a positive number', async () => {
@@ -228,10 +228,10 @@ test('the identify body carries an explicit threshold and exclusive matching', a
     installFetch({ identifyBody });
     await transcribeWithPyannote('meeting.mp4', { numSpeakers: 4, voiceprints: selection() });
 
-    assert.strictEqual(identifyBody.value.model, 'precision-2');
+    assert.strictEqual(identifyBody.value.model, 'precision-3');
     assert.strictEqual(identifyBody.value.matching.threshold, 50);
     assert.strictEqual(identifyBody.value.matching.exclusive, true);
-    assert.strictEqual(identifyBody.value.confidence, true);
+    assert.ok(!('confidence' in identifyBody.value), 'precision-3 answers the frame-level confidence flag with an error');
     assert.strictEqual(identifyBody.value.numSpeakers, 4, 'the same speaker-count hint aligns both diarizations');
     assert.deepStrictEqual(identifyBody.value.voiceprints, [{ label: 'vp_tom', voiceprint: 'QUFB' }]);
 });

@@ -5,7 +5,7 @@
  * Unlike the Azure Whisper batch path this needs NO publicly-reachable object
  * storage: pyannoteAI hosts its own temporary media store (`media://` URLs,
  * valid ≥24h), so the flow is upload-to-pyannote → submit → poll → map. One
- * job returns both diarization and transcription (precision-2 + a Whisper/
+ * job returns both diarization and transcription (precision-3 + a Whisper/
  * Parakeet STT), so it is a full provider like Voxtral/Azure, not a
  * diarizer that has to be paired with a separate transcription engine.
  *
@@ -183,7 +183,9 @@ async function transcribeWithPyannote(inputPath, {
                         : DEFAULT_IDENTIFY_THRESHOLD,
                     exclusive: true,
                 },
-                confidence: true,
+                // No `confidence: true`: that is the frame-level score, which
+                // nothing reads and precision-3 answers with an error. The
+                // per-voiceprint match scores come back without asking.
                 // Non-overlapping turns — cleaner arithmetic for the overlap vote.
                 exclusive: true,
                 ...(jobBody.numSpeakers ? { numSpeakers: jobBody.numSpeakers } : {}),
