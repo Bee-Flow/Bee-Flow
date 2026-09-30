@@ -183,3 +183,24 @@ test('subjectSpellings is the single place the two id shapes are written down', 
     assert.deepStrictEqual(subjectReview.subjectSpellings('abc'), ['abc', 'automation:abc']);
     assert.deepStrictEqual(subjectReview.subjectSpellings(7), ['7', 'automation:7']);
 });
+
+// ── projects ─────────────────────────────────────────────────────────────
+
+test('a project review asks for both spellings of the project and never collides with a routine of the same id', async () => {
+    subjectReview.reviewProject('org1', 'x1', { reason: 'members' });
+    subjectReview.reviewAutomation('org1', 'x1');
+    assert.strictEqual(subjectReview._armedCount(), 2, 'a project and a routine sharing an id have separate slots');
+    await subjectReview._drain();
+    const asked = calls.map(c => c.subjectIds).sort((a, b) => a[0].localeCompare(b[0]));
+    assert.deepStrictEqual(asked, [['project:x1', 'x1'], ['x1', 'automation:x1']]);
+    assert.deepStrictEqual(subjectReview.projectSpellings('p9'), ['project:p9', 'p9']);
+});
+
+test('a failing project review stays inside the queue', async () => {
+    behaviour = async () => { throw new Error('db down'); };
+    subjectReview.reviewProject('org1', 'p1');
+    await assert.doesNotReject(subjectReview._drain());
+    subjectReview.reviewProject('', 'p1');
+    subjectReview.reviewProject('org1', '  ');
+    assert.strictEqual(subjectReview._armedCount(), 0);
+});

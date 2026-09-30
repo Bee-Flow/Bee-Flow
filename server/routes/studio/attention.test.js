@@ -698,3 +698,20 @@ test('a base this reader may READ but not MANAGE is not an instruction for them'
     assert.deepStrictEqual(deps._calls.usageIds, ['kb1'], 'and the other one is not even probed');
     assert.strictEqual(b.sources.kbEmptyInUse.status, 'checked', 'out of reach is not a gap');
 });
+
+test('only Solutions (and unclassified legacy projects) are checked for publishing', async () => {
+    // A collaborative project is never published, so it must neither produce a
+    // "cannot be published yet" row nor use up the budget of Solutions checked.
+    let asked = null;
+    const b = await body({
+        projectStore: {
+            listUserProjects: async (userId, groupIds, opts) => {
+                asked = opts;
+                return [{ id: 'pr1', name: 'Invoice rollout' }];
+            },
+        },
+        solutionCompleteness: async () => ({ blocked: false, complete: true, findings: [], unavailable: [] }),
+    });
+    assert.deepStrictEqual(asked, { kind: 'solution' });
+    assert.strictEqual(b.sources.solutionBlocked.status, 'checked');
+});

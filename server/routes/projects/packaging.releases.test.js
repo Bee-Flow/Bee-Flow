@@ -51,7 +51,8 @@ stub('../../auth/projectAccess', {
 
 const fx = { rows: [], throws: false, calls: [] };
 
-stub('../../stores/projectStore', { getProject: async () => ({ id: 'p1', organizationId: 'org_a' }) });
+const project = { kind: 'solution' };
+stub('../../stores/projectStore', { getProject: async () => ({ id: 'p1', organizationId: 'org_a', kind: project.kind }) });
 stub('../../stores/blueprintStore', {
     listReleases: async (projectId, opts) => {
         fx.calls.push({ name: 'listReleases', projectId, opts });
@@ -97,6 +98,7 @@ async function releases(projectId, user) {
 
 function reset() {
     gate.role = 'owner';
+    project.kind = 'solution';
     fx.throws = false;
     fx.rows = [{
         id: 'rel_1',
@@ -190,4 +192,22 @@ test('een project dat nooit gepubliceerd is, antwoordt met een lege lijst', asyn
     const res = await releases('p1');
     assert.strictEqual(res.status, 200);
     assert.deepStrictEqual(res.json, { releases: [] });
+});
+
+// ── Packaging is for Studio Solutions ──────────────────────────────────────
+
+test('a collaborative project has no release history: 404, and the store is not read', async () => {
+    reset();
+    project.kind = 'workspace';
+    const res = await releases('p1');
+    assert.strictEqual(res.status, 404);
+    assert.deepStrictEqual(fx.calls, []);
+});
+
+test('a legacy (unclassified) project still has its history', async () => {
+    reset();
+    project.kind = null;
+    const res = await releases('p1');
+    assert.strictEqual(res.status, 200);
+    assert.strictEqual(res.json.releases.length, 1);
 });

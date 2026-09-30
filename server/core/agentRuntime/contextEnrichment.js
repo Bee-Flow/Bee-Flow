@@ -140,10 +140,20 @@ async function injectProjectAndKnowledgeContext({ agent, userId, userMessage, us
          * narrowing (A1c). This door needs it too: a preview that hides a
          * group-restricted base from the agent's own knowledge and then quotes
          * it back out of the project's is not a preview of anything.
+         *
+         * The one exception is the project's own files base: it is never
+         * published, so the filter above would hide it from every member but
+         * the owner. `searchableProjectKbIds` keeps it for members (this
+         * project was validated for the asker in resolveProjectContext) and
+         * drops it in a "Test as" preview, where the asker is nobody's colleague.
          */
         const { visibleKbIdsFor } = require('./testAs');
-        const kbIds = await visibleKbIdsFor(validProject.knowledgeBaseIds || [], {
-            userId, testAs, context: 'project_kb', agentId: agent?.id || null,
+        const { searchableProjectKbIds } = require('../kb/projectFilesKb');
+        const kbIds = await searchableProjectKbIds(validProject, {
+            filterAttached: (ids) => visibleKbIdsFor(ids, {
+                userId, testAs, context: 'project_kb', agentId: agent?.id || null,
+            }),
+            includeFiles: !testAs,
         });
         if (kbIds.length > 0) {
             try {

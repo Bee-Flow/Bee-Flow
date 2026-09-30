@@ -57,9 +57,9 @@ test('PostgreSQL: upgrade legacy documents, immutable pins, sharing, conflict an
         await store.deleteDocument(team.id,'owner');
         assert.ok(await store.getDocumentVersion(team.id,'colleague',team.versionId),'archiving preserves approved pins');
         assert.equal((await store.listDocuments('colleague',{query:'Team policy'})).length,0);
-        const restored=await store.restoreVersion('legacy','owner',legacy.versionId,edited.versionId);
-        assert.equal(restored.bodyHtml,legacy.bodyHtml);
-        assert.equal((await store.listVersions('legacy','owner')).length,4);
+        const restored=await store.restoreVersion('legacy','owner',legacy.versionId,{expectedVersionId:edited.versionId});
+        assert.equal(restored.current.bodyHtml,legacy.bodyHtml);
+        assert.equal((await store.listVersions('legacy','owner')).versions.length,4);
         await db.run('UPDATE users SET "organizationId"=$1 WHERE id=$2',['org-b','owner']);
         assert.equal(await store.getDocument('legacy','owner'),null,'moving accounts cannot retain access to another organization');
     } finally {

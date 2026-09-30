@@ -72,7 +72,7 @@ const {
 const { groundedOn, groundingVerdict } = require('../../core/agentRuntime/agentGrounding');
 const {
     moduleActive, licenceAllows, capability, permission, userIdOf,
-    visibleKnowledgeBasesFor,
+    solutionsGate, visibleKnowledgeBasesFor, visibleSolutionsFor,
 } = require('./shared');
 const log = require('../../telemetry/log');
 
@@ -703,21 +703,16 @@ const SOURCES = [
         kind: 'solution',
         linkFor: solutionDeepLink,
         // routes/projects.js's mount gate plus the operator kill switch, as
-        // counts.js and search.js read it.
-        gate: async (req, d) => {
-            if (!(await moduleActive(d, 'projects'))) return false;
-            if (!(await capability(d, req, 'projects'))) return false;
-            const enabled = await d.configStore.getConfig('feature_projects_enabled');
-            return enabled !== false;
-        },
+        // counts.js and search.js read it (./shared.js).
+        gate: solutionsGate,
         load: async (req, d) => {
             const { gaps, miss } = gapCollector();
-            const userId = userIdOf(req);
             // listUserProjects (owner + shares) IS the authorisation; nothing
-            // below widens it and no id comes out of the request.
-            const projects = asArray(await d.projectStore.listUserProjects(
-                userId, await d.auth.resolveUserGroups(userId),
-            ));
+            // below widens it and no id comes out of the request. Solutions
+            // (and unclassified legacy projects) only: a collaborative project
+            // is never published, so it has no "cannot be published yet" row
+            // and must not spend the budget of MAX_SOLUTIONS_CHECKED.
+            const projects = asArray(await visibleSolutionsFor(req, d));
             const budget = projects.slice(0, MAX_SOLUTIONS_CHECKED);
             if (projects.length > budget.length) miss('solutions:budget');
             const results = await d.mapLimited(budget, SOLUTION_CONCURRENCY, async (project) => {

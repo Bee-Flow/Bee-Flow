@@ -23,7 +23,20 @@ const test = require('node:test');
 const assert = require('node:assert');
 const h = require('../core/http/routeHarness');
 
-const { db, api } = h.routeUnderTest(test, '/api/notebooks', () => require('./notebooks'));
+// The one notebook the recording database knows: nb1, owned by the harness
+// user, so a valid request passes the role gate and reaches the store.
+const NB1 = { id: 'nb1', user_id: 'u1', name: 'NB', document_content: '', version: 5, source_count: 0 };
+const answer = (sql, params) => (/^\s*SELECT n\.\*/.test(sql) && params && params[0] === 'nb1' && params[1] === 'u1'
+    ? { rows: [NB1] } : undefined);
+
+const { db, api } = h.routeUnderTest(test, '/api/notebooks', () => {
+    const router = require('./notebooks');
+    // No co-editing engine and no change feed in this test: the request's
+    // own queries are what it records.
+    router.seams.collab = () => null;
+    router.seams.feed = () => ({ contentChanged: async () => {}, renamed: async () => {}, sourcesAdded: async () => {} });
+    return router;
+}, { answer });
 
 const put = (body, user) => api.call('PUT', '/api/notebooks/nb1', { body, user });
 
@@ -50,7 +63,10 @@ test('source bodies take only what the source reads', async () => {
     h.assertRefused(assert, await call('/sources/meeting', { meetingId: 'm1', mode: 'summry' }), 'body.mode', /full or summary/);
     h.assertRefused(assert, await call('/sources/url', {}), 'body.url', /URL required/);
     h.assertRefused(assert, await call('/sources/text', { text: 'x', title: 'y' }), 'body', /"title"/);
-    h.assertRefused(assert, await call('/versions', { summary: { a: 1 } }), 'body.summary');
+    h.assertRefused(assert, await call('/versions', { name: { a: 1 } }), 'body.name', /name is text/);
+    // The old snapshot body (client-supplied content and label) is gone: a
+    // named version is always the server's own current state.
+    h.assertRefused(assert, await call('/versions', { name: 'Draft', summary: 'Before AI edit', content: '<p>x</p>' }), 'body', /"summary"/);
     h.assertRefused(assert, await call('/ai-fill', { documentContent: ['x'] }), 'body.documentContent', /No document content provided/);
     const rename = await api.call('PATCH', '/api/notebooks/nb1/sources/s1', { body: { name: { x: 1 } } });
     h.assertRefused(assert, rename, 'body.name', /Name is required/);

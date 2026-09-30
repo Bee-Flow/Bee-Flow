@@ -14,7 +14,7 @@
  *
  * The project feed ALREADY carries `run.started` / `run.finished` — for CHAT
  * runs, keyed on a conversation id, driving the per-thread "answering…"
- * indicator in ProjectDetailPage. Re-using those names would light up a
+ * indicator in the project workspace's chat list. Re-using those names would light up a
  * spinner on a conversation that is not running. Automation runs therefore get
  * their own `automation.run.*` kinds, and the mapping below is the only place
  * that is decided.

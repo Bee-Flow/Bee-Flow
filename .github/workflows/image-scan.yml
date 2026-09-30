@@ -73,7 +73,7 @@ jobs:
       # decides otherwise. Keep it in step with the packages' visibility.
       REPORT_PUBLIC: ${{ contains(fromJSON('["server", "agent-hub", "guard", "classify", "pwt-runner"]'), matrix.image) }}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Scan ghcr.io/bee-flow/${{ matrix.image }}
         # Pinned by commit. Upstream deleted its un-prefixed tags (0.28.0 and

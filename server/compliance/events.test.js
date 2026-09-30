@@ -10,7 +10,7 @@
  * Run: node --test server/compliance/events.test.js
  */
 
-const { test, beforeEach } = require('node:test');
+const { test, beforeEach, mock } = require('node:test');
 const assert = require('node:assert');
 const path = require('path');
 
@@ -45,6 +45,17 @@ inject('./countsCache.js', {
 inject('../stores/notificationStore.js', {
     createNotification: async (n) => { notifications.push(n); },
 });
+// The notice dedupe claim (compliance_notify_log). A set per test run: the
+// first claim of a (key, window) wins, a repeat is refused.
+const claims = new Set();
+inject('../stores/complianceStore.js', {
+    markNotified: async (org, kind, id, offset) => {
+        const k = [org, kind, id, offset].join('|');
+        if (claims.has(k)) return false;
+        claims.add(k);
+        return true;
+    },
+});
 // The transfer-signal producer now double-checks a cross-replica DB claim
 // (compliance_signal_debounce): a returned row means "we won the claim, emit";
 // null means another replica already emitted. Default: we win.
@@ -65,6 +76,7 @@ beforeEach(() => {
     notifications.length = 0;
     frameworkRuns.length = 0;
     invalidated.length = 0;
+    claims.clear();
 });
 
 // ─────────────── New events (Compliance Center redesign) ───────────────
@@ -229,4 +241,75 @@ test('a FAILING claim query fails open — the signal still emits', async () => 
         'one extra notification beats silently dropping an Art-44 signal',
     );
     claimResponse = () => ({ claimed: 1 });
+});
+
+// ─────────────── Notices: who and how often ───────────────
+
+test('the same framework enabled twice in a day is one notice', async () => {
+    events.emit(events.EVENTS.FRAMEWORK_ENABLED, { orgId: 'org1', frameworkId: 'nis2' });
+    await settle();
+    events.emit(events.EVENTS.FRAMEWORK_ENABLED, { orgId: 'org1', frameworkId: 'nis2' });
+    await settle();
+    assert.strictEqual(notifications.length, 1);
+    events.emit(events.EVENTS.FRAMEWORK_ENABLED, { orgId: 'org1', frameworkId: 'dora' });
+    await settle();
+    assert.strictEqual(notifications.length, 2, 'another framework is another notice');
+});
+
+test('a burst of DSR submissions of one type is one notice per hour; another type still notifies', async () => {
+    for (let i = 0; i < 3; i++) events.emit(events.EVENTS.DSR_SUBMITTED, { orgId: 'org1', requestType: 'access' });
+    await settle();
+    assert.strictEqual(notifications.length, 1);
+    events.emit(events.EVENTS.DSR_SUBMITTED, { orgId: 'org1', requestType: 'deletion' });
+    await settle();
+    assert.strictEqual(notifications.length, 2);
+    assert.strictEqual(runnerCalls.length, 4, 'every submission still re-runs its check');
+});
+
+test('the recipient query includes the DPO', () => {
+    const { RECIPIENT_SQL } = require('./adminNotices');
+    assert.match(RECIPIENT_SQL, /'org_admin', 'admin', 'dpo'/);
+});
+
+// ─────────────── Projects ───────────────
+
+test('PROJECT_CHANGED queues a debounced review of that project and one run of the workspace-wide checks per burst', async () => {
+    const subjectReview = require('./subjectReview');
+    subjectReview._reset();
+    events._resetProjectReruns();
+    events.emit(events.EVENTS.PROJECT_CHANGED, { orgId: 'org1', projectId: 'p1', reason: 'members' });
+    events.emit(events.EVENTS.PROJECT_CHANGED, { orgId: 'org1', projectId: 'p1', reason: 'members' });
+    events.emit(events.EVENTS.PROJECT_CHANGED, { orgId: 'org1', projectId: 'p2', reason: 'files' });
+    await settle();
+    assert.strictEqual(subjectReview._armedCount(), 2, 'one review per project, coalesced');
+    assert.strictEqual(events._projectRerunCount(), 3, 'members → access + orphaned content, files → unscanned files, once each');
+    assert.strictEqual(runnerCalls.length, 0, 'nothing runs on the emitter\'s turn');
+    events.emit(events.EVENTS.PROJECT_CHANGED, { orgId: '', projectId: 'p3', reason: 'members' });
+    await settle();
+    assert.strictEqual(subjectReview._armedCount(), 2, 'no org, nothing to judge');
+    subjectReview._reset();
+    events._resetProjectReruns();
+});
+
+test('an AI-mode switch re-runs the AI-joins-by-itself check whole, once per burst — a project review never finds its chats', async () => {
+    const subjectReview = require('./subjectReview');
+    subjectReview._reset();
+    events._resetProjectReruns();
+    mock.timers.enable({ apis: ['setTimeout'] });
+    try {
+        for (const projectId of ['p1', 'p1', 'p2']) events.emit(events.EVENTS.PROJECT_CHANGED, { orgId: 'org1', projectId, reason: 'ai_mode' });
+        await settle();
+        assert.strictEqual(events._projectRerunCount(), 1, 'three switches in two projects are one run for the org');
+        assert.strictEqual(runnerCalls.length, 0, 'nothing runs on the emitter\'s turn');
+        mock.timers.tick(Number(process.env.COMPLIANCE_PROJECT_RERUN_DEBOUNCE_MS || 30000));
+        await settle();
+        assert.deepStrictEqual(runnerCalls.map(c => [c.orgId, c.checkId, c.opts.subjectId]),
+            [['org1', 'GDPR-Art35-project-ai-participation', undefined]],
+            'a whole run (no subject), which is what retires the chat that just left the population');
+        assert.strictEqual(runnerCalls[0].opts.runType, 'event');
+    } finally {
+        mock.timers.reset();
+        subjectReview._reset();
+        events._resetProjectReruns();
+    }
 });

@@ -21,6 +21,21 @@ const log = require('../telemetry/log');
 // route's `if (!kb) return 404` into an uncaught 500 instead.
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+// ── A project's files base is not governed by this ACL ──────────────
+// `source_kind = 'project_files'` is the knowledge base a collaborative
+// project's uploaded files live in (projects/projectFiles.js). It carries the
+// project's organisation (the privacy shield and the org's embedding settings
+// read it), but it is NOT an organisation base: who may read it is decided by
+// PROJECT MEMBERSHIP (core/kb/projectFilesKb.js, routes/projects/workspace.js),
+// and who may add or remove a file by the project role ladder. So:
+//   read    its owner (the project's owner) and a super admin only; never an
+//           org admin, never "published to the org", never a group
+//   manage  nobody through the generic knowledge-base routes
+//   list    never in somebody else's organisation listing
+// The same literal as core/kb/projectFilesKb.PROJECT_FILES_SOURCE_KIND (a
+// store may not require from core/).
+const PROJECT_FILES_KIND = 'project_files';
+
 // ── Document status model (K1) ──────────────────────────────────────
 // A documents row is no longer "exists ⇒ indexed". Every ingest attempt can
 // leave a row behind so a source shows "38 files · 36 processed":
@@ -434,6 +449,9 @@ const KnowledgeBasesStore = {
     /** Lightweight predicate for guarding write paths in routes. */
     isSystemKB: (kb) => !!(kb && kb.source_kind === 'system_managed'),
 
+    /** Is this a project's files base (see PROJECT_FILES_KIND)? */
+    isProjectFilesKB: (kb) => !!(kb && kb.source_kind === PROJECT_FILES_KIND),
+
     /**
      * List KBs accessible to the user.
      * @param {string} tenantId - The user's ID
@@ -558,9 +576,12 @@ const KnowledgeBasesStore = {
         // members see only PUBLISHED org KBs. Owner KBs always included.
         // (isOrgAdmin is a server-resolved boolean, never user input.)
         const orgDraftClause = opts.isOrgAdmin ? '' : ' AND kb.is_published = TRUE';
+        // A project's files base is never an org row, whoever asks (see
+        // PROJECT_FILES_KIND): an org admin's ?includeAuto=1 listing must not
+        // hand them the files of a project they are not a member of.
         return getAll(
             `${baseSelect}
-             WHERE (kb.tenant_id = $1 OR (kb.organization_id = ANY($2)${orgDraftClause}))${f.sql}${u.sql}
+             WHERE (kb.tenant_id = $1 OR (kb.organization_id = ANY($2) AND kb.source_kind IS DISTINCT FROM '${PROJECT_FILES_KIND}'${orgDraftClause}))${f.sql}${u.sql}
              ORDER BY created_at DESC`,
             [tenantId, orgIdArray, ...f.params, ...u.params]
         );
@@ -599,6 +620,10 @@ const KnowledgeBasesStore = {
         // beta-feature toggle gates whether they appear in pickers / chat,
         // not whether the underlying public text is reachable.
         if (kb.source_kind === 'system_managed') return true;
+        // A project's files base: its owner and a super admin, nobody else.
+        // Members reach it through the project (see PROJECT_FILES_KIND); an
+        // org admin or a "published" flag must not.
+        if (kb.source_kind === PROJECT_FILES_KIND) return kb.tenant_id === userId || orgIds === null;
         // Owner always has access
         if (kb.tenant_id === userId) return true;
         // Super admin
@@ -636,6 +661,9 @@ const KnowledgeBasesStore = {
      */
     canUserManageKB: (kb, userId, orgIds, hasManagePermission) => {
         if (!kb) return false;
+        // A project's files are added and removed through the project, by its
+        // role ladder; the generic routes manage nothing in that base.
+        if (kb.source_kind === PROJECT_FILES_KIND) return false;
         if (kb.tenant_id === userId) return true;          // owner
         if (orgIds === null) return true;                  // super admin
         if (!kb.organization_id) return false;             // personal KB of someone else

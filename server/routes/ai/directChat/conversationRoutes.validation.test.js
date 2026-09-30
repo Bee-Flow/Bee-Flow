@@ -65,6 +65,12 @@ const MOCKS = {
     '../../../core/aiAgent': { getProviderForModel: async () => ({ providerType: 'claude', url: '' }) },
     '../../../core/providers': { getAdapter: () => ({}) },
     '../../../core/tools/sessionSkillRuntime': { bootstrapSessionSkills: async () => [] },
+    '../../../integrations/workspaceTools': {
+        notebookLinkRefusal: async (id, userId) => {
+            touched.push({ what: 'notebookLinkRefusal', args: [id, userId] });
+            return id === 'nb-viewed' ? { status: 403, error: 'You can view this notebook but not change it, so it cannot be linked to a chat.' } : null;
+        },
+    },
 };
 
 const MOCK_IDS = {};
@@ -190,6 +196,18 @@ test('an absent workspace body clears the content rather than refusing', async (
     assert.strictEqual(res.statusCode, 200);
     const write = touched.find((t) => t.what === 'setWorkspace');
     assert.deepStrictEqual(write.args, ['c1', '', null, 'alice']);
+});
+
+test('linking a notebook the caller cannot change is refused, and nothing is linked', async () => {
+    // The chat's notebook tools write through the link, into a notebook that may be co-edited.
+    const refused = await dispatch({ method: 'PUT', url: '/direct/conversations/c1/workspace', body: { content: 'x', notebookId: 'nb-viewed' } });
+    assert.strictEqual(refused.statusCode, 403);
+    assert.deepStrictEqual(touched.find((t) => t.what === 'notebookLinkRefusal').args, ['nb-viewed', 'alice']);
+    assert.strictEqual(touched.find((t) => t.what === 'setWorkspace'), undefined);
+
+    const linked = await dispatch({ method: 'PUT', url: '/direct/conversations/c1/workspace', body: { content: 'x', notebookId: 'nb-mine' } });
+    assert.strictEqual(linked.statusCode, 200);
+    assert.deepStrictEqual(touched.find((t) => t.what === 'setWorkspace').args, ['c1', 'x', 'nb-mine', 'alice']);
 });
 
 // ═══ Importing a session skill ══════════════════════════════════════

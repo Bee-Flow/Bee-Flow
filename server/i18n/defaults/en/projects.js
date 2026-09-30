@@ -2,15 +2,16 @@
 // Merged into GUI_DEFAULTS by ./index.js. The frontend copy (agent-hub/src/i18n/en-defaults.js)
 // is GENERATED from these files: after an edit, run `node scripts/gen-i18n-defaults.mjs`.
 module.exports = {
-    'projects.shared_threads_editor_hint': 'Everyone in this project can read these. Editors can reply.',
-    'projects.shared_by_colleague': 'shared',
-    'projects.run_active': 'answering…',
     'projects.section_unavailable': 'Could not load this section. Your items are safe — try again shortly.',
     'projects.section_empty': 'Nothing here yet.',
     'projects.share_thread': 'Share with project',
     'projects.unshare_thread': 'Stop sharing',
     'projects.shared_badge': 'Shared with the project',
     'projects.shared_threads': 'Shared conversations',
+    // The web's project page no longer reads these two; the Android app's
+    // Solution chats tab (mobile/src/features/projects/components/ChatsTab.tsx)
+    // still does, so they stay.
+    'projects.shared_threads_editor_hint': 'Everyone in this project can read these. Editors can reply.',
     'projects.no_shared_threads': 'No shared conversations yet. Share one to work on it together.',
     'projects.share_encryption_warning': 'Shared conversations are encrypted with an organisation key so every project member and background jobs can read them. Your private conversations are unchanged.',
     'projects.share_owner_only': 'Only a conversation\'s owner can share it.',
@@ -52,6 +53,5 @@ module.exports = {
     'projects.add_existing': 'Add existing',
     'projects.remove_from_project': 'Remove from project',
     'projects.conflict': 'This project was changed by someone else. Reload to see their changes — your edits are still in the form.',
-    'projects.viewer_readonly': 'You have view-only access to this project.',
     'projects.access_revoked': 'Your access to this project was revoked.',
 };

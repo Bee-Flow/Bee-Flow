@@ -1342,7 +1342,7 @@ function renderTable(n) {
       const span = (cs && cs !== 1 ? ` colspan="${cs}"` : "") + (rs && rs !== 1 ? ` rowspan="${rs}"` : "");
       let body;
       if (isFormulaCell(cell)) {
-        const src = cell.content[0].content[0].attrs?.src || "";
+        const src = findFormulaAtom(cell)?.attrs?.src || "";
         const val = displayResult(results.get(`${r},${c}`));
         body = `<span data-type="formula" data-formula="${escapeAttr(src)}">${escapeHtml(val)}</span>`;
       } else {

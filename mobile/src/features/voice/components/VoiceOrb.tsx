@@ -14,13 +14,13 @@
  * assistant is ignoring me".
  */
 
-import { Feather } from '@expo/vector-icons';
 import React from 'react';
 import { ActivityIndicator, Pressable, View } from 'react-native';
 
-import { useTheme } from '../../../theme/ThemeProvider';
-import { Text } from '../../../ui/Text';
-import type { VoicePhase } from '../types';
+import { useTheme } from '@/core/theme/ThemeProvider';
+import { Icon, Text, type IconName } from '@/shared/ui';
+
+import type { VoicePhase } from '../model/types';
 
 const CORE = 132;
 const HALO_MAX = 200;
@@ -30,15 +30,15 @@ interface OrbCopy {
     state: string;
     /** What a tap does right now. Also the accessibility hint. */
     action: string;
-    icon: keyof typeof Feather.glyphMap;
+    icon: IconName;
 }
 
 const COPY: Record<VoicePhase, OrbCopy> = {
-    offline: { state: 'Not connected', action: 'Start talking', icon: 'phone-call' },
-    connecting: { state: 'Connecting', action: 'Connecting to the server', icon: 'loader' },
-    listening: { state: 'Listening', action: 'Send now', icon: 'mic' },
-    thinking: { state: 'Thinking', action: 'Cancel this turn', icon: 'more-horizontal' },
-    speaking: { state: 'Speaking', action: 'Interrupt', icon: 'volume-2' },
+    offline: { state: 'Not connected', action: 'Start talking', icon: 'PhoneCall' },
+    connecting: { state: 'Connecting', action: 'Connecting to the server', icon: 'Loader' },
+    listening: { state: 'Listening', action: 'Send now', icon: 'Mic' },
+    thinking: { state: 'Thinking', action: 'Cancel this turn', icon: 'Ellipsis' },
+    speaking: { state: 'Speaking', action: 'Interrupt', icon: 'Volume2' },
 };
 
 export function VoiceOrb({
@@ -117,7 +117,7 @@ export function VoiceOrb({
                     {phase === 'connecting' || phase === 'thinking' ? (
                         <ActivityIndicator size="large" color={ring} />
                     ) : (
-                        <Feather name={copy.icon} size={38} color={ring} />
+                        <Icon name={copy.icon} size={38} color={ring} />
                     )}
                     {listening && elapsed >= 1 ? (
                         <Text variant="label" tone="tertiary">

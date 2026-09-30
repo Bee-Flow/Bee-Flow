@@ -309,16 +309,29 @@ export default function WorkspaceNotebook({
         }
     }, [notebookId, ensureNotebook, getHTML]);
 
-    // Open in full notebook
+    // Open in full notebook. The pane's text is synced first, as a
+    // compare-and-set write over the version the notebook holds right now:
+    // a newer save by somebody else (a colleague in a shared notebook, the
+    // AI) is never overwritten — the server keeps this copy as a version
+    // instead (409), and the notebook opens on the saved text.
     const handleOpenNotebook = useCallback(async () => {
         const md = getMarkdown();
         if (notebookId) {
             try {
-                await authFetch(`${API_BASE}/api/notebooks/${notebookId}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ documentContent: md }),
-                });
+                const cur = await authFetch(`${API_BASE}/api/notebooks/${notebookId}`);
+                const data = cur.ok ? await cur.json().catch(() => null) : null;
+                const nb = data?.notebook;
+                const unchanged = nb && (nb.documentMd === md || nb.documentContent === md);
+                if (nb && !unchanged && nb.role !== 'viewer') {
+                    const body = { documentContent: md };
+                    if (Number.isFinite(nb.version)) body.expectedVersion = nb.version;
+                    const res = await authFetch(`${API_BASE}/api/notebooks/${notebookId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(body),
+                    });
+                    if (!res.ok && res.status !== 409) console.warn('[WorkspaceNotebook] content sync before opening was refused:', res.status);
+                }
             } catch (e) {
                 console.warn('[WorkspaceNotebook] Failed to sync content before opening:', e);
             }

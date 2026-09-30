@@ -94,6 +94,12 @@ const LOOSE_MIGRATIONS = [
     // transaction. Throws on failure so the ledger does not record it and the
     // next boot retries; a no-op once the index exists.
     'agent-categories-dedupe-2026-09',
+    // Workspace / Solution split: classifies pre-split projects (kind NULL)
+    // only where the data is unambiguous; the rest stays NULL (listed on both
+    // sides) for the owner to classify. Only touches kind IS NULL, so it is a
+    // no-op once every row is decided; throws on failure so the next boot
+    // retries.
+    'project-kind-backfill-2026-09',
 ];
 
 /**
@@ -155,6 +161,9 @@ const NL_TRANSLATIONS = [
     'add-nl-mfa-setup-mobile-translations',    // Forced 2FA setup on a phone: what 2FA is, tap-to-add, a required_desc without "your administrator"
     'add-nl-builder-handoff5-translations',    // Automation builder, design handoff 5: header, ribbon, Settings, Runs, Versions, step drawer, agents in an AI step
     'add-nl-code-step-translations',           // Code step: parameters form, automatic checks, large editor with the AI assistant and Try it
+    'add-nl-project-workspace-translations',   // Collaborative project workspace: projects list, overview, members, activity, team and AI chats, content tabs, sidebar project chat, Solution access
+    'add-nl-collaboration-wave2-editor-versions-translations',     // Collaboration round 2: editing together, versions and compare, comments, since your last visit, AI that joins by itself, notebooks
+    'add-nl-collaboration-wave2-documents-compliance-translations', // Collaboration round 2: documents library, pages, designed documents and presentations, compliance checks for projects
 ];
 
 /**

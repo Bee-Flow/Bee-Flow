@@ -65,7 +65,7 @@ export const RELEVANCE_OPTIONS = Object.freeze([
 
 /**
  * field kinds:
- *  text · email · url · number · date · select · toggle
+ *  text · email · url · number · date · select · toggle (`defaultOn`: absent reads as on)
  *  stamp    — "confirm now" button that writes an ISO timestamp (+ who, server-side)
  *  user     — org-member select, stores the user id
  *  chips    — multi-select of `options` into an array (legal bases)
@@ -100,6 +100,21 @@ export const SETTINGS_GROUPS = Object.freeze([
                 name: 'datatable_review_days', kind: 'number', min: 30, max: 3650, placeholder: '180',
                 labelKey: 'compliance.settings.datatable_review_days', labelEn: 'Re-confirm a registered processing every (days)',
                 hintKey: 'compliance.settings.datatable_review_days_hint', hintEn: 'How long an entry in the processing register may stand before someone reads it again. 180 days when left empty.',
+            }),
+            // Collaborative projects: how long an unused project with personal
+            // data may stay (GDPR-Art5-1-e-project-retention, 365 when empty),
+            // and whether owners see the one gentle hint they can act on.
+            Object.freeze({
+                name: 'project_retention_days', kind: 'number', min: 30, max: 3650, placeholder: '365',
+                labelKey: 'compliance.settings.project_retention_days', labelEn: 'Keep unused projects with personal data for (days)',
+                hintKey: 'compliance.settings.project_retention_days_hint', hintEn: 'How long a collaborative project may go unused while it holds personal data. 365 days when left empty.',
+            }),
+            Object.freeze({
+                // On unless switched off: an absent value must not read as "off"
+                // and be saved back as a decision nobody made.
+                name: 'project_owner_hints_enabled', kind: 'toggle', defaultOn: true,
+                labelKey: 'compliance.settings.project_owner_hints_enabled', labelEn: 'Show project owners one gentle hint they can act on',
+                hintKey: 'compliance.settings.project_owner_hints_enabled_hint', hintEn: 'At most one dismissible suggestion per project — members from outside, accounts that are gone, files not checked. Never about personal data in the project; that stays with you.',
             }),
             Object.freeze({ name: 'privacy_notice_url', kind: 'url', labelKey: 'compliance.privacy_notice_url', labelEn: 'Privacy notice URL', placeholder: 'https://yourcompany.com/privacy' }),
             Object.freeze({
@@ -318,7 +333,7 @@ export function normaliseSettings(settings) {
         for (const f of group.fields) {
             switch (f.kind) {
                 case 'relevance': case 'userfill': break;
-                case 'toggle': form[f.name] = s[f.name] === true; break;
+                case 'toggle': form[f.name] = f.defaultOn ? s[f.name] !== false : s[f.name] === true; break;
                 case 'chips': case 'emails': case 'strings': form[f.name] = asArray(s[f.name]); break;
                 case 'contacts':
                     form[f.name] = asArray(s[f.name]).filter(c => c && typeof c === 'object')

@@ -2,7 +2,8 @@
 // document + ingestion logic that was copy-pasted across three components:
 //   - components/KnowledgePanel.jsx            (agent designer knowledge tab)
 //   - the since-removed KnowledgeBasesSection (standalone admin)
-//   - components/ProjectDetailPage.jsx         (project knowledge tab)
+//   - the since-removed project detail page    (project knowledge tab; the
+//     project workspace links knowledge bases through its own Knowledge tab)
 // Each of those reimplemented fetchKBs/createKB/deleteKB/fetchKBDocs/deleteDoc/
 // reindexKB against /api/kb plus the ingest handlers (text/URL/sitemap/file/
 // n8n/Google-Drive). This hook owns that data layer; each consumer keeps its

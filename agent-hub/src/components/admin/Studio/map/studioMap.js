@@ -12,7 +12,7 @@ import { studioAppForKind } from '../studioNav';
  * ── DIT IS BEWUST GEEN LIVE ORG-BREDE GRAPH ────────────────────────────────
  *
  * Niet uit gemak, en niet omdat de data ontbreekt: het argument staat
- * uitgeschreven in components/projects/ProjectFlowTab.jsx (regel 1-18) en het
+ * uitgeschreven in components/admin/Studio/Solutions/ProjectFlowTab.jsx (regel 1-18) en het
  * blijft staan. Wat een bouwer uit zo'n plaat wil weten is "wat hangt van wat
  * af, en wat is stuk", en een handgelegde knopentekening beantwoordt dat op
  * deze schaal slechter dan proza — terwijl ze een layout-engine kost en veel

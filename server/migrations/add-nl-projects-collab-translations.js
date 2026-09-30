@@ -44,7 +44,7 @@ const NL_TRANSLATIONS = {
     'projects.conflict':
         'Dit project is ondertussen door iemand anders gewijzigd. Herlaad om hun wijzigingen te zien — '
         + 'jouw invoer staat nog in het formulier.',
-    'projects.viewer_readonly': 'Je hebt alleen leesrechten op dit project.',
+    // projects.viewer_readonly: retired with the old project detail page (2026-09).
     'projects.access_revoked': 'Je toegang tot dit project is ingetrokken.',
 };
 

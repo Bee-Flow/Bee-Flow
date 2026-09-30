@@ -104,3 +104,55 @@ test('an undecodable input degrades to the original rather than throwing', async
     out.cleanup();
     assert.ok(fs.existsSync(src), 'cleanup() must not delete the caller\'s own file');
 });
+
+// ── asM4aIfAdts: the phone's crash-safe .aac, repacked for Voxtral ──────────
+
+async function makeAdts(seconds, out) {
+    await new Promise((resolve, reject) => {
+        ffmpeg()
+            .input(`sine=frequency=300:duration=${seconds}`).inputFormat('lavfi')
+            .audioCodec('aac').format('adts')
+            .on('end', resolve).on('error', reject)
+            .save(out);
+    });
+    return out;
+}
+
+/** Decoded length, via the same ffmpeg (no ffprobe in @ffmpeg-installer). */
+async function probeSeconds(file) {
+    const wav = await preprocessForStt(file, { format: 'wav', label: 'probe' });
+    assert.strictEqual(wav.preprocessed, true, 'the repacked file must decode');
+    const secs = wavSeconds(wav.path);
+    wav.cleanup();
+    return secs;
+}
+
+test('asM4aIfAdts repacks .aac into .m4a without losing audio', { skip: !ffmpeg && 'ffmpeg unavailable' }, async () => {
+    const { asM4aIfAdts } = require('./audioPreprocess');
+    const src = await makeAdts(5, tmp('.aac'));
+    const out = await asM4aIfAdts(src, 'Meeting 2026-09-27 10-00.aac');
+    assert.strictEqual(out.fileName, 'Meeting 2026-09-27 10-00.m4a');
+    assert.notStrictEqual(out.path, src);
+    const secs = await probeSeconds(out.path);
+    assert.ok(secs > 4.5 && secs < 5.5, `expected ~5s, got ${secs}`);
+    out.cleanup();
+    assert.strictEqual(fs.existsSync(out.path), false);
+});
+
+test('asM4aIfAdts still repacks a recording cut off mid-frame (the app was killed)', { skip: !ffmpeg && 'ffmpeg unavailable' }, async () => {
+    const { asM4aIfAdts } = require('./audioPreprocess');
+    const full = await makeAdts(6, tmp('.aac'));
+    const bytes = fs.readFileSync(full);
+    const cut = tmp('.aac');
+    fs.writeFileSync(cut, bytes.subarray(0, Math.floor(bytes.length * 0.6) + 7));
+    const out = await asM4aIfAdts(cut, 'cut.aac');
+    const secs = await probeSeconds(out.path);
+    assert.ok(secs > 2.5, `expected most of the audio before the cut, got ${secs}`);
+    out.cleanup();
+});
+
+test('asM4aIfAdts leaves every other format alone', async () => {
+    const { asM4aIfAdts } = require('./audioPreprocess');
+    const out = await asM4aIfAdts('/nowhere/meeting.m4a', 'meeting.m4a');
+    assert.deepStrictEqual({ path: out.path, fileName: out.fileName }, { path: '/nowhere/meeting.m4a', fileName: 'meeting.m4a' });
+});

@@ -414,3 +414,18 @@ test('nameOf reads whatever the store called the name, and never returns non-str
     assert.strictEqual(nameOf({ name: 42 }), '');
     assert.strictEqual(nameOf(null), '');
 });
+
+test('solutions searches Solutions and unclassified legacy projects, never a collaborative project', async () => {
+    let asked = null;
+    await listen(mount(makeDeps({
+        projectStore: {
+            listUserProjects: async (userId, groupIds, opts) => {
+                asked = opts;
+                return [{ id: 'pr1', name: 'Invoice rollout' }];
+            },
+        },
+    })));
+    const body = await (await get()).json();
+    assert.deepStrictEqual(asked, { kind: 'solution' });
+    assert.deepStrictEqual(body.results.solutions, [{ id: 'pr1', name: 'Invoice rollout' }]);
+});

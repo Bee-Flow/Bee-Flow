@@ -368,6 +368,11 @@ function orgConfigKeys(orgId) {
         // staan, dan komt een org die op hetzelfde id wordt heropgericht
         // terug met een cursusplicht die niemand daar instelde.
         `${require('../../learning/trainingGates').CONFIG_KEY_PREFIX}${orgId}`,
+        // Whether members may edit project notebooks and pages together, and
+        // how the AI may join conversations by itself: both chosen for THIS
+        // organisation, so both die with it.
+        `${require('../collabDocStore').COLLAB_SETTINGS_KEY_PREFIX}${orgId}`,
+        `${require('../../projects/participation/policy').CONFIG_KEY_PREFIX}${orgId}`,
     ];
 }
 

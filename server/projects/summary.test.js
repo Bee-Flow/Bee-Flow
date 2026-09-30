@@ -40,10 +40,12 @@ function mock(rel, exports) {
 
 // What each store was asked for, so the "counts exactly what it was handed"
 // claim is checked rather than asserted.
-const asked = { notebooks: null, automations: null, apps: null, webpages: null, datatables: null, agents: null, runs: null, versions: null };
+const asked = { notebooks: null, documents: null, meetings: null, automations: null, apps: null, webpages: null, datatables: null, agents: null, runs: null, versions: null };
 const fx = {
     counts: {
         notebooks: new Map([['p1', 2]]),
+        documents: new Map([['p2', 4]]),
+        meetings: new Map(),
         automations: new Map([['p1', 3], ['p2', 1]]),
         apps: new Map([['p1', 1]]),
         webpages: new Map(),
@@ -65,6 +67,8 @@ const counter = (section) => async (ids) => {
 };
 
 mock('stores/notebookStore', { countProjectNotebooks: counter('notebooks') });
+mock('stores/documentStore', { countProjectDocuments: counter('documents') });
+mock('stores/transcriptionStore', { countProjectMeetings: counter('meetings') });
 mock('stores/studioAppStore', { countProjectApps: counter('apps') });
 mock('stores/webpageStore', { countProjectWebpages: counter('webpages') });
 mock('stores/datatableStore', { countDatatablesForProject: counter('datatables') });
@@ -123,7 +127,7 @@ test('every kind is counted once for the whole list, not once per project', asyn
     // One call per KIND, each handed the whole id list. The alternative — one
     // call per kind per project — is what the registry's countIn hook exists to
     // avoid, and it is invisible in the output, so it is asserted here.
-    for (const section of ['notebooks', 'automations', 'apps', 'webpages', 'datatables', 'agents']) {
+    for (const section of ['notebooks', 'documents', 'meetings', 'automations', 'apps', 'webpages', 'datatables', 'agents']) {
         assert.deepStrictEqual(asked[section], ['p1', 'p2'], `${section} was asked for both projects at once`);
     }
 
@@ -133,6 +137,11 @@ test('every kind is counted once for the whole list, not once per project', asyn
     assert.strictEqual(p1.counts.webpages, 0, 'the store answered and there are none');
     assert.strictEqual(p1.counts.knowledgeBases, 2, 'read off the project row, where the link lives');
     assert.deepStrictEqual(p1.runs, { today: 12, failed: 1 });
+    // The collaboration content is tallied the same way, through the registry.
+    assert.strictEqual(p1.counts.documents, 0);
+    assert.strictEqual(byId(result, 'p2').counts.documents, 4);
+    assert.strictEqual(p1.counts.meetings, 0);
+    assert.ok(!p1.unavailable.includes('documents') && !p1.unavailable.includes('meetings'), 'both stores answered');
 });
 
 test('a project the tally never mentions is empty, not unknown', async () => {

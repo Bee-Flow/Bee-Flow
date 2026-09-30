@@ -15,15 +15,14 @@
  * it. Everything below that is genuinely optional.
  */
 
-import React, { useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { ScrollView, View, type TextInput } from 'react-native';
 
-import { useTheme } from '../../../theme/ThemeProvider';
-import { Chip } from '../../../ui/Badge';
-import { TextField } from '../../../ui/Input';
-import { Text } from '../../../ui/Text';
-import { TRANSCRIPTION_LANGUAGES } from '../api';
-import type { CaptureSettings } from '../types';
+import { useTheme } from '@/core/theme/ThemeProvider';
+import { Chip, Text, TextField } from '@/shared/ui';
+
+import { TRANSCRIPTION_LANGUAGES } from '../model/capture';
+import type { CaptureSettings } from '../model/types';
 
 export function CaptureSettingsForm({
     value,
@@ -34,6 +33,7 @@ export function CaptureSettingsForm({
 }) {
     const theme = useTheme();
     const [showAdvanced, setShowAdvanced] = useState(false);
+    const attendeesField = useRef<TextInput>(null);
 
     return (
         <View style={{ gap: theme.spacing.lg }}>
@@ -44,16 +44,21 @@ export function CaptureSettingsForm({
                 placeholder="Weekly planning"
                 hint="A better title is written automatically once the summary is ready."
                 returnKeyType="next"
+                submitBehavior="submit"
+                onSubmitEditing={() => attendeesField.current?.focus()}
             />
 
             <TextField
+                ref={attendeesField}
                 label="Who is in the meeting?"
                 value={value.attendees}
                 onChangeText={(attendees) => onChange({ attendees })}
                 placeholder="Tom, Gerard, René"
                 hint="Names, comma separated. This is what lets speakers be named instead of numbered."
                 autoCapitalize="words"
-                returnKeyType="next"
+                // The last field before the language chips: Done closes the
+                // keyboard rather than promising a next field there is not.
+                returnKeyType="done"
             />
 
             <View style={{ gap: theme.spacing.sm }}>

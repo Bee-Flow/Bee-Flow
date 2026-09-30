@@ -33,6 +33,12 @@ const { db, api } = h.routeUnderTest(test, '/api/projects', () => {
     };
     require('../license/middleware').requireFeature = () => (req, res, next) => next();
     return require('./projects');
+}, {
+    // The one project these requests name: a legacy row (kind NULL), so every
+    // resource kind may be filed into it and the move reaches its own store.
+    answer: (sql, params) => (/FROM projects WHERE id = \$1/.test(sql) && params?.[0] === 'p1'
+        ? { rows: [{ id: 'p1', name: 'P', owner_id: 'u1', organization_id: 'org1', knowledge_base_ids: [], kind: null, version: 0 }] }
+        : undefined),
 });
 
 test('attach "false" means take it out; any other text is refused', async () => {

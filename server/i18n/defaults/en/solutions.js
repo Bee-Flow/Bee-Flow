@@ -62,7 +62,6 @@ module.exports = {
     "solutions.create_failed": "Could not create it.",
     "solutions.empty": "Nothing here yet. Create a Solution, or install a Blueprint someone handed you.",
     "solutions.back": "All Solutions",
-    "solutions.open_project": "Open in Projects",
     "solutions.tab_overview": "Overview",
     "solutions.tab_content": "Content",
     "solutions.tab_flow": "Flow",
@@ -258,4 +257,10 @@ module.exports = {
     'solutions.release_unrecorded': 'No record of what changed was kept for this version, so this is not "nothing changed".',
     'solutions.release_unavailable': 'The release history could not be read, so this is not "there are none".',
     'solutions.update_unknown': 'Whether there is a newer version of this Solution could not be checked, so this is not "up to date".',
+
+    // ── Who can open a Solution ──────────────────────────────────────
+    'solutions.manage_access': 'Manage access',
+    'solutions.access_title': 'Who can open {name}',
+    'solutions.access_intro': 'Members can open this Solution in Studio. Editors can change what it holds; only the owner can publish it or change who has access.',
+    'solutions.access_loading': 'Loading members…',
 };

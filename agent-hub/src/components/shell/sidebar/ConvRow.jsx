@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import CreateLabelInline from './CreateLabelInline';
 import EditLabelInline from './EditLabelInline';
 import { ACCENT_BAR_CONV, CONV_ROW, TEXT_ACTIVE, TEXT_IDLE } from './sidebarTokens';
+import { projectChipStyle, projectIcon } from '../../projects/workspace/projectVisuals';
 import useConfirm from '../../shared/useConfirm';
 
 /* ─── Conversation row (module-level to avoid closure issues in minified builds) ─── */
@@ -118,13 +119,15 @@ const ConvRow = ({
                 if (!conv.project_id || activeProjectId === conv.project_id) return null;
                 const p = projects?.find(pr => pr.id === conv.project_id);
                 if (!p) return null;
+                // The colour goes through the same check as everywhere a
+                // project is painted: any editor can set it, every member sees it.
                 return (
                     <span
                         className="flex-shrink-0 text-[10px] px-1 py-px rounded flex items-center gap-0.5 max-w-[80px]"
-                        style={{ background: (p.color || '#6366f1') + '20', color: p.color || '#6366f1' }}
-                        title={`In project: ${p.name}`}
+                        style={projectChipStyle(p.color)}
+                        title={t('sidebar.conv_in_project', 'In project: {name}', { name: p.name })}
                     >
-                        <span>{p.icon || '📁'}</span>
+                        <span aria-hidden="true">{projectIcon(p.icon)}</span>
                         <span className="truncate">{p.name}</span>
                     </span>
                 );

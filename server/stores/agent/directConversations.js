@@ -383,6 +383,12 @@ async function getDirectConversation(id, userId, options = {}) {
         row = await _readSharedRow(id, userId);
         if (!row) return null;
     }
+    // A project member's own session key is never offered to the OWNER's
+    // crypto context (see _ownerCrypto): on `managed` it could seed the
+    // owner's escrow, and it opens nothing of theirs anyway. A shared row
+    // written under the owner's key (shared while encryption was off) is then
+    // read with the owner's escrow, as a background job would read it.
+    const readerKey = row.user_id === userId ? encryptionKey : null;
     // Resolved once and shared: on `managed` each call unwraps the escrowed
     // DEK, so resolving separately per surface would double that work on every
     // conversation load.
@@ -390,7 +396,7 @@ async function getDirectConversation(id, userId, options = {}) {
     // For a project-shared conversation the key belongs to the PROJECT — the
     // reader's own key would fail the envelope, which the read path surfaces as
     // an empty conversation rather than an error.
-    const ctx = await _rowCrypto(row, encryptionKey);
+    const ctx = await _rowCrypto(row, readerKey);
     // Titles are owner-keyed on every tier and every scope — see _rowCrypto.
     // Reusing `ctx` here opened a shared thread's title with the PROJECT key and
     // openTitle swallowed the failure, so every shared thread lost its name.
@@ -398,7 +404,7 @@ async function getDirectConversation(id, userId, options = {}) {
         ? await _ownerCrypto(row, userId, encryptionKey)
         : ctx;
     const meta = _parseDirectMeta(row.meta_json, row.id, ctx);
-    let messages = await _readDirectMessages(row, encryptionKey, ctx);
+    let messages = await _readDirectMessages(row, readerKey, ctx);
     if (restore) {
         // The conversation-level pii_token_map covers assistant tokens that
         // span turns (attachment scans + cross-turn message PII). User

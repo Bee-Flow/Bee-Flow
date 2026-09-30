@@ -74,28 +74,63 @@ setInterval(() => {
 // avoiding the export-by-value staleness bug with `let redis`.
 const _redis = { client: null };
 
+/**
+ * The ioredis options of the shared client.
+ * @param {string} url
+ */
+function _redisOptions(url) {
+    return {
+        maxRetriesPerRequest: 3,
+        lazyConnect: true,
+        // Keep reconnecting after an outage, backing off to 30 s. Giving
+        // up (returning null) left a dead client for the rest of the
+        // process: every cross-replica publish failed and the live feeds
+        // silently fell back to polling until a restart.
+        retryStrategy(times) {
+            return Math.min(times * 200, 30_000);
+        },
+        // Scaleway managed Redis uses an internal CA — encryption stays on,
+        // cert validation is scoped to this client only (not the whole
+        // process). Set REDIS_TLS_STRICT=1 once a CA bundle is wired in.
+        ...(String(url).startsWith('rediss://') ? {
+            tls: { rejectUnauthorized: process.env.REDIS_TLS_STRICT === '1' }
+        } : {})
+    };
+}
+
+/**
+ * Commands fail at once while Redis is down, instead of waiting in ioredis'
+ * offline queue until four reconnect attempts have failed: with reconnects
+ * that never give up, that wait grows with the outage (seconds, then
+ * minutes), and requireAuth, the session tokens and OPAQUE login await Redis
+ * on every request. Every caller falls back (Postgres, memory, the
+ * in-process bus), so failing fast is what degrades; waiting hangs the app.
+ *
+ * The queue stays on until the first connection is up, so what boot sends
+ * waits for it. A duplicated client (a pub/sub subscriber) keeps its own
+ * queue: it subscribes before it has connected.
+ * @param {any} client an ioredis client
+ */
+function _failFastWhenDisconnected(client) {
+    client.once('ready', () => { client.options.enableOfflineQueue = false; });
+    const duplicate = client.duplicate.bind(client);
+    client.duplicate = (/** @type {object} */ override) => duplicate({ enableOfflineQueue: true, ...(override || {}) });
+    return client;
+}
+
 if (process.env.REDIS_URL) {
     try {
-        _redis.client = new Redis(process.env.REDIS_URL, {
-            maxRetriesPerRequest: 3,
-            lazyConnect: true,
-            retryStrategy(times) {
-                if (times > 5) return null;
-                return Math.min(times * 200, 2000);
-            },
-            // Scaleway managed Redis uses an internal CA — encryption stays on,
-            // cert validation is scoped to this client only (not the whole
-            // process). Set REDIS_TLS_STRICT=1 once a CA bundle is wired in.
-            ...(process.env.REDIS_URL.startsWith('rediss://') ? {
-                tls: { rejectUnauthorized: process.env.REDIS_TLS_STRICT === '1' }
-            } : {})
-        });
+        _redis.client = _failFastWhenDisconnected(new Redis(process.env.REDIS_URL, _redisOptions(process.env.REDIS_URL)));
         _redis.client.on('error', (err) => {
             log.warn('[DB] Redis error:', err.message);
         });
-        _redis.client.connect().catch(err => {
+        const client = _redis.client;
+        client.connect().catch(err => {
             log.warn('[DB] Redis connection failed:', err.message);
-            _redis.client = null;
+            // Not reachable at boot: run without it (as before), and stop the
+            // background reconnects of a client nothing references any more.
+            try { client.disconnect(); } catch (_) { /* already closed */ }
+            if (_redis.client === client) _redis.client = null;
         });
     } catch (err) {
         log.warn('[DB] Redis unavailable:', err.message);
@@ -407,4 +442,6 @@ module.exports = {
     // internal — exported for unit tests (DB-free)
     _runTransaction,
     _instrumentClient,
+    _redisOptions,
+    _failFastWhenDisconnected,
 };

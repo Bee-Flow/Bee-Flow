@@ -24,6 +24,10 @@ async function asJson(res, fallback) {
         const err = new Error((body && body.error) || fallback);
         err.status = res.status;
         err.code = body && body.code;
+        // A stale save the server could not merge: the parts to compare.
+        if (body && body.conflict) err.conflict = body.conflict;
+        // A page that went live meanwhile: the version that keeps the refused text.
+        if (body && body.conflictVersionId) err.conflictVersionId = body.conflictVersionId;
         throw err;
     }
     // A 2xx whose body will not parse is not "no data" — it is the wrong
@@ -37,6 +41,17 @@ async function asJson(res, fallback) {
         throw err;
     }
     return body;
+}
+
+/**
+ * One page of the library with the total and the names of the people on it
+ * (owner, last editor). `archived: '1'` lists the caller's archive.
+ */
+export async function listDocumentsPage(filters = {}) {
+    const query = new URLSearchParams(Object.entries(filters).filter(([,v]) => v !== undefined && v !== null && v !== ''));
+    const res = await authFetch(query.size ? `${BASE}?${query}` : BASE);
+    const body = await asJson(res, 'Failed to load documents');
+    return { documents: body.documents || [], total: Number(body.total) || 0, people: body.people || {} };
 }
 
 export async function listDocuments(filters = {}) {
@@ -67,6 +82,13 @@ export async function getDocument(id) {
     return body.document;
 }
 
+/** A document with the names of its owner and last editor. */
+export async function getDocumentView(id) {
+    const res = await authFetch(`${BASE}/${encodeURIComponent(id)}`);
+    const body = await asJson(res, 'Failed to load document');
+    return { document: body.document, people: body.people || {} };
+}
+
 export async function createDocument(input = {}) {
     const res = await authFetch(BASE, {
         method: 'POST',
@@ -93,19 +115,35 @@ export async function deleteDocument(id) {
     return true;
 }
 
-export async function listVersions(id) {
-    const res = await authFetch(`${BASE}/${encodeURIComponent(id)}/versions`);
-    const body = await asJson(res, 'Failed to load history');
-    return body.versions || [];
+/** Back from the archive (the owner). */
+export async function unarchiveDocument(id) {
+    const res = await authFetch(`${BASE}/${encodeURIComponent(id)}/unarchive`, { method: 'POST' });
+    const body = await asJson(res, 'Failed to restore the document');
+    return body.document;
 }
 
-export async function restoreVersion(id, versionId, expectedVersionId) {
-    const res = await authFetch(
-        `${BASE}/${encodeURIComponent(id)}/versions/${encodeURIComponent(versionId)}/restore`,
-        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ expectedVersionId }) },
-    );
-    const body = await asJson(res, 'Failed to restore that version');
-    return body.document;
+/**
+ * The editor's heartbeat: where this editor is, answered with who else is
+ * here. `state: 'left'` ends it.
+ */
+export async function postPresence(id, beat) {
+    const res = await authFetch(`${BASE}/${encodeURIComponent(id)}/presence`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(beat),
+    });
+    return asJson(res, 'Presence failed');
+}
+
+/** The composed preview (sanitised by the server) as text, for the canvas. */
+export async function fetchPreviewHtml(id, { signal } = {}) {
+    const res = await authFetch(previewUrl(id, { edit: true }), { signal });
+    if (!res.ok) {
+        const err = new Error(`HTTP ${res.status}`);
+        err.status = res.status;
+        throw err;
+    }
+    return res.text();
 }
 
 /** The URL the editor's iframe loads. `edit` asks for the hand-editing bridge. */
@@ -158,7 +196,8 @@ export async function downloadPptx(id, name, versionId) {
     return downloadRendered(id, name, versionId, 'pptx');
 }
 
-async function downloadRendered(id, name, versionId, format) {
+/** The rendered file as a Blob (PDF, or a presentation's .pptx). */
+export async function fetchRendered(id, versionId, format = 'pdf') {
     const revision = versionId ? `?versionId=${encodeURIComponent(versionId)}` : '';
     const res = await authFetch(`${BASE}/${encodeURIComponent(id)}/${format}${revision}`);
     if (!res.ok) {
@@ -169,8 +208,11 @@ async function downloadRendered(id, name, versionId, format) {
         err.code = body && body.code;
         throw err;
     }
-    const degraded = res.headers.get('X-Document-Degraded') === '1';
-    const blob = await res.blob();
+    return { blob: await res.blob(), degraded: res.headers.get('X-Document-Degraded') === '1' };
+}
+
+async function downloadRendered(id, name, versionId, format) {
+    const { blob, degraded } = await fetchRendered(id, versionId, format);
     const url = URL.createObjectURL(blob);
     try {
         const a = document.createElement('a');

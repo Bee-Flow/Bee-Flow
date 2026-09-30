@@ -78,7 +78,9 @@ function flatten(stack) {
 // `rateLimiter` is the shared memberMutationLimiter; `requireProjectRoleMw` is
 // the shared role gate. Both names are load-bearing for this baseline.
 const EXPECTED = [
-    'GET /',
+    // `?kind=workspace|solution` is a closed query: the Projects page and Studio
+    // each ask for their side of the split.
+    'GET / [validateRequest]',
     'POST / [validateRequest]',
     // The Solutions overview. No role gate BY DESIGN — it answers with a row
     // per project the caller can already see, and listUserProjects IS the
@@ -87,9 +89,26 @@ const EXPECTED = [
     // project id.
     'GET /summary [validateRequest]',
     // Self-service detach — no role gate BY DESIGN, and it must precede /:id.
+    // It shares a router with the shared-thread routes
+    // (routes/projects/threads.js), which therefore come next. Sharing is
+    // editor+ AND owner-of-the-conversation (enforced in the handler, because
+    // sharing re-encrypts and only the owner holds the key that opens the
+    // current ciphertext). Unsharing has no project role BY DESIGN either:
+    // only the chat's owner can do it, and must always be able to, member or
+    // not (a removed member's shared chat would otherwise block deleting the
+    // project for good). `requireOwnThreadMw` is its gate: the caller owns
+    // the conversation AND it is filed in THIS project, else 404.
     'DELETE /conversations/:convId [validateRequest]',
+    'GET /:id/threads [requireProjectRoleMw,validateRequest]',
+    'POST /:id/threads [requireProjectRoleMw,validateRequest]',
+    'DELETE /:id/threads/:convId [requireOwnThreadMw,validateRequest]',
     'GET /:id [requireProjectRoleMw]',
     'PUT /:id [requireProjectRoleMw,validateRequest]',
+    // Classifying a legacy project as a collaborative project or a Solution
+    // (routes/projects/kind.js). Owner only, and once (the backfill's guess
+    // may be corrected once): the handler refuses (409) when the owner's kind
+    // is set, or while the project holds what the other side cannot hold.
+    'PUT /:id/kind [requireProjectRoleMw,validateRequest]',
     'DELETE /:id [requireProjectRoleMw]',
     'POST /:id/share [rateLimiter,requireProjectRoleMw,validateRequest]',
     'DELETE /:id/share/:shareId [rateLimiter,requireProjectRoleMw]',
@@ -98,15 +117,12 @@ const EXPECTED = [
     // Owner-removes / self-leave: the handler decides, so no role gate here.
     'DELETE /:id/members/:memberId [rateLimiter]',
     'GET /:id/activity [requireProjectRoleMw,validateRequest]',
-    // Live feed + shared threads. The stream is viewer+ and re-checks the role
-    // periodically while open; sharing is editor+ AND owner-of-the-conversation
-    // (enforced in the handler, because sharing re-encrypts and only the owner
-    // holds the key that opens the current ciphertext).
+    // Live feed. The stream is viewer+ and re-checks the role periodically
+    // while open. (The shared-thread routes are listed with self-detach.)
     'GET /:id/stream [requireProjectRoleMw,validateRequest]',
-    'GET /:id/threads [requireProjectRoleMw,validateRequest]',
-    'POST /:id/threads [requireProjectRoleMw,validateRequest]',
-    'DELETE /:id/threads/:convId [requireProjectRoleMw,validateRequest]',
-    'POST /:id/typing [requireProjectRoleMw,validateRequest]',
+    // Typing is transient, but every open stream of the project receives it:
+    // a per-member limiter keeps a loop from flooding them.
+    'POST /:id/typing [requireProjectRoleMw,rateLimiter,validateRequest]',
     // Notebooks / apps / routines / webpages filed into the project, and the
     // approvals raised inside it. Listing is viewer+; moving one in or out is
     // editor+ AND owner-of-the-resource (the stores match on user_id, so a
@@ -139,24 +155,27 @@ const EXPECTED = [
     // this kind ran, so DATA_ACT-Art25-exit-procedure can prove the route is
     // not just mounted but used. It is a recorder, never a gate — the day it
     // replaces `requireProjectRoleMw` on this line, export has lost its gate.
-    'POST /:id/package/export [featureGate,requireProjectRoleMw,validateRequest,stampExport]',
+    // `requireSolutionProject` follows the role gate (and the body schema) on
+    // every `/:id/package/*` line: a collaborative project carries no
+    // Blueprint and answers 404.
+    'POST /:id/package/export [featureGate,requireProjectRoleMw,validateRequest,requireSolutionProject,stampExport]',
     // Planning is separate from applying on purpose: "3 will be updated, 1 you
     // edited will be left alone" is a decision, and an upgrade that only tells
     // you afterwards is not offering one. Owner for both — an upgrade rewrites
     // other members' entities.
-    'POST /:id/package/upgrade/plan [featureGate,requireProjectRoleMw,validateRequest]',
-    'POST /:id/package/upgrade [featureGate,requireProjectRoleMw,validateRequest]',
+    'POST /:id/package/upgrade/plan [featureGate,requireProjectRoleMw,validateRequest,requireSolutionProject]',
+    'POST /:id/package/upgrade [featureGate,requireProjectRoleMw,validateRequest,requireSolutionProject]',
     // De publicatiegeschiedenis: één rij per uitgave, met per entiteit wat er
     // in die versie veranderde. Eigenaar, en niet lager — wie dit leest leest
     // de inhoudsopgave van élke versie die er ooit is geweest, ook van
     // entiteiten die er nu niet meer in zitten. Dezelfde rol als exporteren.
-    'GET /:id/package/releases [featureGate,requireProjectRoleMw]',
+    'GET /:id/package/releases [featureGate,requireProjectRoleMw,requireSolutionProject]',
     // Hoe vaak deze Oplossing is geïnstalleerd: twee getallen, in de eigen
     // organisatie en elders op deze instantie. De ENIGE plek waar een
     // Blueprint-antwoord over de org-grens heen kijkt, en daarom op de
     // eigenaarsrol van het BRONPROJECT — wie hier binnenkomt is per definitie
     // iemand uit de organisatie die de Blueprint gemaakt heeft.
-    'GET /:id/package/installs [featureGate,requireProjectRoleMw]',
+    'GET /:id/package/installs [featureGate,requireProjectRoleMw,requireSolutionProject]',
     // Install creates a project rather than acting on one, so it carries no
     // project role — only the licence gate and the mount's own.
     'POST /package/install [featureGate,validateRequest]',
@@ -173,6 +192,75 @@ const EXPECTED = [
     // Nothing to do with packaging — and precisely the route the old
     // path-less gate answered 403 `blueprint_packaging` to.
     'PUT /:id/conversations [requireProjectRoleMw,validateRequest]',
+    // Team chats (routes/projects/chats.js). Reading is viewer+, writing is
+    // editor+; who may edit or delete ONE message or chat (its author, the
+    // person who started it, the project owner) is decided in the handler.
+    // Starting a chat and posting share one per-member budget, the chat
+    // router's own lazily bound `rateLimitMiddleware`.
+    'GET /:id/chats [requireProjectRoleMw,validateRequest]',
+    'POST /:id/chats [requireProjectRoleMw,rateLimitMiddleware,validateRequest]',
+    'GET /:id/chats/:chatId [requireProjectRoleMw]',
+    'PATCH /:id/chats/:chatId [requireProjectRoleMw,validateRequest]',
+    'DELETE /:id/chats/:chatId [requireProjectRoleMw]',
+    'GET /:id/chats/:chatId/messages [requireProjectRoleMw,validateRequest]',
+    'POST /:id/chats/:chatId/messages [requireProjectRoleMw,rateLimitMiddleware,validateRequest]',
+    'PATCH /:id/chats/:chatId/messages/:messageId [requireProjectRoleMw,validateRequest]',
+    'DELETE /:id/chats/:chatId/messages/:messageId [requireProjectRoleMw]',
+    // "Not helpful" on an answer the AI gave by itself: any member who can
+    // post (editor+), one mark per person per message.
+    'POST /:id/chats/:chatId/messages/:messageId/feedback [requireProjectRoleMw,validateRequest]',
+    'POST /:id/chats/:chatId/read [requireProjectRoleMw,validateRequest]',
+    // Project files, "my chats" and presence (routes/projects/workspace.js).
+    // The upload is editor+ and rate limited BEFORE multer reads the body;
+    // `acceptProjectFile` is multer, one field, one file.
+    'GET /:id/files [requireProjectRoleMw,validateRequest]',
+    'POST /:id/files [requireProjectRoleMw,rateLimiter,acceptProjectFile]',
+    'DELETE /:id/files/:fileId [requireProjectRoleMw,validateRequest]',
+    'GET /:id/my-chats [requireProjectRoleMw,validateRequest]',
+    'POST /:id/presence [requireProjectRoleMw,rateLimiter,validateRequest]',
+    // A new document or notebook made inside the project, owned by the caller
+    // (routes/projects/content.js). Editor+, rate limited.
+    'POST /:id/documents [requireProjectRoleMw,rateLimiter,validateRequest]',
+    'POST /:id/notebooks [requireProjectRoleMw,requireNotebooksMw,rateLimiter,validateRequest]',
+    // Real-time co-editing (routes/projects/collab.js). Opening, syncing and
+    // presence are viewer+ (a viewer follows along read-only); posting
+    // changes is editor+. `collabBodyGuard` refuses an oversized body before
+    // the limiter charges it and before the schema reads it. The document is
+    // only found through the project in the path (core/collab/service.js).
+    // A notebook also passes the notebooks gates (requireNotebookKindMw).
+    'POST /:id/docs [requireProjectRoleMw,rateLimiter,validateRequest,requireNotebookKindMw]',
+    'POST /:id/docs/:docId/sync [requireProjectRoleMw,rateLimiter,validateRequest,requireNotebookKindMw]',
+    'POST /:id/docs/:docId/updates [requireProjectRoleMw,collabBodyGuard,rateLimiter,validateRequest,requireNotebookKindMw]',
+    'POST /:id/docs/:docId/awareness [requireProjectRoleMw,rateLimiter,validateRequest,requireNotebookKindMw]',
+    // What changed since your last visit (routes/projects/changes.js). All
+    // viewer+: the seen marks are the reader's own, so a viewer writes them
+    // too, behind one small per-member budget.
+    'GET /:id/changes [requireProjectRoleMw,validateRequest]',
+    'GET /:id/changes/log [requireProjectRoleMw,validateRequest]',
+    'POST /:id/visit [requireProjectRoleMw,rateLimiter,validateRequest]',
+    'POST /:id/seen [requireProjectRoleMw,rateLimiter,validateRequest]',
+    'POST /:id/items/:type/:itemId/seen [requireProjectRoleMw,rateLimiter,validateRequest]',
+    // Comment threads on notebooks and documents (routes/projects/comments.js).
+    // Reading is viewer+, commenting editor+; editing or deleting ONE comment
+    // is its author's (decided in the handler). Posting shares the comment
+    // router's own lazily bound `rateLimitMiddleware`.
+    'GET /:id/comments [requireProjectRoleMw,validateRequest]',
+    'POST /:id/comments [requireProjectRoleMw,rateLimitMiddleware,validateRequest]',
+    'GET /:id/comments/:threadId [requireProjectRoleMw,validateRequest]',
+    'PATCH /:id/comments/:threadId [requireProjectRoleMw,validateRequest]',
+    'DELETE /:id/comments/:threadId [requireProjectRoleMw]',
+    'POST /:id/comments/:threadId/resolve [requireProjectRoleMw]',
+    'POST /:id/comments/:threadId/reopen [requireProjectRoleMw]',
+    'POST /:id/comments/:threadId/replies [requireProjectRoleMw,rateLimitMiddleware,validateRequest]',
+    'PATCH /:id/comments/:threadId/replies/:commentId [requireProjectRoleMw,validateRequest]',
+    'DELETE /:id/comments/:threadId/replies/:commentId [requireProjectRoleMw]',
+    'POST /:id/comments/:threadId/replies/:commentId/feedback [requireProjectRoleMw,validateRequest]',
+    // The one gentle compliance hint (routes/projects/complianceHints.js):
+    // the gate is viewer+ (a viewer is answered "no hint"); an editor+
+    // dismisses or snoozes it for themselves.
+    'GET /:id/compliance-hints [requireProjectRoleMw]',
+    'POST /:id/compliance-hints/:key/dismiss [requireProjectRoleMw,validateRequest]',
+    'POST /:id/compliance-hints/:key/snooze [requireProjectRoleMw,validateRequest]',
 ];
 
 test('projects route table and per-route role gates match the frozen baseline', () => {
@@ -193,7 +281,13 @@ test('every /:id route carries the shared role gate', () => {
     const ungated = flatten(router.stack).filter(r =>
         / \/:id/.test(r) && !r.includes('requireProjectRoleMw')
     );
-    // The one deliberate exception: member removal doubles as self-leave, so the
-    // handler authorizes (owner OR the member themselves) rather than the ladder.
-    assert.deepStrictEqual(ungated, ['DELETE /:id/members/:memberId [rateLimiter]']);
+    // The two deliberate exceptions, each authorized by who the caller is
+    // rather than by their project role:
+    //   - unsharing a chat is its owner's alone (it is re-encrypted under their
+    //     key), member or not; `requireOwnThreadMw` 404s anybody else;
+    //   - member removal doubles as self-leave (owner OR the member themselves).
+    assert.deepStrictEqual(ungated, [
+        'DELETE /:id/threads/:convId [requireOwnThreadMw,validateRequest]',
+        'DELETE /:id/members/:memberId [rateLimiter]',
+    ]);
 });

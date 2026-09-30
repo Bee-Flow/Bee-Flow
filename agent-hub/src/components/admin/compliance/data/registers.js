@@ -116,7 +116,27 @@ export function useRopa({ enabled = false, onChanged = noop, refreshCore = noop 
             toast.error(t('compliance.scc_toast_failed', 'Could not update the SCC attestation'));
         } finally { setBusy(false); }
     };
-    return { ropa: res.data, busy, refresh: res.refresh, review, sccToggle };
+    // Collaborative projects with personal data and their processing records
+    // (GET/PUT/DELETE /ropa/projects). A save or removal throws back to the
+    // form that asked, which says it inline; the register rebuilds after it.
+    const projects = useResource(`${API}/ropa/projects`, {
+        enabled,
+        onError: (e) => { console.error('[ComplianceHub] ROPA projects fetch error:', e.message); return { error: true }; },
+    });
+    const saveProject = async (projectId, body) => {
+        await fetchJson(`${API}/ropa/projects/${encodeURIComponent(projectId)}`, jsonInit('PUT', body));
+        await Promise.all([projects.refresh(), res.refresh()]);
+        onChanged();
+    };
+    const removeProject = async (projectId) => {
+        await fetchJson(`${API}/ropa/projects/${encodeURIComponent(projectId)}`, { method: 'DELETE' });
+        await Promise.all([projects.refresh(), res.refresh()]);
+        onChanged();
+    };
+    return {
+        ropa: res.data, busy, refresh: res.refresh, review, sccToggle,
+        projects: projects.data, refreshProjects: projects.refresh, saveProject, removeProject,
+    };
 }
 
 // ── DPIA ───────────────────────────────────────────────────────────────────

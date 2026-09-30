@@ -299,3 +299,24 @@ test('een project dat niet gelezen kan worden telt niets', async () => {
     assert.strictEqual(res.status, 404);
     assert.ok(!call('countInstallsFor'));
 });
+
+// ── Packaging is for Studio Solutions ──────────────────────────────────────
+
+test('a collaborative project has no installs to count: 404, as if it did not exist', async () => {
+    reset();
+    fx.project = { id: 'p1', name: 'Team room', organizationId: 'org_source', kind: 'workspace' };
+    const res = await installs('p1');
+    assert.strictEqual(res.status, 404);
+    assert.ok(!call('listBlueprintsFor'), 'no gallery read for a project that carries no Blueprint');
+    assert.ok(!call('countInstallsFor'));
+});
+
+test('a Solution and a legacy (unclassified) project are still counted', async () => {
+    for (const kind of ['solution', null]) {
+        reset();
+        fx.project = { id: 'p1', name: 'Onboarding', organizationId: 'org_source', kind };
+        const res = await installs('p1');
+        assert.strictEqual(res.status, 200, `kind ${kind}`);
+        assert.deepStrictEqual(res.json, { installsHere: 2, installsElsewhere: 5 });
+    }
+});

@@ -1,7 +1,7 @@
 // Shared "create knowledge base" form — replaces the near-identical inline
-// create-KB blocks that were copy-pasted into KnowledgePanel, ProjectDetailPage
-// and the since-removed KnowledgeBasesSection (name input + description input +
-// Cancel/Create buttons). Wire it to the useKnowledgeBases hook's create state:
+// create-KB blocks that were copy-pasted into KnowledgePanel, the old project
+// detail page and the since-removed KnowledgeBasesSection (name input +
+// description input + Cancel/Create buttons). Wire it to the useKnowledgeBases hook's create state:
 //
 //   const kb = useKnowledgeBases(...);
 //   {kb.showCreateKB && (
