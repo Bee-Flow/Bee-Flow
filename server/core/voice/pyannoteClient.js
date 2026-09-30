@@ -230,6 +230,9 @@ async function transcribeWithPyannote(inputPath, {
                     diarizationTurns(job.output, segments),
                     identRes.value?.output,
                     selection?.labelToName || {},
+                    // An exact count makes the diarize job keep people apart,
+                    // so no two of its ids are the same voice.
+                    { distinctSpeakers: !!jobBody.numSpeakers },
                 );
                 voiceprintMapping = Object.keys(result.mapping).length ? result.mapping : null;
                 voiceprintRoster = result.roster;

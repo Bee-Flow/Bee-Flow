@@ -283,6 +283,36 @@ test('the NEGATIVE verdict reaches the caller, not just the positive one', async
         'the unenrolled participant must be reported as NOT the enrolled one');
 });
 
+test('with a speaker count, one voiceprint never names two speakers', async () => {
+    // The identify job folded the unenrolled SPEAKER_01 into Tom's speaker.
+    // With a count the diarize ids are two people, so neither may be pinned.
+    const merged = {
+        jobStates: [{
+            status: 'succeeded',
+            output: {
+                turnLevelTranscription: [
+                    { speaker: 'SPEAKER_00', start: 0, end: 30, text: 'Hallo allemaal' },
+                    { speaker: 'SPEAKER_01', start: 30, end: 90, text: 'Goedemorgen' },
+                ],
+            },
+        }],
+        identifyOutput: {
+            identification: [{ speaker: 'S_A', start: 0, end: 90 }],
+            voiceprints: [{ speaker: 'S_A', match: 'vp_tom', confidence: { vp_tom: 90 } }],
+        },
+    };
+    installFetch(merged);
+    const counted = await transcribeWithPyannote('meeting.mp4', { voiceprints: selection(), numSpeakers: 2 });
+    assert.strictEqual(counted.voiceprintMapping, null);
+    assert.deepStrictEqual(counted.voiceprintRoster, ['Tom Smit']);
+    assert.ok(counted.voiceprintInfo.detail.every(d => d.decision === 'shared_voiceprint'));
+
+    // Without a count the same picture may be Tom split in two, which stays named.
+    installFetch(merged);
+    const auto = await transcribeWithPyannote('meeting.mp4', { voiceprints: selection() });
+    assert.deepStrictEqual(auto.voiceprintMapping, { SPEAKER_00: 'Tom Smit', SPEAKER_01: 'Tom Smit' });
+});
+
 test('IDENTIFY FAILURE NEVER COSTS THE TRANSCRIPT', async () => {
     installFetch({ identifyFails: true });
     const out = await transcribeWithPyannote('meeting.mp4', { voiceprints: selection() });
