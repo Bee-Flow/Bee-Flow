@@ -38,6 +38,10 @@
  *     // Per-source checks only:
  *     async listSubjects(orgId)
  *       -> [{ id, label, ...extras }, ...]
+ *          | { subjects: [...], complete: false }   // this run hit its own limit
+ *     // Optional: the list is the WHOLE population, so the runner retires a
+ *     // slot whose subject stopped being listed (runner.js _asListing):
+ *     retiresVanished: true, retiredDetails: 'Why it left the list.',
  *
  *     // Optional auto-fix (one-click remediation from the UI):
  *     autoFixId: 'aia_art50_inject_disclosure',

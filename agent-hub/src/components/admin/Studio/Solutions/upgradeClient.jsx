@@ -1,8 +1,8 @@
 import { AlertTriangle, ArrowUpCircle, HelpCircle, Loader2 } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
+import { Strip } from './solutionNotices';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
-import { Strip } from '../../../projects/solutionNotices';
 import Modal from '../../../shared/Modal';
 import { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
 import { nOf } from '../KnowledgeStudio/plural';

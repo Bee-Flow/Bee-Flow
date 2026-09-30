@@ -160,6 +160,18 @@ function complianceIncidentPath(incidentId) {
     return `/app/admin/compliance/incidents/${incidentId}`;
 }
 
+/**
+ * One collaborative project, optionally on one of its sections ('members',
+ * 'knowledge', 'settings', 'chats', …) — the shape agent-hub's
+ * utils/projectRoutes.js parses (`/app/projects/:id[/:tab]`). Minted by the
+ * compliance project checks as the per-subject deep link in their evidence and
+ * by the project compliance hint. Verbatim interpolation like every helper
+ * here; a project id is `[A-Za-z0-9_-]`, which is also all the client parses.
+ */
+function projectPath(projectId, section = null) {
+    return section ? `/app/projects/${projectId}/${section}` : `/app/projects/${projectId}`;
+}
+
 /** The Learning Center — jobs/learningNudge.js and the welcome email. */
 function learningSettingsPath() {
     return '/app/settings/learning';
@@ -252,6 +264,7 @@ module.exports = {
     publicBaseUrl,
     complianceSectionPath,
     complianceIncidentPath,
+    projectPath,
     publicDsrPath,
     learningSettingsPath,
     adminSecurityUsersPath,

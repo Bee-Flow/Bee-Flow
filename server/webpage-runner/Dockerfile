@@ -8,7 +8,7 @@
 # Mirrors the existing throwaway-container images (server/pwt-runner,
 # server/terminal-runner) so operators reason about one container story.
 
-FROM node:22-bookworm-slim@sha256:48e4b67d85f87bd551df43704e24d252f56cc5f8e9718841aace50f19948f0f9
+FROM node:22-bookworm-slim@sha256:43ac6c60b8f89723f746e8a92ce91abd5017e627ce1ddfe4238355d3a30b772c
 
 # The runner itself ships Vite + the React plugin so projects don't have to.
 # Project dependencies are npm-installed into the bind-mounted /project at runtime.

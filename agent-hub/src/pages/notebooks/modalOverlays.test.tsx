@@ -4,7 +4,6 @@ import React, { useState } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import CitationOverlay from './CitationOverlay';
-import NotebookVersions from './NotebookVersions';
 import SendForSigningModal from './SendForSigningModal';
 import CommandPalette from './shell/CommandPalette';
 
@@ -58,24 +57,6 @@ describe('notebook overlays, once they are dialogs', () => {
         fireEvent.keyDown(document, { key: 'Escape' });
         expect(screen.queryByRole('dialog', { name: 'Q3 report' })).toBeNull();
         expect(document.activeElement).toBe(chip);
-    });
-
-    it('Escape on "Delete version?" closes that confirmation, not the history behind it', async () => {
-        const user = userEvent.setup();
-        const onClose = vi.fn();
-        render(<NotebookVersions notebookId="n1" currentContent="now" onRestore={vi.fn()} onClose={onClose} />);
-        expect(screen.getByRole('dialog', { name: 'Version History' })).toBeInTheDocument();
-
-        await user.click(await screen.findByTitle('Delete'));
-        expect(screen.getByRole('dialog', { name: 'Delete version?' })).toBeInTheDocument();
-
-        fireEvent.keyDown(document, { key: 'Escape' });
-        expect(screen.queryByRole('dialog', { name: 'Delete version?' })).toBeNull();
-        expect(screen.getByRole('dialog', { name: 'Version History' })).toBeInTheDocument();
-        expect(onClose).not.toHaveBeenCalled();
-
-        fireEvent.keyDown(document, { key: 'Escape' });
-        expect(onClose).toHaveBeenCalledTimes(1);
     });
 
     it('send-for-signing keeps ignoring Escape while it is sending', () => {

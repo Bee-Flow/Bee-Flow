@@ -8,15 +8,19 @@
  * because that is the defect that made Cowork invisible.
  */
 
-import { proposalFrom } from './ComposeCowork';
+import { _reset, setCatalogue } from '@/core/i18n';
+import { targetForNotification, translateWebLink } from '@/features/notifications/model/route';
+
+import { proposalFrom } from './model/proposal';
 import {
     advanceByRepeat,
     buildCoworkPayload,
+    describeMoment,
+    describeSchedule,
     nextOccurrence,
     resolveWhen,
     titleFromBrief,
-} from './schedule';
-import { targetForNotification, translateWebLink } from '../notifications/route';
+} from './model/schedule';
 
 // A Wednesday, 14:30 local.
 const NOW = new Date('2026-09-02T14:30:00');
@@ -92,6 +96,25 @@ describe('buildCoworkPayload', () => {
     });
 });
 
+describe('describeMoment — the confirm sheet’s "when", in the app language', () => {
+    afterEach(() => _reset());
+
+    it('says today and tomorrow as the web does, and dates the rest', () => {
+        expect(describeMoment(new Date('2026-09-02T09:15:00'), { now: NOW })).toMatch(/^Today at 09:15/);
+        expect(describeMoment(new Date('2026-09-03T09:00:00'), { now: NOW })).toMatch(/^Tomorrow at 09:00/);
+        expect(describeMoment(new Date('2026-09-12T09:00:00'), { now: NOW })).toMatch(/^Sep 12 at 09:00/);
+        expect(describeMoment(null, { now: NOW })).toBe('—');
+    });
+
+    it('is one translated sentence, so a Dutch schedule does not read "Tomorrow at 09:00"', () => {
+        setCatalogue('nl', { 'mobile.time.tomorrow_at': 'Morgen om {time}' });
+        expect(describeMoment(new Date('2026-09-03T09:00:00'), { now: NOW })).toBe('Morgen om 09:00');
+        expect(
+            describeSchedule({ presetId: 'tomorrow_9', runAt: new Date('2026-09-03T09:00:00'), repeatInterval: null }, { now: NOW }),
+        ).toBe('Morgen om 09:00');
+    });
+});
+
 describe('titleFromBrief', () => {
     it('uses the first line, stripped of list noise', () => {
         expect(titleFromBrief('- Send the weekly digest\nand cc me')).toBe('Send the weekly digest');
@@ -110,8 +133,8 @@ describe('routing a Cowork notification', () => {
         expect(translateWebLink('/app/cowork/abc123')?.href).toBe('/cowork/abc123');
     });
 
-    it('falls back to the Cowork tab when the link names no item', () => {
-        expect(translateWebLink('/app/cowork')?.href).toBe('/(tabs)/cowork');
+    it('falls back to the Cowork hub when the link names no item', () => {
+        expect(translateWebLink('/app/cowork')?.href).toBe('/cowork');
     });
 
     it('still sends an ai_task to the tasks list', () => {

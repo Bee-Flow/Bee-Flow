@@ -24,7 +24,7 @@ dependencies = [
     "redis[hiredis]==8.1.0",
     "tiktoken==0.14.0",
     "trafilatura==2.2.0",
-    "uvicorn[standard]==0.53.0",
+    "uvicorn[standard]==0.54.0",
 ]
 
 # PaddleOCR is deliberately absent: it drags paddlepaddle into every image

@@ -64,6 +64,7 @@ const RECOVERY_KEY_LENGTH = 32;
 // Don't lower these without a written threat-model review. If you raise
 // them, update ARGON2_OPTIONS_LEGACY too so existing users can still
 // unlock with their stored params before being re-hashed on success.
+/** @type {import('argon2').HashOptions & { raw: true }} */
 const ARGON2_OPTIONS = {
     type: argon2.argon2id,
     memoryCost: 131072,     // 128 MB
@@ -80,6 +81,7 @@ const ARGON2_OPTIONS_PIN = {
 };
 
 // Legacy params for backward-compatible unlock (will re-wrap on success)
+/** @type {import('argon2').HashOptions & { raw: true }} */
 const ARGON2_OPTIONS_LEGACY = {
     type: argon2.argon2id,
     memoryCost: 65536,      // 64 MB (old default)

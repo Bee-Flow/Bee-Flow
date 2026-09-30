@@ -8,7 +8,12 @@ import {
     Bold, Italic, Underline as UnderlineIcon, Strikethrough, Code, Highlighter,
     Heading1, Heading2, Heading3, List, ListOrdered, ListChecks, Quote, Code2,
     Minus, Table2, FileDown, FileText, PenLine, Cloud, PanelLeft, MessageSquare, History,
+    MessagesSquare, ListTree, MessageSquarePlus, Type, FileUp, Search, Keyboard,
 } from 'lucide-react';
+
+/** ⌘ on a Mac, Ctrl elsewhere — for the shortcut hints next to a command. */
+const MOD = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || '') ? '⌘' : 'Ctrl+';
+const ALT = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || '') ? '⌥' : 'Alt+';
 
 export default function buildCommands(ctx = {}) {
     const {
@@ -23,6 +28,15 @@ export default function buildCommands(ctx = {}) {
         onToggleLeft,
         onToggleRight,
         onVersions,
+        onComments,
+        onToggleToc,
+        onNewChat,
+        onRename,
+        onImport,
+        onFind,
+        onShortcuts,
+        // A viewer gets no formatting or inserting: the editor is read-only.
+        readOnly = false,
     } = ctx;
 
     // Run an editor chain command via the shared facade. Optional-chained so a
@@ -38,6 +52,7 @@ export default function buildCommands(ctx = {}) {
     const INSERT = t('notebooks.cmd_group_insert', 'Insert');
     const EXPORT = t('notebooks.cmd_group_export', 'Export');
     const VIEW = t('notebooks.cmd_group_view', 'View');
+    const NOTEBOOK = t('notebooks.cmd_group_notebook', 'Notebook');
 
     const cmds = [
         // ── Format ──
@@ -68,9 +83,19 @@ export default function buildCommands(ctx = {}) {
 
         // ── View ──
         { id: 'toggle-sources', group: VIEW, icon: PanelLeft, label: t('notebooks.toggle_sources', 'Toggle Sources'), enabled: !!onToggleLeft, run: () => onToggleLeft?.() },
-        { id: 'toggle-chat', group: VIEW, icon: MessageSquare, label: t('notebooks.toggle_chat', 'Toggle AI Chat'), enabled: !!onToggleRight, run: () => onToggleRight?.() },
-        { id: 'versions', group: VIEW, icon: History, label: t('notebooks.version_history', 'Version history'), enabled: !!onVersions, run: () => onVersions?.() },
+        { id: 'toggle-chat', group: VIEW, icon: MessageSquare, label: t('notebooks.toggle_chat', 'Toggle AI Chat'), hint: `${MOD}J`, enabled: !!onToggleRight, run: () => onToggleRight?.() },
+        { id: 'versions', group: VIEW, icon: History, label: t('notebooks.version_history', 'Version history'), hint: `${ALT}${MOD}H`, keywords: 'history restore compare name', enabled: !!onVersions, run: () => onVersions?.() },
+        { id: 'comments', group: VIEW, icon: MessagesSquare, label: t('notebooks.toggle_comments', 'Comments'), hint: `${ALT}${MOD}M`, enabled: !!onComments, run: () => onComments?.() },
+        { id: 'toc', group: VIEW, icon: ListTree, label: t('notebooks.toggle_toc', 'Toggle Table of Contents'), enabled: !!onToggleToc, run: () => onToggleToc?.() },
+        { id: 'find', group: VIEW, icon: Search, label: t('notebooks.find_in_document', 'Find in document'), hint: `${MOD}F`, enabled: !!onFind, run: () => onFind?.() },
+        { id: 'shortcuts', group: VIEW, icon: Keyboard, label: t('notebooks.keyboard_shortcuts', 'Keyboard shortcuts'), hint: `${MOD}/`, keywords: 'keys help ?', enabled: !!onShortcuts, run: () => onShortcuts?.() },
+
+        // ── Notebook ──
+        { id: 'new-chat', group: NOTEBOOK, icon: MessageSquarePlus, label: t('notebooks.new_chat', 'New chat'), enabled: !!onNewChat, run: () => onNewChat?.() },
+        { id: 'rename', group: NOTEBOOK, icon: Type, label: t('notebooks.rename_notebook_cmd', 'Rename notebook'), enabled: !!onRename && !readOnly, run: () => onRename?.() },
+        { id: 'import', group: NOTEBOOK, icon: FileUp, label: t('notebooks.import_file_cmd', 'Import a file into the document'), enabled: !!onImport && !readOnly, run: () => onImport?.() },
     ];
 
-    return cmds;
+    // Formatting and inserting change the document: not for a viewer.
+    return readOnly ? cmds.filter((c) => c.group !== FORMAT && c.group !== INSERT) : cmds;
 }

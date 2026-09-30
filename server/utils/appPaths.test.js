@@ -94,6 +94,8 @@ test('FROZEN_LEGACY: every notification/email link shape, verbatim', () => {
         [p.adminSupportTabPath('th1'), '/app/admin?tab=support&thread=th1'], // routes/support/shared.js staff email
         [p.complianceSectionPath('dsr'), '/app/admin/compliance/dsr'], // complianceDeadlineNotifier, compliance/events
         [p.complianceIncidentPath('inc1'), '/app/admin/compliance/incidents/inc1'], // + the Art. 33 ack email
+        [p.projectPath('p1'), '/app/projects/p1'], // compliance project checks (evidence link)
+        [p.projectPath('p1', 'members'), '/app/projects/p1/members'], // project compliance hint
         [p.learningSettingsPath(), '/app/settings/learning'], // jobs/learningNudge.js, welcome email
         [p.adminSecurityUsersPath(), '/app/admin/security/users'], // auth/connectorJwt.js
         [p.adminSubscriptionsPath(), '/app/admin/subscriptions'], // Stripe admin email

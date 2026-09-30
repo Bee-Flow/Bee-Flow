@@ -2,19 +2,21 @@ import React, { useCallback, useEffect, useState } from 'react';
 import SolutionDetail from './SolutionDetail';
 import { readSummary } from './solutionOverviewModel';
 import SolutionsOverview from './SolutionsOverview';
+import useRemote from './useRemote';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
-import useRemote from '../../../projects/useRemote';
 
 /**
- * Studio → Solutions: the BUILDER's view of a project.
+ * Studio → Solutions: the builder's bundles.
  *
- * A Solution is not a new entity — it is a project, seen as the thing it
- * bundles: the routines, apps, webpages and approvals that work together, how
- * they are wired (Flow), and the Blueprint you package it into. The
- * collaboration side of the same project — chats, members, memory — stays on
- * /app/projects, which is where people who USE the solution live. Builders
- * live here, next to Automations, Apps and Webpages, because a Solution is
- * built out of exactly those.
+ * A Solution is the thing a builder packages: the routines, apps, webpages and
+ * approvals that work together, how they are wired (Flow), and the Blueprint
+ * you package it into. It is stored in the same table as the collaborative
+ * project workspaces (so ids, Blueprint keys and shares keep working), but it
+ * is a separate concept: its row carries `kind: 'solution'`, the summary this
+ * screen reads lists only Solutions (and rows from before the split nobody has
+ * classified yet), and /app/projects lists none of them. Builders live here,
+ * next to Automations, Apps and Webpages, because a Solution is built out of
+ * exactly those.
  *
  * This file owns only the seam: one read, and the choice between the overview
  * and one Solution's detail. The overview itself is SolutionsOverview and the

@@ -12,6 +12,7 @@ const fs = require('fs');
 const transcriptionStore = require('../../stores/transcriptionStore');
 const configStore = require('../../stores/configStore');
 const { requireAuth } = require('../../auth/permissions');
+const { asM4aIfAdts } = require('../../core/voice/audioPreprocess');
 const {
     parseSpeakerCount,
     resolveAccessContext,
@@ -177,11 +178,18 @@ router.post('/:id/reprocess', requireAuth, validate({ body: NOTHING, query: NO_Q
             const { createVoxtralClient } = require('../../core/meetingNotes/voxtralClient');
             const client = createVoxtralClient(apiKey, { timeoutMs: VOXTRAL_TIMEOUT_MS });
 
-            const fileContent = await fs.promises.readFile(audioPath);
+            // A stored .aac from the phone goes over as .m4a (audioPreprocess.asM4aIfAdts).
+            const voxtralAudio = await asM4aIfAdts(audioPath, fileName);
+            let fileContent;
+            try {
+                fileContent = await fs.promises.readFile(voxtralAudio.path);
+            } finally {
+                voxtralAudio.cleanup();
+            }
 
             response = await client.audio.transcriptions.complete({
                 model: 'voxtral-mini-2602',
-                file: { fileName, content: fileContent },
+                file: { fileName: voxtralAudio.fileName, content: fileContent },
                 diarize: true,
                 language,
                 timestampGranularities: ['segment'],

@@ -34,11 +34,13 @@ import * as Notifications from 'expo-notifications';
 import * as TaskManager from 'expo-task-manager';
 
 
-import { listNotifications } from './api';
-import { previewOf } from './format';
-import { loadNotificationPrefs, type NotificationPrefs } from './prefs';
-import type { AppNotification } from './types';
-import { loadServerUrl } from '../../api/server';
+import { loadServerUrl } from '@/core/api/server';
+import { ensureHydrated, translate } from '@/core/i18n';
+
+import { listNotifications } from './api/endpoints';
+import { announcementBody, moreWaiting } from './model/format';
+import { loadNotificationPrefs, type NotificationPrefs } from './model/prefs';
+import type { AppNotification } from './model/types';
 
 export const NOTIFICATION_POLL_TASK = 'beeflow.notifications.poll';
 
@@ -46,6 +48,11 @@ export const NOTIFICATION_POLL_TASK = 'beeflow.notifications.poll';
 const SEEN_KEY = 'beeflow.notifications.announced.v1';
 /** When the last poll actually ran — shown in the inbox's footer. */
 const LAST_RUN_KEY = 'beeflow.notifications.lastPoll.v1';
+/**
+ * Set by a poll that found no permission: what arrives until the permission
+ * comes belongs to the past. Cleared by the next prime of the ledger.
+ */
+const NEEDS_PRIME_KEY = 'beeflow.notifications.needsPrime.v1';
 
 /**
  * How many ids to remember. Enough to cover a long gap between polls, small
@@ -108,12 +115,40 @@ export async function getLastPollAt(): Promise<number | null> {
  * Treat everything currently unread as already announced.
  *
  * Called when polling is first enabled, so switching it on does not fire ten
- * notifications for things the user read on their laptop last week.
+ * notifications for things the user read on their laptop last week — and
+ * whenever the permission arrives (see NEEDS_PRIME_KEY), which the ledger is
+ * then current for.
  */
 export async function primeAnnouncedIds(notifications: AppNotification[]): Promise<void> {
     const existing = await loadSeen();
     for (const n of notifications) existing.add(n.id);
     await saveSeen([...existing]);
+    await AsyncStorage.removeItem(NEEDS_PRIME_KEY).catch(() => {});
+}
+
+async function needsPrime(): Promise<boolean> {
+    try {
+        return (await AsyncStorage.getItem(NEEDS_PRIME_KEY)) === '1';
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * The first poll with the permission after polls without it. The permission
+ * can come from anywhere — Android's App info switch included, where no
+ * `startAnnouncing` runs — so the poll itself makes the grant silent: it
+ * primes the ledger with what is unread and announces nothing. A failed read
+ * leaves the flag, and the next poll tries again.
+ */
+async function catchUpAfterGrant(): Promise<PollOutcome> {
+    try {
+        await primeAnnouncedIds(await listNotifications({ unreadOnly: true, limit: 50 }));
+    } catch {
+        return { announced: 0, skipped: 'not-signed-in' };
+    }
+    await AsyncStorage.setItem(LAST_RUN_KEY, String(Date.now())).catch(() => {});
+    return { announced: 0, skipped: 'nothing-new' };
 }
 
 // ── The channel ──────────────────────────────────────────────────────
@@ -127,7 +162,11 @@ async function ensureChannel(withSound: boolean): Promise<string> {
     const channelId = withSound ? CHANNEL_ID : SILENT_CHANNEL_ID;
     try {
         await Notifications.setNotificationChannelAsync(channelId, {
-            name: withSound ? 'Bee Flow activity' : 'Bee Flow activity (silent)',
+            // Android shows this name in the app's notification settings, and
+            // lets an existing channel be renamed — so it follows the language.
+            name: withSound
+                ? translate('mobile.notifications.channel', 'Bee Flow activity')
+                : translate('mobile.notifications.channel_silent', 'Bee Flow activity (silent)'),
             importance: withSound
                 ? Notifications.AndroidImportance.DEFAULT
                 : Notifications.AndroidImportance.LOW,
@@ -188,7 +227,13 @@ export async function pollForNewNotifications(): Promise<PollOutcome> {
     if (!prefs.enabled) return { announced: 0, skipped: 'muted' };
 
     const permission = await Notifications.getPermissionsAsync();
-    if (!permission.granted) return { announced: 0, skipped: 'no-permission' };
+    if (!permission.granted) {
+        // Nothing is read without it, so what arrives meanwhile would be
+        // "fresh" on the first poll after the grant: mark that poll to catch up.
+        await AsyncStorage.setItem(NEEDS_PRIME_KEY, '1').catch(() => {});
+        return { announced: 0, skipped: 'no-permission' };
+    }
+    if (await needsPrime()) return catchUpAfterGrant();
 
     let unread: AppNotification[];
     try {
@@ -217,6 +262,10 @@ export async function pollForNewNotifications(): Promise<PollOutcome> {
         return { announced: 0, skipped: 'nothing-new' };
     }
 
+    // A headless launch has no catalogue in memory: read the cached one, or
+    // the channel names and the summary below are English whatever the
+    // language.
+    await ensureHydrated();
     const channelId = await ensureChannel(prefs.sound);
 
     // One notification each up to three, then a single summary. Nine separate
@@ -227,7 +276,7 @@ export async function pollForNewNotifications(): Promise<PollOutcome> {
         await Notifications.scheduleNotificationAsync({
             content: {
                 title: item.title,
-                body: previewOf(item.message, 160),
+                body: announcementBody(item.message),
                 // `data` comes back on the tap; the inbox is the landing place
                 // either way, so this only carries what it needs to deep-link.
                 data: { notificationId: item.id, link: item.link ?? null },
@@ -244,7 +293,7 @@ export async function pollForNewNotifications(): Promise<PollOutcome> {
         await Notifications.scheduleNotificationAsync({
             content: {
                 title: 'Bee Flow',
-                body: `${rest} more update${rest === 1 ? '' : 's'} waiting.`,
+                body: moreWaiting(rest, translate),
                 data: { notificationId: null, link: null },
             },
             trigger: { channelId },
@@ -291,24 +340,28 @@ export async function getPollingState(): Promise<RegistrationState> {
 
 /**
  * Turn polling on. Safe to call on every app start: registering an already
- * registered task is a no-op, and the permission prompt only appears once.
+ * registered task is a no-op.
  *
- * Returns false when the OS will not run background work for this app — a
- * battery-saver profile, or "Restricted" background usage. That is a real
+ * It never asks for the notification permission. Asked cold, right after
+ * sign-in, the dialog comes with no reason and is refused, and after two
+ * refusals Android stops showing it. The permission is asked only where the
+ * screen says why (Settings → Notifications, the empty inbox: see
+ * hooks/useAlertPermission), and a poll without it skips on its own
+ * ('no-permission'), so registering first costs nothing.
+ *
+ * Returns false only when the OS will not run background work for this app —
+ * a battery-saver profile, or "Restricted" background usage. That is a real
  * state the settings screen should be able to explain rather than a failure.
  */
 export async function registerNotificationPolling(): Promise<boolean> {
     const status = await BackgroundTask.getStatusAsync();
     if (status !== BackgroundTask.BackgroundTaskStatus.Available) return false;
 
-    const existing = await Notifications.getPermissionsAsync();
-    const permission = existing.granted ? existing : await Notifications.requestPermissionsAsync();
-    if (!permission.granted) return false;
-
     // Created up front so the channel exists in Android's settings before the
     // first notification does — a user who goes looking for the per-channel
     // controls right after switching this on should find them. The poll calls
     // this again with whatever the pref says at the time.
+    await ensureHydrated();
     await ensureChannel((await loadNotificationPrefs()).sound);
 
     if (await TaskManager.isTaskRegisteredAsync(NOTIFICATION_POLL_TASK)) return true;
@@ -321,6 +374,12 @@ export async function registerNotificationPolling(): Promise<boolean> {
         /* not signed in yet — the first poll will prime nothing and announce,
            which is the correct behaviour for a genuinely new install */
     }
+    // Registered before the permission: whatever arrives until it is granted
+    // (possibly in Android's own settings) is caught up silently, not
+    // announced as a burst — even if no poll ran without it in between.
+    if (!(await Notifications.getPermissionsAsync()).granted) {
+        await AsyncStorage.setItem(NEEDS_PRIME_KEY, '1').catch(() => {});
+    }
 
     await BackgroundTask.registerTaskAsync(NOTIFICATION_POLL_TASK, {
         minimumInterval: POLL_INTERVAL_MINUTES,
@@ -328,12 +387,28 @@ export async function registerNotificationPolling(): Promise<boolean> {
     return true;
 }
 
+/**
+ * Android has just allowed notifications. What is unread now arrived while
+ * the phone could not say so and belongs to the past, as when polling is
+ * first switched on, so allowing them is silent: the next poll announces only
+ * what is new from here. Polling is registered too, in case the OS had
+ * refused it before. Returns what registering returns.
+ */
+export async function startAnnouncing(): Promise<boolean> {
+    try {
+        await primeAnnouncedIds(await listNotifications({ unreadOnly: true, limit: 50 }));
+    } catch {
+        /* offline or signed out: the first poll starts from what it finds */
+    }
+    return registerNotificationPolling();
+}
+
 export async function unregisterNotificationPolling(): Promise<void> {
     if (await TaskManager.isTaskRegisteredAsync(NOTIFICATION_POLL_TASK)) {
         await BackgroundTask.unregisterTaskAsync(NOTIFICATION_POLL_TASK);
     }
     try {
-        await AsyncStorage.multiRemove([SEEN_KEY, LAST_RUN_KEY]);
+        await AsyncStorage.multiRemove([SEEN_KEY, LAST_RUN_KEY, NEEDS_PRIME_KEY]);
     } catch {
         /* ignore */
     }

@@ -21,20 +21,35 @@ const log = require('../../telemetry/log');
 
 /**
  * Ensure the notebook has a linked KB — auto-create one if needed.
- * Returns the KB ID.
+ *
+ * The knowledge base belongs to the NOTEBOOK's owner, whoever adds the first
+ * source. It used to be created as the uploader's personal base: for a project
+ * notebook, a member's first upload made a base the owner's notebook could
+ * never attach (the attach is owner-scoped), so the source reported "ready"
+ * and was never found. The notebook's own base is then authorised by notebook
+ * role (notebookKbAccess.js), not by the generic KB ACL.
+ *
+ * It carries NO organisation. The generic KB ACL lets an org admin read every
+ * base of their org, so an org stamp would hand them the uploaded files,
+ * pasted text and transcripts of any member's private notebook; the people
+ * the notebook is shared with already reach its base through its role.
+ *
+ * @returns {Promise<{ kbId: string, tenantId: string }>} the base and the tenant
+ *   its chunks are stored (and searched, and deleted) under
  */
-async function ensureNotebookKB(notebookId, userId) {
+async function ensureNotebookKBFor(notebookId, userId) {
     const notebook = await notebookStore.getNotebook(notebookId, userId);
     if (!notebook) throw new Error('Notebook not found');
+    const ownerId = notebook.userId || userId;
 
     let kbId = notebook.knowledgeBaseIds?.[0];
 
     if (!kbId) {
         const kb = await kbStore.createKB(
-            userId,
+            ownerId,
             `📓 ${notebook.name}`,
             `Auto-generated knowledge base for notebook "${notebook.name}"`,
-            null,
+            null, // private to the notebook: see above
             { sourceKind: 'notebook_auto', usageContexts: ['webpage'] }
         );
         // Attach only if the notebook still has no KB. Uploading two sources at
@@ -42,7 +57,7 @@ async function ensureNotebookKB(notebookId, userId) {
         // both created a KB, and the second plain update overwrote the first —
         // orphaning a KB whose source then reported "ready" but never matched a
         // single query. The database picks the winner now.
-        const winnerId = await notebookStore.attachKnowledgeBaseIfAbsent(notebookId, userId, kb.id);
+        const winnerId = await notebookStore.attachKnowledgeBaseIfAbsent(notebookId, ownerId, kb.id);
         if (winnerId !== kb.id) {
             // We lost the race — bin the KB we just made rather than leak it.
             log.info(`[SourceIngestion] Lost KB-create race for notebook ${notebookId}; using ${winnerId}`);
@@ -55,7 +70,12 @@ async function ensureNotebookKB(notebookId, userId) {
         kbId = winnerId;
     }
 
-    return kbId;
+    return { kbId, tenantId: ownerId };
+}
+
+/** The KB id only — the shape older callers use. */
+async function ensureNotebookKB(notebookId, userId) {
+    return (await ensureNotebookKBFor(notebookId, userId)).kbId;
 }
 
 /**
@@ -98,7 +118,7 @@ async function ingestTextIntoKB(notebookId, sourceId, userId, text, sourceName) 
         // Store the extracted text first (powers the preview panel + retry) and
         // flip to the embedding stage so the UI shows real progress.
         await notebookStore.updateSource(sourceId, { stage: 'embedding', contentText: text.slice(0, MAX_STORED_TEXT) });
-        const kbId = await ensureNotebookKB(notebookId, userId);
+        const { kbId, tenantId: kbTenantId } = await ensureNotebookKBFor(notebookId, userId);
 
         // ── Privacy Shield: build the notebook's PII token map at INGEST ──────
         // The stored source text + embeddings stay REAL (search recall and the
@@ -174,11 +194,16 @@ async function ingestTextIntoKB(notebookId, sourceId, userId, text, sourceName) 
         }
 
         // Use shared ingestion (dedup + chunk + embed)
+        // Stored under the notebook owner's tenant, like the base itself: the
+        // search and the cleanup of a source both run under that tenant, so a
+        // colleague's upload is found and removed like the owner's own.
         const result = await ingestDocument(
-            userId, kbId, text, sourceName,
+            kbTenantId, kbId, text, sourceName,
             'notebook_source', sourceId,
             {
                 skipDedup: false, lang: 'auto',
+                // Who added it: a member's upload lands in the owner's tenant.
+                createdBy: userId || null,
                 // EXPLICIT opt-out of the knowledge-base privacy screen (K4).
                 // This path already scans with its OWN policy and deliberately
                 // keeps the real text — the source list shows it back to the
@@ -261,5 +286,7 @@ module.exports = {
     ingestTextSource,
     ingestDriveSource,
     ingestTextIntoKB,
+    ensureNotebookKB,
+    ensureNotebookKBFor,
     MAX_STORED_TEXT,
 };

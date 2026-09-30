@@ -61,7 +61,8 @@ const NL_TRANSLATIONS = {
     'solutions.create_failed': 'Aanmaken is niet gelukt.',
     'solutions.empty': 'Nog niets hier. Maak een Solution, of installeer een Blueprint die iemand je gaf.',
     'solutions.back': 'Alle Solutions',
-    'solutions.open_project': 'Openen in Projecten',
+    // solutions.open_project was retired (2026-09): a Solution no longer links to
+    // the projects pages, "Manage access" replaced it.
     'solutions.tab_overview': 'Overzicht',
     'solutions.tab_content': 'Inhoud',
     'solutions.tab_flow': 'Flow',

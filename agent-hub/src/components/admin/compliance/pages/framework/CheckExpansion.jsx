@@ -1,12 +1,14 @@
-import React, { useEffect, useState } from 'react';
 import { ArrowRight, ArrowUpRight, FileJson, Fingerprint, History, Info, Wrench } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import AffectedProjects from './AffectedProjects';
+import { remediationLabel } from './CheckRow';
+import { isOpen, resolveRemediation, shortHash, toMs } from './checkSort';
+import FindingDecision from './FindingDecision';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import { TableRow } from '../../../../shared/DataTable';
 import { TONES, toneOfCheckStatus } from '../../../../shared/statusTone';
 import { PRIMARY_ACTION_STYLE } from '../../../../shared/StudioSectionHeader';
 import { API } from '../../data/api';
-import { remediationLabel } from './CheckRow';
-import { isOpen, resolveRemediation, shortHash, toMs } from './checkSort';
 
 /**
  * CheckExpansion — the open row under a check (artboard 1b): three columns,
@@ -69,6 +71,7 @@ export default function CheckExpansion({
     canOpenLink = () => true,
     onAutoFix,
     autoFixing = false,
+    onDecide,
     testId = 'check-expansion',
 }) {
     const { t, locale } = useTranslation();
@@ -152,6 +155,15 @@ export default function CheckExpansion({
                             )}
                         </div>
                     ) : null}
+                    {/* The projects this finding is about, by their current name. */}
+                    <AffectedProjects
+                        check={check}
+                        onOpen={canOpenLink({ kind: 'external' }) && typeof onOpenLink === 'function'
+                            ? (path) => onOpenLink({ kind: 'external', path }, check)
+                            : undefined}
+                        testId={`${testId}-projects`}
+                    />
+                    <FindingDecision check={check} onDecide={onDecide} testId={`${testId}-decision`} />
                 </section>
 
                 {/* History & evidence */}

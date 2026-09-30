@@ -10,63 +10,78 @@
  * failed chunk). It is drawn as an explicit hole rather than skipped, because
  * a transcript that silently omits four minutes is worse than one that admits
  * it: the reader would otherwise assume nothing was said.
+ *
+ * With `onSeek` (the note still has its audio) a turn is a button: a tap
+ * plays the recording from where that turn starts, as a click on a line does
+ * on the web.
  */
 
-import { Feather } from '@expo/vector-icons';
 import React from 'react';
-import { View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
-import { useTheme } from '../../../theme/ThemeProvider';
-import { Text } from '../../../ui/Text';
-import { formatDuration } from '../format';
-import type { TranscriptSegment } from '../types';
+import { useTranslation } from '@/core/i18n';
+import { useTheme, useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
+import { Icon, Text } from '@/shared/ui';
+
+import { formatDuration } from '../model/format';
+import type { TranscriptSegment } from '../model/types';
+
+const makeStyles = (theme: Theme) =>
+    StyleSheet.create({
+        gap: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm, paddingVertical: theme.spacing.md },
+        gapText: { flex: 1 },
+        turn: { paddingVertical: theme.spacing.sm },
+        continued: { paddingVertical: theme.spacing.xs },
+        pressed: { backgroundColor: theme.colors.itemHoverBg },
+        head: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm, marginBottom: theme.spacing.xs },
+        dot: { width: 8, height: 8, borderRadius: 4 },
+        body: { paddingLeft: theme.spacing.lg },
+    });
 
 export function TranscriptTurn({
     segment,
     colour,
-    /** True when the previous turn was the same speaker — hides a repeat name. */
     continued,
+    onSeek,
 }: {
     segment: TranscriptSegment;
     colour: string;
+    /** True when the previous turn was the same speaker — hides a repeat name. */
     continued: boolean;
+    onSeek?: (seconds: number) => void;
 }) {
+    const t = useTranslation();
     const theme = useTheme();
+    const styles = useThemedStyles(makeStyles);
+    // The speaker's colour is data, so these two are computed per turn.
+    const dotInk = { backgroundColor: colour };
+    const nameInk = { color: colour };
 
     if (segment.gap) {
         return (
-            <View
-                style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: theme.spacing.sm,
-                    paddingVertical: theme.spacing.md,
-                }}
-            >
-                <Feather name="alert-circle" size={14} color={theme.colors.warning} />
-                <Text variant="caption" tone="warning" style={{ flex: 1 }}>
-                    {formatDuration(segment.start)} – {formatDuration(segment.end)}: this part could
-                    not be transcribed.
+            <View style={styles.gap}>
+                <Icon name="CircleAlert" size={14} color={theme.colors.warning} />
+                <Text variant="caption" tone="warning" style={styles.gapText}>
+                    {t('mobile.recording.gap', '{from} – {to}: this part could not be transcribed.', {
+                        from: formatDuration(segment.start),
+                        to: formatDuration(segment.end),
+                    })}
                 </Text>
             </View>
         );
     }
 
     return (
-        <View style={{ paddingVertical: continued ? theme.spacing.xs : theme.spacing.sm }}>
+        <Pressable
+            disabled={!onSeek}
+            onPress={() => onSeek?.(segment.start)}
+            accessibilityHint={onSeek ? t('mobile.recording.play_from_here', 'Plays the recording from here') : undefined}
+            style={({ pressed }) => [continued ? styles.continued : styles.turn, pressed ? styles.pressed : null]}
+        >
             {continued ? null : (
-                <View
-                    style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        gap: theme.spacing.sm,
-                        marginBottom: theme.spacing.xs,
-                    }}
-                >
-                    <View
-                        style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: colour }}
-                    />
-                    <Text variant="label" style={{ color: colour }} numberOfLines={1}>
+                <View style={styles.head}>
+                    <View style={[styles.dot, dotInk]} />
+                    <Text variant="label" style={nameInk} numberOfLines={1}>
                         {segment.speaker.toUpperCase()}
                     </Text>
                     <Text variant="label" tone="tertiary">
@@ -74,9 +89,9 @@ export function TranscriptTurn({
                     </Text>
                 </View>
             )}
-            <Text variant="body" tone="secondary" selectable style={{ paddingLeft: theme.spacing.lg }}>
+            <Text variant="body" tone="secondary" selectable={!onSeek} style={styles.body}>
                 {segment.text}
             </Text>
-        </View>
+        </Pressable>
     );
 }

@@ -1,102 +1,101 @@
 /**
- * One skill in the library.
- *
- * The row does two jobs at once — open the pack, and switch it on for the next
- * message — so the switch is a real control inside the row rather than the
- * row's own state. A tap anywhere else opens the detail screen; the switch
- * keeps its own touch target and its own label, because "Sales tone" and "Use
- * Sales tone in new chats" are two different things to announce.
+ * One row of the skill library: the icon, the name, the web's usage subline
+ * ("3 agents · 1 automation", or "draft · empty") over its meta line
+ * ("4 steps · 3 rules · 2 examples"), the test chip, and the phone's own
+ * "use in new chats" switch.
  */
 
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { useTheme } from '../../../theme/ThemeProvider';
-import { Badge } from '../../../ui/Badge';
-import { Switch } from '../../../ui/Controls';
-import { Text } from '../../../ui/Text';
-import type { Skill } from '../types';
+import { useTranslation } from '@/core/i18n';
+import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
+import { Badge, Switch, Text, type BadgeTone } from '@/shared/ui';
+
+import { metaLine, testChip, usageSubline, type TestTone } from '../model/skillModel';
+import type { Skill, UsageSummaryEntry } from '../model/types';
+
+const TONE: Readonly<Record<TestTone, BadgeTone>> = { idle: 'neutral', ok: 'success', warning: 'warning', error: 'error' };
+
+const makeStyles = (theme: Theme) =>
+    StyleSheet.create({
+        row: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            minHeight: 72,
+            gap: theme.spacing.md,
+            paddingHorizontal: theme.spacing.lg,
+            paddingVertical: theme.spacing.md,
+        },
+        pressed: { backgroundColor: theme.colors.itemHoverBg },
+        tile: {
+            width: 40,
+            height: 40,
+            borderRadius: theme.radii.md,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: theme.colors.bgTertiary,
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: 'transparent',
+        },
+        tileOn: { backgroundColor: theme.colors.itemActiveBg, borderColor: theme.colors.accentPrimary },
+        body: { flex: 1, gap: 4 },
+        badges: { flexDirection: 'row', gap: theme.spacing.xs, flexWrap: 'wrap' },
+    });
 
 export function SkillRow({
     skill,
+    summary,
     active,
     onPress,
     onToggle,
     onLongPress,
 }: {
     skill: Skill;
+    summary: UsageSummaryEntry | undefined;
     active: boolean;
     onPress: () => void;
     onToggle: () => void;
     onLongPress?: () => void;
 }) {
-    const theme = useTheme();
-
-    // An automation-linked skill is forced dynamic by the runtime whatever the
-    // flag says (core/tools/skillInjection.js), so the badge follows the
-    // runtime's rule rather than the column.
+    const t = useTranslation();
+    const styles = useThemedStyles(makeStyles);
+    const chip = testChip(skill.lastTest, t);
+    // An automation-linked skill is forced dynamic by the runtime whatever the flag says.
     const dynamic = skill.dynamicActivation || Boolean(skill.automationId);
-
+    const usage = usageSubline(skill, summary, t);
     return (
         <Pressable
             onPress={onPress}
             onLongPress={onLongPress}
             accessibilityRole="button"
             accessibilityLabel={skill.name}
-            accessibilityHint={skill.description || 'Open this skill'}
-            style={({ pressed }) => ({
-                flexDirection: 'row',
-                alignItems: 'center',
-                minHeight: 72,
-                gap: theme.spacing.md,
-                paddingHorizontal: theme.spacing.lg,
-                paddingVertical: theme.spacing.md,
-                backgroundColor: pressed ? theme.colors.itemHoverBg : 'transparent',
-            })}
+            accessibilityHint={skill.description || undefined}
+            style={({ pressed }) => [styles.row, pressed ? styles.pressed : null]}
         >
-            <View
-                style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: theme.radii.md,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    backgroundColor: active ? theme.colors.itemActiveBg : theme.colors.bgTertiary,
-                    borderWidth: StyleSheet.hairlineWidth,
-                    borderColor: active ? theme.colors.accentPrimary : 'transparent',
-                }}
-            >
+            <View style={[styles.tile, active ? styles.tileOn : null]}>
                 <Text variant="heading" accessibilityElementsHidden>
                     {skill.icon}
                 </Text>
             </View>
-
-            <View style={{ flex: 1, gap: 4 }}>
+            <View style={styles.body}>
                 <Text variant="subheading" numberOfLines={1}>
                     {skill.name}
                 </Text>
-                {skill.description ? (
-                    <Text variant="caption" tone="tertiary" numberOfLines={2}>
-                        {skill.description}
-                    </Text>
-                ) : null}
-                {skill.isShared || dynamic ? (
-                    <View style={{ flexDirection: 'row', gap: theme.spacing.xs, flexWrap: 'wrap' }}>
-                        {skill.isShared ? (
-                            <Badge
-                                label={skill.sharedGroups.length > 0 ? 'Shared with groups' : 'Shared'}
-                            />
-                        ) : null}
-                        {dynamic ? <Badge label="When relevant" tone="accent" /> : null}
-                    </View>
-                ) : null}
+                <Text variant="caption" tone="tertiary" numberOfLines={1}>
+                    {[usage, metaLine(skill, t)].filter((s, i, all) => s && all.indexOf(s) === i).join(' · ')}
+                </Text>
+                <View style={styles.badges}>
+                    <Badge label={chip.label} tone={TONE[chip.tone]} />
+                    {skill.isShared ? (
+                        <Badge
+                            label={skill.sharedGroups.length > 0 ? t('mobile.skills.shared_groups', 'Shared with groups') : t('mobile.skills.shared', 'Shared')}
+                        />
+                    ) : null}
+                    {dynamic ? <Badge label={t('mobile.skills.when_relevant', 'When relevant')} tone="accent" /> : null}
+                </View>
             </View>
-
-            <Switch
-                value={active}
-                onValueChange={onToggle}
-                accessibilityLabel={`Use ${skill.name} in new chats`}
-            />
+            <Switch value={active} onValueChange={onToggle} accessibilityLabel={t('mobile.skills.use_named', 'Use {name} in new chats', { name: skill.name })} />
         </Pressable>
     );
 }

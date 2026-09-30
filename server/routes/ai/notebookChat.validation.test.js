@@ -35,3 +35,20 @@ test('a turn without a notebook still answers as before', async () => {
     assert.strictEqual(res.status, 400);
     assert.deepStrictEqual(res.body, { error: 'Notebook ID required' });
 });
+
+test('a bubble-menu selection is the object the page sends, and nothing else', async () => {
+    // Rewrite / Shorten / Expand / Ask sent this object while the schema wanted
+    // text: every one of those actions was refused with a 400.
+    const ok = await post({
+        message: 'Shorten the selected text.', notebookId: 'nb-missing',
+        notebookSelection: { text: 'A long sentence.', from: 3, to: 19, action: 'shorten' }, docVersion: 4,
+    });
+    assert.notStrictEqual(ok.status, 400, `the selection passed validation: ${ok.text}`);
+    assert.strictEqual(ok.status, 404, 'and reached the handler, which found no such notebook');
+
+    h.assertRefused(assert, await post({ message: 'x', notebookId: 'nb1', notebookSelection: 'just text' }), 'body.notebookSelection', /notebookSelection is \{ text/);
+    h.assertRefused(assert, await post({ message: 'x', notebookId: 'nb1', notebookSelection: { text: 'x', action: 'delete' } }), 'body.notebookSelection.action', /rewrite, shorten, expand or ask/);
+    h.assertRefused(assert, await post({ message: 'x', notebookId: 'nb1', notebookSelection: { text: 'x', form: 1 } }), 'body.notebookSelection', /notebookSelection is \{ text/);
+    h.assertRefused(assert, await post({ message: 'x', notebookId: 'nb1', notebookSelection: { text: 'x', from: -1 } }), 'body.notebookSelection.from', /position in the document/);
+    h.assertRefused(assert, await post({ message: 'x', notebookId: 'nb1', docVersion: 'five' }), 'body.docVersion', /whole-number version/);
+});

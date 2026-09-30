@@ -148,3 +148,26 @@ describe('CheckRow — focus', () => {
         expect(scroll).toHaveBeenCalledTimes(1);
     });
 });
+
+describe('CheckRow — project subjects and decisions', () => {
+    it('names the project a per-source row is about, opens it, and shows an active decision', async () => {
+        const { default: userEvent } = await import('@testing-library/user-event');
+        const onOpenLink = vi.fn();
+        const check = {
+            ...base, check_id: 'GDPR-Art30-project-personal-data', scope_id: 'project:p1', status: 'warn',
+            evidence: { project_id: 'p1', link: '/app/projects/p1' }, project_names: { p1: 'Launch plan' },
+            finding_state: { state: 'acknowledged', active: true },
+        };
+        renderRow(check, { onOpenLink, canOpenLink: () => true });
+        expect(screen.getByTestId('row-subject')).toHaveTextContent('Launch plan');
+        expect(screen.getByTestId('row-state')).toHaveTextContent('Acknowledged');
+        await userEvent.setup().click(screen.getByRole('button', { name: 'Open the affected item' }));
+        expect(onOpenLink).toHaveBeenCalledWith({ kind: 'external', path: 'projects/p1' }, check);
+    });
+
+    it('a lapsed decision shows no chip; a global row names no subject', () => {
+        renderRow({ ...base, finding_state: { state: 'acknowledged', active: false } }, { onOpenLink: vi.fn() });
+        expect(screen.queryByTestId('row-state')).toBeNull();
+        expect(screen.queryByTestId('row-subject')).toBeNull();
+    });
+});

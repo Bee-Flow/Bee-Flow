@@ -89,6 +89,18 @@ export default function useComplianceCore({ onChanged = null } = {}) {
         } finally { setAutoFixingId(null); }
     };
 
+    // An admin's decision about one open finding (acknowledge / accept risk /
+    // snooze / re-open). No toast: the row's chip is the confirmation, and a
+    // refusal is thrown back to the control that asked, which says it inline.
+    const decideFinding = useCallback(async (checkId, scopeId, body) => {
+        const r = await fetchJson(
+            `${API}/checks/${encodeURIComponent(checkId)}/state`,
+            jsonInit('POST', { ...(body || {}), scope_id: scopeId ?? null }),
+        );
+        await refresh();
+        return r;
+    }, [refresh]);
+
     // Audit trail per check — status timeline + hashed evidence rows. Fetched
     // on demand when a row's "History & evidence" column opens.
     const loadTrail = useCallback(async (checkId) => {
@@ -133,6 +145,6 @@ export default function useComplianceCore({ onChanged = null } = {}) {
         onboarded: overview ? overview.onboarded !== false : null,
         settings: overview?.settings || null,
         setupOpen, openSetup: () => setSetupOpen(true), closeSetup: () => setSetupOpen(false),
-        refresh, runNow, rerun, autoFix, loadTrail, saveSettings, autoDetect, finishSetup,
+        refresh, runNow, rerun, autoFix, decideFinding, loadTrail, saveSettings, autoDetect, finishSetup,
     };
 }

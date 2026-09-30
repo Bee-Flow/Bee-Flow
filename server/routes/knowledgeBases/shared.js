@@ -15,6 +15,7 @@
 const kbStore = require('../../stores/knowledgeBases');
 const { resolveUserOrgIds, hasPermission, resolveUserGroups: resolveUserGroupsById } = require('../../auth');
 const { userHasBetaFeature } = require('../../core/entitlements/betaFeatures');
+const { PROJECT_FILES_SOURCE_KIND } = require('../../core/kb/projectFilesKb');
 require('../../core/kb/kbIngestionHelpers');
 require('../../utils/ssrfGuard');
 const log = require('../../telemetry/log');
@@ -132,6 +133,13 @@ async function canManageKB(req, kb) {
 function blockIfSystemKB(kb, res) {
     if (kbStore.isSystemKB(kb)) {
         res.status(403).json({ error: 'System-managed knowledge bases are read-only' });
+        return true;
+    }
+    // A project's files base is managed from its project, by the project's
+    // role ladder (routes/projects/workspace.js); no generic route publishes,
+    // renames, deletes or writes into it, whoever the caller is.
+    if (kb && kb.source_kind === PROJECT_FILES_SOURCE_KIND) {
+        res.status(403).json({ error: 'This knowledge base holds a project\'s files. Add or remove them from the project.' });
         return true;
     }
     return false;

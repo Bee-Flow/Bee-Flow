@@ -1,9 +1,9 @@
 import { AlertTriangle, HelpCircle, Loader2 } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 import { groupNoteRows, noteRowsOf, readReleases } from './releaseModel';
+import { Strip } from './solutionNotices';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { formatRelative } from '../../../projects/relativeTime';
-import { Strip } from '../../../projects/solutionNotices';
 import { kindIcon, kindOf } from '../../../shared/kindColors';
 import { nOf } from '../KnowledgeStudio/plural';
 

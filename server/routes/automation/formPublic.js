@@ -916,9 +916,12 @@ router.post('/form/:token/s/:sid/file/:fileId/notebook', ipLimiter, sessionLimit
             name: notebookNameFor(file.filename, found),
             description: '',
             instructions: '',
+            organizationId: req.session?.user?.organizationId || null,
         });
         // createNotebook always starts empty, so the content is a second write.
-        await notebookStore.updateNotebook(notebook.id, userId, { documentContent: documentHtml(parsed) });
+        const html = documentHtml(parsed);
+        await notebookStore.updateNotebook(notebook.id, userId, { documentContent: html });
+        await recordImportedVersion(notebook.id, userId, html);
 
         return res.json({ notebookId: notebook.id });
     } catch (e) {
@@ -971,12 +974,15 @@ router.post('/form/:token/s/:sid/notebook', ipLimiter, sessionLimiter, contentLe
             name: notebookNameFor(title, found),
             description: '',
             instructions: '',
+            organizationId: req.session?.user?.organizationId || null,
         });
         // createNotebook always starts empty, so the content is a second write —
         // same shape as the file-based route, minus a document to parse: the
         // text is already plain text, so it goes through the same paragraph
         // wrapper (and the same escaping) documentHtml gives a PDF's prose.
-        await notebookStore.updateNotebook(notebook.id, userId, { documentContent: documentHtml(text) });
+        const html = documentHtml(text);
+        await notebookStore.updateNotebook(notebook.id, userId, { documentContent: html });
+        await recordImportedVersion(notebook.id, userId, html);
 
         return res.json({ notebookId: notebook.id });
     } catch (e) {
@@ -984,6 +990,20 @@ router.post('/form/:token/s/:sid/notebook', ipLimiter, sessionLimiter, contentLe
         return res.status(500).json({ error: 'Could not save this to Notebooks' });
     }
 });
+
+/**
+ * The notebook's first version, 'import': where its history starts. Best-effort
+ * — the notebook and its text are already saved.
+ */
+async function recordImportedVersion(notebookId, userId, html) {
+    try {
+        await notebookStore.recordVersion(notebookId, {
+            html, source: 'import', createdBy: userId, contributors: [{ userId, kind: 'user' }],
+        });
+    } catch (e) {
+        log.warn(`[automation/form] could not record the imported notebook's first version: ${e.message}`);
+    }
+}
 
 /** Notebook name: the document's, without its extension, falling back to the form's. */
 function notebookNameFor(filename, found) {

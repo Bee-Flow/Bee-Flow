@@ -131,6 +131,9 @@ describe('the gallery', () => {
         await waitFor(() => expect(onNavigate).toHaveBeenCalledWith('studio/solutions/p_new'));
         const posted = globalThis.__authFetch.mock.calls.find(([, i]) => i?.method === 'POST' && !String(i.body).includes('manifest'));
         expect(JSON.parse(posted[1].body).name).toBe('Fresh');
+        // Created AS a Solution: without the kind the server files the row as
+        // a collaborative project workspace, and it would never list here.
+        expect(JSON.parse(posted[1].body).kind).toBe('solution');
     });
 });
 

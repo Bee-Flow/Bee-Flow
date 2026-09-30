@@ -13,13 +13,14 @@
  * those is the difference between a smooth meter and a stuttering one.
  */
 
-import { Feather } from '@expo/vector-icons';
 import React from 'react';
 import { View } from 'react-native';
 
-import { useTheme } from '../../../theme/ThemeProvider';
-import { Text } from '../../../ui/Text';
-import type { LiveTurn, VoiceMessage, VoiceToolActivity } from '../types';
+import { useTheme } from '@/core/theme/ThemeProvider';
+import { humanise } from '@/shared/lib/display';
+import { Icon, Text, type IconName } from '@/shared/ui';
+
+import type { LiveTurn, VoiceMessage, VoiceToolActivity } from '../model/types';
 
 export const VoiceTranscript = React.memo(function VoiceTranscript({
     messages,
@@ -122,8 +123,8 @@ function ToolChip({ tool }: { tool: VoiceToolActivity }) {
             : tool.status === 'done'
               ? theme.colors.success
               : theme.colors.textMuted;
-    const icon: keyof typeof Feather.glyphMap =
-        tool.status === 'error' ? 'alert-circle' : tool.status === 'done' ? 'check' : 'loader';
+    const icon: IconName =
+        tool.status === 'error' ? 'CircleAlert' : tool.status === 'done' ? 'Check' : 'Loader';
 
     return (
         <View
@@ -137,17 +138,12 @@ function ToolChip({ tool }: { tool: VoiceToolActivity }) {
                 backgroundColor: theme.colors.bgSecondary,
             }}
         >
-            <Feather name={icon} size={13} color={colour} />
+            <Icon name={icon} size={13} color={colour} />
             <Text variant="label" tone="tertiary" numberOfLines={1} style={{ flexShrink: 1 }}>
-                {humanise(tool.name)}
+                {/* `search_calendar_events` reads as noise; "Search calendar events" does not. */}
+                {tool.name ? humanise(tool.name) : ''}
                 {tool.summary ? ` · ${tool.summary}` : ''}
             </Text>
         </View>
     );
-}
-
-/** `search_calendar_events` reads as noise; "Search calendar events" does not. */
-function humanise(name: string): string {
-    const words = name.replace(/[_-]+/g, ' ').trim();
-    return words.charAt(0).toUpperCase() + words.slice(1);
 }

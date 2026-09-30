@@ -3,10 +3,11 @@
  *
  * Dynamic (`.ts`, not `app.json`) for two reasons the build actually depends on:
  *
- *   1. `versionCode` has to be a monotonically increasing integer, and the only
- *      monotonic thing CI has is the run number. It arrives as
- *      `BEEFLOW_VERSION_CODE`; locally it falls back to 1 so `expo run:android`
- *      works with no env at all.
+ *   1. `versionCode` has to be an integer that never repeats and never goes
+ *      down, across every repository this app is ever built in. CI computes
+ *      it from the build time (see .github/workflows/android-release.yml) and
+ *      passes it as `BEEFLOW_VERSION_CODE`; locally it falls back to 1 so
+ *      `expo run:android` works with no env at all.
  *   2. The default server URL is a BUILD-TIME choice. A self-hoster forks this
  *      repo and builds their own APK against their own host, so it comes from
  *      `BEEFLOW_DEFAULT_SERVER_URL` rather than being hard-coded to beeflow.nl.
@@ -23,14 +24,14 @@ import type { ConfigContext, ExpoConfig } from 'expo/config';
 
 /**
  * The oldest server this APK is known to work against — a build DATE, because
- * the server has no orderable version number (see src/api/contract.ts, where
+ * the server has no orderable version number (see src/core/api/contract.ts, where
  * the app reads this from). A LITERAL here, not an import: expo's config
  * loader transpiles only this file, so a `./src/...` import cannot resolve at
  * config time. contract.test.ts pins the two copies to the same value.
  */
 const minServerBuild = '2026-09-01';
 
-/** CI passes the run number; a local build just wants *something* valid. */
+/** CI passes a time-based code; a local build just wants *something* valid. */
 const versionCode = Number(process.env.BEEFLOW_VERSION_CODE || '1');
 
 /** Marketing version — kept in step with package.json so there is one number. */
@@ -49,6 +50,35 @@ const defaultServerUrl = process.env.BEEFLOW_DEFAULT_SERVER_URL || '';
  * release build; a dev APK exists to be installed on a phone and tried.
  */
 const isProdBuild = process.env.BEEFLOW_BUILD_PROFILE === 'prod';
+
+/**
+ * The publisher's privacy policy, linked from Settings → About → Privacy.
+ * Google Play requires one inside the app as well as on the store listing,
+ * and it is the PUBLISHER's policy (whoever uploads this build), not the
+ * organisation's: an org's own privacy notice lives in its compliance
+ * settings, which only admins can read. A self-hoster who publishes their own
+ * build sets BEEFLOW_PRIVACY_POLICY_URL.
+ *
+ * TODO(owner): confirm https://beeflow.nl/privacy is live and covers the
+ * Android app before the first Play submission.
+ */
+const privacyPolicyUrl = process.env.BEEFLOW_PRIVACY_POLICY_URL || 'https://beeflow.nl/privacy';
+
+// The documents someone shares into Bee Flow — to ask about in a chat, or
+// to put in a knowledge base: PDF, Word, Excel, PowerPoint and their
+// OpenDocument twins. (Text, CSV and Markdown are text/*.)
+const SHARED_DOCUMENTS = [
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.ms-powerpoint',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'application/vnd.oasis.opendocument.text',
+    'application/vnd.oasis.opendocument.spreadsheet',
+    'application/rtf',
+];
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
     ...config,
@@ -82,12 +112,22 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         adaptiveIcon: {
             foregroundImage: './assets/adaptive-icon.png',
             monochromeImage: './assets/adaptive-icon-monochrome.png',
-            backgroundColor: '#0f0f13',
+            // Brand yellow (--accent-primary of the Bee Flow theme) behind the
+            // ink bee; the bee sits inside the 66dp safe circle of the 108dp layer.
+            backgroundColor: '#ffd400',
         },
         // Edge-to-edge is unconditional from SDK 54 on (and mandatory on
         // Android 15), so there is no flag to set — every screen goes through
-        // src/ui/Screen.tsx, which is where the insets are actually handled.
+        // src/shared/ui/Screen.tsx, which is where the insets are actually handled.
         softwareKeyboardLayoutMode: 'pan',
+        // No auto-backup and no device-to-device transfer of app data: the
+        // session token and the sealed drafts are bound to a Keystore key
+        // that never leaves this device, so a restored copy could not be
+        // opened anyway — it could only leak. plugins/withBeeFlowAndroid.js
+        // also forces this (and writes dataExtractionRules for Android 12+);
+        // setting it here keeps Expo's own allowBackup mod from writing
+        // "true" first.
+        allowBackup: false,
         blockedPermissions: [
             // expo-audio and expo-image-picker each pull in permissions we do
             // not want on a privacy product. Recording needs the microphone,
@@ -107,6 +147,18 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
             // android/app/src/debug/AndroidManifest.xml declares it for the
             // dev overlay.
             'android.permission.SYSTEM_ALERT_WINDOW',
+            // Background PLAYBACK. expo-audio adds it by default and media3's
+            // session library declares it again in its own manifest. The app
+            // never plays audio in the background (no lock-screen controls,
+            // enableBackgroundPlayback is off below), and on targetSdk 34+
+            // every FOREGROUND_SERVICE_<type> permission is a Play Console
+            // declaration with a demo video. Only the microphone type stays.
+            'android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK',
+            // No ads, no analytics SDK. Firebase (pulled in by
+            // expo-notifications, never initialised: no google-services.json)
+            // must not smuggle the advertising-ID permission into the
+            // manifest, or Play's advertising-ID declaration has to say yes.
+            'com.google.android.gms.permission.AD_ID',
         ],
         permissions: [
             'android.permission.RECORD_AUDIO',
@@ -130,7 +182,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         // activity the proxy's CLEAR_TOP relaunch would tear MainActivity down
         // and rebuild it, destroying the in-flight sign-in. android/ is
         // generated and gitignored, so this constraint has nowhere to live but
-        // here. See mobile/src/features/onboarding/sso.ts.
+        // here. See mobile/src/features/onboarding/api/sso.ts.
         intentFilters: [
             {
                 // beeflow://oauth — the OAuth handoff. Not a destination: it
@@ -181,6 +233,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
                 // stops when the phone sleeps is worse than no recording, and
                 // the copy was written for a capability the build did not have.
                 enableBackgroundRecording: true,
+                // The default (true) declares expo-audio's media-playback
+                // foreground service for lock-screen controls, which nothing
+                // in this app uses (no setActiveForLockScreen). Off, so the
+                // manifest carries one foreground service type — microphone —
+                // and Play asks for one declaration, not two.
+                enableBackgroundPlayback: false,
             },
         ],
         [
@@ -208,9 +266,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
                 // Bee Flow appears in Android's share sheet for text, images,
                 // audio and documents. Sharing a PDF from Drive straight into a
                 // knowledge base is the thing a mobile client can do that a
-                // browser tab cannot.
-                androidIntentFilters: ['text/*', 'image/*', 'audio/*', 'video/*'],
-                androidMultiIntentFilters: ['image/*', 'application/pdf'],
+                // browser tab cannot — so a SINGLE document has to be listed
+                // too: Android offers an app for one shared PDF only when its
+                // single-share filter names the type (it named text and media
+                // only, so Bee Flow appeared for two PDFs but never for one).
+                // src/meta/shareTargets.test.ts holds both lists to this.
+                androidIntentFilters: ['text/*', 'image/*', 'audio/*', 'video/*', ...SHARED_DOCUMENTS],
+                androidMultiIntentFilters: ['text/*', 'image/*', 'audio/*', 'video/*', ...SHARED_DOCUMENTS],
                 disableAndroidLegacyIntentFilters: false,
             },
         ],
@@ -242,10 +304,15 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
                     // a PR build.
                     enableProguardInReleaseBuilds: isProdBuild,
                     enableShrinkResourcesInReleaseBuilds: isProdBuild,
-                    // A self-hoster on a LAN may only have http:// — the
-                    // network security config in withBeeFlowAndroid narrows
-                    // cleartext to user-added hosts rather than allowing it
-                    // globally.
+                    // A self-hoster on a LAN may only have http://, so
+                    // cleartext stays allowed in release builds — a deliberate
+                    // product decision, not an oversight. The network security
+                    // config written by plugins/withBeeFlowAndroid.js is what
+                    // Android actually reads (it overrides this flag on API
+                    // 24+). It cannot be narrowed to "the host the user
+                    // typed", because that host is chosen at runtime; the
+                    // guard is the in-app warning on any http:// server
+                    // instead.
                     usesCleartextTraffic: true,
                 },
             },
@@ -264,5 +331,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         // Stamped into the artifact so a build names the server it needs even
         // off-device (About screen, release notes, `expo config` output).
         minServerBuild,
+        privacyPolicyUrl,
     },
 });

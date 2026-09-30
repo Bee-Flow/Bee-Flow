@@ -43,7 +43,19 @@ const VENDOR_CHUNKS = {
             'use-sync-external-store', 'react-is',
         ],
         // Heavy visualisation libs
-        'vendor-mermaid': ['mermaid'],
+        // `@mermaid-js/parser` MUST be listed with mermaid. Its code already
+        // lands in vendor-mermaid (a static dependency of mermaid), but the
+        // parser loads each diagram grammar through `import()` of a module
+        // that only re-exports from that code (`info-…mjs`, `treemap-…mjs`).
+        // Left unpinned, those re-export modules form a chunk with no code
+        // that imports vendor-mermaid, and Rollup merges such a chunk into
+        // whichever small chunk has a matching set of importers. Measured: it
+        // merged into the chunk of the Bee Flow icon SVG, which AuthedApp
+        // imports, so every signed-in page load pulled vendor-mermaid (694 KB
+        // gz) and through it vendor-dnd and vendor-charts (about 900 KB gz in
+        // all) for the URL of one icon. Pinned here, the grammars resolve
+        // inside vendor-mermaid and no such chunk exists.
+        'vendor-mermaid': ['mermaid', '@mermaid-js/parser'],
         'vendor-monaco': ['@monaco-editor/react'],
         'vendor-vega': ['vega', 'vega-embed', 'vega-lite'],
         'vendor-katex': ['katex', 'rehype-katex', 'remark-math'],

@@ -57,4 +57,24 @@ describe('buildCommands', () => {
         expect(onToggleLeft).toHaveBeenCalledTimes(1);
         expect(onVersions).toHaveBeenCalledTimes(1);
     });
+
+    it('notebook commands invoke their handlers and are hidden without one', () => {
+        const onComments = vi.fn();
+        const onNewChat = vi.fn();
+        const cmds = buildCommands({ onComments, onNewChat });
+        cmds.find(c => c.id === 'comments').run();
+        cmds.find(c => c.id === 'new-chat').run();
+        expect(onComments).toHaveBeenCalledTimes(1);
+        expect(onNewChat).toHaveBeenCalledTimes(1);
+        expect(cmds.find(c => c.id === 'rename').enabled).toBe(false);
+        expect(cmds.find(c => c.id === 'versions').hint).toMatch(/H$/);
+    });
+
+    it('a viewer gets no formatting, inserting, renaming or importing', () => {
+        const cmds = buildCommands({ readOnly: true, onRename: () => {}, onImport: () => {}, onVersions: () => {} });
+        expect(cmds.some(c => c.id === 'bold' || c.id === 'table')).toBe(false);
+        expect(cmds.find(c => c.id === 'rename').enabled).toBe(false);
+        expect(cmds.find(c => c.id === 'import').enabled).toBe(false);
+        expect(cmds.find(c => c.id === 'versions').enabled).toBe(true);
+    });
 });

@@ -6,8 +6,6 @@
  * POST /:id/sources/:sid/{retry,cancel}    ·  DELETE /:id/sources/:sid
  */
 
-const crypto = require('crypto');
-
 const webpageStore = require('../../stores/webpageStore');
 const storageStore = require('../../stores/storageStore');
 const { requireAuth } = require('../../auth/permissions');
@@ -18,6 +16,7 @@ const {
     ingestDriveSource,
 } = require('../../agents/webpages/sourceIngestion');
 const { deleteDocumentChunks, findDocumentBySourceUri } = require('../../core/kb/kbIngestionHelpers');
+const { keepUploadedSource } = require('../../core/documents/uploadedSource');
 const { validate } = require('../../core/http/validate');
 const { z } = require('zod');
 const { worded, bodyOf, choice, NOTHING, NO_QUERY } = require('./schemas');
@@ -68,20 +67,9 @@ function register(router, { upload }) {
             if (!wp) return res.status(404).json({ error: 'Webpage not found' });
             if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
-            const fileName = req.file.originalname;
-            const mimeType = req.file.mimetype;
-            const buffer = req.file.buffer;
-
-            const ext = (fileName.split('.').pop() || '').toLowerCase();
-            const typeMap = { pdf: 'pdf', docx: 'docx', doc: 'docx', xlsx: 'xlsx', xls: 'xlsx', csv: 'csv', txt: 'text', md: 'text' };
-            const type = typeMap[ext] || 'file';
-
-            let storageKey = null;
-            if (storageStore.isAvailable()) {
-                const storageName = `wp_${Date.now()}_${crypto.randomBytes(4).toString('hex')}_${fileName.replace(/[^a-zA-Z0-9.\-_]/g, '_')}`;
-                storageKey = storageStore.buildKey(userId, 'webpage-sources', storageName);
-                await storageStore.uploadFile(storageKey, buffer, mimeType);
-            }
+            const { fileName, mimeType, buffer, type, storageKey } = await keepUploadedSource(req.file, {
+                userId, prefix: 'wp', folder: 'webpage-sources',
+            });
 
             const source = await webpageStore.addSource({
                 webpageId, type, name: fileName,

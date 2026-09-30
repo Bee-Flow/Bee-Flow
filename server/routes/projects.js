@@ -1,15 +1,16 @@
 /**
  * Project Routes — REST API for organizing chats into projects.
  *
- * GET    /                          → list user's projects
- * POST   /                          → create project
+ * GET    /?kind=workspace|solution  → list user's projects (legacy rows in both)
+ * POST   /                          → create project (kind defaults to workspace)
  * GET    /:id                       → get project details + shares  (viewer+)
  * PUT    /:id                       → update project                (editor+)
+ * PUT    /:id/kind                  → classify a legacy project     (owner; routes/projects/kind.js)
  * DELETE /:id                       → delete project                (owner)
  * POST   /:id/share                 → share with user/group         (owner)
  * DELETE /:id/share/:shareId        → unshare                       (owner)
  * PUT    /:id/conversations         → assign/unassign conversations (editor+)
- * DELETE /conversations/:convId     → detach MY OWN conversation    (any authed user)
+ * DELETE /conversations/:convId     → detach MY OWN conversation    (any authed user; routes/projects/threads.js)
  *
  * Roles are enforced by the shared ladder in auth/projectAccess.js, which the
  * chat, memory, notebook and automation paths use too — one implementation, so
@@ -25,6 +26,14 @@
  *
  * Every body and query a handler reads is checked by a closed schema in
  * routes/projects/schemas.js (validate()), after the role gate.
+ *
+ * Two kinds of project live behind this router (stores/projectStore.js):
+ * collaborative projects (`kind: 'workspace'`) and Studio Solutions
+ * (`kind: 'solution'`); `kind: null` is a legacy row that belongs to both until
+ * its owner classifies it. What each may hold is the membership registry's
+ * answer (projects/membership.js `sectionsFor` / `isAllowedIn`); chats are
+ * never filed into a Solution (SOLUTION_HOLDS_NO_CHATS below, and
+ * auth/projectAccess.resolveRequestedProject for the chat paths).
  */
 
 const express = require('express');
@@ -37,6 +46,7 @@ const userStore = require('../stores/userStore');
 const { resolveUserGroups } = require('../auth');
 const { perUserRateLimit } = require('../utils/perUserRateLimit');
 const { validate } = require('../core/http/validate');
+const { HttpError, notFound } = require('../core/http/errors');
 const S = require('./projects/schemas');
 
 // Single shared budget across all membership mutations (invite / role change /
@@ -77,52 +87,41 @@ const MAX_CONVERSATION_BATCH = 200;
  * function itself is unchanged; only its address is.
  */
 const {
-    MAX_KB_IDS, validateKnowledgeBaseIds,
+    MAX_KB_IDS, validateKnowledgeBaseIds, checkProjectKnowledgeBaseIds,
 } = require('../projects/knowledgeBaseMembership');
 
-// Persist-then-publish lives in core/projectFeed.js — the ordering rule it
-// documents is the basis of the whole delivery model, and it had been
-// hand-copied into three producers before this.
-const { emitProjectEvent } = require('../core/projectFeed');
-
 /**
- * Write the audit trail AND the live feed.
+ * Write the audit trail AND the live feed, in ONE transaction
+ * (projects/changeFeed.recordProjectChange): project_activity is the durable,
+ * human-readable history; project_events the ordered channel clients tail.
+ * Written together, the two can never disagree (an audit row nobody was told
+ * about, or an event with no row behind it); the doorbell rings after the
+ * commit. Never throws: an action that was saved has not failed because its
+ * feed entry could not be written (the recorder logs it).
  *
- * project_activity stays the durable, human-readable history; project_events is
- * the ordered channel clients tail. Routing every audit entry through here is
- * what makes the Activity tab live instead of polled — the UI stops asking every
- * 15 seconds and starts being told.
- *
- * `kind` defaults to the activity action, so a member change arrives as
- * `member_added` and a client can react to it specifically rather than
- * re-fetching on any change at all.
+ * `kind` is the activity action, so a member change arrives as `member_added`
+ * and a client can react to it specifically. `details` holds ids and counts.
+ * The feed is built over this router's own projectStore, so the route tests'
+ * store doubles see what it writes.
  */
-async function logAndEmit(projectId, actorId, action, details = {}) {
-    await projectStore.logActivity(projectId, actorId, action, details);
-    await emitProjectEvent(projectId, {
-        kind: action,
-        actorId,
-        targetType: details.targetType || null,
-        targetId: details.targetId || null,
-        payload: details,
-    });
-}
+const { recordProjectChange, recordItemMoved } = require('../projects/changeFeed').makeChangeFeed({ store: projectStore });
 
-/**
- * Release every soft reference to a project that is about to be deleted.
- *
- * Each store is tried independently and failures are logged rather than
- * propagated: a notebook store that is unavailable must not block the delete
- * and leave the project half-removed. The worst case of a miss is an orphaned
- * project_id, which the stores' own boot-time cleanup also sweeps.
- */
-async function detachProjectResources(projectId) {
-    for (const { section, clearProject } of membership.detachableKinds()) {
-        try { await clearProject(projectId); } catch (err) {
-            log.warn(`[Projects] could not detach ${section} from ${projectId}:`, err.message);
-        }
-    }
-}
+// Something a project compliance check reads changed (ids only).
+const { signalProjectChanged } = require('./projects/complianceSignal');
+// What happens to a notebook's or page's co-editing state, comment threads and
+// compliance signal when it leaves a project, or the project is deleted.
+const itemLifecycle = require('../core/projectContent/itemLifecycle');
+const itemFiling = require('../projects/itemFiling').makeItemFiling({
+    feed: { recordProjectChange, recordItemMoved }, lifecycle: itemLifecycle,
+});
+
+// Fold back, detach, delete, remove the files base: the one order a project
+// delete may take, shared with account erasure (projects/projectTeardown.js).
+// Built over this router's own stores, so the route tests' doubles see it.
+const projectTeardown = require('../projects/projectTeardown').makeProjectTeardown({
+    store: projectStore, lifecycle: itemLifecycle, membership, log,
+    removeFilesKb: (project) => require('../projects/projectFiles').removeFilesKb(project),
+});
 
 function getUserId(req) { return req.session?.user?.id; }
 // Read groups from the DB on every request, not from req.session — group
@@ -130,6 +129,114 @@ function getUserId(req) { return req.session?.user?.id; }
 // used by the agents and KB routes.
 function getUserGroups(req) {
     return resolveUserGroups(getUserId(req));
+}
+
+// ── Workspace or Solution ────────────────────────────────
+//
+// Chats are filed into and shared into collaborative projects only. A legacy
+// project (kind null) still takes them until its owner classifies it.
+const { SOLUTION_HOLDS_NO_CHATS } = require('./projects/threads');
+
+/**
+ * The sections the resources listing shows for a project of this kind, or
+ * null for "every section". The registry (projects/membership.js) decides
+ * which kinds each container holds; an older registry without that answer
+ * keeps the listing as it was.
+ * @param {'workspace'|'solution'|null} containerKind
+ * @returns {Set<string>|null}
+ */
+function sectionsAllowedIn(containerKind) {
+    if (typeof membership.sectionsFor !== 'function') return null;
+    const sections = membership.sectionsFor(containerKind);
+    if (!Array.isArray(sections)) return null;
+    return new Set(sections
+        .map(entry => (typeof entry === 'string' ? entry : entry?.section))
+        .filter(Boolean));
+}
+
+/**
+ * May a resource of `kind` be filed into a project of `containerKind`?
+ * Same registry, same fallback.
+ */
+function kindAllowedIn(kind, containerKind) {
+    if (typeof membership.isAllowedIn !== 'function') return true;
+    return membership.isAllowedIn(kind, containerKind) !== false;
+}
+
+/**
+ * 409 for a delete that would orphan `count` shared conversations.
+ *
+ * Only a chat's OWN owner can unshare it (it is re-encrypted under their key;
+ * routes/projects/threads.js), who may not be the project owner asking, and
+ * may no longer even be a member. So the refusal names which chats and whose
+ * (`details.chats`: ids only, the member list names the people), so the page
+ * can say whom to ask.
+ */
+async function sharedChatsRemain(projectId, count) {
+    const n = Math.max(1, Number(count) || 1);
+    const details = { sharedChats: n };
+    try {
+        details.chats = await projectStore.listSharedThreads(projectId, { limit: 20 });
+    } catch (err) {
+        log.warn('[Projects] could not list the shared chats blocking a delete:', err.message);
+    }
+    return new HttpError(409, 'SHARED_CHATS_REMAIN',
+        n === 1
+            ? 'The 1 chat shared with this project must be made private first, by the person who shared it. A shared chat cannot outlive the project it is shared in.'
+            : `The ${n} chats shared with this project must be made private first, by the people who shared them. A shared chat cannot outlive the project it is shared in.`,
+        details);
+}
+
+/** The display name a member list shows for a user row (the same rule as the documents' people). */
+const { displayNameOf } = require('../core/documents/documentPeople');
+
+/**
+ * Names for the owner and the member rows of one project.
+ *
+ * Only principals of the PROJECT'S organisation are described (org-less
+ * projects: org-less principals only), from an explicit allow-list of fields:
+ * a user is `{ name }`, a group `{ name }`. Never an e-mail address: any
+ * viewer may read this list, and the organisation's directory
+ * (users.getOrgMembersForDirectory) gives a non-admin no addresses either; a
+ * picker or a member list needs a label, not an address. A share row pointing across
+ * a tenant boundary, which the share route refuses to create but older rows
+ * may carry, stays an id without a name. A lookup that fails leaves that
+ * principal unnamed rather than failing the member list.
+ *
+ * @returns {Promise<{ people: Record<string, {name?: string}>, groups: Record<string, {name?: string}> }>}
+ */
+async function describeMembers(project, shares) {
+    const org = project.organizationId || '';
+    const userIds = new Set([project.ownerId]);
+    const groupIds = new Set();
+    for (const share of shares) {
+        if (share.sharedWithType === 'user') userIds.add(share.sharedWithId);
+        else if (share.sharedWithType === 'group') groupIds.add(share.sharedWithId);
+    }
+
+    const people = {};
+    await Promise.all([...userIds].filter(Boolean).map(async (id) => {
+        let user = null;
+        try { user = await userStore.getUser(id); } catch (err) {
+            log.warn('[Projects] member lookup failed:', err.message);
+        }
+        if (!user || (user.organizationId || '') !== org) return;
+        const name = displayNameOf(user);
+        people[id] = name ? { name } : {};
+    }));
+
+    // One targeted read per group the project is shared with, never the whole
+    // groups table of the install: this list is read on every project page.
+    const groups = {};
+    await Promise.all([...groupIds].filter(Boolean).map(async (id) => {
+        let group = null;
+        try { group = await userStore.getGroup(id); } catch (err) {
+            log.warn('[Projects] group lookup failed:', err.message);
+        }
+        if (!group || group.id !== id || (group.organizationId || '') !== org) return;
+        groups[id] = typeof group.name === 'string' && group.name ? { name: group.name } : {};
+    }));
+    return { people, groups };
 }
 
 // ── Role middleware ──────────────────────────────────────
@@ -141,12 +248,14 @@ const { requireProjectRole: requireRole } = require('../auth/projectAccess');
 
 // ── List / create ────────────────────────────────────────
 
-// GET / — list user's projects (owned + shared)
-router.get('/', async (req, res) => {
+// GET / — list user's projects (owned + shared). `?kind=` narrows the list to
+// one side of the split; a legacy (unclassified) project is on both sides.
+router.get('/', validate({ query: S.ListQuery }), async (req, res) => {
     try {
         const userId = getUserId(req);
         if (!userId) return res.status(401).json({ error: 'Not authenticated' });
-        const projects = await projectStore.listUserProjects(userId, await getUserGroups(req));
+        const kind = req.query.kind || undefined;
+        const projects = await projectStore.listUserProjects(userId, await getUserGroups(req), { kind });
         res.json(projects);
     } catch (err) {
         log.error('[Projects] List error:', err.message);
@@ -163,6 +272,9 @@ router.post('/', validate({ body: S.CreateBody }), async (req, res) => {
         if (!userId) return res.status(401).json({ error: 'Not authenticated' });
 
         const { name, description, customInstructions, color, icon, knowledgeBaseIds, extractMemories } = req.body;
+        // A collaborative project unless the caller asks for a Solution (the
+        // Studio form does). Never NULL: only rows from before the split are.
+        const kind = req.body.kind || 'workspace';
         if (!name || !name.trim()) return res.status(400).json({ error: 'Name is required' });
 
         const lenError = validateLengths({ name, description, customInstructions });
@@ -190,8 +302,9 @@ router.post('/', validate({ body: S.CreateBody }), async (req, res) => {
             extractMemories,
             ownerId: userId,
             organizationId,
+            kind,
         });
-        await logAndEmit(project.id, userId, 'project_created', { name: project.name });
+        await recordProjectChange(project.id, userId, 'project_created', { name: project.name, kind: project.kind });
         res.json(project);
     } catch (err) {
         log.error('[Projects] Create error:', err.message);
@@ -204,7 +317,8 @@ router.post('/', validate({ body: S.CreateBody }), async (req, res) => {
 // ── Overview ─────────────────────────────────────────────
 //
 /**
- * GET /summary — one card per Solution for the Solutions overview.
+ * GET /summary — one card per Solution for the Solutions overview. Solutions
+ * and unclassified legacy projects only; a collaborative project is not listed.
  *
  * ORDERING. A one-segment path, so it MUST stay above the `/:id` family or
  * Express hands "summary" to requireProjectRole as a project id and the whole
@@ -233,7 +347,9 @@ router.get('/summary', validate({ query: S.SummaryQuery }), async (req, res) => 
         const userId = getUserId(req);
         if (!userId) return res.status(401).json({ error: 'Not authenticated' });
 
-        const all = await projectStore.listUserProjects(userId, await getUserGroups(req));
+        // Solutions only, plus the legacy rows nobody has classified yet: a
+        // collaborative project is not a Solution and gets no card here.
+        const all = await projectStore.listUserProjects(userId, await getUserGroups(req), { kind: 'solution' });
 
         const wanted = String(req.query.ids || '').split(',').map(s => s.trim()).filter(Boolean);
         const picked = wanted.length ? all.filter(p => wanted.includes(p.id)) : all;
@@ -273,32 +389,17 @@ router.get('/summary', validate({ query: S.SummaryQuery }), async (req, res) => 
     }
 });
 
-// ── Self-service detach ──────────────────────────────────
+// ── Shared threads, and taking one's own chat back out ───
 //
-// DELETE /conversations/:convId — take MY conversation out of whatever project
-// it is filed under. No project role required, because the alternative is a
-// one-way door: filing goes through the chat request body, but unfiling went
-// through PUT /:id/conversations, which needs editor. A user downgraded to
-// viewer, removed from the project, or who filed a chat into a project they
-// were only ever a viewer on, could never clean it up again.
-//
-// Safe by construction: unassignConversation matches on user_id, so this can
-// only ever touch a conversation the caller owns.
-//
-// Registered before /:id so the three-segment path is unambiguous.
-router.delete('/conversations/:convId', validate({ query: S.TypeQuery }), async (req, res) => {
-    try {
-        const userId = getUserId(req);
-        if (!userId) return res.status(401).json({ error: 'Not authenticated' });
-        const type = req.query.type === 'agent' ? 'agent_conversations' : 'direct_conversations';
-        const ok = await projectStore.unassignConversation(req.params.convId, userId, type);
-        if (!ok) return res.status(404).json({ error: 'Conversation not found' });
-        res.json({ success: true });
-    } catch (err) {
-        log.error('[Projects] Self-detach error:', err.message);
-        res.status(500).json({ error: 'Could not detach conversation' });
-    }
-});
+// DELETE /conversations/:convId (self-detach, no project role, registered
+// here so it precedes every /:id route) and GET/POST/DELETE /:id/threads live
+// in routes/projects/threads.js. A chat's owner can always withdraw it, member
+// or not. Built over this router's own store and feed.
+router.use('/', require('./projects/threads').makeThreadsRouter({
+    requireProjectRole: requireRole,
+    store: projectStore,
+    recordProjectChange,
+}));
 
 // ── Read / update / delete ───────────────────────────────
 
@@ -324,19 +425,23 @@ router.put('/:id', requireRole('editor'), validate({ body: S.UpdateBody }), asyn
         const before = await projectStore.getProject(req.params.id);
         if (!before) return res.status(404).json({ error: 'Not found' });
 
-        const { name, description, customInstructions, color, icon, knowledgeBaseIds, extractMemories } = req.body;
+        const { name, description, customInstructions, color, icon, extractMemories } = req.body;
+        let { knowledgeBaseIds } = req.body;
 
         const lenError = validateLengths({ name, description, customInstructions });
         if (lenError) return res.status(400).json({ error: lenError });
 
         if (knowledgeBaseIds !== undefined) {
-            const kbCheck = await validateKnowledgeBaseIds(req, knowledgeBaseIds, before.organizationId);
+            // The project's own files base is skipped in the check and never
+            // dropped (projects/knowledgeBaseMembership.js explains why).
+            const kbCheck = await checkProjectKnowledgeBaseIds(req, knowledgeBaseIds, before);
             if (kbCheck.tooMany) {
                 return res.status(400).json({ error: `At most ${MAX_KB_IDS} knowledge bases per project` });
             }
             if (!kbCheck.ok) {
                 return res.status(400).json({ error: 'Unknown, inaccessible or cross-organisation knowledge bases', invalid: kbCheck.invalid });
             }
+            knowledgeBaseIds = kbCheck.ids;
         }
 
         // Optimistic concurrency. The client sends the whole form — including a
@@ -355,6 +460,9 @@ router.put('/:id', requireRole('editor'), validate({ body: S.UpdateBody }), asyn
                 current: updated.current,
             });
         }
+        // Deleted between the read above and the write: there is nothing left
+        // to update, and reading fields off `null` below would be a 500.
+        if (!updated) return res.status(404).json({ error: 'Not found' });
 
         // Log activity — diff what changed.
         const changes = {};
@@ -364,22 +472,22 @@ router.put('/:id', requireRole('editor'), validate({ body: S.UpdateBody }), asyn
             }
         }
         if (Object.keys(changes).length > 0) {
-            await logAndEmit(req.params.id, userId, 'project_updated', { changes });
+            await recordProjectChange(req.params.id, userId, 'project_updated', { changes });
         }
         if (req.body.customInstructions !== undefined && before.customInstructions !== updated.customInstructions) {
-            await logAndEmit(req.params.id, userId, 'instructions_updated', {});
+            await recordProjectChange(req.params.id, userId, 'instructions_updated', {});
         }
-        if (req.body.knowledgeBaseIds !== undefined) {
+        if (knowledgeBaseIds !== undefined) {
             const beforeKBs = new Set(before.knowledgeBaseIds || []);
             const afterKBs = new Set(updated.knowledgeBaseIds || []);
             for (const kb of afterKBs) {
                 if (!beforeKBs.has(kb)) {
-                    await logAndEmit(req.params.id, userId, 'kb_added', { targetType: 'kb', targetId: kb });
+                    await recordProjectChange(req.params.id, userId, 'kb_added', { targetType: 'kb', targetId: kb });
                 }
             }
             for (const kb of beforeKBs) {
                 if (!afterKBs.has(kb)) {
-                    await logAndEmit(req.params.id, userId, 'kb_removed', { targetType: 'kb', targetId: kb });
+                    await recordProjectChange(req.params.id, userId, 'kb_removed', { targetType: 'kb', targetId: kb });
                 }
             }
         }
@@ -393,29 +501,53 @@ router.put('/:id', requireRole('editor'), validate({ body: S.UpdateBody }), asyn
     }
 });
 
+// PUT /:id/kind — classify a legacy project (or correct the backfill's guess,
+// once) as a collaborative project or a Studio Solution. Owner only, and
+// refused while it holds items the other side cannot hold
+// (routes/projects/kind.js, projects/kindChange.js). Built over this router's
+// own store, registry and feed, so the route tests' doubles see it too.
+router.use('/', require('./projects/kind').makeKindRouter({
+    requireProjectRole: requireRole,
+    store: projectStore,
+    kindChange: require('../projects/kindChange').makeKindChange({
+        membership,
+        store: projectStore,
+        projectFiles: { listFiles: (project) => require('../projects/projectFiles').listFiles(project) },
+    }),
+    recordProjectChange,
+}));
+
 // DELETE /:id — delete project (owner only)
 router.delete('/:id', requireRole('owner'), async (req, res) => {
-    try {
-        // Detach everything that points at this project by SOFT reference before
-        // deleting it. Conversations and memories have real FKs (SET NULL /
-        // CASCADE) and take care of themselves; notebooks, automations and apps
-        // do not, so without this they keep a project_id pointing at nothing —
-        // invisible in the project list and unfindable in the standalone one.
-        //
-        // The original automations migration's header promised exactly this
-        // cleanup, by name. It was never written. Deleting a project must never
-        // destroy the work its members did inside it.
-        await detachProjectResources(req.params.id);
+    const projectId = req.params.id;
 
-        const ok = await projectStore.deleteProject(req.params.id);
-        // No need to log — the project_activity row cascades away.
-        res.json({ success: ok });
+    // A conversation shared into the project cannot outlive it: its rows are
+    // encrypted under the project key and the schema forbids a shared
+    // conversation without a project, so Postgres refuses the whole DELETE.
+    // Unsharing re-encrypts under the chat owner's key, which only that
+    // person's session holds, so it is asked of them (the refusal names the
+    // chats and their owners) rather than attempted here. Checked
+    // BEFORE anything is detached, so a refused delete leaves the project
+    // exactly as it was.
+    const shared = await projectStore.countSharedThreads(projectId);
+    if (shared > 0) throw await sharedChatsRemain(projectId, shared);
+
+    // Detach everything that points at this project by SOFT reference before
+    // deleting it, after folding co-edited state back into its items; the
+    // files base goes only once the delete went through. Deleting a project
+    // must never destroy the work its members did inside it.
+    let ok;
+    try {
+        ok = await projectTeardown.deleteProject(projectId);
     } catch (err) {
-        log.error('[Projects] Delete error:', err.message);
-        // Raw err.message can carry SQL text, column names and constraint names.
-        // The console.error above keeps the detail for operators.
-        res.status(500).json({ error: 'Request failed' });
+        // A chat shared between the count above and this statement.
+        if (err?.code === '23514' && /shared_needs_project/.test(String(err.constraint || err.message))) {
+            throw await sharedChatsRemain(projectId, await projectStore.countSharedThreads(projectId).catch(() => 1));
+        }
+        throw err;
     }
+    // No need to log — the project_activity row cascades away.
+    res.json({ success: ok });
 });
 
 // ── Shares (legacy) — kept for back-compat, aliased to /members semantics ──
@@ -444,9 +576,8 @@ router.post('/:id/share', memberMutationLimiter, requireRole('owner'), validate(
         const project = await projectStore.getProject(req.params.id);
         const projectOrg = project?.organizationId || '';
         if (sharedWithType === 'group') {
-            const allGroups = await userStore.getAllGroups();
-            const targetGroup = allGroups.find(g => g.id === sharedWithId);
-            if (!targetGroup) return res.status(400).json({ error: 'Unknown group' });
+            const targetGroup = await userStore.getGroup(sharedWithId);
+            if (!targetGroup || targetGroup.id !== sharedWithId) return res.status(400).json({ error: 'Unknown group' });
             if ((targetGroup.organizationId || '') !== projectOrg) {
                 return res.status(400).json({ error: 'Group does not belong to this project\'s organisation' });
             }
@@ -459,9 +590,10 @@ router.post('/:id/share', memberMutationLimiter, requireRole('owner'), validate(
         }
 
         const shareId = await projectStore.shareProject(req.params.id, sharedWithType, sharedWithId, role, userId);
-        await logAndEmit(req.params.id, userId, 'member_added', {
+        await recordProjectChange(req.params.id, userId, 'member_added', {
             targetType: sharedWithType, targetId: sharedWithId, role,
         });
+        signalProjectChanged(project, 'members');
         const shares = await projectStore.getProjectShares(req.params.id);
         res.json({ shareId, shares });
     } catch (err) {
@@ -483,9 +615,10 @@ router.delete('/:id/share/:shareId', memberMutationLimiter, requireRole('owner')
             return res.status(404).json({ error: 'Member not found' });
         }
         const ok = await projectStore.unshareProject(req.params.shareId);
-        await logAndEmit(req.params.id, userId, 'member_removed', {
+        await recordProjectChange(req.params.id, userId, 'member_removed', {
             targetType: share.sharedWithType, targetId: share.sharedWithId,
         });
+        if (ok) signalProjectChanged(await projectStore.getProject(req.params.id), 'members');
         const shares = await projectStore.getProjectShares(req.params.id);
         res.json({ success: ok, shares });
     } catch (err) {
@@ -498,19 +631,14 @@ router.delete('/:id/share/:shareId', memberMutationLimiter, requireRole('owner')
 
 // ── Members API ──────────────────────────────────────────
 
-// GET /:id/members — owner + members list (viewer+)
+// GET /:id/members — owner + members list (viewer+), with names for the
+// people and groups of the project's own organisation (see describeMembers).
 router.get('/:id/members', requireRole('viewer'), async (req, res) => {
-    try {
-        const project = await projectStore.getProject(req.params.id);
-        if (!project) return res.status(404).json({ error: 'Not found' });
-        const shares = await projectStore.getProjectShares(req.params.id);
-        res.json({ ownerId: project.ownerId, members: shares });
-    } catch (err) {
-        log.error('[Projects] Members list error:', err.message);
-        // Raw err.message can carry SQL text, column names and constraint names.
-        // The console.error above keeps the detail for operators.
-        res.status(500).json({ error: 'Request failed' });
-    }
+    const project = await projectStore.getProject(req.params.id);
+    if (!project) throw notFound();
+    const shares = await projectStore.getProjectShares(req.params.id);
+    const { people, groups } = await describeMembers(project, shares);
+    res.json({ ownerId: project.ownerId, members: shares, people, groups });
 });
 
 // PUT /:id/members/:memberId — change role (owner only)
@@ -527,10 +655,11 @@ router.put('/:id/members/:memberId', memberMutationLimiter, requireRole('owner')
         const ok = await projectStore.updateMemberRole(req.params.memberId, normalized);
         if (!ok) return res.status(404).json({ error: 'Member not found' });
 
-        await logAndEmit(req.params.id, userId, 'member_role_changed', {
+        await recordProjectChange(req.params.id, userId, 'member_role_changed', {
             targetType: before.sharedWithType, targetId: before.sharedWithId,
             from: before.permission, to: normalized,
         });
+        signalProjectChanged(await projectStore.getProject(req.params.id), 'members');
         res.json({ success: true });
     } catch (err) {
         log.error('[Projects] Update member error:', err.message);
@@ -556,10 +685,11 @@ router.delete('/:id/members/:memberId', memberMutationLimiter, async (req, res) 
         if (!isOwner && !isSelf) return res.status(403).json({ error: 'Forbidden' });
 
         const ok = await projectStore.unshareProject(req.params.memberId);
-        await logAndEmit(req.params.id, userId, 'member_removed', {
+        await recordProjectChange(req.params.id, userId, 'member_removed', {
             targetType: share.sharedWithType, targetId: share.sharedWithId,
             selfLeave: isSelf && !isOwner,
         });
+        if (ok) signalProjectChanged(project, 'members');
         res.json({ success: ok });
     } catch (err) {
         log.error('[Projects] Remove member error:', err.message);
@@ -579,7 +709,13 @@ router.get('/:id/activity', requireRole('viewer'), validate({ query: S.PageQuery
         // second COUNT(*) query against the activity table.
         const items = await projectStore.listActivity(req.params.id, limit + 1, offset);
         const hasMore = items.length > limit;
-        res.json({ items: hasMore ? items.slice(0, limit) : items, hasMore });
+        const page = hasMore ? items.slice(0, limit) : items;
+        // File rows carry an id, never the name; it is read now, while the
+        // file is still in the project (projects/projectFiles.js). Without the
+        // project there is nothing to name from, and any stored name is dropped.
+        const project = await projectStore.getProject(req.params.id);
+        const named = await require('../projects/projectFiles').nameFileActivity(project || { id: req.params.id }, page);
+        res.json({ items: named, hasMore });
     } catch (err) {
         log.error('[Projects] Activity error:', err.message);
         // Raw err.message can carry SQL text, column names and constraint names.
@@ -591,210 +727,25 @@ router.get('/:id/activity', requireRole('viewer'), validate({ query: S.PageQuery
 // ── Live stream ──────────────────────────────────────────
 
 /**
- * GET /:id/stream — the project's live feed.
- *
- * Delivery is CURSOR-BASED, not push-only. Every durable frame carries
- * `id: <seq>`, so a client that drops reconnects with Last-Event-ID (or
- * ?since=) and replays exactly what it missed. Reconnect and live delivery are
- * the same code path, which is what makes "you never miss a message" true
- * rather than aspirational.
- *
- * The bus (core/projectEventBus.js) is only a doorbell: it says "project X
- * moved", and this handler reads forward from its cursor. Without Redis the
- * doorbell is in-process and the poll below covers cross-replica delivery.
+ * GET /:id/stream — the project's live feed (cursor-based: every durable
+ * frame carries `id: <seq>`, and a reconnect replays from Last-Event-ID or
+ * ?since=), and with `?doc=&docSince=` one co-edited document on the same
+ * connection. The handler and its delivery model live in
+ * routes/projects/collabStream.js; the skeleton in core/http/cursorStream.js.
  */
-const STREAM_POLL_MS = 1500;
-const STREAM_ROLE_RECHECK_MS = 60_000;
+const CollabS = require('./projects/collabSchemas');
+const { makeProjectStreamHandler } = require('./projects/collabStream');
 
-router.get('/:id/stream', requireRole('viewer'), validate({ query: S.StreamQuery }), async (req, res) => {
-    const projectId = req.params.id;
-    const userId = getUserId(req);
-    const { setupSSE, startSseHeartbeat } = require('../core/http/sseHelpers');
-    const bus = require('../core/projectEventBus');
-    const { getProjectRole } = require('../auth/projectAccess');
-
-    const { sendEvent } = setupSSE(res);
-
-    // Cursor: Last-Event-ID is what EventSource sends automatically on
-    // reconnect; ?since= is for the fetch-based client.
-    let cursor = Number(req.headers['last-event-id'] ?? req.query.since ?? 0) || 0;
-
-    // A brand-new subscriber (no cursor) starts from HEAD. Replaying a week of
-    // history to someone who just opened the page is noise, and the page loads
-    // its own current state anyway.
-    if (!cursor) {
-        try { cursor = await projectStore.getProjectEventSeq(projectId); } catch (_) { cursor = 0; }
-    }
-    sendEvent('ready', { since: cursor, distributed: bus.isDistributed() });
-
-    let draining = false;
-    let closed = false;
-
-    // Serialised: two overlapping drains would emit out of order and could
-    // advance the cursor past events the client never received.
-    async function drain() {
-        if (draining || closed) return;
-        draining = true;
-        try {
-            const { events, truncated } = await projectStore.listProjectEvents(projectId, cursor);
-            for (const ev of events) {
-                res.write(`id: ${ev.seq}\nevent: ${ev.kind}\ndata: ${JSON.stringify(ev)}\n\n`);
-                cursor = ev.seq;
-            }
-            if (truncated) {
-                // Too far behind to replay. Refetching is cheaper than
-                // streaming a backlog, and leaves the client definitely correct.
-                sendEvent('resync', { since: cursor });
-            }
-        } catch (err) {
-            log.warn('[Projects] stream drain failed:', err.message);
-        } finally {
-            draining = false;
-        }
-    }
-
-    // Transient events (typing, presence, run deltas) bypass the cursor
-    // entirely: no row, no `id:` frame, so they never move the client forward.
-    const unsubscribe = bus.subscribeProject(projectId, (ev) => {
-        if (closed) return;
-        if (ev?.transient) {
-            sendEvent(ev.kind || 'transient', ev);
-            return;
-        }
-        drain();
-    });
-
-    // Cross-replica safety net when Redis is absent, and a backstop for a
-    // dropped publish when it is not.
-    const poll = setInterval(drain, STREAM_POLL_MS);
-
-    // A stream outlives a revocation unless it re-checks. Groups are resolved
-    // fresh per call, so a removal takes effect here within a minute rather
-    // than whenever the user next reloads.
-    const roleCheck = setInterval(async () => {
-        try {
-            if (!await getProjectRole(userId, projectId)) {
-                sendEvent('forbidden', { reason: 'access_revoked' });
-                cleanup();
-                res.end();
-            }
-        } catch (_) { /* transient failure: keep the stream, try again next tick */ }
-    }, STREAM_ROLE_RECHECK_MS);
-
-    const stopHeartbeat = startSseHeartbeat(res, 10_000, { onDead: () => cleanup() });
-
-    function cleanup() {
-        if (closed) return;
-        closed = true;
-        clearInterval(poll);
-        clearInterval(roleCheck);
-        stopHeartbeat();
-        try { unsubscribe(); } catch (_) { /* already gone */ }
-    }
-
-    req.on('close', cleanup);
-
-    await drain();   // anything that landed between the cursor read and subscribe
-});
-
-// ── Shared threads ───────────────────────────────────────
-
-// GET /:id/threads — conversations shared into this project (viewer+)
-router.get('/:id/threads', requireRole('viewer'), validate({ query: S.PageQuery }), async (req, res) => {
-    try {
-        const shared = require('../stores/agent/sharedConversations');
-        const limit = Math.min(parseInt(req.query.limit, 10) || 50, 200);
-        const offset = parseInt(req.query.offset, 10) || 0;
-        const threads = await shared.listProjectThreads(req.params.id, { limit, offset });
-        res.json({ threads, role: req.projectRole });
-    } catch (err) {
-        log.error('[Projects] Threads list error:', err.message);
-        res.status(500).json({ error: 'Request failed' });
-    }
-});
-
-/**
- * POST /:id/threads — share one of MY conversations into this project.
- *
- * Requires editor on the project AND ownership of the conversation. Ownership
- * is not merely a permission rule: sharing re-encrypts the messages, and on the
- * `zk` tier the key that opens them exists only in the owner's live session.
- * Nobody else can perform the conversion, so nobody else may request it.
- */
-router.post('/:id/threads', requireRole('editor'), validate({ body: S.ShareThreadBody }), async (req, res) => {
-    try {
-        const userId = getUserId(req);
-        const { conversationId, type } = req.body || {};
-        if (!conversationId) return res.status(400).json({ error: 'conversationId is required' });
-
-        const project = await projectStore.getProject(req.params.id);
-        if (!project) return res.status(404).json({ error: 'Not found' });
-
-        const shared = require('../stores/agent/sharedConversations');
-        const result = await shared.shareConversationToProject({
-            conversationId,
-            type: type === 'agent' ? 'agent' : 'direct',
-            projectId: req.params.id,
-            ownerId: userId,
-            orgId: project.organizationId,
-            encryptionKey: req.session?.encryptionKey || null,
-        });
-
-        // logAndEmit writes the audit row AND the live event — the other members'
-        // thread lists update without a refresh.
-        await logAndEmit(req.params.id, userId, 'thread_shared', {
-            targetType: 'conversation', targetId: conversationId,
-            conversationType: type === 'agent' ? 'agent' : 'direct',
-        });
-
-        res.json(result);
-    } catch (err) {
-        if (err.code === 'NOT_FOUND') return res.status(404).json({ error: 'Conversation not found' });
-        if (err.code === 'PROJECT_KEY_UNAVAILABLE') {
-            // Never fall back to plaintext here — this path rewrites rows that
-            // are already encrypted.
-            log.error('[Projects] share blocked, project key unavailable:', err.message);
-            return res.status(503).json({
-                error: 'Encryption key unavailable for this project. Check MASTER_ENCRYPTION_KEY and the org root key.',
-            });
-        }
-        log.error('[Projects] Share thread error:', err.message);
-        res.status(500).json({ error: 'Request failed' });
-    }
-});
-
-// DELETE /:id/threads/:convId — take my conversation back out of the project.
-// Owner-only for the same reason sharing is: it re-encrypts.
-router.delete('/:id/threads/:convId', requireRole('viewer'), validate({ query: S.TypeQuery }), async (req, res) => {
-    try {
-        const userId = getUserId(req);
-        const project = await projectStore.getProject(req.params.id);
-        if (!project) return res.status(404).json({ error: 'Not found' });
-
-        const shared = require('../stores/agent/sharedConversations');
-        const result = await shared.unshareConversation({
-            conversationId: req.params.convId,
-            type: req.query.type === 'agent' ? 'agent' : 'direct',
-            ownerId: userId,
-            orgId: project.organizationId,
-            encryptionKey: req.session?.encryptionKey || null,
-        });
-
-        await logAndEmit(req.params.id, userId, 'thread_unshared', {
-            targetType: 'conversation', targetId: req.params.convId,
-        });
-
-        res.json(result);
-    } catch (err) {
-        if (err.code === 'NOT_FOUND') return res.status(404).json({ error: 'Conversation not found' });
-        if (err.code === 'OWNER_KEY_REQUIRED') return res.status(409).json({ error: err.message });
-        log.error('[Projects] Unshare thread error:', err.message);
-        res.status(500).json({ error: 'Request failed' });
-    }
-});
+router.get('/:id/stream', requireRole('viewer'), validate({ query: CollabS.StreamQuery }), makeProjectStreamHandler());
 
 // POST /:id/typing — transient presence. No row, no seq, no replay.
-router.post('/:id/typing', requireRole('viewer'), validate({ body: S.TypingBody }), async (req, res) => {
+// A composer sends at most one every few seconds; the limiter stops a loop
+// from turning presence into a flood on every open stream of the project.
+const typingLimiter = perUserRateLimit({
+    windowMs: 10_000, max: 20, name: 'project-typing',
+    keyFn: (req) => `${req.session?.user?.id || req.ip}:${req.params?.id || ''}`,
+});
+router.post('/:id/typing', requireRole('viewer'), typingLimiter, validate({ body: S.TypingBody }), async (req, res) => {
     try {
         const bus = require('../core/projectEventBus');
         await bus.publishTransient(req.params.id, {
@@ -823,6 +774,12 @@ router.post('/:id/typing', requireRole('viewer'), validate({ body: S.TypingBody 
 // GET /:id/resources — everything filed into this project (viewer+)
 router.get('/:id/resources', requireRole('viewer'), async (req, res) => {
     const projectId = req.params.id;
+    const project = await projectStore.getProject(projectId);
+    if (!project) throw notFound();
+    // Only the sections this kind of project holds: a Solution has no
+    // meetings, a collaborative project no automations. A legacy project
+    // (kind null) shows every section.
+    const allowed = sectionsAllowedIn(project.kind);
     // Independently, so one unavailable store degrades that section rather than
     // blanking the whole project page.
     const load = async (label, fn) => {
@@ -836,12 +793,12 @@ router.get('/:id/resources', requireRole('viewer'), async (req, res) => {
     // header explains why they alone stay viewer-scoped.
     const viewer = { userId: getUserId(req), groupIds: await getUserGroups(req) };
 
-    const kinds = membership.listKinds();
+    const kinds = membership.listKinds().filter(k => !allowed || allowed.has(k.section));
     const sections = await Promise.all(
         kinds.map(k => load(k.section, () => k.list(projectId, viewer))),
     );
 
-    const body = { role: req.projectRole };
+    const body = { role: req.projectRole, kind: project.kind };
     kinds.forEach((k, i) => { body[k.section] = sections[i]; });
     res.json(body);
 });
@@ -872,18 +829,27 @@ router.put('/:id/resources', requireRole('editor'), validate({ body: S.ResourceB
             return res.status(400).json({ error: `kind must be one of: ${movable}` });
         }
 
-        const target = attach ? req.params.id : null;
-        // The fourth argument is the context a kind may need to answer the
-        // move: the project being edited (which `target` cannot carry when the
-        // caller is taking something OUT) and the request an access check is
-        // made against. Kinds whose link is a column on their own row ignore it.
-        const ok = await entry.setProject(id, userId, target, { req, projectId: req.params.id });
+        const project = await projectStore.getProject(req.params.id);
+        if (!project) return res.status(404).json({ error: 'Not found' });
+        // Filing IN must fit the container (no automations in a collaborative
+        // project, no documents in a Solution). Taking something OUT is always
+        // allowed: that is how a project classified after the fact is tidied.
+        if (attach && !kindAllowedIn(kind, project.kind)) {
+            // `kind` is a registered kind by now (checked above), never free text.
+            const label = kind.replace(/_/g, ' ');
+            return res.status(400).json({
+                error: project.kind === 'solution'
+                    ? `A Studio Solution does not hold items of kind "${label}"; they belong in a project.`
+                    : `A project does not hold items of kind "${label}"; they belong in a Studio Solution.`,
+                code: 'KIND_NOT_ALLOWED',
+            });
+        }
 
+        // The move itself, the feed entry of every project it touched, and
+        // the co-editing state, comment threads and compliance signal that
+        // belong to the project an item leaves (projects/itemFiling.js).
+        const ok = await itemFiling.fileItem({ entry, kind, id, userId, projectId: req.params.id, attach, req });
         if (!ok) return res.status(404).json({ error: 'Not found, or not yours to move' });
-
-        await logAndEmit(req.params.id, userId, attach ? 'resource_added' : 'resource_removed', {
-            targetType: kind, targetId: id,
-        });
         res.json({ success: true });
     } catch (err) {
         // A refusal a kind states DELIBERATELY (a lost race on the project row,
@@ -1135,6 +1101,14 @@ router.put('/:id/conversations', requireRole('editor'), validate({ body: S.Conve
             return res.status(400).json({ error: `At most ${MAX_CONVERSATION_BATCH} conversations per request` });
         }
 
+        // Filing chats INTO a Solution is refused. Taking them out is not:
+        // a legacy project classified as a Solution may still hold some.
+        if (Array.isArray(assign) && assign.length > 0) {
+            const project = await projectStore.getProject(req.params.id);
+            if (!project) return res.status(404).json({ error: 'Not found' });
+            if (project.kind === 'solution') return res.status(409).json(SOLUTION_HOLDS_NO_CHATS);
+        }
+
         const results = { assigned: 0, unassigned: 0 };
 
         if (Array.isArray(assign)) {
@@ -1145,7 +1119,7 @@ router.put('/:id/conversations', requireRole('editor'), validate({ body: S.Conve
                 const ok = await projectStore.assignConversation(conv.id, req.params.id, userId, table);
                 if (ok) {
                     results.assigned++;
-                    await logAndEmit(req.params.id, userId, 'conversation_assigned', {
+                    await recordProjectChange(req.params.id, userId, 'conversation_assigned', {
                         targetType: 'conversation', targetId: conv.id, conversationType: conv.type,
                     });
                 }
@@ -1157,7 +1131,7 @@ router.put('/:id/conversations', requireRole('editor'), validate({ body: S.Conve
                 const ok = await projectStore.unassignConversation(conv.id, userId, table);
                 if (ok) {
                     results.unassigned++;
-                    await logAndEmit(req.params.id, userId, 'conversation_unassigned', {
+                    await recordProjectChange(req.params.id, userId, 'conversation_unassigned', {
                         targetType: 'conversation', targetId: conv.id, conversationType: conv.type,
                     });
                 }
@@ -1172,6 +1146,26 @@ router.put('/:id/conversations', requireRole('editor'), validate({ body: S.Conve
         res.status(500).json({ error: 'Request failed' });
     }
 });
+
+// ── Collaborative project routers ────────────────────────
+//
+// Team chats (WS-B), files / my chats / presence, and new documents and
+// notebooks made inside a project. Factory routers with their own role gate on
+// every route and no path-less middleware, so mounting them here adds routes
+// and nothing that runs for a request meant elsewhere. Every path is
+// `/:id/<word>…`, so none of them can shadow the one-segment routes above.
+router.use('/', require('./projects/chats'));
+router.use('/', require('./projects/workspace'));
+router.use('/', require('./projects/content'));
+// Real-time co-editing of notebooks and project pages (the HTTP half of the
+// sync; the other half rides on GET /:id/stream above).
+router.use('/', require('./projects/collab'));
+// What changed since your last visit and the seen marks, comment threads on
+// notebooks and documents, and the one gentle compliance hint. Same shape:
+// factory routers, a role gate first on every route, `/:id/<word>…` paths.
+router.use('/', require('./projects/changes'));
+router.use('/', require('./projects/comments'));
+router.use('/', require('./projects/complianceHints'));
 
 module.exports = router;
 // The loader behind GET /:id/graph, GET /:id/completeness and GET /summary.

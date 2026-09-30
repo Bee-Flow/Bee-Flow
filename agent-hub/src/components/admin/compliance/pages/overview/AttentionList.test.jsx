@@ -150,3 +150,28 @@ describe('AttentionList', () => {
         expect(container.innerHTML).not.toMatch(/#[0-9a-fA-F]{6}\b/);
     });
 });
+
+describe('AttentionList — collapsed per-source findings', () => {
+    it('says how many subjects a collapsed item is about, and opens a single subject', async () => {
+        const { default: userEvent } = await import('@testing-library/user-event');
+        const onNavigate = vi.fn();
+        const items = [
+            {
+                id: 'check:GDPR-Art30-project-personal-data:subjects', code: 'GDPR-Art30-project-personal-data', title: 'Projects with personal data have a processing record', status: 'warn',
+                meta: { severity: 'medium', subject_count: 4, detail: '4 projects need attention.', frameworks: [{ regulation: 'GDPR', ref: '30' }] },
+                action: { type: 'open_fix', target: '/app/admin/compliance/ropa' },
+            },
+            {
+                id: 'check:GDPR-Art5-1-e-project-retention:project:p1', code: 'GDPR-Art5-1-e-project-retention', title: 'Unused projects', status: 'warn',
+                meta: { severity: 'medium', link: '/app/projects/p1/settings', frameworks: [{ regulation: 'GDPR', ref: '5(1)(e)' }] },
+                action: { type: 'open_fix', target: '/app/admin/compliance/settings' },
+            },
+        ];
+        render(<AttentionList attention={{ items, total: 2, tail: [] }} items={items} navigate={vi.fn()} onNavigate={onNavigate} />);
+        const rows = screen.getAllByTestId('attention-list-row');
+        expect(within(rows[0]).getByTestId('attention-list-row-affected')).toHaveTextContent('4 affected');
+        expect(within(rows[0]).queryByTestId('attention-list-row-open-subject')).toBeNull();
+        await userEvent.setup().click(within(rows[1]).getByTestId('attention-list-row-open-subject'));
+        expect(onNavigate).toHaveBeenCalledWith('projects/p1/settings');
+    });
+});

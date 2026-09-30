@@ -44,6 +44,23 @@ const STORE_MODULES = [
     // its own DDL, so a standalone db:migrate must create it too — otherwise the
     // table only appears on first app-side use.
     { name: 'conversationLockStore', file: './stores/conversationLockStore' },
+    // Team chats inside a project (project_chats, project_chat_messages,
+    // project_chat_reads). FK to projects, so it comes after projectStore; its
+    // init also awaits projectStore's, because boot starts every init at once.
+    { name: 'projectChatStore', file: './stores/projectChatStore' },
+    // Comment threads on project notebooks and documents (project_comment_threads,
+    // project_comments). FK to projects, so it comes after projectStore; its init
+    // also awaits projectStore's.
+    { name: 'projectCommentStore', file: './stores/projectCommentStore' },
+    // Real-time co-editing of project notebooks and pages (collab_docs,
+    // collab_doc_updates, collab_doc_clients). FK to projects, so it comes
+    // after projectStore; its init also awaits projectStore's.
+    { name: 'collabDocStore', file: './stores/collabDocStore' },
+    // The AI that joins team chats and comment threads by itself: its watch
+    // queue, decision log and feedback (project_ai_watch, project_ai_decisions,
+    // project_ai_feedback). FK to projects, so after projectStore; its init also
+    // awaits projectStore's.
+    { name: 'projectAiParticipationStore', file: './stores/projectAiParticipationStore' },
     { name: 'reminderStore', file: './stores/reminderStore' },
     { name: 'templateStore', file: './stores/templateStore' },
     { name: 'transcriptionStore', file: './stores/transcriptionStore' },
@@ -165,6 +182,10 @@ const STORE_MODULES = [
     // hun attestaties, en het release-logboek achter PLD-Art9.
     { name: 'aiActAssessmentStore', file: './stores/aiActAssessmentStore' },
     { name: 'customFrameworkStore', file: './stores/customFrameworkStore' },
+    // Per-item personal-data signals of project content (content_pii_signals),
+    // written by the background scan after a version checkpoint and read by
+    // the project compliance checks. No text, no offsets — categories + counts.
+    { name: 'contentPiiSignalStore', file: './stores/contentPiiSignalStore' },
     { name: 'platformReleaseStore', file: './stores/platformReleaseStore' },
 ];
 

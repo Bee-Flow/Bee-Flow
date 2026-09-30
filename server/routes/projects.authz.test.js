@@ -32,18 +32,38 @@ const fx = {
     deniedKbIds: [],     // what partitionAccessibleKBIds refuses
     users: {},
     groups: [],
+    groupReads: [],       // every group lookup: an id, or 'all' for the whole table
     updated: [],
     shared: [],
     activity: [],
     unassigned: [],
+    listed: [],           // every listUserProjects call, with its options
+    kindSet: [],          // every setProjectKind call
+    assigned: [],         // every assignConversation call
+    vanishOnUpdate: false,
 };
 
 const MOCKS = {
     '../stores/projectStore': {
         getProject: async (id) => fx.projects[id] || null,
-        listUserProjects: async () => Object.values(fx.projects),
+        listUserProjects: async (userId, groupIds, opts) => {
+            fx.listed.push({ userId, opts: opts ?? null });
+            const kind = opts?.kind;
+            return Object.values(fx.projects).filter(p => !kind || p.kind === kind || p.kind == null);
+        },
         createProject: async (p) => { const row = { id: 'new', ...p }; fx.projects.new = row; return row; },
-        updateProject: async (id, u) => { fx.updated.push({ id, ...u }); return { ...fx.projects[id], ...u }; },
+        updateProject: async (id, u) => {
+            fx.updated.push({ id, ...u });
+            if (fx.vanishOnUpdate) return null;
+            return { ...fx.projects[id], ...u };
+        },
+        setProjectKind: async (id, kind) => {
+            fx.kindSet.push({ id, kind });
+            const p = fx.projects[id];
+            if (!p || p.kind) return null;
+            p.kind = kind;
+            return { ...p };
+        },
         deleteProject: async () => true,
         shareProject: async (projectId, type, id, perm) => { fx.shared.push({ projectId, type, id, perm }); return 'share1'; },
         getProjectShares: async () => fx.shares,
@@ -51,14 +71,18 @@ const MOCKS = {
         updateMemberRole: async () => true,
         unshareProject: async () => true,
         unassignConversation: async (convId, userId) => { fx.unassigned.push({ convId, userId }); return true; },
-        assignConversation: async () => true,
-        logActivity: async (projectId, actorId, action) => { fx.activity.push({ projectId, actorId, action }); },
+        // Bob's own chat c1, filed but not shared; anybody else's reads as none.
+        getOwnConversationFiling: async (convId, userId) => (convId === 'c1' && userId === 'bob' ? { projectId: 'p1', shared: false } : null),
+        assignConversation: async (convId, projectId, userId) => { fx.assigned.push({ convId, projectId, userId }); return true; },
+        // The audit row and its live event, one transaction (projects/changeFeed).
+        recordActivityEvent: async (projectId, entry) => { fx.activity.push({ projectId, actorId: entry.actorId, action: entry.action }); return null; },
         listActivity: async () => [],
         normalizePermission: (p) => (p === 'edit' ? 'editor' : p === 'view' ? 'viewer' : p),
     },
     '../stores/userStore': {
         getUser: async (id) => fx.users[id] || null,
-        getAllGroups: async () => fx.groups,
+        getAllGroups: async () => { fx.groupReads.push('all'); return fx.groups; },
+        getGroup: async (id) => { fx.groupReads.push(id); return fx.groups.find(g => g.id === id) || null; },
     },
     '../stores/knowledgeBases': {
         getKB: async (id) => fx.kbs[id] || null,
@@ -104,6 +128,7 @@ Module._resolveFilename = function (request, parent, ...rest) {
 };
 
 const router = require('./projects');
+const { terminalErrorHandler } = require('../core/http/terminalErrorHandler');
 
 test.after(() => { Module._resolveFilename = originalResolve; });
 
@@ -119,6 +144,11 @@ function resetFx() {
     fx.shared.length = 0;
     fx.activity.length = 0;
     fx.unassigned.length = 0;
+    fx.listed.length = 0;
+    fx.kindSet.length = 0;
+    fx.groupReads.length = 0;
+    fx.assigned.length = 0;
+    fx.vanishOnUpdate = false;
 }
 
 function dispatch({ method, url, body = {}, session }) {
@@ -133,7 +163,11 @@ function dispatch({ method, url, body = {}, session }) {
             send(b) { this.body = b; resolve(this); return this; },
             end() { resolve(this); return this; },
         };
-        router(req, res, (err) => reject(err || new Error(`fell through: ${method} ${url}`)));
+        router(req, res, (err) => {
+            if (!err) return reject(new Error(`fell through: ${method} ${url}`));
+            // A thrown HttpError (or a schema refusal) answers the way the app does.
+            return terminalErrorHandler(err, req, res, () => reject(err));
+        });
     });
 }
 
@@ -381,4 +415,237 @@ test('a store failure returns a generic message, not the DB error', async () => 
     } finally {
         MOCKS['../stores/projectStore'].listUserProjects = original;
     }
+});
+
+
+// ═══ Workspace or Solution ═══════════════════════════════════════════
+
+const CAROL = { user: { id: 'carol', organizationId: 'org1' } };
+
+test('the list narrows by kind when asked, and lists everything when not', async () => {
+    resetFx();
+    fx.projects = {
+        w: { id: 'w', kind: 'workspace', ownerId: 'alice', organizationId: 'org1' },
+        s: { id: 's', kind: 'solution', ownerId: 'alice', organizationId: 'org1' },
+        l: { id: 'l', kind: null, ownerId: 'alice', organizationId: 'org1' },
+    };
+    const ws = await dispatch({ method: 'GET', url: '/?kind=workspace', session: ALICE });
+    assert.strictEqual(ws.statusCode, 200);
+    assert.deepStrictEqual(fx.listed.at(-1), { userId: 'alice', opts: { kind: 'workspace' } });
+    assert.deepStrictEqual(ws.body.map(p => p.id).sort(), ['l', 'w']);
+
+    const all = await dispatch({ method: 'GET', url: '/', session: ALICE });
+    assert.deepStrictEqual(fx.listed.at(-1).opts, { kind: undefined }, 'no kind: the store lists every kind');
+    assert.strictEqual(all.body.length, 3);
+});
+
+test('an unknown kind on the list is refused before the store', async () => {
+    resetFx();
+    const res = await dispatch({ method: 'GET', url: '/?kind=folder', session: ALICE });
+    assert.strictEqual(res.statusCode, 400);
+    assert.match(res.body.error, /kind is workspace/);
+    assert.deepStrictEqual(fx.listed, []);
+});
+
+test('a new project is a workspace unless it asks to be a Solution', async () => {
+    resetFx();
+    const plain = await dispatch({ method: 'POST', url: '/', body: { name: 'Team' }, session: ALICE });
+    assert.strictEqual(plain.statusCode, 200);
+    assert.strictEqual(plain.body.kind, 'workspace');
+
+    const sol = await dispatch({ method: 'POST', url: '/', body: { name: 'Invoicing', kind: 'solution' }, session: ALICE });
+    assert.strictEqual(sol.body.kind, 'solution');
+
+    const bad = await dispatch({ method: 'POST', url: '/', body: { name: 'X', kind: 'folder' }, session: ALICE });
+    assert.strictEqual(bad.statusCode, 400);
+});
+
+// Classifying itself (once, the backfill's guess corrected once, refused
+// while the project holds what the other side cannot hold) is proven in
+// routes/projects/kind.test.js and, through the real registry, in
+// routes/projects.resources.test.js. Here: the gate and the schema as
+// routes/projects.js mounts it.
+
+test('only the owner classifies: an editor gets 403, a stranger 404', async () => {
+    resetFx();
+    fx.projects.p1.kind = null;
+    fx.role = 'editor';
+    assert.strictEqual((await dispatch({ method: 'PUT', url: '/p1/kind', body: { kind: 'solution' }, session: BOB })).statusCode, 403);
+    fx.role = null;
+    assert.strictEqual((await dispatch({ method: 'PUT', url: '/p1/kind', body: { kind: 'solution' }, session: BOB })).statusCode, 404);
+    assert.deepStrictEqual(fx.kindSet, [], 'the store was never asked');
+    assert.strictEqual(fx.projects.p1.kind, null);
+});
+
+test('classifying needs a real kind, and a project that is gone is a 404', async () => {
+    resetFx();
+    const bad = await dispatch({ method: 'PUT', url: '/p1/kind', body: { kind: 'folder' }, session: ALICE });
+    assert.strictEqual(bad.statusCode, 400);
+    const missing = await dispatch({ method: 'PUT', url: '/p1/kind', body: {}, session: ALICE });
+    assert.strictEqual(missing.statusCode, 400);
+    assert.deepStrictEqual(fx.kindSet, []);
+
+    delete fx.projects.p1;
+    const gone = await dispatch({ method: 'PUT', url: '/p1/kind', body: { kind: 'workspace' }, session: ALICE });
+    assert.strictEqual(gone.statusCode, 404);
+});
+
+test('a project deleted while it was being edited is a 404, not a 500', async () => {
+    resetFx();
+    fx.vanishOnUpdate = true;
+    const res = await dispatch({ method: 'PUT', url: '/p1', body: { name: 'Renamed' }, session: ALICE });
+    assert.strictEqual(res.statusCode, 404);
+});
+
+// ── Members, with names ──────────────────────────────────────────────
+
+test('members come with names for the owner and the members of the project\'s organisation', async () => {
+    resetFx();
+    fx.role = 'viewer';
+    fx.users = {
+        alice: { id: 'alice', displayName: 'Alice A', username: 'alice', email: 'alice@example.test', organizationId: 'org1', passwordHash: 'x' },
+        bob: { id: 'bob', firstName: 'Bob', lastName: 'B', username: 'bob', email: 'bob@example.test', organizationId: 'org1', wrappedDEK: 'k' },
+        mallory: { id: 'mallory', displayName: 'Mallory', email: 'mallory@elsewhere.test', organizationId: 'org2' },
+    };
+    fx.groups = [
+        { id: 'g-sales', name: 'Sales', organizationId: 'org1' },
+        { id: 'g-other', name: 'Their team', organizationId: 'org2' },
+    ];
+    fx.shares = [
+        { id: 's1', projectId: 'p1', sharedWithType: 'user', sharedWithId: 'bob', permission: 'editor' },
+        // A cross-tenant row the share route would refuse today; older data may carry one.
+        { id: 's2', projectId: 'p1', sharedWithType: 'user', sharedWithId: 'mallory', permission: 'viewer' },
+        { id: 's3', projectId: 'p1', sharedWithType: 'group', sharedWithId: 'g-sales', permission: 'viewer' },
+        { id: 's4', projectId: 'p1', sharedWithType: 'group', sharedWithId: 'g-other', permission: 'viewer' },
+        { id: 's5', projectId: 'p1', sharedWithType: 'user', sharedWithId: 'ghost', permission: 'viewer' },
+    ];
+
+    const res = await dispatch({ method: 'GET', url: '/p1/members', session: BOB });
+    assert.strictEqual(res.statusCode, 200);
+    assert.strictEqual(res.body.ownerId, 'alice');
+    assert.strictEqual(res.body.members.length, 5);
+    assert.deepStrictEqual(res.body.people, {
+        alice: { name: 'Alice A' },
+        bob: { name: 'Bob B' },
+    });
+    assert.deepStrictEqual(res.body.groups, { 'g-sales': { name: 'Sales' } });
+    const text = JSON.stringify(res.body);
+    assert.ok(!text.includes('mallory@') && !text.includes('Their team'), 'nothing of another tenant is named');
+    assert.ok(!/passwordHash|wrappedDEK/.test(text), 'a user is an allow-listed name, never the row');
+});
+
+test('a viewer never gets the members\' e-mail addresses, only names', async () => {
+    // The member list is readable by any viewer; the organisation's directory
+    // gives a non-admin no addresses, and neither may this list.
+    resetFx();
+    fx.role = 'viewer';
+    fx.users = {
+        alice: { id: 'alice', displayName: 'Alice A', email: 'alice@example.test', organizationId: 'org1' },
+        bob: { id: 'bob', email: 'bob@example.test', organizationId: 'org1' },
+    };
+    fx.shares = [{ id: 's1', projectId: 'p1', sharedWithType: 'user', sharedWithId: 'bob', permission: 'viewer' }];
+    const res = await dispatch({ method: 'GET', url: '/p1/members', session: BOB });
+    assert.strictEqual(res.statusCode, 200);
+    assert.doesNotMatch(JSON.stringify(res.body), /@example\.test|"email"/);
+    assert.deepStrictEqual(res.body.people, { alice: { name: 'Alice A' }, bob: {} }, 'a person without a name stays unnamed');
+});
+
+test('member groups are read one by one, never as the whole groups table', async () => {
+    resetFx();
+    fx.role = 'viewer';
+    // Many groups on the install, two of them on this project.
+    fx.groups = Array.from({ length: 50 }, (_, i) => ({ id: `g${i}`, name: `Group ${i}`, organizationId: 'org1' }));
+    fx.shares = [
+        { id: 's1', projectId: 'p1', sharedWithType: 'group', sharedWithId: 'g3', permission: 'viewer' },
+        { id: 's2', projectId: 'p1', sharedWithType: 'group', sharedWithId: 'g7', permission: 'editor' },
+        { id: 's3', projectId: 'p1', sharedWithType: 'group', sharedWithId: 'g-gone', permission: 'viewer' },
+    ];
+    const res = await dispatch({ method: 'GET', url: '/p1/members', session: BOB });
+    assert.strictEqual(res.statusCode, 200);
+    assert.deepStrictEqual(res.body.groups, { g3: { name: 'Group 3' }, g7: { name: 'Group 7' } });
+    assert.deepStrictEqual([...fx.groupReads].sort(), ['g-gone', 'g3', 'g7'], 'only the groups the project names');
+    assert.ok(!fx.groupReads.includes('all'), 'the whole groups table is never read');
+
+    // Without a group share there is no group lookup at all.
+    fx.groupReads.length = 0;
+    fx.shares = [{ id: 's1', projectId: 'p1', sharedWithType: 'user', sharedWithId: 'bob', permission: 'viewer' }];
+    await dispatch({ method: 'GET', url: '/p1/members', session: BOB });
+    assert.deepStrictEqual(fx.groupReads, []);
+});
+
+test('an org-less project names org-less people only', async () => {
+    resetFx();
+    fx.projects.p1.organizationId = '';
+    fx.users = {
+        alice: { id: 'alice', username: 'alice', organizationId: '' },
+        bob: { id: 'bob', username: 'bob', organizationId: 'org1' },
+    };
+    fx.shares = [{ id: 's1', projectId: 'p1', sharedWithType: 'user', sharedWithId: 'bob', permission: 'viewer' }];
+    const res = await dispatch({ method: 'GET', url: '/p1/members', session: ALICE });
+    assert.deepStrictEqual(res.body.people, { alice: { name: 'alice' } });
+});
+
+test('a stranger learns nothing about the members', async () => {
+    resetFx();
+    fx.role = null;
+    fx.users = { alice: { id: 'alice', displayName: 'Alice', organizationId: 'org1' } };
+    const res = await dispatch({ method: 'GET', url: '/p1/members', session: CAROL });
+    assert.strictEqual(res.statusCode, 404);
+    assert.ok(!('people' in (res.body || {})));
+});
+
+// ── Chats are never filed into a Solution ────────────────────────────
+
+test('a conversation cannot be shared into a Solution', async () => {
+    resetFx();
+    fx.projects.p1.kind = 'solution';
+    fx.role = 'editor';
+    const res = await dispatch({ method: 'POST', url: '/p1/threads', body: { conversationId: 'c1' }, session: BOB });
+    assert.strictEqual(res.statusCode, 409);
+    assert.strictEqual(res.body.code, 'SOLUTION_HOLDS_NO_CHATS');
+    assert.ok(!fx.activity.some(a => a.action === 'thread_shared'));
+});
+
+test('conversations cannot be filed into a Solution, but may be taken out of one', async () => {
+    resetFx();
+    fx.projects.p1.kind = 'solution';
+    fx.role = 'editor';
+    const filing = await dispatch({
+        method: 'PUT', url: '/p1/conversations',
+        body: { assign: [{ id: 'c1', type: 'direct' }] }, session: BOB,
+    });
+    assert.strictEqual(filing.statusCode, 409);
+    assert.strictEqual(filing.body.code, 'SOLUTION_HOLDS_NO_CHATS');
+    assert.deepStrictEqual(fx.assigned, [], 'nothing was filed');
+
+    const out = await dispatch({
+        method: 'PUT', url: '/p1/conversations',
+        body: { unassign: [{ id: 'c1', type: 'direct' }] }, session: BOB,
+    });
+    assert.strictEqual(out.statusCode, 200);
+    assert.deepStrictEqual(fx.unassigned, [{ convId: 'c1', userId: 'bob' }]);
+});
+
+test('conversations still file into a workspace and into a legacy project', async () => {
+    for (const kind of ['workspace', null]) {
+        resetFx();
+        fx.projects.p1.kind = kind;
+        fx.role = 'editor';
+        const res = await dispatch({
+            method: 'PUT', url: '/p1/conversations',
+            body: { assign: [{ id: 'c1', type: 'direct' }] }, session: BOB,
+        });
+        assert.strictEqual(res.statusCode, 200, `kind ${kind}`);
+        assert.deepStrictEqual(fx.assigned, [{ convId: 'c1', projectId: 'p1', userId: 'bob' }]);
+    }
+});
+
+test('GET /:id says which kind the project is', async () => {
+    resetFx();
+    fx.projects.p1.kind = 'workspace';
+    fx.projects.p1.filesKbId = null;
+    const res = await dispatch({ method: 'GET', url: '/p1', session: ALICE });
+    assert.strictEqual(res.statusCode, 200);
+    assert.strictEqual(res.body.kind, 'workspace');
+    assert.ok('filesKbId' in res.body);
 });

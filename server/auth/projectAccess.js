@@ -108,6 +108,12 @@ async function hasProjectRole(userId, projectId, minRole = 'viewer') {
  * a projectId is present. Any authenticated user could name any project UUID and
  * have that project's memories injected into their prompt.
  *
+ * A Studio Solution (`kind: 'solution'`) resolves to null as well: chats are
+ * filed into collaborative projects, never into a Solution, so its
+ * instructions, knowledge and memories are not a chat's context and a new
+ * conversation is not filed under it. A legacy project (kind null) still
+ * resolves until its owner classifies it.
+ *
  * @param {string} userId
  * @param {string|null|undefined} requestedProjectId
  * @param {'viewer'|'editor'|'owner'} [minRole='viewer']
@@ -128,6 +134,10 @@ async function resolveRequestedProject(userId, requestedProjectId, minRole = 'vi
         return null;
     }
     if (!project) return null;
+    if (project.kind === 'solution') {
+        log.warn(`[ProjectAccess] project ${requestedProjectId} is a Solution; chats are not filed into it`);
+        return null;
+    }
     return { projectId: requestedProjectId, role, project };
 }
 
