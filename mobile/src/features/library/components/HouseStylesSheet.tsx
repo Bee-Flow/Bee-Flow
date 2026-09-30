@@ -4,28 +4,77 @@
  * Read-only for most people, and that is correct rather than a limitation:
  * routes/houseStyles.js lets any org member list them but requires org admin
  * to upload, rename or change the default. So the phone shows what is in force
- * and lets an admin switch the default (a one-tap decision that is genuinely
- * useful away from a desk); uploading a .docx is left to the web app, where
- * the file already is.
+ * and lets an admin switch the default; uploading a .docx is left to the web
+ * app, where the file already is.
  *
  * A member who taps "Make default" gets the server's own 403 as an inline
  * explanation, not a toast that vanishes.
  */
 
-import { Feather } from '@expo/vector-icons';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import React, { useState } from 'react';
-import { View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
-import { relativeTime } from '../../../lib/time';
-import { useTheme } from '../../../theme/ThemeProvider';
-import { Badge } from '../../../ui/Badge';
-import { Banner, EmptyState, ErrorState, ListSkeleton, describeError } from '../../../ui/Feedback';
-import { ListRow } from '../../../ui/List';
-import { Sheet } from '../../../ui/Sheet';
-import { Text } from '../../../ui/Text';
-import { useToast } from '../../../ui/Toast';
-import { libraryKeys, listHouseStyles, setDefaultHouseStyle } from '../api';
+import { describeError } from '@/core/api/errors';
+import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
+import { Banner, EmptyState, ErrorState, ListSkeleton, Sheet, useToast } from '@/shared/ui';
+
+import { HouseStyleRow } from './HouseStyleRow';
+import { useHouseStyles, useMakeDefaultHouseStyle } from '../hooks/houseStyles';
+
+const makeStyles = (theme: Theme) =>
+    StyleSheet.create({
+        body: { flexShrink: 1 },
+        denied: { paddingHorizontal: theme.spacing.lg, paddingBottom: theme.spacing.md },
+    });
+
+/** An org's handful of house styles, or why there are none to show. */
+function HouseStylesBody({ orgId, visible, onDenied }: { orgId: string | null; visible: boolean; onDenied: (message: string | null) => void }) {
+    const { toast } = useToast();
+    const query = useHouseStyles(orgId, visible);
+    const makeDefault = useMakeDefaultHouseStyle(orgId, {
+        onSuccess: () => {
+            onDenied(null);
+            toast('Default house style changed', 'success');
+        },
+        // 403 here means "org admin required" and is the expected answer for
+        // most people, so it explains itself in place.
+        onError: (err) => onDenied(describeError(err).message),
+    });
+    const styles = query.data ?? [];
+
+    if (!orgId) {
+        return (
+            <EmptyState
+                icon="Briefcase"
+                title="No organisation"
+                message="House styles belong to an organisation, and this account is not in one."
+            />
+        );
+    }
+    if (query.isLoading) return <ListSkeleton rows={3} />;
+    if (query.isError) return <ErrorState error={query.error} onRetry={() => void query.refetch()} />;
+    if (styles.length === 0) {
+        return (
+            <EmptyState
+                icon="Type"
+                title="No house styles yet"
+                message="An administrator uploads a .docx in the web app and every export from then on follows it."
+            />
+        );
+    }
+    return (
+        <View>
+            {styles.map((style) => (
+                <HouseStyleRow
+                    key={style.id}
+                    style={style}
+                    busy={makeDefault.isPending}
+                    onMakeDefault={() => makeDefault.mutate(style.id)}
+                />
+            ))}
+        </View>
+    );
+}
 
 export function HouseStylesSheet({
     visible,
@@ -37,33 +86,8 @@ export function HouseStylesSheet({
     /** Null when the account is not in an organisation — there is nothing to show. */
     orgId: string | null;
 }) {
-    const theme = useTheme();
-    const queryClient = useQueryClient();
-    const { toast } = useToast();
+    const styles = useThemedStyles(makeStyles);
     const [denied, setDenied] = useState<string | null>(null);
-
-    const query = useQuery({
-        queryKey: libraryKeys.houseStyles(orgId ?? ''),
-        queryFn: ({ signal }) => listHouseStyles(orgId as string, signal),
-        enabled: visible && Boolean(orgId),
-    });
-
-    const makeDefault = useMutation({
-        mutationFn: (id: string) => setDefaultHouseStyle(orgId as string, id),
-        onSuccess: () => {
-            setDenied(null);
-            toast('Default house style changed', 'success');
-            void queryClient.invalidateQueries({ queryKey: libraryKeys.houseStyles(orgId ?? '') });
-        },
-        onError: (err) => {
-            // 403 here means "org admin required" and is the expected answer for
-            // most people, so it explains itself in place rather than as a error
-            // banner that implies something broke.
-            setDenied(describeError(err).message);
-        },
-    });
-
-    const styles = query.data ?? [];
 
     return (
         <Sheet
@@ -74,65 +98,13 @@ export function HouseStylesSheet({
             scroll={false}
             tall
         >
-            <View style={{ flexShrink: 1 }}>
+            <View style={styles.body}>
                 {denied ? (
-                    <View style={{ paddingHorizontal: theme.spacing.lg, paddingBottom: theme.spacing.md }}>
+                    <View style={styles.denied}>
                         <Banner tone="info">{denied}</Banner>
                     </View>
                 ) : null}
-
-                {!orgId ? (
-                    <EmptyState
-                        icon="briefcase"
-                        title="No organisation"
-                        message="House styles belong to an organisation, and this account is not in one."
-                    />
-                ) : query.isLoading ? (
-                    <ListSkeleton rows={3} />
-                ) : query.isError ? (
-                    <ErrorState error={query.error} onRetry={() => void query.refetch()} />
-                ) : styles.length === 0 ? (
-                    <EmptyState
-                        icon="type"
-                        title="No house styles yet"
-                        message="An administrator uploads a .docx in the web app and every export from then on follows it."
-                    />
-                ) : (
-                    <View>
-                        {styles.map((style) => (
-                            <ListRow
-                                key={style.id}
-                                title={style.name}
-                                subtitle={style.description || `Added ${relativeTime(style.createdAt)}`}
-                                wrapTitle
-                                leading={
-                                    <Feather
-                                        name="type"
-                                        size={20}
-                                        color={
-                                            style.isDefault
-                                                ? theme.colors.accentPrimary
-                                                : theme.colors.textMuted
-                                        }
-                                    />
-                                }
-                                trailing={
-                                    style.isDefault ? (
-                                        <Badge label="Default" tone="accent" />
-                                    ) : (
-                                        <Text variant="label" tone="accent">
-                                            Make default
-                                        </Text>
-                                    )
-                                }
-                                onPress={
-                                    style.isDefault ? undefined : () => makeDefault.mutate(style.id)
-                                }
-                                disabled={makeDefault.isPending}
-                            />
-                        ))}
-                    </View>
-                )}
+                <HouseStylesBody orgId={orgId} visible={visible} onDenied={setDenied} />
             </View>
         </Sheet>
     );

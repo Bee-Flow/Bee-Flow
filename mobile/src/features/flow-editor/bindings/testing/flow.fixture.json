@@ -1,0 +1,219 @@
+{
+    "$comment": "Test-only fixture for the differential lockstep tests: one definition that holds every step type the bindings layer reads, and a catalog to go with it.",
+    "catalog": {
+        "apps": [
+            {
+                "id": "gmail",
+                "label": "Gmail",
+                "actions": [
+                    {
+                        "name": "gmail_search",
+                        "label": "Search",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {
+                                "query": { "type": "string", "description": "What to look for" },
+                                "maxResults": { "type": "integer", "default": 10 },
+                                "labelIds": { "type": "array", "items": { "type": "string" } },
+                                "sinceDate": { "type": "string", "format": "date", "x-advanced": true }
+                            },
+                            "required": ["query"]
+                        },
+                        "outputSample": {
+                            "query": "q",
+                            "total": 2,
+                            "results": [{ "id": "m1", "subject": "Hi", "from_email": "a@b.nl", "threadId": "t1", "tags": ["x"] }]
+                        }
+                    },
+                    {
+                        "name": "gmail_read",
+                        "label": "Read",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {
+                                "messageId": { "type": "string" },
+                                "format": { "type": "string", "enum": ["full", "raw", "minimal", "metadata"] },
+                                "password": { "type": "string" },
+                                "subject": { "type": "string" }
+                            },
+                            "required": ["messageId"]
+                        },
+                        "outputSample": { "id": "m1", "subject": "Hi", "body": "text", "attachments": [{ "name": "a.pdf", "size": 10 }] }
+                    },
+                    {
+                        "name": "gmail_send",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {
+                                "to": { "type": "string" },
+                                "subject": { "type": "string" },
+                                "body": { "type": "string", "format": "multiline" },
+                                "cc": { "type": ["null", "string"] },
+                                "total": { "type": "number" },
+                                "urgent": { "type": "boolean" },
+                                "meta": { "type": "object" },
+                                "rows": { "type": "array", "items": { "type": "object" } },
+                                "x-primary-field": { "type": "string", "x-primary": true }
+                            },
+                            "required": ["to", "subject"]
+                        },
+                        "outputSample": { "id": "sent1" }
+                    },
+                    { "name": "no_sample" },
+                    null
+                ]
+            },
+            { "id": "empty", "label": "Empty" }
+        ],
+        "triggerOutputs": {
+            "__manual": { "fields": [{ "key": "input", "sample": "hello" }], "sample": { "input": "hello" } },
+            "__webhook": {
+                "fields": [{ "key": "body", "sample": { "x": 1 } }, { "key": "headers", "sample": {} }],
+                "sample": { "body": { "x": 1 }, "headers": {} }
+            },
+            "gmail.mail.new": {
+                "fields": [{ "key": "subject", "sample": "S" }, { "key": "from", "sample": "f" }, { "key": "items", "sample": [{ "a": 1 }] }],
+                "sample": { "subject": "S", "from": "f", "items": [{ "a": 1 }] }
+            }
+        },
+        "triggerMeta": [
+            { "key": "kind" },
+            { "key": "event" },
+            { "key": "schedule.cron", "path": "trigger.schedule.cron" },
+            { "key": "missing", "sample": "x" }
+        ],
+        "datatables": [
+            {
+                "id": "dt1",
+                "name": "Leads",
+                "managedKind": "nextcloud_table",
+                "columns": [
+                    { "key": "name", "type": "text" },
+                    { "key": "score", "type": "number" },
+                    { "key": "rel", "type": "relation" },
+                    { "key": "odd", "type": "weird" }
+                ]
+            },
+            { "id": "dt2", "name": "Plain", "columns": [{ "key": "when", "type": "date" }, { "key": "rel", "type": "relation" }] }
+        ],
+        "knowledgeBases": [{ "id": "kb1", "name": "Docs" }]
+    },
+    "definition": {
+        "trigger": { "id": "trg", "type": "trigger", "kind": "app_event", "appEvent": { "provider": "gmail", "event": "mail.new" }, "label": "New mail" },
+        "triggers": [
+            { "id": "trg2", "type": "trigger", "kind": "webhook" },
+            {
+                "id": "trg3",
+                "type": "trigger",
+                "kind": "form",
+                "form": {
+                    "fields": [
+                        { "name": "email", "type": "email" },
+                        { "name": "n", "type": "number" },
+                        { "name": "ok", "type": "checkbox" },
+                        { "name": "d", "type": "date" },
+                        { "name": "f", "type": "file" },
+                        { "name": "pick", "type": "app_pick", "source": "mail", "multiple": true },
+                        { "name": "one", "type": "app_pick", "app": "fireflies" },
+                        { "name": "free", "label": "Your name" },
+                        { "name": "plain" },
+                        { "type": "text" },
+                        null
+                    ]
+                }
+            }
+        ],
+        "steps": [
+            { "id": "search", "type": "integration_action", "tool": "gmail_search", "label": "Gmail search", "inputs": { "query": { "kind": "literal", "value": "is:unread" } } },
+            { "id": "read", "type": "integration_action", "tool": "gmail_read", "forEach": { "overRef": "steps.search.output.results", "itemVar": "result" }, "inputs": {} },
+            { "id": "ai", "type": "ai_step", "prompt": "x", "outputSchema": { "type": "object", "properties": { "urgency": { "type": "string" }, "score": { "type": "number" }, "tags": { "type": "array" }, "noType": {} } } },
+            { "id": "aiFlat", "type": "ai_step", "outputSchema": { "summary": "string", "count": "number", "": "x" } },
+            { "id": "ai2", "type": "ai_step", "inputs": { "topic": { "kind": "literal", "value": "" } } },
+            { "id": "ex", "type": "data_extraction", "fields": [{ "name": "datum", "type": "date" }, { "name": "total", "type": "number" }, { "name": "datum" }, { "name": "" }, null] },
+            { "id": "loop", "type": "loop", "overRef": "steps.search.output.results", "itemVar": "msg" },
+            { "id": "loopItem", "type": "loop_item", "overRef": "steps.search.output.results", "itemVar": "row", "batchSize": 1 },
+            { "id": "loopBatch", "type": "loop_item", "overRef": "steps.search.output.results", "batchSize": 3 },
+            { "id": "cond", "type": "condition", "expr": "a > 1" },
+            { "id": "guard", "type": "guard", "label": "Scan" },
+            { "id": "tok", "type": "tokenize" },
+            { "id": "untok", "type": "untokenize" },
+            { "id": "code", "type": "code" },
+            { "id": "notif", "type": "notification", "title": "T" },
+            { "id": "http", "type": "http_request", "parseResponse": "never" },
+            { "id": "http2", "type": "http_request" },
+            { "id": "gen", "type": "generate_document", "format": "docx" },
+            { "id": "gen2", "type": "generate_document" },
+            { "id": "fill", "type": "fill_document", "documentName": "Quote" },
+            { "id": "slide", "type": "slide", "layout": "timeline", "chart": { "type": "bar" }, "stats": [1], "notes": "n", "style": "dark" },
+            { "id": "slide2", "type": "slide", "layout": "cards", "chart": "column" },
+            { "id": "pres", "type": "presentation", "format": "pdf" },
+            { "id": "pres2", "type": "presentation" },
+            { "id": "callLayer", "type": "call_layer", "layerKey": "sub" },
+            { "id": "callMissing", "type": "call_layer", "layerKey": "nope" },
+            {
+                "id": "set",
+                "type": "set",
+                "fields": {
+                    "a": { "kind": "literal", "value": "x" },
+                    "b": { "kind": "ref", "path": "steps.search.output.total" },
+                    "c": { "kind": "template", "value": "{{x}}" },
+                    "d": 5,
+                    "e": null,
+                    "f": { "kind": "ref", "path": "steps.nope.output" },
+                    "g": { "kind": "literal" },
+                    "h": { "kind": "other" }
+                }
+            },
+            {
+                "id": "setList",
+                "type": "set",
+                "arrayRef": "steps.search.output.results",
+                "fields": { "flag": { "kind": "literal", "value": true }, "sub": { "kind": "ref", "path": "item.subject" }, "ix": { "kind": "ref", "path": "_index" } },
+                "operations": [{ "op": "rowId", "target": "n" }, { "op": "rename", "from": "subject", "to": "title" }, { "op": "remove", "keys": ["threadId"] }]
+            },
+            { "id": "setScalarList", "type": "set", "arrayRef": "steps.search.output.results[*].subject", "fields": {} },
+            { "id": "pj", "type": "parse_json", "sourceRef": "steps.search.output.query", "fields": [{ "name": "a", "path": "a" }, { "name": "b", "path": "b", "fallback": 0 }] },
+            { "id": "pjItems", "type": "parse_json", "sourceRef": "steps.setList.output.items", "itemsRef": "[*]", "fields": [{ "name": "x", "path": "title" }, { "name": "y", "path": "zz" }] },
+            { "id": "pjNone", "type": "parse_json", "itemsRef": "rows", "fields": [{ "name": "x", "path": "x" }] },
+            { "id": "dt", "type": "datetime", "op": "diff" },
+            { "id": "dtX", "type": "datetime", "op": "extract" },
+            { "id": "dtNow", "type": "datetime" },
+            { "id": "dtList", "type": "datetime", "op": "extract", "part": "month", "arrayRef": "steps.search.output.results" },
+            { "id": "dtListScalar", "type": "datetime", "op": "format", "arrayRef": "steps.search.output.total" },
+            { "id": "wait", "type": "wait", "seconds": 30 },
+            { "id": "appr", "type": "approval" },
+            { "id": "form", "type": "form_page", "form": { "title": "Page", "fields": [{ "name": "q", "type": "number" }] } },
+            { "id": "formUntitled", "type": "form_page" },
+            { "id": "end", "type": "form_page", "mode": "ending" },
+            { "id": "sw", "type": "switch", "cases": [{ "name": "a" }, { "name": "b" }, {}] },
+            { "id": "swEmpty", "type": "switch" },
+            { "id": "filter", "type": "filter", "arrayRef": "steps.search.output.results" },
+            { "id": "limit", "type": "limit", "arrayRef": "steps.search.output.results" },
+            { "id": "dedupe", "type": "dedupe", "arrayRef": "steps.nope.output.x" },
+            { "id": "dedupe2", "type": "dedupe", "arrayRef": "steps.filter.output.items" },
+            { "id": "agg", "type": "aggregate", "arrayRef": "steps.search.output.results", "field": "subject" },
+            { "id": "agg2", "type": "aggregate", "arrayRef": "steps.search.output.results" },
+            { "id": "sum", "type": "summarize", "op": "avg" },
+            { "id": "sum2", "type": "summarize" },
+            { "id": "dtable", "type": "datatable", "datatableId": "dt1", "op": "find_rows" },
+            { "id": "dtable2", "type": "datatable", "datatableId": "dt1", "op": "upsert" },
+            { "id": "dtable3", "type": "datatable", "datatableId": "dt2", "op": "count_rows" },
+            { "id": "dtable4", "type": "datatable", "op": "update_rows" },
+            { "id": "dtable5", "type": "datatable", "datatableId": "dt2", "op": "delete_rows" },
+            { "id": "kw", "type": "knowledge_write", "knowledgeBaseId": "kb1", "sourceUri": "https://x" },
+            { "id": "kw2", "type": "knowledge_write" },
+            { "id": "stop", "type": "stop_error" },
+            { "id": "rta", "type": "return_to_app" },
+            { "id": "mystery", "type": "mystery" },
+            { "id": "note", "type": "note" },
+            { "id": "last", "type": "integration_action", "tool": "gmail_send", "inputs": { "to": { "kind": "literal", "value": "" } } }
+        ],
+        "layers": {
+            "sub": {
+                "title": "Sub flow",
+                "trigger": { "id": "li", "kind": "layer_input", "params": [{ "name": "x", "type": "number", "required": true }, { "name": "email" }, { "name": "data", "type": "object" }] },
+                "steps": [{ "id": "lo", "type": "layer_output", "fields": { "out1": {}, "out2": {} } }]
+            }
+        }
+    }
+}

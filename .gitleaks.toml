@@ -62,6 +62,13 @@ regexes = [
   # the handoff notes (.claude/handoff/) — "api," followed by an option with a
   # number clears the rule's entropy bar.
   '''^debounceMs=\d+$''',
+  # False positive: `generic-api-key` fires on React Query key PATHS —
+  # `queryKey: integrationKeys.n8n.permissions` in
+  # mobile/src/features/orgIntegrations/hooks/n8nMutations.ts — the digits of
+  # "n8n" lift an identifier over the entropy bar. Anchored to the whole
+  # secret (an `xxxKeys.` object path of plain identifiers) so a real token
+  # that merely follows `queryKey:` is still caught.
+  '''^[a-z][A-Za-z]*Keys(\.[a-zA-Z][a-zA-Z0-9]*)+$''',
 ]
 
 # Test files, for `generic-api-key` ONLY. Tests set short placeholder keys

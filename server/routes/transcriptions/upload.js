@@ -16,6 +16,7 @@ const fs = require('fs');
 const transcriptionStore = require('../../stores/transcriptionStore');
 const configStore = require('../../stores/configStore');
 const { requireAuth } = require('../../auth/permissions');
+const { asM4aIfAdts } = require('../../core/voice/audioPreprocess');
 const {
     parseSpeakerCount,
     resolveUserOrgFromReq,
@@ -383,11 +384,19 @@ router.post('/', requireAuth, upload.single('audio'), validate({ body: UploadBod
             const { createVoxtralClient } = require('../../core/meetingNotes/voxtralClient');
             const client = createVoxtralClient(apiKey, { timeoutMs: VOXTRAL_TIMEOUT_MS });
 
-            // The only branch that needs the bytes in memory.
-            const fileContent = await fs.promises.readFile(req.file.path);
+            // The only branch that needs the bytes in memory. The phone's
+            // crash-safe .aac goes over as .m4a (audioPreprocess.asM4aIfAdts).
+            // nosemgrep: ajinabraham.njsscan.traversal.path_traversal.generic_path_traversal -- req.file.path is the random name multer wrote under uploadsDir, and the repack is a fresh os.tmpdir() file: no client-supplied path is read
+            const voxtralAudio = await asM4aIfAdts(req.file.path, fileName);
+            let fileContent;
+            try {
+                fileContent = await fs.promises.readFile(voxtralAudio.path);
+            } finally {
+                voxtralAudio.cleanup();
+            }
             const transcriptionOptions = {
                 model: 'voxtral-mini-2602',
-                file: { fileName, content: fileContent },
+                file: { fileName: voxtralAudio.fileName, content: fileContent },
                 diarize: true,
                 language,
                 timestampGranularities: ['segment'],

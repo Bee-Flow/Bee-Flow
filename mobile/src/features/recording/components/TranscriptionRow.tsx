@@ -1,92 +1,77 @@
 /**
- * One past meeting in the library list.
+ * One past meeting in the library list. It stays openable the whole time it
+ * is processing: the detail screen has something useful to say while it waits.
  *
- * The status is carried by an icon AND a word, never by colour alone — a
- * red/green dot is invisible to a large minority of users and meaningless in
- * bright sunlight, which is exactly where a phone gets used.
- *
- * 'processing' is a normal, expected state that lasts minutes, so it reads as
- * "working on it" rather than as an error, and the row stays openable the
- * whole time: the detail screen has something useful to say while it waits.
+ * In the report's select mode a tap picks the note instead, and a note that
+ * is still transcribing or failed is drawn disabled: it has nothing to report
+ * on, and a row that looks pickable but ignores the tap is a small lie.
  */
 
-import { Feather } from '@expo/vector-icons';
 import React from 'react';
-import { View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
-import { useTheme } from '../../../theme/ThemeProvider';
-import { ListRow } from '../../../ui/List';
-import { Text } from '../../../ui/Text';
-import { formatDuration, formatWhen } from '../format';
-import type { TranscriptionStatus, TranscriptionSummary } from '../types';
+import { useTranslation } from '@/core/i18n';
+import { useTheme, useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
+import { Icon, ListRow, Text } from '@/shared/ui';
 
-export function statusLabel(status: TranscriptionStatus): string {
-    switch (status) {
-        case 'processing':
-            return 'Transcribing';
-        case 'failed':
-            return 'Failed';
-        default:
-            return 'Ready';
-    }
+import { formatWhen } from '../model/format';
+import { isReportable } from '../model/library';
+import { rowFacts, rowSubtitle, statusLabel } from '../model/row';
+import type { TranscriptionSummary } from '../model/types';
+
+const makeStyles = (theme: Theme) =>
+    StyleSheet.create({
+        glyph: {
+            width: 40,
+            height: 40,
+            borderRadius: theme.radii.md,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: theme.colors.bgTertiary,
+        },
+    });
+
+function glyphFor(item: TranscriptionSummary, colors: Theme['colors']) {
+    if (item.status === 'processing') return { icon: 'Loader' as const, colour: colors.accentPrimary };
+    if (item.status === 'failed') return { icon: 'TriangleAlert' as const, colour: colors.error };
+    return { icon: item.source === 'recording' ? ('Mic' as const) : ('FileText' as const), colour: colors.textSecondary };
 }
 
 export function TranscriptionRow({
     item,
     onPress,
     onLongPress,
+    selection,
 }: {
     item: TranscriptionSummary;
     onPress: () => void;
     onLongPress?: () => void;
+    /** Present in select mode: whether this note is picked. */
+    selection?: { selected: boolean };
 }) {
+    const t = useTranslation();
     const theme = useTheme();
-
-    const { icon, colour } =
-        item.status === 'processing'
-            ? { icon: 'loader' as const, colour: theme.colors.accentPrimary }
-            : item.status === 'failed'
-              ? { icon: 'alert-triangle' as const, colour: theme.colors.error }
-              : item.source === 'recording'
-                ? { icon: 'mic' as const, colour: theme.colors.textSecondary }
-                : { icon: 'file-text' as const, colour: theme.colors.textSecondary };
-
-    // What the row says under the title, in priority order: a failure needs
-    // explaining, a job in flight needs reassuring, and a finished note is
-    // best described by what it was actually about.
-    const subtitle =
-        item.status === 'failed'
-            ? 'Transcription did not finish. Open it to retry.'
-            : item.status === 'processing'
-              ? 'Transcribing and summarising — this can take a few minutes.'
-              : (item.summarySnippet || item.transcriptSnippet || '').replace(/\s+/g, ' ').trim() ||
-                undefined;
-
-    const facts = [
-        item.durationSeconds ? formatDuration(item.durationSeconds) : null,
-        item.speakerCount ? `${item.speakerCount} ${item.speakerCount === 1 ? 'speaker' : 'speakers'}` : null,
-    ].filter((value): value is string => Boolean(value));
+    const styles = useThemedStyles(makeStyles);
+    const { icon, colour } = glyphFor(item, theme.colors);
+    const facts = rowFacts(item);
 
     return (
         <ListRow
-            title={item.title || 'Untitled meeting'}
-            subtitle={subtitle}
+            title={item.title || t('meetings.untitled', 'Untitled meeting')}
+            subtitle={rowSubtitle(item)}
             wrapTitle
             meta={formatWhen(item.createdAt)}
             onPress={onPress}
             onLongPress={onLongPress}
+            selected={selection?.selected}
+            disabled={selection ? !isReportable(item) : false}
             leading={
-                <View
-                    style={{
-                        width: 40,
-                        height: 40,
-                        borderRadius: theme.radii.md,
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        backgroundColor: theme.colors.bgTertiary,
-                    }}
-                >
-                    <Feather name={icon} size={18} color={colour} />
+                <View style={styles.glyph}>
+                    <Icon
+                        name={selection?.selected ? 'CircleCheck' : icon}
+                        size={18}
+                        color={selection?.selected ? theme.colors.accentPrimary : colour}
+                    />
                 </View>
             }
             trailing={
@@ -95,11 +80,7 @@ export function TranscriptionRow({
                         {facts.join(' · ')}
                     </Text>
                 ) : (
-                    <Text
-                        variant="label"
-                        tone={item.status === 'failed' ? 'error' : 'accent'}
-                        numberOfLines={1}
-                    >
+                    <Text variant="label" tone={item.status === 'failed' ? 'error' : 'accent'} numberOfLines={1}>
                         {statusLabel(item.status)}
                     </Text>
                 )

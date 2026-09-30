@@ -15,7 +15,7 @@
 import { Stack } from 'expo-router';
 import React from 'react';
 
-import { useTheme } from '../../src/theme/ThemeProvider';
+import { useTheme } from '@/core/theme/ThemeProvider';
 
 export default function OnboardingLayout() {
     const theme = useTheme();

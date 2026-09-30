@@ -31,6 +31,18 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+// The launcher icon has since moved to the ink bee on brand yellow (#ffd400,
+// adaptiveIcon.backgroundColor in app.config.ts). This script still emits the
+// older dark-ground set, so running it would silently bring that back: it
+// refuses unless asked for the old set by name.
+if (!process.argv.includes('--legacy-dark')) {
+    console.error(
+        'generate-icons: the committed icons are the ink-bee-on-yellow set; this script makes the older dark set. ' +
+            'Pass --legacy-dark if that is really what you want.',
+    );
+    process.exit(1);
+}
+
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const MOBILE = path.resolve(HERE, '..');
 const ASSETS = path.join(MOBILE, 'assets');
