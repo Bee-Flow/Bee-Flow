@@ -29,6 +29,7 @@ const path = require('path');
 const transcriptionStore = require('../../stores/transcriptionStore');
 const { ingestLocalRecording, IngestError, assertDedupHitReadable } = require('./ingestRecordingCore');
 const { downloadRecordingToFile, extractAudioTrack, listParticipantNames } = require('./gmeetArtifacts');
+const { AUDIO_SCRATCH_DIR: uploadsDir } = require('./savedAudioStore');
 const log = require('../../telemetry/log');
 
 // Hard ceiling — matches the manual-upload multer limit. Applied to the
@@ -37,8 +38,6 @@ const MAX_RECORDING_BYTES = 500 * 1024 * 1024;
 
 // Auto-sharing never grows unbounded (webinar-sized attendee lists).
 const MAX_SHARED_WITH = 50;
-
-const uploadsDir = path.resolve(__dirname, '../../data/uploads/audio');
 
 /**
  * @param {object} opts

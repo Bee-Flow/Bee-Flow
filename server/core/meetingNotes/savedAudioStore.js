@@ -32,6 +32,16 @@ const MIME_BY_EXT = {
 /** The one place that knows where saved recordings live on this pod. */
 const SAVED_RECORDINGS_DIR = path.resolve(__dirname, '../../data/uploads/saved-recordings');
 
+/**
+ * Where an incoming recording sits while it is processed: the multer upload,
+ * a Nextcloud or Meet download. Scratch, so /tmp and not the data volume: it
+ * is deleted when the pipeline ends, an orphan from a crash is gone after a
+ * restart instead of piling up on the persistent disk, and a volume the server
+ * cannot write (one left root-owned by the old root image) no longer blocks
+ * the upload before the RustFS copy is even attempted.
+ */
+const AUDIO_SCRATCH_DIR = path.join(os.tmpdir(), 'beeflow-audio');
+
 /** Object-storage key for a saved recording, from its local basename. */
 function savedAudioKey(basename) {
     return `saved-recordings/${basename}`;
@@ -256,5 +266,6 @@ module.exports = {
     repairSavedAudio,
     contentTypeForAudio,
     SAVED_RECORDINGS_DIR,
+    AUDIO_SCRATCH_DIR,
     MIME_BY_EXT,
 };

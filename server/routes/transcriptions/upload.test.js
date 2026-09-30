@@ -63,6 +63,7 @@ stub('../../auth/permissions', { requireAuth: (req, res, next) => next() });
 stub('../../stores/summaryTemplateStore', { resolveDefaultTemplate: async () => null, resolveDefaultPrompt: async () => null });
 stub('../../stores/storageStore', { getStatus: () => ({ configured: false }), isAvailable: () => false });
 stub('../../core/meetingNotes/savedAudioStore', {
+    AUDIO_SCRATCH_DIR: os.tmpdir(),
     savedAudioKey: (base) => `saved-recordings/${base}`,
     persistSavedAudioToStorage: async () => ({ ok: false, reason: 'not_configured' }),
 });

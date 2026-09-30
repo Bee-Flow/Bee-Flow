@@ -140,7 +140,7 @@ test.after(() => {
     Module._resolveFilename = originalResolve;
 });
 
-// Remove any temp video/audio a test left under data/uploads/audio.
+// Remove any temp video/audio a test left in the audio scratch dir.
 function cleanupTempFiles() {
     for (const d of fx.downloads) { try { fs.unlinkSync(d.destPath); } catch (_) {} }
     for (const e of fx.extracts) { try { fs.unlinkSync(e.audioPath); } catch (_) {} }
