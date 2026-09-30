@@ -215,7 +215,7 @@ monorepo — no central `__tests__` tree.
 
 ## Design tokens
 
-`src/theme/tokens.ts` is a one-for-one port of `agent-hub/src/index.css` —
+`src/core/theme/tokens.ts` is a one-for-one port of `agent-hub/src/index.css` —
 all eight themes, the same hex values. Duplicated rather than derived, because
 nothing can share a CSS custom property with a React Native `StyleSheet`.
 **`index.css` is the source of truth**; when a value changes there it must

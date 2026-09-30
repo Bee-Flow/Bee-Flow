@@ -1,0 +1,11 @@
+{
+    "row": { "id": "a1", "title": "Mail sorter", "version": 3, "isActive": false },
+    "definition": {
+        "trigger": { "id": "trg", "type": "trigger", "kind": "manual", "label": "Start" },
+        "steps": [
+            { "id": "a", "type": "ai_step", "label": "Sort the mail", "prompt": "Sort it" },
+            { "id": "b", "type": "notification", "label": "Tell me", "body": "Done" }
+        ],
+        "edges": [{ "from": "trg", "to": "a" }, { "from": "a", "to": "b" }]
+    }
+}

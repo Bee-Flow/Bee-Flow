@@ -324,6 +324,21 @@ test('an exhausted budget leaves the knowledge bases UNKNOWN, never a false zero
     assert.strictEqual(out.partial, true);
 });
 
+test('a budget cut off by a timer that fires early still counts as spent', async (t) => {
+    // Node's timers can fire a millisecond before Date.now() says the delay
+    // is over. The clock here lags 10 ms once the budget is up, so the scan
+    // sees "time left" after its hung tables were cut off by that budget.
+    const tables = Array.from({ length: 4 }, (_, i) => ({ id: `e${i}`, name: `E${i}`, hang: true }));
+    const { deps } = pacedDeps(tables);
+    const realNow = Date.now;
+    const deadline = realNow() + 40;
+    t.mock.method(Date, 'now', () => { const r = realNow(); return r >= deadline ? r - 10 : r; });
+    const out = await discovery.run('org_a', REQ, { deps, overallBudgetMs: 40 });
+    const kb = out.sources.find(s => s.kind === 'kb_chunks');
+    assert.strictEqual(kb.count, null);
+    assert.ok(out.not_scanned.includes('knowledge_bases'));
+});
+
 test('the 200-table cap is reported too, not just flagged', async () => {
     const tables = Array.from({ length: 205 }, (_, i) => ({ id: `t${i}`, name: `T${i}`, hits: 0 }));
     const { deps } = fakeDeps({ tables });
