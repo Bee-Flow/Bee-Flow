@@ -100,6 +100,7 @@ const LOOSE_MIGRATIONS = [
     // no-op once every row is decided; throws on failure so the next boot
     // retries.
     'project-kind-backfill-2026-09',
+    'project-org-backfill-2026-09',       // Org-less projects get their owner's organisation (group-derived members made them '')
 ];
 
 /**
