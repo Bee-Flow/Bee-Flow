@@ -63,7 +63,7 @@ notifications about — a routine that finished at 03:00, an approval waiting, a
 support reply, an expired connector credential. None of those is worse for
 arriving twenty minutes late.
 
-The in-app badge is a separate, faster path: `src/ui/AppHeader.tsx` polls
+The in-app badge is a separate, faster path: `components/NotificationBell.tsx` polls
 `/api/notifications/unread-count` every 60 seconds while the app is in the
 foreground, and React Query pauses that automatically when it is backgrounded.
 So an open app is nearly live; a closed one is eventually consistent.
@@ -122,14 +122,24 @@ This is a supported path — it is just not the default. In rough order:
 
 | File | What it is |
 | --- | --- |
-| `api.ts` | The five REST calls, and the query keys. `notificationKeys.unread` is shared with the header badge — do not rename it. |
-| `types.ts` | The `notifications` table row and the category presentation table. |
-| `route.ts` | Translating the server's **web** `link` column into a native route. |
-| `format.ts` | Relative time, time buckets, markdown-stripped previews. |
+| `api/endpoints.ts` | The five REST calls. |
+| `api/readers.ts` | Contract readers for the rows, the unread count and read-all's answer. |
+| `api/keys.ts` | The query keys. `notificationKeys.unread` is shared with the header badge — do not rename it. |
+| `model/types.ts` | The `notifications` table row and the category presentation table. |
+| `model/route.ts` | Translating the server's **web** `link` column into a native route. |
+| `model/format.ts` | Relative time, time buckets, markdown-stripped previews. |
+| `model/sections.ts` | The inbox's today / this week / older sections. |
 | `background.ts` | The WorkManager task, the announced-ids ledger, and registration. |
+| `hooks/useUnreadCount.ts` | The 60s unread-count poll behind the bell. |
+| `hooks/queries.ts`, `hooks/mutations.ts` | The inbox's list query and its three writes (mark read is optimistic). |
+| `hooks/useNotificationInbox.ts` | The inbox screen's state. |
+| `components/NotificationBell.tsx` | The header bell; `app/_layout.tsx` supplies it to every ScreenHeader. |
+| `components/NotificationPlumbing.tsx` | Root-mounted: registers polling when signed in, routes warm and cold-start taps. |
+| `screens/NotificationsScreen.tsx` | The inbox, rendered by `app/notifications.tsx`. |
+| `index.ts` | The public surface: the screen, the bell, the plumbing, `useUnreadCount`, the link translation and the device preferences. |
 
 `background.ts` defines its task at **module scope**, because WorkManager
 launches the app headless and looks the task up by name. It must therefore be
-imported somewhere on the app's entry path — `app/notifications.tsx` imports it,
-and `app/_layout.tsx` should too so the definition exists even when the user has
-never opened the inbox.
+imported somewhere on the app's entry path — `app/_layout.tsx` does, through
+`NotificationPlumbing`, so the definition exists even when the user has never
+opened the inbox.

@@ -62,4 +62,21 @@ module.exports = {
     "sidebar.my_kbs": "My Knowledge Bases",
     "sidebar.skills": "Skills",
     "sidebar.webpages": "Webpages",
+
+    // ── Projects group and the project chat context ──────────────
+    'sidebar.project_shared_badge': 'shared',
+    'sidebar.project_new_chat': 'New chat in {name}',
+    'sidebar.project_context_label': 'Chatting in project {name}',
+    'sidebar.project_context_open': 'Open project {name}',
+    'sidebar.project_context_leave': 'Stop chatting in project {name}',
+    'sidebar.project_chat_shared': 'Chat shared with the members of {name}.',
+    'sidebar.project_chat_share_failed': 'The chat was saved in the project, but it could not be shared with its members.',
+    'sidebar.project_chat_not_shared': 'The chat was not shared with the project. You can still share it from its menu in the chat list.',
+    'sidebar.project_chat_not_started': 'The chat could not be started. Your message is back in the composer.',
+    'sidebar.project_agent_unavailable': 'That agent is not available to you, so the chat was not started.',
+    'sidebar.project_thread_agent_unavailable': 'This chat belongs to an agent you cannot open.',
+    'sidebar.projects_load_failed': 'Could not load your projects.',
+    'sidebar.project_move_failed': 'Could not move this chat. It is still where it was.',
+    'sidebar.conv_in_project': 'In project: {name}',
+    'sidebar.shared_chat_read_only': 'This chat was shared with the project. You can read it; ask the project owner for editor access to continue it.',
 };

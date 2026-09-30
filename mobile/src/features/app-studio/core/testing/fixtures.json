@@ -1,0 +1,471 @@
+{
+ "WIRED": {
+  "schemaVersion": 2,
+  "meta": {
+   "name": "Wired",
+   "description": "",
+   "icon": "Box"
+  },
+  "theme": {
+   "primary": "#2563eb",
+   "density": "comfortable"
+  },
+  "homeScreenId": "scr_home01",
+  "roles": [
+   {
+    "id": "manager",
+    "name": "Manager"
+   }
+  ],
+  "variables": [
+   {
+    "name": "count",
+    "type": "number",
+    "default": 2
+   },
+   {
+    "name": "filters",
+    "type": "record",
+    "default": {}
+   },
+   {
+    "name": "tags",
+    "type": "list",
+    "default": [
+     "a"
+    ]
+   }
+  ],
+  "nav": {
+   "style": "tabs",
+   "groups": [
+    {
+     "id": "g1",
+     "label": "Admin",
+     "screens": [
+      "scr_list01",
+      "scr_home01"
+     ]
+    }
+   ]
+  },
+  "screens": [
+   {
+    "id": "scr_home01",
+    "name": "Home",
+    "icon": "Home",
+    "showInNav": true,
+    "maxWidth": "medium",
+    "sections": [
+     {
+      "id": "sec_home01",
+      "style": {
+       "padding": 4,
+       "gap": 3,
+       "background": "none"
+      },
+      "children": [
+       {
+        "id": "cmp_btn001",
+        "type": "button",
+        "props": {
+         "label": "Go"
+        },
+        "style": {
+         "span": 6
+        },
+        "onClick": "act_nav001"
+       },
+       {
+        "id": "cmp_card01",
+        "type": "card",
+        "props": {
+         "title": "Card"
+        },
+        "style": {
+         "span": 6,
+         "background": "panel"
+        },
+        "visibleToRoles": [
+         "manager"
+        ],
+        "children": [
+         {
+          "id": "cmp_mod001",
+          "type": "modal",
+          "props": {
+           "title": "Edit it"
+          },
+          "style": {},
+          "children": [
+           {
+            "id": "cmp_frm001",
+            "type": "form",
+            "props": {
+             "name": "f1"
+            },
+            "style": {},
+            "onSubmit": "act_seq001",
+            "children": []
+           }
+          ]
+         },
+         {
+          "id": "cmp_open01",
+          "type": "button",
+          "props": {
+           "label": "Open"
+          },
+          "style": {},
+          "onClick": "act_opn001"
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "id": "sec_home02",
+      "style": {
+       "padding": 2,
+       "gap": 1,
+       "height": "fill"
+      },
+      "children": []
+     }
+    ]
+   },
+   {
+    "id": "scr_list01",
+    "name": "List",
+    "icon": null,
+    "showInNav": true,
+    "maxWidth": "wide",
+    "visibleToRoles": [
+     "manager"
+    ],
+    "sections": [
+     {
+      "id": "sec_list01",
+      "style": {
+       "padding": 4,
+       "gap": 3,
+       "background": "surface"
+      },
+      "children": [
+       {
+        "id": "cmp_grid01",
+        "type": "data_grid",
+        "style": {
+         "span": 12,
+         "height": "lg"
+        },
+        "onRowClick": "act_nav002",
+        "onRowSelect": "act_tst001",
+        "props": {
+         "source": {
+          "kind": "records",
+          "tableId": "tbl_tickets"
+         },
+         "rowActions": [
+          {
+           "label": "Ping",
+           "actionId": "act_tst001"
+          },
+          {
+           "label": "Other",
+           "actionId": "act_seq001"
+          },
+          null
+         ],
+         "toolbarActions": [
+          {
+           "label": "Export",
+           "actionId": "act_tst001"
+          }
+         ],
+         "bulkActions": [
+          {
+           "label": "Blank",
+           "actionId": ""
+          }
+         ],
+         "addRowActionId": "act_tst001",
+         "columns": [
+          {
+           "key": "title",
+           "label": "Title",
+           "actionId": "act_tst001"
+          },
+          {
+           "key": "state"
+          }
+         ]
+        }
+       },
+       {
+        "id": "cmp_kan001",
+        "type": "kanban",
+        "props": {
+         "source": {
+          "kind": "record",
+          "tableId": "tbl_other"
+         }
+        },
+        "style": {
+         "span": 4
+        },
+        "onCardMove": "act_seq001"
+       },
+       {
+        "id": "cmp_sel001",
+        "type": "input_select",
+        "props": {
+         "label": "Pick"
+        },
+        "style": {
+         "span": 8
+        },
+        "onChange": "act_gone01"
+       },
+       {
+        "id": "cmp_appr01",
+        "type": "approval_list",
+        "props": {},
+        "style": {},
+        "onDecided": "act_orph01"
+       },
+       {
+        "id": "cmp_txt001",
+        "type": "text",
+        "props": {
+         "text": "x",
+         "value": {
+          "kind": "actionResult",
+          "actionId": "act_tst001",
+          "path": "a"
+         }
+        },
+        "style": {
+         "align": "center",
+         "color": "danger",
+         "radius": "lg",
+         "padding": 2
+        }
+       }
+      ]
+     }
+    ]
+   }
+  ],
+  "actions": {
+   "act_nav001": {
+    "kind": "navigate",
+    "screenId": "scr_list01"
+   },
+   "act_nav002": {
+    "kind": "navigate",
+    "screenId": "scr_home01",
+    "params": {
+     "id": {
+      "kind": "formula",
+      "expr": "item.id"
+     }
+    }
+   },
+   "act_tst001": {
+    "kind": "toast",
+    "message": "Saved the ticket right now",
+    "tone": "success"
+   },
+   "act_opn001": {
+    "kind": "open_modal",
+    "modalId": "cmp_mod001"
+   },
+   "act_cls001": {
+    "kind": "close_modal",
+    "modalId": "cmp_mod001"
+   },
+   "act_orph01": {
+    "kind": "run_automation",
+    "automationId": "auto_1",
+    "onSuccess": {
+     "navigateTo": "scr_list01",
+     "toast": "ok"
+    },
+    "onError": {
+     "navigateTo": "scr_home01"
+    }
+   },
+   "act_seq001": {
+    "kind": "sequence",
+    "steps": [
+     {
+      "kind": "confirm",
+      "message": "Sure?"
+     },
+     {
+      "kind": "create_record",
+      "tableId": "tbl_tickets",
+      "values": {}
+     },
+     {
+      "kind": "condition",
+      "expr": "vars.count > 1",
+      "then": [
+       {
+        "kind": "navigate",
+        "screenId": "scr_list01"
+       },
+       {
+        "kind": "close_modal",
+        "modalId": "cmp_mod001"
+       }
+      ],
+      "else": [
+       {
+        "kind": "loop",
+        "source": {
+         "kind": "static",
+         "value": [
+          1,
+          2
+         ]
+        },
+        "itemVar": "item",
+        "steps": [
+         {
+          "kind": "open_modal",
+          "modalId": "cmp_mod001"
+         },
+         {
+          "kind": "update_record",
+          "tableId": "tbl_tickets",
+          "values": {}
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "kind": "switch",
+      "expr": "vars.count",
+      "cases": [
+       {
+        "value": 1,
+        "steps": [
+         {
+          "kind": "navigate",
+          "screenId": "scr_home01"
+         }
+        ]
+       },
+       {
+        "value": "",
+        "steps": [
+         {
+          "kind": "toast",
+          "message": "x"
+         }
+        ]
+       },
+       null
+      ],
+      "default": [
+       {
+        "kind": "navigate",
+        "screenId": "scr_list01"
+       },
+       {
+        "kind": "send_email",
+        "connectorId": "c1"
+       }
+      ]
+     },
+     "not-a-step"
+    ]
+   }
+  }
+ },
+ "BROKEN": {
+  "schemaVersion": 2,
+  "homeScreenId": "home",
+  "screens": [
+   {
+    "id": "home",
+    "name": "Home",
+    "sections": [
+     {
+      "id": "sec_aaaa01",
+      "children": [
+       {
+        "id": "btn",
+        "type": "button",
+        "onClick": "go",
+        "props": {
+         "v": {
+          "kind": "actionResult",
+          "actionId": "go"
+         }
+        }
+       },
+       {
+        "type": "text",
+        "props": {}
+       },
+       {
+        "id": "cmp_dup001",
+        "type": "text"
+       },
+       {
+        "id": "cmp_dup001",
+        "type": "card",
+        "children": [
+         {
+          "id": "x",
+          "type": "text"
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "children": []
+     }
+    ]
+   },
+   {
+    "id": "scr_ok0001",
+    "name": "Two",
+    "sections": [
+     {
+      "id": "sec_aaaa01",
+      "children": []
+     }
+    ]
+   },
+   {
+    "id": "dup",
+    "name": "Dup A",
+    "sections": []
+   },
+   {
+    "id": "dup",
+    "name": "Dup B",
+    "sections": []
+   }
+  ],
+  "actions": {
+   "go": {
+    "kind": "navigate",
+    "screenId": "home",
+    "onSuccess": {
+     "navigateTo": "home"
+    }
+   },
+   "act_fine01": {
+    "kind": "navigate",
+    "screenId": "dup"
+   }
+  }
+ }
+}

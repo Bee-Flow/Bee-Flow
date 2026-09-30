@@ -3,44 +3,66 @@
  * NotebookEditor: identical props + imperative ref API, so the call sites switch
  * with one import. React renders the chrome (toolbar, bubble menus, atom portals)
  * and a single contentEditable host; the EditorView owns the editable DOM.
+ *
+ * Co-editing: pass `collab` (a handle from editor/collab/useCollab). Once the
+ * session has synced the editor edits the shared document: the `content` prop
+ * and the onSave debounce are ignored (onChange still reports the HTML, with
+ * `{ remote }` telling whose change it was), undo is per person, and the other
+ * people's carets are drawn beside the text. Until then the last saved content
+ * is shown read-only.
+ *
+ * Everything drawn over the text (carets, find results, comment highlights)
+ * lives OUTSIDE the host, in the positioned wrapper around it.
  */
-import React, {
-  useRef, useEffect, useState, useCallback, forwardRef, useImperativeHandle, useReducer,
-} from 'react';
-import { createPortal } from 'react-dom';
 import {
   Bold, Italic, Underline as UnderlineIcon, Strikethrough, List, ListOrdered, Quote,
   Heading1, Heading2, Heading3, AlignLeft, AlignCenter, AlignRight,
   Highlighter, Wand2, RefreshCw, Scissors, Expand, Code, Link as LinkIcon,
   Table2, Trash2, ChevronDown, ChevronRight, Sigma, CheckSquare, ImageIcon, Palette, WrapText,
-  Loader2, ExternalLink, Minus, Pilcrow, Plus, BarChart3, X,
+  Loader2, Minus, Pilcrow, Plus, BarChart3, X,
 } from 'lucide-react';
-import useTranslation from '../../hooks/useTranslation';
-import useFloatingRect from './useFloatingRect.js';
-import SlashMenu from './SlashMenu.jsx';
-import { EditorView } from '../engine/view.js';
-import { createState } from '../engine/state.js';
-import { htmlToAst } from '../serialization/htmlToAst.js';
-import { contentToDoc, markdownToDoc } from './contentPipeline.js';
-import { makeFacade } from './editorFacade.js';
-import ImageView from '../nodeviews/ImageView.jsx';
-import MermaidView from '../nodeviews/MermaidView.jsx';
-import MathView from '../nodeviews/MathView.jsx';
-import FormulaView from '../nodeviews/FormulaView.jsx';
-import ChartView from '../nodeviews/ChartView.jsx';
+import React, {
+  useRef, useEffect, useState, useCallback, forwardRef, useImperativeHandle,
+} from 'react';
+import { createPortal } from 'react-dom';
 import ChartConfigModal from './ChartConfigModal.jsx';
 import ChromeBoundary from './ChromeBoundary.jsx';
-import { tableToMatrix } from '../engine/formula.js';
-import { colLabel } from '../engine/formulaRefs.js';
-import * as Tbl from '../engine/tables.js';
-import { tableGrid } from '../engine/tables.js';
-import SectionDragLayer from './SectionDragLayer.jsx';
-import { API_BASE, authFetch } from '../../utils/helpers';
+import { contentToDoc, markdownToDoc } from './contentPipeline.js';
+import { makeFacade } from './editorFacade.js';
 import EditorToolbar from './EditorToolbar.jsx';
+import FindBar from './FindBar';
+import { LinkBubble, LinkEditor } from './LinkTools';
+import RangeOverlay from './RangeOverlay';
+import RemoteCursorsLayer from './RemoteCursorsLayer';
+import SectionDragLayer from './SectionDragLayer.jsx';
+import { matchShortcut, SHORTCUT_COMMANDS } from './shortcuts';
+import ShortcutsSheet from './ShortcutsSheet';
+import SlashMenu from './SlashMenu.jsx';
 import {
   Btn, Dropdown, Item, MenuDivider, MenuLabel, BubbleDivider, mkTt,
   FONT_FAMILIES, PALETTE, HIGHLIGHTS,
 } from './toolbarPrimitives.jsx';
+import useEditorAnchors from './useEditorAnchors';
+import useEditorChrome from './useEditorChrome';
+import useEditorCollab from './useEditorCollab';
+import useFloatingRect from './useFloatingRect.js';
+import useTranslation from '../../hooks/useTranslation';
+import { API_BASE, authFetch } from '../../utils/helpers';
+import { rebaseDoc } from '../collab/rebaseDoc';
+import { tableToMatrix } from '../engine/formula.js';
+import { colLabel } from '../engine/formulaRefs.js';
+import { applyLink, removeLink, linkRangeAt } from '../engine/links';
+import { isText as isTextSel } from '../engine/selection.js';
+import { createState } from '../engine/state.js';
+import { tableGrid } from '../engine/tables.js';
+import * as Tbl from '../engine/tables.js';
+import { EditorView } from '../engine/view.js';
+import ChartView from '../nodeviews/ChartView.jsx';
+import FormulaView from '../nodeviews/FormulaView.jsx';
+import ImageView from '../nodeviews/ImageView.jsx';
+import MathView from '../nodeviews/MathView.jsx';
+import MermaidView from '../nodeviews/MermaidView.jsx';
+import { htmlToAst } from '../serialization/htmlToAst.js';
 import '../editor.css';
 import 'katex/dist/katex.min.css';
 
@@ -49,12 +71,29 @@ const BeeEditor = forwardRef(function BeeEditor(props, ref) {
   const {
     content, placeholder, editable = true, onChange, onSave, onAIAction, onAIFill,
     saving, onImportClick, generating, aiFilling, onTocUpdate, onWordCountChange,
-    notebookId, askAiEnabled = true,
+    notebookId, askAiEnabled = true, collab: collabHandle = null, onUploadImage,
   } = props;
 
   const { t } = useTranslation();
   const hostRef = useRef(null);
   const viewRef = useRef(null);
+  // The view as state as well, so hooks that need it (co-editing, find, anchors) re-run once it exists.
+  const [viewInst, setViewInst] = useState(null);
+  // The positioned wrapper around the host: overlays are measured against it.
+  const [wrapEl, setWrapEl] = useState(null);
+  // Bumped after every flushed document change: overlays re-measure on it.
+  const [tick, setTick] = useState(0);
+  const [linkEdit, setLinkEdit] = useState(null); // { rect, href, canRemove, doc, selection } | null
+  const linkEditRef = useRef(null);
+  linkEditRef.current = linkEdit;
+  const [findOpen, setFindOpen] = useState(false);
+  const [findFocus, setFindFocus] = useState(0);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [uploadError, setUploadError] = useState(false);
+  const onUploadImageRef = useRef(onUploadImage);
+  onUploadImageRef.current = onUploadImage;
+  // Assigned every render below; the host's keydown listener calls through it.
+  const runShortcutRef = useRef(() => false);
   const facadeRef = useRef(null);
   const notebookIdRef = useRef(notebookId);
   const lastHtmlRef = useRef(null);
@@ -67,7 +106,6 @@ const BeeEditor = forwardRef(function BeeEditor(props, ref) {
   const contentGenRef = useRef(0);
   const onChangeRef = useRef(onChange);
   const onSaveRef = useRef(onSave);
-  const [, bump] = useReducer((x) => x + 1, 0);
   const [atoms, setAtoms] = useState([]);
   const [wordCount, setWordCount] = useState(0);
   const [ask, setAsk] = useState(null); // {anchor:{top,left}, from, to, text}
@@ -99,17 +137,38 @@ const BeeEditor = forwardRef(function BeeEditor(props, ref) {
   useEffect(() => { onWordCountRef.current = onWordCountChange; }, [onWordCountChange]);
   const applyWordCount = useCallback((n) => { setWordCount(n); onWordCountRef.current?.(n); }, []);
 
+  // Word count, outline, onChange's HTML and the toolbar state: at most once
+  // per animation frame (each is O(document)), and only sent when changed.
+  const chrome = useEditorChrome({
+    viewRef,
+    lastHtmlRef,
+    onChange: (html, meta) => onChangeRef.current?.(html, meta),
+    onToc: (items) => onTocRef.current?.(items),
+    onWordCount: applyWordCount,
+    onRender: () => setTick((n) => n + 1),
+  });
+  const chromeRef = useRef(chrome);
+  chromeRef.current = chrome;
+
+  // Co-editing: bound once the session synced; read-only while it connects.
+  const collab = useEditorCollab(viewInst, collabHandle);
+  const collabRef = useRef(collab);
+  collabRef.current = collab;
+  const effectiveEditable = editable && (!collab.active || collab.canEdit);
+  const editableRef = useRef(effectiveEditable);
+  editableRef.current = effectiveEditable;
+  const anchors = useEditorAnchors(viewRef, collab.binding);
+  const anchorsRef = useRef(anchors);
+  anchorsRef.current = anchors;
+
   // Recompute toolbar chrome (word count, TOC) after an external content change
   // that doesn't emit an update (setContent / AI write / content prop) — without
   // triggering a save. Fixes the "0 words after AI write" stale-count bug.
   const refreshChrome = useCallback(() => {
-    const v = viewRef.current;
-    if (!v) return;
-    lastHtmlRef.current = v.getHTML();
-    applyWordCount(countWords(v.getText()));
-    updateToc(v, onTocRef.current);
-    bump();
-  }, [applyWordCount]);
+    if (!viewRef.current) return;
+    chromeRef.current.schedule({ doc: true });
+    chromeRef.current.flush();
+  }, []);
 
   // Collapse state is view-only (never serialized): reload on notebook switch,
   // persist on change, and re-apply the `bf-collapsed` class to each table el
@@ -168,32 +227,37 @@ const BeeEditor = forwardRef(function BeeEditor(props, ref) {
       // Re-point an atom's portal at the new node (attr change) WITHOUT unmounting,
       // so the mermaid/math view keeps its DOM + internal state (no flicker/reset).
       remapAtom: (hostEl, n) => { hostEl.__bfAtomNode = n; setAtoms((a) => a.map((x) => (x.host === hostEl ? { ...x, node: n } : x))); },
-      onUpdate: () => {
-        // Serialize FIRST. Clearing the save timer before this meant a throw in
-        // the serializer both lost the pending save and scheduled no new one,
-        // so the editor went quietly read-only from the user's point of view.
-        const html = view.getHTML();
-        lastHtmlRef.current = html;
-        if (saveTimer.current) clearTimeout(saveTimer.current);
-        const genAtSchedule = contentGenRef.current;
-        const idAtSchedule = notebookIdRef.current;
-        saveTimer.current = setTimeout(() => {
-          // Only persist if we haven't switched notebooks since this edit.
-          if (contentGenRef.current === genAtSchedule && notebookIdRef.current === idAtSchedule) onSaveRef.current?.(html);
-        }, 2000);
-        onChangeRef.current?.(html);
-        applyWordCount(countWords(view.getText()));
-        updateToc(view, onTocRef.current);
-        bump();
+      onUpdate: (meta) => {
+        const remote = !!meta?.remote;
+        // A co-edited document is saved by the server; only a single-writer
+        // document schedules the debounced save.
+        if (!collabRef.current.active && !remote) {
+          if (saveTimer.current) clearTimeout(saveTimer.current);
+          const genAtSchedule = contentGenRef.current;
+          const idAtSchedule = notebookIdRef.current;
+          saveTimer.current = setTimeout(() => {
+            saveTimer.current = null;
+            // Only persist if we haven't switched notebooks since this edit.
+            if (contentGenRef.current !== genAtSchedule || notebookIdRef.current !== idAtSchedule) return;
+            let html;
+            try { html = view.getHTML(); } catch (e) {
+              console.error('[BeeEditor] could not serialise the document — it was not saved', e?.name || 'Error');
+              return;
+            }
+            lastHtmlRef.current = html;
+            onSaveRef.current?.(html);
+          }, 2000);
+        }
+        chromeRef.current.schedule({ doc: true, emit: true, remote });
       },
-      onSelectionChange: () => bump(),
+      onSelectionChange: () => chromeRef.current.schedule(),
     });
     viewRef.current = view;
     facadeRef.current = makeFacade(view);
-    console.info('%c[BeeEditor] new editor active (not TipTap)', 'color:#3b82f6;font-weight:600');
+    setViewInst(view);
     lastHtmlRef.current = view.getHTML();
-    applyWordCount(countWords(view.getText()));
-    updateToc(view, onTocUpdate);
+    chromeRef.current.schedule({ doc: true });
+    chromeRef.current.flush();
 
     // Image paste/drop → upload (capture phase, before the view's text handler)
     // preventDefault is required on BOTH branches: stopImmediatePropagation
@@ -204,18 +268,28 @@ const BeeEditor = forwardRef(function BeeEditor(props, ref) {
     const onDrop = (e) => { if (handleImageClipboard(e.dataTransfer)) { e.preventDefault(); e.stopImmediatePropagation(); } };
     host.addEventListener('paste', onPaste, true);
     host.addEventListener('drop', onDrop, true);
+    // Shortcuts beyond the engine's own (bold/italic/underline/undo/redo).
+    const onKeyDown = (e) => {
+      if (e.defaultPrevented || view.inAtom(e.target)) return;
+      const action = matchShortcut(e);
+      if (!action) return;
+      if (runShortcutRef.current(action)) e.preventDefault();
+    };
+    host.addEventListener('keydown', onKeyDown);
 
     // Thorough teardown so a StrictMode/HMR re-mount starts from a clean host
     // (no duplicate listeners, no orphaned atom portals, no pending save).
     return () => {
       host.removeEventListener('paste', onPaste, true);
       host.removeEventListener('drop', onDrop, true);
+      host.removeEventListener('keydown', onKeyDown);
       if (saveTimer.current) { clearTimeout(saveTimer.current); saveTimer.current = null; }
       view.destroy();
-      try { host.textContent = ''; } catch (e) { /* noop */ }
+      try { host.textContent = ''; } catch { /* noop */ }
       setAtoms([]);
       viewRef.current = null;
       facadeRef.current = null;
+      setViewInst(null);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps -- the ProseMirror view is created once per mount; later prop changes are applied by the effects below
   }, []);
@@ -224,6 +298,9 @@ const BeeEditor = forwardRef(function BeeEditor(props, ref) {
   useEffect(() => {
     const view = viewRef.current;
     if (!view) return;
+    // While co-editing, the shared document is the content; the prop is only
+    // the starting point shown until the session has synced.
+    if (collab.bound) return;
     if (typeof content === 'string' && content !== lastHtmlRef.current) {
       // External content swap: cancel any save still pending for the old content.
       if (saveTimer.current) { clearTimeout(saveTimer.current); saveTimer.current = null; }
@@ -234,9 +311,9 @@ const BeeEditor = forwardRef(function BeeEditor(props, ref) {
       // to the re-serialized HTML, which may differ from `content`).
       lastHtmlRef.current = content;
     }
-  }, [content, refreshChrome]);
+  }, [content, refreshChrome, collab.bound]);
 
-  useEffect(() => { viewRef.current?.setEditable(editable); }, [editable]);
+  useEffect(() => { viewRef.current?.setEditable(effectiveEditable); }, [effectiveEditable, viewInst]);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -250,24 +327,28 @@ const BeeEditor = forwardRef(function BeeEditor(props, ref) {
     host.style.setProperty('--bf-placeholder', `"${fallback.replace(/"/g, '\\"')}"`);
   }, [placeholder, t]);
 
-  /* image upload */
+  /* image upload: the caller's uploader (onUploadImage), else the notebook's endpoint */
   const uploadImage = useCallback(async (file) => {
+    if (!file || !/^image\//.test(file.type)) return;
     const nbId = notebookIdRef.current;
-    if (!nbId || !file || !/^image\//.test(file.type)) return;
-    const fd = new FormData();
-    fd.append('image', file);
+    const upload = onUploadImageRef.current || (nbId ? (f) => uploadNotebookImage(nbId, f) : null);
+    if (!upload) return;
     try {
-      // authFetch, not the global fetch: the bare call bypassed the demo-mode
-      // transport, so an image paste inside a public feature demo escaped the
-      // fixture layer and hit the real API unauthenticated.
-      const res = await authFetch(`${API_BASE}/api/notebooks/${nbId}/images`, { method: 'POST', body: fd, credentials: 'include' });
-      const data = await res.json();
-      if (data.url) {
-        const src = `${API_BASE}${data.url}`;
-        if (src.startsWith('/') || /^https?:\/\//i.test(src)) viewRef.current?.chain().focus().setImage({ src, alt: file.name }).run();
-      }
-    } catch (err) { console.error('[BeeEditor] image upload failed', err); }
+      const result = await upload(file);
+      if (result === null) return;
+      if (!isSafeImageSrc(result?.src)) { setUploadError(true); return; }
+      setUploadError(false);
+      viewRef.current?.chain().focus().setImage({ src: String(result.src), alt: result.alt || file.name }).run();
+    } catch (err) {
+      console.error('[BeeEditor] image upload failed', err?.name || 'Error');
+      setUploadError(true);
+    }
   }, []);
+  useEffect(() => {
+    if (!uploadError) return undefined;
+    const timer = setTimeout(() => setUploadError(false), 6000);
+    return () => clearTimeout(timer);
+  }, [uploadError]);
 
   const handleImageClipboard = (dt) => {
     const items = Array.from(dt?.items || dt?.files || []);
@@ -285,6 +366,28 @@ const BeeEditor = forwardRef(function BeeEditor(props, ref) {
     insertMarkdown: (md) => { viewRef.current?.chain().focus().insertContent(md).run(); refreshChrome(); },
     setMarkdownContent: (md) => { viewRef.current?.setDoc(markdownToDoc(md), { emitUpdate: false }); refreshChrome(); },
     setMarkdown: (md) => { viewRef.current?.setDoc(markdownToDoc(md), { emitUpdate: false }); refreshChrome(); },
+    /**
+     * Show new content (an AI edit, a restored version) as ONE undoable step,
+     * keeping the caret and the scroll position; setContent instead starts a
+     * fresh history (a different document). `markdown: true` reads Markdown.
+     * Nothing is saved: the caller already holds, or saves, this content; an
+     * undo afterwards is an ordinary edit and is saved like typing.
+     * `base`: the HTML the new content was made from. While co-editing, what
+     * others changed since that snapshot is kept instead of overwritten.
+     */
+    replaceDocument: (value, { markdown = false, base = null } = {}) => {
+      const view = viewRef.current;
+      if (!view) return;
+      if (saveTimer.current) { clearTimeout(saveTimer.current); saveTimer.current = null; }
+      const baseDoc = typeof base === 'string' ? contentToDoc(base) : null;
+      const rebase = baseDoc ? (current, next) => rebaseDoc(baseDoc, current, next) : null;
+      view.replaceDoc(markdown ? markdownToDoc(value) : contentToDoc(value), { emitUpdate: false, rebase });
+      refreshChrome();
+      // A content prop equal to what is now shown must not replace it again (that drops the undo step).
+      if (!markdown && typeof value === 'string') lastHtmlRef.current = value;
+    },
+    /** Open the keyboard shortcuts sheet (the command palette's entry). */
+    openShortcuts: () => setShortcutsOpen(true),
     getEditor: () => facadeRef.current,
     /**
      * Persist right now, cancelling the pending debounce.
@@ -301,6 +404,8 @@ const BeeEditor = forwardRef(function BeeEditor(props, ref) {
     flush: () => {
       const view = viewRef.current;
       if (!view) return null;
+      // A co-edited document has no pending local save: every change is already on its way.
+      if (collabRef.current.active) return null;
       const hadPending = saveTimer.current != null;
       if (saveTimer.current) { clearTimeout(saveTimer.current); saveTimer.current = null; }
       if (!hadPending) return null;
@@ -309,15 +414,25 @@ const BeeEditor = forwardRef(function BeeEditor(props, ref) {
       onSaveRef.current?.(html);
       return html;
     },
+    /** The comment anchor for the current selection, or null without one. */
+    getSelectionAnchor: () => anchorsRef.current.getSelectionAnchor(),
+    /** Highlight these anchors (and one more strongly); an empty list clears them. */
+    highlightAnchors: (list, activeId) => anchorsRef.current.highlightAnchors(list, activeId),
+    /** Scroll an anchor into view; false when its text is gone. */
+    scrollToAnchor: (anchor) => anchorsRef.current.scrollToAnchor(anchor),
+    /** Scroll to the index-th heading of the outline (onTocUpdate's itemIndex). */
+    scrollToHeading: (index) => anchorsRef.current.scrollToHeading(index),
+    /** Open the find bar (for pages that offer Find while the editor is read-only). */
+    openFind: () => { setFindOpen(true); setFindFocus((n) => n + 1); },
   }), [refreshChrome]);
 
   const editor = facadeRef.current;
   const selectedAtomNode = viewRef.current?.getSelectedNode?.() || null;
-  // Re-evaluated each render; BeeEditor re-renders on selectionchange (bump),
+  // Re-evaluated each render; BeeEditor re-renders on selection changes (chrome),
   // so the toolbar's AI items enable/disable as the selection changes.
   const hasSelection = !!(viewRef.current && selectionText(viewRef.current).trim());
   // The table the caret sits in (for the on-edit add-row/add-column controls).
-  const tableInfo = editor && editable ? (viewRef.current?.tableInfo?.() || null) : null;
+  const tableInfo = editor && effectiveEditable ? (viewRef.current?.tableInfo?.() || null) : null;
   const tableCollapsed = tableInfo ? collapsed.has(tableInfo.ordinal) : false;
   const headersHidden = tableInfo ? hiddenHeaders.has(tableInfo.ordinal) : false;
   const toggleHeadersFocused = useCallback(() => {
@@ -329,6 +444,56 @@ const BeeEditor = forwardRef(function BeeEditor(props, ref) {
       return n;
     });
   }, []);
+
+  /* link editing: an inline popover instead of the browser's prompt dialog */
+  const openLinkEditor = useCallback(() => {
+    const view = viewRef.current;
+    if (!view || !editableRef.current) return;
+    const sel = view.state.selection;
+    if (!isTextSel(sel)) return;
+    const existing = linkRangeAt(view.state);
+    // The selection is captured now: focusing the address field can move the
+    // browser selection, and the link belongs on what was selected here.
+    setLinkEdit({
+      rect: selectionRect() || blockRect(view),
+      href: existing?.href || '',
+      canRemove: !!existing || !!view.isActive('link'),
+      doc: view.state.doc,
+      selection: sel,
+    });
+  }, []);
+  /** Run a link transform on the selection captured when the editor opened (while it still applies). */
+  const withLinkSelection = useCallback((fn) => {
+    const view = viewRef.current;
+    if (!view) return;
+    const captured = linkEditRef.current;
+    view.focus();
+    const same = captured && captured.doc === view.state.doc;
+    view.dispatch((s) => fn(same ? { ...s, selection: captured.selection } : s), { kind: 'format' });
+  }, []);
+  const closeLinkEditor = useCallback(() => { setLinkEdit(null); viewRef.current?.focus(); }, []);
+  const applyLinkHref = useCallback((href) => {
+    withLinkSelection((s) => applyLink(s, href));
+    setLinkEdit(null);
+  }, [withLinkSelection]);
+  const removeLinkHere = useCallback(() => {
+    withLinkSelection((s) => removeLink(s));
+    setLinkEdit(null);
+  }, [withLinkSelection]);
+
+  /* keyboard shortcuts (catalogue in shortcuts.ts; the sheet reads the same list) */
+  runShortcutRef.current = (action) => {
+    const view = viewRef.current;
+    if (!view) return false;
+    if (action === 'find') { setFindOpen(true); setFindFocus((n) => n + 1); return true; }
+    if (action === 'shortcuts') { setShortcutsOpen(true); return true; }
+    if (!editableRef.current) return false;
+    if (action === 'link') { openLinkEditor(); return true; }
+    const command = SHORTCUT_COMMANDS[action];
+    if (!command) return false;
+    command(view.chain().focus()).run();
+    return true;
+  };
 
   /* AI action helpers */
   const aiAction = (key, customQuery = null) => {
@@ -352,7 +517,7 @@ const BeeEditor = forwardRef(function BeeEditor(props, ref) {
     try {
       const dsel = window.getSelection();
       if (dsel && dsel.rangeCount) { const r = dsel.getRangeAt(0).getBoundingClientRect(); anchor = { top: r.top, left: r.left }; }
-    } catch (e) { /* noop */ }
+    } catch { /* noop */ }
     setAsk({ anchor, from: flat.from, to: flat.to, text });
     setAskQuery('');
   };
@@ -419,10 +584,13 @@ const BeeEditor = forwardRef(function BeeEditor(props, ref) {
       <input ref={imageInputRef} type="file" accept="image/*" className="hidden"
         onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadImage(f); e.target.value = ''; }} />
 
-      {editor && editable && (
+      {editor && effectiveEditable && (
         <EditorToolbar
           editor={editor}
           t={t}
+          onLink={openLinkEditor}
+          onShowShortcuts={() => setShortcutsOpen(true)}
+          onFind={() => { setFindOpen(true); setFindFocus((n) => n + 1); }}
           insertItems={toolbarInsertItems}
           onInsert={runInsert}
           onToggleColumnNames={toggleHeadersFocused}
@@ -445,30 +613,59 @@ const BeeEditor = forwardRef(function BeeEditor(props, ref) {
         />
       )}
 
-      {generating && <GeneratingOverlay label={generating} />}
+      {generating && <GeneratingOverlay label={generating} t={t} />}
 
-      <div className="flex-1 overflow-y-auto custom-scrollbar">
-        <div className="max-w-[820px] mx-auto px-8 py-6 relative">
-          {editor && editable && <SectionDragLayer hostRef={hostRef} viewRef={viewRef} />}
-          <div ref={hostRef} className="notebook-editor bf-content" />
+      {collab.loading && (
+        <div role="status" className="bf-collab-loading">
+          <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />
+          {t('editor.collab_loading', 'Opening the live document…')}
+        </div>
+      )}
+      {uploadError && (
+        <div role="status" className="bf-editor-notice">
+          {t('editor.image_upload_failed', 'The image could not be uploaded. Try again, or use a smaller image.')}
+        </div>
+      )}
+
+      <div className="flex-1 overflow-y-auto custom-scrollbar" onScroll={chrome.onScroll}>
+        {findOpen && viewInst && (
+          <FindBar
+            view={viewInst}
+            editable={effectiveEditable}
+            tick={tick}
+            container={wrapEl}
+            focusSignal={findFocus}
+            onClose={() => setFindOpen(false)}
+          />
+        )}
+        <div ref={setWrapEl} className="bf-editor-surface max-w-[820px] mx-auto px-8 py-6">
+          {editor && effectiveEditable && (
+            <SectionDragLayer hostRef={hostRef} viewRef={viewRef} isLocked={collab.bound ? (from, count) => peerInBlocks(collab.binding, collabHandle?.peers, from, count) : null} />
+          )}
+          <div ref={hostRef} className="notebook-editor bf-content" aria-busy={collab.loading || undefined} />
+          <RangeOverlay layers={anchors.layers} container={wrapEl} tick={tick} />
+          {collab.bound && (
+            <RemoteCursorsLayer view={viewInst} binding={collab.binding} peers={collabHandle?.peers || []} container={wrapEl} tick={tick} />
+          )}
         </div>
       </div>
 
       {/* contextual format bubble (inline marks + block + AI) */}
-      {editor && editable && (
+      {editor && effectiveEditable && (
         <FormatBubble
+          onLink={openLinkEditor}
           view={viewRef.current}
           editor={editor}
           t={t}
           askAiEnabled={askAiEnabled}
           onAction={aiAction}
           onAsk={(anchor, from, to, text) => { setAsk({ anchor, from, to, text }); setAskQuery(''); }}
-          askOpen={!!ask}
+          askOpen={!!ask || !!linkEdit}
         />
       )}
 
       {/* slash command menu (/ for block insertion) */}
-      {editor && editable && slash && (
+      {editor && effectiveEditable && slash && (
         <SlashMenu
           items={insertItems}
           query={slash.query}
@@ -479,19 +676,28 @@ const BeeEditor = forwardRef(function BeeEditor(props, ref) {
       )}
 
       {/* table add-row / add-column + collapse controls (caret inside a table) */}
-      {editor && editable && tableInfo && (
+      {editor && effectiveEditable && tableInfo && (
         <ChromeBoundary label="table controls">
           <TableControls view={viewRef.current} info={tableInfo} t={t} collapsed={tableCollapsed} onToggleCollapse={toggleCollapseFocused} headersHidden={headersHidden} />
         </ChromeBoundary>
       )}
 
       {/* image bubble */}
-      {editor && editable && selectedAtomNode?.type === 'image' && (
+      {editor && effectiveEditable && selectedAtomNode?.type === 'image' && (
         <ImageBubble view={viewRef.current} node={selectedAtomNode} />
       )}
 
-      {/* link edit popover (caret inside a link) */}
-      {editor && editable && <LinkPopover view={viewRef.current} editor={editor} />}
+      {/* link bubble (caret inside a link) and the inline link editor */}
+      {editor && !linkEdit && editor.isActive('link') && (() => {
+        const rect = selectionRect();
+        if (!rect) return null;
+        return <LinkBubble rect={rect} href={editor.getAttributes('link').href || ''} editable={effectiveEditable} onEdit={openLinkEditor} onRemove={removeLinkHere} />;
+      })()}
+      {linkEdit && linkEdit.rect && (
+        <LinkEditor rect={linkEdit.rect} initialHref={linkEdit.href} canRemove={linkEdit.canRemove}
+          onApply={applyLinkHref} onRemove={removeLinkHere} onClose={closeLinkEditor} />
+      )}
+      <ShortcutsSheet open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
 
       {/* ask AI floating portal */}
       {ask && (
@@ -519,7 +725,7 @@ const BeeEditor = forwardRef(function BeeEditor(props, ref) {
           node={a.node}
           view={viewRef.current}
           selected={selectedAtomNode === a.node}
-          editable={editable}
+          editable={effectiveEditable}
           brokenLabel={t('notebooks.atom_render_failed', 'Could not display this block')}
         />,
         a.host, a.id,
@@ -544,7 +750,6 @@ class AtomErrorBoundary extends React.Component {
   static getDerivedStateFromError(error) { return { error }; }
 
   componentDidCatch(error) {
-    // eslint-disable-next-line no-console
     console.error(`[BeeEditor] ${this.props.type} node view failed to render`, error);
   }
 
@@ -605,7 +810,7 @@ function buildInsertItems(t) {
 // FormatBubble — the contextual formatter shown on a text selection. It is now
 // the PRIMARY formatting surface (the persistent toolbar was demoted): inline
 // marks + "turn into" block type + alignment + colour/highlight/font + AI.
-function FormatBubble({ view, editor, t, askAiEnabled, onAction, onAsk, askOpen }) {
+function FormatBubble({ view, editor, t, askAiEnabled, onAction, onAsk, askOpen, onLink }) {
   const rect = useFloatingRect(view, { enabled: !askOpen });
   if (!rect || !editor) return null;
   const tt = mkTt(t);
@@ -642,7 +847,7 @@ function FormatBubble({ view, editor, t, askAiEnabled, onAction, onAsk, askOpen 
       <Btn onClick={() => chain().toggleStrike().run()} active={editor.isActive('strike')} icon={Strikethrough} title={tt('notebooks.strikethrough', 'Strikethrough')} />
       <Btn onClick={() => chain().toggleCode().run()} active={editor.isActive('code')} icon={Code} title={tt('notebooks.inline_code', 'Inline code')} />
       <Btn onClick={() => chain().toggleHighlight().run()} active={editor.isActive('highlight')} icon={Highlighter} title={tt('notebooks.highlight', 'Highlight')} />
-      <Btn onClick={() => { const url = window.prompt(tt('notebooks.url', 'URL')); if (url) chain().setLink({ href: url }).run(); }} active={editor.isActive('link')} icon={LinkIcon} title={tt('notebooks.insert_link', 'Insert link')} />
+      <Btn onClick={() => onLink?.()} active={editor.isActive('link')} icon={LinkIcon} title={tt('notebooks.insert_link', 'Insert link')} />
 
       <BubbleDivider />
 
@@ -805,47 +1010,16 @@ function AskPortal({ ask, query, setQuery, onSubmit, onClose, t }) {
   );
 }
 
-function GeneratingOverlay({ label }) {
+function GeneratingOverlay({ label, t }) {
   return (
     <div className="absolute inset-0 z-40 flex items-center justify-center pointer-events-none" style={{ background: 'rgba(127,127,127,0.06)' }}>
       <div className="flex items-center gap-3 px-5 py-4 rounded-2xl shadow-2xl border text-sm font-semibold" style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}>
         <Loader2 className="w-4 h-4 animate-spin" style={{ color: 'var(--accent-primary)' }} />
-        <span>Generating {String(label).replace(/_/g, ' ')}…</span>
+        <span>{t('editor.generating', 'Generating {what}…', { what: String(label).replace(/_/g, ' ') })}</span>
         <span className="flex gap-0.5">
           {[0, 1, 2].map((i) => <span key={i} className="w-1 h-1 rounded-full animate-bounce" style={{ background: 'var(--accent-primary)', animationDelay: `${i * 120}ms` }} />)}
         </span>
       </div>
-    </div>
-  );
-}
-
-/* ── link edit popover (caret inside a link) ─────────────── */
-function LinkPopover({ view, editor }) {
-  const [, force] = useReducer((x) => x + 1, 0);
-  useEffect(() => {
-    const h = () => force();
-    document.addEventListener('selectionchange', h);
-    return () => document.removeEventListener('selectionchange', h);
-  }, []);
-  if (!editor || !editor.isActive('link')) return null;
-  const href = editor.getAttributes('link').href || '';
-  const sel = view?.state?.selection;
-  let rect = null;
-  try {
-    const dsel = window.getSelection();
-    if (dsel && dsel.rangeCount) rect = dsel.getRangeAt(0).getBoundingClientRect();
-  } catch (e) { /* noop */ }
-  if (!rect || (rect.width === 0 && rect.height === 0)) return null;
-  const edit = () => { const url = window.prompt('URL', href); if (url != null) editor.chain().focus().setLink({ href: url }).run(); };
-  const remove = () => editor.chain().focus().unsetLink().run();
-  return (
-    <div className="fixed z-[9998] flex items-center gap-1.5 px-2 py-1 rounded-xl shadow-xl border backdrop-blur-md"
-      style={{ top: rect.bottom + 6, left: rect.left, maxWidth: 360, background: 'var(--bg-primary)', borderColor: 'var(--border-default)' }}
-      onMouseDown={(e) => e.preventDefault()}>
-      <ExternalLink className="w-3 h-3 shrink-0" style={{ color: 'var(--accent-primary)' }} />
-      <a href={href} target="_blank" rel="noopener noreferrer" className="text-[11px] truncate max-w-[180px]" style={{ color: 'var(--accent-primary)' }} title={href}>{href || '—'}</a>
-      <button onClick={edit} className="px-1.5 py-0.5 rounded text-[10px] hover:bg-[var(--bg-tertiary)]" style={{ color: 'var(--text-secondary)' }}>Edit</button>
-      <button onClick={remove} className="p-1 rounded text-red-400 hover:bg-red-500/10"><Trash2 className="w-3 h-3" /></button>
     </div>
   );
 }
@@ -1023,7 +1197,7 @@ function loadCollapsed(notebookId) {
 }
 function saveCollapsed(notebookId, set) {
   try { localStorage.setItem(`bf.table.collapsed.${notebookId || 'doc'}`, JSON.stringify([...set])); }
-  catch (e) { /* noop */ }
+  catch { /* noop */ }
 }
 function loadHiddenHeaders(notebookId) {
   try { return new Set(JSON.parse(localStorage.getItem(`bf.table.noheaders.${notebookId || 'doc'}`) || '[]')); }
@@ -1031,7 +1205,7 @@ function loadHiddenHeaders(notebookId) {
 }
 function saveHiddenHeaders(notebookId, set) {
   try { localStorage.setItem(`bf.table.noheaders.${notebookId || 'doc'}`, JSON.stringify([...set])); }
-  catch (e) { /* noop */ }
+  catch { /* noop */ }
 }
 
 /* ── hooks & helpers ────────────────────────────────────── */
@@ -1061,20 +1235,74 @@ function selectionText(view) {
   return dsel ? dsel.toString() : '';
 }
 
-function countWords(text) { return text.trim() ? text.trim().split(/\s+/).length : 0; }
+/** Screen box of the DOM selection (anchors the link bubble and editor). */
+function selectionRect() {
+  try {
+    const dsel = window.getSelection();
+    if (!dsel || !dsel.rangeCount) return null;
+    const r = dsel.getRangeAt(0).getBoundingClientRect();
+    if (!r || (r.width === 0 && r.height === 0 && r.top === 0 && r.left === 0)) return null;
+    return { top: r.top, left: r.left, bottom: r.bottom };
+  } catch (e) {
+    return null;
+  }
+}
 
-function updateToc(view, onTocUpdate) {
-  if (!onTocUpdate) return;
-  const items = [];
-  let idx = 0;
-  (view.state.doc.content || []).forEach((n) => {
-    if (n.type === 'heading') {
-      const text = (n.content || []).filter((c) => c.type === 'text').map((c) => c.text).join('');
-      items.push({ id: `bf-h-${idx}`, level: n.attrs?.level || 1, textContent: text, itemIndex: idx, isActive: false, isScrolledOver: false });
-      idx++;
-    }
-  });
-  onTocUpdate(items);
+/**
+ * Where to anchor a popover when the selection has no box of its own (a caret
+ * on an empty line, or an engine without Range geometry): the current block,
+ * else the top of the editor.
+ */
+function blockRect(view) {
+  try {
+    const block = view.currentBlock?.();
+    const el = (block && view.domForNode.get(block)) || view.host;
+    const r = el.getBoundingClientRect();
+    return { top: r.top, left: r.left, bottom: el === view.host ? r.top + 24 : r.bottom };
+  } catch {
+    return { top: 120, left: 120, bottom: 144 };
+  }
+}
+
+/** An uploaded image's address the editor will embed: same-origin or http(s). */
+// A picture carried inside the document (a page embeds its images, since the
+// PDF renderer fetches nothing): raster types only, and about 300 KB of image
+// at most, which is roughly 410 KB of base64.
+const DATA_IMAGE = /^data:image\/(?:png|jpeg|gif|webp);base64,[a-z0-9+/]+={0,2}$/i;
+const MAX_DATA_IMAGE_CHARS = 410 * 1024;
+
+function isSafeImageSrc(src) {
+  const s = typeof src === 'string' ? src : '';
+  if (!s) return false;
+  if (s.startsWith('/') || /^https?:\/\//i.test(s)) return true;
+  return s.length <= MAX_DATA_IMAGE_CHARS && DATA_IMAGE.test(s);
+}
+
+/** The notebook image endpoint (the default uploader when a notebookId is set). */
+async function uploadNotebookImage(nbId, file) {
+  const fd = new FormData();
+  fd.append('image', file);
+  // authFetch, not the global fetch: the bare call bypassed the demo-mode
+  // transport, so an image paste inside a public feature demo escaped the
+  // fixture layer and hit the real API unauthenticated.
+  const res = await authFetch(`${API_BASE}/api/notebooks/${encodeURIComponent(nbId)}/images`, { method: 'POST', body: fd, credentials: 'include' });
+  if (!res.ok) throw new Error(`upload ${res.status}`);
+  const data = await res.json();
+  return data?.url ? { src: `${API_BASE}${data.url}`, alt: file.name } : null;
+}
+
+/**
+ * Whether a co-editor's caret sits inside top-level blocks [from, from+count):
+ * moving that part would delete and re-insert it under their fingers.
+ */
+function peerInBlocks(binding, peers, from, count) {
+  if (!binding || !peers?.length) return false;
+  for (const p of peers) {
+    if (!p.cursor) continue;
+    const at = binding.relToPos(p.cursor.head);
+    if (at && at.path[0] >= from && at.path[0] < from + count) return true;
+  }
+  return false;
 }
 
 export default BeeEditor;

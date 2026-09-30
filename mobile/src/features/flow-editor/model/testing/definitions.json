@@ -1,0 +1,532 @@
+{
+    "branchy": {
+        "trigger": {
+            "id": "trg",
+            "type": "trigger",
+            "kind": "manual",
+            "label": "Manual"
+        },
+        "steps": [
+            {
+                "id": "cond_1",
+                "type": "condition",
+                "label": "COND_1",
+                "expr": "trigger.output.amount > 100"
+            },
+            {
+                "id": "act_a",
+                "type": "integration_action",
+                "label": "ACT_A",
+                "tool": "gmail_send",
+                "inputs": {
+                    "to": {
+                        "kind": "ref",
+                        "path": "trigger.output.email"
+                    }
+                }
+            },
+            {
+                "id": "act_b",
+                "type": "integration_action",
+                "label": "ACT_B",
+                "tool": "nextcloud_talk_send_message",
+                "inputs": {}
+            },
+            {
+                "id": "notif_1",
+                "type": "notification",
+                "label": "NOTIF_1",
+                "title": "Done",
+                "body": "",
+                "channels": [
+                    "notification"
+                ]
+            }
+        ],
+        "edges": [
+            {
+                "from": "trg",
+                "to": "cond_1"
+            },
+            {
+                "from": "cond_1",
+                "to": "act_a",
+                "label": "then",
+                "color": "green"
+            },
+            {
+                "from": "cond_1",
+                "to": "act_b",
+                "label": "else"
+            },
+            {
+                "from": "act_a",
+                "to": "notif_1"
+            },
+            {
+                "from": "act_b",
+                "to": "notif_1"
+            }
+        ]
+    },
+    "switchy": {
+        "trigger": {
+            "id": "trg",
+            "type": "trigger",
+            "kind": "webhook",
+            "position": {
+                "x": 0,
+                "y": 0
+            }
+        },
+        "steps": [
+            {
+                "id": "sw",
+                "type": "switch",
+                "label": "SW",
+                "expr": "trigger.output.tier",
+                "cases": [
+                    {
+                        "name": "gold",
+                        "value": "gold"
+                    },
+                    {
+                        "name": "silver",
+                        "value": "silver"
+                    },
+                    {
+                        "name": "bronze",
+                        "value": "b"
+                    }
+                ],
+                "defaultBranch": "silver",
+                "position": {
+                    "x": 300,
+                    "y": 0
+                }
+            },
+            {
+                "id": "g",
+                "type": "set",
+                "label": "G",
+                "fields": {},
+                "position": {
+                    "x": 600,
+                    "y": -100
+                }
+            },
+            {
+                "id": "si",
+                "type": "set",
+                "label": "SI",
+                "fields": {},
+                "position": {
+                    "x": 600,
+                    "y": 0
+                }
+            },
+            {
+                "id": "br",
+                "type": "set",
+                "label": "BR",
+                "fields": {},
+                "position": {
+                    "x": 600,
+                    "y": 100
+                }
+            },
+            {
+                "id": "dflt",
+                "type": "stop_error",
+                "label": "DFLT",
+                "message": "no tier",
+                "position": {
+                    "x": 600,
+                    "y": 200
+                }
+            },
+            {
+                "id": "end",
+                "type": "notification",
+                "label": "END",
+                "title": "t",
+                "position": {
+                    "x": 900,
+                    "y": 0
+                }
+            }
+        ],
+        "edges": [
+            {
+                "from": "trg",
+                "to": "sw"
+            },
+            {
+                "from": "sw",
+                "to": "g",
+                "label": "case:gold",
+                "caseName": "gold"
+            },
+            {
+                "from": "sw",
+                "to": "si",
+                "label": "case:silver"
+            },
+            {
+                "from": "sw",
+                "to": "br",
+                "caseName": "bronze",
+                "color": "amber"
+            },
+            {
+                "from": "sw",
+                "to": "dflt",
+                "label": "case:default",
+                "caseName": "default"
+            },
+            {
+                "from": "sw",
+                "to": "end",
+                "label": "on_error"
+            },
+            {
+                "from": "g",
+                "to": "end"
+            },
+            {
+                "from": "si",
+                "to": "end"
+            },
+            {
+                "from": "br",
+                "to": "end"
+            }
+        ]
+    },
+    "loopy": {
+        "trigger": {
+            "id": "trg",
+            "type": "trigger",
+            "kind": "schedule",
+            "schedule": {
+                "cron": "0 9 * * 1",
+                "tz": "Europe/Amsterdam"
+            }
+        },
+        "steps": [
+            {
+                "id": "loop_1",
+                "type": "loop",
+                "label": "LOOP_1",
+                "overRef": "trigger.output.items",
+                "itemVar": "item",
+                "maxIterations": 100,
+                "body": [
+                    {
+                        "id": "b_cond",
+                        "type": "condition",
+                        "label": "B_COND",
+                        "expr": "item.total > 5"
+                    },
+                    {
+                        "id": "b_sw",
+                        "type": "switch",
+                        "label": "B_SW",
+                        "expr": "",
+                        "routeStyle": "rules",
+                        "cases": [
+                            {
+                                "name": "eu",
+                                "expr": "item.region == \"EU\""
+                            },
+                            {
+                                "name": ""
+                            }
+                        ]
+                    },
+                    {
+                        "id": "b_set",
+                        "type": "set",
+                        "label": "B_SET",
+                        "fields": {}
+                    }
+                ]
+            },
+            {
+                "id": "lim",
+                "type": "limit",
+                "label": "LIM",
+                "arrayRef": "steps.loop_1.output.results",
+                "count": 3,
+                "mode": "last"
+            }
+        ],
+        "edges": [
+            {
+                "from": "trg",
+                "to": "loop_1"
+            },
+            {
+                "from": "loop_1",
+                "to": "lim"
+            }
+        ]
+    },
+    "multi": {
+        "trigger": {
+            "id": "trg",
+            "type": "trigger",
+            "kind": "form",
+            "form": {
+                "fields": []
+            }
+        },
+        "triggers": [
+            {
+                "id": "trg_hook",
+                "type": "trigger",
+                "kind": "webhook"
+            },
+            {
+                "id": "trg_evt",
+                "type": "trigger",
+                "kind": "app_event",
+                "appEvent": {
+                    "provider": "gmail",
+                    "event": "mail.new"
+                }
+            }
+        ],
+        "steps": [
+            {
+                "id": "ai_1",
+                "type": "ai_step",
+                "label": "AI_1",
+                "prompt": "Summarise",
+                "tools": [
+                    "gmail_search",
+                    "kb_search"
+                ]
+            },
+            {
+                "id": "ai_2",
+                "type": "ai_step",
+                "label": "AI_2",
+                "prompt": "All tools",
+                "allowTools": true
+            },
+            {
+                "id": "ai_3",
+                "type": "ai_step",
+                "label": "AI_3",
+                "prompt": "No tools",
+                "tools": []
+            },
+            {
+                "id": "flt",
+                "type": "filter",
+                "label": "FLT",
+                "arrayRef": "steps.ai_1.output.items",
+                "expr": "item.ok",
+                "maxItems": 5
+            },
+            {
+                "id": "sw4",
+                "type": "switch",
+                "label": "SW4",
+                "expr": "",
+                "cases": [
+                    {
+                        "name": "a",
+                        "expr": "x"
+                    },
+                    {
+                        "name": "b",
+                        "expr": "y"
+                    },
+                    {
+                        "name": "c",
+                        "expr": "z"
+                    }
+                ]
+            },
+            {
+                "id": "note_1",
+                "type": "note",
+                "label": "NOTE_1",
+                "text": "why this branch exists"
+            },
+            {
+                "id": "fp",
+                "type": "form_page",
+                "label": "FP",
+                "mode": "input"
+            }
+        ],
+        "edges": [
+            {
+                "from": "trg",
+                "to": "ai_1"
+            },
+            {
+                "from": "trg_hook",
+                "to": "ai_1"
+            },
+            {
+                "from": "trg_evt",
+                "to": "ai_2"
+            },
+            {
+                "from": "ai_1",
+                "to": "flt"
+            },
+            {
+                "from": "ai_2",
+                "to": "sw4"
+            },
+            {
+                "from": "ai_3",
+                "to": "sw4"
+            },
+            {
+                "from": "flt",
+                "to": "fp"
+            },
+            {
+                "from": "flt",
+                "to": "ai_3",
+                "label": "on_error"
+            },
+            {
+                "from": "sw4",
+                "to": "fp",
+                "label": "case:a",
+                "caseName": "a"
+            }
+        ]
+    },
+    "tangled": {
+        "trigger": {
+            "id": "trg",
+            "type": "trigger",
+            "kind": "manual"
+        },
+        "steps": [
+            {
+                "id": "x",
+                "type": "wait",
+                "label": "X",
+                "seconds": 7200
+            },
+            {
+                "id": "y",
+                "type": "wait",
+                "label": "Y",
+                "seconds": 90
+            },
+            {
+                "id": "z",
+                "type": "code",
+                "label": "Z"
+            },
+            {
+                "id": "x",
+                "type": "wait",
+                "label": "X"
+            },
+            {
+                "id": "loose",
+                "type": "dedupe",
+                "label": "LOOSE"
+            }
+        ],
+        "edges": [
+            {
+                "from": "trg",
+                "to": "x"
+            },
+            {
+                "from": "x",
+                "to": "y"
+            },
+            {
+                "from": "y",
+                "to": "z"
+            },
+            {
+                "from": "z",
+                "to": "y"
+            },
+            {
+                "from": "y",
+                "to": "ghost"
+            }
+        ]
+    },
+    "layered": {
+        "trigger": {
+            "id": "trg",
+            "type": "trigger",
+            "kind": "manual",
+            "position": {
+                "x": 10,
+                "y": 20
+            }
+        },
+        "steps": [
+            {
+                "id": "call_1",
+                "type": "call_layer",
+                "label": "CALL_1",
+                "layerKey": "enrich",
+                "inputs": {},
+                "position": {
+                    "x": 300,
+                    "y": 20
+                }
+            }
+        ],
+        "edges": [
+            {
+                "from": "trg",
+                "to": "call_1"
+            }
+        ],
+        "layers": {
+            "enrich": {
+                "trigger": {
+                    "id": "lin",
+                    "type": "trigger",
+                    "kind": "layer_input"
+                },
+                "steps": [
+                    {
+                        "id": "l1",
+                        "type": "set",
+                        "label": "L1"
+                    },
+                    {
+                        "id": "l2",
+                        "type": "layer_output",
+                        "label": "L2",
+                        "fields": {}
+                    }
+                ],
+                "edges": [
+                    {
+                        "from": "lin",
+                        "to": "l1"
+                    },
+                    {
+                        "from": "l1",
+                        "to": "l2"
+                    }
+                ]
+            },
+            "broken": {
+                "steps": [],
+                "edges": []
+            }
+        }
+    }
+}

@@ -22,13 +22,16 @@ const frameworks = require('../../compliance/frameworks');
 const { computeScore, scoresByFramework, scoreNumbers, SEVERITY_WEIGHT } = require('../../compliance/score');
 const { requireAuth, requirePermission } = require('../../auth/permissions');
 const { resolveOrgId, activeResultsFilter } = require('./shared');
+const findingState = require('../../compliance/findingState');
+const { makeFindingStateRouter } = require('./findingStates');
 
 function _frameworkPolicy() { return require('../../compliance/frameworkPolicy'); }
 function _customStore() {
     try { return require('../../stores/customFrameworkStore'); } catch { return null; }
 }
 
-function _rowFromDef(def, r) {
+function _rowFromDef(def, r, states = null) {
+    const state = r && states ? findingState.stateFor(states, { ...r, check_id: def.id }) : null;
     return {
         check_id: def.id,
         regulation: def.regulation,
@@ -50,6 +53,9 @@ function _rowFromDef(def, r) {
         details: r?.details || null,
         evidence: r?.evidence || null,
         run_at: r?.run_at || null,
+        // An admin's decision about this finding (acknowledged / accepted
+        // risk / snoozed), with `active` false once it no longer holds.
+        finding_state: state ? findingState.publicState(state, { ...r, check_id: def.id }, def) : null,
     };
 }
 
@@ -109,6 +115,26 @@ async function _customRows(orgId, latest, onlyFrameworkId) {
     return rows;
 }
 
+/**
+ * Project checks name their subjects by id only. The admin reading the table
+ * gets the CURRENT names of the org's projects those rows refer to, resolved
+ * here at read time (compliance/projects/projectNames.js) and never stored. A
+ * lookup that fails leaves the rows as they are — ids, never an error.
+ */
+async function _annotateProjectNames(orgId, rows) {
+    const { projectIdsOfRow, projectNames } = require('../../compliance/projects/projectNames');
+    const ids = new Set();
+    for (const r of rows) for (const id of projectIdsOfRow(r)) ids.add(id);
+    if (!ids.size) return;
+    let names = {};
+    try { names = await projectNames(orgId, ids); } catch { return; }
+    for (const r of rows) {
+        const mine = {};
+        for (const id of projectIdsOfRow(r)) if (names[id] != null) mine[id] = names[id];
+        if (Object.keys(mine).length) r.project_names = mine;
+    }
+}
+
 const { validate } = require('../../core/http/validate');
 const { z } = require('zod');
 
@@ -136,11 +162,16 @@ router.get('/checks', requireAuth, requirePermission('admin_compliance'), valida
     if (fwParam && !frameworks.byId(fwParam) && !frameworks.isCustomId(fwParam)) {
         return res.status(400).json({ error: 'unknown_framework', framework: fwParam });
     }
-    const [latest, isActive, active] = await Promise.all([
+    const [latest, isActive, active, stateRows] = await Promise.all([
         complianceStore.getLatestPerCheck(orgId),
         activeResultsFilter(orgId, { req }),
         _frameworkPolicy().activeRegulations(orgId, { req }),
+        // Decisions are an annotation: unreadable → the table still renders.
+        typeof complianceStore.listFindingStates === 'function'
+            ? complianceStore.listFindingStates(orgId).catch(() => [])
+            : [],
     ]);
+    const states = findingState.indexStates(stateRows);
     const rows = [];
 
     // For global checks: one row per check def.
@@ -150,14 +181,19 @@ router.get('/checks', requireAuth, requirePermission('admin_compliance'), valida
         if (!_countsFor(def, fwParam)) continue;
         const matches = latest.filter(r => r.check_id === def.id && isActive(r));
         if (def.scope === 'per-source' && matches.length > 0) {
-            for (const r of matches) rows.push(_rowFromDef(def, r));
+            // A retired slot (its subject no longer exists) is history, not a row.
+            for (const r of matches) {
+                if (r.evidence && r.evidence.retired === true) continue;
+                rows.push(_rowFromDef(def, r, states));
+            }
         } else {
-            rows.push(_rowFromDef(def, matches[0]));
+            rows.push(_rowFromDef(def, matches[0], states));
         }
     }
     if (active.has(frameworks.CUSTOM_REGULATION) && (!fwParam || frameworks.isCustomId(fwParam))) {
         rows.push(...await _customRows(orgId, latest, fwParam));
     }
+    await _annotateProjectNames(orgId, rows);
     res.json(rows);
 });
 
@@ -215,5 +251,8 @@ router.post('/checks/:id/auto-fix', requireAuth, requirePermission('admin_compli
         res.status(400).json({ error: e.message });
     }
 });
+
+// POST /checks/:id/state — acknowledge / accept / snooze / re-open a finding.
+router.use(makeFindingStateRouter());
 
 module.exports = router;

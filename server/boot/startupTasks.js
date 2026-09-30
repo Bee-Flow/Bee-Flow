@@ -476,6 +476,32 @@ function runStartupTasks() {
     } catch (err) {
         log.warn('[Server] Platform retention job load failed:', err.message);
     }
+    // Co-editing upkeep: materialise co-edited notebooks and pages into their
+    // own columns, write one version per editing session and compact the
+    // update log. Not gated on a module: a log that is never compacted only
+    // grows, and a document edited before the module was removed must still
+    // reach its notebook. Advisory-locked, one pod per pass.
+    try {
+        require('../jobs/collabDocCompaction').start();
+    } catch (err) {
+        log.warn('[Server] Co-editing upkeep job load failed:', err.message);
+    }
+    // Project live-feed retention: project_events rows older than a week only
+    // served a reconnect that now refetches instead. Not gated on a module:
+    // every workspace writes events. Advisory-locked, one pod per pass.
+    try {
+        require('../jobs/projectEventsPrune').start();
+    } catch (err) {
+        log.warn('[Server] Project event prune job load failed:', err.message);
+    }
+    // Document version retention: thin out long version histories (hourly,
+    // daily, weekly with age), never a named, restore or pinned revision.
+    // Daily, advisory-locked, not gated on a module.
+    try {
+        require('../jobs/documentVersionRetention').start();
+    } catch (err) {
+        log.warn('[Server] Document version retention job load failed:', err.message);
+    }
     if (isModuleAvailable('compliance')) {
         require('../compliance/checks');
         require('../compliance/scheduler').start();
@@ -599,6 +625,16 @@ function runStartupTasks() {
         require('../core/projectFeed.runs').start();
     } catch (err) {
         log.warn('[Server] Project run feed bridge load failed:', err.message);
+    }
+    // The AI that joins team chats and comment threads by itself: every 5 s
+    // it claims the debounced watches that came due (FOR UPDATE SKIP LOCKED,
+    // so replicas share the work without an advisory lock), asks the fast
+    // relevance gate and answers or stays silent. A few at a time per replica,
+    // paused by its own circuit breaker when the gate keeps failing.
+    if (isModuleAvailable('projects')) try {
+        require('../jobs/aiParticipation').start();
+    } catch (err) {
+        log.warn('[Server] AI participation job load failed:', err.message);
     }
     // OpenObserve usage-push job — periodically pushes per-org/per-user token +
     // cost rollups to OpenObserve. Self-gated (no-op unless USAGE_PUSH_ENABLED),

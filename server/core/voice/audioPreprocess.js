@@ -136,4 +136,59 @@ function mb(bytes) {
     return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
 }
 
-module.exports = { preprocessForStt, FILTERS, SAMPLE_RATE };
+/**
+ * AAC in ADTS (`.aac`) repacked into MPEG-4 (`.m4a`) for engines that are sent
+ * the raw file.
+ *
+ * The Android app records meetings as ADTS because a recording cut off by a
+ * killed app is still valid audio up to its last frame; an MPEG-4 file has no
+ * index until the recorder stops, so the same cut makes it unreadable. Voxtral
+ * receives the upload as-is and Mistral does not list `.aac` among its
+ * formats, while `.m4a` is what the app always sent before. The audio stream
+ * is copied, not re-encoded, so this is lossless and takes milliseconds.
+ *
+ * Anything that is not `.aac`, or a repack that fails, returns the original
+ * untouched: the upload goes ahead as before rather than failing here.
+ *
+ * @param {string} inputPath
+ * @param {string} fileName   the name the engine will be told (extension decides)
+ * @returns {Promise<{ path: string, fileName: string, cleanup: () => void }>}
+ */
+async function asM4aIfAdts(inputPath, fileName) {
+    const same = { path: inputPath, fileName, cleanup: () => {} };
+    if (!/\.aac$/i.test(fileName || '')) return same;
+
+    let ffmpegLib;
+    try {
+        const ffmpegInstaller = require('@ffmpeg-installer/ffmpeg');
+        ffmpegLib = require('fluent-ffmpeg');
+        ffmpegLib.setFfmpegPath(ffmpegInstaller.path);
+    } catch (err) {
+        log.warn(`[AudioPreprocess] ffmpeg unavailable, sending the .aac as is: ${err.message}`);
+        return same;
+    }
+
+    const outPath = path.join(os.tmpdir(), `adts-${crypto.randomUUID()}.m4a`);
+    try {
+        await new Promise((resolve, reject) => {
+            ffmpegLib(inputPath)
+                .audioCodec('copy')
+                .format('mp4')
+                .outputOptions(['-movflags', '+faststart'])
+                .on('end', resolve)
+                .on('error', reject)
+                .save(outPath);
+        });
+    } catch (err) {
+        log.warn(`[AudioPreprocess] Repacking .aac failed, sending it as is: ${err.message}`);
+        try { fs.unlinkSync(outPath); } catch (_) {}
+        return same;
+    }
+    return {
+        path: outPath,
+        fileName: fileName.replace(/\.aac$/i, '.m4a'),
+        cleanup: () => { try { fs.unlinkSync(outPath); } catch (_) {} },
+    };
+}
+
+module.exports = { preprocessForStt, asM4aIfAdts, FILTERS, SAMPLE_RATE };

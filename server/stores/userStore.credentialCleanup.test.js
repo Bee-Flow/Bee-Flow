@@ -52,6 +52,7 @@ let getAllImpl = () => [];
 // Datatable erasure fixtures — the stubs below close over these.
 const cachePurges = [];
 const datatableCalls = [];
+const teamChatErasures = [];
 let ownedTables = [];
 
 const dbStub = {
@@ -102,6 +103,10 @@ const restore = installResolveStub({
     '../integrationCacheStore': {
         purgeForUser: async (userId) => { cachePurges.push(userId); return 4; },
         purgeForOrg: async () => 0,
+    },
+    // Team chat messages the leaver wrote in colleagues' projects.
+    '../projectChatStore': {
+        eraseAuthor: async (userId) => { teamChatErasures.push(userId); return { messages: 3, reads: 1 }; },
     },
     '../datatableStore': {
         purgeGrantsForUser: async (userId) => { datatableCalls.push({ fn: 'purgeGrantsForUser', userId }); return 2; },
@@ -359,4 +364,30 @@ test('cached integration answers go through the store, not an inline DELETE', as
     assert.deepStrictEqual(cachePurges, ['u1']);
     assert.strictEqual(deletesFrom('integration_response_cache').length, 0,
         'the raw DELETE must be gone, or the two paths can drift');
+});
+
+test('deleteUser erases the team chat messages the leaver wrote', async () => {
+    runCalls.length = 0;
+    teamChatErasures.length = 0;
+    getOneImpl = (sql) => (/FROM users WHERE id/i.test(sql) ? { id: 'u1' } : null);
+    getAllImpl = () => [];
+
+    await userStore.deleteUser('u1');
+    assert.deepStrictEqual(teamChatErasures, ['u1']);
+});
+
+test('deleteUser deletes owned projects through the project teardown, never a bare DELETE by owner', async () => {
+    // A bare `DELETE FROM projects WHERE owner_id = $1` cascaded the co-editing
+    // log away with colleagues' edits not yet written back, and left the
+    // project's files base behind (stores/user/projectErasure.js).
+    runCalls.length = 0;
+    getOneImpl = (sql) => (/FROM users WHERE id/i.test(sql) ? { id: 'u1' } : null);
+    getAllImpl = (sql) => (/SELECT id FROM projects WHERE owner_id/i.test(sql) ? [{ id: 'p-owned' }] : []);
+
+    await userStore.deleteUser('u1');
+
+    assert.strictEqual(runCalls.filter(c => /DELETE\s+FROM\s+projects\s+WHERE\s+owner_id/i.test(c.sql)).length, 0,
+        'the owner-wide DELETE must be gone');
+    const byId = deletesFrom('projects').filter(c => /WHERE id = \$1/i.test(c.sql));
+    assert.deepStrictEqual(byId.map(c => c.params), [['p-owned']], 'each owned project is deleted on its own');
 });

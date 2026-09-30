@@ -107,8 +107,10 @@ async function renderFilledDocument({ document: doc, values = {}, orgId = null, 
     const { composeDocument } = require('../../services/documentCompose');
     const { renderStyledHtmlToPdf } = require('../../services/documentRenderer');
 
+    // A page has no stylesheet of its own; it prints with the page sheet
+    // (core/documents/pageDocument.js) under the same house style.
     const html = composeDocument(
-        { ...doc, bodyHtml: fill.bodyHtml },
+        require('./pageDocument').forCompose({ ...doc, bodyHtml: fill.bodyHtml }),
         { mode: 'print', houseStyleCss: await houseStyleCssFor(doc, orgId) },
     );
     const out = await renderStyledHtmlToPdf({ html, title: doc.name || '', marking, allowFallback:false });

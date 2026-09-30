@@ -35,6 +35,9 @@ function resetStubs() {
     untok.calls = [];
 }
 
+// Whether the document tools answer (off: every other test's tools are not document tools).
+const documentTools = { on: false };
+
 const restore = installResolveStub({
     '../../../core/privacy/guardrails': {
         checkRegexPatterns: (q) => (/BLOCKME/.test(q) ? [{ ruleName: 'test-rule' }] : []),
@@ -63,8 +66,8 @@ const restore = installResolveStub({
     // requires documentStore, which fires initDB() at require time. A DB-free
     // test that pulls that in hangs on pool retries instead of failing.
     '../../../integrations/documentBuilderTools': {
-        isDocumentTool: () => false,
-        executeDocumentTool: async () => ({}),
+        isDocumentTool: (name) => documentTools.on && /^(create_document|document_(read|write|edit))$/.test(name),
+        executeDocumentTool: async () => ({ documentId: 'd1', name: 'Plan', url: '/app/studio/documents/d1' }),
     },
     '../../../integrations/webpageDbTools': {
         isDbTool: () => false,
@@ -640,4 +643,19 @@ test('BFSF-354 a fail-closed org refuses the tool when the scan cannot run', asy
     const out = await executeDirectChatToolCall(mkToolCall('notebook_read', { note: 'x' }), ctx);
     assert.strictEqual(dispatcher.calls.length, 0);
     assert.match(JSON.parse(out.content).error, /PII guard is unavailable/);
+});
+
+test('a document tool that WROTE reloads the open editor; a read does not', async () => {
+    documentTools.on = true;
+    try {
+        for (const [tool, reloads] of [['document_read', false], ['document_write', true], ['document_edit', true], ['create_document', true]]) {
+            const { ctx, events } = mkCtx();
+            await executeDirectChatToolCall(mkToolCall(tool, { documentId: 'd1' }), ctx);
+            const updates = events.filter(([type]) => type === 'document_update');
+            assert.strictEqual(updates.length, reloads ? 1 : 0, tool);
+            if (reloads) assert.deepStrictEqual(updates[0][1], { documentId: 'd1', name: 'Plan', url: '/app/studio/documents/d1' });
+        }
+    } finally {
+        documentTools.on = false;
+    }
 });

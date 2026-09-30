@@ -7,8 +7,12 @@ import useTranslation from '../../hooks/useTranslation';
  *
  * `items` comes from the editor's TOC emitter; each item is
  * { id, level, textContent, isActive, isScrolledOver, itemIndex }.
+ *
+ * `onSelect(index)` scrolls the editor to that heading (the editor's
+ * scrollToHeading): the headings carry no DOM ids, so looking one up by id —
+ * the only thing a click did before — found nothing and nothing happened.
  */
-export default function NotebookTOC({ items = [], onClose }) {
+export default function NotebookTOC({ items = [], onClose, onSelect }) {
     const { t } = useTranslation();
     if (!items || items.length === 0) {
         return (
@@ -19,11 +23,10 @@ export default function NotebookTOC({ items = [], onClose }) {
         );
     }
 
-    const scrollTo = (id) => {
-        const el = document.getElementById(id);
-        if (el) {
-            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
+    const scrollTo = (item, index) => {
+        if (onSelect) { onSelect(item.itemIndex ?? index); return; }
+        const el = item.id ? document.getElementById(item.id) : null;
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     };
 
     return (
@@ -50,10 +53,11 @@ export default function NotebookTOC({ items = [], onClose }) {
 
             {/* TOC Items */}
             <div className="flex-1 overflow-y-auto custom-scrollbar py-2">
-                {items.map((item) => (
+                {items.map((item, index) => (
                     <button
-                        key={item.id ?? item.itemIndex}
-                        onClick={() => scrollTo(item.id)}
+                        key={item.id ?? item.itemIndex ?? index}
+                        type="button"
+                        onClick={() => scrollTo(item, index)}
                         className="w-full text-left px-3 py-1 text-[11px] transition-colors hover:bg-[var(--bg-tertiary)] flex items-start gap-1 group"
                         style={{
                             paddingLeft: `${(item.level - 1) * 12 + 12}px`,

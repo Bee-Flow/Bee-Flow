@@ -209,105 +209,11 @@ td, th { overflow-wrap: anywhere; }
 }
 `.trim();
 
-/**
- * The hand-editing bridge. Injected for the editor preview ONLY — never for
- * the PDF, which must render exactly the stored markup and nothing else.
- *
- * It lives in <head> deliberately: `document.body.innerHTML` is what gets sent
- * back and stored, so anything this script leaves in <body> would be saved into
- * the document and re-injected on the next load, compounding every time.
- *
- * The contract with the parent frame:
- *   parent → frame  { __beeflowDocEdit: true, editing: bool }
- *   frame  → parent { __beeflowDocDirty: true, html }      (debounced)
- *   frame  → parent { __beeflowDocReady: true }
- */
-function buildEditBridgeScript() {
-    return `<script>(function(){
-  var DEBOUNCE_MS = 400;
-  var timer = null;
-  function bodyContent() {
-    var copy = document.body.cloneNode(true);
-    copy.querySelectorAll('[data-doc-token]').forEach(function(el){el.replaceWith(document.createTextNode(el.textContent));});
-    return copy.innerHTML.replace(/<!--bf-template:([A-Za-z0-9+/=]+)-->/g,function(_m,encoded){return atob(encoded);});
-  }
-  function protectTokens() {
-    var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-    var nodes = []; while (walker.nextNode()) nodes.push(walker.currentNode);
-    nodes.forEach(function(node) {
-      if (node.parentElement.closest('[data-doc-token]')) return;
-      var re = /\\{\\{[^{}]+\\}\\}/g; var text = node.textContent; var match; var last = 0; var fragment = document.createDocumentFragment();
-      while ((match = re.exec(text))) {
-        fragment.appendChild(document.createTextNode(text.slice(last,match.index)));
-        var token = document.createElement('span'); token.setAttribute('data-doc-token','true'); token.setAttribute('contenteditable','false');
-        token.textContent = match[0]; token.style.background = '#e0e7ff'; token.style.color = '#312e81'; token.style.borderRadius = '3px'; fragment.appendChild(token);
-        last = match.index + match[0].length;
-      }
-      if (last) {fragment.appendChild(document.createTextNode(text.slice(last)));node.replaceWith(fragment);}
-    });
-  }
-  function push(requestId) {
-    try {
-      parent.postMessage({ __beeflowDocDirty: true, html: bodyContent(), requestId: requestId }, '*');
-    } catch (_) {}
-  }
-  function schedule() {
-    if (timer) clearTimeout(timer);
-    // The parent debounces persistence. Report edits immediately so recovery
-    // survives closing or replacing the chat panel before an iframe timer fires.
-    push();
-  }
-  function setEditing(on) {
-    document.body.setAttribute('contenteditable', on ? 'true' : 'false');
-    document.body.style.outline = 'none';
-    if (on) protectTokens();
-    if (on) { try { document.body.focus({ preventScroll: true }); } catch (_) {} }
-  }
-  window.addEventListener('message', function (e) {
-    if (e.source !== parent) return;
-    var d = e && e.data;
-    if (d && d.__beeflowDocFlush) {if(timer) clearTimeout(timer);push(d.requestId);return;}
-    if (d && d.__beeflowDocInsert && typeof d.key === 'string' && /^[A-Za-z0-9_.-]+$/.test(d.key)) {
-      setEditing(true); document.body.focus();
-      if (Array.isArray(d.fields) && d.fields.length <= 100 && d.fields.every(function(key){return typeof key === 'string' && /^[A-Za-z0-9_.-]+$/.test(key);})) {
-        var fields = d.fields.length ? d.fields : ['this'];
-        var start = '<!--bf-template:'+btoa('{{#each '+d.key+'}}')+'-->';
-        var end = '<!--bf-template:'+btoa('{{/each}}')+'-->';
-        document.execCommand('insertHTML',false,'<table><thead><tr>'+fields.map(function(key){return '<th>'+key+'</th>';}).join('')+'</tr></thead><tbody>'+start+'<tr>'+fields.map(function(key){return '<td>{{'+key+'}}</td>';}).join('')+'</tr>'+end+'</tbody></table>');
-      } else document.execCommand('insertText',false,'{{'+d.key+'}}');
-      protectTokens();push();return;
-    }
-    if (d && d.__beeflowDocSection && typeof d.id === 'string') {
-      var target = Array.from(document.querySelectorAll('[data-doc-section]')).find(function(el){return el.getAttribute('data-doc-section')===d.id;});
-      if(target) target.scrollIntoView({behavior:'smooth'});return;
-    }
-    if (!d || d.__beeflowDocEdit !== true) return;
-    setEditing(!!d.editing);
-  });
-  document.addEventListener('input', schedule, true);
-  // execCommand edits (paste, formatting) do not always raise 'input' in every
-  // engine; a blur is the other moment the text is known to have settled.
-  document.addEventListener('blur', function(){ if (timer) { clearTimeout(timer); timer = null; } push(); }, true);
-  // Paste as PLAIN TEXT. Pasting a block of styled HTML out of Word or a
-  // browser is the fastest way to wreck a document's layout, and it would
-  // smuggle markup straight past the server sanitiser into the next save.
-  document.addEventListener('paste', function (e) {
-    if (document.body.getAttribute('contenteditable') !== 'true') return;
-    e.preventDefault();
-    var text = (e.clipboardData || window.clipboardData).getData('text/plain');
-    try { document.execCommand('insertText', false, text); } catch (_) {}
-  }, true);
-  // A link inside a contenteditable document is a navigation waiting to happen.
-  document.addEventListener('click', function (e) {
-    var a = e.target && e.target.closest && e.target.closest('a');
-    if (a) e.preventDefault();
-  }, true);
-  document.addEventListener('DOMContentLoaded', function () {
-    setEditing(false);
-    try { parent.postMessage({ __beeflowDocReady: true }, '*'); } catch (_) {}
-  });
-})();<\/script>`;
-}
+// The hand-editing bridge (services/documentEditBridge.js) is injected for the
+// editor preview ONLY — never for the PDF, which must render exactly the
+// stored markup and nothing else. It lives in <head>: body.innerHTML is what
+// gets saved, so anything it left in <body> would be stored and re-injected.
+const { buildEditBridgeScript } = require('./documentEditBridge');
 
 /**
  * Compose the stored slots into one complete, self-contained HTML document.
@@ -356,8 +262,7 @@ ${sheet}
 </style>
 ${bridge}
 </head>
-<body>${body}</body>
-</html>`;
+<body>${body}</body></html>`;
 }
 
 function escapeHtml(s) {

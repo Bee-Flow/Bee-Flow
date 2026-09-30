@@ -18,11 +18,14 @@ const assert = require('node:assert');
 const { installResolveStub } = require('../../testUtils/stubRequire');
 
 const SYNTH_EMAIL = 'someone@example.test';
-const fx = { quick: [], auto: [] };
+const FILES_KB = '22222222-2222-4222-8222-222222222222';
+// `hidden`: bases the asker's ordinary filter drops. `searched`: the id lists
+// the project door handed to retrieval.
+const fx = { quick: [], auto: [], hidden: [], searched: [], kbRows: {} };
 
 const restore = installResolveStub({
     './knowledgeSearch': {
-        quickKBSearch: async () => fx.quick,
+        quickKBSearch: async (_userId, kbIds) => { fx.searched.push([...kbIds]); return fx.quick; },
         // Stands in for the real search (its own side is pinned in
         // knowledgeSearch.shieldLabels.test.js): builds its passages, hands
         // them and their label function to the caller's strip hook, then
@@ -35,7 +38,9 @@ const restore = installResolveStub({
             return chunks.map((c, i) => `\n### Source ${i + 1}: ${labels ? labels[i] : labelOf(c)}\n${c.content}`).join('');
         },
     },
-    './testAs': { visibleKbIdsFor: async (ids) => ids },
+    './testAs': { visibleKbIdsFor: async (ids) => ids.filter(id => !fx.hidden.includes(id)) },
+    // Read by core/kb/projectFilesKb.js to verify a project's files base.
+    '../../stores/knowledgeBases': { getKB: async (id) => fx.kbRows[id] || null },
 });
 test.after(() => restore());
 
@@ -74,7 +79,7 @@ function run(over = {}) {
     }).then(out => ({ ...out, kbSources, events }));
 }
 
-test.beforeEach(() => { fx.quick = []; fx.auto = []; });
+test.beforeEach(() => { fx.quick = []; fx.auto = []; fx.hidden = []; fx.searched = []; fx.kbRows = {}; });
 
 test('a project thread: its bases are stripped in the prompt and in the citation snippets', async () => {
     fx.quick = [{ title: 'Billing', content: `billing contact ${SYNTH_EMAIL}`, document_id: 'd1' }];
@@ -114,4 +119,36 @@ test('the source label is stripped on both paths, the citation keeps the real ti
     assert.ok(!out.volatileSystemPrompt.includes(SYNTH_EMAIL), 'the blocked value reached the prompt through a source label');
     assert.strictEqual(out.volatileSystemPrompt.split('### Source 1: [blocked:email] — invoice').length - 1, 2, 'project and auto-injected passages');
     assert.strictEqual(out.kbSources.find(s => s.document_id === 'd1').title, title);
+});
+
+// ── The project's own files base ─────────────────────────────────────
+// It is never published, so the ordinary per-asker filter drops it for every
+// member but the owner. The project door keeps it for members, and only when
+// the id really is this project's files base.
+
+const filesProject = (over = {}) => ({
+    id: 'p1', name: 'Acme', customInstructions: '', organizationId: 'org1',
+    filesKbId: FILES_KB, knowledgeBaseIds: ['kb1', FILES_KB], ...over,
+});
+
+test('a member\'s agent turn searches the project files even though the ordinary filter hides them', async () => {
+    fx.hidden = [FILES_KB];
+    fx.kbRows[FILES_KB] = { id: FILES_KB, source_kind: 'project_files', organization_id: 'org1' };
+    fx.quick = [{ title: 'Plan.pdf', content: 'the launch is in May', document_id: 'd9', kb_id: FILES_KB }];
+    const out = await run({ validProject: filesProject() });
+    assert.deepStrictEqual(fx.searched, [[FILES_KB, 'kb1']]);
+    assert.ok(out.volatileSystemPrompt.includes('the launch is in May'));
+});
+
+test('a files id that does not point at this project\'s files base is not searched', async () => {
+    fx.hidden = [FILES_KB];
+    fx.kbRows[FILES_KB] = { id: FILES_KB, source_kind: 'manual', organization_id: 'org1' };
+    await run({ validProject: filesProject() });
+    assert.deepStrictEqual(fx.searched, [['kb1']]);
+});
+
+test('a "Test as" preview does not search the project files', async () => {
+    fx.kbRows[FILES_KB] = { id: FILES_KB, source_kind: 'project_files', organization_id: 'org1' };
+    await run({ validProject: filesProject(), testAs: { groupId: 'g1' } });
+    assert.deepStrictEqual(fx.searched, [['kb1']]);
 });

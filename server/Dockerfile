@@ -9,7 +9,7 @@
 # or against BROWSER_WS_ENDPOINT, so `playwright` stays a thin client.
 
 # ── deps ─────────────────────────────────────────────────────────────────────
-FROM node:22-slim@sha256:48e4b67d85f87bd551df43704e24d252f56cc5f8e9718841aace50f19948f0f9 AS deps
+FROM node:22-slim@sha256:43ac6c60b8f89723f746e8a92ce91abd5017e627ce1ddfe4238355d3a30b772c AS deps
 
 WORKDIR /app
 
@@ -59,7 +59,7 @@ CMD ["node_modules/.bin/nodemon", "--ignore", "data/", "--ignore", "components/"
 # metadata marker with its database_type. A failed download FAILS THE BUILD,
 # because an image without it records every call as "unknown location";
 # GEO_DB_OPTIONAL=1 builds without it for a hotfix when download.db-ip.com is down.
-FROM node:22-slim@sha256:48e4b67d85f87bd551df43704e24d252f56cc5f8e9718841aace50f19948f0f9 AS geo
+FROM node:22-slim@sha256:43ac6c60b8f89723f746e8a92ce91abd5017e627ce1ddfe4238355d3a30b772c AS geo
 
 ARG GEO_DB_MONTH=""
 ARG GEO_DB_OPTIONAL=0
@@ -103,7 +103,7 @@ RUN set -eu; \
     ls -l /geo
 
 # ── runtime ──────────────────────────────────────────────────────────────────
-FROM node:22-slim@sha256:48e4b67d85f87bd551df43704e24d252f56cc5f8e9718841aace50f19948f0f9 AS runtime
+FROM node:22-slim@sha256:43ac6c60b8f89723f746e8a92ce91abd5017e627ce1ddfe4238355d3a30b772c AS runtime
 
 # The gid that owns /var/run/docker.sock on the host. The server runs as `node`
 # and still shells out to `docker build` / `docker run` (services/pwtRunner.js,

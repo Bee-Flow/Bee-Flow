@@ -5,7 +5,7 @@
 # swap the CPU build for the CUDA one and add gigabytes to the image, so
 # this service waits for a box that can read download.pytorch.org.
 fastapi==0.141.1
-uvicorn[standard]==0.53.0
+uvicorn[standard]==0.54.0
 # CPU-only PyTorch — much smaller than the default CUDA build. Unpinned: the
 # versions on the PyTorch wheel index cannot be read from the pinning box.
 --extra-index-url https://download.pytorch.org/whl/cpu

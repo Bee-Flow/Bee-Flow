@@ -8,18 +8,15 @@
  * without discovering it.
  */
 
-import { Feather } from '@expo/vector-icons';
 import React from 'react';
 import { View } from 'react-native';
 
-import { AgentAvatar } from './AgentAvatar';
-import { useTheme } from '../../../theme/ThemeProvider';
-import { Badge } from '../../../ui/Badge';
-import { IconButton } from '../../../ui/Button';
-import { ListRow } from '../../../ui/List';
-import { pickAgentAvatar } from '../avatar';
-import type { Agent } from '../types';
+import { useTheme } from '@/core/theme/ThemeProvider';
+import { Badge, Icon, IconButton, ListRow } from '@/shared/ui';
 
+import { AgentAvatar } from './AgentAvatar';
+import { pickAgentAvatar } from '../model/avatar';
+import type { Agent } from '../model/types';
 
 export function AgentRow({
     agent,
@@ -48,8 +45,8 @@ export function AgentRow({
                     {onToggleFavorite ? (
                         <IconButton
                             icon={
-                                <Feather
-                                    name="star"
+                                <Icon
+                                    name="Star"
                                     size={18}
                                     color={favorite ? theme.colors.warning : theme.colors.textMuted}
                                 />

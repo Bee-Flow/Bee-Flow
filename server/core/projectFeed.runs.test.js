@@ -5,7 +5,7 @@
  *
  *   1. AUTOMATION RUNS GET THEIR OWN EVENT KINDS. The feed already carries
  *      `run.started` / `run.finished` for CHAT runs, keyed on a conversation
- *      id, and ProjectDetailPage drives a per-thread "answering…" spinner off
+ *      id, and the project workspace drives a per-thread "answering…" spinner off
  *      them. Emitting a bare `run.started` for an automation would light up a
  *      conversation that is not running.
  *   2. THE RAW ERROR STRING NEVER TRAVELS. A failure message can quote an

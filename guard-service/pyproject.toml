@@ -9,11 +9,11 @@ version = "0.1.0"
 requires-python = ">=3.12,<3.13"
 dependencies = [
   "fastapi>=0.110.0,<1.0.0",
-  "uvicorn[standard]>=0.29.0,<1.0.0",
+  "uvicorn[standard]>=0.54.0,<1.0.0",
   "pydantic>=2.7.0,<3.0.0",
   "pydantic-settings>=2.2.0,<3.0.0",
   "httpx>=0.27.0,<1.0.0",
-  "redis>=5.0.0,<6.0.0",
+  "redis>=8.1.0,<9.0.0",
   # GLiNER multilingual PII NER (Apache 2.0) — CPU PII detection backend.
   # PINNED: every eval baseline records the library version in its provenance;
   # a floating floor let a rebuild silently drift the engine underneath the
@@ -43,7 +43,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-  "pytest>=9,<10",
+  "pytest>=9.1.1,<10",
 ]
 
 # The CPU-only torch build lives on PyTorch's own index; PyPI carries only the

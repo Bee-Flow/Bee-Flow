@@ -67,7 +67,7 @@ const { validate } = require('../../core/http/validate');
 // /api/studio aggregates — see routes/studio/shared.js.
 const {
     makeLazyDeps, userIdOf, orgIdOf, moduleActive, licenceAllows, capability, permission,
-    visibleKnowledgeBasesFor,
+    solutionsGate, visibleKnowledgeBasesFor, visibleSolutionsFor,
 } = require('./shared');
 const log = require('../../telemetry/log');
 
@@ -345,19 +345,13 @@ const KINDS = [
         },
     },
     {
-        // routes/projects.js GET / → listUserProjects(userId, groups); the
-        // mount is requireModule('projects') + requireCapability('projects')
-        // + the operator kill switch (feature_projects_enabled).
+        // routes/projects.js GET /?kind=solution: Solutions plus the legacy
+        // projects nobody has classified yet, never a collaborative project.
+        // Gate and list are shared with search.js (./shared.js).
         key: 'solutions',
-        gate: async (req, d) => {
-            if (!(await moduleActive(d, 'projects'))) return false;
-            if (!(await capability(d, req, 'projects'))) return false;
-            const enabled = await d.configStore.getConfig('feature_projects_enabled');
-            return enabled !== false;
-        },
+        gate: solutionsGate,
         count: async (req, d) => {
-            const userId = userIdOf(req);
-            const projects = await d.projectStore.listUserProjects(userId, await d.auth.resolveUserGroups(userId));
+            const projects = await visibleSolutionsFor(req, d);
             return { count: projects.length, owners: projects.map(ownerOf) };
         },
     },

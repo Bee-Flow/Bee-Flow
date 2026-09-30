@@ -5,6 +5,7 @@ import DataTable, { TableRow, TableCell } from '../../../shared/DataTable';
 import EmptyState from '../../../shared/EmptyState';
 import StatusPill from '../shared/StatusPill';
 import { fmtDate, Fact, ActionButton, Intro, ReadFailed, RegisterLayout } from './audits/auditForms';
+import RopaProjects from './ropa/RopaProjects';
 
 /**
  * RopaPage — the Record of Processing Activities (GDPR Art. 30), rendered
@@ -66,6 +67,7 @@ function sourceLink(activity) {
     if (src.kind === 'datatable') return `studio/datatables/${src.id}`;
     if (src.kind === 'app' || src.kind === 'studio_app') return `studio/apps/${src.id}`;
     if (src.kind === 'automation') return `studio/automations/${src.id}`;
+    if (src.kind === 'project') return `projects/${src.id}`;
     return null;
 }
 
@@ -207,6 +209,17 @@ export default function RopaPage({ data = {}, isMobile = false, exportsEnabled =
                     )}
                 />
             </section>
+
+            {/* Collaborative projects with personal data and their records.
+                Rendered only when the register hook serves them. */}
+            {'projects' in state ? (
+                <RopaProjects
+                    body={state.projects}
+                    onSave={state.saveProject}
+                    onRemove={state.removeProject}
+                    onNavigate={onNavigate}
+                />
+            ) : null}
 
             <section className="flex flex-col gap-2" data-testid="ropa-processors">
                 <h3 className="m-0 text-xs font-bold text-[var(--text-primary)]">{t('compliance.ropa_processors', 'Processors')}</h3>

@@ -199,3 +199,23 @@ test('het is de organisatie van het project, niet die van de sessie', async () =
     const res = await exportProject({});
     assert.strictEqual(res.json.source.orgId, 'org_project');
 });
+
+// ── Packaging is for Studio Solutions ──────────────────────────────────────
+
+test('a collaborative project cannot be exported as a Blueprint: 404, nothing published', async () => {
+    reset();
+    fx.project = { ...fx.project, kind: 'workspace' };
+    fx.published = publishedAs('bp_should_not_exist', 1);
+    const res = await exportProject({ save: true });
+    assert.strictEqual(res.status, 404);
+    assert.strictEqual(res.json.error, 'Not found');
+    assert.ok(!('solution' in res.json), 'no manifest of a collaborative project leaves the server');
+});
+
+test('a Solution exports as before', async () => {
+    reset();
+    fx.project = { ...fx.project, kind: 'solution' };
+    const res = await exportProject({});
+    assert.strictEqual(res.status, 200);
+    assert.strictEqual(res.json.solution.key, 'sol_p1');
+});

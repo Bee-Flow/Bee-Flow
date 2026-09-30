@@ -11,6 +11,40 @@
  */
 const log = require('../telemetry/log');
 
+/**
+ * Collaborators a test swaps on this object (testUtils/swaps.js): the
+ * co-editing facade, resolved when used.
+ */
+const seams = {
+    collab: () => require('../agents/notebooks/notebookCollab').defaultFacade(),
+};
+
+// A linked notebook the conversation's owner cannot open (deleted, or never
+// theirs: the link is only an id the client sent) is not theirs to use.
+const NOTEBOOK_UNAVAILABLE = 'The notebook linked to this chat is not accessible (it was deleted, or it is not shared with this user). Tell the user; do not claim to have read or changed it.';
+// What the model is told when the user may read the linked notebook but not change it.
+const NOTEBOOK_READ_ONLY = 'This user can view the linked notebook but not change it, so it was left as it is. Answer in the chat instead.';
+const NOTEBOOK_CONFLICT = 'Someone changed the same part of the notebook while you were working, so your edit was NOT applied. Read the notebook again (notebook_read) and redo the edit on the current text.';
+const NOTEBOOK_SAVE_FAILED = 'Notebook save FAILED — the change was NOT persisted (the linked notebook may have been deleted or is not accessible). Do not tell the user the notebook was updated; report the failure instead.';
+// A whole-document write onto a notebook others are editing live: it would take
+// out whatever they typed after the text the model worked from.
+const NOTEBOOK_LIVE_STALE = 'Others are editing this notebook live and it changed since you read it, so notebook_write was NOT applied (it would have removed what they typed). Call notebook_read again and pass its revision to notebook_write, or make the change with notebook_replace or notebook_insert, which keep their typing.';
+const NOTEBOOK_LIVE_READ_FIRST = 'Others are editing this notebook live, so notebook_write needs the revision notebook_read returns. Call notebook_read first and pass its revision to notebook_write, or use notebook_replace or notebook_insert instead. Nothing was written.';
+
+// The live update a read of a co-edited notebook was made at, handed to the
+// model as `revision` and given back to notebook_write.
+const LIVE_REVISION = 'live:';
+const liveRevision = (seq) => `${LIVE_REVISION}${seq}`;
+function parseRevision(value) {
+    const text = typeof value === 'string' ? value.trim() : '';
+    if (!text.startsWith(LIVE_REVISION)) return null;
+    const seq = Number(text.slice(LIVE_REVISION.length));
+    return Number.isInteger(seq) && seq >= 0 ? seq : null;
+}
+
+/** May this notebook role change the document? (routes/notebooksAccess.js ranks the same roles.) */
+const canEditNotebook = (role) => role === 'owner' || role === 'editor';
+
 const WORKSPACE_TOOLS = [
     {
         type: 'function',
@@ -21,7 +55,8 @@ const WORKSPACE_TOOLS = [
 - "section": Returns content of a specific section by heading. Use after outline to load only what you need.
 - "search": Search for text/keywords and return matching paragraphs with context. Use to find specific content without loading everything.
 - "full": Returns the entire document. Only use for very short documents or when you truly need everything.
-ALWAYS prefer outline → section over full reads to save tokens.`,
+ALWAYS prefer outline → section over full reads to save tokens.
+When others are editing the notebook live, the answer carries a "revision": pass it to notebook_write.`,
             parameters: {
                 type: 'object',
                 properties: {
@@ -58,6 +93,10 @@ ALWAYS prefer outline → section over full reads to save tokens.`,
                     title: {
                         type: 'string',
                         description: 'Optional short title (e.g. "Project Plan", "Meeting Notes").'
+                    },
+                    revision: {
+                        type: 'string',
+                        description: 'The revision your last notebook_read returned, when it returned one (others are editing the notebook live). Required then: the write is applied only while nobody typed since that read.'
                     }
                 },
                 required: ['content']
@@ -117,98 +156,7 @@ ALWAYS prefer outline → section over full reads to save tokens.`,
     }
 ];
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
-
-/**
- * Count words in text.
- */
-function wordCount(text) {
-    return text.split(/\s+/).filter(Boolean).length;
-}
-
-/**
- * Parse a Markdown document into sections based on headings.
- * Returns an array of { heading, level, startLine, endLine, content, words }.
- */
-function parseSections(content) {
-    const lines = content.split('\n');
-    const sections = [];
-    let currentSection = null;
-
-    for (let i = 0; i < lines.length; i++) {
-        const headingMatch = lines[i].match(/^(#{1,6})\s+(.+)$/);
-
-        if (headingMatch) {
-            // Close previous section
-            if (currentSection) {
-                currentSection.endLine = i - 1;
-                currentSection.content = lines.slice(currentSection.startLine, i).join('\n');
-                currentSection.words = wordCount(currentSection.content);
-                sections.push(currentSection);
-            }
-            currentSection = {
-                heading: headingMatch[2].trim(),
-                level: headingMatch[1].length,
-                startLine: i,
-                endLine: i,
-                content: '',
-                words: 0
-            };
-        } else if (!currentSection && lines[i].trim()) {
-            // Content before any heading — treat as preamble
-            currentSection = {
-                heading: '(Document Start)',
-                level: 0,
-                startLine: 0,
-                endLine: 0,
-                content: '',
-                words: 0
-            };
-        }
-    }
-
-    // Close last section
-    if (currentSection) {
-        currentSection.endLine = lines.length - 1;
-        currentSection.content = lines.slice(currentSection.startLine, lines.length).join('\n');
-        currentSection.words = wordCount(currentSection.content);
-        sections.push(currentSection);
-    }
-
-    return sections;
-}
-
-/**
- * Build an outline string from sections.
- */
-function buildOutline(content, sections) {
-    const totalWords = wordCount(content);
-    const totalLines = content.split('\n').length;
-
-    let outline = `Document: ${totalWords} words, ${totalLines} lines\n\n## Sections\n`;
-
-    if (sections.length === 0) {
-        outline += '(No headings found — document is unstructured)\n';
-        // Show a preview for small documents
-        if (totalWords <= 100) {
-            outline += `\nFull content:\n${content}`;
-        } else {
-            outline += `\nPreview (first 200 chars): ${content.substring(0, 200)}...\n`;
-        }
-    } else {
-        for (let i = 0; i < sections.length; i++) {
-            const s = sections[i];
-            const indent = '  '.repeat(Math.max(0, s.level - 1));
-            const prefix = '#'.repeat(s.level || 1);
-            outline += `${i + 1}. ${indent}${prefix} ${s.heading} (L${s.startLine + 1}-L${s.endLine + 1}, ${s.words} words)\n`;
-        }
-    }
-
-    outline += `\nUse notebook_read with mode="section" and section_heading="<heading>" to read a specific section.`;
-    outline += `\nUse notebook_read with mode="search" and query="<text>" to find specific content.`;
-
-    return outline;
-}
+const { wordCount, parseSections, readNotebookContent } = require('./notebookReadModes');
 
 // ─── Tool execution ─────────────────────────────────────────────────────────
 
@@ -248,16 +196,31 @@ async function executeWorkspaceTool(toolName, args, context) {
         }
         if (!row) return null;
         if (row.workspace_notebook_id) {
+            // The link is only an id the conversation's owner sent: it grants
+            // nothing. The notebook is used with the owner's OWN role on it.
             const notebook = await notebookStore.getNotebook(row.workspace_notebook_id, row.user_id);
-            // These tools speak Markdown, so prefer the canonical Markdown
-            // mirror and fall back to document_content only when there isn't
-            // one (older rows). Reading document_content unconditionally handed
-            // the model HTML once a write had populated it.
+            if (!notebook) return { content: '', user_id: row.user_id, source, notebookId: null, notebookUnavailable: true };
+            const role = notebook.role || (notebook.userId === row.user_id ? 'owner' : null);
+            // While the notebook is co-edited the live document is the one to
+            // read (and edit): the row is a mirror that lags typing by up to
+            // minutes. These tools speak Markdown, so prefer the Markdown
+            // rendering, and for the row the canonical Markdown mirror over
+            // document_content (older rows have only the HTML).
+            const { readCurrentContent } = require('../agents/notebooks/notebookCollab');
+            const current = await readCurrentContent(notebook, seams.collab());
+            const { htmlToMarkdown } = require('../core/markdown');
+            const content = current.live
+                ? (current.markdown != null ? current.markdown : htmlToMarkdown(current.html))
+                : (notebook.documentMd != null ? notebook.documentMd : notebook.documentContent);
             return {
-                content: (notebook && (notebook.documentMd != null ? notebook.documentMd : notebook.documentContent)) || '',
+                content: content || '',
                 user_id: row.user_id,
                 source,
                 notebookId: row.workspace_notebook_id,
+                notebookRole: role,
+                // Co-edited, and the live update this content was read at.
+                coEdited: current.active,
+                liveSeq: current.live && Number.isInteger(current.seq) ? current.seq : null,
             };
         }
         return { content: row.workspace_content || '', user_id: row.user_id, source };
@@ -277,15 +240,51 @@ async function executeWorkspaceTool(toolName, args, context) {
             log.warn('[NotebookTool] cross-user access blocked:', { conversationId, caller: callerUserId, owner: workspace.user_id });
             return { error: 'This notebook belongs to a different user.' };
         }
+        if (workspace.notebookUnavailable) {
+            log.warn('[NotebookTool] refused: the linked notebook is not readable for this user', { conversationId });
+            return { error: NOTEBOOK_UNAVAILABLE };
+        }
         return null;
+    }
+
+    // Every write tool: the conversation's owner, and edit rights on a linked notebook.
+    function denyWrite(workspace) {
+        const denied = denyIfCrossUser(workspace);
+        if (denied) return denied;
+        if (workspace?.notebookId && !canEditNotebook(workspace.notebookRole)) {
+            log.info('[NotebookTool] refused a write for a viewer of the linked notebook', { conversationId, notebookId: workspace.notebookId });
+            return { error: NOTEBOOK_READ_ONLY };
+        }
+        return null;
+    }
+
+    // What a write tool answers when setWorkspace did not persist.
+    const FAILED_WRITE = { conflict: NOTEBOOK_CONFLICT, forbidden: NOTEBOOK_READ_ONLY, stale: NOTEBOOK_LIVE_STALE, 'read-first': NOTEBOOK_LIVE_READ_FIRST };
+    function failedWrite(result, workspace, what) {
+        const refusedLive = result === 'stale' || result === 'read-first';
+        log[refusedLive ? 'info' : 'error'](`[NotebookTool] ${what} not persisted:`, { conversationId, notebookId: workspace?.notebookId || null, reason: result || 'no-rows' });
+        const error = FAILED_WRITE[result] || NOTEBOOK_SAVE_FAILED;
+        return { error, _nbWriteFailed: true, _revertContent: workspace?.content || '' };
     }
 
     // Helper: persist notebook content. Writes to the linked standalone
     // notebook when the conversation has one (via notebookStore so version
     // tracking and owner gating stay consistent), otherwise to the legacy
     // per-conversation column.
-    async function setWorkspace(convId, content, workspace) {
+    // Answers true, or why not: 'forbidden', 'conflict', 'stale' or false.
+    // `expectSeq`: `content` is a whole document the model composed from the
+    // live notebook as it was at that update (notebook_write's revision).
+    async function setWorkspace(convId, content, workspace, { expectSeq = null } = {}) {
         if (workspace?.notebookId) {
+            // Edit rights on the notebook itself, checked again right here: the
+            // co-editing engine below is a trusted server facade that checks no
+            // one, and the conversation link grants nothing.
+            const nb = await notebookStore.getNotebook(workspace.notebookId, workspace.user_id);
+            const role = nb && (nb.role || (nb.userId === workspace.user_id ? 'owner' : null));
+            if (!canEditNotebook(role)) {
+                log.warn('[NotebookTool] refused: no edit rights on the linked notebook', { conversationId: convId, notebookId: workspace.notebookId });
+                return 'forbidden';
+            }
             // `content` is Markdown. Store it as the canonical mirror and keep
             // document_content as the HTML rendering, so the notebook UI and the
             // PDF/DOCX export path (both of which expect HTML) stay correct
@@ -293,6 +292,34 @@ async function executeWorkspaceTool(toolName, args, context) {
             const { markdownToHtml } = require('../core/markdown');
             let html = content;
             try { html = markdownToHtml(content); } catch (_) { /* fall back to raw */ }
+            // While the notebook is co-edited, the live document is the
+            // co-editing state: the edit goes in there (everyone's editor
+            // follows) instead of onto the row, where the next materialisation
+            // would silently undo it. An insert or a replace was computed in
+            // this call from what it read, `workspace.content`: only that
+            // change is carried onto the live document, so typing since the
+            // read survives, and a change to the same blocks is a conflict. A
+            // whole document (notebook_write) was composed from an EARLIER
+            // read, so it goes in only while nothing was typed since that
+            // read's update (`expectSeq`), and is refused ('stale') otherwise.
+            // A failing engine refuses rather than writing the row behind
+            // everyone's back.
+            try {
+                const { applyEdit } = require('../agents/notebooks/notebookCollab');
+                const edit = Number.isInteger(expectSeq)
+                    ? { html, markdown: content, expectSeq }
+                    : { html, markdown: content, base: { markdown: workspace.content || '' } };
+                // The engine records the versions around it (this path keeps no history of its own).
+                const live = await applyEdit(workspace.notebookId, { origin: 'ai', actorId: workspace.user_id, recordVersions: true },
+                    edit, seams.collab());
+                if (live.conflict) return 'conflict';
+                if (live.stale) return 'stale';
+                // The live update it made: the revision a next whole write goes from.
+                if (live.applied) { workspace.liveSeqAfter = Number.isInteger(live.seq) ? live.seq : null; return true; }
+            } catch (e) {
+                log.warn('[NotebookTool] co-edited notebook write failed', { notebookId: workspace.notebookId, error: e.message });
+                return false;
+            }
             return notebookStore.updateNotebook(workspace.notebookId, workspace.user_id, {
                 documentContent: html,
                 documentMd: content,
@@ -320,110 +347,14 @@ async function executeWorkspaceTool(toolName, args, context) {
             const denied = denyIfCrossUser(workspace);
             if (denied) return denied;
             const content = workspace?.content || '';
+            // Read live: the update it was read at, for a later notebook_write.
+            const revision = workspace?.liveSeq != null ? { revision: liveRevision(workspace.liveSeq) } : {};
             if (!content.trim()) {
-                return { content: '', message: 'The notebook is currently empty.' };
+                return { content: '', message: 'The notebook is currently empty.', ...revision };
             }
 
-            const mode = args.mode || 'outline';
-
-            // MODE: full — return everything (legacy behavior)
-            if (mode === 'full') {
-                return { content };
-            }
-
-            const sections = parseSections(content);
-
-            // MODE: outline — return headings + word counts + line ranges
-            if (mode === 'outline') {
-                const outline = buildOutline(content, sections);
-                // For very short documents (< 300 words), just return full content
-                // since the outline would be about the same size
-                if (wordCount(content) < 300) {
-                    return { content, message: `(Short document — returning full content: ${wordCount(content)} words)` };
-                }
-                return { outline, total_words: wordCount(content), total_lines: content.split('\n').length };
-            }
-
-            // MODE: section — return a specific section by heading
-            if (mode === 'section') {
-                const heading = args.section_heading;
-                if (!heading) {
-                    return { error: 'section_heading is required when mode is "section". Use mode="outline" first to see available sections.' };
-                }
-
-                const headingLower = heading.toLowerCase().trim();
-                const match = sections.find(s =>
-                    s.heading.toLowerCase().includes(headingLower) ||
-                    headingLower.includes(s.heading.toLowerCase())
-                );
-
-                if (!match) {
-                    // Return available headings to help the AI
-                    const available = sections.map(s => s.heading).join(', ');
-                    return { error: `Section "${heading}" not found. Available sections: ${available}` };
-                }
-
-                return {
-                    section: match.heading,
-                    content: match.content,
-                    line_range: `L${match.startLine + 1}-L${match.endLine + 1}`,
-                    words: match.words
-                };
-            }
-
-            // MODE: search — find matching paragraphs
-            if (mode === 'search') {
-                const query = args.query;
-                if (!query) {
-                    return { error: 'query is required when mode is "search".' };
-                }
-
-                const queryLower = query.toLowerCase();
-                const queryTerms = queryLower.split(/\s+/).filter(t => t.length > 2);
-                const lines = content.split('\n');
-                const matches = [];
-                const CONTEXT_LINES = 2;
-
-                for (let i = 0; i < lines.length; i++) {
-                    const lineLower = lines[i].toLowerCase();
-                    // Match if line contains the full query OR most of the query terms
-                    const fullMatch = lineLower.includes(queryLower);
-                    const termHits = queryTerms.filter(t => lineLower.includes(t)).length;
-                    const termMatch = queryTerms.length > 0 && termHits >= Math.ceil(queryTerms.length * 0.6);
-
-                    if (fullMatch || termMatch) {
-                        // Get surrounding context
-                        const start = Math.max(0, i - CONTEXT_LINES);
-                        const end = Math.min(lines.length - 1, i + CONTEXT_LINES);
-                        const contextBlock = lines.slice(start, end + 1).join('\n');
-
-                        // Avoid duplicates (overlapping context)
-                        const alreadyCovered = matches.some(m => i >= m._start && i <= m._end);
-                        if (!alreadyCovered) {
-                            matches.push({
-                                line: i + 1,
-                                context: contextBlock,
-                                _start: start,
-                                _end: end
-                            });
-                        }
-                    }
-                }
-
-                if (matches.length === 0) {
-                    return { message: `No matches found for "${query}". Try different keywords or use mode="outline" to see the document structure.` };
-                }
-
-                // Limit to 5 matches to keep token count low
-                const limited = matches.slice(0, 5);
-                return {
-                    matches: limited.map(({ _start, _end, ...m }) => m),
-                    total_matches: matches.length,
-                    message: matches.length > 5 ? `Showing 5 of ${matches.length} matches. Refine your query for fewer results.` : undefined
-                };
-            }
-
-            return { error: `Unknown read mode: "${mode}". Use "outline", "section", "search", or "full".` };
+            const result = readNotebookContent(content, args);
+            return result.error ? result : { ...result, ...revision };
         } catch (err) {
             log.error('[NotebookTool] Read failed:', err.message);
             return { error: 'Failed to read notebook content.' };
@@ -443,22 +374,20 @@ async function executeWorkspaceTool(toolName, args, context) {
 
         try {
             const existing = await getWorkspace(conversationId);
-            const denied = denyIfCrossUser(existing);
+            const denied = denyWrite(existing);
             if (denied) return denied;
-            const saved = await setWorkspace(conversationId, content, existing);
-            if (!saved) {
-                log.error('[NotebookTool] Write not persisted (0 rows updated):', { conversationId, notebookId: existing?.notebookId || null });
-                return {
-                    error: 'Notebook save FAILED — the change was NOT persisted (the linked notebook may have been deleted or is not accessible). Do not tell the user the notebook was updated; report the failure instead.',
-                    _nbWriteFailed: true,
-                    _revertContent: existing?.content || ''
-                };
-            }
+            // Others are editing it live: the whole document goes in only from
+            // the update the model read (its revision), never over typing since.
+            const expectSeq = existing?.coEdited ? parseRevision(args.revision) : null;
+            if (existing?.coEdited && expectSeq === null) return failedWrite('read-first', existing, 'Write');
+            const saved = await setWorkspace(conversationId, content, existing, { expectSeq });
+            if (saved !== true) return failedWrite(saved, existing, 'Write');
             const words = wordCount(content);
             return {
                 _action: 'workspace_update',
                 content, // Full content → sent via SSE to frontend
                 title,
+                ...(existing?.liveSeqAfter != null ? { revision: liveRevision(existing.liveSeqAfter) } : {}),
                 // Compact message for LLM context (the LLM just wrote it, doesn't need it back)
                 message: `Notebook updated: "${title}" (${words} words, ${content.split('\n').length} lines). Content is now visible in the notebook panel.`
             };
@@ -480,7 +409,7 @@ async function executeWorkspaceTool(toolName, args, context) {
 
         try {
             const workspace = await getWorkspace(conversationId);
-            const denied = denyIfCrossUser(workspace);
+            const denied = denyWrite(workspace);
             if (denied) return denied;
             const currentContent = workspace?.content || '';
             let newContent;
@@ -525,14 +454,7 @@ async function executeWorkspaceTool(toolName, args, context) {
             }
 
             const saved = await setWorkspace(conversationId, newContent, workspace);
-            if (!saved) {
-                log.error('[NotebookTool] Insert not persisted (0 rows updated):', { conversationId, notebookId: workspace?.notebookId || null });
-                return {
-                    error: 'Notebook save FAILED — the change was NOT persisted (the linked notebook may have been deleted or is not accessible). Do not tell the user the notebook was updated; report the failure instead.',
-                    _nbWriteFailed: true,
-                    _revertContent: workspace?.content || ''
-                };
-            }
+            if (saved !== true) return failedWrite(saved, workspace, 'Insert');
             const words = wordCount(insertContent);
             return {
                 _action: 'workspace_update',
@@ -558,7 +480,7 @@ async function executeWorkspaceTool(toolName, args, context) {
 
         try {
             const workspace = await getWorkspace(conversationId);
-            const denied = denyIfCrossUser(workspace);
+            const denied = denyWrite(workspace);
             if (denied) return denied;
             const currentContent = workspace?.content || '';
 
@@ -679,14 +601,7 @@ async function executeWorkspaceTool(toolName, args, context) {
             }
 
             const saved = await setWorkspace(conversationId, newContent, workspace);
-            if (!saved) {
-                log.error('[NotebookTool] Replace not persisted (0 rows updated):', { conversationId, notebookId: workspace?.notebookId || null });
-                return {
-                    error: 'Notebook save FAILED — the change was NOT persisted (the linked notebook may have been deleted or is not accessible). Do not tell the user the notebook was updated; report the failure instead.',
-                    _nbWriteFailed: true,
-                    _revertContent: workspace?.content || ''
-                };
-            }
+            if (saved !== true) return failedWrite(saved, workspace, 'Replace');
             const action = replaceText ? 'replaced' : 'removed';
             return {
                 _action: 'workspace_update',
@@ -749,6 +664,11 @@ async function syncClientWorkspaceContent(conversationId, userId, content) {
     if (row.workspace_notebook_id) {
         const nb = await notebookStore.getNotebook(row.workspace_notebook_id, row.user_id);
         if (!nb) return { seeded: false, reason: 'notebook-missing' };
+        // A co-edited notebook's live state is authoritative (and already what
+        // the pane shows): seeding it from one client's copy would overwrite
+        // everyone else's typing.
+        const { isCollabActive } = require('../agents/notebooks/notebookCollab');
+        if (await isCollabActive(row.workspace_notebook_id)) return { seeded: false, reason: 'collab-active' };
         if ((nb.documentContent || '') === content) return { seeded: false, reason: 'unchanged' };
         // No expectedVersion → last-writer-wins; bumps version + refreshes the
         // document_md mirror, identical to a normal notebook_write.
@@ -787,4 +707,24 @@ async function resolveWorkspaceContent({ notebookId, userId, fallbackContent }) 
     }
 }
 
-module.exports = { WORKSPACE_TOOLS, executeWorkspaceTool, syncClientWorkspaceContent, resolveWorkspaceContent };
+/**
+ * Why `userId` may not link notebook `notebookId` to their chat, or null when
+ * they may. The chat's notebook tools write through that link, so it takes
+ * edit rights on the notebook (a viewer, or someone who only saw the id in a
+ * URL, gets a refusal). The tools check the role again on every use.
+ *
+ * @returns {Promise<null | { status: 403|404, error: string }>}
+ */
+async function notebookLinkRefusal(notebookId, userId) {
+    if (!notebookId) return null;
+    const notebookStore = require('../stores/notebookStore');
+    const nb = await notebookStore.getNotebook(notebookId, userId);
+    if (!nb) return { status: 404, error: 'Notebook not found' };
+    const role = nb.role || (nb.userId === userId ? 'owner' : null);
+    if (!canEditNotebook(role)) {
+        return { status: 403, error: 'You can view this notebook but not change it, so it cannot be linked to a chat.' };
+    }
+    return null;
+}
+
+module.exports = { WORKSPACE_TOOLS, executeWorkspaceTool, syncClientWorkspaceContent, resolveWorkspaceContent, notebookLinkRefusal, seams };

@@ -915,6 +915,9 @@ async function installBlueprint({
             icon: solution.icon || undefined,
             ownerId,
             organizationId,
+            // An installed Blueprint is a Studio Solution, never a
+            // collaborative project: it lists under Solutions only.
+            kind: 'solution',
             ...provenance,
         });
     } catch (err) {

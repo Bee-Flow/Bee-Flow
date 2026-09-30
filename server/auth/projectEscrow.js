@@ -45,9 +45,11 @@
  *
  * `orgEscrow.rotateOrgRootKey` mints a new ORK and rewraps every member's DEK.
  * That is safe for WRAPPED keys and destructive for DERIVED ones: a rotation
- * changes every project key, orphaning every shared conversation's ciphertext.
- * `assertNoSharedConversations` below is the guard, and rotateOrgRootKey calls
- * it before touching anything.
+ * changes every project key, orphaning every shared conversation's ciphertext
+ * AND every team chat's (projects/chatCrypto.js seals titles and messages with
+ * a key derived from this one) AND every co-edited document's (core/collab
+ * seals its update log the same way). `assertNoSharedConversations` below is
+ * the guard, and rotateOrgRootKey calls it before touching anything.
  */
 
 const crypto = require('crypto');
@@ -133,6 +135,13 @@ function deriveProjectKey(ork, orgId, projectId) {
 /**
  * The project key for a conversation shared into `projectId`.
  *
+ * Every call returns the caller's OWN copy. The cache zeroes its Buffer when
+ * the entry expires or is evicted (`secureClear`), and callers hold the key
+ * across awaits (a mention lookup, a context read, a whole chat stream). A
+ * shared reference would be zeroed under them, and whatever they sealed next
+ * would be sealed under a key derived from 32 zero bytes: unreadable for the
+ * members, readable for anyone who knows the ids.
+ *
  * THROWS rather than returning null when the key cannot be produced. Callers
  * must not fall back to plaintext here: unlike a fresh write, a shared-thread
  * write rewrites an ALREADY-ENCRYPTED conversation, so a silent downgrade would
@@ -153,26 +162,84 @@ async function getProjectKey(projectId, rawOrgId) {
     const cacheKey = `${orgId}|${projectId}`;
 
     const cached = _cacheGet(cacheKey);
-    if (cached) return cached;
+    if (cached) return Buffer.from(cached);
 
     const { getOrgRootKey } = require('./orgEscrow');
     const ork = await getOrgRootKey(orgId);
     const key = deriveProjectKey(ork, orgId, projectId);
     _cacheSet(cacheKey, key);
-    return key;
+    return Buffer.from(key);
 }
 
 /**
- * Refuse an ORK rotation that would orphan shared conversations.
+ * What else the org's projects hold under keys DERIVED from the ORK, besides
+ * shared conversations. Each row is sealed with its project's key, so each is
+ * data a rotation would make unreadable:
+ *
+ *   project_chats            team chats (stores/projectChatStore.js): a sealed
+ *                            title, and messages sealed the same way
+ *   collab_docs              co-edited documents (stores/collabDocStore.js):
+ *                            every update, snapshot and checkpoint state
+ *                            (core/collab/frame.js); only `key_scope =
+ *                            'project'` rows use the project key
+ *   project_comment_threads  comment threads (stores/projectCommentStore.js):
+ *                            a sealed anchor, and comments sealed the same way
+ *
+ * The table and alias names are constants of this file, never input.
+ */
+const SEALED_UNDER_PROJECT_KEYS = Object.freeze([
+    {
+        table: 'project_chats', alias: 'pc', where: '',
+        what: 'project team chat(s)', loses: 'their history',
+        remedy: 'Delete them before rotating',
+    },
+    {
+        table: 'collab_docs', alias: 'cd', where: "cd.key_scope = 'project' AND ",
+        what: 'co-edited project document(s)', loses: 'their editing state',
+        remedy: 'Switch co-editing off for the organisation (which folds every document back into its notebook or page) before rotating',
+    },
+    {
+        table: 'project_comment_threads', alias: 'ct', where: '',
+        what: 'project comment thread(s)', loses: 'their comments',
+        remedy: 'Delete them before rotating',
+    },
+]);
+
+/**
+ * How many rows of one of those tables the org's projects hold. 0 on an
+ * install that has never created the table: `to_regclass` asks first, so a
+ * missing table is a fact rather than an error string to recognise.
+ *
+ * @param {(sql: string, params?: any[]) => Promise<any>} getOne
+ * @param {{ table: string, alias: string, where: string }} kind
+ * @param {string} id  already passed through resolveOrgId
+ */
+async function countSealedRows(getOne, kind, id) {
+    const table = await getOne(`SELECT to_regclass('${kind.table}') IS NOT NULL AS present`);
+    if (table?.present !== true) return 0;
+    const row = await getOne(`
+        SELECT COUNT(*)::int AS n
+          FROM ${kind.table} ${kind.alias}
+          JOIN projects p ON p.id = ${kind.alias}.project_id
+         WHERE ${kind.where}COALESCE(NULLIF(p.organization_id, ''), $2) = $1
+    `, [id, resolveOrgId(null)]);
+    return row?.n || 0;
+}
+
+/**
+ * Refuse an ORK rotation that would orphan shared conversations, team chats,
+ * co-edited documents or comment threads.
  *
  * Project keys are DERIVED from the ORK, so rotating it silently changes every
  * one of them and no member — or background job — can open the existing
- * ciphertext afterwards. Re-encrypting every shared conversation mid-rotation
- * is the eventual answer; until that exists, stopping is the honest option.
- * Losing the ability to rotate is recoverable. Losing the conversations is not.
+ * ciphertext afterwards. Re-encrypting every shared conversation and team chat
+ * mid-rotation is the eventual answer; until that exists, stopping is the
+ * honest option. Losing the ability to rotate is recoverable. Losing the
+ * conversations is not.
  *
  * @param {string} orgId
- * @throws {Error} when the org has shared project conversations
+ * @throws {Error} when the org has shared project conversations or anything
+ *   else sealed under a project key (SEALED_UNDER_PROJECT_KEYS)
  */
 async function assertNoSharedConversations(orgId) {
     const { getOne } = require('../db');
@@ -209,6 +276,18 @@ async function assertNoSharedConversations(orgId) {
             'and rotation would make them permanently unreadable. Unshare them (which re-keys ' +
             'them to their owners) before rotating, or implement re-encryption in rotateOrgRootKey.'
         );
+    }
+
+    for (const kind of SEALED_UNDER_PROJECT_KEYS) {
+        const count = await countSealedRows(getOne, kind, id);
+        if (count > 0) {
+            throw new Error(
+                `[ProjectEscrow] Refusing to rotate the org root key for ${id}: ` +
+                `${count} ${kind.what} are encrypted with keys DERIVED from it, ` +
+                `and rotation would make ${kind.loses} permanently unreadable. ${kind.remedy}, ` +
+                'or implement re-encryption in rotateOrgRootKey.'
+            );
+        }
     }
 }
 

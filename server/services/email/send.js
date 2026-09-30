@@ -22,7 +22,7 @@
  */
 
 const crypto = require('crypto');
-const MailComposer = require('nodemailer/lib/mail-composer');
+const MailComposer = require('nodemailer/lib/mail-composer').default;
 const { gmailClientFromTokens, graphFetchFromTokens } = require('./providerClients');
 
 // ── Pure helpers (moved verbatim from supportMailer.js) ──────────────────────

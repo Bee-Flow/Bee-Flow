@@ -95,6 +95,16 @@ describe('settingsFields', () => {
         expect(form.nis2_registered_at).toBe('');
     });
 
+    it('reads the project settings, with project hints on unless switched off', () => {
+        expect(SETTINGS_FIELD_NAMES).toContain('project_retention_days');
+        expect(SETTINGS_FIELD_NAMES).toContain('project_owner_hints_enabled');
+        expect(normaliseSettings(null).project_owner_hints_enabled).toBe(true);
+        expect(normaliseSettings({ project_owner_hints_enabled: false }).project_owner_hints_enabled).toBe(false);
+        const body = buildSettingsBody({ ...normaliseSettings(null), project_retention_days: '90' });
+        expect(body.project_retention_days).toBe(90);
+        expect(body.project_owner_hints_enabled).toBe(true);
+    });
+
     it('normalises a timestamp column onto the date input shape', () => {
         expect(normaliseSettings(SETTINGS).nis2_registered_at).toBe('2026-08-20');
     });

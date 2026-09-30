@@ -35,6 +35,9 @@ const MACHINE_READABLE_FORMATS = Object.freeze(['json', 'ndjson', 'csv', 'xlsx',
 const KNOWN_FORMATS = Object.freeze([...MACHINE_READABLE_FORMATS, 'txt', 'pdf', 'html']);
 
 const orgCount = (table, col = 'organization_id') => `SELECT COUNT(*)::int AS c FROM ${table} WHERE ${col} = $1`;
+// A project's organisation, '' read as the 'default' bucket (see
+// compliance/projects/projectData.js).
+const projectOrg = `COALESCE(NULLIF(p.organization_id, ''), 'default') = $1`;
 const viaUsers = (table, alias) =>
     `SELECT COUNT(*)::int AS c FROM ${table} ${alias} JOIN users u ON u.id = ${alias}.user_id WHERE u."organizationId" = $1`;
 
@@ -104,7 +107,11 @@ const EXPORT_KINDS = Object.freeze([
         route: { method: 'POST', path: '/api/projects/:id/package/export' },
         formats: ['json'], scope: 'per-item',
         mount: { prefix: '/api/projects', module: 'routes/projects/packaging', via: 'routes/projects' },
-        heldCountSql: orgCount('projects'), heldScope: 'org', gapKey: null,
+        // Studio Solutions, plus legacy projects nobody has classified yet (the
+        // export route serves both). A collaborative project (kind
+        // 'workspace') is not a Solution and has no Blueprint export.
+        heldCountSql: `${orgCount('projects')} AND (kind IS NULL OR kind = 'solution')`,
+        heldScope: 'org', gapKey: null,
     },
     {
         kind: 'meeting_notes', labelKey: 'compliance.pf_kind_meeting_notes',
@@ -162,11 +169,72 @@ const EXPORT_KINDS = Object.freeze([
         heldCountSql: orgCount('knowledge_bases'), heldScope: 'org', gapKey: 'compliance.pf_gap_knowledge_bases',
     },
     {
+        // Private AI chats (agent and direct). The team chats of collaborative
+        // projects are their own kind below, so neither is counted twice.
         kind: 'conversations', labelKey: 'compliance.pf_kind_conversations',
         route: null, formats: [], scope: 'bulk', mount: null,
         heldCountSql: `SELECT ((SELECT COUNT(*) FROM agent_conversations c JOIN users u ON u.id = c.user_id WHERE u."organizationId" = $1)
                              + (SELECT COUNT(*) FROM direct_conversations d JOIN users u2 ON u2.id = d.user_id WHERE u2."organizationId" = $1))::int AS c`,
         heldScope: 'org', gapKey: 'compliance.pf_gap_conversations',
+    },
+
+    // ── Collaborative projects (the workspace side, not Solutions) ─────────
+    //
+    // Counted with the org match every project check uses: an org-less
+    // project ('' organisation) belongs to the 'default' bucket.
+    {
+        // Team chats inside projects (stores/projectChatStore.js). Sealed with
+        // the project key; no export yet.
+        kind: 'team_chats', labelKey: 'compliance.pf_kind_team_chats',
+        route: null, formats: [], scope: 'bulk', mount: null,
+        heldCountSql: `SELECT COUNT(*)::int AS c FROM project_chats pc JOIN projects p ON p.id = pc.project_id WHERE ${projectOrg}`,
+        heldScope: 'org', gapKey: 'compliance.pf_gap_team_chats',
+    },
+    {
+        // Files uploaded into a project, held in its files knowledge base.
+        kind: 'project_files', labelKey: 'compliance.pf_kind_project_files',
+        route: null, formats: [], scope: 'bulk', mount: null,
+        heldCountSql: `SELECT COUNT(*)::int AS c FROM projects p
+                       JOIN knowledge_bases kb ON kb.id::text = p.files_kb_id
+                       JOIN documents d ON d.knowledge_base_id = kb.id
+                       WHERE ${projectOrg} AND kb.source_kind = 'project_files'`,
+        heldScope: 'org', gapKey: 'compliance.pf_gap_project_files',
+    },
+    {
+        // Studio documents: a PDF render per document exists, which is not a
+        // portable export — declared so the probe keeps it honest.
+        kind: 'studio_documents', labelKey: 'compliance.pf_kind_studio_documents',
+        route: null, formats: [], scope: 'per-item',
+        renderOnly: { method: 'GET', path: '/api/studio-documents/:id/pdf', formats: ['pdf'] },
+        mount: { prefix: '/api/studio-documents', module: 'routes/studioDocuments' },
+        heldCountSql: viaUsers('studio_documents', 'sd'), heldScope: 'org', gapKey: 'compliance.pf_gap_studio_documents',
+    },
+    {
+        // The workspace itself: members, instructions, activity. No export of
+        // a whole project exists — an honest gap, not an oversight.
+        kind: 'project_workspaces', labelKey: 'compliance.pf_kind_project_workspaces',
+        route: null, formats: [], scope: 'per-item', mount: null,
+        heldCountSql: `SELECT COUNT(*)::int AS c FROM projects p WHERE ${projectOrg} AND (p.kind IS NULL OR p.kind = 'workspace')`,
+        heldScope: 'org', gapKey: 'compliance.pf_gap_project_workspaces',
+    },
+    {
+        // Comments on project notebooks and documents
+        // (stores/projectCommentStore.js). Sealed with the project key; no
+        // export yet.
+        kind: 'project_comments', labelKey: 'compliance.pf_kind_project_comments',
+        route: null, formats: [], scope: 'bulk', mount: null,
+        heldCountSql: `SELECT COUNT(*)::int AS c FROM project_comments pc JOIN projects p ON p.id = pc.project_id
+                       WHERE ${projectOrg} AND pc.deleted_at IS NULL`,
+        heldScope: 'org', gapKey: 'compliance.pf_gap_project_comments',
+    },
+    {
+        // The version history of notebooks: the notebook export above takes
+        // the CURRENT content only, so the earlier versions are a gap.
+        kind: 'notebook_versions', labelKey: 'compliance.pf_kind_notebook_versions',
+        route: null, formats: [], scope: 'per-item', mount: null,
+        heldCountSql: `SELECT COUNT(*)::int AS c FROM notebook_versions v JOIN notebooks n ON n.id = v.notebook_id
+                       JOIN users u ON u.id = n.user_id WHERE u."organizationId" = $1`,
+        heldScope: 'org', gapKey: 'compliance.pf_gap_notebook_versions',
     },
     {
         kind: 'ai_webpages', labelKey: 'compliance.pf_kind_ai_webpages',

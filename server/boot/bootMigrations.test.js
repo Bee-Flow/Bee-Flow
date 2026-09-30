@@ -90,6 +90,16 @@ const COLUMN_LADDERS = [
     // op project_solution_entities.
     { column: 'installed_from_org_id', table: 'projects', into: 'stores/projectStore.js', tag: 'projectStore' },
     { column: 'installed_version', table: 'projects', into: 'stores/projectStore.js', tag: 'projectStore' },
+    // The collaborative project workspace: `kind` tells a project from a
+    // Studio Solution (NULL = from before the split; the backfill migration
+    // only UPDATEs it), and `files_kb_id` names the knowledge base holding the
+    // files uploaded into the project. Both come from the store's ladder.
+    { column: 'kind', table: 'projects', into: 'stores/projectStore.js', tag: 'projectStore' },
+    { column: 'files_kb_id', table: 'projects', into: 'stores/projectStore.js', tag: 'projectStore' },
+    // Documents and meeting notes filed into a project: soft references on
+    // their own rows, cleared when the project is deleted.
+    { column: 'project_id', table: 'studio_documents', into: 'stores/documentStore.js', tag: 'documentStore' },
+    { column: 'project_id', table: 'transcriptions', into: 'stores/transcriptionStore.js', tag: 'transcriptionStore' },
 
     // O4: de publicatiegeschiedenis zelf. `kind: 'table'`, want de claim gaat over
     // een TABEL die de ladder maakt en niet over een kolom. De galerijrij

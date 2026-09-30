@@ -56,6 +56,8 @@ module.exports = {
   tryHtmlToMarkdown,
   looksLikeHtml,
   markdownToAst: (md) => S.markdownToAst(md || ''),
+  /** HTML → the editor's AST, losslessly for the editor's own HTML (throws on a parse failure). */
+  htmlToAst: (html) => S.htmlToAst(html || '', domParser()),
   astToMarkdown: (ast) => S.astToMarkdown(ast),
   astToHtml: (ast) => S.astToHtml(ast),
 };

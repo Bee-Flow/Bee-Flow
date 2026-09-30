@@ -6,7 +6,9 @@ import {
     parseAdminPath,
     parseOrgSettingsPath,
 } from './appRoutes';
+import { isProjectsPage, projectRouteFromPage } from './projectNavigation';
 import { parseStudioQuery, sectionFromRaw, segmentForSection } from '../components/admin/Studio/studioRoutes';
+import { projectRoutePath } from '../utils/projectRoutes';
 
 // The app-shell `navigateToPage` callback, extracted verbatim from AuthedApp's
 // <App/>. Must be called from the exact same hook position as the original
@@ -34,6 +36,9 @@ export function useNavigateToPage({
     setShowSettings,
     setShowSkillsPanel,
     setShowNotebooks,
+    // Optional so a host without the projects pages can still use the hook.
+    setShowProjects = () => {},
+    setInitialProjectRoute = () => {},
 }) {
     const navigateToPage = useCallback((page, { replace = false } = {}) => {
         // Mobile access control: on phones, any destination that isn't chat or
@@ -48,6 +53,7 @@ export function useNavigateToPage({
             setShowAITasks(false);
             setShowSkillsPanel(false);
             setShowNotebooks(false);
+            setShowProjects(false);
             setShowProfileMenu(false);
             setCurrentPage('agents');
             if (window.location.pathname !== '/app') {
@@ -55,6 +61,35 @@ export function useNavigateToPage({
             }
             return;
         }
+        // Projects — 'projects' (the list), 'projects/new' (the create form)
+        // and 'projects/<id>[/<tab>[/<sub>]]' (one workspace, down to one item
+        // in it). AgentHub renders the page off `showProjects` and the route.
+        if (isProjectsPage(page)) {
+            const route = projectRouteFromPage(page);
+            setInitialProjectRoute(route);
+            setShowProjects(true);
+            setShowStudio(false);
+            setShowSettings(false);
+            setShowAgentDesigner(false);
+            setShowAgentWizard(false);
+            setShowAITasks(false);
+            setShowSkillsPanel(false);
+            setShowNotebooks(false);
+            setShowProfileMenu(false);
+            setCurrentPage('projects');
+            const path = projectRoutePath(route.projectId, route.tab, route.sub);
+            if (window.location.pathname !== path) {
+                const state = { page: 'projects', projectId: route.projectId };
+                if (replace) window.history.replaceState(state, '', path);
+                else window.history.pushState(state, '', path);
+            }
+            return;
+        }
+        // Every other destination leaves the projects pages. Without this a
+        // link out of a workspace (a notebook, a Studio item) left the flag
+        // standing, and closing that page dropped the person back into the
+        // project they had already left.
+        setShowProjects(false);
         // Root / home → redirect to /app
         if (page === '/' || page === 'home') {
             setCurrentPage('agents');

@@ -1,0 +1,5 @@
+{
+    "$comment": "Files allowed over the size limits in ARCHITECTURE.md, at their measured size, and the count of inline style objects (every object literal in a style or …Style prop, arrays included). Both only go down: src/meta/qualityBudget.test.ts fails on an entry the file no longer needs and on a count that moved either way. Touch a budgeted file, split it.",
+    "files": {},
+    "inlineStyles": 172
+}

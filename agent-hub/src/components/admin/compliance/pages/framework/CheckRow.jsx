@@ -1,5 +1,10 @@
-import React, { useEffect, useRef, useState } from 'react';
 import { ArrowRight, ArrowUpRight, ChevronDown, ChevronUp, RefreshCw, Wrench } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { affectedProjects } from './AffectedProjects';
+import {
+    isOpen, otherFrameworkRefs, articleForRegulation, resolveRemediation, autoFixCount, formatRunAt,
+} from './checkSort';
+import { FindingStateChip } from './FindingDecision';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import { TableRow, TableCell } from '../../../../shared/DataTable';
 import { TONES, toneOfCheckStatus, glyphOfCheckStatus } from '../../../../shared/statusTone';
@@ -8,9 +13,6 @@ import { sectionById } from '../../sections';
 import ArticleRef, { formatRef } from '../../shared/ArticleRef';
 import SeverityTag from '../../shared/SeverityTag';
 import VerificationChip from '../../shared/VerificationChip';
-import {
-    isOpen, otherFrameworkRefs, articleForRegulation, resolveRemediation, autoFixCount, formatRunAt,
-} from './checkSort';
 
 /**
  * CheckRow — one check in the framework table (artboard 1b).
@@ -176,6 +178,12 @@ export default function CheckRow({
     const fixCount = autoFixCount(check);
     const runAt = formatRunAt(check.run_at ?? check.last_run_at ?? lastRunAt, { now: now ?? Date.now(), locale });
     const cells = Object.fromEntries((columns || []).map((c) => [c.id, c]));
+    // A per-subject row about ONE project names it (its current name, resolved
+    // by the server) and offers the way into it.
+    const projects = check.scope_id ? affectedProjects(check) : [];
+    const subject = projects.length === 1 ? projects[0] : null;
+    const subjectRem = subject && subject.path ? { kind: 'external', path: subject.path } : null;
+    const canOpenSubject = !!subjectRem && typeof onOpenLink === 'function' && canOpenLink(subjectRem);
 
     // Navigated here from the overview: scroll the row into view once. The
     // host opens it (focusId is the initial expansion) — this only brings it
@@ -213,7 +221,11 @@ export default function CheckRow({
                     <div className="flex items-center gap-2 min-w-0">
                         <span className={`text-[12px] font-medium truncate ${textTone}`}>{title}</span>
                         {open && <SeverityTag severity={check.severity} testId={testId ? `${testId}-severity` : 'severity-tag'} />}
+                        {open && <FindingStateChip state={check.finding_state} testId={testId ? `${testId}-state` : 'check-state'} />}
                     </div>
+                    {subject && (
+                        <div className="text-[11px] text-[var(--text-secondary)] truncate" data-testid={testId ? `${testId}-subject` : 'check-subject'}>{subject.name}</div>
+                    )}
                     {others.length > 0 && (
                         <div className="text-[10px] text-[var(--text-tertiary)] flex items-center gap-1 min-w-0" data-testid={testId ? `${testId}-also` : 'check-also-counts'}>
                             <span>· {t('compliance.tbl_also_counts', 'also counts for')}</span>
@@ -234,6 +246,13 @@ export default function CheckRow({
                     {runAt}
                 </TableCell>
                 <TableCell column={cells.actions} className="flex items-center justify-end gap-1" align="right">
+                    {canOpenSubject && (
+                        <button type="button" className={ICON_BTN} onClick={stop(() => onOpenLink(subjectRem, check))}
+                            aria-label={t('compliance.tbl_open_subject', 'Open the affected item')} title={t('compliance.tbl_open_subject', 'Open the affected item')}
+                            data-testid={testId ? `${testId}-open-subject` : 'check-open-subject'}>
+                            <ArrowUpRight size={13} aria-hidden="true" />
+                        </button>
+                    )}
                     {remLabel && (
                         <button type="button" className={SECONDARY_BTN} onClick={stop(() => onOpenLink(rem, check))} data-testid={testId ? `${testId}-fix` : 'check-fix'}>
                             {remLabel.text} <remLabel.Icon size={11} aria-hidden="true" />

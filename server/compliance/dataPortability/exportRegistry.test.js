@@ -26,7 +26,22 @@ const { EXPORT_KINDS, MACHINE_READABLE_FORMATS, KNOWN_FORMATS } = registry;
 const SERVER_ROOT = path.resolve(__dirname, '..', '..');
 const INDEX_SRC = fs.readFileSync(path.join(SERVER_ROOT, 'index.js'), 'utf8');
 
-const GAP_KINDS = ['agents', 'knowledge_bases', 'conversations', 'ai_webpages', 'form_submissions'];
+// project_comments and notebook_versions joined with wave 2 (comments on
+// project content, notebook version history): both held, neither exportable yet.
+const GAP_KINDS = ['agents', 'knowledge_bases', 'conversations', 'ai_webpages', 'form_submissions',
+    'team_chats', 'project_files', 'studio_documents', 'project_workspaces', 'project_comments', 'notebook_versions'];
+
+/** A real Postgres (pglite) with the project store's own schema. */
+async function projectPg() {
+    const { PGlite } = require('@electric-sql/pglite');
+    const { applyProjectSchema } = require('../../stores/projectStore');
+    const pg = new PGlite();
+    await applyProjectSchema({
+        exec: (sql) => pg.exec(sql),
+        runDdl: async (_tag, statements) => { for (const s of statements) await pg.exec(typeof s === 'string' ? s : s.sql); },
+    });
+    return pg;
+}
 
 // ── Table shape ─────────────────────────────────────────────────────────────
 
@@ -56,7 +71,7 @@ test('every kind is unique, labelled by convention and declares every field the 
     }
 });
 
-test('the five known product gaps are declared with route: null so the coverage check fails honestly', () => {
+test('the known product gaps are declared with route: null so the coverage check fails honestly', () => {
     const missing = EXPORT_KINDS.filter(k => !k.route).map(k => k.kind).sort();
     assert.deepEqual(missing, [...GAP_KINDS].sort());
     assert.deepEqual(registry.portableKinds().filter(k => GAP_KINDS.includes(k)), []);
@@ -71,7 +86,9 @@ test('held-count SQL is org-scoped ($1) for every org kind; only platform kinds 
     for (const k of EXPORT_KINDS) {
         if (k.heldScope === 'org') {
             assert.match(k.heldCountSql, /\$1\b/, `${k.kind}: org-scoped count must bind $1`);
-            assert.match(k.heldCountSql, /organization_id = \$1|"organizationId" = \$1/, `${k.kind}: scoped on an organisation column`);
+            // A project count reads '' as the 'default' bucket:
+            // COALESCE(NULLIF(p.organization_id, ''), 'default') = $1.
+            assert.match(k.heldCountSql, /organization_id = \$1|"organizationId" = \$1|organization_id, ''\), 'default'\) = \$1/, `${k.kind}: scoped on an organisation column`);
         } else {
             assert.doesNotMatch(k.heldCountSql, /\$1\b/, `${k.kind}: platform kind takes no org parameter`);
         }
@@ -188,7 +205,9 @@ test('heldCounts: a missing table cannot blank the matrix — per-kind fallback,
     assert.equal(counts.form_submissions, null);
     assert.equal(counts.cms_sites, 2);
     assert.equal(counts.automations, 5);
-    assert.deepEqual(errors, { knowledge_bases: '42P01', form_submissions: '42703' });
+    // project_files reads knowledge_bases too, so it is unknown along with it.
+    assert.equal(counts.project_files, null);
+    assert.deepEqual(errors, { knowledge_bases: '42P01', form_submissions: '42703', project_files: '42P01' });
 });
 
 test('coverageMatrix returns one row per kind in the contract shape, using the injected probe', async () => {
@@ -212,4 +231,75 @@ test('coverageMatrix returns one row per kind in the contract shape, using the i
     // Rows are copies — a caller mutating the matrix cannot corrupt the table.
     auto.formats.push('xml');
     assert.deepEqual(registry.getKind('automations').formats, ['json']);
+});
+
+test('Solutions held counts Solutions and legacy projects of the org, never a collaborative project', async () => {
+    // Run against a real Postgres (pglite) with the project store's own schema:
+    // `kind` must exist where this SQL runs, and the answer must leave the
+    // collaborative projects out (they have no Blueprint export).
+    const pg = await projectPg();
+    try {
+        await pg.exec(`
+            INSERT INTO projects (id, name, owner_id, organization_id, kind) VALUES
+                ('w1', 'Team room', 'u1', 'org-1', 'workspace'),
+                ('s1', 'Invoicing', 'u1', 'org-1', 'solution'),
+                ('l1', 'Old one',   'u1', 'org-1', NULL),
+                ('s2', 'Elsewhere', 'u2', 'org-2', 'solution');
+        `);
+        const sql = registry.getKind('solutions').heldCountSql;
+        const { rows } = await pg.query(sql, ['org-1']);
+        assert.equal(rows[0].c, 2);
+    } finally {
+        await pg.close();
+    }
+});
+
+test('team chats are their own kind, counted once, for the org (the default bucket included); private chats stay conversations', async () => {
+    // The real project and team chat schemas, so the counts run where the
+    // columns they name exist. The private conversation tables are reduced to
+    // the two columns their count reads.
+    const { DDL: CHAT_DDL } = require('../../stores/projectChatStore');
+    const pg = await projectPg();
+    try {
+        await pg.exec(CHAT_DDL);
+        await pg.exec(require('../../stores/projectCommentStore').DDL);
+        await pg.exec(`
+            CREATE TABLE users (id TEXT PRIMARY KEY, "organizationId" TEXT);
+            CREATE TABLE agent_conversations (id TEXT PRIMARY KEY, user_id TEXT);
+            CREATE TABLE direct_conversations (id TEXT PRIMARY KEY, user_id TEXT);
+            INSERT INTO users VALUES ('u1', 'org-1'), ('u2', 'org-2');
+            INSERT INTO direct_conversations VALUES ('d1', 'u1'), ('d2', 'u2');
+            INSERT INTO agent_conversations VALUES ('a1', 'u1');
+            INSERT INTO projects (id, name, owner_id, organization_id, kind) VALUES
+                ('w1', 'Team room', 'u1', 'org-1', 'workspace'),
+                ('w2', 'Elsewhere', 'u2', 'org-2', 'workspace'),
+                ('w3', 'Solo', 'u3', '', 'workspace'),
+                ('s1', 'Package', 'u1', 'org-1', 'solution');
+            INSERT INTO project_chats (id, project_id, title, created_by) VALUES
+                ('c1', 'w1', 'sealed', 'u1'), ('c2', 'w1', 'sealed', 'u1'), ('c3', 'w2', 'sealed', 'u2'), ('c4', 'w3', 'sealed', 'u3');
+            CREATE TABLE notebooks (id TEXT PRIMARY KEY, user_id TEXT);
+            CREATE TABLE notebook_versions (id TEXT PRIMARY KEY, notebook_id TEXT);
+            INSERT INTO notebooks VALUES ('n1', 'u1'), ('n2', 'u2');
+            INSERT INTO notebook_versions VALUES ('v1', 'n1'), ('v2', 'n1'), ('v3', 'n2');
+        `);
+        // Two comments in org-1 (one erased: a blanked row is not held content),
+        // one in org-2. Through the real store's DDL, so the columns are real.
+        await pg.exec(`
+            INSERT INTO project_comment_threads (id, project_id, target_type, target_id, anchor, created_by)
+                VALUES ('t1', 'w1', 'notebook', 'n1', 'sealed', 'u1'), ('t2', 'w2', 'notebook', 'n2', 'sealed', 'u2');
+            INSERT INTO project_comments (id, thread_id, project_id, seq, author_kind, author_user_id, content, deleted_at) VALUES
+                ('m1', 't1', 'w1', 1, 'user', 'u1', 'sealed', NULL), ('m2', 't1', 'w1', 2, 'user', 'u1', 'sealed', NULL),
+                ('m3', 't1', 'w1', 3, 'user', 'u1', '', NOW()), ('m4', 't2', 'w2', 1, 'user', 'u2', 'sealed', NULL);
+        `);
+        const count = async (kind, org) => (await pg.query(registry.getKind(kind).heldCountSql, [org])).rows[0].c;
+        assert.equal(await count('conversations', 'org-1'), 2, 'one direct and one agent chat, no team chats');
+        assert.equal(await count('team_chats', 'org-1'), 2);
+        assert.equal(await count('team_chats', 'default'), 1, 'the org-less project belongs to the default bucket');
+        assert.equal(await count('project_workspaces', 'org-1'), 1, 'a Solution is not a workspace');
+        assert.equal(await count('project_comments', 'org-1'), 2, 'an erased comment is not held');
+        assert.equal(await count('project_comments', 'org-2'), 1);
+        assert.equal(await count('notebook_versions', 'org-1'), 2);
+    } finally {
+        await pg.close();
+    }
 });

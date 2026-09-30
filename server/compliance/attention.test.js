@@ -99,7 +99,7 @@ test('check rows: fail/warn of ACTIVE regulations only; auto_fix when the check 
     assert.deepEqual(out.tail, []);
 });
 
-test('per-source rows produce one item per subject; check ids with parentheses are URL-encoded in the target', async () => {
+test('per-source rows collapse into one item per check; check ids with parentheses are URL-encoded in the target', async () => {
     const out = await attention.build('org1', {
         now: NOW,
         deps: deps({
@@ -107,9 +107,10 @@ test('per-source rows produce one item per subject; check ids with parentheses a
             complianceStore: {
                 getSettings: async () => ({}),
                 getLatestPerCheck: async () => [
-                    { check_id: 'AIA-Art50-ai-disclosure', status: 'warn', scope_id: 'agent-1', details: 'no disclosure', run_at: at(NOW - H) },
-                    { check_id: 'AIA-Art50-ai-disclosure', status: 'warn', scope_id: 'agent-2', details: 'no disclosure', run_at: at(NOW) },
-                    { check_id: 'NIS2-Art21(2)(j)-admin-mfa', status: 'fail', run_at: at(NOW) },
+                    { check_id: 'AIA-Art50-ai-disclosure', status: 'warn', scope_type: 'per-source', scope_id: 'agent-1', details: 'no disclosure', run_at: at(NOW - H) },
+                    { check_id: 'AIA-Art50-ai-disclosure', status: 'fail', scope_type: 'per-source', scope_id: 'agent-2', details: 'no disclosure', run_at: at(NOW), evidence: { link: '/app/agents/agent-2' } },
+                    { check_id: 'AIA-Art50-ai-disclosure', status: 'warn', scope_type: 'per-source', scope_id: 'agent-3', details: 'no disclosure', run_at: at(NOW - 2 * H) },
+                    { check_id: 'NIS2-Art21(2)(j)-admin-mfa', status: 'fail', run_at: at(NOW - H) },
                     { check_id: 'NIS2-Art21(2)-policy-coverage', status: 'warn', run_at: at(NOW - 3 * H) },
                 ],
             },
@@ -117,15 +118,63 @@ test('per-source rows produce one item per subject; check ids with parentheses a
     });
     assert.deepEqual(out.items.map(i => i.id), [
         'check:NIS2-Art21(2)(j)-admin-mfa:global',
-        'check:AIA-Art50-ai-disclosure:agent-2',
-        'check:AIA-Art50-ai-disclosure:agent-1',
+        'check:AIA-Art50-ai-disclosure:subjects',
         'check:NIS2-Art21(2)-policy-coverage:global',
-    ], 'fail first, then severity, then newest');
+    ], 'three agents are one item, carrying the worst status');
+    assert.equal(out.total, 3, 'attention_open counts the check once, not once per subject');
+    const agents = out.items[1];
+    assert.equal(agents.status, 'fail');
+    assert.equal(agents.meta.subject_count, 3);
+    assert.deepEqual(agents.meta.subjects.map(s => s.scope_id), ['agent-2', 'agent-1', 'agent-3'], 'failing first, then newest');
+    assert.equal(agents.meta.subjects[0].link, '/app/agents/agent-2');
+    assert.equal(agents.meta.detail, '3 subjects need attention, 1 of them failing.');
     assert.equal(out.items[0].action.target, '/app/admin/security/users', 'remediation links leave the hub');
-    assert.equal(out.items[1].meta.scope_id, 'agent-2');
-    assert.equal(out.items[3].action.type, 'open_fix');
-    assert.equal(out.items[3].action.target, `/app/admin/compliance/nis2/${encodeURIComponent('NIS2-Art21(2)-policy-coverage')}`,
+    assert.equal(out.items[2].action.type, 'open_fix');
+    assert.equal(out.items[2].action.target, `/app/admin/compliance/nis2/${encodeURIComponent('NIS2-Art21(2)-policy-coverage')}`,
         'no remediation link → the check row in its framework page, id passed through encodeURIComponent (parentheses are legal path chars)');
+});
+
+test('a single open subject keeps its own id, detail and deep link; the noun comes from the check', async () => {
+    const defs = { ...DEFS, 'GDPR-Art30-project-personal-data': {
+        id: 'GDPR-Art30-project-personal-data', regulation: 'GDPR', article: '30', severity: 'medium', verification: 'hybrid',
+        scope: 'per-source', subjectNoun: 'projects', frameworks: [{ regulation: 'GDPR', ref: '30' }],
+    } };
+    const make = (rows) => deps({
+        registry: { get: (id) => defs[id] || null, getAll: () => Object.values(defs) },
+        complianceStore: { getSettings: async () => ({}), getLatestPerCheck: async () => rows },
+    });
+    const one = await attention.build('org1', { now: NOW, deps: make([
+        { check_id: 'GDPR-Art30-project-personal-data', status: 'warn', scope_type: 'per-source', scope_id: 'project:p1', details: 'no record', run_at: at(NOW), evidence: { link: '/app/projects/p1' } },
+    ]) });
+    assert.equal(one.items[0].id, 'check:GDPR-Art30-project-personal-data:project:p1');
+    assert.equal(one.items[0].meta.detail, 'no record');
+    assert.equal(one.items[0].meta.link, '/app/projects/p1');
+    const two = await attention.build('org1', { now: NOW, deps: make([
+        { check_id: 'GDPR-Art30-project-personal-data', status: 'warn', scope_type: 'per-source', scope_id: 'project:p1', run_at: at(NOW) },
+        { check_id: 'GDPR-Art30-project-personal-data', status: 'warn', scope_type: 'per-source', scope_id: 'project:p2', run_at: at(NOW) },
+    ]) });
+    assert.equal(two.items[0].meta.detail, '2 projects need attention.');
+    assert.equal(two.items[0].meta.link, null, 'a collapsed item has no single deep link');
+});
+
+test('a finding an admin acknowledged is hidden while unchanged and comes back when it changes', async () => {
+    const findingState = require('./findingState');
+    const row = { check_id: 'GDPR-Art28-subprocessors', status: 'warn', details: 'x', run_at: at(NOW), evidence: { unconfirmed: 1 } };
+    const state = { check_id: row.check_id, scope_key: 'global', fingerprint: findingState.fingerprintOf(row), state: 'acknowledged' };
+    const make = (rows, states) => deps({
+        complianceStore: { getSettings: async () => ({}), getLatestPerCheck: async () => rows, listFindingStates: async () => states },
+    });
+    const hidden = await attention.build('org1', { now: NOW, deps: make([row], [state]) });
+    assert.equal(hidden.total, 0);
+    const worse = await attention.build('org1', { now: NOW, deps: make([{ ...row, evidence: { unconfirmed: 2 } }], [state]) });
+    assert.equal(worse.total, 1, 'one more unconfirmed operator re-opens it');
+    const snoozedOut = await attention.build('org1', { now: NOW, deps: make([row], [{ ...state, state: 'snoozed', until: at(NOW - H) }]) });
+    assert.equal(snoozedOut.total, 1, 'an expired snooze holds nothing');
+    const unreadable = await attention.build('org1', { now: NOW, deps: deps({
+        complianceStore: { getSettings: async () => ({}), getLatestPerCheck: async () => [row], listFindingStates: async () => { throw new Error('42P01'); } },
+    }) });
+    assert.equal(unreadable.total, 1, 'unreadable states show every finding');
+    assert.equal(unreadable.complete, true);
 });
 
 test('register findings: DSR overdue / due soon / unverified > 7 d, incident clock without recipients, CRA early warning, SoA todo, obligations, expired attestation', async () => {

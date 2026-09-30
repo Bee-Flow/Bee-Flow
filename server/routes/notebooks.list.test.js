@@ -108,6 +108,14 @@ const MOCKS = {
     },
     '../core/kb/notebookCascade': { cleanupSourceArtifacts: async () => {}, deleteNotebookCascade: async () => ({ deleted: true, sources: 0, kbs: 0 }) },
     '../core/dlp/dlpRunner': { getConversationTokenMapAsync: async () => null, clearConversationState: () => {} },
+    // /generate and /ai-fill go through the Privacy Shield on the notebook
+    // chat's path (tested on its own in agents/notebooks/notebookAiShield.test.js);
+    // here the shield is off, so the texts pass unchanged.
+    '../agents/notebooks/notebookAiShield': {
+        shieldNotebookPrompt: async ({ sourceText, otherUnits = [] }) => ({
+            ok: true, units: [sourceText, ...otherUnits], addendum: '', untokenise: { push: (t) => t, flush: () => '' },
+        }),
+    },
     // Lazily required inside /generate — mocked so the doc-only test streams
     // to completion without a KB, model tiers or a provider.
     '../core/kb/notebookKnowledgeSearch': { gatherNotebookContent: async () => ({ content: 'Document body content' }) },
@@ -142,6 +150,10 @@ Module._resolveFilename = function (request, parent, ...rest) {
 
 const express = require('express');
 const router = require('./notebooks');
+const { terminalErrorHandler } = require('../core/http/terminalErrorHandler');
+// No co-editing engine and no change feed here (routes/notebooks.js `seams`).
+router.seams.collab = () => null;
+router.seams.feed = () => ({ contentChanged: async () => {}, renamed: async () => {}, sourcesAdded: async () => {} });
 
 // ── HTTP harness ────────────────────────────────────────────────────
 
@@ -157,6 +169,8 @@ test.before(async () => {
         next();
     });
     app.use('/api/notebooks', router);
+    // As index.js mounts it: routes throw HttpError and this answers.
+    app.use(terminalErrorHandler);
     server = http.createServer(app);
     await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
     baseUrl = `http://127.0.0.1:${server.address().port}/api/notebooks`;

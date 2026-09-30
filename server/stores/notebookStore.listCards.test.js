@@ -42,6 +42,17 @@ require.cache[dbPath] = {
         },
         getAll: async () => [],
         exec: async () => undefined,
+        // A content write runs as one transaction (the row lock, the
+        // co-editing check, the write): the same recorder answers it, with no
+        // co-editing table in this database.
+        withTransaction: async (fn) => fn({
+            query: async (sql, params = []) => {
+                if (/to_regclass/.test(sql)) return { rows: [{ present: false }] };
+                if (/^\s*UPDATE notebooks[\s\S]*RETURNING version\s*$/i.test(sql)) return { rows: [], ...(await require.cache[dbPath].exports.run(sql, params)) };
+                // The row lock, and the schema init's own transaction: nothing to record.
+                return { rows: /FOR UPDATE/.test(sql) ? [{ id: params[0] }] : [], rowCount: 0 };
+            },
+        }),
     },
 };
 

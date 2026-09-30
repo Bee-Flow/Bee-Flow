@@ -66,3 +66,76 @@ describe('SectionDragLayer — drag handle title', () => {
     expect(screen.getByTitle('Sleep dit blok')).toBeTruthy();
   });
 });
+
+/**
+ * A drag while someone else edits: the layer holds a view whose document the
+ * test replaces mid-drag, as a co-editor's change does (every block copied).
+ * jsdom rects are all zero, so the handle is found at clientY 0 on the first
+ * block and a drop at clientY 0 lands after the last one.
+ */
+const para = (text) => ({ type: 'paragraph', content: [{ type: 'text', text }] });
+
+function DragHarness({ view, isLocked }) {
+  const hostRef = useRef(null);
+  const viewRef = useRef(view);
+  return (
+    <div data-testid="wrap">
+      <div ref={hostRef} data-testid="host">{view.state.doc.content.map((_, i) => <p key={i}>block</p>)}</div>
+      <SectionDragLayer hostRef={hostRef} viewRef={viewRef} isLocked={isLocked} />
+    </div>
+  );
+}
+
+function dragView(texts) {
+  const view = {
+    state: { doc: { type: 'doc', content: texts.map(para) }, selection: null },
+    dispatch: (fn) => { view.state = fn(view.state); },
+  };
+  return view;
+}
+const texts = (view) => view.state.doc.content.map((b) => b.content[0].text);
+
+function startDragOnFirstBlock(view, isLocked = null) {
+  render(<DragHarness view={view} isLocked={isLocked} />);
+  fireEvent.mouseMove(screen.getByTestId('wrap'), { clientY: 0 });
+  fireEvent.mouseDown(screen.getByTitle('Drag to reorder this block'));
+}
+
+/** A co-editor adds a block at the top: every index shifts, every block is a copy. */
+function remoteInsertAtTop(view, text) {
+  view.state = { ...view.state, doc: { type: 'doc', content: [para(text), ...JSON.parse(JSON.stringify(view.state.doc.content))] } };
+  const host = screen.getByTestId('host');
+  host.insertBefore(document.createElement('p'), host.firstChild);
+}
+
+describe('SectionDragLayer — others editing during a drag', () => {
+  beforeEach(() => { cleanup(); transOverride.current = null; });
+
+  it('moves the block that was grabbed, not the one now at its old index', () => {
+    const view = dragView(['a', 'b', 'c']);
+    startDragOnFirstBlock(view);
+    remoteInsertAtTop(view, 'x');
+    fireEvent.mouseUp(document, { clientY: 0 });
+    expect(texts(view)).toEqual(['x', 'b', 'c', 'a']);
+  });
+
+  it('asks again at the drop whether someone is editing in there, and then moves nothing', () => {
+    const view = dragView(['a', 'b', 'c']);
+    let lockedAtDrop = false;
+    const isLocked = vi.fn(() => lockedAtDrop);
+    startDragOnFirstBlock(view, isLocked);
+    lockedAtDrop = true;
+    fireEvent.mouseUp(document, { clientY: 0 });
+    expect(texts(view)).toEqual(['a', 'b', 'c']);
+    expect(isLocked).toHaveBeenLastCalledWith(0, 1);
+  });
+
+  it('moves nothing when the grabbed block was changed meanwhile', () => {
+    const view = dragView(['a', 'b', 'c']);
+    startDragOnFirstBlock(view);
+    view.state = { ...view.state, doc: { type: 'doc', content: [para('a, edited'), para('b'), para('c')] } };
+    fireEvent.mouseUp(document, { clientY: 0 });
+    expect(texts(view)).toEqual(['a, edited', 'b', 'c']);
+  });
+});
+

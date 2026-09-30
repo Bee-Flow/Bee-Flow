@@ -302,6 +302,13 @@ test('a webpage is never published on arrival', async () => {
     assert.strictEqual(called('writeSlot')[0].args[2], 'index.html');
 });
 
+test('an installed Blueprint is a Studio Solution, never a collaborative project', async () => {
+    reset();
+    await install({ automations: [AUTOMATION('aut_1')] });
+    assert.strictEqual(called('createProject')[0].args.kind, 'solution',
+        'it must list under Studio Solutions only, not on the Projects page');
+});
+
 test('everything is created under the installer', async () => {
     reset();
     await install({
