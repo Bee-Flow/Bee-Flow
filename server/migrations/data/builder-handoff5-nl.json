@@ -155,6 +155,8 @@
     "routines.header.activate": "Activeren",
     "routines.header.activate_first_title": "Gaat live met deze versie en begint te luisteren naar zijn trigger",
     "routines.header.activate_incomplete": "Voeg eerst een trigger en minstens één stap toe",
+    "routines.header.hide_menu": "Studio-menu verbergen",
+    "routines.header.show_menu": "Studio-menu tonen",
     "routines.header.activate_paused_title": "Zet de live versie weer aan",
     "routines.header.back": "Terug naar Routines",
     "routines.header.browse": "Automations bekijken",

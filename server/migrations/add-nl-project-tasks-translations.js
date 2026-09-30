@@ -184,12 +184,7 @@ const NL_TRANSLATIONS = {
     'project_chat.mention_meeting_hint': 'meeting',
     'project_chat.ref_meeting': 'Meeting',
     'project_content.meeting_already_shared': 'Al op een andere manier gedeeld. Maak de notitie eerst persoonlijk: een notitie in een project is open voor het hele project, en voor niemand anders.',
-    'visibility.project': 'Project',
-    'visibility.project_members': 'Projectleden',
-    'visibility.project_locked': 'Deze notitie staat in een project, dus is open voor het hele project en kan niet op een andere manier worden gedeeld. Haal de notitie uit het project om dat te wijzigen.',
     'project_content.notebook_loading': 'Notitieboek openen…',
-    'comments.anchor_whole_task': 'Over deze taak',
-    'comments.empty_open_task': 'Bespreek deze taak met het team. Noem iemand met @, of @ai om de AI te vragen.',
 };
 
 const SAME_AS_ENGLISH = [];

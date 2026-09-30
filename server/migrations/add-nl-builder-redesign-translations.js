@@ -145,6 +145,8 @@ const NL_TRANSLATIONS = {
     'routines.canvas.zoom_out': 'Uitzoomen',
     'routines.canvas.zoom_reset': 'Zoom naar 100%',
     'routines.canvas.zoom_fit': 'Pas de hele flow op het scherm',
+    'routines.canvas.fullscreen_on': 'Canvas op volledig scherm',
+    'routines.canvas.fullscreen_off': 'Volledig scherm verlaten',
     'routines.canvas.legend_toggle': 'Wat de tekens op het canvas betekenen',
     'routines.canvas.legend_title': 'Legenda',
     'routines.canvas.legend_data': 'gegevens die over de lijn meegaan',

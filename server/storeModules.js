@@ -61,6 +61,11 @@ const STORE_MODULES = [
     // project_ai_feedback). FK to projects, so after projectStore; its init also
     // awaits projectStore's.
     { name: 'projectAiParticipationStore', file: './stores/projectAiParticipationStore' },
+    // Tasks in a project (project_tasks) and each member's colour in it
+    // (project_member_colors). FK to projects, so after projectStore; their
+    // inits also await projectStore's.
+    { name: 'projectTaskStore', file: './stores/projectTaskStore' },
+    { name: 'projectMemberColorStore', file: './stores/projectMemberColorStore' },
     { name: 'reminderStore', file: './stores/reminderStore' },
     { name: 'templateStore', file: './stores/templateStore' },
     { name: 'transcriptionStore', file: './stores/transcriptionStore' },

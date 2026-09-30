@@ -233,6 +233,7 @@ const NL_TRANSLATIONS = Object.freeze({
     'comments.anchor_outdated': 'Deze passage is gewijzigd of verwijderd.',
     'comments.anchor_unreadable': 'De passage bij deze discussie kon niet worden gelezen.',
     'comments.anchor_whole_document': 'Over het hele document',
+    'comments.anchor_whole_task': 'Over deze taak',
     'comments.anchor_whole_notebook': 'Over het hele notitieboek',
     'comments.reply': 'Beantwoorden',
     'comments.reply_label': 'Antwoord',
@@ -258,6 +259,7 @@ const NL_TRANSLATIONS = Object.freeze({
     'comments.empty_open_title': 'Geen openstaande opmerkingen',
     'comments.empty_open_document': 'Selecteer een passage in het document en kies Opmerking toevoegen om erover te overleggen. Noem @ai om de AI iets te vragen.',
     'comments.empty_open_notebook': 'Selecteer een passage in het notitieboek en kies Opmerking toevoegen om erover te overleggen. Noem @ai om de AI iets te vragen.',
+    'comments.empty_open_task': 'Bespreek deze taak met het team. Noem iemand met @, of @ai om de AI te vragen.',
     'comments.empty_open_viewer': 'Als bewerkers opmerkingen bij dit item plaatsen, verschijnen hun discussies hier.',
     'comments.empty_resolved_title': 'Geen opgeloste discussies',
 

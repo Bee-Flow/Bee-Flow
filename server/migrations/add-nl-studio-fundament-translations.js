@@ -100,6 +100,8 @@ const NL_TRANSLATIONS = {
     'visibility.confirm_keep': 'Laat het zoals het is',
     'visibility.confirm_org': 'Iedereen in je organisatie kan “{name}” straks zien en gebruiken.',
     'visibility.confirm_groups': 'Leden van {groups} kunnen “{name}” straks zien en gebruiken.',
+    'visibility.project_members': 'Projectleden',
+    'visibility.project_locked': 'Deze notitie staat in een project, dus is open voor het hele project en kan niet op een andere manier worden gedeeld. Haal de notitie uit het project om dat te wijzigen.',
 
     // ── Gebruikt door ───────────────────────────────────────────────────────
     'usage.loading': 'Laden wie dit gebruikt…',
@@ -165,6 +167,7 @@ const NL_TRANSLATIONS = {
  * "routine" in its own copy, which is a known, older choice.
  */
 const SAME_AS_ENGLISH = [
+    'visibility.project',
     'studio.status.live',
     'studio.category.ai',
     'studio.new.automation',

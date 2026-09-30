@@ -22,7 +22,7 @@ export function StatusButton({ task, canEdit, onChange }: { task: ProjectTask; c
             title={done ? t('project_tasks.mark_open', 'Mark as not done') : t('project_tasks.mark_done', 'Mark as done')}
             className={`grid place-items-center w-5 h-5 rounded-full flex-shrink-0 border transition-colors ${done
                 ? 'bg-[var(--accent-primary)] border-[var(--accent-primary)] text-[var(--accent-primary-fg)]'
-                : 'border-[var(--border-strong,var(--border-default))] text-[var(--text-tertiary)] hover:border-[var(--accent-primary)]'}`}>
+                : 'border-[var(--border-default)] text-[var(--text-tertiary)] hover:border-[var(--accent-primary)]'}`}>
             <Icon className="w-3 h-3" aria-hidden="true" />
         </button>
     );
