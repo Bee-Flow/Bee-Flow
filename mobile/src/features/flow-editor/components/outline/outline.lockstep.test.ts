@@ -13,6 +13,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { FIXTURES } from '@/features/flow-editor/model/testing/fixtures';
+import { loadWebModule } from '@/shared/testing/webModule';
 import { isIconName } from '@/shared/ui';
 
 import { describeSetOperation, summariseSetStep } from './setSummary';
@@ -23,7 +24,14 @@ const FLOW = path.resolve(__dirname, '../../../../../../agent-hub/src/components
 /* eslint-disable @typescript-eslint/no-require-imports */
 const webSet = require(`${FLOW}/setOperations.js`);
 const webResult = require(`${FLOW}/stepResultChip.js`);
-const webAiTools = require(`${FLOW}/aiToolNodes.js`);
+// Loaded as text: the file imports lucide-react through nodeTypeColors, which
+// the app's own node_modules (all that CI installs for mobile) does not hold.
+// aiStepVariant uses none of its imports, so they are stubbed.
+const webAiTools = loadWebModule<{ aiStepVariant: (step: unknown) => string }>('components/automation/Builder/flow/aiToolNodes.js', {
+    cardHeightForPorts: () => 0,
+    CARD_H: 0,
+    routePorts: () => [],
+});
 /* eslint-enable @typescript-eslint/no-require-imports */
 
 const read = (rel: string) => fs.readFileSync(path.join(FLOW, rel), 'utf8');
