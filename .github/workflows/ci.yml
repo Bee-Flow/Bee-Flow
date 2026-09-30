@@ -645,8 +645,10 @@ jobs:
       # runner, where vitest's default (cores - 1) is one. Shard 1 measured
       # 913 s -> 621 s, peak RSS ~2.3 GB either way (of 7 GB), the same 5,643
       # tests green, slowest test 6.9 s against the 20 s testTimeout.
+      # The blob path is pinned: vitest 5 moved the default from .vitest-reports/
+      # to .vitest/blob/, and the upload and merge steps below read the old one.
       - name: Unit tests (vitest shard ${{ matrix.shard }}/3, with coverage)
-        run: npx vitest run --shard=${{ matrix.shard }}/3 --maxWorkers=100% --reporter=blob --reporter=dot --coverage
+        run: npx vitest run --shard=${{ matrix.shard }}/3 --maxWorkers=100% --reporter=blob --reporter=dot --outputFile.blob=.vitest-reports/blob-${{ matrix.shard }}-3.json --coverage
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: ${{ !cancelled() }}
         with:
@@ -684,7 +686,7 @@ jobs:
       - name: Every shard reported
         run: test "$(ls .vitest-reports | wc -l)" -eq 3
       - name: Merge the shards' results and coverage
-        run: npx vitest --merge-reports --reporter=dot --coverage --coverage.reporter=text-summary --coverage.reporter=lcov --coverage.reporter=json-summary
+        run: npx vitest --merge-reports=.vitest-reports --reporter=dot --coverage --coverage.reporter=text-summary --coverage.reporter=lcov --coverage.reporter=json-summary
       # Line coverage may not drop under the floor in .coverage-ratchet.json
       # (one point under the last measurement; `--update` only raises it).
       - name: Coverage floor
