@@ -78,6 +78,7 @@ const isAutomatic = (c) => c.authorKind === 'assistant' && typeof c.aiTrigger ==
  * @param {Function} [deps.getProjectRole]      (userId, projectId) => role|null, for mentions
  * @param {Function} [deps.getProject]          (id) => project row
  * @param {object}   [deps.store]               stores/projectCommentStore surface
+ * @param {object}   [deps.taskNotifier]        projects/taskNotify surface: mentioned(...), the bell for someone mentioned on a task
  * @param {object}   [deps.commentCrypto]       { forProject(project) }
  * @param {object}   [deps.assistant]           { requestReply(...) } (projects/comments/commentAssistant)
  * @param {object}   [deps.participation]       { notify(p), cancel(threadId) } (projects/comments/surface)
@@ -141,11 +142,20 @@ function makeProjectCommentsRouter(deps = {}) {
         return project;
     }
 
+    // A comment on a task that mentions someone rings their bell (the text is never in it).
+    const taskNotifier = () => deps.taskNotifier || require('../../projects/taskNotify').makeTaskNotifier();
+    async function notifyTaskMentions(project, thread, actorId, mentionedUserIds) {
+        if (thread.targetType !== 'task') return;
+        try { await taskNotifier().mentioned({ project, actorId, mentionedUserIds, taskId: thread.targetId }); } catch (err) {
+            log.warn(`[ProjectComments] task mention not notified: ${err && err.message}`);
+        }
+    }
+
     /** The item must be filed in this project right now. */
     async function assertTarget(project, targetType, targetId) {
         const target = await store().lookupTarget(targetType, targetId);
         if (!target || target.projectId !== project.id) {
-            throw notFound('target_not_found', 'This notebook or document is not in this project.');
+            throw notFound('target_not_found', 'This notebook, document or task is not in this project.');
         }
         return target;
     }
@@ -399,6 +409,7 @@ function makeProjectCommentsRouter(deps = {}) {
         await emit(project.id, threadEvent('comment.thread.created', userId, thread, { commentId: comment.id, seq: comment.seq, authorKind: 'user' }));
         if (kept.length > 0) {
             await emit(project.id, threadEvent('comment.mention', userId, thread, { commentId: comment.id, mentionedUserIds: kept }));
+            await notifyTaskMentions(project, thread, userId, kept);
         }
         if (thread.aiMode === 'auto') aiModeChanged(project);
         const ai = await afterHumanComment(req, { project, thread, comment, content, askAi: askAi === true });
@@ -502,6 +513,7 @@ function makeProjectCommentsRouter(deps = {}) {
         await emit(project.id, threadEvent('comment.created', userId, thread, { commentId: comment.id, seq: comment.seq, authorKind: 'user' }));
         if (kept.length > 0) {
             await emit(project.id, threadEvent('comment.mention', userId, thread, { commentId: comment.id, mentionedUserIds: kept }));
+            await notifyTaskMentions(project, thread, userId, kept);
         }
         const ai = await afterHumanComment(req, { project, thread: current, comment, content, askAi: askAi === true });
         res.status(201).json({ comment: presentComment(box, comment, content), ai, thread: { id: thread.id, status: current.status } });
@@ -530,6 +542,7 @@ function makeProjectCommentsRouter(deps = {}) {
         const added = kept.filter((id) => !comment.mentions.includes(id));
         if (added.length > 0) {
             await emit(project.id, threadEvent('comment.mention', userId, thread, { commentId: updated.id, mentionedUserIds: added }));
+            await notifyTaskMentions(project, thread, userId, added);
         }
         res.json({ comment: presentComment(box, updated, content) });
     });

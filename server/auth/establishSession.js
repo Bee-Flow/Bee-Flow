@@ -91,6 +91,17 @@ async function establishSession(req, { user, isAdmin = false, preserve = [], ext
  * callback-invoking no-ops.
  *
  * Never call this for cookie-session flows — those genuinely need the row.
+ *
+ * The session COOKIE goes as well. express-session still sends
+ * `Set-Cookie: connect.sid=…` for a new session that was written to, even
+ * with save() a no-op, and the connector only strips cookies on the way IN:
+ * Nextcloud's AppAPI proxy hands the header to the browser. Cookies ignore
+ * the port, so on a local stack (Nextcloud on localhost:8081, Bee Flow on
+ * localhost:5176) every embedded request overwrote the cookie of the normal
+ * Bee Flow tab with the id of a session that was never stored: the next
+ * request there was a 401, and a sign-in between password and MFA code
+ * lost its pending login. The same happens on any deployment where the two
+ * share a cookie domain.
  */
 function suppressSessionPersistence(req) {
     const session = req?.session;
@@ -98,6 +109,21 @@ function suppressSessionPersistence(req) {
     session.save = (cb) => { if (typeof cb === 'function') cb(); return session; };
     session.regenerate = (cb) => { if (typeof cb === 'function') cb(); return session; };
     session.touch = () => session;
+    dropSessionCookie(req.res);
+}
+
+/** Keep this response from setting the session cookie; other cookies pass. */
+function dropSessionCookie(res) {
+    if (!res || typeof res.setHeader !== 'function' || res._bfNoSessionCookie) return;
+    res._bfNoSessionCookie = true;
+    const prefix = `${process.env.COOKIE_NAME || 'connect.sid'}=`;
+    const setHeader = res.setHeader;
+    res.setHeader = function setHeaderWithoutSessionCookie(name, value) {
+        if (String(name).toLowerCase() !== 'set-cookie') return setHeader.call(this, name, value);
+        const kept = (Array.isArray(value) ? value : [value]).filter((c) => !String(c).startsWith(prefix));
+        if (kept.length === 0) return this;
+        return setHeader.call(this, name, kept);
+    };
 }
 
 module.exports = { establishSession, suppressSessionPersistence };

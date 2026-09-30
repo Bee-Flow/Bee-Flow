@@ -35,11 +35,11 @@ export default function AutoAnswerNote({ message, canGiveFeedback, onNotHelpful 
         try { await onNotHelpful(message); } catch { setFailed(true); } finally { setBusy(false); }
     };
     return (
-        <div className="mt-1 flex items-center gap-2 flex-wrap text-[11.5px] text-[var(--text-tertiary)]" data-testid={`team-chat-auto-note-${message.id}`}>
+        <div className="mt-1 flex items-center gap-2 flex-wrap text-[11.5px] text-[var(--text-secondary)]" data-testid={`team-chat-auto-note-${message.id}`}>
             <span>{t('project_participation.joined_because', 'Joined because {reason}', { reason: joinReasonText(message.aiReason, t) })}</span>
             {canGiveFeedback && !given && (
                 <button type="button" onClick={send} disabled={busy}
-                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--item-hover-bg)] disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]"
+                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--item-hover-bg)] disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]"
                     title={t('project_participation.not_helpful_hint', 'Tell the AI to hold back in this chat')}>
                     <ThumbsDown className="w-3 h-3" aria-hidden="true" />
                     {t('project_participation.not_helpful', 'Not helpful')}

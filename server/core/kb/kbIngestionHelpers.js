@@ -538,6 +538,15 @@ async function findActiveByHash(kbId, hash) {
     return id ? { id, source_id: null } : null;
 }
 
+/** Local ingestion embeds with the configured model; the search service uses its own. */
+const isLocalIngest = (azureParams, kbProvider) => !!azureParams.use_azure || kbProvider === 'local';
+
+/** Does this instance embed knowledge locally (and so with the configured model)? */
+async function usesLocalIngest() {
+    const { resolveKbProvider } = require('./resolveProvider');
+    return isLocalIngest(await getAzureIngestParams(), await resolveKbProvider());
+}
+
 /**
  * Chunk + embed `content` for an existing documents row. Local dispatcher or
  * the search-service depending on org config. Throws on failure; the caller
@@ -548,7 +557,7 @@ async function embedDocumentContent(tenantId, kbId, docId, content, { title, sou
     const azureParams = await getAzureIngestParams();
     const { resolveKbProvider } = require('./resolveProvider');
     const kbProvider = await resolveKbProvider();
-    const useLocalIngest = azureParams.use_azure || kbProvider === 'local';
+    const useLocalIngest = isLocalIngest(azureParams, kbProvider);
 
     if (useLocalIngest) {
         // ── Local ingestion path ─────────────────────────────────────
@@ -1081,6 +1090,7 @@ async function findDocumentsBySourceUri(kbId, sourceUri, { sourceId = null, exte
 
 module.exports = {
     getAzureIngestParams,
+    usesLocalIngest,
     extractFileContent,
     extractFileContentWithMeta,
     fetchUrlContent,

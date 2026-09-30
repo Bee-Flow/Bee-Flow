@@ -25,6 +25,7 @@ import { STUDIO_RECENT_SOURCES } from '../../utils/studioRecentSources';
 // gates) render here instead. Main-chunk-safe by design — see the import
 // discipline note in studioApps.jsx.
 import StudioRail from '../admin/Studio/StudioRail';
+import { useStudioMenuHidden } from '../../hooks/useStudioChrome';
 import { studioGateContext, studioNavSections, studioSectionLabel } from '../admin/Studio/studioNav';
 import { STUDIO_APPS, firstOpenStudioSection, groupStudioApps, studioLockHint } from '../admin/Studio/studioApps';
 import { useTheme } from '../appearance/ThemeContext';
@@ -77,6 +78,8 @@ const Sidebar = ({
     // We'll use the 'isOpen' prop as 'sidebarOpen' (expanded state)
     // and if !isOpen, we'll show the narrow 'Power Bar'
     const [showProfileMenu, setShowProfileMenu] = useState(false);
+    // An open automation can hide the Studio menu (see hooks/useStudioChrome).
+    const studioMenuHidden = useStudioMenuHidden();
     const themeCtx = useTheme();
     const { hasFeature: hasLicenseFeature, deploymentMode } = useLicenseContext();
     // Effective-permission check for the Studio section gates. AgentHub passes
@@ -399,6 +402,7 @@ const Sidebar = ({
        cannot change hook order and the rail gets exactly the rows the flyout
        would have shown. */
     if (usesStudioRail(currentPage, studioRoute?.section) && !isMobile && canSeeStudio) {
+        if (studioMenuHidden) return null;
         return (
             <StudioRail
                 sections={studioSections}

@@ -14,6 +14,8 @@ import { toast } from '../../../shared/Toast';
 import useConfirm from '../../../shared/useConfirm';
 import { projectErrorText } from '../projectErrorText';
 import { StudioSectionHeader } from '../studioParts';
+import { THREAD_SEP } from '../tasks/taskLinks';
+import { useTaskDialog } from '../tasks/useTaskDialog';
 import { canEditProject, type ChatsTabProps } from '../types';
 import { GhostButton, LoadingRow, Notice, PrimaryButton } from '../workspaceUi';
 import ChatListRow, { type ChatRowContext } from './ChatListRow';
@@ -196,13 +198,23 @@ function ChatsOverview(props: ChatsTabProps) {
     );
 }
 
-export default function ProjectChatsTab(props: ChatsTabProps) {
-    if (props.sub) {
-        // Keyed by chat: moving to another chat starts clean (draft, reply, read marker).
-        return (
+/** The route's sub-item: a chat id, or `chat_thread` to open a thread of it as well. */
+function OpenTeamChat(props: ChatsTabProps & { sub: string }) {
+    const [chatId, threadId] = props.sub.split(THREAD_SEP);
+    const tasks = useTaskDialog(props);
+    // Keyed by chat: moving to another chat starts clean (draft, reply, read marker).
+    return (
+        <>
             <ProjectTeamChat key={props.sub} projectId={props.projectId} project={props.project} role={props.role} currentUser={props.currentUser}
-                chatId={props.sub} onBack={() => props.onOpenSub(null)} onNavigate={props.onNavigate} />
-        );
-    }
+                chatId={chatId} initialThreadId={threadId || null} onBack={() => props.onOpenSub(null)} onNavigate={props.onNavigate}
+                onOpenItem={(ref) => props.onOpenTab?.(ref.kind === 'notebook' ? 'notebooks' : ref.kind === 'meeting' ? 'meetings' : 'documents', ref.id)}
+                onCreateTask={(links, title, description) => tasks.openNew(links, title, description)} />
+            {tasks.dialog}
+        </>
+    );
+}
+
+export default function ProjectChatsTab(props: ChatsTabProps) {
+    if (props.sub) return <OpenTeamChat {...props} sub={props.sub} />;
     return <ChatsOverview {...props} />;
 }

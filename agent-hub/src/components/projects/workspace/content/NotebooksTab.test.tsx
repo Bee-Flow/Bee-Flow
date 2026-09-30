@@ -79,12 +79,12 @@ describe('NotebooksTab: states', () => {
 describe('NotebooksTab: cards', () => {
     it('shows each notebook with its preview and owner, and opens it in the notebook editor', async () => {
         const user = userEvent.setup();
-        const { onNavigate } = renderTab('editor');
+        const { onOpenSub } = renderTab('editor');
         const card = await screen.findByTestId('project-notebook-nb-2');
         expect(within(card).getByText('Olivia Owner')).toBeInTheDocument();
         expect(within(screen.getByTestId('project-notebook-nb-1')).getByText('Competitor pricing notes')).toBeInTheDocument();
         await user.click(within(card).getByRole('button', { name: 'Open notebook Interview notes' }));
-        expect(onNavigate).toHaveBeenCalledWith('notebooks/nb-2');
+        expect(onOpenSub).toHaveBeenCalledWith('nb-2');
     });
 
     it('offers removal of own notebooks to an editor and takes one out after confirmation', async () => {
@@ -111,12 +111,12 @@ describe('NotebooksTab: cards', () => {
 describe('NotebooksTab: create and add', () => {
     it('creates a notebook in the project, then opens it', async () => {
         const user = userEvent.setup();
-        const { onNavigate } = renderTab('editor', { intent: 'create' });
+        const { onOpenSub } = renderTab('editor', { intent: 'create' });
         const dialog = await screen.findByRole('dialog', { name: 'New notebook' });
         await user.type(within(dialog).getByLabelText('Name'), 'Pricing');
         await user.type(within(dialog).getByLabelText('Description (optional)'), 'What we charge');
         await user.click(screen.getByRole('button', { name: 'Create and open' }));
-        await waitFor(() => expect(onNavigate).toHaveBeenCalledWith('notebooks/nb-new'));
+        await waitFor(() => expect(onOpenSub).toHaveBeenCalledWith('nb-new'));
         expect(client.post).toHaveBeenCalledWith('/api/projects/p1/notebooks', { name: 'Pricing', description: 'What we charge' }, { retry: false });
     });
 

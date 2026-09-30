@@ -1,3 +1,4 @@
+import { Users } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import VisibilityCapsule from '../../../components/shared/VisibilityCapsule';
 import { toast } from '../../../components/shared/Toast';
@@ -34,6 +35,18 @@ export default function MeetingVisibility({ meeting, canManage = true, onChange 
         }).catch(() => {});
         return () => { mounted = false; };
     }, [canManage]);
+
+    // A note in a project is open to the members of that project and to nobody else, so who can see it is not
+    // a choice here: it is not Personal, and it cannot be opened to the organisation or to groups.
+    if (meeting?.projectId) {
+        const why = t('visibility.project_locked', 'This note is in a project, so it is open to the whole project and cannot be shared another way. Take it out of the project to change that.');
+        return (
+            <span title={why} aria-label={`${t('visibility.project', 'Project')}. ${why}`} data-testid="visibility-project-locked"
+                className="inline-flex items-center gap-1.5 h-8 px-3 rounded-[10px] text-[12px] border border-[var(--border-default)] bg-[var(--bg-card)] text-[var(--text-secondary)] cursor-not-allowed">
+                <Users size={14} aria-hidden="true" />{t('visibility.project_members', 'Project members')}
+            </span>
+        );
+    }
 
     const isPublished = !!meeting?.isPublished;
     const sharedGroups = Array.isArray(meeting?.sharedGroups) ? meeting.sharedGroups : [];

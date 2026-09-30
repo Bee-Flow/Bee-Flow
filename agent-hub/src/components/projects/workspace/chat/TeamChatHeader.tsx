@@ -34,6 +34,8 @@ export interface TeamChatHeaderProps {
     agents: AgentSummary[];
     onBack: () => void;
     onDeleted: () => void;
+    /** Make a task about this chat. */
+    onCreateTask?: () => void;
 }
 
 function AgentSelect({ chat, agents, onChange }: { chat: TeamChat; agents: AgentSummary[]; onChange: (agentId: string | null) => void }) {
@@ -85,7 +87,8 @@ export function ModeWithdrawnChip({ chat }: { chat: TeamChat }) {
     );
 }
 
-function ChatMenu({ canEdit, canDelete, archived, onRename, onArchive, onDelete }: {
+function ChatMenu({ canEdit, canDelete, archived, onRename, onArchive, onDelete, onCreateTask }: {
+    onCreateTask?: () => void;
     canEdit: boolean;
     canDelete: boolean;
     archived: boolean;
@@ -107,6 +110,7 @@ function ChatMenu({ canEdit, canDelete, archived, onRename, onArchive, onDelete 
             </button>
             <AnchoredMenu open={open} onClose={() => setOpen(false)} anchorRef={anchorRef} align="right" width={200} role="menu"
                 aria-label={t('project_chat.chat_actions', 'Chat actions')} className="p-1">
+                {canEdit && onCreateTask && <button type="button" role="menuitem" className={MENU_ITEM} onClick={() => run(onCreateTask)}>{t('project_tasks.from_chat', 'Make a task from this chat')}</button>}
                 {canEdit && <button type="button" role="menuitem" className={MENU_ITEM} onClick={() => run(onRename)}>{t('project_chat.rename', 'Rename')}</button>}
                 {canEdit && (
                     <button type="button" role="menuitem" className={MENU_ITEM} onClick={() => run(onArchive)}>
@@ -158,7 +162,7 @@ export default function TeamChatHeader(props: TeamChatHeaderProps) {
             <ModeWithdrawnChip chat={chat} />
             {canEdit && chat.aiMode !== 'off' && <AgentSelect chat={chat} agents={agents} onChange={agentId => patch({ agentId })} />}
             <ChatMenu canEdit={canEdit} canDelete={canDelete} archived={chat.archived}
-                onRename={() => setRenameRequest(n => n + 1)} onArchive={() => patch({ archived: !chat.archived })} onDelete={onDelete} />
+                onCreateTask={props.onCreateTask} onRename={() => setRenameRequest(n => n + 1)} onArchive={() => patch({ archived: !chat.archived })} onDelete={onDelete} />
         </div>
     );
     return (

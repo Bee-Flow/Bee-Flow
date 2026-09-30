@@ -64,14 +64,14 @@ test('DLP gate on: block stops the call, and the audit names categories only', a
 test('DLP gate on: redact and ask both send tokenised text', async () => {
     const shield = { enabled: true, dlpEnabled: true };
     const redact = harness({ shield, scan: () => ({ action: 'redact', redactedText: 'mail [email_1]', tokenMap: { '[email_1]': 'a@b.c' }, summary: { EMAIL: 1 } }) });
-    assert.deepStrictEqual(await redact.s.protect({ ...base, shield, text: 'mail a@b.c' }), { text: 'mail [email_1]', tokenMap: { '[email_1]': 'a@b.c' } });
+    assert.deepStrictEqual(await redact.s.protect({ ...base, shield, text: 'mail a@b.c' }), { text: 'mail [email_1]', tokenMap: { '[email_1]': 'a@b.c' }, categories: ['EMAIL'] });
 
     const ask = harness({
         shield,
         scan: () => ({ action: 'ask', findings: [{ label: 'EMAIL' }] }),
         apply: () => ({ tokenizedText: 'mail [email_1]', tokenMap: { '[email_1]': 'a@b.c' } }),
     });
-    assert.deepStrictEqual(await ask.s.protect({ ...base, shield, text: 'mail a@b.c' }), { text: 'mail [email_1]', tokenMap: { '[email_1]': 'a@b.c' } });
+    assert.deepStrictEqual(await ask.s.protect({ ...base, shield, text: 'mail a@b.c' }), { text: 'mail [email_1]', tokenMap: { '[email_1]': 'a@b.c' }, categories: ['EMAIL'] });
     assert.strictEqual(ask.calls.apply.length, 1, 'nobody to ask, so the conservative choice');
 
     const allow = harness({ shield, scan: () => ({ action: 'allow' }) });
@@ -98,7 +98,7 @@ test('PII passage: tokenise, the agent path\'s arguments', async () => {
         validate: () => ({ tokenizedText: 'call [phone_1]', tokenMap: { '[phone_1]': '0612345678' }, entities: [{ label: 'PHONE' }] }),
     });
     const out = await s.protect({ ...base, shield, text: 'call 0612345678' });
-    assert.deepStrictEqual(out, { text: 'call [phone_1]', tokenMap: { '[phone_1]': '0612345678' } });
+    assert.deepStrictEqual(out, { text: 'call [phone_1]', tokenMap: { '[phone_1]': '0612345678' }, categories: ['PHONE'] });
     const [messages, orgPiiEnabled, cfg, override, existing, opts] = calls.validate[0];
     assert.deepStrictEqual(messages, [{ role: 'user', content: 'call 0612345678' }]);
     assert.strictEqual(orgPiiEnabled, true);

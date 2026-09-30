@@ -1,9 +1,10 @@
 import {
     ArrowLeft, Bot, Box, ClipboardList, Clock, FolderOpen, Layers, List, Mail, MousePointerClick,
-    Redo2, Sparkles, Stethoscope, Undo2, Webhook,
+    PanelLeftClose, PanelLeftOpen, Redo2, Sparkles, Stethoscope, Undo2, Webhook,
 } from 'lucide-react';
 import type { ComponentType, ReactNode, RefObject } from 'react';
 import useTranslation from '../../../hooks/useTranslation';
+import { setStudioMenuHidden, useStudioMenuHidden } from '../../../hooks/useStudioChrome';
 import { useAutomationCounts } from '../../../api/queries/automation/meta';
 import { IconPicker as IconPickerJsx } from './flow/stepIcons';
 import type { BuilderTab } from './useBuilderTabUrl';
@@ -122,6 +123,9 @@ export default function BuilderHeader(props: BuilderHeaderProps) {
 
     const TriggerIcon = scope ? Layers : pickTriggerIcon(triggerKind);
     const back = backLabel || t('routines.header.back', 'Back to Routines');
+    const menuHidden = useStudioMenuHidden();
+    const hideMenu = t('routines.header.hide_menu', 'Hide the Studio menu');
+    const showMenu = t('routines.header.show_menu', 'Show the Studio menu');
     const browse = isStepMode ? t('routines.header.browse_steps', 'Browse Steps') : t('routines.header.browse', 'Browse automations');
 
     return (
@@ -138,6 +142,13 @@ export default function BuilderHeader(props: BuilderHeaderProps) {
                     {onOpenList && (
                         <button type="button" onClick={() => onOpenList()} title={browse} aria-label={browse} className={`${ICON_BTN} flex-shrink-0`}>
                             <List size={16} />
+                        </button>
+                    )}
+                    {onOpenList && (
+                        <button type="button" onClick={() => setStudioMenuHidden(!menuHidden)} aria-pressed={menuHidden}
+                            title={menuHidden ? showMenu : hideMenu} aria-label={menuHidden ? showMenu : hideMenu}
+                            data-testid="studio-menu-toggle" className={`${ICON_BTN} flex-shrink-0`}>
+                            {menuHidden ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
                         </button>
                     )}
                     {tabsSlot}

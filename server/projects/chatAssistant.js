@@ -76,6 +76,10 @@
 const crypto = require('crypto');
 const log = require('../telemetry/log');
 const { makeChatShield } = require('./chatShield');
+const { loadTaggedItems, taggedItemsBlock } = require('./chatTaggedItems');
+const { resolveChatModel } = require('./chatModel');
+const { answerRecord } = require('./chatTrace');
+const { answerWithTools, TOOLS_PROMPT, TOOL_MAX_TOKENS } = require('./chatToolRun');
 
 const CONTEXT_MESSAGES = 30;
 const PER_MESSAGE_CHARS = 4000;
@@ -84,7 +88,6 @@ const ANSWER_CHARS = 40000;
 const DEFAULT_TIMEOUT_MS = 90_000;
 // The lock must outlive the call it guards, or a slow answer loses its turn.
 const LOCK_MARGIN_MS = 30_000;
-const MODEL_TIER = 'fast';
 const ASSISTANT_NAME = 'AI assistant';
 /** An automatic answer is short: about 120 words, with room for Markdown. */
 const AUTO_MAX_TOKENS = 700;
@@ -181,32 +184,6 @@ async function resolveUsableAgent({ agentId, userId }, deps = {}) {
 }
 
 /**
- * The asking member's model for the team chat, or null when none is configured.
- *
- * @param {{ userId: string, orgId: string|null }} p
- * @param {{ resolver?: object, getProviderForModel?: Function }} [deps]
- */
-async function resolveChatModel({ userId, orgId }, deps = {}) {
-    const resolver = deps.resolver || require('../core/llm/modelResolver');
-    const getProviderForModel = deps.getProviderForModel || ((id) => require('../core/aiAgent').getProviderForModel(id));
-    const modelId = await resolver.resolveModelForTierName(MODEL_TIER, { userOrgId: orgId || null, userId });
-    if (!modelId) return null;
-    let tier = {};
-    try { tier = await resolver.getTierConfig(MODEL_TIER, { userOrgId: orgId || null, userId }) || {}; } catch (_) { tier = {}; }
-    let providerConfig = {};
-    try {
-        const p = await getProviderForModel(modelId);
-        providerConfig = { providerType: p?.providerType, url: p?.url, displayName: p?.providerName || p?.providerType || 'LLM' };
-    } catch (_) {
-        // Unknown provider: the DLP classifier treats it as external, the safe side.
-    }
-    /** @type {{ maxTokens: number, temperature?: number }} */
-    const options = { maxTokens: tier.maxTokens || 4096 };
-    if (tier.temperature !== undefined) options.temperature = tier.temperature;
-    return { modelId, options, providerConfig };
-}
-
-/**
  * The people a chat answer is visible to: the project owner, the members it
  * is shared with, and the members of the groups it is shared with. Null when
  * that cannot be known exactly (a lookup failed, or more than AUDIENCE_CAP
@@ -237,6 +214,62 @@ async function listProjectAudience(project, deps = {}) {
         log.warn(`[ProjectChat] project audience of ${project && project.id} unknown: ${err && err.message}`);
         return null;
     }
+}
+
+/**
+ * The agents a project chat may answer as: ones EVERY member of the project
+ * may use, never a system agent. A chat answer is read by the whole project,
+ * so an agent one member owns as a draft, or shares with a group the others
+ * are not in, is not a choice. An audience we cannot list (too large, or a
+ * lookup failed) narrows to agents published organisation-wide.
+ *
+ * @param {object} project
+ * @param {{ userId: string }} p  the member choosing
+ * @param {object} [deps]
+ * @returns {Promise<Array<{ id: string, name: string, icon?: string }>>}
+ */
+async function listChatAgents(project, { userId }, deps = {}) {
+    const agentStore = deps.agentStore || require('../stores/agentStore');
+    const getUser = deps.getUser || ((id) => require('../stores/userStore').getUser(id));
+    const resolveUserGroups = deps.resolveUserGroups || ((id) => require('../auth/audience').resolveUserGroups(id));
+    const audienceOf = deps.listAudience || ((proj) => listProjectAudience(proj));
+    const { mayRoutineUseAgent } = require('../automation/agentCatalog');
+    const SYSTEM_OWNERS = ['system', 'swarm'];
+
+    const identityOf = async (id) => {
+        const user = await getUser(id);
+        return { userId: id, orgId: user?.organizationId || null, groups: (await resolveUserGroups(id)) || [] };
+    };
+    const me = await identityOf(userId);
+    const [own, published] = await Promise.all([
+        agentStore.getAgents(userId),
+        agentStore.getPublishedAgentsForUser(me.groups, me.orgId),
+    ]);
+    const byId = new Map();
+    for (const a of [...(own || []), ...(published || [])]) {
+        if (a && a.id && !SYSTEM_OWNERS.includes(a.owner_id)) byId.set(a.id, a);
+    }
+
+    const audience = await audienceOf(project);
+    let members = null;
+    if (audience) {
+        try { members = await Promise.all(audience.map(identityOf)); } catch (err) {
+            log.warn(`[ProjectChat] members of ${project.id} unreadable for the agent list: ${err && err.message}`);
+        }
+    }
+    const usable = [...byId.values()].filter((agent) => (members
+        ? members.every((m) => mayRoutineUseAgent(agent, m))
+        : agent.is_published && !(Array.isArray(agent.shared_groups) && agent.shared_groups.length)
+            && mayRoutineUseAgent(agent, me)));
+    return usable
+        .map((a) => ({ id: a.id, name: a.name || a.id, icon: a.icon }))
+        .sort((a, b) => String(a.name).localeCompare(String(b.name)));
+}
+
+/** Is this agent one the whole project may chat with? */
+async function isChatAgentAllowed(project, { agentId, userId }, deps = {}) {
+    const list = await (deps.listChatAgents || listChatAgents)(project, { userId }, deps);
+    return list.some((a) => a.id === agentId);
 }
 
 /**
@@ -379,9 +412,12 @@ const num = (u, ...keys) => {
  * @param {object}   [deps.locks]            { acquireTurn, releaseTurn }
  * @param {object}   [deps.shield]           makeChatShield() surface
  * @param {Function} [deps.llmChat]          (modelId, messages, options) => { content, usage }
+ * @param {Function} [deps.runToolLoop]      (modelId, messages, tools, options, executeTool, maxRounds) => { content, usage }, for the project tools
+ * @param {object}   [deps.projectTools]     projects/chatTools surface: offered, forAnswer
  * @param {Function} [deps.resolveModel]     ({userId, orgId}) => { modelId, options, providerConfig } | null
  * @param {Function} [deps.resolvePersona]   ({agentId, userId}) => { agentId, name, systemPrompt } | null
  * @param {Function} [deps.searchKnowledge]  ({project, userId, query, session, shield, audienceIds?}) => string
+ * @param {Function} [deps.loadTagged]       (refs, {userId}) => [{kind, name, text}], the tagged documents and notebooks the asker may read
  * @param {Function} [deps.listAudience]     (project) => string[] | null, for automatic answers
  * @param {Function} [deps.getUser]          (id) => user row
  * @param {Function} [deps.checkLimits]      (limitOrgId, userId) => error text | null
@@ -398,10 +434,14 @@ function makeChatAssistant(deps = {}) {
     const chatCrypto = () => deps.chatCrypto || require('./chatCrypto');
     const locks = () => deps.locks || require('../stores/conversationLockStore');
     const shield = deps.shield || makeChatShield();
+    const runToolLoop = deps.runToolLoop || ((modelId, messages, tools, options, executeTool, maxRounds) => require('../core/llm/llmClient').runToolLoop(modelId, messages, tools, options, executeTool, maxRounds));
+    const projectTools = () => deps.projectTools || (defaultTools || (defaultTools = require('./chatTools').makeProjectChatTools()));
+    let defaultTools = null;
     const llmChat = deps.llmChat || ((modelId, messages, options) => require('../core/llm/llmClient').chat(modelId, messages, options));
     const resolveModel = deps.resolveModel || resolveChatModel;
     const resolvePersona = deps.resolvePersona || resolveUsableAgent;
     const searchKnowledge = deps.searchKnowledge || searchProjectKnowledge;
+    const loadTagged = deps.loadTagged || loadTaggedItems;
     const listAudience = deps.listAudience || ((project) => listProjectAudience(project));
     const getUser = deps.getUser || ((id) => require('../stores/userStore').getUser(id));
     const checkLimits = deps.checkLimits
@@ -475,7 +515,11 @@ function makeChatAssistant(deps = {}) {
                 })
                 : null;
 
-            const { messages } = await store().listMessages(chat.id, { limit: CONTEXT_MESSAGES });
+            const { messages: recent } = await store().listMessages(chat.id, { limit: CONTEXT_MESSAGES });
+            // A thread is its own conversation: its root and replies. The main
+            // conversation leaves the thread replies out.
+            const threadId = trigger.threadId || null;
+            const messages = recent.filter((m) => (threadId ? m.id === threadId || m.threadId === threadId : !m.threadId));
             const visible = [];
             for (const m of messages) {
                 // A notice ("the AI now joins on its own") is not conversation.
@@ -510,33 +554,48 @@ function makeChatAssistant(deps = {}) {
                 log.warn(`[ProjectChat] project knowledge search failed for chat ${chat.id}: ${err && err.message}`);
             }
 
+            // Automatic answers reach everyone and were never asked for: they
+            // read the conversation only, not what a member tagged.
+            const tagged = !auto && Array.isArray(trigger.refs) && trigger.refs.length
+                ? taggedItemsBlock(await loadTagged(trigger.refs, { userId }))
+                : '';
             const outbound = await shield.protect({
                 shield: shieldConfig,
                 orgId,
                 userId,
-                text: buildTranscript(lines, { askerName, persona, auto }),
+                text: tagged + buildTranscript(lines, { askerName, persona, auto }),
                 conversationId: dlpConversationId,
                 providerConfig: model.providerConfig || {},
                 auditBase: { conversation_id: chat.id, model: model.modelId, agent_id: persona?.agentId || null },
             });
+            // Only an explicit ask may do things: an automatic answer nobody asked for is offered no tools.
+            const definitions = auto ? [] : await projectTools().offered({ project, userId, orgId, session });
             const system = buildSystemPrompt({
                 project,
                 persona,
                 knowledge,
                 tokenAddendum: shield.tokenAddendum(outbound.tokenMap),
                 auto: auto ? { reasonText: reasonText(reasonCode) } : null,
-            });
+            }) + (definitions.length ? `\n\n${TOOLS_PROMPT}` : '');
 
             const options = { ...(model.options || {}), timeoutMs };
             if (auto) options.maxTokens = Math.min(Number(options.maxTokens) || AUTO_MAX_TOKENS, AUTO_MAX_TOKENS);
+            // A whole styled document is written inside one tool call: it needs room to be written.
+            if (definitions.length) options.maxTokens = Math.max(Number(options.maxTokens) || 0, TOOL_MAX_TOKENS);
             const started = Date.now();
-            const result = await withTimeout(
-                Promise.resolve(llmChat(model.modelId, [
-                    { role: 'system', content: system },
-                    { role: 'user', content: outbound.text },
-                ], options)),
-                timeoutMs,
-            );
+            const messagesOut = [
+                { role: 'system', content: system },
+                { role: 'user', content: outbound.text },
+            ];
+            let made = [];
+            const result = await withTimeout(definitions.length
+                ? answerWithTools({
+                    tools: projectTools(), definitions, runToolLoop, shield, shieldConfig, project, userId, orgId, session,
+                    modelId: model.modelId, messages: messagesOut, options, tokenMap: outbound.tokenMap,
+                    auditBase: { conversation_id: chat.id, model: model.modelId, agent_id: persona?.agentId || null },
+                }).then((r) => { made = r.created; return r.result; })
+                : Promise.resolve(llmChat(model.modelId, messagesOut, options)),
+            timeoutMs * (definitions.length ? 3 : 1));
             try {
                 const usage = result?.usage || {};
                 await logUsage({
@@ -566,11 +625,15 @@ function makeChatAssistant(deps = {}) {
                 outcome = { status: 'skipped', reason: 'skip_sentinel' };
                 return outcome;
             }
+            // A model that made something and said nothing still leaves a line saying what.
+            if (!answer && made.length) answer = made.map((m) => `“${m.name}”`).join(', ');
             if (!answer) throw Object.assign(new Error('The model returned an empty answer'), { code: 'AI_EMPTY' });
+            const rawAnswer = answer;
             answer = shield.restore(answer, outbound.tokenMap);
             if (answer.length > ANSWER_CHARS) answer = `${answer.slice(0, ANSWER_CHARS)} …`;
 
             const messageId = newId();
+            const { aiMeta, aiTrace } = answerRecord({ model, outbound, triggerText, rawAnswer, box, chatId: chat.id, messageId });
             const saved = await store().appendMessage({
                 id: messageId,
                 projectId: project.id,
@@ -579,6 +642,10 @@ function makeChatAssistant(deps = {}) {
                 agentId: persona?.agentId || null,
                 content: box.sealContent(chat.id, messageId, answer),
                 replyTo: trigger.id,
+                threadId: threadId,
+                aiMeta,
+                aiTrace,
+                refs: made.filter((m) => m.kind === 'document' || m.kind === 'notebook').map(({ kind, id }) => ({ kind, id })),
                 aiTrigger,
                 aiReason: auto ? reasonCode || null : null,
                 unlessHumanAfterSeq: auto && Number.isFinite(gateLastSeq) ? gateLastSeq : null,
@@ -631,12 +698,13 @@ function makeChatAssistant(deps = {}) {
      * @param {'ask'|'mention'|'always'|'auto_quiet'|'auto_unanswered'} [p.aiTrigger]  why the AI answers
      * @param {string|null} [p.reasonCode]   the gate's reason code (automatic answers)
      * @param {number|null} [p.gateLastSeq]  the last seq the gate read (automatic answers)
+     * @param {string|null} [p.modelTier]  the response depth the asker picked (explicit asks only)
      * @returns {Promise<{ status: 'queued'|'busy'|'skipped', reason?: string,
      *   done?: Promise<{ status: string, messageId?: string, reason?: string }> }>}
      */
     async function requestReply({
         project, chat, trigger, triggerText, userId, orgId = null, limitOrgId = null, session = null,
-        aiTrigger = 'ask', reasonCode = null, gateLastSeq = null,
+        aiTrigger = 'ask', reasonCode = null, gateLastSeq = null, modelTier = null,
     }) {
         const kind = [...EXPLICIT_TRIGGERS, ...AUTO_TRIGGERS].includes(aiTrigger) ? aiTrigger : 'ask';
         const auto = AUTO_TRIGGERS.includes(kind);
@@ -650,7 +718,7 @@ function makeChatAssistant(deps = {}) {
 
         let model;
         try {
-            model = await resolveModel({ userId, orgId });
+            model = await resolveModel({ userId, orgId, modelTier: auto ? null : modelTier, message: triggerText });
         } catch (err) {
             log.warn(`[ProjectChat] model lookup failed, not answering: ${err && err.message}`);
             return { status: 'skipped', reason: 'unavailable' };
@@ -694,6 +762,8 @@ module.exports = {
     AUTO_TRIGGERS,
     makeChatAssistant,
     listProjectAudience,
+    listChatAgents,
+    isChatAgentAllowed,
     isSkip,
     withTimeout,
     usageNumber: num,

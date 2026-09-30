@@ -153,4 +153,6 @@ module.exports = {
     'project_content.knowledge_viewer_note': 'You can see what this project knows. Ask the owner for editor access to add files or knowledge bases.',
     'project_content.memory_desc': 'What the assistant remembers for this project, shared by every member. Editors can add, change and remove entries.',
     'project_content.memory_title': 'Project memory',
+    'project_content.notebook_loading': 'Opening the notebook…',
+    'project_content.meeting_already_shared': 'Already shared another way. Make it personal first: a note in a project is open to the whole project, and to nobody else.',
 };

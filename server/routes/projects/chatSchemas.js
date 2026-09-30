@@ -15,6 +15,7 @@ const CONTENT_MAX = 20000;
 const CLIENT_MSG_ID_MAX = 64;
 const ID_MAX = 200;
 const MAX_MENTIONS = 50;
+const MAX_REFS = 10;
 const MAX_PAGE = 200;
 
 const AI_MODE_TEXT = 'aiMode is off, mention, auto or always.';
@@ -66,6 +67,15 @@ const CLIENT_MSG_ID_TEXT = `clientMsgId is your own id for this message, 1 to ${
 const REPLY_TEXT = 'replyTo is the id of a message in this chat.';
 const MENTIONS_TEXT = `mentions is a list of at most ${MAX_MENTIONS} member ids.`;
 
+const THREAD_TEXT = 'threadId is the id of a message in this chat that starts the thread.';
+const REFS_TEXT = `refs is a list of at most ${MAX_REFS} objects like {"kind":"document","id":"..."} (kind is document, notebook or meeting).`;
+const ref = z.object({
+    kind: choice(['document', 'notebook', 'meeting'], REFS_TEXT),
+    id: worded(REFS_TEXT).trim().min(1, REFS_TEXT).max(ID_MAX, REFS_TEXT),
+}, { invalid_type_error: REFS_TEXT }).strict();
+
+const TIER_TEXT = 'modelTier is the name of a model tier, such as auto, fast or thinking.';
+
 const PostMessageBody = bodyOf({
     content,
     clientMsgId: worded(CLIENT_MSG_ID_TEXT).trim().min(1, CLIENT_MSG_ID_TEXT).max(CLIENT_MSG_ID_MAX, CLIENT_MSG_ID_TEXT).optional(),
@@ -73,6 +83,9 @@ const PostMessageBody = bodyOf({
     mentions: z.array(worded(MENTIONS_TEXT).trim().min(1, MENTIONS_TEXT).max(ID_MAX, MENTIONS_TEXT), {
         invalid_type_error: MENTIONS_TEXT,
     }).max(MAX_MENTIONS, MENTIONS_TEXT).optional(),
+    threadId: worded(THREAD_TEXT).trim().min(1, THREAD_TEXT).max(ID_MAX, THREAD_TEXT).nullish(),
+    refs: z.array(ref, { invalid_type_error: REFS_TEXT }).max(MAX_REFS, REFS_TEXT).optional(),
+    modelTier: worded(TIER_TEXT).trim().min(1, TIER_TEXT).max(100, TIER_TEXT).nullish(),
     askAi: flag('askAi is true to ask the AI assistant to answer, or false.').optional(),
 }, 'Posting a message');
 
@@ -93,6 +106,7 @@ module.exports = {
     CONTENT_MAX,
     CLIENT_MSG_ID_MAX,
     MAX_MENTIONS,
+    MAX_REFS,
     CreateChatBody,
     UpdateChatBody,
     ListChatsQuery,

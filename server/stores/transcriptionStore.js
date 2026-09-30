@@ -1143,10 +1143,24 @@ async function deleteTranscription(id, userId) {
  * organisation (an empty organisation matches only an empty one).
  * `updated_at` is left alone on purpose: filing is not an edit, and a
  * knowledge source that follows a meeting tag re-reads notes by it.
+ *
+ * A note in a project belongs to the project's members, all of them and only
+ * them: it cannot also be shared another way. So a note that is already shared
+ * (published to the organisation or to groups, or shared with people) is
+ * refused with a 409 that says so, rather than quietly widening or replacing
+ * who can read it. (The publish route refuses the other direction: a filed
+ * note cannot be published.)
  */
 async function setTranscriptionProject(id, userId, projectId) {
     await initDB();
     if (!id || !userId || !projectId) return false;
+    const held = await getOne('SELECT is_published, shared_groups, shared_with FROM transcriptions WHERE id = $1 AND user_id = $2', [id, userId]);
+    if (held && (held.is_published === true || parseJsonArray(held.shared_groups).length > 0 || parseJsonArray(held.shared_with).length > 0)) {
+        throw Object.assign(
+            new Error('This meeting note is already shared another way. Make it personal first, then add it to the project: a note in a project is open to the whole project, and to nobody else.'),
+            { status: 409, code: 'MEETING_ALREADY_SHARED' },
+        );
+    }
     const { rowCount } = await run(
         `UPDATE transcriptions t SET project_id = $1
           WHERE t.id = $2 AND t.user_id = $3

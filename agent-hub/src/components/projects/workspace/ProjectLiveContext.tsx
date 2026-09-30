@@ -83,6 +83,7 @@ const INVALIDATION_RULES: Array<[(kind: string) => boolean, (id: string) => Read
     [k => k.startsWith('resource_') || k.startsWith('kb_') || k.startsWith('approval.'), id => [projectKeys.resources(id), projectKeys.detail(id)]],
     [k => k.startsWith('file.'), id => [projectKeys.files(id), projectKeys.resources(id)]],
     [k => k.startsWith('chat.') && !k.startsWith('chat.ai.'), id => [projectKeys.chats(id)]],
+    [k => k.startsWith('task.'), id => [projectKeys.tasks(id)]],
     [k => DETAIL_KINDS.has(k), id => [projectKeys.detail(id)]],
 ];
 

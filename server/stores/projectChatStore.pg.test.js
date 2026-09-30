@@ -344,3 +344,55 @@ test('a title taken from a message goes when the message is deleted or its autho
     assert.deepStrictEqual(await titleOf(byErase.id), { title: '', title_from_message_id: null });
     assert.strictEqual((await titleOf(named.id)).title, 'sealed-chosen-by-hanna', 'a title they typed is the project\'s');
 });
+
+test('a thread reply hangs off a main-conversation message, never off another reply', async () => {
+    const chat = await newChat('p1');
+    const root = (await post('p1', chat.id, 'ann')).message;
+    const reply = (await post('p1', chat.id, 'ben', { threadId: root.id })).message;
+    assert.strictEqual(reply.threadId, root.id);
+    assert.strictEqual(root.threadId, null);
+    await assert.rejects(post('p1', chat.id, 'ann', { threadId: reply.id }), { code: 'THREAD_NOT_FOUND' });
+    const other = await newChat('p1');
+    await assert.rejects(post('p1', other.id, 'ann', { threadId: root.id }), { code: 'THREAD_NOT_FOUND' });
+});
+
+test('tagged documents and notebooks are kept as kind and id only, and go with a deleted message', async () => {
+    const chat = await newChat('p1');
+    const m = (await post('p1', chat.id, 'ann', { refs: [{ kind: 'document', id: 'd1' }, { kind: 'notebook', id: 'n1' }] })).message;
+    assert.deepStrictEqual(m.refs, [{ kind: 'document', id: 'd1' }, { kind: 'notebook', id: 'n1' }]);
+    await store.softDeleteMessage(chat.id, m.id);
+    assert.deepStrictEqual((await store.getMessage(chat.id, m.id)).refs, []);
+});
+
+test('an answer carries how it was made: tier and a count of replaced values, allow-listed', async () => {
+    const chat = await newChat('p1');
+    const saved = await store.appendMessage({
+        id: nextId('msg'), projectId: 'p1', chatId: chat.id, authorKind: 'assistant', content: 'sealed',
+        aiMeta: { tier: 'pro', requestedTier: 'auto', redacted: 2, categories: ['EMAIL'], value: 'a@b.c' },
+    });
+    assert.deepStrictEqual(saved.message.aiMeta, { tier: 'pro', requestedTier: 'auto', redacted: 2, categories: ['EMAIL'] });
+    const human = (await post('p1', chat.id, 'ann', { aiMeta: { tier: 'pro' } })).message;
+    assert.strictEqual(human.aiMeta, null);
+});
+
+test('the trace of an answer goes with the message it answered, or with the answer', async () => {
+    const chat = await newChat('p1');
+    const ask = (await post('p1', chat.id, 'ann')).message;
+    const answer = async () => (await store.appendMessage({
+        id: nextId('msg'), projectId: 'p1', chatId: chat.id, authorKind: 'assistant', content: 'sealed', replyTo: ask.id,
+        aiMeta: { tier: 'fast', redacted: 1 }, aiTrace: 'sealed-trace',
+    })).message;
+    const a1 = await answer();
+    assert.strictEqual(a1.aiTrace, 'sealed-trace');
+    const human = (await post('p1', chat.id, 'ben', { aiTrace: 'sneaky' })).message;
+    assert.strictEqual(human.aiTrace, null, 'only an answer has one');
+    await store.softDeleteMessage(chat.id, ask.id);
+    assert.strictEqual((await store.getMessage(chat.id, a1.id)).aiTrace, null, 'the asking message is gone');
+    const ask2 = (await post('p1', chat.id, 'erika')).message;
+    const a2 = (await store.appendMessage({ id: nextId('msg'), projectId: 'p1', chatId: chat.id, authorKind: 'assistant', content: 'sealed', replyTo: ask2.id, aiTrace: 'sealed-2' })).message;
+    await store.eraseAuthor('erika');
+    assert.strictEqual((await store.getMessage(chat.id, a2.id)).aiTrace, null, 'their account was erased');
+    const a3 = (await store.appendMessage({ id: nextId('msg'), projectId: 'p1', chatId: chat.id, authorKind: 'assistant', content: 'sealed', aiTrace: 'sealed-3' })).message;
+    await store.softDeleteMessage(chat.id, a3.id);
+    assert.strictEqual((await store.getMessage(chat.id, a3.id)).aiTrace, null, 'the answer itself is deleted');
+});

@@ -62,7 +62,13 @@ export interface ProjectShare {
 }
 
 /** A member as any viewer of the project sees them: a display name, never an e-mail address. */
-export interface ProjectPerson { name?: string }
+export interface ProjectPerson {
+    name?: string;
+    avatar?: string;
+    avatarType?: 'emoji' | 'image' | 'url';
+    /** The colour the project gave this person; absent for the automatic one. */
+    color?: string;
+}
 
 export interface ProjectMembers {
     ownerId: string;
@@ -131,6 +137,7 @@ export const projectKeys = {
     chat: (id: string, chatId: string) => ['projects', id, 'chats', chatId] as const,
     messages: (id: string, chatId: string) => ['projects', id, 'chats', chatId, 'messages'] as const,
     files: (id: string) => ['projects', id, 'files'] as const,
+    tasks: (id: string) => ['projects', id, 'tasks'] as const,
 };
 
 /** A PUT refused because someone else saved first. `current` is their version. */
@@ -292,6 +299,13 @@ export function useChangeMemberRole(projectId: string) {
     return useMemberMutation<{ memberId: string; role: 'editor' | 'viewer' }>(projectId,
         ({ memberId, role }) => apiClient.put(`/api/projects/${enc(projectId)}/members/${enc(memberId)}`, { role }, { retry: false }),
         'Could not change the role');
+}
+
+/** Give a person a colour in this project (`null`: the automatic one). The owner may for anyone, everybody for themselves. */
+export function useSetMemberColor(projectId: string) {
+    return useMemberMutation<{ userId: string; color: string | null }>(projectId,
+        ({ userId, color }) => apiClient.put(`/api/projects/${enc(projectId)}/members/${enc(userId)}/color`, { color }, { retry: false }),
+        'Could not change the colour');
 }
 
 export function useRemoveMember(projectId: string) {

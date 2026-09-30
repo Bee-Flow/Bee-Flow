@@ -16,12 +16,12 @@ import { projectKeys, type ProjectRole } from './projects';
 
 import type {
     CreateTeamChat, PendingTeamChatMessage, SendTeamChatMessage, TeamChat, TeamChatAiPolicy, TeamChatAiResult,
-    TeamChatMessage, TeamChatMessages,
+    TeamChatMessage, TeamChatMessages, TeamChatTrace,
 } from './projectChatTypes';
 
 export type {
     CreateTeamChat, PendingTeamChatMessage, SendTeamChatMessage, TeamChat, TeamChatAiMode, TeamChatAiPolicy, TeamChatAiResult,
-    TeamChatAiStatus, TeamChatAiTrigger, TeamChatAuthorKind, TeamChatLastMessage, TeamChatMessage, TeamChatMessages, TeamChatNotice,
+    TeamChatAiMeta, TeamChatAiStatus, TeamChatAiTrigger, TeamChatAuthorKind, TeamChatLastMessage, TeamChatMessage, TeamChatMessages, TeamChatNotice, TeamChatRef, TeamChatTrace,
 } from './projectChatTypes';
 export { isAutomaticAnswer } from './projectChatTypes';
 
@@ -103,6 +103,23 @@ export function useProjectChatsQuery(projectId: string | null | undefined, { arc
                 signal, query: { archived: archived ? 1 : 0 },
             });
             return { chats: Array.isArray(body?.chats) ? body!.chats! : [], role: body?.role || null, aiPolicy: body?.aiPolicy || null };
+        },
+    });
+}
+
+/**
+ * The agents a team chat may answer as: the ones every member of the project
+ * may use, never a system agent. The server decides; the list is per project
+ * because it depends on who is in it, so it goes stale with the members.
+ */
+export function useTeamChatAgents(projectId: string | null | undefined, enabled = true) {
+    return useQuery<{ id: string; name?: string; icon?: string }[], Error>({
+        queryKey: [...projectKeys.chats(projectId || ''), 'agents'],
+        enabled: enabled && !!projectId,
+        staleTime: 30_000,
+        queryFn: async ({ signal }) => {
+            const body = await apiClient.get<{ agents?: { id: string; name?: string; icon?: string }[] }>(`${chatsPath(projectId!)}-agents`, { signal });
+            return Array.isArray(body?.agents) ? body!.agents! : [];
         },
     });
 }
@@ -367,4 +384,20 @@ export function useTeamChatFeedback(projectId: string, chatId: string) {
 /** What the organisation lets this project's chats choose; null while unknown. */
 export function useTeamChatAiPolicy(projectId: string): TeamChatAiPolicy | null {
     return useProjectChatsQuery(projectId).data?.aiPolicy ?? null;
+}
+
+/** How one answer was made (what the Privacy Shield replaced), read only when asked for. */
+export function useTeamChatTrace(projectId: string, chatId: string, messageId: string, enabled: boolean) {
+    return useQuery<TeamChatTrace, Error>({
+        queryKey: [...teamChatKeys.messages(projectId, chatId), messageId, 'trace'],
+        enabled,
+        // An answer never changes after it is written.
+        staleTime: Infinity,
+        retry: false,
+        queryFn: async ({ signal }) => {
+            const body = await apiClient.get<{ trace?: TeamChatTrace }>(`${chatPath(projectId, chatId)}/messages/${enc(messageId)}/trace`, { signal });
+            if (!body?.trace) throw new Error('No trace');
+            return body.trace;
+        },
+    });
 }

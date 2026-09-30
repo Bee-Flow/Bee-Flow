@@ -9,13 +9,15 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Crown, LogOut, Trash2, Users } from 'lucide-react';
 import React, { useState } from 'react';
 import {
-    useChangeMemberRole, useProjectMembersQuery, useRemoveMember,
+    useChangeMemberRole, useProjectMembersQuery, useRemoveMember, useSetMemberColor,
     type ProjectMembers, type ProjectRole, type ProjectShare,
 } from '../../../api/queries/projects';
 import useTranslation from '../../../hooks/useTranslation';
 import useConfirm from '../../shared/useConfirm';
 import MemberInviteForm from './MemberInviteForm';
 import { useProjectLive } from './ProjectLiveContext';
+import MemberColorPicker from './MemberColorPicker';
+import { personColor } from './memberColors';
 import { Avatar, ErrorText, GhostButton, LoadingRow, SecondaryButton, SELECT_CLASS } from './workspaceUi';
 
 export interface ProjectMembersPanelProps {
@@ -51,7 +53,7 @@ function RoleChip({ label }: { label: string }) {
     );
 }
 
-function Identity({ subject, isGroup, you, online }: { subject: Subject; isGroup: boolean; you: boolean; online: boolean }) {
+function Identity({ subject, isGroup, you, online, color }: { subject: Subject; isGroup: boolean; you: boolean; online: boolean; color?: string }) {
     const { t } = useTranslation();
     return (
         <div className="flex items-center gap-2.5 min-w-0 flex-1">
@@ -60,7 +62,7 @@ function Identity({ subject, isGroup, you, online }: { subject: Subject; isGroup
                     <Users className="w-4 h-4" aria-hidden="true" />
                 </span>
             ) : (
-                <Avatar name={subject.name} online={online} onlineLabel={t('project_home.online', 'Online')} />
+                <Avatar name={subject.name} online={online} onlineLabel={t('project_home.online', 'Online')} color={color} />
             )}
             <div className="min-w-0">
                 <p className="text-[13px] font-medium text-[var(--text-primary)] truncate m-0">
@@ -85,6 +87,7 @@ interface RowActions {
     onRole: (share: ProjectShare, role: 'editor' | 'viewer') => void;
     onRemove: (share: ProjectShare, name: string) => void;
     onLeave: (share: ProjectShare) => void;
+    onColor: (userId: string, color: string | null) => void;
 }
 
 function MemberRow({ share, data, isOwner, currentUserId, online, busy, actions }: {
@@ -100,9 +103,15 @@ function MemberRow({ share, data, isOwner, currentUserId, online, busy, actions 
     const subject = subjectOf(share, data, t);
     const isGroup = share.sharedWithType === 'group';
     const isMe = !isGroup && !!currentUserId && share.sharedWithId === currentUserId;
+    const chosen = isGroup ? undefined : data?.people?.[share.sharedWithId]?.color;
+    const color = personColor(chosen, subject.name);
     return (
         <li className="flex items-center gap-3 px-3.5 py-2.5 border-b border-[var(--border-subtle)] last:border-b-0" data-testid={`member-row-${share.id}`}>
-            <Identity subject={subject} isGroup={isGroup} you={isMe} online={isMe || online.includes(share.sharedWithId)} />
+            <Identity subject={subject} isGroup={isGroup} you={isMe} online={isMe || online.includes(share.sharedWithId)} color={isGroup ? undefined : color} />
+            {!isGroup && (
+                <MemberColorPicker name={subject.name} color={color} chosen={chosen} canChange={isOwner || isMe} busy={busy}
+                    onChange={(next) => actions.onColor(share.sharedWithId, next)} />
+            )}
             {isOwner ? (
                 <>
                     <select
@@ -137,7 +146,11 @@ function MemberRow({ share, data, isOwner, currentUserId, online, busy, actions 
     );
 }
 
-function OwnerRow({ data, currentUserId, online }: { data: ProjectMembers; currentUserId: string | null | undefined; online: string[] }) {
+function OwnerRow({ data, currentUserId, online, canColor, onColor }: {
+    data: ProjectMembers; currentUserId: string | null | undefined; online: string[];
+    /** The reader may change the owner's colour (the owner themself). */
+    canColor: boolean; onColor: (userId: string, color: string | null) => void;
+}) {
     const { t } = useTranslation();
     const person = data.people?.[data.ownerId];
     const you = !!currentUserId && data.ownerId === currentUserId;
@@ -146,7 +159,9 @@ function OwnerRow({ data, currentUserId, online }: { data: ProjectMembers; curre
     };
     return (
         <li className="flex items-center gap-3 px-3.5 py-2.5 border-b border-[var(--border-subtle)] last:border-b-0" data-testid="member-row-owner">
-            <Identity subject={subject} isGroup={false} you={you} online={you || online.includes(data.ownerId)} />
+            <Identity subject={subject} isGroup={false} you={you} online={you || online.includes(data.ownerId)} color={personColor(person?.color, subject.name)} />
+            <MemberColorPicker name={subject.name} color={personColor(person?.color, subject.name)} chosen={person?.color} canChange={canColor}
+                onChange={(next) => onColor(data.ownerId, next)} />
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-[var(--item-active-bg)] text-[var(--text-primary)]">
                 <Crown className="w-3 h-3" aria-hidden="true" />
                 {t('project_home.role.owner', 'Owner')}
@@ -162,9 +177,14 @@ function useMemberActions(projectId: string, onLeft: (() => void) | undefined, s
     const { confirm, confirmDialog } = useConfirm();
     const changeRole = useChangeMemberRole(projectId);
     const remove = useRemoveMember(projectId);
+    const setColor = useSetMemberColor(projectId);
     const fail = (e: unknown) => setError(e instanceof Error ? e.message : String(e));
 
     const actions: RowActions = {
+        onColor: (userId, color) => {
+            setError(null);
+            setColor.mutate({ userId, color }, { onError: fail });
+        },
         onRole: (share, role) => {
             setError(null);
             changeRole.mutate({ memberId: share.id, role }, { onError: fail });
@@ -225,7 +245,7 @@ export default function ProjectMembersPanel({ projectId, role, currentUserId, in
             {isOwner && <MemberInviteForm projectId={projectId} members={data} focusRequest={inviteFocusRequest} />}
             <ErrorText testId="members-action-error">{error}</ErrorText>
             <ul className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)] overflow-hidden m-0 p-0 list-none" aria-label={t('project_home.members.list', 'Members')}>
-                <OwnerRow data={data} currentUserId={currentUserId} online={online} />
+                <OwnerRow data={data} currentUserId={currentUserId} online={online} canColor={isOwner} onColor={actions.onColor} />
                 {data.members.map((share) => (
                     <MemberRow
                         key={share.id}

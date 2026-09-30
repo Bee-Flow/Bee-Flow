@@ -91,4 +91,6 @@ module.exports = {
     'comments.thread_label': 'Comment thread',
     'comments.title': 'Comments',
     'comments.unreadable': 'This comment could not be read.',
+    'comments.anchor_whole_task': 'On this task',
+    'comments.empty_open_task': 'Discuss this task with the team. Mention someone with @, or @ai to ask the AI.',
 };

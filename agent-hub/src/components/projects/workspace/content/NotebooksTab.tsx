@@ -8,10 +8,12 @@
 // and is told why once, above the grid.
 
 import { BookOpen, BookPlus, Lock, Plus } from 'lucide-react';
-import React, { useMemo, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import React, { lazy, Suspense, useMemo, useState } from 'react';
 import {
     useCreateProjectNotebook, useProjectSection, type ProjectNotebook,
 } from '../../../../api/queries/projectContent';
+import { projectKeys } from '../../../../api/queries/projects';
 import useTranslation from '../../../../hooks/useTranslation';
 import { projectErrorText } from '../projectErrorText';
 import { Notice } from '../workspaceUi';
@@ -23,6 +25,32 @@ import ProjectNotebookCard from './ProjectNotebookCard';
 import { useProjectUnread } from '../useProjectUnread';
 import { canEditContent, canRemoveItem, type ContentTabProps } from './types';
 import { useMemberNames, useRemoveFromProject } from './useContentActions';
+
+const NotebookDetail = lazy(() => import('../../../../pages/notebooks/detail/NotebookDetail'));
+
+/** One notebook, full width inside the project, with its own Back to the grid. */
+function NotebookPane({ projectId, notebookId, currentUser, onOpenSub }: {
+    projectId: string; notebookId: string; currentUser: ContentTabProps['currentUser']; onOpenSub: ContentTabProps['onOpenSub'];
+}) {
+    const { t } = useTranslation();
+    const qc = useQueryClient();
+    const refresh = () => { qc.invalidateQueries({ queryKey: projectKeys.resources(projectId) }); };
+    return (
+        <div className="h-full min-h-0" data-testid="project-notebook-pane">
+            <Suspense fallback={<div className="p-6 text-sm text-[var(--text-tertiary)]" role="status">{t('project_content.notebook_loading', 'Opening the notebook…')}</div>}>
+                <NotebookDetail
+                    key={notebookId}
+                    notebookId={notebookId}
+                    user={currentUser}
+                    onBack={() => { refresh(); onOpenSub(null); }}
+                    onListChanged={refresh}
+                    // The notebook is already open inside its project.
+                    onOpenProject={() => { refresh(); onOpenSub(null); }}
+                />
+            </Suspense>
+        </div>
+    );
+}
 
 const GRID = 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3';
 
@@ -109,7 +137,7 @@ function NotebooksUnavailable() {
     );
 }
 
-export default function NotebooksTab({ projectId, role, currentUser, onNavigate, intent, notebooksEnabled = true }: ContentTabProps) {
+function NotebooksList({ projectId, role, currentUser, onOpenSub, intent, notebooksEnabled = true }: ContentTabProps) {
     const { t } = useTranslation();
     const canEdit = canEditContent(role) && notebooksEnabled;
     const me = currentUser?.id || null;
@@ -119,7 +147,7 @@ export default function NotebooksTab({ projectId, role, currentUser, onNavigate,
     const ownerName = useMemberNames(projectId, me);
     const unread = useProjectUnread(projectId);
     const removal = useRemoveFromProject(projectId, 'notebook');
-    const open = (nb: ProjectNotebook) => onNavigate(`notebooks/${nb.id}`);
+    const open = (nb: ProjectNotebook) => onOpenSub(nb.id);
     const create = useNotebookCreate(projectId, (nb) => { setCreateOpen(false); open(nb); });
     const inProject = useMemo(() => new Set(section.items.map(n => n.id)), [section.items]);
     const openCreate = () => { create.reset(); setCreateOpen(true); };
@@ -170,4 +198,12 @@ export default function NotebooksTab({ projectId, role, currentUser, onNavigate,
             {removal.confirmDialog}
         </ContentColumn>
     );
+}
+
+export default function NotebooksTab(props: ContentTabProps) {
+    // A notebook is opened inside the project, as a document is: `sub` is its id.
+    if (props.sub && props.notebooksEnabled !== false) {
+        return <NotebookPane projectId={props.projectId} notebookId={props.sub} currentUser={props.currentUser} onOpenSub={props.onOpenSub} />;
+    }
+    return <NotebooksList {...props} />;
 }

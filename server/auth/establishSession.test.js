@@ -9,7 +9,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 
-const { establishSession } = require('./establishSession');
+const { establishSession, suppressSessionPersistence } = require('./establishSession');
 
 function makeReq(initial = {}, { regenErr = null, saveErr = null } = {}) {
     const calls = [];
@@ -113,4 +113,21 @@ test('isAdmin defaults to false; preserve/extra default empty', async () => {
     await establishSession(req, { user: { id: 'u1' } });
     assert.strictEqual(req.session.isAdmin, false);
     assert.strictEqual('leftover' in req.session, false);
+});
+
+test('suppressSessionPersistence: the response never sets the session cookie, other cookies pass', () => {
+    const headers = {};
+    const res = { setHeader(name, value) { headers[name.toLowerCase()] = value; return this; } };
+    const req = { session: {}, res };
+    suppressSessionPersistence(req);
+
+    // What express-session does at response time for a new, written session.
+    res.setHeader('Set-Cookie', ['connect.sid=s%3Aabc.sig; Path=/; HttpOnly; SameSite=Lax']);
+    assert.strictEqual(headers['set-cookie'], undefined, 'a header-authenticated response must not overwrite the browser session');
+
+    res.setHeader('Set-Cookie', ['other=1; Path=/', 'connect.sid=s%3Axyz.sig; Path=/']);
+    assert.deepStrictEqual(headers['set-cookie'], ['other=1; Path=/']);
+
+    res.setHeader('Content-Type', 'application/json');
+    assert.strictEqual(headers['content-type'], 'application/json');
 });

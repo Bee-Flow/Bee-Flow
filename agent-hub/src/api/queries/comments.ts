@@ -12,7 +12,7 @@ import { apiClient } from '../client';
 import { projectRequest as write } from './projectErrors';
 import { projectKeys, type ProjectRole } from './projects';
 
-export type CommentTargetType = 'notebook' | 'document';
+export type CommentTargetType = 'notebook' | 'document' | 'task';
 export type CommentThreadStatus = 'open' | 'resolved';
 export type CommentAiMode = 'off' | 'mention' | 'auto';
 export type CommentAuthorKind = 'user' | 'assistant';

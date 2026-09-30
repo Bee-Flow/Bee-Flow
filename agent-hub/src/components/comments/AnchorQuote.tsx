@@ -31,7 +31,9 @@ export default function AnchorQuote({ anchor, state, targetType, onJump }: {
                 <FileText className="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true" />
                 {targetType === 'notebook'
                     ? t('comments.anchor_whole_notebook', 'On the whole notebook')
-                    : t('comments.anchor_whole_document', 'On the whole document')}
+                    : targetType === 'task'
+                        ? t('comments.anchor_whole_task', 'On this task')
+                        : t('comments.anchor_whole_document', 'On the whole document')}
             </p>
         );
     }

@@ -5,7 +5,7 @@
 // its icons; the labels stay available to screen readers.
 
 import {
-    Activity, ArrowLeft, BookOpen, FileText, House, MessagesSquare, Mic, NotebookPen, Settings, Users,
+    Activity, ArrowLeft, BookOpen, CheckSquare, FileText, House, MessagesSquare, Mic, NotebookPen, Settings, Users,
 } from 'lucide-react';
 import React from 'react';
 import { useProjectMembersQuery, type Project, type ProjectRole } from '../../../api/queries/projects';
@@ -28,6 +28,7 @@ function useRailItems(): { top: RailItem[]; work: RailItem[]; project: RailItem[
         top: [{ id: 'overview', label: t('project_home.tab.overview', 'Overview'), Icon: House, iconStyle: { color: 'var(--text-secondary)' } }],
         work: [
             { id: 'chats', label: t('project_home.tab.chats', 'Chats'), Icon: MessagesSquare, iconStyle: { color: 'var(--accent-primary)' } },
+            { id: 'tasks', label: t('project_home.tab.tasks', 'Tasks'), Icon: CheckSquare, iconStyle: { color: 'var(--success, var(--accent-primary))' } },
             { id: 'documents', label: t('project_home.tab.documents', 'Documents'), Icon: FileText, iconStyle: { color: kindColorVar('document') } },
             { id: 'notebooks', label: t('project_home.tab.notebooks', 'Notebooks'), Icon: NotebookPen, iconStyle: { color: 'var(--text-secondary)' } },
             { id: 'meetings', label: t('project_home.tab.meetings', 'Meetings'), Icon: Mic, iconStyle: { color: kindColorVar('meeting') } },

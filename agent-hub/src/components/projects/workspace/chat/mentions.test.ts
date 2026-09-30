@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import { excerptOf, groupMessages } from './messageGroups';
+import type { TeamChatMessage } from '../../../../api/queries/projectChatTypes';
+import { excerptOf, formatDayLabel, groupMessages, isNewDay, mainConversation, summarizeThreads, threadConversation } from './messageGroups';
 import {
     findMentionQuery, insertMention, matchCandidates, mentions, resolveMentions, splitMentions, type MentionCandidate,
 } from './mentions';
@@ -31,8 +32,19 @@ describe('mentions', () => {
     });
 
     it('sends only the mentions the final text still carries', () => {
-        expect(resolveMentions('Thanks @Ada Lovelace!', [ADA, BEN])).toEqual({ userIds: ['u-ada'], asksAi: false });
-        expect(resolveMentions('@ai what do you think', [AI, ADA])).toEqual({ userIds: [], asksAi: true });
+        expect(resolveMentions('Thanks @Ada Lovelace!', [ADA, BEN])).toEqual({ userIds: ['u-ada'], refs: [], asksAi: false });
+        expect(resolveMentions('@ai what do you think', [AI, ADA])).toEqual({ userIds: [], refs: [], asksAi: true });
+    });
+
+    it('collects tagged documents and notebooks, and does not take them for a question to the AI', () => {
+        const doc: MentionCandidate = { key: 'document:d1', kind: 'document', label: 'Budget 2026', token: 'Budget 2026', ref: { kind: 'document', id: 'd1' } };
+        const nb: MentionCandidate = { key: 'notebook:n1', kind: 'notebook', label: 'Research', token: 'Research', ref: { kind: 'notebook', id: 'n1' } };
+        expect(resolveMentions('See @Budget 2026 and @Research', [doc, nb])).toEqual({
+            userIds: [], refs: [{ kind: 'document', id: 'd1' }, { kind: 'notebook', id: 'n1' }], asksAi: false,
+        });
+        expect(resolveMentions('See @Budget 2026', [doc, nb]).refs).toEqual([{ kind: 'document', id: 'd1' }]);
+        const meeting: MentionCandidate = { key: 'meeting:m1', kind: 'meeting', label: 'Weekly sync', token: 'Weekly sync', ref: { kind: 'meeting', id: 'm1' } };
+        expect(resolveMentions('As said in @Weekly sync', [meeting, doc])).toEqual({ userIds: [], refs: [{ kind: 'meeting', id: 'm1' }], asksAi: false });
         expect(mentions('email@ai.com', 'ai')).toBe(false);
     });
 
@@ -66,5 +78,44 @@ describe('message groups', () => {
     it('cuts a long message to one line for a reply preview', () => {
         expect(excerptOf('a\n b   c')).toBe('a b c');
         expect(excerptOf('x'.repeat(200), 10)).toBe(`${'x'.repeat(9)}…`);
+    });
+});
+
+const msg = (id: string, extra: Partial<TeamChatMessage> = {}): TeamChatMessage => ({
+    id, seq: 1, authorKind: 'user', authorUserId: 'u', agentId: null, content: id, mentions: [], replyTo: null,
+    createdAt: '2026-10-01T10:00:00Z', editedAt: null, deleted: false, ...extra,
+});
+
+describe('threads', () => {
+    const root = msg('root');
+    const r1 = msg('r1', { threadId: 'root', createdAt: '2026-10-01T10:05:00Z' });
+    const r2 = msg('r2', { threadId: 'root', createdAt: '2026-10-01T10:09:00Z' });
+    const gone = msg('r3', { threadId: 'root', deleted: true });
+    const other = msg('other');
+
+    it('keeps replies out of the main conversation and counts them per thread', () => {
+        const all = [root, r1, other, r2, gone];
+        expect(mainConversation(all, []).messages.map(m => m.id)).toEqual(['root', 'other']);
+        expect(summarizeThreads(all).get('root')).toEqual({ count: 2, lastAt: '2026-10-01T10:09:00Z' });
+        expect(summarizeThreads(all).get('other')).toBeUndefined();
+    });
+
+    it('shows one thread as its root and its replies', () => {
+        expect(threadConversation([root, r1, other, r2], [], 'root').messages.map(m => m.id)).toEqual(['root', 'r1', 'r2']);
+    });
+});
+
+describe('days', () => {
+    const now = new Date(2026, 9, 15, 12, 0);
+    const labels = { today: 'Today', yesterday: 'Yesterday' };
+    it('starts a new separator when the calendar day changes', () => {
+        expect(isNewDay(new Date(2026, 9, 14, 23, 59).toISOString(), new Date(2026, 9, 15, 0, 1).toISOString())).toBe(true);
+        expect(isNewDay(new Date(2026, 9, 15, 8, 0).toISOString(), new Date(2026, 9, 15, 9, 0).toISOString())).toBe(false);
+        expect(isNewDay('garbage', new Date().toISOString())).toBe(false);
+    });
+    it('names today and yesterday, and dates the rest', () => {
+        expect(formatDayLabel(new Date(2026, 9, 15, 9).toISOString(), 'en', labels, now)).toBe('Today');
+        expect(formatDayLabel(new Date(2026, 9, 14, 9).toISOString(), 'en', labels, now)).toBe('Yesterday');
+        expect(formatDayLabel(new Date(2026, 8, 1, 9).toISOString(), 'en', labels, now)).toMatch(/September/);
     });
 });

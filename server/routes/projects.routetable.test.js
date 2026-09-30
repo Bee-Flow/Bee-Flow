@@ -116,6 +116,8 @@ const EXPECTED = [
     'PUT /:id/members/:memberId [rateLimiter,requireProjectRoleMw,validateRequest]',
     // Owner-removes / self-leave: the handler decides, so no role gate here.
     'DELETE /:id/members/:memberId [rateLimiter]',
+    // A member's uploaded picture, as an image (viewer+; only people of the project).
+    'GET /:id/avatars/:userId [requireProjectRoleMw]',
     'GET /:id/activity [requireProjectRoleMw,validateRequest]',
     // Live feed. The stream is viewer+ and re-checks the role periodically
     // while open. (The shared-thread routes are listed with self-detach.)
@@ -198,6 +200,7 @@ const EXPECTED = [
     // Starting a chat and posting share one per-member budget, the chat
     // router's own lazily bound `rateLimitMiddleware`.
     'GET /:id/chats [requireProjectRoleMw,validateRequest]',
+    'GET /:id/chat-agents [requireProjectRoleMw]',
     'POST /:id/chats [requireProjectRoleMw,rateLimitMiddleware,validateRequest]',
     'GET /:id/chats/:chatId [requireProjectRoleMw]',
     'PATCH /:id/chats/:chatId [requireProjectRoleMw,validateRequest]',
@@ -208,8 +211,21 @@ const EXPECTED = [
     'DELETE /:id/chats/:chatId/messages/:messageId [requireProjectRoleMw]',
     // "Not helpful" on an answer the AI gave by itself: any member who can
     // post (editor+), one mark per person per message.
+    'GET /:id/chats/:chatId/messages/:messageId/trace [requireProjectRoleMw]',
     'POST /:id/chats/:chatId/messages/:messageId/feedback [requireProjectRoleMw,validateRequest]',
     'POST /:id/chats/:chatId/read [requireProjectRoleMw,validateRequest]',
+    // Tasks (routes/projects/tasks.js): reading is viewer+, writing editor+;
+    // who may delete one (its author, the project owner) is decided in the handler.
+    'GET /:id/tasks [requireProjectRoleMw]',
+    'POST /:id/tasks [requireProjectRoleMw,validateRequest]',
+    'POST /:id/tasks/batch [requireProjectRoleMw,validateRequest]',
+    'GET /:id/meetings/:meetingId/task-suggestions [requireProjectRoleMw]',
+    'POST /:id/meetings/:meetingId/task-suggestions/improve [requireProjectRoleMw,rateLimitMiddleware]',
+    'POST /:id/tasks/:taskId/improve [requireProjectRoleMw,rateLimitMiddleware]',
+    'PATCH /:id/tasks/:taskId [requireProjectRoleMw,validateRequest]',
+    'DELETE /:id/tasks/:taskId [requireProjectRoleMw]',
+    // A person's colour in the project: the owner for anyone, everybody else for themselves (decided in the handler).
+    'PUT /:id/members/:userId/color [requireProjectRoleMw,validateRequest]',
     // Project files, "my chats" and presence (routes/projects/workspace.js).
     // The upload is editor+ and rate limited BEFORE multer reads the body;
     // `acceptProjectFile` is multer, one field, one file.

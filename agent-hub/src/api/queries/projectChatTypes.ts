@@ -45,6 +45,22 @@ export interface TeamChat {
 /** What the organisation lets a chat choose. */
 export interface TeamChatAiPolicy { autoAllowed: boolean; alwaysAllowed: boolean }
 
+/** How an AI answer was made: the depth it ran on, and what the Privacy Shield replaced (a count and kinds, never values). */
+export interface TeamChatAiMeta {
+    tier: string | null; requestedTier: string | null; redacted: number; categories: string[];
+    /** The Privacy Shield replaced values, so there is a trace to open. */
+    trace?: boolean;
+}
+
+/** How an answer was made, when the Privacy Shield replaced values: what the model saw and what it sent back. */
+export interface TeamChatTrace {
+    model: string | null; tier: string | null; categories: string[];
+    original: string; sent: string; tokenMap: Record<string, string>; returned: string;
+}
+
+/** A document, notebook or meeting note of the project that a message tags. */
+export interface TeamChatRef { kind: 'document' | 'notebook' | 'meeting'; id: string }
+
 export interface TeamChatMessage {
     id: string;
     seq: number;
@@ -54,6 +70,12 @@ export interface TeamChatMessage {
     content: string;
     mentions: string[];
     replyTo: string | null;
+    /** Set on a reply inside a thread: the message that starts it. Such a message shows in the thread only. */
+    threadId?: string | null;
+    /** The documents and notebooks the message tags. */
+    refs?: TeamChatRef[];
+    /** An answer: how it was made. */
+    aiMeta?: TeamChatAiMeta | null;
     createdAt: string;
     editedAt: string | null;
     deleted: boolean;
@@ -76,6 +98,9 @@ export interface SendTeamChatMessage {
     content: string;
     mentions: string[];
     replyTo: string | null;
+    threadId?: string | null;
+    refs?: TeamChatRef[];
+    modelTier?: string;
     askAi: boolean;
 }
 

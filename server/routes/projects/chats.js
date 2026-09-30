@@ -11,11 +11,12 @@
  * PATCH  /:id/chats/:chatId                                   editor   title, AI mode, agent, archived
  * DELETE /:id/chats/:chatId                                   editor   the person who started it, or the project owner
  * GET    /:id/chats/:chatId/messages?after=&before=&limit=    viewer   ascending by seq
- * POST   /:id/chats/:chatId/messages                          editor   idempotent on clientMsgId
+ * POST   /:id/chats/:chatId/messages                          editor   idempotent on clientMsgId; `threadId` posts into the thread of a message, `refs` tags documents and notebooks of the project
  * PATCH  /:id/chats/:chatId/messages/:messageId               editor   the author only
  * DELETE /:id/chats/:chatId/messages/:messageId               editor   the author, or the project owner (soft)
  * POST   /:id/chats/:chatId/read                              viewer   move my read marker
  * POST   /:id/chats/:chatId/messages/:messageId/feedback      editor   "not helpful" on an automatic answer
+ * GET    /:id/chats/:chatId/messages/:messageId/trace         viewer   how an answer was made when the Privacy Shield replaced values (sealed; 404 otherwise)
  *
  * Every route starts with the shared role gate (auth/projectAccess): 404 for
  * someone with no role on the project, 403 for a role that is too low. A chat
@@ -30,6 +31,13 @@
  * row cannot take the whole chat down. A title taken from the first message
  * follows that message: editing it re-derives the title, deleting it (or
  * erasing its author) resets the title to "New chat" (stores/projectChatStore).
+ *
+ * Threads: a message with `threadId` set is a reply in the thread of that
+ * (main-conversation) message and is shown only there; `replyTo` stays the
+ * quote. The AI answers a thread message inside the same thread and reads the
+ * thread, not the main conversation. `refs` are `{kind, id}` pairs of
+ * documents and notebooks filed in the project (400 `ref_not_in_project`
+ * otherwise); the AI is handed what the asker may read of them.
  *
  * Live feed (core/projectFeed, durable): chat.created, chat.updated,
  * chat.deleted, chat.message.created, chat.message.updated,
@@ -98,6 +106,9 @@ function excerptOf(text) {
  * @param {object}   [deps.store]               stores/projectChatStore surface
  * @param {object}   [deps.chatCrypto]          { forProject(project) }
  * @param {object}   [deps.assistant]           { requestReply(...) } (projects/chatAssistant)
+ * @param {Function} [deps.isChatAgentAllowed]  (project, {agentId, userId}) => boolean: an agent every member may use
+ * @param {Function} [deps.listChatAgents]      (project, {userId}) => the agents a chat here may answer as
+ * @param {Function} [deps.filedIds]            (projectId, kind) => Set of ids of documents, notebooks or meeting notes filed in the project
  * @param {Function} [deps.resolveAgent]        ({agentId, userId}) => { agentId, name } | null
  * @param {Function} [deps.resolveOrgs]         (req) => { orgId, limitOrgId }
  * @param {Function} [deps.emit]                (projectId, event) => durable event
@@ -129,6 +140,16 @@ function makeProjectChatsRouter(deps = {}) {
         || (defaultAssistant || (defaultAssistant = require('../../projects/chatAssistant').makeChatAssistant()));
     const resolveAgent = deps.resolveAgent
         || ((args) => require('../../projects/chatAssistant').resolveUsableAgent(args));
+    const isChatAgentAllowed = deps.isChatAgentAllowed
+        || ((project, args) => require('../../projects/chatAssistant').isChatAgentAllowed(project, args));
+    const listChatAgents = deps.listChatAgents
+        || ((project, args) => require('../../projects/chatAssistant').listChatAgents(project, args));
+    // The ids of what is filed in the project, per kind, for validating `refs`.
+    const filedIds = deps.filedIds || (async (projectId, kind) => {
+        const entry = require('../../projects/membership').getKind(kind);
+        const rows = entry ? await entry.list(projectId) : [];
+        return new Set((rows || []).map((r) => r.id));
+    });
     const resolveOrgs = deps.resolveOrgs || (async (req) => {
         const userId = req.session.user.id;
         const orgId = await require('../../core/llm/modelResolver').resolveEffectiveOrgId(req, { userId });
@@ -293,6 +314,9 @@ function makeProjectChatsRouter(deps = {}) {
             content: '',
             mentions: m.mentions,
             replyTo: m.replyTo,
+            threadId: m.threadId || null,
+            refs: m.refs || [],
+            aiMeta: m.aiMeta ? { ...m.aiMeta, trace: !!m.aiTrace } : null,
             clientMsgId: m.clientMsgId,
             aiTrigger: m.aiTrigger || null,
             aiReason: m.aiReason || null,
@@ -325,14 +349,28 @@ function makeProjectChatsRouter(deps = {}) {
         return kept;
     }
 
+    /** Tagged documents and notebooks must be filed in this project; anything else is a 400. */
+    async function checkedRefs(projectId, refs) {
+        const unique = [];
+        for (const r of refs || []) if (!unique.some((u) => u.kind === r.kind && u.id === r.id)) unique.push({ kind: r.kind, id: r.id });
+        for (const kind of new Set(unique.map((r) => r.kind))) {
+            const filed = await filedIds(projectId, kind);
+            if (unique.some((r) => r.kind === kind && !filed.has(r.id))) {
+                throw badRequest('ref_not_in_project', 'You can only tag documents, notebooks and meeting notes that are filed in this project.');
+            }
+        }
+        return unique;
+    }
+
     /**
      * Store one human message, announce it, and ask the assistant when the
      * chat's rule says so. Shared by "start a chat with a first message" and
      * "post a message".
      */
-    async function postMessage(req, { project, chat, box, content, clientMsgId = null, replyTo = null, mentions = [], askAi = false, messageId = newId() }) {
+    async function postMessage(req, { project, chat, box, content, clientMsgId = null, replyTo = null, threadId = null, refs = [], mentions = [], askAi = false, modelTier = null, messageId = newId() }) {
         const userId = userIdOf(req);
         const kept = await memberMentions(project.id, mentions);
+        const keptRefs = await checkedRefs(project.id, refs);
         let result;
         try {
             result = await store().appendMessage({
@@ -344,9 +382,12 @@ function makeProjectChatsRouter(deps = {}) {
                 content: box.sealContent(chat.id, messageId, content),
                 mentions: kept,
                 replyTo,
+                threadId,
+                refs: keptRefs,
                 clientMsgId,
             });
         } catch (err) {
+            if (err?.code === 'THREAD_NOT_FOUND') throw badRequest('thread_not_found', 'threadId must be a message in this chat that is not itself a reply in a thread.');
             if (err?.code === 'REPLY_TARGET_NOT_FOUND') throw badRequest('reply_target_not_found', 'replyTo must be a message in this chat.');
             if (err?.code === 'CLIENT_MSG_ID_TAKEN') throw conflict('client_msg_id_taken', 'This clientMsgId was already used for another message in this chat. Send a new id.');
             throw err;
@@ -383,7 +424,10 @@ function makeProjectChatsRouter(deps = {}) {
         /** @type {{ status: string, reason?: string }} */
         let ai;
         const notice = { containerId: chat.id, messageId: stored.id, authorUserId: userId, projectId: project.id };
-        if (decision.trigger === false && decision.reason === 'auto_pending') {
+        if (decision.trigger === false && decision.reason === 'auto_pending' && threadId) {
+            // The AI joins the main conversation on its own, not a thread; asked outright it answers there too.
+            ai = { status: 'skipped', reason: 'auto' };
+        } else if (decision.trigger === false && decision.reason === 'auto_pending') {
             // The engine decides later, quietly; the poster is told nothing more.
             const { orgId, limitOrgId } = await resolveOrgs(req);
             tellParticipation({ ...notice, orgId, limitOrgId });
@@ -395,7 +439,7 @@ function makeProjectChatsRouter(deps = {}) {
             // Asked outright in an auto chat: whatever the engine had queued is moot.
             if (chat.aiMode === 'auto') tellParticipation({ ...notice, orgId, limitOrgId, explicit: true });
             const reply = await assistant().requestReply({
-                project, chat, trigger: stored, triggerText: content, userId, orgId, limitOrgId, session: req.session, aiTrigger: decision.kind,
+                project, chat, trigger: stored, triggerText: content, userId, orgId, limitOrgId, session: req.session, aiTrigger: decision.kind, modelTier,
             });
             ai = reply.reason ? { status: reply.status, reason: reply.reason } : { status: reply.status };
         }
@@ -426,6 +470,12 @@ function makeProjectChatsRouter(deps = {}) {
         res.json({ chats, role: req.projectRole, aiPolicy });
     });
 
+    // The agents a chat here may answer as: what every member may use.
+    router.get('/:id/chat-agents', requireRole('viewer'), async (req, res) => {
+        const project = await loadProject(req);
+        res.json({ agents: await listChatAgents(project, { userId: userIdOf(req) }) });
+    });
+
     router.post('/:id/chats', requireRole('editor'), postLimiter, validate({ body: S.CreateChatBody }), async (req, res) => {
         const userId = userIdOf(req);
         const project = await loadProject(req);
@@ -433,8 +483,8 @@ function makeProjectChatsRouter(deps = {}) {
             throw conflict('SOLUTION_HOLDS_NO_CHATS', 'A Studio Solution holds no chats. Start the chat in a project instead.');
         }
         const agentId = req.body.agentId || null;
-        if (agentId && !(await resolveAgent({ agentId, userId }))) {
-            throw badRequest('agent_unavailable', 'There is no agent with that id that you can use.');
+        if (agentId && !(await resolveAgent({ agentId, userId }) && await isChatAgentAllowed(project, { agentId, userId }))) {
+            throw badRequest('agent_unavailable', 'That agent is not available to everyone in this project.');
         }
         await assertModeAllowed(project, req.body.aiMode || 'mention');
         const message = typeof req.body.message === 'string' ? req.body.message.trim() : '';
@@ -486,8 +536,9 @@ function makeProjectChatsRouter(deps = {}) {
         const project = await loadProject(req);
         const chat = await loadChat(project, req.params.chatId);
         const { title, aiMode, agentId, archived } = req.body;
-        if (agentId && agentId !== chat.agentId && !(await resolveAgent({ agentId, userId }))) {
-            throw badRequest('agent_unavailable', 'There is no agent with that id that you can use.');
+        if (agentId && agentId !== chat.agentId
+            && !(await resolveAgent({ agentId, userId }) && await isChatAgentAllowed(project, { agentId, userId }))) {
+            throw badRequest('agent_unavailable', 'That agent is not available to everyone in this project.');
         }
         // A mode the chat already has stays usable for other edits even when
         // the organisation has since withdrawn it; only a change is checked.
@@ -552,9 +603,9 @@ function makeProjectChatsRouter(deps = {}) {
         const chat = await loadChat(project, req.params.chatId);
         if (chat.archived) throw conflict('chat_archived', 'This chat is archived. Restore it before posting.');
         const box = await chatCrypto().forProject(project);
-        const { content, clientMsgId, replyTo, mentions, askAi } = req.body;
+        const { content, clientMsgId, replyTo, threadId, refs, mentions, askAi, modelTier } = req.body;
         const out = await postMessage(req, {
-            project, chat, box, content, clientMsgId: clientMsgId || null, replyTo: replyTo || null, mentions: mentions || [], askAi: askAi === true,
+            project, chat, box, content, clientMsgId: clientMsgId || null, replyTo: replyTo || null, threadId: threadId || null, refs: refs || [], mentions: mentions || [], askAi: askAi === true, modelTier: modelTier || null,
         });
         res.status(out.created ? 201 : 200).json({ message: out.message, ai: out.ai });
     });
@@ -598,6 +649,17 @@ function makeProjectChatsRouter(deps = {}) {
         if (deleted) await emit(project.id, chatEvent('chat.message.deleted', userId, chat.id, { messageId: deleted.id, seq: deleted.seq }));
         if (deleted && deleted.titleReset) await emit(project.id, chatEvent('chat.updated', userId, chat.id));
         res.json({ success: true });
+    });
+
+    router.get('/:id/chats/:chatId/messages/:messageId/trace', requireRole('viewer'), async (req, res) => {
+        const project = await loadProject(req);
+        const chat = await loadChat(project, req.params.chatId);
+        const message = await store().getMessage(chat.id, req.params.messageId);
+        if (!message || message.deletedAt || !message.aiTrace) throw notFound('trace_not_found', 'There is nothing to show for this message.');
+        const box = await chatCrypto().forProject(project);
+        const opened = tryOpen(() => require('../../projects/chatTrace').openTrace(box, chat.id, message.id, message.aiTrace), `trace of message ${message.id}`);
+        if (!opened.ok) throw notFound('trace_not_found', 'There is nothing to show for this message.');
+        res.json({ trace: opened.text });
     });
 
     router.post('/:id/chats/:chatId/messages/:messageId/feedback', requireRole('editor'), validate({ body: S.FeedbackBody }), async (req, res) => {

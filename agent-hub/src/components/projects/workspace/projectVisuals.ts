@@ -51,6 +51,39 @@ export function swatchStyle(hex: string): CSSProperties {
 }
 
 /** "Ada Lovelace" → "AL", "ada@example.org" → "A". Empty → "?". */
+/** The AI's own colour in a chat: violet, so it never reads as a colleague or as the theme's grey. */
+export const AI_HUE = 262;
+
+/** The AI's colours in a chat, kept quiet: a hint of the project's own colour on the theme's greys. */
+export interface AiTone { ink: string; soft: string; ring: string; card: string; edge: string; bar: string }
+
+const mix = (color: string, pct: number, into = 'transparent') => `color-mix(in srgb, ${color} ${pct}%, ${into})`;
+
+/** Tones from the project's colour (a hex like `#22c55e`); violet when the project has none. */
+export function aiToneFor(color?: string | null): AiTone {
+    const c = typeof color === 'string' && /^#[0-9a-f]{3,8}$/i.test(color.trim()) ? color.trim() : `hsl(${AI_HUE} 45% 55%)`;
+    return {
+        // Text keeps the theme's ink with a lean towards the colour, so it stays readable on every theme.
+        ink: mix(c, 70, 'var(--text-primary)'),
+        soft: mix(c, 14),
+        ring: mix(c, 30),
+        card: mix(c, 4.5),
+        edge: mix(c, 22),
+        bar: mix(c, 60),
+    };
+}
+
+/** Without a project colour to go by. */
+export const AI_TONE: AiTone = aiToneFor(null);
+
+/** A stable hue (0-359) for a name, so the same person always gets the same colour. */
+export function hueOf(name: string | null | undefined): number {
+    let h = 5381;
+    for (const ch of String(name || '')) h = ((h * 33) ^ ch.charCodeAt(0)) >>> 0;
+    // Spread by the golden angle, so two similar names still land far apart on the wheel.
+    return Math.round((h * 137.508) % 360);
+}
+
 export function initialsOf(name?: string | null): string {
     const clean = (name || '').trim();
     if (!clean) return '?';

@@ -166,3 +166,13 @@ test('sectionHtmlOf finds a section by its exact id only', () => {
     assert.strictEqual(sectionHtmlOf(html, 'a"]', domParser), '');
     assert.strictEqual(sectionHtmlOf('', 'a', domParser), '');
 });
+
+test('a task is read as its title and description, only for the project it is in', async () => {
+    const reader = makeItemReader({
+        readTask: async ({ projectId, taskId }) => (projectId === 'p1' && taskId === 't1' ? { title: 'Send the offer', description: 'Before Friday.' } : null),
+    });
+    const item = await reader.read({ projectId: 'p1', targetType: 'task', targetId: 't1', userId: 'ann' });
+    assert.deepStrictEqual(item, { name: 'Send the offer', markdown: '# Send the offer\n\nBefore Friday.', sectionMarkdown: '' });
+    assert.strictEqual(await reader.read({ projectId: 'p2', targetType: 'task', targetId: 't1', userId: 'ann' }), null);
+    assert.strictEqual(await reader.read({ projectId: 'p1', targetType: 'task', targetId: 't1', userId: null }), null);
+});

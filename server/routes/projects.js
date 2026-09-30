@@ -187,6 +187,24 @@ async function sharedChatsRemain(projectId, count) {
         details);
 }
 
+/**
+ * How a member's own avatar reaches the list: an emoji, a path or a url inline;
+ * an uploaded picture (a data URL of up to hundreds of KB) NOT inline, since it
+ * would ride along on every member list, but as a link to the avatar route
+ * below, versioned by its content so a changed picture is fetched again.
+ *
+ * @returns {{ avatar: string, avatarType: 'emoji'|'image'|'url' }|null}
+ */
+function memberAvatar(projectId, userId, user) {
+    const avatar = typeof user.avatar === 'string' ? user.avatar : '';
+    if (!avatar || !['emoji', 'image', 'url'].includes(user.avatarType)) return null;
+    if (avatar.startsWith('data:image/')) {
+        const v = require('crypto').createHash('sha1').update(avatar).digest('hex').slice(0, 10);
+        return { avatar: `/api/projects/${projectId}/avatars/${encodeURIComponent(userId)}?v=${v}`, avatarType: 'image' };
+    }
+    return avatar.length <= 2048 ? { avatar, avatarType: user.avatarType } : null;
+}
+
 /** The display name a member list shows for a user row (the same rule as the documents' people). */
 const { displayNameOf } = require('../core/documents/documentPeople');
 
@@ -195,7 +213,7 @@ const { displayNameOf } = require('../core/documents/documentPeople');
  *
  * Only principals of the PROJECT'S organisation are described (org-less
  * projects: org-less principals only), from an explicit allow-list of fields:
- * a user is `{ name }`, a group `{ name }`. Never an e-mail address: any
+ * a user is `{ name, avatar?, avatarType? }`, a group `{ name }`. Never an e-mail address: any
  * viewer may read this list, and the organisation's directory
  * (users.getOrgMembersForDirectory) gives a non-admin no addresses either; a
  * picker or a member list needs a label, not an address. A share row pointing across
@@ -222,7 +240,10 @@ async function describeMembers(project, shares) {
         }
         if (!user || (user.organizationId || '') !== org) return;
         const name = displayNameOf(user);
-        people[id] = name ? { name } : {};
+        const entry = name ? { name } : {};
+        const picture = memberAvatar(project.id, id, user);
+        if (picture) Object.assign(entry, picture);
+        people[id] = entry;
     }));
 
     // One targeted read per group the project is shared with, never the whole
@@ -638,6 +659,13 @@ router.get('/:id/members', requireRole('viewer'), async (req, res) => {
     if (!project) throw notFound();
     const shares = await projectStore.getProjectShares(req.params.id);
     const { people, groups } = await describeMembers(project, shares);
+    // The colour the project gave each person (none: the client picks the automatic one).
+    try {
+        const colors = await require('../stores/projectMemberColorStore').listColors(project.id);
+        for (const [id, person] of Object.entries(people)) if (colors[id]) person.color = colors[id];
+    } catch (err) {
+        log.warn('[Projects] member colours unavailable:', err.message);
+    }
     res.json({ ownerId: project.ownerId, members: shares, people, groups });
 });
 
@@ -690,6 +718,15 @@ router.delete('/:id/members/:memberId', memberMutationLimiter, async (req, res) 
             selfLeave: isSelf && !isOwner,
         });
         if (ok) signalProjectChanged(project, 'members');
+        if (ok && share.sharedWithType === 'user') {
+            // Someone who left holds no tasks here any more; best-effort, the removal stands.
+            try { await require('../stores/projectMemberColorStore').clearFor(req.params.id, share.sharedWithId); } catch (err) {
+                log.warn('[Projects] could not clear a removed member\'s colour:', err.message);
+            }
+            try { await require('../stores/projectTaskStore').unassignUser(req.params.id, share.sharedWithId); } catch (err) {
+                log.warn('[Projects] could not unassign a removed member from tasks:', err.message);
+            }
+        }
         res.json({ success: ok });
     } catch (err) {
         log.error('[Projects] Remove member error:', err.message);
@@ -697,6 +734,28 @@ router.delete('/:id/members/:memberId', memberMutationLimiter, async (req, res) 
         // The console.error above keeps the detail for operators.
         res.status(500).json({ error: 'Request failed' });
     }
+});
+
+// GET /:id/avatars/:userId — the picture an owner or member uploaded, as an image (viewer+). Only for a person
+// of this project, only the raster types, and served as the bytes it holds: nothing else is ever read from it.
+const AVATAR_DATA_URL = /^data:(image\/(?:png|jpeg|webp|gif));base64,([A-Za-z0-9+/=\s]+)$/;
+router.get('/:id/avatars/:userId', requireRole('viewer'), async (req, res) => {
+    const project = await projectStore.getProject(req.params.id);
+    if (!project) throw notFound();
+    const shares = await projectStore.getProjectShares(project.id);
+    const isMember = project.ownerId === req.params.userId
+        || shares.some((s) => s.sharedWithType === 'user' && s.sharedWithId === req.params.userId);
+    const user = isMember ? await userStore.getUser(req.params.userId) : null;
+    const match = user && (user.organizationId || '') === (project.organizationId || '') && typeof user.avatar === 'string'
+        ? AVATAR_DATA_URL.exec(user.avatar) : null;
+    if (!match) throw notFound();
+    res.set({
+        'Content-Type': match[1],
+        'Cache-Control': 'private, max-age=86400',
+        'X-Content-Type-Options': 'nosniff',
+        'Content-Security-Policy': "default-src 'none'; sandbox",
+    });
+    res.send(Buffer.from(match[2].replace(/\s+/g, ''), 'base64'));
 });
 
 // ── Activity feed ────────────────────────────────────────
@@ -1155,6 +1214,8 @@ router.put('/:id/conversations', requireRole('editor'), validate({ body: S.Conve
 // and nothing that runs for a request meant elsewhere. Every path is
 // `/:id/<word>…`, so none of them can shadow the one-segment routes above.
 router.use('/', require('./projects/chats'));
+router.use('/', require('./projects/tasks'));
+router.use('/', require('./projects/memberColors'));
 router.use('/', require('./projects/workspace'));
 router.use('/', require('./projects/content'));
 // Real-time co-editing of notebooks and project pages (the HTTP half of the

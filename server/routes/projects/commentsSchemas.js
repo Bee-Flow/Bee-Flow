@@ -26,10 +26,10 @@ const CLIENT_ID_MAX = 64;
 const MAX_MENTIONS = 50;
 const MAX_BLOCK_INDEX = 1_000_000;
 
-const TARGET_TYPES = ['notebook', 'document'];
+const TARGET_TYPES = ['notebook', 'document', 'task'];
 const AI_MODES = ['off', 'mention', 'auto'];
 
-const targetType = choice(TARGET_TYPES, 'targetType is notebook or document.');
+const targetType = choice(TARGET_TYPES, 'targetType is notebook, document or task.');
 const TARGET_ID_TEXT = `targetId is the id of the notebook or document, 1 to ${ID_MAX} characters.`;
 const targetId = worded(TARGET_ID_TEXT).trim().min(1, TARGET_ID_TEXT).max(ID_MAX, TARGET_ID_TEXT);
 const aiMode = choice(AI_MODES, 'aiMode is off, mention or auto.');

@@ -696,6 +696,8 @@ function runStartupTasks() {
     } catch (err) {
         log.warn('[Server] NC onboarding reminder load failed:', err.message);
     }
+    // Project task reminders: a daily tick for open tasks due tomorrow, today or late.
+    try { require('../jobs/projectTaskDueNotifier').start(); } catch (err) { log.warn('[Server] Project task due notifier load failed:', err.message); }
     // Learning Center review nudge — daily tick that reminds lapsed learners
     // (started, unfinished, quiet 7-60d) to do a short review. Max one nudge
     // per user per 14d via configStore marker; advisory-locked across pods.
@@ -788,6 +790,9 @@ function runStartupTasks() {
                 .then(n => { if (n > 0) log.info(`[Server] Startup: purged ${n} orphaned KB chunks`); })
                 .catch(err => log.warn('[Server] Orphan purge error:', err.message));
         } catch (_) { /* localKBIngest not available — skip */ }
+        // An embedding model switched while the server was down (or a
+        // migration interrupted by a restart) is picked up here.
+        require('../core/kb/embeddingMigration').ensureKbEmbeddingsCurrent({ reason: 'boot' });
     }, 5000);
 }
 

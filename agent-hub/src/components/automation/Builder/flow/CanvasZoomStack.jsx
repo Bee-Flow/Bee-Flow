@@ -1,7 +1,8 @@
 import { useReactFlow, useStore } from '@xyflow/react';
-import { Plus, Minus, Maximize, Rows3, Presentation } from 'lucide-react';
+import { Plus, Minus, Maximize, Maximize2, Minimize2, Rows3, Presentation } from 'lucide-react';
 import React from 'react';
 import useTranslation from '../../../../hooks/useTranslation';
+import { toggleCanvasFullscreen, useStudioMenuHidden } from '../../../../hooks/useStudioChrome';
 
 /**
  * The zoom stack in the canvas's south-west zone (design 1a): zoom in, zoom
@@ -42,6 +43,7 @@ export default function CanvasZoomStack({ onWrapToFit = null, onFit = null, pres
     const { t } = useTranslation();
     const rf = useReactFlow();
     const pct = useStore(selectPct);
+    const fullscreen = useStudioMenuHidden();
     const zoom = (dir) => {
         try { dir > 0 ? rf.zoomIn({ duration: 200 }) : rf.zoomOut({ duration: 200 }); } catch { /* canvas gone */ }
     };
@@ -104,9 +106,23 @@ export default function CanvasZoomStack({ onWrapToFit = null, onFit = null, pres
             <Presentation size={14} />
         </button>
     );
+    const fullscreenBtn = (cls) => (
+        <button
+            key="fullscreen"
+            type="button"
+            onClick={toggleCanvasFullscreen}
+            aria-pressed={fullscreen}
+            className={`${btn} ${cls} ${fullscreen ? '!text-[var(--text-primary)] bg-[var(--bg-tertiary)]' : ''}`}
+            title={fullscreen ? t('routines.canvas.fullscreen_off', 'Leave fullscreen') : t('routines.canvas.fullscreen_on', 'Canvas fullscreen')}
+            aria-label={fullscreen ? t('routines.canvas.fullscreen_off', 'Leave fullscreen') : t('routines.canvas.fullscreen_on', 'Canvas fullscreen')}
+            data-testid="canvas-fullscreen-toggle"
+        >
+            {fullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+        </button>
+    );
     const controls = compact
-        ? [zoomOut, zoomPct, zoomIn, fitBtn]
-        : [zoomIn, zoomOut, zoomPct, fitBtn, ...(onWrapToFit ? [wrapBtn] : []), ...(onTogglePresenter ? [presenterBtn] : [])];
+        ? [zoomOut, zoomPct, zoomIn, fitBtn, fullscreenBtn]
+        : [zoomIn, zoomOut, zoomPct, fitBtn, fullscreenBtn, ...(onWrapToFit ? [wrapBtn] : []), ...(onTogglePresenter ? [presenterBtn] : [])];
     const between = compact ? sepRow : sep;
     return (
         <div
