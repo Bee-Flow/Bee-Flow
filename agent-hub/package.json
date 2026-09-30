@@ -106,7 +106,7 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^5.1.1",
-    "@vitest/coverage-v8": "^4.1.6",
+    "@vitest/coverage-v8": "^5.0.2",
     "autoprefixer": "^10.6.1",
     "eslint": "^9.39.1",
     "eslint-plugin-import": "^2.32.0",
@@ -123,7 +123,7 @@
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.70.1",
     "vite": "^7.2.4",
-    "vitest": "^4.1.6",
+    "vitest": "^5.0.2",
     "world-atlas": "^2.0.2"
   }
 }
