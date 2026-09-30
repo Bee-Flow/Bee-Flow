@@ -48,13 +48,29 @@ const router = express.Router({ mergeParams: true });
 const blueprintPackaging = requireFeature('blueprint_packaging');
 
 /**
+ * Packaging is for Studio Solutions. A collaborative project
+ * (`kind: 'workspace'`) has no Blueprint to export, upgrade from or count
+ * installs of, so every `/:id/package/*` route answers it exactly as it
+ * answers a project that does not exist: 404, the same no-probing rule the
+ * role gate follows. A legacy project (kind null) keeps working until its
+ * owner classifies it. Runs after the role gate and the body schema, so a
+ * stranger still gets the gate's 404 and a refused body never reaches a
+ * store.
+ */
+async function requireSolutionProject(req, res, next) {
+    const project = await require('../../stores/projectStore').getProject(req.params.id);
+    if (!project || project.kind === 'workspace') return res.status(404).json({ error: 'Not found' });
+    next();
+}
+
+/**
  * POST /:id/package/export — capture this project as a Blueprint.
  *
  * Returns the manifest as JSON rather than a download: what the caller does
  * with it (save, install elsewhere, diff against a previous version) is not
  * this route's business, and a JSON body is the only shape all three want.
  */
-router.post('/:id/package/export', blueprintPackaging, requireProjectRole('owner'), validate({ body: S.ExportBody }), require('../../compliance/dataPortability/stampExport')('solutions'), async (req, res) => {
+router.post('/:id/package/export', blueprintPackaging, requireProjectRole('owner'), validate({ body: S.ExportBody }), requireSolutionProject, require('../../compliance/dataPortability/stampExport')('solutions'), async (req, res) => {
     try {
         const projectStore = require('../../stores/projectStore');
         const project = await projectStore.getProject(req.params.id);
@@ -340,7 +356,7 @@ async function capabilityPredicate(req) {
  * afterwards is not offering one. Owner, like every packaging action on a
  * project — an upgrade rewrites other members' entities.
  */
-router.post('/:id/package/upgrade/plan', blueprintPackaging, requireProjectRole('owner'), validate({ body: S.UpgradeBody }), async (req, res) => {
+router.post('/:id/package/upgrade/plan', blueprintPackaging, requireProjectRole('owner'), validate({ body: S.UpgradeBody }), requireSolutionProject, async (req, res) => {
     try {
         const resolved = await resolveManifest(req);
         if (resolved.error) return res.status(resolved.status).json({ error: resolved.error });
@@ -356,7 +372,7 @@ router.post('/:id/package/upgrade/plan', blueprintPackaging, requireProjectRole(
 });
 
 /** POST /:id/package/upgrade — apply it. Replaces the untouched, keeps the rest. */
-router.post('/:id/package/upgrade', blueprintPackaging, requireProjectRole('owner'), validate({ body: S.UpgradeBody }), async (req, res) => {
+router.post('/:id/package/upgrade', blueprintPackaging, requireProjectRole('owner'), validate({ body: S.UpgradeBody }), requireSolutionProject, async (req, res) => {
     try {
         const resolved = await resolveManifest(req);
         if (resolved.error) return res.status(resolved.status).json({ error: resolved.error });
@@ -412,7 +428,7 @@ router.post('/:id/package/upgrade', blueprintPackaging, requireProjectRole('owne
  * gewijzigde entiteit. De diff staat er altijd; de regel kan ontbreken, en de
  * Versies-tab houdt die twee uit elkaar.
  */
-router.get('/:id/package/releases', blueprintPackaging, requireProjectRole('owner'), async (req, res) => {
+router.get('/:id/package/releases', blueprintPackaging, requireProjectRole('owner'), requireSolutionProject, async (req, res) => {
     try {
         const releases = await require('../../stores/blueprintStore').listReleases(req.params.id);
         res.json({
@@ -486,7 +502,7 @@ router.get('/:id/package/releases', blueprintPackaging, requireProjectRole('owne
  * geen gat maar een feit. Een mislukte lees is dat niet, en die eindigt dan ook
  * in de 500 hieronder — het scherm zegt dan "niet te lezen", niet "nul".
  */
-router.get('/:id/package/installs', blueprintPackaging, requireProjectRole('owner'), async (req, res) => {
+router.get('/:id/package/installs', blueprintPackaging, requireProjectRole('owner'), requireSolutionProject, async (req, res) => {
     try {
         const projectStore = require('../../stores/projectStore');
         const project = await projectStore.getProject(req.params.id);

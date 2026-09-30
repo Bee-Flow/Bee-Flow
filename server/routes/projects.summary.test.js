@@ -36,7 +36,8 @@ const countStore = (name) => async (ids) => { fx.counted.push({ name, ids }); re
 
 const MOCKS = {
     '../stores/projectStore': {
-        listUserProjects: async () => {
+        listUserProjects: async (userId, groupIds, opts) => {
+            fx.listOpts = opts ?? null;
             if (fx.listThrows) throw new Error('projects table is down');
             return fx.projects;
         },
@@ -44,6 +45,10 @@ const MOCKS = {
         getProjectShares: async () => [],
     },
     '../stores/notebookStore': { countProjectNotebooks: countStore('notebooks') },
+    // Documents and meeting notes are counted too (projects/membership.js);
+    // doubles, so the tally never reaches a real database.
+    '../stores/documentStore': { countProjectDocuments: countStore('documents') },
+    '../stores/transcriptionStore': { countProjectMeetings: countStore('meetings') },
     '../stores/studioAppStore': { countProjectApps: countStore('apps'), listProjectApps: async () => [], getStudioApp: async () => null },
     '../stores/webpageStore': { countProjectWebpages: countStore('webpages'), listProjectWebpages: async () => [] },
     '../stores/datatableStore': { countDatatablesForProject: countStore('datatables'), listDatatablesForProject: async () => [] },
@@ -66,6 +71,7 @@ const MOCKS = {
     '../projects/knowledgeBaseMembership': {
         MAX_KB_IDS: 10,
         validateKnowledgeBaseIds: async () => ({ ok: true }),
+        checkProjectKnowledgeBaseIds: async (_req, ids) => ({ ok: true, invalid: [], ids }),
         listProjectKnowledgeBases: async () => [],
     },
     '../projects/completeness': {
@@ -155,6 +161,8 @@ test('?ids= can only narrow the caller\'s own list, never reach past it', async 
     reset();
     const res = await dispatch('/summary?ids=p2,p_someone_elses');
     assert.deepStrictEqual(res.body.projects.map(p => p.id), ['p2']);
+    assert.ok(fx.counted.some(c => c.name === 'documents') && fx.counted.some(c => c.name === 'meetings'),
+        'documents and meeting notes are tallied through the same list');
     for (const call of fx.counted) {
         assert.deepStrictEqual(call.ids, ['p2'],
             `${call.name} was handed an id the caller was never checked against`);
@@ -244,4 +252,15 @@ test('A 500 CARRIES AN EMPTY LIST AND NAMES THE GAP, NOT A BARE ERROR', async ()
         'a client that renders the body without checking the status shows nothing, not a clean overview');
     assert.strictEqual(res.body.hasMore, false);
     assert.ok(!/projects table/.test(JSON.stringify(res.body)), 'and no SQL text reaches the client');
+});
+
+
+// ═══ Solutions only ═══════════════════════════════════════════════════
+
+test('the overview asks the store for Solutions (and unclassified legacy rows) only', async () => {
+    reset();
+    await dispatch('/summary');
+    // The store keeps legacy rows (kind NULL) on both sides; a collaborative
+    // project is never a card here.
+    assert.deepStrictEqual(fx.listOpts, { kind: 'solution' });
 });

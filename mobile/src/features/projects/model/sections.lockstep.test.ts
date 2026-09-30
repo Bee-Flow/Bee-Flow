@@ -2,8 +2,8 @@
  * What a Solution can hold, held to its two sources (textual lockstep): the
  * server's membership registry (projects/membership.js — which sections
  * exist, which kind each files as, which are movable) and the web's
- * ProjectResourcesTab SECTIONS (their order, whose item is it) and
- * SolutionContentTable BANDS (who touches what). Then the rules that read it.
+ * Studio Solutions SECTIONS (admin/Studio/Solutions/solutionSections.ts: their
+ * order, whose item is it) and SolutionContentTable BANDS (who touches what). Then the rules that read it.
  */
 
 import fs from 'node:fs';
@@ -15,15 +15,20 @@ import type { ProjectResources } from './types';
 const REPO = path.resolve(__dirname, '../../../../..');
 const read = (rel: string) => fs.readFileSync(path.join(REPO, rel), 'utf8');
 const MEMBERSHIP = read('server/projects/membership.js');
-const WEB_SECTIONS = read('agent-hub/src/components/projects/ProjectResourcesTab.jsx');
-const WEB_BANDS = read('agent-hub/src/components/projects/SolutionContentTable.jsx');
+const WEB_SECTIONS = read('agent-hub/src/components/admin/Studio/Solutions/solutionSections.ts');
+const WEB_BANDS = read('agent-hub/src/components/admin/Studio/Solutions/SolutionContentTable.jsx');
 
 describe('the sections match the server registry', () => {
-    const kinds = [...MEMBERSHIP.matchAll(/kind: '([a-z_]+)',\s*\n\s*section: '([a-zA-Z]+)'/g)].map((m) => [m[1], m[2]]);
+    // The phone's sections are a Solution's: a kind the registry keeps to
+    // collaborative projects (containers: WORKSPACE_ONLY — documents, meetings)
+    // is never in one.
+    const declared = [...MEMBERSHIP.matchAll(/kind: '([a-z_]+)',\s*\n\s*section: '([a-zA-Z]+)',\s*\n\s*containers: ([A-Z_]+)/g)];
+    const kinds = declared.filter((m) => m[3] !== 'WORKSPACE_ONLY').map((m) => [m[1], m[2]]);
 
     // The ORDER is the web's (its project page lists apps before routines);
     // the set, and the kind each section files as, is the server's.
     it('section for section, each filed as its kind', () => {
+        expect(declared.length).toBe([...MEMBERSHIP.matchAll(/kind: '[a-z_]+',\s*\n\s*section: '/g)].length);
         expect(kinds.length).toBeGreaterThan(5);
         const byKey = (a: (string | undefined)[], b: (string | undefined)[]) => String(a[1]).localeCompare(String(b[1]));
         expect(SECTIONS.map((s) => [s.kind, s.key]).sort(byKey)).toEqual([...kinds].sort(byKey));

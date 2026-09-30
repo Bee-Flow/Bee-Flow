@@ -17,13 +17,18 @@ const store = {
     docs: new Map(),
     calls: [],
     house: { enabled: false },
+    // Project members who are not the owner, by role (documentStore answers a
+    // document filed in a project with the reader's `projectRole`).
+    roles: {},
 };
 
 function resetStore() {
     store.docs.clear();
     store.calls = [];
     store.house = { enabled: false };
+    store.roles = {};
 }
+const roleOf = (d, userId) => (d.projectId && store.roles[userId]) || null;
 
 const restore = installResolveStub({
     '../stores/documentStore': {
@@ -46,12 +51,15 @@ const restore = installResolveStub({
         },
         getDocument: async (id, userId) => {
             const d = store.docs.get(id);
-            return d && d.userId === userId ? { ...d } : null;
+            if (!d) return null;
+            if (d.userId === userId) return { ...d };
+            return roleOf(d, userId) ? { ...d, projectRole: roleOf(d, userId) } : null;
         },
         updateDocument: async (id, userId, updates) => {
             store.calls.push({ op: 'update', id, updates });
+            if (store.conflict) throw Object.assign(new Error('This document changed while you were editing.'), { status: 409, errorClass: 'document_conflict' });
             const d = store.docs.get(id);
-            if (!d || d.userId !== userId) return null;
+            if (!d || (d.userId !== userId && !['editor', 'owner'].includes(roleOf(d, userId)))) return null;
             Object.assign(d, updates);
             return { ...d };
         },
@@ -185,17 +193,29 @@ test('document_write writes only the slots it was given', async () => {
     assert.strictEqual(after.css, '.a{color:red}', 'the untouched slot survives');
 });
 
-test('document_write snapshots the previous state BEFORE overwriting it', async () => {
+test('an AI write is its own version: marked as the AI\'s, for the person who asked, with its summary', async () => {
     resetStore();
     const { documentId } = await executeDocumentTool('create_document', { name: 'X' }, CTX);
     await executeDocumentTool('document_write', { documentId, bodyHtml: '<p>v1</p>' }, CTX);
     store.calls = [];
-    await executeDocumentTool('document_write', { documentId, bodyHtml: '<p>v2</p>' }, CTX);
+    await executeDocumentTool('document_write', { documentId, bodyHtml: '<p>v2</p>', summary: 'Added VAT row' }, CTX);
+    const update = store.calls.find(c => c.op === 'update');
+    assert.strictEqual(update.updates.source, 'ai');
+    assert.strictEqual(update.updates.summary, 'Added VAT row', 'the summary reaches the history (it used to be dropped)');
+    assert.deepStrictEqual(update.updates.contributors, [{ userId: 'u1', kind: 'ai' }]);
+    assert.ok(!store.calls.some(c => c.op === 'snapshot'), 'no separate snapshot call: the write IS the version');
+    await executeDocumentTool('document_write', { documentId, bodyHtml: '<p>v3</p>' }, CTX);
+    assert.strictEqual(store.calls.filter(c => c.op === 'update').at(-1).updates.summary, 'AI edit', 'a default that says who');
+});
 
-    const snapshotIdx = store.calls.findIndex(c => c.op === 'snapshot');
-    const updateIdx = store.calls.findIndex(c => c.op === 'update');
-    assert.ok(snapshotIdx > -1, 'a version was taken');
-    assert.ok(snapshotIdx < updateIdx, 'the undo exists before the write, not after');
+test('a stale write is told to read again, not thrown', async () => {
+    resetStore();
+    const { documentId } = await executeDocumentTool('create_document', { name: 'X' }, CTX);
+    store.conflict = true;
+    try {
+        const out = await executeDocumentTool('document_write', { documentId, bodyHtml: '<p>v2</p>', expectedVersionId: 'old' }, CTX);
+        assert.match(out.error, /changed/);
+    } finally { store.conflict = false; }
 });
 
 test('document_write with no slots is an error, not a silent no-op', async () => {
@@ -264,15 +284,15 @@ test('an edit whose snippet no longer matches REFUSES rather than clobbering a h
     assert.match(after.bodyHtml, /1\.250,00/, "the user's correction survived");
 });
 
-test('document_edit snapshots a version BEFORE writing', async () => {
+test('document_edit is an AI version with the summary it was given', async () => {
     const documentId = await seed();
     store.calls = [];
     await executeDocumentTool('document_edit', {
-        documentId, slot: 'body', find_text: '1.140,00', replace_text: '1.320,00',
+        documentId, slot: 'body', find_text: '1.140,00', replace_text: '1.320,00', summary: 'Corrected the total',
     }, CTX);
-    const snap = store.calls.findIndex(c => c.op === 'snapshot');
-    const upd = store.calls.findIndex(c => c.op === 'update');
-    assert.ok(snap > -1 && snap < upd, 'the undo exists before the write');
+    const update = store.calls.find(c => c.op === 'update');
+    assert.strictEqual(update.updates.source, 'ai');
+    assert.strictEqual(update.updates.summary, 'Corrected the total');
 });
 
 test('a bad slot name is refused with the two that exist', async () => {
@@ -342,4 +362,116 @@ test('a presentation: create explains the outline (no css), read returns it as `
     const edited = await executeDocumentTool('document_edit', { documentId: created.documentId, slot: 'body', find_text: '- b', replace_text: '- b\n- c', expectedVersionId: read.versionId }, CTX);
     assert.strictEqual(edited.error, undefined);
     assert.strictEqual(store.docs.get(created.documentId).bodyHtml, '# Kick-off\n\n## Goals\n- b\n- c');
+});
+
+// ── Pages ────────────────────────────────────────────────────────────
+
+test('the chat creates designed documents, not pages', () => {
+    const create = DOCUMENT_TOOLS.find(t => t.function.name === 'create_document');
+    assert.ok(!create.function.parameters.properties.docType.enum.includes('page'));
+});
+
+/**
+ * A page that is being edited live, with a live layer that behaves like
+ * core/collab: `read` answers the state and the update it is at, and an edit
+ * made from an older update than the newest is refused as `stale`. `typed()`
+ * is a colleague typing.
+ */
+function withLivePage(t, { projectRole } = {}) {
+    resetStore();
+    store.docs.set('pg1', { id: 'pg1', userId: 'u1', name: 'Minutes', docType: 'page', bodyHtml: '<p>a</p>', css: '', settings: {}, versionId: 'v1', projectId: 'p1' });
+    if (projectRole) store.roles.member = projectRole;
+    const live = { html: '<p>live a</p>', seq: 3, edits: [] };
+    live.typed = (html) => { live.html = html; live.seq += 1; };
+    const documentFeed = require('../core/documents/documentFeed');
+    const saved = documentFeed.liveCollabFor;
+    t.after(() => { documentFeed.liveCollabFor = saved; });
+    const facade = {
+        read: async () => ({ html: live.html, seq: live.seq }),
+        readHtml: async () => live.html,
+        applyServerEdit: async (kind, id, actor, change) => {
+            if (Number.isFinite(change.expectSeq) && change.expectSeq !== live.seq) return { applied: false, stale: true, seq: live.seq };
+            live.edits.push([kind, id, actor, change]);
+            live.html = change.replaceWith.html;
+            live.seq += 1;
+            return { applied: true, seq: live.seq };
+        },
+    };
+    documentFeed.liveCollabFor = async (doc) => (doc.docType === 'page' ? facade : null);
+    return { live, facade };
+}
+
+test('a page edited live is written through the live layer, so every open editor sees it; css is refused', async (t) => {
+    const { live } = withLivePage(t);
+    const read = await executeDocumentTool('document_read', { documentId: 'pg1' }, CTX);
+    assert.strictEqual(read.bodyHtml, '<p>live a</p>', 'the model reads what people see now');
+    assert.strictEqual(read.versionId, 'v1@live:3', 'and the versionId names the live state it read');
+    const cssOnly = await executeDocumentTool('document_write', { documentId: 'pg1', css: 'p{}', expectedVersionId: read.versionId }, CTX);
+    assert.match(cssOnly.error, /no stylesheet/);
+    const out = await executeDocumentTool('document_write', { documentId: 'pg1', bodyHtml: '<p>b</p>', expectedVersionId: read.versionId }, CTX);
+    assert.ok(!out.error, out.error);
+    assert.strictEqual(out.versionId, 'v1@live:4', 'its own write is the new state to write from');
+    const edited = await executeDocumentTool('document_edit', { documentId: 'pg1', slot: 'body', find_text: '<p>b</p>', replace_text: '<p>live b</p>', expectedVersionId: out.versionId }, CTX);
+    assert.ok(!edited.error, edited.error);
+    assert.deepStrictEqual(live.edits.map(e => [e[0], e[1], e[2].origin, e[2].actorId, e[3].replaceWith.html, e[3].expectSeq]), [
+        ['document', 'pg1', 'ai', 'u1', '<p>b</p>', 3],
+        ['document', 'pg1', 'ai', 'u1', '<p>live b</p>', 4],
+    ]);
+    assert.ok(!store.calls.some(c => c.op === 'update'), 'the stored body is left to the live layer');
+});
+
+test('a full write into a live page never reverts what a colleague typed after the read', async (t) => {
+    const { live } = withLivePage(t);
+    const read = await executeDocumentTool('document_read', { documentId: 'pg1' }, CTX);
+    live.typed('<p>live a</p><p>Bob: the new paragraph</p>');
+    const out = await executeDocumentTool('document_write', { documentId: 'pg1', bodyHtml: '<p>rewritten</p>', expectedVersionId: read.versionId }, CTX);
+    assert.match(out.error, /changed this page since you read it/);
+    assert.strictEqual(live.html, '<p>live a</p><p>Bob: the new paragraph</p>', "Bob's paragraph stays");
+    assert.deepStrictEqual(live.edits, []);
+
+    const blind = await executeDocumentTool('document_write', { documentId: 'pg1', bodyHtml: '<p>rewritten</p>', expectedVersionId: 'v1' }, CTX);
+    assert.match(blind.error, /edited live.*document_read/, 'a versionId without the live state it was read at is not enough');
+    assert.deepStrictEqual(live.edits, []);
+    assert.ok(!store.calls.some(c => c.op === 'update'), 'and nothing is written around the live layer');
+});
+
+test('a find/replace on a live page is made on the newest live state, also when somebody types in between', async (t) => {
+    const { live, facade } = withLivePage(t);
+    let reads = 0;
+    const read = facade.read;
+    // Bob types right after the tool's first read of the live state.
+    facade.read = async () => { const s = await read(); reads += 1; if (reads === 1) live.typed('<p>live a</p><p>Bob</p>'); return s; };
+    const out = await executeDocumentTool('document_edit', { documentId: 'pg1', slot: 'body', find_text: 'live a', replace_text: 'live b', expectedVersionId: 'v1' }, CTX);
+    assert.ok(!out.error, out.error);
+    assert.strictEqual(live.html, '<p>live b</p><p>Bob</p>', "the edit is applied on top of Bob's typing");
+});
+
+test('a project viewer cannot change a live page through the chat, nor a stored one', async (t) => {
+    const { live } = withLivePage(t, { projectRole: 'viewer' });
+    const member = { userId: 'member' };
+    const read = await executeDocumentTool('document_read', { documentId: 'pg1' }, member);
+    assert.strictEqual(read.readOnly, true, 'the model is told it may only read');
+    const write = await executeDocumentTool('document_write', { documentId: 'pg1', bodyHtml: '<p>vic</p>', expectedVersionId: read.versionId }, member);
+    assert.strictEqual(write.error, 'Document is read-only.');
+    const edit = await executeDocumentTool('document_edit', { documentId: 'pg1', slot: 'body', find_text: 'live a', replace_text: 'vic', expectedVersionId: read.versionId }, member);
+    assert.strictEqual(edit.error, 'Document is read-only.');
+    assert.deepStrictEqual(live.edits, [], 'nothing reached the live layer');
+    assert.strictEqual(live.html, '<p>live a</p>');
+    assert.ok(!store.calls.some(c => c.op === 'update'), 'nor the stored body');
+
+    // The same page when nobody has it open live: refused before the store.
+    const documentFeed = require('../core/documents/documentFeed');
+    documentFeed.liveCollabFor = async () => null;
+    const stored = await executeDocumentTool('document_write', { documentId: 'pg1', bodyHtml: '<p>vic</p>', expectedVersionId: 'v1' }, member);
+    assert.strictEqual(stored.error, 'Document is read-only.');
+    assert.strictEqual(store.docs.get('pg1').bodyHtml, '<p>a</p>');
+});
+
+test('a project editor still writes a live page through the chat', async (t) => {
+    const { live } = withLivePage(t, { projectRole: 'editor' });
+    const read = await executeDocumentTool('document_read', { documentId: 'pg1' }, { userId: 'member' });
+    assert.strictEqual(read.readOnly, undefined);
+    const out = await executeDocumentTool('document_write', { documentId: 'pg1', bodyHtml: '<p>ed</p>', expectedVersionId: read.versionId }, { userId: 'member' });
+    assert.ok(!out.error, out.error);
+    assert.deepStrictEqual(live.edits.map(e => e[2].actorId), ['member']);
 });

@@ -95,7 +95,15 @@ const filtersWith = (over: Partial<EgressMapFilters> = {}): EgressMapFilters => 
 });
 
 const restore: Array<() => void> = [];
-beforeAll(() => {
+beforeAll(async () => {
+    // The map draws once useWorldAtlas has dynamically imported the atlas
+    // (150 KB of JSON). In a fresh test worker that first import is a module
+    // transform, and in the full suite, with every worker busy, it can take
+    // longer than a findBy* query waits, so whichever test ran first saw only
+    // "Drawing the map…". Loading the same two modules here pays that one-time
+    // cost before any test; the hook's own import then resolves from the
+    // module cache, and every assertion below is unchanged.
+    await Promise.all([import('./worldAtlas.json'), import('./countryPins.json')]);
     for (const [prop, value] of [['clientWidth', 800], ['clientHeight', 400]] as const) {
         const before = Object.getOwnPropertyDescriptor(HTMLElement.prototype, prop);
         Object.defineProperty(HTMLElement.prototype, prop, { configurable: true, get: () => value });

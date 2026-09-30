@@ -74,6 +74,7 @@ export default function FrameworkPage({
                     autoFixingId={core.autoFixingId ?? null}
                     onRerun={typeof core.rerun === 'function' ? core.rerun : undefined}
                     onAutoFix={typeof core.autoFix === 'function' ? core.autoFix : undefined}
+                    onDecide={typeof core.decideFinding === 'function' ? core.decideFinding : undefined}
                     loadTrail={typeof core.loadTrail === 'function' ? core.loadTrail : undefined}
                     onOpenLink={openLink}
                     canOpenLink={canOpenLink}

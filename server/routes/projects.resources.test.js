@@ -38,12 +38,27 @@ const fx = {
     calls: [],
     failList: null,       // store label whose list call should throw
     deleted: false,
+    sharedThreads: 0,     // conversations still shared into the project
     // The knowledge-base kind has no project_id column: its link is an entry in
     // the project's own knowledge_base_ids, so the project row IS the fixture.
     project: null,
     kbs: {},              // kb id -> row
     readableKBs: [],      // which of them this caller may READ
     kbConflicts: 0,       // compare-and-swap losses to simulate before winning
+    documentOwners: {},
+    meetingOwners: {},
+    filesKbRemoved: [],   // projects handed to projectFiles.removeFilesKb
+    filesKbRemoveFails: false,
+    counts: {},           // section -> how many the project holds (countIn)
+    chatHoldings: { conversations: 0, teamChats: 0 },
+    files: [],            // the project's uploaded files
+    activity: [],         // listActivity rows
+};
+
+/** A registry countIn double: `fx.counts[section]` for every project asked about. */
+const countOf = (section) => async (ids) => {
+    record('count', { section });
+    return new Map(ids.map((id) => [id, fx.counts[section] || 0]));
 };
 
 function record(name, args) { fx.calls.push({ name, args }); }
@@ -59,8 +74,26 @@ const MOCKS = {
             return { id, ...fx.project };
         },
         deleteProject: async () => { fx.deleted = true; return true; },
-        logActivity: async () => {},
-        appendProjectEvent: async () => ({ seq: 1, id: 'e1' }),
+        setProjectKind: async (id, kind) => {
+            record('setProjectKind', { id, kind });
+            if (!fx.project || (fx.project.kind != null && !fx.project.kindGuessed)) return null;
+            Object.assign(fx.project, { kind, kindGuessed: false });
+            return { id, ...fx.project };
+        },
+        countChatHoldings: async () => fx.chatHoldings,
+        listActivity: async () => fx.activity,
+        countSharedThreads: async () => fx.sharedThreads,
+        listSharedThreads: async (projectId, { limit } = {}) => {
+            record('listSharedThreads', { projectId, limit });
+            return Array.from({ length: Math.min(fx.sharedThreads, limit || 20) }, (_, i) => ({
+                id: `conv${i + 1}`, type: 'direct', ownerId: i === 0 ? 'bob' : 'alice',
+            }));
+        },
+        // The audit row and its live event, one transaction (projects/changeFeed).
+        recordActivityEvent: async (projectId, entry) => {
+            record('activity', { projectId, action: entry.action, targetType: entry.targetType, targetId: entry.targetId });
+            return null;
+        },
         listUserProjects: async () => [],
         getProjectShares: async () => [],
         normalizePermission: (p) => p,
@@ -76,6 +109,62 @@ const MOCKS = {
             return fx.notebookOwners[id] === userId;
         },
         clearProjectFromNotebooks: async (projectId) => { record('clearNotebooks', { projectId }); return 1; },
+        countProjectNotebooks: countOf('notebooks'),
+        detachNotebookFromProject: async (id, from, userId = null) => {
+            record('detachNotebookFromProject', { id, from, userId });
+            return userId === null ? !!fx.notebookOwners[id] : fx.notebookOwners[id] === userId;
+        },
+    },
+    // Documents and meeting notes (projects/membership.js): doubles, so the
+    // listing and the delete-time detacher never reach a real database.
+    '../stores/documentStore': {
+        listProjectDocuments: async (projectId) => {
+            if (fx.failList === 'documents') throw new Error('document store down');
+            record('listDocuments', { projectId });
+            return [{ id: 'doc1', name: 'Brief', userId: 'alice' }];
+        },
+        countProjectDocuments: countOf('documents'),
+        setDocumentProject: async (id, userId, projectId) => {
+            record('setDocumentProject', { id, userId, projectId });
+            return fx.documentOwners[id] === userId;
+        },
+        detachDocumentFromProject: async (id, from, userId) => {
+            record('detachDocumentFromProject', { id, from, userId });
+            return userId === null ? !!fx.documentOwners[id] : fx.documentOwners[id] === userId;
+        },
+        clearProjectFromDocuments: async (projectId) => { record('clearDocuments', { projectId }); return 7; },
+    },
+    '../stores/transcriptionStore': {
+        listProjectMeetings: async (projectId) => {
+            if (fx.failList === 'meetings') throw new Error('meeting store down');
+            record('listMeetings', { projectId });
+            return [{ id: 'mt1', title: 'Kick-off', userId: 'alice' }];
+        },
+        countProjectMeetings: countOf('meetings'),
+        setTranscriptionProject: async (id, userId, projectId) => {
+            record('setTranscriptionProject', { id, userId, projectId });
+            return fx.meetingOwners[id] === userId;
+        },
+        detachTranscriptionFromProject: async (id, from, userId) => {
+            record('detachTranscriptionFromProject', { id, from, userId });
+            return userId === null ? !!fx.meetingOwners[id] : fx.meetingOwners[id] === userId;
+        },
+        clearProjectFromTranscriptions: async (projectId) => { record('clearMeetings', { projectId }); return 8; },
+    },
+    // The project's files base goes with the project (DELETE /:id).
+    '../projects/projectFiles': {
+        listFiles: async () => ({ files: fx.files, kbId: fx.files.length ? 'kb_files' : null }),
+        // The real naming is proven in projects/projectFiles.test.js; this
+        // double says which page the route handed it, and names file rows.
+        nameFileActivity: async (project, items) => {
+            record('nameFileActivity', { projectId: project.id, ids: items.map(i => i.id) });
+            return items.map(i => (i.action === 'file.added' ? { ...i, details: { ...i.details, name: 'plan.pdf' } } : i));
+        },
+        removeFilesKb: async (project) => {
+            fx.filesKbRemoved.push(project);
+            if (fx.filesKbRemoveFails) throw new Error('knowledge base store down');
+            return true;
+        },
     },
     '../stores/automationStore': {
         getAutomationsForProject: async (projectId) => {
@@ -84,6 +173,7 @@ const MOCKS = {
             return [{ id: 'a1', title: 'Nightly' }];
         },
         getAutomation: async (id) => fx.automations[id] || null,
+        countAutomationsForProject: countOf('automations'),
         updateAutomation: async (id, updates) => { record('updateAutomation', { id, updates }); },
         clearProjectFromAutomations: async (projectId) => { record('clearAutomations', { projectId }); return 2; },
         listApprovals: async ({ viewer, projectId }) => {
@@ -103,6 +193,7 @@ const MOCKS = {
             return fx.appOwners[id] === userId;
         },
         clearProjectFromApps: async (projectId) => { record('clearApps', { projectId }); return 3; },
+        countProjectApps: countOf('apps'),
     },
     '../stores/webpageStore': {
         listProjectWebpages: async (projectId) => {
@@ -115,6 +206,7 @@ const MOCKS = {
             return fx.webpageOwners[id] === userId;
         },
         clearProjectFromWebpages: async (projectId) => { record('clearWebpages', { projectId }); return 4; },
+        countProjectWebpages: countOf('webpages'),
     },
     '../stores/datatableStore': {
         listDatatablesForProject: async (projectId) => {
@@ -127,6 +219,7 @@ const MOCKS = {
             return fx.datatableOwners[id] === userId;
         },
         clearProjectFromDatatables: async (projectId) => { record('clearDatatables', { projectId }); return 5; },
+        countDatatablesForProject: countOf('datatables'),
     },
     '../stores/agentStore': {
         listProjectAgents: async (projectId) => {
@@ -139,6 +232,7 @@ const MOCKS = {
             return fx.agentOwners[id] === userId;
         },
         clearProjectFromAgents: async (projectId) => { record('clearAgents', { projectId }); return 6; },
+        countProjectAgents: countOf('agents'),
     },
     '../stores/userStore': { getUser: async () => null, getAllGroups: async () => [] },
     '../stores/knowledgeBases': {
@@ -155,6 +249,13 @@ const MOCKS = {
         }),
     },
     '../auth': { resolveUserGroups: async () => [] },
+    // Co-editing state, comment threads and compliance signal of an item that
+    // leaves (core/projectContent/itemLifecycle.js, tested on its own).
+    '../core/projectContent/itemLifecycle': {
+        beforeMove: async ({ kind, id, targetProjectId }) => { record('beforeMove', { kind, id, targetProjectId }); return fx.placement || null; },
+        leftProject: async (kind, id, projectId) => { record('leftProject', { kind, id, projectId }); },
+        beforeProjectDeleted: async (projectId) => { record('foldBackProject', { projectId }); return 0; },
+    },
     '../core/projectEventBus': { publishProjectEvent: async () => {}, publishTransient: async () => {} },
     '../auth/projectAccess': {
         requireProjectRole: (minRole) => async (req, res, next) => {
@@ -188,6 +289,8 @@ Module._resolveFilename = function (request, parent, ...rest) {
 };
 
 const router = require('./projects');
+const membership = require('../projects/membership');
+const { terminalErrorHandler } = require('../core/http/terminalErrorHandler');
 test.after(() => { Module._resolveFilename = originalResolve; });
 
 function resetFx() {
@@ -201,6 +304,7 @@ function resetFx() {
     fx.calls.length = 0;
     fx.failList = null;
     fx.deleted = false;
+    fx.sharedThreads = 0;
     fx.project = {
         name: 'P', ownerId: 'alice', organizationId: 'org1',
         knowledgeBaseIds: ['kb1'], version: 4,
@@ -212,6 +316,14 @@ function resetFx() {
     };
     fx.readableKBs = ['kb1', 'kb2'];
     fx.kbConflicts = 0;
+    fx.documentOwners = { doc1: 'alice' };
+    fx.meetingOwners = { mt1: 'alice' };
+    fx.filesKbRemoved = [];
+    fx.filesKbRemoveFails = false;
+    fx.counts = {};
+    fx.chatHoldings = { conversations: 0, teamChats: 0 };
+    fx.files = [];
+    fx.activity = [];
 }
 
 function dispatch({ method, url, body = {}, session }) {
@@ -226,7 +338,11 @@ function dispatch({ method, url, body = {}, session }) {
             send(b) { this.body = b; resolve(this); return this; },
             end() { resolve(this); return this; },
         };
-        router(req, res, (err) => reject(err || new Error(`fell through: ${method} ${url}`)));
+        router(req, res, (err) => {
+            if (!err) return reject(new Error(`fell through: ${method} ${url}`));
+            // A thrown HttpError answers the way the app answers it.
+            return terminalErrorHandler(err, req, res, () => reject(err));
+        });
     });
 }
 
@@ -279,14 +395,37 @@ test('an owner-editor can file their own notebook into the project', async () =>
     assert.deepStrictEqual(call.args, { id: 'nb1', userId: 'alice', projectId: 'p1' });
 });
 
-test('detaching passes a null project id', async () => {
+test('detaching is scoped to this project and to the owner', async () => {
     resetFx();
     await dispatch({
         method: 'PUT', url: '/p1/resources',
         body: { kind: 'notebook', id: 'nb1', attach: false }, session: ALICE,
     });
-    const call = fx.calls.find(c => c.name === 'setNotebookProject');
-    assert.strictEqual(call.args.projectId, null);
+    const call = fx.calls.find(c => c.name === 'detachNotebookFromProject');
+    assert.deepStrictEqual(call.args, { id: 'nb1', from: 'p1', userId: 'alice' });
+    assert.ok(!fx.calls.some(c => c.name === 'setNotebookProject'), 'never the unscoped clear');
+});
+
+test('filing in and out is ONE feed entry each, and what belonged to the project goes with the item', async () => {
+    resetFx();
+    fx.notebookOwners = { nb1: 'alice' };
+    await dispatch({ method: 'PUT', url: '/p1/resources', body: { kind: 'notebook', id: 'nb1', attach: true }, session: ALICE });
+    await dispatch({ method: 'PUT', url: '/p1/resources', body: { kind: 'notebook', id: 'nb1', attach: false }, session: ALICE });
+    const seen = fx.calls.filter(c => ['beforeMove', 'setNotebookProject', 'detachNotebookFromProject', 'activity', 'leftProject'].includes(c.name))
+        .map(c => [c.name, c.args.action || c.args.targetProjectId || c.args.projectId || c.args.from || null]);
+    assert.deepStrictEqual(seen, [
+        ['beforeMove', 'p1'], ['setNotebookProject', 'p1'], ['activity', 'content.moved_in'],
+        ['beforeMove', null], ['detachNotebookFromProject', 'p1'], ['activity', 'content.moved_out'], ['leftProject', 'p1'],
+    ]);
+    assert.ok(!fx.calls.some(c => c.name === 'activity' && c.args.action === 'resource_added'), 'never a second, resource_added entry');
+});
+
+test('a refused move records nothing and clears nothing', async () => {
+    resetFx();
+    fx.notebookOwners = { nb1: 'alice' };
+    const res = await dispatch({ method: 'PUT', url: '/p1/resources', body: { kind: 'notebook', id: 'nb1', attach: false }, session: BOB });
+    assert.strictEqual(res.statusCode, 404);
+    assert.ok(!fx.calls.some(c => c.name === 'activity' || c.name === 'leftProject'));
 });
 
 test('an editor CANNOT file a notebook they do not own', async () => {
@@ -359,6 +498,8 @@ test('deleting a project detaches notebooks, automations AND apps first', async 
     assert.ok(names.includes('clearNotebooks'), 'notebooks detached');
     assert.ok(names.includes('clearAutomations'), 'automations detached — the cleanup the migration promised');
     assert.ok(names.includes('clearApps'), 'apps detached');
+    assert.ok(names.indexOf('foldBackProject') < names.indexOf('clearNotebooks'),
+        'co-edited items are folded back while they are still filed in the project');
     assert.strictEqual(fx.deleted, true, 'and the project itself is gone');
 });
 
@@ -658,4 +799,489 @@ test('deleting a project detaches tables and agents, but NEVER knowledge bases',
     // There is nothing to detach: the link is an entry on the project row that
     // goes with it. A detacher here would be a promise with no column behind it.
     assert.ok(!names.some(n => /clearKnowledge|clearKB/i.test(n)));
+});
+
+
+// ═══ Workspace or Solution: what each kind of project holds ══════════
+//
+// The registry (projects/membership.js) answers which sections a container
+// kind shows (`sectionsFor`) and whether a resource kind may be filed into it
+// (`isAllowedIn`). The route is tested against that CONTRACT, with the split
+// the product decided on, so this file does not depend on how the registry
+// spells it out internally.
+
+const WORKSPACE_SECTIONS = ['notebooks', 'knowledgeBases', 'documents', 'meetings'];
+const SOLUTION_SECTIONS = ['notebooks', 'automations', 'apps', 'webpages', 'datatables', 'agents', 'knowledgeBases', 'approvals'];
+const CONTAINERS = {
+    notebook: ['workspace', 'solution'], knowledge_base: ['workspace', 'solution'],
+    automation: ['solution'], app: ['solution'], webpage: ['solution'], datatable: ['solution'],
+    agent: ['solution'], approval: ['solution'], document: ['workspace'], meeting: ['workspace'],
+};
+
+async function withRegistry(fn, { sectionsFor, isAllowedIn } = {}) {
+    const saved = { sectionsFor: membership.sectionsFor, isAllowedIn: membership.isAllowedIn };
+    membership.sectionsFor = sectionsFor !== undefined ? sectionsFor : (kind) => {
+        if (kind === 'workspace') return WORKSPACE_SECTIONS;
+        if (kind === 'solution') return SOLUTION_SECTIONS;
+        return membership.listKinds().map(k => k.section);
+    };
+    membership.isAllowedIn = isAllowedIn !== undefined ? isAllowedIn
+        : (kind, container) => (container ? (CONTAINERS[kind] || []).includes(container) : true);
+    try { return await fn(); } finally {
+        for (const [k, v] of Object.entries(saved)) {
+            if (v === undefined) delete membership[k]; else membership[k] = v;
+        }
+    }
+}
+
+test('a collaborative project lists only its own sections, and says which kind it is', async () => {
+    resetFx();
+    fx.role = 'viewer';
+    fx.project.kind = 'workspace';
+    await withRegistry(async () => {
+        const res = await dispatch({ method: 'GET', url: '/p1/resources', session: BOB });
+        assert.strictEqual(res.statusCode, 200);
+        assert.strictEqual(res.body.kind, 'workspace');
+        assert.strictEqual(res.body.role, 'viewer');
+        assert.strictEqual(res.body.notebooks.length, 1);
+        assert.strictEqual(res.body.knowledgeBases.length, 1);
+        for (const section of ['automations', 'apps', 'webpages', 'datatables', 'agents', 'approvals']) {
+            assert.ok(!(section in res.body), `${section} is not a section of a collaborative project`);
+        }
+        const names = fx.calls.map(c => c.name);
+        assert.ok(!names.includes('listAutomations') && !names.includes('listApprovals'),
+            'a hidden section is not read at all');
+    });
+});
+
+test('a Solution lists the builder sections, not the collaboration ones', async () => {
+    resetFx();
+    fx.project.kind = 'solution';
+    await withRegistry(async () => {
+        const res = await dispatch({ method: 'GET', url: '/p1/resources', session: ALICE });
+        assert.strictEqual(res.statusCode, 200);
+        assert.strictEqual(res.body.kind, 'solution');
+        assert.strictEqual(res.body.automations.length, 1);
+        assert.strictEqual(res.body.apps.length, 1);
+        assert.ok(!('documents' in res.body) && !('meetings' in res.body));
+    });
+});
+
+test('a legacy project (kind null) lists every section until it is classified', async () => {
+    resetFx();
+    fx.project.kind = null;
+    await withRegistry(async () => {
+        const res = await dispatch({ method: 'GET', url: '/p1/resources', session: ALICE });
+        assert.strictEqual(res.body.kind, null);
+        for (const k of membership.listKinds()) assert.ok(k.section in res.body, k.section);
+    });
+});
+
+test('a registry without the container answer keeps the listing as it was', async () => {
+    resetFx();
+    fx.project.kind = 'workspace';
+    await withRegistry(async () => {
+        const res = await dispatch({ method: 'GET', url: '/p1/resources', session: ALICE });
+        assert.strictEqual(res.statusCode, 200);
+        assert.strictEqual(res.body.automations.length, 1);
+    }, { sectionsFor: null, isAllowedIn: null });
+});
+
+test('a project that is gone answers 404 for its resources', async () => {
+    resetFx();
+    fx.project = null;
+    const res = await dispatch({ method: 'GET', url: '/p1/resources', session: ALICE });
+    assert.strictEqual(res.statusCode, 404);
+});
+
+test('filing a kind the container does not hold is a 400, and nothing moves', async () => {
+    resetFx();
+    fx.project.kind = 'workspace';
+    await withRegistry(async () => {
+        const res = await dispatch({
+            method: 'PUT', url: '/p1/resources',
+            body: { kind: 'app', id: 'app1', attach: true }, session: ALICE,
+        });
+        assert.strictEqual(res.statusCode, 400);
+        assert.strictEqual(res.body.code, 'KIND_NOT_ALLOWED');
+        assert.match(res.body.error, /Studio Solution/);
+        assert.ok(!fx.calls.some(c => c.name === 'setAppProject'), 'the store was not asked');
+    });
+
+    resetFx();
+    fx.project.kind = 'solution';
+    await withRegistry(async () => {
+        // The same kind files into the container that does hold it.
+        const res = await dispatch({
+            method: 'PUT', url: '/p1/resources',
+            body: { kind: 'automation', id: 'a1', attach: true }, session: ALICE,
+        });
+        assert.strictEqual(res.statusCode, 200, 'an automation belongs in a Solution');
+    });
+});
+
+test('taking a kind OUT is always allowed, so a classified project can be tidied', async () => {
+    resetFx();
+    fx.project.kind = 'workspace';
+    await withRegistry(async () => {
+        const res = await dispatch({
+            method: 'PUT', url: '/p1/resources',
+            body: { kind: 'app', id: 'app1', attach: false }, session: ALICE,
+        });
+        assert.strictEqual(res.statusCode, 200);
+        assert.deepStrictEqual(fx.calls.find(c => c.name === 'setAppProject').args,
+            { id: 'app1', userId: 'alice', projectId: null });
+    });
+});
+
+test('a notebook still files into a collaborative project', async () => {
+    resetFx();
+    fx.project.kind = 'workspace';
+    await withRegistry(async () => {
+        const res = await dispatch({
+            method: 'PUT', url: '/p1/resources',
+            body: { kind: 'notebook', id: 'nb1', attach: true }, session: ALICE,
+        });
+        assert.strictEqual(res.statusCode, 200);
+    });
+});
+
+// ═══ Classifying: never hide what the project holds ══════════════════
+//
+// The route itself is proven with fakes in routes/projects/kind.test.js;
+// these run it through the REAL registry (projects/membership.js), so the
+// counts come from the kinds' own countIn functions.
+
+test('a legacy project holding an app and a routine cannot become a workspace until they are out', async () => {
+    resetFx();
+    fx.role = 'owner';
+    fx.project.kind = null;
+    fx.counts = { apps: 1, automations: 2, notebooks: 4, documents: 3 };
+    const res = await dispatch({ method: 'PUT', url: '/p1/kind', body: { kind: 'workspace' }, session: ALICE });
+    assert.strictEqual(res.statusCode, 409);
+    assert.strictEqual(res.body.code, 'KIND_HOLDS_OTHER_CONTENT');
+    assert.deepStrictEqual(res.body.details, { kind: 'workspace', held: { automations: 2, apps: 1 } });
+    assert.ok(!fx.calls.some(c => c.name === 'setProjectKind'), 'not classified');
+    assert.ok(!fx.calls.some(c => c.name === 'activity'), 'not announced');
+
+    // Taken out: now it may.
+    fx.counts = { notebooks: 4, documents: 3 };
+    const ok = await dispatch({ method: 'PUT', url: '/p1/kind', body: { kind: 'workspace' }, session: ALICE });
+    assert.strictEqual(ok.statusCode, 200);
+    assert.strictEqual(ok.body.kind, 'workspace');
+    assert.ok(fx.calls.some(c => c.name === 'activity' && c.args.action === 'kind_set'));
+});
+
+test('a project with chats, documents or files cannot become a Solution', async () => {
+    resetFx();
+    fx.role = 'owner';
+    fx.project.kind = 'workspace';
+    fx.project.kindGuessed = true;
+    fx.counts = { documents: 2, apps: 5 };
+    fx.chatHoldings = { conversations: 30, teamChats: 1 };
+    fx.files = [{ id: 'f1' }];
+    const res = await dispatch({ method: 'PUT', url: '/p1/kind', body: { kind: 'solution' }, session: ALICE });
+    assert.strictEqual(res.statusCode, 409);
+    assert.deepStrictEqual(res.body.details.held, { documents: 2, conversations: 30, teamChats: 1, files: 1 });
+    assert.strictEqual(fx.project.kind, 'workspace');
+    assert.strictEqual(fx.project.kindGuessed, true, 'the guess can still be corrected once it is empty');
+});
+
+test('the backfill\'s guess is corrected once through the mounted route', async () => {
+    resetFx();
+    fx.role = 'owner';
+    fx.project.kind = 'solution';
+    fx.project.kindGuessed = true;
+    const res = await dispatch({ method: 'PUT', url: '/p1/kind', body: { kind: 'workspace' }, session: ALICE });
+    assert.strictEqual(res.statusCode, 200);
+    assert.strictEqual(fx.project.kind, 'workspace');
+    const again = await dispatch({ method: 'PUT', url: '/p1/kind', body: { kind: 'solution' }, session: ALICE });
+    assert.strictEqual(again.statusCode, 409);
+    assert.strictEqual(again.body.code, 'KIND_ALREADY_SET');
+});
+
+// ═══ The activity feed names files when it is read ══════════════════
+
+test('the activity page is named at read time, and only the page is handed over', async () => {
+    resetFx();
+    fx.role = 'viewer';
+    fx.activity = [
+        { id: 'a1', action: 'file.added', targetType: 'file', targetId: 'f1', details: { targetType: 'file', targetId: 'f1' } },
+        { id: 'a2', action: 'member_added', details: {} },
+        { id: 'a3', action: 'file.removed', details: {} },
+    ];
+    const res = await dispatch({ method: 'GET', url: '/p1/activity?limit=2', session: ALICE });
+    assert.strictEqual(res.statusCode, 200);
+    assert.strictEqual(res.body.hasMore, true);
+    assert.deepStrictEqual(res.body.items.map(i => i.id), ['a1', 'a2']);
+    assert.strictEqual(res.body.items[0].details.name, 'plan.pdf');
+    const naming = fx.calls.filter(c => c.name === 'nameFileActivity');
+    assert.deepStrictEqual(naming.map(c => c.args), [{ projectId: 'p1', ids: ['a1', 'a2'] }], 'not the look-ahead row');
+});
+
+// ═══ Deleting a project with shared chats ════════════════════════════
+
+test('a project with shared chats is not deleted: 409, and nothing is detached', async () => {
+    resetFx();
+    fx.role = 'owner';
+    fx.sharedThreads = 2;
+
+    const res = await dispatch({ method: 'DELETE', url: '/p1', session: ALICE });
+    assert.strictEqual(res.statusCode, 409);
+    assert.strictEqual(res.body.code, 'SHARED_CHATS_REMAIN');
+    assert.match(res.body.error, /The 2 chats shared with this project must be made private first, by the people who shared them/);
+    // Which chats and whose: only a chat's own owner can unshare it, so the
+    // page can say whom to ask (ids only; the member list names people).
+    assert.deepStrictEqual(res.body.details, {
+        sharedChats: 2,
+        chats: [{ id: 'conv1', type: 'direct', ownerId: 'bob' }, { id: 'conv2', type: 'direct', ownerId: 'alice' }],
+    });
+    assert.strictEqual(fx.deleted, false);
+    assert.ok(!fx.calls.some(c => /^clear/.test(c.name)), 'a refused delete leaves every resource filed');
+});
+
+test('a chat shared in the moment before the delete is still a 409, not a 500', async () => {
+    resetFx();
+    fx.role = 'owner';
+    const original = MOCKS['../stores/projectStore'].deleteProject;
+    let counted = 0;
+    MOCKS['../stores/projectStore'].countSharedThreads = async () => (counted++ === 0 ? 0 : 1);
+    MOCKS['../stores/projectStore'].deleteProject = async () => {
+        throw Object.assign(new Error('new row violates check constraint'), {
+            code: '23514', constraint: 'direct_conversations_shared_needs_project',
+        });
+    };
+    try {
+        const res = await dispatch({ method: 'DELETE', url: '/p1', session: ALICE });
+        assert.strictEqual(res.statusCode, 409);
+        assert.strictEqual(res.body.code, 'SHARED_CHATS_REMAIN');
+        assert.match(res.body.error, /The 1 chat shared with this project must be made private first, by the person who shared it/);
+    } finally {
+        MOCKS['../stores/projectStore'].deleteProject = original;
+        MOCKS['../stores/projectStore'].countSharedThreads = async () => fx.sharedThreads;
+    }
+});
+
+test('any other delete failure stays a generic 500', async () => {
+    resetFx();
+    fx.role = 'owner';
+    const original = MOCKS['../stores/projectStore'].deleteProject;
+    MOCKS['../stores/projectStore'].deleteProject = async () => {
+        throw Object.assign(new Error('relation "projects" does not exist'), { code: '42P01' });
+    };
+    try {
+        const res = await dispatch({ method: 'DELETE', url: '/p1', session: ALICE });
+        assert.strictEqual(res.statusCode, 500);
+        assert.strictEqual(res.body.error, 'Internal server error');
+        assert.ok(!/does not exist|42P01/.test(JSON.stringify(res.body)), 'no SQL text in the response');
+    } finally {
+        MOCKS['../stores/projectStore'].deleteProject = original;
+    }
+});
+
+test('only the owner may try: an editor gets 403 and a stranger 404', async () => {
+    resetFx();
+    fx.role = 'editor';
+    assert.strictEqual((await dispatch({ method: 'DELETE', url: '/p1', session: BOB })).statusCode, 403);
+    fx.role = null;
+    assert.strictEqual((await dispatch({ method: 'DELETE', url: '/p1', session: BOB })).statusCode, 404);
+    assert.strictEqual(fx.deleted, false);
+});
+
+test('with the registry\'s own table, a collaborative project never lists builder sections', async () => {
+    // No stand-in here: projects/membership.js answers for itself.
+    resetFx();
+    fx.project.kind = 'workspace';
+    const res = await dispatch({ method: 'GET', url: '/p1/resources', session: ALICE });
+    assert.strictEqual(res.statusCode, 200);
+    assert.strictEqual(res.body.notebooks.length, 1);
+    for (const section of ['automations', 'apps', 'webpages', 'datatables', 'approvals']) {
+        assert.ok(!(section in res.body), `${section} is not a section of a collaborative project`);
+    }
+
+    resetFx();
+    fx.project.kind = 'workspace';
+    const filing = await dispatch({
+        method: 'PUT', url: '/p1/resources',
+        body: { kind: 'automation', id: 'a1', attach: true }, session: ALICE,
+    });
+    assert.strictEqual(filing.statusCode, 400);
+    assert.strictEqual(filing.body.code, 'KIND_NOT_ALLOWED');
+});
+
+// ═══ The project's own files base ════════════════════════════════════
+//
+// Every collaborative project gets ONE knowledge base for the files uploaded
+// into it (projects/projectFiles.js), recorded as `filesKbId` and listed in
+// `knowledgeBaseIds` so the chats search it. It is owned by the project owner
+// and never published, so for everybody else the ordinary "may I read this
+// base" answer is no. That must not turn into a way to break it: it is not a
+// LINKED base, so it is neither listed nor unlinked as one, a settings save by
+// an editor never trips over it and never drops it, and it goes with the
+// project.
+
+function withFilesKb() {
+    fx.project.kind = 'workspace';
+    fx.project.filesKbId = 'kb_files';
+    fx.project.knowledgeBaseIds = ['kb_files', 'kb1'];
+    fx.kbs.kb_files = { id: 'kb_files', name: 'P · Files', organization_id: 'org1', source_kind: 'project_files' };
+    // Only the project owner can read it the ordinary way.
+    fx.readableKBs = ['kb1', 'kb2'];
+}
+
+test('the files base is not listed among the linked knowledge bases', async () => {
+    resetFx();
+    withFilesKb();
+    const res = await dispatch({ method: 'GET', url: '/p1/resources', session: BOB });
+    assert.strictEqual(res.statusCode, 200);
+    assert.deepStrictEqual(res.body.knowledgeBases.map(k => k.id), ['kb1']);
+    assert.ok(!fx.calls.some(c => c.name === 'getKB' && c.args.id === 'kb_files'), 'not even read');
+});
+
+test('the files base cannot be unlinked through the resources route', async () => {
+    resetFx();
+    withFilesKb();
+    fx.role = 'owner';
+    const res = await dispatch({
+        method: 'PUT', url: '/p1/resources',
+        body: { kind: 'knowledge_base', id: 'kb_files', attach: false }, session: ALICE,
+    });
+    assert.strictEqual(res.statusCode, 400);
+    assert.strictEqual(res.body.code, 'PROJECT_FILES_KB');
+    assert.deepStrictEqual(fx.project.knowledgeBaseIds, ['kb_files', 'kb1'], 'nothing written');
+    assert.ok(!fx.calls.some(c => c.name === 'updateProject'));
+});
+
+test('another project\'s files base cannot be linked, even by the person who owns both', async () => {
+    resetFx();
+    withFilesKb();
+    fx.kbs.kb_other_files = { id: 'kb_other_files', name: 'Q · Files', organization_id: 'org1', source_kind: 'project_files' };
+    fx.readableKBs.push('kb_other_files');
+    const res = await dispatch({
+        method: 'PUT', url: '/p1/resources',
+        body: { kind: 'knowledge_base', id: 'kb_other_files', attach: true }, session: ALICE,
+    });
+    assert.strictEqual(res.statusCode, 404);
+    assert.ok(!fx.calls.some(c => c.name === 'updateProject'));
+});
+
+test('an editor saving the settings form keeps the files base without being able to read it', async () => {
+    resetFx();
+    withFilesKb();
+    // The form sends back what it was given, files base included.
+    const res = await dispatch({
+        method: 'PUT', url: '/p1', body: { knowledgeBaseIds: ['kb_files', 'kb1', 'kb2'] }, session: BOB,
+    });
+    assert.strictEqual(res.statusCode, 200);
+    assert.deepStrictEqual(fx.project.knowledgeBaseIds, ['kb_files', 'kb1', 'kb2']);
+});
+
+test('a settings save that leaves the files base out does not drop it', async () => {
+    resetFx();
+    withFilesKb();
+    const res = await dispatch({ method: 'PUT', url: '/p1', body: { knowledgeBaseIds: ['kb2'] }, session: BOB });
+    assert.strictEqual(res.statusCode, 200);
+    assert.deepStrictEqual(fx.project.knowledgeBaseIds, ['kb_files', 'kb2']);
+});
+
+test('a settings save still refuses another project\'s files base', async () => {
+    resetFx();
+    withFilesKb();
+    fx.kbs.kb_other_files = { id: 'kb_other_files', name: 'Q · Files', organization_id: 'org1', source_kind: 'project_files' };
+    fx.readableKBs.push('kb_other_files');
+    const res = await dispatch({
+        method: 'PUT', url: '/p1', body: { knowledgeBaseIds: ['kb1', 'kb_other_files'] }, session: ALICE,
+    });
+    assert.strictEqual(res.statusCode, 400);
+    assert.deepStrictEqual(res.body.invalid, ['kb_other_files']);
+    assert.deepStrictEqual(fx.project.knowledgeBaseIds, ['kb_files', 'kb1'], 'nothing written');
+});
+
+test('the cap counts the files base', async () => {
+    resetFx();
+    withFilesKb();
+    const many = Array.from({ length: 50 }, (_, i) => `kb_${i}`);
+    const res = await dispatch({ method: 'PUT', url: '/p1', body: { knowledgeBaseIds: many }, session: ALICE });
+    assert.strictEqual(res.statusCode, 400);
+    assert.match(res.body.error, /At most 50/);
+});
+
+test('deleting a project removes its files base, after the delete went through', async () => {
+    resetFx();
+    withFilesKb();
+    fx.role = 'owner';
+    const res = await dispatch({ method: 'DELETE', url: '/p1', session: ALICE });
+    assert.strictEqual(res.statusCode, 200);
+    assert.strictEqual(fx.deleted, true);
+    assert.strictEqual(fx.filesKbRemoved.length, 1);
+    assert.strictEqual(fx.filesKbRemoved[0].filesKbId, 'kb_files');
+});
+
+test('a files base that cannot be removed does not fail the delete', async () => {
+    resetFx();
+    withFilesKb();
+    fx.role = 'owner';
+    fx.filesKbRemoveFails = true;
+    const res = await dispatch({ method: 'DELETE', url: '/p1', session: ALICE });
+    assert.strictEqual(res.statusCode, 200);
+    assert.deepStrictEqual(res.body, { success: true });
+});
+
+test('a refused delete keeps the files base', async () => {
+    resetFx();
+    withFilesKb();
+    fx.role = 'owner';
+    fx.sharedThreads = 1;
+    const res = await dispatch({ method: 'DELETE', url: '/p1', session: ALICE });
+    assert.strictEqual(res.statusCode, 409);
+    assert.strictEqual(fx.filesKbRemoved.length, 0);
+});
+
+test('a project without a files base deletes without touching the files module', async () => {
+    resetFx();
+    fx.role = 'owner';
+    await dispatch({ method: 'DELETE', url: '/p1', session: ALICE });
+    assert.strictEqual(fx.deleted, true);
+    assert.strictEqual(fx.filesKbRemoved.length, 0);
+});
+
+// ═══ Documents and meeting notes ═════════════════════════════════════
+
+test('a collaborative project lists its documents and meeting notes', async () => {
+    resetFx();
+    fx.role = 'viewer';
+    fx.project.kind = 'workspace';
+    const res = await dispatch({ method: 'GET', url: '/p1/resources', session: BOB });
+    assert.strictEqual(res.statusCode, 200);
+    assert.deepStrictEqual(res.body.documents.map(d => d.id), ['doc1']);
+    assert.deepStrictEqual(res.body.meetings.map(m => m.id), ['mt1']);
+});
+
+test('the project owner may take a colleague\'s document out; an editor may not', async () => {
+    resetFx();
+    fx.project.kind = 'workspace';
+    fx.documentOwners = { doc1: 'carol' };
+
+    fx.role = 'editor';
+    const editor = await dispatch({
+        method: 'PUT', url: '/p1/resources', body: { kind: 'document', id: 'doc1', attach: false }, session: BOB,
+    });
+    assert.strictEqual(editor.statusCode, 404);
+
+    fx.role = 'owner';
+    const owner = await dispatch({
+        method: 'PUT', url: '/p1/resources', body: { kind: 'document', id: 'doc1', attach: false }, session: ALICE,
+    });
+    assert.strictEqual(owner.statusCode, 200);
+    const scoped = fx.calls.filter(c => c.name === 'detachDocumentFromProject').pop();
+    assert.deepStrictEqual(scoped.args, { id: 'doc1', from: 'p1', userId: null }, 'only out of THIS project');
+});
+
+test('deleting a project detaches its documents and meeting notes', async () => {
+    resetFx();
+    fx.role = 'owner';
+    await dispatch({ method: 'DELETE', url: '/p1', session: ALICE });
+    const names = fx.calls.map(c => c.name);
+    assert.ok(names.includes('clearDocuments'));
+    assert.ok(names.includes('clearMeetings'));
 });

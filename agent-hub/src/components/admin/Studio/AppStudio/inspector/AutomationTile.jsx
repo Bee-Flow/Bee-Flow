@@ -71,7 +71,8 @@ async function fetchFacets(automationId) {
 }
 
 async function fetchProjects() {
-    const res = await authFetch(`${API_BASE}/api/projects`);
+    // Only Solutions bundle routines; collaborative workspaces never hold one.
+    const res = await authFetch(`${API_BASE}/api/projects?kind=solution`);
     if (!res.ok) return [];
     try {
         const body = await res.json();

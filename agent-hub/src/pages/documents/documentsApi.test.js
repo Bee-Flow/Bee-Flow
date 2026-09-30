@@ -12,7 +12,7 @@ vi.mock('../../utils/helpers', () => ({ API_BASE: '', authFetch: fetchMock }));
 
 const {
     listDocuments, getDocument, createDocument, updateDocument, deleteDocument,
-    listVersions, restoreVersion, previewUrl, downloadPdf,
+    previewUrl, downloadPdf, listDocumentsPage, unarchiveDocument, postPresence,
 } = await import('./documentsApi');
 
 const ok = (body, headers = {}) => ({
@@ -79,17 +79,24 @@ describe('documentsApi — writes', () => {
         expect(fetchMock.mock.calls[1][1].method).toBe('DELETE');
     });
 
-    it('restores a version by POSTing to its own path', async () => {
-        fetchMock.mockResolvedValue(ok({ document: {} }));
-        await restoreVersion('d1', 'v9');
-        expect(fetchMock.mock.calls[0][0]).toBe('/api/studio-documents/d1/versions/v9/restore');
-    });
-
     it('returns [] rather than undefined when a list body is empty', async () => {
         fetchMock.mockResolvedValue(ok({}));
         expect(await listDocuments()).toEqual([]);
         fetchMock.mockResolvedValue(ok({}));
-        expect(await listVersions('d1')).toEqual([]);
+        expect(await listDocumentsPage()).toEqual({ documents: [], total: 0, people: {} });
+    });
+
+    it('asks for the archive, unarchives and beats presence on their own paths', async () => {
+        fetchMock.mockResolvedValue(ok({ documents: [], total: 3, people: {} }));
+        expect((await listDocumentsPage({ archived: '1', query: '', offset: 30 })).total).toBe(3);
+        expect(fetchMock.mock.calls[0][0]).toBe('/api/studio-documents?archived=1&offset=30');
+        fetchMock.mockResolvedValue(ok({ document: { id: 'd1' } }));
+        await unarchiveDocument('d1');
+        expect(fetchMock.mock.calls[1][0]).toBe('/api/studio-documents/d1/unarchive');
+        fetchMock.mockResolvedValue(ok({ peers: [] }));
+        await postPresence('d1', { clientId: 'c1', state: 'viewing' });
+        expect(fetchMock.mock.calls[2][0]).toBe('/api/studio-documents/d1/presence');
+        expect(JSON.parse(fetchMock.mock.calls[2][1].body)).toEqual({ clientId: 'c1', state: 'viewing' });
     });
 });
 

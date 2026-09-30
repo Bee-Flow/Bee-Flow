@@ -48,6 +48,9 @@ export interface Notebook {
     /** CAS token — PUT sends it back as `expectedVersion`. */
     version: number;
     sourceCount: number;
+    /** Who last changed the document, and when (null until someone does). */
+    lastEditedBy: string | null;
+    lastEditedAt: string | null;
     createdAt: string | null;
     updatedAt: string | null;
 }

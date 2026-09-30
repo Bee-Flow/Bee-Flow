@@ -7,6 +7,11 @@
  *      `compliance_settings.last_retention_run_at`).
  *   2. No `user_memories` rows are older than the org's `default_retention_days`
  *      without `expires_at` set. Orphan rows are a real risk.
+ *
+ * The orphan count is THIS organisation's: memories are joined to their
+ * owner and counted only for the org being judged (the 'default' bucket
+ * counts the memories of org-less accounts). It used to count every tenant's
+ * memories on the instance and show that number to each of them.
  */
 
 const { getOne } = require('../../../db');
@@ -34,11 +39,13 @@ module.exports = {
         let orphans = 0;
         try {
             const row = await getOne(`
-                SELECT COUNT(*)::int AS c FROM user_memories
-                WHERE status = 'active'
-                  AND expires_at IS NULL
-                  AND created_at < NOW() - ($1 || ' days')::interval
-            `, [String(retentionDays)]);
+                SELECT COUNT(*)::int AS c FROM user_memories m
+                JOIN users u ON u.id = m.user_id
+                WHERE m.status = 'active'
+                  AND m.expires_at IS NULL
+                  AND m.created_at < NOW() - ($1 || ' days')::interval
+                  AND COALESCE(NULLIF(u."organizationId", ''), 'default') = $2
+            `, [String(retentionDays), orgId || 'default']);
             orphans = row?.c || 0;
         } catch {
             return {

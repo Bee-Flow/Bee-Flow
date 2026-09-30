@@ -31,7 +31,10 @@ describeIfWeb('the design controls match the web Design tab', () => {
     });
 
     it('bounds every number field as the web does', () => {
-        const rows = [...source.matchAll(/\['(\w+)',d\('[^']*','[^']*'\),([\d.]+),([\d.]+),([\d.]+),([\d.]+)\]/g)].map((m) => ({
+        // The label is an i18n call: t('documents.workspace.…', 'English') now,
+        // d('…','…') before the web tab moved to keyed strings. The numbers are
+        // what is pinned.
+        const rows = [...source.matchAll(/\['(\w+)',[dt]\('[^']*',\s*'[^']*'\),([\d.]+),([\d.]+),([\d.]+),([\d.]+)\]/g)].map((m) => ({
             key: m[1],
             min: Number(m[2]),
             max: Number(m[3]),

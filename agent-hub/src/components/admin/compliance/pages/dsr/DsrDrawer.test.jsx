@@ -222,6 +222,19 @@ describe('DsrDrawer — timeline and discovery degrade', () => {
         expect(discoveryChips(t, { sources: [{ kind: 'prior_requests', count: 3 }] })).toEqual([]);
     });
 
+    it('team chat messages and project participation get their own chips, never counted as documents or rows', () => {
+        const chips = discoveryChips(t, { sources: [
+            { kind: 'team_chat_messages', count: 7 },
+            { kind: 'project_participation', count: 5, items: [{ kind: 'project_documents', count: 2 }] },
+            { kind: 'kb_documents', count: 1 },
+        ] });
+        const byId = Object.fromEntries(chips.map(c => [c.id, c]));
+        expect(byId.team_chat.label).toBe('7 team chat messages they wrote');
+        expect(byId.projects.label).toBe('5 project items');
+        expect(byId.kb_documents.label).toBe('1 knowledge-base documents');
+        expect(readDiscovery({ sources: [{ kind: 'project_participation', count: null }] }).projects).toBeNull();
+    });
+
     it('fallbackTimeline for a completed request ends with the fulfilment row and has no overdue row', () => {
         const rows = fallbackTimeline(t, DONE, NOW);
         expect(rows.map(r => r.text)).toEqual(['Received via Phone · clock started', 'Fulfilled · data subject e-mailed']);

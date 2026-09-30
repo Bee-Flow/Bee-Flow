@@ -1,13 +1,13 @@
 import { AlertTriangle, Info, Loader2, Plus } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
+import InstallBlueprintButton from './InstallBlueprintButton';
+import InstallBlueprintModal from './InstallBlueprintModal';
 import SolutionCard from './SolutionCard';
+import { Strip, sectionNames } from './solutionNotices';
 import { partitionSolutions } from './solutionOverviewModel';
+import useRemote from './useRemote';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
-import InstallBlueprintButton from '../../../projects/InstallBlueprintButton';
-import InstallBlueprintModal from '../../../projects/InstallBlueprintModal';
-import { Strip, sectionNames } from '../../../projects/solutionNotices';
-import useRemote from '../../../projects/useRemote';
 import { kindTileStyle } from '../../../shared/kindColors';
 import SegmentedControl from '../../../shared/SegmentedControl';
 
@@ -52,7 +52,9 @@ function NewSolutionForm({ onCreated }) {
             const res = await authFetch(`${API_BASE}/api/projects`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: name.trim(), icon: '📦' }),
+                // `kind` keeps it in Studio: without it the server files a new
+                // row as a collaborative project workspace.
+                body: JSON.stringify({ name: name.trim(), icon: '📦', kind: 'solution' }),
             });
             const body = await res.json().catch(() => ({}));
             if (!res.ok) { setError(body.error || t('solutions.create_failed', 'Could not create it.')); return; }

@@ -14,8 +14,22 @@
  *   POST   /:id/preview      a presentation drafted but not saved (outline + look) as the viewer
  *   GET    /:id/pdf          the composed document as application/pdf (a presentation: its PDF deck)
  *   GET    /:id/pptx         a presentation as .pptx
- *   GET    /:id/versions     history
- *   POST   /:id/versions/:versionId/restore
+ *   POST   /:id/unarchive    back from the archive (the owner)
+ *   POST   /:id/presence     who else is here, and in which section (studioDocuments/presence.js)
+ *   *      /:id/versions     the history: list, read, name, restore, delete (studioDocuments/versions.js)
+ *
+ * A PAGE (doc_type 'page') is a document written in the rich-text editor: its
+ * body is stored sanitised, it prints with the page sheet of
+ * core/documents/pageDocument.js, and inside a project it is edited live
+ * (server/core/collab), in which case its body is saved by the live layer and
+ * a body PATCH is refused (409 document_live) rather than overwritten by the
+ * next live save.
+ *
+ * A SAVE FROM A STALE REVISION with `merge: true` is merged against the
+ * revision it started from, section by section (core/documents/sectionMerge.js):
+ * the answer carries `merge` ({ merged, fromOthers }); when both sides changed
+ * the same part it is a 409 whose `conflict.parts` the editor turns into
+ * "compare and choose".
  *
  * WHY /api/studio-documents AND NOT /api/documents. That prefix is taken, by a
  * legacy router that serves PDFs out of a shared temp directory for the mobile
@@ -27,6 +41,13 @@
  * EVERY read checks ownership or explicit same-organization sharing in SQL,
  * so a document id from another tenant is a 404 here rather than a leak — the
  * same line routes/webpagesUsage.js draws.
+ *
+ * A document filed into a collaborative project (documentStore, project_id) is
+ * also readable by every member of that project, and its content editable by
+ * the project's editors and owner. The store decides; a document read that way
+ * carries `projectRole`, and a viewer who tries to change it is told so (403)
+ * instead of being answered as if the document did not exist. Archiving stays
+ * with the document's owner.
  *
  * WHY THE PREVIEW IS A ROUTE AND NOT A srcdoc STRING. The editor could compose
  * the document in the browser and hand the iframe a srcdoc. It deliberately
@@ -51,6 +72,11 @@ const { houseStyleCssFor: houseStyleCssForDocument } = require('../core/document
 const { isDeckDocument, renderDeckDocument } = require('../core/documents/deckDocument');
 const { validate } = require('../core/http/validate');
 const { z, worded, bodyOf, queryOf, choice, wholeNumber } = require('../core/http/schemaParts');
+const { forCompose } = require('../core/documents/pageDocument');
+const { mergeBodies } = require('../core/documents/sectionMerge');
+const documentFeed = require('../core/documents/documentFeed');
+const { describePeople } = require('../core/documents/documentPeople');
+const { wordStats } = require('../stores/lib/documentText');
 
 // ── What a request may send ──────────────────────────────────────────
 // Every query, and every body except three, is closed. What that closes:
@@ -68,8 +94,8 @@ const { z, worded, bodyOf, queryOf, choice, wholeNumber } = require('../core/htt
 const docText = (message, max) => worded(message).max(max, message);
 const anId = (name) => docText(`${name} is the id of a document.`, 200);
 // Read when a request arrives, not at load: the list is the store's.
-const listTypes = () => [...(documentStore.DOC_TYPES || []), 'page'];
-const DOC_TYPE_TEXT = 'docType is a document type, like invoice, letter or presentation, or page for every type but presentations.';
+const listTypes = () => [...(documentStore.DOC_TYPES || []), 'designed'];
+const DOC_TYPE_TEXT = 'docType is a document type, like page, invoice, letter or presentation, or designed for every type written in the designer.';
 const pageOf = (fallbackText) => ({
     limit: wholeNumber(`limit is a whole number. ${fallbackText}`).optional(),
     offset: wholeNumber('offset is a whole number, 0 or more.').optional(),
@@ -84,7 +110,10 @@ const listFilters = {
     category: docText('category is text.', 200).optional(),
     sort: choice(['updated', 'name'], 'sort is updated or name.').optional(),
 };
-const ListQuery = queryOf({ ...listFilters, ...pageOf('At most 200 are listed.') }, 'The document list');
+const ListQuery = queryOf({
+    ...listFilters, ...pageOf('At most 200 are listed.'),
+    archived: choice(['0', '1'], 'archived is 1 for your archived documents.').optional(),
+}, 'The document list');
 const TemplatesQuery = queryOf({ ...listFilters, limit: pageOf('At most 200 are listed.').limit }, 'The template list');
 const StartersQuery = queryOf({ locale: docText('locale is a language code, like en or nl.', 20).optional() }, 'The starters');
 const VersionQuery = queryOf({ versionId: docText('versionId is the id of a revision.', 200).optional() }, 'This document');
@@ -145,18 +174,43 @@ function pdfFilename(name, extension = 'pdf') {
  */
 async function previewHtmlFor(req, doc, { mode = 'print', values = null, sectionOverrides = {}, draft = null } = {}) {
     if (isDeckDocument(doc)) {
-        const { makeUserImageResolver } = require('../services/presentationRenderer');
         const out = await renderDeckDocument({
             document: doc, values, sectionOverrides, draft, format: 'html', orgId: orgIdOf(req),
-            resolveImage: makeUserImageResolver(req.session.user.id), assertFilled: false,
+            resolveImage: imageResolverFor(req, doc), assertFilled: false,
         });
         return out.html;
     }
-    return composeDocument(doc, { mode, houseStyleCss: await houseStyleCssFor(req, doc) });
+    return composeDocument(forCompose(doc), { mode, houseStyleCss: await houseStyleCssFor(req, doc) });
+}
+
+/**
+ * How a render of `doc` reads its stored pictures for this reader: their own,
+ * and a colleague's that the colleague put into this document themselves (a
+ * deck filed into a project; core/documents/documentImages.js).
+ */
+function imageResolverFor(req, doc) {
+    const { makeUserImageResolver } = require('../services/presentationRenderer');
+    const { makeDocumentImageResolver, sharedAuthorCache } = require('../core/documents/documentImages');
+    return makeDocumentImageResolver({
+        readerId: req.session.user.id, doc, resolverFor: makeUserImageResolver, cache: sharedAuthorCache(),
+        firstAuthorOf: (documentId, needles, opts) => documentStore.firstAuthorOf(documentId, needles, opts),
+        revisionSeqOf: (documentId) => documentStore.revisionSeqOf(documentId),
+    });
+}
+
+/**
+ * A project member who may read this document but not change it: answer 403
+ * with a sentence, before the write the store would refuse anyway. Only for a
+ * project viewer; every other reader keeps the answers they always had.
+ */
+function refuseReadOnly(res, doc) {
+    if (doc?.projectRole !== 'viewer') return false;
+    res.status(403).json({ error: 'You can read this document, but only the project\'s editors can change it.', code: 'document_read_only' });
+    return true;
 }
 
 function sendStoreError(res, err, fallback) {
-    if (err && err.status) return res.status(err.status).json({ error: err.message, code: err.errorClass, issues: err.issues });
+    if (err && err.status) return res.status(err.status).json({ error: err.message, code: err.errorClass, issues: err.issues, conflict: err.conflict });
     log.error(`[StudioDocuments] ${fallback}:`, err && err.message);
     return res.status(500).json({ error: fallback });
 }
@@ -304,8 +358,11 @@ router.get('/', requireAuth, validate({ query: ListQuery }), async (req, res) =>
     try {
         const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 100, 1), 200);
         const offset = Math.max(parseInt(req.query.offset, 10) || 0, 0);
-        const documents = await documentStore.listDocuments(req.session.user.id, { ...req.query, limit, offset });
-        res.json({ documents });
+        const { archived, ...filters } = req.query;
+        const { documents, total } = await documentStore.listDocumentsPage(req.session.user.id, { ...filters, archived: archived === '1', limit, offset });
+        // Owner and last editor are shown by name; the reader's organisation only.
+        const people = await describePeople(documents.flatMap(d => [d.userId, d.updatedBy]), orgIdOf(req));
+        res.json({ documents, total, people });
     } catch (err) {
         sendStoreError(res, err, 'Failed to list documents');
     }
@@ -446,8 +503,15 @@ router.post('/:id/duplicate', requireAuth, validate({ body: bodies.duplicate }),
         const settings = { ...doc.settings, source: { documentId:doc.id,versionId:doc.versionId },
             resolvedHouseStyleCss:await houseStyleCssFor(req,doc) };
         delete settings.sampleValues; delete settings.sectionOverrides;
-        res.status(201).json({ document:await documentStore.createDocument({ ...doc, userId:req.session.user.id,
-            organizationId:undefined, folderId:null, name:req.body?.name || `${doc.name} — copy`, kind, visibility:'private', settings }) });
+        // A copy is the caller's own private library document, built from an
+        // allow-list and never filed into the source's project: reading a
+        // project document (a viewer too) must not add content to the project,
+        // and a template or section cannot be filed there at all. Someone
+        // else's library filing (categories) stays theirs.
+        res.status(201).json({ document:await documentStore.createDocument({
+            userId:req.session.user.id, name:req.body?.name || `${doc.name} — copy`, kind, visibility:'private', folderId:null,
+            docType:doc.docType, description:doc.description, bodyHtml:doc.bodyHtml, css:doc.css, settings,
+            categories: doc.projectRole ? [] : doc.categories }) });
     } catch(e) { sendStoreError(res,e,'Failed to copy document'); }
 });
 router.post('/:id/insert-section', requireAuth, validate({ body: bodies.insertSection }), async (req,res) => {
@@ -455,6 +519,7 @@ router.post('/:id/insert-section', requireAuth, validate({ body: bodies.insertSe
         const doc = await documentStore.getDocument(req.params.id,req.session.user.id);
         const source = await documentStore.getDocument(req.body?.sourceId,req.session.user.id);
         if (!doc || !source || source.kind !== 'section') return res.status(404).json({ error:'Document or reusable section not found' });
+        if (refuseReadOnly(res, doc)) return;
         if (!req.body?.expectedVersionId) return res.status(428).json({error:'Read the document revision before inserting content.',code:'document_revision_required'});
         const id = 'section-' + require('crypto').randomUUID();
         if (source.archived) return res.status(404).json({ error:'Reusable section is archived' });
@@ -471,35 +536,98 @@ router.post('/:id/insert-section', requireAuth, validate({ body: bodies.insertSe
 
 router.get('/:id', requireAuth, async (req, res) => {
     try {
-        const doc = await documentStore.getDocument(req.params.id, req.session.user.id);
+        const userId = req.session.user.id;
+        const doc = await documentStore.getDocument(req.params.id, userId);
         if (!doc) return res.status(404).json({ error: 'Document not found' });
-        const editable = doc.userId === req.session.user.id || (doc.visibility === 'team' && await hasPermission(req.session.user.id, 'org_admin', req.session));
-        res.json({ document: { ...doc, editable, contract: getContract(doc) } });
+        // Archiving is the owner's (or an org admin's, for a team template or
+        // section); editing is also open to a project's editors and owner.
+        const deletable = doc.userId === userId || (doc.visibility === 'team' && await hasPermission(userId, 'org_admin', req.session));
+        const editable = deletable || doc.projectRole === 'editor' || doc.projectRole === 'owner';
+        const people = await describePeople([doc.userId, doc.updatedBy], orgIdOf(req));
+        res.json({ document: { ...doc, editable, deletable, contract: getContract(doc) }, people });
     } catch (err) {
         sendStoreError(res, err, 'Failed to load document');
     }
 });
+
+// What a client may not decide about the revision it writes: the routes and
+// tools say where a version came from and who made it.
+const INTERNAL_KEYS = Object.freeze(['source', 'contributors', 'restoredFrom', 'mergeWith', 'merge']);
 
 router.patch('/:id', requireAuth, async (req, res) => {
     try {
         const userId = req.session.user.id;
         const existing = await documentStore.getDocument(req.params.id, userId);
         if (!existing) return res.status(404).json({ error: 'Document not found' });
+        if (refuseReadOnly(res, existing)) return;
         if (!req.body?.expectedVersionId) return res.status(428).json({error:'Read the document revision before saving changes.',code:'document_revision_required'});
-
+        const body = { ...(req.body || {}) };
+        const wantsMerge = body.merge === true;
+        for (const key of INTERNAL_KEYS) delete body[key];
         const context = { userId, isAdmin: await hasPermission(userId, 'org_admin', req.session) };
-        const updated = await documentStore.updateDocument(req.params.id, context, req.body || {});
+        // The page is edited live (checked here, or found by the store's own
+        // write, when it went live since): its body is the live state's. The
+        // text is kept as a 'conflict' version the page offers once joined.
+        const refuseLive = async () => {
+            let conflictVersionId = null;
+            try { conflictVersionId = await documentStore.keepConflictCopy(req.params.id, context, body.bodyHtml); }
+            catch (e) { log.warn('[StudioDocuments] could not keep a refused page body as a version', { documentId: req.params.id, error: e.message }); }
+            return res.status(409).json({ error: 'This page is being edited live. Join in to keep editing; your text was kept in its version history.', code: 'document_live', conflictVersionId });
+        };
+        if (typeof body.bodyHtml === 'string' && await documentFeed.liveCollabFor(existing)) return refuseLive();
+
+        let updated;
+        try {
+            updated = await documentStore.updateDocument(req.params.id, context, {
+                ...body, source: 'autosave', ...(wantsMerge ? { mergeWith: mergeBodies } : {}),
+            });
+        } catch (err) {
+            if (err?.errorClass === 'document_live' && typeof body.bodyHtml === 'string') return refuseLive();
+            throw err;
+        }
         if (!updated) return res.status(404).json({ error: 'Document not found or read-only' });
+        if (updated.versionId !== existing.versionId) {
+            await documentFeed.recordContentChange(updated, {
+                actorId: userId, source: 'autosave', versionId: updated.versionId, stats: wordStats(existing.bodyHtml, updated.bodyHtml),
+            });
+            if (updated.name !== existing.name) await documentFeed.recordRenamed(updated, userId);
+        }
         res.json({ document: { ...updated, contract: getContract(updated) } });
     } catch (err) {
         sendStoreError(res, err, 'Failed to update document');
     }
 });
 
+/** Back from the archive. The owner (an org admin for a team template or section). */
+router.post('/:id/unarchive', requireAuth, async (req, res) => {
+    try {
+        const userId = req.session.user.id;
+        const ok = await documentStore.unarchiveDocument(req.params.id, { userId, isAdmin: await hasPermission(userId, 'org_admin', req.session) });
+        if (!ok) return res.status(404).json({ error: 'Document not found' });
+        const document = await documentStore.getDocument(req.params.id, userId);
+        res.json({ document });
+    } catch (err) {
+        sendStoreError(res, err, 'Failed to restore the document');
+    }
+});
+
 router.delete('/:id', requireAuth, async (req, res) => {
     try {
-        const ok = await documentStore.deleteDocument(req.params.id, { userId: req.session.user.id, isAdmin: await hasPermission(req.session.user.id, 'org_admin', req.session) });
-        if (!ok) return res.status(404).json({ error: 'Document not found' });
+        const userId = req.session.user.id;
+        // A co-edited project page is folded back into its own row first: once
+        // archived it is no longer project content, and edits still only in
+        // the co-editing state would not be written back.
+        await require('../core/projectContent/itemLifecycle').beforeDelete('document', req.params.id, userId);
+        const ok = await documentStore.deleteDocument(req.params.id, { userId, isAdmin: await hasPermission(userId, 'org_admin', req.session) });
+        if (!ok) {
+            // A project member reading a colleague's document may not archive
+            // it; say so rather than pretend it does not exist.
+            const readable = await documentStore.getDocument(req.params.id, userId);
+            if (readable?.projectRole) {
+                return res.status(403).json({ error: 'Only the owner of this document can delete it. The project owner can remove it from the project.', code: 'document_owner_only' });
+            }
+            return res.status(404).json({ error: 'Document not found' });
+        }
         res.json({ success: true });
     } catch (err) {
         sendStoreError(res, err, 'Failed to delete document');
@@ -573,10 +701,9 @@ router.get('/:id/pptx', requireAuth, validate({ query: VersionQuery }), async (r
         if (!doc.bodyHtml || !doc.bodyHtml.trim()) return res.status(400).json({ error: 'This presentation has no slides yet.', code: 'document_empty' });
         const marking = await markingFor(req);
         const { renderFilledDocument } = require('../core/documents/renderFilledDocument');
-        const { makeUserImageResolver } = require('../services/presentationRenderer');
         const out = await renderFilledDocument({ document: doc, values: doc.settings.sampleValues || {},
             sectionOverrides: doc.settings.sectionOverrides || {}, orgId: orgIdOf(req), marking, format: 'pptx',
-            resolveImage: makeUserImageResolver(req.session.user.id) });
+            resolveImage: imageResolverFor(req, doc) });
         res.set('Content-Type', out.contentType);
         res.set('Content-Disposition', `attachment; filename="${pdfFilename(doc.name, 'pptx')}"`);
         res.send(out.buffer);
@@ -622,10 +749,9 @@ router.get('/:id/pdf', requireAuth, validate({ query: VersionQuery }), async (re
         }
 
         const { renderFilledDocument } = require('../core/documents/renderFilledDocument');
-        const { makeUserImageResolver } = require('../services/presentationRenderer');
         const out = await renderFilledDocument({ document: doc, values: doc.settings.sampleValues || {},
             sectionOverrides: doc.settings.sectionOverrides || {}, orgId: orgIdOf(req), marking, format: 'pdf',
-            resolveImage: makeUserImageResolver(req.session.user.id) });
+            resolveImage: imageResolverFor(req, doc) });
 
         res.set('Content-Type', out.contentType);
         res.set('Content-Disposition', `attachment; filename="${pdfFilename(doc.name)}"`);
@@ -639,31 +765,12 @@ router.get('/:id/pdf', requireAuth, validate({ query: VersionQuery }), async (re
     }
 });
 
-// ── Versions ─────────────────────────────────────────────────────────
+// ── Versions and presence ───────────────────────────────────────────
+//
+// Their own factory routers; mounted here so they share this router's
+// place under /api/studio-documents.
 
-router.get('/:id/versions', requireAuth, async (req, res) => {
-    try {
-        const doc = await documentStore.getDocument(req.params.id, req.session.user.id);
-        if (!doc) return res.status(404).json({ error: 'Document not found' });
-        const versions = await documentStore.listVersions(req.params.id, req.session.user.id);
-        res.json({ versions });
-    } catch (err) {
-        sendStoreError(res, err, 'Failed to list versions');
-    }
-});
-
-router.post('/:id/versions/:versionId/restore', requireAuth, validate({ body: bodies.restore }), async (req, res) => {
-    try {
-        if (!await documentStore.getDocument(req.params.id,req.session.user.id)) return res.status(404).json({error:'Document not found'});
-        if (!req.body?.expectedVersionId) return res.status(428).json({error:'Read the current document revision before restoring history.',code:'document_revision_required'});
-        const restored = await documentStore.restoreVersion(
-            req.params.id, { userId: req.session.user.id, isAdmin: await hasPermission(req.session.user.id, 'org_admin', req.session) }, req.params.versionId, req.body?.expectedVersionId,
-        );
-        if (!restored) return res.status(404).json({ error: 'Version not found' });
-        res.json({ document: restored });
-    } catch (err) {
-        sendStoreError(res, err, 'Failed to restore version');
-    }
-});
+router.use('/:id/versions', require('./studioDocuments/versions'));
+router.use('/', require('./studioDocuments/presence'));
 
 module.exports = router;

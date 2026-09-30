@@ -257,3 +257,32 @@ test('re-sending the organisation a base already has is not an error', async () 
     assert.strictEqual(res.statusCode, 200);
     assert.ok(!('organizationId' in fx.updates[0].patch));
 });
+
+// ── A project's files base ──────────────────────────────────────────
+
+test('a project\'s files base is managed from its project: no publish, rename or delete here', async () => {
+    // The files of a collaborative project (projects/projectFiles.js) sit in
+    // a base stamped with the project's organisation. A project VIEWER whose
+    // org role carries manage_knowledge used to publish it to the whole
+    // organisation, or delete it with every file in it, through these routes.
+    // `canManage` stays true here: even a caller the generic check admits is
+    // refused, so the route does not lean on the store policy alone.
+    fx.kb = { ...fx.kb, source_kind: 'project_files', is_published: false };
+    fx.canManage = true;
+    fx.published = [];
+    const store = require.cache['mock:kb-detail-k5:../stores/knowledgeBases'].exports;
+    store.setPublished = async (id, flag) => { fx.published.push({ id, flag }); return fx.kb; };
+    try {
+        const publish = await dispatch({ method: 'PATCH', url: '/kb1/publish', body: { isPublished: true } });
+        assert.strictEqual(publish.statusCode, 403);
+        const rename = await dispatch({ method: 'PATCH', url: '/kb1', body: { name: 'Mine now' } });
+        assert.strictEqual(rename.statusCode, 403);
+        const del = await dispatch({ method: 'DELETE', url: '/kb1?confirm=1' });
+        assert.strictEqual(del.statusCode, 403);
+        assert.deepStrictEqual(fx.published, [], 'not published');
+        assert.deepStrictEqual(fx.updates, [], 'not renamed');
+        assert.deepStrictEqual(fx.deleted, [], 'not deleted');
+    } finally {
+        delete store.setPublished;
+    }
+});

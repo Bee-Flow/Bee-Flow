@@ -433,10 +433,18 @@ async function deleteUser(userId) {
     // account, unconditionally — there is no legitimate reason to keep a
     // speaker template for a user who no longer exists.
     try { await run('DELETE FROM voiceprints WHERE user_id = $1', [userId]); } catch (e) { /* table may not exist */ }
-    // Projects: drop the user's owned projects (cascades shares + activity via FK)
-    // and remove any shares that target this user directly.
-    try { await run('DELETE FROM projects WHERE owner_id = $1', [userId]); } catch (e) { /* table may not exist */ }
+    // Projects: delete the user's owned projects the way the project delete
+    // route does (colleagues' co-edits folded back, soft references detached,
+    // files base removed; stores/user/projectErasure.js), and remove any
+    // shares that target this user directly.
+    const owned = await require('./projectErasure').eraseOwnedProjects(userId);
+    if (owned.deleted || owned.kept || owned.failed) log.info(`[UserStore] Owned projects of '${userId}': ${JSON.stringify(owned)}`);
     try { await run(`DELETE FROM project_shares WHERE shared_with_type = 'user' AND shared_with_id = $1`, [userId]); } catch (e) { /* table may not exist */ }
+    // What they wrote and marked in colleagues' projects: team chat messages and
+    // comments blanked as if by their own hand, their id out of the co-editing
+    // log, their seen marks and AI feedback gone (stores/user/projectErasure.js).
+    // Their OWN projects went with them above.
+    await require('./projectErasure').eraseProjectTraces(userId);
     // Agents owned by this user. Without this they become orphans with a
     // non-existent owner; a future user re-created with the same id would inherit
     // them as ghost agents in the library (BFSF-181). Mirror the org-delete

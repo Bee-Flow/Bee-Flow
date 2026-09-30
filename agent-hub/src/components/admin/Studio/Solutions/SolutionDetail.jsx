@@ -1,18 +1,19 @@
-import { Boxes, Download, ExternalLink, GitBranch, History, LayoutDashboard, Package, ShieldCheck, Upload } from 'lucide-react';
+import { Boxes, Download, GitBranch, History, LayoutDashboard, Package, ShieldCheck, Upload, Users } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import ProjectAudienceCapsule from './ProjectAudienceCapsule';
+import ProjectFlowTab from './ProjectFlowTab';
+import ProjectOverviewTab from './ProjectOverviewTab';
+import SolutionAccessDialog from './SolutionAccessDialog';
+import SolutionContentTable from './SolutionContentTable';
+import SolutionControlPanel, { isBlocking } from './SolutionControlPanel';
+import SolutionExportDialog from './SolutionExportDialog';
 import SolutionInstallsTab, { installsBadge } from './SolutionInstallsTab';
 import SolutionVersionsTab from './SolutionVersionsTab';
 import UpgradeDialog, { UpdateBanner, updateAvailability } from './upgradeClient';
 import useProjectStream from '../../../../hooks/useProjectStream';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
-import ProjectAudienceCapsule from '../../../projects/ProjectAudienceCapsule';
-import ProjectFlowTab from '../../../projects/ProjectFlowTab';
-import ProjectOverviewTab from '../../../projects/ProjectOverviewTab';
 import { formatRelative } from '../../../projects/relativeTime';
-import SolutionContentTable from '../../../projects/SolutionContentTable';
-import SolutionControlPanel, { isBlocking } from '../../../projects/SolutionControlPanel';
-import SolutionExportDialog from '../../../projects/SolutionExportDialog';
 import StudioSectionHeader, { OBJHEAD_FOLD, PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
 
 /**
@@ -31,8 +32,12 @@ const AUTOMATION_RUN_KINDS = new Set([
 ]);
 
 // Kinds that change what the Solution HOLDS, so counts and lists refetch.
+// Filing a notebook, document or meeting in or out is announced as
+// `content.moved_in` / `content.moved_out` (server projects/itemFiling), not as
+// `resource_added` / `resource_removed`, so both pairs are listed.
 const CONTENT_KINDS = new Set([
     'approval.requested', 'approval.decided', 'resource_added', 'resource_removed',
+    'content.moved_in', 'content.moved_out',
 ]);
 
 /**
@@ -304,7 +309,7 @@ export function controlBadge(completeness) {
 export default function SolutionDetail({ project, onBack, currentUserId }) {
     const { t } = useTranslation();
     const [tab, setTab] = useState('content');
-    const [dialog, setDialog] = useState(null);          // null | 'export' | 'publish' | 'upgrade'
+    const [dialog, setDialog] = useState(null);          // null | 'export' | 'publish' | 'upgrade' | 'access'
     const [name, setName] = useState(project.name);
     const data = useSolutionData(project.id);
     const {
@@ -442,14 +447,17 @@ export default function SolutionDetail({ project, onBack, currentUserId }) {
                             <Package className="w-3.5 h-3.5" aria-hidden="true" />
                             <span className={OBJHEAD_FOLD.action}>{t('solutions.export', 'Export')}</span>
                         </button>
-                        {/* Chats, members and memory live on the project page. */}
+                        {/* Who can open this Solution. A Solution is not a
+                            project workspace, so its members are managed here
+                            rather than on /app/projects. */}
                         <button
-                            onClick={() => window.location.assign(`/app/projects/${project.id}`)}
-                            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-[13px] border"
-                            style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                            onClick={() => setDialog('access')}
+                            data-testid="solution-manage-access"
+                            aria-label={t('solutions.manage_access', 'Manage access')}
+                            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-[13px] border border-[var(--border-default)] text-[var(--text-secondary)]"
                         >
-                            <ExternalLink className="w-3.5 h-3.5" aria-hidden="true" />
-                            <span className={OBJHEAD_FOLD.action}>{t('solutions.open_project', 'Open in Projects')}</span>
+                            <Users className="w-3.5 h-3.5" aria-hidden="true" />
+                            <span className={OBJHEAD_FOLD.action}>{t('solutions.manage_access', 'Manage access')}</span>
                         </button>
                     </>
                 }
@@ -503,6 +511,20 @@ export default function SolutionDetail({ project, onBack, currentUserId }) {
                     )}
                 </div>
             </div>
+
+            {/* The audience capsule reads the member list, so it is re-read
+                when the dialog closes. Leaving the Solution from the panel
+                ends access to all of it: back to the overview, which
+                re-reads the list without it. */}
+            <SolutionAccessDialog
+                open={dialog === 'access'}
+                onClose={() => { setDialog(null); fetchMembers(); }}
+                onLeft={() => { setDialog(null); onBack(); }}
+                projectId={project.id}
+                projectName={name}
+                role={role}
+                currentUserId={currentUserId || null}
+            />
 
             <SolutionExportDialog
                 open={dialog === 'export' || dialog === 'publish'}

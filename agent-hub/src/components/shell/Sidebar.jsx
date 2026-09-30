@@ -51,9 +51,9 @@ const Sidebar = ({
     onToggleFavorite,
     projects = [],
     activeProject,
-    onSelectProject,
+    onOpenProject,
+    onNewChatInProject,
     onCreateProject,
-    onEditProject,
     onBrowseProjects,
     onMoveToProject,
     onShareToProject,
@@ -804,14 +804,16 @@ const Sidebar = ({
                     toggleProjects={toggleProjects}
                     activeProject={activeProject}
                     onCreateProject={onCreateProject}
-                    onSelectProject={onSelectProject}
-                    onEditProject={onEditProject}
+                    onOpenProject={onOpenProject}
+                    onNewChatInProject={onNewChatInProject}
                     onBrowseProjects={onBrowseProjects}
                 />
             )}
 
-            {/* ── New Project (when no projects yet) ── */}
-            {isOpen && hasLicenseFeature('projects') && user?.featureFlags?.projects !== false && projects.length === 0 && (
+            {/* ── New Project (when no projects yet) ── same gate as the
+                group above, Simple Mode included: on a phone the projects
+                pages redirect to /app, so the row would lead nowhere. */}
+            {isOpen && !_simpleMode && hasLicenseFeature('projects') && user?.featureFlags?.projects !== false && projects.length === 0 && (
                 <div className="px-2 mt-1">
                     <button
                         onClick={() => onCreateProject?.()}

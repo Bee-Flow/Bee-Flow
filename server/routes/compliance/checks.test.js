@@ -389,7 +389,7 @@ test('POST /checks/:id/auto-fix: a failed re-run never turns a successful fix in
 // ── The gate ───────────────────────────────────────────────────────────────
 
 test('every route asks for admin_compliance, on top of requireAuth', () => {
-    assert.equal(permissionsAsked.length, 5, 'five routes: list, history, run-all, run-one, auto-fix');
+    assert.equal(permissionsAsked.length, 6, 'six routes: list, history, run-all, run-one, auto-fix, finding state');
     assert.deepEqual([...new Set(permissionsAsked)], ['admin_compliance']);
 });
 
@@ -424,4 +424,29 @@ test('permission refused → 403, and again nothing is read or run', async () =>
     assert.deepEqual(calls.runOne, []);
     assert.deepEqual(calls.autoFix, []);
     assert.deepEqual(calls.users, [], 'not even the org lookup happens behind the gate');
+});
+
+// ── Finding states and retired subjects ────────────────────────────────────
+
+test('GET /checks: a decided finding carries its public state; a retired subject row is left out', async () => {
+    const findingState = require('../../compliance/findingState');
+    const warnRow = LATEST.find(r => r.check_id === 'AIA-Art50-ai-disclosure' && r.scope_id === 'agent-1');
+    LATEST.push({ check_id: 'AIA-Art50-ai-disclosure', regulation: 'AIA', severity: 'medium', status: 'not_applicable', scope_type: 'per-source', scope_id: 'agent-gone', evidence: { retired: true }, run_at: RUN_AT });
+    complianceStore.listFindingStates = async () => [{
+        check_id: 'AIA-Art50-ai-disclosure', scope_key: 'agent-1', fingerprint: findingState.fingerprintOf(warnRow),
+        state: 'acknowledged', reason: null, until: null, actor_id: 'u1', updated_at: RUN_AT,
+    }];
+    try {
+        const { body } = await getJson('/checks');
+        const agents = body.filter(r => r.check_id === 'AIA-Art50-ai-disclosure');
+        assert.deepEqual(agents.map(r => r.scope_id).sort(), ['agent-1', 'agent-2'], 'the retired slot is history, not a row');
+        const acked = agents.find(r => r.scope_id === 'agent-1');
+        assert.equal(acked.finding_state.state, 'acknowledged');
+        assert.equal(acked.finding_state.active, true);
+        assert.equal('fingerprint' in acked.finding_state, false);
+        assert.equal(agents.find(r => r.scope_id === 'agent-2').finding_state, null);
+    } finally {
+        LATEST.pop();
+        delete complianceStore.listFindingStates;
+    }
 });

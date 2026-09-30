@@ -32,7 +32,7 @@
  */
 
 const { EventEmitter } = require('events');
-const { getRedis } = require('../db');
+const db = require('../db');
 const log = require('../telemetry/log');
 
 const CHANNEL_PREFIX = 'bf:project:';
@@ -45,6 +45,10 @@ const _originId = `${process.pid}-${Math.random().toString(36).slice(2, 10)}`;
 // event originated here or arrived over Redis.
 const bus = new EventEmitter();
 bus.setMaxListeners(0);   // one listener per open SSE stream; the cap is noise
+
+// The Redis handles, replaceable in tests (`_setRedis`) without module mocking.
+let _redisDeps = { getRedis: db.getRedis, redisHealthy: db.redisHealthy };
+const getRedis = () => _redisDeps.getRedis();
 
 let _subscriber = null;
 let _subscriberReady = false;
@@ -65,6 +69,13 @@ function _ensureSubscriber() {
     try {
         const sub = r.duplicate();
         sub.on('error', (e) => log.warn('[ProjectEventBus] subscriber error:', e.message));
+        // "Distributed" means a subscriber that is actually connected and
+        // subscribed, not one that merely exists: `duplicate()` returns before
+        // the connection is up, and a connection lost later keeps the object.
+        // ioredis re-subscribes every channel itself when it reconnects.
+        sub.on('ready', () => { _subscriberReady = true; });
+        sub.on('end', () => { _subscriberReady = false; });
+        sub.on('close', () => { _subscriberReady = false; });
         sub.on('message', (channel, message) => {
             try {
                 const parsed = JSON.parse(message);
@@ -80,7 +91,7 @@ function _ensureSubscriber() {
             }
         });
         _subscriber = sub;
-        _subscriberReady = true;
+        _subscriberReady = sub.status === 'ready';
         return sub;
     } catch (e) {
         log.warn('[ProjectEventBus] subscriber setup failed:', e.message);
@@ -148,6 +159,10 @@ async function publishProjectEvent(projectId, event) {
 
     const r = getRedis();
     if (!r) return;
+    // A client that is reconnecting would queue the publish and fail it
+    // seconds later with a warning per event; the local emit above already
+    // served this replica, and the other replicas' poll covers the gap.
+    if (!_isHealthy()) return;
     try {
         _ensureSubscriber();
         await r.publish(_channel(projectId), JSON.stringify({ ...event, _origin: _originId }));
@@ -168,9 +183,13 @@ async function publishTransient(projectId, event) {
     return publishProjectEvent(projectId, { ...event, transient: true });
 }
 
+function _isHealthy() {
+    try { return typeof _redisDeps.redisHealthy === 'function' ? !!_redisDeps.redisHealthy() : true; } catch (_) { return false; }
+}
+
 /** True when cross-replica delivery is actually available. */
 function isDistributed() {
-    return !!getRedis() && _subscriberReady;
+    return !!getRedis() && _isHealthy() && _subscriberReady;
 }
 
 /** Test seam. */
@@ -181,6 +200,16 @@ function _reset() {
     _subscriberReady = false;
 }
 
+/**
+ * Test seam: stand-ins for db.getRedis / db.redisHealthy. Pass nothing to
+ * restore the real ones.
+ * @param {{ getRedis: () => any, redisHealthy: () => boolean }} [deps]
+ */
+function _setRedis(deps) {
+    _redisDeps = deps || { getRedis: db.getRedis, redisHealthy: db.redisHealthy };
+    _reset();
+}
+
 module.exports = {
     subscribeProject,
     publishProjectEvent,
@@ -188,4 +217,5 @@ module.exports = {
     isDistributed,
     _originId,
     _reset,
+    _setRedis,
 };

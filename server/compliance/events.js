@@ -59,6 +59,10 @@ const EVENTS = {
     DSR_FULFILLED: 'dsr_fulfilled',
     // A CRA early warning / full report was stamped on a vulnerability.
     CRA_VULNERABILITY_REPORTED: 'cra_vulnerability_reported',
+    // Something a project check reads changed: members, a chat's AI mode,
+    // files, archiving. Payload { orgId, projectId, reason } — ids only.
+    // Emitted by ROUTES (stores cannot require compliance).
+    PROJECT_CHANGED: 'project_changed',
 };
 
 // Best-effort: the counts endpoint caches 60 s per org; anything that changes
@@ -82,20 +86,22 @@ function emit(eventName, payload = {}) {
     }
 }
 
-async function _notifyAdmins(orgId, category, title, message, link = null) {
-    const store = _lazyNotifications();
-    if (!store?.createNotification) return;
+// Everyone who answers for compliance — org admins AND the DPO (the DPO was
+// left out here while the deadline notifier included them) — through
+// adminNotices.js, which also collapses a burst of the same signal into one
+// notice per window (`dedupe`), across replicas.
+let _notices = null;
+function _lazyNotices() {
+    if (!_notices) {
+        const { makeAdminNotices } = require('./adminNotices');
+        _notices = makeAdminNotices({ notificationStore: _lazyNotifications() || undefined });
+    }
+    return _notices;
+}
+
+async function _notifyAdmins(orgId, category, title, message, link = null, dedupe = null) {
     try {
-        const { getAll } = require('../db');
-        const rows = await getAll(
-            // 'org_admin' is canonical; legacy 'admin' kept for orgs that
-            // pre-date the rename (matches permissions.js normalisation).
-            `SELECT id FROM users WHERE "organizationId" = $1 AND (role = 'admin' OR "orgRole" IN ('org_admin', 'admin'))`,
-            [orgId],
-        );
-        for (const u of rows || []) {
-            await store.createNotification({ userId: u.id, category, title, message, link }).catch(() => {});
-        }
+        await _lazyNotices().notify(orgId, { category, title, message, link, dedupe });
     } catch (e) {
         log.warn('[ComplianceEvents] notify failed:', e.message);
     }
@@ -122,6 +128,7 @@ _bus.on(EVENTS.EXTERNAL_TRANSFER_DETECTED, async ({ orgId, operator, country_cod
         'External data transfer detected',
         `An integration call routed to ${operator || 'an external operator'}${country_code ? ` (${country_code})` : ''}. Confirm SCCs are in place under Compliance → ROPA.`,
         complianceSectionPath('ropa'),
+        { key: `external_transfer:${String(operator || '').toLowerCase()}:${country_code || ''}`, window: 'day' },
     );
 });
 
@@ -148,6 +155,10 @@ _bus.on(EVENTS.DSR_SUBMITTED, async ({ orgId, requestType }) => {
         'New data-subject request',
         `A ${requestType || 'data-subject'} request was submitted. GDPR requires fulfilment within 30 days. Open Compliance → DSR Inbox to respond.`,
         complianceSectionPath('dsr'),
+        // One bell line per request type per hour: the inbox lists every
+        // request, and a flood through the public form must not become a
+        // flood in every admin's bell.
+        { key: `dsr_submitted:${requestType || 'data-subject'}`, window: 'hour' },
     );
 });
 
@@ -163,6 +174,7 @@ _bus.on(EVENTS.CONTROL_DRIFT, async ({ orgId, connectorId, checkIds }) => {
         'External system configuration changed',
         `The ${connectorId || 'evidence'} connector observed a changed configuration in a coupled system. The linked ISO 27001 checks were re-run — review the result under ISO 27001 → Controls.`,
         complianceSectionPath('iso_controls'),
+        { key: `control_drift:${connectorId || 'evidence'}`, window: 'day' },
     );
 });
 
@@ -225,6 +237,7 @@ _bus.on(EVENTS.FRAMEWORK_ENABLED, async ({ orgId, frameworkId, run }) => {
         'Framework enabled',
         `A compliance framework was enabled for your organisation and its checks were run for the first time. Review the results under Compliance → Frameworks.`,
         complianceSectionPath('frameworks'),
+        { key: `framework_enabled:${frameworkId}`, window: 'day' },
     );
 });
 
@@ -285,4 +298,50 @@ _bus.on(EVENTS.CRA_VULNERABILITY_REPORTED, async ({ orgId }) => {
     _invalidateCounts(orgId);
 });
 
-module.exports = { emit, EVENTS, _bus };
+// ─────────────── Projects ───────────────
+//
+// A membership change, an AI-mode switch or a file upload re-judges that one
+// project through subjectReview (debounced, off the request path) — the
+// per-source project checks that hold the PROJECT as a subject see it within
+// seconds. The checks below are re-run WHOLE, once per burst per org: the
+// workspace-wide ones (members, orphaned content, unscanned files) because
+// they have no subject, and GDPR-Art35-project-ai-participation because its
+// subjects are the CONVERSATIONS (`project_chat:<id>`, not `project:<id>`), so
+// a project review never finds it. A whole run is also what retires the chat
+// that just left its population (switched back to "on mention", archived,
+// deleted): runner.runOne without a subject retires what it no longer lists.
+
+const PROJECT_RERUN_CHECKS = Object.freeze({
+    members: ['GDPR-Art32-project-access', 'ISO27001-A.5.18-project-orphaned-content'],
+    files: ['GDPR-Art32-project-files-unscanned'],
+    archived: [],
+    ai_mode: ['GDPR-Art35-project-ai-participation'],
+});
+const PROJECT_RERUN_DEBOUNCE_MS = parseInt(process.env.COMPLIANCE_PROJECT_RERUN_DEBOUNCE_MS || '30000', 10);
+const _projectReruns = new Map(); // `${orgId}\u241f${checkId}` -> timer
+
+function _queueProjectRerun(orgId, checkId) {
+    const key = `${orgId}\u241f${checkId}`;
+    if (_projectReruns.has(key)) return;           // one run per burst, never reset
+    const timer = setTimeout(() => {
+        _projectReruns.delete(key);
+        _rerun(orgId, checkId).then(() => _invalidateCounts(orgId)).catch(() => {});
+    }, PROJECT_RERUN_DEBOUNCE_MS);
+    if (timer.unref) timer.unref();
+    _projectReruns.set(key, timer);
+}
+
+_bus.on(EVENTS.PROJECT_CHANGED, async ({ orgId, projectId, reason }) => {
+    if (!orgId || !projectId) return;
+    try { require('./subjectReview').reviewProject(orgId, projectId, { reason: reason || 'change' }); }
+    catch (e) { log.warn('[ComplianceEvents] project review not queued:', e.message); }
+    for (const checkId of PROJECT_RERUN_CHECKS[reason] || []) _queueProjectRerun(orgId, checkId);
+});
+
+/** Test-only: forget queued project re-runs. */
+function _resetProjectReruns() {
+    for (const t of _projectReruns.values()) clearTimeout(t);
+    _projectReruns.clear();
+}
+
+module.exports = { emit, EVENTS, _bus, PROJECT_RERUN_CHECKS, _resetProjectReruns, _projectRerunCount: () => _projectReruns.size };

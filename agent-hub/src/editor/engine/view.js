@@ -6,15 +6,24 @@
  * owns the host's children imperatively (React never re-renders the editable
  * subtree) which removes the whole "React fights contenteditable" bug class.
  *
- * NOTE: the input loop is implemented to the plan's design; IME/composition,
- * selection preservation and tables are the known-hard areas flagged for
- * real-browser QA before the feature flag is enabled (see plan risk section).
+ * Co-editing hooks. The view knows nothing about any sync engine; a binding
+ * (editor/collab/binding.ts) attaches through four seams:
+ *   - plugins (addPlugin): beforeChange / docChanged / selectionChanged /
+ *     compositionEnd / viewDestroyed callbacks around every state change;
+ *   - setSelection: the ONE place a selection is assigned outside dispatch, so
+ *     every caret move reaches the plugins (presence cursors);
+ *   - applyExternal: puts a document that arrived from elsewhere on screen
+ *     without touching the undo history, mapping the selection through the
+ *     caller and never stealing focus from an input;
+ *   - setUndoProvider: undo/redo/can() delegate to a per-user undo manager,
+ *     with the same "typing coalesces, everything else is its own step" rule.
+ * Without a binding every path below behaves exactly as it did before.
  */
 import { renderDoc } from './render.js';
 import { reconcileChildren } from './reconcile.js';
 import { posFromDOM, domFromPos } from './dommap.js';
-import { applyTransform, firstTextblockPath } from './state.js';
-import { normalizeDeep } from './normalize.js';
+import { applyTransform, firstTextblockPath, clampSelection } from './state.js';
+import { normalizeDeep, normalizeLight } from './normalize.js';
 import { getNode } from './doc.js';
 import * as T from './transforms.js';
 import * as Tbl from './tables.js';
@@ -30,6 +39,20 @@ import { astToMarkdown } from '../serialization/astToMd.js';
 import { selectionToFlat } from './flatpos.js';
 
 const now = () => (typeof Date !== 'undefined' ? Date.now() : 0);
+
+/** Remember the scroll offsets of `el` and its ancestors; the returned function puts them back. */
+function keepScroll(el) {
+  const saved = [];
+  for (let n = el; n && n.nodeType === 1; n = n.parentElement) {
+    if (n.scrollTop || n.scrollLeft) saved.push([n, n.scrollTop, n.scrollLeft]);
+  }
+  return () => {
+    for (const [n, top, left] of saved) {
+      if (n.scrollTop !== top) n.scrollTop = top;
+      if (n.scrollLeft !== left) n.scrollLeft = left;
+    }
+  };
+}
 
 /** Plain text of a doc AST, one line per textblock (hard breaks become newlines). */
 function docToText(doc) {
@@ -64,6 +87,11 @@ export class EditorView {
     this.compStartSel = null;
     this.suppressSelectionSync = false;
     this.htmlToAst = opts.htmlToAst || null;
+    // Co-editing seams (see the header). Empty/null = the plain single-writer editor.
+    this.plugins = Array.isArray(opts.plugins) ? opts.plugins.slice() : [];
+    this.undoProvider = null;
+    this.lastKind = null;
+    this.collaborative = false;
     this.ctx = {
       document: this.doc,
       nodeToPath: this.nodeToPath,
@@ -128,6 +156,122 @@ export class EditorView {
     this.host.removeEventListener('mousemove', this._onHoverMove);
     this.doc.removeEventListener('selectionchange', this._onSelChange);
     if (this.mo) { this.mo.disconnect(); this.mo = null; }
+    this.runHook('viewDestroyed');
+    this.plugins = [];
+    this.undoProvider = null;
+  }
+
+  /* ── co-editing seams ─────────────────────────────────── */
+
+  /** Attach a plugin; returns the function that detaches it again. */
+  addPlugin(plugin) {
+    if (!plugin) return () => {};
+    this.plugins.push(plugin);
+    return () => { this.plugins = this.plugins.filter((p) => p !== plugin); };
+  }
+
+  /**
+   * Call `name` on every plugin. A plugin's failure is reported through
+   * onError and never breaks the edit that triggered it.
+   */
+  runHook(name, ...args) {
+    for (const p of this.plugins.slice()) {
+      const fn = p && p[name];
+      if (typeof fn !== 'function') continue;
+      try { fn.apply(p, args); } catch (e) {
+        try { this.onError && this.onError(e); } catch { /* noop */ }
+      }
+    }
+  }
+
+  /**
+   * Hand undo/redo to an external manager (per-user undo while co-editing).
+   * `provider` = { undo(), redo(), canUndo(), canRedo(), stopCapturing() };
+   * null restores the built-in snapshot history, starting empty.
+   */
+  setUndoProvider(provider) {
+    this.undoProvider = provider || null;
+    this.lastKind = null;
+    if (!provider) this.history = createHistory();
+  }
+
+  /**
+   * While true, setDoc is an ordinary (undoable, synced) edit instead of a
+   * wholesale replace with a history reset: with other people in the
+   * document, replacing it would throw their work and everyone's undo away.
+   */
+  setCollaborative(on) { this.collaborative = !!on; }
+
+  /**
+   * The ONE place a selection is assigned outside dispatch. Callers keep
+   * their own writeSelection/onSelectionChange calls, so behaviour is exactly
+   * what it was; what this adds is that every caret move reaches the plugins.
+   * `opts.storedMarks` replaces the stored marks when given, else they stay.
+   */
+  setSelection(selection, opts = {}) {
+    const storedMarks = Object.prototype.hasOwnProperty.call(opts, 'storedMarks') ? opts.storedMarks : this.state.storedMarks;
+    this.state = { ...this.state, selection, storedMarks };
+    this.runHook('selectionChanged', this.state, { source: opts.source || 'local' });
+  }
+
+  /** Whether the editable flow itself has focus (not an atom's own input). */
+  hasFocus() {
+    const ae = this.doc.activeElement;
+    return !!ae && (ae === this.host || (this.host.contains(ae) && !this.inAtom(ae)));
+  }
+
+  /**
+   * Show a document that arrived from elsewhere (a co-editor, an undo of the
+   * shared history, the first load of a shared document).
+   *
+   * Unlike dispatch it records no history (the undo manager owns that) and
+   * unlike setDoc it keeps the caret: `mapSelection(sel)` moves a selection
+   * from the old document to the new one, and is applied to the live
+   * selection and to a pending composition's start. The selection is written
+   * back to the DOM only when the editor has focus, so a remote keystroke can
+   * never pull the caret out of the Ask-AI box or a formula input.
+   *
+   * origin: 'remote' (someone else), 'undo' (our own undo/redo), or 'load'
+   * (first content: fresh history, caret at the start, full render).
+   */
+  applyExternal(doc, { mapSelection = null, origin = 'remote' } = {}) {
+    const prev = this.state;
+    const nextDoc = normalizeLight(doc);
+    const map = (sel) => {
+      if (!sel || !mapSelection) return sel;
+      try { return mapSelection(sel) || sel; } catch { return sel; }
+    };
+    if (origin === 'load') {
+      this.state = { doc: nextDoc, selection: textSelection(pos(firstTextblockPath(nextDoc), 0)), storedMarks: null };
+      this.history = createHistory();
+      this.lastKind = null;
+      this.compStartSel = null;
+      this.fullRender();
+    } else {
+      const selection = clampSelection(nextDoc, map(prev.selection));
+      if (this.compStartSel) this.compStartSel = clampSelection(nextDoc, map(this.compStartSel));
+      this.state = { doc: nextDoc, selection, storedMarks: prev.storedMarks };
+      if (nextDoc !== prev.doc) this.reconcile(prev.doc, nextDoc);
+      if (origin !== 'remote' || this.hasFocus()) this.writeSelection();
+      else this.paintCellSelection();
+    }
+    this.runHook('selectionChanged', this.state, { source: origin });
+    this.emitChange({ remote: origin !== 'undo' });
+  }
+
+  /** A DOM Range for two model positions (overlays, highlights), or null. */
+  rangeFor(from, to) {
+    try {
+      const a = domFromPos(this.domForNode, this.state.doc, from);
+      const b = domFromPos(this.domForNode, this.state.doc, to || from);
+      if (!a || !b) return null;
+      const r = this.doc.createRange();
+      r.setStart(a.node, a.offset);
+      r.setEnd(b.node, b.offset);
+      return r;
+    } catch (e) {
+      return null;
+    }
   }
 
   /* ── untracked-mutation safety net ────────────────────── */
@@ -203,20 +347,39 @@ export class EditorView {
 
   /* ── dispatch ─────────────────────────────────────────── */
   dispatch(fn, { kind = 'other' } = {}) {
+    // A binding applies anything it was still holding back first, so the
+    // transform below runs on the document everyone else already has.
+    this.runHook('beforeChange');
     const prev = this.state;
     const next = applyTransform(prev, fn);
     if (next.doc === prev.doc) {
       // selection / storedMarks only — no history, no DOM reconcile
       this.state = next;
       if (!eqSelection(next.selection, prev.selection)) this.writeSelection();
-      try { this.onSelectionChange(this.state); } catch (e) { /* noop */ }
+      try { this.onSelectionChange(this.state); } catch { /* noop */ }
+      this.runHook('selectionChanged', this.state, { source: 'local' });
       return false;
     }
-    record(this.history, prev, kind, now());
+    if (this.undoProvider) {
+      // Same grouping as the snapshot history: a run of typing is one step,
+      // every other kind of edit starts its own.
+      if (kind !== 'type' || this.lastKind !== 'type') {
+        try { this.undoProvider.stopCapturing(); } catch { /* noop */ }
+      }
+      this.lastKind = kind;
+    } else {
+      record(this.history, prev, kind, now());
+    }
     this.state = next;
+    this.runHook('docChanged', prev, next, { kind });
+    // A plugin that could not take the change has put another document on
+    // screen already (a co-editing binding reloads the shared state): showing
+    // `next` now would draw the rejected edit over it.
+    if (this.state !== next) return this.state.doc !== prev.doc;
     this.reconcile(prev.doc, next.doc);
     this.writeSelection();
     this.emitChange();
+    this.runHook('selectionChanged', this.state, { source: 'local' });
     return true;
   }
 
@@ -229,13 +392,14 @@ export class EditorView {
    * no indication at all. Surface it instead: the host can show "save failed"
    * and the user can still copy their work out.
    */
-  emitChange() {
+  emitChange(meta) {
     try {
-      this.onUpdate();
+      if (meta === undefined) this.onUpdate();
+      else this.onUpdate(meta);
     } catch (e) {
       // eslint-disable-next-line no-console
       console.error('[BeeEditor] onUpdate failed — the document may not be saved', e);
-      try { this.onError && this.onError(e); } catch (e2) { /* noop */ }
+      try { this.onError && this.onError(e); } catch { /* noop */ }
     }
   }
 
@@ -271,7 +435,7 @@ export class EditorView {
         const b = domFromPos(this.domForNode, this.state.doc, to);
         if (a && b) { const r = this.doc.createRange(); r.setStart(a.node, a.offset); r.setEnd(b.node, b.offset); dsel.removeAllRanges(); dsel.addRange(r); this.rememberWrite(dsel); }
       }
-    } catch (e) { /* selection write can race the DOM; ignore */ }
+    } catch { /* selection write can race the DOM; ignore */ }
     this.paintCellSelection();
   }
 
@@ -299,13 +463,9 @@ export class EditorView {
     const anchor = posFromDOM(this.contentEl, dsel.anchorNode, dsel.anchorOffset, this.nodeToPath);
     const head = posFromDOM(this.contentEl, dsel.focusNode, dsel.focusOffset, this.nodeToPath);
     if (!anchor) return;
-    if (anchor.atom) { this.state = { ...this.state, selection: nodeSelection(anchor.path), storedMarks: null }; return; }
+    if (anchor.atom) { this.setSelection(nodeSelection(anchor.path), { storedMarks: null }); return; }
     if (!head) return;
-    this.state = {
-      ...this.state,
-      selection: textSelection(pos(anchor.path, anchor.offset), head.atom ? pos(anchor.path, anchor.offset) : pos(head.path, head.offset)),
-      storedMarks: this.state.storedMarks,
-    };
+    this.setSelection(textSelection(pos(anchor.path, anchor.offset), head.atom ? pos(anchor.path, anchor.offset) : pos(head.path, head.offset)));
   }
 
   /** Snapshot the DOM range we just wrote, so we can recognise its echo. */
@@ -333,7 +493,7 @@ export class EditorView {
     if (this.isSelfWrite(dsel)) { this.selfWrittenRange = null; return; }
     this.syncSelectionFromDOM();
     this.paintCellSelection(); // clears stale cell highlight when the caret moves out
-    try { this.onSelectionChange(this.state); } catch (e) { /* noop */ }
+    try { this.onSelectionChange(this.state); } catch { /* noop */ }
   }
 
   /* ── input handling ───────────────────────────────────── */
@@ -424,16 +584,16 @@ export class EditorView {
     if (it.startsWith('delete')) return this.dispatch((s) => Tbl.clearCells(s), { kind: 'delete' });
     if (it === 'insertText') {
       this.dispatch((s) => Tbl.clearCells(s), { kind: 'delete' });
-      this.state = { ...this.state, selection: textSelection(pos([...anchor, 0], 0)) };
+      this.setSelection(textSelection(pos([...anchor, 0], 0)));
       if (e.data) this.dispatch((s) => T.insertText(s, e.data), { kind: 'type' });
     }
   }
 
   collapseCellSelection() {
     if (!isCell(this.state.selection)) return;
-    this.state = { ...this.state, selection: textSelection(pos([...this.state.selection.anchorCell, 0], 0)) };
+    this.setSelection(textSelection(pos([...this.state.selection.anchorCell, 0], 0)));
     this.writeSelection();
-    try { this.onSelectionChange(this.state); } catch (e) { /* noop */ }
+    try { this.onSelectionChange(this.state); } catch { /* noop */ }
   }
 
   onKeyDown(e) {
@@ -486,9 +646,9 @@ export class EditorView {
   setCellSelection(anchorCell, headCell) {
     const sel = cellSelection(anchorCell, headCell);
     if (!Tbl.cellRect(this.state.doc, sel)) return; // not a valid same-table rectangle
-    this.state = { ...this.state, selection: sel, storedMarks: null };
+    this.setSelection(sel, { storedMarks: null });
     this.writeSelection();
-    try { this.onSelectionChange(this.state); } catch (e) { /* noop */ }
+    try { this.onSelectionChange(this.state); } catch { /* noop */ }
   }
 
   onHoverMove(e) {
@@ -511,11 +671,11 @@ export class EditorView {
    */
   beginRefPick(h) {
     this.refPick = h || null;
-    try { this.host.classList.toggle('bf-picking-ref', !!this.refPick); } catch (e) { /* noop */ }
+    try { this.host.classList.toggle('bf-picking-ref', !!this.refPick); } catch { /* noop */ }
   }
   endRefPick() {
     this.refPick = null;
-    try { this.host.classList.remove('bf-picking-ref'); } catch (e) { /* noop */ }
+    try { this.host.classList.remove('bf-picking-ref'); } catch { /* noop */ }
   }
 
   /** The table a formula atom lives in, so picking can be scoped to it. */
@@ -556,7 +716,7 @@ export class EditorView {
     }
 
     if (!cell) {
-      if (isCell(this.state.selection)) { this.state = { ...this.state, selection: textSelection(pos([...this.state.selection.anchorCell, 0], 0)) }; this.paintCellSelection(); }
+      if (isCell(this.state.selection)) { this.setSelection(textSelection(pos([...this.state.selection.anchorCell, 0], 0))); this.paintCellSelection(); }
       return;
     }
     const cellPath = this.nodeToPath.get(cell.__bfNode);
@@ -598,7 +758,7 @@ export class EditorView {
       if (!headPath) return;
       if (headPath.join() === anchorPath.join()) {
         // back in the anchor cell → let native text selection take over
-        if (isCell(this.state.selection)) { this.state = { ...this.state, selection: textSelection(pos([...anchorPath, 0], 0)) }; this.paintCellSelection(); }
+        if (isCell(this.state.selection)) { this.setSelection(textSelection(pos([...anchorPath, 0], 0))); this.paintCellSelection(); }
         this.cellDragging = false;
         return;
       }
@@ -632,7 +792,7 @@ export class EditorView {
       this.doc.removeEventListener('mouseup', onUp);
       this._resizing = false;
       this.host.style.cursor = '';
-      this.state = { ...this.state, selection: textSelection(pos([...cellPath, 0], 0)) };
+      this.setSelection(textSelection(pos([...cellPath, 0], 0)));
       this.dispatch((s) => Tbl.setColumnWidth(s, colIdx, width(ev)), { kind: 'structural' });
     };
     this.doc.addEventListener('mousemove', onMove);
@@ -699,11 +859,14 @@ export class EditorView {
   onCompositionEnd(e) {
     if (this.inAtom(e.target)) return;
     this.composing = false;
+    // A co-editing binding held remote changes back while the IME owned the
+    // DOM; they land now, and move compStartSel along with them.
+    this.runHook('compositionEnd');
     const data = e.data || '';
     // The browser mutated the DOM in place while composing. Restore the model
     // selection + stored marks to the pre-composition point, then apply the
     // committed string as one transaction so the DOM is reconciled to the model.
-    this.state = { ...this.state, selection: this.compStartSel || this.state.selection, storedMarks: this.compStartStored || null };
+    this.setSelection(this.compStartSel || this.state.selection, { storedMarks: this.compStartStored || null });
     if (data) {
       this.dispatch((s) => T.insertText(s, data), { kind: 'type' });
     } else {
@@ -752,19 +915,21 @@ export class EditorView {
     // notebook into whatever the user pasted into (and made cut duplicate it).
     const slice = T.sliceSelection(this.state.doc, sel);
     const text = slice ? docToText(slice) : '';
-    try { e.clipboardData.setData('text/html', astToHtml(slice)); } catch (err) { /* noop */ }
+    try { e.clipboardData.setData('text/html', astToHtml(slice)); } catch { /* noop */ }
     e.clipboardData.setData('text/plain', text);
     if (isCut) this.dispatch(T.deleteSelection, { kind: 'delete' });
   }
 
   /* ── history ──────────────────────────────────────────── */
   undo() {
+    if (this.undoProvider) { this.runHook('beforeChange'); this.undoProvider.undo(); this.lastKind = null; return; }
     const prev = histUndo(this.history, this.state);
     if (!prev) return;
     const old = this.state; this.state = prev;
     this.reconcile(old.doc, prev.doc); this.writeSelection(); this.emitChange();
   }
   redo() {
+    if (this.undoProvider) { this.runHook('beforeChange'); this.undoProvider.redo(); this.lastKind = null; return; }
     const next = histRedo(this.history, this.state);
     if (!next) return;
     const old = this.state; this.state = next;
@@ -829,9 +994,9 @@ export class EditorView {
     const at = this.resolveAtom(node);
     if (!at) return false;
     const selection = at.inline ? EditorView.inlineAtomSelection(at) : nodeSelection(at.path);
-    this.state = { ...this.state, selection, storedMarks: null };
+    this.setSelection(selection, { storedMarks: null });
     this.writeSelection();
-    try { this.onSelectionChange(this.state); } catch (e) { /* noop */ }
+    try { this.onSelectionChange(this.state); } catch { /* noop */ }
     return true;
   }
   deleteAtom(node, { fallbackAt = null } = {}) {
@@ -842,7 +1007,7 @@ export class EditorView {
   }
 
   /* ── public API (facade backing) ──────────────────────── */
-  focus() { try { this.host.focus(); } catch (e) { /* noop */ } this.writeSelection(); }
+  focus() { try { this.host.focus(); } catch { /* noop */ } this.writeSelection(); }
 
   /**
    * Replace the whole document (switching notebooks, restoring a version, an AI
@@ -852,13 +1017,54 @@ export class EditorView {
    * notebook id after the switch, would then persist it. Same reason the
    * coalescing marker is reset: without it the first keystroke here can merge
    * into the last keystroke there and never be recorded at all.
+   *
+   * `rebase(current, doc)`, used only while co-editing, returns what to write
+   * instead of `doc`: content made from an older snapshot must keep what the
+   * others changed since (see collab/rebaseDoc.ts).
    */
-  setDoc(doc, { emitUpdate = true } = {}) {
+  setDoc(doc, { emitUpdate = true, rebase = null } = {}) {
+    // Co-editing: the new content is an edit like any other (undoable, the
+    // caret stays where it was), written as the difference from the document
+    // shown now, which already holds everyone's typing.
+    if (this.collaborative) {
+      const normalized = normalizeDeep(doc);
+      this.dispatch((s) => ({ ...s, doc: rebase ? normalizeDeep(rebase(s.doc, normalized)) : normalized }), { kind: 'structural' });
+      return;
+    }
     const normalized = normalizeDeep(doc);
     this.state = { doc: normalized, selection: textSelection(pos(firstTextblockPath(normalized), 0)), storedMarks: null };
     this.history = createHistory();
     this.fullRender();
     if (emitUpdate) this.emitChange();
+  }
+
+  /**
+   * Replace the whole document as ONE undoable step (an AI edit, a restored
+   * version) where setDoc would start a fresh history: Ctrl+Z brings the
+   * previous text back. The caret stays where it was (clamped into the new
+   * document), only the blocks that differ are re-rendered, the scroll offsets
+   * of the host's scrolling ancestors are kept, and the caret is written back
+   * to the DOM only while the editor has focus, so the edit never pulls focus
+   * out of the chat box that asked for it. While co-editing it is the same
+   * ordinary shared edit as setDoc.
+   */
+  replaceDoc(doc, { emitUpdate = true, rebase = null } = {}) {
+    if (this.collaborative) { this.setDoc(doc, { emitUpdate, rebase }); return; }
+    const normalized = normalizeDeep(doc);
+    const restoreScroll = keepScroll(this.host);
+    this.runHook('beforeChange');
+    const prev = this.state;
+    const next = { doc: normalized, selection: clampSelection(normalized, prev.selection), storedMarks: null };
+    record(this.history, prev, 'replace', now());
+    this.lastKind = null;
+    this.state = next;
+    this.runHook('docChanged', prev, next, { kind: 'replace' });
+    this.reconcile(prev.doc, next.doc);
+    if (this.hasFocus()) this.writeSelection();
+    else this.paintCellSelection();
+    restoreScroll();
+    if (emitUpdate) this.emitChange();
+    this.runHook('selectionChanged', this.state, { source: 'local' });
   }
 
   isActive(name, attrs) { return qIsActive(this.state, name, attrs); }
@@ -910,7 +1116,13 @@ export class EditorView {
     return out;
   }
   selectionFlat() { return selectionToFlat(this.state.doc, this.state.selection); }
-  can() { return { undo: () => canUndo(this.history), redo: () => canRedo(this.history) }; }
+  can() {
+    const u = this.undoProvider;
+    return {
+      undo: () => (u ? !!u.canUndo() : canUndo(this.history)),
+      redo: () => (u ? !!u.canRedo() : canRedo(this.history)),
+    };
+  }
 
   getHTML() { return astToHtml(this.state.doc); }
   getMarkdown() { return astToMarkdown(this.state.doc); }

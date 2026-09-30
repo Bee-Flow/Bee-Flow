@@ -18,7 +18,8 @@ const asList = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is 
 function formValue(field: SettingField, v: unknown): SettingValue {
     switch (field.kind) {
         case 'toggle':
-            return v === true;
+            // A switch that is on until someone turns it off: no value yet is on.
+            return field.defaultOn && (v === null || v === undefined) ? true : v === true;
         case 'chips':
         case 'emails':
         case 'strings':
@@ -32,7 +33,7 @@ function formValue(field: SettingField, v: unknown): SettingValue {
     }
 }
 
-/** Server settings → form state; an absent value is the empty answer, never a guess. */
+/** Server settings → form state; an absent value is the empty answer, never a guess (a toggle marked defaultOn reads as on, as on the web). */
 export function normaliseSettings(settings: Readonly<Record<string, unknown>> | null | undefined): SettingsForm {
     const s = settings ?? {};
     const form: SettingsForm = {};

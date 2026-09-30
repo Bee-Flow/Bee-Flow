@@ -151,12 +151,15 @@ async function listProjectThreads(projectId, { limit = 50, offset = 0 } = {}) {
     if (!projectId) return [];
     const capped = Math.min(Math.max(1, limit), 200);
 
+    // agent_id is part of the contract: the workspace opens an agent thread
+    // through its agent, and without it no shared agent chat could be opened
+    // from a project, not even by its owner.
     const rows = await getAll(`
-        SELECT id, user_id, title, project_id, updated_at, created_at, 'direct' AS conv_type
+        SELECT id, user_id, title, project_id, updated_at, created_at, NULL::text AS agent_id, 'direct' AS conv_type
           FROM direct_conversations
          WHERE project_id = $1 AND shared_scope = 'project'
         UNION ALL
-        SELECT id, user_id, title, project_id, updated_at, created_at, 'agent' AS conv_type
+        SELECT id, user_id, title, project_id, updated_at, created_at, agent_id::text AS agent_id, 'agent' AS conv_type
           FROM agent_conversations
          WHERE project_id = $1 AND shared_scope = 'project'
          ORDER BY updated_at DESC
@@ -173,6 +176,7 @@ async function listProjectThreads(projectId, { limit = 50, offset = 0 } = {}) {
         id: r.id,
         type: r.conv_type,
         ownerId: r.user_id,
+        agentId: r.conv_type === 'agent' ? (r.agent_id || null) : null,
         projectId: r.project_id,
         title: isEnvelope(r.title)
             ? openTitle(r.title, r.id, r.conv_type, ctxByOwner.get(r.user_id))

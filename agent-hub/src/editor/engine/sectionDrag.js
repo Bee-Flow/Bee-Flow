@@ -31,3 +31,34 @@ export function moveBlocks(state, fromIdx, count, toIdx) {
   blocks.splice(insertAt, 0, ...moving);
   return { doc: { ...state.doc, content: blocks }, selection: textSelection(pos([insertAt], 0)), storedMarks: null };
 }
+
+/**
+ * Where `blocks` (top-level blocks captured when a drag started) sit in `doc`
+ * now, as one run: the index of the first, or -1 when they are gone, changed
+ * or no longer together. The run at `hint` (where they were) is tried first,
+ * otherwise the nearest one wins. Identity settles an unchanged document; a
+ * co-editor's change copies every block, so they are also compared by value.
+ */
+export function findBlocks(doc, blocks, hint) {
+  const content = doc.content || [];
+  const n = blocks.length;
+  if (!n) return -1;
+  const keys = new Map();
+  const key = (node) => {
+    if (!keys.has(node)) keys.set(node, JSON.stringify(node));
+    return keys.get(node);
+  };
+  const runAt = (i) => {
+    for (let k = 0; k < n; k++) {
+      const node = content[i + k];
+      if (!node || (node !== blocks[k] && key(node) !== key(blocks[k]))) return false;
+    }
+    return true;
+  };
+  if (hint >= 0 && runAt(hint)) return hint;
+  let best = -1;
+  for (let i = 0; i + n <= content.length; i++) {
+    if (runAt(i) && (best < 0 || Math.abs(i - hint) < Math.abs(best - hint))) best = i;
+  }
+  return best;
+}

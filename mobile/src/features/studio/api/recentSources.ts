@@ -20,7 +20,7 @@ type Row = Record<string, unknown>;
 
 export interface RecentSource {
     url: string;
-    query?: Readonly<Record<string, number>>;
+    query?: Readonly<Record<string, number | string>>;
     /** The array inside the body; anything that is not one is an unreadable answer. */
     pick: (body: unknown) => unknown;
     name: (row: Row) => unknown;
@@ -117,7 +117,10 @@ export const RECENT_SOURCES: Record<RecentSourceId, RecentSource> = {
     },
     playbooks: { url: '/api/playbooks', pick: inside('playbooks'), name: title, updatedAt: camelTime, status: playbookState },
     solutions: {
+        // Solutions and legacy rows nobody has classified yet; a collaborative
+        // project is not a Studio item (the web's Studio asks the same).
         url: '/api/projects',
+        query: { kind: 'solution' },
         pick: (body) => (Array.isArray(body) ? body : pick(body, 'projects')),
         name,
         updatedAt: (row) => row.updatedAt || row.updated_at,

@@ -11,6 +11,7 @@ import ConfirmDialog from '../../components/shared/ConfirmDialog';
 import Modal from '../../components/shared/Modal';
 import useTranslation from '../../hooks/useTranslation';
 import { useCapture } from '../meeting-notes/capture/CaptureContext';
+import SourceActivity from './SourceActivity';
 
 /* ── Source type metadata ─────────────────────────────────────── */
 export const SOURCE_META = {
@@ -54,7 +55,7 @@ const PASTE_MAX_CHARS = 500000;
 function SourceCard({
     source, onDelete, onRetry, onCancel, onPreview, onRename,
     selectable, selected, onToggleSelect,
-    onDragStart, onDragOver, onDrop, dragging, t,
+    onDragStart, onDragOver, onDrop, dragging, t, readOnly = false,
 }) {
     const meta  = SOURCE_META[source.type] || SOURCE_META.file;
     const { Icon } = meta;
@@ -64,6 +65,9 @@ function SourceCard({
     const isDuplicate  = isReady && source.metadata?.duplicate;
     const [showDetails, setShowDetails] = useState(false);
     const [editing, setEditing] = useState(false);
+    // Removing asks once, in place ("Remove?" → Remove / Keep); the removal
+    // itself can still be undone for a few seconds.
+    const [confirmingDelete, setConfirmingDelete] = useState(false);
     const [draft, setDraft] = useState(source.name);
     const inputRef = useRef(null);
     useEffect(() => { setDraft(source.name); }, [source.name]);
@@ -83,7 +87,7 @@ function SourceCard({
 
     return (
         <div
-            draggable={!editing}
+            draggable={!editing && !readOnly}
             onDragStart={(e) => onDragStart?.(e, source.id)}
             onDragOver={(e) => onDragOver?.(e, source.id)}
             onDrop={(e) => onDrop?.(e, source.id)}
@@ -103,9 +107,11 @@ function SourceCard({
                         {selected && <Check className="w-3 h-3 text-white" />}
                     </button>
                 ) : (
-                    <span className="cursor-grab opacity-0 group-hover:opacity-60 transition-opacity" title="Drag to reorder">
-                        <GripVertical className="w-3.5 h-3.5" style={{ color: 'var(--text-tertiary)' }} />
-                    </span>
+                    !readOnly && (
+                        <span className="cursor-grab opacity-0 group-hover:opacity-60 transition-opacity" title={t('notebooks.drag_to_reorder', 'Drag to reorder')}>
+                            <GripVertical className="w-3.5 h-3.5" style={{ color: 'var(--text-tertiary)' }} />
+                        </span>
+                    )
                 )}
             </div>
 
@@ -130,7 +136,7 @@ function SourceCard({
                     <button
                         type="button"
                         onClick={() => canPreview && onPreview?.(source)}
-                        onDoubleClick={() => setEditing(true)}
+                        onDoubleClick={() => { if (!readOnly) setEditing(true); }}
                         className={`block w-full text-left text-[11px] font-semibold truncate leading-tight ${canPreview ? 'hover:underline' : ''}`}
                         style={{ color: 'var(--text-primary)', cursor: canPreview ? 'pointer' : 'default' }}
                         title={canPreview ? source.name : source.name}
@@ -174,7 +180,7 @@ function SourceCard({
                     </div>
                 )}
 
-                {(isError || isProcessing) && (
+                {(isError || isProcessing) && !readOnly && (
                     <div className="flex items-center gap-1 mt-1.5">
                         {canRetry && (
                             <button onClick={() => onRetry?.(source.id)} className="flex items-center gap-1 text-[9px] font-medium px-1.5 py-0.5 rounded-md" style={{ background: 'rgba(59,130,246,0.1)', color: '#2563eb' }} title={t('notebooks.retry_ingestion', 'Retry ingestion')}>
@@ -199,19 +205,33 @@ function SourceCard({
             {/* hover actions */}
             {/* focus-within keeps these reachable by keyboard: opacity-0 alone
                 made every per-source action mouse-only. */}
-            {!selectable && (
+            {!selectable && confirmingDelete && (
+                <div className="shrink-0 flex items-center gap-1" role="group" aria-label={t('notebooks.remove_source_confirm', 'Remove this source?')} data-testid="source-confirm-delete">
+                    <button type="button" onClick={() => { setConfirmingDelete(false); onDelete(source.id); }} className="px-1.5 py-0.5 rounded-md text-[11px] font-semibold text-[var(--error-ink)] hover:bg-[var(--bg-tertiary)]" autoFocus>
+                        {t('notebooks.remove', 'Remove')}
+                    </button>
+                    <button type="button" onClick={() => setConfirmingDelete(false)} className="px-1.5 py-0.5 rounded-md text-[11px] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]">
+                        {t('notebooks.keep', 'Keep')}
+                    </button>
+                </div>
+            )}
+            {!selectable && !confirmingDelete && (
                 <div className="shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-all">
                     {canPreview && (
                         <button onClick={() => onPreview?.(source)} className="p-1 rounded-lg hover:bg-[var(--bg-tertiary)]" title={t('notebooks.preview', 'Preview')} aria-label={t('notebooks.preview', 'Preview')}>
                             <Eye className="w-3 h-3" style={{ color: 'var(--text-tertiary)' }} />
                         </button>
                     )}
-                    <button onClick={() => setEditing(true)} className="p-1 rounded-lg hover:bg-[var(--bg-tertiary)]" title={t('notebooks.rename', 'Rename')} aria-label={t('notebooks.rename', 'Rename')}>
-                        <Pencil className="w-3 h-3" style={{ color: 'var(--text-tertiary)' }} />
-                    </button>
-                    <button onClick={() => onDelete(source.id)} className="p-1 rounded-lg hover:bg-red-500/10" title={t('notebooks.remove_source', 'Remove source')} aria-label={t('notebooks.remove_source', 'Remove source')}>
-                        <Trash2 className="w-3 h-3 text-red-400" />
-                    </button>
+                    {!readOnly && (
+                        <>
+                            <button onClick={() => setEditing(true)} className="p-1 rounded-lg hover:bg-[var(--bg-tertiary)]" title={t('notebooks.rename', 'Rename')} aria-label={t('notebooks.rename', 'Rename')}>
+                                <Pencil className="w-3 h-3" style={{ color: 'var(--text-tertiary)' }} />
+                            </button>
+                            <button onClick={() => setConfirmingDelete(true)} className="p-1 rounded-lg hover:bg-red-500/10" title={t('notebooks.remove_source', 'Remove source')} aria-label={t('notebooks.remove_source', 'Remove source')}>
+                                <Trash2 className="w-3 h-3 text-red-400" />
+                            </button>
+                        </>
+                    )}
                 </div>
             )}
         </div>
@@ -290,7 +310,12 @@ function MeetingSourcePanel({ meetingMode, onChangeMode, onAddMeeting, onClose, 
 export default function NotebookSources({
     sources, onFileUpload, onAddUrl, onAddText, onAddMeeting, onDeleteSource,
     onRetrySource, onCancelSource, onRenameSource, onReorderSources, onBulkDelete, onPreviewSource,
-    dragOver, setDragOver, totalWords, readyCount, showMeetingNotes = true
+    dragOver, setDragOver, totalWords, readyCount, showMeetingNotes = true,
+    // A viewer reads the sources (and previews them) but adds, renames,
+    // reorders and removes nothing.
+    readOnly = false,
+    // The upload queue and the pending removal (hooks/useSourcesPolling).
+    uploads = [], pendingDelete = null, onUndoDelete = null, onRetryUpload = null, onDismissUpload = null,
 }) {
     const { t } = useTranslation();
     const visibleButtons = React.useMemo(() => {
@@ -320,6 +345,7 @@ export default function NotebookSources({
     const pasteOverLimit = textInput.length > PASTE_MAX_CHARS;
 
     const togglePanel = (key) => {
+        if (readOnly) return;
         if (key === 'file') { fileInputRef.current?.click(); return; }
         setActivePanel(prev => (prev === key ? null : key));
     };
@@ -367,10 +393,10 @@ export default function NotebookSources({
                 <div className="flex items-center gap-1.5">
                     {sources.length > 0 && (
                         <>
-                            <button onClick={() => { setSelectMode(v => !v); setSelected(new Set()); }} className="p-1 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors" title={t('notebooks.select_multiple', 'Select multiple')} aria-label={t('notebooks.select_multiple', 'Select multiple')}
+                            {!readOnly && <button onClick={() => { setSelectMode(v => !v); setSelected(new Set()); }} className="p-1 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors" title={t('notebooks.select_multiple', 'Select multiple')} aria-label={t('notebooks.select_multiple', 'Select multiple')}
                                 style={{ color: selectMode ? 'var(--accent-primary)' : 'var(--text-tertiary)' }}>
                                 <CheckSquare className="w-3.5 h-3.5" />
-                            </button>
+                            </button>}
                             <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-tertiary)' }}>
                                 {readyCount}<span style={{ opacity: 0.5 }}>/{sources.length}</span>
                             </span>
@@ -380,7 +406,7 @@ export default function NotebookSources({
             </div>
 
             {/* Add source buttons */}
-            <div className="shrink-0 px-3 pt-2.5 pb-2 grid gap-1.5" style={{ gridTemplateColumns: `repeat(${visibleButtons.length}, 1fr)` }}>
+            {!readOnly && <div className="shrink-0 px-3 pt-2.5 pb-2 grid gap-1.5" style={{ gridTemplateColumns: `repeat(${visibleButtons.length}, 1fr)` }}>
                 {visibleButtons.map(({ key, label, Icon, accent }) => {
                     const isActive = activePanel === key;
                     return (
@@ -391,8 +417,16 @@ export default function NotebookSources({
                         </button>
                     );
                 })}
-                <input ref={fileInputRef} type="file" multiple accept=".pdf,.docx,.xlsx,.csv,.txt,.md,.json" className="hidden" onChange={e => { onFileUpload(e.target.files); e.target.value = ''; }} />
-            </div>
+                <input ref={fileInputRef} type="file" multiple accept=".pdf,.docx,.xlsx,.csv,.txt,.md,.json" className="hidden" onChange={e => { onFileUpload(Array.from(e.target.files || [])); e.target.value = ''; }} />
+            </div>}
+
+            <SourceActivity
+                uploads={uploads}
+                pendingDelete={pendingDelete}
+                onUndoDelete={() => onUndoDelete?.()}
+                onRetryUpload={(id) => onRetryUpload?.(id)}
+                onDismissUpload={(id) => onDismissUpload?.(id)}
+            />
 
             {/* URL Panel */}
             {activePanel === 'url' && (
@@ -443,9 +477,9 @@ export default function NotebookSources({
             {/* Source list (scrollable, drop zone) */}
             <div
                 className="flex-1 overflow-y-auto custom-scrollbar px-3 py-1 space-y-1.5 transition-all"
-                onDragOver={e => { if (!dragId) { e.preventDefault(); setDragOver(true); } }}
+                onDragOver={e => { if (!dragId && !readOnly) { e.preventDefault(); setDragOver(true); } }}
                 onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget)) setDragOver(false); }}
-                onDrop={e => { if (e.dataTransfer.files?.length) { e.preventDefault(); setDragOver(false); onFileUpload(e.dataTransfer.files); } }}
+                onDrop={e => { if (!readOnly && e.dataTransfer.files?.length) { e.preventDefault(); setDragOver(false); onFileUpload(Array.from(e.dataTransfer.files)); } }}
                 style={{
                     borderRadius: '12px', margin: '0 8px 8px', padding: dragOver ? '8px' : '4px 4px',
                     border: dragOver ? '2px dashed var(--brand-primary)' : '2px dashed var(--border-subtle)',
@@ -453,7 +487,11 @@ export default function NotebookSources({
                     transition: 'border-color 0.2s, background 0.2s',
                 }}
             >
-                {sources.length === 0 ? (
+                {sources.length === 0 && readOnly ? (
+                    <p className="m-0 py-7 px-2 text-center text-[12px] text-[var(--text-tertiary)]" data-testid="sources-empty-readonly">
+                        {t('notebooks.sources_empty_readonly', 'This notebook has no sources yet.')}
+                    </p>
+                ) : sources.length === 0 ? (
                     <div className="flex flex-col items-center h-full py-7 px-2 select-none">
                         <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-3" style={{ background: 'var(--brand-gradient-soft)', border: '1px solid var(--border-subtle)' }}>
                             <Upload className="w-6 h-6" style={{ color: 'var(--brand-primary)' }} />
@@ -497,6 +535,7 @@ export default function NotebookSources({
                             onDrop={onCardDrop}
                             dragging={dragId === source.id}
                             t={t}
+                            readOnly={readOnly}
                         />
                     ))
                 )}

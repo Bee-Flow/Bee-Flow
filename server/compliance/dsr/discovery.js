@@ -16,7 +16,20 @@
  *                         separately, grouped by source.automationId
  *   4. knowledge bases    kb_chunks.content ILIKE under a 5 s statement_timeout
  *   5. prior DSRs         same e-mail, same org
- *   6. conversations      NOT scanned (bodies are per-org encrypted) → not_scanned
+ *   6. team chat messages projectChatStore.countMessagesByAuthor(userId, org):
+ *                         messages the subject WROTE in the org's projects
+ *                         (a count by author id; no message is opened)
+ *   7. project participation  counts by user id, in THIS org's collaborative
+ *                         projects: memberships, owned projects, chats they
+ *                         shared into a project, their project notebooks and
+ *                         their project documents (nothing is opened)
+ *   8. NOT scanned        conversations (bodies are per-org encrypted), and the
+ *                         bodies of team chats, project comments and co-edited
+ *                         documents (sealed with the project key): listed in
+ *                         `not_scanned` (NEVER_SCANNED), so the author-id counts
+ *                         of 6 and 7 are never read as "searched and found
+ *                         nothing". A subject who is not a user counts 0 there
+ *                         while those bodies were never looked at.
  *
  * EVERY source is pinned to the scanning organisation, source 1 and 2 included.
  * The admin supplies the address by hand, so an unpinned lookup would answer
@@ -38,6 +51,13 @@
 
 const { maskEmail } = require('./mask');
 const { complianceSectionPath } = require('../../utils/appPaths');
+
+/**
+ * Where the subject may be named and the scan never looks: bodies it cannot
+ * open for a search. Reported on every run, before whatever the budget could
+ * not reach. Each has a `compliance.dsr_discovery_not_scanned_<name>` label.
+ */
+const NEVER_SCANNED = Object.freeze(['conversations', 'team_chats', 'project_comments', 'co_edited_documents']);
 
 const TABLE_CAP = 200;
 const PER_TABLE_TIMEOUT_MS = 2000;
@@ -166,6 +186,66 @@ async function _scanMemories(userId, deps) {
     try {
         return { count: await memoryStore.countActiveMemoriesForUser(userId) };
     } catch { return { count: null, unavailable: true }; }
+}
+
+/**
+ * Team chat messages the subject wrote, in THIS organisation's projects only.
+ * Counted by author id, like the memories above: the bodies are sealed with
+ * the project key and are never opened for a scan.
+ */
+async function _scanTeamChatMessages(orgId, userId, deps) {
+    if (!userId) return { count: 0 };
+    const store = deps.projectChatStore;
+    if (!store?.countMessagesByAuthor) return { count: null, unavailable: true };
+    try {
+        return { count: await store.countMessagesByAuthor(userId, { organizationId: orgId }) };
+    } catch { return { count: null, unavailable: true }; }
+}
+
+// Where a person takes part in the org's collaborative projects. One small
+// count each, pinned to the org the way every project check scopes (an
+// org-less project belongs to the 'default' bucket).
+const PROJECT_ORG = `COALESCE(NULLIF(p.organization_id, ''), 'default') = $1`;
+const PROJECT_PARTICIPATION_SQL = Object.freeze({
+    memberships: `SELECT COUNT(*)::int AS n FROM project_shares s JOIN projects p ON p.id = s.project_id
+                  WHERE ${PROJECT_ORG} AND s.shared_with_type = 'user' AND s.shared_with_id = $2`,
+    owned_projects: `SELECT COUNT(*)::int AS n FROM projects p WHERE ${PROJECT_ORG} AND p.owner_id = $2`,
+    shared_chats: `SELECT ((SELECT COUNT(*) FROM direct_conversations c JOIN projects p ON p.id = c.project_id
+                            WHERE ${PROJECT_ORG} AND c.user_id = $2 AND c.shared_scope = 'project')
+                         + (SELECT COUNT(*) FROM agent_conversations c JOIN projects p ON p.id = c.project_id
+                            WHERE ${PROJECT_ORG} AND c.user_id = $2 AND c.shared_scope = 'project'))::int AS n`,
+    project_notebooks: `SELECT COUNT(*)::int AS n FROM notebooks n JOIN projects p ON p.id = n.project_id
+                        WHERE ${PROJECT_ORG} AND n.user_id = $2`,
+    project_documents: `SELECT COUNT(*)::int AS n FROM studio_documents d JOIN projects p ON p.id = d.project_id
+                        WHERE ${PROJECT_ORG} AND d.user_id = $2`,
+    // Comments they wrote on project notebooks and documents (sealed with the
+    // project key, so counted by author id, never read). An erased comment is
+    // blanked but keeps its author id, so it still counts.
+    project_comments: `SELECT COUNT(*)::int AS n FROM project_comments c JOIN projects p ON p.id = c.project_id
+                       WHERE ${PROJECT_ORG} AND c.author_user_id = $2`,
+});
+
+/**
+ * The subject's place in the org's collaborative projects, as counts by user
+ * id. A table this install does not have is a true zero (nobody can be in
+ * it); a count that FAILS is unknown (null), and so is the total.
+ */
+async function _scanProjectParticipation(orgId, userId, deps) {
+    const items = Object.keys(PROJECT_PARTICIPATION_SQL).map(kind => ({ kind, count: 0 }));
+    if (!userId) return { count: 0, items };
+    if (!deps.db?.getOne) return { count: null, items: items.map(i => ({ ...i, count: null })) };
+    let unknown = false;
+    for (const item of items) {
+        try {
+            const row = await deps.db.getOne(PROJECT_PARTICIPATION_SQL[item.kind], [orgId, userId]);
+            item.count = Number(row?.n) || 0;
+        } catch (e) {
+            if (e && (e.code === '42P01' || e.code === '42703')) continue;
+            item.count = null;
+            unknown = true;
+        }
+    }
+    return { count: unknown ? null : items.reduce((n, i) => n + i.count, 0), items };
 }
 
 /**
@@ -377,6 +457,7 @@ const DEP_PATHS = Object.freeze({
     db: '../../db',
     userStore: '../../stores/userStore',
     memoryStore: '../../stores/memoryStore',
+    projectChatStore: '../../stores/projectChatStore',
     datatableStore: '../../stores/datatableStore',
     datatableDbStore: '../../stores/datatableDbStore',
 });
@@ -421,6 +502,8 @@ async function run(orgId, request, {
 
     const userId = await _scanUser(orgId, email, d);
     const memories = await _scanMemories(userId, d);
+    const teamChat = await _scanTeamChatMessages(orgId, userId, d);
+    const participation = await _scanProjectParticipation(orgId, userId, d);
     const datatableSources = await _scanDatatables(orgId, needle, d, state);
     const kb = await _scanKnowledgeBases(orgId, needle, d, state);
     const prior = await _scanPriorDsrs(orgId, email, Number(request.id), d);
@@ -438,6 +521,19 @@ async function run(orgId, request, {
             label_key: 'compliance.dsr_discovery_memories',
             href: userId ? '/app/admin/security/users' : null,
         },
+        {
+            kind: 'team_chat_messages',
+            count: teamChat.count,
+            label_key: 'compliance.dsr_discovery_team_chat_messages',
+            href: null,
+        },
+        {
+            kind: 'project_participation',
+            count: participation.count,
+            label_key: 'compliance.dsr_discovery_project_participation',
+            href: null,
+            items: participation.items.map(i => ({ ...i, label_key: `compliance.dsr_discovery_project_${i.kind}` })),
+        },
         ...datatableSources,
         kb,
         {
@@ -452,9 +548,9 @@ async function run(orgId, request, {
         subject: { email_masked: maskEmail(email), user_id: userId },
         sources,
         retention_notes: state.retentionNotes,
-        // Conversations are never scanned (encrypted per org); whatever the
-        // budget or the cap could not reach joins them, by name.
-        not_scanned: ['conversations', ...[...state.notScanned].sort()],
+        // Sealed or encrypted bodies are never scanned (NEVER_SCANNED);
+        // whatever the budget or the cap could not reach joins them, by name.
+        not_scanned: [...NEVER_SCANNED, ...[...state.notScanned].sort()],
         partial: state.partial,
         errors: state.errors,
         scanned_at: new Date(now).toISOString(),
@@ -496,6 +592,8 @@ function _resetMemo() { _memo.clear(); }
 function _memoSize() { return _memo.size; }
 
 module.exports = {
+    PROJECT_PARTICIPATION_SQL,
+    NEVER_SCANNED,
     run,
     peek,
     summarize,

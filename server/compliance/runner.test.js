@@ -33,8 +33,13 @@ const fakePolicy = {
     EntitlementsUnavailableError: class EntitlementsUnavailableError extends Error {},
 };
 
-const store = { results: [], evidence: [], snapshots: [] };
+const store = { results: [], evidence: [], snapshots: [], slots: [], slotsError: null };
 const fakeStore = {
+    // The newest row per slot of one check, as a previous sweep left them.
+    listLatestScopes: async (_org, checkId) => {
+        if (store.slotsError) throw store.slotsError;
+        return store.slots.filter(s => s.check_id === checkId);
+    },
     recordCheckResult: async (row) => { store.results.push(row); },
     addEvidence: async (row) => { store.evidence.push(row); return { id: store.evidence.length, seq: store.evidence.length, hash: row.hash }; },
     recordScoreSnapshot: async (row) => { store.snapshots.push(row); },
@@ -62,6 +67,8 @@ beforeEach(() => {
     store.results.length = 0;
     store.evidence.length = 0;
     store.snapshots.length = 0;
+    store.slots = [];
+    store.slotsError = null;
     activeSet = new Set(['GDPR', 'AIA', 'ISO27001']);
 });
 
@@ -622,4 +629,173 @@ test('the rows a subject review writes are marked run_type "event"', async () =>
     assert.strictEqual(store.results[0].run_type, 'event',
         'the check history has to show this verdict came from something happening, not from the 6-hourly clock');
     assert.strictEqual(store.evidence[0].payload.run_type, 'event');
+});
+
+// ── retiring vanished subjects ───────────────────────────────────────────
+
+/** A per-source check whose list is its whole population (it opted in to retirement). */
+function perSource(id, subjects, overrides = {}) {
+    return check(id, 'GDPR', {
+        scope: 'per-source',
+        retiresVanished: true,
+        listSubjects: async () => (typeof subjects === 'function' ? subjects() : subjects),
+        evaluate: async () => ({ status: 'warn', evidence: { n: 1 }, details: 'still here' }),
+        ...overrides,
+    });
+}
+
+test('a full sweep retires the subject slots listSubjects no longer returns, once', async () => {
+    fakeRegistry.register(perSource('GDPR-Art30-project-x', [{ id: 'project:a', label: 'project:aaaaaaaa' }]));
+    store.slots = [
+        { check_id: 'GDPR-Art30-project-x', scope_type: 'per-source', scope_id: 'project:a', status: 'warn', evidence: {} },
+        { check_id: 'GDPR-Art30-project-x', scope_type: 'per-source', scope_id: 'project:gone', status: 'warn', evidence: {} },
+        { check_id: 'GDPR-Art30-project-x', scope_type: 'per-source', scope_id: 'project:old', status: 'not_applicable', evidence: { retired: true } },
+        { check_id: 'GDPR-Art30-project-x', scope_type: 'coverage', scope_id: 'coverage', status: 'pass', evidence: {} },
+    ];
+    await runner.runAll('org1');
+    const written = store.results.filter(r => r.check_id === 'GDPR-Art30-project-x').map(r => [r.scope_id, r.status]);
+    assert.deepStrictEqual(written, [['project:a', 'warn'], ['project:gone', 'not_applicable']],
+        'the vanished project gets one not_applicable row; an already retired one and the coverage slot are left alone');
+    const retiredRow = store.results.find(r => r.scope_id === 'project:gone');
+    assert.deepStrictEqual(retiredRow.evidence, { retired: true });
+    assert.strictEqual(retiredRow.details, 'No longer exists.');
+    assert.strictEqual(retiredRow.scope_type, 'per-source');
+});
+
+test('a check whose subjects are all gone retires every slot it held', async () => {
+    fakeRegistry.register(perSource('GDPR-Art30-project-x', []));
+    store.slots = [{ check_id: 'GDPR-Art30-project-x', scope_type: 'per-source', scope_id: 'project:b', status: 'fail', evidence: {} }];
+    await runner.runAll('org1');
+    assert.deepStrictEqual(store.results.map(r => [r.scope_id, r.status]), [[null, 'not_applicable'], ['project:b', 'not_applicable']]);
+});
+
+test('a subject list that could not be read retires nothing — "could not look" is not "gone"', async () => {
+    fakeRegistry.register(perSource('GDPR-Art30-project-x', () => { throw new Error('connection reset'); }));
+    store.slots = [{ check_id: 'GDPR-Art30-project-x', scope_type: 'per-source', scope_id: 'project:b', status: 'fail', evidence: {} }];
+    await runner.runAll('org1');
+    assert.ok(!store.results.some(r => r.scope_id === 'project:b'), 'the previous verdict stands');
+});
+
+test('slots that cannot be read are logged and the sweep goes on', async () => {
+    fakeRegistry.register(perSource('GDPR-Art30-project-x', [{ id: 'project:a' }]));
+    fakeRegistry.register(check('GDPR-Art32-y', 'GDPR'));
+    store.slotsError = new Error('timeout');
+    const results = await runner.runAll('org1');
+    assert.deepStrictEqual(results.map(r => r.check_id), ['GDPR-Art30-project-x', 'GDPR-Art32-y']);
+});
+
+test('the evidence chain gets the subject id, never its label or extras', async () => {
+    fakeRegistry.register(perSource('GDPR-Art30-project-x', [{ id: 'project:a', label: 'Jansen divorce file', owner: 'jan@example.com' }]));
+    await runner.runAll('org1');
+    const ev = store.evidence.find(e => e.subject_id === 'project:a');
+    assert.deepStrictEqual(ev.payload.subject, { id: 'project:a' });
+    assert.ok(!JSON.stringify(ev.payload).includes('Jansen'));
+    assert.ok(!JSON.stringify(ev.payload).includes('@example.com'));
+});
+
+// ── retirement needs a COMPLETE list ─────────────────────────────────────
+//
+// A check that lists only a window of its population (the 200 most recently
+// updated pages, the 500 newest routines) used to have every subject outside
+// the window written down as "No longer exists." each sweep — failing pages
+// vanished from the check table, and a false line entered an evidence chain
+// that can never be corrected.
+
+const SLOT = (checkId, scopeId, status = 'fail') => ({ check_id: checkId, scope_type: 'per-source', scope_id: scopeId, status, evidence: {} });
+
+test('a check that did not opt in never retires: a capped list is a window, not the population', async () => {
+    fakeRegistry.register(perSource('EAA-Art4-x', [{ id: 'page:new', label: 'new' }], { retiresVanished: undefined }));
+    store.slots = [SLOT('EAA-Art4-x', 'page:new'), SLOT('EAA-Art4-x', 'page:older-than-the-window')];
+    await runner.runAll('org1');
+    assert.deepStrictEqual(store.results.filter(r => r.check_id === 'EAA-Art4-x').map(r => r.scope_id), ['page:new'],
+        'the page outside the window keeps its last (failing) verdict');
+    assert.ok(!store.evidence.some(e => e.payload?.details === 'No longer exists.'), 'nothing false enters the evidence chain');
+});
+
+test('a check that did not opt in and lists nothing retires nothing either (a swallowed read error looks like [])', async () => {
+    fakeRegistry.register(perSource('AIA-Art50-x', [], { retiresVanished: undefined }));
+    store.slots = [SLOT('AIA-Art50-x', 'auto-1')];
+    await runner.runAll('org1');
+    assert.deepStrictEqual(store.results.map(r => r.scope_id), [null]);
+});
+
+test('an opted-in check that says this run hit its limit retires nothing, but its listed subjects are judged', async () => {
+    fakeRegistry.register(perSource('GDPR-Art30-project-x', { subjects: [{ id: 'project:a' }], complete: false }));
+    store.slots = [SLOT('GDPR-Art30-project-x', 'project:a'), SLOT('GDPR-Art30-project-x', 'project:past-the-limit')];
+    await runner.runAll('org1');
+    assert.deepStrictEqual(store.results.map(r => [r.scope_id, r.status]), [['project:a', 'warn']]);
+});
+
+test('a subject flagged capped marks the list as a window, even for an opted-in check', async () => {
+    fakeRegistry.register(perSource('GDPR-Art30-project-x', [{ id: 'project:a', capped: true }]));
+    store.slots = [SLOT('GDPR-Art30-project-x', 'project:b')];
+    await runner.runAll('org1');
+    assert.ok(!store.results.some(r => r.scope_id === 'project:b'));
+});
+
+test('a complete list in the { subjects } shape retires, in the check\'s own words', async () => {
+    fakeRegistry.register(perSource('GDPR-Art35-project-x', { subjects: [{ id: 'project_chat:a' }], complete: true }, {
+        retiredDetails: 'The AI no longer joins this conversation by itself.',
+    }));
+    store.slots = [SLOT('GDPR-Art35-project-x', 'project_chat:switched')];
+    await runner.runAll('org1');
+    const retired = store.results.find(r => r.scope_id === 'project_chat:switched');
+    assert.strictEqual(retired.status, 'not_applicable');
+    assert.deepStrictEqual(retired.evidence, { retired: true });
+    assert.strictEqual(retired.details, 'The AI no longer joins this conversation by itself.');
+});
+
+test('_asListing: only an opted-in array or an opted-in, not-incomplete { subjects } is complete', () => {
+    const on = { retiresVanished: true };
+    assert.deepStrictEqual(runner._asListing(on, [{ id: 'a' }]), { subjects: [{ id: 'a' }], complete: true });
+    assert.deepStrictEqual(runner._asListing({}, [{ id: 'a' }]), { subjects: [{ id: 'a' }], complete: false });
+    assert.deepStrictEqual(runner._asListing(on, { subjects: [], complete: false }), { subjects: [], complete: false });
+    assert.deepStrictEqual(runner._asListing(on, undefined), { subjects: [], complete: false }, 'no answer is not "nothing exists"');
+    assert.deepStrictEqual(runner._asListing(on, { rows: [] }), { subjects: [], complete: false });
+});
+
+// ── runOne: a full re-run retires too (the re-run after an auto-fix) ──────
+
+test('runOne without a subject retires the slots the check no longer lists, so a fixed subject stops showing its fail', async () => {
+    fakeRegistry.register(perSource('GDPR-Art35-project-x', [{ id: 'project_chat:still-auto' }]));
+    store.slots = [SLOT('GDPR-Art35-project-x', 'project_chat:still-auto'), SLOT('GDPR-Art35-project-x', 'project_chat:switched')];
+    await runner.runOne('org1', 'GDPR-Art35-project-x');
+    assert.deepStrictEqual(store.results.map(r => [r.scope_id, r.status]),
+        [['project_chat:still-auto', 'warn'], ['project_chat:switched', 'not_applicable']]);
+    assert.strictEqual(store.results[1].evidence.retired, true);
+});
+
+test('runOne that finds no subjects left retires every slot of a complete list', async () => {
+    fakeRegistry.register(perSource('GDPR-Art35-project-x', []));
+    store.slots = [SLOT('GDPR-Art35-project-x', 'project_chat:switched')];
+    await runner.runOne('org1', 'GDPR-Art35-project-x');
+    assert.deepStrictEqual(store.results.map(r => [r.scope_id, r.status]), [[null, 'not_applicable'], ['project_chat:switched', 'not_applicable']]);
+});
+
+test('runOne scoped to one subject never retires the others', async () => {
+    fakeRegistry.register(perSource('GDPR-Art35-project-x', [{ id: 'project_chat:a' }, { id: 'project_chat:b' }]));
+    store.slots = [SLOT('GDPR-Art35-project-x', 'project_chat:gone')];
+    await runner.runOne('org1', 'GDPR-Art35-project-x', { subjectId: 'project_chat:a' });
+    assert.deepStrictEqual(store.results.map(r => r.scope_id), ['project_chat:a']);
+});
+
+test('runOne on a check that did not opt in never retires', async () => {
+    fakeRegistry.register(perSource('EAA-Art4-x', [{ id: 'page:a' }], { retiresVanished: undefined }));
+    store.slots = [SLOT('EAA-Art4-x', 'page:outside')];
+    await runner.runOne('org1', 'EAA-Art4-x');
+    assert.deepStrictEqual(store.results.map(r => r.scope_id), ['page:a']);
+});
+
+test('evaluate receives the subject object exactly as listSubjects built it, in every path', async () => {
+    const seen = [];
+    fakeRegistry.register(perSource('GDPR-Art35-project-x', { subjects: [{ id: 'project_chat:a', projectId: 'p1', aiMode: 'auto' }], complete: true }, {
+        evaluate: async (_org, subject) => { seen.push(subject); return { status: 'pass' }; },
+    }));
+    await runner.runAll('org1');
+    await runner.runOne('org1', 'GDPR-Art35-project-x');
+    await runner.runForSubject('org1', 'project_chat:a');
+    assert.strictEqual(seen.length, 3);
+    for (const s of seen) assert.deepStrictEqual(s, { id: 'project_chat:a', projectId: 'p1', aiMode: 'auto' });
+    const ev = store.evidence.find(e => e.subject_id === 'project_chat:a');
+    assert.deepStrictEqual(ev.payload.subject, { id: 'project_chat:a' }, 'the extras never enter the evidence chain');
 });

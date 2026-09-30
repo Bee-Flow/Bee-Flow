@@ -652,9 +652,15 @@ describe('project rows (server/stores/projectStore.js)', () => {
     // Mirrored by Project in src/features/projects/model/types.ts. `permission` is
     // list-only (the detail route calls it `role`) and is computed by the
     // SELECT's CASE, so it is part of this mapper's contract, not the table's.
+    // Each list row is the shared project mapper (mapProjectRow, which
+    // getProject uses too) plus `permission`, so the mapped fields are the
+    // union of both functions.
     it('listUserProjects still maps every field the solution screens read', () => {
+        const store = read('stores/projectStore.js');
+        const list = functionSlice(store, 'listUserProjects');
+        expect(list).toContain('mapProjectRow(row)');
         expect(
-            missingFrom(functionSlice(read('stores/projectStore.js'), 'listUserProjects'), [
+            missingFrom(list + functionSlice(store, 'mapProjectRow'), [
                 'id', 'name', 'description', 'customInstructions',
                 'knowledgeBaseIds', 'color', 'icon', 'ownerId',
                 'organizationId', 'extractMemories', 'version', 'permission',
@@ -1345,6 +1351,13 @@ describe('studio documents payloads (server/stores/documentStore.js, routes/stud
     // src/features/studioDocuments/model/types.ts; read by api/readers.ts.
     const store = read('stores/documentStore.js');
     const routes = read('routes/studioDocuments.js');
+    // The history moved to the uniform version API: its router is mounted at
+    // /:id/versions (routes/studioDocuments/versions.js) and its rows are
+    // mapped by stores/documentVersions.js. The paths the phone calls did not
+    // change: GET /:id/versions answers { versions }, and a restore still
+    // takes expectedVersionId.
+    const versionRoutes = read('routes/studioDocuments/versions.js');
+    const versionRows = read('stores/documentVersions.js');
 
     it('mapListRow still maps every field the library renders', () => {
         expect(
@@ -1361,19 +1374,23 @@ describe('studio documents payloads (server/stores/documentStore.js, routes/stud
     });
 
     it('listVersions still answers id, summary and createdAt', () => {
-        expect(missingFrom(functionSlice(store, 'listVersions'), ['id', 'summary', 'createdAt'])).toEqual([]);
+        expect(missingFrom(functionSlice(versionRows, 'mapVersion'), ['id', 'summary', 'createdAt'])).toEqual([]);
+        expect(functionSlice(versionRows, 'listRows')).toContain('versions: page.map(mapVersion)');
     });
 
     it('still serves every route the phone calls, with the envelopes it reads', () => {
         for (const route of [
             "router.get('/'", "router.post('/'", "router.get('/:id'", "router.patch('/:id'", "router.delete('/:id'",
             "router.get('/starters'", "router.post('/:id/duplicate'", "router.post('/:id/validate'", "router.get('/:id/pdf'",
-            "router.get('/:id/pptx'", "router.get('/:id/preview'", "router.get('/:id/versions'",
-            "router.post('/:id/versions/:versionId/restore'",
+            "router.get('/:id/pptx'", "router.get('/:id/preview'", "router.use('/:id/versions', require('./studioDocuments/versions'))",
         ]) {
             expect([route, routes.includes(route)]).toEqual([route, true]);
         }
-        expect(absentTokens(routes, ['documents', 'document', 'starters', 'versions', 'editable', 'contract', 'expectedVersionId'])).toEqual([]);
+        for (const route of ["router.get('/'", "router.post('/:ref/restore'"]) {
+            expect([route, versionRoutes.includes(route)]).toEqual([route, true]);
+        }
+        expect(absentTokens(routes, ['documents', 'document', 'starters', 'editable', 'contract'])).toEqual([]);
+        expect(absentTokens(versionRoutes, ['versions', 'expectedVersionId'])).toEqual([]);
     });
 });
 
@@ -1392,9 +1409,15 @@ describe('the Solution payloads (routes/projects.js, projects/summary.js, routes
 
     it('the activity page, the checks, installs and publishing keep their shapes', () => {
         const routes = read('routes/projects.js');
-        expect(routeSlice(routes, "router.get('/:id/activity'")).toContain('res.json({ items: hasMore ? items.slice(0, limit) : items, hasMore })');
+        // One page, then file rows named while the file is still in the project
+        // (projects/projectFiles.nameFileActivity); the envelope is unchanged.
+        expect(functionSlice(read('stores/projectStore.js'), 'listActivity')).toContain('rows.map(mapActivityRow)');
+        const activity = routeSlice(routes, "router.get('/:id/activity'");
+        expect(activity).toContain('const page = hasMore ? items.slice(0, limit) : items;');
+        expect(activity).toContain('res.json({ items: named, hasMore })');
         expect(
-            missingFrom(functionSlice(read('stores/projectStore.js'), 'listActivity'), [
+            // listActivity maps each row with the change feed's mapper.
+            missingFrom(functionSlice(read('stores/projectChanges.js'), 'mapActivityRow'), [
                 'id', 'actorId', 'action', 'targetType', 'targetId', 'details', 'createdAt',
             ]),
         ).toEqual([]);
@@ -1780,9 +1803,12 @@ describe('the chat answer, its cards and its composer (features/chat)', () => {
     });
 
     it('shares a conversation into a project thread and back', () => {
-        const projects = read('routes/projects.js');
-        expect(projects).toContain("router.post('/:id/threads', requireRole('editor'), validate({ body: S.ShareThreadBody })");
-        expect(projects).toContain("router.delete('/:id/threads/:convId', requireRole('viewer'), validate({ query: S.TypeQuery })");
+        // The thread routes live in routes/projects/threads.js, mounted by
+        // routes/projects.js. Taking a chat back out is its owner's call.
+        expect(read('routes/projects.js')).toContain("router.use('/', require('./projects/threads').makeThreadsRouter({");
+        const threads = read('routes/projects/threads.js');
+        expect(threads).toContain("router.post('/:id/threads', requireRole('editor'), validate({ body: S.ShareThreadBody })");
+        expect(threads).toContain("router.delete('/:id/threads/:convId', requireOwnThreadMw, validate({ query: S.TypeQuery })");
         expect(absentTokens(read('routes/projects/schemas.js'), ['conversationId', 'conversationType'])).toEqual([]);
         expect(read('stores/agent/sharedConversations.js')).toContain("shared_scope = 'project'");
     });

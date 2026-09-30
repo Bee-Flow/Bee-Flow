@@ -61,6 +61,8 @@ export const readNotebook: (raw: unknown) => Notebook = shapeOf({
     organizationId: field.strOrNull,
     version: field.num(0),
     sourceCount: field.num(0),
+    lastEditedBy: field.strOrNull,
+    lastEditedAt: field.strOrNull,
     createdAt: field.strOrNull,
     updatedAt: field.strOrNull,
 });

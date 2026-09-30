@@ -1,9 +1,9 @@
 import { AlertTriangle, ArrowUpCircle, CheckCircle2, HelpCircle, Info } from 'lucide-react';
 import React from 'react';
+import { countPhrase } from './solutionCounts';
+import { sectionNames } from './solutionNotices';
 import { chipsOf, healthOf, runsOf, updateOf } from './solutionOverviewModel';
 import { useTranslation } from '../../../../hooks/useTranslation';
-import { countPhrase } from '../../../projects/solutionCounts';
-import { sectionNames } from '../../../projects/solutionNotices';
 import { kindIcon, kindTileStyle, kindColorVar, kindTint } from '../../../shared/kindColors';
 import { nOf } from '../KnowledgeStudio/plural';
 

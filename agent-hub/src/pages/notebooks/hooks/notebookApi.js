@@ -21,6 +21,10 @@ export async function notebookApi(path, opts = {}) {
         console.error('[Notebooks] API error:', res.status, data);
         const err = new Error(data.error || `API ${res.status}`);
         err.status = res.status;
+        // The server's code and details (a 409 says WHICH conflict it is, and
+        // which version kept the losing copy).
+        err.body = data;
+        err.code = data.code || null;
         throw err;
     }
     return res.json();
@@ -34,7 +38,14 @@ export async function uploadSourceFile(entityId, file) {
         method: 'POST',
         body: form,
     });
-    if (!res.ok) throw new Error('Upload failed');
+    if (!res.ok) {
+        // The server's own sentence (too large, not a supported type) is what
+        // the upload row should say.
+        const data = await res.json().catch(() => ({}));
+        const err = new Error(data.error || `Upload failed (${res.status})`);
+        err.status = res.status;
+        throw err;
+    }
     return res.json();
 }
 

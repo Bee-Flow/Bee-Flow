@@ -77,8 +77,10 @@ describe('saving the notes', () => {
         mocked.put.mockResolvedValue({ success: true, version: 8 });
         await expect(saveNotebookDocument('nb1', '# Plan', 7)).resolves.toEqual({ version: 8 });
         expect(mocked.put).toHaveBeenCalledWith('/api/notebooks/nb1', { documentContent: '# Plan', expectedVersion: 7 });
-        expect(ROUTES).toContain('if (r.ok) return res.json({ success: true, version: r.version });');
-        expect(ROUTES).toContain("code: 'version_conflict'");
+        // The save answers the new version; a stale one is a 409 whose code the
+        // phone reads (thrown as an HttpError, answered as `{ error, code }`).
+        expect(ROUTES).toContain('res.json({ success: true, version: r.version });');
+        expect(ROUTES).toContain("new HttpError(409, 'version_conflict'");
     });
 
     it('leaves the version out for a final save, and copes with a server that does not say', async () => {

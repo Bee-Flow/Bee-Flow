@@ -40,6 +40,17 @@ require.cache[dbPath] = {
         },
         getAll: async () => [],
         exec: async () => undefined,
+        // A content write runs as one transaction (the row lock, the
+        // co-editing check, the write): the same recorder answers it, with no
+        // co-editing table in this database.
+        withTransaction: async (fn) => fn({
+            query: async (sql, params = []) => {
+                if (/to_regclass/.test(sql)) return { rows: [{ present: false }] };
+                if (/^\s*UPDATE notebooks[\s\S]*RETURNING version\s*$/i.test(sql)) return { rows: [], ...(await require.cache[dbPath].exports.run(sql, params)) };
+                // The row lock, and the schema init's own transaction: nothing to record.
+                return { rows: /FOR UPDATE/.test(sql) ? [{ id: params[0] }] : [], rowCount: 0 };
+            },
+        }),
     },
 };
 
@@ -114,7 +125,9 @@ test('updateNotebookCas distinguishes a conflict from a missing notebook', async
     reset();
     state.rowCount = 0; state.existsOnReRead = true;
     const conflict = await notebookStore.updateNotebookCas('nb1', 'u1', { documentContent: '<p>x</p>', expectedVersion: 3 });
-    assert.deepStrictEqual(conflict, { ok: false, conflict: true });
+    assert.strictEqual(conflict.ok, false);
+    assert.strictEqual(conflict.conflict, true);
+    assert.strictEqual(typeof conflict.currentVersion, 'number', 'the version the caller lost to, for the 409 body');
 
     reset();
     state.rowCount = 0; state.existsOnReRead = false;   // row isn't ours / gone
