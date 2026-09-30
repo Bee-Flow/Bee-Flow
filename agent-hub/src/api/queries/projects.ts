@@ -154,6 +154,10 @@ export class ProjectConflictError extends Error {
 
 const enc = encodeURIComponent;
 
+/** A refusal (404 removed or deleted, 403 no longer a member) will not change on a second try: show it at once. */
+export const retryUnlessRefused = (failures: number, error: unknown): boolean =>
+    !(error instanceof ApiError && typeof error.status === 'number' && error.status >= 400 && error.status < 500 && error.status !== 408 && error.status !== 429) && failures < 2;
+
 // ── Projects ────────────────────────────────────────────────────────────────
 
 export function useProjectsQuery(kind: ProjectKind = 'workspace', enabled = true) {
@@ -171,6 +175,7 @@ export function useProjectQuery(projectId: string | null | undefined) {
     return useQuery<Project, Error>({
         queryKey: projectKeys.detail(projectId || ''),
         enabled: !!projectId,
+        retry: retryUnlessRefused,
         queryFn: async ({ signal }) => {
             const row = await apiClient.get<Project>(`/api/projects/${enc(projectId!)}`, { signal, retry: false });
             if (!row) throw new Error('Could not load project');
@@ -366,6 +371,8 @@ export function useAttachResource(projectId: string) {
             qc.invalidateQueries({ queryKey: projectKeys.resources(projectId) });
             qc.invalidateQueries({ queryKey: projectKeys.detail(projectId) });
             qc.invalidateQueries({ queryKey: projectKeys.activity(projectId) });
+            // The pickers say "in another project" from these lists.
+            qc.invalidateQueries({ queryKey: ['project-content', 'mine'] });
         },
     });
 }

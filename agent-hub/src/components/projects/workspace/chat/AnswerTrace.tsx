@@ -13,7 +13,10 @@ import { tierLabel } from '../../../licensing/tierMeta';
 function Block({ label, note, text }: { label: string; note?: string; text: string }) {
     const { t } = useTranslation();
     const copy = () => {
-        Promise.resolve(navigator.clipboard?.writeText(text))
+        // No clipboard (a plain-http origin) throws inside the callback, so it lands in the error toast
+        // instead of being taken for a write that worked.
+        Promise.resolve()
+            .then(() => navigator.clipboard.writeText(text))
             .then(() => toast.success(t('project_chat.trace_copied', 'Copied')))
             .catch(() => toast.error(t('project_chat.trace_copy_failed', 'Could not copy')));
     };

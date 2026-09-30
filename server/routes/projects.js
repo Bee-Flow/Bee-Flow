@@ -209,40 +209,7 @@ function memberAvatar(projectId, userId, user) {
 /** The display name a member list shows for a user row (the same rule as the documents' people). */
 const { displayNameOf } = require('../core/documents/documentPeople');
 
-/**
- * The organisation a project belongs to, for deciding who may be invited and named. A project that
- * carries none (older projects, and ones made by an account whose organisation only comes from a group,
- * which the session does not hold) is the organisation its owner acts in; only an owner without any
- * organisation leaves it '' — and then only org-less people and groups match.
- *
- * @param {{ organizationId?: string|null, ownerId?: string }|null|undefined} project
- * @returns {Promise<string>}
- */
-async function projectOrgOf(project) {
-    if (project?.organizationId) return project.organizationId;
-    if (!project?.ownerId) return '';
-    try {
-        const scope = await orgScope({ session: { user: { id: project.ownerId } } });
-        return scope.homeOrgId || scope.orgId || '';
-    } catch (err) {
-        log.warn('[Projects] owner organisation unavailable:', err.message);
-        return '';
-    }
-}
-
-/**
- * Whether a person belongs to the project's organisation: their own, or one a group of theirs is in (a member
- * whose organisation comes from a group has none on the account). An org-less project ('') matches only an
- * org-less person. A failed read refuses rather than guessing.
- *
- * @param {string} userId
- * @param {string} projectOrg  from projectOrgOf
- * @returns {Promise<boolean>}
- */
-async function belongsToProjectOrg(userId, projectOrg) {
-    const { orgIds } = await orgScope({ session: { user: { id: userId } } }, { strict: true });
-    return projectOrg ? orgIds.has(projectOrg) : orgIds.size === 0;
-}
+const { projectOrgOf, belongsToProjectOrg } = require('../projects/projectOrg');
 
 /**
  * Names for the owner and the member rows of one project.
@@ -274,7 +241,7 @@ async function describeMembers(project, shares) {
         try { user = await userStore.getUser(id); } catch (err) {
             log.warn('[Projects] member lookup failed:', err.message);
         }
-        if (!user || (user.organizationId || '') !== org) return;
+        if (!user || !await belongsToProjectOrg(id, org).catch(() => false)) return;
         const name = displayNameOf(user);
         const entry = name ? { name } : {};
         const picture = memberAvatar(project.id, id, user);
@@ -1200,6 +1167,21 @@ router.put('/:id/conversations', requireRole('editor'), validate({ body: S.Conve
             return res.status(400).json({ error: `At most ${MAX_CONVERSATION_BATCH} conversations per request` });
         }
 
+        // A chat shared into a project is sealed under THAT project's key and its shared scope requires a project:
+        // moving it would leave it unreadable in the new one, and detaching it would violate that constraint.
+        // Checked for the whole batch before anything is applied, so a refusal leaves nothing half done.
+        // Stopping the sharing (DELETE /conversations/:convId) is the way out.
+        for (const conv of [...(assign || []).map(c => ({ ...c, into: true })), ...(unassign || [])]) {
+            const table = conv.type === 'agent' ? 'agent_conversations' : 'direct_conversations';
+            const filing = await projectStore.getOwnConversationFiling(conv.id, userId, table);
+            if (filing?.shared && !(conv.into && filing.projectId === req.params.id)) {
+                return res.status(409).json({
+                    error: 'A chat shared with a project cannot be moved or detached. Stop sharing it first.',
+                    code: 'CONVERSATION_SHARED', conversationId: conv.id,
+                });
+            }
+        }
+
         // Filing chats INTO a Solution is refused. Taking them out is not:
         // a legacy project classified as a Solution may still hold some.
         if (Array.isArray(assign) && assign.length > 0) {
@@ -1257,6 +1239,8 @@ router.use('/', require('./projects/chats'));
 router.use('/', require('./projects/tasks'));
 router.use('/', require('./projects/memberColors'));
 router.use('/', require('./projects/workspace'));
+router.use('/', require('./projects/discovery'));
+router.use('/', require('./projects/board'));
 router.use('/', require('./projects/content'));
 // Real-time co-editing of notebooks and project pages (the HTTP half of the
 // sync; the other half rides on GET /:id/stream above).

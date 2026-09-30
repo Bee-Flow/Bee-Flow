@@ -17,6 +17,12 @@ function kit(over = {}) {
             createNotebook: async (i) => { calls.nbs.push(i); return { id: `nb-${calls.nbs.length}`, name: i.name }; },
             updateNotebook: async (id, userId, u) => { calls.updates.push([id, userId, u]); return true; },
         },
+        // The real predicate reads the user store through auth/orgScope; here the users map answers.
+        projectOrg: {
+            ...require('./projectOrg'),
+            projectOrgOf: async (p) => p.organizationId || '',
+            belongsToProjectOrg: async (id, org) => ((over.users || { ann: { organizationId: 'org1' }, vic: { organizationId: 'org1' } })[id]?.organizationId || '') === org,
+        },
         membership: { isAllowedIn: (kind, container) => container !== 'solution' },
         recordCreated: async (e) => { calls.feed.push(e); },
         markdownToHtml: (md) => `<p>${md}</p>`,
@@ -43,7 +49,7 @@ test('a document is made in the project as the asker, private, as a page from th
     const run = tools.forAnswer(ask);
     const out = JSON.parse(await run.execute('create_document', { name: '  Launch plan ', content: '# Plan' }));
     assert.deepStrictEqual(out, { ok: true, kind: 'document', id: 'doc-1', name: 'Launch plan', url: '/app/projects/p1/documents/doc-1' });
-    assert.deepStrictEqual(calls.docs[0], { userId: 'ann', name: 'Launch plan', docType: 'page', bodyHtml: '<p># Plan</p>', kind: 'document', visibility: 'private', projectId: 'p1' });
+    assert.deepStrictEqual(calls.docs[0], { userId: 'ann', name: 'Launch plan', docType: 'page', bodyHtml: '<p># Plan</p>', kind: 'document', visibility: 'private', projectId: 'p1', projectOrgChecked: true });
     assert.deepStrictEqual(calls.feed, [{ projectId: 'p1', itemType: 'document', itemId: 'doc-1', actorId: 'ann' }]);
     assert.deepStrictEqual(run.created, [{ kind: 'document', id: 'doc-1', name: 'Launch plan' }]);
     assert.ok(!JSON.stringify(out).includes('# Plan'), 'the result carries no text');
@@ -109,7 +115,7 @@ test('a designed document is made in the project with the model\'s own HTML and 
     assert.deepStrictEqual(out, { ok: true, kind: 'document', id: 'doc-1', name: 'Invoice 2026-014', url: '/app/projects/p1/documents/doc-1' });
     assert.deepStrictEqual(calls.docs[0], {
         userId: 'ann', name: 'Invoice 2026-014', docType: 'invoice', bodyHtml: DESIGNED.bodyHtml, css: DESIGNED.css,
-        settings: {}, kind: 'document', visibility: 'private', projectId: 'p1',
+        settings: {}, kind: 'document', visibility: 'private', projectId: 'p1', projectOrgChecked: true,
     });
     assert.deepStrictEqual(calls.feed, [{ projectId: 'p1', itemType: 'document', itemId: 'doc-1', actorId: 'ann' }]);
     assert.ok(!JSON.stringify(out).includes('<h1>'), 'the result carries no markup');

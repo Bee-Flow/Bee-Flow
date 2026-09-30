@@ -162,7 +162,7 @@ async function listProjectThreads(projectId, { limit = 50, offset = 0 } = {}) {
         SELECT id, user_id, title, project_id, updated_at, created_at, agent_id::text AS agent_id, 'agent' AS conv_type
           FROM agent_conversations
          WHERE project_id = $1 AND shared_scope = 'project'
-         ORDER BY updated_at DESC
+         ORDER BY updated_at DESC, id
          LIMIT $2 OFFSET $3
     `, [projectId, capped, Math.max(0, offset)]);
 

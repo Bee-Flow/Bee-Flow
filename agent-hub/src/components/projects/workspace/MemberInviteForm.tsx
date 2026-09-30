@@ -9,6 +9,7 @@ import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useInviteMember, type ProjectMembers } from '../../../api/queries/projects';
 import useTranslation from '../../../hooks/useTranslation';
 import SegmentedControl from '../../shared/SegmentedControl';
+import { projectErrorText } from './projectErrorText';
 import { useDirectoryGroups, useDirectoryUsers } from './homeQueries';
 import { ErrorText, INPUT_CLASS, PrimaryButton, SELECT_CLASS } from './workspaceUi';
 
@@ -122,7 +123,7 @@ export default function MemberInviteForm({ projectId, members, focusRequest = 0 
             await invite.mutateAsync({ sharedWithType: type, sharedWithId: id, permission });
             setSubject('');
         } catch (err) {
-            setError(err instanceof Error ? err.message : t('project_home.members.invite_failed', 'Could not invite this member.'));
+            setError(projectErrorText(t, err, t('project_home.members.invite_failed', 'Could not invite this member.')));
         }
     };
 
@@ -162,6 +163,13 @@ export default function MemberInviteForm({ projectId, members, focusRequest = 0 
                     {t('project_home.members.invite', 'Invite')}
                 </PrimaryButton>
             </div>
+            {options === null && (
+                <p className="m-0 text-[12px] text-[var(--text-tertiary)]" data-testid="member-invite-id-help">
+                    {type === 'user'
+                        ? t('project_home.members.id_help_user', 'Only organisation admins can list people. Ask an admin for the id of the person you want to invite.')
+                        : t('project_home.members.id_help_group', 'Only organisation admins can list groups. Ask an admin for the id of the group you want to invite.')}
+                </p>
+            )}
             <ErrorText testId="member-invite-error">{error}</ErrorText>
         </form>
     );

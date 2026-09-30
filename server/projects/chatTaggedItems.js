@@ -53,14 +53,14 @@ async function loadTaggedItems(refs, { userId }, deps = {}) {
         try {
             if (ref.kind === 'document') {
                 const doc = await documents().getDocument(ref.id, { userId });
-                if (doc) items.push({ kind: 'document', name: doc.name, text: htmlToText(doc.bodyHtml) });
+                if (doc) items.push({ id: ref.id, kind: 'document', name: doc.name, text: htmlToText(doc.bodyHtml) });
             } else if (ref.kind === 'meeting') {
                 // Read as the asker; a note filed in the project is readable by every member (transcriptionStore's project fallback).
                 const note = await meetings().getTranscription(ref.id, userId, {});
-                if (note) items.push({ kind: 'meeting', name: note.title, text: meetingText(note) });
+                if (note) items.push({ id: ref.id, kind: 'meeting', name: note.title, text: meetingText(note) });
             } else if (ref.kind === 'notebook') {
                 const nb = await notebooks().getNotebook(ref.id, userId);
-                if (nb) items.push({ kind: 'notebook', name: nb.name, text: nb.documentMd || htmlToText(nb.documentContent) });
+                if (nb) items.push({ id: ref.id, kind: 'notebook', name: nb.name, text: nb.documentMd || htmlToText(nb.documentContent) });
             }
         } catch (err) {
             log.warn(`[ProjectChat] tagged ${ref && ref.kind} ${ref && ref.id} not loaded: ${err && err.message}`);

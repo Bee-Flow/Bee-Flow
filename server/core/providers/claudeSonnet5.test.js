@@ -80,3 +80,17 @@ test('_buildSdkParams: legacy Sonnet 4.6 keeps caller temperature when thinking 
     assert.strictEqual(params.temperature, 0.5);
     assert.strictEqual(params.thinking, undefined);
 });
+
+
+test('modern Claude uses native JSON for a closed classification schema', () => {
+    const schema = { type: 'object', properties: { reply: { type: 'boolean' } }, required: ['reply'], additionalProperties: false };
+    assert.equal(p.supportsStructuredOutput('claude-sonnet-5-5', schema), true);
+    assert.equal(p.supportsStructuredOutput('claude-sonnet-4-6', schema), false);
+    assert.equal(p.supportsStructuredOutput('claude-sonnet-5-5', { type: 'object' }), false);
+    const params = p._buildSdkParams('claude-sonnet-5-5', MSGS, {
+        reasoningEffort: 'low', responseFormat: { type: 'json_schema', json_schema: { name: 'decision', schema } },
+    });
+    assert.deepEqual(params.output_config.format, { type: 'json_schema', schema });
+    assert.equal(params.output_config.effort, 'low');
+    assert.equal(params.tool_choice, undefined);
+});

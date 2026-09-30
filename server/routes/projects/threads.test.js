@@ -156,8 +156,12 @@ test('nobody but the chat\'s owner can unshare it: the project owner, a member, 
     for (const user of [ALICE, CAROL, { id: 'mallory', organizationId: 'org2' }]) {
         const res = await call('DELETE', '/api/projects/P/threads/bob-shared', { user });
         assert.strictEqual(res.status, 404, user.id);
+        assert.strictEqual(res.body.code, 'not_found', 'the shared error shape: a code beside the message');
+        assert.strictEqual(res.body.error, 'Conversation not found');
     }
-    assert.strictEqual((await call('DELETE', '/api/projects/P/threads/bob-shared', {})).status, 401);
+    const anon = await call('DELETE', '/api/projects/P/threads/bob-shared', {});
+    assert.strictEqual(anon.status, 401);
+    assert.strictEqual(anon.body.code, 'not_authenticated');
     assert.deepStrictEqual(fx.unshared, [], 'nothing was re-encrypted');
     assert.deepStrictEqual(fx.recorded, []);
 });
@@ -212,7 +216,9 @@ test('self-detach of a private chat only takes it out; somebody else\'s is a 404
 
     const other = await call('DELETE', '/api/projects/conversations/carol-shared', { user: BOB });
     assert.strictEqual(other.status, 404);
-    assert.strictEqual((await call('DELETE', '/api/projects/conversations/bob-private', {})).status, 401);
+    const anon = await call('DELETE', '/api/projects/conversations/bob-private', {});
+    assert.strictEqual(anon.status, 401);
+    assert.strictEqual(anon.body.code, 'not_authenticated');
     assert.deepStrictEqual(fx.unassigned, [['bob-private', 'bob']]);
 });
 
@@ -240,6 +246,7 @@ test('sharing is editor + owner, into a workspace, never into a Solution', async
     const sol = await call('POST', '/api/projects/S/threads', { user: CAROL, body: { conversationId: 'carol-new' } });
     assert.strictEqual(sol.status, 409);
     assert.strictEqual(sol.body.code, 'SOLUTION_HOLDS_NO_CHATS');
+    assert.strictEqual(sol.body.error, 'This is a Studio Solution. Chats belong in a project, not in a Solution.');
 
     fx.roles.P.bob = 'viewer';
     assert.strictEqual((await call('POST', '/api/projects/P/threads', { user: BOB, body: { conversationId: 'bob-private' } })).status, 403);

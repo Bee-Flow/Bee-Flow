@@ -27,6 +27,7 @@ function parseAiMeta(v) {
     if (!meta || typeof meta !== 'object') return null;
     const str = (x) => (typeof x === 'string' && x ? x.slice(0, 64) : null);
     return {
+        ...(Array.isArray(meta.usedSources) ? { usedSources: parseRefs(meta.usedSources).slice(0, 20) } : {}),
         tier: str(meta.tier),
         requestedTier: str(meta.requestedTier),
         redacted: Number.isFinite(meta.redacted) ? Math.max(0, Math.floor(meta.redacted)) : 0,

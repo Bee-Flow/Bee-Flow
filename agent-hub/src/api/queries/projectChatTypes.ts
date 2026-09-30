@@ -17,6 +17,7 @@ export interface TeamChatLastMessage {
 }
 
 export interface TeamChat {
+    aiState?: { status: 'idle' | 'running'; threadId: string | null; startedAt?: string };
     id: string;
     title: string;
     aiMode: TeamChatAiMode;
@@ -47,6 +48,7 @@ export interface TeamChatAiPolicy { autoAllowed: boolean; alwaysAllowed: boolean
 
 /** How an AI answer was made: the depth it ran on, and what the Privacy Shield replaced (a count and kinds, never values). */
 export interface TeamChatAiMeta {
+    usedSources?: TeamChatRef[];
     tier: string | null; requestedTier: string | null; redacted: number; categories: string[];
     /** The Privacy Shield replaced values, so there is a trace to open. */
     trace?: boolean;

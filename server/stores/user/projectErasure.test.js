@@ -53,6 +53,7 @@ test('owned projects are deleted one by one through the teardown; one with a sha
     const report = await eraseOwnedProjects('u1', {
         listOwned: async (id) => { assert.strictEqual(id, 'u1'); return ['p1', 'p-shared', 'p-broken', 'p-gone']; },
         countSharedThreads: async (projectId) => (projectId === 'p-shared' ? 2 : 0),
+        handOver: async () => null,
         teardown: {
             deleteProject: async (projectId) => {
                 tornDown.push(projectId);
@@ -62,16 +63,28 @@ test('owned projects are deleted one by one through the teardown; one with a sha
         },
     });
     assert.deepStrictEqual(tornDown, ['p1', 'p-broken', 'p-gone'], 'the project with a shared chat is not folded back, detached or deleted');
-    assert.deepStrictEqual(report, { deleted: 1, kept: 1, failed: 1 });
+    assert.deepStrictEqual(report, { deleted: 1, kept: 1, failed: 1, handedOver: 0 });
+});
+
+test('a project others edit in is handed to an editor, not deleted with their chats, comments and tasks', async () => {
+    const tornDown = [];
+    const report = await eraseOwnedProjects('u1', {
+        listOwned: async () => ['p-team', 'p-solo'],
+        countSharedThreads: async () => 0,
+        handOver: async (projectId, from) => { assert.strictEqual(from, 'u1'); return projectId === 'p-team' ? 'u2' : null; },
+        teardown: { deleteProject: async (projectId) => { tornDown.push(projectId); return true; } },
+    });
+    assert.deepStrictEqual(tornDown, ['p-solo'], 'only the project nobody else edits in is torn down');
+    assert.deepStrictEqual(report, { deleted: 1, kept: 0, failed: 0, handedOver: 1 });
 });
 
 test('owned projects: no user id, or a listing that fails, deletes nothing', async () => {
     let asked = false;
     const teardown = { deleteProject: async () => { asked = true; return true; } };
-    assert.deepStrictEqual(await eraseOwnedProjects('', { listOwned: async () => ['p1'], countSharedThreads: async () => 0, teardown }),
-        { deleted: 0, kept: 0, failed: 0 });
+    assert.deepStrictEqual(await eraseOwnedProjects('', { listOwned: async () => ['p1'], countSharedThreads: async () => 0, handOver: async () => null, teardown }),
+        { deleted: 0, kept: 0, failed: 0, handedOver: 0 });
     assert.deepStrictEqual(await eraseOwnedProjects('u1', {
-        listOwned: async () => { throw new Error('relation "projects" does not exist'); }, countSharedThreads: async () => 0, teardown,
-    }), { deleted: 0, kept: 0, failed: 1 });
+        listOwned: async () => { throw new Error('relation "projects" does not exist'); }, countSharedThreads: async () => 0, handOver: async () => null, teardown,
+    }), { deleted: 0, kept: 0, failed: 1, handedOver: 0 });
     assert.strictEqual(asked, false);
 });

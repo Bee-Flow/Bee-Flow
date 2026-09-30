@@ -2,8 +2,9 @@
 /**
  * Account erasure, the collaborative-project half.
  *
- * `eraseOwnedProjects`: the projects the deleted person OWNED are deleted the
- * way their owner would delete them (projects/projectTeardown.js): colleagues'
+ * `eraseOwnedProjects`: a project the deleted person OWNED that other people work in is handed to its
+ * longest-standing editor (their chats, comments and tasks are theirs too, and went with the project
+ * before); one nobody else works in is deleted the way its owner would delete it (projects/projectTeardown.js): colleagues'
  * co-edits folded back into their notebooks and pages first, soft references
  * detached, then the row, then the project's files base. A bare
  * `DELETE FROM projects` cascaded the co-editing log away with every edit not
@@ -62,8 +63,8 @@ async function eraseProjectTraces(userId, opts = {}) {
 }
 
 /**
- * Delete every project `userId` owns, one at a time through the same teardown
- * as `DELETE /api/projects/:id`. A project that still has a conversation
+ * Hand every project `userId` owns that has an editor over to that editor (`handOver`), and delete the
+ * rest, one at a time through the same teardown as `DELETE /api/projects/:id`. A project that still has a conversation
  * shared into it is kept, as the route keeps it: the schema refuses the
  * delete, and only each conversation's owner can unshare it. Nothing is
  * folded back or detached for it, so it stays exactly as it was.
@@ -73,8 +74,9 @@ async function eraseProjectTraces(userId, opts = {}) {
  *   listOwned?: (userId: string) => Promise<string[]>,
  *   countSharedThreads?: (projectId: string) => Promise<number>,
  *   teardown?: { deleteProject: (projectId: string) => Promise<boolean> },
+ *   handOver?: (projectId: string, fromOwnerId: string) => Promise<string|null>,
  * }} [opts]  test seam
- * @returns {Promise<{ deleted: number, kept: number, failed: number }>}
+ * @returns {Promise<{ deleted: number, kept: number, failed: number, handedOver: number }>}
  */
 async function eraseOwnedProjects(userId, opts = {}) {
     const listOwned = opts.listOwned || (async (id) => {
@@ -83,9 +85,10 @@ async function eraseOwnedProjects(userId, opts = {}) {
     });
     const countSharedThreads = opts.countSharedThreads
         || ((projectId) => require('../projectStore').countSharedThreads(projectId));
+    const handOver = opts.handOver || ((projectId, fromOwnerId) => require('../projectStore').handOverProject(projectId, fromOwnerId));
     const teardown = opts.teardown || require('../../projects/projectTeardown').makeProjectTeardown();
 
-    const report = { deleted: 0, kept: 0, failed: 0 };
+    const report = { deleted: 0, kept: 0, failed: 0, handedOver: 0 };
     if (!userId) return report;
     /** @type {string[]} */
     let ids;
@@ -98,6 +101,10 @@ async function eraseOwnedProjects(userId, opts = {}) {
     }
     for (const projectId of ids) {
         try {
+            if (await handOver(projectId, userId)) {
+                report.handedOver += 1;
+                continue;
+            }
             if ((await countSharedThreads(projectId)) > 0) {
                 report.kept += 1;
                 log.warn(`[UserStore] project ${projectId} kept: conversations are still shared into it`);

@@ -46,7 +46,7 @@ function useRailItems(): { top: RailItem[]; work: RailItem[]; project: RailItem[
 function UnreadDot({ label, testId }: { label: string; testId: string }) {
     return (
         <span
-            className="w-1.5 h-1.5 rounded-full flex-shrink-0 bg-[var(--accent-primary)] max-[1180px]:absolute max-[1180px]:top-1.5 max-[1180px]:right-2"
+            className="w-1.5 h-1.5 rounded-full flex-shrink-0 bg-[var(--accent-primary)] max-[767px]:absolute max-[767px]:top-1.5 max-[767px]:right-2"
             role="img"
             aria-label={label}
             data-testid={testId}
@@ -70,17 +70,17 @@ function RailRow({ item, active, count, unread, onSelect }: {
             aria-current={active ? 'page' : undefined}
             title={item.label}
             data-testid={`project-rail-${item.id}`}
-            className={`relative w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left transition-all duration-150 max-[1180px]:justify-center max-[1180px]:px-0 ${
+            className={`relative w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left transition-all duration-150 max-[767px]:justify-center max-[767px]:px-0 ${
                 active ? 'bg-[var(--bg-card)] shadow-sm' : 'hover:bg-[var(--item-hover-bg)]'
             }`}
         >
             <Icon className="w-4 h-4 flex-shrink-0" style={item.iconStyle} strokeWidth={active ? 2.25 : 1.75} aria-hidden="true" />
-            <span className={`flex-1 min-w-0 truncate text-[13px] leading-tight text-[var(--text-primary)] max-[1180px]:sr-only ${active ? 'font-semibold' : 'font-medium'}`}>
+            <span className={`flex-1 min-w-0 truncate text-[13px] leading-tight text-[var(--text-primary)] max-[767px]:sr-only ${active ? 'font-semibold' : 'font-medium'}`}>
                 {item.label}
             </span>
             {unread && !active && <UnreadDot label={t('project_home.rail.unread', 'New changes')} testId={`project-rail-${item.id}-unread`} />}
             {typeof count === 'number' && Number.isFinite(count) && (
-                <span className="flex-shrink-0 text-[12px] tabular-nums text-[var(--text-tertiary)] max-[1180px]:hidden" data-testid={`project-rail-${item.id}-count`}>
+                <span className="flex-shrink-0 text-[12px] tabular-nums text-[var(--text-tertiary)] max-[767px]:hidden" data-testid={`project-rail-${item.id}-count`}>
                     {count}
                 </span>
             )}
@@ -91,7 +91,7 @@ function RailRow({ item, active, count, unread, onSelect }: {
 function RailGroup({ label, children }: { label: string; children: React.ReactNode }) {
     return (
         <div className="mt-3" role="group" aria-label={label}>
-            <p className="px-2.5 pb-1 text-[11px] font-semibold uppercase tracking-[0.05em] text-[var(--text-tertiary)] m-0 max-[1180px]:sr-only">{label}</p>
+            <p className="px-2.5 pb-1 text-[11px] font-semibold uppercase tracking-[0.05em] text-[var(--text-tertiary)] m-0 max-[767px]:sr-only">{label}</p>
             <div className="flex flex-col gap-0.5">{children}</div>
         </div>
     );
@@ -108,7 +108,7 @@ function MemberStack({ projectId, currentUserId }: { projectId: string; currentU
     const extra = people.length > 5 ? people.length - 5 : 0;
     const here = online.filter((id) => id !== currentUserId).length;
     return (
-        <div className="flex items-center gap-2 mt-2 max-[1180px]:hidden" data-testid="project-rail-people">
+        <div className="flex items-center gap-2 mt-2 max-[767px]:hidden" data-testid="project-rail-people">
             <div className="flex -space-x-1.5">
                 {people.slice(0, 5).map((id) => (
                     <Avatar
@@ -156,7 +156,7 @@ export default function ProjectRail({ project, role, activeTab, counts, unread =
     return (
         <nav
             aria-label={t('project_home.rail.label', 'Project sections')}
-            className="h-full w-60 max-[1180px]:w-14 flex flex-col flex-shrink-0 bg-[var(--bg-secondary)] border-r border-[var(--border-subtle)]"
+            className="hidden md:flex h-full w-56 flex flex-col flex-shrink-0 bg-[var(--bg-secondary)] border-r border-[var(--border-subtle)]"
             data-surface="subtle"
             data-static=""
             data-testid="project-rail"
@@ -170,13 +170,13 @@ export default function ProjectRail({ project, role, activeTab, counts, unread =
                     data-testid="project-rail-back"
                 >
                     <ArrowLeft className="w-3.5 h-3.5" aria-hidden="true" />
-                    <span className="max-[1180px]:sr-only">{t('project_home.all_projects', 'All projects')}</span>
+                    <span className="max-[767px]:sr-only">{t('project_home.all_projects', 'All projects')}</span>
                 </button>
             </div>
-            <div className="px-3 pt-2 pb-1 max-[1180px]:px-2">
-                <div className="flex items-center gap-2.5 max-[1180px]:justify-center">
+            <div className="px-3 pt-2 pb-1 max-[767px]:px-2">
+                <div className="flex items-center gap-2.5 max-[767px]:justify-center">
                     <span style={projectTileStyle(project.color, 32)} aria-hidden="true">{projectIcon(project.icon)}</span>
-                    <div className="min-w-0 max-[1180px]:sr-only">
+                    <div className="min-w-0 max-[767px]:sr-only">
                         <p className="text-[14px] font-semibold text-[var(--text-primary)] truncate m-0" data-testid="project-rail-name">{project.name}</p>
                         <p className="text-[11px] text-[var(--text-tertiary)] m-0">{roleText}</p>
                     </div>
@@ -184,9 +184,9 @@ export default function ProjectRail({ project, role, activeTab, counts, unread =
                 <MemberStack projectId={project.id} currentUserId={currentUserId} />
             </div>
             <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-2 pb-2 pt-2 flex flex-col">
-                <div className="flex flex-col gap-0.5">{shown(items.top).map(row)}</div>
-                <RailGroup label={t('project_home.rail.work', 'Work')}>{shown(items.work).map(row)}</RailGroup>
-                <RailGroup label={t('project_home.rail.project', 'Project')}>{shown(items.project).map(row)}</RailGroup>
+                <RailGroup label={t('project_home.rail.collaborate', 'Collaborate')}>{shown([...items.top, ...items.work.filter(i => ['chats', 'tasks', 'meetings'].includes(i.id))]).map(row)}</RailGroup>
+                <RailGroup label={t('project_home.rail.content', 'Content')}>{shown(items.work.filter(i => ['documents', 'notebooks', 'knowledge'].includes(i.id))).map(row)}</RailGroup>
+                <RailGroup label={t('project_home.rail.manage', 'Manage')}>{shown(items.project).map(row)}</RailGroup>
             </div>
         </nav>
     );

@@ -833,6 +833,39 @@ function makeProjectStore(db, { ready = async () => {} } = {}) {
         return rowCount > 0;
     }
 
+    /**
+     * Hand a project over when its owner goes away: the longest-standing EDITOR (a person, by when they were
+     * added) becomes the owner, and their share row goes, since the owner is not also a member. Nobody is
+     * promoted over their head: a project with no editor returns null and the caller decides.
+     *
+     * One statement, so two hand-overs cannot pick different people, and the owner is only replaced while
+     * still the one being erased.
+     *
+     * @param {string} projectId
+     * @param {string} fromOwnerId  the owner being replaced
+     * @returns {Promise<string|null>} the new owner's id
+     */
+    async function handOverProject(projectId, fromOwnerId) {
+        await initDB();
+        const { rows } = await run(
+            `WITH heir AS (
+                 SELECT id, shared_with_id FROM project_shares
+                  WHERE project_id = $1 AND shared_with_type = 'user' AND permission = 'editor'
+                    AND shared_with_id <> $2
+                  ORDER BY created_at, id LIMIT 1
+             ), moved AS (
+                 UPDATE projects SET owner_id = (SELECT shared_with_id FROM heir), updated_at = NOW()
+                  WHERE id = $1 AND owner_id = $2 AND EXISTS (SELECT 1 FROM heir)
+                  RETURNING owner_id
+             ), dropped AS (
+                 DELETE FROM project_shares WHERE id IN (SELECT id FROM heir) AND EXISTS (SELECT 1 FROM moved)
+             )
+             SELECT owner_id FROM moved`,
+            [projectId, fromOwnerId]
+        );
+        return rows?.[0]?.owner_id || null;
+    }
+
     async function unshareProject(shareId) {
         await initDB();
         const { rowCount } = await run('DELETE FROM project_shares WHERE id = $1', [shareId]);
@@ -1068,7 +1101,7 @@ function makeProjectStore(db, { ready = async () => {} } = {}) {
         const rows = await getAll(
             `SELECT * FROM project_activity
              WHERE project_id = $1
-             ORDER BY created_at DESC
+             ORDER BY created_at DESC, id DESC
              LIMIT $2 OFFSET $3`,
             [projectId, limit, offset]
         );
@@ -1096,6 +1129,7 @@ function makeProjectStore(db, { ready = async () => {} } = {}) {
         deleteProject,
         shareProject,
         unshareProject,
+        handOverProject,
         getProjectShares,
         getShareById,
         updateMemberRole,
@@ -1134,6 +1168,7 @@ module.exports = {
     deleteProject: store.deleteProject,
     shareProject: store.shareProject,
     unshareProject: store.unshareProject,
+    handOverProject: store.handOverProject,
     getProjectShares: store.getProjectShares,
     getShareById: store.getShareById,
     updateMemberRole: store.updateMemberRole,

@@ -1,3 +1,5 @@
+import ProjectCaptureProvider from './components/projects/workspace/content/ProjectCaptureProvider';
+import { mayNavigate } from './utils/unsavedNavigation';
 import React, { Suspense, useState, useEffect, useRef } from 'react';
 import { lazy } from './utils/lazyWithReload';
 
@@ -267,6 +269,7 @@ function App() {
     // Handle browser back/forward
     useEffect(() => {
         const handlePopState = () => {
+            if (!mayNavigate()) return;
             const page = pageFromPath(window.location.pathname);
             setCurrentPage(page);
             setAdminPath(parseAdminPath(window.location.pathname));
@@ -712,6 +715,7 @@ function App() {
         <SubscriptionProvider user={user}>
         <RecorderProvider>
         <CaptureProvider>
+        <ProjectCaptureProvider key={user?.id || 'anonymous'} onNavigate={navigateToPage}>
         <div className="flex flex-col" style={{ height: 'var(--app-height)' }}>
 
             {/* Deployment warning. Above everything, in the layout flow rather
@@ -796,6 +800,7 @@ function App() {
 
 
         </div>
+        </ProjectCaptureProvider>
         </CaptureProvider>
         </RecorderProvider>
         </SubscriptionProvider>

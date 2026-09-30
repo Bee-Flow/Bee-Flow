@@ -49,6 +49,15 @@ describe('describeActivity', () => {
         expect(describeActivity(item('kb_added', { actorId: 'left-long-ago' }), names, t)).toBe('Someone linked a knowledge base');
     });
 
+    it('calls somebody who is not on the loaded member list "A former member", never "Someone"', () => {
+        const loaded: ActivityNames = { ...names, rosterKnown: true };
+        expect(describeActivity(item('kb_added', { actorId: 'left-long-ago' }), loaded, t)).toBe('A former member linked a knowledge base');
+        expect(describeActivity(item('member_removed', { targetType: 'user', targetId: 'gone' }), loaded, t)).toBe('Ada removed a former member');
+        // No actor at all (the system) and a member list that has not loaded keep the plain wording.
+        expect(describeActivity(item('content.edited', { actorId: undefined, actorKind: 'system', targetType: 'document' } as Partial<ProjectActivityItem>), loaded, t)).toBe('Someone edited a document');
+        expect(describeActivity(item('kb_added', { actorId: 'left-long-ago' }), names, t)).toBe('Someone linked a knowledge base');
+    });
+
     it('keeps an unknown kind readable instead of dropping it', () => {
         expect(describeActivity(item('something.new'), names, t)).toBe('Ada made a change (something.new)');
     });

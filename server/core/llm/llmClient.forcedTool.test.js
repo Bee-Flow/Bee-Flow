@@ -682,3 +682,16 @@ test('a grammar route the runtime refuses (400) falls back to the tool route; an
         assert.strictEqual(dead.calls.length, 1);
     } finally { dead.restore(); }
 });
+
+
+test('Claude 5.5 participation uses native JSON without unsupported forced tool_choice', async () => {
+    const { PARTICIPATION_TOOL } = require('../../projects/participation/relevanceGate');
+    const s = stubResolve(claudeAdapter, { content: JSON.stringify({ should_reply: true }) });
+    try {
+        const out = await llmClient.chatForcedTool('claude-sonnet-5-5', [{ role: 'user', content: 'AI, can you help?' }], PARTICIPATION_TOOL);
+        assert.equal(s.calls[0].options.toolChoice, undefined);
+        assert.equal(s.calls[0].options.tools, undefined);
+        assert.deepEqual(s.calls[0].options.responseFormat.json_schema.schema, PARTICIPATION_TOOL.function.parameters);
+        assert.deepEqual(out.structured, { should_reply: true });
+    } finally { s.restore(); }
+});

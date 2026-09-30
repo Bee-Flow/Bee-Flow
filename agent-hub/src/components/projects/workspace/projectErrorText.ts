@@ -43,6 +43,10 @@ function kindHoldsOtherContent(t: TranslateFn, details: Record<string, unknown> 
 /** Refusals of team chats, their messages, and content made in a project. */
 function chatOrContentText(t: TranslateFn, code: string | null): string | null {
     switch (code) {
+        case 'board_changed': return t('project_tasks.board_changed', 'The board changed. Close and reopen the column settings before saving.');
+        case 'column_not_empty': return t('project_tasks.column_not_empty', 'Move all tasks out of this column before removing it or changing its status.');
+        case 'invalid_columns': return t('project_tasks.invalid_columns', 'Keep at least one column for each status, with unique names.');
+        case 'invalid_position': return t('project_tasks.invalid_position', 'The destination changed. Refresh the board and try again.');
         case 'chat_archived':
             return t('project_chat.archived_notice', 'This chat is archived. Restore it to post again.');
         case 'ai_mode_not_allowed':
@@ -77,6 +81,7 @@ export function projectErrorText(t: TranslateFn, source: unknown, fallback?: str
     const known = chatOrContentText(t, code);
     if (known) return known;
     switch (code) {
+        case 'invalid_date_range': return t('project_tasks.invalid_date_range', 'The start date must be on or before the due date.');
         case 'SHARED_CHATS_REMAIN': return sharedChatsRemain(t, details);
         case 'KIND_ALREADY_SET': return kindAlreadySet(t, details);
         case 'KIND_HOLDS_OTHER_CONTENT': return kindHoldsOtherContent(t, details);

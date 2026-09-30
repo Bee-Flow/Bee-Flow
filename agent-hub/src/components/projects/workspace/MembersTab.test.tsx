@@ -30,9 +30,9 @@ function renderTab(role: WorkspaceTabProps['role'], userId: string, extra: Parti
 beforeEach(() => { fetchMock.mockReset(); });
 
 describe('MembersTab', () => {
-    it('counts the owner plus every share, and explains the roles', async () => {
+    it('distinguishes people and group grants, and explains the roles', async () => {
         renderTab('viewer', EDITOR_ID);
-        expect(await screen.findByText('4')).toBeInTheDocument();
+        expect(await screen.findByText('3 people · 1 groups')).toBeInTheDocument();
         expect(screen.getByTestId('members-roles')).toHaveTextContent('Reads everything in the project, changes nothing.');
         expect(screen.queryByTestId('members-invite-open')).toBeNull();
     });

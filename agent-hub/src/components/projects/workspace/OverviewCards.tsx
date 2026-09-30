@@ -12,7 +12,7 @@ import useTranslation from '../../../hooks/useTranslation';
 import { kindColorVar } from '../../shared/kindColors';
 import { useProjectLive } from './ProjectLiveContext';
 import { canEditProject, type WorkspaceIntent, type WorkspaceTabId } from './types';
-import { Avatar, Card, GhostButton, SectionLabel } from './workspaceUi';
+import { Avatar, Card, GhostButton } from './workspaceUi';
 
 export type OpenTab = (tab: WorkspaceTabId, sub?: string | null, intent?: WorkspaceIntent | null) => void;
 
@@ -50,8 +50,8 @@ export function QuickActions({ role, onOpenTab, notebooksEnabled = true }: { rol
     const actions = useQuickActions(role, notebooksEnabled);
     if (actions.length === 0) return null;
     return (
-        <section aria-labelledby="project-quick-actions">
-            <SectionLabel id="project-quick-actions">{t('project_home.quick.title', 'Add to this project')}</SectionLabel>
+        <details className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)] p-3">
+            <summary className="cursor-pointer text-sm font-medium">{t('project_home.quick.title', 'Add to this project')}</summary>
             <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
                 {actions.map(({ id, Icon, iconStyle, title, description, tab, intent }) => (
                     <button
@@ -69,7 +69,7 @@ export function QuickActions({ role, onOpenTab, notebooksEnabled = true }: { rol
                     </button>
                 ))}
             </div>
-        </section>
+        </details>
     );
 }
 
@@ -103,8 +103,8 @@ export function MembersCard({ role, projectId, onOpenTab }: { role: ProjectRole;
     const members = useProjectMembersQuery(projectId);
     const { online } = useProjectLive();
     const data = members.data;
-    const people = data ? [data.ownerId, ...data.members.filter((m) => m.sharedWithType === 'user').map((m) => m.sharedWithId)] : [];
-    const total = data ? data.members.length + 1 : null;
+    const people = data ? [...new Set([data.ownerId, ...data.members.filter((m) => m.sharedWithType === 'user').map((m) => m.sharedWithId)])] : [];
+    const groups = data?.members.filter(m => m.sharedWithType === 'group').length || 0;
     return (
         <Card
             title={t('project_home.overview.members', 'Members')}
@@ -120,7 +120,7 @@ export function MembersCard({ role, projectId, onOpenTab }: { role: ProjectRole;
                         ))}
                     </div>
                     <span className="text-[12px] text-[var(--text-tertiary)]">
-                        {t('project_home.overview.member_count', '{n} in total', { n: total })}
+                        {t('project_home.members.access_count', '{people} people · {groups} groups', { people: people.length, groups })}
                         {online.length > 0 && ` · ${t('project_home.overview.online_count', '{n} online', { n: online.length })}`}
                     </span>
                 </div>

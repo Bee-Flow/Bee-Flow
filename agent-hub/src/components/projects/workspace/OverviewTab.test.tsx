@@ -46,118 +46,38 @@ function renderOverview(role: OverviewTabProps['role'], routes: Record<string, u
 
 beforeEach(() => { fetchMock.mockReset(); });
 
-describe('OverviewTab — the composer', () => {
-    it('starts a private AI chat by default, with Enter', async () => {
-        const { user, onStartChat, project } = renderOverview('editor');
+describe('OverviewTab — the shared project composer', () => {
+    it('starts one shared project chat with Enter, with no chat-type choices', async () => {
+        const { user, api, onOpenTab, onStartChat } = renderOverview('editor');
+        expect(screen.queryByRole('radiogroup', { name: 'Chat type' })).not.toBeInTheDocument();
         await user.type(screen.getByTestId('composer-input'), 'Draft the agenda{Enter}');
-        expect(onStartChat).toHaveBeenCalledWith({ project, message: 'Draft the agenda', agentId: null, share: false });
+        await waitFor(() => expect(onOpenTab).toHaveBeenCalledWith('chats', 'c-new'));
+        expect(api.callsTo('POST', '/api/projects/p1/chats')[0].body).toMatchObject({ aiMode: 'mention', message: 'Draft the agenda' });
+        expect(onStartChat).not.toHaveBeenCalled();
         expect(screen.getByTestId('composer-input')).toHaveValue('');
     });
-
-    it('keeps the message when the app refuses to start the chat', async () => {
-        const { user, onStartChat } = renderOverview('editor');
-        onStartChat.mockReturnValue(false);
-        await user.type(screen.getByTestId('composer-input'), 'Draft the agenda{Enter}');
-        expect(onStartChat).toHaveBeenCalledTimes(1);
-        expect(screen.getByTestId('composer-input')).toHaveValue('Draft the agenda');
-    });
-
-    it('shares the new AI chat with members when asked', async () => {
-        const { user, onStartChat } = renderOverview('editor');
-        await user.click(screen.getByRole('checkbox', { name: 'Share with members' }));
-        await user.type(screen.getByTestId('composer-input'), 'Summarise the brief');
-        await user.click(screen.getByTestId('composer-send'));
-        expect(onStartChat).toHaveBeenCalledWith(expect.objectContaining({ share: true, agentId: null }));
-    });
-
-    it('needs an agent picked before an agent chat can start', async () => {
-        const { user, onStartChat } = renderOverview('editor');
-        await user.click(screen.getByRole('radio', { name: 'Agent' }));
-        await user.type(screen.getByTestId('composer-input'), 'Compare prices');
-        expect(screen.getByTestId('composer-send')).toBeDisabled();
-        const picker = await screen.findByTestId('composer-agent');
-        await waitFor(() => expect(within(picker).getByRole('option', { name: 'Research agent' })).toBeInTheDocument());
-        await user.selectOptions(picker, 'ag1');
-        await user.click(screen.getByTestId('composer-send'));
-        expect(onStartChat).toHaveBeenCalledWith(expect.objectContaining({ message: 'Compare prices', agentId: 'ag1' }));
-    });
-
-    it('creates a team chat (AI on mention) and opens it in the Chats tab', async () => {
-        const { user, api, onOpenTab, onStartChat } = renderOverview('editor');
-        await user.click(screen.getByRole('radio', { name: 'Team' }));
-        expect(screen.queryByRole('checkbox', { name: 'Share with members' })).toBeNull();
-        await user.type(screen.getByTestId('composer-input'), 'Hello team');
-        await user.click(screen.getByTestId('composer-send'));
-        await waitFor(() => expect(onOpenTab).toHaveBeenCalledWith('chats', 'c-new'));
-        expect(api.callsTo('POST', '/api/projects/p1/chats')[0].body).toMatchObject({ aiMode: 'mention', message: 'Hello team' });
-        expect(onStartChat).not.toHaveBeenCalled();
-    });
-
-    it('keeps the text and says so when the team chat is refused', async () => {
-        const { user, onOpenTab } = renderOverview('editor', {
-            'POST /api/projects/p1/chats': reply(403, { error: 'You need editor access to start a chat' }),
-        });
-        await user.click(screen.getByRole('radio', { name: 'Team' }));
+    it('keeps the draft if creating the shared chat fails', async () => {
+        const { user, onOpenTab } = renderOverview('editor', { 'POST /api/projects/p1/chats': reply(403, { error: 'You need editor access to start a chat' }) });
         await user.type(screen.getByTestId('composer-input'), 'Hello team');
         await user.click(screen.getByTestId('composer-send'));
         expect(await screen.findByTestId('composer-error')).toHaveTextContent('You need editor access to start a chat');
         expect(screen.getByTestId('composer-input')).toHaveValue('Hello team');
         expect(onOpenTab).not.toHaveBeenCalled();
     });
-
-    it('says a refusal the server names by code in the reader’s language', async () => {
-        const { user } = renderOverview('editor', {
-            'POST /api/projects/p1/chats': reply(409, { error: 'English from the server.', code: 'SOLUTION_HOLDS_NO_CHATS' }),
-        });
-        await user.click(screen.getByRole('radio', { name: 'Team' }));
-        await user.type(screen.getByTestId('composer-input'), 'Hello team');
-        await user.click(screen.getByTestId('composer-send'));
+    it('translates a known server refusal', async () => {
+        const { user } = renderOverview('editor', { 'POST /api/projects/p1/chats': reply(409, { error: 'English from server', code: 'SOLUTION_HOLDS_NO_CHATS' }) });
+        await user.type(screen.getByTestId('composer-input'), 'Hello team{Enter}');
         expect(await screen.findByTestId('composer-error')).toHaveTextContent(/a Solution holds no chats/);
     });
-
-    it('offers no composer in a Studio Solution, which holds no chats', () => {
-        renderOverview('owner', {}, { kind: 'solution' });
-        expect(screen.getByTestId('composer-solution')).toBeInTheDocument();
-        expect(screen.queryByTestId('composer-input')).toBeNull();
-    });
-
-    it('is read-only for a viewer, without quick actions', async () => {
+    it('does not offer a composer to viewers', () => {
         renderOverview('viewer');
         expect(screen.getByTestId('composer-readonly')).toBeInTheDocument();
-        expect(screen.queryByTestId('composer-input')).toBeNull();
-        expect(screen.queryByTestId('quick-document')).toBeNull();
+        expect(screen.queryByTestId('composer-input')).not.toBeInTheDocument();
     });
-});
-
-describe('OverviewTab — the agent picker', () => {
-    it('offers the agents published to the organisation as well as the person\'s own', async () => {
-        const { user, onStartChat } = renderOverview('editor', {
-            'GET /agents/published': [{ id: 'org-ag', name: 'Handbook helper' }, { id: 'ag1', name: 'Research agent' }],
-        });
-        await user.click(screen.getByRole('radio', { name: 'Agent' }));
-        const picker = await screen.findByTestId('composer-agent');
-        await waitFor(() => expect(within(picker).getByRole('option', { name: 'Handbook helper' })).toBeInTheDocument());
-        expect(within(picker).getAllByRole('option', { name: 'Research agent' })).toHaveLength(1);
-        await user.selectOptions(picker, 'org-ag');
-        await user.type(screen.getByTestId('composer-input'), 'Where is the leave policy?');
-        await user.click(screen.getByTestId('composer-send'));
-        expect(onStartChat).toHaveBeenCalledWith(expect.objectContaining({ agentId: 'org-ag' }));
-    });
-
-    it('still offers the published agents when the person\'s own list cannot be read', async () => {
-        const { user } = renderOverview('editor', {
-            'GET /agents': reply(500, { error: 'boom' }),
-            'GET /agents/published': [{ id: 'org-ag', name: 'Handbook helper' }],
-        });
-        await user.click(screen.getByRole('radio', { name: 'Agent' }));
-        const picker = await screen.findByTestId('composer-agent');
-        await waitFor(() => expect(within(picker).getByRole('option', { name: 'Handbook helper' })).toBeInTheDocument());
-    });
-
-    it('says the agents could not be loaded only when neither list can be read', async () => {
-        const { user } = renderOverview('editor', { 'GET /agents': reply(500, { error: 'boom' }) });
-        await user.click(screen.getByRole('radio', { name: 'Agent' }));
-        expect(await screen.findByText('Could not load your agents.')).toBeInTheDocument();
+    it('does not offer a composer in a Studio Solution', () => {
+        renderOverview('owner', {}, { kind: 'solution' });
+        expect(screen.getByTestId('composer-solution')).toBeInTheDocument();
+        expect(screen.queryByTestId('composer-input')).not.toBeInTheDocument();
     });
 });
 
@@ -178,7 +98,7 @@ describe('OverviewTab — quick actions and cards', () => {
         const knowledge = screen.getByTestId('overview-knowledge');
         await waitFor(() => expect(within(knowledge).getByText('Files').nextSibling).toHaveTextContent('1'));
         expect(within(screen.getByTestId('overview-instructions')).getByText('Answer briefly.')).toBeInTheDocument();
-        expect(await within(screen.getByTestId('overview-members')).findByText(/4 in total/)).toBeInTheDocument();
+        expect(await within(screen.getByTestId('overview-members')).findByText(/3 people · 1 groups/)).toBeInTheDocument();
     });
 });
 
@@ -195,7 +115,7 @@ describe('OverviewTab — recent in this project', () => {
         await user.click(screen.getByTestId('recent-ai_chat-t1'));
         expect(onOpenThread).toHaveBeenCalledWith({ id: 't1', type: 'agent', agentId: 'ag1' });
         await user.click(screen.getByTestId('recent-notebook-n1'));
-        expect(onNavigate).toHaveBeenCalledWith('notebooks/n1');
+        expect(onOpenTab).toHaveBeenCalledWith('notebooks', 'n1');
         await user.click(screen.getByTestId('recent-meeting-m1'));
         expect(onOpenTab).toHaveBeenCalledWith('meetings', 'm1');
     });

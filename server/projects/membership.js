@@ -110,6 +110,12 @@ const ANYWHERE = Object.freeze(['workspace', 'solution']);
 const SOLUTION_ONLY = Object.freeze(['solution']);
 const WORKSPACE_ONLY = Object.freeze(['workspace']);
 
+/** The organisations a person belongs to, own and through groups, for the stores' filing check. */
+async function callerOrgIds(userId) {
+    const { orgIds } = await require('../auth/orgScope').orgScope({ session: { user: { id: userId } } }, { strict: true });
+    return orgIds ? [...orgIds] : [];
+}
+
 /**
  * File an owned content item into a project, or take it out of the project
  * being edited.
@@ -127,7 +133,7 @@ const WORKSPACE_ONLY = Object.freeze(['workspace']);
  * @returns {Promise<boolean>}
  */
 async function fileOwnedContent(store, id, userId, projectId, ctx) {
-    if (projectId) return store.attach(id, userId, projectId);
+    if (projectId) return store.attach(id, userId, projectId, await callerOrgIds(userId));
     const from = ctx?.projectId;
     // Without the project being edited there is nothing to scope a removal to,
     // and an unscoped removal by someone other than the owner is exactly what

@@ -320,3 +320,140 @@ test('one task can be improved: the AI reads it opened, and the answer is a sugg
     assert.strictEqual(failed.status, 503);
     assert.strictEqual(failed.body.code, 'ai_unavailable');
 });
+
+const ALL_ITEMS = NOTE.actionItems;
+const withItems = async (items, fn) => {
+    NOTE.actionItems = items;
+    try { return await fn(); } finally { NOTE.actionItems = ALL_ITEMS; }
+};
+const batch = (items) => call('POST', '/api/projects/p1/tasks/batch', { body: { items } });
+const src = (itemId) => ({ kind: 'meeting', id: 'mt-1', itemId });
+const suggestions = async () => (await call('GET', '/api/projects/p1/meetings/mt-1/task-suggestions')).body.suggestions;
+
+test('after the summary is regenerated a position holding another item is not "already a task"', async () => {
+    const made = await withItems([{ id: 'ai-7', text: 'Draft the plan' }, { id: 'ai-8', text: 'Call the bank' }], async () => {
+        const res = await batch([{ title: 'Draft the plan', source: src('ai-7') }]);
+        assert.strictEqual(res.status, 201, res.text);
+        assert.match(res.body.tasks[0].source.textHash, /^[0-9a-f]{16}$/);
+        return res.body.tasks[0];
+    });
+    await withItems([{ id: 'ai-7', text: 'Call the bank' }], async () => {
+        assert.strictEqual((await suggestions())[0].createdTaskId, null, 'the old ai-7 is gone; this one is new');
+        const res = await batch([{ title: 'Call the bank', source: src('ai-7') }]);
+        assert.deepStrictEqual([res.body.tasks.length, res.body.skipped], [1, 0]);
+    });
+    await withItems([{ id: 'ai-9', text: 'Draft the plan' }], async () => {
+        assert.strictEqual((await suggestions())[0].createdTaskId, null, 'the same words at another position count as another item');
+    });
+    await withItems([{ id: 'ai-7', text: 'draft the  plan' }], async () => {
+        assert.strictEqual((await suggestions())[0].createdTaskId, made.id, 'same item, same position');
+        assert.strictEqual((await batch([{ title: 'Draft the plan', source: src('ai-7') }])).body.skipped, 1);
+    });
+});
+
+test('a task made before the text hash existed is still found by its item id', async () => {
+    await store.createTask({ id: 'legacy-1', projectId: 'p1', title: 't', description: 'd', createdBy: 'ed', source: src('ai-6') });
+    await withItems([{ id: 'ai-6', text: 'Whatever it says now' }], async () => {
+        assert.strictEqual((await suggestions())[0].createdTaskId, 'legacy-1');
+        const res = await batch([{ title: 'again', source: src('ai-6') }]);
+        assert.deepStrictEqual([res.body.tasks.length, res.body.skipped], [0, 1]);
+    });
+});
+
+test('two batches for the same meeting item at once make one task', async () => {
+    await withItems([{ id: 'ai-5', text: 'Sign it' }], async () => {
+        const items = [{ title: 'Sign it', source: src('ai-5') }];
+        const [one, two] = await Promise.all([batch(items), batch(items)]);
+        assert.deepStrictEqual([one.status, two.status], [201, 201]);
+        assert.strictEqual(one.body.tasks.length + two.body.tasks.length, 1);
+        assert.strictEqual(one.body.skipped + two.body.skipped, 1);
+        const n = (await pg.query(`SELECT COUNT(*)::int AS n FROM project_tasks WHERE source->>'itemId' = 'ai-5'`)).rows[0].n;
+        assert.strictEqual(n, 1);
+        const single = await call('POST', '/api/projects/p1/tasks', { body: { title: 'Sign it', source: src('ai-5') } });
+        assert.strictEqual(single.status, 409, 'made on its own, the same item is refused too');
+        assert.strictEqual(single.body.code, 'already_a_task');
+    });
+});
+
+test('a link gone stale stays on the task and never blocks editing the others', async () => {
+    const task = await make({ links: [{ kind: 'document', id: 'doc-1' }, { kind: 'notebook', id: 'nb-1' }] });
+    FILED.document = new Set();
+    try {
+        const edit = await call('PATCH', `/api/projects/p1/tasks/${task.id}`, { body: { links: [{ kind: 'document', id: 'doc-1' }] } });
+        assert.strictEqual(edit.status, 200, 'dropping nb-1 while doc-1 is no longer filed');
+        assert.deepStrictEqual(edit.body.task.links, [{ kind: 'document', id: 'doc-1' }]);
+        const added = await call('PATCH', `/api/projects/p1/tasks/${task.id}`, { body: { links: [{ kind: 'document', id: 'doc-1' }, { kind: 'document', id: 'doc-x' }] } });
+        assert.strictEqual(added.status, 400, 'a NEW link is still checked');
+        assert.strictEqual(added.body.code, 'link_not_in_project');
+    } finally { FILED.document = new Set(['doc-1']); }
+});
+
+test('a move that cannot happen changes nothing, and the board says whether it is cut', async () => {
+    const task = await make({ title: 'Stay as I am' });
+    const res = await call('PATCH', `/api/projects/p1/tasks/${task.id}`, { body: { title: 'Changed', status: 'doing', beforeId: 'no-such-task' } });
+    assert.strictEqual(res.status, 400);
+    assert.strictEqual(res.body.code, 'move_target_not_found');
+    const board = (await call('GET', '/api/projects/p1/tasks')).body;
+    assert.strictEqual(board.truncated, false);
+    const shown = board.tasks.find((t) => t.id === task.id);
+    assert.deepStrictEqual([shown.title, shown.status], ['Stay as I am', 'todo']);
+});
+
+test('links and meetings are checked by id, not by the first page of the project\'s listing', async () => {
+    await pg.exec(`CREATE TABLE notebooks (id TEXT PRIMARY KEY, name TEXT, project_id TEXT);
+                   CREATE TABLE studio_documents (id TEXT PRIMARY KEY, name TEXT, project_id TEXT, kind TEXT, archived BOOLEAN DEFAULT false);
+                   CREATE TABLE transcriptions (id TEXT PRIMARY KEY, title TEXT, project_id TEXT)`);
+    await pg.exec(`INSERT INTO notebooks SELECT 'nb-' || s, 'n', 'p1' FROM generate_series(1, 120) s;
+                   INSERT INTO studio_documents SELECT 'd-' || s, 'd', 'p1', 'document' FROM generate_series(1, 150) s;
+                   INSERT INTO transcriptions SELECT 'm-' || s, 'm', 'p1' FROM generate_series(1, 150) s;
+                   INSERT INTO notebooks VALUES ('nb-other', 'n', 'p2')`);
+    const plain = serve('/api/projects', makeProjectTasksRouter({
+        requireProjectRole,
+        getProjectRole: async (userId, projectId) => ROLES[projectId]?.[userId] || null,
+        getProject: async (id) => (PROJECTS[id] ? { ...PROJECTS[id] } : null),
+        store, chatStore, chatCrypto, query: (sql, params) => db.query(sql, params),
+        listPeople: async () => [],
+        readMeeting: async (req, project, id) => ({ id, title: 'Old meeting', projectId: project.id, actionItems: [] }),
+        emit: async () => {}, logActivity: async () => {}, notifier: { assigned: async () => {} },
+        commentStore: { deleteForTarget: async () => 0 },
+    }), { user: EDITOR });
+    try {
+        const links = [{ kind: 'notebook', id: 'nb-1' }, { kind: 'document', id: 'd-150' }, { kind: 'meeting', id: 'm-1' }];
+        const ok = await plain.call('POST', '/api/projects/p1/tasks', { body: { title: 'old items', links } });
+        assert.strictEqual(ok.status, 201, ok.text);
+        for (const link of [{ kind: 'notebook', id: 'nb-other' }, { kind: 'document', id: 'nope' }, { kind: 'meeting', id: 'nope' }]) {
+            const res = await plain.call('POST', '/api/projects/p1/tasks', { body: { title: 'x', links: [link] } });
+            assert.strictEqual(res.body.code, 'link_not_in_project', JSON.stringify(link));
+        }
+        const suggest = await plain.call('GET', '/api/projects/p1/meetings/m-1/task-suggestions');
+        assert.strictEqual(suggest.status, 200, 'the 150th-newest meeting is still filed');
+        assert.strictEqual((await plain.call('GET', '/api/projects/p1/meetings/nope/task-suggestions')).status, 404);
+    } finally { await plain.close(); }
+});
+
+test('planning dates persist and date patches validate against the unchanged endpoint', async () => {
+    const task = await make({ startDate: '2026-10-02', dueDate: '2026-10-06' });
+    assert.strictEqual(task.startDate, '2026-10-02');
+    const path = `/api/projects/p1/tasks/${task.id}`;
+    const invalid = await call('PATCH', path, { body: { startDate: '2026-10-07' } });
+    assert.strictEqual(invalid.status, 400);
+    assert.strictEqual((await store.getTask('p1', task.id)).startDate, '2026-10-02');
+    assert.strictEqual((await call('PATCH', path, { body: { dueDate: '2026-10-01' } })).status, 400);
+    const moved = await call('PATCH', path, { body: { startDate: '2026-10-10', dueDate: '2026-10-14' } });
+    assert.strictEqual(moved.status, 200, moved.text);
+    assert.strictEqual(moved.body.task.startDate, '2026-10-10');
+    assert.strictEqual(moved.body.task.status, 'todo');
+    const removed = await call('PATCH', path, { body: { startDate: null, dueDate: null } });
+    assert.strictEqual(removed.body.task.startDate, null);
+    assert.strictEqual(removed.body.task.dueDate, null);
+    assert.strictEqual((await call('PATCH', path, { body: { startDate: '2026-02-30' } })).status, 400);
+    assert.strictEqual((await call('PATCH', path, { body: { startDate: '2026-10-01' }, user: VIEWER })).status, 403);
+    assert.strictEqual((await call('PATCH', path, { body: { startDate: '2026-10-01' }, user: STRANGER })).status, 404);
+});
+
+test('invalid planning ranges refuse single and batch creation before writing anything', async () => {
+    const before = (await store.listTasks('p1')).length;
+    assert.strictEqual((await call('POST', '/api/projects/p1/tasks', { body: { title: 'Invalid', startDate: '2026-11-02', dueDate: '2026-11-01' } })).status, 400);
+    assert.strictEqual((await call('POST', '/api/projects/p1/tasks/batch', { body: { items: [{ title: 'Valid' }, { title: 'Invalid', startDate: '2026-11-02', dueDate: '2026-11-01' }] } })).status, 400);
+    assert.strictEqual((await store.listTasks('p1')).length, before);
+});

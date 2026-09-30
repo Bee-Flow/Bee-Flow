@@ -1,3 +1,4 @@
+import { useNotebookDetail } from '../../../../pages/notebooks/notebookQueries';
 // Notebooks tab of the project workspace: the notebooks filed in the project
 // as a card grid, "New notebook" straight into it, and "Add existing" from
 // the caller's own. A notebook opens in the notebook editor itself.
@@ -22,7 +23,7 @@ import { ContentColumn, ContentToolbar, PrimaryButton, ReadOnlyNote, SecondaryBu
 import NewItemDialog, { type NewItemValues } from './NewItemDialog';
 import { NotebookPicker } from './pickers';
 import ProjectNotebookCard from './ProjectNotebookCard';
-import { useProjectUnread } from '../useProjectUnread';
+import { useMarkSeenWhenOpen, useProjectUnread } from '../useProjectUnread';
 import { canEditContent, canRemoveItem, type ContentTabProps } from './types';
 import { useMemberNames, useRemoveFromProject } from './useContentActions';
 
@@ -34,6 +35,9 @@ function NotebookPane({ projectId, notebookId, currentUser, onOpenSub }: {
 }) {
     const { t } = useTranslation();
     const qc = useQueryClient();
+    const unread = useProjectUnread(projectId);
+    const detail = useNotebookDetail(notebookId);
+    useMarkSeenWhenOpen(unread, detail.isSuccess && detail.data?.notebook?.id ? { type: 'notebook', id: notebookId } : null);
     const refresh = () => { qc.invalidateQueries({ queryKey: projectKeys.resources(projectId) }); };
     return (
         <div className="h-full min-h-0" data-testid="project-notebook-pane">
@@ -142,6 +146,7 @@ function NotebooksList({ projectId, role, currentUser, onOpenSub, intent, notebo
     const canEdit = canEditContent(role) && notebooksEnabled;
     const me = currentUser?.id || null;
     const [createOpen, setCreateOpen] = useState(() => canEdit && intent === 'create');
+    const [search, setSearch] = useState('');
     const [pickerOpen, setPickerOpen] = useState(() => canEdit && intent === 'add');
     const section = useProjectSection<ProjectNotebook>(projectId, 'notebooks');
     const ownerName = useMemberNames(projectId, me);
@@ -155,7 +160,7 @@ function NotebooksList({ projectId, role, currentUser, onOpenSub, intent, notebo
     const onRemove = (nb: ProjectNotebook) => removal.remove(nb.id, {
         title: t('project_content.notebook_remove_title', 'Remove this notebook from the project?'),
         description: t('project_content.notebook_remove_desc', '"{name}" stays with its owner. Members of this project will no longer see it.', { name: nb.name }),
-        confirmLabel: t('project_content.remove', 'Remove'),
+        confirmLabel: t('project_content.remove_from_project', 'Remove from project'),
     });
 
     const actions = canEdit ? (
@@ -169,20 +174,22 @@ function NotebooksList({ projectId, role, currentUser, onOpenSub, intent, notebo
         <ContentColumn testId="project-notebooks-tab">
             <ContentToolbar
                 title={t('project_content.notebooks_title', 'Notebooks')}
+                search={search} onSearch={setSearch} searchLabel={t('project_content.notebooks_search', 'Search notebooks')}
                 count={section.status === 'ok' ? section.items.length : null}
                 actions={actions}
             />
             {!notebooksEnabled && <NotebooksUnavailable />}
             {notebooksEnabled && !canEdit && <ReadOnlyNote>{t('project_content.notebooks_viewer_note', 'You can read the notebooks in this project. Ask the owner for editor access to add or change them.')}</ReadOnlyNote>}
-            <NotebooksBody
+            {search.trim() && section.status === 'ok' && !section.items.some(n => `${n.name} ${n.description || ''}`.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase())) ? <p className="text-sm text-[var(--text-secondary)]">{t('project_content.no_matches', 'Nothing matches your search.')}</p> : <NotebooksBody
                 status={section.status} onRetry={section.refetch} onCreate={canEdit ? openCreate : null}
                 grid={{
-                    notebooks: section.items, ownerName, removingId: removal.pendingId, onOpen: open, onRemove,
+                    notebooks: section.items.filter(n => `${n.name} ${n.description || ''}`.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase())), ownerName, removingId: removal.pendingId, onOpen: open, onRemove,
                     isUnread: (id) => unread.isUnread('notebook', id),
                     mayRemove: (nb) => canRemoveItem(role, nb.userId, me),
                     openable: notebooksEnabled,
                 }}
             />
+            }
             {createOpen && (
                 <NewItemDialog
                     open onClose={() => setCreateOpen(false)}

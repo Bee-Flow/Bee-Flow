@@ -101,19 +101,27 @@ export function useChangeFeedLive(projectId: string | null | undefined, currentU
 
 /**
  * Mark an item seen once it has been open for a moment (a glance that goes
- * straight back out does not count). Pass null while nothing is open.
+ * straight back out does not count). Pass null while nothing is open. While it
+ * stays open, a colleague's later change makes it unread again; that is
+ * marked seen again a moment after it shows, so the dot does not come back
+ * under the reader's eyes.
  */
 export function useMarkSeenWhenOpen(
-    unread: Pick<ProjectUnread, 'markSeen'>,
+    unread: Pick<ProjectUnread, 'markSeen'> & Partial<Pick<ProjectUnread, 'isUnread'>>,
     item: { type: ChangeItemType; id: string } | null,
     delayMs = 3000,
 ) {
-    const { markSeen } = unread;
+    const { markSeen, isUnread } = unread;
     const type = item?.type;
     const id = item?.id;
+    const unreadNow = !!(type && id && isUnread?.(type, id));
+    const marked = useRef<string | null>(null);
     useEffect(() => {
-        if (!type || !id) return undefined;
-        const t = setTimeout(() => markSeen(type, id), delayMs);
+        if (!type || !id) { marked.current = null; return undefined; }
+        const key = `${type}:${id}`;
+        // Once per opening, and again whenever the item turns unread while it is open.
+        if (marked.current === key && !unreadNow) return undefined;
+        const t = setTimeout(() => { marked.current = key; markSeen(type, id); }, delayMs);
         return () => clearTimeout(t);
-    }, [type, id, delayMs, markSeen]);
+    }, [type, id, unreadNow, delayMs, markSeen]);
 }

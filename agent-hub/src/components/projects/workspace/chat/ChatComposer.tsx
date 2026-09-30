@@ -7,6 +7,8 @@ import React, { useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { TeamChatRef } from '../../../../api/queries/projectChatTypes';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import TierSlider from '../../../licensing/TierSlider';
+import { readDraft, writeDraft } from './drafts';
+import { isImeEnter, isImeKey } from './ime';
 import type { ChatTier } from './useChatTier';
 import { Avatar, PrimaryButton, SecondaryButton } from '../workspaceUi';
 import {
@@ -29,6 +31,8 @@ export interface ChatComposerProps {
     placeholder?: string;
     onSend: (draft: ComposerDraft) => void;
     onTyping: () => void;
+    /** Keeps the unsent text (and the picked mentions) under this key while the composer is away. */
+    draftKey?: string;
 }
 
 function useMentionMenu(candidates: MentionCandidate[]) {
@@ -42,6 +46,14 @@ function useMentionMenu(candidates: MentionCandidate[]) {
         open: !!query && matches.length > 0,
         setActive,
         update: (text: string, caret: number) => { setQuery(findMentionQuery(text, caret)); setActive(0); },
+        // The caret moved without the text changing (arrows, Home/End, a click):
+        // the word under it is a different one, or none. Keeps the highlighted row when nothing changed.
+        sync: (text: string, caret: number) => {
+            const next = findMentionQuery(text, caret);
+            if (next?.start === query?.start && next?.query === query?.query) return;
+            setQuery(next);
+            setActive(0);
+        },
         close: () => setQuery(null),
     };
 }
@@ -50,6 +62,7 @@ type MentionMenuState = ReturnType<typeof useMentionMenu>;
 
 /** Arrow keys move, Enter or Tab picks, Escape closes. True when the key was the menu's. */
 function menuKey(e: React.KeyboardEvent, menu: MentionMenuState, pick: (c: MentionCandidate) => void): boolean {
+    if (isImeKey(e)) return false;
     const n = menu.matches.length;
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
         menu.setActive((menu.active + (e.key === 'ArrowDown' ? 1 : -1) + n) % n);
@@ -111,8 +124,13 @@ function ReplyChip({ reply, onCancel }: { reply: { author: string; excerpt: stri
 }
 
 function useComposerState(props: ChatComposerProps) {
-    const [text, setText] = useState('');
-    const picked = useRef<MentionCandidate[]>([]);
+    const { draftKey } = props;
+    const [text, setTextState] = useState(() => readDraft(draftKey)?.text ?? '');
+    const picked = useRef<MentionCandidate[]>(readDraft(draftKey)?.picked ?? []);
+    const setText = (next: string) => {
+        setTextState(next);
+        writeDraft(draftKey, { text: next, picked: picked.current });
+    };
     const inputRef = useRef<HTMLTextAreaElement>(null);
     const nextCaret = useRef<number | null>(null);
     const menu = useMentionMenu(props.candidates);
@@ -152,12 +170,16 @@ function useComposerState(props: ChatComposerProps) {
     };
     const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
         if (menu.open && menuKey(e, menu, pick)) return;
-        if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+        if (e.key === 'Enter' && !e.shiftKey && !isImeEnter(e)) {
             e.preventDefault();
             submit(false);
         }
     };
-    return { text, inputRef, menu, pick, submit, onChange, onKeyDown };
+    const onSelect = (e: React.SyntheticEvent<HTMLTextAreaElement>) => {
+        const el = e.currentTarget;
+        if (menu.query) menu.sync(el.value, el.selectionStart ?? el.value.length);
+    };
+    return { text, inputRef, menu, pick, submit, onChange, onKeyDown, onSelect };
 }
 
 export default function ChatComposer(props: ChatComposerProps) {
@@ -167,7 +189,7 @@ export default function ChatComposer(props: ChatComposerProps) {
     const empty = !s.text.trim();
     return (
         <div className="flex-shrink-0 px-4 pb-4">
-            <div className="relative rounded-2xl border border-[var(--border-default)] bg-[var(--bg-card)] shadow-[0_2px_10px_rgba(0,0,0,0.06)] focus-within:border-[var(--accent-primary)] focus-within:ring-2 focus-within:ring-[color-mix(in_srgb,var(--accent-primary)_22%,transparent)] transition-[border-color,box-shadow]">
+            <div className="relative w-full max-w-4xl mx-auto rounded-2xl border border-[var(--border-default)] bg-[var(--bg-card)] shadow-[0_2px_10px_rgba(0,0,0,0.06)] focus-within:border-[var(--accent-primary)] focus-within:ring-2 focus-within:ring-[color-mix(in_srgb,var(--accent-primary)_22%,transparent)] transition-[border-color,box-shadow]">
                 {props.reply && <ReplyChip reply={props.reply} onCancel={props.onCancelReply} />}
                 {s.menu.open && <MentionMenu id={menuId} menu={s.menu} onPick={s.pick} />}
                 <textarea
@@ -175,6 +197,7 @@ export default function ChatComposer(props: ChatComposerProps) {
                     value={s.text}
                     onChange={s.onChange}
                     onKeyDown={s.onKeyDown}
+                    onSelect={s.onSelect}
                     onBlur={() => s.menu.close()}
                     maxLength={MAX_MESSAGE_LENGTH}
                     rows={Math.min(8, Math.max(2, s.text.split('\n').length))}

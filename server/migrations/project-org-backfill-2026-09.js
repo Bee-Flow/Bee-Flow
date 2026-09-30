@@ -17,6 +17,12 @@
  * theirs is in. A project whose owner has none stays '' on purpose (self-host
  * and single-user installs); nothing invents a tenant for it.
  *
+ * A project that already holds something sealed under its project key is skipped. That key is DERIVED
+ * from the stored organisation ('' maps to the install's default organisation, auth/projectEscrow
+ * getProjectKey), so stamping a different one would make the team chats, comment threads, co-edited
+ * documents and shared conversations written so far permanently unreadable. Such a project keeps
+ * reading as its owner's organisation through projectOrgOf; it is only not stamped.
+ *
  * Idempotent: only rows still org-less are touched, so a re-run is a no-op and
  * a project made before the creation fix is deployed is caught on the next boot.
  */
@@ -31,6 +37,30 @@ async function ownerOrg(ownerId) {
 }
 
 /**
+ * Tables whose rows are sealed with the project's derived key, and how to find a project's rows
+ * (the same set as auth/projectEscrow SEALED_UNDER_PROJECT_KEYS, plus shared conversations).
+ * Table and column names are constants of this file, never input.
+ */
+const SEALED_TABLES = [
+    { table: 'project_chats', where: '' },
+    { table: 'project_comment_threads', where: '' },
+    { table: 'collab_docs', where: "key_scope = 'project' AND " },
+    { table: 'direct_conversations', where: "crypto_scope = 'project' AND " },
+    { table: 'agent_conversations', where: "crypto_scope = 'project' AND " },
+];
+
+/** Whether anything is sealed under this project's key. A table that does not exist holds nothing. */
+async function holdsSealedContent(facade, projectId) {
+    for (const { table, where } of SEALED_TABLES) {
+        const present = await facade.getAll(`SELECT to_regclass('${table}') IS NOT NULL AS present`);
+        if (present[0]?.present !== true) continue;
+        const rows = await facade.getAll(`SELECT 1 AS hit FROM ${table} WHERE ${where}project_id = $1 LIMIT 1`, [projectId]);
+        if (rows.length > 0) return true;
+    }
+    return false;
+}
+
+/**
  * @param {{ db?: { getAll: Function, run: Function }, resolveOrg?: (ownerId: string) => Promise<string|null>, initSchema?: Function }} [deps]
  * @returns {Promise<number>} how many projects were given an organisation
  */
@@ -41,18 +71,20 @@ async function up({ db = null, resolveOrg = ownerOrg, initSchema = null } = {}) 
     const rows = await facade.getAll(`SELECT id, owner_id FROM projects WHERE COALESCE(organization_id, '') = ''`);
     const orgByOwner = new Map();
     let stamped = 0;
+    let skipped = 0;
     for (const row of rows) {
         if (!row.owner_id) continue;
         if (!orgByOwner.has(row.owner_id)) orgByOwner.set(row.owner_id, await resolveOrg(row.owner_id));
         const org = orgByOwner.get(row.owner_id);
         if (!org) continue;
+        if (await holdsSealedContent(facade, row.id)) { skipped++; continue; }
         const res = await facade.run(
             `UPDATE projects SET organization_id = $1 WHERE id = $2 AND COALESCE(organization_id, '') = ''`,
             [org, row.id],
         );
         stamped += res?.rowCount ?? 0;
     }
-    console.log(`[Migration] project-org-backfill-2026-09 applied (${stamped} project${stamped === 1 ? '' : 's'} given their owner's organisation)`);
+    console.log(`[Migration] project-org-backfill-2026-09 applied (${stamped} project${stamped === 1 ? '' : 's'} given their owner's organisation${skipped ? `, ${skipped} left as they are because content is sealed under their key` : ''})`);
     return stamped;
 }
 

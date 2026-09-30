@@ -25,7 +25,7 @@ const loadErrorFor = (status) => (status === 403
  *   now enforces editor for writes; this hides the controls so a viewer is not
  *   offered actions that will come back 403.
  */
-const MemoryPanel = ({ onClose, projectId, canEdit = true }) => {
+const MemoryPanel = ({ onClose, projectId, canEdit = true, embedded = false, extractMemories = true }) => {
     const { t } = useTranslation();
     const [memories, setMemories] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -383,7 +383,7 @@ const MemoryPanel = ({ onClose, projectId, canEdit = true }) => {
     const typeTotals = isPaginated ? allTypeCounts : typeCounts;
 
     return (
-        <div className="h-full flex flex-col" style={{ background: 'var(--bg-primary)' }} data-testid="memory-panel">
+        <div className={`${embedded ? 'max-h-[65vh] min-h-48' : 'h-full'} flex flex-col`} style={{ background: 'var(--bg-primary)' }} data-testid="memory-panel">
             {/* Header */}
             <div className="px-5 py-4 border-b" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-secondary)' }}>
                 <div className="flex items-center justify-between mb-4">
@@ -398,7 +398,7 @@ const MemoryPanel = ({ onClose, projectId, canEdit = true }) => {
                             <Lightbulb className="w-5 h-5" style={{ color: '#d97706' }} />
                         </div>
                         <div>
-                            <h2 className="font-semibold" style={{ color: 'var(--text-primary)' }}>{projectId ? 'Project Memory' : 'Memory'}</h2>
+                            <h2 className="font-semibold" style={{ color: 'var(--text-primary)' }}>{projectId ? t('project_content.shared_memory', 'Shared project memory') : 'Memory'}</h2>
                             <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
                                 {isPaginated && total > memories.length
                                     ? `${memories.length} of ${total} ${total === 1 ? 'memory' : 'memories'} loaded`
@@ -421,7 +421,7 @@ const MemoryPanel = ({ onClose, projectId, canEdit = true }) => {
                             data-testid="memory-select-toggle"
                         >
                             <CheckSquare className="w-4 h-4" />
-                            {isSelectMode ? 'Cancel' : 'Select'}
+                            {isSelectMode ? t('project_content.cancel', 'Cancel') : t('project_content.memory_select', 'Select')}
                         </button>
                         )}
                         <button
@@ -434,7 +434,7 @@ const MemoryPanel = ({ onClose, projectId, canEdit = true }) => {
                             }}
                         >
                             {showAddForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-                            {showAddForm ? 'Cancel' : 'Add Memory'}
+                            {showAddForm ? t('project_content.cancel', 'Cancel') : t('project_content.memory_add', 'Add memory')}
                         </button>
                     </div>
                 </div>
@@ -447,7 +447,7 @@ const MemoryPanel = ({ onClose, projectId, canEdit = true }) => {
                             type="text"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            placeholder="Search memories..."
+                            placeholder={t('project_content.memory_search', 'Search memories…')}
                             className="input w-full pl-10 text-sm"
                             data-testid="memory-search"
                         />
@@ -558,7 +558,7 @@ const MemoryPanel = ({ onClose, projectId, canEdit = true }) => {
                     ) : error ? (
                         <div role="alert" className="text-center py-8" style={{ color: 'var(--error)' }} data-testid="memory-load-error">{error}</div>
                     ) : filteredMemories.length === 0 ? (
-                        <div className="text-center py-16">
+                        <div className={`text-center ${embedded ? 'py-6' : 'py-16'}`}>
                             <div style={{
                                 width: '64px', height: '64px', borderRadius: '16px', margin: '0 auto 16px',
                                 background: 'rgba(245, 158, 11, 0.12)',
@@ -568,9 +568,9 @@ const MemoryPanel = ({ onClose, projectId, canEdit = true }) => {
                             </div>
                             {memories.length === 0 ? (
                                 <>
-                                    <h3 className="text-base font-semibold mb-1.5" style={{ color: 'var(--text-primary)' }}>No memories yet</h3>
+                                    <h3 className="text-base font-semibold mb-1.5" style={{ color: 'var(--text-primary)' }}>{t('project_content.memory_empty', 'No memories yet')}</h3>
                                     <p className="text-sm" style={{ color: 'var(--text-muted)', maxWidth: '320px', margin: '0 auto', lineHeight: '1.6' }}>
-                                        Memories are automatically extracted from conversations. Tell your AI about yourself to start building memory!
+                                        {projectId ? (extractMemories ? t('project_content.memory_auto', 'Useful project facts can be saved from chats. All project members can read them.') : t('project_content.memory_manual', 'Automatic memory is off. Editors can add shared project facts here.')) : 'Memories are automatically extracted from conversations. Tell your AI about yourself to start building memory!'}
                                     </p>
                                 </>
                             ) : (

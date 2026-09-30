@@ -36,11 +36,12 @@ export interface CommentsPanelProps extends CommentsPanelSource {
     getSelectionAnchor?: () => CommentAnchor | null;
     onClose?: () => void;
     className?: string;
+    compact?: boolean;
 }
 
 type Filter = 'open' | 'resolved';
 
-function EmptyState({ filter, canComment, targetType }: { filter: Filter; canComment: boolean; targetType: CommentTargetType }) {
+function EmptyState({ filter, canComment, targetType, compact }: { filter: Filter; canComment: boolean; targetType: CommentTargetType; compact?: boolean }) {
     const { t } = useTranslation();
     let hint: string | null = null;
     if (filter === 'open' && !canComment) hint = t('comments.empty_open_viewer', 'When editors comment on this item, their threads appear here.');
@@ -52,7 +53,7 @@ function EmptyState({ filter, canComment, targetType }: { filter: Filter; canCom
         hint = t('comments.empty_open_document', 'Select a passage in the document and choose Add comment to discuss it. Mention @ai to ask the AI.');
     }
     return (
-        <div className="flex flex-col items-center text-center gap-2 px-4 py-10" data-testid={`comments-empty-${filter}`}>
+        <div className={`flex flex-col items-center text-center gap-2 px-4 ${compact ? 'py-4' : 'py-10'}`} data-testid={`comments-empty-${filter}`}>
             <MessagesSquare className="w-6 h-6 text-[var(--text-tertiary)]" aria-hidden="true" />
             <p className="m-0 text-[13px] font-medium text-[var(--text-primary)]">
                 {filter === 'open' ? t('comments.empty_open_title', 'No open comments') : t('comments.empty_resolved_title', 'No resolved threads')}
@@ -99,8 +100,8 @@ function Toolbar({ model, filter, onFilter, drafting, onAdd, anchors }: {
     );
 }
 
-function ThreadList({ model, filter, drafting, currentUserId, targetType }: {
-    model: CommentsPanelModel; filter: Filter; drafting: boolean; currentUserId: string | null; targetType: CommentTargetType;
+function ThreadList({ model, filter, drafting, currentUserId, targetType, compact }: {
+    model: CommentsPanelModel; filter: Filter; drafting: boolean; currentUserId: string | null; targetType: CommentTargetType; compact?: boolean;
 }) {
     const { t } = useTranslation();
     const { query } = model;
@@ -114,7 +115,7 @@ function ThreadList({ model, filter, drafting, currentUserId, targetType }: {
         );
     }
     const shown = filter === 'open' ? model.openThreads : model.resolvedThreads;
-    if (shown.length === 0) return drafting ? null : <EmptyState filter={filter} canComment={model.canComment} targetType={targetType} />;
+    if (shown.length === 0) return drafting ? null : <EmptyState compact={compact} filter={filter} canComment={model.canComment} targetType={targetType} />;
     return (
         <>
             {shown.map(thread => (
@@ -182,7 +183,7 @@ export default function CommentsPanel(props: CommentsPanelProps) {
                         onCancel={() => setDraft(null)}
                     />
                 )}
-                <ThreadList model={model} filter={filter} drafting={!!draft} currentUserId={props.currentUser?.id || null} targetType={props.targetType} />
+                <ThreadList compact={props.compact} model={model} filter={filter} drafting={!!draft} currentUserId={props.currentUser?.id || null} targetType={props.targetType} />
             </div>
         </aside>
     );

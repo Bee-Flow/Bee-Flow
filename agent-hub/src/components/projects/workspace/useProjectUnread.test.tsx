@@ -108,4 +108,25 @@ describe('useMarkSeenWhenOpen', () => {
         expect(markSeen).toHaveBeenCalledTimes(1);
         unmount();
     });
+
+    it('marks it seen again when a colleague changes it while it is open, but not while it stays read', () => {
+        vi.useFakeTimers();
+        const markSeen = vi.fn();
+        const item = { type: 'document' as const, id: 'd1' };
+        const { rerender, unmount } = renderHook(({ isUnread }) => useMarkSeenWhenOpen({ markSeen, isUnread: () => isUnread }, item), {
+            initialProps: { isUnread: true },
+        });
+        vi.advanceTimersByTime(3000);
+        expect(markSeen).toHaveBeenCalledTimes(1);
+        rerender({ isUnread: false });
+        vi.advanceTimersByTime(10000);
+        expect(markSeen).toHaveBeenCalledTimes(1);
+        // A colleague edits the open document: the dot is back, and goes again after a moment.
+        rerender({ isUnread: true });
+        vi.advanceTimersByTime(2999);
+        expect(markSeen).toHaveBeenCalledTimes(1);
+        vi.advanceTimersByTime(1);
+        expect(markSeen).toHaveBeenCalledTimes(2);
+        unmount();
+    });
 });

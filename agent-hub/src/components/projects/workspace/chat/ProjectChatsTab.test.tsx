@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, expect, it, vi } from 'vitest';
 import type { Project, ProjectRole } from '../../../../api/queries/projects';
+import { takeFirstAnswer } from './firstAnswer';
 import ProjectChatsTab from './ProjectChatsTab';
 import {
     emit, installServer, MEMBERS, message, PROJECT, renderLive, reply, teamChat, type StreamHolder, type TestServer,
@@ -76,17 +77,19 @@ it('lists team chats, shared AI chats and my private chats, each once', async ()
     expect(screen.getByTestId('chat-row-c2')).toHaveTextContent('AI answers every message');
 });
 
-it('the filter narrows the list to team chats or to AI chats', async () => {
+it('filters by unread and private conversations, and searches previews', async () => {
     const user = userEvent.setup();
-    renderTab();
-    await screen.findByTestId('chat-row-d1');
-    await user.click(screen.getByRole('radio', { name: /Team/ }));
+    renderTab(); await screen.findByTestId('chat-row-d1');
+    await user.click(screen.getByRole('radio', { name: /Unread/ }));
     expect(screen.getByTestId('chat-row-c1')).toBeInTheDocument();
-    expect(screen.queryByTestId('chat-row-t1')).not.toBeInTheDocument();
-    await user.click(screen.getByRole('radio', { name: /AI/ }));
-    expect(screen.queryByTestId('chat-row-c1')).not.toBeInTheDocument();
-    expect(screen.getByTestId('chat-row-t1')).toBeInTheDocument();
+    expect(screen.queryByTestId('chat-row-c2')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('radio', { name: /Private/ }));
     expect(screen.getByTestId('chat-row-d1')).toBeInTheDocument();
+    expect(screen.queryByTestId('chat-row-t1')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('radio', { name: /All/ }));
+    await user.type(screen.getByRole('searchbox', { name: 'Search conversations' }), 'See you at 10');
+    expect(screen.getByTestId('chat-row-c1')).toBeInTheDocument();
+    expect(screen.queryByTestId('chat-row-d1')).not.toBeInTheDocument();
 });
 
 it('a team chat opens inside the tab; an AI chat opens through the app', async () => {
@@ -135,7 +138,7 @@ it('cancelling the share question shares nothing', async () => {
 it('a viewer can read and open, but gets no New chat and no Share', async () => {
     renderTab({ role: 'viewer' });
     await screen.findByTestId('chat-row-d1');
-    expect(screen.queryByTestId('new-chat-menu')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'New chat' })).not.toBeInTheDocument();
     expect(screen.queryByTestId('chat-row-share-d1')).not.toBeInTheDocument();
     // Taking back your own chat stays possible: it is yours, whatever your role.
     expect(screen.getByTestId('chat-row-unshare-t2')).toBeInTheDocument();
@@ -154,54 +157,43 @@ it('an empty project explains what chats are for', async () => {
         .on('GET', `${BASE}/my-chats`, { chats: [] });
     renderTab();
     expect(await screen.findByText('No chats in this project yet')).toBeInTheDocument();
-    expect(screen.getByText('Start a team chat with the members, or an AI chat that knows this project.')).toBeInTheDocument();
+    expect(screen.getByText('Start a conversation with your project members. Mention @AI whenever you need help.')).toBeInTheDocument();
 });
 
 it('New chat → Team chat creates the chat and opens it', async () => {
     server.on('POST', `${BASE}/chats`, { chat: teamChat({ id: 'c-new', title: 'Agenda?' }), message: null, ai: { status: 'skipped' } });
     const user = userEvent.setup();
     const { onOpenSub } = renderTab();
-    await user.click(await screen.findByTestId('new-chat-menu'));
-    await user.click(await screen.findByRole('menuitem', { name: /Team chat/ }));
+    await user.click(await screen.findByRole('button', { name: 'New chat' }));
     await user.type(screen.getByRole('textbox', { name: 'First message' }), 'Agenda?');
     await user.click(screen.getByTestId('new-chat-submit'));
     await waitFor(() => expect(onOpenSub).toHaveBeenCalledWith('c-new'));
     expect(server.called('POST', `${BASE}/chats`)[0].body).toMatchObject({ aiMode: 'mention', message: 'Agenda?' });
 });
 
-it('New chat → AI chat hands the first message to the app, shared when asked', async () => {
+it('New chat → Team chat carries the AI result of the first message into the chat it opens', async () => {
+    server.on('POST', `${BASE}/chats`, { chat: teamChat({ id: 'c-first' }), message: null, ai: { status: 'skipped', reason: 'limit' } });
     const user = userEvent.setup();
-    const { onStartChat } = renderTab();
-    await user.click(await screen.findByTestId('new-chat-menu'));
-    await user.click(await screen.findByRole('menuitem', { name: /AI chat/ }));
-    await user.type(screen.getByRole('textbox', { name: 'First message' }), 'Summarise the brief');
-    await user.click(screen.getByRole('checkbox', { name: 'Share with project members' }));
+    const { onOpenSub } = renderTab();
+    await user.click(await screen.findByRole('button', { name: 'New chat' }));
+    await user.type(screen.getByRole('textbox', { name: 'First message' }), '@ai summarise');
     await user.click(screen.getByTestId('new-chat-submit'));
-    expect(onStartChat).toHaveBeenCalledWith({ project: PROJECT, message: 'Summarise the brief', share: true, agentId: null });
+    await waitFor(() => expect(onOpenSub).toHaveBeenCalledWith('c-first'));
+    expect(takeFirstAnswer('c-first')).toEqual({ ai: { status: 'skipped', reason: 'limit' }, askedAi: true });
 });
 
-it('New chat keeps the form and the message when the app refuses to start the chat', async () => {
+it('New chat has one shared creation path and preserves the draft when creation fails', async () => {
+    server.on('POST', `${BASE}/chats`, reply(500, { error: 'Could not create conversation' }));
     const user = userEvent.setup();
-    const { onStartChat } = renderTab();
-    onStartChat.mockReturnValue(false);
-    await user.click(await screen.findByTestId('new-chat-menu'));
-    await user.click(await screen.findByRole('menuitem', { name: /AI chat/ }));
+    const { onStartChat, onOpenSub } = renderTab();
+    await user.click(await screen.findByRole('button', { name: 'New chat' }));
+    expect(screen.queryByRole('radiogroup', { name: 'Kind of chat' })).not.toBeInTheDocument();
     await user.type(screen.getByRole('textbox', { name: 'First message' }), 'Summarise the brief');
     await user.click(screen.getByTestId('new-chat-submit'));
-    expect(onStartChat).toHaveBeenCalledTimes(1);
-    expect(screen.getByTestId('new-chat-composer')).toBeInTheDocument();
+    expect(await screen.findByText('Could not create conversation')).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'First message' })).toHaveValue('Summarise the brief');
-});
-
-it('New chat closes once the app started the chat', async () => {
-    const user = userEvent.setup();
-    const { onStartChat } = renderTab();
-    onStartChat.mockReturnValue(true);
-    await user.click(await screen.findByTestId('new-chat-menu'));
-    await user.click(await screen.findByRole('menuitem', { name: /AI chat/ }));
-    await user.type(screen.getByRole('textbox', { name: 'First message' }), 'Summarise the brief');
-    await user.click(screen.getByTestId('new-chat-submit'));
-    expect(screen.queryByTestId('new-chat-composer')).toBeNull();
+    expect(onStartChat).not.toHaveBeenCalled();
+    expect(onOpenSub).not.toHaveBeenCalled();
 });
 
 it('shows the AI answering in a team chat and in a shared chat, live', async () => {

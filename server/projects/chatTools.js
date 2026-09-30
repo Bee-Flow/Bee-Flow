@@ -100,6 +100,7 @@ const str = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
  * @param {object} [deps]
  * @param {Function} [deps.getProjectRole]   (userId, projectId) => role|null
  * @param {Function} [deps.getUser]          (id) => user row
+ * @param {object}   [deps.projectOrg]       projects/projectOrg surface: projectOrgOf, belongsToProjectOrg, itemOrgFor
  * @param {object}   [deps.documents]        stores/documentStore surface: createDocument
  * @param {object}   [deps.notebooks]        stores/notebookStore surface: createNotebook, updateNotebook
  * @param {object}   [deps.membership]       projects/membership surface: isAllowedIn
@@ -113,6 +114,7 @@ const str = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
 function makeProjectChatTools(deps = {}) {
     const getProjectRole = deps.getProjectRole || ((userId, projectId) => require('../auth/projectAccess').getProjectRole(userId, projectId));
     const getUser = deps.getUser || ((id) => require('../stores/userStore').getUser(id));
+    const projectOrg = () => deps.projectOrg || require('./projectOrg');
     const documents = () => deps.documents || require('../stores/documentStore');
     const notebooks = () => deps.notebooks || require('../stores/notebookStore');
     const membership = () => deps.membership || require('./membership');
@@ -168,7 +170,8 @@ function makeProjectChatTools(deps = {}) {
             if (role !== 'owner' && role !== 'editor') return { error: 'The person who asked can no longer add to this project.' };
             if (!membership().isAllowedIn(kind, project.kind ?? null)) return { error: `This project holds no ${noun}.` };
             const user = await getUser(userId);
-            if ((user?.organizationId || '') !== (project.organizationId || '')) return { error: 'This project belongs to another organization.' };
+            const { projectOrgOf, belongsToProjectOrg } = projectOrg();
+            if (!await belongsToProjectOrg(userId, await projectOrgOf(project))) return { error: 'This project belongs to another organization.' };
             return { user };
         }
 
@@ -183,7 +186,7 @@ function makeProjectChatTools(deps = {}) {
             const content = str(args.content, CONTENT_MAX);
             const doc = await documents().createDocument({
                 userId, name, docType: 'page', bodyHtml: content ? markdownToHtml(content) : '',
-                kind: 'document', visibility: 'private', projectId: project.id,
+                kind: 'document', visibility: 'private', projectId: project.id, projectOrgChecked: true,
             });
             await recordCreated({ projectId: project.id, itemType: 'document', itemId: doc.id, actorId: userId });
             created.push({ kind: 'document', id: doc.id, name: doc.name || name });
@@ -203,7 +206,7 @@ function makeProjectChatTools(deps = {}) {
                 userId, name, docType, bodyHtml, css,
                 settings: args.useHouseStyle === false ? { houseStyle: false } : {},
                 kind: template ? 'template' : 'document', visibility: 'private',
-                ...(template ? {} : { projectId: project.id }),
+                ...(template ? {} : { projectId: project.id, projectOrgChecked: true }),
             });
             if (template) {
                 created.push({ kind: 'template', id: doc.id, name: doc.name || name });
@@ -226,7 +229,7 @@ function makeProjectChatTools(deps = {}) {
             if (gate.error) return refuse(gate.error);
             const nb = await notebooks().createNotebook({
                 userId, name, description: str(args.description, DESCRIPTION_MAX), projectId: project.id,
-                organizationId: gate.user?.organizationId || null,
+                organizationId: projectOrg().itemOrgFor(project, gate.user),
             });
             if (content) await notebooks().updateNotebook(nb.id, userId, { documentContent: content });
             await recordCreated({ projectId: project.id, itemType: 'notebook', itemId: nb.id, actorId: userId });

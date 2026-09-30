@@ -88,7 +88,7 @@ export default function TaskRow({ task, canEdit, people, onOpen, onStatus, onDel
     const done = task.status === 'done';
     return (
         <li>
-            <div role="button" tabIndex={0} onClick={onOpen} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); } }}
+            <div role="button" tabIndex={0} onClick={onOpen} onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onOpen(); } }}
                 data-testid={`project-task-${task.id}`} style={assigneeEdge(task, people)}
                 className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)] cursor-pointer hover:border-[var(--border-default)] hover:bg-[var(--item-hover-bg)] transition-colors">
                 <StatusButton task={task} canEdit={canEdit} onChange={onStatus} />

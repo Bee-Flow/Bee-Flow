@@ -19,7 +19,7 @@ import type { AgentSummary } from '../homeQueries';
 import { projectErrorText } from '../projectErrorText';
 import { StudioSectionHeader } from '../studioParts';
 import { SELECT_CLASS } from '../workspaceUi';
-import AiModeSelector, { effectiveMode } from './AiModeSelector';
+import AiModeSelector, { aiModeBadge, aiModeHint, effectiveMode } from './AiModeSelector';
 
 // A .jsx module whose `= null` defaults would type the props as null-only.
 const AnchoredMenu = AnchoredMenuJs as unknown as ComponentType<Record<string, unknown>>;
@@ -157,10 +157,20 @@ export default function TeamChatHeader(props: TeamChatHeaderProps) {
     const policy = useTeamChatAiPolicy(props.projectId);
     const extras = (
         <div className="flex items-center gap-2 min-w-0">
-            <AiModeSelector value={chat.aiMode} readOnly={!canEdit} policy={policy} onChange={aiMode => patch({ aiMode })} />
-            <AutoPausedChip chat={chat} />
-            <ModeWithdrawnChip chat={chat} />
-            {canEdit && chat.aiMode !== 'off' && <AgentSelect chat={chat} agents={agents} onChange={agentId => patch({ agentId })} />}
+            {/* The header's action cluster never shrinks, so on a narrow header the controls scroll
+                sideways in a capped box instead of squeezing the title out; the menu stays in reach. */}
+            <div className="flex items-center gap-2 min-w-0 @max-[900px]/objhead:max-w-[14rem] @max-[900px]/objhead:overflow-x-auto custom-scrollbar">
+                <details className="relative">
+                    <summary className="cursor-pointer text-xs text-[var(--text-secondary)] rounded-lg border border-[var(--border-default)] px-2 py-1.5">{aiModeBadge(effectiveMode(chat), t)}</summary>
+                    <div className="fixed z-50 right-4 mt-2 max-w-[calc(100vw-2rem)] rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] shadow-lg p-3 space-y-3">
+                        <AiModeSelector value={chat.aiMode} readOnly={!canEdit} policy={policy} onChange={aiMode => patch({ aiMode })} />
+                        <p className="text-xs text-[var(--text-secondary)]">{aiModeHint(effectiveMode(chat), t)}</p>
+                        {canEdit && chat.aiMode !== 'off' && <AgentSelect chat={chat} agents={agents} onChange={agentId => patch({ agentId })} />}
+                    </div>
+                </details>
+                <AutoPausedChip chat={chat} />
+                <ModeWithdrawnChip chat={chat} />
+            </div>
             <ChatMenu canEdit={canEdit} canDelete={canDelete} archived={chat.archived}
                 onCreateTask={props.onCreateTask} onRename={() => setRenameRequest(n => n + 1)} onArchive={() => patch({ archived: !chat.archived })} onDelete={onDelete} />
         </div>

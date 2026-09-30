@@ -1,3 +1,4 @@
+import { mayNavigate } from '../utils/unsavedNavigation';
 import { useCallback } from 'react';
 import {
     PAGE_ROUTES,
@@ -41,6 +42,7 @@ export function useNavigateToPage({
     setInitialProjectRoute = () => {},
 }) {
     const navigateToPage = useCallback((page, { replace = false } = {}) => {
+        if (!mayNavigate()) return;
         // Mobile access control: on phones, any destination that isn't chat or
         // user-settings bounces to the app home. Belt-and-suspenders with
         // MobileRouteGuard (which catches deep-links/refresh + resize). Close

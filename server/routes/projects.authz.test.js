@@ -72,7 +72,13 @@ const MOCKS = {
         unshareProject: async () => true,
         unassignConversation: async (convId, userId) => { fx.unassigned.push({ convId, userId }); return true; },
         // Bob's own chat c1, filed but not shared; anybody else's reads as none.
-        getOwnConversationFiling: async (convId, userId) => (convId === 'c1' && userId === 'bob' ? { projectId: 'p1', shared: false } : null),
+        // c-shared is Bob's chat shared into p1 (sealed under p1's key).
+        getOwnConversationFiling: async (convId, userId) => {
+            if (userId !== 'bob') return null;
+            if (convId === 'c1') return { projectId: 'p1', shared: false };
+            if (convId === 'c-shared') return { projectId: 'p1', shared: true };
+            return null;
+        },
         assignConversation: async (convId, projectId, userId) => { fx.assigned.push({ convId, projectId, userId }); return true; },
         // The audit row and its live event, one transaction (projects/changeFeed).
         recordActivityEvent: async (projectId, entry) => { fx.activity.push({ projectId, actorId: entry.actorId, action: entry.action }); return null; },
@@ -724,6 +730,27 @@ test('conversations cannot be filed into a Solution, but may be taken out of one
     });
     assert.strictEqual(out.statusCode, 200);
     assert.deepStrictEqual(fx.unassigned, [{ convId: 'c1', userId: 'bob' }]);
+});
+
+test('a chat shared into a project can be neither moved nor detached through the batch route, and nothing in the batch is applied', async () => {
+    resetFx();
+    fx.role = 'editor';
+    fx.projects.p1.kind = 'workspace';
+    const moved = await dispatch({
+        method: 'PUT', url: '/p1/conversations',
+        body: { assign: [{ id: 'c1', type: 'direct' }, { id: 'c-shared', type: 'direct' }] }, session: BOB,
+    });
+    assert.strictEqual(moved.statusCode, 200, 'filing it into the project it is already shared in is not a move');
+    resetFx();
+    fx.role = 'editor';
+    const detached = await dispatch({
+        method: 'PUT', url: '/p1/conversations',
+        body: { assign: [{ id: 'c1', type: 'direct' }], unassign: [{ id: 'c-shared', type: 'direct' }] }, session: BOB,
+    });
+    assert.strictEqual(detached.statusCode, 409);
+    assert.strictEqual(detached.body.code, 'CONVERSATION_SHARED');
+    assert.deepStrictEqual(fx.assigned, [], 'c1 was not filed either: a refusal leaves the batch untouched');
+    assert.deepStrictEqual(fx.unassigned, []);
 });
 
 test('conversations still file into a workspace and into a legacy project', async () => {

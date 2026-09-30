@@ -329,7 +329,7 @@ async function createDocument(input) {
     const id = crypto.randomUUID(); const versionId = crypto.randomUUID();
     // Verify membership even when a trusted caller supplies an organization.
     const owner = await getOne('SELECT "organizationId" FROM users WHERE id = $1', [d.userId]);
-    const org = d.organizationId || owner?.organizationId || null;
+    let org = d.organizationId || owner?.organizationId || null;
     if (d.organizationId && owner?.organizationId !== d.organizationId) throw failure('Organization mismatch', 403);
     if (d.visibility === 'team' && !org) throw failure('Team libraries require an organization');
     const projectId = d.projectId || null;
@@ -337,7 +337,12 @@ async function createDocument(input) {
         if ((d.kind || 'document') !== 'document') throw failure('Only documents can be filed into a project, not templates or sections', 422);
         const project = await getOne('SELECT organization_id FROM projects WHERE id = $1', [projectId]);
         if (!project) throw failure('Project not found', 404, 'project_not_found');
-        if ((project.organization_id || '') !== (org || '')) {
+        if (d.projectOrgChecked === true) {
+            // The caller (projects/projectOrg.belongsToProjectOrg) has checked the creator belongs to the project's
+            // organisation, which for an account whose organisation comes from a group is not the one on the account row.
+            // The item then carries the organisation the project stores, which is what later filing compares on.
+            org = project.organization_id || org;
+        } else if ((project.organization_id || '') !== (org || '')) {
             throw failure('This project belongs to another organization', 409, 'project_org_mismatch');
         }
     }
@@ -635,15 +640,18 @@ async function deleteFolder(userId, id) {
  * (not a template or section, which have their own team sharing), it is not
  * archived, and the project exists in the document's own organisation.
  */
-async function setDocumentProject(documentId, userId, projectId) {
+async function setDocumentProject(documentId, userId, projectId, callerOrgIds = []) {
     await initDB();
     if (!documentId || !userId || !projectId) return false;
+    // `callerOrgIds`: the organisations the owner belongs to (auth/orgScope), so a document of someone whose
+    // organisation only comes from a group (none on the document) can be filed into that organisation's project.
     const { rowCount } = await run(
         `UPDATE studio_documents d SET project_id = $1
           WHERE d.id = $2 AND d.user_id = $3 AND d.kind = 'document' AND d.archived = false
             AND EXISTS (SELECT 1 FROM projects p
-                         WHERE p.id = $1 AND COALESCE(p.organization_id, '') = COALESCE(d.organization_id, ''))`,
-        [projectId, documentId, userId]
+                         WHERE p.id = $1 AND (COALESCE(p.organization_id, '') = COALESCE(d.organization_id, '')
+                            OR (COALESCE(d.organization_id, '') = '' AND p.organization_id = ANY($4::text[]))))`,
+        [projectId, documentId, userId, [...callerOrgIds]]
     );
     return (rowCount || 0) > 0;
 }

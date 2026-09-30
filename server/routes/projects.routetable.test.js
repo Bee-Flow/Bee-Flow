@@ -230,12 +230,21 @@ const EXPECTED = [
     // The upload is editor+ and rate limited BEFORE multer reads the body;
     // `acceptProjectFile` is multer, one field, one file.
     'GET /:id/files [requireProjectRoleMw,validateRequest]',
+    'GET /:id/files/:fileId/content [requireProjectRoleMw,validateRequest]',
     'POST /:id/files [requireProjectRoleMw,rateLimiter,acceptProjectFile]',
     'DELETE /:id/files/:fileId [requireProjectRoleMw,validateRequest]',
     'GET /:id/my-chats [requireProjectRoleMw,validateRequest]',
     'POST /:id/presence [requireProjectRoleMw,rateLimiter,validateRequest]',
     // A new document or notebook made inside the project, owned by the caller
     // (routes/projects/content.js). Editor+, rate limited.
+    'GET /:id/search [requireProjectRoleMw,validateRequest]',
+    'GET /:id/pins [requireProjectRoleMw]',
+    'PUT /:id/pins [requireProjectRoleMw,validateRequest]',
+    'DELETE /:id/pins/:type/:itemId [requireProjectRoleMw,validateRequest]',
+    'GET /:id/board [requireProjectRoleMw]',
+    'PUT /:id/board [requireProjectRoleMw,validateRequest]',
+    'POST /:id/board/tasks [requireProjectRoleMw,validateRequest]',
+    'PATCH /:id/board/tasks/:taskId [requireProjectRoleMw,validateRequest]',
     'POST /:id/documents [requireProjectRoleMw,rateLimiter,validateRequest]',
     'POST /:id/notebooks [requireProjectRoleMw,requireNotebooksMw,rateLimiter,validateRequest]',
     // Real-time co-editing (routes/projects/collab.js). Opening, syncing and

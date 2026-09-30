@@ -14,6 +14,7 @@ import AnswerTrace from './AnswerTrace';
 import AutoAnswerNote from './AutoAnswerNote';
 import { washOf } from '../memberColors';
 import { AI_TONE, type AiTone } from '../projectVisuals';
+import { isImeEnter } from './ime';
 import { excerptOf, formatMessageTime, type ChatItem, type ThreadSummary } from './messageGroups';
 import { splitMentions } from './mentions';
 
@@ -147,7 +148,7 @@ function EditBox({ initial, onSave, onCancel }: { initial: string; onSave: (next
                 onChange={e => setDraft(e.target.value)}
                 onKeyDown={(e) => {
                     if (e.key === 'Escape') { e.preventDefault(); onCancel(); }
-                    else if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); save(); }
+                    else if (e.key === 'Enter' && !e.shiftKey && !isImeEnter(e)) { e.preventDefault(); save(); }
                 }}
                 aria-label={t('project_chat.edit_label', 'Edit message')}
                 maxLength={20000}
@@ -223,8 +224,7 @@ function MessageBody({ message, ctx }: { message: TeamChatMessage; ctx: MessageC
     }
     if (message.authorKind === 'assistant') {
         return (
-            <div className="rounded-2xl rounded-tl-md border border-l-2 px-3.5 py-2.5 text-[13.5px] text-[var(--text-primary)] min-w-0" data-testid="team-chat-assistant-body"
-                style={{ background: (ctx.aiTone || AI_TONE).card, borderColor: (ctx.aiTone || AI_TONE).edge, borderLeftColor: (ctx.aiTone || AI_TONE).bar }}>
+            <div className="py-3 text-[14px] leading-7 text-[var(--text-primary)] min-w-0" data-testid="team-chat-assistant-body">
                 <MarkdownRenderer content={message.content} isLoading={false} />
             </div>
         );
@@ -240,14 +240,13 @@ function bubbleFor(message: TeamChatMessage, ctx: MessageContext): { className: 
     if (message.authorKind !== 'user') {
         return { className: 'rounded-lg px-2 py-1 -mx-2 hover:bg-[color-mix(in_srgb,var(--accent-primary)_5%,var(--bg-secondary))] transition-colors' };
     }
-    const tone = ctx.aiTone || AI_TONE;
     const mine = !!ctx.currentUserId && message.authorUserId === ctx.currentUserId;
     // A person's colour is only a wash: the bubble stays quiet, and the text keeps the theme's ink.
     const color = ctx.colorOf?.(message.authorUserId);
     if (mine) {
         return {
             className: 'ml-auto w-fit max-w-[80%] rounded-2xl rounded-tr-md px-3.5 py-2',
-            style: color ? { background: washOf(color, 12), boxShadow: `inset 0 0 0 1px ${washOf(color, 22)}` } : { background: tone.soft, boxShadow: `inset 0 0 0 1px ${tone.ring}` },
+            style: { background: 'var(--user-bubble-bg)', color: 'var(--user-bubble-fg)' },
         };
     }
     return color
@@ -268,6 +267,10 @@ function ConfirmedBubble({ message, ctx }: { message: TeamChatMessage; ctx: Mess
                     onSave={async (next) => { await ctx.onEdit(message, next); setEditing(false); }} />
                 : <MessageBody message={message} ctx={ctx} />}
             {!message.deleted && !editing && <RefChips refs={message.refs || []} ctx={ctx} />}
+            {!message.deleted && !editing && !!message.aiMeta?.usedSources?.length && <div className="text-xs text-[var(--text-secondary)]">
+                <span>{t('project_chat.context_used', 'Sources provided to AI')}</span>
+                <RefChips refs={message.aiMeta.usedSources.filter(ref => !!ctx.refTitle?.(ref))} ctx={ctx} />
+            </div>}
             {!message.deleted && message.aiMeta && (
                 <AnswerTrace meta={message.aiMeta} projectId={ctx.traceScope?.projectId ?? null} chatId={ctx.traceScope?.chatId ?? null} messageId={message.id} />
             )}

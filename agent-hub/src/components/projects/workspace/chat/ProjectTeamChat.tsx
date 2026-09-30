@@ -8,8 +8,8 @@ import { AlertTriangle, Lock, Sparkles } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ApiError } from '../../../../api/client';
 import {
-    discardPendingMessage, newClientMsgId, newestSeq, useMarkTeamChatRead, useProjectChatQuery, useSendTeamChatMessage,
-    useTeamChatAgents, useTeamChatMessages, useUpdateProjectChat, type PendingTeamChatMessage, type SendTeamChatMessage, type TeamChat,
+    discardPendingMessage, newClientMsgId, useProjectChatQuery, useSendTeamChatMessage,
+    useTeamChatAgents, useUpdateProjectChat, type PendingTeamChatMessage, type SendTeamChatMessage, type TeamChat,
     type TeamChatAiResult, type TeamChatMessage, type TeamChatRef,
 } from '../../../../api/queries/projectChats';
 import { useProjectResourcesQuery, type Project, type ProjectRole } from '../../../../api/queries/projects';
@@ -29,6 +29,8 @@ import { excerptOf } from './messageGroups';
 import TeamChatHeader from './TeamChatHeader';
 import ThreadPanel from './ThreadPanel';
 import TypingIndicator from './TypingIndicator';
+import { draftKey } from './drafts';
+import { takeFirstAnswer } from './firstAnswer';
 import { aiToneFor, projectIcon } from '../projectVisuals';
 import { useChatTier } from './useChatTier';
 import { useTeamChatLive, type TeamChatAiProblem } from './useTeamChatLive';
@@ -50,25 +52,6 @@ export interface ProjectTeamChatProps {
     initialThreadId?: string | null;
 }
 
-/** Keep the server's read marker at the newest message while the chat is on screen. */
-function useMarkRead(projectId: string, chatId: string) {
-    const { data } = useTeamChatMessages(projectId, chatId);
-    const { mutate } = useMarkTeamChatRead(projectId, chatId);
-    const marked = useRef(0);
-    const [visible, setVisible] = useState(() => typeof document === 'undefined' || document.visibilityState !== 'hidden');
-    const seq = newestSeq(data?.messages || []);
-    useEffect(() => {
-        const onChange = () => setVisible(document.visibilityState !== 'hidden');
-        document.addEventListener('visibilitychange', onChange);
-        return () => document.removeEventListener('visibilitychange', onChange);
-    }, []);
-    useEffect(() => {
-        if (!visible || !seq || seq <= marked.current) return;
-        marked.current = seq;
-        mutate(seq);
-    }, [visible, seq, mutate]);
-}
-
 /** What to tell the author when the AI will not answer their message, if anything. */
 export function aiResultNotice(ai: TeamChatAiResult, askedAi: boolean, t: TranslateFn): string | null {
     if (ai.status === 'busy') return t('project_chat.ai_busy', 'The AI is still answering an earlier message. Ask again when it is done.');
@@ -85,23 +68,29 @@ function useSender(projectId: string, chat: TeamChat, currentUserId: string | nu
     const { t } = useTranslation();
     const qc = useQueryClient();
     const { mutateAsync } = useSendTeamChatMessage(projectId, chat.id, currentUserId);
-    const [notice, setNotice] = useState<string | null>(null);
+    // The notice belongs to where the message was written: the chat, or one thread of it.
+    const [notice, setNotice] = useState<{ text: string; threadId: string | null } | null>(null);
+
+    const applyAi = useCallback((ai: TeamChatAiResult, askedAi: boolean, threadId: string | null) => {
+        if (ai.status === 'queued') { setAnswering(true); return; }
+        const text = aiResultNotice(ai, askedAi, t);
+        setNotice(text ? { text, threadId } : null);
+    }, [setAnswering, t]);
 
     const run = useCallback((vars: SendTeamChatMessage) => {
         setNotice(null);
-        mutateAsync(vars).then(({ ai }) => {
-            if (ai.status === 'queued') setAnswering(true);
-            else setNotice(aiResultNotice(ai, vars.askAi, t));
-        }).catch(() => { /* the message itself shows "not sent" with a retry */ });
-    }, [mutateAsync, setAnswering, t]);
+        mutateAsync(vars).then(({ ai }) => applyAi(ai, vars.askAi, vars.threadId ?? null)).catch(() => { /* the message itself shows "not sent" with a retry */ });
+    }, [mutateAsync, applyAi]);
 
+    const clearNotice = useCallback(() => setNotice(null), []);
     const retry = useCallback((p: PendingTeamChatMessage) => run({
         clientMsgId: p.clientMsgId, content: p.content, mentions: p.mentions, replyTo: p.replyTo, threadId: p.threadId, refs: p.refs, modelTier: p.modelTier, askAi: p.askAi,
     }), [run]);
     const discard = useCallback((p: PendingTeamChatMessage) => discardPendingMessage(qc, projectId, chat.id, p.clientMsgId), [qc, projectId, chat.id]);
     return {
         notice,
-        clearNotice: () => setNotice(null),
+        applyAi,
+        clearNotice,
         submit: (draft: ComposerDraft, replyTo: string | null, threadId: string | null = null) => run({ clientMsgId: newClientMsgId(), ...draft, replyTo, threadId }),
         retry,
         discard,
@@ -149,6 +138,20 @@ function useNames(projectId: string, chat: TeamChat, currentUser: WorkspaceUser 
     }, [people, currentUser, agents, chat.aiMode, chat.agentId, resources, t]);
 }
 
+/** What the AI said about a message its author sent, with a way to dismiss it. */
+function AiNotice({ text, onDismiss }: { text: string | null; onDismiss: () => void }) {
+    const { t } = useTranslation();
+    if (!text) return null;
+    return (
+        <div className="flex-shrink-0 px-4 pb-2">
+            <Notice icon={Sparkles} tone="warning" role="status"
+                action={<GhostButton onClick={onDismiss}>{t('project_chat.dismiss', 'Dismiss')}</GhostButton>}>
+                {text}
+            </Notice>
+        </div>
+    );
+}
+
 function ReadOnlyBar({ chat, canEdit, projectId }: { chat: TeamChat; canEdit: boolean; projectId: string }) {
     const { t } = useTranslation();
     const update = useUpdateProjectChat(projectId, chat.id);
@@ -182,7 +185,19 @@ function TeamChatView({ chat, projectId, project, role, currentUser, onBack, onN
     const [reply, setReply] = useState<TeamChatMessage | null>(null);
     const [threadId, setThreadId] = useState<string | null>(initialThreadId ?? null);
     const tier = useChatTier();
-    useMarkRead(projectId, chat.id);
+    const { applyAi, clearNotice } = sender;
+
+    // What the AI said about the first message that created this chat (the form that made it is gone).
+    useEffect(() => {
+        const first = takeFirstAnswer(chat.id);
+        if (first) applyAi(first.ai, first.askedAi, null);
+    }, [chat.id, applyAi]);
+    // An "ask again when it is done" (or any other) notice is about a turn that is over once the AI finishes.
+    const wasAnswering = useRef(false);
+    useEffect(() => {
+        if (wasAnswering.current && !live.ai.answering) clearNotice();
+        wasAnswering.current = live.ai.answering;
+    }, [live.ai.answering, clearNotice]);
 
     const base = useMemo<BaseMessageContext>(() => ({
         currentUserId: me, isProjectOwner: role === 'owner', canPost: canPost && !chat.archived,
@@ -199,12 +214,14 @@ function TeamChatView({ chat, projectId, project, role, currentUser, onBack, onN
     const threadBase = useMemo<BaseMessageContext>(() => ({ ...base, onReply: undefined, onOpenThread: undefined }), [base]);
 
     const typers = (typing[chat.id] || []).map(id => names.nameOf(id));
-    const notice = sender.notice || problemNotice(live.ai.problem, t);
+    const mainNotice = sender.notice?.threadId ? null : sender.notice?.text || problemNotice(live.ai.problem, t);
+    const threadNotice = threadId && sender.notice?.threadId === threadId ? sender.notice.text : null;
     const replyChip = reply ? {
         author: reply.authorKind === 'assistant' ? names.assistantName(reply.agentId) : names.nameOf(reply.authorUserId),
         excerpt: excerptOf(reply.content),
     } : null;
 
+    const dismissNotice = () => { clearNotice(); live.setAnswering(false); };
     const typingLine = <TypingIndicator names={typers} aiAnswering={live.ai.answering} aiName={names.assistantName(chat.agentId)} />;
     const writable = canPost && !chat.archived;
     return (
@@ -212,27 +229,21 @@ function TeamChatView({ chat, projectId, project, role, currentUser, onBack, onN
             <div className="flex-1 min-w-0 flex flex-col min-h-0">
                 <TeamChatHeader projectId={projectId} chat={chat} role={role} currentUserId={me} agents={agents} onBack={onBack} onDeleted={onBack}
                     onCreateTask={onCreateTask ? () => onCreateTask([{ kind: 'chat', id: chat.id }], chat.title || '') : undefined} />
-                <ChatMessageList projectId={projectId} chatId={chat.id} base={base} footer={threadId ? undefined : typingLine} />
-                {notice && (
-                    <div className="flex-shrink-0 px-4 pb-2">
-                        <Notice icon={Sparkles} tone="warning" role="status"
-                            action={<GhostButton onClick={() => { sender.clearNotice(); live.setAnswering(false); }}>{t('project_chat.dismiss', 'Dismiss')}</GhostButton>}>
-                            {notice}
-                        </Notice>
-                    </div>
-                )}
+                <ChatMessageList projectId={projectId} chatId={chat.id} base={base} footer={live.threadId ? undefined : typingLine} />
+                <AiNotice text={mainNotice} onDismiss={dismissNotice} />
                 {writable ? (
-                    <ChatComposer candidates={names.candidates} aiEnabled={chat.aiMode !== 'off'} reply={replyChip} tier={tier}
+                    <ChatComposer draftKey={draftKey(me, chat.id)} candidates={names.candidates} aiEnabled={chat.aiMode !== 'off'} reply={replyChip} tier={tier}
                         onCancelReply={() => setReply(null)} onTyping={() => notifyTyping(chat.id)}
                         onSend={(draft) => { sender.submit(draft, reply?.id || null); setReply(null); }} />
                 ) : <ReadOnlyBar chat={chat} canEdit={canPost} projectId={projectId} />}
             </div>
             {threadId && (
                 <ThreadPanel key={threadId} projectId={projectId} chatId={chat.id} threadId={threadId} base={threadBase} canPost={writable}
-                    footer={typingLine} onClose={() => setThreadId(null)}
+                    footer={live.threadId === threadId ? typingLine : undefined} notice={<AiNotice text={threadNotice} onDismiss={dismissNotice} />} onClose={() => setThreadId(null)}
                     onCreateTask={onCreateTask && writable ? () => onCreateTask([{ kind: 'thread', id: threadId, chatId: chat.id }], chat.title || '') : undefined}
                     composer={{
                         candidates: names.candidates, aiEnabled: chat.aiMode !== 'off', tier, onTyping: () => notifyTyping(chat.id),
+                        draftKey: draftKey(me, chat.id, threadId),
                         onSend: (draft) => sender.submit(draft, null, threadId),
                     }} />
             )}

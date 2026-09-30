@@ -739,7 +739,7 @@ async function listProjectNotebooks(projectId, { limit = 50, offset = 0, type = 
                 (SELECT COALESCE(SUM(ns.word_count),0) FROM notebook_sources ns WHERE ns.notebook_id = n.id AND ns.status = 'ready') AS source_word_count
            FROM notebooks n
           WHERE n.project_id = $1 AND COALESCE(n.type, 'notebook') = $2
-          ORDER BY COALESCE(n.last_activity_at, n.updated_at) DESC
+          ORDER BY COALESCE(n.last_activity_at, n.updated_at) DESC, n.id
           LIMIT $3 OFFSET $4`,
         [projectId, type, Math.min(Math.max(1, limit), MAX_CARD_LIMIT), Math.max(0, offset)]
     );

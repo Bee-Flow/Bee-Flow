@@ -468,6 +468,9 @@ router.delete('/:id', requireAuth, validate({ body: NOTHING, query: DeleteQuery 
 
         const deleted = await transcriptionStore.deleteTranscription(req.params.id, userId);
         if (!deleted) return res.status(404).json({ error: 'Not found' });
+        // A task that linked this meeting keeps existing; the link goes (in every project).
+        try { await require('../../stores/projectTaskStore').dropLinksTo(null, 'meeting', req.params.id); }
+        catch (err) { log.warn(`[Transcriptions] task links to meeting ${req.params.id} not dropped: ${err.message}`); }
         res.json({ success: true });
     } catch (err) {
         log.error('[Transcriptions] Delete error:', err.message);

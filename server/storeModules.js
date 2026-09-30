@@ -36,6 +36,8 @@ const STORE_MODULES = [
     { name: 'knowledgeStore', file: './stores/knowledgeStore' },
     { name: 'notificationStore', file: './stores/notificationStore' },
     { name: 'projectStore', file: './stores/projectStore' },
+    { name: 'projectPinStore', file: './stores/projectPinStore' },
+    { name: 'projectBoardStore', file: './stores/projectBoardStore' },
     // Blueprints captured from a Solution. Owns its own DDL, so a standalone
     // db:migrate must create the table too — otherwise it only appears the
     // first time somebody packages a project.
