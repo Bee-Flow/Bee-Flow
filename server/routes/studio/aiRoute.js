@@ -96,7 +96,7 @@ const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 // The gate helpers and the lazy dependency factory are shared with the other
 // /api/studio aggregates — see routes/studio/shared.js.
 const {
-    makeLazyDeps, userIdOf, orgIdOf, moduleActive, licenceAllows, capability, permission,
+    makeLazyDeps, userIdOf, orgIdOf, moduleActive, licenceAllows, capability, permission, solutionsGate,
 } = require('./shared');
 const log = require('../../telemetry/log');
 
@@ -213,12 +213,7 @@ const ROUTE_KINDS = Object.freeze([
     {
         key: 'solution',
         blurb: 'A solution: a package that groups the routines, tables, agents and pages that serve one goal, and can be exported and installed elsewhere.',
-        gate: async (req, d) => {
-            if (!(await moduleActive(d, 'projects'))) return false;
-            if (!(await capability(d, req, 'projects'))) return false;
-            const enabled = await d.configStore.getConfig('feature_projects_enabled');
-            return enabled !== false;
-        },
+        gate: solutionsGate,
     },
 ]);
 

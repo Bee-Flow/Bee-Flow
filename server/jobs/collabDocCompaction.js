@@ -34,7 +34,7 @@
 
 'use strict';
 
-const { periodicTimer } = require('./lib/periodicTimer');
+const { periodicJob } = require('./lib/periodicTimer');
 
 const COLLAB_COMPACTION_LOCK_KEY = 0xBEEF1C0;
 const INTERVAL_MS = 60 * 1000;
@@ -115,15 +115,9 @@ function pass(when) {
 
 // The first interval is a minute away, but a pod that just booted should not
 // wait for a document someone closed while it was down: hence the boot pass.
-const timer = periodicTimer({ bootDelayMs: BOOT_DELAY_MS, intervalMs: INTERVAL_MS, run: pass });
-
-function start() {
-    if (!timer.start()) return;
-    deps().log.info(`[collabDocCompaction] Started — every ${INTERVAL_MS / 1000} s`);
-}
-
-function stop() {
-    timer.stop();
-}
+const { start, stop } = periodicJob({
+    bootDelayMs: BOOT_DELAY_MS, intervalMs: INTERVAL_MS, run: pass,
+    onStart: () => deps().log.info(`[collabDocCompaction] Started — every ${INTERVAL_MS / 1000} s`),
+});
 
 module.exports = { start, stop, runOnce, COLLAB_COMPACTION_LOCK_KEY, INTERVAL_MS, _setDeps };

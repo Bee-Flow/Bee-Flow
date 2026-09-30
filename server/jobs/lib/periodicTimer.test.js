@@ -12,7 +12,7 @@
 const { test, beforeEach, afterEach, mock } = require('node:test');
 const assert = require('node:assert');
 
-const { periodicTimer } = require('./periodicTimer');
+const { periodicTimer, periodicJob } = require('./periodicTimer');
 
 beforeEach(() => { mock.timers.enable({ apis: ['setTimeout', 'setInterval'] }); });
 afterEach(() => { mock.timers.reset(); });
@@ -75,4 +75,23 @@ test('a pass that rejects or throws is swallowed', async () => {
     } finally {
         process.off('unhandledRejection', onUnhandled);
     }
+});
+
+test('periodicJob announces a start once, runs like the timer, and stops', async () => {
+    const calls = [];
+    let started = 0;
+    const job = periodicJob({ bootDelayMs: 100, intervalMs: 1000, run: (when) => { calls.push(when); }, onStart: () => { started += 1; } });
+    job.start();
+    job.start();
+    assert.strictEqual(started, 1, 'a second start says nothing');
+    mock.timers.tick(100);
+    await settle();
+    assert.deepStrictEqual(calls, ['initial']);
+    job.stop();
+    mock.timers.tick(5000);
+    await settle();
+    assert.deepStrictEqual(calls, ['initial']);
+    job.start();
+    assert.strictEqual(started, 2, 'a stopped job announces its next start');
+    job.stop();
 });

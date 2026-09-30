@@ -44,4 +44,22 @@ function periodicTimer({ bootDelayMs, intervalMs, run }) {
     };
 }
 
-module.exports = { periodicTimer };
+/**
+ * A job module's start() and stop(): the timer above, plus the job's own
+ * "Started" line, logged only when start() actually started it (a second
+ * start is a no-op and says nothing).
+ *
+ *   const { start, stop } = periodicJob({ bootDelayMs, intervalMs, run, onStart: () => log.info('Started') });
+ *
+ * @param {{ bootDelayMs: number, intervalMs: number, run: (when: 'initial'|'scheduled') => unknown, onStart: () => void }} opts
+ * @returns {{ start: () => void, stop: () => void }}
+ */
+function periodicJob({ onStart, ...timerOpts }) {
+    const timer = periodicTimer(timerOpts);
+    return {
+        start() { if (timer.start()) onStart(); },
+        stop() { timer.stop(); },
+    };
+}
+
+module.exports = { periodicTimer, periodicJob };

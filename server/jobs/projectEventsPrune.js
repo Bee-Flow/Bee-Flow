@@ -25,7 +25,7 @@
 'use strict';
 
 const { withNamedLock } = require('./lib/namedLock');
-const { periodicTimer } = require('./lib/periodicTimer');
+const { periodicJob } = require('./lib/periodicTimer');
 
 const LOCK_NAME = 'beeflow:job:projectEventsPrune';
 const RETENTION_DAYS = 7;
@@ -77,15 +77,9 @@ async function runOnce() {
     }
 }
 
-const timer = periodicTimer({ bootDelayMs: BOOT_DELAY_MS, intervalMs: INTERVAL_MS, run: () => runOnce() });
-
-function start() {
-    if (!timer.start()) return;
-    deps().log.info(`[projectEventsPrune] Started — every ${INTERVAL_MS / 3_600_000} h, keeps ${RETENTION_DAYS} days`);
-}
-
-function stop() {
-    timer.stop();
-}
+const { start, stop } = periodicJob({
+    bootDelayMs: BOOT_DELAY_MS, intervalMs: INTERVAL_MS, run: () => runOnce(),
+    onStart: () => deps().log.info(`[projectEventsPrune] Started — every ${INTERVAL_MS / 3_600_000} h, keeps ${RETENTION_DAYS} days`),
+});
 
 module.exports = { start, stop, runOnce, _setDeps, LOCK_NAME, RETENTION_DAYS };

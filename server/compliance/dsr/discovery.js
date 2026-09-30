@@ -108,6 +108,7 @@ function _pushError(state, message) {
 
 /** Milliseconds left of the overall budget (Infinity when there is none). */
 function _budgetLeft(state, now = Date.now()) {
+    if (state.budgetSpent) return 0;
     return state.deadlineAt == null ? Infinity : state.deadlineAt - now;
 }
 
@@ -313,11 +314,16 @@ async function _scanDatatables(orgId, needle, deps, state) {
             // per-table timeout.
             const left = _budgetLeft(state);
             if (left <= 0) { skipped += 1; continue; }
+            const cappedByBudget = left < state.perTableTimeoutMs;
             try {
                 counts[i] = await countRowsContaining(meta, needle, scopeKey, deps, {
                     timeoutMs: Math.max(1, Math.min(state.perTableTimeoutMs, left)),
                 });
             } catch (e) {
+                // A query cut off by the overall budget has spent it, even when
+                // its timer fired a millisecond early by Date.now()'s clock:
+                // otherwise the knowledge bases start on 1 ms of "budget".
+                if (cappedByBudget && e.code === 'discovery_timeout') state.budgetSpent = true;
                 state.partial = true;
                 _pushError(state, `datatable ${t.id}: ${e.code || e.message}`);
             }

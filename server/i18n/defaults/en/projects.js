@@ -8,6 +8,11 @@ module.exports = {
     'projects.unshare_thread': 'Stop sharing',
     'projects.shared_badge': 'Shared with the project',
     'projects.shared_threads': 'Shared conversations',
+    // The web's project page no longer reads these two; the Android app's
+    // Solution chats tab (mobile/src/features/projects/components/ChatsTab.tsx)
+    // still does, so they stay.
+    'projects.shared_threads_editor_hint': 'Everyone in this project can read these. Editors can reply.',
+    'projects.no_shared_threads': 'No shared conversations yet. Share one to work on it together.',
     'projects.share_encryption_warning': 'Shared conversations are encrypted with an organisation key so every project member and background jobs can read them. Your private conversations are unchanged.',
     'projects.share_owner_only': 'Only a conversation\'s owner can share it.',
     'projects.turn_busy': '{name} is asking the AI — your message is queued.',

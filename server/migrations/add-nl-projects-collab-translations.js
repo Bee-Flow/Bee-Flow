@@ -19,8 +19,7 @@ const NL_TRANSLATIONS = {
     'projects.unshare_thread': 'Delen stoppen',
     'projects.shared_badge': 'Gedeeld met het project',
     'projects.shared_threads': 'Gedeelde gesprekken',
-    // projects.no_shared_threads was retired with the old project detail page
-    // (2026-09, see removed-keys.txt); no component reads it any more.
+    'projects.no_shared_threads': 'Nog geen gedeelde gesprekken. Deel er een om samen verder te werken.',
     // De encryptie-waarschuwing bij het delen. Bewust expliciet: op de
     // zero-knowledge-tier is dit een echte, opzettelijke verzwakking, en die
     // hoort te staan op het moment dat de gebruiker de keuze maakt.

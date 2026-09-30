@@ -72,6 +72,11 @@ const ALLOWED_PER_FILE = new Map([
         ['./laat', 'synthetic fixture source: split-router proof'],
         ['./opties', 'synthetic fixture source: split-router proof'],
     ])],
+    ['routes/webpages/draftDocument.test.js', new Map([
+        // Fixture source for the bundler's error path: an in-memory src/main.jsx
+        // that imports a file which does not exist, on purpose.
+        ['./Missing.jsx', 'fixture source: the missing import the build error names'],
+    ])],
     ['core/webpages/bfElements.drift.test.js', new Map([
         // A needle searched in the SOURCE of the two bridge files under
         // services/ (beside the engine, so './bfBridgeNotices' is right THERE),

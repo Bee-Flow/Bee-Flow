@@ -163,9 +163,7 @@ routines.settings.start_manual_hint
 # threads/resources tabs were replaced by the collaborative project workspace
 # (project_home / project_chat / project_content), and a Studio Solution no
 # longer links to the projects pages ("Manage access" replaced "Open in Projects").
-projects.no_shared_threads
 projects.run_active
 projects.shared_by_colleague
-projects.shared_threads_editor_hint
 projects.viewer_readonly
 solutions.open_project

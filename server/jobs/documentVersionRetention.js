@@ -38,7 +38,7 @@
 'use strict';
 
 const { withNamedLock } = require('./lib/namedLock');
-const { periodicTimer } = require('./lib/periodicTimer');
+const { periodicJob } = require('./lib/periodicTimer');
 
 const LOCK_NAME = 'beeflow:job:documentVersionRetention';
 const INTERVAL_MS = 24 * 60 * 60 * 1000;
@@ -177,16 +177,10 @@ async function runOnce() {
     }
 }
 
-const timer = periodicTimer({ bootDelayMs: BOOT_DELAY_MS, intervalMs: INTERVAL_MS, run: () => runOnce() });
-
-function start() {
-    if (!timer.start()) return;
-    deps().log.info(`[documentVersionRetention] Started — daily, documents with more than ${MIN_VERSIONS} versions`);
-}
-
-function stop() {
-    timer.stop();
-}
+const { start, stop } = periodicJob({
+    bootDelayMs: BOOT_DELAY_MS, intervalMs: INTERVAL_MS, run: () => runOnce(),
+    onStart: () => deps().log.info(`[documentVersionRetention] Started — daily, documents with more than ${MIN_VERSIONS} versions`),
+});
 
 module.exports = {
     start, stop, runOnce, listPinnedVersionIds, listSeenVersionIds, listCandidates, _setDeps,

@@ -36,6 +36,7 @@ const transcriptionStore = require('../stores/transcriptionStore');
 require('../stores/knowledgeBases');
 const { ingestFileSource, ingestUrlSource, ingestTextSource, ingestDriveSource, MAX_STORED_TEXT } = require('../agents/notebooks/sourceIngestion');
 const { countWords } = require('../utils/text');
+const { keepUploadedSource } = require('../core/documents/uploadedSource');
 require('../core/documents/documentParser');
 require('../core/kb/kbIngestionHelpers');
 const { requirePermission } = require('../auth');
@@ -444,22 +445,10 @@ router.post('/:id/sources/file', requireAuth, asEditor, upload.single('file'), a
         const nb = req.notebook;
         if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
-        const fileName = req.file.originalname;
-        const mimeType = req.file.mimetype;
-        const buffer = req.file.buffer;
-
-        // Determine source type from file extension
-        const ext = (fileName.split('.').pop() || '').toLowerCase();
-        const typeMap = { pdf: 'pdf', docx: 'docx', doc: 'docx', xlsx: 'xlsx', xls: 'xlsx', csv: 'csv', txt: 'text', md: 'text' };
-        const type = typeMap[ext] || 'file';
-
-        // Store file in RustFS
-        let storageKey = null;
-        if (storageStore.isAvailable()) {
-            const storageName = `nb_${Date.now()}_${crypto.randomBytes(4).toString('hex')}_${fileName.replace(/[^a-zA-Z0-9.\-_]/g, '_')}`;
-            storageKey = storageStore.buildKey(userId, 'notebooks', storageName);
-            await storageStore.uploadFile(storageKey, buffer, mimeType);
-        }
+        // Source type from the extension, and a copy in RustFS when storage is on.
+        const { fileName, mimeType, buffer, type, storageKey } = await keepUploadedSource(req.file, {
+            userId, prefix: 'nb', folder: 'notebooks',
+        });
 
         // Create source record
         const source = await notebookStore.addSource({

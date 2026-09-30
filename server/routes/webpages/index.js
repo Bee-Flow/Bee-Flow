@@ -23,6 +23,7 @@
  *   POST   /:id/versions        — create a manual snapshot
  *   POST   /:id/versions/:vid/restore — restore a previous snapshot
  *   DELETE /:id/versions/:vid   — delete a version
+ *   GET    /:id/draft-document     — the draft as one HTML document, bridges baked in
  *
  * ── Deze map ────────────────────────────────────────────────────────
  *
@@ -41,6 +42,7 @@
  *   publicShares.js      externe deel-links + het vernieuwen van hun momentopnames
  *   files.js             extra bestanden en binaire assets
  *   previewToken.js      het token voor de gesandboxte preview-iframe
+ *   draftDocument.js     the draft as one ready-to-run document (the phone's preview)
  *   pageDatabase.js      de paginadatabank achter de sessie
  *   chat.js              de chatgeschiedenis van de bouw-AI
  *   lifecycle.js         klonen en verwijderen
@@ -88,6 +90,7 @@ require('./publishing').register(router, deps);
 require('./publicShares').register(router, deps);
 require('./files').register(router, deps);
 require('./previewToken').register(router, deps);
+require('./draftDocument').register(router, deps);
 require('./pageDatabase').register(router, deps);
 require('./chat').register(router, deps);
 require('./lifecycle').register(router, deps);

@@ -117,7 +117,7 @@ jobs:
       # server/, i.e. the files two lockstep tests require() with everything
       # those require in turn, and the files mobile tests read as text. It
       # used to be server/** (minus the two manifests), so the ~5-min mobile
-      # job ran for every server PR. mobile/src/lib/serverClosure.test.ts
+      # job ran for every server PR. mobile/src/meta/serverClosure.test.ts
       # recomputes the set and fails on a file no pattern here covers, or a
       # pattern that covers none of it; ciTriggers.test.ts reads the FIRST
       # `mobile:` block in this file, which is this one, and checks no
@@ -148,8 +148,62 @@ jobs:
               - 'server/stores/agent/{agentTools,directConversations,initSchema}.js'
               - 'server/stores/automationStore/rowMappers.js'
               - 'server/stores/webpage/shared.js'
-              # read as text by src/i18n/dictionaryText.ts
+              # read as text by src/core/i18n/dictionaryText.ts
               - 'server/i18n/defaults/en/**'
+              # read as text (templates.js) and require()d (deliverableEvents.js) by
+              # src/features/flow-editor/formState/formState.lockstep.test.ts
+              - 'server/automation/{templates,deliverableEvents}.js'
+              # require()d by src/features/flow-editor/formState/settings.lockstep.test.ts,
+              # and what that file requires in turn
+              - 'server/automation/{diffSummary,fieldDiff}.js'
+              - 'server/core/automationRunner/definitionForRun.js'
+              # The mobile parity series (flow editor, access, compliance,
+              # Studio, billing): lockstep tests and serverContract.test.ts
+              # read these as text or require() them.
+              - 'server/auth/{adminRoutes.js,index.js,ncBindingRoutes.js,permissions.js}'
+              - 'server/auth/admin/{featureAccessRoutes.js,groupRoleRoutes.js,invitationRoutes.js,orgRoutes.js,userRoutes.js}'
+              - 'server/auth/login/{currentUserRoutes.js,myPermissionsRoutes.js}'
+              - 'server/automation/{deliverableEvents.js,formPickSources.js}'
+              - 'server/automation/validate/constants.js'
+              - 'server/compliance/aiAct/{annexIii.js,signals.js}'
+              - 'server/compliance/dsr/mask.js'
+              - 'server/config/orgRoles.json'
+              - 'server/core/automationRunner/execFlow.js'
+              - 'server/core/documents/documentContract.js'
+              - 'server/core/entitlements/entitlements.js'
+              - 'server/core/kb/kbUsage.js'
+              - 'server/core/meetingNotes/meetingUsage.js'
+              - 'server/core/privacy/orgShield.js'
+              - 'server/core/privacy/customTypes/shieldDoc.js'
+              - 'server/core/webpages/{webpageDataCards.js,webpagePublicAudience.js,webpageUsage.js}'
+              - 'server/integrations/{azureGroupSync.js,n8nTools.js,webpageGrants.js}'
+              - 'server/learning/orgOverview.js'
+              - 'server/license/{index.js,tiers.js}'
+              - 'server/projects/{completeness.js,membership.js,summary.js}'
+              - 'server/projects/packaging/upgrade.js'
+              - 'server/routes/*'
+              - 'server/routes/admin/*'
+              - 'server/routes/automation/*'
+              - 'server/routes/compliance/*'
+              - 'server/routes/datatables/*'
+              - 'server/routes/integrations/*'
+              - 'server/routes/playbooks/*'
+              - 'server/routes/projects/*'
+              - 'server/routes/skills/{ai.js,test.js}'
+              - 'server/routes/stripe/*'
+              - 'server/routes/studio/*'
+              - 'server/routes/studioDocuments/*'
+              - 'server/routes/subscriptions/*'
+              - 'server/routes/transcriptions/*'
+              - 'server/routes/webpages/*'
+              - 'server/services/{ncUserGroupSync.js,stripeService.js}'
+              - 'server/shared/expr/*'
+              - 'server/stores/*'
+              - 'server/stores/agent/sharedConversations.js'
+              - 'server/stores/automationStore/{folders.js,forms.js,lifecycle.js,runs.js,versions.js,webhooks.js}'
+              - 'server/stores/datatableStore/{rowMappers.js,usage.js}'
+              - 'server/stores/user/{groups.js,users.js}'
+              - 'server/stores/webpage/{sources.js,versions.js}'
       - uses: dorny/paths-filter@0e4a8c6effa4802afeda77dc8d303f8176d7dfad # v3.0.4
         if: github.event_name != 'workflow_dispatch'
         id: filter
@@ -222,9 +276,28 @@ jobs:
               - 'agent-hub/src/i18n/en-defaults.js'
               - 'scripts/gen-i18n-defaults.mjs'
               - 'agent-hub/src/index.css'
+              - 'agent-hub/src/hooks/useChatEngine/sseEvents.ts'
               - 'scripts/{coverage-ratchet,count-ratchet}.mjs'
               - '.github/workflows/ci.yml'
               - '.github/workflows/android-release.yml'
+              # agent-hub's meeting-notes logic, which the Insights and meeting
+              # rules lockstep tests read as text (loadWebModule)
+              - 'agent-hub/src/pages/meeting-notes/lib/**'
+              # agent-hub files the flow editor's and expr's lockstep tests
+              # require(), and what those require in turn (serverClosure.test.ts)
+              - 'agent-hub/src/components/automation/Builder/{applyAddNode,notificationDefaults}.js'
+              - 'agent-hub/src/components/automation/Builder/{flow,mapping,utils}/**'
+              - 'agent-hub/src/components/agents/AgentWizard/state/refineMerge.js'
+              - 'agent-hub/src/shared/expr/**'
+              - 'agent-hub/src/utils/{bindingHelpers,scopedStorage}.*'
+              - 'agent-hub/src/api/client.*'
+              - 'agent-hub/src/components/admin/Studio/AppStudio/runtime/{themeVars.js,uiBits.jsx}'
+              - 'agent-hub/src/components/admin/security/guardrails/Info.jsx'
+              - 'agent-hub/src/components/automation/Builder/BuilderConfirmContext.jsx'
+              - 'agent-hub/src/components/forms/PublicFormRenderer.jsx'
+              - 'agent-hub/src/components/shared/{AnchoredMenu.jsx,illustrations.tsx}'
+              - 'agent-hub/src/hooks/{useAutomationApi.ts,useTranslation.tsx}'
+              - 'agent-hub/src/utils/{appVersion.ts,cmsPublicRouting.js,helpers.js,sseStream.js,storageMigrations.js}'
             python:
               - 'guard-service/**'
               - 'pii-service/**'
@@ -674,6 +747,11 @@ jobs:
           BEEFLOW_VERSION_CODE: ${{ github.run_number }}
           BEEFLOW_BUILD_PROFILE: ci
           BEEFLOW_COMMIT_SHA: ${{ github.sha }}
+      # Metro bundling, which jest never exercises: an import that resolves in
+      # tests but not in Metro (a path alias, a package export) otherwise first
+      # fails in the APK build on main, after the merge.
+      - name: Verify the Android bundle builds
+        run: npx expo export --platform android --output-dir .verify-bundle
 
   # ── Python services ────────────────────────────────────────────────────
   # A real gate: the tree is formatted and every remaining complexity finding
