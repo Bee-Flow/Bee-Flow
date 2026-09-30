@@ -41,13 +41,13 @@ const assert = require('node:assert');
 const crypto = require('node:crypto');
 const { serve, assertRefused } = require('../../core/http/routeHarness');
 const { pgliteDb } = require('../../testUtils/pgliteDb');
+const { fakeRequireProjectRole, projectUser } = require('../../testUtils/projectRoleGate');
 const { makeProjectChatStore, DDL } = require('../../stores/projectChatStore');
 const participationStoreModule = require('../../stores/projectAiParticipationStore');
 const { makeChatCrypto } = require('../../projects/chatCrypto');
 const { makeProjectChatsRouter, titleFromMessage } = require('./chats');
 
-const ORDER = { viewer: 0, editor: 1, owner: 2 };
-const who = (id) => ({ id, organizationId: 'org1', role: 'user', email: `${id}@example.test` });
+const who = projectUser;
 const OWNER = who('olga');
 const EDITOR = who('ed');
 const EDITOR2 = who('eve');
@@ -114,17 +114,7 @@ const fakeAssistant = {
     },
 };
 
-function requireProjectRole(minRole) {
-    return function requireProjectRoleMw(req, res, next) {
-        const userId = req.session?.user?.id;
-        if (!userId) return res.status(401).json({ error: 'Not authenticated' });
-        const role = ROLES[req.params.id]?.[userId];
-        if (!role) return res.status(404).json({ error: 'Not found' });
-        if (ORDER[role] < ORDER[minRole]) return res.status(403).json({ error: 'Insufficient permissions' });
-        req.projectRole = role;
-        return next();
-    };
-}
+const requireProjectRole = fakeRequireProjectRole(ROLES);
 
 const api = serve('/api/projects', makeProjectChatsRouter({
     requireProjectRole,

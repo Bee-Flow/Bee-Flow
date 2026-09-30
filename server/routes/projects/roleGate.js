@@ -24,4 +24,21 @@ function lazyProjectRoleGate(minRole) {
     };
 }
 
-module.exports = { lazyProjectRoleGate };
+/**
+ * The access trio a project sub-router starts with: the gate, the caller's
+ * role, and the project row. Injected in tests, the real ones (loaded on first
+ * use) otherwise. `requireRole` is the gate itself, not a wrapper, so the
+ * route-table baseline still sees its name.
+ *
+ * @param {{requireProjectRole?: Function, getProjectRole?: Function, getProject?: Function}} deps
+ */
+function projectAccessDeps(deps) {
+    return {
+        requireRole: deps.requireProjectRole || lazyProjectRoleGate,
+        getProjectRole: deps.getProjectRole
+            || ((/** @type {string} */ userId, /** @type {string} */ projectId) => require('../../auth/projectAccess').getProjectRole(userId, projectId)),
+        getProject: deps.getProject || ((/** @type {string} */ id) => require('../../stores/projectStore').getProject(id)),
+    };
+}
+
+module.exports = { lazyProjectRoleGate, projectAccessDeps };

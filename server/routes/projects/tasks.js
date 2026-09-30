@@ -35,7 +35,7 @@ const crypto = require('crypto');
 const express = require('express');
 const log = require('../../telemetry/log');
 const { validate } = require('../../core/http/validate');
-const { lazyProjectRoleGate } = require('./roleGate');
+const { projectAccessDeps } = require('./roleGate');
 const { badRequest, forbidden, notFound, conflict } = require('../../core/http/errors');
 const S = require('./taskSchemas');
 
@@ -61,10 +61,7 @@ const S = require('./taskSchemas');
  */
 function makeProjectTasksRouter(deps = {}) {
     const router = express.Router({ mergeParams: true });
-    const requireRole = deps.requireProjectRole || lazyProjectRoleGate;
-    const getProjectRole = deps.getProjectRole
-        || ((userId, projectId) => require('../../auth/projectAccess').getProjectRole(userId, projectId));
-    const getProject = deps.getProject || ((id) => require('../../stores/projectStore').getProject(id));
+    const { requireRole, getProjectRole, getProject } = projectAccessDeps(deps);
     const store = () => deps.store || require('../../stores/projectTaskStore');
     const chatStore = () => deps.chatStore || require('../../stores/projectChatStore');
     const chatCrypto = () => deps.chatCrypto || require('../../projects/chatCrypto');

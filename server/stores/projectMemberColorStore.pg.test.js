@@ -8,17 +8,13 @@
 
 const { test, before, after } = require('node:test');
 const assert = require('node:assert');
-const { pgliteDb } = require('../testUtils/pgliteDb');
+const { pgliteDb, createProjectScopedSchema } = require('../testUtils/pgliteDb');
 const { makeProjectMemberColorStore, DDL } = require('./projectMemberColorStore');
 
 const { pg, db } = pgliteDb();
 const store = makeProjectMemberColorStore(db);
 
-before(async () => {
-    await pg.exec('CREATE TABLE projects (id TEXT PRIMARY KEY, name TEXT NOT NULL, owner_id TEXT NOT NULL)');
-    await pg.exec(DDL);
-    for (const id of ['p1', 'p2']) await pg.query('INSERT INTO projects (id, name, owner_id) VALUES ($1, $1, $2)', [id, 'owner']);
-});
+before(() => createProjectScopedSchema(pg, DDL));
 after(async () => { await pg.close(); });
 
 test('the schema can be created again without changes', async () => {

@@ -256,12 +256,13 @@ test('a confident match becomes a speaker mapping', async () => {
     assert.strictEqual(out.voiceprintInfo.considered, 1);
 });
 
-test('the NEGATIVE verdict reaches the caller, not just the positive one', async () => {
-    // A two-person meeting where only one is enrolled. The transcript's own
-    // turns are the fallback diarization source, so they double as the two
-    // speakers: SPEAKER_00 (0-3s) is fully covered by Tom's identify turns,
-    // SPEAKER_01 (3-6s) is not covered at all.
-    installFetch({
+/**
+ * A two-person meeting (SPEAKER_00 0-30s, SPEAKER_01 30-90s) where only Tom is
+ * enrolled. The transcript's own turns are the fallback diarization source,
+ * so they double as the two speakers; Tom's identify speaker spans 0-`end`.
+ */
+function twoPersonMeeting(end, confidence) {
+    return {
         jobStates: [{
             status: 'succeeded',
             output: {
@@ -272,10 +273,15 @@ test('the NEGATIVE verdict reaches the caller, not just the positive one', async
             },
         }],
         identifyOutput: {
-            identification: [{ speaker: 'S_A', start: 0, end: 30 }],
-            voiceprints: [{ speaker: 'S_A', match: 'vp_tom', confidence: { vp_tom: 92 } }],
+            identification: [{ speaker: 'S_A', start: 0, end }],
+            voiceprints: [{ speaker: 'S_A', match: 'vp_tom', confidence: { vp_tom: confidence } }],
         },
-    });
+    };
+}
+
+test('the NEGATIVE verdict reaches the caller, not just the positive one', async () => {
+    // SPEAKER_00 is fully covered by Tom's identify turns, SPEAKER_01 not at all.
+    installFetch(twoPersonMeeting(30, 92));
     const out = await transcribeWithPyannote('meeting.mp4', { voiceprints: selection() });
 
     assert.deepStrictEqual(out.voiceprintMapping, { SPEAKER_00: 'Tom Smit' });
@@ -286,21 +292,7 @@ test('the NEGATIVE verdict reaches the caller, not just the positive one', async
 test('with a speaker count, one voiceprint never names two speakers', async () => {
     // The identify job folded the unenrolled SPEAKER_01 into Tom's speaker.
     // With a count the diarize ids are two people, so neither may be pinned.
-    const merged = {
-        jobStates: [{
-            status: 'succeeded',
-            output: {
-                turnLevelTranscription: [
-                    { speaker: 'SPEAKER_00', start: 0, end: 30, text: 'Hallo allemaal' },
-                    { speaker: 'SPEAKER_01', start: 30, end: 90, text: 'Goedemorgen' },
-                ],
-            },
-        }],
-        identifyOutput: {
-            identification: [{ speaker: 'S_A', start: 0, end: 90 }],
-            voiceprints: [{ speaker: 'S_A', match: 'vp_tom', confidence: { vp_tom: 90 } }],
-        },
-    };
+    const merged = twoPersonMeeting(90, 90);
     installFetch(merged);
     const counted = await transcribeWithPyannote('meeting.mp4', { voiceprints: selection(), numSpeakers: 2 });
     assert.strictEqual(counted.voiceprintMapping, null);

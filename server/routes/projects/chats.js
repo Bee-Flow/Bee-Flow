@@ -74,7 +74,7 @@ const crypto = require('crypto');
 const express = require('express');
 const log = require('../../telemetry/log');
 const { validate } = require('../../core/http/validate');
-const { lazyProjectRoleGate } = require('./roleGate');
+const { projectAccessDeps } = require('./roleGate');
 const { badRequest, forbidden, notFound, conflict } = require('../../core/http/errors');
 const S = require('./chatSchemas');
 
@@ -127,10 +127,7 @@ function makeProjectChatsRouter(deps = {}) {
     // The shared gate, bound on first use so requiring this file (the default
     // instance below) loads no store. Same name as the gate itself, which is
     // what the project route-table baseline records.
-    const requireRole = deps.requireProjectRole || lazyProjectRoleGate;
-    const getProjectRole = deps.getProjectRole
-        || ((userId, projectId) => require('../../auth/projectAccess').getProjectRole(userId, projectId));
-    const getProject = deps.getProject || ((id) => require('../../stores/projectStore').getProject(id));
+    const { requireRole, getProjectRole, getProject } = projectAccessDeps(deps);
     // A chat's AI mode is something the project compliance checks read.
     const aiModeChanged = (project) => (deps.signalProjectChanged || require('./complianceSignal').signalProjectChanged)(project, 'ai_mode');
     const store = () => deps.store || require('../../stores/projectChatStore');
