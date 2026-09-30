@@ -1,14 +1,18 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { Heart } from 'lucide-react';
 import React, { useState, useEffect, useEffectEvent, useRef, useCallback, Suspense } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import AgentChatView from './AgentHub/AgentChatView';
 import ChatSidePanels from './AgentHub/ChatSidePanels';
 import DirectChatView from './AgentHub/DirectChatView';
+import ProjectsView from './AgentHub/ProjectsView';
 import useAgentHubActions from './AgentHub/useAgentHubActions';
 import useAgentHubData from './AgentHub/useAgentHubData';
 import useConversationMeta from './AgentHub/useConversationMeta';
 import useDirectChatEvents from './AgentHub/useDirectChatEvents';
+import useProjectChatStart from './AgentHub/useProjectChatStart';
 import useSidePanelState from './AgentHub/useSidePanelState';
+import { projectKeys, useProjectsQuery } from './api/queries/projects';
 import beeFlowIcon from './assets/BeeFlow-logo-Icon-2026.svg';
 import { describeSchedule } from './components/cowork/coworkSchedule';
 import useCoworkComposer from './components/cowork/useCoworkComposer';
@@ -19,7 +23,6 @@ import SearchOverlay from './components/shell/SearchOverlay';
 import Sidebar from './components/shell/Sidebar';
 import { useTranslation } from './hooks/useTranslation';
 import { useViewport } from './hooks/useViewport';
-import { API_BASE, authFetch } from './utils/helpers';
 import { lazy } from './utils/lazyWithReload';
 import scopedStorage from './utils/scopedStorage';
 import { rememberStudioItem } from './utils/studioRecents';
@@ -34,8 +37,6 @@ import { rememberStudioItem } from './utils/studioRecents';
 const AgentDesignerPanel = lazy(() => import('./components/agents/AgentDesignerPanel'));
 const AgentMarketplace = lazy(() => import('./components/agents/AgentMarketplace'));
 const MemoryPanel = lazy(() => import('./components/knowledge/memory/MemoryPanel'));
-const ProjectsPage = lazy(() => import('./components/projects/ProjectsPage'));
-const ProjectDetailPage = lazy(() => import('./components/projects/ProjectDetailPage'));
 const AdvancedSettings = lazy(() => import('./pages/AdvancedSettings'));
 const AgentStudio = lazy(() => import('./components/agents/AgentStudio/index'));
 const Studio = lazy(() => import('./components/admin/Studio'));
@@ -59,6 +60,10 @@ const PublicFormPage = lazy(() => import('./pages/PublicFormPage'));
 // the branch order below — adding a page above the overlays without adding it
 // here reintroduces BFSF-267 ("the sidebar item does nothing").
 const PAGES_ABOVE_OVERLAYS = ['cowork', 'apps', 'forms', 'formView'];
+
+// One stable empty list, so a hub without projects does not hand the sidebar
+// a new array on every render.
+const NO_PROJECTS = [];
 
 // Shared Suspense fallback — keeps lazy slots from flashing layout shifts.
 // Each modal slot already renders inside its own animated container so a
@@ -84,9 +89,9 @@ const AgentHub = ({
     formViewToken = null,
     // Projects is URL-driven now. `initialProjectRoute` is null when we are not
     // on a projects path, { projectId: null } for the list, and
-    // { projectId, tab } for one project — so the list and the detail view are
-    // distinct destinations instead of the list only appearing once the detail
-    // view is closed.
+    // { projectId, tab, sub } for one project (a tab, and optionally one item
+    // inside it) — so the list and a workspace are distinct destinations
+    // instead of the list only appearing once the detail view is closed.
     showProjects = false, initialProjectRoute = null, onProjectRouteChange, onCloseProjects,
     showSkillsPanel = false, onCloseSkillsPanel,
     // Notebooks rendered inline (previously a standalone page at App level).
@@ -301,9 +306,20 @@ const AgentHub = ({
         setGammaPreview(null);
     }, [directChatMode, setShowGammaPreview, setGammaPreview]);
 
-    // Projects State
-    const [projects, setProjects] = useState([]);
+    // Projects State. `projects` is the collaborative workspaces this person
+    // belongs to (Studio Solutions are listed in Studio only), read through
+    // the data layer so a create, rename or delete anywhere refreshes the
+    // sidebar too. `activeProject` is the CHAT CONTEXT: the project whose
+    // instructions and knowledge the next turn uses, and where a new chat is
+    // filed. It is derived against the list, so a project that was deleted or
+    // that this person was removed from drops out of the context by itself.
+    const queryClient = useQueryClient();
+    const projectsQuery = useProjectsQuery('workspace', projectsEnabled);
+    const projects = (projectsEnabled && projectsQuery.data) || NO_PROJECTS;
     const [activeProject, setActiveProject] = useState(null);
+    const activeProjectLive = !activeProject ? null
+        : projectsQuery.isSuccess ? (projects.find(p => p.id === activeProject.id) || null)
+            : activeProject;
     const [showProjectsStore, setShowProjectsStore] = useState(false);
     // null = closed, '' = create-new, otherwise an existing project id
     const [activeProjectId, setActiveProjectId] = useState(null);
@@ -320,14 +336,21 @@ const AgentHub = ({
         setShowProjectsStore(true);
         // `undefined` route id means the list; a real id means that project.
         setActiveProjectId(initialProjectRoute?.projectId ?? null);
-    }, [showProjects, initialProjectRoute?.projectId]);
+        // Keyed on the route OBJECT, not only its id: the host hands over a new
+        // one for every move (back/forward included), and Back to the same
+        // project after a chat had hidden the page must still bring it back.
+    }, [showProjects, initialProjectRoute]);
 
     // Navigate by changing the URL, not by flipping local booleans, so history
     // records the move. Falls back to local state when the host didn't wire the
     // callback (embedded/preview renders of AgentHub).
-    const goToProject = useCallback((projectId, tab) => {
-        if (onProjectRouteChange) onProjectRouteChange(projectId, tab);
-        else { setShowProjectsStore(true); setActiveProjectId(projectId ?? null); }
+    // The local view is set as well: the route may not change at all (the same
+    // project clicked again after a chat hid the page), and then nothing else
+    // would bring the page back.
+    const goToProject = useCallback((projectId, tab, sub) => {
+        setShowProjectsStore(true);
+        setActiveProjectId(projectId ?? null);
+        if (onProjectRouteChange) onProjectRouteChange(projectId, tab, sub);
     }, [onProjectRouteChange]);
 
     const closeProjects = useCallback(() => {
@@ -362,6 +385,7 @@ const AgentHub = ({
     // and state ownership (AgentHub's fiber) are unchanged.
     const {
         messages, setMessages, isLoading, sendMessage, stopGenerating, retryMessage, editAndRegenerate,
+        turnConversation,
         conversationStarted, handleVoiceTurnComplete,
         handleToggleSkill, agentAttachedSkillIds,
         designMode, setDesignMode,
@@ -387,7 +411,7 @@ const AgentHub = ({
         setConversations, setDirectConversations, setConversationLabels,
         setAgents, setAgentCategories, setModelTiers,
         selectedTier, setSelectedTier,
-        activeProject,
+        activeProject: activeProjectLive,
         activeSkillIds, setActiveSkillIds, setChatHistoryMode,
         directSessionSkills, setDirectSessionSkills,
         directActivatedSessionSkillIds, setDirectActivatedSessionSkillIds, setDirectCompletedSessionSkillIds,
@@ -443,17 +467,6 @@ const AgentHub = ({
             };
         } catch (_) { /* ignore */ }
     }, [user, selectedTier, modelTiers]);
-
-    // --- Projects ---
-    const loadProjects = async () => {
-        try {
-            const res = await authFetch(`${API_BASE}/api/projects`);
-            if (res.ok) setProjects(await res.json());
-        } catch (e) { console.error('Failed to load projects:', e); }
-    };
-
-    // Load projects on mount (only if the feature is enabled for this user)
-    useEffect(() => { if (projectsEnabled) loadProjects(); }, [projectsEnabled]);
 
     // Sidebar-row conversation bookkeeping: project filing/sharing, rename,
     // pin, labels. Plain closures, no hooks — moved verbatim.
@@ -531,6 +544,64 @@ const AgentHub = ({
         openAtLatest,
     });
 
+    // ── Project workspace → chat ─────────────────────────────────────────
+    // A chat started from a project's composer: the project becomes the chat
+    // context, a new direct or agent chat opens, the first message is sent and,
+    // when asked, the new conversation is shared with the project's members.
+    const { startChat: startProjectChat } = useProjectChatStart({
+        t, agents,
+        setActiveProject,
+        leaveProjectsPage: closeProjects,
+        openDirectChat: handleDirectChat,
+        openAgentChat: handleSelectAgent,
+        sendMessage, setChatInput,
+        activeProjectId: activeProjectLive?.id ?? null,
+        isLoading, directChatMode,
+        selectedAgentId: selectedAgent?.id ?? null,
+        directConversationId: currentDirectConversation?.id ?? null,
+        agentConversationId: currentConversation?.id ?? null,
+        messages,
+        turnConversation,
+    });
+
+    // The project a workspace page is showing, for the chat context. The list
+    // row is preferred; the page's own detail read covers a list that has not
+    // arrived yet.
+    const projectForContext = (projectId) => (projectId
+        ? projects.find(p => p.id === projectId) || queryClient.getQueryData(projectKeys.detail(projectId)) || null
+        : null);
+
+    // Opening a shared thread leaves the project page and lands in the chat
+    // itself, with the project as the chat context so its instructions and
+    // knowledge apply to whatever the member replies.
+    const openProjectThread = (thread) => {
+        const agent = thread.type === 'agent' ? agents.find(a => a.id === thread.agentId) : null;
+        if (thread.type === 'agent' && !agent) {
+            toast.error(t('sidebar.project_thread_agent_unavailable', 'This chat belongs to an agent you cannot open.'));
+            return;
+        }
+        const project = projectForContext(activeProjectId);
+        if (project) setActiveProject(project);
+        closeProjects();
+        if (agent) {
+            handleSelectAgent(agent);
+            selectConversation(agent.id, thread.id);
+            return;
+        }
+        if (!directChatMode || selectedAgent) {
+            setDirectChatMode(true);
+            setSelectedAgent(null);
+            scopedStorage.setItem('lastUsedMode', 'direct-chat');
+            loadModelTiers();
+        }
+        handleSelectDirectConversation({ id: thread.id });
+    };
+
+    // Pill in the chat header → back to the project's home.
+    const openActiveProject = (project) => {
+        closeAllOverlays();
+        goToProject(project.id);
+    };
 
     if (designMode) {
         return (
@@ -665,18 +736,25 @@ const AgentHub = ({
                 currentDirectConversation={currentDirectConversation}
                 onToggleFavorite={handleToggleFavorite}
                 projects={projects}
-                activeProject={activeProject}
-                onSelectProject={(p) => setActiveProject(p)}
+                activeProject={activeProjectLive}
+                onOpenProject={(p) => {
+                    // Opening a project also makes it the chat context: the
+                    // chats started from here on belong to it.
+                    closeAllOverlays();
+                    setActiveProject(p);
+                    goToProject(p.id);
+                }}
+                onNewChatInProject={(p) => {
+                    setActiveProject(p);
+                    closeProjects();
+                    handleDirectChat();
+                }}
                 onCreateProject={() => {
                     // BFSF-267: these hand-rolled subset closes missed overlays
                     // (and Studio/AgentWizard/Notebooks) — route through the
                     // single source of truth, then navigate.
                     closeAllOverlays();
                     goToProject('');
-                }}
-                onEditProject={(p) => {
-                    closeAllOverlays();
-                    goToProject(p.id);
                 }}
                 onBrowseProjects={() => {
                     // The list had no way in at all: it only rendered after the
@@ -919,63 +997,31 @@ const AgentHub = ({
                             : undefined}
                         user={user}
                     />
-                ) : (showProjectsStore && activeProjectId !== null) ? (
-                    /* Project detail / create page — /app/projects/:id */
-                    <ProjectDetailPage
-                        projectId={activeProjectId || null}
-                        initialTab={initialProjectRoute?.tab || undefined}
+                ) : showProjectsStore ? (
+                    /* Projects — the list at /app/projects, one workspace at
+                       /app/projects/:id[/:tab[/:sub]], the create form at
+                       /app/projects/new. */
+                    <ProjectsView
+                        route={{
+                            projectId: activeProjectId,
+                            tab: initialProjectRoute?.projectId === activeProjectId ? (initialProjectRoute?.tab || null) : null,
+                            sub: initialProjectRoute?.projectId === activeProjectId ? (initialProjectRoute?.sub || null) : null,
+                        }}
+                        projects={projects}
+                        loading={projectsQuery.isPending && projectsEnabled}
+                        error={projectsQuery.isError ? t('sidebar.projects_load_failed', 'Could not load your projects.') : null}
                         user={user}
-                        onClose={() => goToProject(null)}
-                        onTabChange={(tab) => {
-                            if (activeProjectId) goToProject(activeProjectId, tab);
-                        }}
-                        onSaved={(saved) => {
-                            loadProjects();
-                            // After creating a new project, switch to its edit view.
-                            if (activeProjectId === '' && saved?.id) goToProject(saved.id);
-                        }}
+                        onGoToProject={goToProject}
+                        onClose={closeProjects}
+                        onSaved={() => queryClient.invalidateQueries({ queryKey: ['projects', 'list'] })}
                         onDeleted={(id) => {
-                            loadProjects();
                             if (activeProject?.id === id) setActiveProject(null);
                             goToProject(null);
                         }}
-                        onOpenThread={(thread) => {
-                            // Opening a shared thread leaves the project page and
-                            // lands in the chat itself, with the project left
-                            // active so its instructions and knowledge apply to
-                            // whatever the member replies.
-                            const proj = projects.find(p => p.id === activeProjectId);
-                            if (proj) setActiveProject(proj);
-                            closeProjects();
-                            if (thread.type === 'agent' && thread.agentId) {
-                                const agent = agents.find(a => a.id === thread.agentId);
-                                if (agent) {
-                                    handleSelectAgent(agent);
-                                    selectConversation(agent.id, thread.id);
-                                }
-                            } else {
-                                setDirectChatMode(true);
-                                handleSelectDirectConversation({ id: thread.id });
-                            }
-                        }}
-                        onOpenResource={(kind, item) => {
-                            // Each of these already has its own destination; the
-                            // project page is a directory, not a second viewer.
-                            if (kind === 'notebook') window.location.assign(`/app/notebooks/${item.id}`);
-                            else if (kind === 'app') window.location.assign(`/app/apps/${item.id}`);
-                            else if (kind === 'automation') window.location.assign(`/app/routines/${item.id}`);
-                            else if (kind === 'webpage') window.location.assign(`/app/studio/webpages/${item.id}`);
-                            else if (kind === 'approval') window.location.assign(`/app/studio/approvals/${item.id}`);
-                        }}
-                    />
-                ) : showProjectsStore ? (
-                    /* Projects list — /app/projects */
-                    <ProjectsPage
-                        projects={projects}
-                        user={user}
-                        onSelectProject={(p) => goToProject(p.id)}
-                        onCreateProject={() => goToProject('')}
-                        onClose={closeProjects}
+                        onOpenThread={openProjectThread}
+                        onNavigate={onNavigate}
+                        onStartChat={startProjectChat}
+                        notebooksEnabled={notebooksEnabled}
                     />
                 ) : selectedAgent ? (
                     <AgentChatView
@@ -1023,6 +1069,9 @@ const AgentHub = ({
                         editAndRegenerate={editAndRegenerate}
                         modelTiers={modelTiers}
                         renderSidePanels={renderSidePanels}
+                        activeProject={activeProjectLive}
+                        onOpenActiveProject={openActiveProject}
+                        onLeaveActiveProject={() => setActiveProject(null)}
                     />
                 ) : directChatMode ? (
                     /* Direct Chat Mode */
@@ -1073,6 +1122,9 @@ const AgentHub = ({
                         retryMessage={retryMessage}
                         editAndRegenerate={editAndRegenerate}
                         renderSidePanels={renderSidePanels}
+                        activeProject={activeProjectLive}
+                        onOpenActiveProject={openActiveProject}
+                        onLeaveActiveProject={() => setActiveProject(null)}
                     />
                 ) : (
                     /* No Agent Selected - Empty State */

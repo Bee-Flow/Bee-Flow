@@ -613,6 +613,13 @@ app.use('/api/csp-report', require('./routes/cspReport'));
 app.use('/api/public', require('./routes/publicGithubStats'));
 app.use('/api/org-privacy-shield', require('./routes/orgPrivacyShield'));
 app.use('/api/org-ai-context', require('./routes/orgAiContext'));
+// The AI that decides by itself when to join a team chat or comment thread:
+// the org policy (members read, admins write) and each person's own opt-out.
+// requireAuth sits on every route of the router.
+app.use('/api/ai-participation', require('./routes/aiParticipation'));
+// The org switch for real-time co-editing of project notebooks and pages
+// (members read, admins write; requireAuth on every route).
+app.use('/api/org-collab', require('./routes/orgCollab'));
 app.use('/api/org-integration-cache', require('./routes/orgIntegrationCache'));
 app.use('/api/org-azure-config', require('./routes/orgAzureConfig'));
 app.use('/api/house-styles', require('./routes/houseStyles'));

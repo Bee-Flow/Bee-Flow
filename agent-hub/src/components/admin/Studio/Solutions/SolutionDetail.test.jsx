@@ -1,4 +1,5 @@
 import { act, fireEvent, render, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('../../../../utils/helpers', () => ({
@@ -9,6 +10,17 @@ vi.mock('../../../../utils/helpers', () => ({
 // tests bewaken is juist wat er gebeurt als er een event binnenkomt.
 vi.mock('../../../../hooks/useProjectStream', () => ({
     default: (opts) => { globalThis.__stream = opts; },
+}));
+
+// The members panel belongs to the project workspace and has its own tests;
+// here it only has to receive the right Solution, role and person.
+vi.mock('../../../projects/workspace/ProjectMembersPanel', () => ({
+    default: ({ projectId, role, currentUserId, onLeft }) => (
+        <div>
+            <div data-testid="members-panel">{`${projectId}:${role}:${currentUserId}`}</div>
+            <button type="button" data-testid="members-panel-left" onClick={() => onLeft?.()}>left</button>
+        </div>
+    ),
 }));
 
 import SolutionDetail from './SolutionDetail';
@@ -163,6 +175,26 @@ describe('blueprint.published on the live feed', () => {
     });
 });
 
+describe('filing on the live feed', () => {
+    const reads = (part) => globalThis.__authFetch.mock.calls.filter(([u]) => String(u).includes(part)).length;
+
+    // A notebook, document or meeting filed in or out is announced as
+    // content.moved_in / content.moved_out, not as resource_added / _removed;
+    // the Solution's contents, graph and publish check must follow either way.
+    it.each(['content.moved_in', 'content.moved_out'])('%s refetches the contents, the graph and the check', async (kind) => {
+        render(<SolutionDetail project={installedProject()} onBack={() => {}} />);
+        await waitFor(() => expect(reads('/graph')).toBeGreaterThan(0));
+        await waitFor(() => expect(reads('/completeness')).toBeGreaterThan(0));
+        const before = { resources: reads('/resources'), graph: reads('/graph'), completeness: reads('/completeness') };
+        await act(async () => { globalThis.__stream.onEvent(kind, { targetId: 'nb1' }); });
+        await waitFor(() => {
+            expect(reads('/resources')).toBeGreaterThan(before.resources);
+            expect(reads('/graph')).toBeGreaterThan(before.graph);
+            expect(reads('/completeness')).toBeGreaterThan(before.completeness);
+        });
+    });
+});
+
 describe('the two new tabs', () => {
     it('Versions shows the boolean diff even when no summary line was written', async () => {
         const { findByText, findByTestId } = render(<SolutionDetail project={installedProject()} onBack={() => {}} />);
@@ -201,5 +233,67 @@ describe('the upgrade dialog', () => {
             expect(call).toBeTruthy();
             expect(JSON.parse(call[1].body)).toEqual({ blueprintId: 'bp1' });
         });
+    });
+});
+
+describe('who can open the Solution', () => {
+    const membersReads = () => globalThis.__authFetch.mock.calls.filter(([u]) => String(u).includes('/members')).length;
+
+    it('manages access in place instead of sending the builder to the projects pages', async () => {
+        const { findByTestId, queryByText } = render(
+            <SolutionDetail project={installedProject()} onBack={() => {}} currentUserId="u1" />,
+        );
+        expect(await findByTestId('solution-manage-access')).toBeTruthy();
+        expect(queryByText('Open in Projects')).toBeNull();
+    });
+
+    it('opens the members panel for this Solution, with the caller\'s role', async () => {
+        const { findByTestId } = render(
+            <SolutionDetail project={installedProject()} onBack={() => {}} currentUserId="u1" />,
+        );
+        // The role comes from the resources read; wait for it before opening.
+        await waitFor(() => expect(globalThis.__authFetch.mock.calls.some(([u]) => String(u).includes('/resources'))).toBe(true));
+        await userEvent.click(await findByTestId('solution-manage-access'));
+        expect((await findByTestId('members-panel')).textContent).toBe('p1:owner:u1');
+    });
+
+    it('re-reads the members for the header capsule when the dialog closes', async () => {
+        const { findByTestId, queryByTestId } = render(
+            <SolutionDetail project={installedProject()} onBack={() => {}} currentUserId="u1" />,
+        );
+        await userEvent.click(await findByTestId('solution-manage-access'));
+        await findByTestId('members-panel');
+        const before = membersReads();
+        await userEvent.keyboard('{Escape}');
+        await waitFor(() => expect(queryByTestId('members-panel')).toBeNull());
+        await waitFor(() => expect(membersReads()).toBeGreaterThan(before));
+    });
+
+    it('leaves the Solution page, and does not re-read its members, once the caller left it', async () => {
+        const onBack = vi.fn();
+        const { findByTestId, queryByTestId } = render(
+            <SolutionDetail project={installedProject({ permission: 'viewer' })} onBack={onBack} currentUserId="u2" />,
+        );
+        await userEvent.click(await findByTestId('solution-manage-access'));
+        await findByTestId('members-panel');
+        const before = membersReads();
+        await userEvent.click(await findByTestId('members-panel-left'));
+        await waitFor(() => expect(onBack).toHaveBeenCalledTimes(1));
+        await waitFor(() => expect(queryByTestId('members-panel')).toBeNull());
+        expect(membersReads()).toBe(before);
+    });
+
+    it('gives a viewer the panel too, as a viewer', async () => {
+        mockFetch();
+        const base = globalThis.__authFetch;
+        globalThis.__authFetch = vi.fn(async (url, init) => (String(url).includes('/resources')
+            ? { ok: true, status: 200, json: async () => ({ role: 'viewer', notebooks: [], apps: [], automations: [], webpages: [], approvals: [] }) }
+            : base(url, init)));
+        const { findByTestId } = render(
+            <SolutionDetail project={installedProject({ permission: 'viewer' })} onBack={() => {}} currentUserId="u2" />,
+        );
+        await waitFor(() => expect(globalThis.__authFetch.mock.calls.some(([u]) => String(u).includes('/resources'))).toBe(true));
+        await userEvent.click(await findByTestId('solution-manage-access'));
+        expect((await findByTestId('members-panel')).textContent).toBe('p1:viewer:u2');
     });
 });

@@ -167,6 +167,14 @@ async function _buildRopa(orgId) {
             log.warn('[ROPA] datatable activities unavailable:', e.message);
         }
 
+        // Collaborative projects with a recorded processing record (a lawful
+        // basis or a retention period) — compliance/ropa/projectActivities.js.
+        try {
+            activities.push(...await require('../../compliance/ropa/projectActivities').projectActivities(orgId));
+        } catch (e) {
+            log.warn('[ROPA] project activities unavailable:', e.message);
+        }
+
         // Product measurement.
         //
         // Every model call writes a row to `ai_usage_log` carrying the user,
@@ -349,5 +357,9 @@ router.post('/ropa/review', requireAuth, requirePermission('admin_compliance'), 
     runner.runOne(orgId, 'GDPR-Art30-ropa-reviewed').catch(() => {});
     res.json({ ok: true, reviewed_at: new Date().toISOString(), reviewer: actorId });
 });
+
+// GET/PUT/DELETE /ropa/projects[/:projectId] — the processing record of
+// collaborative projects (routes/compliance/projectRegistrations.js).
+router.use(require('./projectRegistrations').makeProjectRegistrationRouter());
 
 module.exports = router;

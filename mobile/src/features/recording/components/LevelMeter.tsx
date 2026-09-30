@@ -15,8 +15,9 @@
 import React from 'react';
 import { View } from 'react-native';
 
-import { useTheme } from '../../../theme/ThemeProvider';
-import { Text } from '../../../ui/Text';
+import { useTranslation } from '@/core/i18n';
+import { useTheme } from '@/core/theme/ThemeProvider';
+import { Text } from '@/shared/ui';
 
 export function LevelMeter({
     history,
@@ -28,6 +29,7 @@ export function LevelMeter({
     quiet: boolean;
     paused: boolean;
 }) {
+    const t = useTranslation();
     const theme = useTheme();
 
     return (
@@ -74,7 +76,10 @@ export function LevelMeter({
                     </Text>
                 ) : quiet ? (
                     <Text variant="caption" tone="warning" center>
-                        Very quiet. Check the microphone is not covered.
+                        {t(
+                            'mobile.recording.quiet_mic',
+                            'Very quiet. Is the microphone covered, or is a phone call using it? Recording continues.',
+                        )}
                     </Text>
                 ) : (
                     <Text variant="caption" tone="tertiary" center>

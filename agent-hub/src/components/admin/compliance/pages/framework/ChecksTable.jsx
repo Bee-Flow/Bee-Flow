@@ -86,6 +86,7 @@ export default function ChecksTable({
     autoFixingId = null,
     onRerun,
     onAutoFix,
+    onDecide,
     loadTrail,
     onOpenLink,
     canOpenLink = () => true,
@@ -162,6 +163,7 @@ export default function ChecksTable({
                         canOpenLink={canOpenLink}
                         onAutoFix={onAutoFix}
                         autoFixing={autoFixingId === id}
+                        onDecide={onDecide}
                         testId={`${rowTestId}-expansion`}
                     />
                 )}
@@ -196,6 +198,7 @@ export default function ChecksTable({
                         canOpenLink={canOpenLink}
                         onAutoFix={onAutoFix}
                         autoFixing={autoFixingId === id}
+                        onDecide={onDecide}
                         testId={`${rowTestId}-expansion`}
                     />
                 )}

@@ -48,6 +48,8 @@
 
 'use strict';
 
+const { PROJECT_FILES_SOURCE_KIND, filesKbIdOf } = require('../core/kb/projectFilesKb');
+
 /**
  * Caps so a single request cannot turn into thousands of sequential round
  * trips. Shared with the project routes on purpose: `PUT /api/projects/:id`
@@ -98,17 +100,52 @@ async function validateKnowledgeBaseIds(req, ids, projectOrganizationId) {
 
     // Cross-tenant guard. An empty org id on either side means "unresolved",
     // which is NOT the same as "matches" — only equally org-less pairs match.
+    //
+    // A project's files base (core/kb/projectFilesKb.js) is refused here too:
+    // it holds what the members of ONE project uploaded, and linking it into
+    // another project would quote those files to people who were never in
+    // that project. A project's own files base never reaches this check (see
+    // checkProjectKnowledgeBaseIds and setKnowledgeBaseProject).
     const projOrg = projectOrganizationId || '';
     for (const kbId of ids) {
         if (invalid.has(kbId)) continue;
         try {
             const kb = await kbStore.getKB(kbId);
             if (!kb || (kb.organization_id || '') !== projOrg) invalid.add(kbId);
+            else if (kb.source_kind === PROJECT_FILES_SOURCE_KIND) invalid.add(kbId);
         } catch (_) {
             invalid.add(kbId);
         }
     }
     return { ok: invalid.size === 0, invalid: [...invalid] };
+}
+
+/**
+ * The whole-array replace of `PUT /api/projects/:id`, with the project's own
+ * files base kept out of the caller's hands.
+ *
+ * The files base is owned by the project owner and never published, so an
+ * editor who is not the owner cannot read it, and `validateKnowledgeBaseIds`
+ * would refuse the settings form they send back unchanged. It is not theirs
+ * to drop either: a form that leaves it out would silently stop the chats
+ * searching the project's files. So it is skipped in the check and kept when
+ * it was listed before; the cap counts it like any other base.
+ *
+ * @param {object} req
+ * @param {unknown[]} ids      what the caller sent
+ * @param {object} project     the project row before the write (getProject)
+ * @returns {Promise<{ ok: boolean, invalid: string[], tooMany?: boolean, ids: unknown[] }>}
+ *          `ids` is the list to store when `ok`
+ */
+async function checkProjectKnowledgeBaseIds(req, ids, project) {
+    const filesKbId = filesKbIdOf(project);
+    const sent = Array.isArray(ids) ? ids : [];
+    const others = filesKbId ? sent.filter(id => id !== filesKbId) : sent;
+    const keepFiles = !!filesKbId && (sent.includes(filesKbId) || storedIds(project).includes(filesKbId));
+    const next = keepFiles ? [filesKbId, ...others] : others;
+    if (next.length > MAX_KB_IDS) return { ok: false, invalid: [], tooMany: true, ids: next };
+    const check = await validateKnowledgeBaseIds(req, others, project?.organizationId);
+    return { ...check, ids: next };
 }
 
 function storedIds(project) {
@@ -139,8 +176,12 @@ async function listProjectKnowledgeBases(projectId) {
     const project = await projectStore.getProject(projectId);
     if (!project) return [];
 
+    // The project's own files base is not a LINKED base: it is where the
+    // Files section's uploads live, is listed there, and is never unlinked.
+    const filesKbId = filesKbIdOf(project);
     const out = [];
     for (const id of storedIds(project)) {
+        if (id === filesKbId) continue;
         const kb = await kbStore.getKB(id);      // may throw — see above
         if (!kb) continue;
         out.push({
@@ -176,13 +217,23 @@ async function setKnowledgeBaseProject(kbId, userId, projectId, ctx = {}) {
     const projectStore = require('../stores/projectStore');
     const attach = !!projectId;
 
-    if (attach) {
+    const before = await projectStore.getProject(target);
+    if (!before) return false;
+    // The project's own files base is where its uploads live (the Files
+    // section), not a linked base: unlinking it would stop every chat
+    // searching the project's files while they stay listed. Removing a file is
+    // how a file leaves. Putting it back needs no read check: it IS this
+    // project's, recorded by projectStore.setFilesKbId.
+    const ownFiles = filesKbIdOf(before) === kbId;
+    if (!attach && ownFiles) {
+        throw httpError(400, 'This knowledge base holds the project\'s files. Remove files in the Files section instead.', 'PROJECT_FILES_KB');
+    }
+
+    if (attach && !ownFiles) {
         // Refused rather than assumed: a caller that cannot be resolved is not
         // a caller with access. See the header.
         if (!ctx.req) return false;
-        const project = await projectStore.getProject(target);
-        if (!project) return false;
-        const check = await validateKnowledgeBaseIds(ctx.req, [kbId], project.organizationId);
+        const check = await validateKnowledgeBaseIds(ctx.req, [kbId], before.organizationId);
         if (!check.ok) return false;
     }
 
@@ -232,6 +283,7 @@ async function setKnowledgeBaseProject(kbId, userId, projectId, ctx = {}) {
 module.exports = {
     MAX_KB_IDS,
     validateKnowledgeBaseIds,
+    checkProjectKnowledgeBaseIds,
     listProjectKnowledgeBases,
     setKnowledgeBaseProject,
 };

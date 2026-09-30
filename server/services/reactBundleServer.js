@@ -312,14 +312,18 @@ ${bodyHtml}
  * @param {object} opts
  * @param {Object<string,{isText:boolean,content?:string,dataUrl?:string}>} opts.files
  * @param {Object<string,string>} opts.assetMap  path → data: URL for binary assets
+ * @param {string} [opts.headScripts] replaces the stub bridges — the draft
+ *   document (webpageDraftDocument.js) passes the LIVE, token-carrying bridges
+ * @param {Function} [opts.build] the bundler, buildReactBundle by default; the
+ *   draft document passes a cached one
  */
-async function composeReactDoc({ files, assetMap = {}, surface = 'headlessRender' }) {
+async function composeReactDoc({ files, assetMap = {}, surface = 'headlessRender', headScripts, build = buildReactBundle }) {
     if (!files[REACT_ENTRY]) {
         return { buildError: `No entry point: ${REACT_ENTRY} is missing. A react-mui project must have src/main.jsx that mounts the app into #root.` };
     }
     let bundle;
     try {
-        const r = await buildReactBundle({ entry: REACT_ENTRY, files });
+        const r = await build({ entry: REACT_ENTRY, files });
         bundle = r.code;
     } catch (e) {
         return { buildError: e.formatted || e.message || String(e) };
@@ -331,7 +335,7 @@ ${assetResolverScript(assetMap)}
 ${defangScriptClose(bundle)}
 <\/script>`;
     const doc = shellDoc({
-        headScripts: buildStubBridgeScript(surface),
+        headScripts: typeof headScripts === 'string' ? headScripts : buildStubBridgeScript(surface),
         importMap: buildImportMap(),
         bodyHtml,
     });

@@ -17,15 +17,16 @@
  * the end of the task, the other throws away something irreplaceable.
  */
 
-import { Feather } from '@expo/vector-icons';
 import React from 'react';
 import { Alert, Pressable, View } from 'react-native';
 
-import { useTheme } from '../../../theme/ThemeProvider';
-import { Text } from '../../../ui/Text';
-import { formatElapsed } from '../format';
-import type { Recorder } from '../useRecorder';
+import { useTranslation } from '@/core/i18n';
+import { useTheme } from '@/core/theme/ThemeProvider';
+import { Icon, Text, type IconName } from '@/shared/ui';
+
 import { LevelMeter } from './LevelMeter';
+import type { Recorder } from '../hooks/useRecorder';
+import { formatElapsed } from '../model/format';
 
 export function LiveRecorder({
     recorder,
@@ -38,6 +39,7 @@ export function LiveRecorder({
     onDiscard: () => void;
     saving: boolean;
 }) {
+    const t = useTranslation();
     const theme = useTheme();
     const paused = recorder.phase === 'paused';
 
@@ -103,9 +105,9 @@ export function LiveRecorder({
                         backgroundColor: theme.colors.bgTertiary,
                     }}
                 >
-                    <Feather name="lock" size={14} color={theme.colors.textMuted} />
+                    <Icon name="Lock" size={14} color={theme.colors.textMuted} />
                     <Text variant="caption" tone="tertiary">
-                        You can lock the screen. Recording continues.
+                        {t('mobile.recording.lock_safe', 'Keeps recording with the screen locked')}
                     </Text>
                 </View>
             </View>
@@ -113,7 +115,7 @@ export function LiveRecorder({
             <View style={{ gap: theme.spacing.lg, alignItems: 'center' }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xxl }}>
                     <CircleButton
-                        icon={paused ? 'play' : 'pause'}
+                        icon={paused ? 'Play' : 'Pause'}
                         label={paused ? 'Resume recording' : 'Pause recording'}
                         onPress={paused ? recorder.resume : recorder.pause}
                         disabled={saving}
@@ -136,11 +138,11 @@ export function LiveRecorder({
                             ...theme.elevation.raised,
                         })}
                     >
-                        <Feather name="square" size={30} color="#ffffff" />
+                        <Icon name="Square" size={30} color="#ffffff" />
                     </Pressable>
 
                     <CircleButton
-                        icon="trash-2"
+                        icon="Trash2"
                         label="Discard this recording"
                         onPress={confirmDiscard}
                         disabled={saving}
@@ -161,7 +163,7 @@ function CircleButton({
     onPress,
     disabled,
 }: {
-    icon: keyof typeof Feather.glyphMap;
+    icon: IconName;
     label: string;
     onPress: () => void;
     disabled?: boolean;
@@ -185,7 +187,7 @@ function CircleButton({
                 opacity: disabled ? 0.4 : 1,
             })}
         >
-            <Feather name={icon} size={22} color={theme.colors.textPrimary} />
+            <Icon name={icon} size={22} color={theme.colors.textPrimary} />
         </Pressable>
     );
 }

@@ -14,7 +14,7 @@ import {
   Bold, Italic, Underline as UnderlineIcon, Strikethrough, Code, Highlighter,
   Link as LinkIcon, Undo, Redo, Plus, ChevronDown, FileUp, AlignLeft, Palette,
   Wand2, RefreshCw, Scissors, Expand, Table2, Pilcrow, Loader2,
-  Rows3, Columns3, Trash2, Heading, Sigma, Eye, EyeOff,
+  Rows3, Columns3, Trash2, Heading, Sigma, Eye, EyeOff, Search, Keyboard,
 } from 'lucide-react';
 import { useViewport } from '../../hooks/useViewport';
 import { fullColumnSelection } from '../engine/tables.js';
@@ -24,7 +24,7 @@ import {
 } from './toolbarPrimitives.jsx';
 
 /* Inline marks row — reused inline (desktop) and inside the Format menu (compact). */
-function MarkButtons({ editor, t }) {
+function MarkButtons({ editor, t, onLink }) {
   const tt = mkTt(t);
   const chain = () => editor.chain().focus();
   return (
@@ -35,7 +35,7 @@ function MarkButtons({ editor, t }) {
       <Btn onClick={() => chain().toggleStrike().run()} active={editor.isActive('strike')} icon={Strikethrough} title={tt('notebooks.strikethrough', 'Strikethrough')} />
       <Btn onClick={() => chain().toggleCode().run()} active={editor.isActive('code')} icon={Code} title={tt('notebooks.inline_code', 'Inline code')} />
       <Btn onClick={() => chain().toggleHighlight().run()} active={editor.isActive('highlight')} icon={Highlighter} title={tt('notebooks.highlight', 'Highlight')} />
-      <Btn onClick={() => { const url = window.prompt(tt('notebooks.url', 'URL')); if (url) chain().setLink({ href: url }).run(); }} active={editor.isActive('link')} icon={LinkIcon} title={tt('notebooks.insert_link', 'Insert link')} />
+      <Btn onClick={() => onLink?.()} active={editor.isActive('link')} icon={LinkIcon} title={tt('notebooks.insert_link', 'Insert link')} />
     </>
   );
 }
@@ -98,6 +98,8 @@ export default function EditorToolbar({
   askAiEnabled, saving, wordCount, onAIAction, onAsk, hasSelection,
   // Table extras filled in by later phases (formula / chart / collapse).
   tableMenuExtras,
+  // Link editor, find bar and shortcut sheet live in BeeEditor.
+  onLink, onFind, onShowShortcuts,
 }) {
   const { isDesktop } = useViewport();
   const compact = !isDesktop;
@@ -133,7 +135,7 @@ export default function EditorToolbar({
       {!compact && (
         <div className="flex items-center gap-0.5 shrink-0">
           <Divider />
-          <MarkButtons editor={editor} t={t} />
+          <MarkButtons editor={editor} t={t} onLink={onLink} />
         </div>
       )}
 
@@ -170,7 +172,7 @@ export default function EditorToolbar({
         )}>
           {(setOpen) => (
             <div className="min-w-[210px]">
-              <div className="flex items-center gap-0.5 px-2 py-1.5 flex-wrap"><MarkButtons editor={editor} t={t} /></div>
+              <div className="flex items-center gap-0.5 px-2 py-1.5 flex-wrap"><MarkButtons editor={editor} t={t} onLink={onLink} /></div>
               <MenuDivider />
               <MenuLabel>{tt('notebooks.alignment', 'Alignment')}</MenuLabel>
               <AlignItems editor={editor} t={t} onDone={() => setOpen(false)} />
@@ -268,6 +270,8 @@ export default function EditorToolbar({
       )}
 
       <div className="flex-1 min-w-[8px]" />
+      {onFind && <div className="shrink-0"><Btn onClick={onFind} icon={Search} title={tt('editor.find_label', 'Find in document')} /></div>}
+      {onShowShortcuts && <div className="shrink-0"><Btn onClick={onShowShortcuts} icon={Keyboard} title={tt('editor.shortcuts_title', 'Keyboard shortcuts')} /></div>}
       <span className="hidden sm:inline text-[10px] shrink-0" style={{ color: 'var(--text-tertiary)' }}>{wordCount} {tt('notebooks.words', 'Words')}</span>
       {saving && <span className="text-[10px] animate-pulse ml-1 shrink-0" style={{ color: 'var(--accent-primary)' }}>{tt('notebooks.saving', 'Saving…')}</span>}
     </div>

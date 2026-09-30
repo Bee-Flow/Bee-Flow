@@ -1,10 +1,10 @@
 /**
  * editor.css — content styles for the from-scratch editor surface (.bf-content).
  *
- * Ported from the legacy `.notebook-editor .tiptap` rules but scoped to the new
- * namespace so it coexists with TipTap during the feature-flag rollout. Uses the
- * design-system CSS variables so all themes work; no purple is introduced (only
- * the neutral --accent-primary and existing affordance blues).
+ * Scoped to the `.bf-content` namespace. Uses the design-system CSS variables so
+ * all themes work; no purple is introduced (only the neutral --accent-primary and
+ * existing affordance blues). Co-editing, find and comment styles further down
+ * paint OUTSIDE the editable host (overlays and ::highlight rules), never in it.
  */
 .bf-content {
   outline: none;
@@ -188,3 +188,126 @@
 .bf-content .section-drag-highlight { background: rgba(59, 130, 246, 0.08); }
 
 [data-theme="light"] .bf-content pre.notebook-code-block { background: #1e1e2e; }
+
+/* ── the surface around the host: overlays are positioned against it ──
+   `isolation` gives it its own stacking context, so the highlight fallback
+   rectangles (z-index -1) sit behind the text but above the page. */
+.bf-editor-surface { position: relative; isolation: isolate; }
+.bf-range-overlay { position: absolute; inset: 0; pointer-events: none; z-index: -1; }
+.bf-range-rect { position: absolute; border-radius: 2px; }
+
+/* ── co-editors: one colour per person (palette mirrored in collab/colors.ts;
+   no purple, violet or indigo) ── */
+.bf-peer-0 { --bf-peer: #0284c7; }
+.bf-peer-1 { --bf-peer: #059669; }
+.bf-peer-2 { --bf-peer: #d97706; }
+.bf-peer-3 { --bf-peer: #e11d48; }
+.bf-peer-4 { --bf-peer: #0d9488; }
+.bf-peer-5 { --bf-peer: #ea580c; }
+.bf-peer-6 { --bf-peer: #65a30d; }
+.bf-peer-7 { --bf-peer: #db2777; }
+
+.bf-peer-layer { position: absolute; inset: 0; pointer-events: none; z-index: 15; }
+.bf-peer-caret {
+  position: absolute; width: 2px; margin-left: -1px; border-radius: 1px;
+  background: var(--bf-peer, var(--accent-primary));
+}
+.bf-peer-flag {
+  position: absolute; bottom: 100%; left: -1px; transform: translateY(-1px);
+  padding: 0 5px; border-radius: 4px 4px 4px 0; white-space: nowrap;
+  font-size: 10px; font-weight: 600; line-height: 16px; color: #fff;
+  background: var(--bf-peer, var(--accent-primary));
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+.bf-peer-sel { background: color-mix(in srgb, var(--bf-peer, #0284c7) 22%, transparent); }
+::highlight(bf-peer-sel-0) { background-color: rgba(2, 132, 199, 0.22); }
+::highlight(bf-peer-sel-1) { background-color: rgba(5, 150, 105, 0.22); }
+::highlight(bf-peer-sel-2) { background-color: rgba(217, 119, 6, 0.22); }
+::highlight(bf-peer-sel-3) { background-color: rgba(225, 29, 72, 0.2); }
+::highlight(bf-peer-sel-4) { background-color: rgba(13, 148, 136, 0.22); }
+::highlight(bf-peer-sel-5) { background-color: rgba(234, 88, 12, 0.22); }
+::highlight(bf-peer-sel-6) { background-color: rgba(101, 163, 13, 0.22); }
+::highlight(bf-peer-sel-7) { background-color: rgba(219, 39, 119, 0.2); }
+
+/* ── find results and comment anchors (native highlights + fallback boxes) ── */
+::highlight(bf-find) { background-color: rgba(250, 204, 21, 0.4); }
+::highlight(bf-find-current) { background-color: rgba(249, 115, 22, 0.55); }
+.bf-find-rect { background: rgba(250, 204, 21, 0.4); }
+.bf-find-current-rect { background: rgba(249, 115, 22, 0.55); }
+::highlight(bf-comment) { background-color: rgba(250, 204, 21, 0.22); }
+::highlight(bf-comment-active) { background-color: rgba(250, 204, 21, 0.5); }
+.bf-comment-rect { background: rgba(250, 204, 21, 0.22); }
+.bf-comment-active-rect { background: rgba(250, 204, 21, 0.5); }
+
+/* ── find bar ── */
+/* A zero-height sticky dock: the bar floats over the document's top-right
+   corner without pushing the text down when it opens. */
+.bf-find-dock { position: sticky; top: 0; height: 0; z-index: 30; }
+.bf-find-bar {
+  position: absolute; top: 8px; right: 12px; padding: 6px; border-radius: 10px;
+  background: var(--bg-primary); border: 1px solid var(--border-default);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+}
+.bf-find-input {
+  width: 190px; padding: 3px 8px; border-radius: 6px; font-size: 12px;
+  background: var(--bg-secondary); color: var(--text-primary);
+  border: 1px solid var(--border-default); outline: none;
+}
+.bf-find-input:focus { border-color: var(--accent-primary); }
+
+/* ── small shared controls ── */
+.bf-floating-panel {
+  border-radius: 12px; border: 1px solid var(--border-default);
+  background: var(--bg-primary); box-shadow: 0 10px 28px rgba(0, 0, 0, 0.16);
+}
+.bf-icon-button {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; border-radius: 6px; color: var(--text-secondary);
+}
+.bf-icon-button:hover:not(:disabled) { background: var(--bg-tertiary); color: var(--text-primary); }
+.bf-icon-button:disabled { opacity: 0.35; cursor: not-allowed; }
+.bf-icon-button:focus-visible, .bf-text-button:focus-visible { outline: 2px solid var(--accent-primary); outline-offset: 1px; }
+.bf-icon-button--active { background: color-mix(in srgb, var(--accent-primary) 15%, transparent); color: var(--accent-primary); }
+.bf-icon-button--primary { background: var(--accent-primary); color: var(--accent-primary-fg, #fff); }
+.bf-icon-button--primary:hover:not(:disabled) { background: var(--accent-primary); color: var(--accent-primary-fg, #fff); filter: brightness(1.05); }
+.bf-icon-button--danger { color: #ef4444; }
+.bf-icon-button--danger:hover:not(:disabled) { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+.bf-text-button {
+  padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 500;
+  color: var(--text-secondary); border: 1px solid var(--border-default);
+}
+.bf-text-button:hover:not(:disabled) { background: var(--bg-tertiary); color: var(--text-primary); }
+.bf-text-button:disabled { opacity: 0.4; cursor: not-allowed; }
+.bf-kbd {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px;
+  padding: 0 5px; border-radius: 5px; font-size: 11px; font-family: inherit;
+  color: var(--text-secondary); background: var(--bg-secondary); border: 1px solid var(--border-default);
+}
+
+/* ── status lines under the toolbar (never modal) ── */
+.bf-collab-loading, .bf-editor-notice {
+  display: flex; align-items: center; gap: 6px; padding: 4px 12px; font-size: 11px;
+  color: var(--text-tertiary); border-bottom: 1px solid var(--border-subtle); background: var(--bg-secondary);
+}
+.bf-editor-notice { color: #b45309; }
+
+/* ── presence (page headers) ── */
+.bf-presence-avatar {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; border-radius: 9999px; font-size: 10px; font-weight: 700; color: #fff;
+  background: var(--bf-peer, var(--text-tertiary)); border: 2px solid var(--bg-primary);
+}
+.bf-presence-avatar--more { background: var(--bg-tertiary); color: var(--text-secondary); }
+.bf-presence-chip {
+  display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: 9999px;
+  font-size: 11px; font-weight: 500; color: var(--text-secondary);
+  background: var(--bg-secondary); border: 1px solid var(--border-subtle);
+}
+.bf-presence-dot { width: 6px; height: 6px; border-radius: 9999px; background: var(--text-tertiary); }
+.bf-presence-chip--live .bf-presence-dot { background: #10b981; }
+.bf-presence-chip--warn .bf-presence-dot { background: #f59e0b; }
+.bf-presence-chip--error { color: #b91c1c; }
+.bf-presence-chip--error .bf-presence-dot { background: #ef4444; }
+
+/* a section someone else is editing cannot be dragged */
+.bf-drag-handle--locked { cursor: not-allowed; opacity: 0.5; }

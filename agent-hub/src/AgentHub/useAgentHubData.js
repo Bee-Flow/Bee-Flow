@@ -105,11 +105,19 @@ const useAgentHubData = ({
         return () => { cancelled = true; };
     }, [user?.id, setChatHistoryMode, setActiveSkillIds]);
 
+    // The conversation the latest turn wrote to, as the server reported it: a
+    // new object per report. A chat started from a project shares exactly the
+    // conversation its own turn created (useProjectChatStart), never whichever
+    // chat happens to be on screen when the turn ends.
+    const [turnConversation, setTurnConversation] = useState(null);
+
     // Chat engine hook — owns messages, isLoading, sendMessage, stopGenerating
     const { messages, setMessages, isLoading, sendMessage, stopGenerating, retryMessage, editAndRegenerate } = useChatEngine({
         selectedAgent,
         currentConversation: directChatMode ? currentDirectConversation : currentConversation,
         onConversationCreated: useCallback((conversationId) => {
+            // A direct turn's `done` lands here too: the chat on screen says which kind it is.
+            setTurnConversation({ type: selectedAgent ? 'agent' : 'direct', id: conversationId });
             setCurrentConversation(prev => ({ ...prev, id: conversationId }));
             if (selectedAgent) {
                 updateAgentUrl(selectedAgent.id, conversationId);
@@ -202,6 +210,7 @@ const useAgentHubData = ({
         onWebpageSourceAdded: useCallback(() => { /* surfaced inline in chat; no panel action */ }, []),
         activeProject,
         onDirectConversationCreated: useCallback(({ conversationId, title }) => {
+            if (conversationId) setTurnConversation({ type: 'direct', id: conversationId });
             if (conversationId && !currentDirectConversation?.id) {
                 setCurrentDirectConversation(prev => ({ ...prev, id: conversationId }));
                 updateDirectChatUrl(conversationId);
@@ -779,6 +788,7 @@ const useAgentHubData = ({
 
     return {
         messages, setMessages, isLoading, sendMessage, stopGenerating, retryMessage, editAndRegenerate,
+        turnConversation,
         conversationStarted, handleVoiceTurnComplete,
         handleToggleSkill, agentAttachedSkillIds,
         designMode, setDesignMode,

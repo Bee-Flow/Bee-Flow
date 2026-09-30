@@ -7,7 +7,12 @@
  *   source:'check'    — the latest result of every check of an ACTIVE framework
  *                       that is fail or warn. Action: `auto_fix` when the check
  *                       has an autoFixId, otherwise `open_fix` (its remediation
- *                       link, or the check row in its framework page).
+ *                       link, or the check row in its framework page). The open
+ *                       subject rows of a per-source check collapse into ONE
+ *                       item (worst status, `meta.subjects` capped, the exact
+ *                       count in `meta.subject_count`), and a finding an admin
+ *                       acknowledged, accepted or snoozed (findingState.js) is
+ *                       left out while it is unchanged.
  *   source:'register' — things a check does not (yet) say but the registers
  *                       do: a DSR overdue / due within 5 days / with an
  *                       unverified identity for > 7 days, an incident clock
@@ -33,6 +38,7 @@
 
 const { complianceSectionPath, complianceIncidentPath } = require('../utils/appPaths');
 const log = require('../telemetry/log');
+const findingState = require('./findingState');
 
 const HOUR = 3600 * 1000;
 const DAY = 24 * HOUR;
@@ -88,25 +94,34 @@ function checkTitle(def, titles) {
     return t || def?.id || 'Check';
 }
 
-function checkItem(def, row, d, sectionOf) {
-    const status = row.status;
-    const scopeId = row.scope_id || 'global';
+// How many subjects a collapsed item names in `meta.subjects`. The count is
+// always exact; only the list is capped.
+const SUBJECTS_IN_ITEM = 10;
+
+function checkAction(def, sectionOf) {
     const section = sectionOf(def.regulation);
     const rowTarget = `${complianceSectionPath(section)}/${encodeURIComponent(def.id)}`;
-    let action;
     if (def.autoFixId) {
-        action = { type: 'auto_fix', label_key: ACTION_LABEL_KEY.auto_fix, target: rowTarget, auto_fix_id: def.autoFixId };
-    } else {
-        // A remediationLink is an app path without the /app/ prefix ('admin/security/users').
-        const link = def.remediationLink ? `/app/${String(def.remediationLink).replace(/^\/+/, '')}` : rowTarget;
-        action = { type: 'open_fix', label_key: ACTION_LABEL_KEY.open_fix, target: link };
+        return { type: 'auto_fix', label_key: ACTION_LABEL_KEY.auto_fix, target: rowTarget, auto_fix_id: def.autoFixId };
     }
+    // A remediationLink is an app path without the /app/ prefix ('admin/security/users').
+    const link = def.remediationLink ? `/app/${String(def.remediationLink).replace(/^\/+/, '')}` : rowTarget;
+    return { type: 'open_fix', label_key: ACTION_LABEL_KEY.open_fix, target: link };
+}
+
+/** A per-subject deep link a check put in its evidence (appPaths-minted), or null. */
+function linkOf(row) {
+    const link = row?.evidence && typeof row.evidence === 'object' ? row.evidence.link : null;
+    return typeof link === 'string' && link.startsWith('/app/') ? link : null;
+}
+
+function baseItem(def, row, d, sectionOf) {
     return {
-        id: `check:${def.id}:${scopeId}`,
+        id: `check:${def.id}:${row.scope_id || 'global'}`,
         source: 'check',
         code: def.id,
         severity: def.severity || row.severity || 'medium',
-        status,
+        status: row.status,
         title: scrubEmails(checkTitle(def, d.titles)),
         meta: {
             frameworks: (def.frameworks || []).map(f => ({ regulation: f.regulation, ref: f.ref })),
@@ -115,18 +130,60 @@ function checkItem(def, row, d, sectionOf) {
             detail: scrubEmails(row.details) || null,
             scope_id: row.scope_id || null,
             run_at: row.run_at || null,
+            link: linkOf(row),
         },
-        action,
+        action: checkAction(def, sectionOf),
         _at: toMs(row.run_at) || 0,
     };
 }
 
-async function checkItems(orgId, d, opts) {
-    const [latest, active] = await Promise.all([
+/**
+ * ONE item for every open subject row of a per-source check. A check that
+ * judges each project separately would otherwise put a hundred lines on the
+ * Overview for one missing policy; the card names the check once, carries the
+ * worst status, and lists (capped) which subjects it is about. A single open
+ * subject keeps its own id and detail, so nothing changes for the common case.
+ */
+function collapsedItem(def, rows, d, sectionOf) {
+    const sorted = rows.slice().sort((a, b) => (STATUS_RANK[a.status] ?? 9) - (STATUS_RANK[b.status] ?? 9)
+        || (toMs(b.run_at) || 0) - (toMs(a.run_at) || 0));
+    const worst = sorted[0];
+    const item = baseItem(def, worst, d, sectionOf);
+    if (rows.length === 1) return item;
+    const failing = rows.filter(r => r.status === 'fail').length;
+    const noun = typeof def.subjectNoun === 'string' && def.subjectNoun ? def.subjectNoun : 'subjects';
+    item.id = `check:${def.id}:subjects`;
+    item.meta.scope_id = null;
+    item.meta.link = null;
+    item.meta.detail = failing > 0
+        ? `${rows.length} ${noun} need attention, ${failing} of them failing.`
+        : `${rows.length} ${noun} need attention.`;
+    item.meta.subject_count = rows.length;
+    item.meta.subjects = sorted.slice(0, SUBJECTS_IN_ITEM).map(r => ({ scope_id: r.scope_id, status: r.status, link: linkOf(r) }));
+    item._at = Math.max(...rows.map(r => toMs(r.run_at) || 0));
+    return item;
+}
+
+/** Stored finding decisions, or none when they cannot be read (showing more is the safe side). */
+async function loadStates(orgId, d) {
+    if (typeof d.complianceStore.listFindingStates !== 'function') return findingState.indexStates([]);
+    try {
+        return findingState.indexStates(await d.complianceStore.listFindingStates(orgId));
+    } catch (e) {
+        log.warn('[ComplianceAttention] finding states unreadable, showing every finding:', e?.message || e);
+        return findingState.indexStates([]);
+    }
+}
+
+async function checkItems(orgId, d, opts, nowMs) {
+    const [latest, active, states] = await Promise.all([
         d.complianceStore.getLatestPerCheck(orgId),
         d.frameworkPolicy.activeRegulations(orgId, { req: opts.req || null }),
+        loadStates(orgId, d),
     ]);
+    const sectionOf = (r) => SECTION_FOR_REGULATION[r] || 'overview';
     const out = [];
+    const perSource = new Map(); // check id -> { def, rows }
     for (const row of latest || []) {
         if (row.status !== 'fail' && row.status !== 'warn') continue;
         const def = d.registry.get(row.check_id);
@@ -137,8 +194,18 @@ async function checkItems(orgId, d, opts) {
             id: row.check_id, regulation: reg, severity: row.severity || 'medium',
             verification: 'attestation', frameworks: [], autoFixId: null, remediationLink: null,
         };
-        out.push(checkItem(effDef, row, d, (r) => SECTION_FOR_REGULATION[r] || 'overview'));
+        // An admin acknowledged, accepted or snoozed exactly this finding.
+        if (findingState.applies(findingState.stateFor(states, row), row, def, nowMs)) continue;
+        const isSubjectRow = row.scope_type === 'per-source' && row.scope_id;
+        if (isSubjectRow) {
+            const group = perSource.get(effDef.id) || { def: effDef, rows: [] };
+            group.rows.push(row);
+            perSource.set(effDef.id, group);
+            continue;
+        }
+        out.push(baseItem(effDef, row, d, sectionOf));
     }
+    for (const { def, rows } of perSource.values()) out.push(collapsedItem(def, rows, d, sectionOf));
     return out;
 }
 
@@ -313,7 +380,7 @@ async function build(orgId, opts = {}) {
         catch (e) { complete = false; log.warn(`[ComplianceAttention] ${name} source failed:`, e?.message || e); }
     };
     await Promise.all([
-        run('checks', () => checkItems(orgId, d, opts)),
+        run('checks', () => checkItems(orgId, d, opts, nowMs)),
         ...REGISTER_SOURCES.map(([name, fn]) => run(name, () => fn(orgId, d, nowMs))),
     ]);
 

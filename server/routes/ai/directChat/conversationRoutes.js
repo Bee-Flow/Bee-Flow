@@ -105,8 +105,20 @@ router.get('/direct/conversations/:id', requireAuth, async (req, res) => {
         // both on the payload would put an unfiltered list one property away
         // from the honest one, and something would eventually read the wrong
         // one. `knowledgeBaseIds` is the whole answer.
-        const payload = { ...conv };
-        delete payload.knowledge_base_ids;
+        //
+        // A project member reading a colleague's SHARED thread gets the
+        // transcript and what they may do with it, not the owner's own state
+        // around it (./sharedDirectRead.js).
+        let payload;
+        if (conv.user_id !== userId) {
+            const { resolveConversationAccess } = require('../../../stores/agent/conversationAccess');
+            const access = await resolveConversationAccess(conv.id, userId, 'direct');
+            if (!access) return res.status(404).json({ error: 'Conversation not found' });
+            payload = require('./sharedDirectRead').directMemberView(conv, access);
+        } else {
+            payload = { ...conv };
+            delete payload.knowledge_base_ids;
+        }
         payload.knowledgeBaseIds = await usableKbIdsForRequest(req, conv.knowledgeBaseIds);
         res.json(payload);
     } catch (e) {
@@ -402,7 +414,10 @@ router.get('/direct/conversations/:id/workspace', requireAuth, async (req, res) 
     try {
         const userId = req.session.user.id;
         const conv = await agentStore.getDirectConversation(req.params.id, userId, encryptionOpts(req));
-        if (!conv) return res.status(404).json({ error: 'Conversation not found' });
+        // The workspace is the OWNER's side panel, not part of a shared
+        // thread: a project member who may read the conversation gets the
+        // same 404 as a stranger (the agent side answers the same way).
+        if (!conv || conv.user_id !== userId) return res.status(404).json({ error: 'Conversation not found' });
         // Render-time un-tokenisation. The stored workspace_content keeps the
         // raw `[person_N]` tokens so the AI can re-read them via notebook_read
         // in a later turn; this endpoint reaches the user, so swap them back
@@ -433,6 +448,12 @@ router.put('/direct/conversations/:id/workspace', requireAuth, validate({ body: 
         const conv = await agentStore.getDirectConversation(req.params.id, userId, encryptionOpts(req));
         if (!conv) return res.status(404).json({ error: 'Conversation not found' });
         const { content, notebookId } = req.body;
+        // A NEW link needs edit rights on the notebook: the chat's notebook
+        // tools write through it (integrations/workspaceTools.js).
+        if (notebookId && notebookId !== conv.workspace_notebook_id) {
+            const refusal = await require('../../../integrations/workspaceTools').notebookLinkRefusal(notebookId, userId);
+            if (refusal) return res.status(refusal.status).json({ error: refusal.error });
+        }
         // userId is REQUIRED by the store — the workspace is owner-only and there
         // is no unscoped form. Omitting it threw CALLER_USER_ID_REQUIRED straight
         // into the catch below, which answered 500; the client swallows that, so

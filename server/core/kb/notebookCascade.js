@@ -117,6 +117,11 @@ async function deleteNotebookCascade(notebookId, userId) {
     //    silently resolved to nothing.
     await clearWorkspaceLinks(notebookId);
 
+    // 6. What hung off it in a project: its co-editing state, the comment
+    //    threads on it and its compliance content signal. None of them has a
+    //    foreign key to the notebook (best-effort, never throws).
+    await require('../projectContent/itemLifecycle').deleted('notebook', notebookId);
+
     return { deleted: true, sources: sources.length, kbs };
 }
 

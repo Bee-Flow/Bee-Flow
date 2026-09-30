@@ -1,5 +1,5 @@
 fastapi==0.141.1
-uvicorn[standard]==0.53.0
+uvicorn[standard]==0.54.0
 # CUDA-enabled PyTorch for GPU inference. Unpinned: the versions on the
 # PyTorch wheel index cannot be read from the pinning box.
 --extra-index-url https://download.pytorch.org/whl/cu121

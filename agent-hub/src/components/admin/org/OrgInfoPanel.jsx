@@ -1,12 +1,15 @@
 import { Building2 } from 'lucide-react';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import OrgAiContextEditor from './OrgAiContextEditor';
+import OrgAiParticipationEditor from './OrgAiParticipationEditor';
+import OrgCollabEditor from './OrgCollabEditor';
 import OrgIntegrationCacheEditor from './OrgIntegrationCacheEditor';
 import OrgAuthSection from './orgInfo/OrgAuthSection';
 import OrgInfoSection from './orgInfo/OrgInfoSection';
 import { Skeleton, SECTIONS } from './orgInfo/orgInfoShared';
 import OrgLicenseSection from './orgInfo/OrgLicenseSection';
 import { useDeploymentMode } from '../../../hooks/useDeploymentMode';
+import { projectsAvailable } from '../../../hooks/useProjectsAvailable';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { cloudFetch } from '../../../utils/cloudFetch';
 import { API_BASE, authFetch } from '../../../utils/helpers';
@@ -18,6 +21,8 @@ const OrgInfoPanel = ({ user, activeSection, onSave: parentOnSave, onStateChange
     const { t } = useTranslation();
     const licenseCtx = useLicenseContext();
     const hasActiveLicenseKey = licenseCtx?.source === 'license_key';
+    // Settings that act only inside projects are shown where Projects can be used.
+    const projectsOn = projectsAvailable(user, (name) => !!licenseCtx?.hasFeature?.(name));
     const { isCloud, isSelfHosted } = useDeploymentMode();
     // Licence-key management belongs to the admin dashboard, not to per-org
     // settings. On cloud, org settings shows the Stripe subscription ONLY —
@@ -634,8 +639,14 @@ const OrgInfoPanel = ({ user, activeSection, onSave: parentOnSave, onStateChange
                     /* Same orgId discipline as the two editors above: no org
                        picker and no orgs[0] fallback — this switch changes how
                        every conversation in the org is built. */
-                    <div className="animate-fadeIn max-w-3xl">
+                    <div className="animate-fadeIn max-w-3xl space-y-8">
                         <OrgAiContextEditor orgId={orgData?.id} />
+                        {/* Whether the AI may join team chats and comment
+                            threads by itself: same orgId discipline, it
+                            decides what the AI reads in every project. */}
+                        <OrgAiParticipationEditor orgId={orgData?.id} enabled={projectsOn} />
+                        {/* Real-time co-editing of project notebooks and pages. */}
+                        <OrgCollabEditor orgId={orgData?.id} enabled={projectsOn} />
                     </div>
                 )}
                 {/* ── Reusing integration answers between runs ── */}

@@ -99,6 +99,18 @@ stub('../../core/meetingNotes/summaryHelpers', {
     ARTIFACTS_FAILED: pure.ARTIFACTS_FAILED,
 });
 
+// Filing into a project: the access decision is projects/meetingFiling.js's
+// own (meetingFiling.test.js); here only how the upload route USES the answer.
+const target = { asked: [], announced: [], answer: { ok: true, projectId: 'p1' }, throws: false };
+stub('../../projects/meetingFiling', {
+    resolve: async (userId, orgId, projectId) => {
+        target.asked.push({ userId, orgId, projectId });
+        if (target.throws) throw new Error('projects table is down');
+        return target.answer;
+    },
+    announce: async (projectId, actorId, meetingId) => { target.announced.push({ projectId, actorId, meetingId }); },
+});
+
 const router = require('./upload');
 
 function dispatch({ body = {}, file = true, user = 'owner-1' } = {}) {
@@ -145,6 +157,10 @@ test.beforeEach(() => {
     fs.writeFileSync(AUDIO_PATH, 'fake-audio-bytes');
     creates.length = 0;
     updates.length = 0;
+    target.asked.length = 0;
+    target.announced.length = 0;
+    target.answer = { ok: true, projectId: 'p1' };
+    target.throws = false;
     artifactsResult = {
         actionItems: [{ id: 'ai-0', text: 'Offerte sturen', assignee: 'Tom', timestamp: '00:02', done: false }],
         decisions: [{ id: 'd-0', text: 'Besloten: plan A', timestamp: '00:03' }],
@@ -216,4 +232,48 @@ test('een GESLAAGDE LEGE pass ruimt de kolommen wél op', async () => {
     assert.deepStrictEqual(p.questions, []);
     assert.strictEqual('tagsIfEmpty' in p, false, 'geen lege tag-lijst over bestaande tags heen');
     assert.strictEqual(p.summary, 'Samenvatting van de meeting.', 'geen notitieregel: de pass is gewoon gelukt');
+});
+
+// ═══ Filing the new note into a project ═══════════════════════════════
+
+test('with a projectId the uploader may use, the note is created IN the project and announced', async () => {
+    const res = await dispatch({ body: { projectId: 'p1' } });
+    assert.strictEqual(res.statusCode, 202);
+    assert.strictEqual(res.body.projectId, 'p1');
+    assert.strictEqual(target.asked.length, 1);
+    assert.strictEqual(target.asked[0].userId, 'owner-1');
+    assert.strictEqual(target.asked[0].projectId, 'p1');
+    assert.strictEqual(creates.length, 1);
+    assert.strictEqual(creates[0].projectId, 'p1', 'filed at birth, in the same INSERT');
+    assert.deepStrictEqual(target.announced, [{ projectId: 'p1', actorId: 'owner-1', meetingId: 't-new' }]);
+    await waitFor(() => !!completion());
+});
+
+test('without a projectId nothing about projects is asked and the note is private', async () => {
+    const res = await dispatch({ body: { projectId: '' } });
+    assert.strictEqual(res.statusCode, 202);
+    assert.strictEqual(res.body.projectId, null);
+    assert.deepStrictEqual(target.asked, []);
+    assert.strictEqual(creates[0].projectId, null);
+    assert.deepStrictEqual(target.announced, []);
+    await waitFor(() => !!completion());
+});
+
+test('a refused project stops the upload before anything is saved, and the temp file is gone', async () => {
+    target.answer = { ok: false, status: 403, code: 'forbidden', error: 'You can view this project, but only its editors can add meeting notes to it.' };
+    const res = await dispatch({ body: { projectId: 'p1' } });
+    assert.strictEqual(res.statusCode, 403);
+    assert.strictEqual(res.body.code, 'forbidden');
+    assert.strictEqual(creates.length, 0, 'no note');
+    assert.deepStrictEqual(target.announced, []);
+    assert.strictEqual(fs.existsSync(AUDIO_PATH), false, 'the upload is not left on disk');
+});
+
+test('a project access check that cannot be answered is a refusal, never a blind filing', async () => {
+    target.throws = true;
+    const res = await dispatch({ body: { projectId: 'p1' } });
+    assert.strictEqual(res.statusCode, 503);
+    assert.strictEqual(res.body.code, 'project_check_unavailable');
+    assert.ok(!JSON.stringify(res.body).includes('projects table'), 'no internal detail');
+    assert.strictEqual(creates.length, 0);
 });

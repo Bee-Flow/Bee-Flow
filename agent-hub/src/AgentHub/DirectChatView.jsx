@@ -4,6 +4,8 @@ import EmptyChatState from './EmptyChatState';
 import DirectChatWelcome from '../components/chat/DirectChatWelcome';
 import InputArea from '../components/chat/InputArea';
 import MessageItem from '../components/chat/MessageItem';
+import ProjectContextPill from '../components/chat/ProjectContextPill';
+import SharedChatReadOnly, { isReadOnlySharedChat } from '../components/chat/SharedChatReadOnly';
 import CoworkModeToggle from '../components/cowork/CoworkModeToggle';
 import CoworkWelcome from '../components/cowork/CoworkWelcome';
 import { lazy } from '../utils/lazyWithReload';
@@ -31,6 +33,7 @@ const DirectChatView = ({
     attachedWebpageSelection, clearWebpageSelection, setAttachedWebpageSelection,
     retryMessage, editAndRegenerate,
     renderSidePanels,
+    activeProject = null, onOpenActiveProject, onLeaveActiveProject,
 }) => {
     return (
                     /* Direct Chat Mode */
@@ -38,8 +41,10 @@ const DirectChatView = ({
                         {/* Minimal toolbar for Direct Chat. It also has to appear
                             for the Chat ⇄ Cowork switch alone: the switch lives
                             in here now, and a workspace without Notebooks would
-                            otherwise have no header to put it in. */}
-                        {(isMobile || notebooksEnabled || !conversationStarted) && (
+                            otherwise have no header to put it in. The same
+                            goes for the project pill: a chat inside a project
+                            always says so. */}
+                        {(isMobile || notebooksEnabled || !conversationStarted || activeProject) && (
                             <div className={`relative h-14 flex items-center justify-between ${isMobile ? 'px-3' : 'px-6'} bg-[var(--bg-primary)]/80 backdrop-blur-md sticky top-0 z-20 border-b border-[var(--border-subtle)]/50`}>
                                 <div className="flex items-center gap-2">
                                     {isMobile && (
@@ -49,6 +54,14 @@ const DirectChatView = ({
                                         >
                                             <Menu className="w-5 h-5" />
                                         </button>
+                                    )}
+                                    {activeProject && (
+                                        <ProjectContextPill
+                                            project={activeProject}
+                                            compact={isMobile}
+                                            onOpen={() => onOpenActiveProject?.(activeProject)}
+                                            onLeave={() => onLeaveActiveProject?.()}
+                                        />
                                     )}
                                 </div>
                                 {/* Centred — see the agent header above. */}
@@ -174,7 +187,9 @@ const DirectChatView = ({
                                         </div>
                                     )}
                                 </div>
-                                {messages.length > 0 && (
+                                {/* A viewer reading a colleague's shared chat cannot post into it. */}
+                                {messages.length > 0 && isReadOnlySharedChat(currentDirectConversation) && <SharedChatReadOnly />}
+                                {messages.length > 0 && !isReadOnlySharedChat(currentDirectConversation) && (
                                     <div className="w-full flex flex-col shrink-0">
                                         {attachedWebpageSelection && sidePanelWebpageId && (
                                             <div className="mx-4 mb-2 px-3 py-2 rounded-lg border flex items-start gap-2"

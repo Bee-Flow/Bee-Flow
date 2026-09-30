@@ -54,7 +54,12 @@ test('identical values are only ever proper names or shared words', () => {
 });
 
 test('every English compliance-redesign key has a Dutch one (or is declared identical)', () => {
-    const same = new Set(SAME_AS_ENGLISH);
+    // Later rounds add rows to these families (the portability matrix gained
+    // the project kinds, the check table an "open the affected item" button)
+    // and seed their Dutch from their own catalogue rather than from the
+    // generated map, so a key such a catalogue covers counts as covered here.
+    const later = require('./add-nl-collaboration-wave2-documents-compliance-translations');
+    const same = new Set([...SAME_AS_ENGLISH, ...Object.keys(later.NL_TRANSLATIONS), ...later.SAME_AS_ENGLISH]);
     const untranslated = Object.keys(GUI_DEFAULTS).filter((k) => owned(k) && !(k in NL_TRANSLATIONS) && !same.has(k));
     assert.deepStrictEqual(untranslated, []);
 });

@@ -11,6 +11,10 @@
  * The editor is wrapped in an error boundary: if a transform/render throws on
  * malformed content, the user keeps their last-saved work and gets a retry action
  * instead of an unmounted (blank) editor.
+ *
+ * Every prop reaches BeeEditor, including `collab` (a co-editing session from
+ * editor/collab/useCollab) and `onUploadImage`; see BeeEditor for what they do.
+ * A retry after a crash rebinds to the same session, so nothing shared is lost.
  */
 import React, { forwardRef } from 'react';
 import BeeEditor from './BeeEditor.jsx';

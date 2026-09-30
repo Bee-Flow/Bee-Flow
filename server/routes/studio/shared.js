@@ -126,7 +126,33 @@ const permission = async (d, req, perm) => {
     return false;
 };
 
+/**
+ * Solutions: routes/projects.js's mount gate (requireModule('projects') +
+ * requireCapability('projects')) plus the operator kill switch
+ * (feature_projects_enabled). counts.js, search.js, attentionChecks.js and
+ * aiRoute.js each carried this body word for word; one copy keeps the four
+ * from answering "may this caller see Solutions" differently.
+ */
+const solutionsGate = async (req, d) => {
+    if (!(await moduleActive(d, 'projects'))) return false;
+    if (!(await capability(d, req, 'projects'))) return false;
+    const enabled = await d.configStore.getConfig('feature_projects_enabled');
+    return enabled !== false;
+};
+
 // ── Scoping helpers — WELKE rijen, niet WELKE soort ────────────────────────
+
+/**
+ * The Solutions this caller may see: routes/projects.js GET /?kind=solution,
+ * i.e. listUserProjects(userId, groups, { kind: 'solution' }). Solutions plus
+ * the legacy projects nobody has classified yet, never a collaborative
+ * project. listUserProjects (owner + shares) IS the authorisation; nothing
+ * here widens it and no id comes out of the request.
+ */
+async function visibleSolutionsFor(req, d) {
+    const userId = userIdOf(req);
+    return d.projectStore.listUserProjects(userId, await d.auth.resolveUserGroups(userId), { kind: 'solution' });
+}
 
 /**
  * De kennisbanken die deze beller mag zien.
@@ -163,5 +189,7 @@ module.exports = {
     licenceAllows,
     capability,
     permission,
+    solutionsGate,
     visibleKnowledgeBasesFor,
+    visibleSolutionsFor,
 };

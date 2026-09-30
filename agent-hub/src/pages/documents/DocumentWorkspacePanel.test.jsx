@@ -4,7 +4,11 @@ import { beforeEach, expect, it, vi } from 'vitest';
 
 const state=vi.hoisted(()=>({locale:'en',request:vi.fn()}));
 vi.mock('./documentsApi',()=>({documentRequest:state.request}));
-vi.mock('../../hooks/useTranslation',()=>({default:()=>({locale:state.locale})}));
+// The panel's strings are catalogue keys (documents.workspace.*) now, not
+// inline English/Dutch pairs picked by locale: the Dutch comes from the i18n
+// catalogue. This stand-in plays that catalogue for the keys the Dutch test reads.
+const NL={'documents.workspace.font':'Lettertype','documents.workspace.preview_design_changes':'Vormgeving vooraf bekijken','documents.workspace.review_proposal':'Voorstel controleren'};
+vi.mock('../../hooks/useTranslation',()=>({default:()=>({locale:state.locale,t:(key,fallback)=>(state.locale==='nl'&&NL[key])||fallback})}));
 import DocumentWorkspacePanel from './DocumentWorkspacePanel';
 const doc={id:'d',kind:'document',versionId:'v1',settings:{},contract:{instructions:'Verified facts only',parameters:[
     {key:'cloud',label:'Cloud services',type:'boolean',summary:'Uses cloud',instructions:'Confirm with the customer'},

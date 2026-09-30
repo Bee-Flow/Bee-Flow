@@ -14,11 +14,13 @@
  *   GET    /:id/sources         — list sources
  *   DELETE /:id/sources/:sid    — remove source
  *
- * Template-fill endpoints (preserved for backwards compat):
- *   POST   /:id/upload-template — upload .docx template to a notebook
- *   POST   /:id/fill            — fill template with values
- *   POST   /:id/fill-and-store  — fill + store result
- *   GET    /:id/download        — download original template .docx
+ * Versions (the uniform version API) live in routes/notebooksVersions.js,
+ * mounted below.
+ *
+ * Every `/:id…` route starts with requireNotebookRole (routes/notebooksAccess.js):
+ * viewers read, editors change the document and its sources, the notebook's
+ * owner deletes. While a notebook is co-edited (core/collab), the whole-document
+ * PUT refuses with 409 COLLAB_ACTIVE: the live document is the co-editing state.
  */
 
 const express = require('express');
@@ -34,6 +36,7 @@ const transcriptionStore = require('../stores/transcriptionStore');
 require('../stores/knowledgeBases');
 const { ingestFileSource, ingestUrlSource, ingestTextSource, ingestDriveSource, MAX_STORED_TEXT } = require('../agents/notebooks/sourceIngestion');
 const { countWords } = require('../utils/text');
+const { keepUploadedSource } = require('../core/documents/uploadedSource');
 require('../core/documents/documentParser');
 require('../core/kb/kbIngestionHelpers');
 const { requirePermission } = require('../auth');
@@ -47,6 +50,56 @@ const { partitionAccessibleKBIds } = require('../support/kbAccess');
 const { TIER_DEFAULTS } = require('../core/llm/modelResolver');
 const { validate } = require('../core/http/validate');
 const { z, worded, bodyOf, queryOf, choice, flag, wholeNumber } = require('../core/http/schemaParts');
+const { HttpError } = require('../core/http/errors');
+const { requireNotebookRole } = require('./notebooksAccess');
+const notebookCollab = require('../agents/notebooks/notebookCollab');
+const { makeNotebookFeed } = require('../agents/notebooks/notebookFeed');
+const { partitionNotebookKbIds } = require('../agents/notebooks/notebookKbAccess');
+const { shieldNotebookPrompt } = require('../agents/notebooks/notebookAiShield');
+
+// Role gates, one per level (see routes/notebooksAccess.js).
+const asViewer = requireNotebookRole('viewer');
+const asEditor = requireNotebookRole('editor');
+const asOwner = requireNotebookRole('owner');
+
+/**
+ * Collaborators a test swaps on this object (testUtils/swaps.js) instead of
+ * reaching into the module system. Resolved at call time.
+ */
+const seams = {
+    /** @param {string} id */
+    getProject: (id) => require('../stores/projectStore').getProject(id),
+    /** @param {string} userId @param {string} projectId */
+    projectRoleOf: (userId, projectId) => require('../stores/lib/projectRole').projectRoleOf(userId, projectId),
+    /** The co-editing facade, or null. */
+    collab: () => notebookCollab.defaultFacade(),
+    /** The project change feed. */
+    feed: () => makeNotebookFeed(),
+};
+
+/**
+ * The project a notebook is filed in, as its page shows it ("In project X"),
+ * for a caller who is a member of that project; null otherwise. Never fails
+ * the notebook read.
+ */
+async function projectSummaryFor(nb, userId) {
+    if (!nb.projectId) return null;
+    try {
+        const role = nb.projectRole || await seams.projectRoleOf(userId, nb.projectId);
+        if (!role) return null;
+        const p = await seams.getProject(nb.projectId);
+        if (!p) return null;
+        return { id: p.id, name: p.name, kind: p.kind ?? null, color: p.color || null, icon: p.icon || null, role };
+    } catch (err) {
+        log.warn('[Notebooks] project summary unavailable', { notebookId: nb.id, error: err.message });
+        return null;
+    }
+}
+
+/** Co-editing applies to notebooks in a collaborative workspace (or a legacy, unclassified project). */
+function collabEligible(project) {
+    return !!project && (project.kind === 'workspace' || project.kind === null);
+}
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } }); // 50MB
 
@@ -126,10 +179,6 @@ const AiFillBody = bodyOf({
     documentContent: worded('No document content provided'),
     modelTier,
 }, 'AI fill');
-const VersionBody = bodyOf({
-    summary: text('summary is text of at most 500 characters.', 500).optional(),
-    content: worded('content is the document, as text.').optional(),
-}, 'Saving a version');
 
 // requireAuth is the canonical gate from auth/permissions (verifies the
 // user still exists in the DB, cached 5s, and destroys deleted-user sessions).
@@ -145,7 +194,10 @@ router.post('/', requireAuth, validate({ body: CreateBody }), async (req, res) =
     try {
         const userId = req.session.user.id;
         const { name, description, instructions } = req.body;
-        const notebook = await notebookStore.createNotebook({ userId, name, description, instructions });
+        // Stamped at birth: without it the row stayed org-less until the next
+        // boot's backfill, and the cross-tenant checks had nothing to compare.
+        const organizationId = req.session.user.organizationId || null;
+        const notebook = await notebookStore.createNotebook({ userId, name, description, instructions, organizationId });
         res.json({ success: true, notebook });
     } catch (err) {
         log.error('[Notebooks] Create failed:', err);
@@ -178,33 +230,32 @@ router.get('/', requireAuth, validate({ query: ListQuery }), async (req, res) =>
     }
 });
 
-router.get('/:id', requireAuth, async (req, res) => {
-    try {
-        const userId = req.session.user.id;
-        const notebook = await notebookStore.getNotebook(req.params.id, userId);
-        if (!notebook) return res.status(404).json({ error: 'Notebook not found' });
+router.get('/:id', requireAuth, asViewer, async (req, res) => {
+    const userId = req.session.user.id;
+    const notebook = req.notebook;
 
-        // Flip any sources that have been "processing" for > 10 min to errored.
-        // Protects users from yellow rows stuck forever after a worker crash.
-        await notebookStore.timeoutStuckSources(notebook.id).catch(() => {});
+    // Flip any sources that have been "processing" for > 10 min to errored.
+    // Protects users from yellow rows stuck forever after a worker crash.
+    await notebookStore.timeoutStuckSources(notebook.id).catch(() => {});
 
-        const sources = await notebookStore.getSources(notebook.id);
-        res.json({ notebook, sources });
-    } catch (err) {
-        log.error('[Notebooks] Get failed:', err);
-        res.status(500).json({ error: 'Failed to get notebook' });
-    }
+    const sources = await notebookStore.getSources(notebook.id);
+    const project = await projectSummaryFor(notebook, userId);
+    res.json({
+        notebook: { ...notebook, role: req.notebookRole },
+        sources,
+        // "In project X" and whether the page should join a co-editing session.
+        project,
+        collab: { eligible: collabEligible(project) },
+    });
 });
 
 // ── In-notebook chat history (persistent, encrypted) ─────────────────────
 // Returns the durable conversation for this notebook
 // so the chat panel can rehydrate on page load / notebook switch instead of
 // starting from an empty React state. Ownership is enforced via getNotebook.
-router.get('/:id/conversation', requireAuth, async (req, res) => {
+router.get('/:id/conversation', requireAuth, asViewer, async (req, res) => {
     try {
         const userId = req.session.user.id;
-        const notebook = await notebookStore.getNotebook(req.params.id, userId);
-        if (!notebook) return res.status(404).json({ error: 'Notebook not found' });
         const encryptionKey = req.session.encryptionKey || null;
         // `locked` = encrypted history we can't decode with this session's DEK —
         // the UI shows "history unavailable" instead of a silently empty chat.
@@ -234,15 +285,18 @@ router.get('/:id/conversation', requireAuth, async (req, res) => {
 });
 
 // Clear the persisted in-notebook conversation ("new chat" in the panel).
-router.delete('/:id/conversation', requireAuth, async (req, res) => {
+router.delete('/:id/conversation', requireAuth, asViewer, async (req, res) => {
     try {
         const userId = req.session.user.id;
-        const notebook = await notebookStore.getNotebook(req.params.id, userId);
-        if (!notebook) return res.status(404).json({ error: 'Notebook not found' });
         await notebookConversationStore.deleteForNotebook(req.params.id, userId);
         // Drop the accumulated PII token map too, so a fresh chat doesn't inherit
         // stale `[person_1]` → value mappings from the cleared conversation.
-        try { require('../core/dlp/dlpRunner').clearConversationState(req.params.id); } catch (_) { /* best-effort */ }
+        // Not for a project notebook: the map is the notebook's, shared by every
+        // member's private chat, and one person starting over must not leave
+        // the others' histories unreadable.
+        if (!req.notebook.projectId) {
+            try { require('../core/dlp/dlpRunner').clearConversationState(req.params.id); } catch (_) { /* best-effort */ }
+        }
         res.json({ success: true });
     } catch (err) {
         log.error('[Notebooks] Clear conversation failed:', err);
@@ -250,58 +304,116 @@ router.delete('/:id/conversation', requireAuth, async (req, res) => {
     }
 });
 
-router.put('/:id', requireAuth, validate({ body: UpdateBody }), async (req, res) => {
+/**
+ * Keep a whole-document save that could not be applied as a 'conflict'
+ * version. Returns its id, or null when there was nothing to keep or it could
+ * not be written (logged, ids only).
+ */
+async function keepConflictCopy(notebookId, userId, documentContent) {
+    if (typeof documentContent !== 'string' || !documentContent.trim()) return null;
     try {
-        const userId = req.session.user.id;
-        const { name, description, instructions, settings, knowledgeBaseIds, documentContent, pinned, expectedVersion } = req.body;
-
-        // A notebook's knowledgeBaseIds drive retrieval in notebook chat and in
-        // /generate/:type, on a search path that deliberately does no tenant
-        // filtering of its own. Attaching an arbitrary id here would therefore
-        // read another tenant's knowledge base, so authorize every id first.
-        if (knowledgeBaseIds !== undefined) {
-            if (!Array.isArray(knowledgeBaseIds)) {
-                return res.status(400).json({ error: 'knowledgeBaseIds must be an array' });
-            }
-            const { denied } = await partitionAccessibleKBIds(req, knowledgeBaseIds);
-            if (denied.length > 0) {
-                log.warn('[Notebooks] refused inaccessible kb ids on update:', { notebookId: req.params.id, userId, denied });
-                return res.status(403).json({ error: 'One or more knowledge bases are not accessible' });
-            }
-        }
-
-        // Auto-version: snapshot current content before overwriting (5-min debounce)
-        if (documentContent !== undefined) {
-            try {
-                const nb = await notebookStore.getNotebook(req.params.id, userId);
-                if (nb && nb.documentContent && nb.documentContent.trim() && nb.documentContent !== documentContent) {
-                    const shouldSnapshot = await notebookStore.shouldAutoVersion(req.params.id);
-                    if (shouldSnapshot) {
-                        await notebookStore.createVersion(req.params.id, nb.documentContent, 'Auto-save');
-                    }
-                }
-            } catch (vErr) {
-                log.warn('[Notebooks] Auto-version failed:', vErr.message);
-            }
-        }
-
-        // CAS write: `expectedVersion` (when the client sends one) turns
-        // last-writer-wins into an explicit 409 the editor can react to.
-        const r = await notebookStore.updateNotebookCas(req.params.id, userId, {
-            name, description, instructions, settings, knowledgeBaseIds, documentContent, pinned,
-            ...(Number.isFinite(expectedVersion) ? { expectedVersion } : {}),
+        const kept = await notebookStore.recordVersion(notebookId, {
+            html: documentContent, source: 'conflict', createdBy: userId,
+            contributors: [{ userId, kind: 'user' }],
         });
-        if (r.ok) return res.json({ success: true, version: r.version });
-        if (r.conflict) return res.status(409).json({ error: 'Document was updated elsewhere', code: 'version_conflict' });
-        if (r.noop) return res.status(400).json({ error: 'No fields to update' });
-        return res.status(404).json({ error: 'Notebook not found' });
+        return kept.id;
     } catch (err) {
-        log.error('[Notebooks] Update failed:', err);
-        res.status(500).json({ error: 'Failed to update notebook' });
+        log.error('[Notebooks] could not keep the conflicting copy as a version', { notebookId, error: err.message });
+        return null;
     }
+}
+
+router.put('/:id', requireAuth, validate({ body: UpdateBody }), asEditor, async (req, res) => {
+    const userId = req.session.user.id;
+    const nb = req.notebook;
+    const { name, description, instructions, settings, knowledgeBaseIds, documentContent, pinned, expectedVersion } = req.body;
+
+    // The pin orders and filters the OWNER's own library (listNotebookCards);
+    // it is one person's, not the project's (mapProjectNotebookCard leaves it
+    // out for that reason), so a colleague may neither set nor clear it.
+    if (pinned !== undefined && req.notebookRole !== 'owner') {
+        throw new HttpError(403, 'notebook_owner_only', 'Only the owner of this notebook can pin it in their library.');
+    }
+
+    // While the notebook is co-edited the live document is the co-editing
+    // state: a whole-document write here would be overwritten by the next
+    // materialisation, or overwrite everyone's typing. The page joins the
+    // session instead.
+    if (documentContent !== undefined && await notebookCollab.isCollabActive(nb.id, seams.collab())) {
+        // The text is not thrown away: it is kept as a 'conflict' version the
+        // page can offer once it has joined the live session.
+        const conflictVersionId = await keepConflictCopy(nb.id, userId, documentContent);
+        throw new HttpError(409, 'COLLAB_ACTIVE', 'This notebook is being edited together right now. Join the live session; your text was kept in the version history.', {
+            conflictVersionId,
+        });
+    }
+
+    // A notebook's knowledgeBaseIds drive retrieval in notebook chat and in
+    // /generate/:type, on a search path that deliberately does no tenant
+    // filtering of its own. Attaching an arbitrary id here would therefore
+    // read another tenant's knowledge base, so authorize every id first.
+    // Which bases a notebook reads is its owner's call: an editor detaching the
+    // notebook's own base would take every source away from everyone.
+    if (knowledgeBaseIds !== undefined) {
+        if (req.notebookRole !== 'owner') {
+            throw new HttpError(403, 'notebook_owner_only', 'Only the owner of this notebook can change which knowledge bases it uses.');
+        }
+        const { denied } = await partitionAccessibleKBIds(req, knowledgeBaseIds);
+        if (denied.length > 0) {
+            log.warn('[Notebooks] refused inaccessible kb ids on update:', { notebookId: req.params.id, userId, denied });
+            return res.status(403).json({ error: 'One or more knowledge bases are not accessible' });
+        }
+    }
+
+    // CAS write: `expectedVersion` (when the client sends one) turns
+    // last-writer-wins into an explicit 409 the editor can react to.
+    const r = await notebookStore.updateNotebookCas(req.params.id, userId, {
+        name, description, instructions, settings, knowledgeBaseIds, documentContent, pinned,
+        ...(Number.isFinite(expectedVersion) ? { expectedVersion } : {}),
+    });
+    if (r.conflict) {
+        // Nobody's text is thrown away: the copy that lost the race is kept
+        // as a 'conflict' version the page offers to compare and choose from.
+        const conflictVersionId = await keepConflictCopy(nb.id, userId, documentContent);
+        // A colleague opened it live between the check above and this write.
+        if (r.coEdited) {
+            throw new HttpError(409, 'COLLAB_ACTIVE', 'This notebook is being edited together right now. Join the live session; your text was kept in the version history.', {
+                conflictVersionId,
+            });
+        }
+        throw new HttpError(409, 'version_conflict', 'Document was updated elsewhere', {
+            currentVersion: r.currentVersion ?? null,
+            conflictVersionId,
+        });
+    }
+    if (r.noop) return res.status(400).json({ error: 'No fields to update' });
+    if (!r.ok) throw new HttpError(404, 'notebook_not_found', 'Notebook not found');
+
+    const feed = seams.feed();
+    // A version is the state AFTER a checkpoint: at most one automatic one
+    // per five minutes, holding what was just saved.
+    if (documentContent !== undefined && documentContent.trim()) {
+        try {
+            if (await notebookStore.shouldAutoVersion(nb.id)) {
+                const v = await notebookStore.recordVersion(nb.id, {
+                    html: documentContent, source: 'checkpoint', createdBy: userId,
+                    contributors: [{ userId, kind: 'user' }],
+                });
+                if (!v.deduped) {
+                    void feed.contentChanged({ projectId: nb.projectId, notebookId: nb.id, contributors: [{ userId, kind: 'user' }], versionId: v.id, source: 'checkpoint' });
+                }
+            }
+        } catch (vErr) {
+            log.warn('[Notebooks] Auto-version failed:', vErr.message);
+        }
+    }
+    if (typeof name === 'string' && name !== nb.name) {
+        void feed.renamed({ projectId: nb.projectId, notebookId: nb.id, actorId: userId });
+    }
+    res.json({ success: true, version: r.version });
 });
 
-router.delete('/:id', requireAuth, async (req, res) => {
+router.delete('/:id', requireAuth, asOwner, async (req, res) => {
     try {
         const userId = req.session.user.id;
         // Full cascade: per-source storage blobs and derived chunks/embeddings,
@@ -325,32 +437,18 @@ router.delete('/:id', requireAuth, async (req, res) => {
 
 // ── Source: File Upload (PDF, DOCX, XLSX, CSV, TXT…) ────────────
 
-router.post('/:id/sources/file', requireAuth, upload.single('file'), async (req, res) => {
+router.post('/:id/sources/file', requireAuth, asEditor, upload.single('file'), async (req, res) => {
     try {
         const userId = req.session.user.id;
         const notebookId = req.params.id;
 
-        // Verify notebook exists
-        const nb = await notebookStore.getNotebook(notebookId, userId);
-        if (!nb) return res.status(404).json({ error: 'Notebook not found' });
+        const nb = req.notebook;
         if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
-        const fileName = req.file.originalname;
-        const mimeType = req.file.mimetype;
-        const buffer = req.file.buffer;
-
-        // Determine source type from file extension
-        const ext = (fileName.split('.').pop() || '').toLowerCase();
-        const typeMap = { pdf: 'pdf', docx: 'docx', doc: 'docx', xlsx: 'xlsx', xls: 'xlsx', csv: 'csv', txt: 'text', md: 'text' };
-        const type = typeMap[ext] || 'file';
-
-        // Store file in RustFS
-        let storageKey = null;
-        if (storageStore.isAvailable()) {
-            const storageName = `nb_${Date.now()}_${crypto.randomBytes(4).toString('hex')}_${fileName.replace(/[^a-zA-Z0-9.\-_]/g, '_')}`;
-            storageKey = storageStore.buildKey(userId, 'notebooks', storageName);
-            await storageStore.uploadFile(storageKey, buffer, mimeType);
-        }
+        // Source type from the extension, and a copy in RustFS when storage is on.
+        const { fileName, mimeType, buffer, type, storageKey } = await keepUploadedSource(req.file, {
+            userId, prefix: 'nb', folder: 'notebooks',
+        });
 
         // Create source record
         const source = await notebookStore.addSource({
@@ -359,6 +457,7 @@ router.post('/:id/sources/file', requireAuth, upload.single('file'), async (req,
         });
 
         res.json({ success: true, source });
+        void seams.feed().sourcesAdded({ projectId: nb.projectId, notebookId, actorId: userId });
 
         // Background: parse + ingest into KB
         ingestFileSource(notebookId, source.id, userId, buffer, fileName, mimeType).catch(err => {
@@ -373,15 +472,14 @@ router.post('/:id/sources/file', requireAuth, upload.single('file'), async (req,
 
 // ── Source: URL ──────────────────────────────────────────────────
 
-router.post('/:id/sources/url', requireAuth, validate({ body: UrlBody }), async (req, res) => {
+router.post('/:id/sources/url', requireAuth, validate({ body: UrlBody }), asEditor, async (req, res) => {
     try {
         const userId = req.session.user.id;
         const notebookId = req.params.id;
         const { url } = req.body;
         if (!url) return res.status(400).json({ error: 'URL required' });
 
-        const nb = await notebookStore.getNotebook(notebookId, userId);
-        if (!nb) return res.status(404).json({ error: 'Notebook not found' });
+        const nb = req.notebook;
 
         // Derive name from URL
         let name;
@@ -394,6 +492,7 @@ router.post('/:id/sources/url', requireAuth, validate({ body: UrlBody }), async 
         });
 
         res.json({ success: true, source });
+        void seams.feed().sourcesAdded({ projectId: nb.projectId, notebookId, actorId: userId });
 
         // Background: fetch + ingest
         ingestUrlSource(notebookId, source.id, userId, url).catch(err => {
@@ -408,15 +507,14 @@ router.post('/:id/sources/url', requireAuth, validate({ body: UrlBody }), async 
 
 // ── Source: Pasted Text ─────────────────────────────────────────
 
-router.post('/:id/sources/text', requireAuth, validate({ body: TextBody }), async (req, res) => {
+router.post('/:id/sources/text', requireAuth, validate({ body: TextBody }), asEditor, async (req, res) => {
     try {
         const userId = req.session.user.id;
         const notebookId = req.params.id;
         const { text, name } = req.body;
         if (!text) return res.status(400).json({ error: 'Text content required' });
 
-        const nb = await notebookStore.getNotebook(notebookId, userId);
-        if (!nb) return res.status(404).json({ error: 'Notebook not found' });
+        const nb = req.notebook;
 
         const sourceName = name || 'Pasted text';
         const source = await notebookStore.addSource({
@@ -425,6 +523,7 @@ router.post('/:id/sources/text', requireAuth, validate({ body: TextBody }), asyn
         });
 
         res.json({ success: true, source });
+        void seams.feed().sourcesAdded({ projectId: nb.projectId, notebookId, actorId: userId });
 
         // Background: ingest
         ingestTextSource(notebookId, source.id, userId, text, sourceName).catch(err => {
@@ -439,7 +538,7 @@ router.post('/:id/sources/text', requireAuth, validate({ body: TextBody }), asyn
 
 // ── Source: Meeting Notes ─────────────────────────────────────────
 
-router.post('/:id/sources/meeting', requireAuth, validate({ body: MeetingBody }), async (req, res) => {
+router.post('/:id/sources/meeting', requireAuth, validate({ body: MeetingBody }), asEditor, async (req, res) => {
     try {
         const userId = req.session.user.id;
         const notebookId = req.params.id;
@@ -447,8 +546,7 @@ router.post('/:id/sources/meeting', requireAuth, validate({ body: MeetingBody })
         if (!meetingId) return res.status(400).json({ error: 'Meeting ID required' });
         const ingestMode = mode === 'summary' ? 'summary' : 'full';
 
-        const nb = await notebookStore.getNotebook(notebookId, userId);
-        if (!nb) return res.status(404).json({ error: 'Notebook not found' });
+        const nb = req.notebook;
 
         const meeting = await transcriptionStore.getTranscription(meetingId, userId);
         if (!meeting) return res.status(404).json({ error: 'Meeting not found' });
@@ -475,6 +573,7 @@ router.post('/:id/sources/meeting', requireAuth, validate({ body: MeetingBody })
         });
 
         res.json({ success: true, source });
+        void seams.feed().sourcesAdded({ projectId: nb.projectId, notebookId, actorId: userId });
 
         // Background: ingest
         ingestTextSource(notebookId, source.id, userId, sourceText, sourceName).catch(err => {
@@ -489,7 +588,7 @@ router.post('/:id/sources/meeting', requireAuth, validate({ body: MeetingBody })
 
 // ── Source: Google Drive / OneDrive ──────────────────────────────
 
-router.post('/:id/sources/drive', requireAuth, validate({ body: DriveBody }), async (req, res) => {
+router.post('/:id/sources/drive', requireAuth, validate({ body: DriveBody }), asEditor, async (req, res) => {
     try {
         const userId = req.session.user.id;
         const notebookId = req.params.id;
@@ -509,8 +608,7 @@ router.post('/:id/sources/drive', requireAuth, validate({ body: DriveBody }), as
             });
         }
 
-        const nb = await notebookStore.getNotebook(notebookId, userId);
-        if (!nb) return res.status(404).json({ error: 'Notebook not found' });
+        const nb = req.notebook;
 
         const sources = [];
         for (const file of files) {
@@ -539,6 +637,7 @@ router.post('/:id/sources/drive', requireAuth, validate({ body: DriveBody }), as
         }
 
         res.json({ success: true, sources });
+        void seams.feed().sourcesAdded({ projectId: nb.projectId, notebookId, actorId: userId, count: sources.length });
 
     } catch (err) {
         log.error('[Notebooks] Drive source failed:', err);
@@ -548,11 +647,9 @@ router.post('/:id/sources/drive', requireAuth, validate({ body: DriveBody }), as
 
 // ── List Sources ────────────────────────────────────────────────
 
-router.get('/:id/sources', requireAuth, async (req, res) => {
+router.get('/:id/sources', requireAuth, asViewer, async (req, res) => {
     try {
-        const userId = req.session.user.id;
-        const nb = await notebookStore.getNotebook(req.params.id, userId);
-        if (!nb) return res.status(404).json({ error: 'Notebook not found' });
+        const nb = req.notebook;
 
         await notebookStore.timeoutStuckSources(nb.id).catch(() => {});
         const sources = await notebookStore.getSources(nb.id);
@@ -571,11 +668,10 @@ router.get('/:id/sources', requireAuth, async (req, res) => {
 // Only when no stored content survives does retry fail and the UI falls back
 // to re-adding the source.
 
-router.post('/:id/sources/:sid/retry', requireAuth, async (req, res) => {
+router.post('/:id/sources/:sid/retry', requireAuth, asEditor, async (req, res) => {
     try {
         const userId = req.session.user.id;
-        const nb = await notebookStore.getNotebook(req.params.id, userId);
-        if (!nb) return res.status(404).json({ error: 'Notebook not found' });
+        const nb = req.notebook;
 
         const source = await notebookStore.getSource(req.params.sid);
         if (!source || source.notebookId !== nb.id) return res.status(404).json({ error: 'Source not found' });
@@ -626,11 +722,9 @@ router.post('/:id/sources/:sid/retry', requireAuth, async (req, res) => {
 // Useful when a worker silently died and the row is stuck yellow — the user
 // can dismiss without losing the uploaded bytes (retry remains available).
 
-router.post('/:id/sources/:sid/cancel', requireAuth, async (req, res) => {
+router.post('/:id/sources/:sid/cancel', requireAuth, asEditor, async (req, res) => {
     try {
-        const userId = req.session.user.id;
-        const nb = await notebookStore.getNotebook(req.params.id, userId);
-        if (!nb) return res.status(404).json({ error: 'Notebook not found' });
+        const nb = req.notebook;
 
         const source = await notebookStore.getSource(req.params.sid);
         if (!source || source.notebookId !== nb.id) return res.status(404).json({ error: 'Source not found' });
@@ -655,11 +749,9 @@ router.post('/:id/sources/:sid/cancel', requireAuth, async (req, res) => {
 const { cleanupSourceArtifacts } = require('../core/kb/notebookCascade');
 
 // ── Source content (preview) ────────────────────────────────────
-router.get('/:id/sources/:sid/content', requireAuth, async (req, res) => {
+router.get('/:id/sources/:sid/content', requireAuth, asViewer, async (req, res) => {
     try {
-        const userId = req.session.user.id;
-        const nb = await notebookStore.getNotebook(req.params.id, userId);
-        if (!nb) return res.status(404).json({ error: 'Notebook not found' });
+        const nb = req.notebook;
         const source = await notebookStore.getSource(req.params.sid);
         if (!source || source.notebookId !== nb.id) return res.status(404).json({ error: 'Source not found' });
         const content = await notebookStore.getSourceContent(source.id);
@@ -671,11 +763,9 @@ router.get('/:id/sources/:sid/content', requireAuth, async (req, res) => {
 });
 
 // ── Reorder sources (must precede the /:sid rename route) ────────
-router.patch('/:id/sources/reorder', requireAuth, validate({ body: ReorderBody }), async (req, res) => {
+router.patch('/:id/sources/reorder', requireAuth, validate({ body: ReorderBody }), asEditor, async (req, res) => {
     try {
-        const userId = req.session.user.id;
-        const nb = await notebookStore.getNotebook(req.params.id, userId);
-        if (!nb) return res.status(404).json({ error: 'Notebook not found' });
+        const nb = req.notebook;
         const { orderedIds } = req.body || {};
         if (!Array.isArray(orderedIds)) return res.status(400).json({ error: 'orderedIds must be an array' });
         await notebookStore.reorderSources(nb.id, orderedIds);
@@ -687,11 +777,9 @@ router.patch('/:id/sources/reorder', requireAuth, validate({ body: ReorderBody }
 });
 
 // ── Rename a source ─────────────────────────────────────────────
-router.patch('/:id/sources/:sid', requireAuth, validate({ body: RenameBody }), async (req, res) => {
+router.patch('/:id/sources/:sid', requireAuth, validate({ body: RenameBody }), asEditor, async (req, res) => {
     try {
-        const userId = req.session.user.id;
-        const nb = await notebookStore.getNotebook(req.params.id, userId);
-        if (!nb) return res.status(404).json({ error: 'Notebook not found' });
+        const nb = req.notebook;
         const source = await notebookStore.getSource(req.params.sid);
         if (!source || source.notebookId !== nb.id) return res.status(404).json({ error: 'Source not found' });
         const name = String(req.body?.name || '').replace(/\s+/g, ' ').trim().slice(0, 200);
@@ -705,11 +793,9 @@ router.patch('/:id/sources/:sid', requireAuth, validate({ body: RenameBody }), a
 });
 
 // ── Bulk delete sources ─────────────────────────────────────────
-router.post('/:id/sources/bulk-delete', requireAuth, validate({ body: BulkDeleteBody }), async (req, res) => {
+router.post('/:id/sources/bulk-delete', requireAuth, validate({ body: BulkDeleteBody }), asEditor, async (req, res) => {
     try {
-        const userId = req.session.user.id;
-        const nb = await notebookStore.getNotebook(req.params.id, userId);
-        if (!nb) return res.status(404).json({ error: 'Notebook not found' });
+        const nb = req.notebook;
         const ids = Array.isArray(req.body?.ids) ? req.body.ids : [];
         if (ids.length > MAX_BULK_DELETE_IDS) {
             return res.status(400).json({ error: `Too many sources — delete at most ${MAX_BULK_DELETE_IDS} at a time` });
@@ -719,7 +805,8 @@ router.post('/:id/sources/bulk-delete', requireAuth, validate({ body: BulkDelete
             // Scoped to nb.id: a foreign sid resolves to null and is skipped, so a
             // caller can't destroy another notebook's source by mixing ids in here.
             const source = await notebookStore.deleteSource(sid, nb.id);
-            if (source) { await cleanupSourceArtifacts(nb, source, userId); deleted++; }
+            // Chunks live under the notebook owner's tenant (sourceIngestion.js).
+            if (source) { await cleanupSourceArtifacts(nb, source, nb.userId); deleted++; }
         }
         res.json({ success: true, deleted });
     } catch (err) {
@@ -730,16 +817,15 @@ router.post('/:id/sources/bulk-delete', requireAuth, validate({ body: BulkDelete
 
 // ── Delete Source ───────────────────────────────────────────────
 
-router.delete('/:id/sources/:sid', requireAuth, async (req, res) => {
+router.delete('/:id/sources/:sid', requireAuth, asEditor, async (req, res) => {
     try {
-        const userId = req.session.user.id;
-        const nb = await notebookStore.getNotebook(req.params.id, userId);
-        if (!nb) return res.status(404).json({ error: 'Notebook not found' });
+        const nb = req.notebook;
 
         const source = await notebookStore.deleteSource(req.params.sid, nb.id);
         if (!source) return res.status(404).json({ error: 'Source not found' });
 
-        await cleanupSourceArtifacts(nb, source, userId);
+        // Chunks live under the notebook owner's tenant (sourceIngestion.js).
+        await cleanupSourceArtifacts(nb, source, nb.userId);
         res.json({ success: true });
     } catch (err) {
         log.error('[Notebooks] Delete source failed:', err);
@@ -758,7 +844,7 @@ const VALID_GEN_TYPES = new Set([
 ]);
 const REMOVED_GEN_TYPES = new Set(['studyGuide', 'flashcards', 'quiz', 'audio_overview']);
 
-router.post('/:id/generate/:type', requireAuth, validate({ body: GenerateBody }), async (req, res) => {
+router.post('/:id/generate/:type', requireAuth, validate({ body: GenerateBody }), asEditor, async (req, res) => {
     try {
         const userId = req.session.user.id;
         const notebookId = req.params.id;
@@ -772,8 +858,7 @@ router.post('/:id/generate/:type', requireAuth, validate({ body: GenerateBody })
             });
         }
 
-        const nb = await notebookStore.getNotebook(notebookId, userId);
-        if (!nb) return res.status(404).json({ error: 'Notebook not found' });
+        const nb = req.notebook;
 
         if (!VALID_GEN_TYPES.has(type)) {
             return res.status(400).json({ error: `Unknown generation type "${type}"`, code: 'generation_type_unknown' });
@@ -792,14 +877,17 @@ router.post('/:id/generate/:type', requireAuth, validate({ body: GenerateBody })
         const { gatherNotebookContent } = require('../core/kb/notebookKnowledgeSearch');
         // Re-authorize at read time — see the PUT handler. Rows written before
         // kb ids were validated may still carry an inaccessible id, and the
-        // gather path does no tenant filtering of its own.
-        const { allowed: kbIds, denied: _deniedKbIds } = await partitionAccessibleKBIds(req, nb.knowledgeBaseIds || []);
+        // gather path does no tenant filtering of its own. The notebook's own
+        // base is read by notebook role, so a project member generates from
+        // the same sources as its owner.
+        const { allowed: kbIds, denied: _deniedKbIds } = await partitionNotebookKbIds(req, nb);
         if (_deniedKbIds.length > 0) {
             log.warn('[Notebooks] dropped inaccessible kb ids on generate:', { notebookId, userId, denied: _deniedKbIds });
         }
 
         const { content: allContent } = await gatherNotebookContent({
-            userId,
+            // The tenant the notebook's chunks are stored under: its owner's.
+            userId: nb.userId,
             kbIds,
             sources: readySources,
             documentContent: nb.documentContent,
@@ -809,6 +897,14 @@ router.post('/:id/generate/:type', requireAuth, validate({ body: GenerateBody })
         if (!allContent.trim()) {
             return res.status(400).json({ error: 'Could not retrieve source content from knowledge base' });
         }
+
+        // Resolve user's org for EU-mode tier overrides — cached tier-org (M2),
+        // organizationId-only (no group fallback) to preserve the original shape.
+        const { resolveEffectiveOrgId } = require('../core/llm/modelResolver');
+        const userOrgId = await resolveEffectiveOrgId(req, { userId, skipGroupFallback: true });
+        // The Privacy Shield, on the notebook chat's path (agents/notebooks/notebookAiShield.js).
+        const shield = await shieldNotebookPrompt({ orgId: userOrgId, userId, notebookId, sourceText: allContent.slice(0, 50000) });
+        if (!shield.ok) return res.status(shield.status).json({ error: shield.error, code: shield.code });
 
         // Type-specific prompts. Only the types in VALID_GEN_TYPES reach here —
         // the check above rejects everything else.
@@ -827,12 +923,8 @@ Wrap your output in \`\`\`mermaid ... \`\`\` tags. Focus on hierarchical relatio
 
         // Resolve model
         const { getAIConfig, getProviderForModel } = require('../core/aiAgent');
-        const { resolveModelForTier, getEUAwareTiers, resolveEffectiveOrgId } = require('../core/llm/modelResolver');
+        const { resolveModelForTier, getEUAwareTiers } = require('../core/llm/modelResolver');
         const { getAdapter } = require('../core/providers');
-
-        // Resolve user's org for EU-mode tier overrides — cached tier-org (M2),
-        // organizationId-only (no group fallback) to preserve the original shape.
-        const userOrgId = await resolveEffectiveOrgId(req, { userId, skipGroupFallback: true });
 
         let resolvedTier = modelTier || 'balanced';
 
@@ -903,7 +995,7 @@ FORMATTING & SPACING:
 - The output will be rendered on paginated A4/Letter pages, so space-efficient writing is critical.
 
 [SOURCE MATERIAL]
-${allContent.slice(0, 50000)}`;
+${shield.units[0]}${shield.addendum}`;
 
         const messages = [
             { role: 'system', content: systemPrompt },
@@ -919,13 +1011,16 @@ ${allContent.slice(0, 50000)}`;
 
         await adapter.stream(apiKey, apiUrl, modelId, messages, chatOptions, (streamType, data) => {
             if (streamType === 'text') {
-                send('content', { text: data.text });
+                // Real values back in for the person who asked; the model saw tokens.
+                send('content', { text: shield.untokenise.push(data.text) });
             } else if (streamType === 'thinking') {
                 send('thinking', { text: data.text });
             } else if (streamType === 'error') {
                 send('error', data);
             }
         });
+        const generatedTail = shield.untokenise.flush();
+        if (generatedTail) send('content', { text: generatedTail });
 
         // (Removed audio_overview ElevenLabs post-processing — the Audio Podcast
         // generation type was retired. Any cached/legacy callers now hit the
@@ -947,11 +1042,10 @@ ${allContent.slice(0, 50000)}`;
 // ── AI Fill Parameters ────────────────────────────────────────────
 // Extracts {{parameter}} placeholders from the document and fills them
 // using the notebook's attached sources.
-router.post('/:id/ai-fill', requireAuth, validate({ body: AiFillBody }), async (req, res) => {
+router.post('/:id/ai-fill', requireAuth, validate({ body: AiFillBody }), asEditor, async (req, res) => {
     try {
         const userId = req.session.user.id;
-        const nb = await notebookStore.getNotebook(req.params.id, userId);
-        if (!nb) return res.status(404).json({ error: 'Notebook not found' });
+        const nb = req.notebook;
 
         const { documentContent, modelTier } = req.body;
         if (!documentContent?.trim()) return res.status(400).json({ error: 'No document content provided' });
@@ -965,64 +1059,24 @@ router.post('/:id/ai-fill', requireAuth, validate({ body: AiFillBody }), async (
         }
         if (params.length === 0) return res.status(400).json({ error: 'No {{parameters}} found in the document' });
 
-        // Gather source content from KB
-        const kbIds = nb.knowledgeBaseIds || [];
-        let sourceContent = '';
-
-        if (kbIds.length > 0) {
-            const configStore = require('../stores/configStore');
-            const useAzure = !!(await configStore.getConfig('use_azure_doc_processing'));
-            
-            if (useAzure) {
-                const { searchLocally } = require('../core/kb/localKBIngest');
-                const sources = await notebookStore.getSources(nb.id);
-                for (const source of sources) {
-                    if (source.status !== 'ready') continue;
-                    try {
-                        const localResults = await searchLocally(userId, kbIds, source.name || 'main content', { topK: 30 });
-                        if (localResults.length > 0) {
-                            sourceContent += `\n--- Source: ${source.name} ---\n`;
-                            sourceContent += localResults.map(r => r.content || r.text).join('\n');
-                        }
-                    } catch (err) {
-                        log.warn('[Notebooks] Local search err:', err.message);
-                    }
-                }
-            } else {
-                const searchUrl = await configStore.getConfig('search_service_url') || 'https://services.beeflow.nl';
-                const searchKey = await configStore.getSecret('search_service_api_key') || '';
-
-                // Fetch all KB content using source names as queries
-                const sources = await notebookStore.getSources(nb.id);
-                for (const source of sources) {
-                    if (source.status !== 'ready') continue;
-                    try {
-                        const searchRes = await fetch(`${searchUrl}/api/search`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json', 'X-API-Key': searchKey },
-                            body: JSON.stringify({
-                                query: source.name || 'main content',
-                                kb_ids: kbIds,
-                                top_k: 30,
-                            }),
-                        });
-                        if (searchRes.ok) {
-                            const data = await searchRes.json();
-                            if (data.results?.length > 0) {
-                                sourceContent += `\n--- Source: ${source.name} ---\n`;
-                                sourceContent += data.results.map(r => r.content || r.text).join('\n');
-                            }
-                        }
-                    } catch {}
-                }
-            }
-        }
+        // Gather source content from KB, the way /generate does it
+        // (core/kb/notebookKnowledgeSearch): the notebook owner's tenant, the
+        // configured search service and its service credentials. Authorised
+        // like chat and generation: the notebook's own base by notebook role,
+        // anything else by the caller's own KB access.
+        const { allowed: kbIds } = await partitionNotebookKbIds(req, nb);
+        const readySources = (await notebookStore.getSources(nb.id)).filter((src) => src.status === 'ready');
+        const { gatherNotebookContent } = require('../core/kb/notebookKnowledgeSearch');
+        const { content: sourceContent } = await gatherNotebookContent({
+            userId: nb.userId, kbIds, sources: readySources, documentContent: null,
+            options: { maxChars: 60000, topK: 30, minScore: 0.15 },
+        });
 
         if (!sourceContent.trim()) {
             return res.status(400).json({ error: 'No source content available to fill parameters' });
         }
 
-        // Resolve model  
+        // Resolve model
         const { getAIConfig, getProviderForModel } = require('../core/aiAgent');
         const { resolveModelForTier, getEUAwareTiers, resolveEffectiveOrgId } = require('../core/llm/modelResolver');
         const { getAdapter } = require('../core/providers');
@@ -1030,6 +1084,12 @@ router.post('/:id/ai-fill', requireAuth, validate({ body: AiFillBody }), async (
         // Resolve user's org for EU-mode tier overrides — cached tier-org (M2),
         // organizationId-only (no group fallback) to preserve the original shape.
         const userOrgId = await resolveEffectiveOrgId(req, { userId, skipGroupFallback: true });
+        // The Privacy Shield over the sources AND the template the person sent.
+        const shield = await shieldNotebookPrompt({
+            orgId: userOrgId, userId, notebookId: nb.id, sourceText: sourceContent.slice(0, 60000), otherUnits: [documentContent],
+        });
+        if (!shield.ok) return res.status(shield.status).json({ error: shield.error, code: shield.code });
+        const [shieldedSources, shieldedDocument] = shield.units;
 
         let resolvedTier = modelTier || 'balanced';
         if (resolvedTier === 'auto') {
@@ -1062,7 +1122,7 @@ router.post('/:id/ai-fill', requireAuth, validate({ body: AiFillBody }), async (
         const send = (event, data) => res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
 
         const uniqueParams = [...new Set(params)];
-        log.info(`[Notebooks] AI Fill: ${uniqueParams.length} unique parameters found for notebook "${nb.name}"`);
+        log.info(`[Notebooks] AI Fill: ${uniqueParams.length} unique parameters found for notebook ${nb.id}`);
 
         const systemPrompt = `You are a document template filling assistant. Your task is to fill in template parameters in a document using ONLY the provided source material.
 
@@ -1078,11 +1138,11 @@ PARAMETERS TO FILL:
 ${uniqueParams.map((p, i) => `${i + 1}. {{${p}}}`).join('\n')}
 
 SOURCE MATERIAL:
-${sourceContent.slice(0, 60000)}`;
+${shieldedSources}${shield.addendum}`;
 
         const messages = [
             { role: 'system', content: systemPrompt },
-            { role: 'user', content: `Here is the document. Replace ALL {{parameter}} placeholders with values from the sources. Return the complete document:\n\n${documentContent}` },
+            { role: 'user', content: `Here is the document. Replace ALL {{parameter}} placeholders with values from the sources. Return the complete document:\n\n${shieldedDocument}` },
         ];
 
         const _fillDefaults = TIER_DEFAULTS[resolvedTier] || TIER_DEFAULTS['fast'];
@@ -1090,18 +1150,20 @@ ${sourceContent.slice(0, 60000)}`;
 
         await adapter.stream(apiKey, apiUrl, modelId, messages, chatOptions, (streamType, data) => {
             if (streamType === 'text') {
-                send('content', { text: data.text });
+                send('content', { text: shield.untokenise.push(data.text) });
             } else if (streamType === 'error') {
                 send('error', data);
             }
         });
+        const filledTail = shield.untokenise.flush();
+        if (filledTail) send('content', { text: filledTail });
 
         send('done', { params: uniqueParams.length });
         res.end();
     } catch (err) {
         log.error('[Notebooks] AI Fill failed:', err);
         if (!res.headersSent) {
-            res.status(500).json({ error: 'AI Fill failed: ' + err.message });
+            res.status(500).json({ error: 'AI Fill failed' });
         } else {
             res.write(`event: error\ndata: ${JSON.stringify({ error: err.message })}\n\n`);
             res.end();
@@ -1129,16 +1191,13 @@ const imageUpload = multer({
     },
 });
 
-router.post('/:id/images', requireAuth, imageUpload.single('image'), async (req, res) => {
+// 'workspace' is a virtual notebook id for the chat's workspace pane: the
+// image belongs to the caller alone. Every real notebook needs an editor.
+const asEditorUnlessWorkspace = (req, res, next) => (req.params.id === 'workspace' ? next() : asEditor(req, res, next));
+
+router.post('/:id/images', requireAuth, asEditorUnlessWorkspace, imageUpload.single('image'), async (req, res) => {
     try {
         const userId = req.session.user.id;
-        const notebookId = req.params.id;
-
-        // Allow 'workspace' as a virtual notebook ID for the workspace notebook pane
-        if (notebookId !== 'workspace') {
-            const nb = await notebookStore.getNotebook(notebookId, userId);
-            if (!nb) return res.status(404).json({ error: 'Notebook not found' });
-        }
         if (!req.file) return res.status(400).json({ error: 'No image uploaded' });
 
         const { buffer, mimetype, originalname } = req.file;
@@ -1166,11 +1225,8 @@ router.post('/:id/images', requireAuth, imageUpload.single('image'), async (req,
 
 // ── Import File to Editor (PDF, DOCX, TXT...) ────────────────────
 
-router.post('/:id/import-file', requireAuth, upload.single('file'), async (req, res) => {
+router.post('/:id/import-file', requireAuth, asEditor, upload.single('file'), async (req, res) => {
     try {
-        const userId = req.session.user.id;
-        const nb = await notebookStore.getNotebook(req.params.id, userId);
-        if (!nb) return res.status(404).json({ error: 'Notebook not found' });
         if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
         const { parseDocument } = require('../core/documents/documentParser');
@@ -1183,81 +1239,10 @@ router.post('/:id/import-file', requireAuth, upload.single('file'), async (req, 
     }
 });
 
-// ── Version Control ─────────────────────────────────────────────────
-
-// List versions (metadata only)
-router.get('/:id/versions', requireAuth, async (req, res) => {
-    try {
-        const userId = req.session.user.id;
-        const nb = await notebookStore.getNotebook(req.params.id, userId);
-        if (!nb) return res.status(404).json({ error: 'Notebook not found' });
-
-        const versions = await notebookStore.getVersions(req.params.id);
-        res.json({ versions });
-    } catch (err) {
-        log.error('[Notebooks] List versions failed:', err);
-        res.status(500).json({ error: 'Failed to list versions' });
-    }
-});
-
-// Get a single version with full content
-router.get('/:id/versions/:vid', requireAuth, async (req, res) => {
-    try {
-        const userId = req.session.user.id;
-        const nb = await notebookStore.getNotebook(req.params.id, userId);
-        if (!nb) return res.status(404).json({ error: 'Notebook not found' });
-
-        const version = await notebookStore.getVersion(req.params.vid);
-        if (!version || version.notebookId !== req.params.id) {
-            return res.status(404).json({ error: 'Version not found' });
-        }
-        res.json({ version });
-    } catch (err) {
-        log.error('[Notebooks] Get version failed:', err);
-        res.status(500).json({ error: 'Failed to get version' });
-    }
-});
-
-// Create a manual snapshot
-router.post('/:id/versions', requireAuth, validate({ body: VersionBody }), async (req, res) => {
-    try {
-        const userId = req.session.user.id;
-        const nb = await notebookStore.getNotebook(req.params.id, userId);
-        if (!nb) return res.status(404).json({ error: 'Notebook not found' });
-
-        const summary = req.body.summary || 'Manual snapshot';
-        // Prefer the content the client is actually looking at. Snapshotting the
-        // last PERSISTED value meant a "Before restore" snapshot silently
-        // omitted everything still inside the editor's save debounce — while
-        // the restore dialog promised the current document was safe.
-        const clientContent = typeof req.body.content === 'string' ? req.body.content : null;
-        const content = (clientContent && clientContent.trim()) ? clientContent : (nb.documentContent || '');
-        if (!content.trim()) {
-            return res.status(400).json({ error: 'Notebook is empty — nothing to snapshot' });
-        }
-
-        const version = await notebookStore.createVersion(req.params.id, content, summary);
-        res.json({ success: true, version });
-    } catch (err) {
-        log.error('[Notebooks] Create version failed:', err);
-        res.status(500).json({ error: 'Failed to create version' });
-    }
-});
-
-// Delete a version
-router.delete('/:id/versions/:vid', requireAuth, async (req, res) => {
-    try {
-        const userId = req.session.user.id;
-        const nb = await notebookStore.getNotebook(req.params.id, userId);
-        if (!nb) return res.status(404).json({ error: 'Notebook not found' });
-
-        const ok = await notebookStore.deleteVersion(req.params.vid, nb.id);
-        if (!ok) return res.status(404).json({ error: 'Version not found' });
-        res.json({ success: true });
-    } catch (err) {
-        log.error('[Notebooks] Delete version failed:', err);
-        res.status(500).json({ error: 'Failed to delete version' });
-    }
-});
+// ── Versions ────────────────────────────────────────────────────────
+// The uniform version API (list with a cursor, one version with content,
+// name the current state, rename, restore, delete) — routes/notebooksVersions.js.
+router.use('/', require('./notebooksVersions'));
 
 module.exports = router;
+module.exports.seams = seams;

@@ -52,7 +52,8 @@ require.cache[notebookStorePath] = {
     filename: notebookStorePath,
     loaded: true,
     exports: {
-        getNotebook: async () => ({ documentContent: 'old' }),
+        // What the store answers the conversation's owner: the notebook with their role on it.
+        getNotebook: async () => ({ documentContent: 'old', role: 'owner' }),
         updateNotebook: async () => state.updateNotebookResult,
     },
 };

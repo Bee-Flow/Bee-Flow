@@ -12,10 +12,10 @@
 import React from 'react';
 import { View } from 'react-native';
 
-import { useTheme } from '../../../theme/ThemeProvider';
-import { Avatar } from '../../../ui/Badge';
-import { Text } from '../../../ui/Text';
-import { isImageAvatar } from '../avatar';
+import { useTheme } from '@/core/theme/ThemeProvider';
+import { Avatar, Text } from '@/shared/ui';
+
+import { isImageAvatar } from '../model/avatar';
 
 
 export function AgentAvatar({

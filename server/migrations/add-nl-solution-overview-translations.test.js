@@ -37,7 +37,7 @@ const HUB = path.join(__dirname, '..', '..', 'agent-hub', 'src', 'components');
 const SCREEN_FILES = [
     path.join(HUB, 'admin', 'Studio', 'Solutions', 'SolutionsOverview.jsx'),
     path.join(HUB, 'admin', 'Studio', 'Solutions', 'SolutionCard.jsx'),
-    path.join(HUB, 'projects', 'solutionCounts.js'),
+    path.join(HUB, 'admin', 'Studio', 'Solutions', 'solutionCounts.js'),
 ];
 
 /**

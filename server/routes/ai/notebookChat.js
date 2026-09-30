@@ -56,13 +56,31 @@ const { validate } = require('../../core/http/validate');
 // The chat engine's bag: typed, not closed (see routes/ai/directChat/turnSchema.js).
 const { NotebookTurnBody } = require('./directChat/turnSchema');
 // The KB search path below applies no tenant filtering — the kb id list is the
-// access boundary — so ids read off the notebook row are re-authorized here.
-const { partitionAccessibleKBIds } = require('../../support/kbAccess');
+// access boundary — so ids read off the notebook row are re-authorized here:
+// the notebook's own base by notebook role, any other by the caller's own access.
+const { partitionNotebookKbIds } = require('../../agents/notebooks/notebookKbAccess');
+const notebookCollab = require('../../agents/notebooks/notebookCollab');
+const { makeAiDocWriter, canonicalHtml } = require('../../agents/notebooks/aiDocWriter');
+const { makeNotebookFeed } = require('../../agents/notebooks/notebookFeed');
+const { hasNotebookRole } = require('../notebooksAccess');
+
+/**
+ * Collaborators a test swaps on this object (testUtils/swaps.js). The
+ * co-editing facade is resolved at call time.
+ */
+const seams = {
+    collab: () => notebookCollab.defaultFacade(),
+    feed: () => makeNotebookFeed(),
+};
+
+// What the model is told when a write is refused, in words it can pass on.
+const VIEWER_WRITE_REFUSAL = 'This user can view this notebook but not change it, so the document and its sources were left as they are. Answer in the chat instead.';
+const CONFLICT_REFUSAL = 'The document was changed by someone else while you were working, so your edit was NOT applied. It was kept in the version history as a proposal the user can compare and restore. Tell the user, and offer to redo the edit on the current text.';
 
 // ─── Streaming Notebook Chat ─────────────────────────────────────
 
 router.post('/chat/notebook/stream', requireAuth, validate({ body: NotebookTurnBody }), async (req, res) => {
-    const { message, notebookId, history, modelTier, timezone, attachments, documentContent, notebookSelection } = req.body;
+    const { message, notebookId, history, modelTier, timezone, attachments, notebookSelection, docVersion } = req.body;
     const userId = req.session.user.id;
 
     if (!message) return res.status(400).json({ error: 'Message required' });
@@ -71,6 +89,16 @@ router.post('/chat/notebook/stream', requireAuth, validate({ body: NotebookTurnB
     // Load notebook
     const notebook = await notebookStore.getNotebook(notebookId, userId);
     if (!notebook) return res.status(404).json({ error: 'Notebook not found' });
+    // A viewer may chat (privately, like everyone) but the AI may not change
+    // the notebook on their behalf: no document write, no new source.
+    const canWrite = hasNotebookRole(notebook.role || null, 'editor');
+    // The document this turn reads and edits. While the notebook is co-edited
+    // that is the LIVE document: the page's copy can be a fork (a failed join)
+    // and the row is a mirror that lags by minutes (mobile sends the mirror).
+    let documentContent = req.body.documentContent;
+    const turnStart = await notebookCollab.readCurrentContent(notebook, seams.collab())
+        .catch((e) => { log.warn('[NotebookChat] live read at turn start failed', { notebookId, error: e.message }); return null; });
+    if (turnStart?.live) documentContent = turnStart.html;
 
     // ── Subscription limit enforcement ──
     // Same pattern as /api/agents/:id/chat/stream — block AI calls past the
@@ -261,7 +289,7 @@ router.post('/chat/notebook/stream', requireAuth, validate({ body: NotebookTurnB
         // than fail the turn — the notebook still answers from what it may use.
         let kbIds = notebook.knowledgeBaseIds || [];
         if (kbIds.length > 0) {
-            const { allowed, denied } = await partitionAccessibleKBIds(req, kbIds);
+            const { allowed, denied } = await partitionNotebookKbIds(req, notebook);
             if (denied.length > 0) {
                 log.warn('[NotebookChat] dropped inaccessible kb ids:', { notebookId: notebook.id, userId, denied });
             }
@@ -272,7 +300,8 @@ router.post('/chat/notebook/stream', requireAuth, validate({ body: NotebookTurnB
             const _kbT = Date.now();
             try {
                 const kbResult = await searchNotebookKB({
-                    userId, kbIds, query: message,
+                    // The tenant the notebook's chunks are stored under: its owner's.
+                    userId: notebook.userId, kbIds, query: message,
                     options: { topK: 10, rerank: true, minScore: 0.2 },
                 });
 
@@ -782,7 +811,11 @@ Now: ${formatLocalNow(timezone)}`;
         }
 
         // ── Build tool list ──────────────────────────────────────────
-        const notebookTools = [...NOTEBOOK_DOC_TOOLS, NOTEBOOK_ADD_SOURCE_TOOL];
+        // A viewer's turn gets the read tool only: offering a write the server
+        // would refuse just teaches the model to promise changes it cannot make.
+        const notebookTools = canWrite
+            ? [...NOTEBOOK_DOC_TOOLS, NOTEBOOK_ADD_SOURCE_TOOL]
+            : NOTEBOOK_DOC_TOOLS.filter(t => t.function?.name === 'notebook_doc_read');
 
         // Add KB search tool so the AI can explicitly search notebook sources
         if (kbIds.length > 0) {
@@ -836,6 +869,21 @@ Now: ${formatLocalNow(timezone)}`;
         // We re-restore the document once at end of turn against the COMPLETE map.
         let _docWritten = false;
 
+        // ── Persisting an AI edit without overwriting anyone ────────────
+        // Over the version the page had loaded (docVersion), else what the
+        // server held when the turn began; while co-editing, only the model's
+        // own change goes onto the live document (agents/notebooks/aiDocWriter.js).
+        const aiWriter = makeAiDocWriter({
+            notebookId, userId,
+            baseHtml: documentContent || notebook.documentContent || '',
+            expectedVersion: Number.isFinite(docVersion) ? docVersion : notebook.version,
+            collab: seams.collab,
+        });
+        const persistAiDocWrite = aiWriter.write;
+        const aiContributors = aiWriter.contributors;
+        let aiLastWrite = null;   // { html, markdown } of the last applied AI edit (the model's view, real values)
+        let aiVersionDoc = null;  // the document the AI left: aiLastWrite, or the live merge of it
+
         // Single tool executor — used for every tool the model calls, in every
         // round. Performs side-effects (doc update, source added, legal citation
         // feed-through) and returns the result object handed back to the model.
@@ -843,12 +891,12 @@ Now: ${formatLocalNow(timezone)}`;
             if (toolName.startsWith('notebook_doc_')) {
                 const r = executeNotebookDocTool(toolName, toolArgs, currentDocContent, currentDocMd);
                 if (r && r._action === 'notebook_doc_update') {
-                    _docWritten = true;
-                    // Keep the in-memory mirror in TOKEN-space so a chained
-                    // notebook_doc_read/replace later in the same turn keeps matching
-                    // the tokenized text the model saw.
-                    currentDocContent = r.content;
-                    if (r.contentMd != null) currentDocMd = r.contentMd;
+                    // Refused BEFORE anything is snapshotted, persisted or sent:
+                    // a viewer's editor must never show text that was not saved.
+                    if (!canWrite) {
+                        log.info(`[NotebookChat] refused an AI document write for a viewer of ${notebookId}`);
+                        return { error: VIEWER_WRITE_REFUSAL };
+                    }
                     // Restore tokens → real values BEFORE persisting + displaying.
                     // The editor is the user's work product and must never store or
                     // show `[person_1]` (the doc-side analogue of untokeniseToolArgs
@@ -861,14 +909,6 @@ Now: ${formatLocalNow(timezone)}`;
                     const _docMap = dlpRunner.getConversationTokenMap(notebookId) || {};
                     const realHtml = restoreTokensInRichText(r.content, _docMap);
                     const realMd = r.contentMd != null ? restoreTokensInRichText(r.contentMd, _docMap) : null;
-                    // PERSIST the AI's edit to the database. Previously this only
-                    // updated the in-memory mirror and emitted the SSE below, so an
-                    // AI-written document lived ONLY in the browser editor — and
-                    // `onNotebookDocUpdate` doesn't trigger the interactive autosave,
-                    // so the whole document was lost on refresh (the user never
-                    // manually typed to save it). Snapshot for version history first,
-                    // mirroring the PUT /api/notebooks/:id autosave path. All compares
-                    // are real-vs-real (prev.documentContent is stored real).
                     // Refuse to persist a document rewrite for a turn the user
                     // cancelled. The write is the one irreversible side effect
                     // in this loop, so it gets the last-moment check.
@@ -876,39 +916,40 @@ Now: ${formatLocalNow(timezone)}`;
                         log.info(`[NotebookChat] turn aborted — discarding AI doc write for ${notebookId}`);
                         return { ...r, _aborted: true };
                     }
-                    let savedVersion;
+                    // PERSIST the AI's edit (an AI-written document used to live
+                    // only in the browser editor and was lost on refresh), but
+                    // only over the version the page had: never blindly over a
+                    // newer save by the user or a colleague.
+                    let saved;
                     try {
-                        // ALWAYS snapshot before an AI write — no 5-minute
-                        // debounce. A model can be talked into rewriting this
-                        // document by text inside an ingested source, so every
-                        // machine-authored change needs its own undo point;
-                        // debouncing meant a burst of edits shared one, and the
-                        // user's original was gone after the first.
-                        if (realHtml && realHtml.trim()) {
-                            const prev = await notebookStore.getNotebook(notebookId, userId).catch(() => null);
-                            if (prev?.documentContent && prev.documentContent.trim() && prev.documentContent !== realHtml) {
-                                await notebookStore.createVersion(notebookId, prev.documentContent, 'Before AI edit').catch(() => {});
-                            }
-                        }
-                        // CAS variant WITHOUT expectedVersion — the tool result is
-                        // authoritative — but it returns the bumped version so the
-                        // SSE below lets the editor resync its CAS counter.
-                        const saved = await notebookStore.updateNotebookCas(notebookId, userId, {
-                            documentContent: realHtml,
-                            ...(realMd != null ? { documentMd: realMd } : {}),
-                        });
-                        if (saved.ok) savedVersion = saved.version;
-                        else log.warn(`[NotebookChat] AI doc write not persisted for notebook ${notebookId}`);
+                        saved = await persistAiDocWrite(realHtml, realMd);
                     } catch (e) {
                         log.error('[NotebookChat] AI doc persist failed:', e.message);
+                        saved = { ok: false };
                     }
+                    if (saved.conflict) return { error: CONFLICT_REFUSAL };
+                    if (!saved.ok) {
+                        log.warn(`[NotebookChat] AI doc write not persisted for notebook ${notebookId}`);
+                        return { error: 'The edit could not be saved, so the document was left as it was. Tell the user and suggest trying again.' };
+                    }
+                    _docWritten = true;
+                    // Keep the in-memory mirror in TOKEN-space so a chained
+                    // notebook_doc_read/replace later in the same turn keeps matching
+                    // the tokenized text the model saw.
+                    currentDocContent = r.content;
+                    if (r.contentMd != null) currentDocMd = r.contentMd;
+                    aiLastWrite = { html: realHtml, markdown: realMd };
+                    aiVersionDoc = saved.html ? { html: saved.html, markdown: null } : aiLastWrite;
                     // Client applies real HTML; the real Markdown mirror is persisted
                     // alongside so a later notebook GET serves real values directly.
-                    send('notebook_doc_update', { content: realHtml, title: r.title, ...(savedVersion != null ? { version: savedVersion } : {}) });
+                    // While co-editing the page's editor follows the live document and
+                    // ignores this; `version` is omitted then (the engine owns it).
+                    send('notebook_doc_update', { content: realHtml, title: r.title, ...(saved.version != null ? { version: saved.version } : {}) });
                 }
                 return r;
             }
             if (toolName === 'notebook_add_source') {
+                if (!canWrite) return { error: VIEWER_WRITE_REFUSAL };
                 const { ingestTextSource } = require('../../agents/notebooks/sourceIngestion');
                 const sourceName = toolArgs.name || 'AI Research';
                 // The model may echo tokens (`[person_1]`) in the content it asks us
@@ -928,10 +969,11 @@ Now: ${formatLocalNow(timezone)}`;
                 ingestTextSource(notebookId, source.id, userId, sourceContent, sourceName)
                     .catch(err => log.error('[NotebookChat] Source ingestion failed:', err.message));
                 send('notebook_source_added', { source: { id: source.id, name: sourceName, type: 'text', status: 'processing', metadata: sourceMeta } });
+                void seams.feed().sourcesAdded({ projectId: notebook.projectId, notebookId, actorId: userId });
                 return { success: true, message: `Source "${sourceName}" added and indexing.`, sourceId: source.id };
             }
             if (toolName === 'notebook_kb_search') {
-                return await executeNotebookKBSearchTool(toolArgs, userId, kbIds);
+                return await executeNotebookKBSearchTool(toolArgs, notebook.userId, kbIds);
             }
             if (isAgentSearchTool(toolName)) {
                 return await runAgentSearchWithEgress(toolName, toolArgs, {
@@ -1164,18 +1206,36 @@ Now: ${formatLocalNow(timezone)}`;
                 if (Object.keys(_finalMap).length) {
                     const realHtml = restoreTokensInRichText(currentDocContent, _finalMap);
                     const realMd = currentDocMd != null ? restoreTokensInRichText(currentDocMd, _finalMap) : null;
-                    const prev = await notebookStore.getNotebook(notebookId, userId).catch(() => null);
-                    if (prev && typeof realHtml === 'string' && prev.documentContent !== realHtml) {
-                        const saved = await notebookStore.updateNotebookCas(notebookId, userId, {
-                            documentContent: realHtml,
-                            ...(realMd != null ? { documentMd: realMd } : {}),
-                        }).catch(e => { log.error('[NotebookChat] end-of-turn doc re-restore persist failed:', e.message); return null; });
-                        send('notebook_doc_update', { content: realHtml, ...(saved?.ok && saved.version != null ? { version: saved.version } : {}) });
-                        log.warn('[NotebookChat] 🔓 Document re-restored against final token map');
+                    if (typeof realHtml === 'string' && aiLastWrite && canonicalHtml(aiLastWrite.html) !== canonicalHtml(realHtml)) {
+                        // Same rule as the mid-turn write: over the version this
+                        // turn wrote, never over someone's newer save.
+                        const saved = await persistAiDocWrite(realHtml, realMd, { snapshot: false })
+                            .catch(e => { log.error('[NotebookChat] end-of-turn doc re-restore persist failed:', e.message); return { ok: false }; });
+                        if (saved.ok) {
+                            aiLastWrite = { html: realHtml, markdown: realMd };
+                            aiVersionDoc = saved.html ? { html: saved.html, markdown: null } : aiLastWrite;
+                            send('notebook_doc_update', { content: realHtml, ...(saved.version != null ? { version: saved.version } : {}) });
+                            log.warn('[NotebookChat] 🔓 Document re-restored against final token map');
+                        }
                     }
                 }
             } catch (e) {
                 log.warn('[NotebookChat] end-of-turn doc re-restore failed:', e.message);
+            }
+            // The state the AI left, as one version attributed to the AI on
+            // behalf of this user, and one entry in the project's change feed.
+            if (aiVersionDoc) {
+                try {
+                    const v = await notebookStore.recordVersion(notebookId, {
+                        html: aiVersionDoc.html, markdown: aiVersionDoc.markdown, source: 'ai',
+                        createdBy: userId, contributors: aiContributors,
+                    });
+                    if (!v.deduped) {
+                        void seams.feed().contentChanged({ projectId: notebook.projectId, notebookId, contributors: aiContributors, versionId: v.id, source: 'ai' });
+                    }
+                } catch (e) {
+                    log.warn('[NotebookChat] could not record the AI version', { notebookId, error: e.message });
+                }
             }
         }
 
@@ -1301,3 +1361,4 @@ Now: ${formatLocalNow(timezone)}`;
 });
 
 module.exports = router;
+module.exports.seams = seams;

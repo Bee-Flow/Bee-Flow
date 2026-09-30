@@ -12,59 +12,34 @@
  * `Linking.openSettings()` opens this app's own permission screen directly.
  */
 
-import { Feather } from '@expo/vector-icons';
 import React from 'react';
 import { Linking, View } from 'react-native';
 
-import { useTheme } from '../../../theme/ThemeProvider';
-import { Button } from '../../../ui/Button';
-import { Card } from '../../../ui/Surface';
-import { Text } from '../../../ui/Text';
-import type { PermissionState } from '../useRecorder';
+import { useTheme } from '@/core/theme/ThemeProvider';
+import { MicPermissionHead } from '@/shared/device/MicPermissionHead';
+import { micBlocked, type MicPermission } from '@/shared/device/useMicPermission';
+import { Button, Card, Icon, Text, type IconName } from '@/shared/ui';
 
 export function MicPermissionCard({
     permission,
     onRequest,
     busy = false,
 }: {
-    permission: PermissionState;
+    permission: MicPermission;
     onRequest: () => void;
     busy?: boolean;
 }) {
     const theme = useTheme();
-    const blocked = !permission.granted && !permission.canAskAgain && !permission.unknown;
+    const blocked = micBlocked(permission);
 
     return (
         <Card>
             <View style={{ gap: theme.spacing.md }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md }}>
-                    <View
-                        style={{
-                            width: 44,
-                            height: 44,
-                            borderRadius: theme.radii.md,
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            backgroundColor: theme.colors.bgTertiary,
-                        }}
-                    >
-                        <Feather
-                            name={blocked ? 'mic-off' : 'mic'}
-                            size={20}
-                            color={blocked ? theme.colors.warning : theme.colors.accentPrimary}
-                        />
-                    </View>
-                    <View style={{ flex: 1, gap: 2 }}>
-                        <Text variant="subheading">
-                            {blocked ? 'Microphone access is off' : 'Record meetings on this phone'}
-                        </Text>
-                        <Text variant="caption" tone="tertiary">
-                            {blocked
-                                ? 'Bee Flow cannot record until you turn it back on.'
-                                : 'Bee Flow needs the microphone to capture the room.'}
-                        </Text>
-                    </View>
-                </View>
+                <MicPermissionHead
+                    blocked={blocked}
+                    title={blocked ? 'Microphone access is off' : 'Record meetings on this phone'}
+                    body={blocked ? 'Bee Flow cannot record until you turn it back on.' : 'Bee Flow needs the microphone to capture the room.'}
+                />
 
                 {blocked ? (
                     <>
@@ -77,8 +52,8 @@ export function MicPermissionCard({
                             variant="secondary"
                             fullWidth
                             icon={
-                                <Feather
-                                    name="external-link"
+                                <Icon
+                                    name="ExternalLink"
                                     size={16}
                                     color={theme.colors.textPrimary}
                                 />
@@ -91,15 +66,15 @@ export function MicPermissionCard({
                 ) : (
                     <>
                         <View style={{ gap: theme.spacing.sm }}>
-                            <Bullet icon="mic">
+                            <Bullet icon="Mic">
                                 The recording is made on this device and stays here until you upload
                                 it.
                             </Bullet>
-                            <Bullet icon="lock">
+                            <Bullet icon="Lock">
                                 Nothing is recorded in the background. Capture only runs while this
                                 screen says it is recording.
                             </Bullet>
-                            <Bullet icon="server">
+                            <Bullet icon="Server">
                                 Transcription happens on your Bee Flow server, using the engine your
                                 administrator configured.
                             </Bullet>
@@ -122,13 +97,13 @@ function Bullet({
     icon,
     children,
 }: {
-    icon: keyof typeof Feather.glyphMap;
+    icon: IconName;
     children: string;
 }) {
     const theme = useTheme();
     return (
         <View style={{ flexDirection: 'row', gap: theme.spacing.sm, alignItems: 'flex-start' }}>
-            <Feather
+            <Icon
                 name={icon}
                 size={14}
                 color={theme.colors.textMuted}

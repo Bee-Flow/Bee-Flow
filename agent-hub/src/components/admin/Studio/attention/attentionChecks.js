@@ -117,7 +117,7 @@ export function sortFindings(findings) {
  *
  * Normally a row shows the producer's OWN sentence, which is what the
  * endpoint sends and what a Solution's "To check" list shows for the same
- * finding (projects/SolutionControlPanel.jsx renders `finding.message`
+ * finding (Solutions/SolutionControlPanel.jsx renders `finding.message`
  * verbatim). That sentence has the object's name folded into it ("Handbook
  * has 2 sources that could not refresh…") and the aggregate sends no separate
  * title, so swapping in a translated generic line would cost the name — a
@@ -141,7 +141,7 @@ export const SOURCE_LABELS = Object.freeze({
  * every day and cannot act on — they cannot tell whether it is the same source
  * falling over every time or a different one. The Solution's control panel
  * already names its gaps under the same kind of strip
- * (projects/SolutionControlPanel.jsx), so this list does too.
+ * (Solutions/SolutionControlPanel.jsx), so this list does too.
  *
  * The names come from the STUDIO REGISTRY through the source's kind, not from
  * six new strings: "Agents" here has to be the same word as on the rail, and

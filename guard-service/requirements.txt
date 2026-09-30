@@ -7,11 +7,11 @@
 # honest is not readable from the pinning box. This service waits for a box
 # that can read download.pytorch.org.
 fastapi==0.141.1
-uvicorn[standard]==0.53.0
+uvicorn[standard]==0.54.0
 pydantic==2.13.5
 pydantic-settings==2.15.0
 httpx==0.28.1
-redis==5.3.1
+redis==8.1.0
 # GLiNER multilingual PII NER (Apache 2.0) — CPU PII detection backend.
 # PINNED: every eval baseline records the library version in its provenance;
 # a floating floor let a rebuild silently drift the engine underneath the

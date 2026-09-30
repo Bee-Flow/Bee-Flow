@@ -1,4 +1,4 @@
-import { COUNTED_SECTIONS } from '../../../projects/solutionCounts';
+import { COUNTED_SECTIONS } from './solutionCounts';
 
 /**
  * What one Solutions-overview card actually says, decided in one place.
