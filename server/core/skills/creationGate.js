@@ -55,7 +55,11 @@ function skillsLockedBody() {
 
 // DELETE /:id and nothing else: a removal further down the tree (a test run, an
 // example) is not a skill being removed, and gets no free pass by accident.
-const REMOVE_ONE_SKILL = /^\/[^/]+\/?$/;
+function isRemoveOneSkillPath(path) {
+    if (typeof path !== 'string' || path[0] !== '/') return false;
+    const id = path.endsWith('/') ? path.slice(1, -1) : path.slice(1);
+    return id.length > 0 && !id.includes('/');
+}
 
 /**
  * Wrap the /api/skills mount's capability gate so REMOVING a skill passes
@@ -70,7 +74,7 @@ const REMOVE_ONE_SKILL = /^\/[^/]+\/?$/;
 function exceptRemoval(capabilityGate) {
     const { tagGate, readGate } = require('../../auth/gateMeta');
     const gate = function skillsCapabilityExceptRemoval(req, res, next) {
-        if (req.method === 'DELETE' && REMOVE_ONE_SKILL.test(req.path || '')) return next();
+        if (req.method === 'DELETE' && isRemoveOneSkillPath(req.path)) return next();
         return capabilityGate(req, res, next);
     };
     return tagGate(gate, { ...(readGate(capabilityGate) || { axis: 'capability', id: 'skills' }), exempt: 'DELETE /:id' });
