@@ -528,7 +528,12 @@ async function ensureKBChunksTable(vectorDim) {
                     try { await exec(`DROP INDEX IF EXISTS idx_kb_chunks_embedding`); } catch (_) {}
                     try { await exec(`CREATE INDEX IF NOT EXISTS idx_kb_chunks_embedding ON kb_chunks USING hnsw (embedding vector_cosine_ops) WITH (m = 16, ef_construction = 200)`); } catch (_) {}
                 } else {
-                    log.warn(`[LocalKBIngest] kb_chunks dim mismatch (table=${currentDim}, requested=${vectorDim}) with ${rows} existing rows. To switch embedding models, re-ingest existing docs OR run: ALTER TABLE kb_chunks ALTER COLUMN embedding TYPE VECTOR(${vectorDim}) USING NULL after truncating.`);
+                    // A configured model switch is migrated before any ingest
+                    // gets here (core/kb/embeddingMigration.js). What remains
+                    // is a vector from a FALLBACK embedder (provider down →
+                    // CPU/Azure): refusing it is right, it is not the model
+                    // the stored vectors belong to.
+                    log.warn(`[LocalKBIngest] kb_chunks dim mismatch (table=${currentDim}, requested=${vectorDim}) with ${rows} existing rows — the vectors did not come from the configured embedding model (provider unavailable?).`);
                 }
             }
         } catch (err) {
@@ -656,6 +661,10 @@ async function ingestLocally(tenantId, kbId, docId, content, options = {}) {
     await ensureKBChunksTable();
 
     if (pgvectorAvailable) {
+        // A changed embedding model re-embeds what is stored first, so this
+        // document lands in a column of the right dimension instead of
+        // failing on it (and paying for vectors that cannot be stored).
+        await require('./embeddingMigration').ensureKbEmbeddingsCurrent({ reason: 'ingest' });
         const result = await dispatchEmbedTexts(chunkTexts);
         embeddings = result.vectors;
         embedSource = result.source || 'none';
@@ -1460,4 +1469,9 @@ async function purgeOrphanedChunks() {
     }
 }
 
-module.exports = { ingestLocally, deleteChunksLocally, searchLocally, getDocumentContent, chunkText, azureEmbed, purgeOrphanedChunks, applyRerank, enrichWithDocumentFacts };
+/** Cost logging for embedding these texts, as an ingest would log it. */
+function trackEmbeddingCost(texts) {
+    _trackEmbeddingCost((texts || []).reduce((sum, t) => sum + estimateTokens(t), 0));
+}
+
+module.exports = { trackEmbeddingCost, ingestLocally, deleteChunksLocally, searchLocally, getDocumentContent, chunkText, azureEmbed, purgeOrphanedChunks, applyRerank, enrichWithDocumentFacts };

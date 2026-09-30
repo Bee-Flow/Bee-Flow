@@ -200,11 +200,19 @@ function sectionHtmlOf(html, sectionId, domParser) {
  * @param {Function} [deps.getDocument]     (id, {userId}) => document | null
  * @param {Function} [deps.htmlToMarkdown]  (html) => markdown
  * @param {Function} [deps.collab]          () => the co-editing facade, or null when it is not there
+ * @param {Function} [deps.readTask]        ({projectId, taskId}) => { title, description } | null, opened with the project key
  * @param {() => any} [deps.domParser]      () => a DOMParser constructor, asked for once per reader
  */
 function makeItemReader(deps = {}) {
     const getNotebook = deps.getNotebook || ((id, userId) => require('../../stores/notebookStore').getNotebook(id, userId));
     const getDocument = deps.getDocument || ((id, ctx) => require('../../stores/documentStore').getDocument(id, ctx));
+    const readTask = deps.readTask || (async ({ projectId, taskId }) => {
+        const task = await require('../../stores/projectTaskStore').getTask(projectId, taskId);
+        const project = task ? await require('../../stores/projectStore').getProject(projectId) : null;
+        if (!task || !project) return null;
+        const box = await require('../chatCrypto').forProject(project, { what: 'Comments' });
+        return { title: box.openTitle(task.id, task.title), description: box.openContent(task.id, task.id, task.description) };
+    });
     const htmlToMarkdown = deps.htmlToMarkdown || ((html) => require('../../core/markdown').htmlToMarkdown(html));
     const collab = deps.collab || (() => {
         // @ts-ignore -- the co-editing facade ships with its own workstream; until it exists this reads the stored copy
@@ -248,6 +256,11 @@ function makeItemReader(deps = {}) {
             const live = await liveMarkdown('notebook', targetId);
             const markdown = live ?? (typeof nb.documentMd === 'string' ? nb.documentMd : htmlToMarkdown(nb.documentContent || ''));
             return { name: nb.name || '', markdown: markdown || '', sectionMarkdown: '' };
+        }
+        if (targetType === 'task') {
+            // Anyone who may read the thread may read the task it is on: both are the project's.
+            const task = await readTask({ projectId, taskId: targetId });
+            return task ? { name: task.title, markdown: `# ${task.title}\n\n${task.description}`.trim(), sectionMarkdown: '' } : null;
         }
         if (targetType === 'document') {
             const doc = await getDocument(targetId, { userId });

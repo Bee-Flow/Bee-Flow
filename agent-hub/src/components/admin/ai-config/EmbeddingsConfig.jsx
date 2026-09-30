@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from '../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 
 const EmbeddingsConfig = ({ providers, allModels, fetchAllModels }) => {
+    const { t } = useTranslation();
     const [config, setConfig] = useState({ embeddingProviderId: '', embeddingModel: '' });
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -41,7 +43,13 @@ const EmbeddingsConfig = ({ providers, allModels, fetchAllModels }) => {
                 body: JSON.stringify(config)
             });
             if (res.ok) {
-                setMessage({ type: 'success', text: 'Embedding settings saved!' });
+                // A new model re-embeds the stored knowledge on the server
+                // (core/kb/embeddingMigration.js); say so, since search is
+                // keyword-only until it finishes.
+                const body = await res.json().catch(() => ({}));
+                setMessage(body?.reembedding
+                    ? { type: 'success', text: t('admin.ai_embeddings_reembedding', 'Saved. Your knowledge bases are being re-indexed with the new model in the background; until that is done, search uses keywords only.') }
+                    : { type: 'success', text: 'Embedding settings saved!' });
             } else {
                 setMessage({ type: 'error', text: 'Failed to save settings' });
             }

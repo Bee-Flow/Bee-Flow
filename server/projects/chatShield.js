@@ -81,6 +81,11 @@ function makeChatShield(deps = {}) {
         } catch (_) { /* auditing never decides the outcome */ }
     }
 
+    /** The kinds of thing that were replaced, as labels only (never the values). */
+    const categoriesOf = (list, summary) => {
+        const fromList = [...new Set((list || []).map((e) => e && (e.label || e.category)).filter(Boolean))];
+        return fromList.length ? fromList : Object.keys(summary || {});
+    };
     const labelsOf = (list) => [...new Set((list || []).map((e) => e && (e.label || e.category)).filter(Boolean))].join(', ');
 
     /**
@@ -107,7 +112,7 @@ function makeChatShield(deps = {}) {
      * @param {string} p.conversationId        the per-run DLP scope
      * @param {object} [p.providerConfig]      { providerType, url, displayName }
      * @param {object} [p.auditBase]           ids for the guardrail event row
-     * @returns {Promise<{ text: string, tokenMap: Record<string,string>|null }>}
+     * @returns {Promise<{ text: string, tokenMap: Record<string,string>|null, categories?: string[] }>}
      */
     async function protect({ shield, orgId, userId, text, conversationId, providerConfig = {}, auditBase = {} }) {
         const messages = [{ role: 'user', content: String(text || '') }];
@@ -142,13 +147,13 @@ function makeChatShield(deps = {}) {
             }
             if (scan.action === 'redact') {
                 audit(base, { violation_type: 'pii', violation_categories: Object.keys(scan.summary || {}).join(', '), action_taken: 'tokenized' });
-                return { text: scan.redactedText || outbound, tokenMap: scan.tokenMap || null };
+                return { text: scan.redactedText || outbound, tokenMap: scan.tokenMap || null, categories: categoriesOf(scan.findings, scan.summary) };
             }
             if (scan.action === 'ask') {
                 // Nobody to ask: take the conservative choice.
                 const applied = await dlp().applyRedactionChoice({ conversationId, text: outbound, findings: scan.findings, ephemeral: true });
                 audit(base, { violation_type: 'pii', violation_categories: labelsOf(scan.findings), action_taken: 'tokenized' });
-                return { text: applied.tokenizedText || outbound, tokenMap: applied.tokenMap || null };
+                return { text: applied.tokenizedText || outbound, tokenMap: applied.tokenMap || null, categories: categoriesOf(scan.findings) };
             }
             return { text: outbound, tokenMap: null };
         }
@@ -166,7 +171,7 @@ function makeChatShield(deps = {}) {
             if (result && result.tokenizedText) {
                 outbound = result.tokenizedText;
                 audit(base, { violation_type: 'pii', violation_categories: labelsOf(result.entities), action_taken: 'tokenized' });
-                return { text: outbound, tokenMap: result.tokenMap || null };
+                return { text: outbound, tokenMap: result.tokenMap || null, categories: categoriesOf(result.entities) };
             }
             return { text: outbound, tokenMap: null };
         } catch (err) {
@@ -182,6 +187,26 @@ function makeChatShield(deps = {}) {
             log.warn('[ProjectChat] PII check error (fail-open):', err && err.message);
             return { text: outbound, tokenMap: null };
         }
+    }
+
+    /**
+     * The gate around the tool calls of one answer: `refuse` looks at what a
+     * tool is about to be given (the same block lists a normal chat applies to
+     * tool calls), `forModel` at what it hands back. Both do nothing without
+     * an enabled shield.
+     */
+    function toolGate({ shield, orgId, userId, auditBase = {} }) {
+        const base = { organization_id: orgId || null, user_id: userId, ...auditBase };
+        return require('../core/privacy/toolPiiGate').toolLoopGate({
+            shield: shield || null,
+            tag: 'ProjectChat',
+            audit: async (fields) => { audit(base, fields); },
+        });
+    }
+
+    /** What the model wrote as tool arguments, with the placeholders replaced by the real values. */
+    function restoreArgs(args, tokenMap) {
+        return require('../core/dlp/applyTokenMapToOutbound').untokeniseToolArgs(args, tokenMap);
     }
 
     /** The token-preservation rules for the system prompt, or ''. */
@@ -202,7 +227,7 @@ function makeChatShield(deps = {}) {
         try { dlp().clearConversationState(conversationId, { ephemeral: true }); } catch (_) { /* nothing held */ }
     }
 
-    return { resolve, protect, tokenAddendum, restore, release };
+    return { resolve, protect, tokenAddendum, restore, release, toolGate, restoreArgs };
 }
 
 module.exports = { makeChatShield, PrivacyBlocked };

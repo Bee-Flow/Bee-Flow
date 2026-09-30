@@ -320,6 +320,10 @@ export default function useChatEngine({
         }
         const controller = new AbortController();
         abortControllerRef.current = controller;
+        // A chat that belongs to a project uses that project, however it was opened:
+        // the project the person is in, else the one the conversation is filed in.
+        const filed = currentConversation as { project_id?: string | null; projectId?: string | null } | null | undefined;
+        const chatProjectId = activeProject?.id || filed?.project_id || filed?.projectId || null;
         // Track it so navigating away detaches instead of killing the answer —
         // see hooks/streamRegistry.js. Keyed by conversation so a remount finds
         // its own stream and a second send supersedes the first.
@@ -501,7 +505,7 @@ export default function useChatEngine({
                         const v = scopedStorage.getItem('memoryWriteEnabled');
                         return v === null ? true : v === 'true';
                     })(),
-                    ...(activeProject?.id ? { projectId: activeProject.id } : {}),
+                    ...(chatProjectId ? { projectId: chatProjectId } : {}),
                     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
                     ...(typeof directMode.getExtraPayload === 'function' ? directMode.getExtraPayload() : {}),
                     ...(Array.isArray(activeSkillIds) && activeSkillIds.length > 0 ? { activeSkillIds } : {}),
@@ -527,7 +531,7 @@ export default function useChatEngine({
                         return v === null ? true : v === 'true';
                     })(),
                     ...wsPayload,
-                    ...(activeProject?.id ? { projectId: activeProject.id } : {}),
+                    ...(chatProjectId ? { projectId: chatProjectId } : {}),
                     ...(overrideTier ? { modelTier: overrideTier } : {}),
                     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
                     // History rule, agent path:

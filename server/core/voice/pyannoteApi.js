@@ -45,7 +45,7 @@ function redact(message) {
 }
 
 /**
- * Poll ceiling for a pyannote job, scaled to the audio duration (precision-2 +
+ * Poll ceiling for a pyannote job, scaled to the audio duration (precision-3 +
  * transcription runs a good bit slower than real-time). Clamped to [15min, 2h];
  * 30min when the duration is unknown. Env override: PYANNOTE_POLL_TIMEOUT_MS.
  *

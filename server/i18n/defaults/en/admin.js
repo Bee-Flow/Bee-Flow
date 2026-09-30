@@ -50,6 +50,7 @@ module.exports = {
     'admin.ai_api_keys': 'API Keys',
     'admin.ai_agent_models': 'Agent Models',
     'admin.ai_chat_models': 'Chat Models',
+    'admin.ai_embeddings_reembedding': 'Saved. Your knowledge bases are being re-indexed with the new model in the background; until that is done, search uses keywords only.',
     'admin.ai_direct_chat': 'Direct Chat',
     'admin.ai_configuration': 'AI Configuration',
     'admin.ai_web_search_inference': 'Web Search Inference',

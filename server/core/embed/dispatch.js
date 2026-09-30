@@ -95,15 +95,21 @@ function applyModelPrefix(texts, modelId, kind) {
  * Dispatch an embedding call through the configured chain (provider → Azure → CPU).
  *
  * @param {string[]} texts
- * @param {{kind?: 'query'|'passage'}} [options]
+ * @param {{kind?: 'query'|'passage', strict?: boolean}} [options]
  *   'passage' (the default, and what every caller got before this existed) is
  *   for text being STORED; 'query' is for text being SEARCHED WITH. On a
  *   symmetric model the distinction is a no-op — but on an asymmetric one,
  *   embedding a query as a passage is a silent quality loss.
+ *   `strict`: the configured provider or nothing. Its failure is thrown
+ *   instead of falling through to Azure or the CPU embedder, whose vectors
+ *   live in a different space (and usually a different dimension). For work
+ *   that must not mix models: re-embedding the stored vectors after a model
+ *   switch (core/kb/embeddingMigration.js).
  */
 async function dispatchEmbedTexts(texts, options = {}) {
     if (!Array.isArray(texts) || texts.length === 0) return { vectors: [], source: null, model: null };
     const kind = options.kind === 'query' ? 'query' : 'passage';
+    const strict = options.strict === true;
 
     // (1) Configured global provider via resolveEmbedTarget
     try {
@@ -153,8 +159,10 @@ async function dispatchEmbedTexts(texts, options = {}) {
             return { vectors: out, source: 'provider', model: target.modelId };
         }
     } catch (err) {
+        if (strict) throw err;
         log.warn(`[Embed] Configured provider embed failed (${err.message}); falling through to Azure/CPU`);
     }
+    if (strict) throw new Error('No usable embedding provider is configured');
 
     // (2) Legacy azure_openai_embedding_* config
     const azureEndpoint = await configStore.getConfig('azure_openai_embedding_endpoint');

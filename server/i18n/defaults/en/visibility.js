@@ -29,4 +29,8 @@ module.exports = {
     "visibility.last_group_hint": "Choose Personal to stop sharing",
     'visibility.groups_unreadable': 'The list of groups could not be read, so sharing with specific groups is not offered right now. That is not “this organisation has no groups”.',
     'visibility.groups_retry': 'Try again',
+    // A meeting note in a project: open to the whole project, not a choice.
+    "visibility.project": "Project",
+    "visibility.project_members": "Project members",
+    "visibility.project_locked": "This note is in a project, so it is open to the whole project and cannot be shared another way. Take it out of the project to change that.",
 };

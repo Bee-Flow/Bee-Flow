@@ -16,6 +16,8 @@ export interface PickerItem {
     label: string;
     /** A short second line: a date, a type, "in another project". */
     meta?: string;
+    /** Why this one cannot be added, when it cannot; the row says so instead of offering Add. */
+    blocked?: string;
 }
 
 export interface ItemPickerDialogProps {
@@ -51,6 +53,7 @@ function PickerRow({ item, added, busy, disabled, error, onAdd }: RowProps) {
             <div className="flex-1 min-w-0">
                 <div className="text-[13px] font-medium text-[var(--text-primary)] truncate">{item.label}</div>
                 {item.meta && <div className="text-[11px] text-[var(--text-tertiary)] truncate">{item.meta}</div>}
+                {item.blocked && <div className="text-[11px] text-[var(--warning-ink,var(--text-secondary))] mt-0.5" data-testid={`picker-blocked-${item.id}`}>{item.blocked}</div>}
                 {error && <div role="alert" className="text-[11px] text-[var(--error)] mt-0.5">{error}</div>}
             </div>
             {added ? (
@@ -62,7 +65,7 @@ function PickerRow({ item, added, busy, disabled, error, onAdd }: RowProps) {
                 <button
                     type="button"
                     onClick={onAdd}
-                    disabled={disabled}
+                    disabled={disabled || !!item.blocked}
                     aria-label={t('project_content.picker_add_named', 'Add {name}', { name: item.label })}
                     className="inline-flex items-center gap-1 h-7 px-2.5 rounded-lg text-[12px] font-medium border border-[var(--border-default)] text-[var(--text-secondary)] hover:bg-[var(--item-hover-bg)] disabled:opacity-50"
                 >

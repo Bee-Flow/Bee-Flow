@@ -80,6 +80,7 @@ const NAMESPACES = {
     "project_content": require('./project_content.js'),
     "project_home":    require('./project_home.js'),
     "project_participation": require('./project_participation.js'),
+    "project_tasks":   require('./project_tasks.js'),
     "projects":        require('./projects.js'),
     "reset":           require('./reset.js'),
     "routine_editor":  require('./routine_editor.js'),

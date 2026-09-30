@@ -110,7 +110,7 @@ export default function TranscriptionSection({
                                 emoji: '🎯',
                                 catalogId: 'integration.cloud',
                                 badgeColor: '#6d28d9',
-                                desc: 'Premium speaker diarization + speaker-attributed transcription (precision-2) in one call. Best-in-class multi-speaker separation. Audio is uploaded to pyannoteAI temporary storage (24h) — no self-hosted diarizer or RustFS/public URL needed.',
+                                desc: 'Premium speaker diarization + speaker-attributed transcription (precision-3) in one call. Best-in-class multi-speaker separation. Audio is uploaded to pyannoteAI temporary storage (24h) — no self-hosted diarizer or RustFS/public URL needed.',
                                 requires: 'pyannoteAI API key',
                                 ready: hasPyannoteKey,
                             },
@@ -539,7 +539,7 @@ export default function TranscriptionSection({
                         <div className="rounded-xl p-4" style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)' }}>
                             <p className="text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>Speech-to-text model</p>
                             <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>
-                                Speaker separation always uses <strong>precision-2</strong>, pyannoteAI&rsquo;s most accurate model.
+                                Speaker separation always uses <strong>precision-3</strong>, pyannoteAI&rsquo;s most accurate model.
                                 For the words themselves, neither available model wins everywhere:
                                 <strong> Parakeet v3</strong> is the more accurate of the two (6.34% vs 7.83% average word error rate
                                 on English) and covers 25 European languages including Dutch;
@@ -606,7 +606,7 @@ export default function TranscriptionSection({
                         <div className="rounded-xl p-4" style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)' }}>
                             <p className="text-sm font-medium mb-2" style={{ color: 'var(--text-primary)' }}>Capabilities</p>
                             <ul className="text-xs space-y-1" style={{ color: 'var(--text-muted)' }}>
-                                <li>✅ Premium speaker diarization (precision-2) — strong multi-speaker separation</li>
+                                <li>✅ Premium speaker diarization (precision-3) — strong multi-speaker separation</li>
                                 <li>✅ Speaker-attributed transcription in the same call — no separate diarizer</li>
                                 <li>✅ Per-meeting speaker count honoured (set “Number of speakers” at upload)</li>
                                 <li>✅ Optional per-person voiceprints — real names without an attendee list</li>

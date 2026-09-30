@@ -145,6 +145,8 @@ const SENTENCES: Record<string, (c: Ctx) => string> = {
     // A team chat's title is encrypted with the project key, so the activity
     // row carries only its id (targetType 'project_chat'), never the title.
     'chat.created': ({ actor, t }) => t('project_home.activity.team_chat', '{actor} started a team chat', { actor }),
+    'task.created': ({ actor, t }) => t('project_home.activity.task_created', '{actor} added a task', { actor }),
+    'task.deleted': ({ actor, t }) => t('project_home.activity.task_deleted', '{actor} deleted a task', { actor }),
     'chat.deleted': ({ actor, t }) => t('project_home.activity.team_chat_deleted', '{actor} deleted a team chat', { actor }),
     'approval.requested': ({ t }) => t('project_home.activity.approval_requested', 'An approval was requested'),
     'approval.decided': ({ actor, t }) => t('project_home.activity.approval_decided', '{actor} decided on an approval', { actor }),

@@ -4,12 +4,13 @@
 // meeting opened in place (sub = meeting id).
 
 import { useQueryClient } from '@tanstack/react-query';
-import { Loader2, Mic, Plus } from 'lucide-react';
+import { CheckSquare, Loader2, Mic, Plus } from 'lucide-react';
 import React, { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useProjectSection, type ProjectMeeting } from '../../../../api/queries/projectContent';
 import { projectKeys } from '../../../../api/queries/projects';
 import useTranslation from '../../../../hooks/useTranslation';
 import { lazy } from '../../../../utils/lazyWithReload';
+import MeetingTasksDialog from '../tasks/MeetingTasksDialog';
 import EmptyState from '../../../shared/EmptyState';
 import { toast } from '../../../shared/Toast';
 import { ContentColumn, ContentToolbar, PaneLoading, PrimaryButton, ReadOnlyNote, SecondaryButton, SectionError } from './contentUi';
@@ -21,15 +22,30 @@ import useProjectMeetingCapture, { type ProjectMeetingCapture } from './useProje
 
 const MeetingDetail = lazy(() => import('../../../../pages/meeting-notes/detail/MeetingDetail'));
 
-function MeetingPane({ projectId, meetingId, currentUser, onOpenSub, onNavigate }: {
+function MeetingPane({ projectId, meetingId, currentUser, onOpenSub, onNavigate, canMakeTasks, onOpenTab }: {
     projectId: string; meetingId: string; currentUser: ContentTabProps['currentUser'];
     onOpenSub: ContentTabProps['onOpenSub']; onNavigate: ContentTabProps['onNavigate'];
+    /** Editors of the project may turn the action items into tasks, whoever recorded the meeting. */
+    canMakeTasks: boolean; onOpenTab: ContentTabProps['onOpenTab'];
 }) {
     const { t } = useTranslation();
     const qc = useQueryClient();
+    const [tasksOpen, setTasksOpen] = useState(false);
     const refresh = () => { qc.invalidateQueries({ queryKey: projectKeys.resources(projectId) }); };
     return (
-        <div className="h-full min-h-0" data-testid="project-meeting-pane">
+        <div className="h-full min-h-0 flex flex-col" data-testid="project-meeting-pane">
+            {canMakeTasks && (
+                <div className="flex-shrink-0 flex items-center justify-end gap-2 px-4 py-2 border-b border-[var(--border-subtle)]">
+                    <SecondaryButton icon={CheckSquare} onClick={() => setTasksOpen(true)} testId="meeting-make-tasks">
+                        {t('project_tasks.make_from_meeting', 'Make tasks from action items')}
+                    </SecondaryButton>
+                </div>
+            )}
+            {tasksOpen && (
+                <MeetingTasksDialog projectId={projectId} currentUser={currentUser} meetingId={meetingId} onClose={() => setTasksOpen(false)}
+                    onCreated={() => onOpenTab?.('tasks')} />
+            )}
+            <div className="flex-1 min-h-0">
             <Suspense fallback={<PaneLoading label={t('project_content.meeting_loading', 'Opening the meeting…')} />}>
                 <MeetingDetail
                     key={meetingId}
@@ -43,6 +59,7 @@ function MeetingPane({ projectId, meetingId, currentUser, onOpenSub, onNavigate 
                     onNavigate={onNavigate}
                 />
             </Suspense>
+            </div>
         </div>
     );
 }
@@ -162,7 +179,10 @@ export default function MeetingsTab(props: ContentTabProps) {
         else onOpenSub(id);
     });
     if (sub) {
-        return <MeetingPane projectId={props.projectId} meetingId={sub} currentUser={props.currentUser} onOpenSub={onOpenSub} onNavigate={props.onNavigate} />;
+        return (
+            <MeetingPane projectId={props.projectId} meetingId={sub} currentUser={props.currentUser} onOpenSub={onOpenSub} onNavigate={props.onNavigate}
+                canMakeTasks={canEditContent(props.role)} onOpenTab={props.onOpenTab} />
+        );
     }
     return <MeetingsList {...props} capture={capture} />;
 }

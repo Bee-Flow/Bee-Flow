@@ -663,7 +663,7 @@ async function connectorJwtMiddleware(req, res, next) {
         }
 
         // In-memory session only — deliberately NOT establishSession. The
-        // connector strips cookies in both directions (nextcloud-connector/
+        // connector strips the request cookie (nextcloud-connector/
         // src/proxy.js), so a persisted row can never be read back: every
         // embedded request re-enters this middleware with a fresh JWT. The
         // old establishSession call here regenerated + INSERTed a
@@ -671,7 +671,9 @@ async function connectorJwtMiddleware(req, res, next) {
         // write-only garbage that grew the session table and slowed every
         // embedded request. Session fixation is moot without a cookie, so
         // the canonical shape is applied directly and persistence is
-        // neutralised for this request. connectorOrgId/connectorNcUid feed
+        // neutralised for this request — the Set-Cookie too, which AppAPI
+        // would otherwise hand to the browser (see suppressSessionPersistence).
+        // connectorOrgId/connectorNcUid feed
         // server/integrations/nextcloudClient.js resolveConnectorAuth().
         Object.assign(req.session, {
             isAuthenticated: true,

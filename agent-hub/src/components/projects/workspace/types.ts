@@ -11,6 +11,7 @@ import type { Project, ProjectRole } from '../../../api/queries/projects';
 export type WorkspaceTabId =
     | 'overview'
     | 'chats'
+    | 'tasks'
     | 'documents'
     | 'notebooks'
     | 'meetings'
@@ -20,7 +21,7 @@ export type WorkspaceTabId =
     | 'settings';
 
 export const WORKSPACE_TABS: readonly WorkspaceTabId[] = Object.freeze([
-    'overview', 'chats', 'documents', 'notebooks', 'meetings', 'knowledge', 'members', 'activity', 'settings',
+    'overview', 'chats', 'tasks', 'documents', 'notebooks', 'meetings', 'knowledge', 'members', 'activity', 'settings',
 ]);
 
 /** Tab ids of the previous project page, so an old link still lands somewhere sensible. */
@@ -67,6 +68,9 @@ export interface WorkspaceUser {
     id: string;
     name?: string;
     email?: string;
+    /** The person's own avatar as the app knows it (an emoji, a path, or a url). */
+    avatar?: string | null;
+    avatarType?: string | null;
 }
 
 /**
@@ -87,6 +91,8 @@ export interface WorkspaceTabProps {
     /** The item open inside the tab (a team chat, a document, a meeting), or null. */
     sub: string | null;
     onOpenSub: (sub: string | null) => void;
+    /** Opens another tab of the project, optionally with an item in it (e.g. `'documents', id`). */
+    onOpenTab?: (tab: WorkspaceTabId, sub?: string | null) => void;
     /** The app's page navigation, e.g. `'notebooks/<id>'`. */
     onNavigate: (page: string) => void;
     intent?: WorkspaceIntent | null;
@@ -119,6 +125,8 @@ export interface AppUserLike {
     displayName?: string;
     username?: string;
     email?: string;
+    avatar?: string | null;
+    avatarType?: string | null;
 }
 
 export interface ProjectWorkspacePageProps {
@@ -142,7 +150,7 @@ export interface ProjectWorkspacePageProps {
 
 export function toWorkspaceUser(user: AppUserLike | null | undefined): WorkspaceUser | null {
     if (!user?.id) return null;
-    return { id: user.id, name: user.displayName || user.name || user.username, email: user.email };
+    return { id: user.id, name: user.displayName || user.name || user.username, email: user.email, avatar: user.avatar, avatarType: user.avatarType };
 }
 
 /**

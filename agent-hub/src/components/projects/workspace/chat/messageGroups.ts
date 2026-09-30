@@ -43,6 +43,32 @@ function continues(group: MessageGroup, lastAt: string, author: Author): boolean
     return sameWho && Math.abs(timeOf(author.createdAt) - timeOf(lastAt)) <= GROUP_WINDOW_MS;
 }
 
+export interface ThreadSummary { count: number; lastAt: string }
+
+/** The replies in each thread, by the id of the message that starts it. Deleted replies do not count. */
+export function summarizeThreads(messages: TeamChatMessage[]): Map<string, ThreadSummary> {
+    const out = new Map<string, ThreadSummary>();
+    for (const m of messages) {
+        if (!m.threadId || m.deleted) continue;
+        const held = out.get(m.threadId);
+        out.set(m.threadId, { count: (held?.count || 0) + 1, lastAt: m.createdAt });
+    }
+    return out;
+}
+
+/** The main conversation: what is not a reply inside a thread. */
+export function mainConversation(messages: TeamChatMessage[], pending: PendingTeamChatMessage[]) {
+    return { messages: messages.filter(m => !m.threadId), pending: pending.filter(p => !p.threadId) };
+}
+
+/** One thread: the message that starts it, then its replies. */
+export function threadConversation(messages: TeamChatMessage[], pending: PendingTeamChatMessage[], threadId: string) {
+    return {
+        messages: messages.filter(m => m.id === threadId || m.threadId === threadId),
+        pending: pending.filter(p => p.threadId === threadId),
+    };
+}
+
 export function groupMessages(messages: TeamChatMessage[], pending: PendingTeamChatMessage[]): MessageGroup[] {
     const items: ChatItem[] = [
         ...messages.map((message): ChatItem => ({ type: 'message', key: message.id, message })),
@@ -73,4 +99,28 @@ export function formatMessageTime(iso: string, locale: string): string {
 export function excerptOf(content: string, max = 90): string {
     const flat = content.replace(/\s+/g, ' ').trim();
     return flat.length > max ? `${flat.slice(0, max - 1)}…` : flat;
+}
+
+const dayKey = (iso: string) => {
+    const d = new Date(iso);
+    return Number.isNaN(d.getTime()) ? '' : `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+};
+
+/** True when the two moments fall on different calendar days (unknown dates never split). */
+export function isNewDay(previousIso: string, iso: string): boolean {
+    const a = dayKey(previousIso);
+    const b = dayKey(iso);
+    return !!a && !!b && a !== b;
+}
+
+/** "Today", "Yesterday", or the date. */
+export function formatDayLabel(iso: string, locale: string, labels: { today: string; yesterday: string }, now = new Date()): string {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '';
+    if (dayKey(iso) === dayKey(now.toISOString())) return labels.today;
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    if (dayKey(iso) === dayKey(yesterday.toISOString())) return labels.yesterday;
+    const sameYear = d.getFullYear() === now.getFullYear();
+    return d.toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long', ...(sameYear ? {} : { year: 'numeric' }) });
 }

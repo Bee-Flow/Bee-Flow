@@ -45,7 +45,8 @@ const { PROJECT_KEY_UNAVAILABLE } = require('../stores/agent/messageCrypto');
 
 const CHAT_HKDF_SALT = Buffer.from('beeflow:project-chat:hkdf-salt:v1');
 
-const KEY_UNAVAILABLE_TEXT = 'Team chat is unavailable right now because the project encryption key could not be loaded. '
+/** @param {string} [what] the feature that cannot be used without the key */
+const keyUnavailableText = (what = 'Team chat') => `${what} cannot be used right now because the project encryption key could not be loaded. `
     + 'Nothing was read or saved. Ask an administrator to check the server encryption settings.';
 
 /**
@@ -75,8 +76,8 @@ function isAllZero(key) {
     return !key.some((b) => b !== 0);
 }
 
-function keyUnavailable() {
-    return new HttpError(503, PROJECT_KEY_UNAVAILABLE, KEY_UNAVAILABLE_TEXT);
+function keyUnavailable(what) {
+    return new HttpError(503, PROJECT_KEY_UNAVAILABLE, keyUnavailableText(what));
 }
 
 /**
@@ -91,19 +92,20 @@ function makeChatCrypto(deps = {}) {
      * cannot be produced, before anything is read or written.
      *
      * @param {{ id: string, organizationId?: string|null }} project
+     * @param {{ what?: string }} [opts]  the feature named in the 503 (default: Team chat)
      */
-    async function forProject(project) {
+    async function forProject(project, { what } = {}) {
         if (!project || !project.id) throw new Error('[ProjectChatCrypto] a project is required');
         let key;
         try {
             key = await getProjectKey(project.id, project.organizationId ?? null);
         } catch (err) {
             log.error(`[ProjectChatCrypto] project key unavailable for ${project.id}: ${err && err.message}`);
-            throw keyUnavailable();
+            throw keyUnavailable(what);
         }
         if (!Buffer.isBuffer(key) || key.length !== 32 || isAllZero(key)) {
             log.error(`[ProjectChatCrypto] project key for ${project.id} is not a usable 32-byte key`);
-            throw keyUnavailable();
+            throw keyUnavailable(what);
         }
         // A private copy: the per-chat keys are derived lazily, often after an
         // await, and the Buffer we were handed may be zeroed in the meantime
@@ -147,7 +149,8 @@ const defaultChatCrypto = makeChatCrypto();
 
 module.exports = {
     CHAT_HKDF_SALT,
-    KEY_UNAVAILABLE_TEXT,
+    KEY_UNAVAILABLE_TEXT: keyUnavailableText(),
+    keyUnavailableText,
     chatKey,
     fieldAad,
     makeChatCrypto,

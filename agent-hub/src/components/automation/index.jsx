@@ -11,6 +11,7 @@ import useAutomationLibrary from './useAutomationLibrary';
 import usePromptTasks from './usePromptTasks';
 import useRoutineRouting from './useRoutineRouting';
 import { useTranslation } from '../../hooks/useTranslation';
+import { releaseStudioChrome } from '../../hooks/useStudioChrome';
 import BuildingBlocksGroup from '../admin/Studio/RoutinesStudio/BuildingBlocksGroup';
 import CreateMenuButton from '../admin/Studio/RoutinesStudio/CreateMenuButton';
 import DeleteToTrashDialog from '../admin/Studio/RoutinesStudio/DeleteToTrashDialog';
@@ -146,6 +147,13 @@ export default function AITasksDesigner({ initialTaskId = null, initialStepId = 
     useEffect(() => {
         if (!automationEditing) setListFlyoutOpen(false);
     }, [automationEditing]);
+
+    // The Studio menu (and browser fullscreen) may be hidden from inside the
+    // builder; the list has to bring them back when the builder closes.
+    useEffect(() => {
+        if (!automationEditing) releaseStudioChrome();
+    }, [automationEditing]);
+    useEffect(() => releaseStudioChrome, []);
 
     // Snap sub-tab back to 'prompt' when the user loses access to the
     // Automations beta. Replaces the old `setTimeout(setSubTab, 0)` in

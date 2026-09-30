@@ -2,7 +2,9 @@
 // `@`, completing it, and working out afterwards who (or which AI) the sent
 // text still mentions. Pure functions, no React, no text of their own.
 
-export type MentionKind = 'user' | 'ai' | 'agent';
+import type { TeamChatRef } from '../../../../api/queries/projectChatTypes';
+
+export type MentionKind = 'user' | 'ai' | 'agent' | 'document' | 'notebook' | 'meeting';
 
 export interface MentionCandidate {
     /** Unique per list: the user id, `ai`, or `agent:<id>`. */
@@ -13,6 +15,10 @@ export interface MentionCandidate {
     /** What goes into the text after the `@`. */
     token: string;
     userId?: string;
+    /** A user's own avatar. */
+    picture?: { type: 'emoji' | 'image' | 'url'; value: string };
+    /** A tagged document or notebook. */
+    ref?: TeamChatRef;
 }
 
 export interface MentionQuery {
@@ -58,10 +64,14 @@ export function mentions(text: string, token: string): boolean {
 }
 
 /** From the candidates picked while typing, the ones the final text still names. */
-export function resolveMentions(content: string, picked: MentionCandidate[]): { userIds: string[]; asksAi: boolean } {
+export function resolveMentions(content: string, picked: MentionCandidate[]): { userIds: string[]; refs: TeamChatRef[]; asksAi: boolean } {
     const kept = picked.filter(c => mentions(content, c.token));
     const userIds = [...new Set(kept.filter(c => c.kind === 'user' && c.userId).map(c => c.userId as string))];
-    return { userIds, asksAi: kept.some(c => c.kind !== 'user') };
+    const refs: TeamChatRef[] = [];
+    for (const c of kept) {
+        if (c.ref && !refs.some(r => r.kind === c.ref!.kind && r.id === c.ref!.id)) refs.push(c.ref);
+    }
+    return { userIds, refs, asksAi: kept.some(c => c.kind === 'ai' || c.kind === 'agent') };
 }
 
 export interface TextPart { text: string; mention: boolean }

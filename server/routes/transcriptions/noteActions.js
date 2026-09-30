@@ -493,6 +493,14 @@ router.patch('/:id/publish', requireAuth, validate({ body: PublishBody, query: N
         const transcription = await transcriptionStore.getTranscription(req.params.id, userId, { orgIds, userGroupIds, isSuperAdmin });
         if (!transcription) return res.status(404).json({ error: 'Not found' });
         if (!transcription.isOwner) return res.status(403).json({ error: 'Only the owner can change publish status' });
+        // A note in a project is open to the members of that project, and to nobody else: who can read it is
+        // the project's to say. Take it out of the project first to share it another way.
+        if (transcription.projectId) {
+            return res.status(409).json({
+                error: 'This meeting note is in a project, so it is open to the whole project and cannot be shared another way. Take it out of the project first.',
+                code: 'MEETING_IN_PROJECT',
+            });
+        }
 
         // Validate the supplied group IDs against the transcription's org so
         // a user can't accidentally publish to another org's groups.

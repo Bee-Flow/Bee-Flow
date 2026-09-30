@@ -120,6 +120,10 @@ export interface MyMeeting {
     status?: string;
     durationSeconds?: number | null;
     createdAt?: string;
+    /** Published to the organisation or to groups, or shared with people: it cannot be filed in a project. */
+    isPublished?: boolean;
+    sharedGroups?: string[];
+    sharedWith?: string[];
 }
 
 /** A knowledge base the caller may read (raw row from GET /api/kb). */

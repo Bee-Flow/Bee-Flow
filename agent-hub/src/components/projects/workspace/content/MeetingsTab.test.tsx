@@ -258,4 +258,58 @@ describe('MeetingsTab: one meeting', () => {
         await user.click(screen.getByRole('button', { name: 'detail deleted' }));
         expect(onOpenSub).toHaveBeenCalledTimes(2);
     });
+
+    describe('making tasks from the action items', () => {
+        const SUGGESTIONS = { meeting: { id: 'm-1', title: 'Weekly sync' }, suggestions: [
+            { itemId: 'ai-1', text: 'Send the offer', assigneeName: 'Eddie', suggestedAssigneeId: EDITOR_ID, dueDate: null, at: '', done: false, createdTaskId: null },
+        ] };
+        beforeEach(() => {
+            client.get.mockImplementation(routes(MEETINGS, { '/api/projects/p1/meetings/m-1/task-suggestions': SUGGESTIONS }));
+            client.post.mockImplementation(async (_p: string, body: { items: unknown[] }) => ({ tasks: body.items, skipped: 0 }));
+        });
+
+        it('offers it to an editor, whoever recorded the meeting, and opens the review', async () => {
+            const user = userEvent.setup();
+            renderTab('editor', { sub: 'm-2' });
+            await user.click(await screen.findByTestId('meeting-make-tasks'));
+            expect(await screen.findByRole('dialog')).toBeInTheDocument();
+        });
+
+        it('makes the tasks with their link to the meeting item, then takes the person to the Tasks tab', async () => {
+            const user = userEvent.setup();
+            const onOpenTab = vi.fn();
+            renderTab('editor', { sub: 'm-1', onOpenTab });
+            await user.click(await screen.findByTestId('meeting-make-tasks'));
+            await user.click(await screen.findByRole('button', { name: 'Make 1 tasks' }));
+            await waitFor(() => expect(client.post).toHaveBeenCalledWith('/api/projects/p1/tasks/batch', expect.objectContaining({
+                items: [expect.objectContaining({ title: 'Send the offer', source: { kind: 'meeting', id: 'm-1', itemId: 'ai-1' } })],
+            }), expect.anything()));
+            await waitFor(() => expect(onOpenTab).toHaveBeenCalledWith('tasks'));
+        });
+
+        it('is not offered to a viewer, who can read the meeting but not add to the project', async () => {
+            renderTab('viewer', { sub: 'm-1' });
+            expect(await screen.findByTestId('meeting-detail')).toBeInTheDocument();
+            expect(screen.queryByTestId('meeting-make-tasks')).not.toBeInTheDocument();
+        });
+    });
+});
+
+describe('MeetingsTab: adding a meeting that is already shared', () => {
+    it('does not offer a meeting shared another way, and says why; a personal one can be added', async () => {
+        const user = userEvent.setup();
+        client.get.mockImplementation(routes([], { '/api/transcriptions': { transcriptions: [
+            { id: 'own-1', title: 'Personal note', isOwner: true, isPublished: false, sharedGroups: [], createdAt: '2026-09-20T10:00:00Z' },
+            { id: 'own-2', title: 'Org note', isOwner: true, isPublished: true, sharedGroups: [], createdAt: '2026-09-21T10:00:00Z' },
+            { id: 'own-3', title: 'Group note', isOwner: true, isPublished: true, sharedGroups: ['g1'], createdAt: '2026-09-22T10:00:00Z' },
+        ] } }));
+        renderTab('editor');
+        await user.click(await screen.findByTestId('meetings-add-existing'));
+        expect(await screen.findByText('Org note')).toBeInTheDocument();
+        expect(screen.getByTestId('picker-blocked-own-2')).toHaveTextContent('Already shared another way');
+        expect(screen.getByTestId('picker-blocked-own-3')).toBeInTheDocument();
+        expect(screen.queryByTestId('picker-blocked-own-1')).not.toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Add Org note' })).toBeDisabled();
+        expect(screen.getByRole('button', { name: 'Add Personal note' })).toBeEnabled();
+    });
 });

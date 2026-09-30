@@ -209,6 +209,19 @@ test('de body die het scherm echt verstuurt publiceert nog steeds naar één gro
     assert.deepStrictEqual(touched.find((x) => x.what === 'setPublished').args[3], ['g-hr']);
 });
 
+test('een notitie in een project kan niet meer op een andere manier gedeeld worden', async () => {
+    const before = touched.length;
+    NOTE.projectId = 'p1';
+    try {
+        for (const body of [{ isPublished: true, sharedGroups: [] }, { isPublished: true, sharedGroups: ['g-hr'] }, { isPublished: false }]) {
+            const res = await dispatch({ method: 'PATCH', url: '/t-1/publish', body });
+            assert.strictEqual(res.statusCode, 409, JSON.stringify(body));
+            assert.strictEqual(res.body.code, 'MEETING_IN_PROJECT');
+        }
+        assert.strictEqual(touched.length, before, 'nothing was changed');
+    } finally { delete NOTE.projectId; }
+});
+
 // ═══ De taal waarin er getranscribeerd wordt ════════════════════════
 
 test('een verkeerd gespelde taal transcribeert niet meer in de standaardtaal', async () => {

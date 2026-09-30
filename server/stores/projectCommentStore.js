@@ -59,7 +59,7 @@ const { exec, pool, withTransaction } = require('../db');
 const { makeStoreInit } = require('./lib/storeInit');
 const log = require('../telemetry/log');
 
-const TARGET_TYPES = Object.freeze(['notebook', 'document']);
+const TARGET_TYPES = Object.freeze(['notebook', 'document', 'task']);
 const THREAD_AI_MODES = Object.freeze(['off', 'mention', 'auto']);
 const THREAD_STATUSES = Object.freeze(['open', 'resolved']);
 const MAX_THREADS_LISTED = 300;
@@ -79,7 +79,7 @@ const DDL = `
     CREATE TABLE IF NOT EXISTS project_comment_threads (
         id                TEXT PRIMARY KEY,
         project_id        TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-        target_type       TEXT NOT NULL CHECK (target_type IN ('notebook', 'document')),
+        target_type       TEXT NOT NULL CHECK (target_type IN ('notebook', 'document', 'task')),
         target_id         TEXT NOT NULL,
         anchor            TEXT,
         status            TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'resolved')),
@@ -129,6 +129,17 @@ const DDL = `
         ON project_comments(author_user_id) WHERE author_user_id IS NOT NULL;
 
     ALTER TABLE project_comment_threads ADD COLUMN IF NOT EXISTS auto_paused_until TIMESTAMPTZ;
+
+    -- Threads on tasks: a table made before that only allowed notebooks and documents.
+    DO $$ BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint
+                        WHERE conname = 'project_comment_threads_target_type_check'
+                          AND pg_get_constraintdef(oid) LIKE '%task%') THEN
+            ALTER TABLE project_comment_threads DROP CONSTRAINT IF EXISTS project_comment_threads_target_type_check;
+            ALTER TABLE project_comment_threads ADD CONSTRAINT project_comment_threads_target_type_check
+                CHECK (target_type IN ('notebook', 'document', 'task'));
+        END IF;
+    END $$;
 `;
 
 /** A refusal the route turns into a worded 4xx. */
@@ -473,6 +484,8 @@ function makeProjectCommentStore(db, { ready = async () => {}, maxCommentsListed
         let sql;
         if (targetType === 'notebook') sql = 'SELECT id, project_id, name FROM notebooks WHERE id = $1';
         else if (targetType === 'document') sql = `SELECT id, project_id, name FROM studio_documents WHERE id = $1 AND kind = 'document' AND archived = false`;
+        // A task's title is sealed with the project key: the name is read where the item is read (projects/comments/passage.js).
+        else if (targetType === 'task') sql = `SELECT id, project_id, '' AS name FROM project_tasks WHERE id = $1`;
         else return null;
         const row = (await db.query(sql, [targetId])).rows[0];
         return row ? { id: row.id, projectId: row.project_id || null, name: row.name || '' } : null;

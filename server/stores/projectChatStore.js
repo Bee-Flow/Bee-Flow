@@ -68,6 +68,8 @@
 const { exec, pool, withTransaction } = require('../db');
 const { makeStoreInit } = require('./lib/storeInit');
 const log = require('../telemetry/log');
+const { parseMentions, parseRefs, parseAiMeta } = require('./lib/projectChatParsers');
+const { RESET_DERIVED_TITLES, DROP_TRACES } = require('./lib/projectChatSql');
 
 const AI_MODES = Object.freeze(['off', 'mention', 'auto', 'always']);
 const AUTHOR_KINDS = Object.freeze(['user', 'assistant', 'system']);
@@ -76,15 +78,6 @@ const NOTICES = Object.freeze(['ai_auto_on']);
 const DEFAULT_PAGE = 50;
 const MAX_PAGE = 200;
 const MAX_CHATS_LISTED = 200;
-
-/**
- * Back to "no title yet" for the chats whose title was taken from one of
- * these messages ($1, text[]). Stored empty, because this store holds no key
- * to seal the default with; the route serves an empty title as "New chat".
- */
-const RESET_DERIVED_TITLES = `
-    UPDATE project_chats SET title = '', title_from_message_id = NULL, updated_at = NOW()
-     WHERE title_from_message_id = ANY($1::text[])`;
 
 /**
  * The schema, idempotent and PGlite-safe (no extensions). Exported so the pg
@@ -154,6 +147,10 @@ const DDL = `
     ALTER TABLE project_chat_messages ADD COLUMN IF NOT EXISTS ai_trigger TEXT;
     ALTER TABLE project_chat_messages ADD COLUMN IF NOT EXISTS ai_reason TEXT;
     ALTER TABLE project_chat_messages ADD COLUMN IF NOT EXISTS notice TEXT;
+    ALTER TABLE project_chat_messages ADD COLUMN IF NOT EXISTS thread_root_id TEXT;
+    ALTER TABLE project_chat_messages ADD COLUMN IF NOT EXISTS ai_meta JSONB;
+    ALTER TABLE project_chat_messages ADD COLUMN IF NOT EXISTS ai_trace TEXT;
+    ALTER TABLE project_chat_messages ADD COLUMN IF NOT EXISTS refs JSONB NOT NULL DEFAULT '[]'::jsonb;
     DO $$
     BEGIN
         IF EXISTS (SELECT 1 FROM pg_constraint
@@ -200,14 +197,6 @@ class ProjectChatStoreError extends Error {
 const toIso = (v) => (v ? new Date(v).toISOString() : null);
 const toInt = (v) => (v === null || v === undefined ? 0 : Number(v));
 
-function parseMentions(v) {
-    if (Array.isArray(v)) return v.filter((x) => typeof x === 'string');
-    if (typeof v === 'string') {
-        try { const parsed = JSON.parse(v); return Array.isArray(parsed) ? parsed.filter((x) => typeof x === 'string') : []; } catch (_) { return []; }
-    }
-    return [];
-}
-
 /** A chat row as stored. `title` is still sealed. */
 function rowToChat(r) {
     if (!r) return null;
@@ -243,6 +232,10 @@ function rowToMessage(r) {
         content: r.content,
         mentions: parseMentions(r.mentions),
         replyTo: r.reply_to || null,
+        threadId: r.thread_root_id || null,
+        refs: parseRefs(r.refs),
+        aiMeta: parseAiMeta(r.ai_meta),
+        aiTrace: r.ai_trace || null,
         clientMsgId: r.client_msg_id || null,
         aiTrigger: r.ai_trigger || null,
         aiReason: r.ai_reason || null,
@@ -449,7 +442,8 @@ function makeProjectChatStore(db, { ready = async () => {} } = {}) {
      *
      * @param {{ id: string, projectId: string, chatId: string, authorKind: 'user'|'assistant'|'system',
      *           authorUserId?: string|null, agentId?: string|null, content: string,
-     *           mentions?: string[], replyTo?: string|null, clientMsgId?: string|null,
+     *           mentions?: string[], replyTo?: string|null, threadId?: string|null,
+     *           refs?: { kind: 'document'|'notebook', id: string }[], aiMeta?: object|null, aiTrace?: string|null, clientMsgId?: string|null,
      *           aiTrigger?: string|null, aiReason?: string|null, notice?: string|null,
      *           unlessHumanAfterSeq?: number|null }} m  `content` sealed ('' for a notice)
      * @returns {Promise<{ message: ReturnType<typeof rowToMessage>, created: boolean, stale?: false }|{ stale: true }|null>}
@@ -458,7 +452,7 @@ function makeProjectChatStore(db, { ready = async () => {} } = {}) {
         await ready();
         const {
             id, projectId, chatId, authorKind, authorUserId = null, agentId = null,
-            content, mentions = [], replyTo = null, clientMsgId = null,
+            content, mentions = [], replyTo = null, threadId = null, refs = [], aiMeta = null, aiTrace = null, clientMsgId = null,
             aiTrigger = null, aiReason = null, notice = null, unlessHumanAfterSeq = null,
         } = m;
         if (!AUTHOR_KINDS.includes(authorKind)) throw new ProjectChatStoreError('INVALID_AUTHOR', `authorKind must be one of ${AUTHOR_KINDS.join(', ')}`);
@@ -505,18 +499,31 @@ function makeProjectChatStore(db, { ready = async () => {} } = {}) {
                 }
             }
 
+            if (threadId) {
+                // A thread hangs off a message of the main conversation, never off another reply.
+                const root = await q.query(
+                    'SELECT 1 FROM project_chat_messages WHERE id = $1 AND chat_id = $2 AND thread_root_id IS NULL',
+                    [threadId, chatId],
+                );
+                if (root.rows.length === 0) {
+                    throw new ProjectChatStoreError('THREAD_NOT_FOUND', 'threadId must be a message of this chat that is not itself a reply in a thread.');
+                }
+            }
+
             const seq = toInt(chat.last_seq) + 1;
             const inserted = (await q.query(
                 `INSERT INTO project_chat_messages
                     (id, chat_id, project_id, seq, author_kind, author_user_id, agent_id,
-                     content, mentions, reply_to, client_msg_id, ai_trigger, ai_reason, notice)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10, $11, $12, $13, $14)
+                     content, mentions, reply_to, thread_root_id, refs, client_msg_id, ai_trigger, ai_reason, notice, ai_meta, ai_trace)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10, $11, $12::jsonb, $13, $14, $15, $16, $17::jsonb, $18)
                  RETURNING *`,
                 [id, chatId, projectId, seq, authorKind, authorUserId, agentId,
-                    content, JSON.stringify(mentions || []), replyTo, clientMsgId,
+                    content, JSON.stringify(mentions || []), replyTo, threadId, JSON.stringify(refs || []), clientMsgId,
                     authorKind === 'assistant' ? aiTrigger : null,
                     authorKind === 'assistant' ? reasonCode : null,
-                    authorKind === 'system' ? notice : null],
+                    authorKind === 'system' ? notice : null,
+                    authorKind === 'assistant' && aiMeta ? JSON.stringify(aiMeta) : null,
+                    authorKind === 'assistant' ? aiTrace : null],
             )).rows[0];
             await q.query(
                 `UPDATE project_chats
@@ -624,7 +631,7 @@ function makeProjectChatStore(db, { ready = async () => {} } = {}) {
         return db.tx(async (q) => {
             const r = await q.query(
                 `UPDATE project_chat_messages
-                    SET content = '', mentions = '[]'::jsonb, deleted_at = NOW()
+                    SET content = '', mentions = '[]'::jsonb, refs = '[]'::jsonb, deleted_at = NOW()
                   WHERE id = $2 AND chat_id = $1 AND deleted_at IS NULL
                   RETURNING *`,
                 [chatId, messageId],
@@ -637,6 +644,7 @@ function makeProjectChatStore(db, { ready = async () => {} } = {}) {
                   WHERE id = $1`,
                 [chatId],
             );
+            await q.query(DROP_TRACES, [[messageId]]);
             const reset = await q.query(RESET_DERIVED_TITLES, [[messageId]]);
             return { ...rowToMessage(row), titleReset: (reset.rowCount || 0) > 0 };
         });
@@ -702,7 +710,7 @@ function makeProjectChatStore(db, { ready = async () => {} } = {}) {
         return db.tx(async (q) => {
             const wiped = await q.query(
                 `UPDATE project_chat_messages
-                    SET content = '', mentions = '[]'::jsonb, deleted_at = NOW()
+                    SET content = '', mentions = '[]'::jsonb, refs = '[]'::jsonb, deleted_at = NOW()
                   WHERE author_user_id = $1 AND deleted_at IS NULL
                   RETURNING id, chat_id`,
                 [userId],
@@ -717,7 +725,9 @@ function makeProjectChatStore(db, { ready = async () => {} } = {}) {
                     [chatId, count],
                 );
             }
-            // A chat title taken from one of their messages quotes them: it goes too.
+            // A chat title taken from one of their messages quotes them: it goes too, and so does the
+            // trace of an answer to them (it holds their message as written).
+            if (wiped.rows.length > 0) await q.query(DROP_TRACES, [wiped.rows.map((row) => row.id)]);
             const titles = wiped.rows.length > 0
                 ? (await q.query(RESET_DERIVED_TITLES, [wiped.rows.map((row) => row.id)])).rowCount || 0
                 : 0;

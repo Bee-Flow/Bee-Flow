@@ -67,6 +67,7 @@ test('the catalogue only holds keys it owns', () => {
  */
 const LATER_ROUNDS = [
     require('./add-nl-collaboration-wave2-editor-versions-translations'),
+    require('./add-nl-project-tasks-translations'),
 ];
 
 test('every owned English key has Dutch, or is declared identical', () => {

@@ -44,7 +44,9 @@ function EmptyState({ filter, canComment, targetType }: { filter: Filter; canCom
     const { t } = useTranslation();
     let hint: string | null = null;
     if (filter === 'open' && !canComment) hint = t('comments.empty_open_viewer', 'When editors comment on this item, their threads appear here.');
-    else if (filter === 'open' && targetType === 'notebook') {
+    else if (filter === 'open' && targetType === 'task') {
+        hint = t('comments.empty_open_task', 'Discuss this task with the team. Mention someone with @, or @ai to ask the AI.');
+    } else if (filter === 'open' && targetType === 'notebook') {
         hint = t('comments.empty_open_notebook', 'Select a passage in the notebook and choose Add comment to discuss it. Mention @ai to ask the AI.');
     } else if (filter === 'open') {
         hint = t('comments.empty_open_document', 'Select a passage in the document and choose Add comment to discuss it. Mention @ai to ask the AI.');
@@ -60,8 +62,10 @@ function EmptyState({ filter, canComment, targetType }: { filter: Filter; canCom
     );
 }
 
-function Toolbar({ model, filter, onFilter, drafting, onAdd }: {
+function Toolbar({ model, filter, onFilter, drafting, onAdd, anchors }: {
     model: CommentsPanelModel; filter: Filter; onFilter: (f: Filter) => void; drafting: boolean; onAdd: () => void;
+    /** The item has text to select a passage in; without it every comment is on the item as a whole. */
+    anchors: boolean;
 }) {
     const { t } = useTranslation();
     const loaded = !!model.query.data;
@@ -83,7 +87,7 @@ function Toolbar({ model, filter, onFilter, drafting, onAdd }: {
                     <PrimaryButton onMouseDown={e => e.preventDefault()} onClick={onAdd} data-testid="comments-add">
                         <MessageSquarePlus className="w-3.5 h-3.5" aria-hidden="true" />{t('comments.add', 'Add comment')}
                     </PrimaryButton>
-                    <span className="text-[11px] text-[var(--text-tertiary)]">{t('comments.add_hint', 'Select text first to comment on a passage.')}</span>
+                    {anchors && <span className="text-[11px] text-[var(--text-tertiary)]">{t('comments.add_hint', 'Select text first to comment on a passage.')}</span>}
                 </div>
             )}
             {!model.canComment && loaded && (
@@ -162,7 +166,7 @@ export default function CommentsPanel(props: CommentsPanelProps) {
                     </GhostButton>
                 )}
             </header>
-            <Toolbar model={model} filter={filter} onFilter={setFilter} drafting={!!draft} onAdd={startComment} />
+            <Toolbar model={model} filter={filter} onFilter={setFilter} drafting={!!draft} onAdd={startComment} anchors={!!props.getSelectionAnchor} />
             <div className="flex-1 min-h-0 overflow-y-auto px-3 pb-3 flex flex-col gap-2">
                 {draft && model.canComment && (
                     <NewCommentForm

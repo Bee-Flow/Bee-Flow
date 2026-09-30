@@ -59,6 +59,65 @@ test('one person split across three diarizer ids pins all three', () => {
     assert.deepStrictEqual(r.mapping, { SPEAKER_00: 'Tom Smit', SPEAKER_02: 'Tom Smit', SPEAKER_05: 'Tom Smit' });
 });
 
+// ── One voice, one person (step 5b) ──────────────────────────────────
+//
+// Reproduced live against pyannoteAI: when the IDENTIFY job folds an
+// unenrolled participant into Tom's speaker, every one of their turns comes
+// back labelled Tom at 90, while the diarize job still has them apart.
+
+/** Identify output where one identify speaker, matched to Tom, spans 0-end. */
+const tomSpans = (end) => identifyOutput([{ speaker: 'SPEAKER_A', start: 0, end }], { SPEAKER_A: ['vp_tom', 90] });
+
+test('REGRESSION: with a speaker count, a voice merged into Tom does not become Tom', () => {
+    const diar = [
+        { speakerId: 'SPEAKER_00', start: 0, end: 40 },     // Tom
+        { speakerId: 'SPEAKER_01', start: 40, end: 100 },   // unenrolled, merged into Tom by identify
+    ];
+    const r = resolveVoiceprintMapping(diar, tomSpans(100), NAMES, { distinctSpeakers: true });
+    assert.deepStrictEqual(r.mapping, {}, 'the ids are two people; the voice match cannot say which is Tom');
+    assert.deepStrictEqual(r.roster, ['Tom Smit'], 'Tom is still a candidate for the LLM');
+    assert.deepStrictEqual(r.ruledOut, {}, 'and nobody is denied being Tom');
+    assert.deepStrictEqual(r.detail.map(d => d.decision), ['shared_voiceprint', 'shared_voiceprint']);
+    assert.deepStrictEqual(r.matchedIds, []);
+});
+
+test('two ids that talk over each other never share one voiceprint', () => {
+    // No count given, but 4s of simultaneous speech: one voice cannot do that.
+    const diar = [
+        { speakerId: 'SPEAKER_00', start: 0, end: 30 },
+        { speakerId: 'SPEAKER_01', start: 28, end: 52 },
+        { speakerId: 'SPEAKER_00', start: 50, end: 80 },
+    ];
+    const r = resolveVoiceprintMapping(diar, tomSpans(80), NAMES);
+    assert.deepStrictEqual(r.mapping, {});
+    assert.deepStrictEqual(r.roster, ['Tom Smit']);
+});
+
+test('a split voice with a sub-threshold overlap blip stays named', () => {
+    const diar = [
+        { speakerId: 'SPEAKER_00', start: 0, end: 30 },
+        { speakerId: 'SPEAKER_02', start: 29.5, end: 60 },   // 0.5s: a boundary blip, not a second person
+    ];
+    const r = resolveVoiceprintMapping(diar, tomSpans(60), NAMES);
+    assert.deepStrictEqual(r.mapping, { SPEAKER_00: 'Tom Smit', SPEAKER_02: 'Tom Smit' });
+});
+
+test('a speaker count does not unpin two different people each matched once', () => {
+    const diar = [
+        { speakerId: 'SPEAKER_00', start: 0, end: 30 },
+        { speakerId: 'SPEAKER_01', start: 30, end: 60 },
+    ];
+    const out = identifyOutput(
+        [
+            { speaker: 'SPEAKER_A', start: 0, end: 30 },
+            { speaker: 'SPEAKER_B', start: 30, end: 60 },
+        ],
+        { SPEAKER_A: ['vp_tom', 90], SPEAKER_B: ['vp_ann', 90] },
+    );
+    const r = resolveVoiceprintMapping(diar, out, NAMES, { distinctSpeakers: true });
+    assert.deepStrictEqual(r.mapping, { SPEAKER_00: 'Tom Smit', SPEAKER_01: 'Ann Bakker' });
+});
+
 test('an id the diarizer MERGED from two people is refused, not guessed', () => {
     // Its time is split ~50/50 between two identified speakers, so neither
     // reaches the 60% share floor. Refusing is the only correct answer.
@@ -298,8 +357,8 @@ test('empty / absent identify output degrades to nothing, never throws', () => {
 });
 
 test('a missing confidence value does not block a well-covered match', () => {
-    // `confidence: true` is always requested, but the field is optional in the
-    // schema — absence must not be read as "zero".
+    // The identify match score comes back without asking, but the field is
+    // optional in the schema — absence must not be read as "zero".
     const diar = [{ speakerId: 'SPEAKER_00', start: 0, end: 30 }];
     const out = {
         identification: [{ speaker: 'SPEAKER_A', start: 0, end: 30 }],

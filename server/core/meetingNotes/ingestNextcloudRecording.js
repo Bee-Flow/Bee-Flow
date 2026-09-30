@@ -25,6 +25,7 @@ const path = require('path');
 
 const transcriptionStore = require('../../stores/transcriptionStore');
 const { ingestLocalRecording, IngestError, assertDedupHitReadable } = require('./ingestRecordingCore');
+const { AUDIO_SCRATCH_DIR: uploadsDir } = require('./savedAudioStore');
 // Talk's on-disk recording layout (`<attachmentFolder>/Recording/<token>/<file>`)
 // lives in its own db-free module so the routes can share it.
 const { parseTalkRoomToken, talkRecordingRoots, DEFAULT_RECORDING_FOLDER } = require('./talkRecordingPaths');
@@ -37,8 +38,6 @@ const ACCEPTED_RECORDING_EXTS = ['.mp3', '.wav', '.m4a', '.ogg', '.webm', '.flac
 // Hard ceiling — matches the manual-upload multer limit. Larger recordings are
 // rejected with a classified error rather than silently timing out.
 const MAX_RECORDING_BYTES = 500 * 1024 * 1024;
-
-const uploadsDir = path.resolve(__dirname, '../../data/uploads/audio');
 
 /**
  * @param {object} opts

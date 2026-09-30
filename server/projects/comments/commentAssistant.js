@@ -96,7 +96,7 @@ const clip = (text, max) => (text.length > max ? `${text.slice(0, max)} …` : t
  * @param {{ kind: string, name: string, passage: ReturnType<typeof findPassage>|null, tagged?: boolean }} p
  */
 function describePassage({ kind, name, passage, tagged = true }) {
-    const what = kind === 'notebook' ? 'notebook' : 'document';
+    const what = kind === 'notebook' ? 'notebook' : kind === 'task' ? 'task' : 'document';
     const fence = (tag, text) => (tagged ? [`<${tag}>`, text, `</${tag}>`] : [text]);
     const lines = [`The thread is on the ${what} "${name || `untitled ${what}`}".`];
     if (!passage) {

@@ -26,8 +26,9 @@ const {
 const { stampForTemplate } = require('../../core/meetingNotes/summaryStamp');
 const meetingFiling = require('../../projects/meetingFiling');
 
-// Multer for audio file upload
-const uploadsDir = path.resolve(__dirname, '../../data/uploads/audio');
+// Multer for audio file upload. Scratch in /tmp; the kept copies are
+// saved-recordings and RustFS, made further down.
+const { AUDIO_SCRATCH_DIR: uploadsDir } = require('../../core/meetingNotes/savedAudioStore');
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
 const upload = multer({

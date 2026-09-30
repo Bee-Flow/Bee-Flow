@@ -65,6 +65,7 @@ before(async () => {
     await pg.exec(`
         CREATE TABLE projects (id TEXT PRIMARY KEY, name TEXT NOT NULL, owner_id TEXT NOT NULL, organization_id TEXT);
         CREATE TABLE notebooks (id TEXT PRIMARY KEY, name TEXT NOT NULL, project_id TEXT);
+        CREATE TABLE project_tasks (id TEXT PRIMARY KEY, project_id TEXT NOT NULL, title TEXT NOT NULL);
         CREATE TABLE studio_documents (
             id TEXT PRIMARY KEY, name TEXT NOT NULL, project_id TEXT,
             kind TEXT NOT NULL DEFAULT 'document', archived BOOLEAN NOT NULL DEFAULT FALSE
@@ -313,6 +314,20 @@ test('lookupTarget names the item and its project, and skips templates and archi
     assert.strictEqual(await store.lookupTarget('document', 'doc-old'), null);
     assert.strictEqual(await store.lookupTarget('document', 'nb-look'), null);
     assert.strictEqual(await store.lookupTarget('meeting', 'x'), null);
+});
+
+test('a thread can be on a task, whose name is left for the reader to open; a table from before still takes the new type', async () => {
+    await pg.query(`INSERT INTO project_tasks (id, project_id, title) VALUES ('task-1', 'p1', 'sealed-title')`);
+    assert.deepStrictEqual(await store.lookupTarget('task', 'task-1'), { id: 'task-1', projectId: 'p1', name: '' });
+    const out = await newThread('p1', { targetType: 'task', targetId: 'task-1', anchor: null });
+    assert.strictEqual(out.thread.targetType, 'task');
+    assert.strictEqual(await store.deleteForTarget('task', 'task-1'), 1);
+    // A table made when only notebooks and documents were allowed: the boot DDL widens it, once.
+    await pg.exec(`ALTER TABLE project_comment_threads DROP CONSTRAINT project_comment_threads_target_type_check;
+                   ALTER TABLE project_comment_threads ADD CONSTRAINT project_comment_threads_target_type_check CHECK (target_type IN ('notebook', 'document'));`);
+    await assert.rejects(newThread('p1', { targetType: 'task', targetId: 'task-1', anchor: null }));
+    await pg.exec(DDL);
+    assert.ok((await newThread('p1', { targetType: 'task', targetId: 'task-1', anchor: null })).created);
 });
 
 test('the data subject: a count per organisation, and erasure blanks their comments and mentions', async () => {

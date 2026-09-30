@@ -41,4 +41,18 @@ function pgliteDb(pg = new PGlite()) {
     return { pg, db };
 }
 
-module.exports = { pgliteDb };
+/**
+ * The schema of a project-scoped store under test: a minimal `projects` table
+ * holding `projectIds` (its rows' foreign-key target), then the store's `ddl`.
+ *
+ * @param {import('@electric-sql/pglite').PGlite} pg
+ * @param {string} ddl
+ * @param {string[]} [projectIds]
+ */
+async function createProjectScopedSchema(pg, ddl, projectIds = ['p1', 'p2']) {
+    await pg.exec('CREATE TABLE projects (id TEXT PRIMARY KEY, name TEXT NOT NULL, owner_id TEXT NOT NULL)');
+    await pg.exec(ddl);
+    for (const id of projectIds) await pg.query('INSERT INTO projects (id, name, owner_id) VALUES ($1, $1, $2)', [id, 'owner']);
+}
+
+module.exports = { pgliteDb, createProjectScopedSchema };

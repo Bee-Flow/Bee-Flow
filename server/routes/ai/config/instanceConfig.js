@@ -488,7 +488,14 @@ router.post('/config', requireAuth, validate({ body: ConfigBody }), async (req, 
     });
 
     if (success) {
-        res.json({ success: true });
+        // A new embedding model re-embeds the stored knowledge in the
+        // background; the admin does not have to know the column exists.
+        const embeddingChanged = (embeddingModel !== undefined && embeddingModel !== existing.embeddingModel)
+            || (embeddingProviderId !== undefined && embeddingProviderId !== existing.embeddingProviderId);
+        if (embeddingChanged) {
+            require('../../../core/kb/embeddingMigration').ensureKbEmbeddingsCurrent({ reason: 'config' });
+        }
+        res.json({ success: true, ...(embeddingChanged ? { reembedding: true } : {}) });
     } else {
         res.status(500).json({ error: 'Failed to save configuration' });
     }

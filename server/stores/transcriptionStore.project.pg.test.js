@@ -69,6 +69,23 @@ test('the owner files their note into a project of its organisation; nobody else
     assert.strictEqual((await store.getTranscription(id, 'alice')).projectId, 'p1');
 });
 
+test('a note that is already shared another way is not filed: a project note is open to the project and nobody else', async () => {
+    const refused = async (id) => assert.rejects(store.setTranscriptionProject(id, 'alice', 'p1'), { status: 409, code: 'MEETING_ALREADY_SHARED' });
+    const org = (await note()).id;
+    await store.setPublished(org, 'alice', true, [], 'org1');
+    await refused(org);
+    const groups = (await note()).id;
+    await store.setPublished(groups, 'alice', true, ['g-sales'], 'org1');
+    await refused(groups);
+    const people = (await note()).id;
+    await pg.query(`UPDATE transcriptions SET shared_with = '["bob"]'::jsonb WHERE id = $1`, [people]);
+    await refused(people);
+    for (const id of [org, groups, people]) assert.strictEqual((await store.getTranscription(id, 'alice')).projectId, null, 'nothing was filed');
+    // Made personal again, it can be filed.
+    await store.setPublished(org, 'alice', false, [], 'org1');
+    assert.strictEqual(await store.setTranscriptionProject(org, 'alice', 'p1'), true);
+});
+
 test('filing is not an edit: updated_at does not move', async () => {
     const { id } = await note();
     const before = (await pg.query('SELECT updated_at FROM transcriptions WHERE id = $1', [id])).rows[0].updated_at;

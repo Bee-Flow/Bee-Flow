@@ -94,7 +94,7 @@ describe('CanvasZoomStack — compact, on a short canvas', () => {
         expect(stack.className).toContain('flex-row');
         expect(stack.hasAttribute('data-compact')).toBe(true);
         expect([...stack.querySelectorAll('button')].map(b => b.getAttribute('aria-label')))
-            .toEqual(['Zoom out', 'Zoom to 100%', 'Zoom in', 'Fit the whole flow on screen']);
+            .toEqual(['Zoom out', 'Zoom to 100%', 'Zoom in', 'Fit the whole flow on screen', 'Canvas fullscreen']);
     });
 
     it('leaves out Wrap to fit and the presenter switch until the canvas has room', () => {
@@ -107,6 +107,14 @@ describe('CanvasZoomStack — compact, on a short canvas', () => {
         render(<CanvasZoomStack onWrapToFit={() => {}} onTogglePresenter={() => {}} />);
         const stack = screen.getByTestId('canvas-zoom-stack');
         expect(stack.className).toContain('flex-col');
-        expect(stack.querySelectorAll('button')).toHaveLength(6);
+        expect(stack.querySelectorAll('button')).toHaveLength(7);
+    });
+
+    it('has a fullscreen button that hides the Studio menu', () => {
+        render(<CanvasZoomStack />);
+        fireEvent.click(screen.getByTestId('canvas-fullscreen-toggle'));
+        expect(screen.getByRole('button', { name: 'Leave fullscreen' })).toBeTruthy();
+        fireEvent.click(screen.getByTestId('canvas-fullscreen-toggle'));
+        expect(screen.getByRole('button', { name: 'Canvas fullscreen' })).toBeTruthy();
     });
 });

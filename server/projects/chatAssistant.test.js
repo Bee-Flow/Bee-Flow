@@ -34,7 +34,7 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 const crypto = require('node:crypto');
 const {
-    makeChatAssistant, decideAiTrigger, mentionsAssistant, displayNameOf, buildTranscript, searchProjectKnowledge, listProjectAudience,
+    makeChatAssistant, decideAiTrigger, mentionsAssistant, displayNameOf, buildTranscript, searchProjectKnowledge, listProjectAudience, listChatAgents,
 } = require('./chatAssistant');
 const { makeChatCrypto } = require('./chatCrypto');
 const { PrivacyBlocked } = require('./chatShield');
@@ -149,6 +149,14 @@ function world(overrides = {}) {
         tokenAddendum: (map) => (map ? '\n\n[TOKENS]' : ''),
         restore: (text, map) => (map ? text.split('[phone_1]').join(map['[phone_1]']) : text),
         release: (id) => { log.cleared.push(id); },
+        toolGate: (args) => {
+            log.gates = (log.gates || []).concat([args]);
+            return {
+                refuse: async (name, a) => (overrides.refuseTool && overrides.refuseTool(name, a) ? { modelError: 'blocked by shield' } : null),
+                forModel: async (content) => content,
+            };
+        },
+        restoreArgs: (args, map) => (map ? JSON.parse(JSON.stringify(args).split('[phone_1]').join(map['[phone_1]'])) : args),
     };
 
     const assistant = makeChatAssistant({
@@ -160,6 +168,8 @@ function world(overrides = {}) {
             log.llm.push({ modelId, msgs, options });
             return { content: overrides.answer ?? 'Here is my take.', usage: { prompt_tokens: 120, completion_tokens: 30, total_tokens: 150 } };
         }),
+        projectTools: overrides.projectTools || { offered: async () => [], forAnswer: () => ({ execute: async () => '{}', created: [] }) },
+        runToolLoop: overrides.runToolLoop,
         resolveModel: overrides.resolveModel || (async () => ({ modelId: 'model-fast', options: { maxTokens: 1000 }, providerConfig: { providerType: 'anthropic' } })),
         resolvePersona: async (args) => { log.persona.push(args); return overrides.persona ?? null; },
         searchKnowledge: async (args) => { log.knowledge.push(args); return overrides.knowledge ?? ''; },
@@ -512,6 +522,8 @@ test('the model is the asking member\'s fast tier, or nothing', async () => {
         modelId: 'model-fast',
         options: { maxTokens: 2048, temperature: 0.3 },
         providerConfig: { providerType: 'anthropic', url: 'https://api.example.test', displayName: 'Claude' },
+        tier: 'fast',
+        requestedTier: 'fast',
     });
     assert.strictEqual(await resolveChatModel({ userId: 'ann', orgId: 'org-none' }, { resolver }), null);
     const unknownProvider = await resolveChatModel({ userId: 'ann', orgId: 'org1' }, { resolver, getProviderForModel: async () => { throw new Error('no provider'); } });
@@ -560,4 +572,149 @@ test('knowledge: the project\'s own files base is searched for every member, eve
     const forged = { ...deps, kbStore: { getKB: async () => ({ id: 'kb-files', source_kind: 'manual', organization_id: 'org1' }) } };
     assert.strictEqual(await searchProjectKnowledge({ project, userId: 'bob', query: 'budget?' }, forged), '');
     assert.strictEqual(calls.search, undefined);
+});
+
+test('listChatAgents: only agents every member may use, never a system agent', async () => {
+    const users = { ann: { organizationId: 'o1' }, bob: { organizationId: 'o1' } };
+    const groups = { ann: ['g1'], bob: [] };
+    const pub = (id, extra = {}) => ({ id, name: id, owner_id: 'ann', is_published: true, published_version: 1, organization_id: 'o1', shared_groups: [], ...extra });
+    const agentStore = {
+        getAgents: async () => [pub('org-wide'), pub('draft', { is_published: false, published_version: 0 }),
+            pub('for-g1', { shared_groups: ['g1'] }), pub('sys', { owner_id: 'system' })],
+        getPublishedAgentsForUser: async () => [pub('org-wide'), pub('for-g1', { shared_groups: ['g1'] })],
+    };
+    const list = await listChatAgents({ id: 'p1', ownerId: 'ann' }, { userId: 'ann' }, {
+        agentStore, getUser: async (id) => users[id], resolveUserGroups: async (id) => groups[id],
+        listAudience: async () => ['ann', 'bob'],
+    });
+    assert.deepEqual(list.map((a) => a.id), ['org-wide']);
+});
+
+test('a picked tier answers on that tier; a tier without a model, or one that is not a depth, falls back to fast', async () => {
+    const asked = [];
+    const resolver = {
+        resolveModelForTierName: async (name) => { asked.push(name); return name === 'pro' || name === 'fast' ? `model-${name}` : null; },
+        getTierConfig: async () => ({}),
+    };
+    const deps = { resolver, getProviderForModel: async () => ({}) };
+    assert.equal((await resolveChatModel({ userId: 'ann', orgId: null, modelTier: 'pro' }, deps)).tier, 'pro');
+    assert.equal((await resolveChatModel({ userId: 'ann', orgId: null, modelTier: 'thinking' }, deps)).tier, 'fast');
+    // Flow, swarm and custom tiers are kinds of work, not depths of an answer.
+    assert.equal((await resolveChatModel({ userId: 'ann', orgId: null, modelTier: 'swarm' }, deps)).tier, 'fast');
+    assert.ok(!asked.includes('swarm'));
+});
+
+test('auto lets the classifier choose among the depth tiers only', async () => {
+    const seen = [];
+    const resolver = { resolveModelForTierName: async (n) => `model-${n}`, getTierConfig: async () => ({}), getUserTierMap: async () => ({ fast: {}, pro: {}, swarm: {}, 'custom:x': {} }) };
+    const out = await resolveChatModel({ userId: 'ann', orgId: null, modelTier: 'auto', message: 'hard question' }, {
+        resolver,
+        getProviderForModel: async () => ({}),
+        classifyWithLLM: async (message, tiers) => { seen.push(Object.keys(tiers)); return { tier: 'pro' }; },
+    });
+    assert.deepStrictEqual(seen[0], ['fast', 'pro']);
+    assert.equal(out.tier, 'pro');
+    assert.equal(out.requestedTier, 'auto');
+});
+
+// ── What the AI may do ───────────────────────────────────────────────────
+
+function toolsWorld(extra = {}) {
+    const calls = [];
+    const made = [];
+    const definitions = [{ type: 'function', function: { name: 'create_document' } }];
+    const projectTools = {
+        offered: async (args) => { calls.push(['offered', args.userId, args.project.id]); return extra.definitions ?? definitions; },
+        forAnswer: () => ({
+            created: made,
+            execute: async (name, a) => {
+                calls.push(['execute', name, a]);
+                made.push({ kind: 'document', id: 'doc-1', name: a.name });
+                return JSON.stringify({ ok: true, id: 'doc-1' });
+            },
+        }),
+    };
+    const loops = [];
+    const runToolLoop = async (modelId, messages, tools, options, executeTool, maxRounds) => {
+        loops.push({ modelId, messages, tools, options, maxRounds });
+        if (extra.script) return extra.script(executeTool);
+        await executeTool('create_document', { name: 'Plan', content: 'Call 0612345678' });
+        return { content: extra.finalText ?? 'I made the document "Plan".', usage: { prompt_tokens: 300, completion_tokens: 80, total_tokens: 380 }, toolCallRounds: 1 };
+    };
+    return { calls, made, loops, w: world({ projectTools, runToolLoop, ...extra.world }) };
+}
+
+test('an explicit ask can make things: tools offered, prompt says so, the item is linked to the answer, usage is the whole loop', async () => {
+    const { w, calls, loops } = toolsWorld();
+    const reply = await ask(w, '@ai make a document with the plan');
+    assert.deepStrictEqual(await reply.done, { status: 'answered', messageId: 'id-2' });
+    assert.deepStrictEqual(calls[0], ['offered', 'ann', 'p1']);
+    assert.strictEqual(loops.length, 1);
+    assert.strictEqual(w.log.llm.length, 0, 'the plain call is not made as well');
+    assert.deepStrictEqual(loops[0].tools.map((t) => t.function.name), ['create_document']);
+    assert.match(loops[0].messages[0].content, /create documents and notebooks in this project/);
+    assert.match(loops[0].messages[0].content, /nothing else outside this chat/);
+    const stored = w.log.appended.find((m) => m.authorKind === 'assistant');
+    assert.deepStrictEqual(stored.refs, [{ kind: 'document', id: 'doc-1' }]);
+    assert.strictEqual(w.log.usage[0].total_tokens, 380);
+    assert.ok(loops[0].options.maxTokens >= 12000, 'room for a whole styled document in one tool call');
+});
+
+test('what the model writes into a tool call has its placeholders put back, and the shield looks at it first', async () => {
+    const { w, calls } = toolsWorld({ world: { tokenise: true } });
+    const reply = await ask(w, '@ai make a document about 0612345678');
+    await reply.done;
+    const exec = calls.find((c) => c[0] === 'execute');
+    assert.strictEqual(exec[2].content, 'Call 0612345678', 'the real value, not [phone_1]');
+    assert.ok(w.log.gates.length === 1, 'the tool gate was built for this answer');
+});
+
+test('the shield can refuse a tool call: nothing is made, and the model hears why', async () => {
+    let told = null;
+    const { w, calls, made } = toolsWorld({
+        world: { refuseTool: () => true },
+        script: async (executeTool) => { told = await executeTool('create_document', { name: 'X', content: 'y' }); return { content: 'I could not.', usage: {} }; },
+    });
+    const reply = await ask(w);
+    await reply.done;
+    assert.match(told, /blocked by shield/);
+    assert.ok(!calls.some((c) => c[0] === 'execute'));
+    assert.deepStrictEqual(made, []);
+    assert.deepStrictEqual(w.log.appended.find((m) => m.authorKind === 'assistant').refs, []);
+});
+
+test('a member who cannot make things gets the plain call, with no tool talk in the prompt', async () => {
+    const { w, loops } = toolsWorld({ definitions: [] });
+    const reply = await ask(w);
+    await reply.done;
+    assert.strictEqual(loops.length, 0);
+    assert.strictEqual(w.log.llm.length, 1);
+    assert.doesNotMatch(w.log.llm[0].msgs[0].content, /create documents and notebooks/);
+});
+
+test('an automatic answer is offered no tools at all', async () => {
+    const { w, calls, loops } = toolsWorld();
+    const reply = await ask(w, 'where do we stand?', { aiTrigger: 'auto_quiet', reasonCode: 'question', gateLastSeq: 3 });
+    await reply.done;
+    assert.ok(!calls.some((c) => c[0] === 'offered'), 'not even asked');
+    assert.strictEqual(loops.length, 0);
+});
+
+test('a model that made something and wrote nothing still leaves a line saying what', async () => {
+    const { w } = toolsWorld({ finalText: '' });
+    const reply = await ask(w);
+    assert.deepStrictEqual((await reply.done).status, 'answered');
+});
+
+test('a template the AI made is not linked to the answer as a project document', async () => {
+    const created = [{ kind: 'template', id: 't1', name: 'T' }, { kind: 'document', id: 'd1', name: 'D' }, { kind: 'notebook', id: 'n1', name: 'N' }];
+    const projectTools = {
+        offered: async () => [{ type: 'function', function: { name: 'create_document' } }],
+        forAnswer: () => ({ created, execute: async () => '{}' }),
+    };
+    const w = world({ projectTools, runToolLoop: async () => ({ content: 'Made.', usage: {} }) });
+    const reply = await ask(w, '@ai make things');
+    await reply.done;
+    const stored = w.log.appended.find((m) => m.authorKind === 'assistant');
+    assert.deepStrictEqual(stored.refs, [{ kind: 'document', id: 'd1' }, { kind: 'notebook', id: 'n1' }], 'only what is in the project becomes a chip');
 });

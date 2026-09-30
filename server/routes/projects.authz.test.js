@@ -159,6 +159,7 @@ function dispatch({ method, url, body = {}, session }) {
         const res = {
             statusCode: 200,
             status(c) { this.statusCode = c; return this; },
+            set(h) { this.headers = { ...this.headers, ...h }; return this; },
             json(b) { this.body = b; resolve(this); return this; },
             send(b) { this.body = b; resolve(this); return this; },
             end() { resolve(this); return this; },
@@ -548,6 +549,54 @@ test('a viewer never gets the members\' e-mail addresses, only names', async () 
     assert.strictEqual(res.statusCode, 200);
     assert.doesNotMatch(JSON.stringify(res.body), /@example\.test|"email"/);
     assert.deepStrictEqual(res.body.people, { alice: { name: 'Alice A' }, bob: {} }, 'a person without a name stays unnamed');
+});
+
+const PNG = 'data:image/png;base64,iVBORw0KGgo=';
+
+test('a member\'s own avatar: an emoji, a path or a url inline; an uploaded picture as a link to the avatar route, not inline', async () => {
+    resetFx();
+    fx.role = 'viewer';
+    fx.users = {
+        alice: { id: 'alice', displayName: 'Alice A', organizationId: 'org1', avatar: PNG, avatarType: 'image' },
+        bob: { id: 'bob', displayName: 'Bob B', organizationId: 'org1', avatar: '🦊', avatarType: 'emoji' },
+        cy: { id: 'cy', displayName: 'Cy C', organizationId: 'org1', avatar: '/uploads/avatars/cy.png', avatarType: 'image' },
+        di: { id: 'di', displayName: 'Di D', organizationId: 'org1', avatar: 'https://nc.example.test/avatar/di/64', avatarType: 'url' },
+        ed: { id: 'ed', displayName: 'Ed E', organizationId: 'org1', avatar: 'x'.repeat(5000), avatarType: 'url' },
+        fay: { id: 'fay', displayName: 'Fay F', organizationId: 'org1', avatar: '🦊', avatarType: 'bogus' },
+    };
+    fx.shares = ['bob', 'cy', 'di', 'ed', 'fay'].map((id, i) => ({ id: `s${i}`, projectId: 'p1', sharedWithType: 'user', sharedWithId: id, permission: 'viewer' }));
+    const { people } = (await dispatch({ method: 'GET', url: '/p1/members', session: BOB })).body;
+    assert.match(people.alice.avatar, /^\/api\/projects\/p1\/avatars\/alice\?v=[0-9a-f]{10}$/);
+    assert.strictEqual(people.alice.avatarType, 'image');
+    assert.deepStrictEqual(people.bob, { name: 'Bob B', avatar: '🦊', avatarType: 'emoji' });
+    assert.deepStrictEqual(people.cy, { name: 'Cy C', avatar: '/uploads/avatars/cy.png', avatarType: 'image' });
+    assert.strictEqual(people.di.avatar, 'https://nc.example.test/avatar/di/64');
+    assert.deepStrictEqual(people.ed, { name: 'Ed E' }, 'something huge that is not a picture stays out');
+    assert.deepStrictEqual(people.fay, { name: 'Fay F' }, 'an unknown type stays out');
+    assert.ok(!JSON.stringify(people).includes('iVBORw0KGgo'), 'the picture itself is not in the list');
+});
+
+test('the avatar route serves the picture as an image to members, only for people of the project and only raster types', async () => {
+    resetFx();
+    fx.role = 'viewer';
+    fx.users = {
+        alice: { id: 'alice', organizationId: 'org1', avatar: PNG, avatarType: 'image' },
+        bob: { id: 'bob', organizationId: 'org1', avatar: 'data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=', avatarType: 'image' },
+        cy: { id: 'cy', organizationId: 'org1', avatar: PNG, avatarType: 'image' },
+        mallory: { id: 'mallory', organizationId: 'org2', avatar: PNG, avatarType: 'image' },
+    };
+    fx.shares = [
+        { id: 's1', projectId: 'p1', sharedWithType: 'user', sharedWithId: 'bob', permission: 'viewer' },
+        { id: 's2', projectId: 'p1', sharedWithType: 'user', sharedWithId: 'mallory', permission: 'viewer' },
+    ];
+    const ok = await dispatch({ method: 'GET', url: '/p1/avatars/alice', session: BOB });
+    assert.strictEqual(ok.statusCode, 200);
+    assert.strictEqual(ok.headers['Content-Type'], 'image/png');
+    assert.strictEqual(ok.headers['X-Content-Type-Options'], 'nosniff');
+    assert.ok(Buffer.isBuffer(ok.body) && ok.body.length > 0);
+    for (const who of ['bob', 'cy', 'mallory', 'nobody']) {
+        assert.strictEqual((await dispatch({ method: 'GET', url: `/p1/avatars/${who}`, session: BOB })).statusCode, 404, who);
+    }
 });
 
 test('member groups are read one by one, never as the whole groups table', async () => {

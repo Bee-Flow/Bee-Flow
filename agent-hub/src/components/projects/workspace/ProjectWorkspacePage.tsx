@@ -13,6 +13,7 @@ import { ApiError } from '../../../api/client';
 import { useProjectVisitQuery, type ChangeItemType } from '../../../api/queries/projectChanges';
 import { useProjectChatsQuery } from '../../../api/queries/projectChats';
 import { useProjectFilesQuery } from '../../../api/queries/projectContent';
+import { useProjectTasksQuery } from '../../../api/queries/projectTasks';
 import {
     useProjectMembersQuery, useProjectQuery, useProjectResourcesQuery, useProjectThreadsQuery,
     useSetProjectKind, type Project, type ProjectRole,
@@ -25,6 +26,7 @@ import OverviewTab from './OverviewTab';
 import ProjectCreateForm from './ProjectCreateForm';
 import { projectErrorText } from './projectErrorText';
 import { ProjectLiveProvider } from './ProjectLiveContext';
+import TasksTab from './tasks/TasksTab';
 import ProjectRail, { type RailCounts } from './ProjectRail';
 import SettingsTab from './SettingsTab';
 import { useChangeFeedLive, useMarkSeenWhenOpen, useProjectUnread } from './useProjectUnread';
@@ -73,6 +75,8 @@ const lengthOf = (v: unknown): number | null => (Array.isArray(v) ? v.length : n
 
 /** The rail without Notebooks, for a reader who may not use them. */
 const NO_NOTEBOOKS: readonly WorkspaceTabId[] = Object.freeze(['notebooks']);
+/** A Studio Solution holds no tasks. */
+const NO_TASKS: readonly WorkspaceTabId[] = Object.freeze(['tasks']);
 
 /** Rail counts. A count that is not known yet stays absent — never a guessed 0. */
 function useRailCounts(projectId: string): RailCounts {
@@ -81,9 +85,11 @@ function useRailCounts(projectId: string): RailCounts {
     const teamChats = useProjectChatsQuery(projectId);
     const files = useProjectFilesQuery(projectId);
     const members = useProjectMembersQuery(projectId);
+    const tasks = useProjectTasksQuery(projectId);
     const kbs = lengthOf(resources.data?.knowledgeBases);
     return {
         chats: teamChats.data && threads.data ? teamChats.data.chats.length + threads.data.length : null,
+        tasks: tasks.data ? tasks.data.tasks.filter(x => x.status !== 'done').length : null,
         documents: lengthOf(resources.data?.documents),
         notebooks: lengthOf(resources.data?.notebooks),
         meetings: lengthOf(resources.data?.meetings),
@@ -180,12 +186,14 @@ function TabContent({ route, project, role, props }: {
         notebooksEnabled: props.notebooksEnabled !== false,
         sub: route.sub,
         onOpenSub: (sub) => route.go(route.tab, sub),
+        onOpenTab: route.go,
         intent: route.intent,
     };
     const content: ContentTabProps = { ...common, intent: contentIntentOf(route.intent) };
     const onLeft = () => onDeleted?.(projectId);
     switch (route.tab) {
         case 'chats': return <ProjectChatsTab {...common} onOpenThread={onOpenThread} onStartChat={onStartChat} />;
+        case 'tasks': return <TasksTab {...common} />;
         case 'documents': return <DocumentsTab {...content} />;
         case 'notebooks': return <NotebooksTab {...content} />;
         case 'meetings': return <MeetingsTab {...content} />;
@@ -243,7 +251,7 @@ function Workspace(props: WorkspaceProps) {
                 onSelect={(tab) => route.go(tab)}
                 onBack={onClose}
                 currentUserId={currentUser?.id}
-                hidden={props.notebooksEnabled === false ? NO_NOTEBOOKS : undefined}
+                hidden={[...(props.notebooksEnabled === false ? NO_NOTEBOOKS : []), ...(project.kind === 'solution' ? NO_TASKS : [])]}
             />
             <main className="flex-1 min-w-0 flex flex-col min-h-0">
                 {(project.kind === null || project.kind === 'solution') && (

@@ -4,7 +4,8 @@
 
 import { Loader2 } from 'lucide-react';
 import React from 'react';
-import { initialsOf } from './projectVisuals';
+import { API_BASE } from '../../../utils/helpers';
+import { hueOf, initialsOf } from './projectVisuals';
 
 export const INPUT_CLASS =
     'w-full px-3 py-2 rounded-lg text-sm border border-[var(--border-default)] bg-[var(--bg-primary)] '
@@ -143,20 +144,34 @@ export function LoadingRow({ label }: { label: string }) {
 }
 
 /** A round member avatar with initials, and an optional presence dot. */
-export function Avatar({ name, size = 'md', online = false, onlineLabel, className = '' }: {
+export function Avatar({ name, size = 'md', online = false, onlineLabel, className = '', picture, color }: {
     name?: string | null;
+    /** The person's own avatar; initials when absent. */
+    picture?: { type: 'emoji' | 'image' | 'url'; value: string } | null;
+    /** The person's colour in this project; without one the colour comes from the name. */
+    color?: string | null;
     size?: 'sm' | 'md';
     online?: boolean;
     onlineLabel?: string;
     className?: string;
 }) {
     const box = size === 'sm' ? 'w-6 h-6 text-[10px]' : 'w-8 h-8 text-[11px]';
+    // Without a picture a person gets a colour of their own, the same one everywhere, instead of a grey disc.
+    const hue = hueOf(name);
+    const tint = !picture && name
+        ? (color
+            ? { background: `color-mix(in srgb, ${color} 20%, transparent)`, color: `color-mix(in srgb, ${color} 72%, var(--text-primary))` }
+            : { background: `hsl(${hue} 70% 50% / 0.18)`, color: `hsl(${hue} 55% 42%)` })
+        : undefined;
     return (
         <span
-            className={`relative inline-grid place-items-center rounded-full flex-shrink-0 font-semibold bg-[var(--bg-tertiary)] text-[var(--text-secondary)] ring-2 ring-[var(--bg-secondary)] ${box} ${className}`.trim()}
+            className={`relative inline-grid place-items-center rounded-full flex-shrink-0 font-semibold ${tint ? '' : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)]'} ring-2 ring-[var(--bg-secondary)] ${box} ${className}`.trim()}
+            style={tint}
             title={name || undefined}
         >
-            <span aria-hidden="true">{initialsOf(name)}</span>
+            {picture && picture.type !== 'emoji'
+                ? <img src={picture.value.startsWith('/') ? `${API_BASE}${picture.value}` : picture.value} alt="" loading="lazy" className="w-full h-full rounded-full object-cover" />
+                : <span aria-hidden="true">{picture?.type === 'emoji' ? picture.value : initialsOf(name)}</span>}
             {online && (
                 <span
                     className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[var(--success)] ring-2 ring-[var(--bg-secondary)]"

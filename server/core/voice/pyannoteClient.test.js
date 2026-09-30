@@ -152,11 +152,11 @@ test('the meeting LANGUAGE picks the speech model', async () => {
         'Japanese is outside Parakeet\'s 25 languages and must fall back');
 });
 
-test('diarization always asks for precision-2', async () => {
+test('diarization always asks for precision-3', async () => {
     const body = {};
     installFetch({ submitBody: body });
     await transcribeWithPyannote('meeting.mp4', { language: 'nl' });
-    assert.strictEqual(body.value.model, 'precision-2');
+    assert.strictEqual(body.value.model, 'precision-3');
 });
 
 test('numSpeakers is sent in the diarize body when provided (exact count)', async () => {
@@ -165,7 +165,7 @@ test('numSpeakers is sent in the diarize body when provided (exact count)', asyn
     await transcribeWithPyannote('meeting.mp4', { language: 'nl', numSpeakers: 5 });
     assert.strictEqual(submitBody.value.numSpeakers, 5);
     assert.strictEqual(submitBody.value.transcription, true);
-    assert.strictEqual(submitBody.value.model, 'precision-2');
+    assert.strictEqual(submitBody.value.model, 'precision-3');
 });
 
 test('numSpeakers omitted (Auto) when not a positive number', async () => {
@@ -228,10 +228,10 @@ test('the identify body carries an explicit threshold and exclusive matching', a
     installFetch({ identifyBody });
     await transcribeWithPyannote('meeting.mp4', { numSpeakers: 4, voiceprints: selection() });
 
-    assert.strictEqual(identifyBody.value.model, 'precision-2');
+    assert.strictEqual(identifyBody.value.model, 'precision-3');
     assert.strictEqual(identifyBody.value.matching.threshold, 50);
     assert.strictEqual(identifyBody.value.matching.exclusive, true);
-    assert.strictEqual(identifyBody.value.confidence, true);
+    assert.ok(!('confidence' in identifyBody.value), 'precision-3 answers the frame-level confidence flag with an error');
     assert.strictEqual(identifyBody.value.numSpeakers, 4, 'the same speaker-count hint aligns both diarizations');
     assert.deepStrictEqual(identifyBody.value.voiceprints, [{ label: 'vp_tom', voiceprint: 'QUFB' }]);
 });
@@ -256,12 +256,13 @@ test('a confident match becomes a speaker mapping', async () => {
     assert.strictEqual(out.voiceprintInfo.considered, 1);
 });
 
-test('the NEGATIVE verdict reaches the caller, not just the positive one', async () => {
-    // A two-person meeting where only one is enrolled. The transcript's own
-    // turns are the fallback diarization source, so they double as the two
-    // speakers: SPEAKER_00 (0-3s) is fully covered by Tom's identify turns,
-    // SPEAKER_01 (3-6s) is not covered at all.
-    installFetch({
+/**
+ * A two-person meeting (SPEAKER_00 0-30s, SPEAKER_01 30-90s) where only Tom is
+ * enrolled. The transcript's own turns are the fallback diarization source,
+ * so they double as the two speakers; Tom's identify speaker spans 0-`end`.
+ */
+function twoPersonMeeting(end, confidence) {
+    return {
         jobStates: [{
             status: 'succeeded',
             output: {
@@ -272,15 +273,36 @@ test('the NEGATIVE verdict reaches the caller, not just the positive one', async
             },
         }],
         identifyOutput: {
-            identification: [{ speaker: 'S_A', start: 0, end: 30 }],
-            voiceprints: [{ speaker: 'S_A', match: 'vp_tom', confidence: { vp_tom: 92 } }],
+            identification: [{ speaker: 'S_A', start: 0, end }],
+            voiceprints: [{ speaker: 'S_A', match: 'vp_tom', confidence: { vp_tom: confidence } }],
         },
-    });
+    };
+}
+
+test('the NEGATIVE verdict reaches the caller, not just the positive one', async () => {
+    // SPEAKER_00 is fully covered by Tom's identify turns, SPEAKER_01 not at all.
+    installFetch(twoPersonMeeting(30, 92));
     const out = await transcribeWithPyannote('meeting.mp4', { voiceprints: selection() });
 
     assert.deepStrictEqual(out.voiceprintMapping, { SPEAKER_00: 'Tom Smit' });
     assert.deepStrictEqual(out.voiceprintRuledOut, { SPEAKER_01: ['Tom Smit'] },
         'the unenrolled participant must be reported as NOT the enrolled one');
+});
+
+test('with a speaker count, one voiceprint never names two speakers', async () => {
+    // The identify job folded the unenrolled SPEAKER_01 into Tom's speaker.
+    // With a count the diarize ids are two people, so neither may be pinned.
+    const merged = twoPersonMeeting(90, 90);
+    installFetch(merged);
+    const counted = await transcribeWithPyannote('meeting.mp4', { voiceprints: selection(), numSpeakers: 2 });
+    assert.strictEqual(counted.voiceprintMapping, null);
+    assert.deepStrictEqual(counted.voiceprintRoster, ['Tom Smit']);
+    assert.ok(counted.voiceprintInfo.detail.every(d => d.decision === 'shared_voiceprint'));
+
+    // Without a count the same picture may be Tom split in two, which stays named.
+    installFetch(merged);
+    const auto = await transcribeWithPyannote('meeting.mp4', { voiceprints: selection() });
+    assert.deepStrictEqual(auto.voiceprintMapping, { SPEAKER_00: 'Tom Smit', SPEAKER_01: 'Tom Smit' });
 });
 
 test('IDENTIFY FAILURE NEVER COSTS THE TRANSCRIPT', async () => {

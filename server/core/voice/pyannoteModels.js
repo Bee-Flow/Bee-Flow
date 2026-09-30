@@ -1,10 +1,17 @@
 /**
  * Which pyannoteAI models to use, and why.
  *
- * DIARIZATION — `precision-2`, always. It is pyannoteAI's own default and their
- * best: "28% more accurate, on average, than Community-1". `community-1` is the
- * weaker open-source model and `live-1` is streaming-only (sub-300ms latency,
- * for live captioning), so neither is a candidate for meeting notes.
+ * DIARIZATION — `precision-3`, always, for /diarize, /identify and /voiceprint
+ * alike. It is pyannoteAI's best: "Across our 15 benchmark datasets,
+ * diarization error rate drops by 10.4% against Precision-2, from 16.02 to
+ * 14.35", at the Precision-2 price. Precision-2 is deprecated in October 2026,
+ * and a request that names it explicitly (as this constant did) does not move
+ * with the API default, so the name is spelled out here rather than left to
+ * the default. Precision-3 rejects the old frame-level `confidence` request
+ * flag; the identify match scores we read arrive without it.
+ * `community-1` is the weaker open-source model and `live-1` is streaming-only
+ * (sub-300ms latency, for live captioning), so neither is a candidate for
+ * meeting notes.
  *
  * TRANSCRIPTION — depends on the meeting language. pyannoteAI hosts exactly two
  * speech models, and neither wins everywhere:
@@ -41,7 +48,7 @@
 
 'use strict';
 
-const DIARIZATION_MODEL = 'precision-2';
+const DIARIZATION_MODEL = 'precision-3';
 
 const PARAKEET = 'parakeet-tdt-0.6b-v3';
 const WHISPER_TURBO = 'faster-whisper-large-v3-turbo';

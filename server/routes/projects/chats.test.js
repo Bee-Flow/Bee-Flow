@@ -41,13 +41,13 @@ const assert = require('node:assert');
 const crypto = require('node:crypto');
 const { serve, assertRefused } = require('../../core/http/routeHarness');
 const { pgliteDb } = require('../../testUtils/pgliteDb');
+const { fakeRequireProjectRole, projectUser } = require('../../testUtils/projectRoleGate');
 const { makeProjectChatStore, DDL } = require('../../stores/projectChatStore');
 const participationStoreModule = require('../../stores/projectAiParticipationStore');
 const { makeChatCrypto } = require('../../projects/chatCrypto');
 const { makeProjectChatsRouter, titleFromMessage } = require('./chats');
 
-const ORDER = { viewer: 0, editor: 1, owner: 2 };
-const who = (id) => ({ id, organizationId: 'org1', role: 'user', email: `${id}@example.test` });
+const who = projectUser;
 const OWNER = who('olga');
 const EDITOR = who('ed');
 const EDITOR2 = who('eve');
@@ -114,17 +114,7 @@ const fakeAssistant = {
     },
 };
 
-function requireProjectRole(minRole) {
-    return function requireProjectRoleMw(req, res, next) {
-        const userId = req.session?.user?.id;
-        if (!userId) return res.status(401).json({ error: 'Not authenticated' });
-        const role = ROLES[req.params.id]?.[userId];
-        if (!role) return res.status(404).json({ error: 'Not found' });
-        if (ORDER[role] < ORDER[minRole]) return res.status(403).json({ error: 'Insufficient permissions' });
-        req.projectRole = role;
-        return next();
-    };
-}
+const requireProjectRole = fakeRequireProjectRole(ROLES);
 
 const api = serve('/api/projects', makeProjectChatsRouter({
     requireProjectRole,
@@ -137,6 +127,9 @@ const api = serve('/api/projects', makeProjectChatsRouter({
         const a = AGENTS[agentId];
         return a && a.users.includes(userId) ? { agentId: a.agentId, name: a.name } : null;
     },
+    isChatAgentAllowed: async () => true,
+    filedIds: async (_projectId, kind) => (kind === 'meeting' ? new Set(['mt-1']) : new Set()),
+    listChatAgents: async () => [],
     resolveOrgs: async () => ({ orgId: 'org1', limitOrgId: 'org1' }),
     emit: async (projectId, event) => { events.push({ projectId, ...event }); },
     logActivity: async (projectId, actorId, action, details) => { activity.push({ projectId, actorId, action, details }); },
@@ -719,4 +712,68 @@ test('a change of AI mode tells the compliance checks (ids only); other edits do
     assert.deepStrictEqual(signals, [{ projectId: 'p1', reason: 'ai_mode' }]);
     await call('DELETE', `/api/projects/p1/chats/${chat.id}`);
     assert.deepStrictEqual(signals.length, 2, 'deleting a chat the AI answered in by itself is a change too');
+});
+
+// ── Threads, tagged items, response depth ────────────────────────────────
+
+test('a reply in a thread is stored with its thread and served with it; a reply cannot start a thread', async () => {
+    const { chat } = await startChat({ title: 'Threads' });
+    const root = (await say(chat.id, 'root')).body.message;
+    const reply = await say(chat.id, 'inside', { threadId: root.id });
+    assert.strictEqual(reply.status, 201, reply.text);
+    assert.strictEqual(reply.body.message.threadId, root.id);
+    const listed = (await call('GET', `/api/projects/p1/chats/${chat.id}/messages`)).body.messages;
+    assert.strictEqual(listed.find((m) => m.id === reply.body.message.id).threadId, root.id);
+    const nested = await say(chat.id, 'deeper', { threadId: reply.body.message.id });
+    assert.strictEqual(nested.status, 400);
+    assert.strictEqual(nested.body.code, 'thread_not_found');
+});
+
+test('tagged documents and notebooks must be filed in the project, and are served as kind and id', async () => {
+    const { chat } = await startChat({ title: 'Tags' });
+    const refused = await say(chat.id, 'see this', { refs: [{ kind: 'document', id: 'not-filed' }] });
+    assert.strictEqual(refused.status, 400);
+    assert.strictEqual(refused.body.code, 'ref_not_in_project');
+    assert.strictEqual((await say(chat.id, 'see this', { refs: [{ kind: 'chat', id: 'x' }] })).status, 400, 'only documents, notebooks and meetings');
+    const meeting = await say(chat.id, 'as discussed in the weekly', { refs: [{ kind: 'meeting', id: 'mt-1' }] });
+    assert.strictEqual(meeting.status, 201, meeting.text);
+    assert.deepStrictEqual(meeting.body.message.refs, [{ kind: 'meeting', id: 'mt-1' }]);
+    const other = await say(chat.id, 'that one', { refs: [{ kind: 'meeting', id: 'mt-elsewhere' }] });
+    assert.strictEqual(other.body.code, 'ref_not_in_project', 'a meeting that is not filed in this project');
+});
+
+test('the asked response depth reaches the assistant, and an answer is served with how it was made', async () => {
+    const { chat } = await startChat({ title: 'Depth', aiMode: 'always' });
+    await say(chat.id, 'think hard', { modelTier: 'pro' });
+    assert.strictEqual(replies[0].modelTier, 'pro');
+    await say(chat.id, 'quick');
+    assert.strictEqual(replies[1].modelTier, null);
+});
+
+test('how an answer was made is served to readers, sealed at rest, and only while there is something to show', async () => {
+    const { chat } = await startChat({ title: 'Trace' });
+    const asked = (await say(chat.id, 'my mail is ann@example.test')).body.message;
+    const box = await chatCrypto.forProject({ id: 'p1', organizationId: 'org1' });
+    const id = crypto.randomUUID();
+    const { answerRecord } = require('../../projects/chatTrace');
+    const { aiMeta, aiTrace } = answerRecord({
+        model: { tier: 'fast', requestedTier: 'fast', modelId: 'm1' }, outbound: { tokenMap: { '[email_1]': 'ann@example.test' }, categories: ['EMAIL'] },
+        triggerText: 'my mail is ann@example.test', rawAnswer: 'Noted, [email_1].', box, chatId: chat.id, messageId: id,
+    });
+    await store.appendMessage({ id, projectId: 'p1', chatId: chat.id, authorKind: 'assistant', content: box.sealContent(chat.id, id, 'Noted, ann@example.test.'), replyTo: asked.id, aiMeta, aiTrace });
+    const listed = (await call('GET', `/api/projects/p1/chats/${chat.id}/messages`, { user: VIEWER })).body.messages.find((m) => m.id === id);
+    assert.deepStrictEqual(listed.aiMeta, { tier: 'fast', requestedTier: 'fast', redacted: 1, categories: ['EMAIL'], trace: true });
+    assert.ok(!JSON.stringify(listed).includes('[email_1]'), 'the list carries no trace');
+    const stored = (await pg.query('SELECT ai_trace FROM project_chat_messages WHERE id = $1', [id])).rows[0].ai_trace;
+    assert.ok(!stored.includes('ann@example.test'), 'sealed at rest');
+    const viewer = await call('GET', `/api/projects/p1/chats/${chat.id}/messages/${id}/trace`, { user: VIEWER });
+    assert.strictEqual(viewer.status, 200, viewer.text);
+    assert.deepStrictEqual(viewer.body.trace, {
+        model: 'm1', tier: 'fast', categories: ['EMAIL'], original: 'my mail is ann@example.test', sent: 'my mail is [email_1]',
+        tokenMap: { '[email_1]': 'ann@example.test' }, returned: 'Noted, [email_1].',
+    });
+    assert.strictEqual((await call('GET', `/api/projects/p1/chats/${chat.id}/messages/${id}/trace`, { user: STRANGER })).status, 404);
+    assert.strictEqual((await call('GET', `/api/projects/p1/chats/${chat.id}/messages/${asked.id}/trace`)).status, 404, 'a message with no trace');
+    await call('DELETE', `/api/projects/p1/chats/${chat.id}/messages/${asked.id}`);
+    assert.strictEqual((await call('GET', `/api/projects/p1/chats/${chat.id}/messages/${id}/trace`)).status, 404, 'the message it answered was deleted');
 });

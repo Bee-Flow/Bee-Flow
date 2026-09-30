@@ -88,6 +88,10 @@ export function MeetingPicker({ projectId, open, onClose, inProject }: PickerPro
         id: m.id,
         label: m.title || t('project_content.meeting_untitled', 'Untitled meeting'),
         meta: joinMeta(m.createdAt ? new Date(m.createdAt).toLocaleDateString(locale) : '', formatMeetingDuration(m.durationSeconds), elsewhere(m.projectId)),
+        // A note in a project is open to the project and to nobody else: one shared another way is not added.
+        blocked: m.isPublished || (m.sharedGroups || []).length > 0 || (m.sharedWith || []).length > 0
+            ? t('project_content.meeting_already_shared', 'Already shared another way. Make it personal first: a note in a project is open to the whole project, and to nobody else.')
+            : undefined,
     })), [mine.data, t, locale, elsewhere]);
     return (
         <ItemPickerDialog
