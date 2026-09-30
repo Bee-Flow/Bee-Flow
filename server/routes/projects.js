@@ -199,7 +199,7 @@ function memberAvatar(projectId, userId, user) {
     const avatar = typeof user.avatar === 'string' ? user.avatar : '';
     if (!avatar || !['emoji', 'image', 'url'].includes(user.avatarType)) return null;
     if (avatar.startsWith('data:image/')) {
-        const v = require('crypto').createHash('sha1').update(avatar).digest('hex').slice(0, 10);
+        const v = require('crypto').createHash('sha256').update(avatar).digest('hex').slice(0, 10);
         return { avatar: `/api/projects/${projectId}/avatars/${encodeURIComponent(userId)}?v=${v}`, avatarType: 'image' };
     }
     return avatar.length <= 2048 ? { avatar, avatarType: user.avatarType } : null;

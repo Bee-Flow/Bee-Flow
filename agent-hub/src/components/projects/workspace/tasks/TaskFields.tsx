@@ -15,7 +15,9 @@ export const MAX_CHECK_TEXT = 200;
 export function newCheckId(): string {
     const c = globalThis.crypto;
     if (c && typeof c.randomUUID === 'function') return c.randomUUID();
-    return `c-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+    // randomUUID needs a secure context; getRandomValues does not.
+    const bytes = c.getRandomValues(new Uint8Array(8));
+    return `c-${Date.now().toString(36)}-${Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')}`;
 }
 
 export function PriorityMark({ priority }: { priority: TaskPriority }) {
