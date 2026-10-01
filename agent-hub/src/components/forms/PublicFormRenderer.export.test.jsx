@@ -11,6 +11,7 @@
 
 import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
+import userEvent from '@testing-library/user-event';
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
 import { FormEndingView } from './PublicFormRenderer';
 
@@ -134,5 +135,56 @@ describe('export bar — Save to Notebook', () => {
         fireEvent.click(button);
         fireEvent.click(button);
         await waitFor(() => expect(onSaveToNotebook).toHaveBeenCalledTimes(1));
+    });
+});
+
+describe('export bar — Word, PDF and Webpage', () => {
+    it('are absent without handlers, as in the builder\'s live preview', () => {
+        render(<FormEndingView form={form(LONG_TEXT)} />);
+        for (const id of ['form-export-docx', 'form-export-pdf', 'form-export-webpage']) {
+            expect(screen.queryByTestId(id)).toBeNull();
+        }
+    });
+
+    it('asks the caller for the format that was pressed', async () => {
+        const onDownloadAs = vi.fn().mockResolvedValue(undefined);
+        render(<FormEndingView form={form(LONG_TEXT)} onDownloadAs={onDownloadAs} />);
+
+        await userEvent.click(screen.getByTestId('form-export-docx'));
+        await userEvent.click(screen.getByTestId('form-export-pdf'));
+        expect(onDownloadAs.mock.calls).toEqual([['docx'], ['pdf']]);
+    });
+
+    it('frees the bar again after a download, but not after a save that navigates away', async () => {
+        const onDownloadAs = vi.fn().mockResolvedValue(undefined);
+        const onSaveAsWebpage = vi.fn().mockResolvedValue(undefined);
+        render(<FormEndingView form={form(LONG_TEXT)} onDownloadAs={onDownloadAs} onSaveAsWebpage={onSaveAsWebpage} />);
+
+        await userEvent.click(screen.getByTestId('form-export-pdf'));
+        await waitFor(() => expect(screen.getByTestId('form-export-pdf').disabled).toBe(false));
+
+        await userEvent.click(screen.getByTestId('form-export-webpage'));
+        await waitFor(() => expect(onSaveAsWebpage).toHaveBeenCalledTimes(1));
+        expect(screen.getByTestId('form-export-webpage').disabled).toBe(true);
+    });
+
+    it('runs one action at a time', async () => {
+        const onDownloadAs = vi.fn(() => new Promise(() => {}));
+        const onSaveToNotebook = vi.fn();
+        render(<FormEndingView form={form(LONG_TEXT)} onDownloadAs={onDownloadAs} onSaveToNotebook={onSaveToNotebook} />);
+
+        await userEvent.click(screen.getByTestId('form-export-docx'));
+        await userEvent.click(screen.getByTestId('form-export-notebook'));
+        expect(onDownloadAs).toHaveBeenCalledTimes(1);
+        expect(onSaveToNotebook).not.toHaveBeenCalled();
+    });
+
+    it('says what went wrong with a webpage save', async () => {
+        const onSaveAsWebpage = vi.fn().mockRejectedValue(new Error('Could not save this as a webpage.'));
+        render(<FormEndingView form={form(LONG_TEXT)} onSaveAsWebpage={onSaveAsWebpage} />);
+
+        await userEvent.click(screen.getByTestId('form-export-webpage'));
+        expect((await screen.findByRole('alert')).textContent).toMatch(/as a webpage/);
+        expect(screen.getByTestId('form-export-webpage').disabled).toBe(false);
     });
 });

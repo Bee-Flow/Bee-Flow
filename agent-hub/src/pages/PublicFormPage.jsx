@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Loader2 } from 'lucide-react';
+import useFormResultActions from './useFormResultActions';
 import PublicFormRenderer, { FormEndingView, FormWaitingView } from '../components/forms/PublicFormRenderer';
 
 const API = (import.meta.env.VITE_API_URL || '') + '/api/automation/form';
@@ -39,14 +40,19 @@ const POLL_CEILING_MS = 5 * 60 * 1000;
  * redirects into the workspace (App.jsx) and this page only ever renders
  * inside AgentHub, where `user` is already known. It stays a prop rather than
  * something this component checks itself so the anonymous rules above hold:
- * no authFetch, no whoami round trip that could 401. It gates ONLY the
- * closing page's "Save to Notebook" button — the one export action that
- * needs somewhere to save to — so flipping PUBLIC_FORMS_ENABLED back to a
- * genuinely anonymous visitor degrades that one button rather than breaking.
+ * no authFetch, no whoami round trip that could 401. It gates the closing
+ * page's server-side result actions (Word/PDF, Save to Notebook, Save as
+ * Webpage) — they need a signed-in owner — so flipping PUBLIC_FORMS_ENABLED
+ * back to a genuinely anonymous visitor degrades those buttons rather than
+ * breaking; .txt and Copy keep working.
+ *
+ * `webpagesEnabled` says whether this workspace has Webpages at all (the same
+ * entitlement as the /api/webpages gate); without it "Save as Webpage" is not
+ * offered.
  *
  * Phases: loading → form → working → form (page N) → done | error | expired.
  */
-export default function PublicFormPage({ token, authenticated = false }) {
+export default function PublicFormPage({ token, authenticated = false, webpagesEnabled }) {
     const [state, setState] = useState({ status: 'loading', form: null, csrf: null, issuedAt: 0, ending: null });
     // The session id lives in a ref as well as in state: the poll loop closes
     // over it, and re-creating the loop on every render would restart the timer.
@@ -178,36 +184,11 @@ export default function PublicFormPage({ token, authenticated = false }) {
         window.location.href = `/app/studio/documents/notebook/${body.notebookId}`;
     }, [token]);
 
-    /**
-     * "Save to Notebook" on the export bar — the closing page's OWN TEXT, not
-     * a generated file. Twin of openInNotebooks above, minus the fileId: most
-     * automations never take a generate_document step, so there is nothing to
-     * reparse out of storage — the text rides straight from `state.ending`,
-     * which is exactly what the visitor is already reading on screen.
-     *
-     * Always a real callback (hooks cannot be called conditionally); `null`
-     * is handed to the export bar instead whenever `authenticated` is false,
-     * so it hides the button rather than wiring one that can only 401 — the
-     * same "no handler ⇒ no button" rule openInNotebooks already gets from
-     * the builder preview never passing it a handler at all.
-     */
-    const saveToNotebookImpl = useCallback(async () => {
-        const sid = fileSidRef.current;
-        const text = state.ending?.description || '';
-        if (!sid || !text) throw new Error('This result is no longer available.');
-        const r = await fetch(
-            `${API}/${encodeURIComponent(token)}/s/${encodeURIComponent(sid)}/notebook`,
-            {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-                body: JSON.stringify({ text, title: state.ending?.title || '' }),
-            },
-        );
-        const body = await r.json().catch(() => ({}));
-        if (!r.ok || !body?.notebookId) throw new Error(body?.error || 'Could not save this to Notebooks.');
-        window.location.href = `/app/studio/documents/notebook/${body.notebookId}`;
-    }, [token, state.ending]);
-    const saveToNotebook = notebookHandlerFor(authenticated, saveToNotebookImpl);
+    // The export bar's Word/PDF, Notebook and Webpage actions (BFSF-419).
+    // `fileSidRef` for the same reason as downloadHref above.
+    const { saveToNotebook, saveAsWebpage, downloadAs } = useFormResultActions({
+        api: API, token, sessionRef: fileSidRef, ending: state.ending, authenticated, webpagesEnabled: webpagesEnabled === true,
+    });
 
     const upload = useCallback(async (file, field) => {
         const fd = new FormData();
@@ -347,6 +328,8 @@ export default function PublicFormPage({ token, authenticated = false }) {
                             downloadHref={downloadHref}
                             onOpenInNotebooks={openInNotebooks}
                             onSaveToNotebook={saveToNotebook}
+                            onSaveAsWebpage={saveAsWebpage}
+                            onDownloadAs={downloadAs}
                         />
                     </>
                 )}
@@ -427,17 +410,6 @@ function applySessionState(payload, setState, setSession) {
             setSession(null);
             setState(s => ({ status: 'error', form: null, csrf: null, issuedAt: 0, ending: null, theme: s.theme || null }));
     }
-}
-
-/**
- * `impl` when this visitor is signed in, `null` otherwise — split out of the
- * component body so the branch lives in its own tiny function rather than
- * adding to PublicFormPage's own already-substantial one. The export bar's
- * "no handler ⇒ no button" rule (see FormExportBar) does the rest: a `null`
- * here simply hides "Save to Notebook" instead of wiring one that can only 401.
- */
-function notebookHandlerFor(authenticated, impl) {
-    return authenticated ? impl : null;
 }
 
 const SESSION_RE = /^[a-f0-9]{24,64}$/;

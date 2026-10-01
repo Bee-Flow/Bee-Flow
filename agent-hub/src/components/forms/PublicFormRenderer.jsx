@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Loader2, Paperclip, Check, X, Download, BookOpen, Copy, Search } from 'lucide-react';
+import { Loader2, Paperclip, Check, X, Download, BookOpen, Copy, Search, FileText, FileDown, Globe } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { resultFilename, saveBlob } from './resultFile';
+import useTranslation from '../../hooks/useTranslation';
 import themeVars from '../admin/Studio/AppStudio/runtime/themeVars';
 import { Field, INPUT_CLASS, inputStyle } from '../admin/Studio/AppStudio/runtime/uiBits';
 import { normaliseOptions } from './formOptions';
@@ -323,11 +325,10 @@ const LONG_ENDING_CHARS = 240;
 
 /**
  * The generic fallback for a closing page that has no `generate_document`
- * step at all (BFSF-419, Track 1) — the common case: the automation's whole
- * "result" is markdown sitting in `form.description` (a blog post, a
- * summary, an analysis), with no download/notebook field wired, because the
- * author never added one. Without this, closing the tab loses the text for
- * good.
+ * step at all (BFSF-419) — the common case: the automation's whole "result" is
+ * markdown sitting in `form.description` (a blog post, a summary, an
+ * analysis), with no download/notebook field wired, because the author never
+ * added one. Without this, closing the tab loses the text for good.
  *
  * Independent of any download/notebook field on purpose — those need the
  * automation to have produced an actual generated file; this needs nothing
@@ -336,19 +337,22 @@ const LONG_ENDING_CHARS = 240;
  *
  * "Download as .txt" and "Copy text" are pure client-side operations on the
  * text already in hand — no backend round trip, so they work even in the
- * builder's live preview. "Save to Notebook" is a write (it needs a real,
- * signed-in visitor and a real session to attribute it to), so it renders
- * only when the caller hands over a working `onSaveToNotebook` — exactly the
- * same "no handler ⇒ no button" rule the file-based "Open in Notebooks"
- * button already follows for the builder preview.
+ * builder's live preview. Word, PDF, Notebook and Webpage go through the
+ * server (it renders or stores the run's own result), so each renders only
+ * when the caller hands over a working handler — the same "no handler ⇒ no
+ * button" rule the file-based "Open in Notebooks" button follows for the
+ * builder preview.
  */
-function FormExportBar({ text, filename, onSaveToNotebook }) {
+function FormExportBar({ text, title, onDownloadAs, onSaveToNotebook, onSaveAsWebpage }) {
+    const { t } = useTranslation();
     // Hooks first, always — the "is this worth exporting?" bail-out below has
     // to come after every hook call, or a length change across renders would
     // call them in a different order.
     const [copied, setCopied] = useState(false);
-    const [saving, setSaving] = useState(false);
-    const [saveError, setSaveError] = useState(null);
+    // One action at a time: which one is running ('docx', 'pdf', 'notebook',
+    // 'webpage'), and what went wrong with the last one.
+    const [busy, setBusy] = useState(null);
+    const [actionError, setActionError] = useState(null);
 
     // Same split the layout above uses to tell a real result from a one-line
     // "Thanks!" — recomputed here (not passed down as a bool) so this stays
@@ -359,17 +363,7 @@ function FormExportBar({ text, filename, onSaveToNotebook }) {
         // Ship the raw markdown as-is. Stripping `##` / `**` back to plain
         // prose is a project of its own — a .txt with a few stray symbols in
         // it is still far better than a tab the visitor can no longer get back.
-        // A Blob + object URL, same as every other export-to-file button on
-        // this stack (RowBrowser's CSV export, the CMS page export) — never
-        // an `<a href>` at a real endpoint, which carries no auth header.
-        const url = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' }));
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
+        saveBlob(new Blob([text], { type: 'text/plain;charset=utf-8' }), resultFilename(title, 'txt'));
     };
 
     const copyText = async () => {
@@ -383,17 +377,22 @@ function FormExportBar({ text, filename, onSaveToNotebook }) {
         }
     };
 
-    const saveToNotebook = async () => {
-        if (!onSaveToNotebook || saving) return;
-        setSaving(true);
-        setSaveError(null);
+    /**
+     * Run one server-side action. A save navigates away on success, so its
+     * button stays disabled (mirroring "Open in Notebooks": a button that
+     * re-enables first reads as "nothing happened, press again"); a download
+     * leaves the visitor here and frees the bar again.
+     */
+    const run = async (key, action, { navigates }) => {
+        if (!action || busy) return;
+        setBusy(key);
+        setActionError(null);
         try {
-            await onSaveToNotebook();
-            // No setSaving(false) on success, mirroring "Open in Notebooks":
-            // the page is about to navigate away.
+            await action();
+            if (!navigates) setBusy(null);
         } catch (e) {
-            setSaveError(e?.message || 'Could not save this to Notebooks.');
-            setSaving(false);
+            setActionError(e?.message || t('forms.result.failed'));
+            setBusy(null);
         }
     };
 
@@ -404,37 +403,49 @@ function FormExportBar({ text, filename, onSaveToNotebook }) {
         background: 'var(--bg-card, var(--bg-secondary))',
         color: 'var(--text-primary)',
     };
+    const actionButton = (key, Icon, label, busyLabel, onClick) => (
+        <button
+            type="button"
+            onClick={onClick}
+            disabled={busy === key}
+            aria-disabled={busy === key}
+            className={actionClass}
+            style={actionStyle}
+            data-testid={`form-export-${key}`}
+        >
+            {busy === key ? <Loader2 size={14} className="animate-spin" /> : <Icon size={14} />}
+            {busy === key ? busyLabel : label}
+        </button>
+    );
 
     return (
         <div className="flex flex-col gap-1.5" data-testid="form-export-bar">
             <div className="flex flex-wrap gap-2">
                 <button type="button" onClick={downloadTxt} className={actionClass} style={actionStyle} data-testid="form-export-download">
-                    <Download size={14} /> Download as .txt
+                    <Download size={14} /> {t('forms.result.download_txt')}
                 </button>
-                <button type="button" onClick={copyText} className={actionClass} style={actionStyle} data-testid="form-export-copy">
-                    {copied ? <Check size={14} /> : <Copy size={14} />} {copied ? 'Copied' : 'Copy text'}
-                </button>
-                {onSaveToNotebook ? (
-                    <button
-                        type="button"
-                        onClick={saveToNotebook}
-                        disabled={saving}
-                        aria-disabled={saving}
-                        className={actionClass}
-                        style={actionStyle}
-                        data-testid="form-export-notebook"
-                    >
-                        {saving ? <Loader2 size={14} className="animate-spin" /> : <BookOpen size={14} />}
-                        {saving ? 'Saving…' : 'Save to Notebook'}
-                    </button>
+                {onDownloadAs ? (
+                    <>
+                        {actionButton('docx', FileText, t('forms.result.download_docx'), t('forms.result.preparing'), () => run('docx', () => onDownloadAs('docx'), { navigates: false }))}
+                        {actionButton('pdf', FileDown, t('forms.result.download_pdf'), t('forms.result.preparing'), () => run('pdf', () => onDownloadAs('pdf'), { navigates: false }))}
+                    </>
                 ) : null}
+                <button type="button" onClick={copyText} className={actionClass} style={actionStyle} data-testid="form-export-copy">
+                    {copied ? <Check size={14} /> : <Copy size={14} />} {copied ? t('forms.result.copied') : t('forms.result.copy')}
+                </button>
+                {onSaveToNotebook
+                    ? actionButton('notebook', BookOpen, t('forms.result.save_notebook'), t('forms.result.saving'), () => run('notebook', onSaveToNotebook, { navigates: true }))
+                    : null}
+                {onSaveAsWebpage
+                    ? actionButton('webpage', Globe, t('forms.result.save_webpage'), t('forms.result.saving'), () => run('webpage', onSaveAsWebpage, { navigates: true }))
+                    : null}
             </div>
-            {saveError ? <p className="text-xs" role="alert" style={{ color: '#ef4444' }}>{saveError}</p> : null}
+            {actionError ? <p className="text-xs text-[#ef4444]" role="alert">{actionError}</p> : null}
         </div>
     );
 }
 
-export function FormEndingView({ form, downloadHref = null, onOpenInNotebooks = null, onSaveToNotebook = null }) {
+export function FormEndingView({ form, downloadHref = null, onOpenInNotebooks = null, onSaveToNotebook = null, onSaveAsWebpage, onDownloadAs }) {
     const style = useMemo(() => themeVars(form?.theme || {}), [form]);
     const description = form?.description || '';
     const isLong = description.length > LONG_ENDING_CHARS;
@@ -461,7 +472,13 @@ export function FormEndingView({ form, downloadHref = null, onOpenInNotebooks = 
                             itself decides whether description is substantial
                             enough to bother with — nothing else here needs to
                             know that threshold. */}
-                        <FormExportBar text={description} filename={txtFilename(form?.title)} onSaveToNotebook={onSaveToNotebook} />
+                        <FormExportBar
+                            text={description}
+                            title={form?.title}
+                            onDownloadAs={onDownloadAs}
+                            onSaveToNotebook={onSaveToNotebook}
+                            onSaveAsWebpage={onSaveAsWebpage}
+                        />
                     </>
                 ) : null}
                 {/* The closing page is where a produced document usually lands
@@ -474,13 +491,6 @@ export function FormEndingView({ form, downloadHref = null, onOpenInNotebooks = 
             </div>
         </div>
     );
-}
-
-/** A safe, boring .txt filename from the closing page's own title. */
-function txtFilename(title) {
-    const base = String(title || 'result').trim().toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
-    return `${base || 'result'}.txt`;
 }
 
 // Display-only field types: they show something instead of collecting it, so

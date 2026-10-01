@@ -1,3 +1,4 @@
+import userEvent from '@testing-library/user-event';
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import React from 'react';
@@ -121,7 +122,7 @@ describe('PublicFormPage — what a signed-in visitor gets on the closing page',
         let posted = null;
         vi.stubGlobal('fetch', mockFetch(journey({
             [`POST /${TOKEN}/s/${SESSION}/notebook`]: async (init) => {
-                posted = JSON.parse(init.body);
+                posted = init;
                 return { body: { notebookId: 'nb_1' } };
             },
         })));
@@ -134,7 +135,9 @@ describe('PublicFormPage — what a signed-in visitor gets on the closing page',
         fireEvent.click(screen.getByTestId('form-export-notebook'));
 
         await waitFor(() => expect(posted).not.toBeNull());
-        expect(posted).toEqual({ text: RESULT, title: 'All done' });
+        // No text in the request: the server reads the result back from the
+        // run, so the visitor keeps exactly what their journey produced.
+        expect(posted.body).toBeUndefined();
         expect(authFetch).not.toHaveBeenCalled();
     });
 
@@ -148,5 +151,58 @@ describe('PublicFormPage — what a signed-in visitor gets on the closing page',
         fireEvent.click(screen.getByTestId('form-export-notebook'));
         expect(await screen.findByText('Notebooks are unavailable.')).toBeTruthy();
         expect(screen.getByTestId('form-export-notebook').getAttribute('aria-disabled')).toBe('false');
+    });
+    it('offers Word and PDF to a signed-in visitor, and hands the file over as a Blob', async () => {
+        const createObjectURL = vi.fn(() => 'blob:fake');
+        vi.stubGlobal('URL', { ...URL, createObjectURL, revokeObjectURL: vi.fn() });
+        const fetchMock = mockFetch(journey({
+            [`GET /${TOKEN}/s/${SESSION}/export/docx`]: async () => ({ body: {} }),
+        }));
+        const pdfBlob = new Blob(['%PDF'], { type: 'application/pdf' });
+        vi.stubGlobal('fetch', vi.fn(async (url, init) => {
+            const res = await fetchMock(url, init);
+            return { ...res, blob: async () => pdfBlob };
+        }));
+        render(<PublicFormPage token={TOKEN} authenticated />);
+        await finishTheForm();
+
+        await userEvent.click(screen.getByTestId('form-export-docx'));
+        await waitFor(() => expect(createObjectURL).toHaveBeenCalledWith(pdfBlob));
+        // A download leaves the visitor here, so the button comes back.
+        await waitFor(() => expect(screen.getByTestId('form-export-docx').disabled).toBe(false));
+    });
+
+    it('says why a download failed', async () => {
+        vi.stubGlobal('fetch', mockFetch(journey({
+            [`GET /${TOKEN}/s/${SESSION}/export/pdf`]: async () => ({ ok: false, status: 500, body: { error: 'Could not create this file' } }),
+        })));
+        render(<PublicFormPage token={TOKEN} authenticated />);
+        await finishTheForm();
+
+        await userEvent.click(screen.getByTestId('form-export-pdf'));
+        expect(await screen.findByText('Could not create this file')).toBeTruthy();
+    });
+
+    it('offers Save as Webpage only when this workspace has Webpages', async () => {
+        vi.stubGlobal('fetch', mockFetch(journey()));
+        const { unmount } = render(<PublicFormPage token={TOKEN} authenticated />);
+        await finishTheForm();
+        expect(screen.queryByTestId('form-export-webpage')).toBeNull();
+
+        unmount();
+        cleanup();
+        window.history.replaceState(null, '', `/f/${TOKEN}`);
+        render(<PublicFormPage token={TOKEN} authenticated webpagesEnabled />);
+        await finishTheForm();
+        expect(screen.getByTestId('form-export-webpage')).toBeTruthy();
+    });
+
+    it('keeps the server-side actions away from an anonymous visitor', async () => {
+        vi.stubGlobal('fetch', mockFetch(journey()));
+        render(<PublicFormPage token={TOKEN} authenticated={false} webpagesEnabled />);
+        await finishTheForm();
+        for (const id of ['form-export-docx', 'form-export-pdf', 'form-export-notebook', 'form-export-webpage']) {
+            expect(screen.queryByTestId(id)).toBeNull();
+        }
     });
 });

@@ -940,9 +940,10 @@ const AgentHub = ({
                             {/* This slot only ever renders inside the authenticated
                                 workspace (App.jsx redirects /f/<token> here before
                                 the page mounts), so `user` being set IS "signed in".
-                                Gates the closing page's "Save to Notebook" button —
-                                see the prop's own doc comment in PublicFormPage. */}
-                            <PublicFormPage token={formViewToken} authenticated={!!user} />
+                                Gates the closing page's server-side result actions
+                                (Word/PDF, Notebook, Webpage) — see the props' own
+                                doc comment in PublicFormPage. */}
+                            <PublicFormPage token={formViewToken} authenticated={!!user} webpagesEnabled={canUseWebpagesSide} />
                         </div>
                     </div>
                 ) : showSkillsPanel ? (
