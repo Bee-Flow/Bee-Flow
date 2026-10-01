@@ -66,9 +66,13 @@ export {
     collectUpstream, computeUpstreamGroups, computeLoopBodyGroups, buildToolOutputMap, wrapGroupForEach,
     describeNode, describeNodeIn, describeLoopBody, DESCRIBED_TYPES,
     seg, sampleToFields, resolveElementSample, elementFieldOptions, collectArrayPaths, samplePlaceholderFor,
-    overlayGroupWithReal, triggerMetaSample, describeTriggerMeta, inferLoopItemSample, suggestItemVar,
+    overlayGroupWithReal, triggerMetaSample, describeTriggerMeta, inferLoopItemSample, suggestItemVar, runsPerItem,
     pickSample, leadSkillId, DEFAULT_ENV, resolveEnv,
 } from './upstream/index.mjs';
 // A legacy binding shown as a pick (liftLegacy; null means "Formula"), and a
 // pick written for the places that only hold the legacy spelling (lowerPick).
 export { liftLegacy, legacyPathOf, lowerPick } from './upgrade.mjs';
+// M5a: what a definition reads through picks and composes (reads.mjs), and
+// the one rule for lifting a legacy template or path to them (template.mjs).
+export { picksIn, pickPaths, stepReadPaths, stepIdsRead, textAsTemplate } from './reads.mjs';
+export { pickForLegacyPath, templateToCompose } from './template.mjs';

@@ -1,6 +1,5 @@
 import {
     bindingToText,
-    canAdjust,
     chipLabel,
     chipsIn,
     fromFormula,
@@ -47,28 +46,18 @@ describe('bindingToText / textToBinding: the binding round trip', () => {
         }
     });
 
-    it('shows an adjusted value as its pill plus the adjustment, and keeps it', () => {
-        for (const [binding, adjust] of [
-            [{ kind: 'expr', value: 'upper(steps.act_1.output.name)' }, { transform: 'upper', arg: null, arg2: null }],
-            [{ kind: 'expr', value: 'formatDate(steps.act_1.output.date, "DD-MM-YYYY")' }, { transform: 'formatDate', arg: 'DD-MM-YYYY', arg2: null }],
-            [{ kind: 'expr', value: 'yesNoText(trigger.output.ok, "ja", "nee")' }, { transform: 'yesNoText', arg: 'ja', arg2: 'nee' }],
-        ] as const) {
+    it('edits a value with a function around it as the formula it is, and keeps it', () => {
+        // The phone no longer reads `upper(…)` or `formatDate(…)` into an
+        // adjustment beside a pill: the value is the formula, unchanged.
+        for (const binding of [
+            { kind: 'expr', value: 'upper(steps.act_1.output.name)' },
+            { kind: 'expr', value: 'formatDate(steps.act_1.output.date, "DD-MM-YYYY")' },
+            { kind: 'expr', value: 'yesNoText(trigger.output.ok, "ja", "nee")' },
+        ]) {
             const shown = bindingToText(binding, 'binding');
-            expect(shown.formula).toBe(false);
-            expect(shown.adjust).toEqual(adjust);
-            expect(canAdjust(shown.text)).toBe(true);
-            expect(textToBinding(shown.text, 'binding', false, shown)).toEqual(binding);
+            expect(shown).toEqual({ text: binding.value, formula: true });
+            expect(textToBinding(shown.text, 'binding', true)).toEqual(binding);
         }
-    });
-
-    it('drops an adjustment once there is text around the value', () => {
-        const adjust = { transform: 'upper', arg: null, arg2: null };
-        expect(canAdjust('Hi {{trigger.output.name}}')).toBe(false);
-        expect(textToBinding('Hi {{trigger.output.name}}', 'binding', false, { adjust })).toEqual({ kind: 'template', value: 'Hi {{trigger.output.name}}' });
-    });
-
-    it('writes an adjusted value as a formula with the adjustment in it', () => {
-        expect(toFormula('{{steps.act_1.output.name}}', { adjust: { transform: 'upper', arg: null, arg2: null } }).text).toBe('upper(steps.act_1.output.name)');
     });
 
     it('keeps a template whose interpolation is hand-written as a template', () => {
@@ -153,8 +142,8 @@ describe('toFormula / fromFormula', () => {
         expect(fromFormula('upper(item.name) + 1')).toBeNull();
     });
 
-    it('flattens an adjusted value to its pill and the adjustment', () => {
-        expect(fromFormula('upper(item.name)')).toEqual({ text: '{{item.name}}', formula: false, adjust: { transform: 'upper', arg: null, arg2: null } });
+    it('keeps a value with a function around it a formula', () => {
+        expect(fromFormula('upper(item.name)')).toBeNull();
     });
 });
 
@@ -203,5 +192,48 @@ describe('unwrapRefs: a pasted {{path}} in a path or a formula', () => {
         expect(textToBinding('{{item.ok}} && x', 'expression')).toBe('item.ok && x');
         expect(textToBinding('{{steps.act_1.output.total}} > 1', 'binding', true)).toEqual({ kind: 'expr', value: 'steps.act_1.output.total > 1' });
         expect(textToBinding('Hi {{trigger.output.name}}', 'template')).toBe('Hi {{trigger.output.name}}');
+    });
+});
+
+// A pick or a composed text stored by the web or the AI builder: shown for
+// what it is, and never written back as something else by an edit.
+describe('the v2 mapping in a text field', () => {
+    const name = { from: { root: 'trigger', path: ['Klant', 'Naam'] }, take: 'one', as: 'text' } as const;
+    const lines = { from: { root: 'steps', id: 'act_1', path: ['orders', 'product'] }, take: 'all', as: 'text', join: 'lines', label: 'Producten' } as const;
+    const compose = { kind: 'compose', v: 1, parts: ['Beste ', name, ', uw orders:\n', lines] } as const;
+
+    it('edits a composed text as its text, a marker per value, and writes the same compose back', () => {
+        for (const mode of ['binding', 'template'] as const) {
+            const shown = bindingToText(compose, mode);
+            expect(shown.formula).toBe(false);
+            expect(shown.compose).toEqual([name, lines]);
+            expect(shown.text).not.toContain('[object Object]');
+            expect(textToBinding(shown.text, mode, false, shown)).toEqual(compose);
+        }
+    });
+
+    it('keeps every part as it was when the words around the values change', () => {
+        const shown = bindingToText(compose, 'template');
+        const edited = shown.text.replace('Beste ', 'Hallo ');
+        expect(textToBinding(edited, 'template', false, shown)).toEqual({ ...compose, parts: ['Hallo ', name, ', uw orders:\n', lines] });
+    });
+
+    it('stores plain text once no value is left in it', () => {
+        const shown = bindingToText(compose, 'template');
+        const words = shown.text.replace(/\d+/g, '');
+        expect(textToBinding(words, 'template', false, shown)).toBe('Beste , uw orders:\n');
+        expect(textToBinding(words, 'binding', false, shown)).toEqual({ kind: 'literal', value: 'Beste , uw orders:\n' });
+    });
+
+    it('never shows a stored pick as text, nor an object as "[object Object]"', () => {
+        const pick = { kind: 'pick', v: 1, from: { root: 'trigger', path: ['x'] }, take: 'one', as: 'native' };
+        expect(bindingToText(pick, 'binding')).toEqual({ text: '', formula: false });
+        expect(bindingToText(pick, 'template')).toEqual({ text: '', formula: false });
+    });
+
+    it('keeps a literal `{{ }}` typed into a composed text as text', () => {
+        const shown = bindingToText(compose, 'template');
+        const out = textToBinding(`${shown.text} {{trigger.output.x}}`, 'template', false, shown) as { parts: unknown[] };
+        expect(out.parts[out.parts.length - 1]).toBe(' {{trigger.output.x}}');
     });
 });

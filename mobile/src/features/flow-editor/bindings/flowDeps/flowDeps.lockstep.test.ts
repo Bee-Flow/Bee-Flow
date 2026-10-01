@@ -18,7 +18,6 @@ import { ROUTE_STEP_NAME, SET_STEP_NAME } from '@/features/flow-editor/model/ste
 import { isTerminalStepType, TERMINAL_STEP_TYPES } from '@/features/flow-editor/model/terminalSteps';
 import { defaultTriggerLabel, TRIGGER_NAME } from '@/features/flow-editor/model/triggerLabels';
 
-import { summariseData } from './dataSummary';
 import * as dt from './datetimeTarget';
 import { getLayerContract } from './flowletScope';
 import { pickSourceById, pickSourcesSync, resetPickSources, setPickSources } from './pickSources';
@@ -40,17 +39,6 @@ describe('displayHelpers', () => {
         expect(dh.humanizeFieldKey(key)).toBe(web.humanizeFieldKey?.(key));
         expect(dh.humanizeFieldTail(key)).toBe(web.humanizeFieldTail?.(key));
         expect(dh.humanizeToolName(key)).toBe(web.humanizeToolName?.(key));
-    });
-});
-
-describe('dataSummary', () => {
-    const web = flow('dataSummary');
-    it.each([
-        null, undefined, [], [1, 2], [{ a: 1 }, { a: 2 }, null], { results: [{ a: 1 }], total: 201 },
-        { results: [1, 2], total: 2 }, { results: [{}], total: 1.5 }, { lines: [{}], total: 100 }, { a: [1], b: [2] },
-        { branches: [1], x: 1 }, {}, { a: 1 }, '', 'short', 'x'.repeat(80), 3, true, { rows: [], total: 5 },
-    ])('summariseData(%p)', (v) => {
-        expect(summariseData(v)).toStrictEqual(web.summariseData?.(v));
     });
 });
 

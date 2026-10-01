@@ -8,7 +8,8 @@
  * closed, so a big payload opens readable.
  */
 
-import { joinKeyPath, keyPickable, previewValue } from '@/features/flow-editor/bindings';
+import { previewValue, walkRelativePath } from '@/features/flow-editor/bindings';
+import { formatSegment } from '@/shared/mapping';
 
 export type PickRow =
     | { kind: 'node'; key: string; path: string; depth: number; preview: string; pickable: boolean; hasChildren: boolean; open: boolean }
@@ -31,6 +32,28 @@ interface Walk {
 }
 
 const isNode = (v: unknown): v is object => v !== null && typeof v === 'object';
+
+/**
+ * A key appended to a relative path, in the one quoting rule the runtime
+ * reads (the core's formatSegment: `.key`, `["key"]`, `['key"']`), with
+ * whether that path reads the key back. A key the grammar cannot express (a
+ * `]`, both quotes) keeps a bracketed path for the row's open state but is
+ * not offered.
+ */
+function keyStep(prefix: string, key: string): { path: string; pickable: boolean } {
+    const seg = formatSegment(key);
+    if (seg === null) return { path: `${prefix}["${key}"]`, pickable: false };
+    const path = seg.startsWith('.') && !prefix ? seg.slice(1) : `${prefix}${seg}`;
+    // A probe no payload value can be confused with: the path must read this key back.
+    const probe = {};
+    let pickable = false;
+    try {
+        pickable = walkRelativePath(seg.startsWith('.') ? seg.slice(1) : seg, { [key]: probe }) === probe;
+    } catch {
+        pickable = false;
+    }
+    return { path, pickable };
+}
 
 function hasKids(value: unknown, depth: number, maxDepth: number): boolean {
     if (!isNode(value) || depth >= maxDepth) return false;
@@ -58,7 +81,8 @@ function children(w: Walk, at: { value: unknown; path: string; depth: number; pi
     }
     const entries = Object.entries(at.value as Record<string, unknown>);
     for (const [k, v] of entries.slice(0, w.maxChildren)) {
-        node(w, { key: k, value: v, path: joinKeyPath(at.path, k), depth: at.depth, pickable: at.pickable && keyPickable(k) });
+        const step = keyStep(at.path, k);
+        node(w, { key: k, value: v, path: step.path, depth: at.depth, pickable: at.pickable && step.pickable });
     }
     if (entries.length > w.maxChildren) w.rows.push({ kind: 'more', n: entries.length - w.maxChildren, depth: at.depth });
 }

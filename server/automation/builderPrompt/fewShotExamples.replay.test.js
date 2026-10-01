@@ -299,7 +299,26 @@ test('the batched example binds the search results through inputs, not a {{templ
     const batch = callsOf(batched).find(c => c.name === 'builder_add_steps');
     const ai = batch.args.steps.find(s => s.type === 'ai_step');
     assert.ok(!/\{\{/.test(ai.spec.prompt), 'no template in the prompt');
-    assert.equal(ai.spec.inputs.emails.kind, 'ref');
+    // M5: through a pick, the binding form the builder teaches.
+    assert.equal(ai.spec.inputs.emails.pick, 'steps.$search.output.results');
+});
+
+// M5: every few-shot binds upstream data the way the builder now teaches it,
+// as a compact pick; a {kind:"ref"} left in a worked example would teach the
+// form the builder no longer writes by default.
+test('the few-shots bind upstream values as compact picks, never as refs', () => {
+    const calls = examples().flatMap(callsOf);
+    const refs = [];
+    const picks = [];
+    const walk = (v, at) => {
+        if (!v || typeof v !== 'object') return;
+        if (v.kind === 'ref') refs.push(at);
+        if (typeof v.pick === 'string') picks.push(at);
+        for (const [k, x] of Object.entries(v)) walk(x, `${at}.${k}`);
+    };
+    for (const c of calls) walk(c.args, c.id);
+    assert.deepEqual(refs, []);
+    assert.ok(picks.length >= 10, `the examples demonstrate picks (${picks.length})`);
 });
 
 test('builder_set_metadata is called in reply 1 of every example, beside the trigger', () => {

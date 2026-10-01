@@ -52,7 +52,7 @@ export function PlaceholderValues({ editor, placeholders }: { editor: StepEditor
                         required={p.required}
                         hint={say(t, placeholderHint(p)) || null}
                         value={shownValue(values[p.key])}
-                        onChange={(next) => set('values', { ...values, [p.key]: typedPlaceholderValue(p, String(next)) })}
+                        onChange={(next) => set('values', { ...values, [p.key]: typeof next === 'string' ? typedPlaceholderValue(p, next) : next })}
                         prompt={readableExample(placeholderPrompt(p))}
                         disabled={ctx.disabled}
                         testID={`fill-value-${p.key}`}

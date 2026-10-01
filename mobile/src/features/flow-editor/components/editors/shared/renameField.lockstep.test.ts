@@ -28,6 +28,9 @@ const DEF = {
                 c: { kind: 'expr', value: 'trigger.output.naam == "trigger.output.naam" && steps.x.output.trigger.output.naam' },
                 d: { kind: 'literal', value: 'trigger.output.naam' },
                 e: { kind: 'ref', path: 'steps.fp_2.output.naam' },
+                f: { kind: 'pick', v: 1, from: { root: 'trigger', path: ['naam'] }, take: 'one', as: 'native' },
+                g: { kind: 'pick', v: 1, from: { root: 'steps', id: 'fp_2', path: ['naam', 'x'] }, take: 'one', as: 'native' },
+                h: { kind: 'compose', v: 1, parts: ['Dag ', { from: { root: 'trigger', path: ['naam_bedrijf'] }, take: 'one', as: 'text' }, { from: { root: 'trigger', path: ['naam'] }, take: 'one', as: 'text' }] },
             },
         },
         { id: 'loop', type: 'loop', body: [{ id: 'b1', type: 'set', fields: { x: { kind: 'template', value: '{{steps.fp_2.output.naam}}' } } }] },
@@ -50,6 +53,22 @@ describe('renameFormField against the web', () => {
 
     it('refuses what the web refuses', () => {
         expect(renameFormField(null, { base: 'trigger.output', from: 'a', to: 'b' })).toEqual(web.renameFormField(null, { base: 'trigger.output', from: 'a', to: 'b' }));
+    });
+
+    it('moves a pick and a composed value part the phone stored', () => {
+        const { definition, rewritten } = renameFormField(DEF, { base: 'trigger.output', from: 'naam', to: 'voornaam' });
+        const inputs = (definition.steps[1] as { inputs: Record<string, { from?: unknown; parts?: unknown[] }> }).inputs;
+        expect(inputs.f?.from).toEqual({ root: 'trigger', path: ['voornaam'] });
+        expect(inputs.g?.from).toEqual({ root: 'steps', id: 'fp_2', path: ['naam', 'x'] });
+        expect(inputs.h?.parts?.slice(1)).toEqual([
+            { from: { root: 'trigger', path: ['naam_bedrijf'] }, take: 'one', as: 'text' },
+            { from: { root: 'trigger', path: ['voornaam'] }, take: 'one', as: 'text' },
+        ]);
+        const page = renameFormField(DEF, { base: 'steps.fp_2.output', from: 'naam', to: 'adres' });
+        expect((page.definition.steps[1] as { inputs: Record<string, { from?: unknown }> }).inputs.g?.from).toEqual({ root: 'steps', id: 'fp_2', path: ['adres', 'x'] });
+        // The title's template, refs a and b, expr c, pick f and compose h.
+        expect(rewritten).toBe(6);
+        expect(page.rewritten).toBe(3);
     });
 
     it('never mutates the definition', () => {

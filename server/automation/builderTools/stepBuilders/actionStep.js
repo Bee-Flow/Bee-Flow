@@ -8,6 +8,7 @@ const { isSideEffect } = require('../../sideEffectMap');
 const { newId, appendAfter } = require('../draftGraph');
 const { fieldsAtRef, checkLoopRef, describeItem } = require('../outputFields');
 const { validateAndFixBindings, sanitizeForEach, unboundLoopVarError } = require('../bindings');
+const { refPathOf, withRefPath } = require('../picks');
 const { inspectGateError } = require('../inspection');
 const { resolveToolName, unknownToolError, findDuplicateAction } = require('./toolResolution');
 const {
@@ -119,15 +120,17 @@ function applyAddAction(draft, rawArgs, draftWrap) {
         const prefix = `loop.${forEach.itemVar}.`;
         let res = null;
         for (const [k, b] of Object.entries(inputs)) {
-            if (!b || b.kind !== 'ref' || typeof b.path !== 'string' || !b.path.startsWith(prefix)) continue;
-            const chk = checkLoopRef(draft, b.path, forEach, draftWrap);
+            // A ref, or a pick of the loop item: the same check on the path it reads.
+            const path = refPathOf(b);
+            if (!path || !path.startsWith(prefix)) continue;
+            const chk = checkLoopRef(draft, path, forEach, draftWrap);
             if (chk.ok && chk.path) {
-                inputs = { ...inputs, [k]: { ...b, path: chk.path } };
+                inputs = { ...inputs, [k]: withRefPath(b, chk.path) };
                 warnings.push(`input "${k}": ${chk.note}`);
             } else if (!chk.ok) {
                 res = res || fieldsAtRef(draft, forEach.overRef, draftWrap);
                 const phrase = describeItem(res);
-                if (phrase) warnings.push(`input "${k}" reads ${b.path} but ${phrase} — it will be empty at run time.`);
+                if (phrase) warnings.push(`input "${k}" reads ${path} but ${phrase} — it will be empty at run time.`);
             }
         }
     }

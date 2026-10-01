@@ -4,13 +4,19 @@
  * mistakes against the draft's trigger fields, and validates the optional
  * per-step `forEach` spec. Required from within automation/builderTools/
  * and re-exported (for tests) via the ../builderTools facade.
+ *
+ * The model is taught picks (`{pick:"steps.x.output.items.email",
+ * take:"all"}`) and composes; they are stored in the shared core's v2 form,
+ * labelled (picks.js), with the same path repairs a ref gets. A ref or a
+ * template the model writes is accepted and kept as it is.
  */
 
 const { triggerFieldsFor } = require('./triggerCatalog');
 const {
     REF_RE, RUNTIME_ROOTS, TRIGGER_RUN_KEYS, repairLegacyPath, tokenizePath,
-    MAPPING_VERSION, normalizePick, pickProblems, composeProblems,
+    pickProblems, composeProblems, normalizePick, describeSource, isPick, picksIn,
 } = require('../../shared/mapping/index.mjs');
+const { canonicalMapping, isCompactPick: _isCompactPick, isCompactCompose, isMappingShape } = require('./picks');
 
 /**
  * Coerce a step's inputs into canonical binding form.
@@ -102,57 +108,6 @@ function _isKindlessRef(m) {
     return !(/[/\\]/.test(path) && !VALID_REF_ROOTS.has(rootOfPath(path)));
 }
 
-// The keys of the compact pick form `{ pick: 'steps.x.output.items.email', take: 'all' }`.
-const COMPACT_PICK_KEYS = new Set(['pick', 'take', 'as', 'join', 'label', 'required']);
-
-/** Is this the compact pick form (and nothing else)? */
-function _isCompactPick(m) {
-    if (!m || typeof m !== 'object' || Array.isArray(m) || m.kind !== undefined) return false;
-    if (typeof m.pick !== 'string' && !(m.pick && typeof m.pick === 'object' && !Array.isArray(m.pick))) return false;
-    return Object.keys(m).every(k => COMPACT_PICK_KEYS.has(k));
-}
-
-/**
- * A v2 binding in its stored form: a pick or a compact pick expanded
- * (shared core normalizePick), a compose with every part expanded. Returned
- * even when it does not validate, so validateAndFixBindings can say why; the
- * AI builder does not write these yet, but a definition is data, and an
- * import or an MCP patch can carry them.
- *
- * The version is kept as given: a `kind: 'pick'` or `kind: 'compose'` object
- * without `v` is not a mapping to resolve.mjs (a literal can carry those
- * keys), so it is reported as `pick_version` / `compose_version`, never made
- * live here. Only the compact `{pick: …}` form, which has no version by
- * construction, is stamped with the current one (validateAndFixBindings
- * names that repair). A compact pick whose path does not read stays a pick
- * with that path as its `from`, so the checks refuse it (`source_shape`)
- * instead of the tool receiving the object `{pick: …}` as its argument.
- */
-function canonicalizeMapping(v) {
-    if (v.kind === 'compose') {
-        const parts = Array.isArray(v.parts)
-            ? v.parts.map(p => (typeof p === 'string' ? p : (normalizePick(p, { part: true }) || p)))
-            : v.parts;
-        const out = { kind: 'compose' };
-        if (v.v !== undefined) out.v = v.v;
-        out.parts = parts;
-        return out;
-    }
-    const compact = v.kind === undefined;
-    const pick = normalizePick(v);
-    if (!pick) {
-        if (!compact) return v;
-        // normalizePick spells take/as/join/label the one way; the stand-in
-        // Source is replaced by the path as written, for the error to name.
-        return { ...normalizePick({ ...v, pick: { root: 'vars', path: [] } }), from: v.pick };
-    }
-    if (!compact) {
-        if (v.v === undefined) delete pick.v;
-        else pick.v = v.v;
-    }
-    return pick;
-}
-
 /**
  * Is this member itself a binding — canonical, or the kind-less `{path}` /
  * `{value}` shape a weaker model emits? Used to tell a map of BINDINGS from a
@@ -162,14 +117,13 @@ function canonicalizeMapping(v) {
 function _looksLikeBinding(m) {
     if (!m || typeof m !== 'object' || Array.isArray(m)) return false;
     if (typeof m.kind === 'string' && ['literal', 'ref', 'template', 'expr', 'pick', 'compose'].includes(m.kind)) return true;
-    return _isKindlessRef(m) || _isCompactPick(m);
+    return _isKindlessRef(m) || _isCompactPick(m) || isCompactCompose(m);
 }
 
 function canonicalizeBinding(v) {
-    // A v2 binding (pick, compose, or the compact `{pick: …}`): its stored form.
-    if (v && typeof v === 'object' && !Array.isArray(v) && (v.kind === 'pick' || v.kind === 'compose' || _isCompactPick(v))) {
-        return canonicalizeMapping(v);
-    }
+    // A v2 binding (pick, compose, or the compact `{pick: …}` / `{compose: […]}`):
+    // its stored form, every pick in it labelled (picks.js).
+    if (isMappingShape(v)) return canonicalMapping(v);
     // Already a binding wrapper with a recognised kind — repair a mangled ref path, then pass through.
     if (v && typeof v === 'object' && !Array.isArray(v) && typeof v.kind === 'string'
         && ['literal', 'ref', 'template', 'expr'].includes(v.kind)) {
@@ -233,14 +187,106 @@ function _isCanonicalBinding(v) {
 
 const VALID_REF_ROOTS = new Set(['trigger', 'steps', 'vars', 'secrets', 'loop']);
 
+/**
+ * The rooting repairs a path the model wrote gets, for a ref and a pick
+ * alike (one rule, each caller words its own note):
+ *   insert_output    `trigger.<field>` → `trigger.output.<field>`. That
+ *                    is undefined at run time for every key that is not the
+ *                    payload (output), the headers or a metadata key, so the
+ *                    payload is the only reading; a metadata key the
+ *                    trigger's payload declares too (`id` on a spreadsheet
+ *                    trigger, `kind` on a Nextcloud file trigger) means the
+ *                    payload's field, as it always has here: left alone it
+ *                    reads the trigger node's id or 'app_event'.
+ *   prepend_root     a bare trigger field (`subject`) → `trigger.output.subject`.
+ *   prepend_trigger  `output.<field>` of a trigger field → `trigger.output.<field>`.
+ * `kind` is null (and `path` the path given) when none applies.
+ * @param {string} cleaned — the path, its spelling already repaired
+ * @param {Set<string>} triggerFields
+ * @returns {{ path: string, kind: 'insert_output'|'prepend_root'|'prepend_trigger'|null }}
+ */
+function repairTriggerRooting(cleaned, triggerFields) {
+    const root = rootOfPath(cleaned);
+    if (root === 'trigger') {
+        // Any depth: 'trigger.attachments[0].filename' too.
+        const second = REF_RE.test(cleaned) ? tokenizePath(cleaned)[1] : null;
+        if (second && second.type === 'prop' && typeof second.key === 'string' && second.key !== 'output'
+            && (!TRIGGER_RUN_KEYS.includes(second.key) || triggerFields.has(second.key))) {
+            return { path: `trigger.output${cleaned.slice('trigger'.length)}`, kind: 'insert_output' };
+        }
+        return { path: cleaned, kind: null };
+    }
+    if (VALID_REF_ROOTS.has(root)) return { path: cleaned, kind: null };
+    if (triggerFields.has(cleaned)) return { path: `trigger.output.${cleaned}`, kind: 'prepend_root' };
+    if (cleaned.startsWith('output.') && triggerFields.has(cleaned.slice('output.'.length))) {
+        return { path: `trigger.${cleaned}`, kind: 'prepend_trigger' };
+    }
+    return { path: cleaned, kind: null };
+}
+
+/**
+ * The path of a pick the model wrote as text (`{pick:"…"}`, a part of a
+ * compose, a `from` given as a string), repaired the way a ref path is:
+ * the spelling (repairRefPath), then the rooting (repairTriggerRooting).
+ * `note` names a repair worth teaching.
+ * @returns {{ path: string, note: string|null }}
+ */
+function repairPickPath(path, triggerFields) {
+    const { path: cleaned, debris } = repairRefPath(path);
+    const { path: rooted, kind } = repairTriggerRooting(cleaned, triggerFields);
+    if (kind === 'insert_output') return { path: rooted, note: `inserted .output. → "${rooted}" (what the trigger received is under trigger.output)` };
+    if (kind === 'prepend_root') return { path: rooted, note: `prepended trigger.output. → "${rooted}"` };
+    if (kind === 'prepend_trigger') return { path: rooted, note: `prepended trigger. → "${rooted}"` };
+    if (debris) return { path: cleaned, note: `the path carried JSON debris after it — read as "${cleaned}"` };
+    return { path: cleaned, note: null };
+}
+
+/**
+ * The raw inputs with every pick path the model wrote as text repaired
+ * (repairPickPath), and a note per repair. Only picks are touched; refs and
+ * templates get their own repairs below.
+ */
+function repairRawPicks(raw, triggerFields, repairs) {
+    const fixPick = (label, node, key) => {
+        if (typeof node[key] !== 'string') return node;
+        const { path, note } = repairPickPath(node[key], triggerFields);
+        if (path === node[key]) return node;
+        if (note) repairs.push(`${label}: pick path "${node[key].trim()}" ${note}.`);
+        return { ...node, [key]: path };
+    };
+    const fixPart = (label, p) => {
+        if (!p || typeof p !== 'object' || Array.isArray(p)) return p;
+        if (typeof p.pick === 'string') return fixPick(label, p, 'pick');
+        if (typeof p.from === 'string') return fixPick(label, p, 'from');
+        return p;
+    };
+    const walk = (label, node, depth) => {
+        if (!node || typeof node !== 'object' || depth > 3) return node;
+        if (Array.isArray(node)) return node.map((m, i) => walk(`${label}[${i}]`, m, depth + 1));
+        if (isCompactCompose(node)) return { compose: node.compose.map((p, i) => fixPart(`${label}.compose[${i}]`, p)) };
+        if (node.kind === 'compose' && Array.isArray(node.parts)) return { ...node, parts: node.parts.map((p, i) => fixPart(`${label}.parts[${i}]`, p)) };
+        if (_isCompactPick(node) || node.kind === 'pick') return fixPart(label, node);
+        if (typeof node.kind === 'string') return node;
+        const out = {};
+        for (const [k, m] of Object.entries(node)) out[k] = walk(`${label}.${k}`, m, depth + 1);
+        return out;
+    };
+    const out = {};
+    for (const [k, v] of Object.entries(raw)) out[k] = walk(`inputs.${k}`, v, 0);
+    return out;
+}
+
 // Trigger output fields the LLM commonly mis-roots — when a ref path is bare
 // ("from", "subject", …) we can confidently prepend `trigger.output.` instead
 // of bouncing the call back to the model. Keyed by `<provider>.<event>`.
-function validateAndFixBindings(rawInputs, draft) {
+function validateAndFixBindings(rawInputsIn, draft) {
     const triggerFields = new Set(triggerFieldsFor(draft));
-    const fixed = canonicalizeInputs(rawInputs || {});
     const errors = [];
     const repairs = [];
+    const rawInputs = rawInputsIn && typeof rawInputsIn === 'object' && !Array.isArray(rawInputsIn)
+        ? repairRawPicks(rawInputsIn, triggerFields, repairs)
+        : rawInputsIn;
+    const fixed = canonicalizeInputs(rawInputs || {});
 
     // Two ref-path repairs are worth a note. The tail-trim: the debris is the
     // Gemma-4 signature the model cannot help resending, and the clean path
@@ -254,9 +300,9 @@ function validateAndFixBindings(rawInputs, draft) {
     const collectPathNotes = (label, node, depth) => {
         if (!node || typeof node !== 'object') return;
         if (_looksLikeBinding(node)) {
-            if (_isCompactPick(node)) {
-                repairs.push(`${label}: expanded the compact {pick:…} to the stored form {kind:"pick", v:${MAPPING_VERSION}, from:…, take:…, as:…}.`);
-            } else if (typeof node.path === 'string') {
+            // The compact pick and compose are the forms the model is taught
+            // (builderPrompt.js): expanding them is no repair to name.
+            if (typeof node.path === 'string' && !_isCompactPick(node)) {
                 const { path: clean, debris } = repairRefPath(node.path);
                 if (debris) {
                     repairs.push(`${label}: ref path "${node.path.trim()}" carried JSON debris after the real path — read as "${clean}".`);
@@ -318,7 +364,11 @@ function validateAndFixBindings(rawInputs, draft) {
                 const unread = v.kind === 'pick' && typeof v.from === 'string'
                     ? ` The path "${v.from}" is not one the runtime can read: start it with trigger/steps/vars/loop, e.g. steps.<id>.output.<field>.`
                     : '';
-                errors.push(`inputs.${k}: the ${v.kind} binding is not valid (${problems.join(', ')}).${unread} A pick is {"pick": "steps.<id>.output.<field>", "take": "one"|"all"|"first"|"last"|"count", "as": "native"|"text"|"list"|"number"|"date"|"yesno"|"json"}.`);
+                const badPart = v.kind === 'compose' && Array.isArray(v.parts)
+                    ? v.parts.find(p => p && typeof p === 'object' && typeof p.pick === 'string')
+                    : null;
+                const unreadPart = badPart ? ` The path "${badPart.pick}" is not one the runtime can read: start it with trigger/steps/vars/loop, e.g. steps.<id>.output.<field>.` : '';
+                errors.push(`inputs.${k}: the ${v.kind} binding is not valid (${problems.join(', ')}).${unread}${unreadPart} A pick is {"pick": "steps.<id>.output.<field>", "take": "one"|"all"|"first"|"last"|"count", "as": "native"|"text"|"list"|"number"|"date"|"yesno"|"json"}; a compose is {"compose": ["text ", {"pick": "…"}, " more text"]}.`);
             }
             continue;
         }
@@ -326,22 +376,13 @@ function validateAndFixBindings(rawInputs, draft) {
         if (v.kind === 'ref' && typeof v.path === 'string') {
             const cleaned = v.path.replace(/^\.+/, '').trim();
             const root = rootOfPath(cleaned);
-            // Handle "trigger.<field>…" (skipping the .output. segment) BEFORE
-            // the VALID_REF_ROOTS short-circuit, because 'trigger' is itself a
-            // valid root and the short-circuit would otherwise leave the path
-            // broken. Any depth: 'trigger.attachments[0].filename' too.
-            // `trigger.<x>` is undefined at run time for every x that is not
-            // the payload (output), the headers or a metadata key, so the
-            // payload is the only reading; known trigger fields or not.
-            // A metadata key the trigger's payload declares too (`id` on a
-            // spreadsheet trigger, `kind` on a Nextcloud file trigger) means
-            // the payload's field, as it always has here: left alone it reads
-            // the trigger node's id or 'app_event'.
-            const tokens = root === 'trigger' && REF_RE.test(cleaned) ? tokenizePath(cleaned) : null;
-            const second = tokens && tokens[1];
-            if (second && second.type === 'prop' && typeof second.key === 'string' && second.key !== 'output'
-                && (!TRIGGER_RUN_KEYS.includes(second.key) || triggerFields.has(second.key))) {
-                v.path = `trigger.output${cleaned.slice('trigger'.length)}`;
+            // The rooting repairs (repairTriggerRooting) come BEFORE the
+            // VALID_REF_ROOTS short-circuit, because 'trigger' is itself a
+            // valid root and the short-circuit would otherwise leave
+            // `trigger.<field>` broken.
+            const rooting = repairTriggerRooting(cleaned, triggerFields);
+            if (rooting.kind === 'insert_output') {
+                v.path = rooting.path;
                 repairs.push(`inputs.${k}: inserted .output. segment → "${v.path}".`);
                 continue;
             }
@@ -356,14 +397,14 @@ function validateAndFixBindings(rawInputs, draft) {
                 }
                 continue;
             }
-            if (triggerFields.has(cleaned)) {
-                v.path = `trigger.output.${cleaned}`;
+            if (rooting.kind === 'prepend_root') {
+                v.path = rooting.path;
                 repairs.push(`inputs.${k}: prepended root → "${v.path}". Always start ref paths with trigger/steps/vars/secrets/loop.`);
                 continue;
             }
             // "output.foo" → "trigger.output.foo" (when foo is a known trigger field).
-            if (cleaned.startsWith('output.') && triggerFields.has(cleaned.slice('output.'.length))) {
-                v.path = `trigger.${cleaned}`;
+            if (rooting.kind === 'prepend_trigger') {
+                v.path = rooting.path;
                 repairs.push(`inputs.${k}: prepended trigger root → "${v.path}".`);
                 continue;
             }
@@ -460,6 +501,22 @@ function sanitizeForEach(raw, graph) {
     if (typeof raw !== 'object' || Array.isArray(raw)) {
         return { error: 'forEach must be an object { overRef, itemVar, maxIterations? }, or omitted.' };
     }
+    // The list given as a pick (`overRef:{pick:"steps.x.output.items"}`, the
+    // form the model is taught for values): the path it names. The loop
+    // reads overRef with the LEGACY walk (execFlow), where a key on a list
+    // is undefined and only `[*]` crosses one, so a path written as text is
+    // kept as written (repaired, its `[*]` kept): a Source has no `[*]`, and
+    // `results[*].attachments` spelled from it would loop over nothing.
+    if (raw.overRef && typeof raw.overRef === 'object' && !Array.isArray(raw.overRef)) {
+        const o = raw.overRef;
+        const written = typeof o.pick === 'string' ? o.pick : (o.kind === 'pick' && typeof o.from === 'string' ? o.from : null);
+        if (written !== null) {
+            raw = { ...raw, overRef: repairPickPath(written, new Set(triggerFieldsFor(graph))).path };
+        } else {
+            const pick = normalizePick(o);
+            if (pick && isPick(pick)) raw = { ...raw, overRef: describeSource(pick.from) };
+        }
+    }
     if (!raw.overRef || typeof raw.overRef !== 'string') {
         return { error: 'forEach requires `overRef` — a ref to an upstream array, e.g. "steps.<id>.output.results".' };
     }
@@ -478,8 +535,9 @@ function sanitizeForEach(raw, graph) {
 }
 
 /**
- * Every `loop.<var>` a set of canonical bindings reads — ref paths and the
- * {{…}} placeholders inside templates — with the var name.
+ * Every `loop.<var>` a set of canonical bindings reads — ref paths, the
+ * {{…}} placeholders inside templates and the picks of a loop item — with
+ * the var name.
  */
 const { LOOP_RUNTIME_KEYS } = require('../validate/constants');
 
@@ -499,6 +557,14 @@ function loopVarsReadBy(value, out = [], depth = 0) {
         return out;
     }
     if (value.kind === 'literal' || value.kind === 'expr') return out;
+    // A pick of the loop item (`{root:'loop', id:<var>}`), alone or as a
+    // part of a compose, reads loop.<var> just as a ref to it does.
+    if (value.kind === 'pick' || value.kind === 'compose') {
+        for (const p of picksIn(value)) {
+            if (p.from && p.from.root === 'loop' && typeof p.from.id === 'string') out.push({ v: p.from.id, path: describeSource(p.from) });
+        }
+        return out;
+    }
     for (const v of Object.values(value)) loopVarsReadBy(v, out, depth + 1);
     return out;
 }

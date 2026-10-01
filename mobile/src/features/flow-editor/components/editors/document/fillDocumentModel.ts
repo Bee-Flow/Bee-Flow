@@ -7,6 +7,7 @@
 
 import type { DocumentContract, DocumentParameter, DocumentTemplate } from '@/features/flow-editor/api';
 import type { FormDraft } from '@/features/flow-editor/formState';
+import { isCompose, isPick } from '@/shared/mapping';
 
 import { msg, type FieldSpec, type Msg, type SectionSpec } from '../declarative/spec';
 
@@ -51,9 +52,13 @@ export function typedPlaceholderValue(p: DocumentParameter, text: string): unkno
     return text;
 }
 
-/** What a value row shows for what is stored. */
-export function shownValue(value: unknown): string {
-    return value == null ? '' : String(value);
+/**
+ * What a value row shows for what is stored: the text, or a pick or composed
+ * text the v2 mapping stored there (passed through whole, never "[object Object]").
+ */
+export function shownValue(value: unknown): unknown {
+    if (isCompose(value) || isPick(value)) return value;
+    return value == null || typeof value === 'object' ? '' : String(value);
 }
 
 /** A presentation is filled into a .pptx or a PDF deck, and only then is there a format to choose. */

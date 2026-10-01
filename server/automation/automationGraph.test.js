@@ -208,3 +208,26 @@ test('formTriggersOf and hasFormPage', () => {
     assert.strictEqual(g.hasFormPage(none), false);
     assert.strictEqual(g.hasFormPage(null), false);
 });
+
+// M5: the AI builder (and the editor) store a document's text as a compose,
+// and a deck's slides may be a pick. Both hold the AI step's id as data, not
+// as `steps.<id>` text — the reference signal must still see it.
+test('generatingStepsDownstreamOfAi: a compose or a pick that reads the AI step is a reference', () => {
+    const part = (id, field) => ({ from: { root: 'steps', id, path: [field] }, take: 'one', as: 'text' });
+    const def = {
+        trigger: { id: 'trg', kind: 'manual' },
+        steps: [
+            { id: 'ai_9', type: 'ai_step', prompt: 'write' },
+            { id: 'doc', type: 'generate_document', content: { kind: 'compose', v: 1, parts: ['# Rapport\n', part('ai_9', 'text')] } },
+            { id: 'fill', type: 'fill_document', values: { body: { kind: 'pick', v: 1, from: { root: 'steps', id: 'ai_9', path: ['text'] }, take: 'one', as: 'native' } } },
+            { id: 'deck', type: 'presentation', slides: { kind: 'pick', v: 1, from: { root: 'steps', id: 'ai_9', path: ['outline'] }, take: 'one', as: 'native' } },
+        ],
+        edges: [],
+    };
+    const out = Object.fromEntries(g.generatingStepsDownstreamOfAi(def).map(x => [x.step.id, x]));
+    for (const id of ['doc', 'fill', 'deck']) {
+        assert.strictEqual(out[id].signal, 'reference', id);
+        assert.deepStrictEqual(out[id].aiStepIds, ['ai_9'], id);
+    }
+    assert.strictEqual(g.templateText(def.steps[1].content), '# Rapport\n{{steps.ai_9.output.text}}');
+});

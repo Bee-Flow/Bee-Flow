@@ -13,7 +13,7 @@
 import React from 'react';
 
 import { useTranslation } from '@/core/i18n';
-import { BindingInput } from '@/features/flow-editor/components/fields';
+import { BindingInput, textFieldValue } from '@/features/flow-editor/components/fields';
 import { readableExample } from '@/features/flow-editor/components/outline/readableText';
 import { useApprovalDirectory } from '@/features/flow-editor/hooks';
 
@@ -51,8 +51,8 @@ export function ApprovalEditor(editor: StepEditorProps) {
                     required
                     label={t('mobile.flow.approval.question', 'Question for the approver')}
                     hint={t('mobile.flow.approval.question_hint', 'What the person is asked. Tap Insert data to pull in values from earlier steps, so they can see what they are deciding on.')}
-                    value={typeof draft.prompt === 'string' ? draft.prompt : ''}
-                    onChange={(v) => set('prompt', String(v))}
+                    value={textFieldValue(draft.prompt)}
+                    onChange={(v) => set('prompt', v)}
                     prompt={readableExample(PROMPT_EXAMPLE)}
                     disabled={disabled}
                     testID="approval-prompt"
@@ -62,8 +62,8 @@ export function ApprovalEditor(editor: StepEditorProps) {
                     multiline
                     label={t('mobile.flow.approval.more_info', 'More information')}
                     hint={t('mobile.flow.approval.more_info_hint', 'Shown under the question. Give the approver the context they need — amounts, recipients, the drafted text. Markdown works.')}
-                    value={typeof draft.details === 'string' ? draft.details : ''}
-                    onChange={(v) => set('details', String(v))}
+                    value={textFieldValue(draft.details)}
+                    onChange={(v) => set('details', v)}
                     prompt={readableExample(DETAILS_EXAMPLE)}
                     disabled={disabled}
                 />

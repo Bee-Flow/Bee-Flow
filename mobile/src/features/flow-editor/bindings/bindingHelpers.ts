@@ -7,13 +7,31 @@
  * The web versions of insertAtCursor / replaceRange / getAutocompleteToken
  * mutate a DOM input; here they take a TextInput's value and selection and
  * return the new text plus the caret, which is the same arithmetic without the
- * element. The condition-builder half lives in conditionText.ts and the path
- * walkers in walkPath.ts. Pinned by bindingHelpers.lockstep.test.ts.
+ * element. The condition-builder half lives in conditionText.ts; the path
+ * walkers are the shared mapping core's (`@/shared/mapping`, pinned by its
+ * corpus). Pinned by bindingHelpers.lockstep.test.ts.
  */
 
 import type { BindingValue } from './types';
 
-export { walkPath, walkRelativePath, previewValue } from './walkPath';
+/**
+ * A sample value for inline display: strings raw (truncated), numbers and
+ * booleans as text, objects/arrays as `{a, b…}` / `[N items]`.
+ */
+export function previewValue(value: unknown, maxLen = 40): string {
+    if (value == null) return '—';
+    if (typeof value === 'string') {
+        return value.length > maxLen ? value.slice(0, maxLen - 1) + '…' : value;
+    }
+    if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+    if (Array.isArray(value)) return `[${value.length} item${value.length === 1 ? '' : 's'}]`;
+    if (typeof value === 'object') {
+        const keys = Object.keys(value);
+        if (keys.length === 0) return '{}';
+        return `{${keys.slice(0, 3).join(', ')}${keys.length > 3 ? '…' : ''}}`;
+    }
+    return String(value);
+}
 
 // The binding <-> text core (clean paths, templates, which kind a typed value
 // means) is shared with the Condition node's model, which owns it; the chip

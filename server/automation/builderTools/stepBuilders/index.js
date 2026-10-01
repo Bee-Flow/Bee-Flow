@@ -46,7 +46,7 @@ const {
 } = require('./dataSteps');
 const {
     applyAddGenerateDocument, applyAddFillDocument, clampDocumentTtl, deckLookFields,
-    slideVisualFields, applyAddSlide, applyAddPresentation,
+    slideVisualFields, visualBinding, applyAddSlide, applyAddPresentation,
 } = require('./documentSteps');
 const {
     sanitizeDataExtractionFields, sanitizeDataExtractionSource, deriveDataExtractionSource,
@@ -118,6 +118,7 @@ module.exports = {
     applyAddSlide,
     applyAddPresentation,
     slideVisualFields,
+    visualBinding,
     deckLookFields,
     normalizeAskOnce,
     normalizeCacheInto,

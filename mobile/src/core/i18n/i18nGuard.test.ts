@@ -396,7 +396,6 @@ const SAME_WORDS_OWN_KEY = new Map<string, string>([
     ['mobile.flow.fill.instructions', VERSION_SETTING],
     ['mobile.flow.form.message', VERSION_SETTING],
     ['mobile.flow.form.rename', OTHER_RENAME],
-    ['mobile.flow.group.switch', "routines.ndv.action_switch switches a step's action; this names a Switch step"],
     ['mobile.flow.loop.loop', "routines.ndv.family.loop names a family of step types; this heads a loop's own settings"],
     ['mobile.flow.more', OTHER_MORE],
     ['mobile.flow.ndv.symbol_default', "routines.library.default badges the default way to create a routine; this resets a symbol"],

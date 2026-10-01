@@ -731,10 +731,11 @@ function edge(def, fromId) {
         const many = await applyToolCall('builder_add_data_extraction', { ...base, fields: Array.from({ length: 31 }, (_, i) => ({ name: `f${i}`, type: 'string' })) }, dw);
         assert.ok(many.error && /max 30/i.test(many.error), 'more than 30 fields is rejected');
         assert.ok(!dw.def.steps.some(s => s.type === 'data_extraction'), 'no step added by any rejected call');
-        // A bare ref-looking string is upgraded to a ref rather than frozen as text.
+        // A bare ref-looking string is upgraded to a pick (M5: what the
+        // builder writes) rather than frozen as text.
         const bare = await applyToolCall('builder_add_data_extraction', { source: 'trigger.output.text', fields: [{ name: 'a', type: 'string' }] }, dw);
         assert.ok(!bare.error, `bare ref string must be upgraded: ${bare.error || ''}`);
-        assert.deepStrictEqual(bare.added.source, { kind: 'ref', path: 'trigger.output.text' });
+        assert.deepStrictEqual(bare.added.source, { kind: 'pick', v: 1, from: { root: 'trigger', path: ['text'] }, take: 'one', as: 'native', label: 'Text' });
     }
 
     // ── data_extraction: the integration_action `inputs` wrapper is unwrapped ──
@@ -763,7 +764,7 @@ function edge(def, fromId) {
         // `text` is read as source when no source is given at all.
         const alias = await applyToolCall('builder_add_data_extraction', { text: 'trigger.output.text', fields: [{ name: 'c', type: 'string' }] }, dw);
         assert.ok(!alias.error, alias.error);
-        assert.deepStrictEqual(alias.added.source, { kind: 'ref', path: 'trigger.output.text' });
+        assert.deepStrictEqual(alias.added.source, { kind: 'pick', v: 1, from: { root: 'trigger', path: ['text'] }, take: 'one', as: 'native', label: 'Text' });
         // A patch in the same vocabulary is translated, not refused.
         const up = await applyToolCall('builder_update_step', { stepId: r.added.id, patch: { inputs: { source: { kind: 'ref', path: 'trigger.output.body' } }, prompt: 'Dates first.' } }, dw);
         assert.ok(!up.error, `patch with inputs wrapper: ${up.error || ''}`);
@@ -1057,9 +1058,10 @@ function edge(def, fromId) {
         ] }, dw);
         assert.ok(!r.error, `no source, one placeholder → derived: ${r.error || ''}`);
         const ex = dw.def.steps.find(s => s.type === 'data_extraction');
-        assert.deepStrictEqual(ex.source, { kind: 'ref', path: 'loop.r.output.content' });
+        // M5: the derived source is written as a pick.
+        assert.deepStrictEqual(ex.source, { kind: 'pick', v: 1, from: { root: 'loop', id: 'r', path: ['output', 'content'] }, take: 'one', as: 'native', label: 'Content' });
         assert.strictEqual(ex.instructions, 'Extract these:');
-        assert.ok(r._warnings.some(w => /^steps\[2\] \(\$ex\): source was not set — derived from the one placeholder \{\{loop\.r\.output\.content\}\} in the prompt \(the prompt is not where the text is bound\)\. Set source:\{kind:"ref", path:"loop\.r\.output\.content"\} explicitly next time\.$/.test(w)), JSON.stringify(r._warnings));
+        assert.ok(r._warnings.some(w => /^steps\[2\] \(\$ex\): source was not set — derived from the one placeholder \{\{loop\.r\.output\.content\}\} in the prompt \(the prompt is not where the text is bound\)\. Set source:\{pick:"loop\.r\.output\.content"\} explicitly next time\.$/.test(w)), JSON.stringify(r._warnings));
         const readRef = { overRef: `steps.${r.idMap.read}.output.results`, itemVar: 'r' };
         // Two different placeholders are a real ambiguity — refused with the choice.
         const two = await applyToolCall('builder_add_data_extraction', { fields: [{ name: 'a', type: 'string' }], forEach: readRef, prompt: 'Name: {{loop.r.item.name}}\nText: {{ loop.r.output.content }}\nAgain: {{$loop.r.output.content}}' }, dw);
@@ -1070,6 +1072,13 @@ function edge(def, fromId) {
         assert.ok(!rep.error, rep.error);
         assert.deepStrictEqual(rep.added.source, { kind: 'ref', path: 'loop.r.output.content' });
         assert.ok(rep._warnings.some(w => /^source "loop\.r\.content" read as "loop\.r\.output\.content" — an entry of steps\.a_[0-9a-f]+\.output\.results is \{index, item, output, status\}; the step's result sits under output\.$/.test(w)), JSON.stringify(rep._warnings));
+        // M5: a pick of the loop item gets the same repair, and stays a pick.
+        const repPick = await applyToolCall('builder_add_data_extraction', { source: { pick: 'loop.r.content' }, fields: [{ name: 'a', type: 'string' }], forEach: readRef }, dw);
+        assert.ok(!repPick.error, repPick.error);
+        assert.deepStrictEqual(repPick.added.source, { kind: 'pick', v: 1, from: { root: 'loop', id: 'r', path: ['output', 'content'] }, take: 'one', as: 'native', label: 'Content' });
+        assert.ok(repPick._warnings.some(w => /^source "loop\.r\.content" read as "loop\.r\.output\.content"/.test(w)), JSON.stringify(repPick._warnings));
+        const fooPick = await applyToolCall('builder_add_data_extraction', { source: { pick: 'loop.r.foo' }, fields: [{ name: 'a', type: 'string' }], forEach: readRef }, dw);
+        assert.match(fooPick.error, /^source reads "loop\.r\.foo", but an entry of/);
         // …a field the entry has nowhere is refused naming where the text is.
         const foo = await applyToolCall('builder_add_data_extraction', { source: { kind: 'ref', path: 'loop.r.foo' }, fields: [{ name: 'a', type: 'string' }], forEach: readRef }, dw);
         assert.match(foo.error, /^source reads "loop\.r\.foo", but an entry of steps\.a_[0-9a-f]+\.output\.results \(nextcloud_read_file\) is \{index, item, output, status\} and output has: path, size, contentType, extractedVia, truncated, content, meta — the text is loop\.r\.output\.content\.$/);

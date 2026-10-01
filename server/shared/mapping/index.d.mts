@@ -439,6 +439,8 @@ export declare function triggerMetaSample(definition: unknown, env?: UpstreamEnv
 export declare function describeTriggerMeta(definition: unknown, catalog: unknown, env?: UpstreamEnv): SourceGroup | null;
 export declare function inferLoopItemSample(overRef: unknown, definition: unknown, toolToOutput: ToolOutputMap, sampleRoot?: unknown): Record<string, unknown> | null;
 export declare function suggestItemVar(key: unknown): string;
+/** Does this step run once per item (`forEach` or `repeat`), so its output is the fan-out envelope? */
+export declare function runsPerItem(node: unknown): boolean;
 export declare function pickSample(field: unknown, env?: UpstreamEnv): unknown;
 export declare function leadSkillId(node: unknown): string | null;
 export declare const DEFAULT_ENV: Readonly<Required<UpstreamEnv>>;
@@ -458,3 +460,12 @@ export declare function lowerPick(
     sample?: object | null,
     hint?: string | null,
 ): { kind: 'ref'; path: string } | { kind: 'expr'; value: string } | null;
+// M5a: what a definition reads through picks and composes (reads.mjs), and
+// the one rule for lifting a legacy template or path to them (template.mjs).
+export declare function picksIn(value: unknown): PickPart[];
+export declare function pickPaths(value: unknown): string[];
+export declare function stepReadPaths(step: unknown): string[];
+export declare function textAsTemplate(value: unknown): string;
+export declare function stepIdsRead(value: unknown): string[];
+export declare function pickForLegacyPath(path: unknown): { from: MappingSource; take: 'one' | 'all' } | null;
+export declare function templateToCompose(text: unknown, where?: { stepType?: string; field?: string; sole?: boolean }): PickBinding | ComposeBinding | null;

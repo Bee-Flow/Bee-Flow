@@ -206,3 +206,19 @@ test('the per-tool diet removed what it says it removed', () => {
 test('byte-stable: two projections of the same menu are the same bytes', () => {
     assert.equal(JSON.stringify(lean()), JSON.stringify(lean()));
 });
+
+// M5: the projection teaches what the builder writes — a pick for a value,
+// `{{ }}` text in a text field — and its examples are picks, not refs.
+test('the lean menu teaches the compact pick and shows no ref example', () => {
+    const tools = lean();
+    const text = JSON.stringify(tools);
+    assert.match(leanTool('builder_add_action').function.description, /\{pick:"<path>"\}/);
+    assert.match(leanTool('builder_add_action').function.description, /take:"all"/);
+    assert.match(leanTool('builder_add_steps').function.parameters.properties.steps.items.properties.spec.description, /Values are picks/);
+    assert.match(leanTool('builder_add_notification').function.description, /never JSON/);
+    assert.ok(!/kind:\\?"ref\\?"/.test(text), 'no {kind:"ref"} example left on the lean menu');
+    // The full schemas carry the same hint, and the ref stays accepted.
+    const full = TOOL_SCHEMAS.find(t => t.function.name === 'builder_add_action').function.description;
+    assert.match(full, /\{"pick":"steps\.<id>\.output\.<field>"\}/);
+    assert.match(full, /still works/);
+});

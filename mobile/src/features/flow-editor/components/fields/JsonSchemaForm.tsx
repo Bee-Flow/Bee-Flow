@@ -6,8 +6,10 @@
  * listed as extra rows. Without a schema (a custom tool) it is key/value rows.
  *
  * A declared option list is a picker. Every other field is a BindingInput, so
- * a value can be typed or picked from an earlier step. A field auto-map filled
- * says so until the author changes it.
+ * a value can be typed or picked from an earlier step; a tool input is a
+ * binding the runtime resolves, so a picked value is stored as a pick of the
+ * shared mapping core, used the way the parameter's schema wants it. A field
+ * auto-map filled says so until the author changes it.
  */
 
 import React, { useState } from 'react';
@@ -72,6 +74,8 @@ function SchemaField({ field, onChange, disabled }: { field: SchemaFormField; on
             multiline={field.multiline}
             value={field.value}
             onChange={(b) => onChange(b as BindingValue)}
+            storesPicks
+            schema={field.schema}
             disabled={disabled}
             testID={`input-${field.key}`}
         />

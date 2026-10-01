@@ -14,6 +14,8 @@ const {
 const { validateAndFixBindings, sanitizeForEach, repairRefPath, rootShadowError } = require('./bindings');
 const { inspectGateError } = require('./inspection');
 const { checkLoopRef } = require('./outputFields');
+const { refPathOf, withRefPath, textFieldValue, isTextField, isMappingShape } = require('./picks');
+const { stepReadPaths } = require('../../shared/mapping/index.mjs');
 const { normalizeApprovalConfig } = require('./approval');
 const {
     modelTierGateError, clampDocumentTtl, sanitizeSetOperations,
@@ -125,8 +127,28 @@ const PATCHABLE_FIELDS = {
  * apply* builder would produce, so a patched step is byte-identical to a
  * freshly-added one. Returns `undefined` to mean "clear this optional field"
  * (the caller keeps an existing label instead of clearing it).
+ *
+ * A text field (shared/mapping/sites.mjs) gets the add tools' stored form on
+ * top of its coercion: a pick or compose the model sent is expanded, and a
+ * `{{…}}` text becomes a compose where every placeholder reads a plain path
+ * (picks.js textFieldValue). A fill_document's values map gets it per value.
  */
 function normalizePatchField(type, key, value) {
+    if (type === 'fill_document' && key === 'values') {
+        const map = normalizeFieldValue(type, key, value);
+        const out = {};
+        for (const [k, v] of Object.entries(map)) {
+            out[k] = textFieldValue(v, { stepType: type, field: `values.${k}`, fallback: (x) => (x && typeof x === 'object' && x.kind ? bindingToTemplate(x) : x) });
+        }
+        return out;
+    }
+    if (!isTextField(type, key)) return normalizeFieldValue(type, key, value);
+    if (isMappingShape(value)) return textFieldValue(value, { stepType: type, field: key });
+    const coerced = normalizeFieldValue(type, key, value);
+    return typeof coerced === 'string' ? textFieldValue(coerced, { stepType: type, field: key }) : coerced;
+}
+
+function normalizeFieldValue(type, key, value) {
     if (key === 'label') return (typeof value === 'string' && value.trim()) ? value : undefined;
     if (type === 'ai_step') {
         if (key === 'systemPrompt') return (typeof value === 'string' && value.trim()) ? value.trim() : null;
@@ -235,7 +257,13 @@ function normalizePatchField(type, key, value) {
         }
         if (key === 'slides') {
             if (typeof value === 'string' || Array.isArray(value)) return value;
-            if (value && typeof value === 'object' && value.kind) return bindingToTemplate(value);
+            // The add path's coercion (applyAddPresentation): a pick or
+            // compose, compact or not, is kept expanded; a legacy binding is
+            // flattened to its {{…}} text.
+            if (value && typeof value === 'object' && (value.kind || isMappingShape(value))) {
+                const { visualBinding } = require('./stepBuilders');
+                return visualBinding(value);
+            }
             return '';
         }
     }
@@ -554,10 +582,11 @@ function applyUpdateStep(graph, args, draftWrap) {
             const fe = 'forEach' in patch
                 ? (patch.forEach === null ? undefined : sanitizeForEach(patch.forEach, graph).forEach)
                 : step.forEach;
-            if (fe && next.source.kind === 'ref' && typeof next.source.path === 'string' && next.source.path.startsWith(`loop.${fe.itemVar}.`)) {
-                const chk = checkLoopRef(graph, next.source.path, fe, draftWrap);
+            const sourcePath = refPathOf(next.source);
+            if (fe && sourcePath && sourcePath.startsWith(`loop.${fe.itemVar}.`)) {
+                const chk = checkLoopRef(graph, sourcePath, fe, draftWrap);
                 if (chk.ok && chk.path) {
-                    next.source = { ...next.source, path: chk.path };
+                    next.source = withRefPath(next.source, chk.path);
                     patchNotes.push(chk.note.replace(/^binding /, 'source '));
                 } else if (!chk.ok) {
                     return loopItemSourceError(chk, fe, draftWrap);
@@ -874,6 +903,8 @@ function findDanglingRefs(graph, id) {
             if (!s || s.id === id) continue;
             const out = [];
             collectRefPaths(s, out);
+            // A pick (and a repeat's list) names its step as data, not as a path.
+            for (const path of stepReadPaths(s)) out.push({ kind: 'ref', path });
             for (const r of out) {
                 const src = r.path || r.src || '';
                 // `steps.<id>` followed by a boundary — never a prefix match

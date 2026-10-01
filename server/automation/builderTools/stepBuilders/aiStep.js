@@ -6,6 +6,7 @@
 
 const { newId, appendAfter } = require('../draftGraph');
 const { validateAndFixBindings, sanitizeForEach, unboundLoopVarError, rootShadowError } = require('../bindings');
+const { textFieldValue } = require('../picks');
 const { AI_STEP_AGENT_PERMISSION_KEYS, MAX_AI_STEP_SKILL_IDS } = require('../../validate/constants');
 // Pure module, no I/O at load: the runner and the builder share one sanitiser.
 const { sanitizeDisabledAgentSkillIds } = require('../../../core/automationRunner/aiStepSkills');
@@ -161,7 +162,9 @@ function applyAddAi(draft, args, draftWrap) {
     const step = {
         id: newId('ai'),
         type: 'ai_step',
-        prompt: args.prompt,
+        // A `{{name}}` prompt stays the template it is (it reads the inputs
+        // by name); a compose the model wrote is stored expanded.
+        prompt: textFieldValue(args.prompt, { stepType: 'ai_step', field: 'prompt' }),
         // Optional override of the runner's default system prompt. When
         // omitted we use the safe baseline ("You are a step inside a
         // no-code automation..."). The user can edit this from the

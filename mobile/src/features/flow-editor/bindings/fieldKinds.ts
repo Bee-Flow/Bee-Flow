@@ -2,15 +2,18 @@
  * fieldKinds — the plain-language vocabulary for what a field IS: text, an
  * email address, a number, yes/no, a date, one of a list, a list, a group, a table, a file, or
  * "not seen yet". Never "string / array / object". `unknown` is a real answer:
- * a design-time placeholder is not evidence. `describeField` (the picker row's
- * words) lives in fieldDescription.ts beside listShape. Port of agent-hub
- * `Builder/mapping/fieldKinds.js`; pinned by mapping.lockstep.test.ts.
+ * a design-time placeholder is not evidence. The words of an output field
+ * (nodeEditor/OutputFieldRow) and a tool parameter's kind (schemaForm) come
+ * from here.
+ *
+ * Once a port of agent-hub `Builder/mapping/fieldKinds.js`, held to it by a
+ * differential test. The halves that judged a picked value against a field
+ * (kindFits, the mismatch sentences, describeField) went when the shared
+ * mapping core took that over (shape.mjs, slots.mjs, intent.mjs), and what
+ * is left is the phone's own: fieldKinds.test.ts.
  */
 
-import { translate } from '@/core/i18n';
-
-import type { JsonSchemaProp, Translate, VariableField } from './types';
-import { walkPath } from './walkPath';
+import type { JsonSchemaProp } from './types';
 
 export type FieldKind = 'text' | 'email' | 'number' | 'yesno' | 'date' | 'choice' | 'list' | 'group' | 'table' | 'file' | 'unknown';
 
@@ -29,13 +32,6 @@ export const KIND_WORD: Readonly<Record<FieldKind, { key: string; en: string }>>
     table: { key: 'routines.kind.table', en: 'table' },
     file: { key: 'routines.kind.file', en: 'file' },
     unknown: { key: 'routines.kind.unknown', en: 'not seen yet' },
-});
-
-/** What the kind is underneath — for tooltips and the schema bridge. */
-export const KIND_TECHNICAL: Readonly<Record<FieldKind, string>> = Object.freeze({
-    text: 'string', email: 'string (email)', number: 'number', yesno: 'boolean', date: 'datetime',
-    choice: 'string (one of)',
-    list: 'array', group: 'object', table: 'array of objects', file: 'file', unknown: '?',
 });
 
 /** The ONE ISO-date regex. */
@@ -82,24 +78,6 @@ export function kindOfValue(v: unknown): FieldKind {
     return 'unknown';
 }
 
-/** "12 KB" from a byte count; null when not a number. */
-export function formatBytes(n: unknown): string | null {
-    const b = Number(n);
-    if (!Number.isFinite(b) || b < 0) return null;
-    if (b < 1024) return `${Math.round(b)} B`;
-    if (b < 1024 * 1024) return `${(b / 1024).toFixed(b < 10 * 1024 ? 1 : 0)} KB`;
-    return `${(b / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-export interface FieldDescription {
-    kind: FieldKind;
-    word: string;
-    detail: string | null;
-    value: unknown;
-    count: number | null;
-    of: string | null;
-}
-
 /**
  * What KIND a tool parameter wants, from its JSON schema. A declared `enum`
  * is the evidence `choice` needs; `format` still wins (a dated enum is a date).
@@ -132,37 +110,3 @@ function isChoice(prop: JsonSchemaProp, type: unknown, dated: boolean): boolean 
 }
 
 const SCHEMA_KIND: Record<string, FieldKind> = { number: 'number', integer: 'number', boolean: 'yesno', object: 'group' };
-
-/** Is this kind a single value (not a list, table or group)? */
-export function isScalarKind(kind: unknown): boolean {
-    return kind === 'text' || kind === 'email' || kind === 'number' || kind === 'yesno'
-        || kind === 'date' || kind === 'choice';
-}
-
-/**
- * Would a field of `actual` kind fit a slot that wants `expected`? Advisory:
- * text and choice take any scalar, an address slot takes plain text too (most
- * addresses arrive as text), a list takes a table, unknown fits.
- */
-export function kindFits(actual: unknown, expected: unknown): boolean {
-    if (!expected || expected === 'unknown' || !actual || actual === 'unknown') return true;
-    if (actual === expected) return true;
-    if (expected === 'text' || expected === 'choice') return isScalarKind(actual);
-    if (expected === 'email') return actual === 'text';
-    if (expected === 'list') return actual === 'table';
-    return false;
-}
-
-/** The translator describeField and mismatch use: the caller's, or the app's own. */
-export function translatorOr(t: Translate | null | undefined): Translate {
-    return t || translate;
-}
-
-/** Resolve a field's live value against the merged sample root, when there is one. */
-export function liveValue(field: Partial<VariableField> | null | undefined, sampleRoot: unknown): unknown {
-    if (sampleRoot && field?.path) {
-        const live = walkPath(field.path, sampleRoot);
-        if (live !== undefined) return live;
-    }
-    return field?.sample;
-}

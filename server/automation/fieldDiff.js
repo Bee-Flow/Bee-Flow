@@ -29,6 +29,21 @@
 
 'use strict';
 
+// The mapping core is ESM, loaded on first use rather than at the top: the
+// mobile lockstep tests require this file (via diffSummary.js) under jest,
+// whose module system cannot require an ES module. Only a value that says
+// it is a pick or a compose ever needs the core, so a diff without one never
+// loads it. Node itself loads it either way (require(ESM), >= 22.12).
+let mappingCore = null;
+function mapping() {
+    if (!mappingCore) mappingCore = require('../shared/mapping/index.mjs');
+    return mappingCore;
+}
+const kindIs = (v, kind) => v !== null && typeof v === 'object' && v.kind === kind;
+const isPick = (v) => kindIs(v, 'pick') && mapping().isPick(v);
+const isCompose = (v) => kindIs(v, 'compose') && mapping().isCompose(v);
+const describeSource = (source) => mapping().describeSource(source);
+
 // ── Layout ───────────────────────────────────────────────────────────────
 
 const LAYOUT_NODE_KEYS = Object.freeze(['position', 'size', 'width', 'height', 'color', 'icon', 'iconManual', 'labelManual']);
@@ -253,7 +268,9 @@ function cut(s) {
 }
 
 const BINDING_KINDS = new Set(['literal', 'ref', 'template', 'expr']);
-function isBinding(v) { return isObject(v) && BINDING_KINDS.has(v.kind) && ('value' in v || 'path' in v); }
+// A pick or a compose (the v2 mapping) is one value too: compared and shown
+// whole, never as its from/take/as parts.
+function isBinding(v) { return (isObject(v) && BINDING_KINDS.has(v.kind) && ('value' in v || 'path' in v)) || isPick(v) || isCompose(v); }
 
 function makeRenderer({ labels = new Map(), names = {} } = {}) {
     const refText = (raw) => {
@@ -283,6 +300,12 @@ function makeRenderer({ labels = new Map(), names = {} } = {}) {
             // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- an anchored alternation, no repeat: linear
             if ((key === 'overRef' || key === 'sourceRef' || key === 'arrayRef') && /^(trigger|steps|loop)\./.test(v)) return cut(refText(v));
             return cut(templateText(v));
+        }
+        // The v2 mapping: a pick by its label (else its path, read the way a
+        // ref is), a compose as its text with each value in ‹ ›.
+        if (isPick(v)) return cut(v.label || refText(describeSource(v.from)));
+        if (isCompose(v)) {
+            return cut(v.parts.map((p) => (typeof p === 'string' ? p : `‹${p.label || refText(describeSource(p.from))}›`)).join(''));
         }
         if (isBinding(v)) {
             if (v.kind === 'ref') return cut(refText(v.path));

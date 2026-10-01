@@ -207,7 +207,7 @@ function renderDatatablesBlock(datatables, { canCreate = false } = {}) {
     const ex = list.find(t => t.canWrite) || list[0];
     const exCol = (Array.isArray(ex.columns) && ex.columns.find(c => c && c.key)?.key) || 'datum';
     const exOp = ex.canWrite ? 'add_row' : 'find_rows';
-    const exValues = ex.canWrite ? `, values:{${exCol}:{kind:"ref", path:"loop.x.output.${exCol}"}, …}` : '';
+    const exValues = ex.canWrite ? `, values:{${exCol}:{pick:"loop.x.output.${exCol}"}, …}` : '';
     return `## Datatables you may use (existing tables — never invent an id)
 
 ${lines.join('\n')}${moreTables}

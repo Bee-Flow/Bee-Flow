@@ -101,6 +101,35 @@ describe('renameFormField — the declaration and the references move together',
         expect(definition.steps[1].inputs.b.path).toBe('steps.fp_2.output.adres');
     });
 
+    it('moves a pick and the value parts of a composed text, on this base only', () => {
+        const from = (root, path, id) => (id ? { root, id, path } : { root, path });
+        const d = {
+            trigger: { kind: 'form', form: { fields: [{ name: 'naam', type: 'text', label: 'N' }] } },
+            steps: [
+                { id: 'fp_2', type: 'form_page', form: { fields: [{ name: 'naam', type: 'text', label: 'M' }] } },
+                { id: 'ai_1', type: 'ai_step', inputs: {
+                    who: { kind: 'pick', v: 1, from: from('trigger', ['naam']), take: 'one', as: 'native' },
+                    page: { kind: 'pick', v: 1, from: from('steps', ['naam'], 'fp_2'), take: 'one', as: 'native' },
+                    other: { kind: 'pick', v: 1, from: from('trigger', ['naam_bedrijf']), take: 'one', as: 'native' },
+                    deep: { kind: 'pick', v: 1, from: from('trigger', ['x', 'naam']), take: 'one', as: 'native' },
+                    hi: { kind: 'compose', v: 1, parts: ['Dag ', { from: from('trigger', ['naam', 'voor']), take: 'one', as: 'text' }, '!'] },
+                } },
+            ],
+        };
+        const { definition, rewritten } = renameFormField(d, { base: 'trigger.output', from: 'naam', to: 'voornaam' });
+        const inputs = definition.steps[1].inputs;
+        expect(inputs.who.from).toEqual(from('trigger', ['voornaam']));
+        expect(inputs.hi.parts).toEqual(['Dag ', { from: from('trigger', ['voornaam', 'voor']), take: 'one', as: 'text' }, '!']);
+        expect(inputs.page.from).toEqual(from('steps', ['naam'], 'fp_2'));
+        expect(inputs.other.from.path).toEqual(['naam_bedrijf']);
+        expect(inputs.deep.from.path).toEqual(['x', 'naam']);
+        expect(rewritten).toBe(2);
+        const page = renameFormField(d, { base: 'steps.fp_2.output', from: 'naam', to: 'adres' });
+        expect(page.definition.steps[1].inputs.page.from).toEqual(from('steps', ['adres'], 'fp_2'));
+        expect(page.definition.steps[1].inputs.who.from).toEqual(from('trigger', ['naam']));
+        expect(page.rewritten).toBe(1);
+    });
+
     it('leaves a literal payload verbatim — it ships as typed', () => {
         const d = { trigger: { kind: 'form', form: { fields: [{ name: 'naam', type: 'text', label: 'N' }] } },
             steps: [{ id: 's', inputs: { note: { kind: 'literal', value: 'zie trigger.output.naam' } } }] };
