@@ -65,3 +65,5 @@ export {
 } from './upstream/index.mjs';
 // M4a: a legacy binding shown as a pick (upgrade.mjs); null means "Formula".
 export { liftLegacy } from './upgrade.mjs';
+// M8: "Koppelingen bijwerken": a whole definition upgraded, binding by binding, with a dry run.
+export { upgradeStepRepeat, upgradeDefinition } from './upgrade.mjs';

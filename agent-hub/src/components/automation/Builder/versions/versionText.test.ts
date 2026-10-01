@@ -36,6 +36,8 @@ describe('describeVersion', () => {
             .toBe('Copied from "Invoices"');
         expect(describeVersion(row({ descriptionJson: [{ code: 'settings_changed', params: { setting: 'Retries', settingKey: 'max' } }] }), t))
             .toBe('Retries changed');
+        expect(describeVersion(row({ descriptionJson: [{ code: 'mappings_upgraded', params: { count: 3 } }] }), t))
+            .toBe('Mappings updated (3 field(s))');
     });
 
     it('translates a setting by its code and falls back to the English label', () => {

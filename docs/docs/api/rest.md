@@ -177,6 +177,7 @@ Community feature — building automations is in the free core. Sharing them acr
 | POST | `/api/automation/:id/deactivate` | U | Switch off |
 | POST | `/api/automation/:id/run` | U | Run now (waits up to 60 s for the result) |
 | POST | `/api/automation/:id/dry-run` | U | Test run, side effects synthesised |
+| POST | `/api/automation/:id/upgrade-mappings` | U | Show stored mappings as values (picks) where the result stays the same, checked against the last runs; `?dryRun=1` previews, otherwise a new version is saved (edit role) |
 | GET | `/api/automation/:id/runs` | U | List runs |
 | GET | `/api/automation/runs/:id` | U | Run detail |
 | GET | `/api/automation/runs/:id/steps` | U | The steps of a run, with their inputs and outputs |

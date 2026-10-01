@@ -19,6 +19,8 @@ interface Props {
     automation: SettingsAutomation | null;
     onSave: SaveFn;
     onAutomationChange?: (next: SettingsAutomation) => void;
+    /** The definition was rewritten on the server (Update mappings). */
+    onDefinitionReplaced?: (next: SettingsAutomation) => void;
     /** The viewer may only look (a view or run share). */
     readOnly?: boolean;
 }
@@ -28,7 +30,7 @@ interface Props {
  * proposal, folder, icon, and the whole-routine actions. Everything saves by
  * itself; text fields after a short pause or on blur.
  */
-export default function GeneralSection({ automation, onSave, onAutomationChange, readOnly = false }: Props) {
+export default function GeneralSection({ automation, onSave, onAutomationChange, onDefinitionReplaced, readOnly = false }: Props) {
     const { t } = useTranslation();
     const [title, setTitle] = useState(automation?.title || '');
     const [description, setDescription] = useState(automation?.description || '');
@@ -145,7 +147,7 @@ export default function GeneralSection({ automation, onSave, onAutomationChange,
             </ReadOnlyFieldset>
             {error && <div role="alert" className="text-[12px] text-[var(--error)]">{error}</div>}
             {automation?.id && (
-                <GeneralActions automation={automation} onAutomationChange={onAutomationChange} />
+                <GeneralActions automation={automation} onAutomationChange={onAutomationChange} onDefinitionReplaced={onDefinitionReplaced} />
             )}
         </div>
     );

@@ -9,7 +9,7 @@
 const { getProviderForModel } = require('../aiAgent');
 const { getAdapter } = require('../providers');
 const { resolveInputs } = require('../../automation/bind');
-const { RUNTIME_ROOTS } = require('../../shared/mapping/index.mjs');
+const { RUNTIME_ROOTS, isPick, isCompose } = require('../../shared/mapping/index.mjs');
 const { isSideEffect, isMemoisable } = require('../../automation/sideEffectMap');
 const { memoKeyParts, memoKeyFromParts, MAX_ENTRY_BYTES } = require('./toolMemo');
 const { envFlagOn } = require('./integrationCachePolicy');
@@ -516,9 +516,14 @@ function aiPromptScope(runState, resolvedInputs) {
 /**
  * Walk the entire automation definition collecting every field name that
  * appears in a `steps.<stepId>.output.<field>` ref or `{{steps.<stepId>.output.<field>}}`
- * template. The returned array preserves first-seen order so the synthesised
- * outputSchema looks predictable to the model (and so the wrap-fallback
- * picks the right primary field).
+ * template, or that a pick (or a compose part) of that step reads first. The
+ * returned array preserves first-seen order so the synthesised outputSchema
+ * looks predictable to the model (and so the wrap-fallback picks the right
+ * primary field); a pick is read where its ref was, so a ref upgraded to a
+ * pick ("Koppelingen bijwerken") keeps the schema, and its order, as it was.
+ * An `each` pick of a repeat is left out, like the `loop.<v>` ref it
+ * replaces; the list a repeat runs over counts where a forEach's overRef
+ * did.
  */
 function collectAiStepOutputFields(definition, stepId) {
     const out = [];
@@ -526,11 +531,20 @@ function collectAiStepOutputFields(definition, stepId) {
     if (!definition || !stepId) return out;
     const refRe = new RegExp(`^steps\\.${stepId.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}\\.output\\.([\\w$]+)`);
     const tplRe = new RegExp(`\\{\\{\\s*steps\\.${stepId.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}\\.output\\.([\\w$]+)`, 'g');
+    const fieldRe = /^[\w$]+$/;
+    const visitPick = (p) => {
+        const from = p && typeof p === 'object' ? p.from : null;
+        if (p.take === 'each' || !from || from.root !== 'steps' || from.id !== stepId || !Array.isArray(from.path)) return;
+        const f = from.path[0];
+        if (typeof f === 'string' && fieldRe.test(f) && !seen.has(f)) { seen.add(f); out.push(f); }
+    };
     const visit = (v) => {
         if (v == null) return;
         if (typeof v === 'string') return;
         if (Array.isArray(v)) { v.forEach(visit); return; }
         if (typeof v !== 'object') return;
+        if (isPick(v)) { visitPick(v); return; }
+        if (isCompose(v)) { for (const part of v.parts) if (part && typeof part === 'object') visitPick(part); return; }
         if (v.kind === 'ref' && typeof v.path === 'string') {
             const m = refRe.exec(v.path);
             if (m && !seen.has(m[1])) { seen.add(m[1]); out.push(m[1]); }
@@ -572,12 +586,21 @@ function collectAiStepOutputFields(definition, stepId) {
         scanString(s.input);
         scanString(s.input2);
         if (s.forEach) scanString(s.forEach.overRef);
+        // The same list as a repeat's Source (a forEach upgraded by
+        // "Koppelingen bijwerken"): the field it runs over is read here.
+        const ro = s.repeat && typeof s.repeat === 'object' ? s.repeat.over : null;
+        if (ro && ro.root === 'steps' && ro.id === stepId && Array.isArray(ro.path)) {
+            const f = ro.path[0];
+            if (typeof f === 'string' && fieldRe.test(f) && !seen.has(f)) { seen.add(f); out.push(f); }
+        }
         // Template consumer positions.
         scanString(s.title);
         scanString(s.body && typeof s.body === 'string' ? s.body : undefined);
         scanString(s.message);
         scanString(s.url);
         scanString(s.prompt);
+        // The same text fields written as a compose.
+        for (const t of [s.title, s.body, s.message, s.url, s.prompt]) if (isCompose(t)) visit(t);
         if (s.headers && typeof s.headers === 'object') for (const hv of Object.values(s.headers)) scanString(hv);
         // Nested containers: loop bodies / parallel branches read the ROOT
         // definition's step outputs too (ctx.definition is never rebound for

@@ -1361,6 +1361,7 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
                         onWorkModeChange={isStep ? undefined : setWorkMode}
                         onOpenTab={setTab}
                         onAutomationChange={setServerAutomation}
+                        onDefinitionReplaced={syncServerRow}
                     />
                 )}
                 {/* Its own view rather than the last section of Settings —

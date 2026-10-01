@@ -123,3 +123,57 @@ test('an ai_step nobody reads from is left alone', () => {
     def.edges = [{ from: 'trg', to: 'a1' }, { from: 'a1', to: 'ai1' }];
     assert.equal(errs(def).length, 0);
 });
+
+// "Koppelingen bijwerken" (shared/mapping/upgrade.mjs) writes the same reads
+// as picks: the forEach as a repeat with `each` picks, a direct ref as a
+// pick. The rule must see them exactly as it saw the refs.
+const { upgradeDefinition } = require('../shared/mapping/index.mjs');
+
+test('after the mappings are upgraded the same reads count: the fan-out as a repeat, the direct read as a pick', () => {
+    const lastRun = {
+        trigger: { output: {} },
+        steps: { ai1: { output: { results: [{ index: 0, item: 'a.pdf', output: { datum: '2026-10-01', totaal: 12 } }] } } },
+    };
+    const { definition: fanOut, changed } = upgradeDefinition(base(), { lastRun });
+    assert.ok(fanOut.steps[2].repeat && !fanOut.steps[2].forEach, 'the forEach became a repeat');
+    assert.ok(changed.some(c => c.field === 'inputs.values.Datum' && c.take === 'each'));
+    const e = errs(fanOut);
+    assert.equal(e.length, 1);
+    assert.match(e[0].message, /`datum`/);
+    assert.match(e[0].message, /`totaal`/);
+
+    const direct = base({}, {
+        tableId: { kind: 'literal', value: 4 },
+        values: { Leverancier: { kind: 'ref', path: 'steps.ai1.output.leverancier' } },
+    });
+    direct.steps[2].forEach = undefined;
+    const { definition: picked } = upgradeDefinition(direct, { lastRun: { steps: { ai1: { output: { leverancier: 'Acme' } } } } });
+    assert.equal(picked.steps[2].inputs.values.Leverancier.kind, 'pick');
+    assert.equal(errs(picked).length, 0);
+    const w = warns(picked);
+    assert.equal(w.length, 1);
+    assert.match(w[0].message, /infers \{leverancier: string\}/);
+});
+
+test('a forEach over a field of the ai_step, upgraded to a repeat, still reads that field', () => {
+    const def = {
+        trigger: { id: 'trg', kind: 'manual' },
+        steps: [
+            { id: 'ai1', type: 'ai_step', prompt: 'list the people to mail' },
+            {
+                id: 'a2', type: 'integration_action', tool: 'gmail_send',
+                forEach: { overRef: 'steps.ai1.output.items', itemVar: 'p' },
+                inputs: { to: { kind: 'ref', path: 'loop.p.email' } },
+            },
+        ],
+        edges: [{ from: 'trg', to: 'ai1' }, { from: 'ai1', to: 'a2' }],
+    };
+    const before = warns(def).map(w => w.message);
+    assert.equal(before.length, 1);
+    assert.match(before[0], /items/);
+    const lastRun = { trigger: { output: {} }, steps: { ai1: { output: { items: [{ email: 'a@x.nl' }] } } } };
+    const { definition: upgraded } = upgradeDefinition(def, { lastRun });
+    assert.ok(upgraded.steps[1].repeat && !upgraded.steps[1].forEach, 'the forEach became a repeat');
+    assert.deepStrictEqual(warns(upgraded).map(w => w.message), before);
+    assert.equal(errs(upgraded).length, 0);
+});

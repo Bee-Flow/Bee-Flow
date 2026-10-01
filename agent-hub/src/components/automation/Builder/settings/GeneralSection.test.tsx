@@ -16,11 +16,17 @@ function route(url: string, init?: RequestInit) {
     if (url.endsWith('/folders')) return json({ folders: [{ id: 'f1', name: 'Finance' }] });
     if (url.endsWith('/suggest-description')) return json({ description: 'Collects the folder listing from Nextcloud.' });
     if (url.endsWith('/restore')) return json({ automation: { id: 'a1' } });
+    if (url.endsWith('/upgrade-mappings?dryRun=1')) return json(UPGRADE);
+    if (url.endsWith('/upgrade-mappings')) return json({ ...UPGRADE, dryRun: false, saved: true, version: 3, automation: { id: 'a1', version: 3, definition: { steps: ['upgraded'] } } });
     if (method === 'DELETE') return json({ success: true, purgeAt: '2026-10-28T00:00:00Z' });
     return json({}, false, 404);
 }
 
 const automation = { id: 'a1', title: 'Collect files', description: '', folderId: null, icon: null, definition: {} };
+const UPGRADE = {
+    dryRun: true, saved: false, version: 2, evidence: { lastRun: true, sample: false },
+    changed: [{ stepId: 's', step: 'Send', field: 'inputs.to', kind: 'ref', take: 'one', root: 'trigger', label: 'E-mail' }], kept: [],
+};
 
 describe('Settings › General', () => {
     beforeEach(() => { authFetch.mockReset(); authFetch.mockImplementation(route); });
@@ -82,6 +88,22 @@ describe('Settings › General', () => {
         await user.click(screen.getByRole('button', { name: 'Undo' }));
         expect(await screen.findByText('Restored.')).toBeTruthy();
         expect(onAutomationChange).toHaveBeenLastCalledWith(expect.objectContaining({ deletedAt: null }));
+    });
+
+    it('Update mappings: a dry run in a dialog, and the saved definition goes to onDefinitionReplaced', async () => {
+        const user = userEvent.setup();
+        const onDefinitionReplaced = vi.fn();
+        render(withQueryClient(<GeneralSection automation={automation} onSave={vi.fn()} onDefinitionReplaced={onDefinitionReplaced} />));
+        expect(screen.getByText('Show fields as values instead of formulas, wherever the result stays the same')).toBeTruthy();
+        await user.click(screen.getByRole('button', { name: 'Check…' }));
+        expect(await screen.findByText('1 field(s) can be updated, 0 stay a Formula')).toBeTruthy();
+        await user.click(screen.getByRole('button', { name: 'Update 1 field(s)' }));
+        await waitFor(() => expect(onDefinitionReplaced).toHaveBeenCalledWith(expect.objectContaining({ id: 'a1', version: 3, definition: { steps: ['upgraded'] } })));
+    });
+
+    it('Update mappings is for owners and editors only', () => {
+        render(withQueryClient(<GeneralSection automation={{ ...automation, myRole: 'view' }} onSave={vi.fn()} />));
+        expect(screen.queryByRole('button', { name: 'Check…' })).toBeNull();
     });
 
     it('says so when a whole-routine action fails', async () => {

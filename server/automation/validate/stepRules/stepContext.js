@@ -10,6 +10,17 @@
 
 const { isObject } = require('../helpers');
 const { createFieldsOf } = require('../bindingPaths');
+const { isPick, isCompose, isPrefix } = require('../../../shared/mapping/index.mjs');
+
+/** Every pick (and compose part) in `value`; a literal is data and is not read. */
+function forEachPick(value, fn) {
+    if (value === null || typeof value !== 'object') return;
+    if (Array.isArray(value)) { for (const v of value) forEachPick(v, fn); return; }
+    if (isPick(value)) { fn(value); return; }
+    if (isCompose(value)) { for (const p of value.parts) if (isObject(p)) fn(p); return; }
+    if (value.kind === 'literal') return;
+    for (const k of Object.keys(value)) forEachPick(value[k], fn);
+}
 
 /**
  * Build the context for ONE graph. The caller's bindings are carried through
@@ -41,6 +52,8 @@ function createStepContext({
      * keys are not model fields and are filtered out.
      */
     const FANOUT_KEYS = new Set(['results', 'iterations', 'succeeded', 'failed', 'truncated', 'totalItems', 'error', 'item', 'index', 'status']);
+    // A field name the text scan below can match (`[A-Za-z_$][\w$]*`).
+    const FIELD_RE = /^[A-Za-z_$][\w$]*$/;
     // `loopVarsAbove` — for every step, the itemVars of the loops whose body
     // it sits in (outermost first). A top-level step has none; only its own
     // forEach binds a loop.<var> for it.
@@ -86,6 +99,34 @@ function createStepContext({
             if (typeof over === 'string' && new RegExp(`^steps\\.${esc(stepId)}\\.output(\\.results)?$`).test(over.trim())) {
                 scan(text, `loop.${s.forEach.itemVar || 'item'}.output`, viaLoop);
             }
+            // The same two shapes as picks: a pick of `steps.<id>.output.<f>`,
+            // and an `each` pick of `<f>` in a step that repeats over this
+            // step's output (or its results), as the upgrade of a forEach
+            // writes them.
+            const rep = isObject(s.repeat) && isObject(s.repeat.over) ? s.repeat.over : null;
+            // The list itself, as the text scan above read it in a forEach's
+            // overRef: `steps.<id>.output.<f>` names <f>.
+            if (rep && rep.root === 'steps' && rep.id === stepId && Array.isArray(rep.path)) {
+                const f = rep.path[0];
+                if (typeof f === 'string' && FIELD_RE.test(f) && !FANOUT_KEYS.has(f)) found.add(f);
+            }
+            const repeatsHere = !!rep && rep.root === 'steps' && rep.id === stepId && Array.isArray(rep.path)
+                && (rep.path.length === 0 || (rep.path.length === 1 && rep.path[0] === 'results'));
+            forEachPick(s, (p) => {
+                const from = p.from;
+                if (!isObject(from) || from.root !== 'steps' || from.id !== stepId || !Array.isArray(from.path)) return;
+                if (p.take === 'each') {
+                    if (!repeatsHere || !isPrefix(rep, from)) return;
+                    const rest = from.path.slice(rep.path.length);
+                    if (rest[0] === 'output' && typeof rest[1] === 'string' && FIELD_RE.test(rest[1]) && !FANOUT_KEYS.has(rest[1])) {
+                        found.add(rest[1]);
+                        viaLoop.add(rest[1]);
+                    }
+                    return;
+                }
+                const f = from.path[0];
+                if (typeof f === 'string' && FIELD_RE.test(f) && !FANOUT_KEYS.has(f)) found.add(f);
+            });
         }
         return { all: [...found], viaLoop: [...viaLoop] };
     };

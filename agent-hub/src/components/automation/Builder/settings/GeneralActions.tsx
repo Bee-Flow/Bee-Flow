@@ -1,37 +1,43 @@
-import { Copy, Download, Package, Trash2 } from 'lucide-react';
+import { Copy, Download, Package, RefreshCw, Trash2 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { duplicateAutomationOnServer, invalidateAutomationTrash, restoreAutomation } from '../../../../api/queries/automation/library';
 import { downloadAutomationExport, saveAsTemplate, trashAutomation } from '../../../../api/queries/automation/settings';
 import { useBuilderConfirm } from '../BuilderConfirmContext';
+import UpgradeMappingsDialog from '../UpgradeMappingsDialog';
 import { LINK_BTN, SECONDARY_BTN } from './settingsUi';
 import type { SettingsAutomation } from './settingsUi';
 
-type ActionKey = 'duplicate' | 'export' | 'template' | 'delete';
+type ActionKey = 'duplicate' | 'export' | 'template' | 'mappings' | 'delete';
 
 interface Notice { tone: 'ok' | 'error'; text: string; copyId?: string; trashed?: boolean }
 
 /**
  * Settings › General › Actions (artboard 5e-1): Duplicate · Export · Save as
- * template · Delete… Delete moves the routine to the trash (30 days, runs
- * stay) and offers Undo right here.
+ * template · Update mappings · Delete… Delete moves the routine to the trash
+ * (30 days, runs stay) and offers Undo right here. Update mappings opens its
+ * own dialog (a dry run first); what it saves replaces the definition, so it
+ * goes back through `onDefinitionReplaced`.
  */
-export default function GeneralActions({ automation, onAutomationChange }: {
+export default function GeneralActions({ automation, onAutomationChange, onDefinitionReplaced }: {
     automation: SettingsAutomation;
     onAutomationChange?: (next: SettingsAutomation) => void;
+    /** The definition was rewritten on the server (Update mappings): adopt the row. */
+    onDefinitionReplaced?: (next: SettingsAutomation) => void;
 }) {
     const { t } = useTranslation();
     const confirm = useBuilderConfirm() as (opts: Record<string, unknown>) => Promise<boolean>;
     const [busy, setBusy] = useState<ActionKey | 'restore' | null>(null);
     const [notice, setNotice] = useState<Notice | null>(null);
+    const [upgradeOpen, setUpgradeOpen] = useState(false);
     const id = automation.id as string;
     const title = automation.title || '';
     // What the role allows (automation/access.js): trash is the owner's,
     // a template needs edit; duplicate and export only need view.
     const role = typeof automation.myRole === 'string' ? automation.myRole : 'owner';
     const allowed: Record<ActionKey, boolean> = {
-        duplicate: true, export: true, template: role === 'owner' || role === 'edit', delete: role === 'owner',
+        duplicate: true, export: true, template: role === 'owner' || role === 'edit', mappings: role === 'owner' || role === 'edit', delete: role === 'owner',
     };
 
     const run = async (key: ActionKey | 'restore', work: () => Promise<Notice | null>) => {
@@ -71,6 +77,13 @@ export default function GeneralActions({ automation, onAutomationChange }: {
                 await saveAsTemplate(id, { title, description: automation.description || undefined });
                 return { tone: 'ok', text: t('routines.settings.template_saved', 'Saved as a template for your organisation.') };
             }),
+        },
+        {
+            key: 'mappings', icon: RefreshCw,
+            title: t('mapping.upgrade.action', 'Update mappings'),
+            hint: t('mapping.upgrade.action_hint', 'Show fields as values instead of formulas, wherever the result stays the same'),
+            button: t('mapping.upgrade.action_button', 'Check…'),
+            onClick: () => { setNotice(null); setUpgradeOpen(true); },
         },
         {
             key: 'delete', icon: Trash2, danger: true,
@@ -117,6 +130,14 @@ export default function GeneralActions({ automation, onAutomationChange }: {
                     </li>
                 ))}
             </ul>
+            {upgradeOpen && (
+                <UpgradeMappingsDialog
+                    open
+                    automationId={id}
+                    onClose={() => setUpgradeOpen(false)}
+                    onApplied={(row) => (onDefinitionReplaced || onAutomationChange)?.({ ...automation, ...row })}
+                />
+            )}
             {notice && (
                 <div role={notice.tone === 'error' ? 'alert' : 'status'} className={`flex items-center gap-2 text-[12px] ${notice.tone === 'error' ? 'text-[var(--error)]' : 'text-[var(--text-secondary)]'}`}>
                     <span>{notice.text}</span>

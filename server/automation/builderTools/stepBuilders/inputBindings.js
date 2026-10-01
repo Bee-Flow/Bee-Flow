@@ -6,7 +6,7 @@
  */
 
 const { isSideEffect } = require('../../sideEffectMap');
-const { fieldsAtRef, topLevelFieldsOf, describeItem } = require('../outputFields');
+const { fieldsAtRef, topLevelFieldsOf, describeItem, isFanOutStep } = require('../outputFields');
 const { iterableFieldsOf } = require('../../outputSchemas');
 const { findStepAnywhere, lastStepId, allTriggerIds } = require('../draftGraph');
 
@@ -68,7 +68,7 @@ function listNames(names) {
 /** The output fields a step emits a LIST under — the refs a forEach can iterate. */
 function listFieldsOfStep(step) {
     if (!step || typeof step !== 'object') return [];
-    if (step.forEach && typeof step.forEach === 'object' && typeof step.forEach.overRef === 'string') return ['results'];
+    if (isFanOutStep(step)) return ['results'];
     if (step.type === 'integration_action') return typeof step.tool === 'string' ? iterableFieldsOf(step.tool) : [];
     if (['filter', 'limit', 'dedupe', 'set'].includes(step.type) && typeof step.arrayRef === 'string') return ['items'];
     return [];
@@ -146,7 +146,8 @@ function autoBindRequiredInputs({ graph, tool, inputs, forEach, missing, afterSt
     }
     const anchor = findStepAnywhere(graph, anchorId)?.step;
     if (!anchor) return done();
-    const fanout = anchor.forEach && typeof anchor.forEach === 'object' && typeof anchor.forEach.overRef === 'string';
+    // A forEach, or the repeat "Koppelingen bijwerken" made of one.
+    const fanout = isFanOutStep(anchor);
     // A fan-out step's top level is just `results`; its tool's own fields
     // sit one level down, under each entry's `output`.
     const top = (anchor.type === 'integration_action' && !fanout && typeof anchor.tool === 'string')
