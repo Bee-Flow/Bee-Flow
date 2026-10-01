@@ -7,6 +7,7 @@ import type { DataSummary, FlowDefinition, FlowEdge, FlowStep, RunStepRow } from
 import { usedPathsIn } from './mapping/boundPaths';
 import { buildRealOutputMap, buildSampleRoot } from './mapping/realOutputs';
 import { buildToolOutputMap, describeNode } from './mapping/upstream';
+import useSkillOutputs from './sources/useSkillOutputs';
 import useAutomationApi from '../../../hooks/useAutomationApi';
 import useUpstreamVariables from '../../../hooks/useUpstreamVariables';
 import type { UpstreamGroup } from '../../../hooks/useUpstreamVariables';
@@ -154,7 +155,14 @@ export default function useNodeDetailData({
         () => realOutputById ?? buildRealOutputMap(definition, runSteps),
         [realOutputById, definition, runSteps],
     );
-    const groups = useUpstreamVariables(definition, step?.id, catalog, effectiveRealOutputs);
+    // An AI step without its own schema answers in its leading skill's shape:
+    // hand the describers the skills' declared fields (sources/useSkillOutputs).
+    const skillOutputs = useSkillOutputs(definition);
+    const upstreamCatalog = useMemo(
+        () => (skillOutputs ? { ...(catalog || {}), skillOutputs } : catalog),
+        [catalog, skillOutputs],
+    );
+    const groups = useUpstreamVariables(definition, step?.id, upstreamCatalog, effectiveRealOutputs);
     const previewSample = useMemo(() => buildSampleRoot(groups), [groups]);
     // For the Incoming column and the reference pills: each source step's
     // type (→ family colour), its number on the canvas, and which of its

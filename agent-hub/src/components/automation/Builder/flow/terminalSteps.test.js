@@ -65,7 +65,7 @@ const END_NOT_TERMINAL = {
  * has to make. All five used to know this as `type === \'stop_error\'`.
  */
 const CLIENT_SITES = [
-    { file: '../mapping/upstream/describeNode.js', call: /isTerminalStepType\(node\.type\)/, what: 'geeft geen variabelengroep — niets kan aan de uitvoer binden' },
+    { file: '../mapping/upstream.ts', call: /isTerminalStepType: \(type\) => isTerminalStepType\(type\)/, what: 'geeft geen variabelengroep — niets kan aan de uitvoer binden' },
     { file: 'useStepDrop.js', call: /isTerminalStep\(s\)/, what: 'weigert een stap erachter te droppen' },
     { file: 'nodeDropTarget.js', call: /isTerminalStep\(stepById\.get\(from\)\)/, what: 'ketent er niet aan bij het slepen' },
     { file: 'useEdgeEditCallbacks.js', call: /isTerminalStep\(sourceStep\)/, what: 'weigert een handmatig getekende rand' },

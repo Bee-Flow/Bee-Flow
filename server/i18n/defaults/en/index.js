@@ -64,6 +64,7 @@ const NAMESPACES = {
     "license":         require('./license.js'),
     "login":           require('./login.js'),
     "maintenance":     require('./maintenance.js'),
+    "mapping":         require('./mapping.js'),
     "meeting_notes":   require('./meeting_notes.js'),
     "meetings":        require('./meetings.js'),
     "mfa":             require('./mfa.js'),

@@ -5,7 +5,7 @@ import { isRouteStep } from './flow/routeModel';
 import { FormDensityContext, resolveMode } from './flow/settings/formDensity';
 import FormModeToggle from './flow/settings/FormModeToggle';
 import SettingsHost from './flow/settings/SettingsHost';
-import InputDataPanel from './mapping/InputDataPanel';
+import SourcePanel from './sources/SourcePanel';
 import { VariablePickerProvider } from './mapping/VariablePickerContext';
 import NdvColumnHeader from './ndv/NdvColumnHeader';
 import NdvFooterInfo from './ndv/NdvFooterInfo';
@@ -271,7 +271,7 @@ export default function NodeDetailView({
                                     </span>
                                 )}
                             </NdvColumnHeader>
-                            <InputDataPanel
+                            <SourcePanel
                                 groups={groups}
                                 previewSample={previewSample}
                                 onPick={onInsertFromTree}

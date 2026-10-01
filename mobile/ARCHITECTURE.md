@@ -270,7 +270,8 @@ model/                the graph, pure: normalize, edges, flowOrder, nodeDefs, pa
                       route model, issues, summaries, layout, history, flowlets;
                       model/outline/: insert, remove, duplicate, move, pin, disable,
                       step addresses and findNode
-bindings/             values and references: valueParts, refTokens, upstream/*, autoMap
+bindings/             values and references: valueParts, refTokens, upstream (the shared
+                      core's describers, bound to the phone), autoMap
 formState/            per step type: step → draft (extract) and draft → patch (buildPatch)
 schemaForm/           an app action's inputs from its catalog inputSchema (ToolInputForm)
 api/ · hooks/         definition, catalog, versions, runs, templates, links, folders,

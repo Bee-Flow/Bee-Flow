@@ -13,10 +13,10 @@
 import { summariseData } from './flowDeps/dataSummary';
 import type { StepLabelMap } from './refTokens';
 import type { Binding, ForEach, Translate, VariableField } from './types';
-import { humanizeFieldTail } from '../model/displayHelpers';
-import { suggestItemVar } from './upstream/loops';
+import { suggestItemVar } from './upstream';
 import { describeDataPath, escapeExprString } from './valueParts';
 import { walkPath, walkRelativePath } from './walkPath';
+import { humanizeFieldTail } from '../model/displayHelpers';
 
 const WILDCARD = '[*]';
 

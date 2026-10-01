@@ -35,7 +35,7 @@ describe('OutputView — drag/click mapping', () => {
         const th = container.querySelector('[title*="steps.x.output.results[*].output)"]');
         expect(th).toBeTruthy();
         fireEvent.click(th);
-        expect(onPick).toHaveBeenCalledWith('steps.x.output.results[*].output', { raw: false });
+        expect(onPick).toHaveBeenCalledWith('steps.x.output.results[*].output', expect.objectContaining({ raw: false }));
     });
 
     it('drills an object column so a single nested field (content) is mappable', () => {
@@ -50,7 +50,7 @@ describe('OutputView — drag/click mapping', () => {
         const contentTh = container.querySelector('[title*="steps.x.output.results[*].output.content)"]');
         expect(contentTh).toBeTruthy();
         fireEvent.click(contentTh);
-        expect(onPick).toHaveBeenCalledWith('steps.x.output.results[*].output.content', { raw: false });
+        expect(onPick).toHaveBeenCalledWith('steps.x.output.results[*].output.content', expect.objectContaining({ raw: false }));
     });
 
     it('sets an absolute binding path on dragStart', () => {
@@ -71,7 +71,7 @@ describe('OutputView — drag/click mapping', () => {
         const cell = container.querySelector('td[title*="steps.x.output.results[0].output"]');
         expect(cell).toBeTruthy();
         fireEvent.click(cell);
-        expect(onPick).toHaveBeenCalledWith('steps.x.output.results[0].output', { raw: false });
+        expect(onPick).toHaveBeenCalledWith('steps.x.output.results[0].output', expect.objectContaining({ raw: false }));
     });
 
     it('without enableDrag the table is not draggable (Output column unchanged)', () => {
@@ -145,7 +145,7 @@ describe('OutputView — array columns (the list-in-a-table complaint)', () => {
         const th = document.querySelector('[title*="results[*].attachments[*].filename"]');
         expect(th).toBeTruthy();
         fireEvent.click(th);
-        expect(onPick).toHaveBeenCalledWith('steps.x.output.results[*].attachments[*].filename', { raw: false });
+        expect(onPick).toHaveBeenCalledWith('steps.x.output.results[*].attachments[*].filename', expect.objectContaining({ raw: false }));
     });
 
     it('the per-column chooser button does not collide with "Show fields"', () => {
@@ -153,7 +153,7 @@ describe('OutputView — array columns (the list-in-a-table complaint)', () => {
         render(<OutputView value={MAIL} basePath={BASE} enableDrag onPickPath={onPick} />);
         // The chooser is its own affordance with its own name…
         fireEvent.click(screen.getByLabelText("Choose how to use every row's Subject"));
-        expect(onPick).toHaveBeenCalledWith('steps.x.output.results[*].subject', { raw: false });
+        expect(onPick).toHaveBeenCalledWith('steps.x.output.results[*].subject', expect.objectContaining({ raw: false }));
         // …and the expand chevron for the OBJECT column keeps its label.
         render(<OutputView value={VALUE} basePath={BASE} enableDrag onPickPath={vi.fn()} />);
         expect(screen.getByLabelText('Show fields')).toBeTruthy();

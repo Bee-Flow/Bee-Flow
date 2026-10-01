@@ -23,7 +23,7 @@ export function isSystemField(key: unknown): boolean {
 /** Rows shown before "n more". */
 export const FIELDS_SHOWN = 6;
 
-export interface FieldLike { key: string; path: string }
+export interface FieldLike { key: string; path: string | null }
 
 export interface IncomingFieldPlan<F extends FieldLike> {
     /** The rows on screen now. */
@@ -48,13 +48,14 @@ export function planIncomingFields<F extends FieldLike>(
     const content: F[] = [];
     const technical: F[] = [];
     for (const f of fields || []) (isSystemField(f.key) ? technical : content).push(f);
-    const used = content.filter(f => isUsed(f.path));
-    const rest = content.filter(f => !isUsed(f.path));
+    const usedField = (f: F) => f.path != null && isUsed(f.path);
+    const used = content.filter(usedField);
+    const rest = content.filter(f => !usedField(f));
     const ordered = [...used, ...rest];
     // A system field the step already binds is not "technical" to this step:
     // it stays in view so the author can see what they mapped.
-    const usedTechnical = technical.filter(f => isUsed(f.path));
-    const foldedTechnical = technical.filter(f => !isUsed(f.path));
+    const usedTechnical = technical.filter(usedField);
+    const foldedTechnical = technical.filter(f => !usedField(f));
     const all = [...usedTechnical, ...ordered];
     const cap = expanded ? all.length : Math.max(FIELDS_SHOWN, usedTechnical.length + used.length);
     return { shown: all.slice(0, cap), more: Math.max(0, all.length - cap), technical: foldedTechnical };

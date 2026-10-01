@@ -4,7 +4,7 @@ import { useTranslation } from '../../../hooks/useTranslation';
 import OutputFieldsViewJs from './mapping/OutputFieldsView';
 import TruncatedOutput from './TruncatedOutput';
 import FriendlyValue, { isTruncatedOutput } from './output/FriendlyValue';
-import { expandEnabled, type MapCtx } from './output/mapAttrs';
+import { expandEnabled, type MapCtx, type PickOpts } from './output/mapAttrs';
 import { JsonTree, Scalar } from './output/ScalarValue';
 import SmartOutput, { smartRowsOf } from './output/SmartOutput';
 import useOutputColumns from './output/useOutputColumns';
@@ -42,7 +42,7 @@ export interface OutputViewProps {
     onCopyPath?: ((path: string) => void) | null;
     fill?: boolean;
     enableDrag?: boolean;
-    onPickPath?: ((path: string, opts: { raw: boolean }) => void) | null;
+    onPickPath?: ((path: string, opts: PickOpts) => void) | null;
     allowExpand?: boolean | null;
     /** Offer the FIELDS view (design 1h) and open on it for a plain record. */
     fieldsView?: boolean;

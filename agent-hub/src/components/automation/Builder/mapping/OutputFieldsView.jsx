@@ -1,7 +1,7 @@
 import React from 'react';
 import { sampleToFields } from './upstream';
-import { FieldRow } from './VariableTree';
 import { useTranslation } from '../../../../hooks/useTranslation';
+import SourceNode from '../sources/SourceNode';
 
 /**
  * A step's output as a FIELD LIST — the "Continues on" column of design 1h:
@@ -10,7 +10,7 @@ import { useTranslation } from '../../../../hooks/useTranslation';
  *   Growth        text                   "4.3% per year"
  *   Explanation   text · 2 paragraphs    "The model is consistent…"
  *
- * The same row the Incoming column uses (VariableTree.FieldRow), so what a
+ * The same row the Incoming column uses (sources/SourceNode), so what a
  * step PRODUCES reads exactly like what the next step will see it as. The
  * table and JSON views stay one click away for a whole record set or a deep
  * structure; this is the glance.
@@ -32,7 +32,7 @@ export default function OutputFieldsView({ value, basePath = '', onInsert = null
     return (
         <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar py-1" data-testid="output-fields">
             {fields.map(f => (
-                <FieldRow key={f.path || f.key} field={f} onInsert={onInsert} depth={0} previewSample={null} />
+                <SourceNode key={f.path || f.key} node={f} onInsert={onInsert} depth={0} previewSample={null} />
             ))}
         </div>
     );

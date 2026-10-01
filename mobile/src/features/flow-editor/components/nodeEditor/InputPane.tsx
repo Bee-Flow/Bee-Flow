@@ -1,5 +1,5 @@
 /**
- * The Input tab — the web's Incoming column (InputDataPanel): the data the
+ * The Input tab — the web's Incoming column (SourcePanel): the data the
  * steps before this one hand it, each field with its sample (real, once a
  * test or a pin has produced some). Tapping a field puts it where the author
  * was last typing in Settings, as clicking it on the web does. With no field

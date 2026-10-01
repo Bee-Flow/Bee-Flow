@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import ColHeader from './ColHeader';
 import { envelopeSpans, isForEachEnvelope } from './envelope';
 import InlineValue from './InlineValue';
-import { mapAttrs, type MapCtx } from './mapAttrs';
+import { colSegments, mapAttrs, type MapCtx } from './mapAttrs';
 import useCellPeek from './useCellPeek';
 import { COL_MAX_PX, MAX_COLS, MAX_ROWS, cellValue, humanize, isPlainObject } from './valueHelpers';
 
@@ -109,7 +109,7 @@ export default function RecordTable({ rows, map = null, allowExpand = false }: R
         return (
             <ul className="list-disc pl-4 space-y-0.5">
                 {shown.map((v, i) => (
-                    <li key={i} {...mapAttrs(map, `[${i}]`)}><InlineValue value={v} /></li>
+                    <li key={i} {...mapAttrs(map, [i])}><InlineValue value={v} /></li>
                 ))}
                 {rows.length > MAX_ROWS && <li className="list-none text-[var(--text-tertiary)]">+{rows.length - MAX_ROWS} more</li>}
             </ul>
@@ -172,7 +172,7 @@ export default function RecordTable({ rows, map = null, allowExpand = false }: R
                                 return (
                                     <td
                                         key={c}
-                                        {...mapAttrs(map, `[${i}].${c}`)}
+                                        {...mapAttrs(map, [i, ...colSegments(c)])}
                                         // Capped so one long column can't push
                                         // the rest off the panel.
                                         style={{ maxWidth: COL_MAX_PX }}

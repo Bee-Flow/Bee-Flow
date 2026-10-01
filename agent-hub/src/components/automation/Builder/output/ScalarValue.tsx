@@ -77,7 +77,7 @@ export function Scalar({ value, emptyMessage = '—', map = null }: ScalarProps)
     if (asTree && parsed != null) return <ScalarTree value={parsed} onBack={() => setAsTree(false)} />;
 
     // Spread first, merged className: the spread used to clobber styling.
-    const attrs = mapAttrs(map, '');
+    const attrs = mapAttrs(map);
     return (
         <span className="inline-block max-w-full">
             <span {...attrs} className={`break-words whitespace-pre-wrap text-[var(--text-primary)] ${attrs.className || ''}`.trim()}>{shown}</span>

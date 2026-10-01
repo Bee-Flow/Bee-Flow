@@ -1,23 +1,8 @@
 import { ChevronDown, ChevronRight, Database, Zap, Sparkles, GitBranch, Repeat, Code, Bell, Workflow, GripVertical, Globe, ClipboardList, FileText, FileSignature, ShieldCheck, Table2, BookOpen, ScanText, RectangleHorizontal, Presentation } from 'lucide-react';
 import React, { useState } from 'react';
 import { startPathDrag } from './bindingDnd';
-import { pathInUse } from './boundPaths';
-import FieldKindIcon from './FieldKindIcon';
-import { describeField } from './fieldKinds';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { previewValue, walkPath } from '../../../../utils/bindingHelpers';
 import { humanizeFieldKey } from '../flow/displayHelpers';
-
-// Resolve the value to SHOW for a path: prefer the real last-run / pinned
-// value (from previewSample) so the user sees actual data, falling back to the
-// typed sample placeholder when there's no run yet.
-function shownValue(path, sample, previewSample) {
-    if (previewSample) {
-        const v = walkPath(path, previewSample);
-        if (v !== undefined) return v;
-    }
-    return sample;
-}
+import SourceNode from '../sources/SourceNode';
 
 /**
  * Start an HTML5 drag carrying a binding path — dropped onto a BindingField /
@@ -168,123 +153,13 @@ function GroupNode({ group, onInsert, previewSample }) {
             {open && (
                 <div className="pb-1">
                     {(group.fields || []).map(f => (
-                        <FieldRow key={f.path} field={f} onInsert={onInsert} depth={1} previewSample={previewSample} />
+                        <SourceNode key={f.path} node={f} onInsert={onInsert} depth={1} previewSample={previewSample} />
                     ))}
                     {(group.fields || []).length === 0 && (
                         <div className="px-6 py-1 text-[11px] text-[var(--text-tertiary)] italic">No fields</div>
                     )}
                 </div>
             )}
-        </div>
-    );
-}
-
-function valueLabel(desc, value) {
-    switch (desc.kind) {
-        case 'text': return `“${previewValue(value, 40)}”`;
-        case 'list': {
-            const scalars = Array.isArray(value) ? value.filter(v => v != null && typeof v !== 'object') : [];
-            if (!scalars.length) return '';
-            return scalars.slice(0, 3).map(v => previewValue(v, 16)).join(' · ') + (scalars.length > 3 ? ' · …' : '');
-        }
-        case 'table': case 'group': case 'file': return '';
-        default: return previewValue(value, 40);
-    }
-}
-
-/**
- * One field row: drag it into a parameter, or click to insert. Children-bearing
- * rows expand from the chevron only, so clicking the row still maps the parent
- * path. Shared with the NDV's INPUT panel — the tree IS the input panel now
- * (BFSF-329), so this is the single row implementation for both.
- */
-export function FieldRow({ field, onInsert, depth, previewSample, inUse = null, human = false }) {
-    const [open, setOpen] = useState(false);
-    const { t } = useTranslation();
-    const indent = 12 + depth * 14;
-    const hasChildren = Array.isArray(field.children) && field.children.length > 0;
-
-    const onClick = (e) => {
-        // For children-bearing rows clicking the chevron expands; clicking
-        // the rest of the row inserts the parent path. Alt held = insert the
-        // list as it is (skips the chooser downstream).
-        if (hasChildren && e.target.closest('[data-expand-btn]')) {
-            setOpen(o => !o);
-            return;
-        }
-        onInsert?.(field.path, { raw: e.altKey });
-    };
-
-    const value = shownValue(field.path, field.sample, previewSample);
-    // Say what a value IS before it is picked — "list of 3 · text", "table ·
-    // 14 rows · 4 columns" — in words, never in type names (fieldKinds.js).
-    const desc = describeField(field, previewSample, t);
-    const used = inUse ? pathInUse(field.path, inUse) : false;
-
-    return (
-        <div>
-            <div
-                draggable
-                onDragStart={(e) => startPathDrag(e, field.path)}
-                onClick={onClick}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onInsert?.(field.path, { raw: e.altKey }); } }}
-                className={`group flex items-center gap-2 py-[5px] text-[11px] cursor-grab active:cursor-grabbing select-none hover:bg-[var(--bg-secondary)] focus:bg-[var(--bg-secondary)] focus:outline-none${used && human ? ' bg-[color-mix(in_srgb,var(--type-trigger)_7%,transparent)]' : ''}`}
-                style={{ paddingLeft: indent, paddingRight: 8 }}
-                title={typeof value === 'string' ? `${field.path}\n${value}` : field.path}
-            >
-                {hasChildren ? (
-                    <button
-                        type="button"
-                        data-expand-btn
-                        onClick={(e) => { e.stopPropagation(); setOpen(o => !o); }}
-                        className="shrink-0 p-0.5 -m-0.5 text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
-                    >
-                        {open ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
-                    </button>
-                ) : (
-                    <span className="shrink-0 w-3" />
-                )}
-                <FieldKindIcon kind={desc.kind} size={11} className="shrink-0 text-[var(--text-tertiary)]" />
-                {/* `human` (the Comes-in column, round 4): the name a person
-                    reads, "Added by" for `added_by`; the key stays in the title. */}
-                <span className="text-[var(--text-primary)] font-medium truncate min-w-[64px] max-w-[50%]" title={human ? field.key : undefined}>
-                    {human ? (humanizeFieldKey(field.key) || field.key) : field.key}
-                </span>
-                {desc.kind !== 'unknown' && (
-                    <span className="min-w-0 text-[10px] text-[var(--text-tertiary)] truncate" data-testid="field-kind" title={desc.detail ? `${desc.word} ${desc.detail}` : desc.word}>
-                        {desc.detail ? `${desc.word} ${desc.detail}` : desc.word}
-                    </span>
-                )}
-                {used && (human ? (
-                    <span className="shrink-0 px-1.5 rounded-full text-[10px] leading-4 font-semibold bg-[color-mix(in_srgb,var(--type-trigger)_16%,transparent)] text-[var(--type-trigger)]" title={t('routines.mapping.in_use_title', 'This step already uses this field')} data-testid="field-used-pill">
-                        {t('routines.mapping.used_pill', 'used')}
-                    </span>
-                ) : (
-                    <span className="shrink-0 text-[9px] text-[var(--text-tertiary)]" title={t('routines.mapping.in_use_title', 'This step already uses this field')}>
-                        {t('routines.mapping.in_use_tag', 'in use')}
-                    </span>
-                ))}
-                {hasChildren && desc.kind === 'group' && (
-                    <button
-                        type="button"
-                        onClick={(e) => { e.stopPropagation(); onInsert?.(field.path); }}
-                        className="shrink-0 text-[10px] underline text-[var(--text-tertiary)] hover:text-[var(--text-primary)] opacity-0 group-hover:opacity-100 focus:opacity-100"
-                    >
-                        {t('routines.mapping.use_whole_group', 'use the whole group')}
-                    </button>
-                )}
-                <span className="ml-auto shrink-0 text-[10px] text-[var(--text-tertiary)] truncate max-w-[40%] text-right">
-                    {desc.kind === 'unknown'
-                        ? <span className="italic" title={t('routines.kind.unknown_hint', 'not seen yet — run the step above')}>{t('routines.kind.unknown_short', 'not seen yet')}</span>
-                        : valueLabel(desc, value)}
-                </span>
-                <GripVertical size={11} className="shrink-0 text-[var(--text-tertiary)] opacity-40 group-hover:opacity-100" />
-            </div>
-            {hasChildren && open && field.children.map(c => (
-                <FieldRow key={c.path} field={c} onInsert={onInsert} depth={depth + 1} previewSample={previewSample} inUse={inUse} human={human} />
-            ))}
         </div>
     );
 }

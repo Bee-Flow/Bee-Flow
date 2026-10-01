@@ -29,3 +29,17 @@ export {
 export {
     RUNTIME_ROOTS, TRIGGER_RUN_KEYS, templatePaths, closestName, checkRefPath, validateBinding,
 } from './validate.mjs';
+
+// ── Sources (M3): fields, labels and upstream discovery as SourceNodes ──
+export {
+    MAX_DEPTH, fieldsFromSample, textChildren, sampleFromSchema, overlayReal, deepOverlay, hasPath,
+    previewOf, isPlaceholder,
+} from './fields.mjs';
+export { humanizeKey, labelParts, labelText } from './label.mjs';
+export {
+    collectUpstream, computeUpstreamGroups, computeLoopBodyGroups, buildToolOutputMap, wrapGroupForEach,
+    describeNode, describeNodeIn, describeLoopBody, DESCRIBED_TYPES,
+    seg, sampleToFields, resolveElementSample, elementFieldOptions, collectArrayPaths, samplePlaceholderFor,
+    overlayGroupWithReal, triggerMetaSample, describeTriggerMeta, inferLoopItemSample, suggestItemVar,
+    pickSample, leadSkillId, DEFAULT_ENV, resolveEnv,
+} from './upstream/index.mjs';
