@@ -29,6 +29,11 @@ describe('ComposeParts — text with values in a whole-value field', () => {
         expect(chips.map(c => c.textContent)).toEqual(['Name of customerAnna', 'Tags from Bestelling ontvangen· 2vip, nieuw']);
     });
 
+    it('says what the whole text gives, so the stacked parts read as one value', () => {
+        renderParts();
+        expect(screen.getByTestId('compose-preview').textContent).toBe('Gives:Hallo Anna, labels: vip, nieuw');
+    });
+
     it('a value\'s options change only that value, and keep it text', async () => {
         const { onChange } = renderParts();
         await userEvent.click(screen.getByRole('button', { name: /^Change how Tags/ }));

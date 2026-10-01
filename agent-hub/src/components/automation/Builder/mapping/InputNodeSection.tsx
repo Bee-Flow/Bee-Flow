@@ -83,7 +83,7 @@ export default function InputNodeSection({
             data-testid="input-group"
             data-family={family || undefined}
         >
-            <div className={`flex items-center border-b border-[var(--border-default)] ${isItem ? 'bg-[color-mix(in_srgb,var(--type-loop)_8%,transparent)]' : ''}`}>
+            <div className={`@container/srchead flex items-center border-b border-[var(--border-default)] ${isItem ? 'bg-[color-mix(in_srgb,var(--type-loop)_8%,transparent)]' : ''}`}>
                 <div
                     draggable
                     onDragStart={(e) => startPathDrag(e, group.basePath, each?.over ? { source: each.over, take: 'each' } : null)}
@@ -99,9 +99,10 @@ export default function InputNodeSection({
                     {open ? <ChevronDown size={14} className="shrink-0 text-[var(--text-tertiary)]" /> : <ChevronRight size={14} className="shrink-0 text-[var(--text-tertiary)]" />}
                     <Icon size={14} className="shrink-0 text-[var(--fam)]" />
                     {number != null && <span className="text-[var(--text-primary)] font-semibold whitespace-nowrap">{t('routines.mapping.step_n', 'Step {n}', { n: number })} ·</span>}
-                    <span className="text-[var(--text-primary)] font-semibold truncate">{group.label}</span>
+                    <span className="min-w-0 text-[var(--text-primary)] font-semibold truncate">{group.label}</span>
                     {isItem && !group.currentItem && <span className="text-[var(--text-tertiary)] truncate">{t('routines.mapping.current_item', 'current item of the loop')}</span>}
-                    <span className="ml-auto text-[11px] text-[var(--text-tertiary)] whitespace-nowrap" data-testid="input-group-meta">{meta}</span>
+                    {/* In a narrow panel the step's name gets the room: the counts step aside. */}
+                    <span className="ml-auto shrink-0 hidden @[18rem]/srchead:inline text-[11px] text-[var(--text-tertiary)] whitespace-nowrap" data-testid="input-group-meta">{meta}</span>
                     {/* "1 of 4" (artboard 2b): the last run's loop row. When the
                         run hit its ceiling, the dropped tail is said in the same
                         sentence, in the warning colour. */}
@@ -154,8 +155,8 @@ export default function InputNodeSection({
                                 data-testid="input-technical"
                             >
                                 {techOpen || searching ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
-                                {t('routines.mapping.technical_details', 'Technical details')}
-                                <span className="ml-auto truncate">
+                                <span className="shrink-0 whitespace-nowrap">{t('routines.mapping.technical_details', 'Technical details')}</span>
+                                <span className="ml-auto min-w-0 truncate">
                                     {t('routines.mapping.technical_meta', '{n} fields · {names}', { n: plan.technical.length, names: technicalPreview(plan.technical) })}
                                 </span>
                             </button>

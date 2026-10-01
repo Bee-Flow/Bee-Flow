@@ -15,8 +15,8 @@ describe('pickLabel: a value named in words, never a path', () => {
     it('a column of a list: of all, of the first, of the last, the number', () => {
         const from = { root: 'steps' as const, id: 's1', path: ['orderregels', 'product'] };
         expect(pickLabel(t, { from, take: 'all' })).toBe('Product of all orderregels');
-        expect(pickLabel(t, { from, take: 'first' })).toBe('Product of the first orderregels');
-        expect(pickLabel(t, { from, take: 'last' })).toBe('Product of the last orderregels');
+        expect(pickLabel(t, { from, take: 'first' })).toBe('Product of the first orderregel');
+        expect(pickLabel(t, { from, take: 'last' })).toBe('Product of the last orderregel');
         expect(pickLabel(t, { from, take: 'count' })).toBe('Number of product');
         expect(pickLabel(t, { from, take: 'each' })).toBe('Product (of this orderregel)');
     });
@@ -41,7 +41,7 @@ describe('pickLabel: a value named in words, never a path', () => {
     it('a list position: the first row, row n', () => {
         expect(pickLabel(t, { from: { root: 'trigger', path: ['orderregel', 0] } })).toBe('The first orderregel');
         expect(pickLabel(t, { from: { root: 'trigger', path: ['Orderregels', 2] } })).toBe('Orderregels, row 3');
-        expect(pickLabel(t, { from: { root: 'trigger', path: ['orders', 0, 'id'] } })).toBe('ID of the first orders');
+        expect(pickLabel(t, { from: { root: 'trigger', path: ['orders', 0, 'id'] } })).toBe('ID of the first order');
     });
 
     it('the parts the source panel gives win over the stored label; the stored label over the path', () => {

@@ -183,7 +183,9 @@ function wordedTake(take: string | undefined, all: LabelPart[], prev: LabelPart 
 function fieldLabel(t: TranslateFn, field: string, parent: string, take: string): string {
     if (take === 'count') return t('mapping.slot.label.count_of', 'Number of {parent}', { parent: lowerFirst(field) });
     if (!parent) return ALONE[take] ? say(t, ALONE[take], { parent: lowerFirst(field) }) : field;
-    return say(t, WITH_PARENT[take] || WITH_PARENT.one, { field, parent });
+    // One row of the list: "ID of the first order", not "of the first orders".
+    const one = take === 'first' || take === 'last';
+    return say(t, WITH_PARENT[take] || WITH_PARENT.one, { field, parent: one ? singularLabel(parent) : parent });
 }
 
 /**

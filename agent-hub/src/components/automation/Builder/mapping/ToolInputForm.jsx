@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { partitionInputs, isEmptyBinding } from './partitionInputs';
 import GenericRow from './toolInput/GenericRow';
 import MoreOptions from './toolInput/MoreOptions';
+import { paramLabel } from './toolInput/toolInputHelpers';
 import ToolParamField from './toolInput/ToolParamField';
 import useVariablePicker from './useVariablePicker';
 import VariablePicker from './VariablePicker';
@@ -263,7 +264,7 @@ export default function ToolInputForm({
                 {essentialKeys.map(renderField)}
                 {advancedKeys.length > 0 && (
                     <MoreOptions
-                        labels={advancedKeys.map(k => properties[k]?.title || k)}
+                        labels={advancedKeys.map(k => paramLabel(k, properties[k]))}
                         autoCount={advAutoCount}
                         open={advFieldsOpen || advancedKeys.includes(problemKey)}
                         onToggle={setAdvFieldsOpen}

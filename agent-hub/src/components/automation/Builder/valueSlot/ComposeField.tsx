@@ -486,8 +486,12 @@ export default function ComposeField({
         return pieces.every(p => typeof p === 'string' || 'part' in p || !!liftPlaceholder(p.raw, stepType, field));
     })();
 
+    // Without a label of its own (the form names the field above it) the
+    // button sits beside the field, as the value slot's ⋯ does, instead of
+    // on a row of its own.
+    const beside = inline || !label;
     const control = (
-        <div className={`relative ${inline ? 'flex-1 min-w-0' : ''}`}>
+        <div className={`relative ${beside ? 'flex-1 min-w-0' : ''}`}>
             <div
                 ref={hostRef}
                 role="textbox"
@@ -531,14 +535,14 @@ export default function ComposeField({
         <InsertDataButton
             onClick={(e) => openPickerFor(e.currentTarget)}
             open={picker.open}
-            className={inline ? 'self-stretch' : 'py-0.5'}
+            className={inline ? 'self-stretch' : beside ? 'self-start py-1.5' : 'py-0.5'}
         />
     );
 
     return (
         <div className="space-y-1">
-            {inline ? (
-                <div className="flex items-stretch gap-1">
+            {beside ? (
+                <div className={`flex gap-1 ${inline ? 'items-stretch' : 'items-start'}`}>
                     {control}
                     {insertButton}
                 </div>

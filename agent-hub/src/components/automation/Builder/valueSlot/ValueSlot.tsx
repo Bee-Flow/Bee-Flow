@@ -294,7 +294,7 @@ function FormulaView({ binding, slotProps: s, disabled, onOpen }: {
 
 /**
  * "· 12" belongs on a chip that hands the list over: "Total of the first
- * orders · 2" reads as two. Its sentence says how many there are.
+ * order · 2" reads as two. Its sentence says how many there are.
  */
 const chipCount = (info: PickInfo) => (info.pick.take === 'first' || info.pick.take === 'last' ? null : info.count);
 

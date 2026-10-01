@@ -142,7 +142,7 @@ function PickChip({ label, count, preview, onOpen, remove }: Part) {
  * "Bureaustoel Lamp Muismat", which reads as one value: each line break shows
  * as ↵ (the tooltip keeps the real lines).
  */
-function oneLine(text: string): string {
+export function oneLine(text: string): string {
     return text.includes('\n') ? text.split(/\n+/).map(l => l.trim()).filter(Boolean).join(' ↵ ') : text;
 }
 

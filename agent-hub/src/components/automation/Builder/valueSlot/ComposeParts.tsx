@@ -1,12 +1,13 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { Eye } from 'lucide-react';
 import { currentItemNoun } from '@shared/mapping/index.mjs';
 import type { ComposeBinding, CurrentItem, PickPart, PickIntent, Slot } from '@shared/mapping/index.mjs';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { useVariablePickerContext } from '../mapping/VariablePickerContext';
-import PickOptions, { previewText, resolvePreview } from './PickOptions';
+import PickOptions, { bindingPreviewText, previewText, resolvePreview } from './PickOptions';
 import { countAt, crossesList, groupLabelOf, itemShapeAt, shapeAt, withItemScope, type GroupLike } from './slotModel';
 import { pickLabel } from './usePickLabel';
-import ValueChip from './ValueChip';
+import ValueChip, { oneLine } from './ValueChip';
 
 /**
  * A text with values in it, in a whole-value field: what a value picked into
@@ -39,6 +40,12 @@ export default function ComposeParts({ compose, onChange, sample, slot, groups, 
     };
     const setPart = (i: number, part: string | PickPart) => write(parts.map((p, j) => (j === i ? part : p)));
     const textSlot: Slot = { ...slot, as: 'text' };
+    // The whole text as the run gives it ("Hallo Anna de Vries"): the parts
+    // stack, so without it the typed text and the value read as two things.
+    const gives = useMemo(
+        () => (parts.some(p => typeof p !== 'string') ? bindingPreviewText(compose, withItemScope(sample, currentItem)) : null),
+        [compose, parts, sample, currentItem],
+    );
 
     return (
         <div className="flex flex-col gap-1" data-testid="compose-parts">
@@ -94,6 +101,13 @@ export default function ComposeParts({ compose, onChange, sample, slot, groups, 
                     </div>
                 );
             })}
+            {gives && (
+                <span className="inline-flex items-center gap-1.5 min-w-0 text-[11px] text-[var(--text-tertiary)]" data-testid="compose-preview">
+                    <Eye size={11} className="shrink-0" aria-hidden="true" />
+                    <span className="shrink-0">{t('mapping.slot.formula_gives', 'Gives:')}</span>
+                    <span className="truncate text-[var(--text-secondary)]" title={gives}>{oneLine(gives)}</span>
+                </span>
+            )}
         </div>
     );
 }
