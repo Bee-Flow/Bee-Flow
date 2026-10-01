@@ -9,6 +9,7 @@ const { isSideEffect } = require('../../sideEffectMap');
 const { fieldsAtRef, topLevelFieldsOf, describeItem } = require('../outputFields');
 const { iterableFieldsOf } = require('../../outputSchemas');
 const { findStepAnywhere, lastStepId, allTriggerIds } = require('../draftGraph');
+const { matchInputs, formatPath } = require('../../../shared/mapping/index.mjs');
 
 // ── Tool schemas (injected to the LLM) ─────────────────
 
@@ -47,13 +48,18 @@ function unboundRequiredInputs(tool, inputs, draftWrap) {
 // `path` from the item, and resent the byte-identical batch — it can ADD a
 // step it is told to add, it cannot EDIT one field of a batch it already
 // sent (README rule 1). When the shape of the item is KNOWN and carries a
-// field of the required input's name, the binding is not a guess: it is
-// written here and said in _warnings. Two things are never bound and come
-// back as candidates for the error to name instead: an input of a
-// side-effect action (a delete that picked its own path is the wrong kind
-// of helpful), and a top-level field of the previous step with the same
-// name (nextcloud_list_files.output.path is the folder that was listed,
-// not a file).
+// field that matches the required input, the binding is not a guess: it is
+// written here and said in _warnings. "Matches" is the web builder's
+// auto-map rule, shared (shared/mapping/match.mjs): the same name, the name
+// without case and separators, or `<entity>Id` to the item's own `id`. A
+// secret-like name (pageToken) binds here like any other, as it always did:
+// the web auto-map leaves those alone (skipSecrets), but here the binding is
+// said in _warnings and the model wrote the step on purpose. Two
+// things are never bound and come back as candidates for the error to name
+// instead: an input of a side-effect action (a delete that picked its own
+// path is the wrong kind of helpful), and a top-level field of the previous
+// step with the same name (nextcloud_list_files.output.path is the folder
+// that was listed, not a file).
 
 const LIST_TOOL_RX = /_(list|search)_/;
 const MAX_NAMES_LISTED = 20;
@@ -75,19 +81,50 @@ function listFieldsOfStep(step) {
 }
 
 /**
- * Where, under loop.<v>, a field `k` of the item described by `res` sits:
- * `k` on a plain item; `output.k` or `item.k` on a fan-out entry when
- * exactly one half has it. null when nowhere, 'ambiguous' when both halves
- * have it — only the model knows which one it meant.
+ * The fields of the item described by `res` that a required input may be
+ * bound to, as match candidates (shared/mapping/match.mjs): the item's own
+ * names on a plain list; on a fan-out entry the halves `output.<f>` and
+ * `item.<f>`, keyed by `<f>` (the envelope's index and status are not
+ * values anybody means by name).
  */
-function itemPathFor(res, k) {
-    if (!res || res.fields === null) return null;
+function itemCandidates(res) {
+    if (!res || !Array.isArray(res.fields)) return [];
     if (res.source === 'fanout') {
-        const under = ['output', 'item'].filter(env => res.fields.includes(`${env}.${k}`));
-        if (under.length === 2) return 'ambiguous';
-        return under.length === 1 ? `${under[0]}.${k}` : null;
+        return res.fields
+            .filter(f => /^(output|item)\./.test(f))
+            .map(f => ({ key: f.slice(f.indexOf('.') + 1), path: f }));
     }
-    return res.fields.includes(k) ? k : null;
+    return res.fields.map(f => ({ key: f, path: f }));
+}
+
+/**
+ * Which field of the item described by `res` each of `keys` is bound to,
+ * by the one matching rule the web builder's auto-map uses too (exact name,
+ * then the name without case and separators, then `<entity>Id` to the
+ * item's `id`). A name the fan-out entry has under output AND under item is
+ * `ambiguous`: only the model knows which one it meant.
+ * @returns {{ matches: Array<{key, path, how}>, ambiguous: Array<{key, paths}> }}
+ */
+function matchItemFields(res, keys) {
+    if (!res || res.fields === null) return { matches: [], ambiguous: [] };
+    return matchInputs(
+        keys.map(key => ({ key, required: true })),
+        itemCandidates(res),
+        { idAffinity: true, unique: true, ambiguous: true },
+    );
+}
+
+/**
+ * The ref that reads `field` of the item described by `res`, as `itemVar`.
+ * A field is a key, not a path: on a fan-out entry it is `<half>.<key>`
+ * (the half before the first dot), and the key keeps its spaces and dots
+ * (`loop.r.output["Message ID"]`, never `loop.r.output.Message ID`, which
+ * the runtime cannot read). Null when the grammar cannot hold the key.
+ */
+function itemRef(itemVar, res, field) {
+    const dot = res && res.source === 'fanout' ? field.indexOf('.') : -1;
+    const path = dot > 0 ? [field.slice(0, dot), field.slice(dot + 1)] : [field];
+    return formatPath({ root: 'loop', id: itemVar, path });
 }
 
 /** `steps.a_1.output.items` — the list a forEach item is an entry of. */
@@ -127,10 +164,14 @@ function autoBindRequiredInputs({ graph, tool, inputs, forEach, missing, afterSt
     if (forEach && typeof forEach.overRef === 'string') {
         const res = fieldsAtRef(graph, forEach.overRef, draftWrap);
         if (res.fields === null) return done();
-        for (const k of missing) {
-            const at = itemPathFor(res, k);
-            if (at === 'ambiguous') offer(k, null, 'ambiguous', { paths: ['output', 'item'].map(env => `loop.${forEach.itemVar}.${env}.${k}`) });
-            else if (at) bind(k, `loop.${forEach.itemVar}.${at}`, 'forEach');
+        const { matches, ambiguous } = matchItemFields(res, missing);
+        for (const a of ambiguous) {
+            const paths = a.paths.map(p => itemRef(forEach.itemVar, res, p));
+            if (paths.every(Boolean)) offer(a.key, null, 'ambiguous', { paths });
+        }
+        for (const m of matches) {
+            const path = itemRef(forEach.itemVar, res, m.path);
+            if (path) bind(m.key, path, 'forEach');
         }
         return done();
     }
@@ -141,7 +182,14 @@ function autoBindRequiredInputs({ graph, tool, inputs, forEach, missing, afterSt
     if (allTriggerIds(graph).includes(anchorId)) {
         const res = fieldsAtRef(graph, 'trigger.output', draftWrap);
         if (res.fields === null) return done();
-        for (const k of missing) if (res.fields.includes(k)) bind(k, `trigger.output.${k}`, 'trigger');
+        // A payload is one record, not an entry of a list: its `id` is the
+        // event's own, so no `<entity>Id` link here (the web rule for a
+        // step's top-level fields is the same).
+        const { matches } = matchInputs(missing.map(key => ({ key, required: true })), res.fields.map(f => ({ key: f, path: f })), { unique: true });
+        for (const m of matches) {
+            const path = formatPath({ root: 'trigger', path: [m.path] });
+            if (path) bind(m.key, path, 'trigger');
+        }
         return done();
     }
     const anchor = findStepAnywhere(graph, anchorId)?.step;
@@ -152,18 +200,24 @@ function autoBindRequiredInputs({ graph, tool, inputs, forEach, missing, afterSt
     const top = (anchor.type === 'integration_action' && !fanout && typeof anchor.tool === 'string')
         ? (topLevelFieldsOf(anchor.tool, draftWrap).fields || [])
         : [];
-    const lists = listFieldsOfStep(anchor);
-    for (const k of missing) {
-        if (top.includes(k)) offer(k, `steps.${anchor.id}.output.${k}`, 'upstream-same-name', { stepId: anchor.id, tool: anchor.tool });
-        for (const arr of lists) {
-            const overRef = `steps.${anchor.id}.output.${arr}`;
-            const res = fieldsAtRef(graph, overRef, draftWrap);
-            const at = itemPathFor(res, k);
-            if (!at || at === 'ambiguous') continue;
-            const itemVar = res.source === 'fanout' ? 'r' : 'f';
-            offer(k, `loop.${itemVar}.${at}`, 'needs-forEach', { overRef, itemVar, fanout: res.source === 'fanout', stepId: anchor.id, tool: anchor.tool || null });
-            break;
+    const lists = listFieldsOfStep(anchor).map((arr) => {
+        const overRef = `steps.${anchor.id}.output.${arr}`;
+        const res = fieldsAtRef(graph, overRef, draftWrap);
+        const fanoutList = res.source === 'fanout';
+        const itemVar = fanoutList ? 'r' : 'f';
+        const at = new Map();
+        for (const m of matchItemFields(res, missing).matches) {
+            const path = itemRef(itemVar, res, m.path);
+            if (path) at.set(m.key, path);
         }
+        return { overRef, fanout: fanoutList, itemVar, at };
+    });
+    for (const k of missing) {
+        const sameName = top.includes(k) ? formatPath({ root: 'steps', id: anchor.id, path: [k] }) : null;
+        if (sameName) offer(k, sameName, 'upstream-same-name', { stepId: anchor.id, tool: anchor.tool });
+        const list = lists.find(l => l.at.has(k));
+        if (!list) continue;
+        offer(k, list.at.get(k), 'needs-forEach', { overRef: list.overRef, itemVar: list.itemVar, fanout: list.fanout, stepId: anchor.id, tool: anchor.tool || null });
     }
     return done();
 }
@@ -173,11 +227,11 @@ function boundInputNote(b, res, forEach) {
     if (b.from === 'trigger') {
         return `input "${b.key}" was not bound — bound to ${b.path} (the trigger payload has it). Write the binding yourself next time.`;
     }
-    const half = /^loop\.[^.]+\.(output|item)\./.exec(b.path)?.[1];
+    const half = /^loop\.[^.[]+\.(output|item)[.[]/.exec(b.path)?.[1];
     const shape = res && res.source === 'fanout'
         ? `is {index, item, output, status}; ${half} has: ${listNames(half === 'item' ? res.itemFields : res.outputFields)}`
         : `has: ${listNames(res ? res.fields : null)}`;
-    return `input "${b.key}" was not bound — bound to ${b.path} (the forEach item from ${itemOriginOf(res, forEach)} ${shape}). Write the binding yourself next time: ${b.key}:{kind:"ref", path:"${b.path}"}.`;
+    return `input "${b.key}" was not bound — bound to ${b.path} (the forEach item from ${itemOriginOf(res, forEach)} ${shape}). Write the binding yourself next time: ${b.key}:{kind:"ref", path:${JSON.stringify(b.path)}}.`;
 }
 
 /**
@@ -202,7 +256,7 @@ function requiredInputError(tool, missing, forEach, candidates, graph, draftWrap
     if (se) {
         const where = se.from === 'trigger' ? 'The trigger payload' : `The forEach item (an entry of ${itemOriginOf(res, forEach)}${res?.upstream?.tool ? ` from ${res.upstream.tool}` : ''})`;
         return {
-            error: `${tool}: required input "${se.key}" is not bound. ${where} has a field "${se.key}" — if that is the ${noun(se.key)} to act on, bind it explicitly: ${se.key}:{kind:"ref", path:"${se.path}"}. It is not filled in for you because this action changes data.`,
+            error: `${tool}: required input "${se.key}" is not bound. ${where} has a field "${se.key}" — if that is the ${noun(se.key)} to act on, bind it explicitly: ${se.key}:{kind:"ref", path:${JSON.stringify(se.path)}}. It is not filled in for you because this action changes data.`,
             _fixHint: 'Reject reason: a required input is missing on a side-effect action. Add the binding named above and resend the same step — the other bindings were fine.',
         };
     }
@@ -212,7 +266,7 @@ function requiredInputError(tool, missing, forEach, candidates, graph, draftWrap
         const amb = cand('ambiguous');
         if (amb) {
             return {
-                error: `${tool}: required input "${amb.key}" is not bound, and ${describeItem(res)} — "${amb.key}" exists both under output and under item. Bind the one you mean: ${amb.paths.map(p => `${amb.key}:{kind:"ref", path:"${p}"}`).join(' or ')}, and resend the step.`,
+                error: `${tool}: required input "${amb.key}" is not bound, and ${describeItem(res)} — "${amb.key}" exists both under output and under item. Bind the one you mean: ${amb.paths.map(p => `${amb.key}:{kind:"ref", path:${JSON.stringify(p)}}`).join(' or ')}, and resend the step.`,
                 _fixHint: 'Reject reason: a required input is missing and the loop item has that name in two places. Bind the one you mean and resend the same step — the other bindings were fine.',
             };
         }
@@ -236,10 +290,10 @@ function requiredInputError(tool, missing, forEach, candidates, graph, draftWrap
             : 'bind it only if that is the value you mean';
         const feFor = fe && fe.key === up.key ? fe : null;
         const perEntry = feFor
-            ? ` To run once per ${listing ? 'listed file' : 'entry'} add forEach:{overRef:"${feFor.overRef}", itemVar:"${feFor.itemVar}"} and bind ${up.key}:{kind:"ref", path:"${feFor.path}"}.`
+            ? ` To run once per ${listing ? 'listed file' : 'entry'} add forEach:{overRef:"${feFor.overRef}", itemVar:"${feFor.itemVar}"} and bind ${up.key}:{kind:"ref", path:${JSON.stringify(feFor.path)}}.`
             : '';
         return {
-            error: `${tool}: required input "${up.key}" is not bound. The previous step ${up.stepId} (${up.tool}) outputs a top-level "${up.key}", ${caveat}: ${up.key}:{kind:"ref", path:"${up.path}"}.${perEntry}`,
+            error: `${tool}: required input "${up.key}" is not bound. The previous step ${up.stepId} (${up.tool}) outputs a top-level "${up.key}", ${caveat}: ${up.key}:{kind:"ref", path:${JSON.stringify(up.path)}}.${perEntry}`,
             _fixHint: 'Reject reason: a required input is missing. Add the binding you mean (named above) and resend the same step — the other bindings were fine.',
             // Two ways to bind it is not one exact edit; only the plain case
             // carries a patch.
@@ -250,7 +304,7 @@ function requiredInputError(tool, missing, forEach, candidates, graph, draftWrap
     // (4) The previous step emits a list whose entries have the name.
     if (fe) {
         return {
-            error: `${tool}: required input "${fe.key}" is not bound. ${fe.overRef} is a list whose entries have "${fe.key}"${fe.fanout ? ' under output' : ''} — add forEach:{overRef:"${fe.overRef}", itemVar:"${fe.itemVar}"} to this step and bind ${fe.key}:{kind:"ref", path:"${fe.path}"}.`,
+            error: `${tool}: required input "${fe.key}" is not bound. ${fe.overRef} is a list whose entries have "${fe.key}"${fe.fanout ? ' under output' : ''} — add forEach:{overRef:"${fe.overRef}", itemVar:"${fe.itemVar}"} to this step and bind ${fe.key}:{kind:"ref", path:${JSON.stringify(fe.path)}}.`,
             _fixHint: 'Reject reason: a required input is missing and the previous step produces a list whose entries have it. Add the forEach and the binding named above and resend the same step — the other bindings were fine.',
             // The binding alone would be refused (loop.<var> without a forEach
             // — unboundLoopVarError), so the patch carries both edits.
@@ -303,6 +357,7 @@ function bindingToTemplate(v) {
 module.exports = {
     unboundRequiredInputs,
     autoBindRequiredInputs,
+    matchItemFields,
     boundInputNote,
     requiredInputError,
     listNames,

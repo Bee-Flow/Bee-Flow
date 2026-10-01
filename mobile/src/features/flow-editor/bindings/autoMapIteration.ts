@@ -1,74 +1,20 @@
 /**
- * The "run once per item" fallback of auto-map: when a step's REQUIRED inputs
- * cannot be filled from scalar upstream fields but the nearest upstream is an
- * ARRAY of objects whose element fields match, bind the inputs to
- * `loop.<itemVar>.<field>` and hand back the `forEach` the runtime fans out
- * over. From agent-hub `Builder/mapping/autoMapInputs.js` tryIterationMapping.
+ * Auto-map for a step that runs once per item: its own item is the nearest
+ * source, so its empty inputs are matched to the item's fields first — an
+ * `each` pick under a `repeat`, a `loop.<itemVar>` ref under the older
+ * forEach. Auto-map never switches a per-item run ON (that is the author's
+ * call, in the step's settings). From agent-hub
+ * `Builder/mapping/autoMapInputs.ts` (itemScopeOf / mapFromItem).
  */
 
-import { isSecretLikeKey, nearestArrayRef, normalizeKey, requiredFirst, sampleType, typeCompatible } from './autoMap';
+import { formatPath, matchInputs, sampleType } from '@/shared/mapping';
+import type { MappingSource, MatchCandidate } from '@/shared/mapping';
+
+import { emptyInputs } from './autoMap';
 import { isObj } from './json';
-import { isEmptyBinding } from './partitionInputs';
 import { buildSampleRoot } from './realOutputs';
-import type { Binding, Catalog, FlowDefinition, ForEach, JsonSchema, VariableGroup } from './types';
-import { buildToolOutputMap, inferLoopItemSample, sampleToFields, suggestItemVar } from './upstream';
-
-export interface IterationMapping {
-    patch: Record<string, Binding>;
-    forEach: ForEach;
-}
-
-interface Cand {
-    key: string;
-    path: string;
-    type: string;
-}
-
-function lastSegmentKey(path: string): string {
-    const parts = String(path || '').split('.');
-    return parts[parts.length - 1] || '';
-}
-
-/** `messageId` / `message_id` → 'message'; null when the key isn't id-suffixed. */
-function idAffinityBase(key: string): string | null {
-    const m = /^(.+?)[_]?id$/i.exec(String(key || ''));
-    return m && m[1] ? m[1] : null;
-}
-
-function elementCandidates(elementSample: Record<string, unknown>, itemVar: string): Cand[] {
-    const out: Cand[] = [];
-    for (const f of sampleToFields(elementSample, `loop.${itemVar}`)) {
-        out.push({ key: f.key, path: f.path, type: sampleType(f.sample) });
-        for (const c of f.children || []) out.push({ key: c.key, path: c.path, type: sampleType(c.sample) });
-    }
-    return out;
-}
-
-interface MatchState {
-    used: Set<string>;
-    idAffinityUsed: boolean;
-    idField: Cand | undefined;
-}
-
-function matchKey(key: string, propType: unknown, candidates: Cand[], st: MatchState): Cand | undefined {
-    const fits = (c: Cand) => !st.used.has(c.path) && typeCompatible(propType, c.type);
-    const nkey = normalizeKey(key);
-    const match = candidates.find((c) => fits(c) && c.key === key) || candidates.find((c) => fits(c) && normalizeKey(c.key) === nkey);
-    if (match) return match;
-    // `<entity>Id` ↔ element `id`, once, for the primary identifier.
-    const id = st.idField;
-    if (st.idAffinityUsed || !id || st.used.has(id.path) || !idAffinityBase(key) || !typeCompatible(propType, id.type)) return undefined;
-    st.idAffinityUsed = true;
-    return id;
-}
-
-/** The element of the nearest upstream array, as a plain object, or null. */
-function nearestElement(groups: VariableGroup[], definition: FlowDefinition, catalog: Catalog | null | undefined): { overRef: string; element: Record<string, unknown> } | null {
-    const overRef = nearestArrayRef(groups);
-    if (!overRef) return null;
-    const element = inferLoopItemSample(overRef, definition, buildToolOutputMap(catalog), buildSampleRoot(groups));
-    return isObj(element) ? { overRef, element } : null;
-}
+import type { Binding, Catalog, FlowDefinition, FlowNode, JsonSchema, VariableGroup } from './types';
+import { buildToolOutputMap, inferLoopItemSample } from './upstream';
 
 /** Where the step sits: the definition and the catalog its tools come from. */
 export interface IterationContext {
@@ -76,43 +22,92 @@ export interface IterationContext {
     catalog: Catalog | null | undefined;
 }
 
-function matchAll(keys: string[], properties: NonNullable<JsonSchema['properties']>, candidates: Cand[], existing: Record<string, unknown>): { patch: Record<string, Binding>; matched: string[] } {
-    const st: MatchState = { used: new Set(), idAffinityUsed: false, idField: candidates.find((c) => c.key === 'id') };
-    const patch: Record<string, Binding> = {};
-    const matched: string[] = [];
-    for (const key of keys) {
-        if (!isEmptyBinding(existing[key]) || isSecretLikeKey(key)) continue;
-        const match = matchKey(key, properties[key]?.type, candidates, st);
-        if (!match) continue;
-        patch[key] = { kind: 'ref', path: match.path };
-        st.used.add(match.path);
-        matched.push(key);
-    }
-    return { patch, matched };
+export interface ItemMapping {
+    patch: Record<string, Binding>;
+    /** The upstream group that offers the same item as `loop.<itemVar>.*`, if any. */
+    groupId: string | null;
 }
 
 /**
- * Only from a declared schema with REQUIRED inputs, only for inputs the scalar
- * pass left empty, only on exact / normalised name + type matches (plus one
- * `<entity>Id` ↔ `id` affinity), and only when a required input is satisfied.
- * (The web takes the context positionally: definition, catalog.)
+ * One list item's fields as candidates; `path` is the segment list inside
+ * the item, JSON-encoded. A fan-out entry offers `output.<f>` and
+ * `item.<f>`, keyed by `<f>`; a plain item its fields and one level deeper,
+ * the deeper ones one `depth` down.
  */
-export function tryIterationMapping(
+function itemCandidates(element: unknown, fanout: boolean): MatchCandidate[] {
+    if (!isObj(element)) return [];
+    const out: MatchCandidate[] = [];
+    const add = (key: string, path: string[], value: unknown, depth = 0) => out.push({ key, path: JSON.stringify(path), type: sampleType(value), depth });
+    if (fanout) {
+        for (const half of ['output', 'item']) {
+            const v = element[half];
+            if (isObj(v)) for (const [k, x] of Object.entries(v)) add(k, [half, k], x);
+        }
+        return out;
+    }
+    for (const [k, v] of Object.entries(element)) {
+        add(k, [k], v);
+        // One level down ranks after the item's own fields: `from.id` never
+        // ties with the item's `id`.
+        if (isObj(v)) for (const [ck, cv] of Object.entries(v)) add(ck, [k, ck], cv, 1);
+    }
+    return out;
+}
+
+/** Is this list the `results` of a step that ran once per item? */
+function isFanOutList(source: MappingSource | null, definition: FlowDefinition): boolean {
+    if (!source || source.root !== 'steps' || source.path.length !== 1 || source.path[0] !== 'results') return false;
+    const step = (definition.steps || []).find((s) => s.id === source.id);
+    return !!(step && (step.forEach?.overRef || step.repeat));
+}
+
+interface ItemScope {
+    candidates: MatchCandidate[];
+    bind: (path: string[]) => Binding;
+    groupId: string | null;
+}
+
+function itemScopeOf(step: FlowNode, groups: VariableGroup[], { definition, catalog }: IterationContext): ItemScope | null {
+    const toolToOutput = buildToolOutputMap(catalog);
+    const sampleRoot = buildSampleRoot(groups);
+    const over = (step.repeat as { over?: MappingSource } | null | undefined)?.over;
+    if (over) {
+        const listPath = formatPath(over as never);
+        if (!listPath) return null;
+        return {
+            candidates: itemCandidates(inferLoopItemSample(listPath, definition, toolToOutput, sampleRoot), isFanOutList(over, definition)),
+            bind: (path) => ({ kind: 'pick', v: 1, from: { ...over, path: [...over.path, ...path] }, take: 'each', as: 'native' }) as unknown as Binding,
+            groupId: null,
+        };
+    }
+    const fe = step.forEach;
+    if (!fe || typeof fe.overRef !== 'string' || !fe.overRef.trim()) return null;
+    const itemVar = fe.itemVar || 'item';
+    const listPath = fe.overRef.trim();
+    const m = /^steps\.([^.[]+)\.output\.results$/.exec(listPath);
+    const fanout = !!m && isFanOutList({ root: 'steps', id: m[1] as string, path: ['results'] }, definition);
+    return {
+        candidates: itemCandidates(inferLoopItemSample(listPath, definition, toolToOutput, sampleRoot), fanout),
+        bind: (path) => ({ kind: 'ref', path: formatPath({ root: 'loop', id: itemVar, path } as never) as string }),
+        groupId: `${step.id}__foreach`,
+    };
+}
+
+/**
+ * The empty inputs of a repeating step, bound from its current item: each
+ * item field once at most, `<entity>Id` to the item's own `id` (once), and a
+ * name a fan-out entry has under output AND item left for the author. Null
+ * when the step does not repeat.
+ */
+export function mapFromItem(
+    step: FlowNode,
     schema: JsonSchema | null | undefined,
-    existingInputs: Record<string, unknown> | null | undefined,
     groups: VariableGroup[],
-    { definition, catalog }: IterationContext,
-): IterationMapping | null {
-    const properties = schema?.properties || null;
-    const required = new Set(schema?.required || []);
-    if (!properties || !required.size) return null;
-    const source = nearestElement(groups, definition, catalog);
-    if (!source) return null;
-    const itemVar = suggestItemVar(lastSegmentKey(source.overRef));
-    const candidates = elementCandidates(source.element, itemVar);
-    if (!candidates.length) return null;
-    const keys = requiredFirst(Object.keys(properties), required);
-    const { patch, matched } = matchAll(keys, properties, candidates, existingInputs || {});
-    if (!matched.some((k) => required.has(k))) return null;
-    return { patch, forEach: { overRef: source.overRef, itemVar, maxIterations: 100 } };
+    ctx: IterationContext,
+): ItemMapping | null {
+    const scope = itemScopeOf(step, groups, ctx);
+    if (!scope) return null;
+    if (!scope.candidates.length) return { patch: {}, groupId: scope.groupId };
+    const { matches } = matchInputs(emptyInputs(schema, step.inputs || {}), scope.candidates, { idAffinity: true, unique: true, ambiguous: true, skipSecrets: true });
+    return { patch: Object.fromEntries(matches.map((m) => [m.key, scope.bind(JSON.parse(m.path) as string[])])), groupId: scope.groupId };
 }

@@ -4,7 +4,9 @@ import ChannelPills from '../../../ChannelPills';
 import TemplateField from '../../../mapping/TemplateField';
 import { normalizeChannels, stepChannelsToUi } from '../../../notificationDefaults';
 import AccordionSection from '../../AccordionSection';
-import { ForEachSection, RetrySection, retryIsSet } from '../collectionEditors';
+import { RetrySection, retryIsSet } from '../collectionEditors';
+import StepRepeatSection from '../advanced/StepRepeatSection';
+import { perItemIsSet } from '../advanced/stepRepeat';
 import { FormRow } from '../formPrimitives';
 
 function NotificationFields({ draft, set, groups = [], onFocusField, previewSample, errorSections = new Set() }) {
@@ -53,8 +55,8 @@ function NotificationFields({ draft, set, groups = [], onFocusField, previewSamp
                 </div>
             </FormRow>
             </AccordionSection>
-            <AccordionSection stepType="notification" sectionKey="advanced" title="Advanced" defaultOpen={!!draft.forEach || retryIsSet(draft)} forceOpen={errorSections.has('advanced')} hasContent={!!draft.forEach || retryIsSet(draft)}>
-                <ForEachSection draft={draft} set={set} groups={groups} onFocusField={onFocusField} />
+            <AccordionSection stepType="notification" sectionKey="advanced" title="Advanced" defaultOpen={perItemIsSet(draft) || retryIsSet(draft)} forceOpen={errorSections.has('advanced')} hasContent={perItemIsSet(draft) || retryIsSet(draft)}>
+                <StepRepeatSection stepType="notification" draft={draft} set={set} groups={groups} onFocusField={onFocusField} />
                 <RetrySection draft={draft} set={set} />
             </AccordionSection>
         </>

@@ -16,7 +16,7 @@ import { isObj } from '../json';
 import type { Catalog, FlowDefinition, FlowNode, ToolOutputMap, TriggerOutputEntry, VariableField, VariableGroup } from '../types';
 import { describeNode } from './describeNode';
 import { collectUpstream } from './graphWalk';
-import { describeForEachItem } from './loops';
+import { describeForEachItem, runsPerItem } from './loops';
 import { overlayGroupWithReal } from './realOverlay';
 import { resolveElementSample, sampleToFields } from './sampleFields';
 import { describeTriggerMeta, triggerMetaSample } from './triggers';
@@ -34,9 +34,10 @@ export function buildToolOutputMap(catalog: Catalog | null | undefined): ToolOut
 }
 
 /**
- * A step that runs once per item returns the forEach envelope, so every field
- * becomes `…output.results[*].output.<key>`; a scalar's sample is wrapped as
- * `[value]` and marked `perIteration` (BFSF-369), and the counters surface.
+ * A step that runs once per item (forEach or repeat) returns the fan-out
+ * envelope, so every field becomes `…output.results[*].output.<key>`; a
+ * scalar's sample is wrapped as `[value]` and marked `perIteration`
+ * (BFSF-369), and the counters surface.
  */
 function wrapGroupForEach(group: VariableGroup): VariableGroup {
     const base = group.basePath;
@@ -80,7 +81,7 @@ function isOwnContainer(groupId: unknown, currentStepId: unknown): boolean {
 
 function describeWalked(node: FlowNode, ctx: WalkContext): VariableGroup | null {
     let g = describeNode(node, { ...ctx, sampleRoot: ctx.root });
-    if (g && !node.__isTrigger && node.forEach?.overRef) g = wrapGroupForEach(g);
+    if (g && !node.__isTrigger && runsPerItem(node)) g = wrapGroupForEach(g);
     if (!g) return null;
     const real = ctx.realOutputById?.get(node.id);
     return real !== undefined ? overlayGroupWithReal(g, real) : g;

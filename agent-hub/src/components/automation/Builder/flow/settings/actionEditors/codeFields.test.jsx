@@ -402,6 +402,6 @@ describe('what was already here keeps working', () => {
         renderUI(<CodeFields draft={draftOf({ forEach: { overRef: 'trigger.output.rows', itemVar: 'item' } })} set={vi.fn()} />);
         await screen.findByTestId('monaco-stub');
 
-        expect(screen.getByRole('checkbox', { name: /run once per item/i })).toBeChecked();
+        expect(screen.getByRole('checkbox', { name: /run this step separately for each/i })).toBeChecked();
     });
 });

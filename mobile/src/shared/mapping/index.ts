@@ -28,6 +28,10 @@ export {
     walkPath,
     walkRelativePath,
 } from './vendor/index.mjs';
+// The one auto-map rule (match.mjs), shared with the web builder and the AI
+// builder: which earlier value goes into which empty input.
+export { isSecretLikeKey, matchInputs, normalizeKey, sampleType } from './vendor/index.mjs';
+export type { MappingSource, MatchCandidate, MatchInput } from './vendor/index.mjs';
 export type {
     LegacyResolver,
     LegacyToken,

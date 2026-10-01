@@ -36,7 +36,7 @@ function LoopOver(editor: StepEditorProps) {
     return (
         <>
             <Text variant="caption" weight="medium" tone="secondary">
-                {t('mobile.flow.loop.run_for_each', 'Run this step for each…')}
+                {t('mobile.flow.loop.run_for_each', 'Run for each item in…')}
             </Text>
             {overRef ? (
                 <View style={styles.current}>
@@ -63,7 +63,7 @@ function LoopOver(editor: StepEditorProps) {
                     ))}
                 </View>
             ) : (
-                <Note>{t('mobile.flow.loop.no_lists', 'No upstream lists detected — open Advanced to enter one by hand.')}</Note>
+                <Note>{t('mobile.flow.loop.no_lists', 'No earlier list found. Enter one under Formula.')}</Note>
             )}
             <TextField
                 label={t('mobile.flow.loop.name_each', 'Name each item')}
@@ -78,14 +78,14 @@ function LoopOver(editor: StepEditorProps) {
                 editable={!ctx.disabled}
             />
             <Note>{t('mobile.flow.loop.available_as', 'Each item is available to the steps inside as Loop item · {name} — pick it with Insert data.', { name: itemVar })}</Note>
-            <Button size="sm" variant="ghost" iconName={advanced ? 'ChevronDown' : 'ChevronRight'} label={t('mobile.flow.section.advanced', 'Advanced')} onPress={() => setAdvanced((v) => !v)} />
+            <Button size="sm" variant="ghost" iconName={advanced ? 'ChevronDown' : 'ChevronRight'} label={t('mobile.flow.loop.formula', 'Formula')} onPress={() => setAdvanced((v) => !v)} />
             {advanced ? (
                 <BindingInput
                     mode="path"
                     list
                     value={overRef}
                     onChange={(v) => setMany({ overRef: String(v), itemVar })}
-                    label={t('mobile.flow.loop.list_path', 'List path (expression)')}
+                    label={t('mobile.flow.loop.list_path', 'The list, as a formula')}
                     prompt={t('mobile.flow.loop.list_path_prompt', 'Tap Insert data to pick a list')}
                     disabled={ctx.disabled}
                 />

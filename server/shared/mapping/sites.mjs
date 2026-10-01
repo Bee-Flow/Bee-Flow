@@ -14,7 +14,10 @@
  *            string, or (where `compose` is true) a compose binding. `each`
  *            marks a map whose every value is such a text (fill_document's
  *            values, http_request's headers).
- *   binding  a structure holding binding objects at any depth.
+ *   binding  a structure holding binding objects at any depth. Where the
+ *            run also renders a bare string in it as a `{{ }}` text (a sole
+ *            `{{path}}` keeping its type: execPresentation.js resolveBound),
+ *            the field is listed in `stringTexts` as well.
  *   list     the list a step works through: a legacy path string, or (for
  *            a loop's `over` and a step's `repeat.over`) a Source.
  *   ref      a single value read by legacy path (a guard's sourceRef).
@@ -53,8 +56,9 @@ export const STEP_SITES = Object.freeze({
             text('chart.labels', { compose: false }), text('chart.values', { compose: false }), text('chart.unit', { compose: false }),
         ],
         bindings: ['chart.data', 'stats'],
+        stringTexts: ['chart.data', 'stats'],
     },
-    presentation: { text: [text('title'), text('subtitle'), text('fileName'), text('copyName')], bindings: ['slides'] },
+    presentation: { text: [text('title'), text('subtitle'), text('fileName'), text('copyName')], bindings: ['slides'], stringTexts: ['slides'] },
     set: { bindings: ['fields'], lists: ['arrayRef'] },
     layer_output: { bindings: ['fields'] },
     datatable: { bindings: ['values', 'where', 'cursor'] },

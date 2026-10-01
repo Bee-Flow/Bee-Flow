@@ -3,7 +3,8 @@
 import { Plus, X } from 'lucide-react';
 import TemplateField from '../../../mapping/TemplateField';
 import AccordionSection from '../../AccordionSection';
-import { ForEachSection, RetrySection, retryIsSet } from '../collectionEditors';
+import { RetrySection, retryIsSet } from '../collectionEditors';
+import StepRepeatSection from '../advanced/StepRepeatSection';
 import { FormRow, inputClass } from '../formPrimitives';
 import HttpAuthPicker from '../HttpAuthPicker';
 import { AskOnceRow } from './askOnceRow';
@@ -207,11 +208,11 @@ function HttpRequestFields({ draft, set, groups = [], onFocusField, previewSampl
 
             <AccordionSection
                 stepType="http_request" sectionKey="advanced" title="Advanced"
-                defaultOpen={!!(draft.forEach || draft.askOnce || draft.cacheInto) || retryIsSet(draft)}
+                defaultOpen={!!(draft.forEach || draft.repeat || draft.askOnce || draft.cacheInto) || retryIsSet(draft)}
                 forceOpen={errorSections.has('advanced')}
-                hasContent={!!(draft.forEach || draft.askOnce || draft.cacheInto) || retryIsSet(draft)}
+                hasContent={!!(draft.forEach || draft.repeat || draft.askOnce || draft.cacheInto) || retryIsSet(draft)}
             >
-                <ForEachSection draft={draft} set={set} groups={groups} onFocusField={onFocusField} />
+                <StepRepeatSection stepType="http_request" draft={draft} set={set} groups={groups} onFocusField={onFocusField} />
                 <RetrySection draft={draft} set={set} />
                 <AskOnceRow
                     draft={draft} set={set}

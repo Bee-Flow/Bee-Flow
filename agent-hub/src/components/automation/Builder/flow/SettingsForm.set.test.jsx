@@ -112,7 +112,7 @@ describe('SettingsForm — Edit data (set)', () => {
         expect(screen.queryByText('Table tools')).toBeNull();
         // forEach still offered under Advanced for single mode.
         fireEvent.click(screen.getByText('Advanced'));
-        expect(screen.getByText('Run once per item')).toBeTruthy();
+        expect(screen.getByText('Run this step separately for each…')).toBeTruthy();
     });
 
     it('list mode summarises the source in one line, under Advanced, with the change reveal', () => {
@@ -133,7 +133,7 @@ describe('SettingsForm — Edit data (set)', () => {
         renderForm(LIST_STEP);
         expect(screen.getByText('Table tools')).toBeTruthy();
         fireEvent.click(screen.getByText('Advanced'));
-        expect(screen.queryByText('Run once per item')).toBeNull();
+        expect(screen.queryByText('Run this step separately for each…')).toBeNull();
     });
 
     it('a bound field reads as a named chip — never a raw path — with a live example', async () => {

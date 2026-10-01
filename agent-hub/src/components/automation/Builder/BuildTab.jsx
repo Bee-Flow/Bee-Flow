@@ -80,12 +80,13 @@ const LOOP_BODY_REFUSALS = {
     return_to_app: 'Back to the app ends the whole routine, so it cannot sit inside a loop — the loop would just run it again for the next item. Put it after the loop, as the last step.',
 };
 
-/** Toast copy after an auto-map, noting when the step now iterates per item. */
-function autoMapToastMessage(count, forEachEnabled) {
-    const base = count
-        ? `Auto-mapped ${count} input${count === 1 ? '' : 's'}`
-        : 'Set up iteration';
-    return forEachEnabled ? `${base} · runs once per item` : base;
+/**
+ * Toast copy after an auto-map. Auto-map only fills inputs: running a step
+ * once per item is never switched on behind the author's back (it lives in
+ * the step's Advanced section), so there is nothing else to announce.
+ */
+function autoMapToastMessage(count) {
+    return `Auto-mapped ${count} input${count === 1 ? '' : 's'}`;
 }
 
 /**
@@ -729,11 +730,9 @@ export default function BuildTab({
         if (autoMapEnabled && sourceId && next.steps?.length) {
             const insertedId = next.steps[next.steps.length - 1].id;
             if (catalog) {
-                const { definition: mappedDef, mappedKeys, forEachEnabled } = applyAutoMapToStep(next, insertedId, catalog, { realOutputById });
+                const { definition: mappedDef, mappedKeys } = applyAutoMapToStep(next, insertedId, catalog, { realOutputById });
                 finalDef = mappedDef;
-                if (mappedKeys.length || forEachEnabled) {
-                    toast.success(autoMapToastMessage(mappedKeys.length, forEachEnabled));
-                }
+                if (mappedKeys.length) toast.success(autoMapToastMessage(mappedKeys.length));
             } else {
                 // Catalog still loading (a step added within ~1s of page load).
                 // This used to silently skip auto-map; queue the id and let the
@@ -769,19 +768,17 @@ export default function BuildTab({
         const ids = pendingAutoMapRef.current.splice(0);
         let def = scopedDefRef.current;
         if (!def) return;
-        let mappedAny = false, keysTotal = 0, anyForEach = false;
+        let keysTotal = 0;
         for (const id of ids) {
             const r = applyAutoMapToStep(def, id, catalog, { realOutputById: realOutputRef.current });
-            if (r.mappedKeys.length || r.forEachEnabled) {
+            if (r.mappedKeys.length) {
                 def = r.definition;
-                mappedAny = true;
                 keysTotal += r.mappedKeys.length;
-                anyForEach = anyForEach || !!r.forEachEnabled;
             }
         }
-        if (mappedAny) {
+        if (keysTotal) {
             onVisualEditFlat?.(def);
-            toast.success(autoMapToastMessage(keysTotal, anyForEach));
+            toast.success(autoMapToastMessage(keysTotal));
         }
     }, [catalog, onVisualEditFlat]);
 
@@ -1317,8 +1314,8 @@ export default function BuildTab({
                         catalog={catalog}
                         realOutputById={realOutputById}
                         autoMapEnabled={autoMapEnabled}
-                        onAutoMapped={(_id, count, forEachEnabled) => {
-                            if (count || forEachEnabled) toast.success(autoMapToastMessage(count, forEachEnabled));
+                        onAutoMapped={(_id, count) => {
+                            if (count) toast.success(autoMapToastMessage(count));
                         }}
                         onOpenLayer={(k) => setScopeKey?.(k)}
                         layerSummaries={layerSummaries}

@@ -16,6 +16,7 @@ export const extractSet: Extractor = (step, base) => ({
     ...base,
     fields: or(step.fields, {}),
     forEach: or(step.forEach, null),
+    repeat: or(step.repeat, null),
     arrayRef: strOr(step.arrayRef, null),
     maxItems: num(step.maxItems, ''),
     operations: Array.isArray(step.operations) ? step.operations : [],
@@ -30,6 +31,7 @@ export const patchSet: Patcher = (patch, step, draft) => {
         const ops = sanitizeOperations(draft.operations);
         patch.operations = ops.length ? ops : undefined;
         if (step.forEach) patch.forEach = null;
+        if (step.repeat) patch.repeat = null;
     } else {
         // SINGLE MODE — undefined deletes the list-mode keys after the merge.
         patch.arrayRef = undefined;
@@ -134,6 +136,7 @@ export const patchSummarize: Patcher = (patch, _step, draft) => {
 export const extractDatatable: Extractor = (step, base) => ({
     ...base,
     forEach: or(step.forEach, null),
+    repeat: or(step.repeat, null),
     datatableId: or(step.datatableId, ''),
     op: or(step.op, 'find_rows'),
     where: Array.isArray(step.where) ? step.where.map((w) => ({ ...w })) : [],
@@ -159,6 +162,7 @@ export const patchDatatable: Patcher = (patch, step, draft) => {
 export const extractKnowledgeWrite: Extractor = (step, base) => ({
     ...base,
     forEach: or(step.forEach, null),
+    repeat: or(step.repeat, null),
     knowledgeBaseId: or(step.knowledgeBaseId, ''),
     title: strOr(step.title, ''),
     content: strOr(step.content, ''),

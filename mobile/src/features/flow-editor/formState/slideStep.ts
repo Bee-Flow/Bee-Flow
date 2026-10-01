@@ -56,6 +56,7 @@ export const extractSlide: Extractor = (step, base) => {
         stats,
         style: step.style === 'accent' || step.style === 'dark' ? step.style : '',
         forEach: or(step.forEach, null),
+        repeat: or(step.repeat, null),
     };
 };
 

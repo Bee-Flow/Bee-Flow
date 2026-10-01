@@ -55,9 +55,9 @@ export function useNodeDragWiring({
         // wired but stayed unconfigured. Same recipe as onConnect below.
         const { catalog: cat, realOutputById: real, autoMapEnabled: am, onAutoMapped: notify } = nodeOpsRef.current;
         if (am && cat && downstreamId) {
-            const { definition: mapped, mappedKeys, forEachEnabled } = applyAutoMapToStep(wired, downstreamId, cat, { realOutputById: real });
-            if (mappedKeys.length || forEachEnabled) {
-                notify?.(downstreamId, mappedKeys.length, forEachEnabled);
+            const { definition: mapped, mappedKeys } = applyAutoMapToStep(wired, downstreamId, cat, { realOutputById: real });
+            if (mappedKeys.length) {
+                notify?.(downstreamId, mappedKeys.length);
                 return mapped;
             }
         }

@@ -93,6 +93,7 @@ export const extractDataExtraction: Extractor = (step, base) => ({
     fields: readExtractionFields(step.fields),
     instructions: typeof step.instructions === 'string' ? step.instructions : '',
     forEach: step.forEach || null,
+    repeat: step.repeat || null,
 });
 
 /** `(v || '').slice(0, MAX) || undefined`, arrays and all, as the web writes it. */

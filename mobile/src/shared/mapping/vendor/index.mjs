@@ -49,3 +49,9 @@ export { inlineText, renderText, renderCompose } from './render.mjs';
 export {
     REPEAT_DEFAULT_MAX, REPEAT_MAX, mapStepPicks, toggleRepeat, toggleRepeatOff, rebaseLoopRefs,
 } from './repeat.mjs';
+// M6: per-item repeat and the one auto-map rule (match.mjs: which earlier
+// value goes into which empty input, for the web auto-map and the AI builder).
+export { stopForEach, renameItemVar } from './repeat.mjs';
+export {
+    normalizeKey, sampleType, isSecretLikeKey, typeFits, idAffinityBase, matchInputs,
+} from './match.mjs';

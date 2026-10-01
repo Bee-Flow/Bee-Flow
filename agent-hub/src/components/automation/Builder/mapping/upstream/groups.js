@@ -37,7 +37,7 @@ import { collectUpstream } from './graphWalk';
 import { describeNode } from './describeNode';
 import { overlayGroupWithReal } from './realOverlay';
 import { triggerMetaSample, describeTriggerMeta } from './triggers';
-import { describeForEachItem } from './loops';
+import { describeForEachItem, runsPerItem } from './loops';
 import { resolveElementSample, sampleToFields } from './sampleFields';
 
 export function computeUpstreamGroups(definition, currentStepId, catalog, realOutputById = null) {
@@ -59,13 +59,13 @@ export function computeUpstreamGroups(definition, currentStepId, catalog, realOu
     const groups = [];
     for (const node of upstream) {
         let g = describeNode(node, definition, toolToOutput, triggerOutputs, sampleRoot, catalog);
-        // A step that "runs once per item" (step.forEach) doesn't return its
-        // flat tool output — the runner wraps it as
+        // A step that "runs once per item" (step.forEach, or step.repeat)
+        // doesn't return its flat tool output — the runner wraps it as
         //   { iterations, succeeded, failed, results: [{ index, item, output, status }] }
-        // (see execForEachStep). Re-shape the group so downstream binding,
+        // (see execRepeat.js). Re-shape the group so downstream binding,
         // the loop picker and auto-map use the runtime-correct
         // `…output.results[*].output.<field>` paths instead of the flat ones.
-        if (g && !node.__isTrigger && node.forEach && node.forEach.overRef) {
+        if (g && !node.__isTrigger && runsPerItem(node)) {
             g = wrapGroupForEach(g, node);
         }
         if (!g) continue;
@@ -159,7 +159,8 @@ export function buildToolOutputMap(catalog) {
 }
 
 /**
- * Re-shape an upstream group whose node iterates (`step.forEach`). The
+ * Re-shape an upstream group whose node iterates (`step.forEach` or
+ * `step.repeat`). The
  * runtime output is the aggregated `{ iterations, succeeded, failed, results }`
  * envelope, so:
  *   - EVERY per-iteration field becomes a flattened iterable at
@@ -183,7 +184,7 @@ export function buildToolOutputMap(catalog) {
  * now works.
  */
 function wrapGroupForEach(group, node) {
-    if (!group || !node?.forEach?.overRef) return group;
+    if (!group || !runsPerItem(node)) return group;
     const base = group.basePath; // steps.<id>.output
     const flat = group.sample || {};
     const flattened = (group.fields || [])

@@ -1,19 +1,19 @@
 /**
- * DIFFERENTIAL lockstep: agent-hub `Builder/mapping/autoMapInputs.js` and the
+ * DIFFERENTIAL lockstep: agent-hub `Builder/mapping/autoMapInputs.ts` and the
  * port (autoMap + autoMapIteration + autoMapStep) map the same definitions the
  * same way. When this fails the web side changed — update the port, don't
  * loosen the test.
  */
 
 import * as am from './autoMap';
-import { tryIterationMapping } from './autoMapIteration';
+import { mapFromItem } from './autoMapIteration';
 import { applyAutoMapToStep, autoMapStep } from './autoMapStep';
 import { CATALOG, chainDefinition } from './testing/fixture';
 import { BUILDER, requireWeb } from './testing/web';
 import type { FlowDefinition, FlowNode } from './types';
 import { computeUpstreamGroups } from './upstream';
 
-const web = requireWeb(`${BUILDER}/mapping/autoMapInputs.js`);
+const web = requireWeb(`${BUILDER}/mapping/autoMapInputs.ts`);
 
 beforeAll(() => {
     jest.useFakeTimers({ now: new Date('2026-03-01T10:00:00Z') });
@@ -35,6 +35,8 @@ const SCENARIOS: FlowNode[] = [
     { id: 'read', type: 'integration_action', tool: 'gmail_read' },
     { id: 'read2', type: 'integration_action', tool: 'gmail_read', inputs: { messageId: { kind: 'literal', value: 'set' } } },
     { id: 'read3', type: 'integration_action', tool: 'gmail_read', forEach: { overRef: 'x' } },
+    { id: 'readEach', type: 'integration_action', tool: 'gmail_read', forEach: { overRef: 'steps.search.output.results', itemVar: 'mail' } },
+    { id: 'readRepeat', type: 'integration_action', tool: 'gmail_read', repeat: { over: { root: 'steps', id: 'search', path: ['results'] }, max: 100 } },
     { id: 'send', type: 'integration_action', tool: 'gmail_send', inputs: { subject: { kind: 'literal', value: '' } } },
     { id: 'unknownTool', type: 'integration_action', tool: 'nope', inputs: { query: null, total: { kind: 'ref', path: '' } } },
     { id: 'ai', type: 'ai_step', inputs: { query: { kind: 'literal', value: '' }, apiKey: null, other: null } },
@@ -137,17 +139,31 @@ describe('the matching helpers', () => {
         expect(am.findInputSchemaForTool(null, 'x')).toBe(null);
     });
 
-    it('the iteration fallback on its own', () => {
-        const def = below({ id: 'r', type: 'integration_action', tool: 'gmail_read' });
-        const local = computeUpstreamGroups(def, 'r', CATALOG);
+    it('a step that runs per item reads its own item; one that does not is never made to', () => {
+        const once = below({ id: 'r', type: 'integration_action', tool: 'gmail_read' });
         const schema = { properties: { messageId: { type: 'string' } }, required: ['messageId'] };
-        expect(tryIterationMapping(schema, {}, local, { definition: def, catalog: CATALOG })).toStrictEqual({
-            patch: { messageId: { kind: 'ref', path: 'loop.result.id' } },
-            forEach: { overRef: 'steps.search.output.results', itemVar: 'result', maxIterations: 100 },
+        expect(mapFromItem(once.steps?.[1] as FlowNode, schema, computeUpstreamGroups(once, 'r', CATALOG), { definition: once, catalog: CATALOG })).toBe(null);
+        const each = below({ id: 'r', type: 'integration_action', tool: 'gmail_read', forEach: { overRef: 'steps.search.output.results', itemVar: 'mail' } });
+        const local = computeUpstreamGroups(each, 'r', CATALOG);
+        expect(mapFromItem(each.steps?.[1] as FlowNode, schema, local, { definition: each, catalog: CATALOG })).toStrictEqual({
+            patch: { messageId: { kind: 'ref', path: 'loop.mail.id' } },
+            groupId: 'r__foreach',
         });
-        expect(tryIterationMapping({ properties: {} }, {}, local, { definition: def, catalog: CATALOG })).toBe(null);
-        expect(tryIterationMapping(schema, {}, [], { definition: def, catalog: CATALOG })).toBe(null);
-        const noMatch = { properties: { zzz: { type: 'number' } }, required: ['zzz'] };
-        expect(tryIterationMapping(noMatch, {}, local, { definition: def, catalog: CATALOG })).toBe(null);
+        expect(autoMapStep(once.steps?.[1] as FlowNode, once, CATALOG).step.forEach).toBeUndefined();
+    });
+
+    it('below a step that ran per item: its entries are the list', () => {
+        const read: FlowNode = { id: 'read', type: 'integration_action', tool: 'gmail_read', forEach: { overRef: 'steps.search.output.results', itemVar: 'mail' } };
+        for (const step of [
+            { id: 'loop', type: 'loop' },
+            { id: 'w', type: 'integration_action', tool: 'gmail_read', forEach: { overRef: 'steps.read.output.results', itemVar: 'r' } },
+        ] as FlowNode[]) {
+            const def: FlowDefinition = {
+                trigger: { id: 'trg', type: 'trigger', kind: 'manual' },
+                steps: [{ id: 'search', type: 'integration_action', tool: 'gmail_search' }, read, step],
+                edges: [{ from: 'trg', to: 'search' }, { from: 'search', to: 'read' }, { from: 'read', to: step.id }],
+            };
+            expect(autoMapStep(step, def, CATALOG)).toStrictEqual(web.autoMapStep?.(step, def, CATALOG));
+        }
     });
 });

@@ -274,6 +274,7 @@ function extractTypeFormState(step) {
             // "Run once per item" — the inspector rendered the tick, but the
             // round-trip dropped it in BOTH directions for ai_step (C12).
             forEach: step.forEach || null,
+            repeat: step.repeat || null,
         };
     }
     if (step.type === 'integration_action') {
@@ -284,6 +285,7 @@ function extractTypeFormState(step) {
             sideEffect: step.sideEffect ?? null,
             inputs: step.inputs || {},
             forEach: step.forEach || null,
+            repeat: step.repeat || null,
             // "Ask this app only once per run" — the toggle shipped, the
             // round-trip did not: without this key the draft and the baseline
             // both lacked it, so flushNow's buildPatch comparison found them
@@ -318,11 +320,11 @@ function extractTypeFormState(step) {
     // could set one. codeFields.jsx has shipped the table for exactly this,
     // gated on a probe that asks whether the round trip carries `inputs`
     // rather than assuming it; the probe is what turns it on.
-    if (step.type === 'code')         return { ...base, code: step.code || '', inputs: step.inputs || {}, allowedHosts: Array.isArray(step.allowedHosts) ? step.allowedHosts : [], forEach: step.forEach || null };
+    if (step.type === 'code')         return { ...base, code: step.code || '', inputs: step.inputs || {}, allowedHosts: Array.isArray(step.allowedHosts) ? step.allowedHosts : [], forEach: step.forEach || null, repeat: step.repeat || null };
     // `channels` rides along now that the form can edit it (BFSF-350) — it was
     // runner-honoured but form-invisible, so a step's delivery target could
     // only be set through the JSON tab.
-    if (step.type === 'notification') return { ...base, title: step.title || '', body: step.body || '', channels: Array.isArray(step.channels) ? step.channels : null, forEach: step.forEach || null };
+    if (step.type === 'notification') return { ...base, title: step.title || '', body: step.body || '', channels: Array.isArray(step.channels) ? step.channels : null, forEach: step.forEach || null, repeat: step.repeat || null };
     if (step.type === 'http_request') return {
         ...base,
         url: step.url || '',
@@ -333,6 +335,7 @@ function extractTypeFormState(step) {
         blockPrivateTargets: step.blockPrivateTargets !== false,
         parseResponse: step.parseResponse || 'auto',
         forEach: step.forEach || null,
+        repeat: step.repeat || null,
         // Saved HTTP credential reference — only the opaque connectionId lives
         // in the definition; the secret stays in the org vault.
         auth: (step.auth && typeof step.auth === 'object' && step.auth.connectionId)
@@ -380,6 +383,7 @@ function extractTypeFormState(step) {
             stats,
             style: step.style === 'accent' || step.style === 'dark' ? step.style : '',
             forEach: step.forEach || null,
+            repeat: step.repeat || null,
         };
     }
     if (step.type === 'presentation') return {
@@ -447,6 +451,7 @@ function extractTypeFormState(step) {
         fields: readExtractionFields(step.fields),
         instructions: typeof step.instructions === 'string' ? step.instructions : '',
         forEach: step.forEach || null,
+        repeat: step.repeat || null,
     };
     // Flowlets (inline — contract derives from rootDefinition, not the step)
     if (step.type === 'call_layer')   return { ...base, inputs: step.inputs || {} };
@@ -458,6 +463,7 @@ function extractTypeFormState(step) {
         ...base,
         fields: step.fields || {},
         forEach: step.forEach || null,
+        repeat: step.repeat || null,
         // null = single mode; a string ('' allowed = source not picked yet) =
         // list mode. Mirrors the switch presence convention (routeModel.js) —
         // the mode is never stored, only derived from the key being there.
@@ -578,6 +584,7 @@ function extractTypeFormState(step) {
             // Carried since K10. Without it the editor's Iteration toggle read
             // as OFF on a step that had one, and the first save dropped it.
             forEach: step.forEach || null,
+            repeat: step.repeat || null,
             datatableId: step.datatableId || '',
             op: step.op || 'find_rows',
             where: Array.isArray(step.where) ? step.where.map(w => ({ ...w })) : [],
@@ -592,6 +599,7 @@ function extractTypeFormState(step) {
         return {
             ...base,
             forEach: step.forEach || null,
+            repeat: step.repeat || null,
             knowledgeBaseId: step.knowledgeBaseId || '',
             title: typeof step.title === 'string' ? step.title : '',
             content: typeof step.content === 'string' ? step.content : '',
@@ -911,9 +919,10 @@ export function buildPatch(step, draft) {
             applyMaxItemsPatch(patch, draft);
             const ops = sanitizeOperations(draft.operations);
             patch.operations = ops.length ? ops : undefined;
-            // Mutually exclusive with forEach (the validator errors on both);
-            // an explicit null clears a legacy per-item setting on save.
+            // Mutually exclusive with a per-item run (the validator errors on
+            // both); an explicit null clears it on save.
             if (step.forEach) patch.forEach = null;
+            if (step.repeat) patch.repeat = null;
         } else {
             // SINGLE MODE — explicit undefined deletes the list-mode keys
             // after the patch-merge + JSON round-trip (the writeRoute idiom);
@@ -1154,8 +1163,9 @@ export const FOREACH_FORM_TYPES = new Set([
 ]);
 
 /**
- * One shared forEach persist rule: normalize when enabled, explicit null to
- * clear an existing one when the user toggles it off.
+ * One shared per-item persist rule, for the legacy `forEach` and the v2
+ * `repeat` alike (StepRepeatSection writes both): normalize when enabled,
+ * explicit null to clear an existing one when the user toggles it off.
  */
 function applyForEachPatch(patch, step, draft) {
     if (draft.forEach) {
@@ -1166,6 +1176,11 @@ function applyForEachPatch(patch, step, draft) {
         };
     } else if (step.forEach) {
         patch.forEach = null;
+    }
+    if (draft.repeat && draft.repeat.over) {
+        patch.repeat = { over: draft.repeat.over, max: clamp(Number(draft.repeat.max) || 100, 1, 1000) };
+    } else if (step.repeat) {
+        patch.repeat = null;
     }
 }
 

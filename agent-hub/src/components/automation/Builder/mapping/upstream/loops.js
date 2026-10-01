@@ -10,6 +10,16 @@
 import { walkPath } from '../../../../../utils/bindingHelpers';
 import { sampleToFields } from './sampleFields';
 
+/**
+ * Does this step run once per item, the older way (`step.forEach`) or the
+ * new one (`step.repeat`)? Either way its output is the fan-out envelope
+ * `{ iterations, succeeded, failed, results: [{ index, item, output, status }] }`
+ * (server execRepeat.js), never its flat tool output.
+ */
+export function runsPerItem(node) {
+    return !!(node && ((node.forEach && node.forEach.overRef) || (node.repeat && node.repeat.over)));
+}
+
 export function describeLoop(node, toolToOutput, definition, sampleRoot = null) {
     const itemVar = node.itemVar || 'item';
     // DOWNSTREAM view (C23 + user report): after the loop finishes, the
@@ -131,7 +141,7 @@ export function inferLoopItemSample(overRef, definition, toolToOutput, sampleRoo
     // When the source step iterates, its real output is the forEach envelope
     // — resolve the path (incl. `[*]` flatten) against that wrapped shape so
     // `…results[*].output.<arr>` lands on the element, not undefined.
-    const root = node?.forEach?.overRef
+    const root = runsPerItem(node)
         ? { iterations: 0, succeeded: 0, failed: 0, results: [{ index: 0, item: {}, output: meta.sample, status: 'success' }] }
         : meta.sample;
     let cur = root;

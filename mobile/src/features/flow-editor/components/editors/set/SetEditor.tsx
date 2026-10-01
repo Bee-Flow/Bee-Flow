@@ -69,7 +69,7 @@ function Advanced({ editor, listMode, ops }: { editor: StepEditorProps; listMode
             {listMode && ops.length > 0 ? <Note>{t('mobile.flow.set.whole_run_drops_tools', 'Switching to “The whole run” also removes the table tools.')}</Note> : null}
             {listMode && draft.arrayRef ? <Source editor={editor} hint={t('mobile.flow.set.source_hint', 'Detected from the step above. The fields are computed for each row of this list.')} /> : null}
             {!listMode ? <SpecFields editor={editor} fields={[FOR_EACH]} /> : null}
-            {listMode && step.forEach ? <Warn>{t('mobile.flow.set.list_replaces_for_each', 'List mode replaces “Run once per item” — saving removes the old per-item setting.')}</Warn> : null}
+            {listMode && (step.forEach || step.repeat) ? <Warn>{t('mobile.flow.set.list_replaces_for_each', 'List mode replaces “Run this step separately for each…” — saving removes the per-item setting.')}</Warn> : null}
         </Band>
     );
 }

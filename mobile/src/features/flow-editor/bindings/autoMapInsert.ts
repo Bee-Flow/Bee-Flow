@@ -20,17 +20,15 @@ export interface InsertMapOptions {
 }
 
 export interface MappedInsert extends InsertResult {
-    /** How many inputs auto-map filled (for the toast). */
+    /** How many inputs auto-map filled (for the toast). Auto-map never switches a per-item run on. */
     mapped: number;
-    /** Auto-map switched on "for each item". */
-    forEach: boolean;
     awaitingCatalog: boolean;
 }
 
 export function autoMapInserted(result: InsertResult, { catalog = null, realOutputById = null, autoMap = true }: InsertMapOptions = {}): MappedInsert {
-    const plain: MappedInsert = { ...result, mapped: 0, forEach: false, awaitingCatalog: false };
+    const plain: MappedInsert = { ...result, mapped: 0, awaitingCatalog: false };
     if (!result.wired || !autoMap || !result.addedId) return plain;
     if (!catalog) return { ...plain, awaitingCatalog: true };
-    const { definition, mappedKeys, forEachEnabled } = applyAutoMapToStep(result.definition, result.addedId, catalog, { realOutputById });
-    return { ...plain, definition, mapped: mappedKeys.length, forEach: forEachEnabled };
+    const { definition, mappedKeys } = applyAutoMapToStep(result.definition, result.addedId, catalog, { realOutputById });
+    return { ...plain, definition, mapped: mappedKeys.length };
 }

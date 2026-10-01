@@ -120,8 +120,18 @@ function stepSegment(cur: unknown, segment: string): unknown {
     return next;
 }
 
+/**
+ * Does this step run once per item, the older way (`forEach`) or the new one
+ * (`repeat`)? Either way its output is the fan-out envelope, never its flat
+ * tool output.
+ */
+export function runsPerItem(node: FlowNode | null | undefined): boolean {
+    const repeat = node ? (node as { repeat?: { over?: unknown } | null }).repeat : null;
+    return !!(node && (node.forEach?.overRef || repeat?.over));
+}
+
 function catalogRoot(node: FlowNode, sample: unknown): unknown {
-    if (!node.forEach?.overRef) return sample;
+    if (!runsPerItem(node)) return sample;
     return { iterations: 0, succeeded: 0, failed: 0, results: [{ index: 0, item: {}, output: sample, status: 'success' }] };
 }
 

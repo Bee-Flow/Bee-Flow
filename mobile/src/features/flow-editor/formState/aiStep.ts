@@ -52,6 +52,7 @@ export const extractAiStep: Extractor = (step, base) => ({
     disabledAgentSkillIds: readSkillIds(step.disabledAgentSkillIds),
     agentPermissions: readAgentPermissions(step.agentPermissions),
     forEach: or(step.forEach, null),
+    repeat: or(step.repeat, null),
 });
 
 function toolsPatch(draft: Record<string, unknown>): Record<string, unknown> {
