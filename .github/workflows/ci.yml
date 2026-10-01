@@ -287,7 +287,7 @@ jobs:
               # agent-hub files the flow editor's and expr's lockstep tests
               # require(), and what those require in turn (serverClosure.test.ts)
               - 'agent-hub/src/components/automation/Builder/{applyAddNode,notificationDefaults}.js'
-              - 'agent-hub/src/components/automation/Builder/{flow,mapping,sources,utils}/**'
+              - 'agent-hub/src/components/automation/Builder/{flow,mapping,sources,utils,valueSlot}/**'
               - 'agent-hub/src/components/automation/Builder/output/mapAttrs.ts'
               - 'agent-hub/src/components/agents/AgentWizard/state/refineMerge.js'
               - 'agent-hub/src/shared/expr/**'
