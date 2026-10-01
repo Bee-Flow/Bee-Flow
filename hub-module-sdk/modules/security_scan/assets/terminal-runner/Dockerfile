@@ -23,7 +23,7 @@
 # it fresh per scan (resolveToolsImage uses the local tag first). Build:
 #   docker build -t beeflow-security-tools:latest server/terminal-runner
 # Override the tag at runtime with SECURITY_TOOLS_IMAGE.
-FROM kalilinux/kali-rolling:latest@sha256:30399bd65187e06525008dd13eecc2b3439d26a82b2c6b0ba32dee72bd843117
+FROM kalilinux/kali-rolling:latest@sha256:d1d7e581ed60b0bbf9cb8a4bc853526355978f3b943d3a1d7dc7ce209e4231b6
 
 ENV DEBIAN_FRONTEND=noninteractive \
     LANG=C.UTF-8 \

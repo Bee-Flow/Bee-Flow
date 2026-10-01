@@ -109,7 +109,7 @@ FROM scratch AS sourcemaps
 COPY --from=build /app/dist/assets/*.map /
 
 # Production stage
-FROM nginx:alpine@sha256:62ff2089abf5a9ed33bd232895bef5e22f7bb4b200675cec49a5ebc48e3d4ac8
+FROM nginx:alpine@sha256:df221db836e1754089190208cee7eeda94f233197056426eda74a43ab1abeac2
 
 # Copy built assets and strip sourcemaps so they are never served to clients.
 COPY --from=build /app/dist /usr/share/nginx/html
