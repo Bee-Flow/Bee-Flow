@@ -61,8 +61,12 @@ export function pickSentence(t: TranslateFn, intent: PickIntent, count?: number 
     switch (intent.take) {
         case 'all': return allSentence(t, intent, known);
         case 'each': return t('mapping.slot.sentence.each', 'One value per run, for each item.');
-        case 'first': return t('mapping.slot.sentence.first', 'Only the first.');
-        case 'last': return t('mapping.slot.sentence.last', 'Only the last.');
+        case 'first': return known === null
+            ? t('mapping.slot.sentence.first', 'Only the first.')
+            : t('mapping.slot.sentence.first_of', 'Only the first of {count}.', { count: known });
+        case 'last': return known === null
+            ? t('mapping.slot.sentence.last', 'Only the last.')
+            : t('mapping.slot.sentence.last_of', 'Only the last of {count}.', { count: known });
         case 'count': return known === null
             ? t('mapping.slot.sentence.count', 'The number of them.')
             : t('mapping.slot.sentence.count_n', 'The number of them ({count}).', { count: known });
@@ -97,7 +101,7 @@ export default function PickSentence({ intent, count, warning = false, onChange,
                         onChange={(e) => onColumn?.(e.target.value)}
                         className="rounded border border-[var(--border-default)] bg-[var(--bg-secondary)] px-1 py-0.5 text-[12px] text-[var(--text-primary)]"
                     >
-                        {!matched && <option value="" disabled>…</option>}
+                        {!matched && <option value="" disabled>{t('mapping.slot.sentence.column_choose', 'Choose a column')}</option>}
                         {columns.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
                     </select>
                 </label>

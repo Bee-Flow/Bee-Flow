@@ -15,9 +15,9 @@ import { walkPath, previewValue } from '../../../../utils/bindingHelpers';
  *
  * Returns null when there is nothing worth showing. `raw` decides what to do
  * when an expression can't be evaluated: BindingField (whose user is already
- * looking at the expression source) falls back to `expr: <source>`; the visual
- * ValueBuilder passes `raw: false` and shows nothing rather than leaking a
- * path with an internal step id in it.
+ * looking at the expression source) falls back to `expr: <source>`; a caller
+ * that shows values to people passes `raw: false` and shows nothing rather
+ * than leaking a path with an internal step id in it.
  */
 export default function previewBinding(binding, sampleRoot, { raw = true } = {}) {
     if (!binding) return null;

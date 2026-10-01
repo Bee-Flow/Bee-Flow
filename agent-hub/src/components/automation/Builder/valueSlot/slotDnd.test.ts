@@ -5,7 +5,7 @@
  * reads only the structured source type.
  */
 import { describe, it, expect, vi } from 'vitest';
-import { SOURCE_MIME, isSourceDrag, onSourceDragOver, parseDraggedSource, readSourceDrop, startSourceDrag } from './slotDnd';
+import { SOURCE_MIME, isSourceDrag, onSourceDragOver, parseDraggedSource, pickableSource, readSourceDrop, startSourceDrag } from './slotDnd';
 
 function transfer(data: Record<string, string>) {
     const store = new Map(Object.entries(data));
@@ -58,5 +58,20 @@ describe('slotDnd', () => {
         expect(parseDraggedSource(JSON.stringify({ source: { root: 'steps', path: ['x'] } }))).toBeNull();
         expect(parseDraggedSource(JSON.stringify([1]))).toBeNull();
         expect(parseDraggedSource(JSON.stringify({ source: SOURCE, count: 'x', labelParts: 'y' }))).toEqual({ source: SOURCE });
+    });
+
+    it('accepts a bare Source, as the table view wrote it', () => {
+        expect(parseDraggedSource(JSON.stringify(SOURCE))).toEqual({ source: SOURCE });
+        expect(parseDraggedSource(JSON.stringify({ root: 'secrets', path: ['k'] }))).toBeNull();
+    });
+
+    // Review M4b: a column of a table view is a Source with a WILD segment;
+    // the drop did nothing, because a stored pick refuses a WILD.
+    it('accepts a table column, its WILD dropped (a pick maps the key over the list itself)', () => {
+        const column = { root: 'steps', id: 'g', path: ['rows', { wild: true }, 'email'] };
+        expect(parseDraggedSource(JSON.stringify({ source: column }))).toEqual({ source: { root: 'steps', id: 'g', path: ['rows', 'email'] } });
+        expect(pickableSource(column)).toEqual({ root: 'steps', id: 'g', path: ['rows', 'email'] });
+        expect(pickableSource({ root: 'secrets', path: ['k'] })).toBeNull();
+        expect(pickableSource(null)).toBeNull();
     });
 });

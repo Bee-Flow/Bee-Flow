@@ -31,6 +31,7 @@
 
 import { WILD, isWild, formatSegment, parseLegacyPath } from './source.mjs';
 import { labelParts } from './label.mjs';
+import { shapeOf } from './shape.mjs';
 
 /** How deep the field tree opens: a key five levels down is still offered. */
 export const MAX_DEPTH = 6;
@@ -81,20 +82,18 @@ function parseJsonText(v) {
 }
 
 /**
- * The shape of one sample value.
- *
- * TODO(mapping M2 merge): shape.mjs (shapeOf) replaces this once M2 lands;
- * it is kept private to this file until then so the two never disagree in
- * public.
+ * The shape of one sample value, in the words a SourceNode uses: shape.mjs's
+ * shapeOf (so the panel and the pick defaults never disagree about what is a
+ * table), with its `single` split into `json` for a text that holds an object
+ * or a list (the panel opens it, marked "read from text") and `scalar` for
+ * every other single value.
  * @param {unknown} v
  * @returns {'missing'|'scalar'|'object'|'list'|'table'|'json'}
  */
 export function shapeOfSample(v) {
-    if (v === undefined) return 'missing';
-    if (Array.isArray(v)) return v.some(isPlainObject) ? 'table' : 'list';
-    if (isPlainObject(v)) return 'object';
-    if (parseJsonText(v) !== undefined) return 'json';
-    return 'scalar';
+    const shape = shapeOf(v);
+    if (shape !== 'single') return shape;
+    return parseJsonText(v) !== undefined ? 'json' : 'scalar';
 }
 
 /** A short text of a value for the grey preview column; '' when a word would lie. */

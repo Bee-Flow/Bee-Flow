@@ -6,7 +6,7 @@ import { FOCUS_RING } from '../flow/settings/formStyles';
 
 /**
  * The "insert data from a previous step" button that sits beside every
- * mapping-aware field (BindingField, PathField, TemplateField, the raw
+ * mapping-aware field (BindingField, TemplateField, the raw
  * condition expression). One component so the affordance reads the same
  * everywhere — and so the two form modes can disagree about how loud it is:
  *

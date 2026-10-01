@@ -58,7 +58,8 @@ const PILL_MISSING = 'border-dashed border-[var(--border-default)] bg-[var(--bg-
 /** The family colour for the step a token points at; ink-grey when unknown. */
 export function pillTint(token, stepTypeById = null) {
     const family = token?.source === 'trigger' ? 'trigger'
-        : token?.source === 'loop' ? 'loop'
+        // A list-mode step's current row is a loop item by another name.
+        : token?.source === 'loop' || token?.source === 'item' ? 'loop'
         : stepFamily(stepTypeById?.get?.(token?.stepId));
     return family ? typeColorVar(family) : 'var(--text-secondary)';
 }

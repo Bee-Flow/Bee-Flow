@@ -1,5 +1,5 @@
 import React from 'react';
-import { SquareFunction, TriangleAlert, X } from 'lucide-react';
+import { Eye, SquareFunction, TriangleAlert, X } from 'lucide-react';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
 /**
@@ -11,7 +11,8 @@ import { useTranslation } from '../../../../hooks/useTranslation';
  *            "No longer available: E-mail van klant · Pick again"
  *   formula  grey "Formula" chip with a one-line summary, for a stored
  *            binding that does not read as one value (usePickLabel.ts
- *            formulaSummary words it)
+ *            formulaSummary words it), and under it what it gives on the
+ *            sample, so a formula is never a value nobody can check
  *
  * Presentational: what a click does is the caller's.
  */
@@ -76,20 +77,29 @@ function StaleChip({ label, onRepick, remove }: Part) {
     );
 }
 
-function FormulaChip({ summary, onOpen, remove }: Part) {
+function FormulaChip({ summary, preview, onOpen, remove }: Part) {
     const { t } = useTranslation();
     const name = t('mapping.slot.formula', 'Formula');
     const title = summary ? t('mapping.slot.formula_title', 'Formula: {summary}', { summary }) : undefined;
     return (
-        <span data-testid="value-chip" data-state="formula" className="inline-flex items-center gap-1.5 max-w-full min-w-0">
-            <span className={`${CHIP} shrink-0 border-[var(--border-default)] bg-[var(--bg-tertiary)] text-[var(--text-secondary)]`}>
-                <SquareFunction size={12} className="shrink-0" aria-hidden="true" />
-                {onOpen
-                    ? <button type="button" onClick={onOpen} className="font-medium" title={title}>{name}</button>
-                    : <span className="font-medium">{name}</span>}
-                {remove}
+        <span data-testid="value-chip" data-state="formula" className="flex flex-col gap-0.5 max-w-full min-w-0">
+            <span className="inline-flex items-center gap-1.5 max-w-full min-w-0">
+                <span className={`${CHIP} shrink-0 border-[var(--border-default)] bg-[var(--bg-tertiary)] text-[var(--text-secondary)]`}>
+                    <SquareFunction size={12} className="shrink-0" aria-hidden="true" />
+                    {onOpen
+                        ? <button type="button" onClick={onOpen} className="font-medium" title={title}>{name}</button>
+                        : <span className="font-medium">{name}</span>}
+                    {remove}
+                </span>
+                {summary && <span className="truncate text-[12px] text-[var(--text-tertiary)]" title={summary}>{summary}</span>}
             </span>
-            {summary && <span className="truncate text-[12px] text-[var(--text-tertiary)]" title={summary}>{summary}</span>}
+            {preview && (
+                <span className="inline-flex items-center gap-1.5 min-w-0 text-[11px] text-[var(--text-tertiary)]" data-testid="formula-preview">
+                    <Eye size={11} className="shrink-0" aria-hidden="true" />
+                    <span className="shrink-0">{t('mapping.slot.formula_gives', 'Gives:')}</span>
+                    <span className="truncate text-[var(--text-secondary)]" title={preview}>{oneLine(preview)}</span>
+                </span>
+            )}
         </span>
     );
 }
@@ -108,7 +118,8 @@ function PickChip({ label, count, preview, onOpen, remove }: Part) {
     );
     return (
         <span data-testid="value-chip" data-state="ok" className="inline-flex items-center gap-1.5 max-w-full min-w-0">
-            <span className={`${CHIP} border-[color-mix(in_srgb,var(--accent-primary)_35%,transparent)] bg-[color-mix(in_srgb,var(--accent-primary)_10%,transparent)] text-[var(--text-primary)]`}>
+            {/* The name keeps its room; the example beside it truncates first. */}
+            <span className={`${CHIP} shrink-0 max-w-[70%] border-[color-mix(in_srgb,var(--accent-primary)_35%,transparent)] bg-[color-mix(in_srgb,var(--accent-primary)_10%,transparent)] text-[var(--text-primary)]`}>
                 {onOpen ? (
                     <button
                         type="button"
@@ -121,9 +132,18 @@ function PickChip({ label, count, preview, onOpen, remove }: Part) {
                 ) : <span className="inline-flex items-center gap-1 min-w-0">{body}</span>}
                 {remove}
             </span>
-            {preview && <span className="truncate text-[12px] text-[var(--text-tertiary)]" title={preview}>{preview}</span>}
+            {preview && <span className="truncate text-[12px] text-[var(--text-tertiary)]" title={preview}>{oneLine(preview)}</span>}
         </span>
     );
+}
+
+/**
+ * The example on one line. Text "one per line" would otherwise collapse to
+ * "Bureaustoel Lamp Muismat", which reads as one value: each line break shows
+ * as ↵ (the tooltip keeps the real lines).
+ */
+function oneLine(text: string): string {
+    return text.includes('\n') ? text.split(/\n+/).map(l => l.trim()).filter(Boolean).join(' ↵ ') : text;
 }
 
 const CHIPS = { ok: PickChip, stale: StaleChip, formula: FormulaChip } as const;

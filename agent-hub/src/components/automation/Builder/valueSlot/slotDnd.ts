@@ -1,6 +1,5 @@
-import { sourceProblems } from '@shared/mapping/index.mjs';
-import type { MappingSource, Shape } from '@shared/mapping/index.mjs';
-import type { LabelPart } from './usePickLabel';
+import { isWild, sourceProblems } from '@shared/mapping/index.mjs';
+import type { LabelPart, MappingSource, Shape } from '@shared/mapping/index.mjs';
 
 /**
  * Dragging a value from the source panel onto a field.
@@ -51,15 +50,37 @@ export function onSourceDragOver(e: DragEventLike): void {
     if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
 }
 
-/** A dragged payload as a DraggedSource, or null when it is not a valid one. */
+/**
+ * A Source as a pick can store it, or null when it cannot be one. A column of
+ * a table comes from the source panel with a WILD segment (`rows[*].email`
+ * is `['rows', WILD, 'email']`), which a stored pick refuses: a pick maps a
+ * key over a list by itself, so the WILD is dropped (`['rows', 'email']`),
+ * as sourceFromPath does for a legacy path.
+ */
+export function pickableSource(source: unknown): MappingSource | null {
+    if (!source || typeof source !== 'object' || Array.isArray(source)) return null;
+    const { path } = source as { path?: unknown };
+    const clean = Array.isArray(path) && path.some(isWild)
+        ? { ...(source as object), path: path.filter(seg => !isWild(seg)) }
+        : source;
+    return sourceProblems(clean).length ? null : (clean as MappingSource);
+}
+
+/**
+ * A dragged payload as a DraggedSource, or null when it is not a valid one.
+ * A bare Source (`{ root, id?, path }`) is accepted as well: what an older
+ * drag source wrote under this type. A column's WILD is dropped (pickableSource).
+ */
 export function parseDraggedSource(raw: string | null | undefined): DraggedSource | null {
     if (!raw) return null;
     let data: unknown;
     try { data = JSON.parse(raw); } catch { return null; }
     if (!data || typeof data !== 'object' || Array.isArray(data)) return null;
-    const { source, labelParts, groupLabel, shape, count } = data as Record<string, unknown>;
-    if (sourceProblems(source).length) return null;
-    const out: DraggedSource = { source: source as MappingSource };
+    if ('root' in data) data = { source: data };
+    const { source: given, labelParts, groupLabel, shape, count } = data as Record<string, unknown>;
+    const source = pickableSource(given);
+    if (!source) return null;
+    const out: DraggedSource = { source };
     if (Array.isArray(labelParts)) out.labelParts = labelParts as LabelPart[];
     if (typeof groupLabel === 'string') out.groupLabel = groupLabel;
     if (typeof shape === 'string') out.shape = shape as Shape;

@@ -9,8 +9,8 @@ import { fieldLabelClass, requiredMarkClass } from '../flow/settings/formStyles'
  * The two pieces of chrome that belong to a value SLOT rather than to the
  * editor inside it: the label row and the empty-required note (artboard 2a).
  *
- * They were BindingField's private markup until ValueBuilder became the
- * default renderer for step-bound fields — at which point the same slot could
+ * They were BindingField's private markup until the visual editor (today the
+ * value slot) became the default renderer for step-bound fields — at which point the same slot could
  * be drawn by either editor, and the label had to stop being an accident of
  * which one you got. Extracted verbatim: same classes, same testids, same
  * words, so nothing that already reads them notices the move.

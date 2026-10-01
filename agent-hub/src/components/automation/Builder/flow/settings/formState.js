@@ -1204,7 +1204,7 @@ export const RETRY_FORM_TYPES = new Set([
  * NOT CLAMPED, on purpose. The editor offers closed lists, so nothing it
  * writes can be out of range; a value outside them came from an AI-built or
  * hand-edited step, and snapping it here would rewrite an author's step on
- * the first unrelated save — the same rule PathField follows. `retry` has no
+ * the first unrelated save — the same rule the value slots follow. `retry` has no
  * validator to appeal to either (grep automation/validate.js), so a silent
  * clamp would be the only record that the number changed.
  *

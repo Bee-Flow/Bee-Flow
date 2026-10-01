@@ -100,3 +100,20 @@ export default function TargetPopover({ targets, valueLabel, onChoose, onClose, 
         </div>
     );
 }
+
+/**
+ * The question as the step drawer shows it: over the top of the "Comes in"
+ * column (whose container is `relative`), or nothing when there is none.
+ */
+export function TargetPopoverOverlay({ ask, onChoose, onClose }: {
+    ask: { label: string; targets: SlotTarget[] } | null;
+    onChoose: (id: string) => void;
+    onClose: () => void;
+}) {
+    if (!ask) return null;
+    return (
+        <div className="absolute z-30 top-2 left-3 right-3 flex justify-center">
+            <TargetPopover targets={ask.targets} valueLabel={ask.label} onChoose={onChoose} onClose={onClose} />
+        </div>
+    );
+}

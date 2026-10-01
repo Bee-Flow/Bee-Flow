@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
-import { editor, editors, editorValue, editorWithValue, typeInEditor } from '../../../../test/refEditor';
+import { editorValue, editorWithValue, typeInEditor } from '../../../../test/refEditor';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import SettingsForm from './SettingsForm';
 import { VariablePickerProvider } from '../mapping/VariablePickerContext';
@@ -26,7 +26,9 @@ describe('SettingsForm — Switch "value to switch on" is a plain field picker, 
 
     it('renders a plain path input for the expression — no operator dropdown, no AND/OR toggle', () => {
         renderForm(step);
-        expect(editorWithValue(document.body, 'trigger.output.value')).toBeTruthy();
+        // The value to switch on reads as a chip with its name, never a path.
+        expect(screen.getByTestId('value-chip').textContent).toContain('Value');
+        expect(document.body.textContent).not.toContain('trigger.output');
         // ConditionBuilder-only affordances must be absent.
         expect(screen.queryByText('Add condition')).toBeNull();
         expect(screen.queryByText('Write raw expression')).toBeNull();
@@ -36,6 +38,8 @@ describe('SettingsForm — Switch "value to switch on" is a plain field picker, 
     it('editing the field updates draft.expr as a plain string', async () => {
         const onPatch = vi.fn();
         renderForm(step, { onPatch });
+        // A path typed by hand is written under the value's Formula.
+        fireEvent.click(screen.getByRole('button', { name: 'Write this value as a formula' }));
         const input = editorWithValue(document.body, 'trigger.output.value');
         typeInEditor(input, 'steps.s0.output.status');
         expect(editorValue(input)).toBe('steps.s0.output.status');

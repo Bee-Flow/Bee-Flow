@@ -44,6 +44,23 @@ export function resolvePreview(source: MappingSource, intent: PickIntent, sample
     return resolver.resolveValue(pick, sample, { silent: true });
 }
 
+/**
+ * What any stored binding gives on the sample, as previewText words it: a
+ * template, a formula or a ref resolved by the same core as the run (so a
+ * list inside `{{ }}` reads as the run renders it, not as "[4 items]").
+ * Null when there is no sample or nothing comes out.
+ */
+export function bindingPreviewText(binding: unknown, sample: object | null | undefined): string | null {
+    if (!sample || !binding) return null;
+    let value: unknown;
+    try {
+        value = resolver.resolveValue(binding, sample, { silent: true });
+    } catch {
+        return null;
+    }
+    return previewText(value) || null;
+}
+
 export interface PickOptionsProps {
     source: MappingSource;
     /** The runState the previews resolve against: the sample, or the last run. */
@@ -65,6 +82,10 @@ export interface PickOptionsProps {
     onRowIndex?: (index: number) => void;
     /** Advanced › run the step for each item. Wired by M6; hidden without it. */
     onRepeatShortcut?: () => void;
+    /** Leave out the options the field cannot store (a formula-only field has no bulleted text). */
+    canUse?: (option: PickOption) => boolean;
+    /** One line under the title (a stored value that is rewritten when an option is chosen). */
+    note?: string | null;
 }
 
 const sameIntent = (a: PickIntent, b: PickIntent | null | undefined) =>
@@ -166,13 +187,17 @@ function AdvancedSection({ onFormula, onRowIndex, onRepeatShortcut }: Pick<PickO
 
 export default function PickOptions({
     source, sample, slot, shape, value, label, repeating = false, onSelect, onFormula, onRowIndex, onRepeatShortcut,
+    canUse, note = null,
 }: PickOptionsProps) {
     const { t } = useTranslation();
     const sourceShape: Shape = useMemo(
         () => shape || (sample ? shapeOf(walkSource(source, sample)) : 'unknown'),
         [shape, sample, source],
     );
-    const options: PickOption[] = useMemo(() => optionsFor(sourceShape, slot, { repeat: repeating }), [sourceShape, slot, repeating]);
+    const options: PickOption[] = useMemo(
+        () => optionsFor(sourceShape, slot, { repeat: repeating }).filter(o => !canUse || canUse(o)),
+        [sourceShape, slot, repeating, canUse],
+    );
     const previews = useMemo(
         () => options.map(o => (o.take === 'each' ? null : previewText(resolvePreview(source, o, sample)))),
         [options, source, sample],
@@ -187,6 +212,7 @@ export default function PickOptions({
             <div className="px-1 font-semibold text-[var(--text-primary)]">
                 {t('mapping.slot.options.title', 'How should {label} be used?', { label: label || t('mapping.slot.label.value', 'Value') })}
             </div>
+            {note && <p className="px-1 text-[11px] text-[var(--text-tertiary)]" data-testid="pick-options-note">{note}</p>}
             <div role="radiogroup" className="flex flex-col gap-0.5">
                 {options.map((o, i) => (
                     <OptionButton key={o.id} option={o} selected={chosen === o} preview={previews[i]} onSelect={onSelect} />

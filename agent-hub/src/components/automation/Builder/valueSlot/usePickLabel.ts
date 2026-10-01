@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useTranslation, type TranslateFn } from '../../../../hooks/useTranslation';
-import { sourceFromPath } from '@shared/mapping/index.mjs';
-import type { MappingSource, Take } from '@shared/mapping/index.mjs';
+import { humanizeKey, labelParts, sourceFromPath } from '@shared/mapping/index.mjs';
+import type { LabelPart, MappingSource, Take } from '@shared/mapping/index.mjs';
 
 /**
  * The name a picked value goes by in the editor: "E-mail adres of klant",
@@ -16,43 +16,12 @@ import type { MappingSource, Take } from '@shared/mapping/index.mjs';
  * Source, and a pick's stored `label` (a display cache) is used as it is.
  */
 
-// TODO(M3): server/shared/mapping/label.mjs exports LabelPart, labelParts and
-// humanizeKey; import them from @shared/mapping once M3 is merged and drop the
-// local copies below. The shape here is the one label.mjs emits.
-export type LabelPart = { key: string; text: string } | { index: number } | { each: true };
+export type { LabelPart };
+export { humanizeKey };
 
-const ACRONYMS = new Set(['id', 'url', 'uri', 'api', 'pdf', 'csv', 'html', 'json', 'xml', 'iban', 'btw', 'kvk', 'vat', 'ip', 'utc', 'uuid', 'sms']);
-
-/** A key as a person reads it: `first_name` → "First name", "E-mail adres" as written. */
-export function humanizeKey(key: unknown): string {
-    const raw = String(key ?? '').trim();
-    if (!raw) return '';
-    if (/\s/.test(raw)) return raw;
-    const words = raw
-        .replace(/_+/g, ' ')
-        .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
-        .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
-        .split(/\s+/)
-        .filter(Boolean);
-    if (!words.length) return raw;
-    return words
-        .map((w, i) => {
-            const lower = w.toLowerCase();
-            if (ACRONYMS.has(lower)) return lower.toUpperCase();
-            if (w.length > 1 && w === w.toUpperCase() && /[A-Z]/.test(w)) return w;
-            return i === 0 ? lower.charAt(0).toUpperCase() + lower.slice(1) : lower;
-        })
-        .join(' ');
-}
-
-/** The label parts of a Source's path (a stand-in for label.mjs labelParts). */
+/** The label parts of a Source's path (core labelParts: keys, positions, a legacy [*]). */
 export function partsFromSource(source: Partial<MappingSource> | null | undefined): LabelPart[] {
-    const path = source && Array.isArray(source.path) ? source.path : [];
-    return path.map((seg): LabelPart => {
-        if (typeof seg === 'number') return { index: seg };
-        if (seg && typeof seg === 'object') return { each: true };
-        return { key: String(seg), text: humanizeKey(seg) };
-    });
+    return labelParts(source && Array.isArray(source.path) ? source.path : []);
 }
 
 /** A name inside a sentence: "Klant" → "klant", but "IBAN" and "API key" stay. */
@@ -72,6 +41,13 @@ export interface PickLabelContext {
     labelParts?: LabelPart[] | null;
     /** The display name of the step (or trigger) the value comes from. */
     groupLabel?: string | null;
+    /**
+     * Is the value read off a list on its way ("Product" of the order LINES)?
+     * False words "all" as a plain "of": a list that IS the value ("Tags of
+     * Bestelling ontvangen", its count on the chip) is not "of all" anything.
+     * Unknown (undefined): the parent is taken to be the list when it is a key.
+     */
+    crossesList?: boolean;
 }
 
 type KeyPart = { key: string; text: string };
@@ -88,6 +64,21 @@ const WITH_PARENT: Readonly<Record<string, Phrase>> = {
     last: ['mapping.slot.label.of_last', '{field} of the last {parent}'],
     each: ['mapping.slot.label.of_current', '{field} (of this {parent})'],
 };
+
+/**
+ * "{field} … {step}" per take, for a value at the top of a step's output: the
+ * step's name is a name, so it keeps its capitals ("Tags from Bestelling
+ * ontvangen", not "tags of bestelling ontvangen").
+ */
+const FROM_STEP: Readonly<Record<string, Phrase>> = {
+    one: ['mapping.slot.label.from', '{field} from {step}'],
+    first: ['mapping.slot.label.from_first', 'The first {field} from {step}'],
+    last: ['mapping.slot.label.from_last', 'The last {field} from {step}'],
+    each: ['mapping.slot.label.from_current', '{field} (this one, from {step})'],
+};
+
+/** Roots whose group is a step's own name; the others ("Current row") are words. */
+const NAMED_ROOTS = new Set(['steps', 'trigger', 'run']);
 
 /** A list on its own, per take: "The first tags". */
 const ALONE: Readonly<Record<string, Phrase>> = {
@@ -125,8 +116,23 @@ export function pickLabel(t: TranslateFn, pick: PickLike | null | undefined, ctx
     const parentKey = [...before].reverse().find(isKey);
     if (isIndex(last)) return positionLabel(t, last.index, parentKey, group);
 
+    const field = (last as KeyPart).text;
+    if (!parentKey && isStepGroup(pick, group)) return stepFieldLabel(t, field, group, pick.take);
     const parent = lowerFirst(parentKey ? parentKey.text : group);
-    return fieldLabel(t, (last as KeyPart).text, parent, wordedTake(pick.take, all, before[before.length - 1], !!parent));
+    let take = wordedTake(pick.take, all, before[before.length - 1], !!parent);
+    // "of all" names the list the value comes from: the group (a step) is none.
+    if (take === 'all' && (ctx.crossesList === false || (!parentKey && ctx.crossesList === undefined))) take = 'one';
+    return fieldLabel(t, field, parent, take);
+}
+
+/** Is the group a step's (or the trigger's) own name? */
+const isStepGroup = (pick: PickLike, group: string) => !!group && NAMED_ROOTS.has(String(pick.from?.root));
+
+/** A value at the top of a step's output, named with the step. */
+function stepFieldLabel(t: TranslateFn, field: string, step: string, take: string | undefined): string {
+    if (take === 'count') return t('mapping.slot.label.count_of', 'Number of {parent}', { parent: lowerFirst(field) });
+    const phrase = FROM_STEP[take || 'one'] || FROM_STEP.one;
+    return say(t, phrase, { field: take === 'first' || take === 'last' ? lowerFirst(field) : field, step });
 }
 
 /**
@@ -147,11 +153,26 @@ function fieldLabel(t: TranslateFn, field: string, parent: string, take: string)
     return say(t, WITH_PARENT[take] || WITH_PARENT.one, { field, parent });
 }
 
+/**
+ * A list's legacy path as a person reads it, for a list picker's rows: "Lines
+ * of all orders" for a column (`orders[*].lines`), "Orders" for a list. The
+ * raw path belongs in a title attribute; the path itself when it names no
+ * value at all.
+ */
+export function listPathLabel(t: TranslateFn, path: string, stepLabelById?: ReadonlyMap<string, string> | null): string {
+    const source = sourceFromPath(path);
+    if (!source) return path;
+    const groupLabel = source.root === 'steps'
+        ? (stepLabelById?.get((source as { id: string }).id) || humanizeKey((source as { id: string }).id))
+        : source.root === 'trigger' || source.root === 'run' ? lowerFirst(t('mapping.slot.label.trigger', 'Incoming data')) : '';
+    return pickLabel(t, { from: source, take: path.includes('[*]') ? 'all' : 'one' }, { groupLabel });
+}
+
 /** pickLabel in the current language, recomputed only when its inputs change. */
 export function usePickLabel(pick: PickLike | null | undefined, ctx: PickLabelContext = {}): string {
     const { t } = useTranslation();
-    const { labelParts, groupLabel } = ctx;
-    return useMemo(() => pickLabel(t, pick, { labelParts, groupLabel }), [t, pick, labelParts, groupLabel]);
+    const { labelParts, groupLabel, crossesList } = ctx;
+    return useMemo(() => pickLabel(t, pick, { labelParts, groupLabel, crossesList }), [t, pick, labelParts, groupLabel, crossesList]);
 }
 
 // ── Formula summaries ────────────────────────────────────────────────────
@@ -159,6 +180,7 @@ export function usePickLabel(pick: PickLike | null | undefined, ctx: PickLabelCo
 // a one-line summary. The summary names values the way a chip does: no
 // `steps.`, no `.output`, no `[*]`, no `{{ }}`.
 
+const PARSE_JSON_RE = /^\s*parseJson\(\s*([^,()]+?)\s*,\s*"([^"\\]*)"\s*\)\s*$/;
 const PATH_RE = /\b(?:steps|trigger|loop|vars|item)(?:\.[A-Za-z_$][A-Za-z0-9_$]*|\[(?:\d+|\*|"[^"]*"|'[^']*')\])+/g;
 const STRING_RE = /("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/;
 
@@ -195,7 +217,13 @@ export function formulaSummary(
 ): string {
     if (!binding || typeof binding !== 'object') return '';
     let out = '';
-    if (binding.kind === 'ref' && typeof binding.path === 'string') out = pathWords(t, binding.path, stepLabelById);
+    const fromText = binding.kind === 'expr' && typeof binding.value === 'string' ? PARSE_JSON_RE.exec(binding.value) : null;
+    if (fromText) {
+        // A value read out of a JSON text ("Pick fields from it"), in words.
+        out = t('mapping.slot.formula.from_text', '{value}, read from the text: {path}', {
+            value: pathWords(t, fromText[1], stepLabelById), path: fromText[2],
+        });
+    } else if (binding.kind === 'ref' && typeof binding.path === 'string') out = pathWords(t, binding.path, stepLabelById);
     else if (binding.kind === 'expr' && typeof binding.value === 'string') out = wordsOutsideStrings(t, binding.value, stepLabelById);
     else if (binding.kind === 'template' && typeof binding.value === 'string') {
         out = binding.value.replace(/\{\{\s*([^}]+?)\s*\}\}/g, (_, p: string) => pathWords(t, p.trim(), stepLabelById));

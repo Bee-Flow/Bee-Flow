@@ -12,10 +12,9 @@ import { Sparkles } from 'lucide-react';
 import React from 'react';
 import AccordionSection from './AccordionSection';
 import { FormRow } from './settings/formPrimitives';
-import ValueBuilder from '../mapping/ValueBuilder';
+import ValueSlot from '../valueSlot/ValueSlot';
 import { humanizeFieldKey } from './displayHelpers';
 import { expectedKindFor } from '../mapping/fieldKinds';
-import { expectedShapeFor } from '../mapping/listShape';
 
 export default function CallContractFields({
     step,
@@ -90,8 +89,10 @@ export default function CallContractFields({
                                 // ConditionNode/FilterNode do with `subTitle` on
                                 // the canvas).
                                 <div key={p.name} title={p.name}>
-                                    <ValueBuilder
+                                    <ValueSlot
                                         label={p.label || humanizeFieldKey(p.name) || p.name}
+                                        fieldId={p.name}
+                                        field={p.name}
                                         showChrome
                                         required={!!p.required}
                                         hint={p.description}
@@ -101,11 +102,10 @@ export default function CallContractFields({
                                         previewSample={previewSample}
                                         autoMapped={autoMapped.includes(p.name)}
                                         // The flowlet DECLARED these params, so the
-                                        // same two answers a tool parameter gets
-                                        // ("does this want one value, and of what
-                                        // kind") are available here — read off the
+                                        // same answer a tool parameter gets ("what
+                                        // does this want") is read off the
                                         // contract rather than guessed.
-                                        expectShape={expectedShapeFor({ type: p.type })}
+                                        schema={{ type: p.type }}
                                         expectKind={expectedKindFor({ type: p.type })}
                                     />
                                 </div>

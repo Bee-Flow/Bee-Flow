@@ -1,11 +1,18 @@
 import type { DragEvent, MouseEvent } from 'react';
-import { WILD, formatSegment, parseLegacyPath, type Source, type SourceSegment } from '@shared/mapping/index.mjs';
+import { WILD, formatSegment, parseLegacyPath, type LabelPart, type Source, type SourceSegment } from '@shared/mapping/index.mjs';
+import { SOURCE_MIME } from '../valueSlot/slotDnd';
 
 /** What a pick from an output view hands its caller beside the legacy path. */
 export interface PickOpts {
     raw: boolean;
     /** The value as a Source (`{root, id?, path}`), when the base is one. */
     source?: Source | null;
+    /** How the source panel names it (label.mjs labelParts), when it knows. */
+    labelParts?: LabelPart[];
+    /** The shape the panel saw ('scalar' | 'object' | 'list' | 'table' | 'json'). */
+    shape?: string;
+    /** Elements in the sample, for a list or a table. */
+    count?: number;
 }
 
 /** The drag/click-to-map context an output view threads down its tree. */
@@ -17,8 +24,6 @@ export interface MapCtx {
     onPick?: ((path: string, opts: PickOpts) => void) | null;
 }
 
-/** The drag type a Source travels under, beside the legacy path. */
-export const SOURCE_MIME = 'application/x-beeflow-source';
 
 /**
  * A table column id (`output.content`, `attachments[*].name`: the dotted form
@@ -91,7 +96,8 @@ export function mapAttrs(map: MapCtx | null, segs: SourceSegment[] = []): MapAtt
             e.stopPropagation();
             e.dataTransfer.setData('text/plain', path);
             e.dataTransfer.setData('application/x-binding-path', path);
-            if (source) e.dataTransfer.setData(SOURCE_MIME, JSON.stringify(source));
+            // The value as a Source, the payload the value slots read (slotDnd).
+            if (source) e.dataTransfer.setData(SOURCE_MIME, JSON.stringify({ source }));
             e.dataTransfer.effectAllowed = 'copy';
         },
         // Alt rides along so a list can be inserted as-is, bypassing the

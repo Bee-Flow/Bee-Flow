@@ -119,13 +119,16 @@ describe('no hand-rolled control styles in the builder', () => {
         //
         // SCOPE, deliberately narrow: the rest of the drawer still carries
         // ~13 --accent tints across mapping/ and flow/settings/ that other
-        // stages own. This pins the file this round rebuilt so the two
-        // stragglers cannot come back; it does not claim the drawer is clean.
-        const src = fs.readFileSync(path.join(BUILDER, 'mapping/ValueBuilder.jsx'), 'utf8');
-        const offenders = src.split('\n')
-            .map((line, i) => [i + 1, line])
+        // stages own. This pins the value slot (valueSlot/, which replaced the
+        // visual editor this round rebuilt) so the stragglers cannot come back;
+        // it does not claim the drawer is clean.
+        const dir = path.join(BUILDER, 'valueSlot');
+        const offenders = fs.readdirSync(dir)
+            .filter(f => /\.tsx$/.test(f) && !/\.test\./.test(f))
+            .flatMap(f => fs.readFileSync(path.join(dir, f), 'utf8').split('\n')
+                .map((line, i) => [`valueSlot/${f}:${i + 1}`, line]))
             .filter(([, line]) => /(?:text|bg|border|ring)-\[var\(--accent\)/.test(line))
-            .map(([n, line]) => `mapping/ValueBuilder.jsx:${n} ${line.trim()}`);
+            .map(([at, line]) => `${at} ${line.trim()}`);
         expect(offenders, `Use INLINE_LINK / a type-family token instead:\n${offenders.join('\n')}`).toEqual([]);
     });
 

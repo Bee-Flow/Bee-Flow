@@ -10,7 +10,7 @@ import { parseRefTokens } from './refTokens';
  * A text field where a reference to another step is a PILL, always.
  *
  * Drop-in replacement for the `<input>`/`<textarea>` + blurred-chip-overlay pair
- * that BindingField, TemplateField and PathField each carried. That pattern
+ * that BindingField, TemplateField and the old path field each carried. That pattern
  * showed the friendly name at rest and the raw id path the instant you clicked
  * in to edit — so `steps.act_f9aaff0e.output.results[*].output` was on screen
  * exactly when someone was trying to write a prompt. Here the reference is one

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { piiCategoriesLocalized } from '../../../../../config/piiCategories';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../../utils/helpers';
-import PathField from '../../mapping/PathField';
+import ValueSlot from '../../valueSlot/ValueSlot';
 import AccordionSection from '../AccordionSection';
 import { readPrivacy, PRIVACY_MODES, modeScans, modeBranches, modeHides, droppedEdgesOnModeChange } from '../privacyModel';
 import { FormRow, inputClass } from './formPrimitives';
@@ -111,7 +111,9 @@ function PrivacyShieldFields({ step, draft, set, groups, onFocusField, previewSa
                 )}
 
                 <FormRow label={sourceLabel} hint={sourceHint}>
-                    <PathField
+                    <ValueSlot
+                        storage="path"
+                        allowTyping={false}
                         value={privacy.sourceRef || ''}
                         onChange={(v) => setPrivacy({ sourceRef: v })}
                         onFocusField={onFocusField}

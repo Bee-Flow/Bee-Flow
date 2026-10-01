@@ -39,6 +39,16 @@ describe('ValueChip', () => {
         expect(onOpen).toHaveBeenCalledTimes(1);
     });
 
+    it('an example with line breaks stays on one line, each break shown as ↵', () => {
+        render(<ValueChip label="Product of all lines" count={2} preview={'Stoel\nLamp'} />);
+        expect(screen.getByText('Stoel ↵ Lamp')).toHaveAttribute('title', 'Stoel\nLamp');
+    });
+
+    it('formula: what it gives on the sample, under the summary', () => {
+        render(<ValueChip label="" state="formula" summary="Bel ‹Phone›" preview="Bel +31 6 1234 5678" />);
+        expect(screen.getByTestId('formula-preview')).toHaveTextContent('Gives:Bel +31 6 1234 5678');
+    });
+
     it('remove, and nothing clickable when disabled', async () => {
         const onRemove = vi.fn();
         const { rerender } = render(<ValueChip label="Naam" onRemove={onRemove} onOpen={() => {}} />);

@@ -8,7 +8,7 @@ import { startPathDrag } from '../mapping/bindingDnd';
 import { pathInUse } from '../mapping/boundPaths';
 import FieldKindIconJs from '../mapping/FieldKindIcon';
 import { describeField } from '../mapping/fieldKinds';
-import { SOURCE_MIME, type PickOpts } from '../output/mapAttrs';
+import type { PickOpts } from '../output/mapAttrs';
 
 /**
  * One value an earlier step hands over, in the "Comes in" column and the
@@ -74,8 +74,10 @@ export default function SourceNode({ node, onInsert = null, depth, previewSample
 
     // A group built without Sources (an older caller) still hands one over.
     const source = node.source !== undefined ? node.source : (node.path ? parseLegacyPath(node.path) : null);
+    // What the field needs to name and shape the value without walking for it again.
+    const about = { source, labelParts: node.labelParts, shape: node.shape, count: node.count };
     const insert = (raw: boolean) => {
-        if (node.path) onInsert?.(node.path, { raw, source });
+        if (node.path) onInsert?.(node.path, { raw, ...about });
     };
     const onClick = (e: MouseEvent<HTMLDivElement>) => {
         // The chevron opens; the rest of the row inserts the value itself. Alt
@@ -95,8 +97,7 @@ export default function SourceNode({ node, onInsert = null, depth, previewSample
     };
     const onDragStart = (e: DragEvent<HTMLDivElement>) => {
         if (!node.path) return;
-        startPathDrag(e, node.path);
-        if (source) e.dataTransfer.setData(SOURCE_MIME, JSON.stringify(source));
+        startPathDrag(e, node.path, about);
     };
 
 

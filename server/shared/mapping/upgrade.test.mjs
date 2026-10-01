@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 
 import { evaluate } from '../expr/index.mjs';
 import * as parse from '../expr/parse.mjs';
-import { liftLegacy } from './upgrade.mjs';
+import { legacyPathOf, liftLegacy, lowerPick } from './upgrade.mjs';
 import { createResolver } from './resolve.mjs';
 
 const deps = { evaluate, parse };
@@ -159,4 +159,90 @@ test('a pick stays a pick; literals, templates and composes are not lifted here'
     assert.equal(liftLegacy({ kind: 'pick', from: { root: 'vars', path: ['rate'] } }, SAMPLE), null, 'no v: a literal object');
     assert.equal(liftLegacy(null, SAMPLE), null);
     assert.equal(liftLegacy('steps.s1.output.items', SAMPLE), null);
+});
+
+// ── lowerPick: a pick in the legacy spelling ──────────────────────────────
+
+const pick = (from, take = 'one', as = 'native', join) => ({ kind: 'pick', v: 1, from, take, as, ...(join ? { join } : {}) });
+
+test('legacyPathOf writes every root and puts [*] where the data shows a list', () => {
+    assert.equal(legacyPathOf({ root: 'trigger', path: ['Klant', 'E-mail adres'] }, SAMPLE), 'trigger.output.Klant["E-mail adres"]');
+    assert.equal(legacyPathOf({ root: 'steps', id: 's1', path: ['items', 'email'] }, SAMPLE), 'steps.s1.output.items[*].email');
+    assert.equal(legacyPathOf({ root: 'trigger', path: ['orders', 'lines', 'product'] }, SAMPLE), 'trigger.output.orders[*].lines[*].product');
+    assert.equal(legacyPathOf({ root: 'trigger', path: ['orders', 0, 'id'] }, SAMPLE), 'trigger.output.orders[0].id', 'an index is no [*]');
+    assert.equal(legacyPathOf({ root: 'trigger', path: ['orders'] }, SAMPLE), 'trigger.output.orders', 'the list itself');
+    assert.equal(legacyPathOf({ root: 'run', path: ['firedAt'] }, SAMPLE), 'trigger.firedAt');
+    assert.equal(legacyPathOf({ root: 'item', path: ['amount'] }, null), 'item.amount');
+    assert.equal(legacyPathOf({ root: 'vars', path: ['rate'] }, null), 'vars.rate');
+    assert.equal(legacyPathOf({ root: 'loop', id: 'row', path: ['name'] }, null), 'loop.row.name');
+    // Without data nothing says where a list is: the path as the Source spells it.
+    assert.equal(legacyPathOf({ root: 'steps', id: 's1', path: ['items', 'email'] }, null), 'steps.s1.output.items.email');
+    assert.equal(legacyPathOf({ root: 'trigger', path: ['a]b'] }, null), null, 'a key the grammar cannot write');
+    assert.equal(legacyPathOf({ root: 'nope', path: [] }, null), null);
+    assert.equal(legacyPathOf(null, SAMPLE), null);
+});
+
+test('lowerPick writes the legacy binding of each take', () => {
+    const lines = { root: 'trigger', path: ['orders', 'lines', 'product'] };
+    const p = 'trigger.output.orders[*].lines[*].product';
+    assert.deepStrictEqual(lowerPick(pick({ root: 'trigger', path: ['note'] }), SAMPLE), ref('trigger.output.note'));
+    assert.deepStrictEqual(lowerPick(pick(lines, 'all', 'list'), SAMPLE), ref(p));
+    assert.deepStrictEqual(lowerPick(pick(lines, 'all', 'text', 'lines'), SAMPLE), expr(`join(${p}, "\\n")`));
+    assert.deepStrictEqual(lowerPick(pick(lines, 'all', 'text', 'comma'), SAMPLE), expr(`join(${p}, ", ")`));
+    assert.deepStrictEqual(lowerPick(pick(lines, 'first'), SAMPLE), expr(`first(${p})`));
+    assert.deepStrictEqual(lowerPick(pick(lines, 'last'), SAMPLE), expr(`last(${p})`));
+    assert.deepStrictEqual(lowerPick(pick(lines, 'count', 'number'), SAMPLE), expr(`count(${p})`));
+    assert.equal(lowerPick(pick(lines, 'all', 'text', 'bullets'), SAMPLE), null, 'a bulleted text has no legacy form');
+    assert.equal(lowerPick(pick(lines, 'each'), SAMPLE), null);
+    assert.equal(lowerPick(null, SAMPLE), null);
+});
+
+test('what lowerPick writes lifts back to the same pick and gives the same value', () => {
+    const resolver = createResolver(deps);
+    const cases = [
+        pick({ root: 'trigger', path: ['Klant', 'naam'] }),
+        pick({ root: 'trigger', path: ['tags'] }, 'all', 'text', 'comma'),
+        pick({ root: 'trigger', path: ['tags'] }, 'all', 'text', 'lines'),
+        pick({ root: 'steps', id: 's1', path: ['items', 'email'] }, 'first'),
+        pick({ root: 'steps', id: 's1', path: ['items', 'email'] }, 'last'),
+        pick({ root: 'trigger', path: ['orders', 'total'] }, 'count'),
+    ];
+    for (const original of cases) {
+        const lowered = lowerPick(original, SAMPLE);
+        assert.ok(lowered, JSON.stringify(original));
+        const lifted = liftLegacy(lowered, SAMPLE, null, deps);
+        assert.deepStrictEqual(lifted?.from, original.from, JSON.stringify(lowered));
+        assert.equal(lifted?.take, original.take, JSON.stringify(lowered));
+        assert.deepStrictEqual(
+            resolver.resolveValue(lowered, SAMPLE, { silent: true }),
+            resolver.resolveValue(lifted, SAMPLE, { silent: true }),
+            JSON.stringify(lowered),
+        );
+    }
+});
+
+// Review M4b: the click carries `messages[*].subject`; the Source drops the
+// [*]. Without a sample (or with one that lacks the key) the [*] came only
+// from the clicked path, and was lost: `first(steps.g.output.messages.subject)`
+// reads nothing at run time.
+test('legacyPathOf keeps the [*] of the path the user picked when the data says nothing', () => {
+    const subject = { root: 'steps', id: 'g', path: ['messages', 'subject'] };
+    const hint = 'steps.g.output.messages[*].subject';
+    assert.equal(legacyPathOf(subject, null, hint), hint, 'no sample');
+    assert.equal(legacyPathOf(subject, { steps: { g: { output: {} } } }, hint), hint, 'a sample without the key');
+    assert.equal(legacyPathOf(subject, null), 'steps.g.output.messages.subject', 'no hint: as the Source spells it');
+    assert.equal(lowerPick(pick(subject, 'first'), null, hint)?.value, `first(${hint})`);
+    // Another column of the same table keeps the table's [*].
+    assert.equal(legacyPathOf({ ...subject, path: ['messages', 'from'] }, null, hint), 'steps.g.output.messages[*].from');
+    // A hint for another step, or a [*] before an index, says nothing.
+    assert.equal(legacyPathOf(subject, null, 'steps.other.output.messages[*].subject'), 'steps.g.output.messages.subject');
+    assert.equal(legacyPathOf({ ...subject, path: ['messages', 0, 'subject'] }, null, hint), 'steps.g.output.messages[0].subject');
+    // The data and the hint agree: one [*], not two.
+    assert.equal(legacyPathOf({ root: 'steps', id: 's1', path: ['items', 'email'] }, SAMPLE, 'steps.s1.output.items[*].email'), 'steps.s1.output.items[*].email');
+});
+
+test('legacyPathOf writes a WILD segment as [*] and keeps reading the data after it', () => {
+    const wild = { root: 'trigger', path: ['orders', { wild: true }, 'lines', 'product'] };
+    assert.equal(legacyPathOf(wild, SAMPLE), 'trigger.output.orders[*].lines[*].product');
+    assert.equal(legacyPathOf(wild, null), 'trigger.output.orders[*].lines.product');
 });

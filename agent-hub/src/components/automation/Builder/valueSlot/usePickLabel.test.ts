@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { interpolate, type TranslateFn } from '../../../../hooks/useTranslation';
-import { formulaSummary, humanizeKey, partsFromSource, pickLabel, type LabelPart } from './usePickLabel';
+import { formulaSummary, humanizeKey, listPathLabel, partsFromSource, pickLabel, type LabelPart } from './usePickLabel';
 
 // The English defaults, as t() resolves them without a catalogue.
 const t: TranslateFn = (key, fallback, params) => interpolate(typeof fallback === 'string' ? fallback : key, params);
@@ -44,6 +44,15 @@ describe('pickLabel: a value named in words, never a path', () => {
         expect(pickLabel(t, { from: { root: 'trigger', path: ['naam'] } })).toBe('Naam');
     });
 
+    it('a value at the top of a step is named with the step, which keeps its capitals', () => {
+        const from = { root: 'steps' as const, id: 'fetch', path: ['tags'] };
+        const ctx = { groupLabel: 'Bestelling ontvangen' };
+        expect(pickLabel(t, { from, take: 'one' }, ctx)).toBe('Tags from Bestelling ontvangen');
+        expect(pickLabel(t, { from, take: 'all' }, ctx)).toBe('Tags from Bestelling ontvangen');
+        expect(pickLabel(t, { from, take: 'first' }, ctx)).toBe('The first tags from Bestelling ontvangen');
+        expect(pickLabel(t, { from, take: 'count' }, ctx)).toBe('Number of tags');
+    });
+
     it('partsFromSource: keys, positions, and the legacy wildcard', () => {
         expect(partsFromSource({ root: 'trigger', path: ['first_name', 0] })).toEqual([{ key: 'first_name', text: 'First name' }, { index: 0 }]);
         expect(partsFromSource(null)).toEqual([]);
@@ -69,5 +78,21 @@ describe('formulaSummary: a Formula chip without jargon', () => {
             { kind: 'template', value: '{{steps.a.output.items[*].name}} en {{trigger.firedAt}}' },
         ];
         for (const c of cases) expect(formulaSummary(t, c)).not.toMatch(/\{\{|\[\*\]|steps\.|loop\.|\.output/);
+    });
+});
+
+describe('listPathLabel and the JSON-text formula', () => {
+    const labels = new Map([['fetch', 'Berichten ophalen']]);
+
+    it('names a list path the way a chip would', () => {
+        expect(listPathLabel(t, 'steps.fetch.output.data.results', labels)).toBe('Results of data');
+        expect(listPathLabel(t, 'steps.fetch.output.items[*].lines', labels)).toBe('Lines of all items');
+        expect(listPathLabel(t, 'trigger.output.orders', labels)).toBe('Orders from incoming data');
+        expect(listPathLabel(t, 'not a path', labels)).toBe('not a path');
+    });
+
+    it('a value read out of a JSON text reads as words, without parseJson', () => {
+        const s = formulaSummary(t, { kind: 'expr', value: 'parseJson(item.body, "order.total")' });
+        expect(s).toBe('‹Body›, read from the text: order.total');
     });
 });

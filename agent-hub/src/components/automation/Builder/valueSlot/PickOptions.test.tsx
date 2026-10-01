@@ -4,6 +4,7 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { MappingSource } from '@shared/mapping/index.mjs';
 import PickOptions, { previewText, resolvePreview } from './PickOptions';
+import { lowerable } from './slotModel';
 
 const LINES = [
     { product: 'Stoel', qty: 1, price: 99.5 },
@@ -153,5 +154,17 @@ describe('previewText and resolvePreview', () => {
     it('resolve through the same core as the run', () => {
         expect(resolvePreview(PRODUCT, { take: 'all', as: 'list' }, SAMPLE)).toEqual(['Stoel', 'Lamp', 'Muismat']);
         expect(resolvePreview(PRODUCT, { take: 'all', as: 'list' }, null)).toBeUndefined();
+    });
+});
+
+describe('PickOptions: a field that holds less, and a stored value', () => {
+    it('leaves out what the field cannot store', () => {
+        render(<PickOptions source={PRODUCT} sample={SAMPLE} slot={TEXT} canUse={lowerable} onSelect={() => {}} />);
+        expect(screen.getAllByRole('radio').map(r => r.getAttribute('data-option'))).toEqual(['all_lines', 'all_comma', 'first', 'last', 'count']);
+    });
+
+    it('says one line under the title when asked to', () => {
+        render(<PickOptions source={PRODUCT} sample={SAMPLE} slot={TEXT} note="Saved the old way." onSelect={() => {}} />);
+        expect(screen.getByTestId('pick-options-note').textContent).toBe('Saved the old way.');
     });
 });

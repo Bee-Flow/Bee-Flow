@@ -421,3 +421,11 @@ export declare function liftLegacy(
     lastRun?: object | null,
     deps?: { evaluate?: (src: string, scope: object) => unknown; parse?: ParseDeps },
 ): PickBinding | null;
+/** A Source as the legacy path the runtime walks, `[*]` where the sample (or the picked `hint` path) shows a list; null when unwritable. */
+export declare function legacyPathOf(source: unknown, sample?: object | null, hint?: string | null): string | null;
+/** A pick as the legacy binding that gives the same value, or null when there is none. */
+export declare function lowerPick(
+    pick: unknown,
+    sample?: object | null,
+    hint?: string | null,
+): { kind: 'ref'; path: string } | { kind: 'expr'; value: string } | null;

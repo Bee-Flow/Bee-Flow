@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Braces, ChevronDown, ChevronRight, Plus, Trash2 } from 'lucide-react';
 import InsertDataButton from './InsertDataButton';
 import BindingField from './BindingField';
-import ValueBuilder from './ValueBuilder';
+import ValueSlotField from '../valueSlot/ValueSlot';
 import { ExpressionHelpBody } from './ExpressionHelp';
 import FieldPicker from './FieldPicker';
 import TopicNotice from './TopicNotice';
@@ -298,19 +298,21 @@ function ValueSlot({ type, value, onChange, onFocusField, previewSample }) {
 
     if (!typed) {
         return (
-            <ValueBuilder
+            <ValueSlotField
                 placeholder="value"
                 value={value}
                 onChange={onChange}
                 onFocusField={onFocusField}
                 previewSample={previewSample}
+                // The row is written as ONE expression string, so a picked
+                // value is stored in the legacy spelling (`first(p)`, a ref).
+                storage="legacy"
                 // Every operator this editor offers compares against ONE value
                 // — there is no `is one of`, and `contains(left, right)` takes
-                // a single needle. So a list dropped here is a question worth
-                // asking, and the left field's inferred type says what kind of
-                // single value the comparison wants.
-                expectShape="scalar"
-                expectKind={SLOT_KIND[type] || null}
+                // a single needle. So a list dropped here becomes one value
+                // (joined text; the first, in amber, for a number, a date or a
+                // yes/no), as the left field's inferred type says.
+                expectKind={SLOT_KIND[type] || 'text'}
             />
         );
     }

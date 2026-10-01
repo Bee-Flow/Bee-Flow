@@ -8,7 +8,7 @@
 // with "Unknown column(s)…" (2026-09-12).
 //
 // This editor reads the table's columns and draws a labelled slot for each,
-// with the same ValueBuilder every other value slot uses. What it EMITS is the
+// with the same ValueSlot every other value slot uses. What it EMITS is the
 // exact shape the tool expects — the plain map, nested bindings and all,
 // never a JSON string — so the runtime (bind.js resolveDeep) and the validator
 // see nothing new. Unmapped columns are simply absent: not written.
@@ -29,7 +29,7 @@ import { useTranslation } from '../../../../../hooks/useTranslation';
 import { EmptySlotNote } from '../../mapping/fieldChrome';
 import FieldKindIcon from '../../mapping/FieldKindIcon';
 import { isEmptyBinding } from '../../mapping/partitionInputs';
-import ValueBuilder from '../../mapping/ValueBuilder';
+import ValueSlot from '../../valueSlot/ValueSlot';
 import { useVariablePickerContext } from '../../mapping/VariablePickerContext';
 import FieldHint from '../FieldHint';
 import { matchColumns } from './columnMatch';
@@ -302,7 +302,6 @@ function TypeBadge({ t, col }) {
 /** One column: title · Required · type badge · hint, and the value slot. */
 function ColumnRow({ t, col, typed, required, value, onChange, onFocusField, previewSample, allowRaw }) {
     const kind = typed ? columnKind(col) : 'unknown';
-    const scalar = kind !== 'unknown' && kind !== 'list';
     return (
         <div className={cardClass()} data-testid="tables-row-column">
             <div className="flex items-center gap-1.5 min-w-0">
@@ -311,17 +310,18 @@ function ColumnRow({ t, col, typed, required, value, onChange, onFocusField, pre
                 {typed && <TypeBadge t={t} col={col} />}
                 <FieldHint title={col.title}>{col.description || null}</FieldHint>
             </div>
-            <ValueBuilder
+            <ValueSlot
                 value={value ?? null}
                 onChange={onChange}
                 label={col.title}
+                fieldId={col.title}
+                field={col.title}
                 required={required}
                 placeholder={t('routines.ndv.tables_row.leave_empty', 'leave empty to skip {column}', { column: col.title })}
                 onFocusField={onFocusField}
                 previewSample={previewSample}
                 allowRaw={allowRaw}
-                expectShape={scalar ? 'scalar' : (kind === 'list' ? 'list' : 'unknown')}
-                expectKind={kind}
+                expectKind={kind === 'unknown' ? null : kind}
             />
             {required && <EmptySlotNote expectKind={kind} required empty={isEmptyBinding(value)} />}
         </div>
@@ -375,8 +375,10 @@ function StrayKeys({ t, keys, map, onRemove, onChange, onFocusField, previewSamp
                             <Trash2 size={12} />
                         </button>
                     </div>
-                    <ValueBuilder
+                    <ValueSlot
                         value={map[key] ?? null}
+                        fieldId={key}
+                        field={key}
                         onChange={(b) => onChange(key, b)}
                         label={key}
                         onFocusField={onFocusField}
@@ -400,7 +402,7 @@ function WholeRowSlot({ t, value, onChange, onFocusField, previewSample, allowRa
             <SectionNote>
                 {t('routines.ndv.tables_row.whole_bound', 'The whole row comes from one earlier value — it must already be a map of column title to value.')}
             </SectionNote>
-            <ValueBuilder
+            <ValueSlot
                 value={value}
                 onChange={onChange}
                 label={t('routines.ndv.tables_row.whole_label', 'Row values')}

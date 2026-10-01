@@ -43,7 +43,7 @@ function rowLabel(step) {
  * runs them via a synthetic per-iteration sub-DAG, never individually
  * recorded — see engine.js), so this is inspector-only authoring: add /
  * reorder / remove rows, each expandable into its own full SettingsForm
- * (recursive reuse — every field type, including PathField/ConditionBuilder/
+ * (recursive reuse — every field type, including the value slots/ConditionBuilder/
  * BindingField pickers, works exactly as it does for a top-level step).
  *
  * Props:

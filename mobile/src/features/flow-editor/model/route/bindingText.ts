@@ -10,6 +10,8 @@
  * sits below the bindings layer and must not import it.
  */
 
+import { REF_RE } from '@/shared/mapping';
+
 import type { Binding } from '../types';
 
 export const TEMPLATE_RE = /\{\{[^}]+\}\}/;
@@ -22,6 +24,12 @@ const VALID_REF_ROOTS = ['trigger', 'steps', 'vars', 'secrets', 'loop'];
 export function isCleanPath(text: unknown): boolean {
     if (typeof text !== 'string') return false;
     return SIMPLE_PATH_RE.test(text.trim());
+}
+
+/** One reference under a known root: a clean path, or one with escaped keys (`rows[*]["Order date"]`). */
+function isRefText(v: string): boolean {
+    if (isCleanPath(v)) return VALID_REF_ROOTS.includes(v.split('.')[0] as string);
+    return REF_RE.test(v) && VALID_REF_ROOTS.includes(v.split(/[.[]/)[0] as string);
 }
 
 /** Does the text contain a `{{ path }}` interpolation? */
@@ -38,7 +46,7 @@ export function bindingFromInput(value: unknown, mode: 'fixed' | 'expression'): 
     if (mode === 'expression') {
         const v = String(value ?? '').trim();
         if (!v) return { kind: 'literal', value: '' };
-        if (isCleanPath(v) && VALID_REF_ROOTS.includes(v.split('.')[0] as string)) return { kind: 'ref', path: v };
+        if (isRefText(v)) return { kind: 'ref', path: v };
         return { kind: 'expr', value: v };
     }
     if (detectTemplate(value)) return { kind: 'template', value: String(value) };

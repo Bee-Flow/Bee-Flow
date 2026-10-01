@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef } from 'react';
 import ApprovalActionBar from './approvals/ApprovalActionBar';
 import { buildStepLabelMap } from './flow/displayHelpers';
 import { isRouteStep } from './flow/routeModel';
@@ -22,6 +22,9 @@ import useHiddenSections from './useHiddenSections';
 import useNdvNavigation from './useNdvNavigation';
 import useNdvPanels from './useNdvPanels';
 import useNodeDetailData from './useNodeDetailData';
+import { TargetPopoverOverlay } from './valueSlot/TargetPopover';
+import { useActiveField } from './valueSlot/useActiveField';
+import { SlotRegistryContext } from './valueSlot/useSlotRegistry';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { walkPath } from '../../../utils/bindingHelpers';
 
@@ -81,12 +84,9 @@ export default function NodeDetailView({
     });
     const stepLabelById = useMemo(() => buildStepLabelMap(definition), [definition]);
 
-    // Active field <-> Incoming tree wiring (click/drag a field to insert it).
-    // `opts` rides along so an Alt-click can bypass the list chooser.
-    const activeFieldRef = useRef(null);
-    const [activeLabel, setActiveLabel] = useState(null);
-    const onFocusField = (handle) => { activeFieldRef.current = handle; setActiveLabel(handle?.label || null); };
-    const onInsertFromTree = (path, opts) => { activeFieldRef.current?.insert?.(path, opts); };
+    // Which field a value clicked in "Comes in" goes to, or the question
+    // "Where should this go?" when no field of this step has had focus yet.
+    const { registry, onFocusField, onInsert: onInsertFromTree, ask, onChooseTarget, closeAsk, activeLabel } = useActiveField({ stepId: step?.id, groups, stepLabelById });
 
     const quick = density === 'quick';
     const goFull = useCallback(() => onDensityChange?.('full'), [onDensityChange]);
@@ -271,17 +271,20 @@ export default function NodeDetailView({
                                     </span>
                                 )}
                             </NdvColumnHeader>
-                            <SourcePanel
-                                groups={groups}
-                                previewSample={previewSample}
-                                onPick={onInsertFromTree}
-                                stepTypeById={stepTypeById}
-                                stepNumberById={stepNumberById}
-                                usedPaths={usedPaths}
-                                loopIteration={loopContext?.iteration || null}
-                                onAddStartQuestion={manualStart && typeof onNavigate === 'function' ? () => onNavigate(triggerStep.id) : null}
-                                manualStart={manualStart}
-                            />
+                            <div className="relative flex-1 min-h-0 flex flex-col">
+                                <SourcePanel
+                                    groups={groups}
+                                    previewSample={previewSample}
+                                    onPick={onInsertFromTree}
+                                    stepTypeById={stepTypeById}
+                                    stepNumberById={stepNumberById}
+                                    usedPaths={usedPaths}
+                                    loopIteration={loopContext?.iteration || null}
+                                    onAddStartQuestion={manualStart && typeof onNavigate === 'function' ? () => onNavigate(triggerStep.id) : null}
+                                    manualStart={manualStart}
+                                />
+                                <TargetPopoverOverlay ask={ask} onChoose={onChooseTarget} onClose={closeAsk} />
+                            </div>
                         </NdvSideColumn>
                     )}
 
@@ -307,32 +310,34 @@ export default function NodeDetailView({
                         )}
                         <FormDensityContext.Provider value={densityValue}>
                             <VariablePickerProvider groups={groups} previewSample={previewSample} stepLabelById={stepLabelById} stepTypeById={stepTypeById}>
-                                <SettingsHost
-                                    key={step.id}
-                                    footerLeft={footerInfo}
-                                    compactFooter={quick}
-                                    step={step}
-                                    modelTiers={modelTiers}
-                                    stepIssues={stepIssues}
-                                    saving={saving}
-                                    saveError={saveError}
-                                    onPatch={persistStepPatch}
-                                    onFocusField={onFocusField}
-                                    previewSample={previewSample}
-                                    catalog={catalog}
-                                    groups={groups}
-                                    rootDefinition={rootDefinition || definition}
-                                    automation={automation}
-                                    blocksCatalog={blocksCatalog}
-                                    wiredCaseNames={wiredCaseNames}
-                                    stepEdges={stepEdges}
-                                    isSecondaryTrigger={isSecondaryTrigger}
-                                    onTestSubmit={onTestSubmit}
-                                    onRenameField={onRenameField}
-                                    onInsertUpstreamStep={onInsertUpstreamStep}
-                                    onExpandOnCanvas={onExpandOnCanvas}
-                                    runStep={runStep}
-                                />
+                                <SlotRegistryContext.Provider value={registry}>
+                                    <SettingsHost
+                                        key={step.id}
+                                        footerLeft={footerInfo}
+                                        compactFooter={quick}
+                                        step={step}
+                                        modelTiers={modelTiers}
+                                        stepIssues={stepIssues}
+                                        saving={saving}
+                                        saveError={saveError}
+                                        onPatch={persistStepPatch}
+                                        onFocusField={onFocusField}
+                                        previewSample={previewSample}
+                                        catalog={catalog}
+                                        groups={groups}
+                                        rootDefinition={rootDefinition || definition}
+                                        automation={automation}
+                                        blocksCatalog={blocksCatalog}
+                                        wiredCaseNames={wiredCaseNames}
+                                        stepEdges={stepEdges}
+                                        isSecondaryTrigger={isSecondaryTrigger}
+                                        onTestSubmit={onTestSubmit}
+                                        onRenameField={onRenameField}
+                                        onInsertUpstreamStep={onInsertUpstreamStep}
+                                        onExpandOnCanvas={onExpandOnCanvas}
+                                        runStep={runStep}
+                                    />
+                                </SlotRegistryContext.Provider>
                             </VariablePickerProvider>
                         </FormDensityContext.Provider>
                     </div>

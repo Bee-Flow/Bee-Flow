@@ -1,6 +1,6 @@
 import { evaluate } from '@shared/expr/engine.mjs';
 import { describe, it, expect } from 'vitest';
-import { getAutocompleteToken, replaceRange, suggestKeyFromPath, renderBindingValue, buildConditionExpr } from './bindingHelpers';
+import { bindingFromInput, getAutocompleteToken, replaceRange, suggestKeyFromPath, renderBindingValue, buildConditionExpr } from './bindingHelpers';
 
 // Real textarea (jsdom) so selectionStart/setSelectionRange behave like the
 // inspector's inputs. Caret defaults to end-of-value.
@@ -213,5 +213,24 @@ describe('renderBindingValue — template bindings', () => {
         expect(renderBindingValue({ kind: 'literal', value: 1000 })).toBe('1000');
         expect(renderBindingValue({ kind: 'ref', path: 'trigger.output.x' })).toBe('trigger.output.x');
         expect(renderBindingValue({ kind: 'expr', value: 'len(item.tags)' })).toBe('len(item.tags)');
+    });
+});
+
+// Confirmed bug: "An escaped path in Formula mode loses ref status, disabling
+// the list and kind checks". A key with a space or a dash is written in
+// brackets; that is still one reference, not an expression.
+describe('bindingFromInput — escaped paths stay a ref', () => {
+    it('keeps a bracketed key a ref', () => {
+        for (const path of ['steps.x.output.rows[*]["Order date"]', "trigger.output['content-type']", 'steps.x.output["a b"].c']) {
+            expect(bindingFromInput(path, 'expression')).toEqual({ kind: 'ref', path });
+            expect(bindingFromInput(`  ${path} `, 'expression')).toEqual({ kind: 'ref', path });
+        }
+    });
+
+    it('still makes anything else an expression', () => {
+        expect(bindingFromInput('steps.x.output["a b"] + 1', 'expression').kind).toBe('expr');
+        expect(bindingFromInput('nope["x"]', 'expression').kind).toBe('expr');
+        expect(bindingFromInput('item["x"]', 'expression').kind).toBe('expr');
+        expect(bindingFromInput('steps.x.output.y', 'expression')).toEqual({ kind: 'ref', path: 'steps.x.output.y' });
     });
 });

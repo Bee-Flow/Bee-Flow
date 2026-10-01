@@ -60,3 +60,23 @@ describe('ToolParamField — a setting in "What this step does" (round 4)', () =
         expect(screen.getByTestId('param-problem').textContent).toBe('No access to /Invoices');
     });
 });
+
+describe('ToolParamField — the value slot and its name', () => {
+    beforeEach(() => { cleanup(); usage.rows = []; });
+
+    it('names a setting in words, never by its raw key', () => {
+        wrap(<ToolParamField {...base} fieldKey="to" required onChange={vi.fn()} prop={{ type: 'string' }} />);
+        expect(screen.getByText('To')).toBeTruthy();
+        cleanup();
+        wrap(<ToolParamField {...base} fieldKey="cc" required={false} onChange={vi.fn()} prop={{ type: 'array', description: 'Extra recipients' }} />);
+        expect(screen.getByText('Extra recipients')).toBeTruthy();
+        expect(screen.queryByText('cc')).toBeNull();
+    });
+
+    it('draws the value slot: a picked value is a chip, typed text a field', () => {
+        wrap(<ToolParamField {...base} fieldKey="subject" onChange={vi.fn()} prop={{ type: 'string', title: 'Subject' }}
+            value={{ kind: 'pick', v: 1, from: { root: 'trigger', path: ['subject'] }, take: 'one', as: 'text' }} />);
+        expect(screen.getByTestId('value-chip').textContent).toContain('Subject');
+        expect(screen.queryByRole('group', { name: 'Value mode' })).toBeNull();
+    });
+});

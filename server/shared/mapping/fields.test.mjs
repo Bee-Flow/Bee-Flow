@@ -8,6 +8,7 @@ import assert from 'node:assert/strict';
 
 import { walkPath } from './legacy.mjs';
 import { formatPath, isWild } from './source.mjs';
+import { shapeOf } from './shape.mjs';
 import {
     MAX_DEPTH, fieldsFromSample, textChildren, sampleFromSchema, overlayReal, deepOverlay, hasPath,
     previewOf, shapeOfSample,
@@ -140,6 +141,11 @@ test('shapes and previews are language-free', () => {
     assert.equal(shapeOfSample([1]), 'list');
     assert.equal(shapeOfSample([{ a: 1 }]), 'table');
     assert.equal(shapeOfSample('[{"a":1}]'), 'json');
+    // shape.mjs decides what a table is, for the panel and the pick defaults alike.
+    for (const v of [[], [1, { a: 1 }], [null, { a: 1 }], { a: 1 }, 'x', undefined]) {
+        const expected = shapeOf(v) === 'single' ? 'scalar' : shapeOf(v);
+        assert.equal(shapeOfSample(v), expected, JSON.stringify(v));
+    }
     assert.equal(previewOf('jan@voorbeeld.nl'), 'jan@voorbeeld.nl');
     assert.equal(previewOf('<parsed body>'), '');
     assert.equal(previewOf(42), '42');

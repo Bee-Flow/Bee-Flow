@@ -5,7 +5,7 @@ import { previewValue, walkPath } from '../../../../utils/bindingHelpers';
 import { useVariablePickerContext } from './VariablePickerContext';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { humanizeExpression } from '../flow/displayHelpers';
-import { describeListPath } from './listShape';
+import { listPathLabel } from '../valueSlot/usePickLabel';
 import { denseInputClass } from '../flow/settings/formStyles';
 
 /**
@@ -61,12 +61,12 @@ export default function LoopOverPicker({
                         </div>
                         {arrayFields.map(f => {
                             const selected = overRef === f.path;
-                            // Column paths read as "step ▸ Field (inside each
-                            // row)"; counts resolve through walkPath — a [*]
+                            // Column paths read as "Field of all rows"; counts
+                            // resolve through walkPath — a [*]
                             // path's f.sample is the first ELEMENT, so its
                             // length was the first row's size, not the list's.
                             const friendly = f.path.includes('[*]')
-                                ? describeListPath(f.path, stepLabelById, t)
+                                ? listPathLabel(t, f.path, stepLabelById)
                                 : humanizeExpression(f.path, stepLabelById).replace(/[‹›]/g, '');
                             const resolved = previewSample ? walkPath(f.path, previewSample) : undefined;
                             const preview = Array.isArray(resolved)

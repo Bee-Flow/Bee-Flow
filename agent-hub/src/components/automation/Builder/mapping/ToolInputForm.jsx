@@ -44,13 +44,13 @@ export default function ToolInputForm({
     // remove the field. Tool-param editors leave this off so clearing a value
     // omits the param.
     keepEmptyFields = false,
-    // ValueBuilder is the DEFAULT renderer for every step-bound value slot
-    // here — schema-declared parameters and the user's own named rows alike
-    // (artboard 2a/2b: chips with the step's NAME and a "use it as" control,
-    // not `{{steps.act_4d4307a.output.total}}` typed by hand). It keeps the
-    // raw editor one click away ("Formula"), and hands anything it cannot
-    // represent faithfully straight to BindingField, so nothing is ever
-    // rewritten behind the author's back.
+    // The value slot (valueSlot/ValueSlot.tsx) is the DEFAULT renderer for
+    // every step-bound value here — schema-declared parameters and the user's
+    // own named rows alike (a chip with the value's NAME and one sentence on
+    // how it is used, not `{{steps.act_4d4307a.output.total}}` typed by hand).
+    // It keeps the formula editor one click away ("Formula"), and shows
+    // anything it cannot represent as a Formula chip, edited as stored, so
+    // nothing is ever rewritten behind the author's back.
     //
     // Pass `visualValues={false}` to force the raw editor — the escape for a
     // surface whose values are not step bindings at all.

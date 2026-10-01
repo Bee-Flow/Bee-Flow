@@ -4,7 +4,7 @@ import { Plus, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { walkPath } from '../../../../../utils/bindingHelpers';
 import ConditionBuilder from '../../mapping/ConditionBuilder';
-import PathField from '../../mapping/PathField';
+import ValueSlot from '../../valueSlot/ValueSlot';
 import { sampleToFields } from '../../mapping/upstream';
 import { VariablePickerProvider, useVariablePickerContext } from '../../mapping/VariablePickerContext';
 import AccordionSection from '../AccordionSection';
@@ -412,12 +412,13 @@ function RouteFields({
                 {valueStyle && (
                     <FormRow label="Value to check" hint="Picked once; matched against each rule's value below.">
                         <div className="space-y-1">
-                            <PathField
+                            <ValueSlot
+                                storage="path"
+                                allowTyping={false}
                                 value={route.matchOn || ''}
                                 onChange={(next) => setRoute({ matchOn: next })}
                                 onFocusField={onFocusField}
                                 previewSample={previewSample}
-                                placeholder="trigger.output.value"
                             />
                             <button
                                 type="button"

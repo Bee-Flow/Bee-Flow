@@ -20,7 +20,7 @@ import AnchoredMenu from '../../../shared/AnchoredMenu';
  * Props:
  *   value, onChange(nextKey)
  *   options — [{ key, sample }] from elementFieldOptions(resolveElementSample(...))
- *   onFocusField — same broadcast contract as BindingField/PathField
+ *   onFocusField — same broadcast contract as BindingField and the value slots
  */
 export default function FieldKeyCombobox({
     value = '',

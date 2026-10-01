@@ -40,10 +40,18 @@
  * Templates are not lifted here. How a `{{ }}` renders depends on the field
  * (leaveUnresolved in prompts, listAsMarkdown on form pages), so lifting one
  * to a compose belongs to the text-field editor that knows the field.
+ *
+ * lowerPick goes the other way, for the places that can only hold the legacy
+ * spelling: a condition's operands (they become one expression string), the
+ * list a collection step works through (`arrayRef`, a path string) and the
+ * formula editor. It writes the binding liftLegacy lifts back to the same
+ * pick: `first(p)`, `join(p, "\n")`, a ref with `[*]` where the data (or the
+ * path the user picked) shows a list on the way.
  */
 
 import { REF_RE, tokenizePath, walkPath } from './legacy.mjs';
-import { REFUSED_KEYS } from './walk.mjs';
+import { REFUSED_KEYS, sourceBase } from './walk.mjs';
+import { WILD, formatSegment, isWild, parseLegacyPath } from './source.mjs';
 import { MAPPING_VERSION, sourceFromPath } from './intent.mjs';
 import { isPick } from './validate.mjs';
 import { createResolver } from './resolve.mjs';
@@ -169,4 +177,134 @@ export function liftLegacy(binding, sample, lastRun, { evaluate, parse } = {}) {
     }
     if (needsEvidence && !evidence) return null;
     return pick;
+}
+
+// ── Lowering: a pick in the legacy spelling ─────────────────────────────
+
+/** How each root is written as a legacy path, before its own segments. */
+function legacyHead(source) {
+    switch (source.root) {
+        case 'steps': return typeof source.id === 'string' && source.id ? ['steps', source.id, 'output'] : null;
+        case 'loop': return typeof source.id === 'string' && source.id ? ['loop', source.id] : null;
+        case 'trigger': return ['trigger', 'output'];
+        case 'run': return ['trigger'];
+        case 'vars': return ['vars'];
+        case 'item': return ['item'];
+        default: return null;
+    }
+}
+
+/**
+ * Where a legacy path the user clicked or dropped has a `[*]`, as indexes
+ * into the Source's own path (a `[*]` before `path[i]`). Only the part of the
+ * hint that names the same keys as the Source counts: `rows[*].email` still
+ * says `rows` is a list when the Source became `rows.name` (another column).
+ * A hint for another root or step says nothing.
+ */
+function hintedWilds(source, hint) {
+    const out = new Set();
+    const parsed = typeof hint === 'string' ? parseLegacyPath(hint.trim()) : null;
+    if (!parsed || parsed.root !== source.root || parsed.id !== source.id) return out;
+    let i = 0;
+    for (const seg of parsed.path) {
+        if (isWild(seg)) { out.add(i); continue; }
+        if (i >= source.path.length || seg !== source.path[i]) break;
+        i += 1;
+    }
+    return out;
+}
+
+/**
+ * The segments of a Source with a legacy `[*]` before every key that is read
+ * off a list. The legacy walker does not map a key over a list by itself (a
+ * pick does), so a column of a table is `rows[*].email`, not `rows.email`.
+ * A list is known from the data (the sample) or from the path the user
+ * picked (`hint`, which has its `[*]` where the source panel saw a list); a
+ * WILD segment in the Source is one as well. Where neither says anything (no
+ * sample yet, a key it lacks, no hint) no `[*]` is added: the path is then
+ * written as the Source spells it.
+ */
+function legacySegments(source, sample, hint) {
+    const path = Array.isArray(source.path) ? source.path : [];
+    const hinted = hintedWilds(source, hint);
+    let values = sample && typeof sample === 'object' ? [sourceBase(source, sample)] : [];
+    const flatten = () => { values = values.flatMap(v => (Array.isArray(v) ? v : [v])); };
+    const out = [];
+    for (let i = 0; i < path.length; i++) {
+        const seg = path[i];
+        if (isWild(seg)) {
+            out.push(WILD);
+            flatten();
+            continue;
+        }
+        // A hinted [*] goes before a key only: `[*][0]` would index each item.
+        if (typeof seg === 'string' && (hinted.has(i) || values.some(Array.isArray))) {
+            out.push(WILD);
+            flatten();
+        }
+        out.push(seg);
+        values = values
+            .filter(v => v !== null && typeof v === 'object')
+            .map(v => (Object.prototype.hasOwnProperty.call(v, seg) ? v[seg] : undefined))
+            .filter(v => v !== undefined);
+    }
+    return out;
+}
+
+/**
+ * A Source written as the legacy path the runtime walks, `[*]` included where
+ * the sample shows a list on the way, or null when a key cannot be written
+ * (source.mjs formatSegment). Every v2 root has a legacy spelling: `run` is
+ * `trigger.<key>`, `item` is `item.<key>`.
+ * @param {unknown} source
+ * @param {object | null | undefined} [sample] — the runState the data is read from
+ * @param {string | null} [hint] — the legacy path the user picked, whose `[*]` are kept
+ * @returns {string | null}
+ */
+export function legacyPathOf(source, sample, hint) {
+    if (!source || typeof source !== 'object' || !Array.isArray(source.path)) return null;
+    const head = legacyHead(source);
+    if (!head) return null;
+    let out = head[0];
+    for (const seg of [...head.slice(1), ...legacySegments(source, sample, hint)]) {
+        const text = formatSegment(seg);
+        if (text === null) return null;
+        out += text;
+    }
+    return REF_RE.test(out) ? out : null;
+}
+
+/** join()'s separator per pick join, as an expression string literal. */
+const JOIN_LITERALS = Object.freeze({ lines: '"\\n"', comma: '", "' });
+
+/**
+ * A pick as the legacy binding that gives the same value, or null when there
+ * is none (a bulleted text, a per-item value). `take: 'all'` into a text is
+ * `join(p, sep)`; into anything else the list itself (a ref). first, last and
+ * count are the expression functions of the same name; one is a ref.
+ * @param {unknown} pick — a pick binding or a compose part
+ * @param {object | null | undefined} [sample]
+ * @param {string | null} [hint] — the legacy path the user picked (legacyPathOf)
+ * @returns {{ kind: 'ref', path: string } | { kind: 'expr', value: string } | null}
+ */
+export function lowerPick(pick, sample, hint) {
+    if (!pick || typeof pick !== 'object' || !pick.from) return null;
+    const path = legacyPathOf(pick.from, sample, hint);
+    if (!path) return null;
+    switch (pick.take) {
+        case undefined:
+        case 'one':
+            return { kind: 'ref', path };
+        case 'all': {
+            if (pick.as !== 'text') return { kind: 'ref', path };
+            const sep = JOIN_LITERALS[pick.join || 'lines'];
+            return sep ? { kind: 'expr', value: `join(${path}, ${sep})` } : null;
+        }
+        case 'first':
+        case 'last':
+        case 'count':
+            return { kind: 'expr', value: `${pick.take}(${path})` };
+        default:
+            return null;
+    }
 }

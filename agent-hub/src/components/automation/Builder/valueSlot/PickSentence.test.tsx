@@ -21,7 +21,8 @@ describe('PickSentence', () => {
         [{ take: 'all', as: 'list' }, 12, 'Comes as a list of 12.'],
         [{ take: 'one', as: 'list' }, null, 'Comes as a list of 1.'],
         [{ take: 'all', as: 'list' }, undefined, 'Comes as a list.'],
-        [{ take: 'last', as: 'native' }, 3, 'Only the last.'],
+        [{ take: 'last', as: 'native' }, 3, 'Only the last of 3.'],
+        [{ take: 'last', as: 'native' }, null, 'Only the last.'],
         [{ take: 'count', as: 'number' }, 3, 'The number of them (3).'],
         [{ take: 'each', as: 'text' }, 3, 'One value per run, for each item.'],
         [{ take: 'all', as: 'native' }, 2, 'Comes as it is: all 2.'],
@@ -33,7 +34,7 @@ describe('PickSentence', () => {
     it('many values into a number field: "Only the first", in amber', () => {
         render(<PickSentence intent={{ take: 'first', as: 'number' }} count={5} warning />);
         const p = screen.getByTestId('pick-sentence');
-        expect(p).toHaveTextContent('Only the first.');
+        expect(p).toHaveTextContent('Only the first of 5.');
         expect(p).toHaveAttribute('data-tone', 'amber');
     });
 

@@ -41,10 +41,15 @@ describe('SourcePanel over core SourceNodes', () => {
         await openRow('Klant');
         await openRow('Adres');
         await userEvent.click(screen.getByText('Postcode'));
-        expect(onPick).toHaveBeenCalledWith('steps.order.output.Klant.Adres.Postcode', {
+        // The value's Source and its name's parts travel with it, so the field
+        // can word and shape it without walking for it again.
+        expect(onPick).toHaveBeenCalledWith('steps.order.output.Klant.Adres.Postcode', expect.objectContaining({
             raw: false,
             source: { root: 'steps', id: 'order', path: ['Klant', 'Adres', 'Postcode'] },
-        });
+            labelParts: [
+                { key: 'Klant', text: 'Klant' }, { key: 'Adres', text: 'Adres' }, { key: 'Postcode', text: 'Postcode' },
+            ],
+        }));
     });
 
     it('opens a list to its columns before any run, with escaped paths', async () => {
