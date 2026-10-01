@@ -46,8 +46,10 @@ function stepDigest(s) {
         tool: s.tool || undefined,
         layerKey: s.type === 'call_layer' ? (s.layerKey || undefined) : undefined,
         forEach: s.forEach?.overRef ? `over ${s.forEach.overRef} as loop.${s.forEach.itemVar || 'item'}` : undefined,
-        // The v2 per-item repeat (the editor's advanced settings).
-        repeat: s.repeat?.over ? `over ${describeSource(s.repeat.over)}` : undefined,
+        // The v2 per-item repeat (the editor's advanced settings, or a
+        // forEach "Koppelingen bijwerken" made one): the same fan-out
+        // (`results`, one entry per item), its item read by `each` picks.
+        repeat: s.repeat?.over ? `over ${describeSource(s.repeat.over) || 'a list'}` : undefined,
         // A loop's body steps used to be invisible in every model-facing
         // view (this echo rendered only the loop itself, and the summary a
         // bare count). The model was editing a structure it could not see,

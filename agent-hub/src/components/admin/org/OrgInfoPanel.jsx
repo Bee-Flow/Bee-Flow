@@ -2,6 +2,7 @@ import { Building2 } from 'lucide-react';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import OrgAiContextEditor from './OrgAiContextEditor';
 import OrgAiParticipationEditor from './OrgAiParticipationEditor';
+import OrgAutomationMappingsEditor from './OrgAutomationMappingsEditor';
 import OrgCollabEditor from './OrgCollabEditor';
 import OrgIntegrationCacheEditor from './OrgIntegrationCacheEditor';
 import OrgAuthSection from './orgInfo/OrgAuthSection';
@@ -657,8 +658,12 @@ const OrgInfoPanel = ({ user, activeSection, onSave: parentOnSave, onStateChange
                        organisation's third-party response payloads are STORED,
                        so an orgs[0] fallback would be a data decision made for
                        the wrong organisation. */
-                    <div className="animate-fadeIn max-w-3xl">
+                    <div className="animate-fadeIn max-w-3xl space-y-8">
                         <OrgIntegrationCacheEditor orgId={orgData?.id} />
+                        {/* The other organisation setting of its automations:
+                            whether opening one applies the mapping update
+                            (M8b). Same orgId discipline. */}
+                        <OrgAutomationMappingsEditor orgId={orgData?.id} />
                     </div>
                 )}
         </div>

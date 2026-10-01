@@ -33,7 +33,12 @@ export const REPEAT_MAX = 1000;
 
 const LEGACY_KINDS = new Set(['literal', 'ref', 'template', 'expr']);
 
-function clone(value) {
+// clone, setField and readsLoopItem are shared with upgrade.mjs (not part
+// of index.mjs): what rebaseLoopRefs counts as a read of the item, and what
+// the upgrade counts as one still left, must be one rule.
+
+/** A deep copy of plain data. */
+export function clone(value) {
     if (value === null || typeof value !== 'object') return value;
     try { return structuredClone(value); } catch { return JSON.parse(JSON.stringify(value)); }
 }
@@ -55,7 +60,8 @@ function mapPicks(value, fn, refFn = null) {
     return out;
 }
 
-function setField(step, field, value) {
+/** Set the dotted `field` of `step` (sites.mjs spelling); a missing parent is left alone. */
+export function setField(step, field, value) {
     const keys = String(field).split('.');
     let cur = step;
     for (const key of keys.slice(0, -1)) {
@@ -154,6 +160,12 @@ export function toggleRepeatOff(step) {
 function loopRefRe(itemVar) {
     const esc = itemVar.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     return new RegExp(`(^|[^A-Za-z0-9_$.])loop\\s*(\\.\\s*${esc}\\b|\\[\\s*["']${esc}["']\\s*\\]|\\.\\s*_index\\b)`);
+}
+
+/** Does `text` read the forEach item (`loop.<var>`, `loop["<var>"]`) or `loop._index`? */
+export function readsLoopItem(text, itemVar) {
+    if (typeof text !== 'string' || !text.includes('loop')) return false;
+    return loopRefRe(itemVar).test(text);
 }
 
 /**

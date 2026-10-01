@@ -93,22 +93,22 @@ async function withFullOutput(row) {
 }
 
 /** Step rows for several runs, in ONE query when the store offers it. */
-async function loadRunStepsForRuns(runIds) {
+async function loadRunStepsForRuns(runIds, store = automationStore) {
     const byRun = new Map(runIds.map(id => [id, []]));
     if (!runIds.length) return byRun;
     // BFSF-359: the per-run loop below is N+1, and getRunSteps is `SELECT *` —
     // it drags ten runs' worth of input_json across the wire so the seeding can
     // read six columns. The batched store call is preferred when present; the
     // loop stays as the fallback so this works on a store that predates it.
-    if (typeof automationStore.getRunStepsForRuns === 'function') {
-        const rows = await automationStore.getRunStepsForRuns(runIds).catch(() => null);
+    if (typeof store.getRunStepsForRuns === 'function') {
+        const rows = await Promise.resolve(store.getRunStepsForRuns(runIds)).catch(() => null);
         if (Array.isArray(rows)) {
             for (const r of rows) byRun.get(r.runId)?.push(r);
             return byRun;
         }
     }
     for (const id of runIds) {
-        byRun.set(id, await automationStore.getRunSteps(id).catch(() => []));
+        byRun.set(id, await Promise.resolve(store.getRunSteps(id)).catch(() => []));
     }
     return byRun;
 }
@@ -142,11 +142,16 @@ async function loadRunStepsForRuns(runIds) {
  * build-one-node-at-a-time workflow the window exists to support. They are
  * reported instead, per step, as `staleFrom` so the inspector can say "this
  * came from version 4".
+ *
+ * `opts.store` reads the runs from another store than automationStore (the
+ * mapping upgrade's tests hand in their own; automation/mappingUpgrade.js
+ * reads its evidence through this same window).
  */
 async function seedReplayState(automationId, currentVersion, stepIdFor, opts = {}) {
-    const all = await automationStore.getRunsForAutomation(automationId, { limit: REPLAY_RUN_WINDOW }).catch(() => []);
+    const { store = automationStore, ...entryOpts } = opts;
+    const all = await Promise.resolve(store.getRunsForAutomation(automationId, { limit: REPLAY_RUN_WINDOW })).catch(() => []);
     const runsWindow = (all || []).filter(r => r?.id && r.mode !== 'dry_run');
-    const stepsByRun = await loadRunStepsForRuns(runsWindow.map(r => r.id));
+    const stepsByRun = await loadRunStepsForRuns(runsWindow.map(r => r.id), store);
     const replayState = {};
     const staleFrom = {}; // stepId → the definition version its data came from
     // Walk OLDEST → NEWEST so the newest row for a step simply overwrites (or
@@ -157,7 +162,7 @@ async function seedReplayState(automationId, currentVersion, stepIdFor, opts = {
         for (const row of (stepsByRun.get(priorRun.id) || [])) {
             const stepId = stepIdFor(row);
             if (!stepId) continue;
-            const entry = replayEntryFromRow(row, stepId, opts);
+            const entry = replayEntryFromRow(row, stepId, entryOpts);
             if (!entry) {
                 delete replayState[stepId];
                 delete staleFrom[stepId];

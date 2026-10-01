@@ -27,6 +27,11 @@ const PHRASES: Record<string, Phrase> = {
         : t('routines.versions.desc.settingsChanged', 'Settings changed')),
     description_changed: (t) => t('routines.versions.desc.descriptionChanged', 'Description changed'),
     restored: (t, p) => t('routines.versions.desc.restored', 'Restored from v{version}', p),
+    // "Koppelingen bijwerken" (UpgradeMappingsDialog): one version for the lot.
+    // M8b: the organisation's update when an automation is opened.
+    mappings_upgraded: (t, p) => (p.auto === true
+        ? t('mapping.upgrade.version_desc_auto', 'Mappings updated on opening ({count} field(s))', p)
+        : t('mapping.upgrade.version_desc', 'Mappings updated ({count} field(s))', p)),
 };
 
 /**

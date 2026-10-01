@@ -471,3 +471,57 @@ export declare function textAsTemplate(value: unknown): string;
 export declare function stepIdsRead(value: unknown): string[];
 export declare function pickForLegacyPath(path: unknown): { from: MappingSource; take: 'one' | 'all' } | null;
 export declare function templateToCompose(text: unknown, where?: { stepType?: string; field?: string; sole?: boolean }): PickBinding | ComposeBinding | null;
+// M8: "Koppelingen bijwerken": a whole definition upgraded, binding by binding, with a dry run.
+
+/** Why a binding or a forEach was left as it is (upgrade.mjs); the client words it. */
+export type UpgradeKeptReason =
+    | 'formula' | 'would_change' | 'no_evidence' | 'for_each_kept'
+    | 'already_repeating' | 'loop_elsewhere' | 'max_unreadable' | 'list_differs'
+    | 'loop_in_template' | 'loop_in_expr' | 'loop_in_text' | 'loop_index' | 'loop_ref_unreadable'
+    | 'over_unreadable' | 'no_for_each';
+
+/** One binding (or forEach) in the report of upgradeDefinition. Labels only, never a run value. */
+export interface UpgradeEntry {
+    stepId: string | null;
+    /** The step's name as the person gave it, or null. */
+    step: string | null;
+    /** The flowlet the step is in. */
+    layer?: string;
+    /** Where in the step: 'inputs.to', 'fields.total', 'forEach'. */
+    field: string;
+    kind: 'ref' | 'expr' | 'for_each';
+    take?: Take;
+    reason?: UpgradeKeptReason;
+    reasons?: UpgradeKeptReason[];
+    /** What the value reads: its root, the source step's name, and the label of the path. */
+    root?: string;
+    source?: string | null;
+    label?: string;
+}
+
+export interface UpgradeDeps {
+    sample?: object | null;
+    lastRun?: object | null;
+    evaluate?: (src: string, scope: object) => unknown;
+    parse?: ParseDeps;
+}
+
+export declare function upgradeStepRepeat(step: unknown, opts?: UpgradeDeps):
+    { step: object & { repeat: StepRepeat }; converted: Array<{ field: string; pick: PickBinding }> } | { refused: UpgradeKeptReason[] };
+export declare function upgradeDefinition<T>(definition: T, opts?: UpgradeDeps):
+    { definition: T; changed: UpgradeEntry[]; kept: UpgradeEntry[] };
+// M8b: update on open (what is left to upgrade) and the gate of the AI fix.
+
+/** A legacy binding an upgrade could rewrite: where it is, and its stored text (never a run value). */
+export interface LegacyBindingSite {
+    stepId: string | null;
+    field: string;
+    kind: 'ref' | 'expr' | 'for_each';
+    text: string;
+}
+export declare function legacyBindings(definition: unknown): LegacyBindingSite[];
+export declare function hasLegacyBindings(definition: unknown): boolean;
+/** Whether the AI fix may replace a legacy binding at all: it reads only values a run-level runState holds, and no list function. */
+export declare function replaceableBinding(binding: unknown): boolean;
+export declare function checkReplacement(binding: unknown, proposal: unknown, opts?: UpgradeDeps):
+    { ok: true } | { ok: false; reason: 'invalid' | 'would_change' | 'no_evidence' };

@@ -322,3 +322,38 @@ test('describeItem names a trigger list without a tool', () => {
     const cal = { trigger: { id: 'trg', kind: 'app_event', appEvent: { provider: 'google-calendar', event: 'event.upcoming' } }, steps: [], edges: [] };
     assert.match(describeItem(fieldsAtRef(cal, 'trigger.output.attendees')), /^the forEach item \(an entry of trigger\.output\.attendees\) has: email/);
 });
+
+// ── a forEach upgraded to a repeat ("Koppelingen bijwerken") ─────────────
+
+const { upgradeDefinition } = require('../../shared/mapping/index.mjs');
+const { autoBindRequiredInputs } = require('./stepBuilders/inputBindings');
+
+/** A1 → A2 (forEach over A1's items, reading the item's path), and that graph upgraded. */
+function beforeAndAfterUpgrade() {
+    const a2 = { ...A2, inputs: { path: { kind: 'ref', path: 'loop.f.path' } } };
+    const before = graph(A1, a2);
+    const lastRun = { trigger: { output: {} }, steps: { a1: { output: { items: [{ name: 'a.pdf', path: '/a.pdf' }] } } } };
+    const { definition: after } = upgradeDefinition(before, { lastRun });
+    assert.ok(after.steps[1].repeat && !after.steps[1].forEach, 'the forEach became a repeat');
+    return { before, after };
+}
+
+test('a repeat step is the same fan-out as the forEach it was', () => {
+    const { before, after } = beforeAndAfterUpgrade();
+    const r = fieldsAtRef(after, 'steps.a2.output.results');
+    assert.strictEqual(r.source, 'fanout');
+    assert.deepStrictEqual(r.itemFields, NC_ITEM, 'the item fields come from the list the repeat runs over');
+    assert.deepStrictEqual(r, fieldsAtRef(before, 'steps.a2.output.results'));
+});
+
+test('the next step after a repeat is offered the envelope, never the tool\'s own fields', () => {
+    const { before, after } = beforeAndAfterUpgrade();
+    const args = g => ({ graph: g, tool: 'nextcloud_read_file', inputs: {}, forEach: null, missing: ['content', 'meta'], afterStepId: 'a2' });
+    const got = autoBindRequiredInputs(args(after));
+    assert.ok(!got.candidates.some(c => c.why === 'upstream-same-name'), 'steps.a2.output.content does not exist at run time');
+    assert.deepStrictEqual(got.candidates.map(c => [c.key, c.path, c.why]), [
+        ['content', 'loop.r.output.content', 'needs-forEach'],
+        ['meta', 'loop.r.output.meta', 'needs-forEach'],
+    ]);
+    assert.deepStrictEqual(got, autoBindRequiredInputs(args(before)));
+});

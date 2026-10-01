@@ -15,6 +15,7 @@
  *   POST   /:id/deactivate                 unset is_active
  *   POST   /:id/run                        manual run (live)
  *   POST   /:id/dry-run                    explicit dry-run on demand
+ *   POST   /:id/upgrade-mappings           upgrade stored mappings to picks (?dryRun=1: preview)
  *   GET    /:id/runs                       list runs
  *   GET    /:id/versions                   list saved versions
  *   POST   /:id/webhook                    create a signed webhook URL
@@ -97,5 +98,9 @@ router.use(require('./automation/usage').makeUsageRouter());
 // Handoff 5: duplicate, save as template, the description suggestion and the
 // header's tab counts (routes/automation/actions.js). Literal second segments.
 router.use(require('./automation/actions').makeActionsRouter());
+// "Koppelingen bijwerken": upgrade the stored mappings to picks where the
+// value stays the same (routes/automation/upgradeMappings.js). Literal second
+// segment too.
+router.use(require('./automation/upgradeMappings').makeUpgradeMappingsRouter());
 
 module.exports = router;

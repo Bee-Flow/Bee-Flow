@@ -252,6 +252,9 @@ const EXPECTED = [
     'POST /:id/save-as-template',
     'POST /:id/suggest-description',
     'GET /:id/counts',
+    // "Koppelingen bijwerken" (routes/automation/upgradeMappings.js).
+    'POST /:id/upgrade-mappings/ai-fix',
+    'POST /:id/upgrade-mappings',
 ];
 
 test('automation router loads and exposes the exact baseline route table in order', () => {

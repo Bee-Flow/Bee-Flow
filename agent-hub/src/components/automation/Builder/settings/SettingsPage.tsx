@@ -27,6 +27,8 @@ export interface SettingsPageProps {
     onOpenTab?: (tab: string) => void;
     /** The routine row changed outside `onSave` (trash, restore). */
     onAutomationChange?: (next: SettingsAutomation) => void;
+    /** The definition was rewritten outside `onSave` (Update mappings): adopt it. */
+    onDefinitionReplaced?: (next: SettingsAutomation) => void;
 }
 
 const isSection = (v: unknown): v is SettingsSectionId => SETTINGS_SECTIONS.includes(v as SettingsSectionId);
@@ -70,7 +72,7 @@ const CONTENT = 'min-w-0 row-start-2 px-4 py-6 @[900px]/settings:row-start-1 @[9
  * machine, which also drives "Automatically saved" in the header); only a
  * dialog with its own button waits for a click.
  */
-export default function SettingsPage({ automation, onSave: saveRow, initialSection: link = null, onAutomationChange, workMode = 'approve', onWorkModeChange }: SettingsPageProps) {
+export default function SettingsPage({ automation, onSave: saveRow, initialSection: link = null, onAutomationChange, onDefinitionReplaced, workMode = 'approve', onWorkModeChange }: SettingsPageProps) {
     const { t } = useTranslation();
     const initialSection = link;
     const onSave = useQueuedSave(saveRow, automation?.definition);
@@ -195,7 +197,7 @@ export default function SettingsPage({ automation, onSave: saveRow, initialSecti
                             {t('routines.settings.read_only', 'You can look at these settings. Only the owner and people who can edit may change them.')}
                         </p>
                     )}
-                    {section('general', <GeneralSection automation={automation} onSave={onSave} onAutomationChange={onAutomationChange} readOnly={readOnly} />)}
+                    {section('general', <GeneralSection automation={automation} onSave={onSave} onAutomationChange={onAutomationChange} onDefinitionReplaced={onDefinitionReplaced} readOnly={readOnly} />)}
                     {section('start', <ReadOnlyFieldset readOnly={readOnly}><StartSection automation={automation} onSave={onSave} /></ReadOnlyFieldset>)}
                     {section('notifications', <ReadOnlyFieldset readOnly={readOnly}><NotificationsSection automation={automation} onSave={onSave} /></ReadOnlyFieldset>)}
                     {section('sharing', <SharingSection automation={automation} onSave={onSave} onAutomationChange={onAutomationChange} />)}

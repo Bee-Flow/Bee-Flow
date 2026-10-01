@@ -29,7 +29,7 @@ const { OUTPUT_SCHEMAS } = require('../outputSchemas');
 const { findStepAnywhere } = require('./draftGraph');
 const triggerCatalog = require('./triggerCatalog');
 const { repairRefPath } = require('./bindings');
-const { REF_RE, tokenizePath } = require('../../shared/mapping/index.mjs');
+const { REF_RE, tokenizePath, formatPath } = require('../../shared/mapping/index.mjs');
 
 const MAX_FIELDS_LISTED = 20;
 // A forEach over a fan-out over a fan-out is the deepest shape a build has
@@ -38,6 +38,29 @@ const MAX_REF_DEPTH = 3;
 
 function isPlainObject(v) {
     return !!v && typeof v === 'object' && !Array.isArray(v);
+}
+
+/**
+ * Does `step` run once per item of a list? A legacy forEach, or a repeat
+ * (the same envelope, `{ iterations, succeeded, failed, results }`, from
+ * execRepeat.js): "Koppelingen bijwerken" turns the one into the other, and
+ * the builder must read the step the same before and after.
+ */
+function isFanOutStep(step) {
+    if (!isPlainObject(step)) return false;
+    if (isPlainObject(step.forEach) && typeof step.forEach.overRef === 'string') return true;
+    return isPlainObject(step.repeat) && isPlainObject(step.repeat.over);
+}
+
+/**
+ * The list a fan-out step runs over, as a legacy ref path: the forEach's
+ * overRef, or the repeat's Source written as one (formatPath). null when the
+ * step does not fan out, or its Source has no legacy spelling.
+ */
+function fanOutOverRef(step) {
+    if (!isFanOutStep(step)) return null;
+    if (isPlainObject(step.forEach) && typeof step.forEach.overRef === 'string') return step.forEach.overRef;
+    return formatPath(step.repeat.over);
 }
 
 // The path the binding canonicaliser STORES (bindings.js repairRefPath), in
@@ -199,7 +222,7 @@ function emptyResult() {
  *   outputFields — fan-out only: the iterating step's own output fields
  *   itemFields   — fan-out only: the fields of the item that step iterated
  *
- * FAN-OUT. A step with a forEach emits `results`, one entry per iteration,
+ * FAN-OUT. A step with a forEach (or a repeat) emits `results`, one entry per iteration,
  * each {index, item, output, status}. Its `fields` list carries both the four
  * envelope names and the dotted `output.<f>` / `item.<f>` paths, so a caller
  * can tell "output is known and content is in it" from "output is opaque".
@@ -232,10 +255,11 @@ function fieldsAtStepOutput(graph, stepId, field, draftWrap, depth) {
     };
 
     // Fan-out: the step runs once per item and collects the runs in `results`.
-    if (field === 'results' && isPlainObject(step.forEach) && typeof step.forEach.overRef === 'string') {
+    if (field === 'results' && isFanOutStep(step)) {
         const outputFields = ownOutputFieldsOf(step, draftWrap);
-        const itemFields = depth < MAX_REF_DEPTH
-            ? fieldsAtRef(graph, step.forEach.overRef, draftWrap, depth + 1).fields
+        const overRef = fanOutOverRef(step);
+        const itemFields = depth < MAX_REF_DEPTH && overRef
+            ? fieldsAtRef(graph, overRef, draftWrap, depth + 1).fields
             : null;
         return {
             ...base,
@@ -445,4 +469,6 @@ module.exports = {
     fieldsAtRef,
     checkLoopRef,
     describeItem,
+    isFanOutStep,
+    fanOutOverRef,
 };
