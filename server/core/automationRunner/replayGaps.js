@@ -17,6 +17,7 @@
  */
 
 const { AutomationError } = require('../automationErrors');
+const { stepIdsRead } = require('../../shared/mapping/index.mjs');
 
 /** Every step reachable from `fromStepId` along the definition's edges. */
 function stepsAfter(definition, fromStepId) {
@@ -43,11 +44,15 @@ function stepsAfter(definition, fromStepId) {
  * Does anything in `step` (bindings, refs, templates, a loop body, a layer
  * call's inputs — all of it is in the step's own JSON) read `steps.<stepId>`?
  * Dotted and bracketed forms both count; `steps.ai_1` does not match
- * `steps.ai_10`. Deliberately generous: a false "yes" fails a resume that
- * could have limped on, a false "no" is the silent data loss this exists for.
+ * `steps.ai_10`. A pick or a compose names its step as data
+ * (`{root:'steps', id:'ai_1'}`), so those are asked of the shared mapping
+ * core (stepIdsRead). Deliberately generous: a false "yes" fails a resume
+ * that could have limped on, a false "no" is the silent data loss this
+ * exists for.
  */
 function readsStep(step, stepId) {
     if (!step || !stepId) return false;
+    if (stepIdsRead(step).includes(String(stepId))) return true;
     const esc = String(stepId).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     // In the serialized step a quote inside a string is escaped (\"), hence
     // the optional backslash before the bracket form's quotes.

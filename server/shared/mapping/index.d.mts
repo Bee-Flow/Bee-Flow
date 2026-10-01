@@ -421,3 +421,12 @@ export declare function liftLegacy(
     lastRun?: object | null,
     deps?: { evaluate?: (src: string, scope: object) => unknown; parse?: ParseDeps },
 ): PickBinding | null;
+// M5a: what a definition reads through picks and composes (reads.mjs), and
+// the one rule for lifting a legacy template or path to them (template.mjs).
+export declare function picksIn(value: unknown): PickPart[];
+export declare function pickPaths(value: unknown): string[];
+export declare function stepReadPaths(step: unknown): string[];
+export declare function textAsTemplate(value: unknown): string;
+export declare function stepIdsRead(value: unknown): string[];
+export declare function pickForLegacyPath(path: unknown): { from: MappingSource; take: 'one' | 'all' } | null;
+export declare function templateToCompose(text: unknown, where?: { stepType?: string; field?: string; sole?: boolean }): PickBinding | ComposeBinding | null;

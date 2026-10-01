@@ -42,6 +42,7 @@ const { getProviderForModel } = require('../aiAgent');
 const { getAdapter } = require('../providers');
 const { resolveValue, interpolateTemplate } = require('../../automation/bind');
 const { parseJsonish, stripFence } = require('../../automation/jsonRepair');
+const { isPick, describeSource } = require('../../shared/mapping/index.mjs');
 const {
     DATA_EXTRACTION_FIELD_TYPES, DATA_EXTRACTION_FIELD_NAME_RE, DATA_EXTRACTION_MAX_SOURCE_CHARS,
 } = require('../../automation/validate/constants');
@@ -420,8 +421,10 @@ async function execDataExtraction(step, ctx, runState, mode) {
 
     const sourceText = resolveSourceText(step.source, runState);
     if (!sourceText.trim()) {
+        // The path the source reads: a ref's, a pick's Source spelled as one.
         const path = step.source && typeof step.source === 'object' && typeof step.source.path === 'string'
-            ? step.source.path : (typeof step.source === 'string' ? step.source : '');
+            ? step.source.path
+            : (typeof step.source === 'string' ? step.source : (isPick(step.source) ? describeSource(step.source.from) : ''));
         const err = new Error(`data_extraction ${step.id}: there is no text to read${path ? ` — \`${path}\` resolved to nothing` : ''}. Point \`source\` at the text an earlier step produced.`);
         err.errorClass = 'ValidationError';
         throw err;

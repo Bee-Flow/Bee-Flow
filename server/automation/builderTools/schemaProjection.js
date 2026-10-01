@@ -129,14 +129,14 @@ const LEAN = Object.freeze({
         },
     },
     builder_add_action: {
-        description: 'Append one integration action. tool = the exact catalog name (inspect it first with builder_inspect_tool). inputs = {<param>: binding} — every value a binding object (Binding rules). EXAMPLE: {tool:"gmail_search",inputs:{query:{kind:"literal",value:"is:unread"}},label:"Find mail"}.',
+        description: 'Append one integration action. tool = the exact catalog name (inspect it first with builder_inspect_tool). inputs = {<param>: binding} — every value a binding object (Binding rules): {pick:"<path>"} for a value from the trigger or an earlier step (take:"all" for every value of a list field), {kind:"literal",value} for a fixed one. EXAMPLE: {tool:"gmail_search",inputs:{query:{kind:"literal",value:"is:unread"}},label:"Find mail"}.',
         props: {
             tool: { description: 'Exact tool name from the catalog.' },
             inputs: { description: 'Map of input name → binding object.' },
         },
     },
     builder_add_ai_step: {
-        description: 'Append an AI step for judgement or writing (classify, summarise, draft a reply) — NOT for extraction (use data_extraction). systemPrompt = role/tone; prompt = the task, naming the inputs; inputs = {name: binding}; outputSchema = the JSON shape of the answer so later steps can bind steps.<id>.output.<field>. EXAMPLE: {prompt:"Summarise the emails in `emails` as 5 bullets.",inputs:{emails:{kind:"ref",path:"steps.s1.output.results"}},outputSchema:{digest:"string"}}.',
+        description: 'Append an AI step for judgement or writing (classify, summarise, draft a reply) — NOT for extraction (use data_extraction). systemPrompt = role/tone; prompt = the task, naming the inputs; inputs = {name: binding}; outputSchema = the JSON shape of the answer so later steps can bind steps.<id>.output.<field>. EXAMPLE: {prompt:"Summarise the emails in `emails` as 5 bullets.",inputs:{emails:{pick:"steps.s1.output.results"}},outputSchema:{digest:"string"}}.',
         props: {
             systemPrompt: { description: 'Optional role/tone/output style ("You are a meticulous bookkeeper. Answer in Dutch.").' },
             prompt: { description: 'The task for this run, naming the inputs.' },
@@ -162,7 +162,7 @@ const LEAN = Object.freeze({
         },
     },
     builder_add_notification: {
-        description: 'Append an in-app notification. title/body are TEMPLATE strings: {{steps.<id>.output.<field>}}. For e-mail use builder_add_action with gmail_compose instead.',
+        description: 'Append an in-app notification. title/body are TEXT with {{steps.<id>.output.<field>}} placeholders; a list in one prints one item per line, never JSON. For e-mail use builder_add_action with gmail_compose instead.',
         props: {
             title: { description: 'Template string.' },
             body: { description: 'Template string.' },
@@ -185,9 +185,9 @@ const LEAN = Object.freeze({
         },
     },
     builder_add_data_extraction: {
-        description: 'Append a step that reads NAMED, TYPED fields out of text (an invoice, a mail body, a PDF\'s text). source = ONE binding to the text ({kind:"ref",path:"steps.<id>.output.content"}; inside a forEach: loop.<v>.output.content). fields = the output shape: [{name (snake_case; becomes steps.<id>.output.<name>), type: string|number|date|boolean, description, required?}]. No prompt, no inputs, no outputSchema, no modelTier — it runs on the admin\'s extraction model. Numbers come back as real numbers, dates as YYYY-MM-DD.',
+        description: 'Append a step that reads NAMED, TYPED fields out of text (an invoice, a mail body, a PDF\'s text). source = ONE binding to the text ({pick:"steps.<id>.output.content"}; inside a forEach: loop.<v>.output.content). fields = the output shape: [{name (snake_case; becomes steps.<id>.output.<name>), type: string|number|date|boolean, description, required?}]. No prompt, no inputs, no outputSchema, no modelTier — it runs on the admin\'s extraction model. Numbers come back as real numbers, dates as YYYY-MM-DD.',
         props: {
-            source: { description: 'ONE binding to the text: {kind:"ref",path:"…"}. Never a literal.' },
+            source: { description: 'ONE binding to the text: {pick:"…"}. Never a literal.' },
             fields: {
                 description: 'The output shape, in order.',
                 items: {
@@ -205,7 +205,7 @@ const LEAN = Object.freeze({
         },
     },
     builder_add_datatable: {
-        description: 'Append a step that reads or writes ROWS of a datatable (rows outlive the run). op: add_row (values) | save_row (values + matchColumn, which must also be in values) | find_rows (where?, sort?, limit? → {rows, returned, hasMore}) | count_rows (→ {count}) | update_rows (values + where) | delete_rows (where). datatableId AND datatableKey EXACTLY as the "Datatables you may use" block shows them; a missing table is created first with builder_create_datatable. values keys are the column KEYS; each value is a binding object. where = [{field, op: eq|neq|gt|gte|lt|lte|contains|startsWith|in|between|isNull|isNotNull, value}]. EXAMPLE: {op:"add_row",datatableId:"tbl_x",datatableKey:"facturen",values:{datum:{kind:"ref",path:"loop.x.output.datum"}},forEach:{overRef:"steps.ex1.output.results",itemVar:"x"}}.',
+        description: 'Append a step that reads or writes ROWS of a datatable (rows outlive the run). op: add_row (values) | save_row (values + matchColumn, which must also be in values) | find_rows (where?, sort?, limit? → {rows, returned, hasMore}) | count_rows (→ {count}) | update_rows (values + where) | delete_rows (where). datatableId AND datatableKey EXACTLY as the "Datatables you may use" block shows them; a missing table is created first with builder_create_datatable. values keys are the column KEYS; each value is a binding object. where = [{field, op: eq|neq|gt|gte|lt|lte|contains|startsWith|in|between|isNull|isNotNull, value}]. EXAMPLE: {op:"add_row",datatableId:"tbl_x",datatableKey:"facturen",values:{datum:{pick:"loop.x.output.datum"}},forEach:{overRef:"steps.ex1.output.results",itemVar:"x"}}.',
         props: {
             datatableId: { description: 'From the Datatables block, or what builder_create_datatable returned.' },
             datatableKey: { description: 'That table\'s key, exactly as shown beside the id.' },
@@ -279,7 +279,7 @@ const LEAN = Object.freeze({
         description: 'Change an EXISTING step in place — keeps its id and wiring. patch = only the fields to change, in the shape the add tool takes (a refusal lists the allowed fields). Move a step with patch:{afterStepId, branch?}. inputs/values merge per key (null deletes a key; inputsMode:"replace" overwrites). Dry-run repair: ONE builder_update_step per failing step, all in the SAME reply as the next builder_request_dry_run.',
         props: {
             stepId: { description: 'The step\'s real id (from the echo or the draft state).' },
-            patch: { description: 'Only the fields to change, in the add tool\'s shape: e.g. {inputs:{path:{kind:"ref",path:"loop.f.path"}}}, {source:{kind:"ref",path:"loop.r.output.content"}}, {values:{datum:{kind:"ref",path:"loop.x.output.datum"}}}, {afterStepId:"<id>",branch:"else"}. Never type or id.' },
+            patch: { description: 'Only the fields to change, in the add tool\'s shape: e.g. {inputs:{path:{pick:"loop.f.path"}}}, {source:{pick:"loop.r.output.content"}}, {values:{datum:{pick:"loop.x.output.datum"}}}, {afterStepId:"<id>",branch:"else"}. Never type or id.' },
             inputsMode: { description: '"merge" (default, per key) or "replace" (whole map).' },
         },
     },
@@ -373,7 +373,7 @@ function projectAddSteps(properties) {
         items.properties.type.enum = [...LEAN_BATCH_TYPES];
     }
     if (items.properties.spec) {
-        items.properties.spec.description = 'EXACTLY the fields of the matching builder_add_<type> tool (tool+inputs · prompt+inputs+outputSchema · source+fields · op+datatableId+datatableKey+values · expr · title+body · url+method+body · op+arrayRef · prompt+assignee) plus the shared ones: afterStepId, branch ("then"|"else"|"error"), label, forEach:{overRef,itemVar}. Put EVERY step field inside spec, never beside it. Per-item work is forEach on the step; chain the next entry\'s forEach over steps.$<prev>.output.results and bind loop.<v>.output.<field>. Prefer {kind:"ref"} bindings over {{templates}} inside a batch.';
+        items.properties.spec.description = 'EXACTLY the fields of the matching builder_add_<type> tool (tool+inputs · prompt+inputs+outputSchema · source+fields · op+datatableId+datatableKey+values · expr · title+body · url+method+body · op+arrayRef · prompt+assignee) plus the shared ones: afterStepId, branch ("then"|"else"|"error"), label, forEach:{overRef,itemVar}. Put EVERY step field inside spec, never beside it. Per-item work is forEach on the step; chain the next entry\'s forEach over steps.$<prev>.output.results and bind {pick:"loop.<v>.output.<field>"}. Values are picks ({pick:"<path>", take?}); {{…}} placeholders belong only in text fields (title, body, url, prompt).';
     }
 }
 

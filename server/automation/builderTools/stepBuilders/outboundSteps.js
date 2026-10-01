@@ -8,6 +8,13 @@ const { newId, appendAfter } = require('../draftGraph');
 const { sanitizeForEach } = require('../bindings');
 const { KNOWLEDGE_WRITE_DUPLICATE_STRATEGIES } = require('../../validate/constants');
 const { bindingToTemplate } = require('./inputBindings');
+const { textFieldValue } = require('../picks');
+const { hasText } = require('../../validate/helpers');
+
+// A text field of this file's steps in its stored form: a `{{ }}` text the
+// shared core can hold becomes a compose (a list in it renders readable, not
+// as JSON), anything else keeps the coercion the field always had.
+const text = (stepType, field, value, fallback) => textFieldValue(value, { stepType, field, fallback });
 
 /**
  * `askOnce` in exactly the two shapes the runtime reads: `true` (reuse within
@@ -57,16 +64,17 @@ function normalizeCacheInto(value) {
 function applyAddHttpRequest(draft, args) {
     const { forEach, error: feErr } = sanitizeForEach(args.forEach, draft);
     if (feErr) return { error: feErr };
-    if (!args.url || typeof args.url !== 'string') return { error: 'url is required (may contain {{...}} template values)' };
+    const url = text('http_request', 'url', args.url, () => undefined);
+    if (!hasText(url)) return { error: 'url is required (may contain {{...}} template values)' };
     const method = String(args.method || 'GET').toUpperCase();
     const headers = (args.headers && typeof args.headers === 'object' && !Array.isArray(args.headers)) ? args.headers : {};
     const step = {
         id: newId('http'),
         type: 'http_request',
-        url: args.url,
+        url,
         method,
         headers,
-        body: typeof args.body === 'string' ? args.body : '',
+        body: text('http_request', 'body', args.body, () => ''),
         timeoutMs: typeof args.timeoutMs === 'number' ? args.timeoutMs : 10000,
         // blockPrivateTargets defaults TRUE (safe): only reaches localhost /
         // private-network / cloud-metadata targets when the caller explicitly
@@ -103,8 +111,8 @@ function applyAddNotification(draft, args) {
     const step = {
         id: newId('notif'),
         type: 'notification',
-        title: args.title,
-        body: args.body || '',
+        title: text('notification', 'title', args.title),
+        body: text('notification', 'body', args.body || ''),
         channels: Array.isArray(args.channels) ? args.channels : ['notification'],
         label: args.label || 'Notification',
         ...(forEach ? { forEach } : {}),
@@ -121,12 +129,13 @@ function applyAddNotification(draft, args) {
  * scans this file with a regex over exactly that shape and requires the literal
  * to equal NODE_DEFS.knowledge_write.defaultLabel.
  *
- * `content`, `title` and `sourceUri` are `{{…}}` template STRINGS, the shape
- * `generate_document` uses and the shape the editor's text areas produce. The
- * model is told that in the schema, but it has seen a thousand builder tools
- * that take binding objects and will hand one over anyway — so a binding is
- * FLATTENED back to a template string here rather than stored in a second
- * shape the editor cannot render and `collectRefPaths` would have to guess at.
+ * `content`, `title` and `sourceUri` are text fields, the shape
+ * `generate_document` uses: a `{{…}}` text the model writes is stored as a
+ * compose (a text with picked values) where every placeholder reads a plain
+ * path, else as the template it is. The model is told that in the schema, but
+ * it has seen a thousand builder tools that take binding objects and will hand
+ * one over anyway — so a legacy binding is FLATTENED back to its text here
+ * rather than stored in a second shape the editor cannot render.
  *
  * There is deliberately no authorisation check in this file: it is pure and
  * DB-free like every other builder. The knowledge base is checked at save and
@@ -141,9 +150,9 @@ function applyAddKnowledgeWrite(draft, args) {
         label: args.label || 'To knowledge base',
         ...(forEach ? { forEach } : {}),
         knowledgeBaseId: typeof args.knowledgeBaseId === 'string' ? args.knowledgeBaseId.trim() : '',
-        title: bindingToTemplate(args.title),
-        content: bindingToTemplate(args.content),
-        sourceUri: bindingToTemplate(args.sourceUri),
+        title: text('knowledge_write', 'title', args.title, bindingToTemplate),
+        content: text('knowledge_write', 'content', args.content, bindingToTemplate),
+        sourceUri: text('knowledge_write', 'sourceUri', args.sourceUri, bindingToTemplate),
     };
     // 'skip' is the default and stays IMPLICIT, so a freshly-built step does
     // not differ from a stored one for no behavioural reason.

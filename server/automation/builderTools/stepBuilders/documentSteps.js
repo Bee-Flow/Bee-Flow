@@ -8,6 +8,18 @@
 const { newId, appendAfter } = require('../draftGraph');
 const { sanitizeForEach } = require('../bindings');
 const { bindingToTemplate } = require('./inputBindings');
+const { textFieldValue, isMappingShape, canonicalMapping } = require('../picks');
+const { hasText } = require('../../validate/helpers');
+
+// A text field of these steps in its stored form: a `{{ }}` text the shared
+// core can hold becomes a compose (a list in it renders readable, not as
+// JSON), anything else keeps the coercion the field always had.
+const text = (stepType, field, value, fallback) => textFieldValue(value, { stepType, field, fallback });
+const asString = (v) => (typeof v === 'string' ? v : '');
+// A visual binding (a slide's chart data or stats, a deck's slides) keeps a
+// pick or compose as the model wrote it, expanded; a legacy binding object is
+// flattened to its {{…}} text as before.
+const visualBinding = (v) => (isMappingShape(v) ? canonicalMapping(v) : bindingToTemplate(v));
 
 /**
  * Render upstream text into a PDF or Word file.
@@ -20,22 +32,23 @@ function applyAddGenerateDocument(draft, args) {
     // No forEach: validate.js's FOREACH_ALLOWED does not include this type, so
     // accepting one here would mint a step the validator immediately rejects.
     // Per-row documents go in a loop body.
-    if (!args.content || typeof args.content !== 'string') {
+    const content = text('generate_document', 'content', args.content, () => undefined);
+    if (!hasText(content)) {
         return { error: 'content is required — bind it to the text an earlier step produced, e.g. {{steps.ai_1.output.text}}' };
     }
     const format = args.format === 'docx' ? 'docx' : 'pdf';
     const step = {
         id: newId('doc'),
         type: 'generate_document',
-        content: args.content,
+        content,
         contentFormat: args.contentFormat === 'html' ? 'html' : 'markdown',
         format,
         // 'slides' renders the PDF as a landscape deck (h1 = cover, each h2 a
         // slide). Absent/anything-else = the linear document every existing
         // step already produces.
         ...(args.layout === 'slides' ? { layout: 'slides' } : {}),
-        title: typeof args.title === 'string' ? args.title : '',
-        fileName: typeof args.fileName === 'string' ? args.fileName : '',
+        title: text('generate_document', 'title', args.title, asString),
+        fileName: text('generate_document', 'fileName', args.fileName, asString),
         expiresInDays: Number.isFinite(Number(args.expiresInDays)) ? clampDocumentTtl(args.expiresInDays) : 7,
         label: args.label || 'Make a document',
     };
@@ -90,10 +103,11 @@ function applyAddFillDocument(draft, args, draftWrap) {
     const values = {};
     if (args.values && typeof args.values === 'object' && !Array.isArray(args.values)) {
         for (const [k, v] of Object.entries(args.values)) {
-            // Values are template strings or bindings, exactly as everywhere
-            // else; a binding object is flattened to the {{…}} form the step
-            // resolves, so the editor shows one vocabulary.
-            values[k] = v && typeof v === 'object' && v.kind ? bindingToTemplate(v) : v;
+            // Values are text fields: a `{{…}}` text becomes a compose (one
+            // that is exactly one placeholder: a pick of the value itself, so
+            // a list stays a list), a legacy binding object is flattened to
+            // the {{…}} form first, so the editor shows one vocabulary.
+            values[k] = text('fill_document', `values.${k}`, v, (x) => (x && typeof x === 'object' && x.kind ? bindingToTemplate(x) : x));
         }
     }
 
@@ -110,7 +124,7 @@ function applyAddFillDocument(draft, args, draftWrap) {
         ...(args.sectionOverrides ? { sectionOverrides: args.sectionOverrides } : {}),
         ...(documentName ? { documentName } : {}),
         values,
-        fileName: typeof args.fileName === 'string' ? args.fileName : '',
+        fileName: text('fill_document', 'fileName', args.fileName, asString),
         expiresInDays: Number.isFinite(Number(args.expiresInDays)) ? clampDocumentTtl(args.expiresInDays) : 7,
         ...(args.saveCopy === true ? { saveCopy: true } : {}),
         ...(args.format === 'pdf' || args.format === 'pptx' ? { format: args.format } : {}),
@@ -163,7 +177,7 @@ function slideVisualFields(args) {
     if (c && typeof c === 'object' && !Array.isArray(c)) {
         const type = typeof c.type === 'string' && CHART_TYPES.includes(c.type.trim().toLowerCase()) ? c.type.trim().toLowerCase() : 'column';
         let data = c.data;
-        if (data && typeof data === 'object' && !Array.isArray(data) && data.kind) data = bindingToTemplate(data);
+        if (data && typeof data === 'object' && !Array.isArray(data) && (data.kind || isMappingShape(data))) data = visualBinding(data);
         const hasData = data !== undefined && data !== null && !(typeof data === 'string' && !data.trim()) && !(Array.isArray(data) && !data.length);
         if (hasData || Array.isArray(c.series)) {
             out.chart = { type, ...(hasData ? { data } : { series: c.series, ...(Array.isArray(c.labels) ? { labels: c.labels } : {}) }) };
@@ -178,7 +192,7 @@ function slideVisualFields(args) {
         out.chart = { type: c.trim().toLowerCase() };
     }
     const st = args.stats;
-    if (st && typeof st === 'object' && !Array.isArray(st) && st.kind) out.stats = bindingToTemplate(st);
+    if (st && typeof st === 'object' && !Array.isArray(st) && (st.kind || isMappingShape(st))) out.stats = visualBinding(st);
     else if ((typeof st === 'string' && st.trim()) || (Array.isArray(st) && st.length)) out.stats = st;
     if (SLIDE_STYLES.includes(args.style)) out.style = args.style;
     return out;
@@ -193,11 +207,11 @@ function slideVisualFields(args) {
  * this type — nodeDefs.serverLabels.test.js reads both and compares them.
  */
 function applyAddSlide(draft, args) {
-    const title = typeof args.title === 'string' ? args.title : '';
-    const content = typeof args.content === 'string' ? args.content : '';
-    const image = typeof args.image === 'string' ? args.image.trim() : '';
+    const title = text('slide', 'title', args.title, asString);
+    const content = text('slide', 'content', args.content, asString);
+    const image = text('slide', 'image', typeof args.image === 'string' ? args.image.trim() : args.image, asString);
     const visuals = slideVisualFields(args);
-    if (!title.trim() && !content.trim() && !image && !visuals.chart && !visuals.stats) {
+    if (!hasText(title) && !hasText(content) && !hasText(image) && !visuals.chart && !visuals.stats) {
         return { error: 'A slide needs a title or some content — e.g. title:"{{steps.extract.output.name}}", content:"- {{steps.extract.output.point}}".' };
     }
     const { forEach, error: feErr } = sanitizeForEach(args.forEach, draft);
@@ -207,9 +221,9 @@ function applyAddSlide(draft, args) {
         type: 'slide',
         title,
         content,
-        notes: typeof args.notes === 'string' ? args.notes : '',
+        notes: text('slide', 'notes', args.notes, asString),
         ...(SLIDE_LAYOUT_CHOICES.has(args.layout) ? { layout: args.layout } : {}),
-        ...(image ? { image } : {}),
+        ...(hasText(image) ? { image } : {}),
         ...visuals,
         label: args.label || 'Slide',
         ...(forEach ? { forEach } : {}),
@@ -243,10 +257,10 @@ function applyAddPresentation(draft, args) {
     const step = {
         id: newId('deck'),
         type: 'presentation',
-        title: typeof args.title === 'string' ? args.title : '',
-        subtitle: typeof args.subtitle === 'string' ? args.subtitle : '',
-        slides: slides && typeof slides === 'object' && !Array.isArray(slides) && slides.kind ? bindingToTemplate(slides) : slides,
-        fileName: typeof args.fileName === 'string' ? args.fileName : '',
+        title: text('presentation', 'title', args.title, asString),
+        subtitle: text('presentation', 'subtitle', args.subtitle, asString),
+        slides: slides && typeof slides === 'object' && !Array.isArray(slides) && (slides.kind || isMappingShape(slides)) ? visualBinding(slides) : slides,
+        fileName: text('presentation', 'fileName', args.fileName, asString),
         format: args.format === 'pdf' ? 'pdf' : 'pptx',
         houseStyle: args.houseStyle !== false,
         // The look: only what was given AND valid lands on the step; the
@@ -266,6 +280,7 @@ module.exports = {
     clampDocumentTtl,
     deckLookFields,
     slideVisualFields,
+    visualBinding,
     applyAddSlide,
     applyAddPresentation,
 };

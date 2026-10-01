@@ -123,3 +123,40 @@ test('an ai_step nobody reads from is left alone', () => {
     def.edges = [{ from: 'trg', to: 'a1' }, { from: 'a1', to: 'ai1' }];
     assert.equal(errs(def).length, 0);
 });
+
+// M5: the AI builder writes picks. A pick holds its path as data, so the
+// field scan reads it through the shared core (stepReadPaths) — the rules
+// above hold for a pick exactly as for a ref.
+const pick = (from) => ({ kind: 'pick', v: 1, from, take: 'one', as: 'native' });
+
+test('a fan-out that reads loop.<item>.output.<field> through PICKS requires the schema too', () => {
+    const def = base({}, {
+        tableId: { kind: 'literal', value: 4 },
+        values: {
+            Datum: pick({ root: 'loop', id: 'e', path: ['output', 'datum'] }),
+            Totaal: { kind: 'compose', v: 1, parts: ['€ ', { from: { root: 'loop', id: 'e', path: ['output', 'totaal'] }, take: 'one', as: 'text' }] },
+        },
+    });
+    const e = errs(def);
+    assert.equal(e.length, 1, JSON.stringify(e));
+    assert.match(e[0].message, /`datum`/);
+    assert.match(e[0].message, /`totaal`/);
+});
+
+test('a pick through the fan-out\'s results (results.output.<field>) is a per-item read as well', () => {
+    const def = base({}, { tableId: { kind: 'literal', value: 4 }, values: { kind: 'literal', value: {} } });
+    def.steps[2].forEach = undefined;
+    def.steps[2].inputs.values = { Datum: { kind: 'pick', v: 1, from: { root: 'steps', id: 'ai1', path: ['results', 'output', 'datum'] }, take: 'all', as: 'list' } };
+    const e = errs(def);
+    assert.equal(e.length, 1, JSON.stringify(e));
+    assert.match(e[0].message, /`datum`/);
+});
+
+test('a direct pick of steps.<id>.output.<field> WARNS like a direct ref', () => {
+    const def = base({}, { tableId: { kind: 'literal', value: 4 }, values: { Leverancier: pick({ root: 'steps', id: 'ai1', path: ['leverancier'] }) } });
+    def.steps[2].forEach = undefined;
+    assert.equal(errs(def).length, 0);
+    const w = warns(def);
+    assert.equal(w.length, 1);
+    assert.match(w[0].message, /`leverancier`/);
+});

@@ -8,6 +8,7 @@
 
 const { newId, appendAfter } = require('../draftGraph');
 const { validateAndFixBindings, sanitizeForEach, unboundLoopVarError } = require('../bindings');
+const { refPathOf, withRefPath } = require('../picks');
 const { fieldsAtRef } = require('../outputFields');
 const {
     normaliseKey, resolveDatatableOp, translateDatatableVocabulary, resolveDatatableRef,
@@ -347,19 +348,20 @@ function checkExtractionFieldRefs(draft, values, forEach, draftWrap) {
     const prefix = `loop.${forEach.itemVar}.output.`;
     const out = {};
     for (const [k, b] of Object.entries(values)) {
-        const isRef = !!b && typeof b === 'object' && !Array.isArray(b) && b.kind === 'ref' && typeof b.path === 'string';
-        if (!isRef || !b.path.startsWith(prefix)) { out[k] = b; continue; }
-        const [f, ...deeper] = b.path.slice(prefix.length).split('.');
+        // A ref, or a pick of the loop item: the same check on the path it reads.
+        const path = refPathOf(b);
+        if (!path || !path.startsWith(prefix)) { out[k] = b; continue; }
+        const [f, ...deeper] = path.slice(prefix.length).split('.');
         if (!f || declared.includes(f)) { out[k] = b; continue; }
         const norm = normaliseKey(f);
         const hits = norm ? declared.filter(d => normaliseKey(d) === norm) : [];
         if (hits.length === 1) {
-            out[k] = { ...b, path: `${prefix}${[hits[0], ...deeper].join('.')}` };
-            notes.push(`values.${k} read ${b.path} — the extraction declares "${hits[0]}"; path corrected.`);
+            out[k] = withRefPath(b, `${prefix}${[hits[0], ...deeper].join('.')}`);
+            notes.push(`values.${k} read ${path} — the extraction declares "${hits[0]}"; path corrected.`);
             continue;
         }
         return {
-            error: `values.${k} reads ${b.path}, but the extraction step ${res.upstream.stepId} declares only: ${listDeclaredFields(declared)}. Bind to one of those, or add the field to the extraction.`,
+            error: `values.${k} reads ${path}, but the extraction step ${res.upstream.stepId} declares only: ${listDeclaredFields(declared)}. Bind to one of those, or add the field to the extraction.`,
             _fixHint: 'Reject reason: a values binding names a field the extraction does not produce. Fix the path (or the extraction fields) and resend the same step.',
         };
     }

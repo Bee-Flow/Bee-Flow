@@ -151,3 +151,49 @@ test('with the real analyser, the params come from the JSDoc on main', (t) => {
     const line = renderAgentDraftState(CODE_DEF).split('\n').find(l => l.includes('`code_1`'));
     assert.match(line, /params=\[amount\*, vatRate=21, note\]/);
 });
+
+// M5: the builder writes picks into inputs and composes into text fields; the
+// summary (and the draft state the model reads) shows them as paths and
+// `{{ }}` text, and a compose prompt no longer throws on `.replace`.
+test('picks and composes read as paths and text in the summary and the draft state', () => {
+    const def = {
+        trigger: { id: 'trg', kind: 'manual' },
+        steps: [
+            {
+                id: 'a1', type: 'integration_action', tool: 'gmail_compose',
+                inputs: {
+                    to: { kind: 'pick', v: 1, from: { root: 'trigger', path: ['email'] }, take: 'one', as: 'native', label: 'Email' },
+                    cc: { kind: 'pick', v: 1, from: { root: 'steps', id: 's', path: ['rows', 'email'] }, take: 'all', as: 'list' },
+                    body: { kind: 'compose', v: 1, parts: ['Hoi ', { from: { root: 'trigger', path: ['naam'] }, take: 'one', as: 'text' }] },
+                },
+            },
+            { id: 'ai1', type: 'ai_step', prompt: { kind: 'compose', v: 1, parts: ['Vat samen: ', { from: { root: 'steps', id: 'a1', path: ['text'] }, take: 'one', as: 'text' }] } },
+            { id: 'n1', type: 'notification', title: { kind: 'compose', v: 1, parts: ['Klaar: ', { from: { root: 'steps', id: 'ai1', path: ['digest'] }, take: 'one', as: 'text' }] } },
+        ],
+        edges: [{ from: 'trg', to: 'a1' }, { from: 'a1', to: 'ai1' }, { from: 'ai1', to: 'n1' }],
+    };
+    const { summary } = summariseDefinition(def);
+    assert.ok(summary.includes('to=`trigger.output.email`'), summary);
+    assert.ok(summary.includes('cc=`steps.s.output.rows.email` (all)'), summary);
+    assert.ok(summary.includes('body="Hoi {{trigger.output.naam}}"'), summary);
+    assert.ok(summary.includes('"Vat samen: {{steps.a1.output.text}}"'), summary);
+    assert.ok(summary.includes('titled "Klaar: {{steps.ai1.output.digest}}"'), summary);
+    assert.ok(!summary.includes('[object Object]'), summary);
+    const state = renderAgentDraftState(def);
+    assert.ok(state.includes('"Klaar: {{steps.ai1.output.digest}}"'), state);
+});
+
+test('the draft state shows a v2 repeat and a loop over a Source', () => {
+    const def = {
+        trigger: { id: 'trg', kind: 'manual' },
+        steps: [
+            { id: 'a1', type: 'integration_action', tool: 'gmail_read', repeat: { over: { root: 'steps', id: 's', path: ['messages'] }, max: 50 }, inputs: {} },
+            { id: 'l1', type: 'loop', over: { root: 'steps', id: 's', path: ['rows'] }, itemVar: 'r', body: [] },
+        ],
+        edges: [],
+    };
+    const state = renderAgentDraftState(def);
+    assert.ok(state.includes('[repeat over `steps.s.output.messages`, max 50]'), state);
+    assert.ok(state.includes('over `steps.s.output.rows` as loop.r'), state);
+    assert.ok(summariseDefinition(def).summary.includes('For each item in `steps.s.output.rows`'));
+});

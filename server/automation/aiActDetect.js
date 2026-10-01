@@ -38,6 +38,7 @@ const crypto = require('node:crypto');
 const graph = require('./automationGraph');
 const annexIii = require('../compliance/aiAct/annexIii');
 const { ART5_PRACTICES } = require('../compliance/aiAct/assess');
+const { stepIdsRead } = require('../shared/mapping/index.mjs');
 
 const QUESTION_IDS = Object.freeze(['usesAi', 'externalOutput', 'sensitiveUse', 'prohibitedUse']);
 const CONFIDENCES = Object.freeze(['certain', 'likely', 'unknown']);
@@ -63,14 +64,28 @@ const AI_TOOLS = new Set([
 const CONTAINERS = new Set(['loop', 'parallel']);
 const MAX_BLOCK_DEPTH = 3;
 
-/** The step's own JSON, without the children a loop or parallel carries. */
-function ownText(step) {
-    if (!isObject(step)) return '';
+/** The step without the children a loop or parallel carries. */
+function ownPart(step) {
     const rest = { ...step };
     // Only a container's children are left out: an http_request's `body` is its own.
     if (step.type === 'loop') delete rest.body;
     if (step.type === 'parallel') delete rest.branches;
-    try { return JSON.stringify(rest); } catch { return ''; }
+    return rest;
+}
+
+/** The step's own JSON, without the children a loop or parallel carries. */
+function ownText(step) {
+    if (!isObject(step)) return '';
+    try { return JSON.stringify(ownPart(step)); } catch { return ''; }
+}
+
+/**
+ * The steps a step itself reads through picks and composes, which name
+ * their step as data (`{root:'steps', id:'ai_1'}`) and so never as the
+ * `steps.<id>` text refersTo looks for.
+ */
+function ownStepReads(step) {
+    return new Set(isObject(step) ? stepIdsRead(ownPart(step)) : []);
 }
 
 /**
@@ -228,7 +243,7 @@ function refersTo(text, stepId) {
 /**
  * The ids of the steps whose inputs carry model output: the AI steps
  * themselves, every step that reads one of them (`steps.<id>` in a template
- * or a ref), transitively, and the children of a tainted loop that read its
+ * or a ref, or a pick of it), transitively, and the children of a tainted loop that read its
  * item. A flowlet with AI in it taints the call_layer step that runs it.
  */
 function aiTaint(definition, aiStepIds) {
@@ -240,6 +255,7 @@ function aiTaint(definition, aiStepIds) {
             && graph.listSteps(layers[step.layerKey]).some(x => aiKind(x.step))) tainted.add(step.id);
     }
     const texts = new Map(all.map(x => [x, ownText(x.step)]));
+    const picked = new Map(all.map(x => [x, ownStepReads(x.step)]));
     let changed = true;
     while (changed) {
         changed = false;
@@ -247,7 +263,7 @@ function aiTaint(definition, aiStepIds) {
             const id = item.step.id;
             if (!id || tainted.has(id)) continue;
             const text = texts.get(item);
-            const reads = [...tainted].some(t => refersTo(text, t))
+            const reads = [...tainted].some(t => refersTo(text, t) || picked.get(item).has(t))
                 || (item.parentId && tainted.has(item.parentId) && /\bitem\b/.test(text));
             if (reads) { tainted.add(id); changed = true; }
         }

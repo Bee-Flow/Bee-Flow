@@ -312,7 +312,7 @@ t('renders id, key, title, writability and columns as key ("Title") type', () =>
 t('the worked example names a REAL writable table from the list, never an invented id', () => {
     const out = renderDatatablesBlock([KLANTEN, FACTUREN]);
     assert.ok(out.includes('op:"add_row", datatableId:"tbl_1a2b3c", datatableKey:"facturen"'), 'first writable table is the example');
-    assert.ok(out.includes('values:{datum:{kind:"ref", path:"loop.x.output.datum"}'), 'example keys values by the first column KEY');
+    assert.ok(out.includes('values:{datum:{pick:"loop.x.output.datum"}'), 'example keys values by the first column KEY');
     const ro = renderDatatablesBlock([KLANTEN]);
     assert.ok(ro.includes('op:"find_rows", datatableId:"tbl_9f8e7d"'), 'with only read-only tables the example is a read');
     assert.ok(!ro.includes('values:'), 'no write example on a read-only table');
@@ -386,7 +386,7 @@ t('the datatable prose points at the block, not "the catalog", and the lean batc
     // ONE datatable bullet since 2026-09-17 (the small-band diet): exists →
     // add_row with id AND key; missing → create first; keys, refs, forEach.
     assert.ok(lean.includes('DATATABLES. Table exists in the "Datatables you may use" block → `add_row` into it with its id AND key. Table missing → `builder_create_datatable({name, fields:[{name,type}]})` first'), 'lean table bullet');
-    assert.ok(lean.includes('values = `{kind:"ref"}` bindings, one row per item via forEach over the extraction\'s `output.results`'), 'the bullet carries the write shape');
+    assert.ok(lean.includes('values = `{pick:"loop.x.output.<field>"}` bindings, one row per item via forEach over the extraction\'s `output.results`'), 'the bullet carries the write shape');
     assert.ok(lean.includes('tableId:{kind:"literal", value:"Facturen"}'), 'the Nextcloud tableId sentence is kept');
     assert.ok(lean.includes('Entries apply in order; if entry i fails, the entries before it STAY built'), 'partial-batch wording');
     assert.ok(!/It is atomic: one bad entry rolls the whole call back/.test(lean), 'atomic wording gone');
@@ -534,6 +534,20 @@ t('lean + dynamic placement: a different catalogue, datatables or documents → 
     assert.ok(renderCatalogContextMessage({ catalog: { apps: [] } }).includes('_(user has no integrations connected)_'));
     assert.ok(!renderCatalogContextMessage({ catalog: { apps: [], datatables: null } }).includes('## Datatables'), 'null renders nothing');
     assert.strictEqual(renderCatalogContextMessage({}), null);
+});
+
+// ─── M5: the builder teaches picks and composes ───────────────────────────────
+t('both prompts teach the compact pick for values and {{ }} text (or a compose) for text fields; refs still work', () => {
+    const lean = buildLeanSystemPrompt({ catalog: CATALOG, codeStepEnabled: false, batchTools: true });
+    const full = buildFullSystemPrompt({ catalog: CATALOG, codeStepEnabled: false });
+    for (const [name, p] of [['lean', lean], ['full', full]]) {
+        assert.ok(/\{ ?pick: ?"trigger\.output\.from" ?\}/.test(p), `${name}: a pick of a trigger field`);
+        assert.ok(p.includes('take: "all"'), `${name}: take all for a list field`);
+        assert.ok(p.includes('{compose:["Orders:'), `${name}: the compose form for a text field`);
+        assert.ok(/never as JSON|never JSON/.test(p), `${name}: a list in a text reads as text`);
+        assert.ok(p.includes('still works'), `${name}: a ref the model writes is not refused`);
+        assert.ok(!/Prefer `\{kind:"ref"\}`/.test(p), `${name}: refs are no longer what it is told to prefer`);
+    }
 });
 
 console.log(`\nbuilderPrompt.test.js: ${passed} assertions passed`);

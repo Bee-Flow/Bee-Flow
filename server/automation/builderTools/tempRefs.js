@@ -13,9 +13,11 @@ const TEMP_ID_RX = /^[A-Za-z][A-Za-z0-9_]{0,24}$/;
 
 /**
  * Deep-rewrite `steps.$tempId` → `steps.<realId>` in every string of a spec
- * (covers ref paths, {{template}} bodies, exprs, forEach.overRef, arrayRef —
- * one uniform transform). `onMissing` fires for a $tempId that is not an
- * EARLIER entry's handle (forward ref / typo).
+ * (covers ref paths, {{template}} bodies, exprs, forEach.overRef, arrayRef,
+ * the compact `{pick:"steps.$x.output.y"}` — one uniform transform), and the
+ * `id: "$tempId"` of a pick's Source (`{root:'steps', id, path}`) the same
+ * way. `onMissing` fires for a $tempId that is not an EARLIER entry's handle
+ * (forward ref / typo).
  */
 function rewriteTempRefs(value, idMap, onMissing, onBareTempId) {
     if (typeof value === 'string') {
@@ -41,10 +43,31 @@ function rewriteTempRefs(value, idMap, onMissing, onBareTempId) {
     if (Array.isArray(value)) return value.map(v => rewriteTempRefs(v, idMap, onMissing, onBareTempId));
     if (value && typeof value === 'object') {
         const out = {};
-        for (const [k, v] of Object.entries(value)) out[k] = rewriteTempRefs(v, idMap, onMissing, onBareTempId);
+        for (const [k, v] of Object.entries(value)) {
+            // A pick's Source names its step as data: `{root:'steps', id:'$search'}`.
+            if (k === 'id' && isStepSource(value)) { out[k] = rewriteSourceId(v, idMap, onMissing, onBareTempId); continue; }
+            out[k] = rewriteTempRefs(v, idMap, onMissing, onBareTempId);
+        }
         return out;
     }
     return value;
+}
+
+/** A v2 Source of a step's output (a pick's `from`, a repeat's `over`). */
+function isStepSource(value) {
+    return value.root === 'steps' && typeof value.id === 'string' && Array.isArray(value.path);
+}
+
+/** The step id a Source names, with a `$handle` resolved (and a bare handle reported). */
+function rewriteSourceId(id, idMap, onMissing, onBareTempId) {
+    if (id.startsWith('$')) {
+        const t = id.slice(1);
+        if (!TEMP_ID_RX.test(t)) return id;
+        if (!idMap[t]) { onMissing(t); return id; }
+        return idMap[t];
+    }
+    if (onBareTempId && Object.prototype.hasOwnProperty.call(idMap, id)) onBareTempId(id, idMap[id]);
+    return id;
 }
 
 /**
@@ -72,7 +95,14 @@ function resolveHandlesForResend(value, idMap) {
     if (Array.isArray(value)) return value.map(v => resolveHandlesForResend(v, idMap));
     if (value && typeof value === 'object') {
         const out = {};
-        for (const [k, v] of Object.entries(value)) out[k] = resolveHandlesForResend(v, idMap);
+        for (const [k, v] of Object.entries(value)) {
+            if (k === 'id' && isStepSource(value)) {
+                const t = v.startsWith('$') ? v.slice(1) : v;
+                out[k] = Object.prototype.hasOwnProperty.call(idMap, t) ? idMap[t] : v;
+                continue;
+            }
+            out[k] = resolveHandlesForResend(v, idMap);
+        }
         return out;
     }
     return value;

@@ -19,6 +19,8 @@
 
 const { test } = require('node:test');
 const assert = require('node:assert');
+// M5: a notification body is stored as a compose; it reads as the template it was written as.
+const { textAsTemplate } = require('../../shared/mapping/index.mjs');
 const { applyToolCall, emptyDefinition } = require('../builderTools');
 
 const STR = { type: 'string' };
@@ -123,7 +125,7 @@ test('the built prefix stays and the partial result says how to continue; a byte
     assert.deepStrictEqual(edgePairs(dw.def), [['trg', listId], [listId, search], [search, read], [read, note]], 'one chain, in order');
     const byId = Object.fromEntries(dw.def.steps.map(s => [s.id, s]));
     assert.strictEqual(byId[read].forEach.overRef, `steps.${search}.output.results`, 'overRef rewritten to the id minted in THIS call');
-    assert.strictEqual(byId[note].body, `At {{steps.${listId}.output.iso}}: {{steps.${read}.output.results}}`, 'a handle from the EARLIER call is rewritten through _tempIds');
+    assert.strictEqual(textAsTemplate(byId[note].body), `At {{steps.${listId}.output.iso}}: {{steps.${read}.output.results}}`, 'a handle from the EARLIER call is rewritten through _tempIds');
     assert.strictEqual(dw._lastRejected, null, 'a successful mutation clears the ladder');
 });
 
@@ -230,7 +232,7 @@ test('a step removed earlier in the turn is not "already built": the re-added en
     assert.notStrictEqual(again.added[0].id, oldRead, 'a NEW id');
     const newRead = dw.def.steps.find(s => s.tool === 'gmail_read');
     assert.ok(newRead && newRead.id === again.added[0].id, 'the read step is back in the draft');
-    assert.strictEqual(dw.def.steps.find(s => s.type === 'notification').body, `{{steps.${newRead.id}.output.results}}`, 'the consumer points at the new id');
+    assert.strictEqual(textAsTemplate(dw.def.steps.find(s => s.type === 'notification').body), `{{steps.${newRead.id}.output.results}}`, 'the consumer points at the new id');
     assert.ok(again._warnings.some(w => new RegExp(`^\\$read: was built earlier this turn as ${oldRead}, but that step has since been removed`).test(w)), JSON.stringify(again._warnings));
     assert.strictEqual(dw._tempIds.read, newRead.id);
     assert.ok(!dw._mintedThisTurn.has(oldRead));
@@ -428,7 +430,7 @@ test('a duplicate action stays an error on the single-step tool; inside a batch,
     assert.ok(!batch.error, `in-batch duplicate is a no-op: ${batch.error}`);
     assert.deepStrictEqual({ ...batch.added[0] }, { tempId: 's2', id: sId, type: 'integration_action', tool: 'gmail_search', reused: true });
     assert.strictEqual(dw.def.steps.length, 2, 'one search, one notification');
-    assert.strictEqual(dw.def.steps[1].body, `{{steps.${sId}.output.total}}`, 'the new handle points at the step that was reused');
+    assert.strictEqual(textAsTemplate(dw.def.steps[1].body), `{{steps.${sId}.output.total}}`, 'the new handle points at the step that was reused');
     assert.ok(batch._warnings.some(w => new RegExp(`^steps\\[0\\] \\(\\$s2\\): gmail_search with these inputs was already built in this turn as ${sId} — not added twice\\.$`).test(w)), JSON.stringify(batch._warnings));
     // A step minted in an EARLIER turn (a fresh wrap over the same draft) is
     // not "this turn": the batch refuses it like the single-step tool does.

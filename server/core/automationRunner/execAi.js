@@ -9,7 +9,7 @@
 const { getProviderForModel } = require('../aiAgent');
 const { getAdapter } = require('../providers');
 const { resolveInputs } = require('../../automation/bind');
-const { RUNTIME_ROOTS } = require('../../shared/mapping/index.mjs');
+const { RUNTIME_ROOTS, picksIn, textAsTemplate } = require('../../shared/mapping/index.mjs');
 const { isSideEffect, isMemoisable } = require('../../automation/sideEffectMap');
 const { memoKeyParts, memoKeyFromParts, MAX_ENTRY_BYTES } = require('./toolMemo');
 const { envFlagOn } = require('./integrationCachePolicy');
@@ -561,6 +561,13 @@ function collectAiStepOutputFields(definition, stepId) {
     };
     const scanStep = (s) => {
         if (!s || typeof s !== 'object') return;
+        // A pick, or a part of a compose, in ANY field of the step names the
+        // step and the field as data (`{root:'steps', id, path:[field, …]}`),
+        // which none of the text scans below can see.
+        for (const p of picksIn(s)) {
+            const field = p.from.root === 'steps' && p.from.id === stepId ? p.from.path[0] : undefined;
+            if (typeof field === 'string' && /^[\w$]+$/.test(field) && !seen.has(field)) { seen.add(field); out.push(field); }
+        }
         visit(s.inputs || {});
         if (s.type === 'set' || s.type === 'layer_output') visit(s.fields || {});
         // Expr/ref-string consumer positions.
@@ -572,12 +579,13 @@ function collectAiStepOutputFields(definition, stepId) {
         scanString(s.input);
         scanString(s.input2);
         if (s.forEach) scanString(s.forEach.overRef);
-        // Template consumer positions.
-        scanString(s.title);
-        scanString(s.body && typeof s.body === 'string' ? s.body : undefined);
-        scanString(s.message);
-        scanString(s.url);
-        scanString(s.prompt);
+        // Template consumer positions (a compose there is read as the {{ }}
+        // text of the paths it picks).
+        scanString(textAsTemplate(s.title));
+        scanString(textAsTemplate(s.body));
+        scanString(textAsTemplate(s.message));
+        scanString(textAsTemplate(s.url));
+        scanString(textAsTemplate(s.prompt));
         if (s.headers && typeof s.headers === 'object') for (const hv of Object.values(s.headers)) scanString(hv);
         // Nested containers: loop bodies / parallel branches read the ROOT
         // definition's step outputs too (ctx.definition is never rebound for
@@ -661,7 +669,7 @@ async function groundAiStepWithMemory(step, ctx, promptText) {
     if (step?.useMemory !== true || !ctx?.userId) return '';
     try {
         const memoryStore = require('../../stores/memoryStore');
-        const mems = await memoryStore.findRelevantMemories(ctx.userId, null, String(promptText || step.prompt || '').slice(0, 2000), 600, null, { includeGeneral: true });
+        const mems = await memoryStore.findRelevantMemories(ctx.userId, null, String(promptText || textAsTemplate(step.prompt)).slice(0, 2000), 600, null, { includeGeneral: true });
         if (!Array.isArray(mems) || mems.length === 0) return '';
         let block = memoryStore.formatMemoriesForPrompt(mems);
         if (!block) return '';
@@ -837,7 +845,9 @@ async function execAiStep(step, ctx, runState, mode) {
             const classifyTiers = Object.fromEntries(
                 Object.entries(tiers).filter(([k]) => !k.startsWith('custom:') && k !== 'swarm' && isPermitted(k)),
             );
-            const result = await classifyWithLLM(step.prompt || '', classifyTiers, { userOrgId: userOrgForTiers, userId: ctx.userId });
+            // A compose prompt is classified on its text with the picked
+            // values as placeholders, as a template prompt always was.
+            const result = await classifyWithLLM(textAsTemplate(step.prompt), classifyTiers, { userOrgId: userOrgForTiers, userId: ctx.userId });
             resolvedTier = result.tier;
         } catch (err) {
             resolvedTier = 'fast';

@@ -18,6 +18,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert');
+const { textAsTemplate } = require('../shared/mapping/index.mjs');
 const { applyToolCall, TOOL_SCHEMAS } = require('./builderTools');
 const { validateDefinition } = require('./validate');
 
@@ -155,7 +156,9 @@ test('builder_update_step can patch the step\'s own fields', async () => {
     }, dw);
     assert.ok(!res.error, res.error);
     const step = only(dw);
-    assert.strictEqual(step.fileName, 'Factuur {{trigger.output.nr}}');
+    // M5: a text field the shared core can hold is stored as a compose.
+    assert.strictEqual(step.fileName.kind, 'compose');
+    assert.strictEqual(textAsTemplate(step.fileName), 'Factuur {{trigger.output.nr}}');
     assert.strictEqual(step.saveCopy, true);
     assert.strictEqual(step.expiresInDays, 90, 'the patch clamps exactly as the add path does');
 });

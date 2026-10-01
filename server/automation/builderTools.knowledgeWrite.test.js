@@ -16,6 +16,7 @@
 
 const { test } = require('node:test');
 const assert = require('node:assert');
+const { textAsTemplate } = require('../shared/mapping/index.mjs');
 
 const { TOOL_SCHEMAS } = require('./builderTools');
 const { applyAddKnowledgeWrite, bindingToTemplate, ADD_FOR_TYPE } = require('./builderTools/stepBuilders');
@@ -53,20 +54,23 @@ test('a built step carries the fields the runner reads', () => {
     });
     assert.strictEqual(added.type, 'knowledge_write');
     assert.strictEqual(added.knowledgeBaseId, 'kb1');
-    assert.strictEqual(added.content, '{{steps.a.output.text}}');
-    assert.strictEqual(added.sourceUri, 'ticket:{{trigger.output.id}}');
+    // M5: the texts are stored as composes (a text with picked values).
+    assert.strictEqual(added.content.kind, 'compose');
+    assert.strictEqual(textAsTemplate(added.content), '{{steps.a.output.text}}');
+    assert.strictEqual(textAsTemplate(added.sourceUri), 'ticket:{{trigger.output.id}}');
     assert.strictEqual(d.steps.length, 1, 'and it lands on the graph');
 });
 
-test('a binding OBJECT is flattened back to a template string', () => {
+test('a binding OBJECT is flattened back to its text (a compose where every placeholder is a path)', () => {
     const { added } = applyAddKnowledgeWrite(draft(), {
         knowledgeBaseId: 'kb1',
         content: { kind: 'ref', path: 'steps.a.output.text' },
         title: { kind: 'template', value: 'Ticket {{trigger.output.id}}' },
         sourceUri: { kind: 'literal', value: 'ticket:1' },
     });
-    assert.strictEqual(added.content, '{{steps.a.output.text}}');
-    assert.strictEqual(added.title, 'Ticket {{trigger.output.id}}');
+    assert.strictEqual(textAsTemplate(added.content), '{{steps.a.output.text}}');
+    assert.strictEqual(textAsTemplate(added.title), 'Ticket {{trigger.output.id}}');
+    assert.strictEqual(added.title.kind, 'compose');
     assert.strictEqual(added.sourceUri, 'ticket:1');
 });
 
@@ -130,5 +134,7 @@ test('a patch may NOT re-point a write at a different base', () => {
 test('a patched step is byte-identical to a freshly built one', () => {
     const g = graphWith({ id: 'w1', type: 'knowledge_write', knowledgeBaseId: 'kb1', content: 'x' });
     applyUpdateStep(g, { stepId: 'w1', patch: { content: { kind: 'ref', path: 'steps.a.output.text' } } });
-    assert.strictEqual(g.steps[0].content, '{{steps.a.output.text}}');
+    const built = applyAddKnowledgeWrite(draft(), { knowledgeBaseId: 'kb1', content: { kind: 'ref', path: 'steps.a.output.text' } }).added;
+    assert.deepStrictEqual(g.steps[0].content, built.content);
+    assert.strictEqual(textAsTemplate(g.steps[0].content), '{{steps.a.output.text}}');
 });

@@ -20,6 +20,7 @@
  */
 
 const { walkSteps: walkGraphSteps } = require('./stepContract');
+const { textAsTemplate, pickPaths } = require('../shared/mapping/index.mjs');
 
 // The step types that call a model. `summarize` is NOT one of them — it is an
 // aggregate op over a collection (automation/validate/stepRules.js), and the
@@ -91,12 +92,15 @@ function aiSteps(definition) {
 
 /**
  * The text of a template field as the runtime resolves it: a plain string
- * ('{{steps.ai_1.output.text}}'), or a binding object the builder flattened
- * ({kind:'template', value} / {kind:'ref', path} / {kind:'literal', value}).
+ * ('{{steps.ai_1.output.text}}'), a compose or a pick (the v2 mapping, read
+ * as the `{{ }}` text of the paths it picks), or a binding object the builder
+ * flattened ({kind:'template', value} / {kind:'ref', path} / {kind:'literal', value}).
  */
 function templateText(v) {
     if (v === undefined || v === null) return '';
     if (typeof v === 'string') return v;
+    const picked = textAsTemplate(v);
+    if (picked) return picked;
     if (isObject(v)) {
         if (typeof v.value === 'string') return v.value;
         if (typeof v.path === 'string') return v.path;
@@ -130,6 +134,8 @@ function documentTemplateText(step) {
         // whose values are templates); serialised, every `steps.<id>` in it
         // is visible to the reference test.
         parts.push(typeof step.slides === 'string' ? templateText(step.slides) : (step.slides ? JSON.stringify(step.slides) : ''));
+        // A pick holds its step id as data, not as `steps.<id>` text.
+        parts.push(...pickPaths(step.slides));
     }
     return parts.join('\n');
 }

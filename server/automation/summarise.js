@@ -8,6 +8,24 @@
  */
 
 const { isSideEffect } = require('./sideEffectMap');
+const { describeSource, isPick, isCompose, textAsTemplate } = require('../shared/mapping/index.mjs');
+
+/**
+ * A text field as the summary shows it: a string as it is, a compose (a text
+ * with picked values) as `{{ }}` text, so the line reads the same whichever
+ * way the field was written. Anything else has no text to show.
+ */
+function textOf(v) {
+    return textAsTemplate(v);
+}
+
+/** The list a loop goes through: its legacy `overRef`, or the v2 `over` (a Source or a pick). */
+function loopOver(step) {
+    if (typeof step.overRef === 'string' && step.overRef) return step.overRef;
+    const over = step.over;
+    if (isPick(over)) return describeSource(over.from);
+    return over && typeof over === 'object' ? describeSource(over) : '';
+}
 
 function describeTrigger(trigger) {
     if (!trigger) return 'When triggered';
@@ -41,6 +59,10 @@ function describeRef(binding) {
     if (binding.kind === 'ref') return `\`${binding.path}\``;
     if (binding.kind === 'template') return `"${binding.value}"`;
     if (binding.kind === 'expr') return `\`${binding.value}\``;
+    // A pick names its path the way a ref does, with what it takes when that
+    // is not the one value there; a compose reads as the text it renders.
+    if (isPick(binding)) return `\`${describeSource(binding.from)}\`${binding.take !== 'one' ? ` (${binding.take})` : ''}`;
+    if (isCompose(binding)) return `"${textAsTemplate(binding)}"`;
     return JSON.stringify(binding);
 }
 
@@ -56,18 +78,19 @@ function describeStep(step, idx) {
             return `${n} ${sideEffect ? '**' + line + '**' : line}`;
         }
         case 'ai_step': {
-            const promptShort = (step.prompt || '').replace(/\s+/g, ' ').slice(0, 140) + ((step.prompt || '').length > 140 ? '…' : '');
+            const prompt = textOf(step.prompt);
+            const promptShort = prompt.replace(/\s+/g, ' ').slice(0, 140) + (prompt.length > 140 ? '…' : '');
             return `${n} Ask the AI (${step.modelTier || 'fast'}): "${promptShort}"`;
         }
         case 'condition':
             return `${n} If \`${step.expr}\` then go to "then"-branch, else "else"-branch.`;
         case 'loop':
-            return `${n} For each item in \`${step.overRef}\` (as \`loop.${step.itemVar}\`), run a sub-flow of ${(step.body || []).length} step(s) (max ${step.maxIterations || 100}).`;
+            return `${n} For each item in \`${loopOver(step)}\` (as \`loop.${step.itemVar}\`), run a sub-flow of ${(step.body || []).length} step(s) (max ${step.maxIterations || 100}).`;
         case 'code':
             return `${n} **Run sandboxed JavaScript** (${(step.code || '').length} chars).`;
         case 'notification': {
             const channels = (step.channels || ['notification']).join(', ');
-            const title = step.title ? ` titled "${step.title}"` : '';
+            const title = step.title ? ` titled "${textOf(step.title)}"` : '';
             return `${n} Send notification on **${channels}**${title}.`;
         }
         case 'guard': {
@@ -100,22 +123,22 @@ function describeStep(step, idx) {
         }
         case 'generate_document': {
             const kind = step.format === 'docx' ? 'Word document' : 'PDF';
-            const named = step.fileName || step.title;
+            const named = textOf(step.fileName || step.title);
             return `${n} Make a ${kind}${named ? ` called "${named}"` : ''}${step.label ? ` — ${step.label}` : ''}.`;
         }
         case 'slide': {
             const visual = step.chart && step.chart.type ? ` with a ${step.chart.type} chart` : (step.stats ? ' with KPI tiles' : (step.layout === 'timeline' ? ' as a timeline' : ''));
-            return `${n} Slide${step.title ? ` "${step.title}"` : ''}${visual}${step.forEach ? ` — one per item of ${describeRef(step.forEach.overRef)}` : ''}${step.label && step.label !== 'Slide' ? ` — ${step.label}` : ''}.`;
+            return `${n} Slide${step.title ? ` "${textOf(step.title)}"` : ''}${visual}${step.forEach ? ` — one per item of ${describeRef(step.forEach.overRef)}` : ''}${step.label && step.label !== 'Slide' ? ` — ${step.label}` : ''}.`;
         }
         case 'presentation': {
             const kind = step.format === 'pdf' ? 'PDF deck' : 'PowerPoint';
-            const named = step.fileName || step.title;
+            const named = textOf(step.fileName || step.title);
             return `${n} Make a ${kind}${named ? ` called "${named}"` : ''}${step.label && step.label !== 'Presentation' ? ` — ${step.label}` : ''}.`;
         }
         case 'fill_document': {
             // Say WHICH document: it IS the step — "fill a document" without
             // the name tells the author nothing they did not already see.
-            const named = step.fileName || step.documentName || step.documentId || '';
+            const named = textOf(step.fileName) || step.documentName || step.documentId || '';
             const holes = Object.keys(step.values || {}).length;
             return `${n} Fill the document${named ? ` "${named}"` : ''}${holes ? ` with ${holes} value(s)` : ''} and keep the PDF${step.label && step.label !== 'Fill a document' ? ` — ${step.label}` : ''}.`;
         }
@@ -143,8 +166,8 @@ function describeStep(step, idx) {
             // Say WHERE and say IDEMPOTENT-or-not: those are the two things an
             // author reading the summary cannot see from the canvas, and the
             // second is the difference between one document and one per night.
-            const title = typeof step.title === 'string' && step.title.trim() ? ` "${step.title.trim()}"` : '';
-            const repeats = typeof step.sourceUri === 'string' && step.sourceUri.trim()
+            const title = textOf(step.title).trim() ? ` "${textOf(step.title).trim()}"` : '';
+            const repeats = textOf(step.sourceUri).trim()
                 ? ' (replacing its own earlier version)'
                 : ' (a new document each run)';
             return `${n} Save${title || ' text'} into a knowledge base${repeats}.`;
@@ -298,25 +321,25 @@ function renderStepState(step, opts = {}) {
         case 'tokenize':           detail = ` hide \`${step.sourceRef || '?'}\` cats=[${(step.categories || []).join(', ') || 'org'}]`; break;
         case 'guard':              detail = ` scan \`${step.sourceRef || '?'}\` cats=[${(step.categories || []).join(', ') || 'org'}]${step.onFound && step.onFound.stop ? ' stop' : ''}${step.onFound && step.onFound.mask ? ' mask' : ''}`; break;
         case 'switch':             detail = ` on \`${step.expr}\` cases=[${(step.cases || []).map(c => c.name).join(', ')}]`; break;
-        case 'loop':               detail = ` over \`${step.overRef}\` as loop.${step.itemVar} (${(step.body || []).length} body step(s))`; break;
+        case 'loop':               detail = ` over \`${loopOver(step)}\` as loop.${step.itemVar} (${(step.body || []).length} body step(s))`; break;
         case 'set':                detail = ` fields=${bindingMap(step.fields)}`; break;
         case 'parse_json':         detail = ` (${step.mode === 'ai' ? 'ai' : 'paths'}) fields=[${(Array.isArray(step.fields) ? step.fields : []).map(f => f && f.name).filter(Boolean).join(', ')}]${step.sourceRef ? ` src=\`${step.sourceRef}\`` : ''}`; break;
         case 'layer_output':       detail = ` returns=${bindingMap(step.fields)}`; break;
         case 'call_layer':         detail = ` layer=\`${step.layerKey || '?'}\``; inputs = bindingMap(step.inputs); break;
-        case 'notification':       detail = ` ${(step.channels || ['notification']).join(',')}${step.title ? ` "${step.title}"` : ''}`; break;
+        case 'notification':       detail = ` ${(step.channels || ['notification']).join(',')}${step.title ? ` "${textOf(step.title)}"` : ''}`; break;
         case 'code':               detail = describeCodeStep(step, opts.codeParams); inputs = bindingMap(step.inputs); break;
         case 'datetime':           detail = ` op=${step.op || 'now'}${typeof step.arrayRef === 'string' ? ' (per row)' : ''}`; break;
         case 'wait':               detail = ` ${step.seconds || 0}s`; break;
-        case 'approval':           detail = step.prompt ? ` ask: ${String(step.prompt).slice(0, 60)}` : ' no question yet'; break;
+        case 'approval':           detail = step.prompt ? ` ask: ${textOf(step.prompt).slice(0, 60)}` : ' no question yet'; break;
         case 'form_page':          detail = step.mode === 'ending' ? ' closing page' : ` ask ${(step.form?.fields || []).length} question(s)`; break;
-        case 'stop_error':         detail = ` "${step.message || ''}"`; break;
+        case 'stop_error':         detail = ` "${textOf(step.message)}"`; break;
         case 'return_to_app':      detail = ` → app${step.navigateTo?.screenId ? ` screen=\`${step.navigateTo.screenId}\`` : ''}${step.toast?.message ? ` says "${String(step.toast.message).slice(0, 40)}"` : ''}${step.refresh ? ` refresh=${step.refresh}` : ''} (ends the run)`; break;
-        case 'generate_document':  detail = ` ${step.format === 'docx' ? 'Word' : 'PDF'} from \`${step.content || ''}\``; break;
+        case 'generate_document':  detail = ` ${step.format === 'docx' ? 'Word' : 'PDF'} from \`${textOf(step.content)}\``; break;
         case 'fill_document':      detail = ` doc=\`${step.documentId || 'not picked'}\` values=[${Object.keys(step.values || {}).join(', ')}]`; break;
-        case 'slide':              detail = ` "${step.title || ''}"${step.layout ? ` layout=${step.layout}` : ''}${step.chart && step.chart.type ? ` chart=${step.chart.type}` : ''}${step.stats ? ' stats' : ''}${step.style ? ` style=${step.style}` : ''}${step.forEach ? ` per item of \`${step.forEach.overRef || ''}\`` : ''}`; break;
+        case 'slide':              detail = ` "${textOf(step.title)}"${step.layout ? ` layout=${step.layout}` : ''}${step.chart && step.chart.type ? ` chart=${step.chart.type}` : ''}${step.stats ? ' stats' : ''}${step.style ? ` style=${step.style}` : ''}${step.forEach ? ` per item of \`${step.forEach.overRef || ''}\`` : ''}`; break;
         case 'presentation':       detail = ` ${step.format === 'pdf' ? 'PDF deck' : 'PowerPoint'} from ${Array.isArray(step.slides) ? `${step.slides.length} slide reference(s)` : `\`${typeof step.slides === 'string' ? step.slides : ''}\``}`; break;
         case 'data_extraction':    detail = ` fields=[${(Array.isArray(step.fields) ? step.fields : []).map(f => f && f.name ? `${f.name}:${f.type || 'string'}` : null).filter(Boolean).join(', ')}] from ${describeRef(step.source)}`; break;
-        case 'knowledge_write':    detail = ` → kb \`${step.knowledgeBaseId || 'not picked'}\` from \`${step.content || ''}\`${step.sourceUri ? ` src=\`${step.sourceUri}\`` : ' (no sourceUri — a new document each run)'}`; break;
+        case 'knowledge_write':    detail = ` → kb \`${step.knowledgeBaseId || 'not picked'}\` from \`${textOf(step.content)}\`${step.sourceUri ? ` src=\`${textOf(step.sourceUri)}\`` : ' (no sourceUri — a new document each run)'}`; break;
         case 'filter': case 'limit': case 'dedupe': case 'aggregate': case 'summarize':
             detail = ` over \`${step.arrayRef || ''}\`${step.field ? ` field=${step.field}` : ''}${step.op ? ` op=${step.op}` : ''}`; break;
         // A canvas annotation — never runs, never wired. Shown so the agent
@@ -326,9 +349,12 @@ function renderStepState(step, opts = {}) {
         default: detail = '';
     }
     const fe = step.forEach?.overRef ? `  [forEach over \`${step.forEach.overRef}\` as loop.${step.forEach.itemVar || 'item'}]` : '';
+    // The v2 per-item repeat (set in the editor's advanced settings): the
+    // step runs once per item of a Source, read by picks that take "each".
+    const rep = step.repeat && step.repeat.over ? `  [repeat over \`${describeSource(step.repeat.over)}\`${step.repeat.max ? `, max ${step.repeat.max}` : ''}]` : '';
     const label = step.label ? `  — ${step.label}` : '';
     const inLine = inputs && inputs !== '∅' ? `  ← inputs ${inputs}` : '';
-    return `  - ${id} ${step.type}${detail}${label}${fe}${inLine}`;
+    return `  - ${id} ${step.type}${detail}${label}${fe}${rep}${inLine}`;
 }
 
 function renderGraphState(graph, out, opts = {}) {

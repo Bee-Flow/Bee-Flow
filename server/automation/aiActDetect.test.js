@@ -136,6 +136,27 @@ test('outside: a system call with AI output is likely; steps ids are not confuse
     assert.deepStrictEqual([withAi.answer, withAi.confidence], ['yes', 'likely']);
 });
 
+// Review M5a: the AI builder writes picks and composes, which name their step
+// as data ({root:'steps', id:'a'}), not as `steps.a` text.
+test('outside: AI output reaches a fixed outside address through a pick and through a compose', () => {
+    const pick = { kind: 'pick', v: 1, from: { root: 'steps', id: 'a', path: ['text'] }, take: 'one', as: 'native', label: 'Text' };
+    const viaPick = detect(flow([ai('a'), mail('m', 'orders@supplier.com', pick)])).questions.externalOutput;
+    assert.deepStrictEqual([viaPick.answer, viaPick.confidence], ['yes', 'certain']);
+    assert.deepStrictEqual(viaPick.evidence.map(e => e.code), ['ai_act.external.email_fixed', 'ai_act.external.ai_flows']);
+
+    const compose = { kind: 'compose', v: 1, parts: ['Dear supplier, ', { from: { root: 'steps', id: 'a', path: ['text'] }, take: 'one', as: 'text' }] };
+    const viaSet = flow([
+        ai('a'),
+        { id: 's', type: 'set', fields: [{ name: 'html', value: compose }] },
+        { id: 'h', type: 'http_request', body: { kind: 'compose', v: 1, parts: [{ from: { root: 'steps', id: 's', path: ['html'] }, take: 'one', as: 'json' }] } },
+    ]);
+    const q = detect(viaSet).questions.externalOutput;
+    assert.deepStrictEqual([q.answer, q.confidence], ['yes', 'likely'], 'tainted transitively through the set step');
+    // A pick of another step with the same prefix is not a read of `a`.
+    const other = detect(flow([ai('a'), { id: 'a1', type: 'set', values: { x: 1 } }, mail('m', 'orders@supplier.com', { ...pick, from: { root: 'steps', id: 'a1', path: ['x'] } })])).questions.externalOutput;
+    assert.deepStrictEqual([other.answer, other.confidence], ['no', 'likely']);
+});
+
 test('outside: a calendar invite counts only with an outside attendee; internal signers are not outward', () => {
     const inv = (att) => flow([ai('a'), { id: 'c', type: 'integration_action', tool: 'calendar_create_event', inputs: { attendees: att, description: '{{steps.a.output.text}}' } }]);
     assert.strictEqual(detect(inv(['a@acme.nl'])).questions.externalOutput.confidence, 'certain');
