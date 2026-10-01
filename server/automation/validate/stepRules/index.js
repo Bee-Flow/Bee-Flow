@@ -4,7 +4,8 @@
  * guard/tokenize/untokenize, loop, parallel, forEach, code, notification,
  * http_request, layer_output, set, parse_json, datetime, wait, stop_error,
  * form_page, generate_document, switch, the collection ops — plus the
- * reference-scoping pass over every binding the step carries, and the two
+ * reference-scoping pass over every binding the step carries, the checks on
+ * its v2 mapping (pick, compose, repeat; mappingRules.js), and the two
  * compliance findings a definition can justify on its own (complianceRules.js).
  *
  * The checker closes over the graph it validates (edges, known ids, the
@@ -29,6 +30,7 @@ const {
     checkNotification, checkWait, checkStopError, checkReturnToApp, checkNote, checkFormPage,
 } = require('./runFlowRules');
 const { checkReferences } = require('./referenceScoping');
+const { checkMappings } = require('./mappingRules');
 const { checkComplianceFindings } = require('./complianceRules');
 
 /**
@@ -124,6 +126,8 @@ function createStepChecker({
         checkKnowledgeWrite(ctx, step, at);
         checkDatatable(ctx, step, at);
         checkReferences(ctx, step, at);
+        // The v2 mapping (pick, compose, repeat) beside the legacy refs.
+        checkMappings(ctx, step, at);
         // Last, and never in front of a field rule: a compliance warning is
         // about a step that is already wired, so it reads after the step's own
         // shape has been reported. Warnings only — see complianceRules.js.

@@ -11,8 +11,15 @@
  */
 import { describe, it, expect } from 'vitest';
 import { evaluate } from '@shared/expr/index.mjs';
-import { createLegacyResolver, walkPath, walkRelativePath } from '@shared/mapping/index.mjs';
-import { DEEP, INPUTS, RELATIVE, RESOLVE, TEMPLATE, WALK, WALK_ROOTS, makeState } from '@shared/mapping/corpus.mjs';
+import * as parse from '@shared/expr/parse.mjs';
+import {
+    createLegacyResolver, createResolver, isCompose, manyItems, sourceBase, walk, walkPath, walkRelativePath, walkSource,
+} from '@shared/mapping/index.mjs';
+import type { MappingSource } from '@shared/mapping/index.mjs';
+import {
+    COMPOSE, DEEP, DEEP_V2, EACH, INPUTS, INPUTS_V2, PICKS, RELATIVE, RESOLVE, TEMPLATE, WALK, WALK_ROOTS, WALK_V2,
+    makeMappingState, makeState,
+} from '@shared/mapping/corpus.mjs';
 import * as preview from '../utils/bindingHelpers';
 
 const resolver = createLegacyResolver({ evaluate });
@@ -60,6 +67,65 @@ describe('golden binding corpus (web copy of shared/mapping)', () => {
         expect(WALK.length).toBeGreaterThan(100);
         expect(TEMPLATE.length).toBeGreaterThan(50);
         expect(RESOLVE.length).toBeGreaterThan(50);
+    });
+});
+
+// The v2 mapping (pick, compose, take each): the same cases the server runs,
+// with the warning codes, so a preview on the web reads a pick as the run does.
+describe('golden binding corpus: v2 pick and compose (web copy)', () => {
+    const warned: string[] = [];
+    const v2 = createResolver({ evaluate, parse, onWarning: (w) => { warned.push(w.code); } });
+    const codes = (fn: () => unknown) => { warned.length = 0; const value = fn(); return { value, warnings: [...warned] }; };
+
+    it('walks a Source: a key on a list maps over it, nesting and holes kept', () => {
+        for (const { source, expected } of WALK_V2) {
+            const src = source as MappingSource;
+            expect(walk(sourceBase(src, makeMappingState()), src.path), `source: ${label(source)}`).toStrictEqual(expected);
+        }
+    });
+
+    it('resolves every pick, with its warnings', () => {
+        for (const { binding, expected, warnings = [] } of PICKS) {
+            const got = codes(() => v2.resolveValue(binding, makeMappingState()));
+            expect(got.value, `binding: ${label(binding)}`).toStrictEqual(expected);
+            expect(got.warnings, `warnings of: ${label(binding)}`).toStrictEqual(warnings);
+        }
+    });
+
+    it('resolves a pick of the current item (take each)', () => {
+        for (const c of EACH) {
+            const state = makeMappingState();
+            const over = c.over as MappingSource;
+            const scope = { over, item: manyItems(walkSource(over, state)).items[c.item], index: c.item };
+            const got = codes(() => v2.resolveValue(c.binding, { ...state, _mappingScope: scope }));
+            expect(got.value, `binding: ${label(c.binding)}`).toStrictEqual(c.expected);
+            expect(got.warnings, `warnings of: ${label(c.binding)}`).toStrictEqual(c.warnings || []);
+        }
+    });
+
+    it('renders a compose, as a text field and as a binding', () => {
+        for (const { template, expected, warnings = [] } of COMPOSE) {
+            const got = codes(() => v2.interpolateTemplate(template, makeMappingState()));
+            expect(got.value, `template: ${label(template)}`).toBe(expected);
+            expect(got.warnings, `warnings of: ${label(template)}`).toStrictEqual(warnings);
+            if (isCompose(template)) expect(v2.resolveValue(template, makeMappingState())).toBe(expected);
+        }
+    });
+
+    it('resolves v2 inside plain data, and leaves what is data alone', () => {
+        for (const { structure, expected } of DEEP_V2) {
+            expect(v2.resolveDeep(structure, makeMappingState()), `structure: ${label(structure)}`).toStrictEqual(expected);
+        }
+        for (const { inputs, opts, expected, warnings = [] } of INPUTS_V2) {
+            const got = codes(() => v2.resolveInputs(inputs, makeMappingState(), opts));
+            expect(got.value, `inputs: ${label(inputs)}`).toStrictEqual(expected);
+            expect(got.warnings, `warnings of: ${label(inputs)}`).toStrictEqual(warnings);
+        }
+    });
+
+    it('is not empty', () => {
+        expect(PICKS.length).toBeGreaterThan(80);
+        expect(WALK_V2.length).toBeGreaterThan(30);
     });
 });
 

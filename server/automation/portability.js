@@ -26,7 +26,12 @@
  * sample too), and takes the whole pin — `pinnedAt` and `pinnedSource` with it.
  *
  * Import mirrors the allowlist (unknown fields are silently dropped) and
- * gates on the envelope format/schemaVersion. Step ids are re-keyed on
+ * gates on the envelope format/schemaVersion, and on `requires`: an export
+ * whose definition uses the v2 mapping (pick/compose bindings, a step's
+ * `repeat`, a loop's `over`) says `requires: { mapping: 1 }`, and a server
+ * that does not read that version (or a capability it does not know at all)
+ * refuses the file with a message instead of importing bindings it would
+ * resolve to nothing. Step ids are re-keyed on
  * import (rekeyDefinition) so a file imported twice — or a file crafted to
  * collide with existing drafts — always lands with fresh ids.
  *
@@ -38,6 +43,7 @@
  */
 
 const crypto = require('crypto');
+const { MAPPING_VERSION, isPick, isCompose } = require('../shared/mapping/index.mjs');
 
 const EXPORT_FORMAT = 'beeflow.automation';
 const EXPORT_SCHEMA_VERSION = 1;
@@ -52,6 +58,13 @@ const EXPORT_SCHEMA_VERSION = 1;
  * bundles.
  */
 const EXPORT_SUPPORTED_VERSIONS = [1];
+
+/**
+ * The capabilities an export can say it needs (`envelope.requires`), each with
+ * the newest version this server reads. A file that needs a newer one, or a
+ * capability not listed here, is refused.
+ */
+const SUPPORTED_REQUIREMENTS = Object.freeze({ mapping: MAPPING_VERSION });
 
 function isObject(x) { return x && typeof x === 'object' && !Array.isArray(x); }
 
@@ -119,6 +132,28 @@ function walkAllSteps(definition, fn) {
         walkTriggers(layer, key, fn);
         walkSteps(layer.steps, (s) => fn(s, key, false));
     }
+}
+
+/** Does a value hold a v2 binding (pick or compose) anywhere? */
+function holdsMapping(value, depth = 0) {
+    if (value === null || typeof value !== 'object' || depth > 64) return false;
+    if (Array.isArray(value)) return value.some(v => holdsMapping(v, depth + 1));
+    if (isPick(value) || isCompose(value)) return true;
+    return Object.keys(value).some(k => holdsMapping(value[k], depth + 1));
+}
+
+/**
+ * Does a definition use the v2 mapping: a pick or compose binding, a step's
+ * `repeat`, or a loop's `over`? Then its export says `requires: { mapping }`.
+ */
+function definitionUsesMapping(definition) {
+    let uses = false;
+    walkAllSteps(definition, (node) => {
+        if (uses) return;
+        if (isObject(node.repeat) || (node.type === 'loop' && isObject(node.over))) uses = true;
+        else if (holdsMapping(node)) uses = true;
+    });
+    return uses || (isObject(definition) && holdsMapping(definition.vars));
 }
 
 // ── Export ──────────────────────────────────────────────
@@ -325,6 +360,7 @@ function buildExport(automation) {
     const envelope = {
         format: EXPORT_FORMAT,
         schemaVersion: EXPORT_SCHEMA_VERSION,
+        ...(definitionUsesMapping(definition) ? { requires: { mapping: MAPPING_VERSION } } : {}),
         exportedAt: new Date().toISOString(),
         automation: {
             title: typeof src.title === 'string' ? src.title : '',
@@ -339,6 +375,29 @@ function buildExport(automation) {
 }
 
 // ── Import ──────────────────────────────────────────────
+
+/**
+ * Why this server cannot import a file that `requires` what it lists, or [].
+ * A file without `requires` needs nothing beyond the schema version.
+ */
+function requirementErrors(requires) {
+    if (requires === undefined) return [];
+    if (!isObject(requires)) return ['`requires` must be an object, e.g. { "mapping": 1 }.'];
+    const errors = [];
+    for (const [name, version] of Object.entries(requires)) {
+        if (!Object.prototype.hasOwnProperty.call(SUPPORTED_REQUIREMENTS, name)) {
+            errors.push(`This file needs "${name}", which this server does not support. Update Bee Flow, or re-export the automation from a matching version.`);
+            continue;
+        }
+        const supported = SUPPORTED_REQUIREMENTS[name];
+        if (!Number.isSafeInteger(version) || version < 1) {
+            errors.push(`requires.${name} must be a version number (this server reads up to ${supported}).`);
+        } else if (version > supported) {
+            errors.push(`This file needs ${name} version ${version}, which is newer than this server supports (${supported}). Update Bee Flow, or re-export the automation from a matching version.`);
+        }
+    }
+    return errors;
+}
 
 /**
  * Sanitize an uploaded import body. Accepts the full export envelope or a
@@ -364,6 +423,7 @@ function sanitizeImport(envelope) {
             errors.push(`Unsupported schemaVersion ${JSON.stringify(envelope.schemaVersion)} — this server reads ${EXPORT_SUPPORTED_VERSIONS.join(', ')}.`);
         }
     }
+    errors.push(...requirementErrors(envelope.requires));
     const src = isObject(envelope.automation) ? envelope.automation : null;
     if (!src) {
         errors.push('Missing `automation` object — expected a file produced by the automation Export action.');
@@ -565,6 +625,11 @@ function rewritePath(path, map) {
     return path;
 }
 
+/** Re-point a v2 Source (`{ root: 'steps', id, path }`) at a renamed step. A loop's id is an item variable, not a step. */
+function rewriteSource(source, map) {
+    if (isObject(source) && source.root === 'steps' && typeof source.id === 'string' && map[source.id]) source.id = map[source.id];
+}
+
 /** Rewrite every `{{ … }}` body of a template string, preserving spacing. */
 function rewriteTemplate(str, map) {
     return String(str).replace(/\{\{([^}]*)\}\}/g, (_, raw) => {
@@ -625,6 +690,13 @@ function rewriteBindingsDeep(value, map) {
         for (const v of value) rewriteBindingsDeep(v, map);
         return;
     }
+    // A v2 binding names its step by id in its Source (`from.id`), and a
+    // compose in each of its parts.
+    if (isPick(value)) { rewriteSource(value.from, map); return; }
+    if (isCompose(value)) {
+        for (const part of value.parts) if (isObject(part)) rewriteSource(part.from, map);
+        return;
+    }
     if (typeof value.kind === 'string' && ['literal', 'ref', 'template', 'expr'].includes(value.kind)) {
         if (value.kind === 'ref' && typeof value.path === 'string') value.path = rewritePath(value.path, map);
         if (value.kind === 'template' && typeof value.value === 'string') value.value = rewriteTemplate(value.value, map);
@@ -665,7 +737,20 @@ function rekeyStep(step, map) {
     }
     for (const f of TEMPLATE_STRING_FIELDS[step.type] || []) {
         if (typeof step[f] === 'string') step[f] = rewriteTemplate(step[f], map);
+        // A text field may hold a compose (a text with picked values) instead.
+        else rewriteBindingsDeep(step[f], map);
         handled.add(f);
+    }
+    // The list a step repeats over, and the one a loop goes through, are
+    // Sources (or, for a loop, a pick) rather than path strings.
+    if (isObject(step.repeat)) {
+        rewriteSource(step.repeat.over, map);
+        handled.add('repeat');
+    }
+    if (step.type === 'loop' && isObject(step.over)) {
+        if (isPick(step.over)) rewriteSource(step.over.from, map);
+        else rewriteSource(step.over, map);
+        handled.add('over');
     }
     // A form page's visitor-facing text is templated (that is how a closing
     // page summarises the run), but it lives NESTED under `form` as bare
@@ -693,6 +778,7 @@ function rekeyStep(step, map) {
     if (step.type === 'fill_document' && isObject(step.values)) {
         for (const k of Object.keys(step.values)) {
             if (typeof step.values[k] === 'string') step.values[k] = rewriteTemplate(step.values[k], map);
+            else rewriteBindingsDeep(step.values[k], map);
         }
         handled.add('values');
     }
@@ -707,6 +793,8 @@ function rekeyStep(step, map) {
             if (Array.isArray(v)) return v.map((x) => rewrite(x, depth + 1));
             if (isObject(v) && typeof v.kind !== 'string') {
                 for (const k of Object.keys(v)) v[k] = rewrite(v[k], depth + 1);
+            } else if (isPick(v) || isCompose(v)) {
+                rewriteBindingsDeep(v, map);
             }
             return v;
         };
@@ -817,6 +905,8 @@ function rekeyDefinition(def) {
 
 module.exports = { stripAppRefs,
     EXPORT_SUPPORTED_VERSIONS,
+    SUPPORTED_REQUIREMENTS,
+    definitionUsesMapping,
     EXPORT_FORMAT,
     EXPORT_SCHEMA_VERSION,
     buildExport,

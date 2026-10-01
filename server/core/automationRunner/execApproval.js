@@ -4,7 +4,7 @@
  * their renderers, and the isRunPause predicate every dispatcher checks.
  */
 
-const { interpolateTemplate } = require('../../automation/bind');
+const { interpolateTemplate, isTextValue } = require('../../automation/bind');
 const { evaluate } = require('../../automation/expr');
 const { desugarApprovalStages } = require('../../automation/approvalStages');
 const { resolveApprovalTtlMs } = require('./shared');
@@ -63,7 +63,8 @@ class ApprovalRequiredError extends Error {
  * person and leaves the platform in the approval email.
  */
 function renderApprovalPrompt(step, runState) {
-    if (typeof step.prompt === 'string' && step.prompt.trim()) {
+    // A compose (a text with picked values) renders through the same call.
+    if (isTextValue(step.prompt) && (typeof step.prompt !== 'string' || step.prompt.trim())) {
         const safeState = { ...runState, secrets: {} };
         return interpolateTemplate(step.prompt, safeState);
     }

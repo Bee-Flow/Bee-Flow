@@ -740,13 +740,19 @@ const RUN_COLUMNS = {
     // Handoff 5: the structured one-sentence outcome ({ code, params, text }).
     // Serialised here, so a caller passes the object.
     outcome: 'outcome_json',
+    // The run's warnings (automation-run-warnings-2026-10), a list of short
+    // sentences. Serialised here like outcome.
+    warnings: 'warnings_json',
 };
 
 async function updateRun(id, updates) {
     await initDB();
-    const write = (updates && updates.outcome !== undefined)
+    let write = (updates && updates.outcome !== undefined)
         ? { ...updates, outcome: updates.outcome == null ? null : JSON.stringify(updates.outcome) }
         : updates;
+    if (write && write.warnings !== undefined) {
+        write = { ...write, warnings: Array.isArray(write.warnings) && write.warnings.length ? JSON.stringify(write.warnings) : null };
+    }
     const built = buildUpdate({
         table: 'automation_runs',
         updates: write,

@@ -288,7 +288,7 @@ test('the same graph WITHOUT fan-out never reaches that port and does dead-end',
     const s = state();
     await runDag(onlyWaterWired({}), {}, s, 'live', dispatch, { recordSteps: false });
     assert.deepStrictEqual(ran, [], 'first-match stops at the unwired "land" port');
-    assert.ok(s._templateWarnings.some(w => /switch sw routed to .* no edge carries/.test(w)),
+    assert.ok(s._templateWarnings.some(w => w.code === 'branch_no_edge' && /switch sw routed to .* no edge carries/.test(w.text)),
         `expected a dead-end breadcrumb, got: ${JSON.stringify(s._templateWarnings)}`);
 });
 
@@ -308,7 +308,7 @@ test('a fan-out node whose matched ports are ALL unwired still gets the breadcru
     const s = state();
     await runDag(def, {}, s, 'live', dispatch, { recordSteps: false });
     assert.deepStrictEqual(ran, []);
-    assert.ok(s._templateWarnings.some(w => /switch sw routed to .* no edge carries/.test(w)),
+    assert.ok(s._templateWarnings.some(w => w.code === 'branch_no_edge' && /switch sw routed to .* no edge carries/.test(w.text)),
         `expected a dead-end breadcrumb, got: ${JSON.stringify(s._templateWarnings)}`);
 });
 

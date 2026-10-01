@@ -232,3 +232,64 @@ test('an ai_step input named after a data root is refused where the model can re
     const u = await applyToolCall('builder_update_step', { stepId: ok.added.id, patch: { inputs: { steps: { kind: 'literal', value: 'y' } } } }, dw);
     assert.match(u.error || '', /cannot be named "steps"/);
 });
+
+// ── v2 picks (M2): accepted and spelled the one stored way; not yet written
+// by the builder prompt, but a definition is data, and an import or an MCP
+// patch can carry them.
+
+test('a compact pick is expanded to the stored form', () => {
+    const { inputs: fixed, error } = validateAndFixBindings({ to: { pick: 'steps.get.output.rows[*].email', take: 'all' } }, emptyDefinition());
+    assert.equal(error, null);
+    assert.deepStrictEqual(fixed.to, { kind: 'pick', v: 1, from: { root: 'steps', id: 'get', path: ['rows', 'email'] }, take: 'all', as: 'native' });
+});
+
+test('a stored pick and a compose pass through', () => {
+    const pick = { kind: 'pick', v: 1, from: { root: 'trigger', path: ['naam'] }, take: 'one', as: 'text', label: 'Naam' };
+    const compose = { kind: 'compose', v: 1, parts: ['Hoi ', { pick: 'trigger.output.naam' }] };
+    const { inputs: fixed, error } = validateAndFixBindings({ a: pick, b: compose }, emptyDefinition());
+    assert.equal(error, null);
+    assert.deepStrictEqual(fixed.a, pick);
+    assert.deepStrictEqual(fixed.b, { kind: 'compose', v: 1, parts: ['Hoi ', { from: { root: 'trigger', path: ['naam'] }, take: 'one', as: 'text' }] });
+});
+
+test('the compact form is stamped with the version, and that repair is named', () => {
+    const { inputs: fixed, repairs } = validateAndFixBindings({ to: { pick: 'trigger.output.naam' } }, emptyDefinition());
+    assert.equal(fixed.to.v, 1);
+    assert.ok((repairs || []).some(r => /^inputs\.to: expanded the compact \{pick:…\}/.test(r)), JSON.stringify(repairs));
+});
+
+// resolve.mjs reads a pick or a compose only when v === 1; without it the
+// object is data. The builder must not make it live behind the author's back.
+test('a pick or a compose without v is refused, not given the version', () => {
+    const { inputs: fixed, error } = validateAndFixBindings({
+        b: { kind: 'pick', from: { root: 'steps', id: 's1', path: ['x'] }, take: 'one', as: 'native' },
+        c: { kind: 'compose', parts: ['Hoi'] },
+    }, emptyDefinition());
+    assert.equal(fixed.b.v, undefined);
+    assert.equal(fixed.c.v, undefined);
+    assert.match(error, /inputs\.b: the pick binding is not valid \(pick_version\)/);
+    assert.match(error, /inputs\.c: the compose binding is not valid \(compose_version\)/);
+});
+
+test('a compact pick whose path does not read is refused, not sent to the tool as an object', () => {
+    for (const raw of [{ pick: 'subject', take: 'all' }, { pick: 'step.x.output.y' }]) {
+        const { inputs: fixed, error } = validateAndFixBindings({ a: raw }, emptyDefinition());
+        assert.equal(fixed.a.kind, 'pick');
+        assert.match(error || '', /^inputs\.a: the pick binding is not valid \(source_shape\)\. The path "[^"]+" is not one the runtime can read/);
+    }
+    const nested = validateAndFixBindings({ values: { Naam: { pick: 'subject' } } }, emptyDefinition());
+    assert.match(nested.error || '', /inputs\.values\.Naam: the pick binding is not valid/);
+});
+
+test('an invalid pick is refused with the shape to use, not stored as a literal', () => {
+    const { inputs: fixed, error } = validateAndFixBindings({ a: { kind: 'pick', v: 1, from: { root: 'steps', path: [] }, take: 'some', as: 'native' } }, emptyDefinition());
+    assert.equal(fixed.a.kind, 'pick');
+    assert.match(error, /^inputs\.a: the pick binding is not valid \(source_id, pick_take\)/);
+});
+
+test('a map of picks is resolved member by member, not frozen as one literal', () => {
+    const { inputs: fixed } = validateAndFixBindings({ values: { Naam: { pick: 'trigger.output.naam' }, Vast: 'x' } }, emptyDefinition());
+    assert.equal(fixed.values.kind, undefined);
+    assert.equal(fixed.values.Naam.kind, 'pick');
+    assert.deepStrictEqual(fixed.values.Vast, { kind: 'literal', value: 'x' });
+});

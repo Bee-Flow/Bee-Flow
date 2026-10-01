@@ -6,7 +6,7 @@
  * here only so an oversized paste is not re-saved on every autosave.
  */
 
-const { isObject } = require('../helpers');
+const { isObject, hasText } = require('../helpers');
 const {
     NOTIFICATION_STEP_CHANNELS,
     FORM_PAGE_MODES, FORM_PAGE_MIN_WAIT_S, FORM_PAGE_MAX_WAIT_S,
@@ -58,7 +58,7 @@ function checkWait(ctx, step, at) {
 function checkStopError(ctx, step, at) {
     const { pushE } = ctx;
     if (step.type === 'stop_error') {
-        if (!step.message || typeof step.message !== 'string') pushE({ code: 'stop_error.message_missing', severity: 'error', path: at + '.message', message: `Step ${step.id}: stop_error requires \`message\` string.`, hint: 'Surface a human-readable reason for halting the run.' });
+        if (!step.message || !(typeof step.message === 'string' || hasText(step.message))) pushE({ code: 'stop_error.message_missing', severity: 'error', path: at + '.message', message: `Step ${step.id}: stop_error requires \`message\` string.`, hint: 'Surface a human-readable reason for halting the run.' });
     }
 }
 

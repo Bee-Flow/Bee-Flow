@@ -14,11 +14,38 @@ const { isObject } = require('../helpers');
 const { checkMaxItems } = require('../fieldChecks');
 const { SUMMARIZE_OPS, LIMIT_MODES } = require('../constants');
 
+// The step types that may run once per item (`forEach`, and the v2
+// `repeat` in mappingRules.js, which runs through the same loop).
+// http_request is here because the RUNNER already honours it
+// (executeStepWithIteration) and the builder already offers it —
+// only this list disagreed, so builder_update_step accepted a field
+// builder_finalize then hard-rejected, on precisely the "one API
+// call per row" shape the response cache exists for.
+// 'datatable' joined 2026-09-04: a write per item of an upstream list (one
+// audit row per accepted proposal, one update per matched row) is the
+// common case, and a loop body for a single step was the workaround.
+// The runner's forEach wrapper is type-agnostic (execution.js
+// executeStepWithIteration); a datatable step already runs once per
+// item there, so only the validator stood in the way.
+// 'knowledge_write' joined with K10, for the same reason
+// 'datatable' did: one write per item of an upstream list is the
+// ordinary shape ("each resolved ticket → an article").
+// 'data_extraction' joined for the shape it exists for: "read every
+// file, then pull the same fields out of each" is two flat forEach
+// steps, and the second one is this type.
+// 'slide' joined with the presentation step: "one slide per row"
+// is the shape it exists for, and it is pure — a forEach over it
+// costs nothing but the slide objects the deck then collects.
+const FOREACH_ALLOWED = new Set(['integration_action', 'ai_step', 'code', 'notification', 'set', 'http_request', 'datatable', 'knowledge_write', 'data_extraction', 'slide']);
+
 function checkLoop(ctx, step, at) {
     const { pushE } = ctx;
     if (step.type === 'loop') {
         if (!step.itemVar || typeof step.itemVar !== 'string') pushE({ code: 'loop.itemVar_missing', severity: 'error', path: at + '.itemVar', message: `Step ${step.id}: loop requires \`itemVar\`.`, hint: 'Choose a short variable name like `item` or `email`.' });
-        if (!step.overRef || typeof step.overRef !== 'string') pushE({ code: 'loop.overRef_missing', severity: 'error', path: at + '.overRef', message: `Step ${step.id}: loop requires \`overRef\`.`, hint: 'Bind to an upstream array, e.g. `steps.<id>.output.items`.' });
+        // `over` (a v2 Source) names the list instead of `overRef`; its own
+        // shape is checked in mappingRules.js.
+        const hasOver = isObject(step.over);
+        if (!hasOver && (!step.overRef || typeof step.overRef !== 'string')) pushE({ code: 'loop.overRef_missing', severity: 'error', path: at + '.overRef', message: `Step ${step.id}: loop requires \`overRef\`.`, hint: 'Bind to an upstream array, e.g. `steps.<id>.output.items`.' });
         if (!Array.isArray(step.body) || step.body.length === 0) {
             pushE({ code: 'loop.body_missing', severity: 'error', path: at + '.body', message: `Step ${step.id}: loop has no body steps.`, hint: 'Add at least one step to run per item, or remove the loop.' });
         }
@@ -66,27 +93,6 @@ function checkForEach(ctx, step, at) {
     // container types iterate via their own mechanics, so forEach there is
     // rejected (default-deny allow-list).
     if (step.forEach !== undefined && step.forEach !== null) {
-        // http_request is here because the RUNNER already honours it
-        // (executeStepWithIteration) and the builder already offers it —
-        // only this list disagreed, so builder_update_step accepted a field
-        // builder_finalize then hard-rejected, on precisely the "one API
-        // call per row" shape the response cache exists for.
-        // 'datatable' joined 2026-09-04: a write per item of an upstream list (one
-        // audit row per accepted proposal, one update per matched row) is the
-        // common case, and a loop body for a single step was the workaround.
-        // The runner's forEach wrapper is type-agnostic (execution.js
-        // executeStepWithIteration); a datatable step already runs once per
-        // item there, so only the validator stood in the way.
-        // 'knowledge_write' joined with K10, for the same reason
-        // 'datatable' did: one write per item of an upstream list is the
-        // ordinary shape ("each resolved ticket → an article").
-        // 'data_extraction' joined for the shape it exists for: "read every
-        // file, then pull the same fields out of each" is two flat forEach
-        // steps, and the second one is this type.
-        // 'slide' joined with the presentation step: "one slide per row"
-        // is the shape it exists for, and it is pure — a forEach over it
-        // costs nothing but the slide objects the deck then collects.
-        const FOREACH_ALLOWED = new Set(['integration_action', 'ai_step', 'code', 'notification', 'set', 'http_request', 'datatable', 'knowledge_write', 'data_extraction', 'slide']);
         if (!isObject(step.forEach)) {
             pushE({ code: 'foreach.shape', severity: 'error', path: at + '.forEach', message: `Step ${step.id}: forEach must be an object { overRef, itemVar, maxIterations }.`, hint: 'Remove it, or provide overRef + itemVar.' });
         } else if (!FOREACH_ALLOWED.has(step.type)) {
@@ -128,4 +134,4 @@ function checkCollectionOps(ctx, step, at) {
     }
 }
 
-module.exports = { checkLoop, checkParallel, checkForEach, checkCollectionOps };
+module.exports = { checkLoop, checkParallel, checkForEach, checkCollectionOps, FOREACH_ALLOWED };

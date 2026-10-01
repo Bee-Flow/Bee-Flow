@@ -20,6 +20,11 @@
  * web and on the phone equals the run. Add a case HERE, never in one runner.
  * Every case runs against a FRESH makeState(): interpolateTemplate pushes onto
  * `_templateWarnings`, and a shared object would leak between cases.
+ *
+ * The second half of the file (from "v2: pick and compose") is the v2
+ * mapping: WALK_V2, PICKS, EACH, COMPOSE, DEEP_V2 and INPUTS_V2 against
+ * makeMappingState(). Those cases are the specification, not a recording;
+ * see the note there.
  */
 
 export function makeState() {
@@ -470,4 +475,290 @@ export const INPUTS = [
     { inputs: {}, expected: {} },
     { inputs: [{ kind: 'ref', path: 'vars.rate' }], expected: { '0': 1.21 } },
     { inputs: { k: { kind: 'ref', path: 'secrets.apiKey' } }, opts: { allowSecrets: true }, expected: { k: 'secret-value-1' } },
+];
+
+// ── v2: pick and compose ──────────────────────────────────────────────────
+//
+// Unlike everything above, these cases were not recorded from an older
+// runtime: they ARE the specification of the v2 mapping (design §3), written
+// out case by case. They run against makeMappingState(), never against
+// makeState(), so the legacy cases above stay exactly as they were recorded.
+// `warnings` lists the codes onWarning reports, in order (none when absent).
+
+const S = (id, ...path) => ({ root: 'steps', id, path });
+const T = (...path) => ({ root: 'trigger', path });
+const pick = (from, take = 'one', as = 'native', extra = {}) => ({ kind: 'pick', v: 1, from, take, as, ...extra });
+const part = (from, take = 'one', as = 'text', extra = {}) => ({ from, take, as, ...extra });
+const ORDERS = S('orders', 'orders');
+
+/** The run state the v2 cases read: depth, lists, tables, holes, JSON text, Dutch numbers. */
+export function makeMappingState() {
+    return {
+        trigger: {
+            output: {
+                Klant: { Naam: 'Jan Jansen', 'E-mail adres': 'jan@voorbeeld.nl', Adres: { Straat: 'Dorpsstraat 1', Postcode: '1234 AB' } },
+                bedrag: '€ 1.554,25',
+                aantal: '12,5',
+                plain: '1.234',
+                datum: '2026-10-01',
+                moment: '2026-10-01T10:00:00+02:00',
+                gmail: 'Tue, 01 Sep 2026 10:00:00 +0200',
+                epoch: 1756720800,
+                ja: 'ja',
+                nee: 'Nee',
+                yes: true,
+                flag: 'misschien',
+                leeg: '',
+                niets: null,
+                nul: 0,
+                tags: ['spoed', 'klant'],
+                json: '{"order":{"lines":[{"sku":"A1","qty":2},{"sku":"B2","qty":1}]}}',
+                badJson: '{"order":',
+                tekst: 'gewoon tekst',
+            },
+            headers: { 'x-trace': 'h1' },
+            id: 'trg-1',
+            kind: 'webhook',
+            firedAt: '2026-10-01T08:00:00Z',
+        },
+        steps: {
+            orders: {
+                output: {
+                    orders: [
+                        { id: 'o1', klant: { naam: 'Ada', email: 'ada@example.org' }, lines: [{ product: 'Stoel', qty: 2, prijs: '€40' }, { product: 'Tafel', qty: 1, prijs: '€150' }], tags: ['a', 'b'] },
+                        { id: 'o2', klant: { naam: 'Bob' }, lines: [{ product: 'Lamp', qty: 3, prijs: '€25' }], tags: [] },
+                        null,
+                        { id: 'o4', lines: [], tags: ['c'] },
+                    ],
+                    total: 3,
+                    empty: [],
+                    matrix: [[1, 2], [3]],
+                    deep: { a: { b: { c: { d: { e: { f: 'zes' } } } } } },
+                    deepList: { a: [{ b: { c: [{ d: { e: 'x1' } }, { d: { e: 'x2' } }] } }, { b: { c: [] } }, { b: { c: [{ d: { e: 'x3' } }] } }] },
+                    mixed: [1, 'twee', true, null, { k: 'v' }],
+                },
+            },
+            text: { output: 'Gewone tekst' },
+            num: { output: 42 },
+            list: { output: ['x', 'y', 'z'] },
+            nul: { output: null },
+            jsonOut: { output: '[{"a":1},{"a":2}]' },
+        },
+        vars: { rate: '21', greeting: 'Hallo', own: JSON.parse('{"__proto__":{"x":1},"constructor":"own","length":3,"ok":"ja"}') },
+        loop: { row: { email: 'row@example.org', n: 2 }, _index: 1 },
+        item: { amount: '1.250,50', name: 'Rij' },
+        secrets: { apiKey: 'secret-value-1' },
+    };
+}
+
+/** walk(sourceBase(source), source.path), as plain data: nesting and holes kept. */
+export const WALK_V2 = [
+    { source: S('orders', 'orders', 'id'), expected: ['o1', 'o2', undefined, 'o4'] },
+    { source: S('orders', 'orders', 'klant', 'naam'), expected: ['Ada', 'Bob', undefined, undefined] },
+    { source: S('orders', 'orders', 'lines', 'product'), expected: [['Stoel', 'Tafel'], ['Lamp'], undefined, []] },
+    { source: S('orders', 'orders', 0, 'lines', 1, 'product'), expected: 'Tafel' },
+    { source: S('orders', 'orders', 2), expected: null },
+    { source: S('orders', 'orders', 9), expected: undefined },
+    { source: S('orders', 'orders', 2, 'id'), expected: undefined },
+    { source: S('orders', 'deep', 'a', 'b', 'c', 'd', 'e', 'f'), expected: 'zes' },
+    { source: S('orders', 'deepList', 'a', 'b', 'c', 'd', 'e'), expected: [['x1', 'x2'], [], ['x3']] },
+    { source: S('orders', 'matrix'), expected: [[1, 2], [3]] },
+    { source: S('orders', 'matrix', 0, 1), expected: 2 },
+    { source: S('orders', 'empty', 'x'), expected: [] },
+    { source: S('orders', 'mixed', 'k'), expected: [undefined, undefined, undefined, undefined, 'v'] },
+    { source: T('json', 'order', 'lines', 'sku'), expected: ['A1', 'B2'] },
+    { source: T('json'), expected: '{"order":{"lines":[{"sku":"A1","qty":2},{"sku":"B2","qty":1}]}}' },
+    { source: T('badJson', 'order'), expected: undefined },
+    { source: T('tekst', 'x'), expected: undefined },
+    { source: S('jsonOut', 'a'), expected: [1, 2] },
+    { source: T('Klant', 'Adres', 'Postcode'), expected: '1234 AB' },
+    { source: T('Klant', 'E-mail adres'), expected: 'jan@voorbeeld.nl' },
+    { source: T('Klant', 0), expected: undefined },
+    { source: S('list', 1), expected: 'y' },
+    { source: S('list', 'length'), expected: [undefined, undefined, undefined] },
+    { source: { root: 'vars', path: ['own', 'ok'] }, expected: 'ja' },
+    { source: { root: 'vars', path: ['own', 'constructor'] }, expected: undefined },
+    { source: { root: 'vars', path: ['own', 'length'] }, expected: undefined },
+    { source: { root: 'vars', path: ['own', '__proto__'] }, expected: undefined },
+    { source: { root: 'vars', path: ['own', 'x'] }, expected: undefined },
+    { source: { root: 'vars', path: ['greeting', 'toString'] }, expected: undefined },
+    { source: { root: 'run', path: ['id'] }, expected: 'trg-1' },
+    { source: { root: 'run', path: ['firedAt'] }, expected: '2026-10-01T08:00:00Z' },
+    { source: { root: 'run', path: ['output', 'tekst'] }, expected: undefined },
+    { source: { root: 'run', path: ['headers'] }, expected: undefined },
+    { source: { root: 'item', path: ['amount'] }, expected: '1.250,50' },
+    { source: { root: 'loop', id: 'row', path: ['email'] }, expected: 'row@example.org' },
+    { source: { root: 'secrets', path: ['apiKey'] }, expected: undefined },
+    { source: S('missing', 'x'), expected: undefined },
+    { source: S('nul', 'x'), expected: undefined },
+    { source: S('text'), expected: 'Gewone tekst' },
+    { source: S('orders', 'orders', -1), expected: undefined },
+    { source: S('orders', 'orders', 1.5), expected: undefined },
+    { source: S('orders', 'orders', { wild: true }, 'id'), expected: undefined },
+];
+
+/** resolveValue(binding, makeMappingState()) for a pick: every take, as and join on every shape. */
+export const PICKS = [
+    // one
+    { binding: pick(T('Klant', 'E-mail adres')), expected: 'jan@voorbeeld.nl' },
+    { binding: pick(T('Klant', 'Adres')), expected: { Straat: 'Dorpsstraat 1', Postcode: '1234 AB' } },
+    { binding: pick(T('tags')), expected: ['spoed', 'klant'] },
+    { binding: pick(T('niets')), expected: null },
+    { binding: pick(T('missing')), expected: undefined, warnings: ['missing'] },
+    { binding: pick(S('orders', 'orders', 'klant', 'naam')), expected: 'Ada', warnings: ['many_for_one'] },
+    { binding: pick(S('orders', 'orders', 'klant', 'naam'), 'one', 'text'), expected: 'Ada', warnings: ['many_for_one'] },
+    { binding: pick(T('tags'), 'one', 'text'), expected: 'spoed\nklant' },
+    { binding: pick(T('tags'), 'one', 'number'), expected: undefined, warnings: ['many_for_one', 'parse_failed'] },
+    { binding: pick(T('Klant'), 'one', 'text'), expected: 'Naam: Jan Jansen\nE-mail adres: jan@voorbeeld.nl\nAdres: Dorpsstraat 1 · 1234 AB' },
+    { binding: pick(T('Klant'), 'one', 'text', { join: 'comma' }), expected: 'Naam: Jan Jansen, E-mail adres: jan@voorbeeld.nl, Adres: Dorpsstraat 1 · 1234 AB' },
+    { binding: pick(T('Klant'), 'one', 'json'), expected: { Naam: 'Jan Jansen', 'E-mail adres': 'jan@voorbeeld.nl', Adres: { Straat: 'Dorpsstraat 1', Postcode: '1234 AB' } } },
+    { binding: pick(T('leeg'), 'one', 'text'), expected: '' },
+    { binding: pick(T('missing'), 'one', 'text'), expected: '', warnings: ['missing'] },
+    { binding: pick(T('missing'), 'one', 'list'), expected: [], warnings: ['missing'] },
+    { binding: pick(T('Klant', 'E-mail adres'), 'one', 'list'), expected: ['jan@voorbeeld.nl'] },
+    // all
+    { binding: pick(S('orders', 'orders', 'lines', 'product'), 'all', 'list'), expected: ['Stoel', 'Tafel', 'Lamp'], warnings: ['holes_dropped'] },
+    { binding: pick(S('orders', 'orders', 'lines', 'product'), 'all', 'text'), expected: 'Stoel\nTafel\nLamp', warnings: ['holes_dropped'] },
+    { binding: pick(S('orders', 'orders', 'lines', 'product'), 'all', 'text', { join: 'comma' }), expected: 'Stoel, Tafel, Lamp', warnings: ['holes_dropped'] },
+    { binding: pick(S('orders', 'orders', 'lines', 'product'), 'all', 'text', { join: 'bullets' }), expected: '- Stoel\n- Tafel\n- Lamp', warnings: ['holes_dropped'] },
+    { binding: pick(S('orders', 'orders', 'lines', 'product'), 'all', 'native'), expected: ['Stoel', 'Tafel', 'Lamp'], warnings: ['holes_dropped'] },
+    { binding: pick(S('orders', 'orders', 'lines', 'product'), 'all', 'json'), expected: ['Stoel', 'Tafel', 'Lamp'], warnings: ['holes_dropped'] },
+    { binding: pick(S('orders', 'orders', 'lines'), 'all', 'text'), expected: 'Stoel · 2 · €40\nTafel · 1 · €150\nLamp · 3 · €25', warnings: ['holes_dropped'] },
+    { binding: pick(S('orders', 'orders', 'lines'), 'all', 'list'), expected: [{ product: 'Stoel', qty: 2, prijs: '€40' }, { product: 'Tafel', qty: 1, prijs: '€150' }, { product: 'Lamp', qty: 3, prijs: '€25' }], warnings: ['holes_dropped'] },
+    { binding: pick(S('orders', 'orders', 'klant'), 'all', 'text'), expected: 'Ada · ada@example.org\nBob', warnings: ['holes_dropped'] },
+    { binding: pick(S('orders', 'orders', 'id'), 'all', 'list'), expected: ['o1', 'o2', 'o4'], warnings: ['holes_dropped'] },
+    { binding: pick(S('orders', 'orders', 'tags'), 'all', 'list'), expected: ['a', 'b', 'c'], warnings: ['holes_dropped'] },
+    { binding: pick(ORDERS, 'all', 'list'), expected: [{ id: 'o1', klant: { naam: 'Ada', email: 'ada@example.org' }, lines: [{ product: 'Stoel', qty: 2, prijs: '€40' }, { product: 'Tafel', qty: 1, prijs: '€150' }], tags: ['a', 'b'] }, { id: 'o2', klant: { naam: 'Bob' }, lines: [{ product: 'Lamp', qty: 3, prijs: '€25' }], tags: [] }, null, { id: 'o4', lines: [], tags: ['c'] }] },
+    { binding: pick(ORDERS, 'all', 'native'), expected: [{ id: 'o1', klant: { naam: 'Ada', email: 'ada@example.org' }, lines: [{ product: 'Stoel', qty: 2, prijs: '€40' }, { product: 'Tafel', qty: 1, prijs: '€150' }], tags: ['a', 'b'] }, { id: 'o2', klant: { naam: 'Bob' }, lines: [{ product: 'Lamp', qty: 3, prijs: '€25' }], tags: [] }, null, { id: 'o4', lines: [], tags: ['c'] }] },
+    { binding: pick(S('orders', 'matrix'), 'all', 'text'), expected: '1, 2\n3' },
+    { binding: pick(S('orders', 'matrix'), 'all', 'list'), expected: [[1, 2], [3]] },
+    { binding: pick(S('orders', 'mixed'), 'all', 'text'), expected: '1\ntwee\ntrue\nv' },
+    { binding: pick(S('orders', 'mixed'), 'all', 'text', { join: 'comma' }), expected: '1, twee, true, v' },
+    { binding: pick(S('orders', 'deepList', 'a', 'b', 'c', 'd', 'e'), 'all', 'list'), expected: ['x1', 'x2', 'x3'] },
+    { binding: pick(S('orders', 'empty'), 'all', 'list'), expected: [] },
+    { binding: pick(S('orders', 'empty'), 'all', 'text'), expected: '' },
+    { binding: pick(T('tags'), 'all', 'native'), expected: ['spoed', 'klant'] },
+    { binding: pick(S('text'), 'all', 'list'), expected: ['Gewone tekst'] },
+    { binding: pick(S('num'), 'all', 'text'), expected: '42' },
+    { binding: pick(S('nul'), 'all', 'list'), expected: [] },
+    { binding: pick(S('nul'), 'all', 'text'), expected: '' },
+    { binding: pick(T('missing'), 'all', 'list'), expected: [], warnings: ['missing'] },
+    { binding: pick(T('json', 'order', 'lines', 'sku'), 'all', 'list'), expected: ['A1', 'B2'] },
+    { binding: pick(S('jsonOut', 'a'), 'all', 'text', { join: 'comma' }), expected: '1, 2' },
+    // first, last
+    { binding: pick(S('orders', 'orders', 'lines', 'product'), 'first'), expected: 'Stoel' },
+    { binding: pick(S('orders', 'orders', 'lines', 'product'), 'last'), expected: 'Lamp' },
+    { binding: pick(S('list'), 'first', 'text'), expected: 'x' },
+    { binding: pick(S('list'), 'last', 'text'), expected: 'z' },
+    { binding: pick(S('text'), 'first'), expected: 'Gewone tekst' },
+    { binding: pick(S('text'), 'last'), expected: 'Gewone tekst' },
+    { binding: pick(S('orders', 'empty'), 'first'), expected: undefined, warnings: ['missing'] },
+    { binding: pick(T('json', 'order', 'lines', 'qty'), 'first', 'number'), expected: 2 },
+    // count: the same items `all` sends
+    { binding: pick(S('orders', 'orders', 'lines', 'product'), 'count'), expected: 3 },
+    { binding: pick(S('orders', 'orders', 'id'), 'count'), expected: 3 },
+    { binding: pick(ORDERS, 'count'), expected: 4 },
+    { binding: pick(ORDERS, 'count', 'text'), expected: '4' },
+    { binding: pick(S('text'), 'count'), expected: 1 },
+    { binding: pick(S('num'), 'count'), expected: 1 },
+    { binding: pick(S('nul'), 'count'), expected: 0 },
+    { binding: pick(T('missing'), 'count'), expected: 0 },
+    { binding: pick(S('orders', 'empty'), 'count'), expected: 0 },
+    // number: what Number() reads first, then the Dutch and euro forms
+    { binding: pick(T('bedrag'), 'one', 'number'), expected: 1554.25 },
+    { binding: pick(T('aantal'), 'one', 'number'), expected: 12.5 },
+    { binding: pick(T('plain'), 'one', 'number'), expected: 1.234 },
+    { binding: pick(T('nul'), 'one', 'number'), expected: 0 },
+    { binding: pick(T('epoch'), 'one', 'number'), expected: 1756720800 },
+    { binding: pick({ root: 'vars', path: ['rate'] }, 'one', 'number'), expected: 21 },
+    { binding: pick({ root: 'item', path: ['amount'] }, 'one', 'number'), expected: 1250.5 },
+    { binding: pick(T('tekst'), 'one', 'number'), expected: undefined, warnings: ['parse_failed'] },
+    { binding: pick(T('leeg'), 'one', 'number'), expected: undefined, warnings: ['missing'] },
+    { binding: pick(T('yes'), 'one', 'number'), expected: undefined, warnings: ['parse_failed'] },
+    { binding: pick(S('orders', 'orders', 'lines', 'qty'), 'one', 'number'), expected: 2, warnings: ['many_for_one'] },
+    // date
+    { binding: pick(T('datum'), 'one', 'date'), expected: '2026-10-01' },
+    { binding: pick(T('moment'), 'one', 'date'), expected: '2026-10-01T10:00:00+02:00' },
+    { binding: pick(T('gmail'), 'one', 'date'), expected: '2026-09-01T08:00:00.000Z' },
+    { binding: pick(T('epoch'), 'one', 'date'), expected: '2025-09-01T10:00:00.000Z' },
+    { binding: pick(T('tekst'), 'one', 'date'), expected: undefined, warnings: ['parse_failed'] },
+    // yes/no
+    { binding: pick(T('ja'), 'one', 'yesno'), expected: true },
+    { binding: pick(T('nee'), 'one', 'yesno'), expected: false },
+    { binding: pick(T('yes'), 'one', 'yesno'), expected: true },
+    { binding: pick(T('nul'), 'one', 'yesno'), expected: false },
+    { binding: pick(S('num'), 'one', 'yesno'), expected: true },
+    { binding: pick(T('flag'), 'one', 'yesno'), expected: undefined, warnings: ['parse_failed'] },
+    // the other roots
+    { binding: pick({ root: 'run', path: ['id'] }), expected: 'trg-1' },
+    { binding: pick({ root: 'loop', id: 'row', path: ['email'] }), expected: 'row@example.org' },
+    { binding: pick({ root: 'vars', path: ['own', 'constructor'] }), expected: undefined, warnings: ['missing'] },
+    // required, and what is not a valid pick
+    { binding: pick(T('missing'), 'one', 'native', { required: true }), expected: undefined, warnings: ['missing_required'] },
+    { binding: pick(T('Klant', 'Naam'), 'one', 'native', { label: 'Naam van klant' }), expected: 'Jan Jansen' },
+    { binding: pick(T('Klant', 'Naam'), 'twice'), expected: undefined, warnings: ['mapping_invalid'] },
+    { binding: pick(S('orders', 'orders', { wild: true }, 'id'), 'all', 'list'), expected: undefined, warnings: ['mapping_invalid'] },
+    { binding: pick({ root: 'secrets', path: ['apiKey'] }), expected: undefined, warnings: ['mapping_invalid'] },
+    { binding: { kind: 'pick', from: T('Klant', 'Naam'), take: 'one', as: 'native' }, expected: undefined },
+    { binding: { kind: 'pick', v: 2, from: T('Klant', 'Naam'), take: 'one', as: 'native' }, expected: undefined },
+    { binding: pick(T('Klant', 'Naam'), 'each'), expected: undefined, warnings: ['each_outside_repeat'] },
+    { binding: pick(T('Klant', 'Naam'), 'each', 'list'), expected: [], warnings: ['each_outside_repeat'] },
+];
+
+/**
+ * resolveValue(binding, state) for a pick that takes `each`: `state` is
+ * makeMappingState() with `_mappingScope = { over, item, index: 0 }`, the item
+ * a repeated step runs for.
+ */
+export const EACH = [
+    { over: ORDERS, item: 0, binding: pick(S('orders', 'orders', 'id'), 'each'), expected: 'o1' },
+    { over: ORDERS, item: 0, binding: pick(S('orders', 'orders', 'klant', 'email'), 'each'), expected: 'ada@example.org' },
+    { over: ORDERS, item: 0, binding: pick(S('orders', 'orders', 'lines', 'product'), 'each', 'text'), expected: 'Stoel\nTafel' },
+    { over: ORDERS, item: 0, binding: pick(S('orders', 'orders', 'lines', 'product'), 'each', 'list'), expected: ['Stoel', 'Tafel'] },
+    { over: ORDERS, item: 0, binding: pick(S('orders', 'orders', 'lines', 'product'), 'each'), expected: 'Stoel', warnings: ['many_for_one'] },
+    { over: ORDERS, item: 0, binding: pick(ORDERS, 'each'), expected: { id: 'o1', klant: { naam: 'Ada', email: 'ada@example.org' }, lines: [{ product: 'Stoel', qty: 2, prijs: '€40' }, { product: 'Tafel', qty: 1, prijs: '€150' }], tags: ['a', 'b'] } },
+    { over: ORDERS, item: 1, binding: pick(S('orders', 'orders', 'klant', 'email'), 'each'), expected: undefined, warnings: ['missing'] },
+    { over: ORDERS, item: 2, binding: pick(S('orders', 'orders', 'id'), 'each', 'text'), expected: '', warnings: ['missing'] },
+    { over: S('orders', 'orders', 'lines'), item: 2, binding: pick(S('orders', 'orders', 'lines', 'prijs'), 'each'), expected: '€25' },
+    { over: ORDERS, item: 0, binding: pick(S('orders', 'orders', 'lines', 'product'), 'all', 'list'), expected: ['Stoel', 'Tafel', 'Lamp'], warnings: ['holes_dropped'] },
+    { over: ORDERS, item: 0, binding: pick(S('text'), 'each'), expected: undefined, warnings: ['each_outside_repeat'] },
+    { over: ORDERS, item: 0, binding: pick(S('orders', 'orders'), 'each', 'number'), expected: undefined, warnings: ['parse_failed'] },
+];
+
+/** interpolateTemplate(template, makeMappingState()), and resolveValue gives the same. */
+export const COMPOSE = [
+    {
+        template: { kind: 'compose', v: 1, parts: ['Beste ', part(T('Klant', 'Naam')), ',\nUw orders:\n', part(S('orders', 'orders', 'lines', 'product'), 'all', 'text', { join: 'bullets' })] },
+        expected: 'Beste Jan Jansen,\nUw orders:\n- Stoel\n- Tafel\n- Lamp', warnings: ['holes_dropped'],
+    },
+    { template: { kind: 'compose', v: 1, parts: ['Aantal: ', part(S('orders', 'orders', 'id'), 'count')] }, expected: 'Aantal: 3' },
+    { template: { kind: 'compose', v: 1, parts: ['Klant: ', part(T('Klant'), 'one', 'json')] }, expected: 'Klant: {"Naam":"Jan Jansen","E-mail adres":"jan@voorbeeld.nl","Adres":{"Straat":"Dorpsstraat 1","Postcode":"1234 AB"}}' },
+    { template: { kind: 'compose', v: 1, parts: ['Klant: ', part(T('Klant'))] }, expected: 'Klant: Naam: Jan Jansen\nE-mail adres: jan@voorbeeld.nl\nAdres: Dorpsstraat 1 · 1234 AB' },
+    { template: { kind: 'compose', v: 1, parts: ['Hallo ', part(T('missing')), '!'] }, expected: 'Hallo !', warnings: ['missing'] },
+    { template: { kind: 'compose', v: 1, parts: ['Tabel:\n', part(S('orders', 'orders', 'lines'), 'all')] }, expected: 'Tabel:\nStoel · 2 · €40\nTafel · 1 · €150\nLamp · 3 · €25', warnings: ['holes_dropped'] },
+    { template: { kind: 'compose', v: 1, parts: ['Bedrag ', part(T('bedrag'), 'one', 'number')] }, expected: 'Bedrag 1554.25' },
+    { template: { kind: 'compose', v: 1, parts: ['Tags: ', part(T('tags'), 'all', 'text', { join: 'comma' })] }, expected: 'Tags: spoed, klant' },
+    { template: { kind: 'compose', v: 1, parts: ['vast'] }, expected: 'vast' },
+    { template: { kind: 'compose', v: 1, parts: [] }, expected: '' },
+    { template: { kind: 'compose', v: 1, parts: ['x', { from: T('tags'), take: 'all', as: 'sideways' }] }, expected: '', warnings: ['mapping_invalid'] },
+    { template: { kind: 'compose', parts: ['geen versie'] }, expected: '' },
+];
+
+/** resolveDeep(structure, makeMappingState()): v2 kinds inside plain data, and what stays data. */
+export const DEEP_V2 = [
+    { structure: { to: pick(T('Klant', 'E-mail adres')), note: 'x' }, expected: { to: 'jan@voorbeeld.nl', note: 'x' } },
+    { structure: [pick(S('list'), 'last'), { kind: 'compose', v: 1, parts: ['n=', part(S('num'))] }], expected: ['z', 'n=42'] },
+    { structure: { nested: { kind: 'pick', from: T('Klant', 'Naam'), take: 'one', as: 'native' } }, expected: { nested: { kind: 'pick', from: { root: 'trigger', path: ['Klant', 'Naam'] }, take: 'one', as: 'native' } } },
+    { structure: { nested: { kind: 'pick', v: 1, from: T('Klant', 'Naam'), take: 'sideways', as: 'native' } }, expected: { nested: { kind: 'pick', v: 1, from: { root: 'trigger', path: ['Klant', 'Naam'] }, take: 'sideways', as: 'native' } } },
+    { structure: { kind: 'literal', value: pick(T('Klant', 'Naam')) }, expected: { kind: 'pick', v: 1, from: { root: 'trigger', path: ['Klant', 'Naam'] }, take: 'one', as: 'native' } },
+    { structure: { data: { ...pick(T('Klant', 'Naam')), label: 'Naam', extra: 1 } }, expected: { data: 'Jan Jansen' } },
+    { structure: { mixed: [{ kind: 'ref', path: 'trigger.output.tekst' }, pick(T('tekst'), 'one', 'text')] }, expected: { mixed: ['gewoon tekst', 'gewoon tekst'] } },
+];
+
+/** resolveInputs(inputs, makeMappingState(), opts): a pick that gives nothing leaves its input out. */
+export const INPUTS_V2 = [
+    { inputs: { to: pick(T('Klant', 'E-mail adres')), cc: pick(T('missing')), legacy: { kind: 'ref', path: 'trigger.output.missing' } }, expected: { to: 'jan@voorbeeld.nl', legacy: undefined }, warnings: ['missing', 'missing'] },
+    { inputs: { cc: pick(T('missing')) }, opts: { required: ['cc'] }, expected: {}, warnings: ['missing_required'] },
+    { inputs: { body: { kind: 'compose', v: 1, parts: ['Hoi ', part(T('Klant', 'Naam'))] }, n: pick(T('aantal'), 'one', 'number') }, expected: { body: 'Hoi Jan Jansen', n: 12.5 } },
+    { inputs: { list: pick(T('missing'), 'all', 'list'), text: pick(T('missing'), 'one', 'text') }, expected: { list: [], text: '' }, warnings: ['missing', 'missing'] },
 ];

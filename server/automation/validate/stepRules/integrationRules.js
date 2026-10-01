@@ -7,7 +7,7 @@
  * is the silent no-op those rules exist to report.
  */
 
-const { isObject } = require('../helpers');
+const { isObject, hasText } = require('../helpers');
 const { isSideEffect, isMemoisable } = require('../../sideEffectMap');
 const {
     HTTP_REQUEST_METHODS, HTTP_REQUEST_WRITE_METHODS, CACHE_INTO_MAX_DAYS,
@@ -39,7 +39,7 @@ function checkIntegrationAction(ctx, step, at) {
 function checkHttpRequest(ctx, step, at) {
     const { pushE, pushW, knownConnectionIds } = ctx;
     if (step.type === 'http_request') {
-        if (!step.url || typeof step.url !== 'string') pushE({ code: 'http_request.url_missing', severity: 'error', path: at + '.url', message: `Step ${step.id}: http_request requires \`url\`.`, hint: 'The URL can include {{...}} template values, e.g. https://api.example.com/users/{{trigger.output.id}}.' });
+        if (!step.url || !(typeof step.url === 'string' || hasText(step.url))) pushE({ code: 'http_request.url_missing', severity: 'error', path: at + '.url', message: `Step ${step.id}: http_request requires \`url\`.`, hint: 'The URL can include {{...}} template values, e.g. https://api.example.com/users/{{trigger.output.id}}.' });
         const method = String(step.method || 'GET').toUpperCase();
         if (!HTTP_REQUEST_METHODS.has(method)) pushE({ code: 'http_request.method_unsupported', severity: 'error', path: at + '.method', message: `Step ${step.id}: unsupported HTTP method "${step.method}".`, hint: `Use one of: ${[...HTTP_REQUEST_METHODS].join(', ')}.` });
         if (step.headers !== undefined && !isObject(step.headers)) pushE({ code: 'http_request.headers_shape', severity: 'error', path: at + '.headers', message: `Step ${step.id}: http_request.headers must be an object map of {name: value}.`, hint: 'Use { "Content-Type": "application/json", ... }.' });

@@ -77,7 +77,9 @@ function createFieldsOf(graph, stepsById) {
         if (source.root === 'trigger') return triggerKnown();
         if (source.root !== 'steps') return null;
         const step = stepsById.get(source.id);
-        if (!step || step.forEach) return null;
+        // A step that runs once per item outputs the fan-out envelope
+        // ({ iterations, results, … }), not its own fields.
+        if (!step || step.forEach || step.repeat) return null;
         if (step.type === 'ai_step') return aiStepFields(step);
         if (step.type === 'set' && typeof step.arrayRef !== 'string' && isObject(step.fields)) {
             const names = Object.keys(step.fields);

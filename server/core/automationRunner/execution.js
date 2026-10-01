@@ -80,6 +80,9 @@ const {
     runDag,
 } = require('./engine');
 const { createToolMemo } = require('./toolMemo');
+// step.repeat, the v2 per-item repeat (the legacy forEach is execForEachStep).
+const { execRepeatStep } = require('./execRepeat');
+const { recordedRunWarnings } = require('./runWarnings');
 const log = require('../../telemetry/log');
 // Handoff 5: which copy a run executes (live vs working) and the routine's
 // run policy (default retry, time budget, concurrency).
@@ -466,10 +469,15 @@ async function executeAutomation(automation, { triggerKind = 'manual', triggerPa
         // loop body, where the surrounding iteration is what gives the step its
         // input (runPartialInLoopBody).
         loop: loopVars ? (cloneRunValue(loopVars) || {}) : {},
-        // When non-null, interpolateTemplate pushes unresolved paths here so
-        // the runner can surface a single warning summary per run instead of
-        // silently swallowing missing bindings.
+        // When non-null, interpolateTemplate pushes unresolved paths here, and
+        // bind.js / runDag push their warnings, so the runner records one
+        // warning list per run (warnings_json, see runWarnings.js) instead
+        // of silently swallowing missing bindings.
         _templateWarnings: [],
+        // The JSON texts a pick binding has parsed this run (walk.mjs), so a
+        // large API answer is parsed once however many fields read into it.
+        // Sub-states share it by reference, like _templateWarnings.
+        _mappingMemo: new Map(),
         // §WS4: every step failure absorbed by an on_error branch lands here
         // ({stepId, message, errorClass}). Layer/loop/parallel sub-states
         // carry the SAME array reference, so nested handled errors surface
@@ -785,12 +793,16 @@ async function executeAutomation(automation, { triggerKind = 'manual', triggerPa
         }
     };
 
-    // Wrap a leaf step with optional per-item iteration. When `step.forEach`
-    // is set the step runs once per array element (see execForEachStep);
-    // otherwise it runs once. Both the initial dispatch and the retry path
-    // route through here so iteration composes with retry / on_error.
+    // Wrap a leaf step with optional per-item iteration. When `step.repeat`
+    // (v2) or `step.forEach` (legacy) is set the step runs once per item (see
+    // execRepeat.js / execForEachStep); otherwise it runs once. repeat is
+    // checked first: a step the editor converted keeps working even if an
+    // old forEach was left beside it (the validator warns about that). Both
+    // the initial dispatch and the retry path route through here so
+    // iteration composes with retry / on_error.
     const executeStepWithIteration = async (step, ctx_, state_, mode_) => {
-        if (step.forEach && step.forEach.overRef) {
+        const repeats = !!(step.repeat && step.repeat.over);
+        if (repeats || (step.forEach && step.forEach.overRef)) {
             // Same cancellation contract as dispatchStep, checked between
             // every iterated item (both the in-process signal and the
             // cross-process DB flag).
@@ -798,6 +810,7 @@ async function executeAutomation(automation, { triggerKind = 'manual', triggerPa
                 if (cancelSignal.aborted) throw new Error('Run cancelled');
                 if (await isCancelRequested(run.id)) throw new Error('Run cancelled');
             };
+            if (repeats) return execRepeatStep(step, ctx_, state_, mode_, runStepLeaf, checkCancel);
             return execForEachStep(step, ctx_, state_, mode_, runStepLeaf, checkCancel);
         }
         return runStepLeaf(step, ctx_, state_, mode_);
@@ -1099,6 +1112,8 @@ async function executeAutomation(automation, { triggerKind = 'manual', triggerPa
     // 'success', but the summary + handled_error_count make the recoveries
     // visible in the run history.
     const handledErrorCount = Array.isArray(runState._handledErrors) ? runState._handledErrors.length : 0;
+    // Everything the run warned about, for the run view (runWarnings.js).
+    const runWarnings = recordedRunWarnings(runState._templateWarnings);
     const memoStats = (() => {
         try { return ctx._toolMemo?.stats?.() || {}; } catch (_) { return {}; }
     })();
@@ -1162,6 +1177,7 @@ async function executeAutomation(automation, { triggerKind = 'manual', triggerPa
         ...(runErrorClass ? { errorClass: runErrorClass } : {}),
         summary,
         ...(handledErrorCount > 0 ? { handledErrorCount } : {}),
+        ...(runWarnings.length ? { warnings: runWarnings } : {}),
         ...(runStatus === 'awaiting_approval' || runStatus === 'awaiting_form'
             ? {
                 awaitingStepId: runErrorObj?.stepId || null,

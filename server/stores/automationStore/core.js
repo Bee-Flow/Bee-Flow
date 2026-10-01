@@ -108,6 +108,10 @@ const MIGRATIONS = [
     // columns, structured step errors, shares, notification events and org
     // templates. One migration for every package of that work.
     'automation-handoff5-2026-09',
+    // The warnings a run collects (a value that was empty, a list that went
+    // into a one-value field, a branch with no edge) on the run row, where
+    // the run view reads them. They were collected and never written.
+    'automation-run-warnings-2026-10',
 ];
 
 const initDB = makeStoreInit('AutomationStore', _initDB);

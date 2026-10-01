@@ -7,9 +7,19 @@
  * or push onto a caller-supplied array.
  */
 
-const { templatePaths } = require('../../shared/mapping/index.mjs');
+const { templatePaths, isCompose } = require('../../shared/mapping/index.mjs');
 
 function isObject(x) { return x && typeof x === 'object' && !Array.isArray(x); }
+
+/**
+ * Does a text field hold something to render? A `{{ }}` string that is not
+ * blank, or a compose binding (a text with picked values, rendered by the
+ * same interpolateTemplate) with at least one part.
+ */
+function hasText(v) {
+    if (typeof v === 'string') return v.trim() !== '';
+    return isCompose(v) && v.parts.length > 0;
+}
 
 /**
  * Optional canvas position (`{ x, y }`) — written by the drag-and-drop
@@ -156,6 +166,7 @@ function secondSegment(path) {
 
 module.exports = {
     isObject,
+    hasText,
     validatePosition,
     topoOrder,
     collectRefPaths,

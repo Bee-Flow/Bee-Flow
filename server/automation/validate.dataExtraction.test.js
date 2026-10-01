@@ -84,6 +84,25 @@ test('a bare string source only warns (the runner resolves it), but its refs are
     assert.ok(codes(base({ source: { foo: 1 } }), { stage: 'draft' }).includes('data_extraction.source_invalid'), 'blocks at draft too');
 });
 
+// `source` is a compose-capable text site (shared/mapping/sites.mjs) and
+// execDataExtraction resolves a v2 binding there, so the validator takes it.
+test('a v2 pick or compose is a legitimate source', () => {
+    const pick = { kind: 'pick', v: 1, from: { root: 'steps', id: 'read', path: ['rows', 'email'] }, take: 'all', as: 'text' };
+    assert.deepStrictEqual(codes(base({ source: pick })), []);
+    const compose = { kind: 'compose', v: 1, parts: ['Body: ', { from: { root: 'steps', id: 'read', path: ['body'] }, take: 'one', as: 'text' }] };
+    assert.deepStrictEqual(codes(base({ source: compose })), []);
+    // A compose with no parts has nothing to read yet: completeness.
+    assert.ok(codes(base({ source: { kind: 'compose', v: 1, parts: [] } })).includes('data_extraction.source_missing'));
+    // A broken v2 binding is mappingRules' error, reported once.
+    const broken = codes(base({ source: { ...pick, take: 'some' } }));
+    assert.ok(broken.includes('mapping.invalid'), broken.join(','));
+    assert.ok(!broken.includes('data_extraction.source_invalid'));
+    // Without `v` it is plain data to the runner, as before v2.
+    const { v, ...unversioned } = pick;
+    assert.equal(v, 1);
+    assert.ok(codes(base({ source: unversioned })).includes('data_extraction.source_invalid'));
+});
+
 test('a template binding is a legitimate source too', () => {
     assert.deepStrictEqual(codes(base({ source: { kind: 'template', value: 'Subject: {{steps.read.output.body}}' } })), []);
 });
