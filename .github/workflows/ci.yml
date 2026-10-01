@@ -107,7 +107,7 @@ jobs:
         if: github.event_name == 'pull_request' && github.event.pull_request.draft != true
         run: git rev-parse 'HEAD^{tree}' | tee tested-tree.txt | sed 's/^/tree=/' >> "$GITHUB_OUTPUT"
       # Never on a draft: its run is green without the long suites.
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: github.event_name == 'pull_request' && github.event.pull_request.draft != true
         with:
           name: ci-tested-tree-${{ steps.tree.outputs.tree }}
@@ -506,7 +506,7 @@ jobs:
         if: github.event.pull_request.draft != true
         working-directory: .
         run: node scripts/coverage-ratchet.mjs server
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: ${{ !cancelled() && github.event.pull_request.draft != true }}
         with:
           name: coverage-server
@@ -649,7 +649,7 @@ jobs:
       # to .vitest/blob/, and the upload and merge steps below read the old one.
       - name: Unit tests (vitest shard ${{ matrix.shard }}/3, with coverage)
         run: npx vitest run --shard=${{ matrix.shard }}/3 --maxWorkers=100% --reporter=blob --reporter=dot --outputFile.blob=.vitest-reports/blob-${{ matrix.shard }}-3.json --coverage
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: ${{ !cancelled() }}
         with:
           name: vitest-blob-${{ matrix.shard }}
@@ -691,7 +691,7 @@ jobs:
       # (one point under the last measurement; `--update` only raises it).
       - name: Coverage floor
         run: node ../scripts/coverage-ratchet.mjs agent-hub
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: ${{ !cancelled() }}
         with:
           name: coverage-frontend
@@ -735,7 +735,7 @@ jobs:
         run: node ../scripts/coverage-ratchet.mjs mobile
       - name: Line-reference ratchet (comments naming a line number may only fall)
         run: node ../scripts/count-ratchet.mjs line-ref mobile
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: ${{ !cancelled() && github.event.pull_request.draft != true }}
         with:
           name: coverage-mobile
@@ -832,7 +832,7 @@ jobs:
           pip install -r whisperx-service/requirements-dev.txt
           python -m pytest whisperx-service/tests --cov=whisperx-service --cov-config=whisperx-service/pyproject.toml --cov-report=term --cov-report=xml:coverage-whisperx.xml --cov-report=json:coverage-whisperx.json
           node scripts/coverage-ratchet.mjs whisperx-service --summary coverage-whisperx.json
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: ${{ !cancelled() }}
         with:
           name: coverage-python
@@ -871,7 +871,7 @@ jobs:
           python -m coverage xml -o coverage-guard.xml
           python -m coverage json -o coverage-guard.json
           node ../scripts/coverage-ratchet.mjs guard-service --summary guard-service/coverage-guard.json
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: ${{ !cancelled() }}
         with:
           name: coverage-guard
