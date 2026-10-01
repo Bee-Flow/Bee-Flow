@@ -265,6 +265,7 @@ up:
 
 ```
 shared/expr/vendor/   the expression engine, byte-identical to agent-hub/src/shared/expr
+shared/mapping/vendor/ the binding core (path walker, legacy kinds), generated from server/shared/mapping
 model/                the graph, pure: normalize, edges, flowOrder, nodeDefs, palette,
                       route model, issues, summaries, layout, history, flowlets;
                       model/outline/: insert, remove, duplicate, move, pin, disable,

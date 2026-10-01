@@ -198,6 +198,7 @@ jobs:
               - 'server/routes/webpages/*'
               - 'server/services/{ncUserGroupSync.js,stripeService.js}'
               - 'server/shared/expr/*'
+              - 'server/shared/mapping/*'
               - 'server/stores/*'
               - 'server/stores/agent/sharedConversations.js'
               - 'server/stores/automationStore/{folders.js,forms.js,lifecycle.js,runs.js,versions.js,webhooks.js}'
@@ -289,6 +290,7 @@ jobs:
               - 'agent-hub/src/components/automation/Builder/{flow,mapping,utils}/**'
               - 'agent-hub/src/components/agents/AgentWizard/state/refineMerge.js'
               - 'agent-hub/src/shared/expr/**'
+              - 'agent-hub/src/shared/mapping/**'
               - 'agent-hub/src/utils/{bindingHelpers,scopedStorage}.*'
               - 'agent-hub/src/api/client.*'
               - 'agent-hub/src/components/admin/Studio/AppStudio/runtime/{themeVars.js,uiBits.jsx}'
@@ -535,10 +537,11 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
           cache-dependency-path: agent-hub/package-lock.json
-      # agent-hub/src/shared/expr/ is GENERATED from server/shared/expr/
-      # (npm run gen:shared). Checked before the install, so drift fails in
-      # seconds instead of in the vitest sync test a quarter of an hour in.
-      - name: Expression engine mirror matches the server's
+      # agent-hub/src/shared/{expr,mapping}/ and mobile's vendored copies are
+      # GENERATED from server/shared/ (npm run gen:shared). Checked before the
+      # install, so drift fails in seconds instead of in the vitest sync test
+      # a quarter of an hour in.
+      - name: Shared module mirrors match the server's
         run: node ../scripts/gen-shared-mirror.mjs --check
       - name: Install dependencies
         run: npm ci

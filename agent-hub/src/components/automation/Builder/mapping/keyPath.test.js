@@ -6,12 +6,12 @@ import { walkPath, walkRelativePath } from '../../../../utils/bindingHelpers';
 /**
  * The one rule for writing an object key down as a path.
  *
- * It exists because the builder and the runtime resolve paths DIFFERENTLY on
- * purpose: `walkPath` previews saved paths verbatim (no syntax check), while
- * the run enforces REF_RE. A key like `content-type` slips through the first
- * and is rejected by the second, so an unquoted path is not a visible error —
- * it is a green preview over a field that arrives empty. Every assertion below
- * therefore checks the path against BOTH, not against a string.
+ * It exists because the run enforces REF_RE: a key like `content-type`
+ * written unquoted is rejected, and the field arrives empty. The builder's
+ * `walkPath` used to preview such a path verbatim (a green preview over an
+ * empty field); it is the runtime's own walker now (shared/mapping). Every
+ * assertion below still checks the path against BOTH walkers, not against a
+ * string, so neither can drift back.
  */
 const ROOT = {
     trigger: {

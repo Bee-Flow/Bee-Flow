@@ -121,16 +121,12 @@ describe('the kind decides the question, and it is read from the data when not g
  * `x-request-id`, `first name`. That is the whole reason this branch exists,
  * so it is also where an unquoted key does the most damage.
  *
- * The two resolvers are deliberately different, and that is what makes a raw
- * key dangerous rather than merely wrong:
- *   - `walkPath` (the BUILDER's preview) skips the syntax check on purpose —
- *     it previews saved paths verbatim — so `body.content-type` shows the
- *     real value under the button.
- *   - `walkRelativePath` enforces REF_RE, which is a byte-for-byte mirror of
- *     the server binder's. It is the run's answer.
- * A raw key makes those two disagree: green preview, empty field at run time,
- * no warning anywhere. So every binding this branch emits is checked against
- * the RUN's resolver, not the preview's.
+ * A raw key is dangerous rather than merely wrong: the run's REF_RE rejects
+ * `body.content-type`, so the field arrives empty. The builder's `walkPath`
+ * used to skip that check and preview the real value under the button (green
+ * preview, empty field at run time, no warning anywhere). Both walkers are the
+ * runtime's own now (shared/mapping), and every binding this branch emits is
+ * still checked against the RUN's resolver as well as the preview's.
  */
 const HEADERS = {
     trigger: {

@@ -88,9 +88,12 @@ and `npm run lint:secrets`.
   it is listed in `server/i18n/defaults/removed-keys.txt`. Keep one writer per namespace file:
   two branches adding to the same file merge without a visible conflict, and the second one
   silently wins.
-- `npm run lint:shared-mirror`: `server/shared/expr/` is the source of the expression engine,
-  `agent-hub/src/shared/expr/` a byte-for-byte GENERATED copy (the agent-hub image cannot see
-  `server/`). After changing the source run `npm run gen:shared` and commit both.
+- `npm run lint:shared-mirror`: `server/shared/expr/` (the expression engine) and
+  `server/shared/mapping/` (the binding core behind `automation/bind.js`) are the sources;
+  `agent-hub/src/shared/{expr,mapping}/` and mobile's `src/shared/{expr,mapping}/vendor/` are
+  byte-for-byte GENERATED copies (the agent-hub image cannot see `server/`, Metro cannot import
+  outside `mobile/`), listed in the `MIRRORS` table of `scripts/gen-shared-mirror.mjs`. After
+  changing a source run `npm run gen:shared` and commit all copies.
 - Count ratchets (`scripts/count-ratchet.mjs`, budget in `agent-hub/.<metric>-ratchet.json`,
   `--update` only lowers, `--list` shows where they are): `lint:style-ratchet` (`style={{…}}`
   objects; use a Tailwind class on the theme variable, `text-[var(--x)]`),

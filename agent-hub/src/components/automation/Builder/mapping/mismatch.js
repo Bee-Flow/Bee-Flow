@@ -148,10 +148,10 @@ function groupRemedies(p, sampleRoot) {
     // `content-type`, `x-request-id` and `first-name` are the norm. Two rules,
     // both from ./keyPath, and neither optional here:
     //
-    //   - QUOTE. `${p}.content-type` previews the real value (the builder's
-    //     walkPath skips the syntax check on purpose) and resolves to
-    //     undefined in the run (the server's REF_RE rejects it), so the field
-    //     arrives EMPTY with no warning at save time or run time. Touching the
+    //   - QUOTE. `${p}.content-type` resolves to undefined in the run (the
+    //     server's REF_RE rejects it; the builder's walkPath is the same
+    //     walker, so the preview is empty too), so the field arrives EMPTY
+    //     with no warning at save time or run time. Touching the
     //     field afterwards re-parses it as an expression, where the hyphen is
     //     a subtraction — a second, different silent failure for one key.
     //     `${p}["content-type"]` resolves on both sides.

@@ -114,11 +114,15 @@ const layerRules = [
 module.exports = [
     ...expo,
     {
-        // `src/shared/expr/vendor` is the web's expression engine copied byte
-        // for byte (exprVendor.lockstep.test.ts); linting it here would only
-        // ask for an edit the lockstep test forbids. It is linted where it is
-        // written, in agent-hub and server.
-        ignores: ['android/**', 'ios/**', '.expo/**', 'node_modules/**', 'expo-env.d.ts', 'dist/**', 'src/shared/expr/vendor/**'],
+        // `src/shared/expr/vendor` and `src/shared/mapping/vendor` are the
+        // server's shared modules copied byte for byte (npm run gen:shared;
+        // the *Vendor.lockstep tests); linting them here would only ask for an
+        // edit the lockstep tests forbid. They are linted where they are
+        // written, in server.
+        ignores: [
+            'android/**', 'ios/**', '.expo/**', 'node_modules/**', 'expo-env.d.ts', 'dist/**',
+            'src/shared/expr/vendor/**', 'src/shared/mapping/vendor/**',
+        ],
     },
     {
         // TypeScript-only rules, with the plugin registered alongside them.

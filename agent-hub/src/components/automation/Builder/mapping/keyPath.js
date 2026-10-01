@@ -6,11 +6,12 @@
  * a spreadsheet import carries `Order date`. Written as `body.content-type` a
  * path is not a path at all: the server's binder rejects it outright (its
  * REF_RE matches identifiers and bracket-quoted keys, nothing else) and the
- * expression engine reads the hyphen as a SUBTRACTION. The builder's own
- * walkPath is deliberately laxer — it previews saved paths verbatim — so the
- * two disagree in the worst possible direction: a preview that shows the real
- * value under a binding the run resolves to undefined, with no warning at
- * either end.
+ * expression engine reads the hyphen as a SUBTRACTION. The builder's preview
+ * walker used to be laxer (it previewed saved paths verbatim), so the two
+ * disagreed in the worst possible direction: a preview that showed the real
+ * value under a binding the run resolved to undefined, with no warning at
+ * either end. It is the runtime's own walker now (shared/mapping), so an
+ * unquoted key previews as empty; quoting is what makes it a value.
  *
  * Hence one shared rule, in one file, for every surface that builds a path out
  * of a key it did not itself write (the JSON tree picker, the mismatch box's

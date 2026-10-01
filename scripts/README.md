@@ -21,7 +21,7 @@ anything that touches production.
 | Script | Purpose |
 |--------|---------|
 | `check-fast.mjs` | Every cheap CI gate at once, in parallel, in a few seconds (`npm run check:fast`) — see [below](#checkfast--the-cheap-ci-gates-locally) |
-| `gen-shared-mirror.mjs` | Generates agent-hub's copy of the expression engine from `server/shared/expr/` (`npm run gen:shared`; `--check` is `npm run lint:shared-mirror`) — see [below](#gen-shared-mirrormjs--the-expression-engines-agent-hub-copy) |
+| `gen-shared-mirror.mjs` | Generates the client copies of `server/shared/expr/` and `server/shared/mapping/` (agent-hub and the mobile vendor directories, the `MIRRORS` table) (`npm run gen:shared`; `--check` is `npm run lint:shared-mirror`) — see [below](#gen-shared-mirrormjs--the-client-copies-of-servershared) |
 | `entry-point.mjs` | `isEntryPoint(import.meta.url)`: a script's "run as a command, not imported by a test" guard, through realpath so a symlinked path cannot make a gate skip `main()` and exit 0. A script that imports it and is copied into a test sandbox needs it copied too |
 | `eslint-budget.mjs` | ESLint warning ratchet per package (`npm run lint:budget`) — see [below](#eslint-budgetmjs-windows-and---concurrency) |
 | `scan-secrets.sh` | Monorepo secret scanner: gitleaks with `.gitleaks.toml`, or a regex fallback when gitleaks is absent. Default: tracked files (`npm run lint:gitleaks`, CI). `--range A..B`: the commits in a range (CI, needs gitleaks). `--changed` / `--staged`: only what a commit can contain (the commit hooks) — see [below](#secret-scan-modes---changed---staged---range) |
@@ -84,24 +84,32 @@ takes over 10 s is named at the end of every run as a candidate for the
 denylist. A check that is not an npm script (like the two merge-base gates)
 goes in `branchGates()`.
 
-## `gen-shared-mirror.mjs` — the expression engine's agent-hub copy
+## `gen-shared-mirror.mjs` — the client copies of `server/shared/`
 
-The expression engine runs in the server and in App Studio. The agent-hub
-image builds with context `./agent-hub` and cannot see `server/`, so agent-hub
-carries its own copy (`agent-hub/src/shared/expr/`, the `@shared` alias in
-`vite.config.js`). `server/shared/expr/` is the source; the copy is generated:
+Two isomorphic modules run on the server and in the clients: the expression
+engine (`server/shared/expr/`) and the mapping core behind
+`automation/bind.js` (`server/shared/mapping/`). The agent-hub image builds
+with context `./agent-hub` and cannot see `server/`, and Metro cannot import
+from outside `mobile/`, so each client carries its own copy. The `MIRRORS`
+table in the script lists them: `agent-hub/src/shared/{expr,mapping}/` (the
+`@shared` alias in `vite.config.js`) and `mobile/src/shared/{expr,mapping}/vendor/`.
+`server/shared/` is the source; the copies are generated:
 
-- `npm run gen:shared` copies every non-test file of `server/shared/expr/`
-  over, byte for byte, and removes a copied file the server no longer has.
+- `npm run gen:shared` copies every non-test file of each source over, byte
+  for byte, and removes a copied file the server no longer has. A mirror can
+  `exclude` source files (mobile's expr vendor has no corpus) and `keep` files
+  of its own (mobile's expr `index.d.mts`).
 - `npm run lint:shared-mirror` (`--check`, run by `check:fast` and as the
   first step of CI's Frontend checks) writes nothing and exits 1 naming each
   file that differs (with its first differing line), is missing, or is
-  extra. `sharedExpr.sync.test.js` in agent-hub's vitest suite stays as a
-  backstop.
+  extra, per mirror. `sharedExpr.sync.test.js` in agent-hub's vitest suite
+  and mobile's `exprVendor.lockstep.test.ts` and
+  `mappingVendor.lockstep.test.ts` stay as backstops.
 
-Tests (`*.test.*`, `*.spec.*`) are outside the mirror on both sides. The copy
-is in `.jscpd.json`'s ignore list because it is generated, not duplication
-anyone writes: 1,438 of the lines `lint:duplication` counted. The reason lives
+Tests (`*.test.*`, `*.spec.*`) are outside the mirror on both sides. The
+agent-hub copies are in `.jscpd.json`'s ignore list (mobile's fall under its
+`**/vendor/**` rule) because they are generated, not duplication anyone
+writes: the expr copy alone was 1,438 of the lines `lint:duplication` counted. The reason lives
 here because `.jscpd.json` is strict JSON and jscpd 5 warns about an unknown
 key such as `_comment` on every run.
 

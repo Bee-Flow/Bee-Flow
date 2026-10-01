@@ -1,10 +1,11 @@
 /**
- * The mirror is loaded by the browser bundle as if it were the server's own
- * file, so what has to hold is that write mode copies BYTES (a CRLF, a BOM, a
- * missing final newline and non-ASCII text all survive), and that --check is
- * a gate: it must refuse a differing byte, a missing file and an extra one,
- * name each of them, and write nothing while doing so. Test files are outside
- * the mirror on both sides.
+ * The mirrors are loaded by the browser bundle and the phone as if they were
+ * the server's own files, so what has to hold is that write mode copies BYTES
+ * (a CRLF, a BOM, a missing final newline and non-ASCII text all survive), and
+ * that --check is a gate: it must refuse a differing byte, a missing file and
+ * an extra one, name each of them, and write nothing while doing so. Test
+ * files are outside the mirror on both sides. Every mirror in the MIRRORS
+ * table is held to this, each with its own exclude and keep lists.
  *
  * Sandbox style: scripts/gen-i18n-defaults.test.mjs — a throwaway tree under
  * os.tmpdir() with the real script copied in and a tiny fixture engine.
@@ -17,6 +18,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+
+import { MIRRORS } from './gen-shared-mirror.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const SCRIPT = path.join(HERE, 'gen-shared-mirror.mjs');
@@ -32,7 +35,13 @@ const SOURCE_TESTS = {
     'functions.format.test.mjs': "import test from 'node:test';\n",
 };
 
-function sandbox(t, { source = { ...SOURCE, ...SOURCE_TESTS } } = {}) {
+const MAPPING = {
+    'index.mjs': "export * from './legacy.mjs';\n",
+    'legacy.mjs': 'export const walk = () => 1;\n',
+    'legacy.test.mjs': "import test from 'node:test';\n",
+};
+
+function sandbox(t, { source = { ...SOURCE, ...SOURCE_TESTS }, mapping = MAPPING } = {}) {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gen-shared-mirror-'));
     t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
     fs.mkdirSync(path.join(dir, 'scripts'));
@@ -40,6 +49,11 @@ function sandbox(t, { source = { ...SOURCE, ...SOURCE_TESTS } } = {}) {
     fs.copyFileSync(path.join(HERE, 'entry-point.mjs'), path.join(dir, 'scripts', 'entry-point.mjs'));
     for (const [name, body] of Object.entries(source)) {
         const file = path.join(dir, 'server', 'shared', 'expr', name);
+        fs.mkdirSync(path.dirname(file), { recursive: true });
+        fs.writeFileSync(file, body);
+    }
+    for (const [name, body] of Object.entries(mapping)) {
+        const file = path.join(dir, 'server', 'shared', 'mapping', name);
         fs.mkdirSync(path.dirname(file), { recursive: true });
         fs.writeFileSync(file, body);
     }
@@ -166,4 +180,60 @@ test('a source directory without files to mirror is an error, not a pass', (t) =
         assert.match(r.stderr, /server\/shared\/expr\/ has no files to mirror/);
     }
     assert.ok(!fs.existsSync(mirror(dir)));
+});
+
+test('the table mirrors expr and mapping to agent-hub and to the mobile vendor directories', () => {
+    const pairs = MIRRORS.map((m) => `${m.source} -> ${m.target}`);
+    assert.deepStrictEqual(pairs, [
+        'server/shared/expr -> agent-hub/src/shared/expr',
+        'server/shared/expr -> mobile/src/shared/expr/vendor',
+        'server/shared/mapping -> agent-hub/src/shared/mapping',
+        'server/shared/mapping -> mobile/src/shared/mapping/vendor',
+    ]);
+});
+
+test('write mode fills every mirror; the mobile expr vendor leaves out the corpus and keeps its own declaration', (t) => {
+    const dir = sandbox(t, { source: { ...SOURCE, 'corpus.mjs': 'export const CASES = [];\n' } });
+    const vendor = (...p) => path.join(dir, 'mobile', 'src', 'shared', 'expr', 'vendor', ...p);
+    fs.mkdirSync(vendor(), { recursive: true });
+    fs.writeFileSync(vendor('index.d.mts'), 'export declare const f: () => string;\n');
+
+    const r = run(dir);
+    assert.strictEqual(r.code, 0, r.stderr);
+    assert.deepStrictEqual(listing(dir), ['corpus.mjs', 'engine.mjs', 'functions.mjs', 'index.mjs']);
+    assert.deepStrictEqual(fs.readdirSync(vendor()).sort(), ['engine.mjs', 'functions.mjs', 'index.d.mts', 'index.mjs']);
+    for (const target of ['agent-hub/src/shared/mapping', 'mobile/src/shared/mapping/vendor']) {
+        assert.deepStrictEqual(fs.readdirSync(path.join(dir, target)).sort(), ['index.mjs', 'legacy.mjs'], target);
+        assert.strictEqual(fs.readFileSync(path.join(dir, target, 'legacy.mjs'), 'utf8'), MAPPING['legacy.mjs']);
+    }
+
+    const check = run(dir, ['--check']);
+    assert.strictEqual(check.code, 0, check.stderr);
+    assert.match(check.stdout, /mobile\/src\/shared\/expr\/vendor\/ matches server\/shared\/expr\/ \(3 files\)/);
+    assert.match(check.stdout, /mobile\/src\/shared\/mapping\/vendor\/ matches server\/shared\/mapping\/ \(2 files\)/);
+});
+
+test('--check names the one mirror that drifted, still reports the others, and fails', (t) => {
+    const dir = sandbox(t);
+    run(dir);
+    const stale = path.join(dir, 'mobile', 'src', 'shared', 'mapping', 'vendor', 'legacy.mjs');
+    fs.writeFileSync(stale, 'export const walk = () => 2;\n');
+
+    const r = run(dir, ['--check']);
+    assert.strictEqual(r.code, 1);
+    assert.match(r.stderr, /differs: mobile\/src\/shared\/mapping\/vendor\/legacy\.mjs \(first difference at line 1\)/);
+    assert.match(r.stdout, /agent-hub\/src\/shared\/mapping\/ matches/);
+    assert.match(r.stdout, /agent-hub\/src\/shared\/expr\/ matches/);
+    assert.strictEqual(fs.readFileSync(stale, 'utf8'), 'export const walk = () => 2;\n', '--check never writes');
+
+    assert.strictEqual(run(dir).code, 0);
+    assert.strictEqual(fs.readFileSync(stale, 'utf8'), MAPPING['legacy.mjs']);
+});
+
+test('a missing mapping source fails before any mirror is written', (t) => {
+    const dir = sandbox(t, { mapping: {} });
+    const r = run(dir);
+    assert.strictEqual(r.code, 1);
+    assert.match(r.stderr, /server\/shared\/mapping\/ has no files to mirror/);
+    assert.ok(!fs.existsSync(mirror(dir)), 'not even the expr mirror is written');
 });

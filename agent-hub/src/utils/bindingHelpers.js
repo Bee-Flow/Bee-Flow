@@ -7,6 +7,8 @@
  * `insertAtCursor` which mutates a DOM input/textarea.
  */
 
+import { walkPath as runtimeWalkPath } from '@shared/mapping/index.mjs';
+
 // Exported so the chip/token layer (mapping/refTokens.js) shares the exact
 // same notion of "contains an interpolation" — keep this the single source.
 export const TEMPLATE_RE = /\{\{[^}]+\}\}/;
@@ -358,108 +360,36 @@ function templateToExprFragment(text) {
     return parts.length === 1 ? parts[0] : `concat(${parts.join(', ')})`;
 }
 
-// §WS4.1 — canonical path tokeniser/resolver, ported to match the SERVER runtime
-// (server/automation/bind.js tokenizePath/resolveTokens) byte-for-byte in
-// semantics. The previous FE walker split on '.' and only understood `[N]`
-// numeric indices — so any path containing a `[*]` wildcard (e.g. a forEach
-// `…results[*].output.field` shape) resolved to undefined in the design-time
-// preview while the live runtime resolved it. Keeping the two in lock-step is
-// what makes the VariableTree preview match what the automation actually sees.
-function tokenizePath(path) {
-    const tokens = [];
-    let i = 0;
-    let buf = '';
-    const flush = () => { if (buf.length) { tokens.push({ type: 'prop', key: buf }); buf = ''; } };
-    while (i < path.length) {
-        const c = path[i];
-        if (c === '.') { flush(); i++; continue; }
-        if (c === '[') {
-            flush();
-            const close = path.indexOf(']', i);
-            if (close < 0) return null;
-            const raw = path.slice(i + 1, close);
-            if (raw === '*') tokens.push({ type: 'wild' });
-            else if (raw.startsWith('"') && raw.endsWith('"')) tokens.push({ type: 'prop', key: raw.slice(1, -1) });
-            else if (raw.startsWith("'") && raw.endsWith("'")) tokens.push({ type: 'prop', key: raw.slice(1, -1) });
-            else tokens.push({ type: 'prop', key: parseInt(raw, 10) });
-            i = close + 1;
-            continue;
-        }
-        buf += c;
-        i++;
-    }
-    flush();
-    return tokens;
-}
+// The path walkers are the RUNTIME's own: server/automation/bind.js resolves
+// refs and `{{ }}` templates with shared/mapping's legacy walker, and this is
+// the generated copy of the same file. A preview therefore shows exactly what
+// the run will get, including undefined for a path the runtime rejects
+// (`items.0.x`, `body.content-type`): the old copy here skipped REF_RE and
+// showed the real value under a binding that ran empty. The golden corpus
+// (src/shared/mappingCorpus.test.ts) holds the copy to the server's results.
+//
+// walkPath(path, root): `steps.s1.output.results[0].subject`,
+// `…results[*].output.field` (flattened), `obj["quoted key"]`; never throws.
+// walkRelativePath(path, value): the parse_json dialect, relative to a value
+// (`[0].x`, `[*].sku`); `''`/`'$'`/nullish returns the whole value.
+export { walkRelativePath } from '@shared/mapping/index.mjs';
 
-function resolveTokens(tokens, cur) {
-    for (let t = 0; t < tokens.length; t++) {
-        const tok = tokens[t];
-        if (tok.type === 'wild') {
-            if (!Array.isArray(cur)) return undefined;
-            const rest = tokens.slice(t + 1);
-            const out = [];
-            for (const el of cur) {
-                const m = resolveTokens(rest, el);
-                if (m === undefined) continue;
-                if (Array.isArray(m)) out.push(...m);
-                else out.push(m);
-            }
-            return out;
-        }
-        if (cur == null) return undefined;
-        // Never walk the prototype chain — mirrors server bind.js: a picked
-        // path like "constructor" must preview as undefined here, exactly as
-        // it resolves at runtime. Array/string indices and `.length` are own
-        // properties (hasOwnProperty.call auto-boxes primitives), so
-        // legitimate paths are unaffected.
-        if (!Object.prototype.hasOwnProperty.call(cur, tok.key)) return undefined;
-        cur = cur[tok.key];
-    }
-    return cur;
-}
+// One builder-only spelling the runtime never sees: on a canvas with an
+// expanded flowlet or loop (flow/inlineFlowlets.js), the inline steps carry a
+// prefixed id (`cl1/s1`, `cl1/cl2/s7`, `lp1/__item__`) and their bindings are
+// rewritten to `steps.cl1/s1.output.x`, with the sample keyed the same way.
+// REF_RE rejects the `/`, so those previews went empty while the saved
+// definition (decomposed back to `steps.s1…`) runs fine. Quoting the prefixed
+// id keeps the strict walker in charge of everything after it. Outside an
+// expanded container this never fires: a saved step id outside the identifier
+// grammar is already flagged by the validator (validate/fieldChecks.js).
+const FLAT_STEP_ID_RE = /^steps\.([^.[\]"'\\]*\/[^.[\]"'\\]*)(?=[.[]|$)/;
 
-/**
- * Walk a dotted/bracketed path on an object
- * (`steps.s1.output.results[0].subject`, `…results[*].output.field`,
- * `obj["quoted key"]`). Returns undefined if any segment is missing — never
- * throws. Supports `[*]` wildcard flatten with the same semantics as the server
- * runtime. Used by the VariableTree to resolve a sample value to display.
- */
 export function walkPath(path, root) {
-    if (!path || root == null) return undefined;
-    const tokens = tokenizePath(String(path));
-    if (!tokens) return undefined;
-    return resolveTokens(tokens, root);
-}
-
-// Mirrors server bind.js REF_RE. The FE walkPath above deliberately skips
-// this check (it previews saved paths verbatim), but walkRelativePath must
-// enforce it so a parse_json field path resolves IDENTICALLY at design time
-// and at runtime — e.g. a bare-digit path `0` is rejected on both sides
-// (use `[0]`).
-const REF_RE = /^[A-Za-z_$][A-Za-z0-9_$]*(?:\.[A-Za-z_$][A-Za-z0-9_$]*|\[(?:[0-9]+|\*|"[^"]*"|'[^']*')\])*$/;
-
-/**
- * Walk a path RELATIVE to an arbitrary value (not the runState roots).
- * Byte-for-byte mirror of server/automation/bind.js walkRelativePath —
- * used by the parse_json step editor's live preview so what the user sees
- * is exactly what the runtime extracts.
- *
- * Wrapping the value as `{$: value}` and prefixing the path with `$`/`$.`
- * keeps REF_RE satisfied (it rejects a leading `[`) while allowing
- * root-array sources (`[0].x`, `[*].sku`), and reuses resolveTokens'
- * `[*]` flatten + prototype-chain block unchanged. `''`/`'$'`/nullish
- * returns the whole source.
- */
-export function walkRelativePath(path, value) {
-    if (path === '' || path === '$' || path == null) return value;
-    const p = String(path);
-    const abs = p.startsWith('[') ? `$${p}` : `$.${p}`;
-    if (!REF_RE.test(abs)) return undefined;
-    const tokens = tokenizePath(abs);
-    if (!tokens) return undefined;
-    return resolveTokens(tokens, { $: value });
+    if (typeof path === 'string' && path.startsWith('steps.') && path.includes('/')) {
+        return runtimeWalkPath(path.replace(FLAT_STEP_ID_RE, 'steps["$1"]'), root);
+    }
+    return runtimeWalkPath(path, root);
 }
 
 /**

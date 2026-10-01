@@ -35,6 +35,7 @@
     "**/*.lock",
     "**/migrations/**",
     "agent-hub/src/shared/expr/**",
+    "agent-hub/src/shared/mapping/**",
     "deploy/**",
     "docs_old/**"
   ]

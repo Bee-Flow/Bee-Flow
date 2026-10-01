@@ -7,247 +7,40 @@
  *   { kind: 'template', value: 'Found {{steps.s1.output.count}} invoices' }
  *   { kind: 'expr',     value: 'steps.s1.output.amount > 1000 ? "high" : "low"' }
  *
- * Bare values (numbers/strings/booleans/arrays/objects without a `kind` field)
- * are treated as literals — this is a tolerance for hand-authored definitions
- * and AI-generated bindings that skip the wrapper.
+ * The implementation lives in the SHARED, isomorphic module `shared/mapping/`
+ * (legacy.mjs: the path grammar and walker; resolve.mjs: the four kinds), so
+ * the runtime and the builder previews on the web and the phone resolve a
+ * path identically. A golden corpus (shared/mapping/corpus.mjs), recorded
+ * from this file before the code moved, pins all three. This file is a thin
+ * CommonJS facade with the same exports as before, so every caller keeps
+ * `const { resolveInputs, interpolateTemplate, ... } = require('./bind')`.
  *
- * Roots available in runState:
- *   trigger.output, steps.<id>.output, loop.<itemVar>, vars, secrets
- *   (`secrets` is excluded from `template` bindings — see resolveValue.)
+ * It adds the two server-only pieces the shared module cannot import: the
+ * expression engine (./expr, for `expr` bindings) and the debug log on a
+ * template path that resolves to undefined (`AUTOMATION_DEBUG_BINDINGS=1`).
+ *
+ * Requires Node >= 22.12 for require(ESM), like automation/expr.js.
  */
 
 const { evaluate } = require('./expr');
 const log = require('../telemetry/log');
+const mapping = require('../shared/mapping/index.mjs');
 
-const REF_RE = /^[A-Za-z_$][A-Za-z0-9_$]*(?:\.[A-Za-z_$][A-Za-z0-9_$]*|\[(?:[0-9]+|\*|"[^"]*"|'[^']*')\])*$/;
-
-// Defensive deep-clone for binding values. Without this, an object literal
-// in a definition (`{kind:'literal', value:{...}}`) would be returned by
-// reference — a downstream step mutating its inputs would silently corrupt
-// the definition's binding for every subsequent run. Primitives are
-// returned as-is to keep the hot path cheap.
-function cloneLiteral(value) {
-    if (value === null || typeof value !== 'object') return value;
-    try { return structuredClone(value); }
-    catch { return JSON.parse(JSON.stringify(value)); }
-}
-
-/**
- * Tokenize a dotted/bracketed path into prop / index / wildcard tokens.
- * Returns null on a malformed path (unclosed bracket).
- */
-function tokenizePath(path) {
-    const tokens = [];
-    let i = 0;
-    let buf = '';
-    const flush = () => { if (buf.length) { tokens.push({ type: 'prop', key: buf }); buf = ''; } };
-    while (i < path.length) {
-        const c = path[i];
-        if (c === '.') { flush(); i++; continue; }
-        if (c === '[') {
-            flush();
-            const close = path.indexOf(']', i);
-            if (close < 0) return null;
-            const raw = path.slice(i + 1, close);
-            if (raw === '*') tokens.push({ type: 'wild' });
-            else if (raw.startsWith('"') && raw.endsWith('"')) tokens.push({ type: 'prop', key: raw.slice(1, -1) });
-            else if (raw.startsWith("'") && raw.endsWith("'")) tokens.push({ type: 'prop', key: raw.slice(1, -1) });
-            else tokens.push({ type: 'prop', key: parseInt(raw, 10) });
-            i = close + 1;
-            continue;
+const { resolveValue, resolveDeep, resolveInputs, interpolateTemplate } = mapping.createLegacyResolver({
+    evaluate,
+    onUnresolved(path) {
+        if (process.env.AUTOMATION_DEBUG_BINDINGS) {
+            log.warn(`[bind] template path "${path}" resolved to undefined`);
         }
-        buf += c;
-        i++;
-    }
-    flush();
-    return tokens;
-}
+    },
+});
 
-/**
- * Resolve a token list against a value. A `[*]` wildcard maps the rest of
- * the path over each element of the current array and flattens the result
- * one level — so `steps.read.output.results[*].output.attachments` (each
- * element yielding an array) collapses into a single flat array of
- * attachments, which is exactly what a downstream "for each" needs.
- */
-function resolveTokens(tokens, cur) {
-    for (let t = 0; t < tokens.length; t++) {
-        const tok = tokens[t];
-        if (tok.type === 'wild') {
-            if (!Array.isArray(cur)) return undefined;
-            const rest = tokens.slice(t + 1);
-            const out = [];
-            for (const el of cur) {
-                const m = resolveTokens(rest, el);
-                if (m === undefined) continue;
-                if (Array.isArray(m)) out.push(...m);
-                else out.push(m);
-            }
-            return out;
-        }
-        if (cur == null) return undefined;
-        // Never walk the prototype chain — a path like
-        // "steps.s1.output.constructor.name" or a bracket-indexed
-        // equivalent must resolve to undefined, not leak internal
-        // object/function references into a rendered template. This still
-        // allows every legitimate access: array/string indices and
-        // `.length` are own properties (verified: `hasOwnProperty.call`
-        // auto-boxes primitives), only prototype-chain members like
-        // `.constructor`/`.__proto__`/`.toFixed` are excluded.
-        if (!Object.prototype.hasOwnProperty.call(cur, tok.key)) return undefined;
-        cur = cur[tok.key];
-    }
-    return cur;
-}
-
-/**
- * Walk a dotted/bracketed path on an object. Used by both ref-resolution
- * and the inside of {{...}} templates. Tolerates undefined intermediates,
- * and supports `[*]` wildcards for flattening across arrays.
- */
-function walkPath(path, root) {
-    if (!path || typeof path !== 'string') return undefined;
-    if (!REF_RE.test(path)) return undefined;
-    const tokens = tokenizePath(path);
-    if (!tokens) return undefined;
-    return resolveTokens(tokens, root);
-}
-
-/**
- * Walk a path RELATIVE to an arbitrary value (not the runState roots).
- * Used by the parse_json step and the design-time map-json-fields endpoint,
- * with an identically-named mirror in agent-hub/src/utils/bindingHelpers.js.
- *
- * Wrapping the value as `{$: value}` and prefixing the path with `$`/`$.`
- * keeps REF_RE satisfied (it rejects a leading `[`) while allowing
- * root-array sources (`[0].x`, `[*].sku`), and reuses resolveTokens'
- * `[*]` flatten + prototype-chain block unchanged. `''`/`'$'`/nullish
- * returns the whole source.
- */
-function walkRelativePath(path, value) {
-    if (path === '' || path === '$' || path == null) return value;
-    const p = String(path);
-    return walkPath(p.startsWith('[') ? `$${p}` : `$.${p}`, { $: value });
-}
-
-/**
- * Resolve a single binding object against the runState.
- * @param {*} binding — { kind, ... } or a raw literal
- * @param {object} runState — { trigger, steps, loop, vars, secrets }
- * @param {object} opts
- * @param {boolean} opts.allowSecrets — when false, secrets root is replaced
- *                  with an empty object so user-visible templates can't
- *                  echo secrets back to the chat or notification body.
- */
-function resolveValue(binding, runState, opts = {}) {
-    const { allowSecrets = false } = opts;
-    const safeState = allowSecrets ? runState : { ...runState, secrets: {} };
-
-    if (binding == null || typeof binding !== 'object' || Array.isArray(binding) || !binding.kind) {
-        // Bare literal — but recursively resolve nested objects/arrays so
-        // hand-built inputs like { to: 'a@b', body: { kind: 'ref', ... } }
-        // still work.
-        return resolveDeep(binding, runState, opts);
-    }
-
-    switch (binding.kind) {
-        case 'literal':
-            return cloneLiteral(binding.value);
-        case 'ref':
-            return walkPath(binding.path, safeState);
-        case 'template':
-            return interpolateTemplate(binding.value || '', safeState);
-        case 'expr':
-            try { return evaluate(binding.value, safeState); }
-            catch (e) { return undefined; }
-        default:
-            return undefined;
-    }
-}
-
-/**
- * Resolve every binding inside a structure (objects, arrays).
- */
-function resolveDeep(structure, runState, opts = {}) {
-    if (structure == null) return structure;
-    if (Array.isArray(structure)) return structure.map(s => resolveDeep(s, runState, opts));
-    if (typeof structure === 'object') {
-        // If this object is itself a binding wrapper, resolve it.
-        if (typeof structure.kind === 'string' && ['literal', 'ref', 'template', 'expr'].includes(structure.kind)) {
-            return resolveValue(structure, runState, opts);
-        }
-        const out = {};
-        for (const k of Object.keys(structure)) out[k] = resolveDeep(structure[k], runState, opts);
-        return out;
-    }
-    return structure;
-}
-
-/**
- * Resolve a step's `inputs` map. Returns plain object with concrete values.
- */
-function resolveInputs(inputs, runState, opts = {}) {
-    if (!inputs || typeof inputs !== 'object') return {};
-    const out = {};
-    for (const k of Object.keys(inputs)) out[k] = resolveValue(inputs[k], runState, opts);
-    return out;
-}
-
-/**
- * Interpolate a template string with {{ path }} segments. `undefined` and
- * `null` paths render as the empty string (callers historically depend on
- * this — e.g. notification bodies and prompt prefixes). To make the silent
- * failure mode discoverable, when a path resolves to `undefined` we record
- * it on `runState._templateWarnings` (if the array exists) so the runner
- * can surface a per-run warning summary; `AUTOMATION_DEBUG_BINDINGS=1`
- * additionally logs to the server console.
- *
- * @param {object} [opts]
- * @param {boolean} [opts.leaveUnresolved] — when true, a `{{token}}` whose
- *   path resolves to `undefined` is returned VERBATIM (braces and all)
- *   rather than blanked. Used for AI-step prompts so a literal `{{...}}`
- *   the builder typed (and any not-yet-available reference) isn't silently
- *   deleted from the instruction text. Default false keeps the historical
- *   blank-on-miss behaviour for notification/stop_error callers.
- * @param {boolean} [opts.listAsMarkdown] — when true, a path that resolves to
- *   an array of plain values renders as a markdown bullet list instead of as
- *   JSON. Used ONLY for the human-readable text of a form page, which IS
- *   rendered as markdown: a step that produced a list of findings put
- *   `["Productaanbod van RVS platen…","Algemene bedrijfspresentatie…"]`,
- *   brackets and quotes and all, on a page a customer reads. Everywhere else —
- *   prompts, URLs, headers, notification bodies — JSON stays correct, so this
- *   is opt-in rather than a change to the default.
- */
-function interpolateTemplate(template, runState, opts = {}) {
-    const { leaveUnresolved = false, listAsMarkdown = false } = opts;
-    // A list of plain values is the only shape worth reformatting: an array of
-    // objects has no sensible one-line form, so it keeps its JSON.
-    const asMarkdownList = (v) => {
-        if (!listAsMarkdown || !Array.isArray(v)) return null;
-        if (!v.length) return '';
-        if (!v.every(x => x == null || ['string', 'number', 'boolean'].includes(typeof x))) return null;
-        // Blank line first: a bullet list has to start its own block, or it
-        // glues itself onto the label that introduces it.
-        const NL = String.fromCharCode(10);
-        return NL + NL + v.map(x => '- ' + (x == null ? '' : String(x).trim())).join(NL) + NL;
-    };
-    return String(template).replace(/\{\{\s*([^}]+?)\s*\}\}/g, (whole, path) => {
-        const trimmed = path.trim();
-        const v = walkPath(trimmed, runState);
-        if (v === undefined) {
-            if (runState && Array.isArray(runState._templateWarnings)) {
-                runState._templateWarnings.push(trimmed);
-            }
-            if (process.env.AUTOMATION_DEBUG_BINDINGS) {
-                log.warn(`[bind] template path "${trimmed}" resolved to undefined`);
-            }
-            return leaveUnresolved ? whole : '';
-        }
-        if (v === null) return '';
-        const list = asMarkdownList(v);
-        if (list !== null) return list;
-        return typeof v === 'object' ? JSON.stringify(v) : String(v);
-    });
-}
-
-module.exports = { resolveValue, resolveDeep, resolveInputs, walkPath, walkRelativePath, interpolateTemplate, cloneLiteral };
+module.exports = {
+    resolveValue,
+    resolveDeep,
+    resolveInputs,
+    walkPath: mapping.walkPath,
+    walkRelativePath: mapping.walkRelativePath,
+    interpolateTemplate,
+    cloneLiteral: mapping.cloneLiteral,
+};

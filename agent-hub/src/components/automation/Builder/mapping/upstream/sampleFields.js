@@ -15,10 +15,10 @@ import { walkPath } from '../../../../../utils/bindingHelpers';
  *
  * The builder used to concatenate `${base}.${key}` unconditionally. That is
  * fine for `results`, but a JSON key like "line-items" / "content-type" /
- * "2024 rows" produced `…output.line-items`, which the CLIENT walker happily
- * previews (bindingHelpers.walkPath deliberately skips the REF_RE check) while
- * the RUNTIME rejects it outright — server/automation/bind.js walkPath bails on
- * `!REF_RE.test(path)`, and REF_RE only accepts identifier segments after a
+ * "2024 rows" produced `…output.line-items`, which the CLIENT walker then
+ * previewed happily (it skipped the REF_RE check; it is the runtime's own walker
+ * since) while the RUNTIME rejects it outright — server/automation/bind.js
+ * walkPath bails on `!REF_RE.test(path)`, and REF_RE only accepts identifier segments after a
  * dot. Net effect: a Loop/Filter bound to such a list previewed perfectly at
  * design time and then failed every run with "arrayRef did not resolve to an
  * array". The bracket form `…output["line-items"]` IS accepted by REF_RE

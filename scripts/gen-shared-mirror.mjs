@@ -1,33 +1,44 @@
 #!/usr/bin/env node
 /**
- * gen-shared-mirror — copy the isomorphic expression engine from the server
- * to agent-hub, byte for byte.
+ * gen-shared-mirror — copy the isomorphic shared modules from the server to
+ * the clients, byte for byte.
  *
- *   node scripts/gen-shared-mirror.mjs           # (re)write the mirror
- *   node scripts/gen-shared-mirror.mjs --check   # exit 1 if it differs; writes nothing
+ *   node scripts/gen-shared-mirror.mjs           # (re)write every mirror
+ *   node scripts/gen-shared-mirror.mjs --check   # exit 1 if any differs; writes nothing
  *
- * Source: server/shared/expr/ — the canonical copy; the automation runtime
- *         loads it through server/automation/expr.js.
- * Output: agent-hub/src/shared/expr/ — the same files for App Studio, through
- *         the `@shared` alias in agent-hub/vite.config.js. The agent-hub image
- *         builds with context ./agent-hub and cannot see server/, so the
- *         client needs its own in-tree copy.
+ * Sources live under server/shared/ — the canonical copies; the server loads
+ * them through CommonJS facades (automation/expr.js, automation/bind.js).
+ * The clients cannot import them from there: the agent-hub image builds with
+ * context ./agent-hub and cannot see server/, and Metro cannot import from
+ * outside mobile/. So each client gets its own in-tree copy, listed in
+ * MIRRORS below:
+ *   - server/shared/expr    → agent-hub/src/shared/expr (App Studio and the
+ *                             builder, through the `@shared` alias in
+ *                             agent-hub/vite.config.js)
+ *   - server/shared/expr    → mobile/src/shared/expr/vendor (the flow editor;
+ *                             without the corpus, which the phone reads from
+ *                             agent-hub, and beside mobile's own index.d.mts)
+ *   - server/shared/mapping → agent-hub/src/shared/mapping (binding previews)
+ *   - server/shared/mapping → mobile/src/shared/mapping/vendor
  *
- * The mirror is every file under the source directory except tests
- * (*.test.*, *.spec.*): today corpus.mjs, engine.mjs, functions.mjs and
- * index.mjs. Tests are outside the mirror on BOTH sides: a server test is
- * never copied, and a test in the agent-hub directory is never reported as
- * extra or removed. Write mode removes any other file in the mirror that the
- * source no longer has, so a rename on the server leaves no stale copy.
+ * A mirror is every file under its source directory except tests
+ * (*.test.*, *.spec.*) and the names in its `exclude`. Tests are outside the
+ * mirror on BOTH sides: a server test is never copied, and a test in a mirror
+ * directory is never reported as extra or removed; neither is a name in the
+ * mirror's `keep` (a file the client owns there). Write mode removes any other
+ * file in the mirror that the source no longer has, so a rename on the server
+ * leaves no stale copy.
  *
- * The two used to be "kept byte-identical" by hand. Edits landed on the
+ * The copies used to be "kept byte-identical" by hand. Edits landed on the
  * server copy only, and the vitest sync test
  * (agent-hub/src/components/admin/Studio/AppStudio/state/sharedExpr.sync.test.js)
- * failed a quarter of an hour into CI. That test stays as the CI backstop;
- * this script's --check is `npm run lint:shared-mirror`, which
- * `npm run check:fast` runs in seconds, and the first step of ci.yml's
- * Frontend checks job. The mirror is also in the ignore list
- * of .jscpd.json: it is generated, not duplication anyone writes.
+ * failed a quarter of an hour into CI. That test, and mobile's
+ * exprVendor.lockstep.test.ts and mappingVendor.lockstep.test.ts, stay as
+ * the CI backstops; this script's --check is `npm run lint:shared-mirror`,
+ * which `npm run check:fast` runs in seconds, and the first step of ci.yml's
+ * Frontend checks job. The mirrors are also in the ignore list of .jscpd.json
+ * (mobile's under its vendor/ rule): they are generated, not duplication
+ * anyone writes.
  *
  * Zero dependencies: node:* only.
  */
@@ -39,8 +50,18 @@ import { fileURLToPath } from 'node:url';
 import { isEntryPoint } from './entry-point.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const REL_SOURCE = 'server/shared/expr';
-const REL_TARGET = 'agent-hub/src/shared/expr';
+
+/**
+ * Every generated copy: `source` and `target` are repo-relative directories.
+ * `exclude`: source files this mirror leaves out. `keep`: files in the target
+ * that the client owns, never reported as extra and never removed.
+ */
+export const MIRRORS = [
+    { source: 'server/shared/expr', target: 'agent-hub/src/shared/expr' },
+    { source: 'server/shared/expr', target: 'mobile/src/shared/expr/vendor', exclude: ['corpus.mjs'], keep: ['index.d.mts'] },
+    { source: 'server/shared/mapping', target: 'agent-hub/src/shared/mapping' },
+    { source: 'server/shared/mapping', target: 'mobile/src/shared/mapping/vendor' },
+];
 
 /** Test files stay where they are: never copied, never counted as extra. */
 export function isTest(name) {
@@ -73,11 +94,12 @@ function firstDifferentLine(a, b) {
 /**
  * Compare the mirror with its source. `differ` holds { file, line } for each
  * file whose bytes differ; `missing` the source files the mirror lacks;
- * `extra` the mirror's non-test files the source does not have.
+ * `extra` the mirror's non-test files the source does not have. Names in
+ * `exclude` are not part of the mirror; names in `keep` are the mirror's own.
  */
-export function compareTrees(sourceDir, targetDir) {
-    const want = listMirrorFiles(sourceDir);
-    const have = new Set(listMirrorFiles(targetDir));
+export function compareTrees(sourceDir, targetDir, { exclude = [], keep = [] } = {}) {
+    const want = listMirrorFiles(sourceDir).filter((file) => !exclude.includes(file));
+    const have = new Set(listMirrorFiles(targetDir).filter((file) => !keep.includes(file)));
     const differ = [];
     const missing = [];
     for (const file of want) {
@@ -94,44 +116,62 @@ export function compareTrees(sourceDir, targetDir) {
     return { files: want, differ, missing, extra };
 }
 
-function main() {
-    const check = process.argv.includes('--check');
-    const sourceDir = path.join(ROOT, REL_SOURCE);
-    const targetDir = path.join(ROOT, REL_TARGET);
-    const { files, differ, missing, extra } = compareTrees(sourceDir, targetDir);
-    if (files.length === 0) throw new Error(`${REL_SOURCE}/ has no files to mirror — is this the repo root?`);
-    const count = `${files.length} file${files.length === 1 ? '' : 's'}`;
-    const clean = differ.length === 0 && missing.length === 0 && extra.length === 0;
+const plural = (n) => `${n} file${n === 1 ? '' : 's'}`;
 
-    if (check) {
-        if (clean) {
-            console.log(`gen-shared-mirror: ${REL_TARGET}/ matches ${REL_SOURCE}/ (${count}).`);
-            return 0;
-        }
-        console.error(`gen-shared-mirror: ${REL_TARGET}/ is out of date with ${REL_SOURCE}/:`);
-        for (const { file, line } of differ) console.error(`  differs: ${REL_TARGET}/${file} (first difference at line ${line})`);
-        for (const file of missing) console.error(`  missing: ${REL_TARGET}/${file}`);
-        for (const file of extra) console.error(`  extra:   ${REL_TARGET}/${file} (not in ${REL_SOURCE}/)`);
-        console.error(`It is a generated copy — do not edit it by hand. Change ${REL_SOURCE}/,\n`
-            + 'then run `npm run gen:shared` (node scripts/gen-shared-mirror.mjs) and commit both.');
-        return 1;
+/** --check for one mirror: true when clean; names every difference on stderr. */
+function checkMirror({ source, target }, { files, differ, missing, extra }) {
+    if (differ.length === 0 && missing.length === 0 && extra.length === 0) {
+        console.log(`gen-shared-mirror: ${target}/ matches ${source}/ (${plural(files.length)}).`);
+        return true;
     }
+    console.error(`gen-shared-mirror: ${target}/ is out of date with ${source}/:`);
+    for (const { file, line } of differ) console.error(`  differs: ${target}/${file} (first difference at line ${line})`);
+    for (const file of missing) console.error(`  missing: ${target}/${file}`);
+    for (const file of extra) console.error(`  extra:   ${target}/${file} (not in ${source}/)`);
+    return false;
+}
 
-    if (clean) {
-        console.log(`gen-shared-mirror: ${REL_TARGET}/ already up to date (${count}).`);
-        return 0;
+/** Write mode for one mirror: copy what is missing or differs, remove what is extra. */
+function writeMirror({ source, target }, sourceDir, targetDir, { files, differ, missing, extra }) {
+    if (differ.length === 0 && missing.length === 0 && extra.length === 0) {
+        console.log(`gen-shared-mirror: ${target}/ already up to date (${plural(files.length)}).`);
+        return;
     }
     for (const file of [...missing, ...differ.map((d) => d.file)].sort()) {
         const to = path.join(targetDir, file);
         fs.mkdirSync(path.dirname(to), { recursive: true });
         fs.writeFileSync(to, fs.readFileSync(path.join(sourceDir, file)));
-        console.log(`gen-shared-mirror: wrote ${REL_TARGET}/${file}`);
+        console.log(`gen-shared-mirror: wrote ${target}/${file}`);
     }
     for (const file of extra) {
         fs.rmSync(path.join(targetDir, file));
-        console.log(`gen-shared-mirror: removed ${REL_TARGET}/${file} (not in ${REL_SOURCE}/)`);
+        console.log(`gen-shared-mirror: removed ${target}/${file} (not in ${source}/)`);
     }
-    console.log(`gen-shared-mirror: ${REL_TARGET}/ now matches ${REL_SOURCE}/ (${count}).`);
+    console.log(`gen-shared-mirror: ${target}/ now matches ${source}/ (${plural(files.length)}).`);
+}
+
+function main() {
+    const check = process.argv.includes('--check');
+    // Every source is checked for files before anything is written, so a
+    // wrong root fails without touching a single mirror.
+    const plans = MIRRORS.map((mirror) => {
+        const sourceDir = path.join(ROOT, mirror.source);
+        const targetDir = path.join(ROOT, mirror.target);
+        const result = compareTrees(sourceDir, targetDir, mirror);
+        if (result.files.length === 0) throw new Error(`${mirror.source}/ has no files to mirror — is this the repo root?`);
+        return { mirror, sourceDir, targetDir, result };
+    });
+
+    if (check) {
+        let clean = true;
+        for (const { mirror, result } of plans) clean = checkMirror(mirror, result) && clean;
+        if (clean) return 0;
+        console.error('These are generated copies — do not edit them by hand. Change server/shared/,\n'
+            + 'then run `npm run gen:shared` (node scripts/gen-shared-mirror.mjs) and commit both.');
+        return 1;
+    }
+
+    for (const { mirror, sourceDir, targetDir, result } of plans) writeMirror(mirror, sourceDir, targetDir, result);
     return 0;
 }
 
