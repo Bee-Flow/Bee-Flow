@@ -10,6 +10,14 @@
  * bound by this step's own forEach or by a loop it sits inside, and a
  * `steps.<id>` must name a step that exists and has already run.
  *
+ * Beside the scoping, every path is checked the way the run will read it
+ * (shared/mapping/validate.mjs validateBinding): a spelling REF_RE rejects
+ * (`items.0.name`), `trigger.<field>` without `.output`, and a field the
+ * source is known not to produce. Those three are WARNINGS, each with the
+ * canonical fix: a stored automation keeps saving exactly as before, and the
+ * author learns before the run, instead of after it, that the field will be
+ * empty.
+ *
  * Runs LAST, after the per-type field rules, because a ref that is reported
  * here reads best after the step's own shape has been reported.
  */
@@ -18,6 +26,42 @@ const {
     isObject, collectRefPaths, collectLiteralBraces, rootOf, pickClosestId, secondSegment,
 } = require('../helpers');
 const { LOOP_RUNTIME_KEYS } = require('../constants');
+const { validateBinding } = require('../../../shared/mapping/index.mjs');
+const { exprPaths } = require('../bindingPaths');
+
+const MAX_FIELDS_NAMED = 12;
+
+/** The warning for one issue validateBinding found, with its one-click fix. */
+function pathIssueWarning(step, at, issue) {
+    const fix = issue.fix ? { from: issue.path, to: issue.fix } : undefined;
+    if (issue.code === 'path_syntax') {
+        return {
+            code: 'ref.path_syntax', severity: 'warning', path: at, ...(fix ? { fix } : {}),
+            message: `Step ${step.id}: "${issue.path}" is not a path the run can read, so it resolves to nothing.`,
+            hint: issue.fix ? `Write it as "${issue.fix}".` : 'Write an index as [0] and a key with spaces or dashes as ["key"].',
+        };
+    }
+    if (issue.code === 'trigger_without_output' && issue.metadata) {
+        return {
+            code: 'ref.trigger_without_output', severity: 'warning', path: at, fix,
+            message: `Step ${step.id}: "${issue.path}" reads the trigger's own ${issue.metadata} (run metadata), not the "${issue.metadata}" field the trigger received.`,
+            hint: `For the received field use "${issue.fix}".`,
+        };
+    }
+    if (issue.code === 'trigger_without_output') {
+        return {
+            code: 'ref.trigger_without_output', severity: 'warning', path: at, fix,
+            message: `Step ${step.id}: "${issue.path}" reads the trigger itself, not what it received, so it is empty (or trigger metadata).`,
+            hint: `What the trigger received is under trigger.output: use "${issue.fix}".`,
+        };
+    }
+    const known = issue.known.length > MAX_FIELDS_NAMED ? `${issue.known.slice(0, MAX_FIELDS_NAMED).join(', ')}, …` : issue.known.join(', ');
+    return {
+        code: 'ref.unknown_field', severity: 'warning', path: at, ...(fix ? { fix } : {}),
+        message: `Step ${step.id}: "${issue.path}" reads "${issue.field}", which its source does not produce (it has: ${known}).`,
+        hint: issue.fix ? `Did you mean "${issue.fix}"?` : 'Pick one of the fields the source produces.',
+    };
+}
 
 function checkReferences(ctx, step, at) {
     const { pushE, pushW, trigger, refIds, refSeen, stepsById, loopVarsAbove } = ctx;
@@ -221,13 +265,33 @@ function checkReferences(ctx, step, at) {
         pushW({ code: 'literal.uninterpolated', severity: 'warning', path: at, message: `Step ${step.id}: literal input "${shown}" contains {{…}} but is kind:'literal', so it ships verbatim instead of being interpolated.`, hint: "Set kind:'template' on that input so {{trigger.output.…}} / {{steps.…}} placeholders are substituted at runtime." });
     }
 
+    // One warning per issue and path, however often the step repeats it.
+    const reported = new Set();
+    const reportPathIssues = (issues) => {
+        for (const issue of issues) {
+            const key = `${issue.code}|${issue.path}`;
+            if (reported.has(key)) continue;
+            reported.add(key);
+            pushW(pathIssueWarning(step, at, issue));
+        }
+    };
+
     for (const r of refs) {
         const path = r.kind === 'ref' ? r.path : null;
-        // For exprs, we don't statically check sub-paths — runtime will
-        // safely return undefined for unknown lookups.
+        // An expr's paths come out of the parser (its syntax is the
+        // expression rules' to report): only the trigger and field checks.
+        // Scoping is not checked for them; the runtime safely returns
+        // undefined for unknown lookups.
+        if (r.kind === 'expr') {
+            reportPathIssues(validateBinding({ kind: 'expr', value: r.src }, { fieldsOf: ctx.fieldsOf, exprPaths }));
+            continue;
+        }
         if (!path) continue;
         const root = rootOf(path);
         if (!root) { pushW({ code: 'ref.invalid', severity: 'warning', path: at, message: `Step ${step.id}: invalid ref "${path}".`, hint: 'Refs must start with one of: trigger, steps, vars, secrets, loop.' }); continue; }
+        // A template's placeholders arrive here one by one (collectRefPaths),
+        // each checked as the ref it is.
+        reportPathIssues(validateBinding({ kind: 'ref', path }, { fieldsOf: ctx.fieldsOf }));
         if (root === 'loop') {
             // `loop.<var>` is bound by this step's own forEach or by a loop
             // whose body holds it — nowhere else. A step that reads

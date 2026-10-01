@@ -5,7 +5,7 @@
  */
 
 const { newId, appendAfter } = require('../draftGraph');
-const { validateAndFixBindings, sanitizeForEach, unboundLoopVarError } = require('../bindings');
+const { validateAndFixBindings, sanitizeForEach, unboundLoopVarError, rootShadowError } = require('../bindings');
 const { AI_STEP_AGENT_PERMISSION_KEYS, MAX_AI_STEP_SKILL_IDS } = require('../../validate/constants');
 // Pure module, no I/O at load: the runner and the builder share one sanitiser.
 const { sanitizeDisabledAgentSkillIds } = require('../../../core/automationRunner/aiStepSkills');
@@ -143,6 +143,8 @@ function agentPermissionsBlock(rawPermissions, agentId, { hasSkills = false } = 
 function applyAddAi(draft, args, draftWrap) {
     const tierErr = modelTierGateError(args.modelTier, draftWrap);
     if (tierErr) return tierErr;
+    const shadow = rootShadowError(args.inputs);
+    if (shadow) return shadow;
     const { inputs, error } = validateAndFixBindings(args.inputs || {}, draft);
     if (error) return { error };
     const { forEach, error: feErr } = sanitizeForEach(args.forEach, draft);

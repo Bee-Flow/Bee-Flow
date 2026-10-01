@@ -75,9 +75,14 @@ function applyAddSet(draft, args) {
     // `item` in the field bindings; output becomes {items, count}).
     const listMode = typeof args.arrayRef === 'string';
     if (listMode && forEach) return { error: 'arrayRef (list mode) and forEach cannot be combined — list mode already applies the fields to every row. Drop forEach.' };
-    if (listMode && args.arrayRef.trim()) {
-        const { error: arErr } = validateAndFixBindings({ arrayRef: { kind: 'ref', path: args.arrayRef.trim() } }, draft);
+    // The list is a ref like any input, and is STORED as the check repaired
+    // it (the same rule sanitizeForEach applies to forEach.overRef): a
+    // mangled `items.0.rows` saved as written resolved to nothing at run time.
+    let arrayRef = listMode ? args.arrayRef.trim() : undefined;
+    if (listMode && arrayRef) {
+        const { inputs: ar, error: arErr } = validateAndFixBindings({ arrayRef: { kind: 'ref', path: arrayRef } }, draft);
         if (arErr) return { error: arErr };
+        arrayRef = ar.arrayRef.path;
     }
     let operations;
     if (args.operations !== undefined) {
@@ -89,7 +94,7 @@ function applyAddSet(draft, args) {
     const maxItems = (typeof args.maxItems === 'number' && Number.isInteger(args.maxItems) && args.maxItems > 0) ? args.maxItems : undefined;
     const step = {
         id: newId('set'), type: 'set', fields, label: args.label || 'Edit data',
-        ...(listMode ? { arrayRef: args.arrayRef.trim() } : {}),
+        ...(listMode ? { arrayRef } : {}),
         ...(operations && operations.length ? { operations } : {}),
         ...(listMode && maxItems ? { maxItems } : {}),
         ...(forEach ? { forEach } : {}),

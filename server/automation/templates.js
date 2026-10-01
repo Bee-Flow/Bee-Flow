@@ -31,11 +31,26 @@ const TEMPLATES = [
         tags: ['gmail', 'nextcloud', 'ai'],
         definition: {
             trigger: { id: 'trg', type: 'trigger', kind: 'app_event', appEvent: { provider: 'gmail', event: 'mail.new', filter: { hasAttachment: true, subjectContains: 'invoice' } } },
+            // The mail.new payload lists each attachment's ids
+            // (attachments[i].attachmentId/.filename), never its bytes: the
+            // read step fetches them and hands the upload a sourceHandle, so
+            // the PDF never passes through a binding. (This template used to
+            // upload `trigger.output.attachments.0.data`, a field that does
+            // not exist, under a dotted index the runtime cannot read.)
             steps: [
-                step('extract', 'ai_step', { prompt: 'Extract amount, currency, vendor and dueDate from this email. Return JSON.', inputs: { body: { kind: 'ref', path: 'trigger.output.snippet' } }, outputSchema: { type: 'object', properties: { amount: { type: 'number' }, currency: { type: 'string' }, vendor: { type: 'string' }, dueDate: { type: 'string' } } } }),
-                step('upload', 'integration_action', { tool: 'nextcloud_upload_file', label: 'Upload to /Invoices', inputs: { path: { kind: 'template', value: '/Invoices/{{trigger.output.subject}}.pdf' }, content: { kind: 'ref', path: 'trigger.output.attachments.0.data' } } }),
+                step('read', 'integration_action', {
+                    tool: 'gmail_read_attachment',
+                    label: 'Read the attachment',
+                    inputs: {
+                        messageId: { kind: 'ref', path: 'trigger.output.messageId' },
+                        attachmentId: { kind: 'ref', path: 'trigger.output.attachments[0].attachmentId' },
+                        filename: { kind: 'ref', path: 'trigger.output.attachments[0].filename' },
+                    },
+                }),
+                step('extract', 'ai_step', { prompt: 'Extract amount, currency, vendor and dueDate from this invoice. Return JSON.', inputs: { body: { kind: 'ref', path: 'steps.read.output.content' } }, outputSchema: { type: 'object', properties: { amount: { type: 'number' }, currency: { type: 'string' }, vendor: { type: 'string' }, dueDate: { type: 'string' } } } }),
+                step('upload', 'integration_action', { tool: 'nextcloud_upload_file', label: 'Upload to /Invoices', inputs: { path: { kind: 'template', value: '/Invoices/{{trigger.output.attachments[0].filename}}' }, sourceHandle: { kind: 'ref', path: 'steps.read.output.sourceHandle' } } }),
             ],
-            edges: [{ from: 'trg', to: 'extract' }, { from: 'extract', to: 'upload' }],
+            edges: [{ from: 'trg', to: 'read' }, { from: 'read', to: 'extract' }, { from: 'extract', to: 'upload' }],
         },
     },
     {
@@ -53,8 +68,8 @@ const TEMPLATES = [
                     label: 'Lees bijlage',
                     inputs: {
                         messageId: { kind: 'ref', path: 'trigger.output.messageId' },
-                        attachmentId: { kind: 'ref', path: 'trigger.output.attachments.0.attachmentId' },
-                        filename: { kind: 'ref', path: 'trigger.output.attachments.0.filename' },
+                        attachmentId: { kind: 'ref', path: 'trigger.output.attachments[0].attachmentId' },
+                        filename: { kind: 'ref', path: 'trigger.output.attachments[0].filename' },
                     },
                 }),
                 step('classify', 'ai_step', {
@@ -93,7 +108,7 @@ const TEMPLATES = [
                     tool: 'drive_upload_file',
                     label: 'Upload bijlage naar Drive',
                     inputs: {
-                        name: { kind: 'ref', path: 'trigger.output.attachments.0.filename' },
+                        name: { kind: 'ref', path: 'trigger.output.attachments[0].filename' },
                         parentFolderId: { kind: 'ref', path: 'steps.mkSupp.output.folderId' },
                         sourceHandle: { kind: 'ref', path: 'steps.read.output.sourceHandle' },
                     },
@@ -362,10 +377,22 @@ const TEMPLATES = [
         definition: {
             trigger: { id: 'trg', type: 'trigger', kind: 'app_event', appEvent: { provider: 'gmail', event: 'mail.new', filter: { hasAttachment: true, subjectContains: 'invoice' } } },
             steps: [
-                step('read', 'integration_action', { tool: 'gmail_read_attachment', label: 'Read invoice PDF', inputs: { messageId: { kind: 'ref', path: 'trigger.output.messageId' } } }),
+                // gmail_read_attachment needs the attachment's id besides the
+                // message's, and answers the extracted text as `content`. This
+                // step used to send no attachmentId and the extract step read
+                // `output.text`, which the tool never returns.
+                step('read', 'integration_action', {
+                    tool: 'gmail_read_attachment',
+                    label: 'Read invoice PDF',
+                    inputs: {
+                        messageId: { kind: 'ref', path: 'trigger.output.messageId' },
+                        attachmentId: { kind: 'ref', path: 'trigger.output.attachments[0].attachmentId' },
+                        filename: { kind: 'ref', path: 'trigger.output.attachments[0].filename' },
+                    },
+                }),
                 step('extract', 'ai_step', {
                     prompt: 'Extract the invoice fields from this attachment text. Return JSON with keys: factuurnummer, datum (YYYY-MM-DD), type, product, liters (number or null), excl_btw (number), btw (number), incl_btw (number), status. If a field is missing leave it null.',
-                    inputs: { text: { kind: 'ref', path: 'steps.read.output.text' } },
+                    inputs: { text: { kind: 'ref', path: 'steps.read.output.content' } },
                     outputSchema: { type: 'object', properties: {
                         factuurnummer: { type: 'string' }, datum: { type: 'string' }, type: { type: 'string' },
                         product: { type: 'string' }, liters: { type: 'number' },

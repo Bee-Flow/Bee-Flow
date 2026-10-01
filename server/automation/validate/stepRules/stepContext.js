@@ -9,6 +9,7 @@
  */
 
 const { isObject } = require('../helpers');
+const { createFieldsOf } = require('../bindingPaths');
 
 /**
  * Build the context for ONE graph. The caller's bindings are carried through
@@ -99,10 +100,14 @@ function createStepContext({
         return set;
     };
 
+    // Which fields a binding's source is known to produce, for the
+    // unknown_field check in referenceScoping (null where not known).
+    const fieldsOf = createFieldsOf(graph, stepsById);
+
     return {
         graph, trigger, ids, seenSoFar, pushE, pushW,
         availableTools, toolRequiredParams, knownConnectionIds, availableAgents, topicClassifier, isContractScope,
-        stepsById, loopVarsAbove, fieldsReadFromStep, outgoingLabelsFor,
+        stepsById, loopVarsAbove, fieldsReadFromStep, outgoingLabelsFor, fieldsOf,
     };
 }
 

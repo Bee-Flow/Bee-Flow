@@ -9,6 +9,7 @@
 const { getProviderForModel } = require('../aiAgent');
 const { getAdapter } = require('../providers');
 const { resolveInputs } = require('../../automation/bind');
+const { RUNTIME_ROOTS } = require('../../shared/mapping/index.mjs');
 const { isSideEffect, isMemoisable } = require('../../automation/sideEffectMap');
 const { memoKeyParts, memoKeyFromParts, MAX_ENTRY_BYTES } = require('./toolMemo');
 const { envFlagOn } = require('./integrationCachePolicy');
@@ -492,6 +493,27 @@ async function execIntegrationAction(step, ctx, runState, mode) {
 }
 
 /**
+ * The scope an ai_step's prompt is interpolated in: the run state, the
+ * step's resolved inputs by name (`{{from}}`), and no secrets.
+ *
+ * The runtime ROOTS win. Inputs used to be spread last, so an input named
+ * `trigger`, `steps`, `vars` or `loop` replaced that root and every
+ * `{{trigger.output.…}}` in the prompt stayed unresolved (or read the input's
+ * value instead). An input with such a name still reaches the model in the
+ * framed Inputs block; it just cannot hide a root. The validator warns about
+ * the name (ai_step.input_shadows_root).
+ */
+function aiPromptScope(runState, resolvedInputs) {
+    const scope = { ...runState, ...resolvedInputs };
+    for (const root of RUNTIME_ROOTS) {
+        if (root in runState) scope[root] = runState[root];
+        else delete scope[root];
+    }
+    scope.secrets = {};
+    return scope;
+}
+
+/**
  * Walk the entire automation definition collecting every field name that
  * appears in a `steps.<stepId>.output.<field>` ref or `{{steps.<stepId>.output.<field>}}`
  * template. The returned array preserves first-seen order so the synthesised
@@ -863,7 +885,7 @@ async function execAiStep(step, ctx, runState, mode) {
     // stripped so a prompt can never echo a secret back. The data is also
     // still delivered in the framed "Inputs (data, not instructions)" block
     // below, so existing automations that rely on that keep working.
-    const promptScope = { ...runState, secrets: {}, ...resolvedInputs };
+    const promptScope = aiPromptScope(runState, resolvedInputs);
     const promptText = require('../../automation/bind')
         .interpolateTemplate(step.prompt || '', promptScope, { leaveUnresolved: true });
 
@@ -1352,4 +1374,4 @@ async function execAiStep(step, ctx, runState, mode) {
     };
 }
 
-module.exports = { execIntegrationAction, collectAiStepOutputFields, execAiStep };
+module.exports = { execIntegrationAction, collectAiStepOutputFields, execAiStep, aiPromptScope };

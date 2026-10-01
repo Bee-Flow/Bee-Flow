@@ -31,7 +31,38 @@ export interface TemplateOptions {
 
 export interface ResolveOptions {
     allowSecrets?: boolean;
+    /** Report no warnings for this call (a record of inputs, not a use of them). */
+    silent?: boolean;
 }
+
+/** A value a binding did not get, reported through `onWarning`. */
+export type BindingWarning =
+    | { code: 'missing'; kind: 'ref'; path: string; input?: string }
+    | { code: 'missing'; kind: 'expr'; expr: string; input?: string }
+    | { code: 'expr_error'; kind: 'expr'; expr: string; message: string; input?: string };
+
+/** One design-time issue of a binding (validate.mjs). */
+export interface BindingIssue {
+    code: 'path_syntax' | 'trigger_without_output' | 'unknown_field';
+    /** The path as written. */
+    path: string;
+    /** The whole path with this issue (and every one before it) fixed, or null. */
+    fix: string | null;
+    /** unknown_field: the field that is not known, and the ones that are. */
+    field?: string;
+    known?: string[];
+    /**
+     * trigger_without_output on a run metadata key ('id', 'kind', …) that the
+     * trigger's payload declares too: the key, since the path as written
+     * reads the metadata.
+     */
+    metadata?: string;
+    /** validateBinding: the kind of binding the path came from. */
+    kind?: 'ref' | 'template' | 'expr';
+}
+
+/** Which fields a Source is known to produce; null when that is not known. */
+export type FieldsOf = (source: Source) => string[] | null;
 
 export interface LegacyResolver {
     resolveValue(binding: unknown, runState: object, opts?: ResolveOptions): unknown;
@@ -55,9 +86,21 @@ export declare function interpolateTemplate(
 export declare function createLegacyResolver(deps: {
     evaluate: (src: string, scope: object) => unknown;
     onUnresolved?: (path: string) => void;
+    onWarning?: (warning: BindingWarning, runState: object) => void;
 }): LegacyResolver;
 export declare const WILD: WildSegment;
 export declare function isWild(seg: unknown): seg is WildSegment;
 export declare function parseLegacyPath(path: unknown): Source | null;
 export declare function formatPath(source: unknown): string | null;
 export declare function lastSegment(pathOrSource: unknown): string | number | undefined;
+export declare function formatSegment(seg: SourceSegment): string | null;
+export declare function repairLegacyPath(text: unknown): { path: string | null; rest: string };
+export declare const RUNTIME_ROOTS: readonly string[];
+export declare const TRIGGER_RUN_KEYS: readonly string[];
+export declare function templatePaths(text: unknown): string[];
+export declare function closestName(name: string, candidates: string[]): string | null;
+export declare function checkRefPath(path: unknown, ctx?: { fieldsOf?: FieldsOf; syntax?: boolean }): BindingIssue[];
+export declare function validateBinding(
+    binding: unknown,
+    ctx?: { fieldsOf?: FieldsOf; exprPaths?: (src: string) => string[] },
+): BindingIssue[];

@@ -5,7 +5,7 @@
  */
 
 const { classifyUnknownError } = require('../automationErrors');
-const { resolveInputs } = require('../../automation/bind');
+const { resolveInputs, resolveDeep } = require('../../automation/bind');
 const { MASK_VALUES } = require('./httpAuth');
 const {
     cloneRunValue, MAX_LAYER_DEPTH, LOOP_ROOT_ID, PARALLEL_ROOT_ID,
@@ -195,6 +195,50 @@ function buildLinearEdges(steps, rootId = LOOP_ROOT_ID) {
     return edges;
 }
 
+// Run history keeps the inputs of the first this-many items of a fan-out.
+const MAX_ITEM_INPUT_SNAPSHOTS = 20;
+// ...and spends at most this many bytes of serialized JSON on the items after
+// the first. recordRunStep caps a step's whole input at 256 KB
+// (automation/payloadTruncation.js) and replaces ALL of it with a 1 KB head
+// sample past that, so twenty copies of a shared 15 KB input would otherwise
+// cost the step every field it used to show.
+const PER_ITEM_INPUT_BUDGET_BYTES = 64 * 1024;
+
+function jsonBytes(value) {
+    try { return Buffer.byteLength(JSON.stringify(value) ?? '', 'utf8'); } catch { return Infinity; }
+}
+
+/**
+ * What run history records as the INPUT of a "run once per item" step. The
+ * dispatcher used to resolve step.inputs against the OUTER state, where
+ * loop.<itemVar> is not bound, so every mapped field read as empty although
+ * each item ran with the right value. Now: the first recorded item's inputs at
+ * the top (what the Runs tab lists under "Got in"), and the items after it
+ * under `_perItem` ({index, inputs}) while they fit PER_ITEM_INPUT_BUDGET_BYTES;
+ * `_perItemOmitted` counts every item that is in neither place (past the
+ * snapshot cap or the byte budget). Keys starting with `_` are not listed as
+ * fields by the Runs tab.
+ */
+function forEachInputSnapshot(snapshots, total) {
+    const recorded = [];
+    for (let i = 0; i < snapshots.length; i++) if (i in snapshots) recorded.push({ index: i, inputs: snapshots[i] });
+    if (!recorded.length) return undefined;
+    const first = recorded[0].inputs;
+    const perItem = [];
+    let bytes = 0;
+    for (const entry of recorded.slice(1)) {
+        bytes += jsonBytes(entry);
+        if (bytes > PER_ITEM_INPUT_BUDGET_BYTES) break;
+        perItem.push(entry);
+    }
+    const shown = 1 + perItem.length;
+    return {
+        ...(first && typeof first === 'object' && !Array.isArray(first) ? first : {}),
+        ...(perItem.length ? { _perItem: perItem } : {}),
+        ...(total > shown ? { _perItemOmitted: total - shown } : {}),
+    };
+}
+
 /**
  * Per-step iteration ("run once per item"). When a leaf step carries
  * `step.forEach = { overRef, itemVar, maxIterations }`, run the step's own
@@ -255,6 +299,7 @@ async function execForEachStep(step, ctx, runState, mode, runLeaf, checkCancel =
     // instead of dispatching N doomed live calls.
     const sourceSynthetic = mode === 'dry_run' && refIsSynthetic(fe.overRef, runState, ctx);
     const results = [];
+    const inputSnapshots = [];
     let failed = 0;
     let anyItemSynthesised = false;
     const withheldTools = new Map();
@@ -278,6 +323,9 @@ async function execForEachStep(step, ctx, runState, mode, runLeaf, checkCancel =
             loop: { ...(runState.loop || {}), [itemVar]: items[i], _index: i },
             _syntheticLoopVars: { ...(runState._syntheticLoopVars || {}), [itemVar]: sourceSynthetic },
         };
+        if (step.inputs && i < MAX_ITEM_INPUT_SNAPSHOTS) {
+            inputSnapshots[i] = resolveDeep(step.inputs, subState, { allowSecrets: false, silent: true });
+        }
         let lastErr = null;
         let out = null;
         let ok = false;
@@ -347,6 +395,7 @@ async function execForEachStep(step, ctx, runState, mode, runLeaf, checkCancel =
         err.errorClass = 'foreach_all_failed';
         err.foreachHandled = true;
         err.foreachResults = results;
+        err.forEachInputSnapshot = forEachInputSnapshot(inputSnapshots, items.length);
         throw err;
     }
     return {
@@ -363,6 +412,8 @@ async function execForEachStep(step, ctx, runState, mode, runLeaf, checkCancel =
         // items were synthesized) produces synthetic aggregate results.
         ...(mode === 'dry_run' && (sourceSynthetic || anyItemSynthesised) ? { dryRunSynthesised: true, dryRunFallback: 'synthetic_input' } : {}),
         ...(withheldTools.size ? { toolsWithheld: [...withheldTools.keys()], toolsWithheldReasons: Object.fromEntries(withheldTools) } : {}),
+        // Picked up (and removed) by the dispatcher as the step's inputSnapshot.
+        ...(inputSnapshots.length ? { forEachInputSnapshot: forEachInputSnapshot(inputSnapshots, items.length) } : {}),
     };
 }
 
@@ -558,6 +609,6 @@ async function execCallBlock(step, ctx, runState, mode, dispatchSubStep) {
  */
 
 module.exports = {
-    execParallel, execLoop, buildLinearEdges, execForEachStep,
+    execParallel, execLoop, buildLinearEdges, execForEachStep, forEachInputSnapshot,
     execCallLayer, execLayerOutput, callerCanUseBlock, loadBlockForRun, execCallBlock,
 };

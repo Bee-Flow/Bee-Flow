@@ -74,5 +74,7 @@ test('a ref binding in the object form survives as a ref', () => {
     const out = sanitize({ where: { id: { kind: 'ref', path: 'steps.dt_0a9ab1.output.rows.0.id' } } });
     assert.strictEqual(out.where[0].field, 'id');
     assert.strictEqual(out.where[0].value.kind, 'ref');
-    assert.strictEqual(out.where[0].value.path, 'steps.dt_0a9ab1.output.rows.0.id');
+    // Stored in the spelling the runtime reads: the dotted `.0` the model sent
+    // resolves to undefined (REF_RE rejects it), so the condition would skip.
+    assert.strictEqual(out.where[0].value.path, 'steps.dt_0a9ab1.output.rows[0].id');
 });

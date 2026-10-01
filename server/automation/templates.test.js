@@ -194,3 +194,105 @@ test('the Deck template is ready now that Deck events are webhook-backed', () =>
     assert.strictEqual(t.triggerReadiness, 'ready',
         'deck.card.completed is webhook-backed (derived from CardUpdatedEvent)');
 });
+
+// ── Every gallery binding resolves against its trigger's sample ────────────
+//
+// Validation checks a template's SHAPE; it never resolved a path. That is how
+// three gallery bindings read `trigger.output.attachments.0.filename`: REF_RE
+// only accepts an index as `[0]`, so walkPath answered undefined, the invoice
+// uploads went out with no content and no file name, and validation passed
+// (referenceScoping lets every trigger.* path through). Here every ref path
+// and every `{{ }}` placeholder of every template is
+//   1. spelled the way the runtime reads it (no path_syntax, no
+//      trigger_without_output from the shared core's checkRefPath), and
+//   2. resolved with the RUNTIME's walkPath against a run state built from
+//      the trigger's catalog sample and, where one is known, each upstream
+//      step's output sample (a tool's OUTPUT_SCHEMAS sample, an ai_step's
+//      outputSchema); a path into a step whose output is not known is
+//      checked for syntax only.
+
+const { walkPath } = require('./bind');
+const { checkRefPath } = require('../shared/mapping/index.mjs');
+const { TRIGGER_OUTPUT_SAMPLES } = require('./builderTools/triggerCatalog');
+const { OUTPUT_SCHEMAS } = require('./outputSchemas');
+
+// What the producer adds on top of the declared sample: fetchGmailMessageMetadata
+// (triggerBus.js) enriches every mail.new payload with these.
+const PRODUCER_EXTRAS = {
+    'gmail.mail.new': {
+        hasAttachment: true,
+        attachments: [{ filename: 'factuur.pdf', mimeType: 'application/pdf', size: 1234, attachmentId: 'att-1', messageId: 'msg-abc123', threadId: 'th-abc123' }],
+    },
+};
+
+function triggerSample(trigger) {
+    if (trigger?.kind !== 'app_event') return null; // manual / schedule / webhook: no payload to check against
+    const key = `${trigger.appEvent?.provider}.${trigger.appEvent?.event}`;
+    // An event the catalog declares no sample for is not checkable either.
+    if (!TRIGGER_OUTPUT_SAMPLES[key]) return null;
+    return { ...TRIGGER_OUTPUT_SAMPLES[key], ...(PRODUCER_EXTRAS[key] || {}) };
+}
+
+function sampleFromSchema(schema) {
+    if (!schema || typeof schema !== 'object') return undefined;
+    const props = schema.type === 'object' && schema.properties ? schema.properties : null;
+    if (props) return Object.fromEntries(Object.keys(props).map(k => [k, sampleFromSchema(props[k]) ?? 'x']));
+    if (!schema.type) return Object.fromEntries(Object.keys(schema).map(k => [k, 'x'])); // the shorthand { field: 'string' }
+    return schema.type === 'array' ? [] : 'x';
+}
+
+function stepSample(step) {
+    if (step.type === 'integration_action') return OUTPUT_SCHEMAS[step.tool]?.sample;
+    if (step.type === 'ai_step') return sampleFromSchema(step.outputSchema);
+    return undefined;
+}
+
+/** Every ref path and `{{ }}` placeholder anywhere in a step, with where it sits. */
+function bindingPaths(step) {
+    const out = [];
+    const walk = (v, where, depth = 0) => {
+        if (depth > 8 || v == null) return;
+        if (typeof v === 'string') {
+            for (const m of v.matchAll(/\{\{\s*([^}]+?)\s*\}\}/g)) out.push({ path: m[1].trim(), where });
+            return;
+        }
+        if (typeof v !== 'object') return;
+        if (v.kind === 'ref' && typeof v.path === 'string') { out.push({ path: v.path, where }); return; }
+        if (v.kind === 'literal' || v.kind === 'expr') return;
+        for (const [k, x] of Object.entries(v)) walk(x, `${where}.${k}`, depth + 1);
+    };
+    for (const [k, v] of Object.entries(step)) {
+        if (k === 'id' || k === 'type' || k === 'label' || k === 'prompt') continue;
+        walk(v, `${step.id}.${k}`);
+    }
+    return out;
+}
+
+for (const meta of templates) {
+    test(`template "${meta.id}": every binding is spelled for the runtime and resolves against its sample`, () => {
+        const def = getTemplate(meta.id).definition;
+        const payload = triggerSample(def.trigger);
+        const known = new Map();
+        for (const s of def.steps || []) {
+            const sample = stepSample(s);
+            if (sample !== undefined) known.set(s.id, sample);
+        }
+        const state = {
+            trigger: { output: payload || {} },
+            steps: Object.fromEntries([...known].map(([id, output]) => [id, { output }])),
+        };
+        for (const s of def.steps || []) {
+            for (const { path, where } of bindingPaths(s)) {
+                const issues = checkRefPath(path).filter(i => i.code !== 'unknown_field');
+                assert.deepStrictEqual(issues, [], `template ${meta.id} ${where}: "${path}" is not a path the runtime reads`);
+                const root = path.split(/[.[]/)[0];
+                const id = root === 'steps' ? path.split('.')[1] : null;
+                const checkable = (root === 'trigger' && payload && path.startsWith('trigger.output'))
+                    || (id && known.has(id));
+                if (!checkable) continue;
+                assert.notStrictEqual(walkPath(path, state), undefined,
+                    `template ${meta.id} ${where}: "${path}" resolves to nothing against the sample`);
+            }
+        }
+    });
+}

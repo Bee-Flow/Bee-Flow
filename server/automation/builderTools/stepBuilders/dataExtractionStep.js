@@ -6,7 +6,7 @@
  */
 
 const { newId, appendAfter } = require('../draftGraph');
-const { validateAndFixBindings, sanitizeForEach, unboundLoopVarError } = require('../bindings');
+const { validateAndFixBindings, sanitizeForEach, unboundLoopVarError, repairRefPath } = require('../bindings');
 const { checkLoopRef } = require('../outputFields');
 const {
     DATA_EXTRACTION_FIELD_TYPES, DATA_EXTRACTION_FIELD_NAME_RE,
@@ -94,19 +94,16 @@ function sanitizeDataExtractionSource(raw, draft) {
     return { source };
 }
 
-// Mirrors bindings.js _normalizeRefPath (private there) and
-// outputFields.normalizeRefPath: the ways weaker models mangle a path. Two
-// placeholders that differ only in spelling ({{ $loop.f.content }} and
-// {{loop.f.content}}) are ONE candidate, not two.
+// The same repair bindings.js applies to every ref path it stores
+// (repairRefPath): the ways weaker models mangle a path, with a path the
+// runtime already reads kept as it is. Two placeholders that differ only in
+// spelling ({{ $loop.f.content }} and {{loop.f.content}}) are ONE candidate,
+// not two. The path chosen here is STORED as the step's source, so it must
+// never be one the runtime cannot read (the old copy of the normaliser turned
+// `items[0]` into `items.0`).
 function normalizePlaceholderPath(path) {
     if (typeof path !== 'string') return null;
-    const p = path
-        .trim()
-        .replace(/^\$+/, '')
-        .replace(/\[\s*['"]?([^\]'"]+)['"]?\s*\]/g, '.$1')
-        .replace(/^\.+/, '')
-        .replace(/\s*\.\s*/g, '.')
-        .replace(/\.{2,}/g, '.');
+    const p = repairRefPath(path).path;
     return p || null;
 }
 

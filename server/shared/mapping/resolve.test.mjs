@@ -68,3 +68,40 @@ test('walkPath is strict: the dotted index and the bare hyphen the old previews 
     assert.equal(walkPath('steps.s1.output.items[0].x', root), 'A');
     assert.equal(walkPath('trigger.output.body["content-type"]', root), 'json');
 });
+
+test('a ref or expr that gives no value is reported through onWarning; the value is unchanged', () => {
+    const reports = [];
+    const { resolveValue, resolveInputs, resolveDeep } = createLegacyResolver({
+        evaluate,
+        onWarning: (w, state) => reports.push({ w, sameState: state === runState }),
+    });
+    const runState = { steps: { a: { output: { sum: 5 } } }, secrets: {} };
+    assert.equal(resolveValue({ kind: 'ref', path: 'steps.a.output.total' }, runState), undefined);
+    assert.equal(resolveValue({ kind: 'expr', value: 'throw' }, runState), undefined);
+    assert.equal(resolveValue({ kind: 'ref', path: 'steps.a.output.sum' }, runState), 5, 'a value that is there reports nothing');
+    assert.deepStrictEqual(reports, [
+        { w: { code: 'missing', kind: 'ref', path: 'steps.a.output.total' }, sameState: true },
+        { w: { code: 'expr_error', kind: 'expr', expr: 'throw', message: 'bad' }, sameState: true },
+    ]);
+
+    reports.length = 0;
+    const out = resolveInputs({ t: { kind: 'ref', path: 'steps.a.output.total' }, n: { kind: 'literal', value: null } }, runState);
+    assert.deepStrictEqual(out, { t: undefined, n: null });
+    assert.deepStrictEqual(reports.map(r => r.w), [{ code: 'missing', kind: 'ref', path: 'steps.a.output.total', input: 't' }]);
+
+    reports.length = 0;
+    resolveDeep({ t: { kind: 'ref', path: 'steps.a.output.total' } }, runState, { silent: true });
+    resolveInputs({ t: { kind: 'ref', path: 'steps.a.output.total' } }, runState, { silent: true });
+    assert.deepStrictEqual(reports, [], 'silent: a record of the inputs, not a use of them');
+});
+
+test('an expr that resolves to undefined is reported as missing; null is a value', () => {
+    const reports = [];
+    const { resolveValue } = createLegacyResolver({
+        evaluate: (src) => (src === 'none' ? undefined : null),
+        onWarning: (w) => reports.push(w),
+    });
+    assert.equal(resolveValue({ kind: 'expr', value: 'none' }, {}), undefined);
+    assert.equal(resolveValue({ kind: 'expr', value: 'nil' }, {}), null);
+    assert.deepStrictEqual(reports, [{ code: 'missing', kind: 'expr', expr: 'none' }]);
+});

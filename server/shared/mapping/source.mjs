@@ -22,6 +22,10 @@
  * formatPath(parseLegacyPath(p)) is p in canonical spelling. Paths that do not
  * read a value Source (step status/error, `trigger.x` without `.output`,
  * secrets, anything REF_RE rejects) parse to null.
+ *
+ * repairLegacyPath reads what people and models write when they mean a path
+ * but REF_RE rejects it (`items.0.name`, `body.content-type`,
+ * `steps[x].output`), and writes it the one canonical way.
  */
 
 import { REF_RE, tokenizePath } from './legacy.mjs';
@@ -71,10 +75,11 @@ export function parseLegacyPath(path) {
 }
 
 /**
- * One segment in legacy spelling, or null when the grammar cannot hold it.
+ * One segment in legacy spelling (`.key`, `[0]`, `["a key"]`, `[*]`), or null
+ * when the grammar cannot hold it.
  * @param {string|number|object} seg
  */
-function formatSegment(seg) {
+export function formatSegment(seg) {
     if (isWild(seg)) return '[*]';
     if (typeof seg === 'number') return Number.isSafeInteger(seg) && seg >= 0 ? `[${seg}]` : null;
     if (typeof seg !== 'string') return null;
@@ -132,4 +137,97 @@ export function lastSegment(pathOrSource) {
         if (!isWild(segs[i])) return segs[i];
     }
     return undefined;
+}
+
+// Characters that end a path written by hand or by a model: what follows them
+// is not part of it (`loop.x.output.a\"}}},tempId:` is the measured case of a
+// model's JSON leaking into a path). Inside a bracket they are part of a key.
+const PATH_END = new Set(['"', "'", '\\', '{', '}', '(', ')', '<', '>', ',', ';', ':', '|', '`', '=', '+', '!', '?', '&']);
+const ROOT_RE = /^[A-Za-z_$][A-Za-z0-9_$]*/;
+
+/** A segment read from a bracket: `*`, an index, a quoted or bare key. */
+function bracketSegment(raw) {
+    const t = raw.trim();
+    if (t === '*') return WILD;
+    if (/^[0-9]+$/.test(t)) return parseInt(t, 10);
+    return t === '' ? null : t;
+}
+
+/**
+ * Read a path the way its writer meant it, even where REF_RE rejects it, and
+ * spell it canonically. Returns `{ path, rest }`: `path` is the canonical
+ * spelling of the longest readable start (null when not even the root reads),
+ * `rest` the text after it that is not a path (`''` when all of it was).
+ *
+ *   'steps.x.output.items.0.name'      → steps.x.output.items[0].name
+ *   'trigger.output.body.content-type' → trigger.output.body["content-type"]
+ *   'trigger.output.Order date'        → trigger.output["Order date"]
+ *   'steps[x].output[y]'               → steps.x.output.y
+ *   ' steps . x . output '             → steps.x.output
+ *   'loop.x.output.a\"}},tempId:'      → loop.x.output.a, rest '\"}},tempId:'
+ *
+ * A dotted segment of digits is an index; any other dotted segment is a key,
+ * spaces and hyphens included. A path REF_RE already accepts is rewritten too
+ * (`['a']` → `.a`), so a caller that must leave a valid path alone checks
+ * REF_RE first. Writes never lose a key: a segment the grammar cannot spell
+ * ends the path there and goes into `rest`.
+ * @param {unknown} text
+ * @returns {{ path: string|null, rest: string }}
+ */
+export function repairLegacyPath(text) {
+    const s = typeof text === 'string' ? text : '';
+    let i = 0;
+    while (i < s.length && /\s/.test(s[i])) i++;
+    const root = ROOT_RE.exec(s.slice(i));
+    if (!root) return { path: null, rest: s.slice(i) };
+    let out = root[0];
+    i += root[0].length;
+    for (;;) {
+        let j = i;
+        while (j < s.length && /\s/.test(s[j])) j++;
+        const c = s[j];
+        let seg;
+        let next;
+        if (c === '.') {
+            j++;
+            while (j < s.length && /\s/.test(s[j])) j++;
+            // A doubled dot is a typo, not an empty key.
+            if (s[j] === '.') { i = j; continue; }
+            if (s[j] === '[') { i = j; continue; }
+            let k = j;
+            while (k < s.length && s[k] !== '.' && s[k] !== '[' && !PATH_END.has(s[k])) k++;
+            const raw = s.slice(j, k).trim();
+            if (!raw) break;
+            seg = /^[0-9]+$/.test(raw) ? parseInt(raw, 10) : raw;
+            next = k;
+        } else if (c === '[') {
+            let k = j + 1;
+            while (k < s.length && /\s/.test(s[k])) k++;
+            const q = s[k];
+            if (q === '"' || q === "'") {
+                const close = s.indexOf(q, k + 1);
+                if (close < 0) break;
+                let m = close + 1;
+                while (m < s.length && /\s/.test(s[m])) m++;
+                if (s[m] !== ']') break;
+                seg = s.slice(k + 1, close);
+                next = m + 1;
+            } else {
+                const close = s.indexOf(']', j);
+                if (close < 0) break;
+                seg = bracketSegment(s.slice(j + 1, close));
+                if (seg === null) break;
+                next = close + 1;
+            }
+        } else {
+            break;
+        }
+        const written = formatSegment(seg);
+        if (written === null) break;
+        out += written;
+        i = next;
+    }
+    // A trailing dot is a typo too, not the start of a key.
+    const rest = s.slice(i);
+    return { path: out, rest: /^[\s.]*$/.test(rest) ? '' : rest };
 }

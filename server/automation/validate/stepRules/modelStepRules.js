@@ -18,6 +18,7 @@ const {
     DATA_EXTRACTION_FIELD_TYPES, DATA_EXTRACTION_FIELD_NAME_RE,
     DATA_EXTRACTION_MAX_FIELDS, DATA_EXTRACTION_MAX_INSTRUCTIONS_CHARS,
 } = require('../constants');
+const { RUNTIME_ROOTS } = require('../../../shared/mapping/index.mjs');
 
 function checkAiStep(ctx, step, at) {
     const { pushE, pushW, trigger, refIds, availableAgents, fieldsReadFromStep } = ctx;
@@ -221,6 +222,20 @@ function checkAiStep(ctx, step, at) {
             }
         } else if (hasAgent) {
             pushW({ code: 'ai_step.agent_permissions_missing', severity: 'warning', path: at + '.agentPermissions', message: `Step ${step.id}: no agent permissions are set, so the agent answers from its role alone — no knowledge bases, no tools, and it cannot start other routines.`, hint: 'That is the deliberate default. Turn on only what this step needs in the step\'s permissions.' });
+        }
+        // An input named after a runtime root. The prompt scope used to let it
+        // REPLACE that root, so {{trigger.output.…}} reached the model as
+        // literal braces; the runner now keeps the roots (execAi aiPromptScope)
+        // and the input reaches the model only in the framed Inputs block, so
+        // a {{<name>}} in the prompt reads the root, not the input. A warning,
+        // never a block: a stored step with such a name still runs.
+        for (const name of Object.keys(isObject(step.inputs) ? step.inputs : {})) {
+            if (!RUNTIME_ROOTS.includes(name)) continue;
+            pushW({
+                code: 'ai_step.input_shadows_root', severity: 'warning', path: `${at}.inputs.${name}`,
+                message: `Step ${step.id}: the input "${name}" has the name of a data root, so {{${name}}} in the prompt reads the root, not this input.`,
+                hint: `Rename the input (for example "${name}Data") and use that name in the prompt.`,
+            });
         }
         // Prompt placeholder lint (C28): the runner interpolates the
         // prompt with leaveUnresolved:true — a {{steps.ghost.output.x}}

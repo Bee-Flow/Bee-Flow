@@ -11,7 +11,7 @@ const { isSideEffect } = require('../sideEffectMap');
 const {
     BRANCHING_TYPES, listStepIds, findStepAnywhere, reconcileOutgoingEdges, moveStepAfter,
 } = require('./draftGraph');
-const { validateAndFixBindings, sanitizeForEach } = require('./bindings');
+const { validateAndFixBindings, sanitizeForEach, repairRefPath, rootShadowError } = require('./bindings');
 const { inspectGateError } = require('./inspection');
 const { checkLoopRef } = require('./outputFields');
 const { normalizeApprovalConfig } = require('./approval');
@@ -276,7 +276,8 @@ function normalizePatchField(type, key, value) {
     if (type === 'set') {
         // arrayRef: a string keeps/enters list mode ('' = list mode, source
         // not picked yet); null/anything else CLEARS the key → single mode.
-        if (key === 'arrayRef') return typeof value === 'string' ? value.trim() : undefined;
+        // A non-empty one is repaired like any ref the builder stores.
+        if (key === 'arrayRef') return typeof value === 'string' ? (value.trim() ? repairRefPath(value).path : '') : undefined;
         if (key === 'maxItems') return (typeof value === 'number' && Number.isInteger(value) && value > 0) ? value : undefined;
     }
     if (type === 'loop' && key === 'maxIterations') return value || 100;
@@ -668,18 +669,31 @@ function applyUpdateStep(graph, args, draftWrap) {
     }
 
     // inputs / fields: merge-by-key (null deletes) unless inputsMode:'replace'.
+    // Only the keys the patch SENDS are canonicalised and validated. The
+    // merge used to run the whole merged map through validateAndFixBindings,
+    // so an AI edit of one input rewrote every other binding in the step,
+    // including the ones the user had mapped by hand, and refused the patch
+    // for a key it never touched.
     const bindKey = step.type === 'set' ? 'fields' : 'inputs';
     if (bindKey in patch) {
         const mode = args.inputsMode === 'replace' ? 'replace' : 'merge';
-        let raw = (patch[bindKey] && typeof patch[bindKey] === 'object') ? patch[bindKey] : {};
+        const raw = (patch[bindKey] && typeof patch[bindKey] === 'object') ? patch[bindKey] : {};
+        // In merge mode a null deletes its key, so there is nothing to check.
+        const sent = {};
+        for (const [k, v] of Object.entries(raw)) if (mode === 'replace' || v !== null) sent[k] = v;
+        if (step.type === 'ai_step') {
+            const shadow = rootShadowError(sent);
+            if (shadow) return shadow;
+        }
+        const { inputs, error } = validateAndFixBindings(sent, graph);
+        if (error) return { error };
         if (mode === 'merge') {
             const merged = { ...(step[bindKey] || {}) };
-            for (const [k, v] of Object.entries(raw)) { if (v === null) delete merged[k]; else merged[k] = v; }
-            raw = merged;
+            for (const [k, v] of Object.entries(raw)) { if (v === null) delete merged[k]; else merged[k] = inputs[k]; }
+            next[bindKey] = merged;
+        } else {
+            next[bindKey] = inputs;
         }
-        const { inputs, error } = validateAndFixBindings(raw, graph);
-        if (error) return { error };
-        next[bindKey] = inputs;
     }
 
     // forEach: re-validate; null clears it.

@@ -6,7 +6,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { walkPath } from './legacy.mjs';
-import { WILD, isWild, parseLegacyPath, formatPath, lastSegment } from './source.mjs';
+import { WILD, isWild, parseLegacyPath, formatPath, formatSegment, lastSegment, repairLegacyPath } from './source.mjs';
 import { makeState, WALK } from './corpus.mjs';
 
 test('parseLegacyPath reads the four roots', () => {
@@ -118,4 +118,36 @@ test('lastSegment of a path string or a Source', () => {
     assert.equal(lastSegment({ root: 'trigger', path: [] }), undefined);
     assert.equal(lastSegment({ root: 'trigger', path: [WILD] }), undefined);
     assert.equal(lastSegment(null), undefined);
+});
+
+test('repairLegacyPath reads what the writer meant and spells it canonically', () => {
+    const cases = [
+        ['steps.x.output.items.0.name', 'steps.x.output.items[0].name', ''],
+        ['trigger.output.body.content-type', 'trigger.output.body["content-type"]', ''],
+        ['trigger.output.Order date', 'trigger.output["Order date"]', ''],
+        ['steps[x].output[y]', 'steps.x.output.y', ''],
+        [' steps . x . output ', 'steps.x.output', ''],
+        ['steps..x.output.', 'steps.x.output', ''],
+        ['steps.s1.output.items[ 0 ].x', 'steps.s1.output.items[0].x', ''],
+        ['steps.s1.output.results[*].output.a', 'steps.s1.output.results[*].output.a', ''],
+        ["loop.row['say \"hi\"']", "loop.row['say \"hi\"']", ''],
+        ['loop.x.output.a\\"}},tempId:', 'loop.x.output.a', '\\"}},tempId:'],
+        ['x + 1', 'x', ' + 1'],
+        ['steps.x.output.items[0', 'steps.x.output.items', '[0'],
+    ];
+    for (const [text, path, rest] of cases) {
+        assert.deepStrictEqual(repairLegacyPath(text), { path, rest }, text);
+    }
+    assert.deepStrictEqual(repairLegacyPath('{{steps.x}}'), { path: null, rest: '{{steps.x}}' });
+    assert.deepStrictEqual(repairLegacyPath(null), { path: null, rest: '' });
+});
+
+test('formatSegment is the one quoting rule', () => {
+    assert.equal(formatSegment('a'), '.a');
+    assert.equal(formatSegment(0), '[0]');
+    assert.equal(formatSegment('a b'), '["a b"]');
+    assert.equal(formatSegment('say "hi"'), '[\'say "hi"\']');
+    assert.equal(formatSegment(WILD), '[*]');
+    assert.equal(formatSegment('a]b'), null);
+    assert.equal(formatSegment(-1), null);
 });

@@ -28,6 +28,8 @@
 const { OUTPUT_SCHEMAS } = require('../outputSchemas');
 const { findStepAnywhere } = require('./draftGraph');
 const triggerCatalog = require('./triggerCatalog');
+const { repairRefPath } = require('./bindings');
+const { REF_RE, tokenizePath } = require('../../shared/mapping/index.mjs');
 
 const MAX_FIELDS_LISTED = 20;
 // A forEach over a fan-out over a fan-out is the deepest shape a build has
@@ -38,20 +40,19 @@ function isPlainObject(v) {
     return !!v && typeof v === 'object' && !Array.isArray(v);
 }
 
-// Mirrors bindings.js _normalizeRefPath (private there): the ways weaker
-// models mangle a path — leading $, bracket access, leading dot, stray
-// whitespace, doubled dots. The check must see the same path the binding
-// canonicaliser stores, or a repair would be computed against a spelling
-// that never reaches the step.
+// The path the binding canonicaliser STORES (bindings.js repairRefPath), in
+// the dotted form the lookups below split on: `items[0].x` → `items.0.x`,
+// `results[*].a` → `results.*.a`, `row["Due date"]` → `row.Due date`. The
+// check must see the same path the canonicaliser stores, or a repair would be
+// computed against a spelling that never reaches the step. Dotted is for
+// matching names only; a path handed BACK to the step is built from the
+// stored spelling (see checkLoopRef), never from this.
 function normalizeRefPath(path) {
     if (typeof path !== 'string') return null;
-    return path
-        .trim()
-        .replace(/^\$+/, '')
-        .replace(/\[\s*['"]?([^\]'"]+)['"]?\s*\]/g, '.$1')
-        .replace(/^\.+/, '')
-        .replace(/\s*\.\s*/g, '.')
-        .replace(/\.{2,}/g, '.');
+    const stored = repairRefPath(path).path;
+    const tokens = REF_RE.test(stored) ? tokenizePath(stored) : null;
+    if (!tokens) return stored.replace(/\s*\.\s*/g, '.').replace(/\.{2,}/g, '.');
+    return tokens.map(t => (t.type === 'wild' ? '*' : String(t.key))).join('.');
 }
 
 /**
@@ -357,7 +358,11 @@ function checkLoopRef(graph, refPath, forEach, draftWrap) {
         const under = ['output', 'item'].filter(env => presentIn(`${env}.${rest}`, res.fields, containers));
         if (under.length === 1) {
             const env = under[0];
-            const fixed = `loop.${segs[1]}.${env}.${rest}`;
+            // Spliced into the STORED spelling, so a bracketed key or index
+            // after the envelope keeps its brackets.
+            const stored = repairRefPath(refPath).path;
+            const head = `loop.${segs[1]}`;
+            const fixed = stored.startsWith(head) ? `${head}.${env}${stored.slice(head.length)}` : `loop.${segs[1]}.${env}.${rest}`;
             const origin = res.upstream ? `steps.${res.upstream.stepId}.output.${res.arrayField}` : forEach.overRef;
             const where = env === 'output' ? 'the step\'s result sits under output' : 'the iterated item sits under item';
             return {

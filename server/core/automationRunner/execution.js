@@ -109,6 +109,15 @@ function runOrgFor(automation, session) {
 }
 
 /**
+ * The step's inputs as run history records them. Silent: this is a record of
+ * what the step got, made after (or instead of) the step's own resolve, so a
+ * value it did not get is already a run warning and must not become a second.
+ */
+function snapshotInputs(step, state) {
+    return step.inputs ? resolveDeep(step.inputs, state, { allowSecrets: false, silent: true }) : null;
+}
+
+/**
  * The branch label a DISABLED brancher routes on, or null for a plain step.
  *
  * A disabled step returns `{disabled: true}` and nothing else, so runDag found
@@ -820,7 +829,7 @@ async function executeAutomation(automation, { triggerKind = 'manual', triggerPa
             return {
                 output: step.pinnedOutput,
                 startedAt: stepStartedAt,
-                inputSnapshot: step.inputs ? resolveDeep(step.inputs, state_, { allowSecrets: false }) : null,
+                inputSnapshot: snapshotInputs(step, state_),
                 pinned: true,
                 // 'pinned' status threads through runDag's recordedStatus
                 // mapper so audit rows can distinguish synthetic from live
@@ -838,7 +847,7 @@ async function executeAutomation(automation, { triggerKind = 'manual', triggerPa
             return {
                 output: { disabled: true, ...(passThrough ? { branch: passThrough } : {}) },
                 startedAt: stepStartedAt,
-                inputSnapshot: step.inputs ? resolveDeep(step.inputs, state_, { allowSecrets: false }) : null,
+                inputSnapshot: snapshotInputs(step, state_),
                 skippedReason: 'disabled',
             };
         }
@@ -847,10 +856,14 @@ async function executeAutomation(automation, { triggerKind = 'manual', triggerPa
         try {
             result = await executeStepWithIteration(step, ctx_, state_, mode_);
             result.startedAt = stepStartedAt;
-            result.inputSnapshot = step.inputs ? resolveDeep(step.inputs, state_, { allowSecrets: false }) : null;
+            // A fan-out (forEach) records its own per-item inputs; the
+            // outer state has no loop.<itemVar>, so resolving here would
+            // record every mapped field as empty.
+            result.inputSnapshot = result.forEachInputSnapshot !== undefined ? result.forEachInputSnapshot : snapshotInputs(step, state_);
+            delete result.forEachInputSnapshot;
             return result;
         } catch (err) {
-            const inputForRecord = step.inputs ? resolveDeep(step.inputs, state_, { allowSecrets: false }) : null;
+            const inputForRecord = err.forEachInputSnapshot !== undefined ? err.forEachInputSnapshot : snapshotInputs(step, state_);
             const secretValues = secretValuesFor(state_);
             // Sub-step recording: namespace ids under the calling call_layer
             // step (ctx_.stepRecord.prefix) and suppress entirely inside
@@ -917,7 +930,8 @@ async function executeAutomation(automation, { triggerKind = 'manual', triggerPa
                         // actual errors).
                         const retryResult = await executeStepWithIteration(step, ctx_, state_, mode_);
                         retryResult.startedAt = stepStartedAt;
-                        retryResult.inputSnapshot = inputForRecord;
+                        retryResult.inputSnapshot = retryResult.forEachInputSnapshot !== undefined ? retryResult.forEachInputSnapshot : inputForRecord;
+                        delete retryResult.forEachInputSnapshot;
                         // Tell runDag to record the final outcome at the
                         // correct `attempts` slot rather than overwriting
                         // attempts=1 (the initial-fail row above).
@@ -933,10 +947,10 @@ async function executeAutomation(automation, { triggerKind = 'manual', triggerPa
                                 runId: ctx_.runId, stepId: recStepId, parentStepId: recParentStepId,
                                 stepType: step.type, attempts: i + 1,
                                 status: 'error', startedAt: attemptStartedAt, finishedAt: new Date().toISOString(),
-                                input: inputForRecord,
+                                input: retryErr.forEachInputSnapshot !== undefined ? retryErr.forEachInputSnapshot : inputForRecord,
                                 output: null, error: retryErr.message,
                                 errorClass: retryErr.errorClass || classifyUnknownError(retryErr),
-                                errorInfo: safeDescribeStepError(retryErr, { step, inputs: inputForRecord }),
+                                errorInfo: safeDescribeStepError(retryErr, { step, inputs: retryErr.forEachInputSnapshot !== undefined ? retryErr.forEachInputSnapshot : inputForRecord }),
                                 // Retries may have pulled new secrets into state_
                                 // via bridges — recompute rather than reuse.
                                 secretValues: secretValuesFor(state_),

@@ -79,6 +79,23 @@ export const CASES = [
     // extended: numeric
     { expr: 'number("42")', expected: 42 },
     { expr: 'number("nope")', expected: null },
+    // Dutch and euro notation (M1). Number() reads first, so a dot-decimal
+    // string keeps its result; only text Number() rejected is read again,
+    // with the LAST separator as the decimal mark. All of these were null.
+    { expr: 'number("1.234")', expected: 1.234 },
+    { expr: 'number("12,5")', expected: 12.5 },
+    { expr: 'number("\u20ac 1.554,25")', expected: 1554.25 },
+    { expr: 'number("1.234.567")', expected: 1234567 },
+    { expr: 'number("1,234.5")', expected: 1234.5 },
+    { expr: 'number("-\u20ac 12,50")', expected: -12.5 },
+    // Next to a euro sign a lone separator before three digits groups
+    // thousands: '€ 1.554' is 1554 euros, not 1.554.
+    { expr: 'number("\u20ac 1.554")', expected: 1554 },
+    { expr: 'number("\u20ac1.554")', expected: 1554 },
+    { expr: 'formatNumber("\u20ac 1.554", "amount")', expected: '\u20ac 1.554' },
+    { expr: 'number("1.23.4")', expected: null },                   // groups of three, or not a number
+    { expr: 'formatNumber("12,5", "amount")', expected: '\u20ac 12,50' },
+    { expr: 'sum(split("1,5|2", "|"))', expected: 3.5 },
     { expr: 'round(3.14159, 2)', expected: 3.14 },
     { expr: 'round(2.5)', expected: 3 },
     // round() wraps nearly every scientific formula, so it obeys the same
@@ -191,6 +208,14 @@ export const CASES = [
     { expr: 'join(item.tags, ",")', expected: 'x,y' },
     { expr: 'substring("hello", 1, 3)', expected: 'el' },
     { expr: 'toStr(form.amount)', expected: '120' },
+    // A record as text reads as "Key: value" pairs; it used to be
+    // "[object Object]" (M1).
+    { expr: 'toStr(group.address)', expected: 'City: Delft, Zip: 2611' },
+    { expr: 'join(table, "; ")', expected: 'Bank: ING, Ratio: 1.2; Bank: ABN | AMRO, Ratio: 0.9, Note: x' },
+    // A single value where a list was expected joins as a list of one (it
+    // used to give '').
+    { expr: 'join(form.email, ", ")', expected: 'a@b.com' },
+    { expr: 'join(missing.list, ", ")', expected: '' },
     // sumCounts — derive a total from a "2x M5 + 4x M8" breakdown so the two
     // can never disagree. Only n-times-something counts: a dimension pair
     // ("100 x 80") and a thread pitch ("M8x1.25") are NOT quantities, and a
@@ -217,13 +242,19 @@ export const CASES = [
     // extended: array
     { expr: 'first(item.tags)', expected: 'x' },
     { expr: 'last(item.tags)', expected: 'y' },
+    // …and a single value is a list of one (M1; these were null).
+    { expr: 'first(form.email)', expected: 'a@b.com' },
+    { expr: 'last(form.qty)', expected: 0 },
+    { expr: 'first(group.address)', expected: { city: 'Delft', zip: '2611' } },
+    { expr: 'first(missing.list)', expected: null },
+    { expr: 'count(form.email)', expected: 7 },                     // count is unchanged: a text counts its characters
     { expr: 'includes(item.tags, "y")', expected: true },
     { expr: 'count(actions.search.result.rows)', expected: 2 },
     // positional navigation — at/index_of/pluck (the prev/next trio)
     { expr: 'at(item.tags, 1)', expected: 'y' },
     { expr: 'at(item.tags, -1)', expected: 'y' },       // negative counts from the end
     { expr: 'at(item.tags, 2)', expected: null },       // out of range → null, never a crash
-    { expr: 'at("xy", 0)', expected: null },            // a string is not a list (matches first/last)
+    { expr: 'at("xy", 0)', expected: null },            // a string is not a list to index into
     { expr: 'index_of(item.tags, "Y")', expected: 1 },  // text matches case-insensitively, like includes()
     { expr: 'index_of(item.tags, "z")', expected: -1 },
     { expr: 'index_of("xy", "x")', expected: -1 },
@@ -312,6 +343,20 @@ export const CASES = [
     { expr: 'formatDate(1757376000000000000, "YYYY-MM-DD", "nl")', expected: '' },
     { expr: 'formatDate(1757376000000, "D MMMM YYYY", "nl")', expected: '9 september 2025' },
     { expr: 'year(1757376000000000000)', expected: null },
+    //   4. Dates other systems write that ARE unambiguous (M1). An e-mail
+    //      Date header (RFC 2822; Gmail passes it on verbatim) and a unix
+    //      timestamp in SECONDS: a number below 1e11 is seconds, so
+    //      1756720800 is 1 September 2025 and no longer 21 January 1970.
+    { expr: 'formatDate("Tue, 01 Sep 2026 10:00:00 +0200", "D MMMM YYYY", "nl")', expected: '1 september 2026' },
+    { expr: 'formatDate("Tue, 01 Sep 2026 10:00:00 +0200", "YYYY-MM-DD HH:mm")', expected: '2026-09-01 08:00' },
+    { expr: 'formatDate("Wed, 13 May 2026 09:15:00 GMT", "D MMMM YYYY", "en")', expected: '13 May 2026' },
+    { expr: 'formatDate(1756720800, "D MMMM YYYY", "nl")', expected: '1 september 2025' },
+    { expr: 'formatDate("1756720800", "YYYY-MM-DD")', expected: '2025-09-01' },
+    { expr: 'formatDate("31 Feb 2026 10:00 GMT", "YYYY-MM-DD")', expected: '' },
+    //   5. A day-only format reads the calendar day in the zone the value was
+    //      written in; times stay in UTC, as they always were.
+    { expr: 'formatDate("2026-09-01T00:30:00+02:00", "D MMMM YYYY", "nl")', expected: '1 september 2026' },
+    { expr: 'formatDate("2026-09-01T00:30:00+02:00", "YYYY-MM-DD HH:mm")', expected: '2026-08-31 22:30' },
     // yesNoText — the word for each state, silent when undecidable
     { expr: 'yesNoText(true, "wel", "niet")', expected: 'wel' },
     { expr: 'yesNoText(false, "wel", "niet")', expected: 'niet' },

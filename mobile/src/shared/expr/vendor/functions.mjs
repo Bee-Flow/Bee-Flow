@@ -16,57 +16,16 @@
  * (agent-hub .../mapping/exprFunctions.js) and its lockstep test track this set.
  */
 
-// ── Deterministic ISO date helpers (UTC-only) ──────────────────────────────
-// Dates are ISO strings. We parse to a UTC instant MANUALLY so a bare
-// 'YYYY-MM-DDTHH:MM:SS' (no zone) means the same thing in every JS engine —
-// `new Date(isoWithoutZone)` is LOCAL-time in browsers but UTC for date-only,
-// which would break client/server identity. Everything below is UTC.
-//
-// The month/day parts accept ONE or two digits and `/` as well as `-`, because
-// '2026-9-2' and '2026/09/02' are what spreadsheets, CSV exports and hand-typed
-// values actually look like, and both name one unambiguous UTC day.
-//
-// There is deliberately NO `Date.parse` fallback for anything else. It used to
-// be here, and it is the one thing in this file that broke the header's
-// determinism promise twice over: `Date.parse('2026-9-2')` is read in the
-// LOCAL zone, so the same expression on the same data rendered "2 september"
-// on a UTC server and "1 september" in a browser in Amsterdam — a whole day of
-// drift between the builder's preview and the run that follows it. And for
-// non-ISO text ('Sep 2, 2026') its result is engine-defined, so V8 and
-// JavaScriptCore need not even agree on whether it parses. Text we cannot read
-// deterministically is not read at all: `formatDate` then returns '', exactly
-// as it already did for 'not a date'.
-const DATE_ONLY = /^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/;
-const DATE_TIME = /^(\d{4})[-/](\d{1,2})[-/](\d{1,2})[T ](\d{1,2}):(\d{2})(?::(\d{2}))?(?:\.\d+)?(Z|[+-]\d{2}:?\d{2})?$/;
+import { parseDate, parseLocaleNumber } from './parse.mjs';
 
-// The widest instant a JS Date can hold. Past it every getUTC* reads NaN, and
-// the month/weekday tables below would be indexed on NaN — which threw a bare
-// TypeError out of a file whose header promises a benign fallback. A
-// nanosecond epoch (Prometheus, Kubernetes, Cassandra, plenty of webhooks) is
-// the everyday way to land here: 1.76e18 is a perfectly finite number.
-const MAX_EPOCH = 8.64e15;
-
-/** An epoch only when it is one a Date can actually represent. */
-function inRange(epoch) {
-    return Number.isFinite(epoch) && Math.abs(epoch) <= MAX_EPOCH ? epoch : null;
-}
-
+// ── Dates ──────────────────────────────────────────────────────────────────
+// Dates are ISO strings, RFC 2822 text or unix timestamps, read by parseDate
+// (parse.mjs) to a UTC instant without Date.parse, so a value means the same
+// thing in every JS engine. Everything below computes in UTC; formatDate is
+// the one place the zone a value was WRITTEN in matters (see there).
 function toEpoch(iso) {
-    if (iso == null) return null;
-    if (typeof iso === 'number') return inRange(iso);
-    const s = String(iso).trim();
-    let m = DATE_ONLY.exec(s);
-    if (m) return inRange(Date.UTC(+m[1], +m[2] - 1, +m[3]));
-    m = DATE_TIME.exec(s);
-    if (!m) return null;
-    const [, y, mo, d, h, mi, se, zone] = m;
-    let epoch = Date.UTC(+y, +mo - 1, +d, +h, +mi, se ? +se : 0);
-    if (zone && zone !== 'Z') {
-        const sign = zone[0] === '-' ? -1 : 1;
-        const zz = zone.slice(1).replace(':', '');
-        epoch -= sign * ((+zz.slice(0, 2)) * 60 + (+zz.slice(2, 4))) * 60000;
-    }
-    return inRange(epoch);
+    const d = parseDate(iso);
+    return d ? d.epoch : null;
 }
 
 const UNIT_MS = { second: 1000, minute: 60000, hour: 3600000, day: 86400000, week: 604800000 };
@@ -170,10 +129,27 @@ function cellText(v, depth = 0) {
     return Object.keys(v).map((k) => `${labelFromKey(k)}: ${cellText(v[k], depth + 1)}`).join(', ');
 }
 
+// A plain record: an object that is not a list.
+function isRecord(x) {
+    return x !== null && typeof x === 'object' && !Array.isArray(x);
+}
+
+// One item of join(): a record as readable "Key: value" pairs, anything else
+// as it always was (String of the value, '' for null).
+function joinItemText(x) {
+    if (x == null) return '';
+    return isRecord(x) ? cellText(x) : String(x);
+}
+
+// A number, or null. Number() reads first, so every value it could already
+// read keeps its result ('1.234' stays 1.234); only text it rejected is read
+// again the way a Dutch or euro source writes it ('12,5', '€ 1.554,25'), see
+// parseLocaleNumber. Before that second reading, those values were null.
 function toNum(x) {
     if (x == null || x === '') return null;
     const n = typeof x === 'number' ? x : Number(x);
-    return isFinite(n) ? n : null;
+    if (isFinite(n)) return n;
+    return typeof x === 'string' ? parseLocaleNumber(x) : null;
 }
 
 // ── Totality gate for the maths helpers ────────────────────────────────────
@@ -427,14 +403,23 @@ export const FUNCTIONS = {
     concat: (...xs) => xs.map((x) => (x == null ? '' : String(x))).join(''),
     replace: (s, find, repl) => (s == null ? '' : String(s).split(find == null ? '' : String(find)).join(repl == null ? '' : String(repl))),
     split: (s, sep) => (s == null ? [] : String(s).split(sep == null ? '' : String(sep))),
-    join: (arr, sep) => (Array.isArray(arr) ? arr.map((x) => (x == null ? '' : String(x))).join(sep == null ? '' : String(sep)) : ''),
+    // A list's items joined into one text. A record among them reads as
+    // "Key: value" pairs (cellText), never "[object Object]"; a single value
+    // where a list was expected is that value as text, as if it were a list
+    // of one (a step that returns one e-mail address instead of a list of
+    // them). Both used to give "[object Object]" and '' respectively.
+    join: (arr, sep) => {
+        if (arr == null) return '';
+        if (!Array.isArray(arr)) return joinItemText(arr);
+        return arr.map(joinItemText).join(sep == null ? '' : String(sep));
+    },
     substring: (s, a, b) => {
         if (s == null) return '';
         const str = String(s); const start = toNum(a) || 0;
         return b == null ? str.substring(start) : str.substring(start, toNum(b) || 0);
     },
     padStart: (s, n, ch) => (s == null ? '' : String(s).padStart(toNum(n) || 0, ch == null ? ' ' : String(ch))),
-    toStr: (x) => (x == null ? '' : String(x)),
+    toStr: (x) => (isRecord(x) ? cellText(x) : (x == null ? '' : String(x))),
     // Sum the leading multipliers in a "2x M5 + 4x M8" style list — the shape
     // every parts/BOM app writes its per-item breakdowns in. Exists because a
     // language model asked to BOTH list the groups AND add them up will
@@ -457,8 +442,10 @@ export const FUNCTIONS = {
     },
 
     // ── Array ─────────────────────────────────────────────────────────────
-    first: (arr) => (Array.isArray(arr) && arr.length ? arr[0] : null),
-    last: (arr) => (Array.isArray(arr) && arr.length ? arr[arr.length - 1] : null),
+    // A single value where a list was expected is a list of one: its first
+    // and its last item are the value itself (they used to be null).
+    first: (arr) => (Array.isArray(arr) ? (arr.length ? arr[0] : null) : (arr === undefined ? null : arr)),
+    last: (arr) => (Array.isArray(arr) ? (arr.length ? arr[arr.length - 1] : null) : (arr === undefined ? null : arr)),
     includes: (arr, x) => (Array.isArray(arr)
         ? arr.some((el) => el === x || (typeof el === 'string' && typeof x === 'string' && ciEq(el, x)))
         : false),
@@ -470,8 +457,9 @@ export const FUNCTIONS = {
     },
     // Positional navigation — at/index_of are the prev/next primitives: find
     // the index of the current selection in a source list, then read the
-    // neighbour at index ± 1. Both are list-only (a string is not a list here,
-    // matching first/last above). index_of matches values exactly the way
+    // neighbour at index ± 1. Both are list-only (a string is not a list
+    // here; first/last read a single value as a list of one, but an index
+    // into one is not a question with a useful answer). index_of matches values exactly the way
     // includes() does — strict equality plus case-insensitive text — so
     // "is it in the list" and "where is it" can never disagree.
     at: (arr, i) => {
@@ -558,11 +546,19 @@ export const FUNCTIONS = {
     // plus MMMM/MMM (month name), dddd/ddd (weekday name) and D/M (no zero
     // pad), so "D MMMM YYYY" is "2 september 2026" and "DD-MM-YYYY" is
     // "02-09-2026" (artboard 2c). Names come from the locale TABLE above,
-    // never from Intl; unknown locales read as nl. Still UTC-only.
+    // never from Intl; unknown locales read as nl.
+    //
+    // Times are rendered in UTC, as they always were. A format WITHOUT a time
+    // token asks for the calendar day, and that is the day in the zone the
+    // value was written in: '2026-09-01T00:30:00+02:00' is 1 September, not
+    // (as it used to read, in UTC) 31 August. A value with no zone, or in UTC,
+    // gives the same day either way.
     formatDate: (iso, fmt, locale) => {
-        const e = toEpoch(iso); if (e == null) return '';
-        const d = new Date(e);
-        // Belt and braces beside toEpoch's range check: the month/weekday
+        const parsed = parseDate(iso); if (!parsed) return '';
+        const format = String(fmt == null ? 'YYYY-MM-DD' : fmt);
+        const dayOnly = !/HH|mm|ss/.test(format);
+        const d = new Date(parsed.epoch + (dayOnly && parsed.offset ? parsed.offset * 60000 : 0));
+        // Belt and braces beside parseDate's range check: the month/weekday
         // lookups below index a table, and an Invalid Date would index it on
         // NaN and throw `undefined.slice` — a throw, out of a file that
         // promises a fallback. Whatever else changes about parsing, this stays
@@ -579,7 +575,7 @@ export const FUNCTIONS = {
             DD: pad(d.getUTCDate()), D: d.getUTCDate(),
             HH: pad(d.getUTCHours()), mm: pad(d.getUTCMinutes()), ss: pad(d.getUTCSeconds()),
         };
-        return String(fmt == null ? 'YYYY-MM-DD' : fmt).replace(/YYYY|MMMM|MMM|MM|M|dddd|ddd|DD|D|HH|mm|ss/g, (t) => String(map[t]));
+        return format.replace(/YYYY|MMMM|MMM|MM|M|dddd|ddd|DD|D|HH|mm|ss/g, (t) => String(map[t]));
     },
     // formatNumber(value, style?, locale?, places?) — "amount" (€ 1.500.000),
     // "percent" (12,5%; the VALUE is the fraction, 0.125, as in a spreadsheet)
@@ -661,7 +657,7 @@ export const EXPR_FUNCTIONS = [
     { name: 'upper', signature: 'upper(text)', description: 'Uppercase the text.' },
     { name: 'len', signature: 'len(value)', description: 'Length of text, a list, or an object.' },
     { name: 'isEmpty', signature: 'isEmpty(value)', description: 'True for missing values, empty text, lists or objects.' },
-    { name: 'number', signature: 'number(value)', description: 'Convert to a number (or null if not numeric).' },
+    { name: 'number', signature: 'number(value)', description: 'Convert to a number (or null if not numeric). Reads "12,5" and "€ 1.554,25" too.' },
     { name: 'round', signature: 'round(value, places?)', description: 'Round to the given decimal places (default 0).' },
     { name: 'floor', signature: 'floor(value)', description: 'Round down to a whole number.' },
     { name: 'ceil', signature: 'ceil(value)', description: 'Round up to a whole number.' },
@@ -704,13 +700,13 @@ export const EXPR_FUNCTIONS = [
     { name: 'concat', signature: 'concat(a, b, …)', description: 'Join values into one string.' },
     { name: 'replace', signature: 'replace(text, find, with)', description: 'Replace every occurrence of find.' },
     { name: 'split', signature: 'split(text, sep)', description: 'Split text into a list on sep.' },
-    { name: 'join', signature: 'join(list, sep)', description: 'Join a list into text with sep.' },
+    { name: 'join', signature: 'join(list, sep)', description: 'Join a list into text with sep. A record reads as "Key: value"; a single value is itself.' },
     { name: 'substring', signature: 'substring(text, start, end?)', description: 'Slice of text between start and end.' },
     { name: 'padStart', signature: 'padStart(text, length, char?)', description: 'Pad the start of text to a length.' },
     { name: 'toStr', signature: 'toStr(value)', description: 'Convert any value to text.' },
     { name: 'sumCounts', signature: 'sumCounts(text)', description: 'Add up the quantities in a breakdown like "2x M5 + 4x M8" (gives 6). Dimensions such as "100 x 80" are ignored. Nothing to count gives nothing.' },
-    { name: 'first', signature: 'first(list)', description: 'First item of a list.' },
-    { name: 'last', signature: 'last(list)', description: 'Last item of a list.' },
+    { name: 'first', signature: 'first(list)', description: 'First item of a list (a single value is itself).' },
+    { name: 'last', signature: 'last(list)', description: 'Last item of a list (a single value is itself).' },
     { name: 'includes', signature: 'includes(list, value)', description: 'True when the list contains value (text ignores case).' },
     { name: 'count', signature: 'count(value)', description: 'Number of items in a list/text/object.' },
     { name: 'at', signature: 'at(list, index)', description: 'Item at a 0-based index (negative counts from the end). Outside the list gives nothing.' },
@@ -720,7 +716,7 @@ export const EXPR_FUNCTIONS = [
     { name: 'parseJson', signature: 'parseJson(text, path?)', description: 'Parse JSON text and optionally pick a path from it (a.b, items[0].x, items[*].x). Invalid JSON gives null.' },
     { name: 'dateAdd', signature: 'dateAdd(date, n, unit)', description: 'Add n units (day/hour/…) to an ISO date.' },
     { name: 'dateDiff', signature: 'dateDiff(a, b, unit)', description: 'Whole units between two ISO dates (a − b).' },
-    { name: 'formatDate', signature: 'formatDate(date, "D MMMM YYYY", locale?)', description: 'Format an ISO date (UTC): YYYY/MM/DD/HH/mm/ss, plus D and M without a zero, MMMM/MMM for the month name and dddd/ddd for the weekday — "D MMMM YYYY" is "2 september 2026". Locale nl/en/de/fr picks the names.' },
+    { name: 'formatDate', signature: 'formatDate(date, "D MMMM YYYY", locale?)', description: 'Format a date (ISO, an e-mail date, or a unix timestamp): YYYY/MM/DD/HH/mm/ss, plus D and M without a zero, MMMM/MMM for the month name and dddd/ddd for the weekday — "D MMMM YYYY" is "2 september 2026". Locale nl/en/de/fr picks the names.' },
     { name: 'formatNumber', signature: 'formatNumber(value, "amount" | "percent" | "plain", locale?, places?)', description: 'Write a number for people: "amount" gives € 1.500.000, "percent" turns 0.125 into 12,5%, "plain" gives 1.500.000. Locale nl/en/de/fr picks the separators; places pins the decimals.' },
     { name: 'yesNoText', signature: 'yesNoText(value, yesText?, noText?)', description: 'The word for a yes/no value — yesNoText(item.paid, "wel", "niet"). Unknown values give nothing.' },
     { name: 'groupSummary', signature: 'groupSummary(group)', description: 'A readable summary of a group: one "Label: value" line per field.' },

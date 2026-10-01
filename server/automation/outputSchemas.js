@@ -274,9 +274,12 @@ const OUTPUT_SCHEMAS = {
     },
 
     // ── Drive / Docs writes ───────────────────────────────────────
+    // What integrations/driveTools.js actually returns. The shape used to say
+    // {id, webViewLink}, so a builder told to bind the new folder bound
+    // `output.id`, which is undefined at run time.
     drive_create_folder: {
-        shape: { id: 'string', name: 'string', webViewLink: 'string' },
-        sample: { id: 'folder-1', name: 'New folder', webViewLink: 'https://drive.google.com/drive/folders/folder-1' },
+        shape: { success: 'boolean', folderId: 'string', name: 'string', link: 'string' },
+        sample: { success: true, folderId: 'folder-1', name: 'New folder', link: 'https://drive.google.com/drive/folders/folder-1' },
     },
     drive_move_file: {
         shape: { id: 'string', moved: 'boolean', newParentId: 'string' },
@@ -337,9 +340,12 @@ const OUTPUT_SCHEMAS = {
         shape: { success: 'boolean', path: 'string', contentType: 'string', bytes: 'integer', created: 'boolean', updated: 'boolean', appended: 'integer|undefined' },
         sample: { success: true, path: '/Reports/invoices.xlsx', contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', bytes: 5120, created: true, updated: false },
     },
+    // `fileId` rides along when Nextcloud answers the upload with its
+    // OC-FileId header (nextcloudFiles/webdav.js uploadBinaryFile), as for
+    // nextcloud_create_presentation below.
     nextcloud_create_document: {
-        shape: { success: 'boolean', path: 'string', contentType: 'string', bytes: 'integer', created: 'boolean', updated: 'boolean' },
-        sample: { success: true, path: '/Reports/summary.docx', contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', bytes: 8192, created: true, updated: false },
+        shape: { success: 'boolean', path: 'string', contentType: 'string', bytes: 'integer', created: 'boolean', updated: 'boolean', fileId: 'string|null' },
+        sample: { success: true, path: '/Reports/summary.docx', contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', bytes: 8192, created: true, updated: false, fileId: '4712' },
     },
     nextcloud_create_presentation: {
         // `webUrl` is the Nextcloud deep link that opens the deck in Nextcloud

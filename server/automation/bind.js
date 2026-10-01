@@ -15,9 +15,10 @@
  * CommonJS facade with the same exports as before, so every caller keeps
  * `const { resolveInputs, interpolateTemplate, ... } = require('./bind')`.
  *
- * It adds the two server-only pieces the shared module cannot import: the
- * expression engine (./expr, for `expr` bindings) and the debug log on a
- * template path that resolves to undefined (`AUTOMATION_DEBUG_BINDINGS=1`).
+ * It adds the server-only pieces the shared module cannot import: the
+ * expression engine (./expr, for `expr` bindings), the debug log on a path
+ * that resolves to undefined (`AUTOMATION_DEBUG_BINDINGS=1`), and the run
+ * warning for a ref or expr that gave no value (bindingWarningText).
  *
  * Requires Node >= 22.12 for require(ESM), like automation/expr.js.
  */
@@ -26,12 +27,37 @@ const { evaluate } = require('./expr');
 const log = require('../telemetry/log');
 const mapping = require('../shared/mapping/index.mjs');
 
+const MAX_EXPR_IN_WARNING = 80;
+
+/**
+ * The run warning for a binding that gave no value. A template has always put
+ * the bare path it missed on `runState._templateWarnings`; a ref or an expr
+ * said nothing, so a tool received a missing argument and the run never said
+ * why. This names the input, and the path or the expression, never a value.
+ */
+function bindingWarningText(w) {
+    const where = w.input === undefined ? '' : `input "${w.input}": `;
+    if (w.kind === 'ref') return `${where}${w.path || '(empty path)'} resolved to nothing`;
+    const src = w.expr.length > MAX_EXPR_IN_WARNING ? `${w.expr.slice(0, MAX_EXPR_IN_WARNING)}…` : w.expr;
+    return w.code === 'expr_error'
+        ? `${where}expression "${src}" failed: ${w.message}`
+        : `${where}expression "${src}" resolved to nothing`;
+}
+
 const { resolveValue, resolveDeep, resolveInputs, interpolateTemplate } = mapping.createLegacyResolver({
     evaluate,
     onUnresolved(path) {
         if (process.env.AUTOMATION_DEBUG_BINDINGS) {
             log.warn(`[bind] template path "${path}" resolved to undefined`);
         }
+    },
+    onWarning(warning, runState) {
+        const text = bindingWarningText(warning);
+        if (process.env.AUTOMATION_DEBUG_BINDINGS) log.warn(`[bind] ${text}`);
+        // Deduplicated like runDag's pushRunWarning: a fan-out or a list-mode
+        // set resolves the same binding once per item.
+        const list = runState && runState._templateWarnings;
+        if (Array.isArray(list) && !list.includes(text)) list.push(text);
     },
 });
 

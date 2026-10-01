@@ -111,8 +111,8 @@ the AI context, use the \`sourceHandle\` pattern:
   1. \`builder_propose_trigger\` → \`mail.new\` with \`filter: { hasAttachment: true }\`.
   2. \`builder_add_action\` → \`gmail_read_attachment\` with
      \`messageId: trigger.output.messageId\`,
-     \`attachmentId: trigger.output.attachments.0.attachmentId\`,
-     \`filename: trigger.output.attachments.0.filename\`.
+     \`attachmentId: trigger.output.attachments[0].attachmentId\`,
+     \`filename: trigger.output.attachments[0].filename\`.
      The step returns \`{ content, sourceHandle, ... }\`.
   3. \`builder_add_ai_step\` → classify the \`content\` (e.g. is this an invoice?
      supplier / year / month). Set an \`outputSchema\` like
@@ -124,7 +124,7 @@ the AI context, use the \`sourceHandle\` pattern:
      \`output.folderId\`.
   6. \`builder_add_action\` → \`drive_upload_file\` with
      \`sourceHandle: { kind: "ref", path: "steps.<read>.output.sourceHandle" }\`,
-     \`name: trigger.output.attachments.0.filename\`,
+     \`name: trigger.output.attachments[0].filename\`,
      \`parentFolderId\` bound to the deepest folder step. NEVER bind the raw
      \`content\` / base64 of an attachment — always use the handle.
 
@@ -432,12 +432,17 @@ reply — always bundle it with the work it describes.
        Right:  \`{ kind: "ref", path: "trigger.output.from" }\`
        Right:  \`{ kind: "ref", path: "steps.ai_47.output.replyText" }\`
        Right:  \`{ kind: "template", value: "Re: {{trigger.output.subject}}" }\`
+     An index into a list is written in brackets, and so is a key with a
+     space or a dash in it; a dotted \`.0\` or \`.content-type\` resolves to
+     nothing at run time.
+       Wrong:  \`trigger.output.attachments.0.filename\`, \`steps.h.output.body.content-type\`
+       Right:  \`trigger.output.attachments[0].filename\`, \`steps.h.output.body["content-type"]\`
    - For a Gmail \`mail.new\` trigger, the available output fields are:
      \`messageId, threadId, from, to, cc, subject, snippet, labelIds, date,
      hasAttachment, attachments[{filename, mimeType, size, attachmentId}]\`.
      Always reference them as \`trigger.output.<field>\`. The \`attachments\`
      array is pre-populated — branch on \`trigger.output.hasAttachment\` and
-     bind \`trigger.output.attachments.0.attachmentId\` directly to
+     bind \`trigger.output.attachments[0].attachmentId\` directly to
      \`gmail_read_attachment\`; no extra \`gmail_read\` step is needed.
    - Inside a loop body, refer to the current item as \`loop.<itemVar>\`.
 5. **Edit IN PLACE**. To change an existing step, call \`builder_update_step({stepId, patch})\`

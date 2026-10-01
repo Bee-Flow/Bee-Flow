@@ -7,6 +7,7 @@
  */
 
 const { triggerFieldsFor } = require('./triggerCatalog');
+const { REF_RE, RUNTIME_ROOTS, TRIGGER_RUN_KEYS, repairLegacyPath, tokenizePath } = require('../../shared/mapping/index.mjs');
 
 /**
  * Coerce a step's inputs into canonical binding form.
@@ -29,30 +30,73 @@ function canonicalizeInputs(inputs) {
     return out;
 }
 
-// Normalise a ref path the way weaker models tend to mangle it:
-//   $steps.x.output.y   → steps.x.output.y     (leading $ for "expression")
-//   steps[x].output[y]  → steps.x.output.y     (bracket access)
-//   .steps.x.output.y   → steps.x.output.y     (leading dot)
-//   steps . x . output  → steps.x.output       (stray whitespace)
-//   loop.x.output.a\"}}}},tempId: → loop.x.output.a   (JSON debris after the path)
+// The ref-path repair, for the ways weaker models mangle a path:
+//   $steps.x.output.y          → steps.x.output.y        (leading $ for "expression")
+//   steps[x].output[y]         → steps.x.output.y        (bracket access)
+//   .steps.x.output.y          → steps.x.output.y        (leading dot)
+//   steps . x . output         → steps.x.output          (stray whitespace)
+//   {{steps.x.output.y}}       → steps.x.output.y        (template braces on a ref)
+//   items.0.name               → items[0].name           (dotted index)
+//   body.content-type          → body["content-type"]    (key the grammar must quote)
+//   loop.x.output.a\"}}}},tempId: → loop.x.output.a      (JSON debris after the path)
 //
-// The last one is the tail-trim, and it runs LAST (brackets convert first, so
-// nothing valid is over-trimmed; `$` stays legal for steps.$tempId refs). It is
-// the Gemma-4-on-llama.cpp signature (measured 2026-09-17 — findings F1): a
-// valid path followed by escape/punctuation debris the model literally cannot
-// stop emitting, so it resent the same corruption until the ladder stopped the
-// turn. `trimTail:false` exists so validateAndFixBindings can tell THIS repair
-// apart from the older, deliberately silent ones and give it a _warnings note.
-function _normalizeRefPath(path, { trimTail = true } = {}) {
-    if (typeof path !== 'string') return path;
-    const out = path
+// A path the runtime already reads (REF_RE) keeps its spelling: `items[0]`,
+// `results[*].output.a` and `row["Due date"]` are valid. The old normaliser
+// turned every bracket into a dot and then cut at the first character it did
+// not expect, so it rewrote all three into paths that resolve to undefined. Everything else goes through the shared
+// core's reader (repairLegacyPath), so the canonical spelling is the one the
+// editor and the runtime use too.
+//
+// The debris case is the Gemma-4-on-llama.cpp signature (measured 2026-09-17,
+// findings F1): a valid path followed by escape/punctuation debris the model
+// cannot stop emitting, so it resent the same corruption until the ladder
+// stopped the turn. `debris` is what was cut off, so validateAndFixBindings can
+// name that repair in a _warnings note.
+const DEBRIS_START = /^\s*[\\"'{}()<>,;:|`=+!?&]/;
+
+function repairRefPath(path) {
+    if (typeof path !== 'string') return { path, debris: '' };
+    // Cleaning a path that is already canonical changes nothing, so a valid
+    // path comes back unchanged; `$steps.x` passes REF_RE (`$` is an
+    // identifier character) but names no root, so it is cleaned first.
+    const cleaned = path
         .trim()
+        .replace(/^\{\{\s*([^{}]*?)\s*\}\}$/, '$1')
         .replace(/^\$+/, '')
-        .replace(/\[\s*['"]?([^\]'"]+)['"]?\s*\]/g, '.$1')
-        .replace(/^\.+/, '')
-        .replace(/\s*\.\s*/g, '.')
-        .replace(/\.{2,}/g, '.');
-    return trimTail ? out.replace(/[^A-Za-z0-9_.$].*$/, '') : out;
+        .replace(/^\.+/, '');
+    if (REF_RE.test(cleaned)) return { path: cleaned, debris: '' };
+    const { path: repaired, rest } = repairLegacyPath(cleaned);
+    // Not even a root reads, or what follows the readable part is not debris
+    // (`items[0` with its bracket unclosed): no guess. The path is left as
+    // it is, for the checks in validateAndFixBindings to refuse.
+    if (!repaired || (rest && !DEBRIS_START.test(rest))) return { path: cleaned, debris: '' };
+    return { path: repaired, debris: rest };
+}
+
+/** The identifier a path starts with ('steps' for 'steps["x"].output'). */
+function rootOfPath(path) {
+    const m = /^[A-Za-z_$][A-Za-z0-9_$]*/.exec(path);
+    return m ? m[0] : '';
+}
+
+/**
+ * Is `{path: …}` (with no `kind`) a ref the model forgot to tag? Only when
+ * `path` is its ONLY key, and it is not a file-system path: a slash or a
+ * backslash outside a ref root makes it data, so a file `{path: '/Invoices/a.pdf',
+ * name: 'a.pdf'}` or `{path: 'Invoices/a.pdf'}` is a literal (it used to be cut
+ * to the empty path '' and refused). Every other lone `{path}` is taken as a
+ * ref, even one that does not read as one — `{path: 'subject'}` on a trigger
+ * without that field, a mistyped root (`step.x.output.y`), an unclosed
+ * `items[0` — so validateAndFixBindings refuses it with an error the model can
+ * act on. Kept as a literal, the tool would have received the object
+ * `{path: 'subject'}` as its argument.
+ */
+function _isKindlessRef(m) {
+    if (!m || typeof m !== 'object' || Array.isArray(m)) return false;
+    const keys = Object.keys(m);
+    if (keys.length !== 1 || keys[0] !== 'path' || typeof m.path !== 'string') return false;
+    const { path } = repairRefPath(m.path);
+    return !(/[/\\]/.test(path) && !VALID_REF_ROOTS.has(rootOfPath(path)));
 }
 
 /**
@@ -64,16 +108,16 @@ function _normalizeRefPath(path, { trimTail = true } = {}) {
 function _looksLikeBinding(m) {
     if (!m || typeof m !== 'object' || Array.isArray(m)) return false;
     if (typeof m.kind === 'string' && ['literal', 'ref', 'template', 'expr'].includes(m.kind)) return true;
-    return typeof m.path === 'string';
+    return _isKindlessRef(m);
 }
 
 function canonicalizeBinding(v) {
-    // Already a binding wrapper with a recognised kind — normalise ref/template values then pass through.
+    // Already a binding wrapper with a recognised kind — repair a mangled ref path, then pass through.
     if (v && typeof v === 'object' && !Array.isArray(v) && typeof v.kind === 'string'
         && ['literal', 'ref', 'template', 'expr'].includes(v.kind)) {
         if (v.kind === 'ref' && typeof v.path === 'string') {
-            const normalised = _normalizeRefPath(v.path);
-            if (normalised !== v.path) return { ...v, path: normalised };
+            const { path } = repairRefPath(v.path);
+            if (path !== v.path) return { ...v, path };
         }
         return v;
     }
@@ -81,8 +125,8 @@ function canonicalizeBinding(v) {
     // Weaker models often emit { value: "..." } or { path: "..." } without
     // the kind tag; we recover those instead of silently flattening to literal.
     if (v && typeof v === 'object' && !Array.isArray(v)) {
-        if (typeof v.path === 'string') {
-            return { kind: 'ref', path: _normalizeRefPath(v.path) };
+        if (_isKindlessRef(v)) {
+            return { kind: 'ref', path: repairRefPath(v.path).path };
         }
         if ('value' in v && Object.keys(v).every(k => k === 'value' || k === 'kind')) {
             const val = v.value;
@@ -109,8 +153,8 @@ function canonicalizeBinding(v) {
         // validateAndFixBindings so it learns the right shape.
     }
     // Same for a LIST of bindings, e.g. an input that takes several refs.
-    if (Array.isArray(v) && v.some(_looksLikeBinding)) {
-        return v.map(canonicalizeBinding);
+    if (Array.isArray(v) && v.some(m => _looksLikeBinding(m))) {
+        return v.map(m => canonicalizeBinding(m));
     }
     // String containing {{...}} → template.
     if (typeof v === 'string' && /\{\{[^}]+\}\}/.test(v)) {
@@ -135,35 +179,38 @@ const VALID_REF_ROOTS = new Set(['trigger', 'steps', 'vars', 'secrets', 'loop'])
 // ("from", "subject", …) we can confidently prepend `trigger.output.` instead
 // of bouncing the call back to the model. Keyed by `<provider>.<event>`.
 function validateAndFixBindings(rawInputs, draft) {
-    const fixed = canonicalizeInputs(rawInputs || {});
     const triggerFields = new Set(triggerFieldsFor(draft));
+    const fixed = canonicalizeInputs(rawInputs || {});
     const errors = [];
     const repairs = [];
 
-    // The ONE ref-path repair worth a note is the tail-trim: the debris is
-    // the Gemma-4 signature the model cannot help resending, and the clean
-    // path is the thing to teach. The older transforms stay silent, as they
-    // always were. canonicalizeInputs already applied the repair; this pass
-    // only NAMES it (doctrine: nothing is coerced silently).
-    const debris = [];
-    const collectDebris = (label, node, depth) => {
+    // Two ref-path repairs are worth a note. The tail-trim: the debris is the
+    // Gemma-4 signature the model cannot help resending, and the clean path
+    // is the thing to teach. And the spelling repair (`items.0` → `items[0]`,
+    // `body.content-type` → `body["content-type"]`): the model learns the one
+    // spelling the runtime reads. The older transforms ($, leading dot,
+    // whitespace, steps[x]) stay silent, as they always were.
+    // canonicalizeInputs already applied the repair; this pass only NAMES it
+    // (doctrine: nothing is coerced silently).
+    const bracketCount = (p) => (p.match(/\[/g) || []).length;
+    const collectPathNotes = (label, node, depth) => {
         if (!node || typeof node !== 'object') return;
         if (_looksLikeBinding(node)) {
             if (typeof node.path === 'string') {
-                const untrimmed = _normalizeRefPath(node.path, { trimTail: false });
-                const clean = _normalizeRefPath(node.path);
-                if (clean !== untrimmed) debris.push([label, untrimmed, clean]);
+                const { path: clean, debris } = repairRefPath(node.path);
+                if (debris) {
+                    repairs.push(`${label}: ref path "${node.path.trim()}" carried JSON debris after the real path — read as "${clean}".`);
+                } else if (clean !== node.path && bracketCount(clean) > bracketCount(node.path)) {
+                    repairs.push(`${label}: ref path "${node.path.trim()}" read as "${clean}" — write an index as [0] and a key with spaces or dashes as ["key"]; a dotted .0 or .content-type resolves to nothing at run time.`);
+                }
             }
             return;
         }
         if (depth >= 3) return;
-        if (Array.isArray(node)) { node.forEach((m, i) => collectDebris(`${label}[${i}]`, m, depth + 1)); return; }
-        for (const [key, m] of Object.entries(node)) collectDebris(`${label}.${key}`, m, depth + 1);
+        if (Array.isArray(node)) { node.forEach((m, i) => collectPathNotes(`${label}[${i}]`, m, depth + 1)); return; }
+        for (const [key, m] of Object.entries(node)) collectPathNotes(`${label}.${key}`, m, depth + 1);
     };
-    for (const [k, v] of Object.entries(rawInputs || {})) collectDebris(`inputs.${k}`, v, 0);
-    for (const [label, raw, clean] of debris) {
-        repairs.push(`${label}: ref path "${raw}" carried JSON debris after the real path — read as "${clean}".`);
-    }
+    for (const [k, v] of Object.entries(rawInputs || {})) collectPathNotes(`inputs.${k}`, v, 0);
 
     // Record auto-wrapping: if the caller passed a bare value (string, number,
     // boolean, plain {value:...}) for a key, canonicalizeBinding already wrapped
@@ -207,17 +254,31 @@ function validateAndFixBindings(rawInputs, draft) {
 
         if (v.kind === 'ref' && typeof v.path === 'string') {
             const cleaned = v.path.replace(/^\.+/, '').trim();
-            const root = cleaned.split('.')[0];
-            // Handle "trigger.<field>" (skipping the .output. segment) BEFORE the
-            // VALID_REF_ROOTS short-circuit, because 'trigger' is itself a valid
-            // root and the short-circuit would otherwise leave the path broken.
-            const segments = cleaned.split('.');
-            if (root === 'trigger' && segments.length === 2 && segments[1] !== 'output' && triggerFields.has(segments[1])) {
-                v.path = `trigger.output.${segments[1]}`;
+            const root = rootOfPath(cleaned);
+            // Handle "trigger.<field>…" (skipping the .output. segment) BEFORE
+            // the VALID_REF_ROOTS short-circuit, because 'trigger' is itself a
+            // valid root and the short-circuit would otherwise leave the path
+            // broken. Any depth: 'trigger.attachments[0].filename' too.
+            // `trigger.<x>` is undefined at run time for every x that is not
+            // the payload (output), the headers or a metadata key, so the
+            // payload is the only reading; known trigger fields or not.
+            // A metadata key the trigger's payload declares too (`id` on a
+            // spreadsheet trigger, `kind` on a Nextcloud file trigger) means
+            // the payload's field, as it always has here: left alone it reads
+            // the trigger node's id or 'app_event'.
+            const tokens = root === 'trigger' && REF_RE.test(cleaned) ? tokenizePath(cleaned) : null;
+            const second = tokens && tokens[1];
+            if (second && second.type === 'prop' && typeof second.key === 'string' && second.key !== 'output'
+                && (!TRIGGER_RUN_KEYS.includes(second.key) || triggerFields.has(second.key))) {
+                v.path = `trigger.output${cleaned.slice('trigger'.length)}`;
                 repairs.push(`inputs.${k}: inserted .output. segment → "${v.path}".`);
                 continue;
             }
             if (VALID_REF_ROOTS.has(root)) {
+                if (!REF_RE.test(cleaned)) {
+                    errors.push(`inputs.${k}: ref path "${v.path}" is not a path the runtime can read. Write steps.<id>.output.<field>, an index as [0] and a key with spaces or dashes as ["key"].`);
+                    continue;
+                }
                 if (cleaned !== v.path) {
                     v.path = cleaned;
                     repairs.push(`inputs.${k}: cleaned ref path to "${cleaned}".`);
@@ -241,6 +302,7 @@ function validateAndFixBindings(rawInputs, draft) {
                 + (triggerFields.size
                     ? `For this trigger use trigger.output.<field>, e.g. trigger.output.${triggerFields.has(cleaned) ? cleaned : 'subject'}.`
                     : 'Use e.g. trigger.output.<field> or steps.<id>.output.<field>.')
+                + ' If this is data rather than a reference, send it as {kind:"literal", value:…}.'
             );
         }
 
@@ -250,10 +312,23 @@ function validateAndFixBindings(rawInputs, draft) {
             // that has an unknown root.
             const bad = [];
             const rewrites = [];
+            const respelled = [];
             v.value = v.value.replace(/\{\{\s*([^}]+?)\s*\}\}/g, (full, expr) => {
                 const cleaned = expr.replace(/^\.+/, '').trim();
-                const root = cleaned.split('.')[0];
-                if (VALID_REF_ROOTS.has(root)) return `{{${cleaned}}}`;
+                const root = rootOfPath(cleaned);
+                if (VALID_REF_ROOTS.has(root)) {
+                    // The same spelling repair a ref gets, but only when the
+                    // whole placeholder reads as one path: `{{a.b + 1}}` is
+                    // not a path, and stays as it was.
+                    if (!REF_RE.test(cleaned)) {
+                        const { path: repaired, debris } = repairRefPath(cleaned);
+                        if (!debris && REF_RE.test(repaired)) {
+                            respelled.push([cleaned, repaired]);
+                            return `{{${repaired}}}`;
+                        }
+                    }
+                    return `{{${cleaned}}}`;
+                }
                 if (triggerFields.has(cleaned)) {
                     rewrites.push(cleaned);
                     return `{{trigger.output.${cleaned}}}`;
@@ -263,6 +338,9 @@ function validateAndFixBindings(rawInputs, draft) {
             });
             if (rewrites.length) {
                 repairs.push(`inputs.${k}: template placeholders ${rewrites.map(s => `"${s}"`).join(', ')} prepended with trigger.output.`);
+            }
+            for (const [from, to] of respelled) {
+                repairs.push(`inputs.${k}: template placeholder "{{${from}}}" read as "{{${to}}}" — write an index as [0] and a key with spaces or dashes as ["key"].`);
             }
             if (bad.length) {
                 errors.push(
@@ -277,6 +355,22 @@ function validateAndFixBindings(rawInputs, draft) {
         inputs: fixed,
         error: errors.length ? errors.join(' ') : null,
         repairs: repairs.length ? repairs : undefined,
+    };
+}
+
+/**
+ * An ai_step input may not be named after a data root (trigger, steps, vars,
+ * loop, secrets). The prompt's `{{name}}` reads the step's inputs by name AND
+ * the roots, and the roots win (execAi aiPromptScope), so such an input could
+ * never be read from the prompt; refused here, where the model can rename it
+ * in one call.
+ */
+function rootShadowError(inputs) {
+    const name = Object.keys(inputs && typeof inputs === 'object' ? inputs : {}).find(k => RUNTIME_ROOTS.includes(k));
+    if (!name) return null;
+    return {
+        error: `inputs.${name}: an ai_step input cannot be named "${name}" — that is a data root the prompt reads {{${name}.…}} from. Rename the input (e.g. "${name}Data") and use that name in the prompt.`,
+        _fixHint: 'Reject reason: an ai_step input is named after a data root. Rename that input and resend the step — the other fields were fine.',
     };
 }
 
@@ -382,6 +476,8 @@ function unboundLoopVarError(bindings, forEach, { what = 'inputs' } = {}) {
 module.exports = {
     validateAndFixBindings,
     sanitizeForEach,
+    repairRefPath,
+    rootShadowError,
     loopVarsReadBy,
     unboundLoopVarError,
     LOOP_RUNTIME_KEYS,

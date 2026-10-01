@@ -7,6 +7,8 @@
  * or push onto a caller-supplied array.
  */
 
+const { templatePaths } = require('../../shared/mapping/index.mjs');
+
 function isObject(x) { return x && typeof x === 'object' && !Array.isArray(x); }
 
 /**
@@ -60,10 +62,8 @@ function collectRefPaths(value, out) {
     if (typeof value !== 'object') return;
     if (typeof value.kind === 'string') {
         if (value.kind === 'ref' && typeof value.path === 'string') out.push({ kind: 'ref', path: value.path });
-        if (value.kind === 'template' && typeof value.value === 'string') {
-            const re = /\{\{\s*([^}]+?)\s*\}\}/g;
-            let m; while ((m = re.exec(value.value))) out.push({ kind: 'ref', path: m[1].trim() });
-        }
+        // The placeholders exactly as the runtime's interpolateTemplate reads them.
+        if (value.kind === 'template') for (const path of templatePaths(value.value)) out.push({ kind: 'ref', path });
         if (value.kind === 'expr' && typeof value.value === 'string') {
             out.push({ kind: 'expr', src: value.value });
         }

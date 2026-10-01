@@ -1,6 +1,7 @@
 /**
  * Shared mapping core — the one implementation of how a step input finds its
- * value: path grammar, walking and binding resolution. The automation runtime
+ * value: path grammar, walking, binding resolution and the design-time checks
+ * on a binding (validate.mjs). The automation runtime
  * loads it through server/automation/bind.js (a CommonJS facade, like
  * automation/expr.js); agent-hub (`@shared/mapping`) and mobile
  * (src/shared/mapping) load their generated copies, so a preview in either
@@ -22,4 +23,9 @@ export {
     interpolateTemplate,
 } from './legacy.mjs';
 export { createLegacyResolver } from './resolve.mjs';
-export { WILD, isWild, parseLegacyPath, formatPath, lastSegment } from './source.mjs';
+export {
+    WILD, isWild, parseLegacyPath, formatPath, formatSegment, lastSegment, repairLegacyPath,
+} from './source.mjs';
+export {
+    RUNTIME_ROOTS, TRIGGER_RUN_KEYS, templatePaths, closestName, checkRefPath, validateBinding,
+} from './validate.mjs';

@@ -805,8 +805,8 @@ function buildFewShotMessages(count = 0, { toolset = 'full' } = {}) {
                             tool: 'gmail_read_attachment',
                             inputs: {
                                 messageId: { kind: 'ref', path: 'trigger.output.messageId' },
-                                attachmentId: { kind: 'ref', path: 'trigger.output.attachments.0.attachmentId' },
-                                filename: { kind: 'ref', path: 'trigger.output.attachments.0.filename' },
+                                attachmentId: { kind: 'ref', path: 'trigger.output.attachments[0].attachmentId' },
+                                filename: { kind: 'ref', path: 'trigger.output.attachments[0].filename' },
                             },
                         }),
                     },
@@ -910,7 +910,7 @@ function buildFewShotMessages(count = 0, { toolset = 'full' } = {}) {
                             afterStepId: 's_supp',
                             tool: 'drive_upload_file',
                             inputs: {
-                                name: { kind: 'ref', path: 'trigger.output.attachments.0.filename' },
+                                name: { kind: 'ref', path: 'trigger.output.attachments[0].filename' },
                                 parentFolderId: { kind: 'ref', path: 'steps.s_supp.output.folderId' },
                                 sourceHandle: { kind: 'ref', path: 'steps.s_read.output.sourceHandle' },
                             },
