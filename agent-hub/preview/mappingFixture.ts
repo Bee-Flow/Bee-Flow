@@ -65,10 +65,43 @@ export const SCENARIOS: Record<string, Json> = {
     'many-into-number': { priority: { kind: 'ref', path: 'trigger.output.orders[*].total' } },
 };
 
+const NAME = { from: { root: 'trigger', path: ['customer', 'name'] }, take: 'one', as: 'text', label: 'Name' };
+const PRODUCTS = { from: { root: 'trigger', path: ['orders', 'lines', 'product'] }, take: 'all', as: 'text', join: 'lines', label: 'Product' };
+
+/**
+ * Whole steps per scenario (?s=...), for the text fields with values in them
+ * (ComposeField): the step drawer opens on this step instead of the Gmail one.
+ */
+export const STEP_SCENARIOS: Record<string, Json> = {
+    // What the AI builder stores: a composed body with a list in it ("≡ 4").
+    'compose-body': {
+        type: 'notification', label: 'Bevestiging sturen',
+        title: { kind: 'compose', v: 1, parts: ['Bestelling van ', NAME] },
+        body: { kind: 'compose', v: 1, parts: ['Beste ', NAME, ',\n\nUw producten:\n', PRODUCTS, '\n\nMet vriendelijke groet'] },
+    },
+    // A body saved before the v2 mapping: shown as pills, lifted only on edit.
+    // The title reads one row by index, which stays a template.
+    'template-body': {
+        type: 'notification', label: 'Bevestiging sturen',
+        title: 'Bestelling {{trigger.output.orders[0].id}}',
+        body: 'Beste {{trigger.output.customer.name}},\n\nUw producten: {{trigger.output.orders[*].lines[*].product}}',
+    },
+    // An AI step prompt: values from earlier steps and its own input by name.
+    'prompt-pills': {
+        type: 'ai_step', label: 'Antwoord opstellen',
+        prompt: 'Schrijf een korte bevestiging aan {{trigger.output.customer.name}} over {{trigger.output.orders[*].lines[*].product}}.\nGebruik een {{toon}} toon.',
+        inputs: { toon: { kind: 'literal', value: 'vriendelijke' } },
+    },
+    // Empty text fields: the grey example names values, never a path.
+    'compose-empty': { type: 'notification', label: 'Bevestiging sturen', title: '', body: '' },
+};
+
 export function definitionFor(scenario: string) {
     const trigger = { id: 'trg', type: 'trigger', kind: 'webhook', label: 'Bestelling ontvangen', pinnedOutput: TRIGGER_OUTPUT };
     const fetch = { id: 'fetch', type: 'http_request', label: 'Berichten ophalen', method: 'GET', url: 'https://api.voorbeeld.nl/berichten', pinnedOutput: FETCH_OUTPUT };
-    const mail = { id: 'mail', type: 'integration_action', tool: 'gmail_send_email', label: 'Bevestiging mailen', inputs: SCENARIOS[scenario] || {} };
+    const mail = STEP_SCENARIOS[scenario]
+        ? { id: 'mail', ...STEP_SCENARIOS[scenario] }
+        : { id: 'mail', type: 'integration_action', tool: 'gmail_send_email', label: 'Bevestiging mailen', inputs: SCENARIOS[scenario] || {} };
     return {
         definition: { trigger, steps: [fetch, mail], edges: [{ from: 'trg', to: 'fetch' }, { from: 'fetch', to: 'mail' }] },
         step: mail,

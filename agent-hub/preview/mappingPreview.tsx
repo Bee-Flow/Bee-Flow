@@ -13,6 +13,7 @@ import '../src/index.css';
 import { CATALOG, definitionFor } from './mappingFixture';
 import { setCurrentUser, setItem as setScopedItem } from '../src/utils/scopedStorage';
 import ValueSlotGallery from './valueSlotPreview';
+import { ensureI18nDefaults } from '../src/hooks/useTranslation';
 
 const params = new URLSearchParams(location.search);
 setCurrentUser('preview');
@@ -33,7 +34,9 @@ const { definition, step } = definitionFor(params.get('s') || 'empty');
 const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 const noop = () => {};
 
-createRoot(document.getElementById('root')!).render(params.get('view') === 'slots' ? <ValueSlotGallery /> : (
+// The English catalogue first, as the app loads it: words that are only in
+// the catalogue (an option per id) would show their key otherwise.
+void ensureI18nDefaults().then(() => createRoot(document.getElementById('root')!).render(params.get('view') === 'slots' ? <ValueSlotGallery /> : (
     <QueryClientProvider client={qc}>
         <div style={{ height: '100dvh', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
             <NodeDetailView
@@ -51,4 +54,4 @@ createRoot(document.getElementById('root')!).render(params.get('view') === 'slot
             />
         </div>
     </QueryClientProvider>
-));
+)));

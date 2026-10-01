@@ -17,7 +17,7 @@ import React from 'react';
 import { FormRow, inputClass } from './formPrimitives';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import SegmentedControl from '../../../../shared/SegmentedControl';
-import TemplateField from '../../mapping/TemplateField';
+import ComposeField from '../../valueSlot/ComposeField';
 import AccordionSection from '../AccordionSection';
 
 /** Tone vocabulary — mirrors RETURN_TO_APP_TOAST_TONES on the server. */
@@ -49,7 +49,7 @@ export default function ReturnToAppFields({
                     label={t('routine_editor.return_to_app.toast_label', 'Message to show')}
                     hint={t('routine_editor.return_to_app.toast_hint', 'A single line the visitor reads when the routine finishes. Template-interpolated.')}
                 >
-                    <TemplateField
+                    <ComposeField stepType="return_to_app" field="toast.message"
                         value={draft.toastMessage || ''}
                         onChange={(next) => set('toastMessage', next)}
                         rows={2}
@@ -88,7 +88,7 @@ export default function ReturnToAppFields({
                         label={t('routine_editor.return_to_app.record_label', 'Record to open')}
                         hint={t('routine_editor.return_to_app.record_hint', 'The id the screen should show. Reaches it as screen.params.id.')}
                     >
-                        <TemplateField
+                        <ComposeField stepType="return_to_app" field="navigateTo.recordRef"
                             value={draft.navigateRecordRef || ''}
                             onChange={(next) => set('navigateRecordRef', next)}
                             rows={1}

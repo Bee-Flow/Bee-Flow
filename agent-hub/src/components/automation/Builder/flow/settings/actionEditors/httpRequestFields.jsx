@@ -1,7 +1,7 @@
 // The http_request editor: the call itself (URL, method, credential, headers,
 // body), its options, and the two Advanced ticks about not calling twice.
 import { Plus, X } from 'lucide-react';
-import TemplateField from '../../../mapping/TemplateField';
+import ComposeField from '../../../valueSlot/ComposeField';
 import AccordionSection from '../../AccordionSection';
 import { ForEachSection, RetrySection, retryIsSet } from '../collectionEditors';
 import { FormRow, inputClass } from '../formPrimitives';
@@ -66,7 +66,7 @@ function HttpRequestFields({ draft, set, groups = [], onFocusField, previewSampl
         <>
             <AccordionSection stepType="http_request" sectionKey="request" title="Request" defaultOpen forceOpen={errorSections.has('request')}>
                 <FormRow label="URL" required hint="Click a value in the right panel to insert it, e.g. https://api.example.com/users/{{trigger.output.id}}.">
-                    <TemplateField
+                    <ComposeField stepType="http_request" field="url"
                         value={draft.url || ''}
                         onChange={(next) => set('url', next)}
                         rows={1}
@@ -111,7 +111,7 @@ function HttpRequestFields({ draft, set, groups = [], onFocusField, previewSampl
                             placeholder="Header-Name"
                         />
                         <div className="flex-1">
-                            <TemplateField
+                            <ComposeField stepType="http_request" field={`headers.${key}`}
                                 value={value}
                                 onChange={(next) => setHeaderValue(key, next)}
                                 rows={1}
@@ -142,7 +142,7 @@ function HttpRequestFields({ draft, set, groups = [], onFocusField, previewSampl
             {HTTP_WRITE_METHODS.has(method) && (
                 <AccordionSection stepType="http_request" sectionKey="body" title="Body" forceOpen={errorSections.has('body')}>
                     <FormRow label="Body" hint="Raw text or JSON. Click a value in the right panel to insert it.">
-                        <TemplateField
+                        <ComposeField stepType="http_request" field="body"
                             value={draft.body || ''}
                             onChange={(next) => set('body', next)}
                             rows={6}

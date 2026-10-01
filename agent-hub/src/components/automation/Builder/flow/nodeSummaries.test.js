@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
     limitSummary, dedupeSummary, aggregateSummary, summarizeSummary,
-    dateTimeSummary, waitSummary,
+    dateTimeSummary, waitSummary, generateDocumentSummary, presentationSummary, approvalSummary,
+    fillDocumentSummary, knowledgeWriteSummary,
 } from './nodeSummaries';
 import { formatWaitDuration } from './waitDuration';
 
@@ -145,5 +146,30 @@ describe('wait', () => {
     it('says nothing is set rather than showing 0s', () => {
         expect(waitSummary({})).toEqual({ muted: 'no wait set' });
         expect(waitSummary({ seconds: 0 })).toEqual({ muted: 'no wait set' });
+    });
+});
+
+describe('regression: a composed text on a card reads as text', () => {
+    // What the editor (and the AI builder) store for a text with a value in it.
+    const compose = (...parts) => ({ kind: 'compose', v: 1, parts });
+    const NAME = { from: { root: 'trigger', path: ['customer', 'name'] }, take: 'one', as: 'text', label: 'Naam' };
+
+    it('document and deck names, never "[object Object]"', () => {
+        expect(generateDocumentSummary({ content: 'x', fileName: compose('Offerte ', NAME) })).toBe('PDF · Offerte ‹Naam›');
+        expect(generateDocumentSummary({ content: 'x', title: compose(NAME), format: 'docx' })).toBe('Word · ‹Naam›');
+        expect(presentationSummary({ slides: 'x', fileName: compose('Deck ', NAME) })).toBe('PowerPoint · Deck ‹Naam›');
+        expect(presentationSummary({ slides: 'x', title: compose(NAME) })).toBe('PowerPoint · ‹Naam›');
+        expect(fillDocumentSummary({ documentId: 'd', fileName: compose('Brief ', NAME), values: { a: 1 } })).toBe('Brief ‹Naam› · 1 value');
+    });
+
+    it('an approval question with a value in it is the question', () => {
+        expect(approvalSummary({ prompt: compose('Akkoord voor ', NAME, '?\nDetails volgen') })).toBe('Akkoord voor ‹Naam›?');
+        expect(approvalSummary({ prompt: 'Akkoord?' })).toBe('Akkoord?');
+        expect(approvalSummary({})).toEqual({ muted: 'no question yet' });
+    });
+
+    it('a knowledge write with composed content has something to write', () => {
+        expect(knowledgeWriteSummary({ knowledgeBaseId: 'kb', content: compose(NAME) })).toBe('Save into a knowledge base');
+        expect(knowledgeWriteSummary({ knowledgeBaseId: 'kb', content: '  ' })).toEqual({ muted: 'nothing to write into a knowledge base yet' });
     });
 });

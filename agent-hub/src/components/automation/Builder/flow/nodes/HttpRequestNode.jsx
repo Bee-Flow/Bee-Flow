@@ -2,11 +2,13 @@ import React from 'react';
 import { Globe, ShieldAlert } from 'lucide-react';
 import { nodeDefaultLabel, nodeHelp, nodeTypeLabel } from '../nodeDefs';
 import StepNodeBase, { NodeChip, ForEachBadge } from './StepNodeBase';
+import { textForDisplay } from '../../valueSlot/composeValue';
 
 export default function HttpRequestNode({ id, data }) {
     const { step, runStep, issues, onAddAfter } = data;
     const method = (step.method || 'GET').toUpperCase();
-    const url = step.url || '';
+    // A URL with a value in it is a compose: read as text.
+    const url = textForDisplay(step.url);
     // blockPrivateTargets defaults true — only show the badge when the
     // user has explicitly opted OUT of the SSRF guard, since that's the
     // security-relevant state worth flagging on the canvas.

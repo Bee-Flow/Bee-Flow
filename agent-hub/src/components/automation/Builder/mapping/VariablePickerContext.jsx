@@ -2,7 +2,7 @@ import React, { createContext, useContext } from 'react';
 
 /**
  * Carries the upstream variable groups + merged sample-root tree from the
- * StepInspector down to BindingField/TemplateField without each settings
+ * StepInspector down to BindingField/ComposeField without each settings
  * subcomponent having to thread `groups` through its own props. Lets the
  * per-field {} button open a VariablePicker that already knows what's
  * available — no parent coordination needed.
@@ -17,7 +17,7 @@ export function VariablePickerProvider({ groups, previewSample, stepLabelById, s
         () => ({
             groups: groups || [],
             previewSample: previewSample || null,
-            // id → human label map, so BindingField/TemplateField can render
+            // id → human label map, so BindingField/ComposeField can render
             // refs as chips showing the step name instead of the raw id.
             stepLabelById: stepLabelById || new Map(),
             // id → step type, so a reference pill can wear its step's family

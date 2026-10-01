@@ -8,7 +8,14 @@
  * returns them as a Set. Deliberately syntactic: it reads the same text the
  * server's binder reads, so a path counts as "in use" exactly when the run
  * would resolve it.
+ *
+ * A pick and a compose hold their Source as data, not as text: the shared
+ * core (reads.mjs stepReadPaths) hands over the path each one reads, and the
+ * list a step repeats over, in the same spelling. A Source keeps no `[*]`
+ * (a key on a list maps over it), so pathInUse compares paths without them.
  */
+import { stepReadPaths } from '@shared/mapping/index.mjs';
+
 const REF_RE = /(?:steps\.[A-Za-z0-9_-]+\.output|trigger\.output|loop\.[A-Za-z0-9_]+)(?:\.[A-Za-z0-9_]+|\[\*\]|\[\d+\]|\["[^"]*"\])*/g;
 
 /** Every reference path written anywhere in `step` (excluding its id/position). */
@@ -21,15 +28,24 @@ export function usedPathsIn(step) {
     let text = '';
     try { text = JSON.stringify(rest) || ''; } catch { return out; }
     for (const m of text.matchAll(REF_RE)) out.add(m[0]);
+    for (const p of stepReadPaths(rest)) out.add(p);
     return out;
 }
+
+/** A path without its `[*]`: how a pick's Source spells the same value. */
+const withoutWild = (p) => p.replace(/\[\*\]/g, '');
 
 /** Is `path` (or one of its parents) among the used paths? */
 export function pathInUse(path, used) {
     if (!used || !path) return false;
     if (used.has(path)) return true;
-    // `steps.a.output.results` is in use when `steps.a.output.results[*].subject` is.
-    for (const p of used) if (p.startsWith(`${path}.`) || p.startsWith(`${path}[`)) return true;
+    // `steps.a.output.results` is in use when `steps.a.output.results[*].subject`
+    // is, and when a pick reads `steps.a.output.results.subject`.
+    const bare = withoutWild(path);
+    for (const raw of used) {
+        const p = withoutWild(raw);
+        if (p === bare || p.startsWith(`${bare}.`) || p.startsWith(`${bare}[`)) return true;
+    }
     return false;
 }
 
@@ -55,6 +71,8 @@ export function isEmptyValue(b) {
     if (b.kind === 'literal') return b.value == null || String(b.value).trim() === '';
     if (b.kind === 'ref') return !String(b.path || '').trim();
     if (b.kind === 'template' || b.kind === 'expr') return !String(b.value || '').trim();
+    // A compose with nothing in it (every part an empty text) holds nothing.
+    if (b.kind === 'compose' && Array.isArray(b.parts)) return b.parts.every(p => typeof p === 'string' && !p.trim());
     return false;
 }
 

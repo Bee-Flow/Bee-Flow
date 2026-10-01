@@ -24,9 +24,17 @@
  * only (it checks `typeof === 'string'` first); a compose stored there would
  * render as nothing, so the editor must not offer one. sites.test.mjs holds
  * every interpolateTemplate call in the runner to an entry here.
+ *
+ * `lift: false` marks a text that renders a compose but whose `{{ }}` text
+ * is never turned into one (template.mjs templateToCompose), not by the AI
+ * builder and not by the editor: an ai_step's prompt reads the step's own
+ * inputs by name (`{{emails}}`), which no pick can say; a slide's content
+ * renders a list as a markdown bullet list that starts its own block, which
+ * a compose's 'bullets' join does not (yet). A compose stored there is still
+ * read and kept as one.
  */
 
-const text = (field, { compose = true, each = false } = {}) => Object.freeze({ field, compose, each });
+const text = (field, { compose = true, each = false, lift = compose } = {}) => Object.freeze({ field, compose, each, lift });
 
 /** Sites every step has, whatever its type. */
 export const COMMON_SITES = Object.freeze({
@@ -36,7 +44,7 @@ export const COMMON_SITES = Object.freeze({
 
 /** The sites of each step type beyond COMMON_SITES. */
 export const STEP_SITES = Object.freeze({
-    ai_step: { text: [text('prompt')] },
+    ai_step: { text: [text('prompt', { lift: false })] },
     approval: { text: [text('prompt'), text('approval.details', { compose: false })] },
     form_page: { text: [text('form', { compose: false })] },
     notification: { text: [text('title'), text('body')] },
@@ -49,7 +57,7 @@ export const STEP_SITES = Object.freeze({
     knowledge_write: { text: [text('content'), text('title'), text('sourceUri')] },
     slide: {
         text: [
-            text('title'), text('content'), text('notes'), text('image'),
+            text('title'), text('content', { lift: false }), text('notes'), text('image'),
             text('chart.labels', { compose: false }), text('chart.values', { compose: false }), text('chart.unit', { compose: false }),
         ],
         bindings: ['chart.data', 'stats'],
@@ -84,7 +92,7 @@ export function fieldValue(step, field) {
 }
 
 /**
- * The text sites of a step type, as `{ field, compose, each }`. Empty for a
+ * The text sites of a step type, as `{ field, compose, each, lift }`. Empty for a
  * type that has none (or is not known).
  * @param {string} stepType
  */

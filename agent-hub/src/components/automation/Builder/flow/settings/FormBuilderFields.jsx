@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Plus, Trash2, ChevronUp, ChevronDown, Eye } from 'lucide-react';
 import { FormRow, inputClass, textareaClass, denseInputClass, cardClass, subLabelClass } from './formPrimitives';
 import PublicFormRenderer, { FormEndingView } from '../../../../forms/PublicFormRenderer';
-import TemplateField from '../../mapping/TemplateField';
+import ComposeField from '../../valueSlot/ComposeField';
 import { loadPickSources, pickSourcesSync } from '../pickSourceCatalog';
 // The binding name and its rename live in the shared field designer — the
 // parameter-row editors declare names too, and two copies of that box is two
@@ -297,7 +297,7 @@ export default function FormBuilderFields({
     };
 
     /**
-     * One text slot. With variables allowed it is a TemplateField — the {}
+     * One text slot. With variables allowed it is a ComposeField — the {}
      * button, the Input-panel drag target and the resolved example line all
      * come with it, so a page reads the same way as a Notification body.
      *
@@ -307,7 +307,7 @@ export default function FormBuilderFields({
      */
     const textSlot = ({ slot, rows = 1, ariaLabel = null, placeholder = '' }) => (
         allowVariables ? (
-            <TemplateField
+            <ComposeField stepType="form_page" field="form" slotKey={slot}
                 value={form[slot] || ''}
                 onChange={(next) => patch({ [slot]: next })}
                 rows={rows}
@@ -390,7 +390,7 @@ export default function FormBuilderFields({
             <FormRow
                 label={isEnding ? 'Message' : 'Intro text'}
                 hint={isEnding
-                    ? `Tell the visitor what happened.${varsHint || ' Use {{steps.…}} to show what the routine did — it is filled in when the page is shown.'}`
+                    ? `Tell the visitor what happened.${varsHint || ' Drop in values from earlier steps to show what the routine did — they are filled in when the page is shown.'}`
                     : `Shown under the title. Optional.${varsHint}`}
             >
                 {textSlot({ slot: 'description', rows: isEnding ? 4 : 2 })}
@@ -531,7 +531,7 @@ function FieldCard({ field, index, count, bindingBase, onChange, onRemove, onMov
     // server has a run to interpolate against. See `textSlot` above.
     const slot = (key, ariaLabel, placeholder = '') => (
         allowVariables ? (
-            <TemplateField
+            <ComposeField stepType="form_page" field="form" slotKey={`fields.${index}.${key}`}
                 value={field[key] || ''}
                 onChange={(next) => onChange({ [key]: next })}
                 rows={1}
