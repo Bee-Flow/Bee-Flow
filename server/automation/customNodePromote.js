@@ -155,8 +155,15 @@ function promoteCodeStep({ step, outputs = null, label = null } = {}) {
     // contract and leave the body's `loop.<itemVar>` references bound to a
     // loop that no longer exists — inputs resolving to undefined, on a node
     // that saves and runs green. Say so instead.
-    if (step.forEach !== undefined && step.forEach !== null) {
-        return refuse([issue('for_each_unsupported', 'forEach', 'A code step that runs once per item cannot be promoted as-is: the call step that replaces it cannot fan out.', 'Promote the body without forEach and put the call inside a loop step over the same list, binding each item to a node input.')]);
+    //
+    // The same holds for the v2 `repeat` (step.repeat = { over, max }): code is
+    // in FOREACH_ALLOWED, and "Koppelingen bijwerken" turns every legacy
+    // forEach code step into one. The call step could not repeat, and its
+    // `take: 'each'` picks would sit outside any repeat.
+    const fansOut = (step.forEach ?? null) !== null || (step.repeat ?? null) !== null;
+    if (fansOut) {
+        const field = (step.repeat ?? null) !== null ? 'repeat' : 'forEach';
+        return refuse([issue('for_each_unsupported', field, 'A code step that runs once per item cannot be promoted as-is: the call step that replaces it cannot fan out.', 'Promote the body without running it once per item and put the call inside a loop step over the same list, binding each item to a node input.')]);
     }
 
     // ── secretKeys: a step that can never run must not become a node ────

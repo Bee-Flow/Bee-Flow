@@ -26,28 +26,24 @@
 import { isDataPath } from '@/features/flow-editor/bindings/dataPath';
 import {
     MAPPING_DEPS,
-    MAPPING_VERSION,
     createResolver,
     defaultIntent,
     inlineText,
     isCompose,
-    isMany,
     isPick,
     liftLegacy,
-    manyItems,
+    makePick,
     renderText,
-    shapeOf,
+    shapeAt,
     slotShape,
-    sourceBase,
     sourceFromPath,
-    walkSource,
     type ComposeBinding,
     type MappingSource,
     type PickBinding,
     type PickIntent,
     type PickPart,
-    type Shape,
     type Slot,
+    type SlotGroupLike,
 } from '@/shared/mapping';
 
 /** The runState a preview resolves against: the sample, or the last run. */
@@ -106,27 +102,6 @@ export function slotFor({ schema, mode, multiline = false }: { schema?: unknown;
     return { as: 'native', multiLine: multiline };
 }
 
-/** The shape of what a source holds in the sample ('unknown' without one). */
-export function shapeAt(source: MappingSource, sample: Sample): Shape {
-    if (!sample) return 'unknown';
-    return shapeOf(walkSource(source, sample));
-}
-
-/** How many values a source holds in the sample, for a list; null otherwise. */
-export function countAt(source: MappingSource, sample: Sample): number | null {
-    if (!sample) return null;
-    const result = walkSource(source, sample);
-    if (isMany(result)) return manyItems(result).items.length;
-    return Array.isArray(result) ? result.length : null;
-}
-
-/** A pick of one source with one intent, in the stored form. */
-export function makePick(source: MappingSource, intent: PickIntent): PickBinding {
-    const pick: PickBinding = { kind: 'pick', v: MAPPING_VERSION, from: source, take: intent.take, as: intent.as };
-    if (intent.join) pick.join = intent.join;
-    return pick;
-}
-
 /** The intent core defaultIntent gives, without its warning. */
 function intentFor(source: MappingSource, slot: Slot, sample: Sample): PickIntent {
     const { take, as, join } = defaultIntent(shapeAt(source, sample), slot);
@@ -150,12 +125,6 @@ export function partFromPath(path: string, slot: Slot, sample: Sample): PickPart
     return { from: source, ...intent };
 }
 
-/** Does the pick hand many values to a field for one (the amber sentence)? */
-export function manyForOne(intent: PickIntent, shape: Shape): boolean {
-    if (shape !== 'list' && shape !== 'table') return false;
-    return intent.take === 'one' || (intent.take === 'first' && (intent.as === 'number' || intent.as === 'date' || intent.as === 'yesno'));
-}
-
 const PREVIEW_MAX = 160;
 const resolver = createResolver(MAPPING_DEPS);
 
@@ -177,59 +146,11 @@ export function resolvePreview(source: MappingSource, intent: PickIntent, sample
 }
 
 // ── Where a source comes from ───────────────────────────────────────────
+// shapeAt, countAt, makePick, manyForOne, groupLabelOf and isStale are the
+// shared core's (mapping/slotView.mjs), the very functions the web's
+// valueSlot uses: no port here to drift from it.
+
+export { countAt, groupLabelOf, isStale, makePick, manyForOne, shapeAt } from '@/shared/mapping';
 
 /** What the variable picker knows of an upstream step (bindings VariableGroup). */
-export interface GroupLike {
-    label?: string;
-    basePath?: string;
-    hasRealData?: boolean;
-}
-
-function baseOf(source: MappingSource): string | null {
-    switch (source.root) {
-        case 'steps':
-            return `steps.${source.id}.output`;
-        case 'trigger':
-        case 'run':
-            return 'trigger.output';
-        case 'loop':
-            return `loop.${source.id}`;
-        case 'item':
-            return 'item';
-        case 'vars':
-            return 'vars';
-        default:
-            return null;
-    }
-}
-
-/** The display name of the step (or trigger) a source comes from. */
-export function groupLabelOf(
-    source: MappingSource,
-    groups: readonly GroupLike[] | null | undefined,
-    stepLabelById?: Pick<Map<string, string>, 'get'> | null,
-): string {
-    const base = baseOf(source);
-    const group = (groups || []).find((g) => g.basePath === base);
-    if (group?.label) return group.label;
-    if (source.root === 'steps') return stepLabelById?.get(source.id) || '';
-    return '';
-}
-
-/**
- * Is a pick's source gone? Its step is not before this one any more (deleted,
- * or moved after it), or the step's last real run lacks the first key it
- * reads (a field renamed upstream). Only said when the editor knows the
- * steps, and a key only against real data: a design-time sample is often
- * partial, and a chip must never cry wolf. The web's rule (slotModel isStale).
- */
-export function isStale(source: MappingSource, groups: readonly GroupLike[] | null | undefined, sample: Sample): boolean {
-    if (!groups || !groups.length) return false;
-    const base = baseOf(source);
-    const group = groups.find((g) => g.basePath === base);
-    if ((source.root === 'steps' || source.root === 'loop') && !group) return true;
-    if (!group?.hasRealData || (source.root !== 'steps' && source.root !== 'trigger')) return false;
-    const first = source.path[0];
-    const data = sample ? sourceBase(source, sample) : undefined;
-    return typeof first === 'string' && isRecord(data) && !Object.prototype.hasOwnProperty.call(data, first);
-}
+export type GroupLike = SlotGroupLike;

@@ -313,6 +313,21 @@ export declare function matchInputs(
     candidates: MatchCandidate[],
     opts?: { idAffinity?: boolean; unique?: boolean; ambiguous?: boolean; skipSecrets?: boolean; max?: number },
 ): MatchResult;
+/** The item a repeating step reads, for auto-map (match.mjs itemMatchScope). */
+export interface ItemMatchScope {
+    candidates: MatchCandidate[];
+    /** The binding a match is written as: an `each` pick under a repeat, a `loop.<itemVar>` ref under a forEach. */
+    bind: (path: string[]) => PickBinding | { kind: 'ref'; path: string };
+    /** The upstream group that offers the same item as `loop.<itemVar>.*` (forEach only). */
+    groupId: string | null;
+}
+export declare function itemCandidates(element: unknown, fanout: boolean): MatchCandidate[];
+export declare function isFanOutList(source: { root: string; id?: string; path: ReadonlyArray<unknown> } | null, definition: unknown): boolean;
+export declare function itemMatchScope(step: unknown, definition: unknown, itemSampleOf: (listPath: string) => unknown): ItemMatchScope | null;
+export declare function matchFromItem(
+    scope: ItemMatchScope | null,
+    inputs: MatchInput[],
+): Record<string, PickBinding | { kind: 'ref'; path: string }>;
 // ── Sources (M3): fields, labels and upstream discovery as SourceNodes ──
 
 /** One part of a value's label (label.mjs); the client words `index` and `each`. */
@@ -558,3 +573,26 @@ export declare function hasLegacyBindings(definition: unknown): boolean;
 export declare function replaceableBinding(binding: unknown): boolean;
 export declare function checkReplacement(binding: unknown, proposal: unknown, opts?: UpgradeDeps):
     { ok: true } | { ok: false; reason: 'invalid' | 'would_change' | 'no_evidence' };
+
+// slotView.mjs: what a value field shows about a pick, the same on the web and the phone.
+
+/** The step (or trigger) a source can come from, as the variable picker groups it. */
+export interface SlotGroupLike {
+    id?: string;
+    label?: string;
+    basePath?: string;
+    /** The group shows a real run's output (not only the design-time sample). */
+    hasRealData?: boolean;
+}
+export declare function shapeAt(source: MappingSource, sample: object | null | undefined, hint?: string | null): Shape;
+export declare function countAt(source: MappingSource, sample: object | null | undefined): number | null;
+export declare function makePick(source: MappingSource, intent: PickIntent): PickBinding;
+export declare function manyForOne(pick: { take: Take; as?: As; join?: Join }, shape: Shape, slot?: Pick<Slot, 'as'> | null): boolean;
+export declare function sourceBasePath(source: MappingSource): string | null;
+export declare function groupLabelOf(
+    source: MappingSource,
+    groups: readonly SlotGroupLike[] | null | undefined,
+    stepLabelById?: { get(id: string): string | undefined } | null,
+): string;
+export declare function isStale(source: MappingSource, groups: readonly SlotGroupLike[] | null | undefined, sample: object | null | undefined): boolean;
+export declare function crossesList(source: MappingSource, sample: object | null | undefined): boolean | undefined;

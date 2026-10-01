@@ -755,10 +755,15 @@ export const DEEP_V2 = [
     { structure: { mixed: [{ kind: 'ref', path: 'trigger.output.tekst' }, pick(T('tekst'), 'one', 'text')] }, expected: { mixed: ['gewoon tekst', 'gewoon tekst'] } },
 ];
 
-/** resolveInputs(inputs, makeMappingState(), opts): a pick that gives nothing leaves its input out. */
+/**
+ * resolveInputs(inputs, makeMappingState(), opts): a pick that gives nothing
+ * keeps its key with the value undefined, exactly as the legacy ref it may
+ * replace does (in a datatable's values, a missing key and an undefined one
+ * write differently, so an upgrade must not turn one into the other).
+ */
 export const INPUTS_V2 = [
-    { inputs: { to: pick(T('Klant', 'E-mail adres')), cc: pick(T('missing')), legacy: { kind: 'ref', path: 'trigger.output.missing' } }, expected: { to: 'jan@voorbeeld.nl', legacy: undefined }, warnings: ['missing', 'missing'] },
-    { inputs: { cc: pick(T('missing')) }, opts: { required: ['cc'] }, expected: {}, warnings: ['missing_required'] },
+    { inputs: { to: pick(T('Klant', 'E-mail adres')), cc: pick(T('missing')), legacy: { kind: 'ref', path: 'trigger.output.missing' } }, expected: { to: 'jan@voorbeeld.nl', cc: undefined, legacy: undefined }, warnings: ['missing', 'missing'] },
+    { inputs: { cc: pick(T('missing')) }, opts: { required: ['cc'] }, expected: { cc: undefined }, warnings: ['missing_required'] },
     { inputs: { body: { kind: 'compose', v: 1, parts: ['Hoi ', part(T('Klant', 'Naam'))] }, n: pick(T('aantal'), 'one', 'number') }, expected: { body: 'Hoi Jan Jansen', n: 12.5 } },
     { inputs: { list: pick(T('missing'), 'all', 'list'), text: pick(T('missing'), 'one', 'text') }, expected: { list: [], text: '' }, warnings: ['missing', 'missing'] },
 ];

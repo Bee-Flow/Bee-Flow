@@ -113,11 +113,18 @@ describe('shapes, counts and previews', () => {
         expect(previewText('x'.repeat(200))).toHaveLength(160);
     });
 
-    it('says when many values go into a field for one', () => {
-        expect(manyForOne({ take: 'one', as: 'native' }, 'list')).toBe(true);
-        expect(manyForOne({ take: 'first', as: 'number' }, 'table')).toBe(true);
-        expect(manyForOne({ take: 'first', as: 'text' }, 'list')).toBe(false);
-        expect(manyForOne({ take: 'one', as: 'native' }, 'single')).toBe(false);
+    it('says when many values go into a field for one (the web rule: shared slotView)', () => {
+        const number = { as: 'number', multiLine: false } as const;
+        const text = { as: 'text', multiLine: false } as const;
+        expect(manyForOne({ take: 'one', as: 'native' }, 'list', text)).toBe(true);
+        expect(manyForOne({ take: 'first', as: 'number' }, 'table', number)).toBe(true);
+        // The phone's old port flagged only `first`; the last of a list and a
+        // whole list into a number field are just as much "many into one".
+        expect(manyForOne({ take: 'last', as: 'number' }, 'list', number)).toBe(true);
+        expect(manyForOne({ take: 'all', as: 'native' }, 'list', number)).toBe(true);
+        expect(manyForOne({ take: 'count', as: 'number' }, 'list', number)).toBe(false);
+        expect(manyForOne({ take: 'first', as: 'text' }, 'list', text)).toBe(false);
+        expect(manyForOne({ take: 'one', as: 'native' }, 'single', text)).toBe(false);
     });
 
     it('makes a stored pick, join only when there is one', () => {
@@ -152,5 +159,15 @@ describe('where a source comes from', () => {
         // Never cries wolf on a design-time sample, or without the steps.
         expect(isStale({ root: 'trigger', path: ['other'] }, groups, SAMPLE)).toBe(false);
         expect(isStale({ root: 'steps', id: 'gone', path: [] }, [], SAMPLE)).toBe(false);
+    });
+
+    it('is stale for a trigger key that is neither the payload nor its metadata, as on the web', () => {
+        expect(isStale({ root: 'run', path: ['nope'] }, groups, SAMPLE)).toBe(true);
+        expect(isStale({ root: 'run', path: ['firedAt'] }, groups, SAMPLE)).toBe(false);
+    });
+
+    it('reads a drag hint when the sample does not hold the value', () => {
+        expect(shapeAt({ root: 'steps', id: 's1', path: ['nope'] }, SAMPLE, 'list')).toBe('list');
+        expect(shapeAt({ root: 'steps', id: 's1', path: ['nope'] }, SAMPLE)).toBe('missing');
     });
 });

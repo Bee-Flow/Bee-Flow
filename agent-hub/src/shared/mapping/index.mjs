@@ -54,6 +54,7 @@ export {
 export { stopForEach, renameItemVar } from './repeat.mjs';
 export {
     normalizeKey, sampleType, isSecretLikeKey, typeFits, idAffinityBase, matchInputs,
+    itemCandidates, isFanOutList, itemMatchScope, matchFromItem,
 } from './match.mjs';
 
 // ── Sources (M3): fields, labels and upstream discovery as SourceNodes ──
@@ -80,3 +81,8 @@ export { pickForLegacyPath, templateToCompose } from './template.mjs';
 export { upgradeStepRepeat, upgradeDefinition } from './upgrade.mjs';
 // M8b: update on open (what is left to upgrade) and the gate of the AI fix.
 export { legacyBindings, hasLegacyBindings, replaceableBinding, checkReplacement } from './upgrade.mjs';
+// What a value field shows about a pick (shape, count, the amber sentence,
+// its step's name, a stale source): one copy for the web and the phone.
+export {
+    shapeAt, countAt, makePick, manyForOne, sourceBasePath, groupLabelOf, isStale, crossesList,
+} from './slotView.mjs';

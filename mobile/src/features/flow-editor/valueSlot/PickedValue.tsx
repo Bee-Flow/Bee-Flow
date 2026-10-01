@@ -60,7 +60,7 @@ export function PickedValue({ pick, slot, sample, groups, stepLabelById, onChang
     const stale = isStale(pick.from, groups, sample);
     const preview = previewText(resolvePreview(pick.from, pick, sample));
     const sentence = pickSentence(t, pick, count);
-    const amber = manyForOne(pick, shape);
+    const amber = manyForOne(pick, shape, slot);
 
     return (
         <View style={styles.box}>

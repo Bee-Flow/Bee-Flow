@@ -26,6 +26,9 @@
  * secret-like input name is left alone when the caller asks (`skipSecrets`).
  */
 
+import { formatPath } from './source.mjs';
+import { MAPPING_VERSION } from './intent.mjs';
+
 /** The key compared in the normalized tier: lower case, letters and digits only. */
 export function normalizeKey(name) {
     return String(name ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -157,4 +160,104 @@ export function matchInputs(inputs, candidates, { idAffinity = false, unique = f
         }
     }
     return { matches, ambiguous: tied };
+}
+
+// ── The item of a step that runs once per item ────────────────────────────
+//
+// Auto-map on the web and on the phone binds a repeating step's empty inputs
+// from its current item first. Which fields the item offers and what a match
+// is written as is decided here, once: an `each` pick under a `repeat`, a
+// `loop.<itemVar>` ref under a legacy forEach. The caller supplies the
+// inferred item (upstream inferLoopItemSample over its own sample root) and
+// the empty inputs; auto-map never switches a per-item run ON.
+
+const isRecordValue = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
+
+/**
+ * The fields of one list item as match candidates; `path` is the segment
+ * list inside the item, JSON-encoded. A fan-out entry (`{ index, item,
+ * output, status }`) offers its halves, `output.<f>` and `item.<f>`, keyed by
+ * `<f>`: the envelope's index and status are not values anybody means by
+ * name. A plain item offers its own fields and one level of nesting, the
+ * nested ones one `depth` down (so `from.id` never ties with the item's `id`).
+ * @param {unknown} element
+ * @param {boolean} fanout
+ */
+export function itemCandidates(element, fanout) {
+    if (!isRecordValue(element)) return [];
+    const out = [];
+    const add = (key, path, value, depth = 0) => out.push({ key, path: JSON.stringify(path), type: sampleType(value), depth });
+    if (fanout) {
+        for (const half of ['output', 'item']) {
+            const v = element[half];
+            if (isRecordValue(v)) for (const [k, x] of Object.entries(v)) add(k, [half, k], x);
+        }
+        return out;
+    }
+    for (const [k, v] of Object.entries(element)) {
+        add(k, [k], v);
+        if (isRecordValue(v)) for (const [ck, cv] of Object.entries(v)) add(ck, [k, ck], cv, 1);
+    }
+    return out;
+}
+
+/**
+ * Is this list (a Source) the `results` of a step that ran once per item?
+ * @param {{ root: string, id?: string, path: unknown[] } | null} source
+ * @param {{ steps?: object[] } | null | undefined} definition
+ */
+export function isFanOutList(source, definition) {
+    if (!source || source.root !== 'steps' || source.path.length !== 1 || source.path[0] !== 'results') return false;
+    const step = ((definition && definition.steps) || []).find(s => s && s.id === source.id);
+    return !!(step && ((step.forEach && step.forEach.overRef) || step.repeat));
+}
+
+/**
+ * The item a repeating step reads, as match candidates plus the binding a
+ * match is written as, and the upstream group id that offers the same item
+ * as `loop.<itemVar>.*` (legacy forEach only). Null when the step does not
+ * repeat.
+ * @param {object} step
+ * @param {object} definition
+ * @param {(listPath: string) => unknown} itemSampleOf — the inferred item of
+ *   the list at that legacy path (upstream inferLoopItemSample)
+ */
+export function itemMatchScope(step, definition, itemSampleOf) {
+    if (!isRecordValue(step)) return null;
+    const over = isRecordValue(step.repeat) ? step.repeat.over : null;
+    if (over) {
+        const listPath = formatPath(over);
+        if (!listPath) return null;
+        return {
+            candidates: itemCandidates(itemSampleOf(listPath), isFanOutList(over, definition)),
+            bind: path => ({ kind: 'pick', v: MAPPING_VERSION, from: { ...over, path: [...over.path, ...path] }, take: 'each', as: 'native' }),
+            groupId: null,
+        };
+    }
+    const fe = step.forEach;
+    if (!isRecordValue(fe) || typeof fe.overRef !== 'string' || !fe.overRef.trim()) return null;
+    const itemVar = fe.itemVar || 'item';
+    const listPath = fe.overRef.trim();
+    const m = /^steps\.([^.[]+)\.output\.results$/.exec(listPath);
+    const fanout = !!m && isFanOutList({ root: 'steps', id: m[1], path: ['results'] }, definition);
+    return {
+        candidates: itemCandidates(itemSampleOf(listPath), fanout),
+        bind: path => ({ kind: 'ref', path: formatPath({ root: 'loop', id: itemVar, path }) }),
+        groupId: `${step.id}__foreach`,
+    };
+}
+
+/**
+ * Bind empty inputs from the current item: the item is what each run is
+ * about, so its fields come before anything upstream. An item field is bound
+ * once at most, `<entity>Id` may take the item's own `id` (once), and a name
+ * a fan-out entry has under output AND item is left for the author.
+ * @param {ReturnType<typeof itemMatchScope>} scope
+ * @param {Array<{ key: string, type?: string | string[], required?: boolean }>} inputs — the empty inputs
+ * @returns {Record<string, object>} input key → binding
+ */
+export function matchFromItem(scope, inputs) {
+    if (!scope || !scope.candidates.length) return {};
+    const { matches } = matchInputs(inputs, scope.candidates, { idAffinity: true, unique: true, ambiguous: true, skipSecrets: true });
+    return Object.fromEntries(matches.map(m => [m.key, scope.bind(JSON.parse(m.path))]));
 }

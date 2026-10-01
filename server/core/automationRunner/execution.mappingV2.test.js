@@ -127,7 +127,11 @@ test('v2: count is the length of the list all sends; a compose reads as text', (
     assert.equal(out.rowList.length, out.rowCount);
     assert.equal(out.aan, 'Aan:\n- Ada\n- Bob');
     assert.equal(out.who, 'Klant: naam: Jan\nplaats: Utrecht');
-    assert.ok(!('missing' in out), 'a pick that gives nothing leaves its field out');
+    // A pick that gives nothing gives undefined, exactly as a legacy ref does:
+    // its key stays, so an upgraded binding writes what the legacy one wrote
+    // (a datatable's save_row sets NULL for it; JSON leaves it out).
+    assert.equal(out.missing, undefined, 'a pick that gives nothing gives no value');
+    assert.equal(JSON.parse(JSON.stringify(out)).missing, undefined);
 });
 
 test('step.repeat runs once per item, each pick reading its own item', () => {

@@ -220,16 +220,18 @@ export function createResolver({ evaluate, parse, onUnresolved, onWarning } = {}
 
     /**
      * Resolve a step's `inputs` map. Returns plain object with concrete values.
-     * An input filled by a pick that gives no value is left out (a legacy
-     * binding keeps its key with the value undefined, as it always did).
+     * Every key stays, with the value undefined when its binding gives none,
+     * whatever the binding's kind. A pick must not differ from the legacy ref
+     * it replaces here: in a datatable's `values` a key with undefined writes
+     * NULL on save_row and a missing key leaves the column as it was, so a
+     * dropped key would make an upgraded routine write differently from the
+     * one the upgrade checked it against (upgrade.mjs compares resolveValue).
      */
     function resolveInputs(inputs, runState, opts = {}) {
         if (!inputs || typeof inputs !== 'object') return {};
         const out = {};
         for (const k of Object.keys(inputs)) {
-            const value = resolveValue(inputs[k], runState, opts.input === undefined ? { ...opts, input: k } : opts);
-            if (value === undefined && isPick(inputs[k])) continue;
-            out[k] = value;
+            out[k] = resolveValue(inputs[k], runState, opts.input === undefined ? { ...opts, input: k } : opts);
         }
         return out;
     }

@@ -345,17 +345,19 @@ export const CASES = [
     { expr: 'year(1757376000000000000)', expected: null },
     //   4. Dates other systems write that ARE unambiguous (M1). An e-mail
     //      Date header (RFC 2822; Gmail passes it on verbatim) and a unix
-    //      timestamp in SECONDS: a number below 1e11 is seconds, so
-    //      1756720800 is 1 September 2025 and no longer 21 January 1970.
+    //      timestamp written as TEXT (ten digits: seconds). These were ''.
     { expr: 'formatDate("Tue, 01 Sep 2026 10:00:00 +0200", "D MMMM YYYY", "nl")', expected: '1 september 2026' },
     { expr: 'formatDate("Tue, 01 Sep 2026 10:00:00 +0200", "YYYY-MM-DD HH:mm")', expected: '2026-09-01 08:00' },
     { expr: 'formatDate("Wed, 13 May 2026 09:15:00 GMT", "D MMMM YYYY", "en")', expected: '13 May 2026' },
-    { expr: 'formatDate(1756720800, "D MMMM YYYY", "nl")', expected: '1 september 2025' },
     { expr: 'formatDate("1756720800", "YYYY-MM-DD")', expected: '2025-09-01' },
     { expr: 'formatDate("31 Feb 2026 10:00 GMT", "YYYY-MM-DD")', expected: '' },
-    //   5. A day-only format reads the calendar day in the zone the value was
-    //      written in; times stay in UTC, as they always were.
-    { expr: 'formatDate("2026-09-01T00:30:00+02:00", "D MMMM YYYY", "nl")', expected: '1 september 2026' },
+    //   5. What a stored expression already gave stays as it was: a NUMBER is
+    //      milliseconds however small (a 1972 birth date stays in 1972), and
+    //      the day is the UTC day, day-only formats included.
+    { expr: 'formatDate(1756720800, "YYYY-MM-DD")', expected: '1970-01-21' },
+    { expr: 'formatDate(63072000000, "YYYY-MM-DD")', expected: '1972-01-01' },
+    { expr: 'year(63072000000)', expected: 1972 },
+    { expr: 'formatDate("2026-09-01T00:30:00+02:00", "D MMMM YYYY", "nl")', expected: '31 augustus 2026' },
     { expr: 'formatDate("2026-09-01T00:30:00+02:00", "YYYY-MM-DD HH:mm")', expected: '2026-08-31 22:30' },
     // yesNoText — the word for each state, silent when undecidable
     { expr: 'yesNoText(true, "wel", "niet")', expected: 'wel' },

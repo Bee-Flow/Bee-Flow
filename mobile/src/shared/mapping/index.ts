@@ -64,8 +64,8 @@ export {
 } from './vendor/index.mjs';
 // The one auto-map rule (match.mjs), shared with the web builder and the AI
 // builder: which earlier value goes into which empty input.
-export { isSecretLikeKey, matchInputs, normalizeKey, sampleType } from './vendor/index.mjs';
-export type { MappingSource, MatchCandidate, MatchInput } from './vendor/index.mjs';
+export { isFanOutList, isSecretLikeKey, itemCandidates, itemMatchScope, matchFromItem, matchInputs, normalizeKey, sampleType } from './vendor/index.mjs';
+export type { ItemMatchScope, MappingSource, MatchCandidate, MatchInput } from './vendor/index.mjs';
 // The v2 mapping in the editor (features/flow-editor/valueSlot): what a pick
 // is, what it offers, how it previews, and lifting a legacy binding to one.
 export {
@@ -90,6 +90,20 @@ export {
     sourceBase,
     walkSource,
 } from './vendor/index.mjs';
+// What a value field shows about a pick (slotView.mjs): the same functions
+// the web's valueSlot uses, so the two editors cannot disagree on the amber
+// "many into one" sentence or a stale chip.
+export {
+    countAt,
+    crossesList,
+    groupLabelOf,
+    isStale,
+    makePick,
+    manyForOne,
+    shapeAt,
+    sourceBasePath,
+} from './vendor/index.mjs';
+export type { SlotGroupLike } from './vendor/index.mjs';
 export type {
     As,
     ComposeBinding,

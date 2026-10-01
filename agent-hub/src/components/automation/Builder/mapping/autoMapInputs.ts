@@ -20,9 +20,9 @@
  */
 
 import {
-    formatPath, isSecretLikeKey, matchInputs, normalizeKey, sampleType,
+    isSecretLikeKey, itemMatchScope, matchFromItem, matchInputs, normalizeKey, sampleType,
 } from '@shared/mapping/index.mjs';
-import type { MappingSource, MatchCandidate, MatchInput } from '@shared/mapping/index.mjs';
+import type { ItemMatchScope, MappingSource, MatchCandidate, MatchInput } from '@shared/mapping/index.mjs';
 import { isEmptyBinding } from './partitionInputs';
 import { buildSampleRoot } from './realOutputs';
 import { computeUpstreamGroups, buildToolOutputMap, inferLoopItemSample } from './upstream';
@@ -201,97 +201,21 @@ export function nearestScannableRef(groups: UpstreamGroup[]): string | null {
 }
 
 // ── the item of a step that runs once per item ────────────────────────────
+// Which fields the item offers and what a match is written as (an `each`
+// pick under a repeat, a `loop.<itemVar>` ref under a forEach) is the shared
+// core's rule (match.mjs itemMatchScope / matchFromItem), the same one the
+// phone's auto-map uses. Only the item's sample is worked out here.
 
-const isRecord = (v: unknown): v is Json => !!v && typeof v === 'object' && !Array.isArray(v);
-
-/**
- * The fields of one list item as match candidates; `path` is the segment
- * list inside the item, JSON-encoded (the caller builds the binding). A
- * fan-out entry (`{ index, item, output, status }`) offers its halves,
- * `output.<f>` and `item.<f>`, keyed by `<f>`: the envelope's index and
- * status are not values anybody means by name. A plain item offers its own
- * fields and one level of nesting, the nested ones one `depth` down.
- */
-function itemCandidates(element: unknown, fanout: boolean): MatchCandidate[] {
-    if (!isRecord(element)) return [];
-    const out: MatchCandidate[] = [];
-    const add = (key: string, path: string[], value: unknown, depth = 0) => out.push({ key, path: JSON.stringify(path), type: sampleType(value), depth });
-    if (fanout) {
-        for (const half of ['output', 'item']) {
-            const v = element[half];
-            if (isRecord(v)) for (const [k, x] of Object.entries(v)) add(k, [half, k], x);
-        }
-        return out;
-    }
-    for (const [k, v] of Object.entries(element)) {
-        add(k, [k], v);
-        // One level down ranks after the item's own fields: `from.id` never
-        // ties with the item's `id`.
-        if (isRecord(v)) for (const [ck, cv] of Object.entries(v)) add(ck, [k, ck], cv, 1);
-    }
-    return out;
-}
-
-/** Is this list (as a Source) the `results` of a step that ran once per item? */
-function isFanOutList(source: MappingSource | null, definition: Definition): boolean {
-    if (!source || source.root !== 'steps' || source.path.length !== 1 || source.path[0] !== 'results') return false;
-    const step = (definition.steps || []).find(s => s.id === source.id);
-    return !!(step && ((step.forEach && step.forEach.overRef) || step.repeat));
-}
-
-interface ItemScope {
-    candidates: MatchCandidate[];
-    bind: (path: string[]) => Binding;
-    /** The upstream group that offers the same item as `loop.<itemVar>.*`, if any. */
-    groupId: string | null;
-}
-
-/**
- * The item a repeating step reads, as candidates plus the binding a match is
- * written as: an `each` pick under a `repeat`, a `loop.<itemVar>` ref under
- * a legacy forEach. Null when the step does not repeat.
- */
-function itemScopeOf(step: Step, definition: Definition, catalog: unknown, groups: UpstreamGroup[]): ItemScope | null {
+/** The item a repeating step reads, as the shared rule sees it; null when the step does not repeat. */
+function itemScopeOf(step: Step, definition: Definition, catalog: unknown, groups: UpstreamGroup[]): ItemMatchScope | null {
     const toolToOutput = buildToolOutputMap(catalog);
     const sampleRoot = buildSampleRoot(groups);
-    const over = step.repeat?.over;
-    if (over) {
-        const listPath = formatPath(over as never);
-        if (!listPath) return null;
-        const element = inferLoopItemSample(listPath, definition, toolToOutput, sampleRoot as never);
-        return {
-            candidates: itemCandidates(element, isFanOutList(over, definition)),
-            bind: path => ({ kind: 'pick', v: 1, from: { ...over, path: [...over.path, ...path] }, take: 'each', as: 'native' }),
-            groupId: null,
-        };
-    }
-    const fe = step.forEach;
-    if (fe && typeof fe.overRef === 'string' && fe.overRef.trim()) {
-        const itemVar = fe.itemVar || 'item';
-        const listPath = fe.overRef.trim();
-        const m = /^steps\.([^.[]+)\.output\.results$/.exec(listPath);
-        const fanout = !!m && isFanOutList({ root: 'steps', id: m[1], path: ['results'] }, definition);
-        const element = inferLoopItemSample(listPath, definition, toolToOutput, sampleRoot as never);
-        return {
-            candidates: itemCandidates(element, fanout),
-            bind: path => ({ kind: 'ref', path: formatPath({ root: 'loop', id: itemVar, path } as never) }),
-            groupId: `${step.id}__foreach`,
-        };
-    }
-    return null;
+    return itemMatchScope(step, definition, listPath => inferLoopItemSample(listPath, definition, toolToOutput, sampleRoot as never));
 }
 
-/**
- * Bind a repeating step's empty inputs from its current item: the item is
- * what each run is about, so its fields come before anything upstream. An
- * item field is bound once at most, `<entity>Id` may take the item's own
- * `id` (once), and a name a fan-out entry has under output AND item is left
- * for the author.
- */
-function mapFromItem(scope: ItemScope, schema: InputSchema | null, existing: Inputs): Record<string, Binding> {
-    if (!scope.candidates.length) return {};
-    const { matches } = matchInputs(emptyInputs(schema, existing), scope.candidates, { idAffinity: true, unique: true, ambiguous: true, skipSecrets: true });
-    return Object.fromEntries(matches.map(m => [m.key, scope.bind(JSON.parse(m.path) as string[])]));
+/** Bind a repeating step's empty inputs from its current item (shared matchFromItem). */
+function mapFromItem(scope: ItemMatchScope, schema: InputSchema | null, existing: Inputs): Record<string, Binding> {
+    return matchFromItem(scope, emptyInputs(schema, existing)) as Record<string, Binding>;
 }
 
 /**

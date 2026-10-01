@@ -19,12 +19,23 @@
 import { parseDate, parseLocaleNumber } from './parse.mjs';
 
 // ── Dates ──────────────────────────────────────────────────────────────────
-// Dates are ISO strings, RFC 2822 text or unix timestamps, read by parseDate
-// (parse.mjs) to a UTC instant without Date.parse, so a value means the same
-// thing in every JS engine. Everything below computes in UTC; formatDate is
-// the one place the zone a value was WRITTEN in matters (see there).
+// Dates are ISO strings, RFC 2822 text or unix timestamps written as text,
+// read by parseDate (parse.mjs) to a UTC instant without Date.parse, so a
+// value means the same thing in every JS engine. Everything below is UTC.
+//
+// Stored expressions must keep giving the results they gave before the
+// lenient readers arrived, so this file only lets parse.mjs turn a value that
+// used to give null into a date. Two of its readings would CHANGE a result
+// that was already a date, and both stay out of here:
+//   - a NUMBER is an epoch in milliseconds, as it always was (parseDate reads
+//     one below 1e11 as seconds, which would move a 1966-1973 millisecond
+//     epoch, a birth date say, to another year). Only the pick readers
+//     (mapping/fit.mjs), which no stored expression goes through, take that
+//     reading.
+//   - formatDate renders the UTC day, as it always did; it does not shift a
+//     day-only format into the zone the value was written in.
 function toEpoch(iso) {
-    const d = parseDate(iso);
+    const d = parseDate(iso, { numberAs: 'ms' });
     return d ? d.epoch : null;
 }
 
@@ -548,16 +559,12 @@ export const FUNCTIONS = {
     // "02-09-2026" (artboard 2c). Names come from the locale TABLE above,
     // never from Intl; unknown locales read as nl.
     //
-    // Times are rendered in UTC, as they always were. A format WITHOUT a time
-    // token asks for the calendar day, and that is the day in the zone the
-    // value was written in: '2026-09-01T00:30:00+02:00' is 1 September, not
-    // (as it used to read, in UTC) 31 August. A value with no zone, or in UTC,
-    // gives the same day either way.
+    // Rendered in UTC, as it always was, day-only formats included: a stored
+    // routine that files by formatDate(x, "YYYY-MM-DD") keeps its folders.
     formatDate: (iso, fmt, locale) => {
-        const parsed = parseDate(iso); if (!parsed) return '';
+        const e = toEpoch(iso); if (e == null) return '';
         const format = String(fmt == null ? 'YYYY-MM-DD' : fmt);
-        const dayOnly = !/HH|mm|ss/.test(format);
-        const d = new Date(parsed.epoch + (dayOnly && parsed.offset ? parsed.offset * 60000 : 0));
+        const d = new Date(e);
         // Belt and braces beside parseDate's range check: the month/weekday
         // lookups below index a table, and an Invalid Date would index it on
         // NaN and throw `undefined.slice` — a throw, out of a file that

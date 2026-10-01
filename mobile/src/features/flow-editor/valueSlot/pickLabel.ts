@@ -95,7 +95,9 @@ function fieldLabel(t: TranslateFn, field: string, parent: string, take: string)
     if (take === 'count') return t('mapping.slot.label.count_of', 'Number of {parent}', { parent: lowerFirst(field) });
     const alone = ALONE[take];
     if (!parent) return alone ? say(t, alone, { parent: lowerFirst(field) }) : field;
-    return say(t, WITH_PARENT[take] ?? (WITH_PARENT.one as Phrase), { field, parent });
+    // One row of the list: "ID of the first order", not "of the first orders" (as on the web).
+    const one = take === 'first' || take === 'last';
+    return say(t, WITH_PARENT[take] ?? (WITH_PARENT.one as Phrase), { field, parent: one ? singularLabel(parent) : parent });
 }
 
 /**

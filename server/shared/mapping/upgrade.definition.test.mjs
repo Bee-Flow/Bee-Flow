@@ -367,3 +367,29 @@ test('runs: the work is capped, a long history is not dry-run run by run', () =>
     // The store's window is ten runs; far beyond the cap nothing is read.
     assert.equal(upgradeDefinition(def, { runs: [...same, bad], ...deps }).changed.length, 1);
 });
+
+test('a datatable value lifted to a pick keeps its key when a later run lacks the value', () => {
+    // save_row writes `col = NULL` for a key that resolved to undefined and
+    // leaves the column alone for a missing key, so the upgraded pick must
+    // resolve to the same KEYS as the legacy ref, not just the same values.
+    const def = {
+        trigger: { id: 't', kind: 'manual' },
+        steps: [{
+            id: 'd', type: 'datatable', label: 'Save', op: 'save_row',
+            values: { status: ref('trigger.output.status'), note: ref('trigger.output.note') },
+        }],
+        edges: [],
+    };
+    const withNote = { trigger: { output: { status: 'open', note: 'call back' } }, steps: {} };
+    const { definition, changed } = upgradeDefinition(def, { sample: withNote, lastRun: null, ...deps });
+    const lifted = definition.steps[0].values;
+    assert.equal(lifted.note.kind, 'pick', 'the ref is lifted on the evidence');
+    assert.ok(changed.length >= 1);
+
+    const withoutNote = { trigger: { output: { status: 'closed' } }, steps: {} };
+    const legacyOut = resolver.resolveInputs(def.steps[0].values, withoutNote);
+    const pickOut = resolver.resolveInputs(lifted, withoutNote);
+    assert.deepStrictEqual(Object.keys(pickOut).sort(), Object.keys(legacyOut).sort());
+    assert.ok('note' in pickOut, 'the key stays, so save_row still writes NULL there');
+    assert.deepStrictEqual(pickOut, legacyOut);
+});

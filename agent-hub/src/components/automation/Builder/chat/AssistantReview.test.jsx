@@ -82,4 +82,17 @@ describe('assistant review controls', () => {
         expect(onApply.mock.calls[0][0].steps[0].settings).toEqual({ to: baseDefinition.steps[0].settings.to, subject: 'New' });
         expect(baseDefinition.steps[0].settings.subject).toBe('Old');
     });
+
+    it('names and previews a pick and a compose the AI proposes, resolved like the run', () => {
+        const pick = (path, extra = {}) => ({ kind: 'pick', v: 1, from: { root: 'trigger', path }, take: 'one', as: 'native', ...extra });
+        const baseDefinition = { trigger: { id: 't' }, steps: [{ id: 'mail', label: 'Email', settings: { to: { kind: 'ref', path: 'trigger.output.sender' }, subject: 'Old' } }] };
+        const definition = structuredClone(baseDefinition);
+        definition.steps[0].settings.to = pick(['recipient'], { label: 'Recipient' });
+        definition.steps[0].settings.subject = { kind: 'compose', v: 1, parts: ['Order ', pick(['order', 'number'])] };
+        render(<ProposalCard proposal={{ id: 'p', baseDefinition, definition }} onApply={vi.fn()} onDiscard={vi.fn()} onPreview={vi.fn()} realOutputById={new Map([['t', { sender: 'sender@example.test', recipient: 'recipient@example.test', order: { number: 'A-17' } }]])} />);
+        expect(screen.getByText('→ Recipient')).toBeTruthy();
+        expect(screen.getByText(/↳ recipient@example.test/)).toBeTruthy();
+        expect(screen.getByText(/^→ Order \[.+\]$/)).toBeTruthy();
+        expect(screen.getByText('↳ Order A-17')).toBeTruthy();
+    });
 });

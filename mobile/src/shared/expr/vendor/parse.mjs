@@ -6,8 +6,9 @@
  * number first, so '1.234' is still 1.234; the ISO patterns read a date first,
  * so '2026-09-02' is still that UTC day. Only a value that used to give null
  * ('12,5', '€ 1.554,25', a Gmail Date header, '1756720800') is now read too.
- * The one deliberate change to a result that was not null is a NUMBER below
- * 1e11, which is a unix timestamp in seconds (see epochFromNumber).
+ * parseDate reads a NUMBER below 1e11 as a unix timestamp in seconds (see
+ * epochFromNumber); the expression functions opt out of that with
+ * `numberAs: 'ms'`, so for them too only null becomes a value.
  *
  * Same rules as the rest of shared/expr: pure, total, no Intl, no Date.parse,
  * no ambient locale or zone, so Node and the browser read every value alike.
@@ -194,12 +195,20 @@ export function epochFromNumber(n) {
  * Reads, in this order: a number (a unix timestamp; seconds below 1e11), an
  * ISO date or date-time, a ten- or thirteen-digit unix timestamp written as
  * text, and an RFC 2822 date ('Tue, 01 Sep 2026 10:00:00 +0200').
+ *
+ * `numberAs: 'ms'` reads a NUMBER as milliseconds whatever its size. The
+ * expression functions pass it: a stored expression read numbers that way
+ * before this module existed, and must keep its results (functions.mjs).
  * @param {unknown} value
+ * @param {{ numberAs?: 'auto' | 'ms' }} [options]
  * @returns {{ epoch: number, offset: number|null } | null}
  */
-export function parseDate(value) {
+export function parseDate(value, { numberAs = 'auto' } = {}) {
     if (value == null) return null;
-    if (typeof value === 'number') return Number.isFinite(value) ? at(epochFromNumber(value), null) : null;
+    if (typeof value === 'number') {
+        if (!Number.isFinite(value)) return null;
+        return at(numberAs === 'ms' ? value : epochFromNumber(value), null);
+    }
     const s = String(value).trim();
     let m = DATE_ONLY.exec(s);
     if (m) return at(Date.UTC(+m[1], +m[2] - 1, +m[3]), null);

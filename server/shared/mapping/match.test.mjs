@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { matchInputs, normalizeKey, sampleType, isSecretLikeKey, typeFits, idAffinityBase } from './match.mjs';
+import { matchInputs, normalizeKey, sampleType, isSecretLikeKey, typeFits, idAffinityBase, itemCandidates, isFanOutList, itemMatchScope, matchFromItem } from './match.mjs';
 import { MATCH_CASES } from './matchCases.mjs';
 
 const cand = (key, path = key, extra = {}) => ({ key, path, ...extra });
@@ -90,4 +90,39 @@ test('the shared cases, matched against the item fields the way both builders do
         assert.deepStrictEqual(paths(matchInputs(inputs, fields, { ...opts, skipSecrets: true })), want(c.expect), `${c.name} (web)`);
         assert.deepStrictEqual(paths(matchInputs(inputs, fields, opts)), want({ ...c.expect, ...c.aiBuilder }), `${c.name} (AI builder)`);
     }
+});
+
+// ── the item of a step that runs once per item (shared by web and phone auto-map) ──
+
+test('itemMatchScope + matchFromItem: an `each` pick under a repeat', () => {
+    const over = { root: 'steps', id: 'list', path: ['contacts'] };
+    const step = { id: 'x', repeat: { over, max: 100 } };
+    const seen = [];
+    const scope = itemMatchScope(step, { steps: [] }, (p) => { seen.push(p); return { email: 'a@b.nl', id: 7, from: { id: 1 } }; });
+    assert.deepEqual(seen, ['steps.list.output.contacts']);
+    assert.equal(scope.groupId, null);
+    const patch = matchFromItem(scope, [{ key: 'email' }, { key: 'contactId' }]);
+    assert.deepEqual(patch.email, { kind: 'pick', v: 1, from: { ...over, path: ['contacts', 'email'] }, take: 'each', as: 'native' });
+    assert.deepEqual(patch.contactId.from.path, ['contacts', 'id'], "the item's own id, not from.id");
+});
+
+test('itemMatchScope: a `loop.<itemVar>` ref under a legacy forEach, and a fan-out list', () => {
+    const def = { steps: [{ id: 'fan', forEach: { overRef: 'steps.src.output.rows' } }] };
+    const step = { id: 'x', forEach: { overRef: 'steps.fan.output.results', itemVar: 'r' } };
+    const scope = itemMatchScope(step, def, () => ({ index: 0, status: 'ok', output: { email: 'a@b.nl' }, item: { name: 'Ada' } }));
+    assert.equal(scope.groupId, 'x__foreach');
+    assert.deepEqual(scope.candidates.map(c => c.key).sort(), ['email', 'name'], 'a fan-out entry offers its halves, not index/status');
+    const patch = matchFromItem(scope, [{ key: 'email' }, { key: 'status' }]);
+    assert.deepEqual(patch, { email: { kind: 'ref', path: 'loop.r.output.email' } });
+    assert.equal(isFanOutList({ root: 'steps', id: 'fan', path: ['results'] }, def), true);
+    assert.equal(isFanOutList({ root: 'steps', id: 'other', path: ['results'] }, def), false);
+});
+
+test('itemMatchScope: null for a step that does not repeat; no candidates, no patch', () => {
+    assert.equal(itemMatchScope({ id: 'x' }, { steps: [] }, () => ({})), null);
+    assert.equal(itemMatchScope(null, { steps: [] }, () => ({})), null);
+    const scope = itemMatchScope({ id: 'x', repeat: { over: { root: 'trigger', path: ['rows'] } } }, {}, () => 'not a record');
+    assert.deepEqual(itemCandidates('x', false), []);
+    assert.deepEqual(matchFromItem(scope, [{ key: 'email' }]), {});
+    assert.deepEqual(matchFromItem(null, [{ key: 'email' }]), {});
 });

@@ -2,10 +2,10 @@ import { evaluate } from '@shared/expr/index.mjs';
 import * as parse from '@shared/expr/parse.mjs';
 import {
     MAPPING_VERSION, TRIGGER_RUN_KEYS, defaultIntent, humanizeKey, isCompose, isMany, isPick, isPrefix, legacyPathOf,
-    liftLegacy, lowerPick, manyItems, shapeOf, slotShape, sourceBase, sourceFromPath, walkMany, walkSource,
+    liftLegacy, lowerPick, makePick, manyItems, shapeAt, shapeOf, slotShape, sourceFromPath, walkMany, walkSource,
 } from '@shared/mapping/index.mjs';
 import type {
-    ComposeBinding, CurrentItem, MappingSource, PickBinding, PickIntent, PickPart, Shape, Slot, Source,
+    ComposeBinding, CurrentItem, MappingSource, PickBinding, PickIntent, PickPart, Shape, Slot, SlotGroupLike, Source,
 } from '@shared/mapping/index.mjs';
 import { bindingFromInput as bindingFromInputJs } from '../../../../utils/bindingHelpers';
 import { pickableSource, type DraggedSource } from './slotDnd';
@@ -119,32 +119,6 @@ export function slotFor({ slot, schema, stepType, field, expectKind, multiLine }
     return { as, multiLine: !!multiLine };
 }
 
-/** The shape of what a source holds in the sample, or the hint a drag carried. */
-export function shapeAt(source: MappingSource, sample: Sample, hint?: string | null): Shape {
-    if (sample) {
-        const shape = shapeOf(walkSource(source, sample)) as Shape;
-        if (shape !== 'missing') return shape;
-    }
-    if (hint === 'scalar' || hint === 'json' || hint === 'single') return 'single';
-    if (hint === 'list' || hint === 'table' || hint === 'object') return hint;
-    return sample ? 'missing' : 'unknown';
-}
-
-/** How many values a source holds in the sample, for a list; null otherwise. */
-export function countAt(source: MappingSource, sample: Sample): number | null {
-    if (!sample) return null;
-    const result = walkSource(source, sample);
-    if (isMany(result)) return manyItems(result).items.length;
-    return Array.isArray(result) ? result.length : null;
-}
-
-/** A pick of one source with one intent, in the stored form. */
-export function makePick(source: MappingSource, intent: PickIntent): PickBinding {
-    const pick: PickBinding = { kind: 'pick', v: MAPPING_VERSION as 1, from: source, take: intent.take, as: intent.as };
-    if (intent.join) pick.join = intent.join;
-    return pick;
-}
-
 /**
  * The source a click or a drop hands over, from its legacy path and what came
  * with it. A Source that came along is used when a pick can hold it (a
@@ -163,21 +137,6 @@ export function draggedFrom(
     if (typeof extra.count === 'number') out.count = extra.count;
     if (extra.take === 'each') out.take = 'each';
     return out;
-}
-
-const MANY = new Set(['list', 'table']);
-const ONE_VALUE = new Set(['number', 'date', 'yesno']);
-
-/**
- * Does the pick need the amber sentence (many values into a field for one)?
- * A number, date or yes/no field always says so while a list feeds it: the
- * first or last of it (the default), and a stored ref that hands over the
- * whole list as it is, which such a field cannot hold.
- */
-export function manyForOne(pick: PickIntent, shape: Shape, slot: Slot): boolean {
-    if (!MANY.has(shape)) return false;
-    if (pick.take === 'one') return true;
-    return ONE_VALUE.has(slot.as) && pick.take !== 'count';
 }
 
 // ── Columns: a whole table into a list field ─────────────────────────────
@@ -435,74 +394,16 @@ export function itemShapeAt(pick: Pick<PickBinding, 'from' | 'take'>, sample: Sa
 }
 
 // ── Where a source comes from ───────────────────────────────────────────
+// shapeAt, countAt, makePick, manyForOne, groupLabelOf, isStale and
+// crossesList are the shared core's (mapping/slotView.mjs), so the web and
+// the phone show the same amber sentence and the same stale chips.
 
-export interface GroupLike {
-    id?: string;
-    label?: string;
-    basePath?: string;
-    /** The group shows a real run's output (not only the design-time sample). */
-    hasRealData?: boolean;
-}
-
-function baseOf(source: MappingSource): string | null {
-    switch (source.root) {
-        case 'steps': return `steps.${(source as { id: string }).id}.output`;
-        case 'trigger':
-        case 'run': return 'trigger.output';
-        case 'loop': return `loop.${(source as { id: string }).id}`;
-        case 'item': return 'item';
-        case 'vars': return 'vars';
-        default: return null;
-    }
-}
-
-/** The display name of the step (or trigger) a source comes from. */
-export function groupLabelOf(source: MappingSource, groups: readonly GroupLike[] | null | undefined, stepLabelById?: ReadonlyMap<string, string> | null): string {
-    const base = baseOf(source);
-    const group = (groups || []).find(g => g.basePath === base);
-    if (group?.label) return group.label;
-    if (source.root === 'steps') return stepLabelById?.get((source as { id: string }).id) || '';
-    return '';
-}
-
-/**
- * Is a pick's source gone? Its step is not before this one any more (deleted,
- * or moved after it), the step's last real run lacks the first key it reads
- * (a field renamed upstream), or it is a `trigger.<key>` that is neither the
- * payload nor the trigger's metadata. Only said when the editor knows the
- * steps, and a key only against real data: a design-time sample is often
- * partial, and a chip must never cry wolf.
- */
-export function isStale(source: MappingSource, groups: readonly GroupLike[] | null | undefined, sample: Sample): boolean {
-    // `trigger.<key>` without `.output` reads the trigger's own metadata; any
-    // other key there reads nothing at run time, whatever the editor knows.
-    if (source.root === 'run') return !TRIGGER_RUN_KEYS.includes(String(source.path[0]));
-    if (!groups || !groups.length) return false;
-    const base = baseOf(source);
-    const group = groups.find(g => g.basePath === base);
-    if ((source.root === 'steps' || source.root === 'loop') && !group) return true;
-    if (!group?.hasRealData || (source.root !== 'steps' && source.root !== 'trigger')) return false;
-    const first = source.path[0];
-    const data = sample ? sourceBase(source, sample) : undefined;
-    return typeof first === 'string' && isRecord(data) && !Object.prototype.hasOwnProperty.call(data, first);
-}
+export {
+    countAt, crossesList, groupLabelOf, isStale, makePick, manyForOne, shapeAt,
+} from '@shared/mapping/index.mjs';
+export type GroupLike = SlotGroupLike;
 
 /** Can a field that holds only the legacy spelling store this option? (lowerPick has no bulleted text, no per item.) */
 export function lowerable(option: PickIntent): boolean {
     return option.take !== 'each' && !(option.take === 'all' && option.as === 'text' && option.join === 'bullets');
-}
-
-/**
- * Is a source read off a list on its way (a column of a table, a key of each
- * order)? What its name says ("Product of all lines" or "Tags of …").
- * Undefined without data to tell.
- */
-export function crossesList(source: MappingSource, sample: Sample): boolean | undefined {
-    if (!sample) return undefined;
-    for (let n = 0; n < source.path.length; n++) {
-        const shape = shapeAt({ ...source, path: source.path.slice(0, n) } as MappingSource, sample);
-        if (shape === 'list' || shape === 'table') return true;
-        if (shape === 'missing') return undefined;
-    }
-    return false;
 }

@@ -3,6 +3,22 @@ import previewBinding from '../mapping/bindingPreview';
 import { Check, Eye } from 'lucide-react';
 import useTranslation from '../../../../hooks/useTranslation';
 import { proposalChanges, proposalFields, reviewedProposal } from './proposalChanges';
+import { pickLabel } from '../valueSlot/usePickLabel';
+
+/**
+ * A field's value in words. A pick is named by the value it reads and a
+ * compose by its text with each value's name in it, never by an empty
+ * `binding.path` (picks and composes have none).
+ */
+function bindingText(t, binding) {
+    if (binding === undefined) return '—';
+    if (binding?.kind === 'pick') return pickLabel(t, binding);
+    if (binding?.kind === 'compose' && Array.isArray(binding.parts)) {
+        return binding.parts.map(part => (typeof part === 'string' ? part : `[${pickLabel(t, part)}]`)).join('');
+    }
+    if (binding?.kind) return binding.path || String(binding.value ?? '');
+    return typeof binding === 'string' ? binding : JSON.stringify(binding);
+}
 
 export default function ProposalCard({ proposal, running, onApply, onDiscard, onPreview, realOutputById }) {
     const { t } = useTranslation();
@@ -16,7 +32,7 @@ export default function ProposalCard({ proposal, running, onApply, onDiscard, on
             {changes.map(c => <div key={`${c.scope}:${c.id}`} className="flex gap-2 items-start"><span className="text-[var(--type-ai)] font-semibold">{c.kind === 'added' ? '+' : c.kind === 'removed' ? '−' : '~'}</span><span className="min-w-0 flex-1"><span className="block font-medium">{c.label}</span><span className="block text-[var(--text-tertiary)]">{c.scope ? `${c.scope} · ` : ''}{t(`routines.assistant.${c.kind}`, c.kind === 'added' ? 'New step' : c.kind === 'removed' ? 'Removed step' : 'Settings changed')}</span>
                 {proposalFields(c).map(field => {
                     const key = `${c.scope}:${c.id}:${field.path.join('.')}`;
-                    const value = binding => binding === undefined ? '—' : binding?.kind ? binding.path || String(binding.value ?? '') : typeof binding === 'string' ? binding : JSON.stringify(binding);
+                    const value = binding => bindingText(t, binding);
                     const oldSample = field.before?.kind && previewBinding(field.before, samples, { raw: false });
                     const newSample = field.after?.kind && previewBinding(field.after, samples, { raw: false });
                     return <label key={key} className="flex gap-2 mt-2 rounded-lg bg-[var(--bg-secondary)] p-2 cursor-pointer">

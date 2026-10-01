@@ -261,6 +261,28 @@ test('a fan-out cannot be promoted as-is, and says why', () => {
     assert.match(r.issues[0].hint, /loop step/i);
 });
 
+test('a step that repeats (v2 `repeat`) is refused like a forEach, also after the mapping upgrade', async () => {
+    const { upgradeStepRepeat } = await import('../shared/mapping/upgrade.mjs');
+    const repeating = codeStep({ repeat: { over: { root: 'step', id: 'list', path: ['items'] }, max: 100 } });
+    const r = promoteCodeStep({ step: repeating });
+    assert.strictEqual(r.reason, 'for_each_unsupported');
+    assert.strictEqual(r.issues[0].path, 'repeat');
+
+    // A legacy forEach code step as "Koppelingen bijwerken" leaves it.
+    const legacy = codeStep({
+        forEach: { overRef: 'steps.list.output.items', itemVar: 'f' },
+        inputs: { amount: { kind: 'ref', path: 'loop.f.amount' }, currency: { kind: 'literal', value: 'EUR' } },
+    });
+    const sample = { trigger: { output: {} }, steps: { list: { output: { items: [{ amount: 1 }, { amount: 2 }] } } } };
+    const { evaluate } = await import('../shared/expr/index.mjs');
+    const parse = await import('../shared/expr/parse.mjs');
+    const up = upgradeStepRepeat(legacy, { sample, evaluate, parse });
+    assert.ok(up.step, `the upgrade turns the forEach into a repeat: ${JSON.stringify(up.refused)}`);
+    assert.ok(up.step.repeat);
+    assert.strictEqual(up.step.forEach ?? null, null);
+    assert.strictEqual(promoteCodeStep({ step: up.step }).reason, 'for_each_unsupported');
+});
+
 test('only a code step, and only one with code in it', () => {
     assert.strictEqual(promoteCodeStep({ step: { id: 's', type: 'integration_action', tool: 'gmail_send' } }).reason, 'not_a_code_step');
     assert.strictEqual(promoteCodeStep({ step: null }).reason, 'not_a_code_step');
