@@ -56,23 +56,21 @@ export interface ParamSuggestion {
     source: 'field' | 'default';
 }
 
-/** "Root folder /  suggestion": one click fills the empty required setting. */
+/** "Suggestion: Root folder /": one click fills the empty required setting. */
 export function SuggestionChip({ suggestion, onUse }: { suggestion: ParamSuggestion; onUse: () => void }) {
     const { t } = useTranslation();
+    // One subtle chip, "Suggestion: Name of customer": a click fills the field.
     return (
-        <div className="flex items-center gap-2 text-[11px]" data-testid="param-suggestion">
+        <div className="flex items-center text-[11px]" data-testid="param-suggestion">
             <button
                 type="button"
                 onClick={onUse}
                 title={t('routines.ndv.use_suggestion', 'Use this suggestion')}
-                className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-dashed border-[var(--border-default)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]"
+                className="inline-flex items-center gap-1 max-w-full px-2 py-0.5 rounded-full border border-[var(--border-default)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]"
             >
-                <Sparkles size={11} className="text-[var(--type-ai)]" />
-                {suggestion.label}
+                <Sparkles size={11} className="shrink-0 text-[var(--type-ai)]" aria-hidden="true" />
+                <span className="truncate">{t('mapping.slot.suggestion', 'Suggestion: {label}', { label: suggestion.label })}</span>
             </button>
-            <span className="px-1.5 rounded-full leading-4 text-[10px] font-semibold bg-[color-mix(in_srgb,var(--type-ai)_12%,transparent)] text-[var(--type-ai)]">
-                {t('routines.ndv.suggestion', 'suggestion')}
-            </span>
         </div>
     );
 }

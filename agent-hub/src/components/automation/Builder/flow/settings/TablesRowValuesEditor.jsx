@@ -323,7 +323,7 @@ function ColumnRow({ t, col, typed, required, value, onChange, onFocusField, pre
                 allowRaw={allowRaw}
                 expectKind={kind === 'unknown' ? null : kind}
             />
-            {required && <EmptySlotNote expectKind={kind} required empty={isEmptyBinding(value)} />}
+            {required && <EmptySlotNote required empty={isEmptyBinding(value)} />}
         </div>
     );
 }

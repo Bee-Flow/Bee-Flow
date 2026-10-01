@@ -37,8 +37,7 @@ describe('ToolParamField — a setting in "What this step does" (round 4)', () =
         wrap(<ToolParamField {...base} onChange={onChange} prop={{ type: 'string', title: 'Which folder?' }}
             suggestion={{ binding: { kind: 'literal', value: '/' }, label: 'Root folder /', source: 'default' }} />);
         const chip = screen.getByTestId('param-suggestion');
-        expect(chip.textContent).toContain('Root folder /');
-        expect(chip.textContent).toContain('suggestion');
+        expect(chip.textContent).toBe('Suggestion: Root folder /');
         expect(onChange).not.toHaveBeenCalled();
         await userEvent.click(screen.getByRole('button', { name: /Root folder/ }));
         expect(onChange).toHaveBeenCalledWith({ kind: 'literal', value: '/' });
@@ -63,6 +62,23 @@ describe('ToolParamField — a setting in "What this step does" (round 4)', () =
 
 describe('ToolParamField — the value slot and its name', () => {
     beforeEach(() => { cleanup(); usage.rows = []; });
+
+    // Final review: an empty "Subject line" showed "Use data from a step", a
+    // "Formula" link and a red dashed "still empty · expects: text · pick ▸ 10 fit".
+    it('an empty required setting is calm: the field, one muted line, and a ⋯', async () => {
+        const onChange = vi.fn();
+        wrap(<ToolParamField {...base} fieldKey="subject" onChange={onChange} prop={{ type: 'string', title: 'Subject line' }}
+            suggestion={{ binding: { kind: 'literal', value: 'Order' }, label: 'Order', source: 'default' }} />);
+        const field = screen.getByTestId('param-subject');
+        expect(screen.getByRole('textbox', { name: 'Subject line' }).getAttribute('placeholder')).toBe('Type a value, or pick one from Comes in');
+        expect(screen.getByTestId('binding-empty-required').textContent).toBe('Required before this step can run.');
+        expect(field.textContent).not.toMatch(/still empty|expects|pick ▸|fit|Use data from a step|Formula/);
+        expect(screen.getAllByTestId('param-suggestion')).toHaveLength(1);
+        await userEvent.click(screen.getByRole('button', { name: 'More ways to fill Subject line' }));
+        expect(screen.getByRole('menuitem', { name: 'Use data from a step' })).toBeTruthy();
+        await userEvent.click(screen.getByRole('menuitem', { name: 'Formula' }));
+        expect(screen.getByTestId('slot-formula')).toBeTruthy();
+    });
 
     it('names a setting in words, never by its raw key', () => {
         wrap(<ToolParamField {...base} fieldKey="to" required onChange={vi.fn()} prop={{ type: 'string' }} />);

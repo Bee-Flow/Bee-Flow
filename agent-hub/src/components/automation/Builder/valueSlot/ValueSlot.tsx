@@ -12,6 +12,7 @@ import PathSlotExtras, { type QuickPick } from './PathSlotExtras';
 import PickOptions, { bindingPreviewText } from './PickOptions';
 import PickSentence from './PickSentence';
 import SlotAdvanced from './SlotAdvanced';
+import SlotMenu from './SlotMenu';
 import { onSourceDragOver, readSourceDrop } from './slotDnd';
 import { formulaInput, lowerable, type SlotSpec, type SlotStorage } from './slotModel';
 import { formulaSummary } from './usePickLabel';
@@ -68,14 +69,17 @@ export interface ValueSlotProps extends SlotSpec {
  * Change"), and Change offers the choices with live previews (PickOptions).
  *
  * A value arrives by a click in "Comes in" (when this field has focus, or
- * was chosen in "Where should this go?"), a drop, or the field's own "Use
- * data from a step". All three end in useValueSlot.accept. A pick into a
+ * was chosen in "Where should this go?"), a drop, or the field's ⋯ › "Use
+ * data from a step" (SlotMenu). All three end in useValueSlot.accept. A pick into a
  * field that holds one value REPLACES it, with "Replaced · Undo"; a pick
  * into typed text in a text field keeps the text.
  *
  * A stored legacy reference shows as the chip it lifts to and is rewritten
  * only when the user changes it; anything else shows as the grey "Formula"
  * chip and is edited under Advanced › Formula, exactly as stored.
+ *
+ * An empty field is calm: the input with its placeholder, the ⋯ beside it,
+ * and for a required one a single muted line (fieldChrome.EmptySlotNote).
  */
 export default function ValueSlot(props: ValueSlotProps) {
     const {
@@ -117,26 +121,31 @@ export default function ValueSlot(props: ValueSlotProps) {
     const chrome = showChrome
         ? <FieldLabelRow label={label} required={required} expectKind={expectKind} hint={hint} autoMapped={autoMapped} />
         : null;
-    const advanced = (
-        <SlotAdvanced
-            editing={formula}
-            onEditingChange={setFormula}
-            value={value}
-            onChange={onChange}
-            storage={storage}
-            offer={allowRaw && !disabled && canFormula}
-            label={label}
-            slot={s.slot}
-            expectKind={expectKind}
-            hint={hint}
-            required={required}
-            placeholder={ph}
-            multiline={multiLine}
-            previewSample={s.sample}
-            onFocusField={onFocusField}
-        />
-    );
-    if (formula && canFormula) return <div className="space-y-1" data-testid="value-slot">{chrome}{advanced}</div>;
+    // Advanced › Formula: reached through the field's ⋯ (or a pick's options,
+    // or a click on the Formula chip), never a link under every field.
+    if (formula && canFormula) {
+        return (
+            <div className="space-y-1" data-testid="value-slot">
+                {chrome}
+                <SlotAdvanced
+                    editing={formula}
+                    onEditingChange={setFormula}
+                    value={value}
+                    onChange={onChange}
+                    storage={storage}
+                    label={label}
+                    slot={s.slot}
+                    expectKind={expectKind}
+                    hint={hint}
+                    required={required}
+                    placeholder={ph}
+                    multiline={multiLine}
+                    previewSample={s.sample}
+                    onFocusField={onFocusField}
+                />
+            </div>
+        );
+    }
 
     let body: ReactNode;
     if (view.kind === 'pick' && pickInfo) {
@@ -179,10 +188,25 @@ export default function ValueSlot(props: ValueSlotProps) {
             'aria-label': label || t('mapping.slot.label.value', 'Value'),
             className: denseInputClass('w-full'),
         };
-        if (!allowTyping && !text) body = null;
+        if (!allowTyping && !text) {
+            // Nothing may be typed here: the one way in is the picker, so it stays in sight.
+            body = (
+                <button
+                    type="button"
+                    onClick={(e) => openPicker(e.currentTarget)}
+                    className="inline-flex items-center gap-1 text-[11px] text-[var(--text-secondary)] underline decoration-dotted underline-offset-2 hover:text-[var(--text-primary)]"
+                >
+                    <Workflow size={11} aria-hidden="true" />
+                    {t('mapping.slot.use_data', 'Use data from a step')}
+                </button>
+            );
+        }
         else if (s.slot.multiLine) body = <textarea {...typed} rows={3} onChange={(e) => s.setText(e.target.value)} />;
         else body = <input type="text" {...typed} onChange={(e) => s.setText(e.target.value)} />;
     }
+
+    // A picked value has its own chip (Change, Pick another, remove); a path keeps the ⋯.
+    const showMenu = (view.kind !== 'pick' || storage === 'path') && !disabled;
 
     return (
         <div
@@ -195,22 +219,19 @@ export default function ValueSlot(props: ValueSlotProps) {
             onDrop={onDrop}
         >
             {chrome}
-            {body}
-            {(view.kind !== 'pick' || storage === 'path') && !disabled && (
-                <div className="flex items-center gap-3 flex-wrap">
-                    <button
-                        type="button"
-                        onClick={(e) => openPicker(e.currentTarget)}
-                        className="inline-flex items-center gap-1 text-[11px] text-[var(--text-secondary)] underline decoration-dotted underline-offset-2 hover:text-[var(--text-primary)]"
-                    >
-                        <Workflow size={11} aria-hidden="true" />
-                        {view.kind === 'compose'
+            {showMenu ? (
+                <div className="flex items-start gap-1">
+                    <div className="flex-1 min-w-0">{body}</div>
+                    <SlotMenu
+                        label={label}
+                        pickLabel={view.kind === 'compose'
                             ? t('mapping.slot.add_value', 'Add a value from a step')
                             : t('mapping.slot.use_data', 'Use data from a step')}
-                    </button>
-                    {view.kind !== 'formula' && <span className="ml-auto">{advanced}</span>}
+                        onPick={openPicker}
+                        onFormula={allowRaw && canFormula ? () => setFormula(true) : null}
+                    />
                 </div>
-            )}
+            ) : body}
             {s.toast && (
                 <div role="status" className="flex items-center gap-2 text-[11px] text-[var(--text-secondary)]" data-testid="slot-replaced">
                     <span>{t('mapping.slot.replaced', 'Replaced')}</span>
@@ -233,7 +254,7 @@ export default function ValueSlot(props: ValueSlotProps) {
                 />
             )}
             {showChrome && (
-                <EmptySlotNote expectKind={expectKind} required={required} empty={view.kind === 'empty'} onPick={(e?: { currentTarget?: Element }) => openPicker(e?.currentTarget || null)} />
+                <EmptySlotNote required={required} empty={view.kind === 'empty'} />
             )}
             <VariablePicker
                 {...picker.pickerProps}

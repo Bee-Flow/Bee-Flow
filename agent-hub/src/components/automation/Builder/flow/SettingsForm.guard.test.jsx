@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { typeInEditor } from '../../../../test/refEditor';
 import SettingsForm from './SettingsForm';
@@ -58,7 +59,8 @@ describe('SettingsForm — guard', () => {
     it('saves what to scan', async () => {
         const { onPatch } = renderForm(guardStep({ sourceRef: '' }));
         // A path typed by hand is written under the value's Advanced › Formula.
-        fireEvent.click(screen.getByRole('button', { name: 'Write this value as a formula' }));
+        await userEvent.click(screen.getByRole('button', { name: 'More ways to fill this value' }));
+        await userEvent.click(screen.getByRole('menuitem', { name: 'Formula' }));
         typeInEditor(screen.getAllByRole('textbox').find(el => el.hasAttribute('data-ref-editor')), 'trigger.output.body');
         fireEvent.click(screen.getByText('Save'));
         await waitFor(() => expect(onPatch).toHaveBeenCalled());

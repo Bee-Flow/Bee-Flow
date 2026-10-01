@@ -1,6 +1,5 @@
-import React, { useMemo } from 'react';
-import { describeField, kindFits, KIND_WORD } from './fieldKinds';
-import { useVariablePickerContext } from './VariablePickerContext';
+import React from 'react';
+import { KIND_WORD } from './fieldKinds';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import FieldHint from '../flow/FieldHint';
 import { fieldLabelClass, requiredMarkClass } from '../flow/settings/formStyles';
@@ -12,11 +11,11 @@ import { fieldLabelClass, requiredMarkClass } from '../flow/settings/formStyles'
  * They were BindingField's private markup until the visual editor (today the
  * value slot) became the default renderer for step-bound fields — at which point the same slot could
  * be drawn by either editor, and the label had to stop being an accident of
- * which one you got. Extracted verbatim: same classes, same testids, same
- * words, so nothing that already reads them notices the move.
+ * which one you got. The testids stayed, so nothing that reads them
+ * noticed the move.
  */
 
-/** Label · required mark · "expects: date" · hint · the auto-mapped pill. */
+/** Label · required mark · the kind in one word ("date") · hint · the auto-mapped pill. */
 export function FieldLabelRow({ label, required = false, expectKind = null, hint = null, autoMapped = false }) {
     const { t } = useTranslation();
     if (!label) return null;
@@ -27,7 +26,7 @@ export function FieldLabelRow({ label, required = false, expectKind = null, hint
             {required && <span className={requiredMarkClass()} title="Required">*</span>}
             {expectWord && expectKind !== 'text' && (
                 <span className="ml-1 text-[10px] font-normal normal-case tracking-normal text-[var(--text-tertiary)]" data-testid="binding-expects">
-                    · {t('routines.builder.expects_kind', 'expects: {kind}', { kind: expectWord })}
+                    · {expectWord}
                 </span>
             )}
             <FieldHint title={label}>{hint}</FieldHint>
@@ -44,48 +43,18 @@ export function FieldLabelRow({ label, required = false, expectKind = null, hint
 }
 
 /**
- * "still empty · expects: date · pick ▸ 2 fit" — shown only for a REQUIRED
- * slot with a known kind that holds nothing. The count is how many upstream
- * fields would fit, through fieldKinds.kindFits — the same "fits" the mismatch
- * box reasons with, so the two can never disagree.
+ * One muted line under a REQUIRED slot that holds nothing: that it is
+ * required, nothing more. The placeholder already says how to fill it, the
+ * field's ⋯ offers the picker, and the footer counts what is still empty;
+ * the red dashed box with "expects: text · pick ▸ 10 fit" said all three
+ * again, in jargon, on every empty field.
  */
-export function EmptySlotNote({ expectKind, empty, required = true, onPick = null }) {
+export function EmptySlotNote({ empty, required = true }) {
     const { t } = useTranslation();
-    const ctx = useVariablePickerContext();
-    const groups = ctx.groups;
-    const previewSample = ctx.previewSample;
-    const fitCount = useMemo(() => {
-        if (!expectKind || expectKind === 'unknown') return 0;
-        let n = 0;
-        const walk = (fields) => {
-            for (const f of fields || []) {
-                if (kindFits(describeField(f, previewSample).kind, expectKind)) n += 1;
-                if (Array.isArray(f.children) && f.children.length) walk(f.children);
-            }
-        };
-        for (const g of groups || []) walk(g.fields);
-        return n;
-    }, [groups, previewSample, expectKind]);
-
-    if (!required || !empty || !expectKind || expectKind === 'unknown') return null;
-    const expectWord = expectWordFor(expectKind, t);
+    if (!required || !empty) return null;
     return (
-        <div
-            className="flex items-center gap-2 px-2 py-1 rounded-md border border-dashed text-[10px]"
-            style={{ borderColor: 'var(--error)', color: 'var(--error)' }}
-            data-testid="binding-empty-required"
-        >
-            <span>{t('routines.builder.still_empty', 'still empty')}</span>
-            <span className="text-[var(--text-secondary)]">· {t('routines.builder.expects_kind', 'expects: {kind}', { kind: expectWord })}</span>
-            {onPick && (
-                <button
-                    type="button"
-                    onClick={onPick}
-                    className="ml-auto underline hover:no-underline text-[var(--text-primary)]"
-                >
-                    {t('routines.builder.pick_n_fit', 'pick ▸ {n} fit', { n: fitCount })}
-                </button>
-            )}
+        <div className="text-[11px] text-[var(--text-tertiary)]" data-testid="binding-empty-required">
+            {t('mapping.slot.required_empty', 'Required before this step can run.')}
         </div>
     );
 }

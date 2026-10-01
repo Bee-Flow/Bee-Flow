@@ -1,4 +1,5 @@
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { editorValue, editorWithValue, typeInEditor } from '../../../../test/refEditor';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import SettingsForm from './SettingsForm';
@@ -39,7 +40,8 @@ describe('SettingsForm — Switch "value to switch on" is a plain field picker, 
         const onPatch = vi.fn();
         renderForm(step, { onPatch });
         // A path typed by hand is written under the value's Formula.
-        fireEvent.click(screen.getByRole('button', { name: 'Write this value as a formula' }));
+        await userEvent.click(screen.getByRole('button', { name: 'More ways to fill this value' }));
+        await userEvent.click(screen.getByRole('menuitem', { name: 'Formula' }));
         const input = editorWithValue(document.body, 'trigger.output.value');
         typeInEditor(input, 'steps.s0.output.status');
         expect(editorValue(input)).toBe('steps.s0.output.status');

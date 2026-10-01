@@ -6,6 +6,7 @@ import { previewValue } from '../../../../utils/bindingHelpers';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { denseInputClass } from '../flow/settings/formStyles';
 import AnchoredMenu from '../../../shared/AnchoredMenu';
+import { readableFieldName } from '../valueSlot/fieldHandle';
 
 /**
  * FieldKeyCombobox — a field-NAME picker for the collection ops (Dedupe
@@ -42,7 +43,7 @@ export default function FieldKeyCombobox({
         setOpen(true);
         onFocusField?.({
             id: label || placeholder || 'field',
-            label: label || placeholder || 'field',
+            label: readableFieldName(label) || readableFieldName(placeholder) || '',
             insert: (path) => emit(columnKeyOf(path)),
         });
     };

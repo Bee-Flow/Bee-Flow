@@ -10,24 +10,18 @@ const base: SlotAdvancedProps = {
     value: null,
     onChange: () => {},
     storage: 'binding',
-    offer: true,
     slot: { as: 'text', multiLine: false },
 };
 
 describe('SlotAdvanced — Formula, out of the way', () => {
     beforeEach(cleanup);
 
-    it('offers one small "Formula" control, named after the field', async () => {
-        const onEditingChange = vi.fn();
-        render(<SlotAdvanced {...base} label="Subject" onEditingChange={onEditingChange} />);
-        await userEvent.click(screen.getByRole('button', { name: 'Write Subject as a formula' }));
-        expect(onEditingChange).toHaveBeenCalledWith(true);
-    });
-
-    it('offers nothing when the field does not, and the editor is still reachable once open', () => {
-        const { rerender } = render(<SlotAdvanced {...base} offer={false} />);
-        expect(screen.queryByTestId('slot-formula-open')).toBeNull();
-        rerender(<SlotAdvanced {...base} offer={false} editing value={{ kind: 'expr', value: 'upper(trigger.output.name)' }} />);
+    // The way in is the slot's ⋯ (SlotMenu); closed, this draws nothing at all.
+    it('draws nothing until the slot opens it, then the editor for a formula', () => {
+        const formula = { kind: 'expr', value: 'upper(trigger.output.name)' };
+        const { container, rerender } = render(<SlotAdvanced {...base} label="Subject" value={formula} />);
+        expect(container.innerHTML).toBe('');
+        rerender(<SlotAdvanced {...base} label="Subject" editing value={formula} />);
         expect(screen.getByRole('group', { name: 'Value mode' })).toBeTruthy();
     });
 
@@ -59,12 +53,12 @@ describe('SlotAdvanced — Formula, out of the way', () => {
         expect(screen.queryByRole('button', { name: 'Text' })).toBeNull();
     });
 
-    it('a picked value is edited as its formula; one without a formula offers none', () => {
+    it('a picked value is edited as its formula; one without a formula has no editor', () => {
         const pick = { kind: 'pick', v: 1, from: { root: 'trigger', path: ['name'] }, take: 'one', as: 'text' };
         render(<SlotAdvanced {...base} editing value={pick} />);
         expect(editorWithValue(document.body, 'trigger.output.name')).toBeTruthy();
         cleanup();
-        render(<SlotAdvanced {...base} value={{ ...pick, take: 'each' }} />);
-        expect(screen.queryByTestId('slot-formula-open')).toBeNull();
+        render(<SlotAdvanced {...base} editing value={{ ...pick, take: 'each' }} />);
+        expect(screen.queryByTestId('slot-formula')).toBeNull();
     });
 });

@@ -21,7 +21,7 @@ import {
 } from '../../../../utils/bindingHelpers';
 import { useFormMode as useFormModeJs } from '../flow/settings/formDensity';
 import { denseInputClass as denseInputClassJs, FOCUS_RING_INSET } from '../flow/settings/formStyles';
-import { useFieldHandle, type FieldHandle, type InsertOpts } from '../valueSlot/fieldHandle';
+import { readableFieldName, useFieldHandle, type FieldHandle, type InsertOpts } from '../valueSlot/fieldHandle';
 import { slotFor } from '../valueSlot/slotModel';
 
 // The surrounding modules are untyped JS; their props and returns are checked there.
@@ -192,7 +192,8 @@ export default function BindingField({
         else editor.insertSnippet(spaced);
     };
 
-    const handle = useFieldHandle(label || placeholder || 'field', label || placeholder || 'field', {
+    // Its name in the drawer's "→ …": the label, else an example that holds no path.
+    const handle = useFieldHandle(label || placeholder || 'field', readableFieldName(label) || readableFieldName(placeholder) || '', {
         insert: (path, opts) => acceptPath(path, opts || {}),
         accept: ({ source, shape }) => {
             const path = legacyPathOf(source, sample);
@@ -336,12 +337,7 @@ export default function BindingField({
                     {helpOpen && <ExpressionHelpBody />}
                 </div>
             )}
-            <EmptySlotNote
-                expectKind={expectKind}
-                required={required}
-                empty={String(text || '').trim() === ''}
-                onPick={() => picker.openPicker(inputRef.current?.element)}
-            />
+            <EmptySlotNote required={required} empty={String(text || '').trim() === ''} />
             <BindingFieldPreview
                 binding={binding}
                 sample={sample}

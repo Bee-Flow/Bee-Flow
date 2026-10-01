@@ -154,12 +154,13 @@ describe('SettingsForm — Edit data (set)', () => {
 
     it('picking data is visual: the picker offers "Current row" and lands a chip', async () => {
         const { onPatch } = renderForm({ ...LIST_STEP, fields: { sender: { kind: 'literal', value: '' } } });
-        fireEvent.click(screen.getByText('Use data from a step'));
+        await userEvent.click(screen.getAllByTestId('slot-menu')[0]);
+        await userEvent.click(screen.getByRole('menuitem', { name: 'Use data from a step' }));
         expect(await screen.findByText('Current row')).toBeTruthy();
         // 'Subject', not 'subject': the picker leaf reads as words now, like
         // the chip on the next line already did. What lands is unchanged — the
         // expr below is still the raw `item.subject`.
-        fireEvent.click(await screen.findByText('Subject'));
+        await userEvent.click(await screen.findByText('Subject'));
         expect(screen.getByTestId('value-chip').textContent).toContain('Subject of current row');
         save();
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
@@ -186,7 +187,7 @@ describe('SettingsForm — Edit data (set)', () => {
         // said "this surface is special" about a surface that is not — and the
         // sibling action editor already passed nothing. What has to stay true
         // is the RESULT, not the flag: both modes get the value slot (a chip
-        // for a picked value, "Use data from a step" for a typed one) and
+        // for a picked value, a field with its ⋯ for a typed one) and
         // never the raw binding box's mode toggle.
         renderForm(LIST_STEP);
         expect(screen.getByTestId('value-chip')).toBeTruthy();
@@ -194,15 +195,18 @@ describe('SettingsForm — Edit data (set)', () => {
 
         cleanup();
         renderForm(SINGLE_STEP);
-        expect(screen.getAllByText(/Use data from a step|Add data/).length).toBeGreaterThan(0);
+        expect(screen.getAllByTestId('slot-menu').length).toBeGreaterThan(0);
         expect(screen.queryByRole('group', { name: 'Value mode' })).toBeNull();
     });
 
-    it('the raw formula editor is offered in the full view only', () => {
+    it('the raw formula editor is offered in the full view only, behind the field\'s ⋯', async () => {
         renderForm(SINGLE_STEP);
+        expect(screen.queryByTestId('slot-formula-open')).toBeNull();
+        await userEvent.click(screen.getAllByTestId('slot-menu')[0]);
         expect(screen.getAllByTestId('slot-formula-open')).toHaveLength(1);
         cleanup();
         renderForm(SINGLE_STEP, { density: 'quick' });
+        await userEvent.click(screen.getAllByTestId('slot-menu')[0]);
         expect(screen.queryByTestId('slot-formula-open')).toBeNull();
     });
 

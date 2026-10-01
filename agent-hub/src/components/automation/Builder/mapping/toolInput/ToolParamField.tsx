@@ -13,6 +13,16 @@ const FieldLabelRow = FieldLabelRowJs as unknown as ComponentType<Record<string,
 const isEmpty = isEmptyBinding as (b: unknown) => boolean;
 const kindOf = expectedKindFor as (p: unknown) => string;
 
+/**
+ * The value slot's placeholder: the schema's own example (or default), else
+ * the slot's "Type a value, or pick one from Comes in". Never the type
+ * shorthand the formula editor uses ("[…]", "{…}", "true / false").
+ */
+function slotExample(prop: SchemaProp | undefined): string | null {
+    const example = prop?.example ?? prop?.default;
+    return example != null && typeof example !== 'object' && String(example).trim() ? String(example) : null;
+}
+
 /** Kinds a "Frequently used" chip can fill: one plain value. */
 const FREQUENT_KINDS = new Set(['text', 'email', 'number', 'date', 'choice']);
 
@@ -73,7 +83,7 @@ export default function ToolParamField({
                 showChrome
                 hint={prop?.description}
                 required={required}
-                placeholder={describeExample(prop) || null}
+                placeholder={slotExample(prop)}
                 value={value ?? null}
                 onChange={onChange}
                 onFocusField={onFocusField}

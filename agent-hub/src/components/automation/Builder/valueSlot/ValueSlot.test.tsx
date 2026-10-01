@@ -146,7 +146,7 @@ describe('ValueSlot — the ways a value arrives', () => {
     beforeEach(cleanup);
 
     // Confirmed bugs: "The {} picker bypasses the list/kind chooser" (two of them).
-    it('its own "Use data from a step" goes through the same defaults as a click', async () => {
+    it('its ⋯ › "Use data from a step" goes through the same defaults as a click', async () => {
         const groups = [{ ...GROUPS[0], fields: [{ key: 'orders', path: 'trigger.output.orders[*].total', sample: [129.5, 49] }] }];
         const onValue = vi.fn();
         render(
@@ -154,7 +154,8 @@ describe('ValueSlot — the ways a value arrives', () => {
                 <Harness onValue={onValue} label="Priority" schema={{ type: 'number' }} field="priority" />
             </VariablePickerProvider>,
         );
-        await userEvent.click(screen.getByRole('button', { name: /Use data from a step/ }));
+        await userEvent.click(screen.getByRole('button', { name: 'More ways to fill Priority' }));
+        await userEvent.click(screen.getByRole('menuitem', { name: 'Use data from a step' }));
         await userEvent.click(await screen.findByText('Orders'));
         expect(onValue.mock.calls.at(-1)?.[0]).toMatchObject({ take: 'first', as: 'number' });
     });
@@ -330,7 +331,8 @@ describe('ValueSlot — review M4b', () => {
     it('Formula on a composed text shows it as a template; a bulleted list offers no Formula', async () => {
         const compose = { kind: 'compose', v: 1, parts: ['Hallo ', { from: { root: 'trigger', path: ['customer', 'name'] }, take: 'one', as: 'text' }] };
         renderSlot({ field: 'body', schema: { type: 'string' }, initial: compose });
-        await userEvent.click(screen.getByRole('button', { name: /as a formula/ }));
+        await userEvent.click(screen.getByRole('button', { name: /^More ways to fill/ }));
+        await userEvent.click(screen.getByRole('menuitem', { name: 'Formula' }));
         expect(screen.getByTestId('slot-formula').textContent).not.toContain('"kind"');
         expect(screen.getByTestId('slot-formula').textContent).toContain('Hallo');
         cleanup();

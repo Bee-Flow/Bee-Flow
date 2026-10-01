@@ -176,6 +176,11 @@ module.exports = {
     'mapping.slot.advanced.formula': 'Formula',
     'mapping.slot.advanced.formula_for': 'Write {field} as a formula',
     'mapping.slot.advanced.this_value': 'this value',
+    // A calm empty field: the ⋯ beside it (valueSlot/SlotMenu.tsx), one muted
+    // line when it is required (mapping/fieldChrome.jsx), one suggestion chip.
+    'mapping.slot.more': 'More ways to fill {field}',
+    'mapping.slot.required_empty': 'Required before this step can run.',
+    'mapping.slot.suggestion': 'Suggestion: {label}',
     // The formula editor (mapping/BindingField.tsx) and its value picker.
     'mapping.formula.insert': 'Insert a value',
     'mapping.formula.insert_into': 'Insert into {field}',

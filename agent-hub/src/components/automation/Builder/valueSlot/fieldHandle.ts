@@ -42,6 +42,21 @@ export interface FieldActions {
 // After every render, before the browser paints, so no click reaches an older one.
 const useIsoLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect;
 
+// `{{ … }}`, or a rooted path (`trigger.output.from`, `steps.s1.output.x`, `item.total`).
+const RAW_REF_RE = /\{\{|\}\}|(?:^|[^\w$])(?:trigger|steps|item|loop|vars|env)(?:\.[\w$]|\[[\w$"'*])/;
+
+/**
+ * A field's name as the drawer may show it ("→ Subject", "Where should this
+ * go?"), or null when all it has is example text with a path in it ("From:
+ * {{trigger.output.from}}"). A person never reads a path in the drawer; a
+ * field without a name is shown without one.
+ */
+export function readableFieldName(name: string | null | undefined): string | null {
+    const text = typeof name === 'string' ? name.replace(/\s+/g, ' ').trim() : '';
+    if (!text || RAW_REF_RE.test(text)) return null;
+    return text;
+}
+
 /** One stable handle whose methods always run the field's latest `actions`. */
 export function useFieldHandle(id: string, label: string, actions: FieldActions): FieldHandle {
     const latest = useRef(actions);

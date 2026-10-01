@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { useTranslation } from '../../../../hooks/useTranslation';
-import type { FieldHandle, InsertOpts } from './fieldHandle';
+import { readableFieldName, type FieldHandle, type InsertOpts } from './fieldHandle';
 import type { DraggedSource } from './slotDnd';
 import { draggedFrom, groupLabelOf, type GroupLike } from './slotModel';
 import type { SlotTarget } from './TargetPopover';
@@ -24,6 +24,7 @@ interface Ask {
  * this step has had focus yet, `ask` holds the question "Where should this
  * go?" with the step's empty value slots (the registry, required first);
  * choosing one puts the value there and makes it the active field.
+ * Both name a field only by words (readableFieldName), never by a path.
  */
 export function useActiveField({ stepId, groups, stepLabelById }: {
     stepId: string | null | undefined;
@@ -38,7 +39,7 @@ export function useActiveField({ stepId, groups, stepLabelById }: {
 
     const activate = (handle: FieldHandle | null) => {
         activeRef.current = handle ? { stepId, handle } : null;
-        setActive(handle ? { stepId, label: handle.label || null } : null);
+        setActive(handle ? { stepId, label: readableFieldName(handle.label) } : null);
     };
     const onFocusField = (handle: FieldHandle | null) => { setAsk(null); activate(handle); };
 
@@ -54,7 +55,11 @@ export function useActiveField({ stepId, groups, stepLabelById }: {
         setAsk({
             dragged,
             label: pickLabel(t, { from: dragged.source, take: 'one' }, { labelParts: dragged.labelParts, groupLabel }),
-            targets: registry.emptySlots().map(h => ({ id: h.id, label: h.label, required: h.required })),
+            targets: registry.emptySlots().map(h => ({
+                id: h.id,
+                label: readableFieldName(h.label) || t('mapping.slot.label.value', 'Value'),
+                required: h.required,
+            })),
         });
     };
 

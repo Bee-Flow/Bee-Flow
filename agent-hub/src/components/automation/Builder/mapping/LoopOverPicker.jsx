@@ -133,7 +133,7 @@ export default function LoopOverPicker({
                         type="text"
                         value={overRef}
                         onChange={onTypedPath}
-                        onFocus={() => onFocusField?.({ id: 'overRef', label: 'iterate over', insert: (path) => onChange?.({ overRef: path, itemVar }) })}
+                        onFocus={() => onFocusField?.({ id: 'overRef', label: t('mapping.repeat.formula_list', 'The list, as a formula'), insert: (path) => onChange?.({ overRef: path, itemVar }) })}
                         placeholder="steps.s1.output.results"
                         className={denseInputClass('w-full font-mono')}
                     />

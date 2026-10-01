@@ -33,6 +33,9 @@ function Drawer({ stepId = 'mail' }: { stepId?: string }) {
             <button type="button" onClick={() => onInsert('trigger.output.customer.email', { raw: false })}>E-mail in Comes in</button>
             <div className="relative"><TargetPopoverOverlay ask={ask} onChoose={onChooseTarget} onClose={closeAsk} /></div>
             <output data-testid="active">{activeLabel || ''}</output>
+            <button type="button" onClick={() => onFocusField({ id: 'body', label: 'From: {{trigger.output.from}}', insert: () => {} })}>
+                Focus a field named only by its example
+            </button>
             <SlotRegistryContext.Provider value={registry}>
                 {/* Form order: the optional field first, to show required ones are listed first. */}
                 <div data-testid="cc">{slot('cc', 'Cc', false)}</div>
@@ -86,6 +89,15 @@ describe('useActiveField — where a clicked value goes', () => {
         rerender(<Drawer stepId="next" />);
         await userEvent.click(screen.getByRole('button', { name: 'E-mail in Comes in' }));
         expect(screen.getByRole('dialog', { name: 'Where should this go?' })).toBeTruthy();
+        expect(screen.getByTestId('active').textContent).toBe('');
+    });
+
+    // Final review: the "Comes in" header read "→ From: {{trigger.output.fr…".
+    it('names the active field in words, never by a path', async () => {
+        render(<Drawer />);
+        await userEvent.click(within(screen.getByTestId('to')).getByRole('textbox'));
+        expect(screen.getByTestId('active').textContent).toBe('To');
+        await userEvent.click(screen.getByRole('button', { name: 'Focus a field named only by its example' }));
         expect(screen.getByTestId('active').textContent).toBe('');
     });
 });
