@@ -299,11 +299,29 @@ function refIsSynthetic(path, runState, ctx) {
     return false; // vars / secrets are design-time values → real
 }
 
-/** Collect every binding path referenced by a step's inputs (ref paths, {{template}} bodies, expr tokens). */
+/** The root a pick reads, as the head of a path refIsSynthetic knows. */
+function pickHead(from) {
+    if (!from || typeof from !== 'object') return null;
+    if (from.root === 'steps' && typeof from.id === 'string') return `steps.${from.id}`;
+    if (from.root === 'trigger' || from.root === 'run') return 'trigger';
+    if (from.root === 'loop' && typeof from.id === 'string') return `loop.${from.id}`;
+    return null;
+}
+
+/**
+ * Collect every binding path referenced by a step's inputs (ref paths,
+ * {{template}} bodies, expr tokens, and the root a pick or a compose part
+ * reads).
+ */
 function collectBindingPaths(value, out = []) {
     if (!value || typeof value !== 'object') return out;
     if (Array.isArray(value)) { for (const v of value) collectBindingPaths(v, out); return out; }
     if (typeof value.kind === 'string') {
+        if (value.kind === 'pick' || value.kind === 'compose') {
+            const picks = value.kind === 'pick' ? [value] : (Array.isArray(value.parts) ? value.parts : []);
+            for (const p of picks) { const head = p && typeof p === 'object' ? pickHead(p.from) : null; if (head) out.push(head); }
+            return out;
+        }
         if (value.kind === 'ref' && typeof value.path === 'string') out.push(value.path);
         else if ((value.kind === 'template' || value.kind === 'expr') && typeof value.value === 'string') {
             for (const m of value.value.matchAll(/(trigger|steps\.[A-Za-z0-9_-]+|loop\.[A-Za-z0-9_]+)\b/g)) out.push(m[0]);

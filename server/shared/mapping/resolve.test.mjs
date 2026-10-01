@@ -6,7 +6,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { cloneLiteral, interpolateTemplate, walkPath } from './legacy.mjs';
-import { createLegacyResolver } from './resolve.mjs';
+import { createLegacyResolver, createResolver } from './resolve.mjs';
 
 const evaluate = (src, scope) => {
     if (src === 'throw') throw new Error('bad');
@@ -104,4 +104,48 @@ test('an expr that resolves to undefined is reported as missing; null is a value
     assert.equal(resolveValue({ kind: 'expr', value: 'none' }, {}), undefined);
     assert.equal(resolveValue({ kind: 'expr', value: 'nil' }, {}), null);
     assert.deepStrictEqual(reports, [{ code: 'missing', kind: 'expr', expr: 'none' }]);
+});
+
+// ── v2 ─────────────────────────────────────────────────────────────────────
+
+test('createLegacyResolver is createResolver: the old name keeps working', () => {
+    assert.strictEqual(createLegacyResolver, createResolver);
+});
+
+test('a pick warning names the input and the label, never the value', () => {
+    const seen = [];
+    const { resolveInputs } = createLegacyResolver({ evaluate, onWarning: (w) => seen.push(w) });
+    const state = { steps: { s: { output: { rows: [{ e: 'a@b.nl' }, { e: 'c@d.nl' }] } } } };
+    resolveInputs({
+        to: { kind: 'pick', v: 1, from: { root: 'steps', id: 's', path: ['rows', 'e'] }, take: 'one', as: 'native', label: 'E-mail van klant' },
+    }, state);
+    assert.deepStrictEqual(seen, [{ code: 'many_for_one', count: 2, kind: 'pick', path: 'steps.s.output.rows.e', label: 'E-mail van klant', input: 'to' }]);
+    assert.ok(!JSON.stringify(seen).includes('a@b.nl'));
+});
+
+test('a JSON text is parsed once per run (runState._mappingMemo)', () => {
+    const { resolveValue } = createLegacyResolver({ evaluate });
+    const text = '{"a":{"b":1,"c":2}}';
+    const memo = new Map();
+    const state = { trigger: { output: { j: text } }, _mappingMemo: memo };
+    const at = (k) => ({ kind: 'pick', v: 1, from: { root: 'trigger', path: ['j', 'a', k] }, take: 'one', as: 'native' });
+    assert.equal(resolveValue(at('b'), state), 1);
+    assert.equal(resolveValue(at('c'), state), 2);
+    assert.equal(memo.size, 1);
+});
+
+test('a compose that does not validate renders as nothing, not as [object Object]', () => {
+    const seen = [];
+    const { interpolateTemplate } = createLegacyResolver({ evaluate, onWarning: (w) => seen.push(w.code) });
+    assert.equal(interpolateTemplate({ kind: 'compose', v: 1, parts: [{ from: null }] }, {}), '');
+    assert.equal(interpolateTemplate({ kind: 'compose', parts: ['x'] }, {}), '');
+    assert.deepStrictEqual(seen, ['mapping_invalid'], 'only the one that says it is v2 warns');
+    assert.equal(interpolateTemplate('a {{x}}', { x: 1 }), 'a 1', 'a template string is untouched');
+});
+
+test('silent: no warnings for a record of the inputs', () => {
+    const seen = [];
+    const { resolveDeep } = createLegacyResolver({ evaluate, onWarning: (w) => seen.push(w) });
+    resolveDeep({ a: { kind: 'pick', v: 1, from: { root: 'vars', path: ['nope'] }, take: 'one', as: 'native' } }, { vars: {} }, { silent: true });
+    assert.deepStrictEqual(seen, []);
 });

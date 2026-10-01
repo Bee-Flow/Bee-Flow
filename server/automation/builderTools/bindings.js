@@ -7,7 +7,10 @@
  */
 
 const { triggerFieldsFor } = require('./triggerCatalog');
-const { REF_RE, RUNTIME_ROOTS, TRIGGER_RUN_KEYS, repairLegacyPath, tokenizePath } = require('../../shared/mapping/index.mjs');
+const {
+    REF_RE, RUNTIME_ROOTS, TRIGGER_RUN_KEYS, repairLegacyPath, tokenizePath,
+    MAPPING_VERSION, normalizePick, pickProblems, composeProblems,
+} = require('../../shared/mapping/index.mjs');
 
 /**
  * Coerce a step's inputs into canonical binding form.
@@ -99,6 +102,57 @@ function _isKindlessRef(m) {
     return !(/[/\\]/.test(path) && !VALID_REF_ROOTS.has(rootOfPath(path)));
 }
 
+// The keys of the compact pick form `{ pick: 'steps.x.output.items.email', take: 'all' }`.
+const COMPACT_PICK_KEYS = new Set(['pick', 'take', 'as', 'join', 'label', 'required']);
+
+/** Is this the compact pick form (and nothing else)? */
+function _isCompactPick(m) {
+    if (!m || typeof m !== 'object' || Array.isArray(m) || m.kind !== undefined) return false;
+    if (typeof m.pick !== 'string' && !(m.pick && typeof m.pick === 'object' && !Array.isArray(m.pick))) return false;
+    return Object.keys(m).every(k => COMPACT_PICK_KEYS.has(k));
+}
+
+/**
+ * A v2 binding in its stored form: a pick or a compact pick expanded
+ * (shared core normalizePick), a compose with every part expanded. Returned
+ * even when it does not validate, so validateAndFixBindings can say why; the
+ * AI builder does not write these yet, but a definition is data, and an
+ * import or an MCP patch can carry them.
+ *
+ * The version is kept as given: a `kind: 'pick'` or `kind: 'compose'` object
+ * without `v` is not a mapping to resolve.mjs (a literal can carry those
+ * keys), so it is reported as `pick_version` / `compose_version`, never made
+ * live here. Only the compact `{pick: …}` form, which has no version by
+ * construction, is stamped with the current one (validateAndFixBindings
+ * names that repair). A compact pick whose path does not read stays a pick
+ * with that path as its `from`, so the checks refuse it (`source_shape`)
+ * instead of the tool receiving the object `{pick: …}` as its argument.
+ */
+function canonicalizeMapping(v) {
+    if (v.kind === 'compose') {
+        const parts = Array.isArray(v.parts)
+            ? v.parts.map(p => (typeof p === 'string' ? p : (normalizePick(p, { part: true }) || p)))
+            : v.parts;
+        const out = { kind: 'compose' };
+        if (v.v !== undefined) out.v = v.v;
+        out.parts = parts;
+        return out;
+    }
+    const compact = v.kind === undefined;
+    const pick = normalizePick(v);
+    if (!pick) {
+        if (!compact) return v;
+        // normalizePick spells take/as/join/label the one way; the stand-in
+        // Source is replaced by the path as written, for the error to name.
+        return { ...normalizePick({ ...v, pick: { root: 'vars', path: [] } }), from: v.pick };
+    }
+    if (!compact) {
+        if (v.v === undefined) delete pick.v;
+        else pick.v = v.v;
+    }
+    return pick;
+}
+
 /**
  * Is this member itself a binding — canonical, or the kind-less `{path}` /
  * `{value}` shape a weaker model emits? Used to tell a map of BINDINGS from a
@@ -107,11 +161,15 @@ function _isKindlessRef(m) {
  */
 function _looksLikeBinding(m) {
     if (!m || typeof m !== 'object' || Array.isArray(m)) return false;
-    if (typeof m.kind === 'string' && ['literal', 'ref', 'template', 'expr'].includes(m.kind)) return true;
-    return _isKindlessRef(m);
+    if (typeof m.kind === 'string' && ['literal', 'ref', 'template', 'expr', 'pick', 'compose'].includes(m.kind)) return true;
+    return _isKindlessRef(m) || _isCompactPick(m);
 }
 
 function canonicalizeBinding(v) {
+    // A v2 binding (pick, compose, or the compact `{pick: …}`): its stored form.
+    if (v && typeof v === 'object' && !Array.isArray(v) && (v.kind === 'pick' || v.kind === 'compose' || _isCompactPick(v))) {
+        return canonicalizeMapping(v);
+    }
     // Already a binding wrapper with a recognised kind — repair a mangled ref path, then pass through.
     if (v && typeof v === 'object' && !Array.isArray(v) && typeof v.kind === 'string'
         && ['literal', 'ref', 'template', 'expr'].includes(v.kind)) {
@@ -170,7 +228,7 @@ function canonicalizeBinding(v) {
 function _isCanonicalBinding(v) {
     return v && typeof v === 'object' && !Array.isArray(v)
         && typeof v.kind === 'string'
-        && ['literal', 'ref', 'template', 'expr'].includes(v.kind);
+        && ['literal', 'ref', 'template', 'expr', 'pick', 'compose'].includes(v.kind);
 }
 
 const VALID_REF_ROOTS = new Set(['trigger', 'steps', 'vars', 'secrets', 'loop']);
@@ -196,7 +254,9 @@ function validateAndFixBindings(rawInputs, draft) {
     const collectPathNotes = (label, node, depth) => {
         if (!node || typeof node !== 'object') return;
         if (_looksLikeBinding(node)) {
-            if (typeof node.path === 'string') {
+            if (_isCompactPick(node)) {
+                repairs.push(`${label}: expanded the compact {pick:…} to the stored form {kind:"pick", v:${MAPPING_VERSION}, from:…, take:…, as:…}.`);
+            } else if (typeof node.path === 'string') {
                 const { path: clean, debris } = repairRefPath(node.path);
                 if (debris) {
                     repairs.push(`${label}: ref path "${node.path.trim()}" carried JSON debris after the real path — read as "${clean}".`);
@@ -251,6 +311,17 @@ function validateAndFixBindings(rawInputs, draft) {
         // `k` is the label the messages below already used; nested bindings get
         // the full path ("inputs.values.Datum") so the model can find them.
         const k = label.replace(/^inputs\./, '');
+
+        if (v.kind === 'pick' || v.kind === 'compose') {
+            const problems = v.kind === 'pick' ? pickProblems(v) : composeProblems(v);
+            if (problems.length) {
+                const unread = v.kind === 'pick' && typeof v.from === 'string'
+                    ? ` The path "${v.from}" is not one the runtime can read: start it with trigger/steps/vars/loop, e.g. steps.<id>.output.<field>.`
+                    : '';
+                errors.push(`inputs.${k}: the ${v.kind} binding is not valid (${problems.join(', ')}).${unread} A pick is {"pick": "steps.<id>.output.<field>", "take": "one"|"all"|"first"|"last"|"count", "as": "native"|"text"|"list"|"number"|"date"|"yesno"|"json"}.`);
+            }
+            continue;
+        }
 
         if (v.kind === 'ref' && typeof v.path === 'string') {
             const cleaned = v.path.replace(/^\.+/, '').trim();

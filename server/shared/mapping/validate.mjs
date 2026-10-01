@@ -28,10 +28,19 @@
  * Isomorphic and dependency-free, like the rest of this directory. An `expr`
  * binding's paths come from the expression parser, which is injected as
  * `exprPaths` for the same reason resolve.mjs injects `evaluate`.
+ *
+ * The v2 kinds (pick, compose) are checked for their STRUCTURE here too
+ * (pickProblems, composeProblems): a pick is only a pick when it validates
+ * (isPick), which is what keeps a stored literal that happens to carry
+ * `kind: 'pick'` a literal. validateBinding reports a broken one as
+ * `mapping_structure`, a pick whose first field is not known as
+ * `unknown_field`, and an `each` pick outside the step's repeat as
+ * `each_outside_repeat`.
  */
 
 import { REF_RE, tokenizePath } from './legacy.mjs';
-import { formatPath, parseLegacyPath, repairLegacyPath } from './source.mjs';
+import { formatPath, isPrefix, isWild, parseLegacyPath, repairLegacyPath } from './source.mjs';
+import { AS, JOINS, MAPPING_VERSION, TAKES } from './intent.mjs';
 
 /** The roots a binding can read in a run. */
 export const RUNTIME_ROOTS = Object.freeze(['trigger', 'steps', 'vars', 'loop', 'secrets']);
@@ -161,14 +170,18 @@ export function checkRefPath(path, { fieldsOf, syntax = true } = {}) {
  * The issues of one legacy binding: a ref's path, every placeholder of a
  * template, and every path an expr reads (through the injected
  * `exprPaths(src) → string[]`; an expr's own syntax is the parser's to
- * report, so it gets no path_syntax here). Literals have none. Each issue
- * carries the binding `kind` it came from.
+ * report, so it gets no path_syntax here). Literals have none. A pick or a
+ * compose gets mappingIssues (`repeatOver`: the Source of the step's
+ * repeat, if it has one). Each issue carries the binding `kind` it came from.
  * @param {unknown} binding
- * @param {{ fieldsOf?: (source: object) => string[] | null, exprPaths?: (src: string) => string[] }} [ctx]
+ * @param {{ fieldsOf?: (source: object) => string[] | null, exprPaths?: (src: string) => string[], repeatOver?: object }} [ctx]
  */
-export function validateBinding(binding, { fieldsOf, exprPaths } = {}) {
+export function validateBinding(binding, { fieldsOf, exprPaths, repeatOver } = {}) {
     if (!binding || typeof binding !== 'object' || Array.isArray(binding)) return [];
     const tag = (kind, issues) => issues.map(i => ({ ...i, kind }));
+    if (binding.kind === 'pick' || binding.kind === 'compose') {
+        return tag(binding.kind, mappingIssues(binding, { fieldsOf, repeatOver }));
+    }
     if (binding.kind === 'ref') return tag('ref', checkRefPath(binding.path, { fieldsOf }));
     if (binding.kind === 'template') {
         return tag('template', templatePaths(binding.value).flatMap(p => checkRefPath(p, { fieldsOf })));
@@ -177,6 +190,150 @@ export function validateBinding(binding, { fieldsOf, exprPaths } = {}) {
         let paths = [];
         try { paths = exprPaths(binding.value) || []; } catch { paths = []; }
         return tag('expr', paths.flatMap(p => checkRefPath(p, { fieldsOf, syntax: false })));
+    }
+    return [];
+}
+
+// ── v2: pick and compose ────────────────────────────────────────────────────
+
+/** The roots a v2 Source can start from (walk.mjs sourceBase says where each is). */
+export const SOURCE_ROOTS = Object.freeze(['steps', 'trigger', 'run', 'vars', 'loop', 'item']);
+
+const NAMED = new Set(['steps', 'loop']);
+const RUN_KEYS = TRIGGER_RUN_KEYS.filter(k => k !== 'output' && k !== 'headers');
+
+function isRecord(v) {
+    return v !== null && typeof v === 'object' && !Array.isArray(v);
+}
+
+/**
+ * What is wrong with a v2 Source, as codes; empty when it is one. A v2 path
+ * holds keys and indexes only: the legacy `[*]` is not needed (a key on a
+ * list maps over it) and is not accepted.
+ * @param {unknown} source
+ * @returns {string[]}
+ */
+export function sourceProblems(source) {
+    if (!isRecord(source)) return ['source_shape'];
+    const out = [];
+    if (!SOURCE_ROOTS.includes(source.root)) out.push('source_root');
+    if (NAMED.has(source.root) && (typeof source.id !== 'string' || source.id === '')) out.push('source_id');
+    if (!NAMED.has(source.root) && source.id !== undefined) out.push('source_id');
+    if (!Array.isArray(source.path)) return [...out, 'source_path'];
+    for (const seg of source.path) {
+        const ok = typeof seg === 'string' || (typeof seg === 'number' && Number.isSafeInteger(seg) && seg >= 0);
+        if (!ok || isWild(seg)) { out.push('source_segment'); break; }
+    }
+    if (source.root === 'run' && !RUN_KEYS.includes(source.path[0])) out.push('source_run_key');
+    return out;
+}
+
+/**
+ * What is wrong with a pick, as codes; empty when it is one. `part: true`
+ * checks a compose part, which carries no kind and no version.
+ * @param {unknown} binding
+ * @param {{ part?: boolean }} [opts]
+ * @returns {string[]}
+ */
+export function pickProblems(binding, { part = false } = {}) {
+    if (!isRecord(binding)) return ['pick_shape'];
+    const out = [];
+    if (!part) {
+        if (binding.kind !== 'pick') out.push('pick_kind');
+        if (binding.v !== MAPPING_VERSION) out.push('pick_version');
+    } else if (binding.kind !== undefined && binding.kind !== 'pick') {
+        out.push('pick_kind');
+    }
+    out.push(...sourceProblems(binding.from));
+    if (!TAKES.includes(binding.take)) out.push('pick_take');
+    if (!AS.includes(binding.as)) out.push('pick_as');
+    if (binding.join !== undefined && !JOINS.includes(binding.join)) out.push('pick_join');
+    if (binding.label !== undefined && typeof binding.label !== 'string') out.push('pick_label');
+    if (binding.required !== undefined && typeof binding.required !== 'boolean') out.push('pick_required');
+    return out;
+}
+
+/**
+ * What is wrong with a compose, as codes; empty when it is one. Its parts
+ * are texts and picks (without kind or version of their own).
+ * @param {unknown} binding
+ * @returns {string[]}
+ */
+export function composeProblems(binding) {
+    if (!isRecord(binding)) return ['compose_shape'];
+    const out = [];
+    if (binding.kind !== 'compose') out.push('compose_kind');
+    if (binding.v !== MAPPING_VERSION) out.push('compose_version');
+    if (!Array.isArray(binding.parts)) return [...out, 'compose_parts'];
+    for (const part of binding.parts) {
+        if (typeof part === 'string') continue;
+        const problems = pickProblems(part, { part: true });
+        if (problems.length) { out.push(...problems.map(p => `part_${p}`)); break; }
+    }
+    return out;
+}
+
+/** Is this a pick binding (kind, version AND structure)? */
+export function isPick(binding) {
+    return isRecord(binding) && binding.kind === 'pick' && binding.v === MAPPING_VERSION && pickProblems(binding).length === 0;
+}
+
+/** Is this a compose binding (kind, version AND structure)? */
+export function isCompose(binding) {
+    return isRecord(binding) && binding.kind === 'compose' && binding.v === MAPPING_VERSION && composeProblems(binding).length === 0;
+}
+
+/** A Source written for a person reading an issue: its legacy path where it has one. */
+export function describeSource(source) {
+    if (!isRecord(source)) return '';
+    if (source.root === 'run' || source.root === 'item') {
+        const rest = formatPath({ root: 'vars', path: Array.isArray(source.path) ? source.path : [] });
+        return rest ? `${source.root === 'run' ? 'trigger' : 'item'}${rest.slice('vars'.length)}` : source.root;
+    }
+    return formatPath(source) || source.root || '';
+}
+
+function pickIssues(pick, { fieldsOf, repeatOver }) {
+    const issues = [];
+    const path = describeSource(pick.from);
+    if (pick.take === 'each' && !(isRecord(repeatOver) && isPrefix(repeatOver, pick.from))) {
+        issues.push({ code: 'each_outside_repeat', path, fix: null, ...(pick.label ? { label: pick.label } : {}) });
+    }
+    if (typeof fieldsOf === 'function' && (pick.from.root === 'steps' || pick.from.root === 'trigger')) {
+        const first = pick.from.path[0];
+        if (typeof first === 'string') {
+            const known = fieldsOf({ ...pick.from, path: [...pick.from.path] });
+            if (Array.isArray(known) && known.length && !known.includes(first)) {
+                const near = closestName(first, known);
+                issues.push({
+                    code: 'unknown_field', path, field: first, known: [...known],
+                    fix: near ? describeSource({ ...pick.from, path: [near, ...pick.from.path.slice(1)] }) : null,
+                    ...(pick.label ? { label: pick.label } : {}),
+                });
+            }
+        }
+    }
+    return issues;
+}
+
+/**
+ * The design-time issues of a pick or a compose: `mapping_structure` (with
+ * the problem codes) when it is not a valid one, else the issues of every
+ * pick in it.
+ * @param {unknown} binding
+ * @param {{ fieldsOf?: Function, repeatOver?: object }} [ctx]
+ */
+export function mappingIssues(binding, { fieldsOf, repeatOver } = {}) {
+    if (!isRecord(binding)) return [];
+    if (binding.kind === 'pick') {
+        const problems = pickProblems(binding);
+        if (problems.length) return [{ code: 'mapping_structure', path: describeSource(binding.from), fix: null, problems }];
+        return pickIssues(binding, { fieldsOf, repeatOver });
+    }
+    if (binding.kind === 'compose') {
+        const problems = composeProblems(binding);
+        if (problems.length) return [{ code: 'mapping_structure', path: '', fix: null, problems }];
+        return binding.parts.filter(p => typeof p !== 'string').flatMap(p => pickIssues(p, { fieldsOf, repeatOver }));
     }
     return [];
 }

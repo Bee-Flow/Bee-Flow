@@ -7,7 +7,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { walkPath } from './legacy.mjs';
-import { checkRefPath, closestName, templatePaths, validateBinding, TRIGGER_RUN_KEYS, RUNTIME_ROOTS } from './validate.mjs';
+import {
+    checkRefPath, closestName, templatePaths, validateBinding, TRIGGER_RUN_KEYS, RUNTIME_ROOTS,
+    sourceProblems, isPick, isCompose, pickProblems, composeProblems,
+} from './validate.mjs';
 
 const STATE = {
     trigger: { output: { subject: 'S', body: { 'content-type': 'text/plain' }, 'Order date': 'd' }, kind: 'manual' },
@@ -102,4 +105,46 @@ test('closestName: case first, then a third of the length, never a tie', () => {
 
 test('RUNTIME_ROOTS are the roots a run state has', () => {
     assert.deepStrictEqual([...RUNTIME_ROOTS].sort(), ['loop', 'secrets', 'steps', 'trigger', 'vars']);
+});
+
+// ── v2 structure ───────────────────────────────────────────────────────────
+
+test('sourceProblems: the roots, ids and segments a v2 Source may have', () => {
+    assert.deepStrictEqual(sourceProblems({ root: 'steps', id: 's', path: ['a', 0] }), []);
+    assert.deepStrictEqual(sourceProblems({ root: 'run', path: ['firedAt'] }), []);
+    assert.deepStrictEqual(sourceProblems({ root: 'item', path: [] }), []);
+    assert.deepStrictEqual(sourceProblems(null), ['source_shape']);
+    assert.deepStrictEqual(sourceProblems({ root: 'secrets', path: [] }), ['source_root']);
+    assert.deepStrictEqual(sourceProblems({ root: 'steps', path: [] }), ['source_id']);
+    assert.deepStrictEqual(sourceProblems({ root: 'trigger', id: 'x', path: [] }), ['source_id']);
+    assert.deepStrictEqual(sourceProblems({ root: 'vars' }), ['source_path']);
+    assert.deepStrictEqual(sourceProblems({ root: 'vars', path: [{ wild: true }] }), ['source_segment']);
+    assert.deepStrictEqual(sourceProblems({ root: 'vars', path: [-1] }), ['source_segment']);
+    assert.deepStrictEqual(sourceProblems({ root: 'run', path: ['output'] }), ['source_run_key']);
+});
+
+test('isPick / isCompose: only version 1 AND a valid structure', () => {
+    const pick = { kind: 'pick', v: 1, from: { root: 'trigger', path: ['a'] }, take: 'one', as: 'native' };
+    assert.ok(isPick(pick));
+    assert.ok(!isPick({ ...pick, v: undefined }), 'a literal object that carries kind: pick stays a literal');
+    assert.ok(!isPick({ ...pick, v: 2 }));
+    assert.deepStrictEqual(pickProblems({ ...pick, take: 'x', as: 'y', join: 'z', label: 1, required: 'yes' }), ['pick_take', 'pick_as', 'pick_join', 'pick_label', 'pick_required']);
+    const compose = { kind: 'compose', v: 1, parts: ['a', { from: { root: 'vars', path: [] }, take: 'one', as: 'text' }] };
+    assert.ok(isCompose(compose));
+    assert.ok(!isCompose({ ...compose, v: undefined }));
+    assert.deepStrictEqual(composeProblems({ kind: 'compose', v: 1, parts: [{ from: null, take: 'one', as: 'text' }] }), ['part_source_shape']);
+    assert.deepStrictEqual(composeProblems({ kind: 'compose', v: 1 }), ['compose_parts']);
+});
+
+test('validateBinding on a pick: structure, the current item, and unknown fields', () => {
+    const over = { root: 'steps', id: 's1', path: ['rows'] };
+    const each = { kind: 'pick', v: 1, from: { root: 'steps', id: 's1', path: ['rows', 'email'] }, take: 'each', as: 'native', label: 'E-mail' };
+    assert.deepStrictEqual(validateBinding(each, { repeatOver: over }), []);
+    assert.deepStrictEqual(validateBinding(each).map(i => [i.code, i.path, i.label, i.kind]), [['each_outside_repeat', 'steps.s1.output.rows.email', 'E-mail', 'pick']]);
+    const fieldsOf = (source) => (source.root === 'steps' ? ['rows', 'total'] : null);
+    const typo = { kind: 'pick', v: 1, from: { root: 'steps', id: 's1', path: ['rowz'] }, take: 'all', as: 'list' };
+    assert.deepStrictEqual(validateBinding(typo, { fieldsOf }).map(i => [i.code, i.field, i.fix]), [['unknown_field', 'rowz', 'steps.s1.output.rows']]);
+    assert.deepStrictEqual(validateBinding({ ...typo, take: 'never' }).map(i => [i.code, i.problems]), [['mapping_structure', ['pick_take']]]);
+    const compose = { kind: 'compose', v: 1, parts: ['x', { from: { root: 'steps', id: 's1', path: ['rows', 'email'] }, take: 'each', as: 'text' }] };
+    assert.deepStrictEqual(validateBinding(compose, { repeatOver: { root: 'steps', id: 's1', path: ['other'] } }).map(i => [i.code, i.kind]), [['each_outside_repeat', 'compose']]);
 });

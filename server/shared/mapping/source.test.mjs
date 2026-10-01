@@ -6,7 +6,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { walkPath } from './legacy.mjs';
-import { WILD, isWild, parseLegacyPath, formatPath, formatSegment, lastSegment, repairLegacyPath } from './source.mjs';
+import { WILD, isWild, parseLegacyPath, formatPath, formatSegment, lastSegment, repairLegacyPath, sameSource, isPrefix } from './source.mjs';
 import { makeState, WALK } from './corpus.mjs';
 
 test('parseLegacyPath reads the four roots', () => {
@@ -150,4 +150,20 @@ test('formatSegment is the one quoting rule', () => {
     assert.equal(formatSegment(WILD), '[*]');
     assert.equal(formatSegment('a]b'), null);
     assert.equal(formatSegment(-1), null);
+});
+
+test('sameSource and isPrefix compare roots, ids and segments', () => {
+    const orders = { root: 'steps', id: 'get', path: ['orders'] };
+    const email = { root: 'steps', id: 'get', path: ['orders', 'klant', 'email'] };
+    assert.ok(isPrefix(orders, email));
+    assert.ok(isPrefix(orders, orders));
+    assert.ok(!isPrefix(email, orders));
+    assert.ok(!isPrefix(orders, { ...email, id: 'other' }));
+    assert.ok(!isPrefix({ root: 'trigger', path: [] }, { root: 'vars', path: [] }));
+    assert.ok(isPrefix({ root: 'trigger', path: [] }, { root: 'trigger', path: ['a'] }));
+    assert.ok(!isPrefix({ root: 'steps', id: 'get', path: [0] }, { root: 'steps', id: 'get', path: ['0'] }), 'an index is not a key');
+    assert.ok(sameSource(orders, { root: 'steps', id: 'get', path: ['orders'] }));
+    assert.ok(!sameSource(orders, email));
+    assert.ok(!isPrefix(null, orders));
+    assert.ok(!isPrefix(orders, { root: 'steps', id: 'get' }));
 });

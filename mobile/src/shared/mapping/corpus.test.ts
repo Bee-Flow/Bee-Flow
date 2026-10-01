@@ -12,9 +12,19 @@ import * as editor from '@/features/flow-editor/bindings/walkPath';
 import { evaluate } from '@/shared/expr';
 
 import { createLegacyResolver, walkPath, walkRelativePath } from './index';
+import * as core from './vendor/index.mjs';
+import type { MappingSource } from './vendor/index.mjs';
 
+interface V2Case { expected: unknown; warnings?: string[] }
 interface Corpus {
     makeState: () => Record<string, unknown>;
+    makeMappingState: () => Record<string, unknown>;
+    WALK_V2: { source: MappingSource; expected: unknown }[];
+    PICKS: (V2Case & { binding: unknown })[];
+    EACH: (V2Case & { over: MappingSource; item: number; binding: unknown })[];
+    COMPOSE: (V2Case & { template: unknown })[];
+    DEEP_V2: { structure: unknown; expected: unknown }[];
+    INPUTS_V2: (V2Case & { inputs: unknown; opts?: object })[];
     WALK: { path: unknown; expected: unknown }[];
     WALK_ROOTS: { path: unknown; root: unknown; expected: unknown }[];
     RELATIVE: { path: unknown; value: unknown; expected: unknown }[];
@@ -72,6 +82,59 @@ describe('the golden binding corpus', () => {
         }
         for (const { inputs, opts, expected } of corpus.INPUTS) {
             expect(resolver.resolveInputs(inputs, makeState(), opts)).toStrictEqual(expected);
+        }
+    });
+});
+
+// The v2 mapping on the phone: the same cases the server and the web run,
+// with the warning codes. The number and date readers are the vendored
+// shared/expr parse.mjs, as on the server.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const parse = require('../expr/vendor/parse.mjs') as object;
+
+describe('the golden binding corpus: v2 pick and compose', () => {
+    const warned: string[] = [];
+    const v2 = core.createResolver({ evaluate, parse, onWarning: (w) => { warned.push(w.code); } });
+    const codes = (fn: () => unknown) => { warned.length = 0; const value = fn(); return { value, warnings: [...warned] }; };
+    const fresh = () => corpus.makeMappingState();
+
+    it('walks a Source: a key on a list maps over it, nesting and holes kept', () => {
+        for (const { source, expected } of corpus.WALK_V2) {
+            expect(core.walk(core.sourceBase(source, fresh()), source.path)).toStrictEqual(expected);
+        }
+    });
+
+    it.each(corpus.PICKS.map((c) => [label(c.binding), c] as const))('pick %s', (_label, { binding, expected, warnings = [] }) => {
+        const got = codes(() => v2.resolveValue(binding, fresh()));
+        expect(got.value).toStrictEqual(expected);
+        expect(got.warnings).toStrictEqual(warnings);
+    });
+
+    it('a pick of the current item (take each)', () => {
+        for (const c of corpus.EACH) {
+            const state = fresh();
+            const scope = { over: c.over, item: core.manyItems(core.walkSource(c.over, state)).items[c.item], index: c.item };
+            const got = codes(() => v2.resolveValue(c.binding, { ...state, _mappingScope: scope }));
+            expect(got.value).toStrictEqual(c.expected);
+            expect(got.warnings).toStrictEqual(c.warnings ?? []);
+        }
+    });
+
+    it('a compose, as a text field and as a binding', () => {
+        for (const { template, expected, warnings = [] } of corpus.COMPOSE) {
+            const got = codes(() => v2.interpolateTemplate(template, fresh()));
+            expect(got.value).toBe(expected);
+            expect(got.warnings).toStrictEqual(warnings);
+            if (core.isCompose(template)) expect(v2.resolveValue(template, fresh())).toBe(expected);
+        }
+    });
+
+    it('v2 inside plain data, and what stays data', () => {
+        for (const { structure, expected } of corpus.DEEP_V2) expect(v2.resolveDeep(structure, fresh())).toStrictEqual(expected);
+        for (const { inputs, opts, expected, warnings = [] } of corpus.INPUTS_V2) {
+            const got = codes(() => v2.resolveInputs(inputs, fresh(), opts));
+            expect(got.value).toStrictEqual(expected);
+            expect(got.warnings).toStrictEqual(warnings);
         }
     });
 });

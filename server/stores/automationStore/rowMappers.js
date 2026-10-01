@@ -165,6 +165,10 @@ function rowToRun(r) {
         startedByUserId: r.started_by_user_id ?? null,
         isTest: !!r.is_test,
         outcome: fromJsonb(r.outcome_json) ?? null,
+        // What the run warned about (automation-run-warnings-2026-10): short
+        // sentences that name an input, a label or a path, never a value.
+        // Empty on a run that warned about nothing, and on older rows.
+        warnings: Array.isArray(fromJsonb(r.warnings_json)) ? fromJsonb(r.warnings_json) : [],
         callerAgentId: r.caller_agent_id ?? null,
         callerConversationId: r.caller_conversation_id ?? null,
     };

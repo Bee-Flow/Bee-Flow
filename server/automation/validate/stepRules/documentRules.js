@@ -8,7 +8,7 @@
  * presentation's list rather than a copy of it.
  */
 
-const { isObject } = require('../helpers');
+const { isObject, hasText } = require('../helpers');
 const {
     GENERATE_DOCUMENT_FORMATS, GENERATE_DOCUMENT_CONTENT_FORMATS,
     GENERATE_DOCUMENT_MIN_TTL_DAYS, GENERATE_DOCUMENT_MAX_TTL_DAYS,
@@ -22,7 +22,7 @@ const {
 function checkGenerateDocument(ctx, step, at) {
     const { pushE } = ctx;
     if (step.type === 'generate_document') {
-        if (!step.content || typeof step.content !== 'string') {
+        if (!step.content || !(typeof step.content === 'string' || hasText(step.content))) {
             pushE({ code: 'generate_document.content_missing', severity: 'error', path: at + '.content', message: `Step ${step.id}: there is no text to put in the document.`, hint: 'Point this at the text an earlier step produced, e.g. {{steps.ai_1.output.text}}.' });
         }
         if (step.format !== undefined && !GENERATE_DOCUMENT_FORMATS.has(step.format)) {
@@ -75,9 +75,9 @@ function checkFillDocument(ctx, step, at) {
 function checkSlide(ctx, step, at) {
     const { pushE } = ctx;
     if (step.type === 'slide') {
-        const hasTitle = typeof step.title === 'string' && step.title.trim();
-        const hasContent = typeof step.content === 'string' && step.content.trim();
-        const hasImage = typeof step.image === 'string' && step.image.trim();
+        const hasTitle = hasText(step.title);
+        const hasContent = hasText(step.content);
+        const hasImage = hasText(step.image);
         const hasVisual = (step.chart && typeof step.chart === 'object') || (typeof step.stats === 'string' && step.stats.trim()) || (Array.isArray(step.stats) && step.stats.length) || (step.stats && typeof step.stats === 'object' && typeof step.stats.kind === 'string');
         if (!hasTitle && !hasContent && !hasImage && !hasVisual) {
             pushE({ code: 'slide.content_missing', severity: 'error', path: at + '.content', message: `Step ${step.id}: the slide has no title, text or image yet.`, hint: 'Give it a title and some content — bullets ("- "), a paragraph, a "|" table, a "> " quote — bound to earlier steps, e.g. {{steps.extract.output.name}}.' });

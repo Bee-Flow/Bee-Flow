@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import ExecutionBar from './ExecutionBar';
 import RunProblemBanner from './RunProblemBanner';
+import RunWarningsBanner from './RunWarningsBanner';
 import RunStepTimeline from './RunStepTimeline';
 import useRunStream from './useRunStream';
 import useAutomationApi from '../../../../hooks/useAutomationApi';
@@ -195,6 +196,7 @@ export default function ExecutionView({
                 </div>
             )}
             <RunProblemBanner run={run} steps={steps} />
+            <RunWarningsBanner run={run} />
             {run?.status === 'awaiting_approval' && awaitingApproval && (
                 <div className="flex-shrink-0 border-b border-[var(--border-default)] overflow-y-auto max-h-[45%]">
                     {/* The SAME decision surface as the builder and the

@@ -14,6 +14,7 @@ const {
 } = require('./shared');
 const { isRunPause } = require('./execApproval');
 const { replayGapError } = require('./replayGaps');
+const { runWarning, pushRunWarning: pushStructuredWarning } = require('./runWarnings');
 
 // ── Core DAG run ────────────────────────────────────────
 
@@ -32,10 +33,9 @@ async function runDag(def, ctx, runStateInit, mode, dispatchStep, { recordSteps 
     const isSynthesizedBody = triggerId === LOOP_ROOT_ID || triggerId === PARALLEL_ROOT_ID;
     // Deduplicated: loop bodies share the parent's `_templateWarnings` array by
     // reference, so an un-deduped push would append one copy per iteration.
-    const pushRunWarning = (msg) => {
-        const list = runState._templateWarnings;
-        if (Array.isArray(list) && !list.includes(msg)) list.push(msg);
-    };
+    // Each is a structured warning (runWarnings.js): a code the run view
+    // words, the step it is about, and the English as the fallback.
+    const pushRunWarning = (code, params, text) => pushStructuredWarning(runState, runWarning(code, params, text));
 
     const visited = new Set();
     let queue = [triggerId];
@@ -323,6 +323,8 @@ async function runDag(def, ctx, runStateInit, mode, dispatchStep, { recordSteps 
                         // edge, so this path simply ends here — a dead end, not
                         // a dead run — and the breadcrumb says why.
                         pushRunWarning(
+                            'branch_replayed_unrecorded',
+                            { stepType: step.type, step: step.id },
                             `${step.type} ${step.id} was replayed without a recorded branch — nothing downstream of it ran`,
                         );
                     }
@@ -639,6 +641,8 @@ async function runDag(def, ctx, runStateInit, mode, dispatchStep, { recordSteps 
                 : allOut.filter(e => effectiveEdgeLabel(e) !== 'on_error');
             if (relevant.length > 0) {
                 pushRunWarning(
+                    'branch_no_edge',
+                    { stepType: step.type, step: step.id, branch: String(nextLabel) },
                     `${step.type} ${step.id} routed to "${nextLabel}" but no edge carries that branch — downstream steps did not run`,
                 );
             }
@@ -649,6 +653,8 @@ async function runDag(def, ctx, runStateInit, mode, dispatchStep, { recordSteps 
         // finish green having quietly dropped the finding.
         if (step.type === 'guard' && outEdges.length === 0 && nextLabel === 'then') {
             pushRunWarning(
+                'guard_unwired',
+                { step: step.id },
                 `guard ${step.id} found personal data but nothing is wired to its "personal data" branch — no alert was sent`,
             );
         }

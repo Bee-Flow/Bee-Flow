@@ -24,6 +24,99 @@ export type Source =
     | { root: 'trigger'; path: SourceSegment[] }
     | { root: 'vars'; path: SourceSegment[] };
 
+/** A segment of a v2 Source: a key or an index, never `[*]`. */
+export type PathSegment = string | number;
+
+/**
+ * Where a pick's value comes from (v2). Beside the legacy roots: `run` (the
+ * trigger's metadata: id, kind, firedAt, …) and `item` (the row a collection
+ * op or a list-mode step is on).
+ */
+export type MappingSource =
+    | { root: 'steps' | 'loop'; id: string; path: PathSegment[] }
+    | { root: 'trigger' | 'run' | 'vars' | 'item'; path: PathSegment[] };
+
+export type Take = 'one' | 'all' | 'first' | 'last' | 'count' | 'each';
+export type As = 'native' | 'text' | 'list' | 'number' | 'date' | 'yesno' | 'json';
+export type Join = 'lines' | 'comma' | 'bullets';
+export type Shape = 'missing' | 'single' | 'object' | 'list' | 'table' | 'unknown';
+
+/** What a pick asks for beside its source. */
+export interface PickIntent {
+    take: Take;
+    as: As;
+    join?: Join;
+}
+
+/** A value part of a compose binding. */
+export interface PickPart extends PickIntent {
+    from: MappingSource;
+    label?: string;
+    required?: boolean;
+}
+
+/** `{ kind: 'pick', v: 1, from, take, as, join?, label? }` */
+export interface PickBinding extends PickPart {
+    kind: 'pick';
+    v: 1;
+}
+
+/** `{ kind: 'compose', v: 1, parts: ['Beste ', { from, take, as }, …] }` */
+export interface ComposeBinding {
+    kind: 'compose';
+    v: 1;
+    parts: Array<string | PickPart>;
+}
+
+/** What a field wants (slots.mjs). */
+export interface Slot {
+    as: As;
+    multiLine: boolean;
+    items?: Shape;
+}
+
+/** One PickOptions entry (intent.mjs optionsFor). */
+export interface PickOption extends PickIntent {
+    id: string;
+}
+
+/** A step's per-item repeat. */
+export interface StepRepeat {
+    over: MappingSource;
+    max?: number;
+}
+
+/** One place a step keeps a value (sites.mjs). */
+export interface BindingSite {
+    kind: 'text' | 'binding' | 'list' | 'ref' | 'expr';
+    field: string;
+    value: unknown;
+    compose?: boolean;
+}
+
+/** A text site of a step type. */
+export interface TextSite {
+    field: string;
+    compose: boolean;
+    each: boolean;
+}
+
+/** An opaque walk result: plain data, or the marker of a walk that crossed a list. */
+export type WalkResult = unknown;
+
+/** A warning fit.mjs reports while carrying out a pick. */
+export interface FitWarning {
+    code: 'missing' | 'many_for_one' | 'holes_dropped' | 'parse_failed';
+    count?: number;
+    as?: As;
+}
+
+/** The number and date readers a resolver is given (shared/expr/parse.mjs). */
+export interface ParseDeps {
+    parseLocaleNumber?: (text: unknown) => number | null;
+    parseDate?: (value: unknown) => { epoch: number; offset: number | null } | null;
+}
+
 export interface TemplateOptions {
     leaveUnresolved?: boolean;
     listAsMarkdown?: boolean;
@@ -33,17 +126,28 @@ export interface ResolveOptions {
     allowSecrets?: boolean;
     /** Report no warnings for this call (a record of inputs, not a use of them). */
     silent?: boolean;
+    /** Inputs that must get a value: a pick that gives none there reports missing_required. */
+    required?: string[] | Set<string>;
 }
 
 /** A value a binding did not get, reported through `onWarning`. */
 export type BindingWarning =
     | { code: 'missing'; kind: 'ref'; path: string; input?: string }
     | { code: 'missing'; kind: 'expr'; expr: string; input?: string }
-    | { code: 'expr_error'; kind: 'expr'; expr: string; message: string; input?: string };
+    | { code: 'expr_error'; kind: 'expr'; expr: string; message: string; input?: string }
+    | {
+        code: 'missing' | 'missing_required' | 'many_for_one' | 'holes_dropped' | 'parse_failed' | 'each_outside_repeat' | 'mapping_invalid';
+        kind: 'pick' | 'compose';
+        path: string;
+        label?: string;
+        count?: number;
+        as?: As;
+        input?: string;
+    };
 
 /** One design-time issue of a binding (validate.mjs). */
 export interface BindingIssue {
-    code: 'path_syntax' | 'trigger_without_output' | 'unknown_field';
+    code: 'path_syntax' | 'trigger_without_output' | 'unknown_field' | 'mapping_structure' | 'each_outside_repeat';
     /** The path as written. */
     path: string;
     /** The whole path with this issue (and every one before it) fixed, or null. */
@@ -58,7 +162,11 @@ export interface BindingIssue {
      */
     metadata?: string;
     /** validateBinding: the kind of binding the path came from. */
-    kind?: 'ref' | 'template' | 'expr';
+    kind?: 'ref' | 'template' | 'expr' | 'pick' | 'compose';
+    /** mapping_structure: what is wrong, as codes (validate.mjs pickProblems). */
+    problems?: string[];
+    /** A pick's label, when it has one. */
+    label?: string;
 }
 
 /** Which fields a Source is known to produce; null when that is not known. */
@@ -83,11 +191,14 @@ export declare function interpolateTemplate(
     opts?: TemplateOptions,
     onUnresolved?: (path: string) => void,
 ): string;
-export declare function createLegacyResolver(deps: {
+export declare function createResolver(deps: {
     evaluate: (src: string, scope: object) => unknown;
+    parse?: ParseDeps;
     onUnresolved?: (path: string) => void;
     onWarning?: (warning: BindingWarning, runState: object) => void;
 }): LegacyResolver;
+/** The resolver's name from before the v2 kinds; the same function. */
+export declare const createLegacyResolver: typeof createResolver;
 export declare const WILD: WildSegment;
 export declare function isWild(seg: unknown): seg is WildSegment;
 export declare function parseLegacyPath(path: unknown): Source | null;
@@ -95,6 +206,8 @@ export declare function formatPath(source: unknown): string | null;
 export declare function lastSegment(pathOrSource: unknown): string | number | undefined;
 export declare function formatSegment(seg: SourceSegment): string | null;
 export declare function repairLegacyPath(text: unknown): { path: string | null; rest: string };
+export declare function sameSource(a: unknown, b: unknown): boolean;
+export declare function isPrefix(prefix: unknown, source: unknown): boolean;
 export declare const RUNTIME_ROOTS: readonly string[];
 export declare const TRIGGER_RUN_KEYS: readonly string[];
 export declare function templatePaths(text: unknown): string[];
@@ -102,5 +215,69 @@ export declare function closestName(name: string, candidates: string[]): string 
 export declare function checkRefPath(path: unknown, ctx?: { fieldsOf?: FieldsOf; syntax?: boolean }): BindingIssue[];
 export declare function validateBinding(
     binding: unknown,
-    ctx?: { fieldsOf?: FieldsOf; exprPaths?: (src: string) => string[] },
+    ctx?: { fieldsOf?: FieldsOf; exprPaths?: (src: string) => string[]; repeatOver?: MappingSource | null },
 ): BindingIssue[];
+export declare const SOURCE_ROOTS: readonly string[];
+export declare function sourceProblems(source: unknown): string[];
+export declare function pickProblems(binding: unknown, opts?: { part?: boolean }): string[];
+export declare function composeProblems(binding: unknown): string[];
+export declare function isPick(binding: unknown): binding is PickBinding;
+export declare function isCompose(binding: unknown): binding is ComposeBinding;
+export declare function describeSource(source: unknown): string;
+export declare function mappingIssues(binding: unknown, ctx?: { fieldsOf?: FieldsOf; repeatOver?: MappingSource | null }): BindingIssue[];
+
+export declare const REFUSED_KEYS: readonly string[];
+export declare const MAX_JSON_TEXT: number;
+export declare function walk(value: unknown, path: PathSegment[], opts?: { memo?: Map<string, unknown> }): unknown;
+export declare function walkMany(value: unknown, path: PathSegment[], opts?: { memo?: Map<string, unknown> }): WalkResult;
+export declare function walkSource(source: MappingSource, runState: object, opts?: { memo?: Map<string, unknown> }): WalkResult;
+export declare function sourceBase(source: MappingSource, runState: object): unknown;
+export declare function isMany(result: WalkResult): boolean;
+export declare function manyItems(result: WalkResult): { items: unknown[]; holes: number };
+export declare function plain(result: WalkResult): unknown;
+export declare function parseJsonText(text: unknown, memo?: Map<string, unknown>): object | undefined;
+
+export declare const SHAPES: readonly Shape[];
+export declare function shapeOf(value: unknown): Shape;
+export declare function shapeOfSchema(schema: unknown): Shape;
+
+export declare const SLOT_KINDS: readonly As[];
+export declare const STEP_SLOTS: Readonly<Record<string, Slot>>;
+export declare function slotShape(schema: unknown, where?: { stepType?: string; field?: string }): Slot;
+
+export declare const COMMON_SITES: Readonly<{ bindings: readonly string[]; lists: readonly string[] }>;
+export declare const STEP_SITES: Readonly<Record<string, {
+    text?: TextSite[];
+    bindings?: string[];
+    lists?: string[];
+    refs?: string[];
+    exprs?: string[];
+}>>;
+export declare function fieldValue(step: unknown, field: string): unknown;
+export declare function textSitesOf(stepType: string): TextSite[];
+export declare function stepBindingSites(step: unknown): BindingSite[];
+
+export declare const TAKES: readonly Take[];
+export declare const AS: readonly As[];
+export declare const JOINS: readonly Join[];
+export declare const MAPPING_VERSION: 1;
+export declare function defaultIntent(sourceShape: Shape | string, slot: Partial<Slot> | null | undefined): PickIntent & { warning?: 'many_for_one' };
+export declare function optionsFor(sourceShape: Shape | string, slot: Partial<Slot> | null | undefined, opts?: { repeat?: boolean }): PickOption[];
+export declare function sourceFromPath(path: unknown): MappingSource | null;
+export declare function normalizePick(input: unknown, opts?: { part?: boolean }): PickBinding | PickPart | null;
+
+export declare function applyTake(result: WalkResult, take: Take, as: As): { value: unknown; missing?: boolean; warnings: FitWarning[] };
+export declare function castAs(value: unknown, as: As, ctx?: { join?: Join; parse?: ParseDeps }): { value: unknown; missing?: boolean; warnings: FitWarning[] };
+export declare function fit(result: WalkResult, intent: PickIntent, ctx?: { parse?: ParseDeps }): { value: unknown; warnings: FitWarning[] };
+
+export declare function inlineText(value: unknown): string;
+export declare function renderText(value: unknown, opts?: { join?: Join }): string;
+export declare function renderCompose(compose: { parts: Array<string | PickPart> } | null | undefined, resolvePart: (part: PickPart) => unknown): string;
+
+export declare const REPEAT_DEFAULT_MAX: number;
+export declare const REPEAT_MAX: number;
+export declare function mapStepPicks<T>(step: T, fn: (pick: PickBinding | PickPart) => PickBinding | PickPart): T;
+export declare function toggleRepeat(step: object, over: MappingSource, opts?: { max?: number }):
+    { step: object & { repeat: StepRepeat } } | { error: 'already_repeating' | 'legacy_for_each' | 'invalid_source' };
+export declare function toggleRepeatOff(step: object): { step: object };
+export declare function rebaseLoopRefs(step: object): { step: object & { repeat: StepRepeat } } | { refused: string[] };

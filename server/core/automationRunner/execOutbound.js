@@ -68,8 +68,11 @@ async function guardOutbound(step, ctx, mode, { toolName, payload, destination =
 }
 
 async function execNotification(step, ctx, runState, mode) {
-    const title = typeof step.title === 'string' ? require('../../automation/bind').interpolateTemplate(step.title, runState) : '';
-    const body = typeof step.body === 'string' ? require('../../automation/bind').interpolateTemplate(step.body, runState) : '';
+    // A `{{ }}` string, or a compose (a text with picked values): both render
+    // through interpolateTemplate. Anything else is no text, as before.
+    const { isTextValue } = require('../../automation/bind');
+    const title = isTextValue(step.title) ? interpolateTemplate(step.title, runState) : '';
+    const body = isTextValue(step.body) ? interpolateTemplate(step.body, runState) : '';
     // Channel contract (A15): 'notification' (canonical) and 'inapp' (alias,
     // matches notificationDefaults' channel vocabulary) create the in-app
     // bell; 'email' sends via sendRunEmail (which skips without throwing when

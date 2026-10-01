@@ -98,7 +98,7 @@ test('a value outside the vocabulary is dropped, narrowed AND recorded — never
     }
     // …en dezelfde drie staan in het runlog-kanaal, zodat ze ook zichtbaar zijn
     // voor wie niet de stapuitvoer opent.
-    assert.strictEqual(state._templateWarnings.filter(w => w.startsWith('return_to_app r1:')).length, 3,
+    assert.strictEqual(state._templateWarnings.filter(w => w.code === 'app_effect_ignored' && w.params.step === 'r1' && w.text.startsWith('return_to_app r1:')).length, 3,
         JSON.stringify(state._templateWarnings));
 });
 

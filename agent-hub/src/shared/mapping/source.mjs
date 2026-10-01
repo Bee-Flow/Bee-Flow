@@ -26,6 +26,11 @@
  * repairLegacyPath reads what people and models write when they mean a path
  * but REF_RE rejects it (`items.0.name`, `body.content-type`,
  * `steps[x].output`), and writes it the one canonical way.
+ *
+ * A pick binding (intent.mjs) stores a Source with two more roots the legacy
+ * grammar spells differently: `run` (the trigger's metadata, `trigger.id`)
+ * and `item` (the row a collection op is on). validate.mjs checks those;
+ * sameSource and isPrefix compare any two.
  */
 
 import { REF_RE, tokenizePath } from './legacy.mjs';
@@ -230,4 +235,33 @@ export function repairLegacyPath(text) {
     // A trailing dot is a typo too, not the start of a key.
     const rest = s.slice(i);
     return { path: out, rest: /^[\s.]*$/.test(rest) ? '' : rest };
+}
+
+function sameSegment(a, b) {
+    return a === b || (isWild(a) && isWild(b));
+}
+
+/**
+ * Do two Sources name the same place? Roots, ids and every segment equal.
+ * @param {unknown} a
+ * @param {unknown} b
+ */
+export function sameSource(a, b) {
+    return isPrefix(a, b) && Array.isArray(a.path) && Array.isArray(b.path) && a.path.length === b.path.length;
+}
+
+/**
+ * Does `prefix` name `source` or a place above it? This is how a pick knows
+ * it reads the item a step is repeated for: the repeat's `over` is a prefix
+ * of the pick's `from`, and what follows is the path inside one item.
+ * @param {unknown} prefix
+ * @param {unknown} source
+ */
+export function isPrefix(prefix, source) {
+    if (!prefix || !source || typeof prefix !== 'object' || typeof source !== 'object') return false;
+    if (prefix.root !== source.root || (prefix.id ?? null) !== (source.id ?? null)) return false;
+    const p = Array.isArray(prefix.path) ? prefix.path : null;
+    const s = Array.isArray(source.path) ? source.path : null;
+    if (!p || !s || p.length > s.length) return false;
+    return p.every((seg, i) => sameSegment(seg, s[i]));
 }

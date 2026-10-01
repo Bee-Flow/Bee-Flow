@@ -149,7 +149,8 @@ test('child rows cascade with the routine (shares, notification events)', async 
     assert.strictEqual(n.n, 0);
 });
 
-test('it is registered in the automationStore migration list, last', () => {
+test('it is registered in the automationStore migration list, after the run full outputs', () => {
     const { MIGRATIONS } = require('../stores/automationStore/core');
-    assert.strictEqual(MIGRATIONS[MIGRATIONS.length - 1], 'automation-handoff5-2026-09');
+    const at = MIGRATIONS.indexOf('automation-handoff5-2026-09');
+    assert.ok(at > MIGRATIONS.indexOf('automation-run-full-outputs-2026-09'), MIGRATIONS.join(', '));
 });

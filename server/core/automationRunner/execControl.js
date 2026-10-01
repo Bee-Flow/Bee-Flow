@@ -8,6 +8,7 @@
 const { evaluate } = require('../../automation/expr');
 const { resolveArrayRef, skippedArrayRef } = require('./execCollections');
 const { parseTopicExpr, prepareTopics } = require('./topicHost');
+const { runWarning, pushRunWarning } = require('./runWarnings');
 // Literals only, no requires of its own — the validator's vocabulary module is
 // safe to pull into the runner, and sharing it is the point: the values the
 // validator accepts and the values the runner forwards to the app must be the
@@ -128,9 +129,10 @@ async function execReturnToApp(step, ctx, runState) {
     const ignored = [];
     const drop = (field, reason) => {
         ignored.push({ field, reason });
-        const line = `return_to_app ${step.id}: ignored "${field}" — ${reason}`;
-        const list = runState && runState._templateWarnings;
-        if (Array.isArray(list) && !list.includes(line)) list.push(line);
+        // A structured run warning (runWarnings.js). The reason is a sentence
+        // of this file's own, in English, as it is in output._ignored.
+        pushRunWarning(runState, runWarning('app_effect_ignored', { step: step.id, field, reason },
+            `return_to_app ${step.id}: ignored "${field}" — ${reason}`));
     };
     const effects = {};
 

@@ -11,19 +11,19 @@
  */
 
 const {
-    isObject, collectRefPaths, rootOf, secondSegment,
+    isObject, hasText, collectRefPaths, rootOf, secondSegment,
 } = require('../helpers');
 const {
     AI_STEP_AGENT_PERMISSION_KEYS, MAX_AI_STEP_SKILL_IDS,
     DATA_EXTRACTION_FIELD_TYPES, DATA_EXTRACTION_FIELD_NAME_RE,
     DATA_EXTRACTION_MAX_FIELDS, DATA_EXTRACTION_MAX_INSTRUCTIONS_CHARS,
 } = require('../constants');
-const { RUNTIME_ROOTS } = require('../../../shared/mapping/index.mjs');
+const { RUNTIME_ROOTS, isPick, isCompose, MAPPING_VERSION } = require('../../../shared/mapping/index.mjs');
 
 function checkAiStep(ctx, step, at) {
     const { pushE, pushW, trigger, refIds, availableAgents, fieldsReadFromStep } = ctx;
     if (step.type === 'ai_step') {
-        if (!step.prompt || typeof step.prompt !== 'string') pushE({ code: 'ai_step.prompt_missing', severity: 'error', path: at + '.prompt', message: `Step ${step.id}: ai_step requires \`prompt\`.`, hint: 'Provide a non-empty prompt string.' });
+        if (!step.prompt || !(typeof step.prompt === 'string' || hasText(step.prompt))) pushE({ code: 'ai_step.prompt_missing', severity: 'error', path: at + '.prompt', message: `Step ${step.id}: ai_step requires \`prompt\`.`, hint: 'Provide a non-empty prompt string.' });
         // An ai_step with NO outputSchema returns free-form TEXT. Every
         // `…output.<field>` ref into it is then empty, and a dry run cannot
         // show it: the write step downstream is synthesised, never called.
@@ -276,18 +276,27 @@ function checkDataExtraction(ctx, step, at) {
         // ref-looking path is resolved; anything else is read literally),
         // so it only warns; any other non-binding value is integrity —
         // the runner would serialise it and extract from the words.
+        //
+        // A v2 pick or compose is a binding too (sites.mjs lists `source` as
+        // a compose-capable text site; execDataExtraction resolves it). One
+        // that says `v: 1` but does not validate is mappingRules' error
+        // (mapping.invalid), so it is not reported twice here; one without
+        // `v` is plain data to the runner, and stays source_invalid.
         const src = step.source;
-        const isBinding = isObject(src) && typeof src.kind === 'string' && ['ref', 'template', 'literal', 'expr'].includes(src.kind);
+        const isMapping = isPick(src) || isCompose(src);
+        const isBinding = isMapping || (isObject(src) && typeof src.kind === 'string' && ['ref', 'template', 'literal', 'expr'].includes(src.kind));
+        const brokenMapping = !isMapping && isObject(src) && (src.kind === 'pick' || src.kind === 'compose') && src.v === MAPPING_VERSION;
         const bindingBlank = isBinding && (
             (src.kind === 'ref' && !(typeof src.path === 'string' && src.path.trim()))
-            || (src.kind !== 'ref' && !(typeof src.value === 'string' ? src.value.trim() : src.value !== undefined && src.value !== null))
+            || (src.kind === 'compose' && !hasText(src))
+            || (!isMapping && src.kind !== 'ref' && !(typeof src.value === 'string' ? src.value.trim() : src.value !== undefined && src.value !== null))
         );
         const emptyScaffold = (isObject(src) && !isBinding && Object.keys(src).length === 0) || (typeof src === 'string' && !src.trim());
         if (src === undefined || src === null || bindingBlank || emptyScaffold) {
             pushE({ code: 'data_extraction.source_missing', severity: 'error', path: at + '.source', message: `Step ${step.id}: there is no text to read yet.`, hint: 'Bind `source` to the text an earlier step produced, e.g. {kind:"ref", path:"steps.read.output.content"} — or loop.<item>.output.content inside a fan-out.' });
         } else if (typeof src === 'string') {
             pushW({ code: 'data_extraction.source_bare_string', severity: 'warning', path: at + '.source', message: `Step ${step.id}: source is a bare string; it is read as a ${/\{\{[^}]+\}\}/.test(src) ? 'template' : (/^\s*(trigger|steps|vars|loop)\./.test(src) ? 'reference path' : 'LITERAL text, not a reference')}.`, hint: 'Prefer a binding: {kind:"ref", path:"steps.<id>.output.<field>"}.' });
-        } else if (!isBinding) {
+        } else if (!isBinding && !brokenMapping) {
             pushE({ code: 'data_extraction.source_invalid', severity: 'error', path: at + '.source', message: `Step ${step.id}: source must be a binding ({kind:"ref", path:"…"}), not a bare value.`, hint: 'Point it at an upstream value: {kind:"ref", path:"steps.<id>.output.<field>"}.' });
         } else if (src.kind === 'ref' && /\.(path|fileId|file_id|size|modified|contentType|mimeType|href|url)\s*$/.test(src.path)) {
             // The builder saw a read step fail, dropped it, and pointed

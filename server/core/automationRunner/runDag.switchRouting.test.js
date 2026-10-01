@@ -117,7 +117,7 @@ test('no-match with neither defaultBranch case nor default port wired leaves a b
     const state = baseState('unmatched-value');
     await runDag(def, {}, state, 'live', dispatch, { recordSteps: false });
     assert.deepStrictEqual(ran, []);
-    assert.ok(state._templateWarnings.some(w => /sw routed to .* no edge carries/.test(w)),
+    assert.ok(state._templateWarnings.some(w => w.code === 'branch_no_edge' && /sw routed to .* no edge carries/.test(w.text)),
         `expected dead-end breadcrumb, got: ${JSON.stringify(state._templateWarnings)}`);
 });
 
@@ -232,7 +232,7 @@ test('a disabled brancher whose port is unwired leaves a breadcrumb instead of v
     const state = baseState('x');
     await runDag(def, {}, state, 'live', dispatchWithDisabled(ran), { recordSteps: false });
     assert.deepStrictEqual(ran, []);
-    assert.ok(state._templateWarnings.some(w => /condition cond routed to "then".*no edge carries/.test(w)),
+    assert.ok(state._templateWarnings.some(w => w.code === 'branch_no_edge' && w.params.branch === 'then' && /condition cond routed to "then".*no edge carries/.test(w.text)),
         `expected a dead-end breadcrumb for the disabled brancher, got: ${JSON.stringify(state._templateWarnings)}`);
 });
 
