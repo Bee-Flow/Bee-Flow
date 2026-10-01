@@ -321,3 +321,49 @@ test('upgradeDefinition: a forEach that upgrades, and one that stays with its it
         ['inputs.to', 'for_each_kept'],
     ]);
 });
+
+// Every recent run is its own runState (`runs`): a lift must resolve the
+// same on each, not on one composite of the newest outputs.
+const runOf = (trigger, steps = {}) => ({ trigger: { output: trigger }, steps, vars: {}, loop: {} });
+
+test('runs: a lift equal on the newest run but not on an older one is kept', () => {
+    const def = oneStep({ id: ref('trigger.output.orders.id') });
+    const newest = runOf({ orders: { id: 'A-1' } });
+    // An older run where the same key sits on a list: the legacy walker
+    // reads nothing there, a pick reads every id.
+    const older = runOf({ orders: [{ id: 'B-1' }, { id: 'B-2' }] });
+    assert.equal(upgradeDefinition(def, { runs: [newest], ...deps }).changed.length, 1, 'the newest run alone shows no difference');
+    const { definition, changed, kept } = upgradeDefinition(def, { runs: [newest, older], ...deps });
+    assert.deepStrictEqual(changed, []);
+    assert.deepStrictEqual(kept.map(k => [k.field, k.reason]), [['inputs.id', 'would_change']]);
+    assert.equal(definition, def, 'nothing changed');
+});
+
+test('runs: a lift equal on every run is applied, and reads the same on each', () => {
+    const def = oneStep({ id: ref('trigger.output.orders.id') });
+    const runs = [runOf({ orders: { id: 'A-1' } }), runOf({ other: true }), runOf({ orders: { id: 'C-1' } })];
+    const { definition, changed } = upgradeDefinition(def, { runs, ...deps });
+    assert.equal(changed.length, 1);
+    const after = definition.steps[0].inputs.id;
+    assert.equal(after.kind, 'pick');
+    for (const state of runs) {
+        assert.deepStrictEqual(sent(resolver.resolveValue(after, state, { silent: true })), sent(resolver.resolveValue(ref('trigger.output.orders.id'), state, { silent: true })));
+    }
+});
+
+test('runs: a value on at least one run; none gives no evidence', () => {
+    const def = oneStep({ id: ref('trigger.output.orders.id') });
+    const { changed, kept } = upgradeDefinition(def, { runs: [runOf({}), runOf({ a: 1 })], ...deps });
+    assert.deepStrictEqual(changed, []);
+    assert.deepStrictEqual(kept.map(k => k.reason), ['no_evidence']);
+});
+
+test('runs: the work is capped, a long history is not dry-run run by run', () => {
+    const def = oneStep({ id: ref('trigger.output.orders.id') });
+    const same = Array.from({ length: 5000 }, (_, i) => runOf({ orders: { id: `A-${i}` } }));
+    const bad = runOf({ orders: [{ id: 'B-1' }] });
+    // A difference among the first runs (the newest) is seen.
+    assert.deepStrictEqual(upgradeDefinition(def, { runs: [bad, ...same], ...deps }).changed, []);
+    // The store's window is ten runs; far beyond the cap nothing is read.
+    assert.equal(upgradeDefinition(def, { runs: [...same, bad], ...deps }).changed.length, 1);
+});

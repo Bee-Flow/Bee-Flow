@@ -29,7 +29,7 @@ const { serve } = require('../../core/http/routeHarness');
 const { accessByRole } = require('./testing/accessByRole');
 const { createResolver } = require('../../shared/mapping/index.mjs');
 const { evaluate } = require('../../automation/expr');
-const { lastRunState, sampleState } = require('../../automation/mappingUpgrade');
+const { recentRunStates, sampleState } = require('../../automation/mappingUpgrade');
 
 const ref = (path) => ({ kind: 'ref', path });
 const expr = (value) => ({ kind: 'expr', value });
@@ -151,24 +151,46 @@ test('apply: one new version, the skipped binding exactly as it was, the rest re
     assert.deepStrictEqual(after.count, before.count, 'an expr stays as it is');
     assert.strictEqual(after.to.kind, 'pick');
     assert.strictEqual(after.first.kind, 'pick');
-    // On the run it was checked against, every input reads what it read.
-    const state = await lastRunState(automations.a1, fakeStore());
+    // On every run it was checked against, every input reads what it read.
+    const states = await recentRunStates(automations.a1, fakeStore());
+    assert.strictEqual(states.length, 2);
     const resolver = createResolver({ evaluate });
-    assert.deepStrictEqual(
-        JSON.parse(JSON.stringify(resolver.resolveInputs(after, state, { silent: true }))),
-        JSON.parse(JSON.stringify(resolver.resolveInputs(before, state, { silent: true }))),
-    );
+    for (const state of states) {
+        assert.deepStrictEqual(
+            JSON.parse(JSON.stringify(resolver.resolveInputs(after, state, { silent: true }))),
+            JSON.parse(JSON.stringify(resolver.resolveInputs(before, state, { silent: true }))),
+        );
+    }
     assert.strictEqual(body.automation.myRole, 'edit');
     assert.strictEqual(body.version, 5);
 });
 
-test('the evidence: live runs only, the newest row per step, a failed row is no data, pins are a sample', async () => {
-    const state = await lastRunState(automations.a1, fakeStore());
-    assert.deepStrictEqual(state.trigger.output, PAYLOAD, 'the newest LIVE payload, never a dry run\'s');
-    assert.deepStrictEqual(state.steps.get, { output: ORDERS });
-    assert.strictEqual(state.steps.mail, undefined, 'a newer failed row removes the older output');
-    assert.strictEqual(state.steps['cl1/out'], undefined, 'a flowlet\'s own step is not a step of this graph');
-    assert.strictEqual(await lastRunState({ id: 'none' }, fakeStore()), null);
+test('the evidence: one runState per live run, each its own data; a failed row is no data, pins are a sample', async () => {
+    const [newest, older, ...rest] = await recentRunStates(automations.a1, fakeStore());
+    assert.deepStrictEqual(rest, [], 'a dry run is never evidence');
+    assert.deepStrictEqual(newest.trigger.output, PAYLOAD, 'the newest LIVE payload, never a dry run\'s');
+    assert.deepStrictEqual(newest.steps, { get: { output: ORDERS } }, 'a failed row is no data; a flowlet\'s own step is not a step of this graph');
+    assert.deepStrictEqual(older.trigger.output, { Klant: {} }, 'the older run keeps its own payload');
+    assert.deepStrictEqual(older.steps, { mail: { output: { sent: true } } }, 'and only its own outputs');
+    assert.deepStrictEqual(await recentRunStates({ id: 'none' }, fakeStore()), []);
+
+    // Inside a run the last attempt decides; a truncated output is no data;
+    // a run with no data at all adds nothing.
+    runs = [
+        { id: 'q2', automationId: 'q', mode: 'live', triggerPayload: null },
+        { id: 'q1', automationId: 'q', mode: 'live', triggerPayload: null },
+    ];
+    stepRows = [
+        { runId: 'q2', stepId: 'a', status: 'success', output: { v: 1 } },
+        { runId: 'q2', stepId: 'a', status: 'error', output: null },
+        { runId: 'q2', stepId: 'b', status: 'error', output: null },
+        { runId: 'q2', stepId: 'b', status: 'success', output: { v: 2 } },
+        { runId: 'q2', stepId: 'c', status: 'success', output: { __truncated__: true, originalBytes: 300000 } },
+        { runId: 'q1', stepId: 'a', status: 'error', output: null },
+    ];
+    const only = await recentRunStates({ id: 'q' }, fakeStore());
+    assert.strictEqual(only.length, 1);
+    assert.deepStrictEqual(only[0].steps, { b: { output: { v: 2 } } });
 
     assert.strictEqual(sampleState({ steps: [] }), null);
     const pinned = sampleState({
@@ -188,6 +210,25 @@ test('without a run nothing is upgraded: nothing shows the values agree', async 
     assert.deepStrictEqual(body.kept.map(k => [k.field, k.reason]), [
         ['inputs.to', 'no_evidence'], ['inputs.first', 'no_evidence'], ['inputs.count', 'formula'], ['inputs.sku', 'no_evidence'], ['inputs.body', 'formula'],
     ]);
+});
+
+test('every recent run is checked on its own: equal on the newest run is not enough', async () => {
+    automations.a1.definition.steps[1].inputs = { id: ref('trigger.output.orders.id') };
+    runs = [
+        { id: 'n', automationId: 'a1', mode: 'live', triggerKind: 'webhook', triggerPayload: { orders: { id: 'A-1' } }, startedAt: '2026-10-01T09:00:00Z' },
+        { id: 'o', automationId: 'a1', mode: 'live', triggerKind: 'webhook', triggerPayload: { orders: [{ id: 'B-1' }, { id: 'B-2' }] }, startedAt: '2026-09-30T09:00:00Z' },
+    ];
+    stepRows = [];
+    const refused = await call('/a1/upgrade-mappings?dryRun=1');
+    assert.deepStrictEqual(refused.body.changed, []);
+    assert.deepStrictEqual(refused.body.kept.map(k => [k.field, k.reason]), [['inputs.id', 'would_change']]);
+    assert.ok(!JSON.stringify(refused.body).includes('B-1'), 'no run value in the answer');
+
+    runs[1].triggerPayload = { orders: { id: 'C-1' } };
+    const accepted = await call('/a1/upgrade-mappings?dryRun=1');
+    assert.deepStrictEqual(accepted.body.changed.map(c => c.field), ['inputs.id']);
+    assert.deepStrictEqual(accepted.body.evidence, { lastRun: true, sample: false });
+    assert.strictEqual(accepted.body.states, undefined, 'the runStates never reach a client');
 });
 
 test('a pinned sample is evidence too', async () => {

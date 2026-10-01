@@ -233,3 +233,30 @@ test('applying: every suggestion checked again, all or nothing', () => {
     const noData = upgraded(definition(), { lastRun: null, sample: null });
     assert.deepStrictEqual(applyAiFixes(noData, [good]).refused.reason, 'no_evidence');
 });
+
+test('every recent run is its own runState: a proposal equal on the newest run and not on an older one is dropped, and refused on apply', async () => {
+    const def = {
+        trigger: { id: 't', type: 'trigger', kind: 'webhook' },
+        steps: [{ id: 'mail', type: 'integration_action', label: 'Mail', inputs: { id: expr('trigger.output.orders.id') } }],
+        edges: [],
+    };
+    const run = (output) => ({ trigger: { output }, steps: {}, vars: {}, loop: {} });
+    const newest = run({ orders: { id: 'SENTINEL-A-1' } });
+    const older = run({ orders: [{ id: 'SENTINEL-B-1' }, { id: 'SENTINEL-B-2' }] });
+    const fix = { stepId: 'mail', field: 'inputs.id', binding: pick({ root: 'trigger', path: ['orders', 'id'] }) };
+    const answer = (idOf) => [{ id: idOf('trigger.output.orders.id'), binding: fix.binding }];
+
+    // On the newest run alone the proposal agrees.
+    const one = upgraded(def, { runs: [newest], sample: null });
+    assert.strictEqual((await suggestAiFixes(one, fakeChat(answer).chat)).counts.accepted, 1);
+    assert.ok(!applyAiFixes(one, [fix]).refused);
+
+    const both = upgraded(def, { runs: [newest, older], sample: null });
+    const out = await suggestAiFixes(both, fakeChat(answer).chat);
+    assert.deepStrictEqual([out.counts.accepted, out.counts.discarded], [0, 1]);
+    // A run that came in since the suggestion was made: the apply-time check sees it.
+    assert.deepStrictEqual(applyAiFixes(both, [fix]), { refused: { stepId: 'mail', field: 'inputs.id', reason: 'would_change' } });
+
+    const agreeing = upgraded(def, { runs: [newest, run({ orders: { id: 'SENTINEL-C-1' } })], sample: null });
+    assert.ok(!applyAiFixes(agreeing, [fix]).refused, 'equal on every run is accepted');
+});

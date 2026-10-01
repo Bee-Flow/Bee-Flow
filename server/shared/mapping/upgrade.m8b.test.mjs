@@ -172,3 +172,17 @@ test('checkReplacement: only the values the legacy binding reads, and only ones 
     assert.deepEqual(checkReplacement(legacy, pick({ root: 'loop', id: 'item', path: ['id'] }), { lastRun: echoed, ...deps }), { ok: false, reason: 'invalid' });
     assert.deepEqual(checkReplacement(legacy, { kind: 'compose', v: 1, parts: ['A-1'] }, { lastRun: echoed, ...deps }), { ok: false, reason: 'invalid' });
 });
+
+test('checkReplacement: every recent run on its own; equal on the newest and not on an older one is refused', () => {
+    const legacy = ref('trigger.output.orders.id');
+    const proposal = pick({ root: 'trigger', path: ['orders', 'id'] });
+    const newest = state({ orders: { id: 'A-1' } });
+    const older = state({ orders: [{ id: 'B-1' }, { id: 'B-2' }] });
+    assert.deepEqual(checkReplacement(legacy, proposal, { runs: [newest], ...deps }), { ok: true }, 'the newest run alone shows no difference');
+    assert.deepEqual(checkReplacement(legacy, proposal, { runs: [newest, older], ...deps }), { ok: false, reason: 'would_change' });
+    assert.deepEqual(checkReplacement(legacy, proposal, { runs: [older, newest], sample: newest, ...deps }), { ok: false, reason: 'would_change' });
+    // Equal on every run, a value on at least one: accepted.
+    assert.deepEqual(checkReplacement(legacy, proposal, { runs: [newest, state({ x: 1 }), state({ orders: { id: 'C-1' } })], ...deps }), { ok: true });
+    assert.deepEqual(checkReplacement(legacy, proposal, { runs: [state({}), state({ x: 1 })], ...deps }), { ok: false, reason: 'no_evidence' });
+    assert.deepEqual(checkReplacement(legacy, proposal, { runs: [], ...deps }), { ok: false, reason: 'no_evidence' });
+});

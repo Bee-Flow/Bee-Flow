@@ -502,6 +502,8 @@ export interface UpgradeEntry {
 export interface UpgradeDeps {
     sample?: object | null;
     lastRun?: object | null;
+    /** One runState per recent run, each checked on its own: equal on every one, a value on at least one. */
+    runs?: ReadonlyArray<object> | null;
     evaluate?: (src: string, scope: object) => unknown;
     parse?: ParseDeps;
 }

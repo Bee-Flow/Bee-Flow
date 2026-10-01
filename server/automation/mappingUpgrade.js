@@ -7,11 +7,11 @@
  * it is when its value would change (an expr stays a Formula). This file
  * only hands it the runStates to dry-run on:
  *
- *   lastRun  the newest output of every step over the last few LIVE runs
- *            (a dry run's outputs are synthesised, so never those), and the
- *            newest run's trigger payload: the window the builder's partial
- *            runs replay, read through it
- *            (core/automationRunner/replaySeeding.js seedReplayState)
+ *   runs     one runState per LIVE run in the window the builder's partial
+ *            runs replay (core/automationRunner/replaySeeding.js
+ *            seedReplayState): that run's own trigger payload and step
+ *            outputs (a dry run's outputs are synthesised, so never those).
+ *            Every upgrade must resolve the same on each of them.
  *   sample   what the definition pins: the trigger's pinned output (or the
  *            saved test input) and every step's pinnedOutput
  *
@@ -25,7 +25,7 @@ const { upgradeDefinition } = require('../shared/mapping/index.mjs');
 const parse = require('../shared/expr/parse.mjs');
 const { evaluate } = require('./expr');
 const { buildTriggerState } = require('../core/automationRunner/triggerState');
-const { seedReplayState } = require('../core/automationRunner/replaySeeding');
+const { seedReplayState, replayEntryFromRow } = require('../core/automationRunner/replaySeeding');
 
 function isObject(v) {
     return v !== null && typeof v === 'object' && !Array.isArray(v);
@@ -65,54 +65,75 @@ function sampleState(definition) {
 }
 
 /**
- * The runState of the automation's recent live runs, or null when it has
- * none: per step the newest recorded output and the newest trigger payload.
- * The window is replaySeeding.js's own (seedReplayState): the same live runs,
- * the same newest-row-per-step rule, a truncated output as no data. Only a
- * plain success is evidence; a handled error carries no output to compare.
+ * One runState per recent live run, newest first, or [] when there is none:
+ * each run's OWN trigger payload and step outputs, never a mix of runs. A
+ * binding that agrees with its pick on a composite of the newest outputs can
+ * still read differently on an older run (another shape of the same list,
+ * a key that run lacked), so every run is evidence on its own and an upgrade
+ * must agree on each.
+ *
+ * The window is replaySeeding.js's own (seedReplayState): the same live runs
+ * (a dry run's outputs are synthesised, so never those), read through the
+ * same row rule (replayEntryFromRow: a truncated output, a failed or skipped
+ * row is no data; inside a run the last attempt decides). Only a plain
+ * success is evidence; a handled error carries no output to compare. A run
+ * that holds no data at all adds nothing.
  * @param {{ id: string, definition?: object }} automation
  * @param {{ getRunsForAutomation: Function, getRunSteps: Function, getRunStepsForRuns?: Function }} store
+ * @returns {Promise<object[]>}
  */
-async function lastRunState(automation, store) {
+async function recentRunStates(automation, store) {
     // A flowlet's own steps (`cl1/out`) are not steps of this graph.
     const stepIdFor = row => (row && !row.parentStepId && typeof row.stepId === 'string' ? row.stepId : null);
-    const { replayState, runsWindow } = await seedReplayState(automation.id, null, stepIdFor, { store });
-    if (!runsWindow.length) return null;
-    const steps = {};
-    for (const [id, entry] of Object.entries(replayState)) {
-        if (entry.status === 'success') steps[id] = { output: entry.output };
-    }
-    const withPayload = runsWindow.find(r => r.triggerPayload != null) || runsWindow[0];
+    const { runsWindow, stepsByRun } = await seedReplayState(automation.id, null, stepIdFor, { store });
     const def = isObject(automation.definition) ? automation.definition : {};
-    return {
-        trigger: buildTriggerState({
-            enteredTrigger: isObject(def.trigger) ? def.trigger : null,
-            triggerKind: withPayload.triggerKind || 'manual',
-            triggerPayload: withPayload.triggerPayload ?? null,
-            startedAt: Date.parse(withPayload.startedAt || '') || Date.now(),
-        }),
-        steps,
-        vars: isObject(def.vars) ? def.vars : {},
-        loop: {},
-    };
+    const states = [];
+    for (const run of runsWindow) {
+        const entries = {};
+        for (const row of (stepsByRun.get(run.id) || [])) {
+            const stepId = stepIdFor(row);
+            if (!stepId) continue;
+            const entry = replayEntryFromRow(row, stepId);
+            if (entry) entries[stepId] = entry;
+            else delete entries[stepId];
+        }
+        const steps = {};
+        for (const [id, entry] of Object.entries(entries)) {
+            if (entry.status === 'success') steps[id] = { output: entry.output };
+        }
+        const payload = run.triggerPayload ?? null;
+        if (payload == null && !Object.keys(steps).length) continue;
+        states.push({
+            trigger: buildTriggerState({
+                enteredTrigger: isObject(def.trigger) ? def.trigger : null,
+                triggerKind: run.triggerKind || 'manual',
+                triggerPayload: payload,
+                startedAt: Date.parse(run.startedAt || '') || Date.now(),
+            }),
+            steps,
+            vars: isObject(def.vars) ? def.vars : {},
+            loop: {},
+        });
+    }
+    return states;
 }
 
 /**
  * The upgrade of `automation`'s definition, dry-run on its own data:
  * `{ definition, changed, kept, evidence: { lastRun, sample }, states }`.
  *
- * `states` is the runStates themselves (`{ lastRun, sample }`, each null when
- * there is none), for the AI fix's gate (mappingAiFix.js), which dry-runs a
- * proposal on the same data. It is run data: a route answers with the report
- * and `evidence`, never with `states`.
+ * `states` is the runStates themselves (`{ runs, sample }`: one per recent
+ * live run, and the pinned sample or null), for the AI fix's gate
+ * (mappingAiFix.js), which dry-runs a proposal on the same data. It is run
+ * data: a route answers with the report and `evidence`, never with `states`.
  * @param {{ id: string, definition?: object }} automation
  * @param {object} store the automation store (run reads only)
  */
 async function upgradeAutomationMappings(automation, store) {
     const definition = automation.definition;
-    const [lastRun, sample] = [await lastRunState(automation, store), sampleState(definition)];
-    const result = upgradeDefinition(definition, { sample, lastRun, evaluate, parse });
-    return { ...result, evidence: { lastRun: !!lastRun, sample: !!sample }, states: { lastRun, sample } };
+    const [runs, sample] = [await recentRunStates(automation, store), sampleState(definition)];
+    const result = upgradeDefinition(definition, { sample, runs, evaluate, parse });
+    return { ...result, evidence: { lastRun: runs.length > 0, sample: !!sample }, states: { runs, sample } };
 }
 
-module.exports = { upgradeAutomationMappings, lastRunState, sampleState };
+module.exports = { upgradeAutomationMappings, recentRunStates, sampleState };

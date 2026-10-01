@@ -194,8 +194,20 @@ function checkLift(binding, states, resolver, evaluate, strict) {
     return { pick: cand.pick };
 }
 
+// At most this many runStates are dry-run on: the recent runs (the replay
+// window, ten) and the pinned sample, with room to spare. Each one costs a
+// dry run of every binding (and, in checkReplacement, of every EDGE_VALUES
+// variant), so a caller handing in a long history does not make it unbounded.
+const MAX_STATES = 12;
+
+/**
+ * The runStates to dry-run on: each argument a runState, or a list of
+ * runStates (`runs`, one per recent run, each checked on its own); nulls and
+ * anything else dropped, at most MAX_STATES.
+ */
 function dataStates(...states) {
-    return states.filter(s => s !== null && typeof s === 'object' && !Array.isArray(s));
+    const isState = s => s !== null && typeof s === 'object' && !Array.isArray(s);
+    return states.flatMap(s => (Array.isArray(s) ? s.filter(isState) : (isState(s) ? [s] : []))).slice(0, MAX_STATES);
 }
 
 function resolverFor(evaluate, parse) {
@@ -235,8 +247,8 @@ export function liftLegacy(binding, sample, lastRun, { evaluate, parse } = {}) {
 //                       parallel branches and flowlets too; an expr stays a
 //                       Formula (see upgradeStep)
 //
-// Each ref is dry-run on every runState at hand (the last real run, the
-// pinned samples) and kept as it is when the two resolve differently there,
+// Each ref is dry-run on every runState at hand (each recent real run on its
+// own, `runs`, and the pinned samples) and kept as it is when the two resolve differently there,
 // a value the legacy binding did not have included. A binding no runState
 // gives a value is kept too: without data nothing shows the two agree (a ref
 // of plain keys reads differently from its pick where it meets a list or a
@@ -379,12 +391,12 @@ function repeatUpgrade(step, states, resolver) {
  * holds an item of the list).
  *
  * @param {object} step
- * @param {{ sample?: object|null, lastRun?: object|null, evaluate?: Function, parse?: object }} [opts]
+ * @param {{ sample?: object|null, lastRun?: object|null, runs?: object[]|null, evaluate?: Function, parse?: object }} [opts]
  * @returns {{ step: object, converted: Array<{ field: string, pick: object }> } | { refused: string[] }}
  */
-export function upgradeStepRepeat(step, { sample, lastRun, evaluate, parse } = {}) {
+export function upgradeStepRepeat(step, { sample, lastRun, runs, evaluate, parse } = {}) {
     if (!isRecord(step)) return { refused: ['no_for_each'] };
-    return repeatUpgrade(step, dataStates(sample, lastRun), resolverFor(evaluate, parse));
+    return repeatUpgrade(step, dataStates(sample, lastRun, runs), resolverFor(evaluate, parse));
 }
 
 /** A step's name as the person gave it, or null. */
@@ -527,15 +539,15 @@ function upgradeStep(step, ctx) {
  * evidence there: they get no dry run, and stay as they are ('no_evidence').
  *
  * @param {object} definition
- * @param {{ sample?: object|null, lastRun?: object|null, evaluate?: Function, parse?: object }} [opts]
+ * @param {{ sample?: object|null, lastRun?: object|null, runs?: object[]|null, evaluate?: Function, parse?: object }} [opts]
  * @returns {{ definition: object, changed: object[], kept: object[] }}
  */
-export function upgradeDefinition(definition, { sample, lastRun, evaluate, parse } = {}) {
+export function upgradeDefinition(definition, { sample, lastRun, runs, evaluate, parse } = {}) {
     const changed = [];
     const kept = [];
     if (!isRecord(definition)) return { definition, changed, kept };
     const ctx = {
-        states: dataStates(sample, lastRun),
+        states: dataStates(sample, lastRun, runs),
         resolver: resolverFor(evaluate, parse),
         evaluate,
         names: collectNames(definition.steps, new Map()),
@@ -793,10 +805,10 @@ function withSourceValue(state, from, leaf) {
  *
  * @param {unknown} binding — the stored legacy binding
  * @param {unknown} proposal — the pick or compose proposed for it
- * @param {{ sample?: object|null, lastRun?: object|null, evaluate?: Function, parse?: object }} [opts]
+ * @param {{ sample?: object|null, lastRun?: object|null, runs?: object[]|null, evaluate?: Function, parse?: object }} [opts]
  * @returns {{ ok: true } | { ok: false, reason: 'invalid'|'would_change'|'no_evidence' }}
  */
-export function checkReplacement(binding, proposal, { sample, lastRun, evaluate, parse } = {}) {
+export function checkReplacement(binding, proposal, { sample, lastRun, runs, evaluate, parse } = {}) {
     const reads = legacyReads(binding);
     if (!reads || !reads.length) return { ok: false, reason: 'invalid' };
     if (!isPick(proposal) && !isCompose(proposal)) return { ok: false, reason: 'invalid' };
@@ -811,7 +823,7 @@ export function checkReplacement(binding, proposal, { sample, lastRun, evaluate,
     if (legacyKeys.size !== sources.size || [...legacyKeys].some(k => !sources.has(k))) return { ok: false, reason: 'invalid' };
 
     const resolver = resolverFor(evaluate, parse);
-    const states = dataStates(sample, lastRun);
+    const states = dataStates(sample, lastRun, runs);
     const differs = (state) => !sameValue(
         resolver.resolveValue(binding, state, { silent: true }),
         resolver.resolveValue(proposal, state, { silent: true }),

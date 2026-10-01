@@ -18,7 +18,7 @@
  *                     never asked about: no dry run here can show they agree.
  *   suggestAiFixes    one model call for all of them, every proposal checked
  *                     (shared/mapping checkReplacement) on EVERY runState the
- *                     upgrade had: the recent live runs and the pinned
+ *                     upgrade had: each recent live run on its own, the pinned
  *                     sample, and every shape a later run may give a value
  *                     it reads. One that differs anywhere, or reads anything
  *                     but what the field reads, is dropped and the field
@@ -101,8 +101,11 @@ function stepName(step) {
     return null;
 }
 
+/** Every runState at hand: one per recent run (`runs`), the pinned sample, and a single `lastRun` as older callers hand it. */
 function runStates(states) {
-    return [states && states.lastRun, states && states.sample].filter(isRecord);
+    if (!isRecord(states)) return [];
+    const runs = Array.isArray(states.runs) ? states.runs : [];
+    return [...runs, states.lastRun, states.sample].filter(isRecord);
 }
 
 const keyOf = (stepId, field) => `${stepId}\u0000${field}`;
@@ -345,7 +348,7 @@ function stepNames(definition) {
  * (labels and the proposal's paths, never a value); counts
  * `{ candidates, noEvidence, asked, accepted, discarded, truncated }`.
  *
- * @param {{ definition: object, kept: object[], states?: { lastRun?: object|null, sample?: object|null } }} result
+ * @param {{ definition: object, kept: object[], states?: { runs?: object[], lastRun?: object|null, sample?: object|null } }} result
  * @param {(messages: object[], tool: object) => Promise<{ structured?: object|null, usage?: object }>} chat
  */
 async function suggestAiFixes(result, chat) {
