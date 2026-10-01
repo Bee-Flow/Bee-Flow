@@ -37,6 +37,11 @@ const {
     makeChatAssistant, decideAiTrigger, mentionsAssistant, displayNameOf, buildTranscript, searchProjectKnowledge, listProjectAudience, listChatAgents,
 } = require('./chatAssistant');
 const { makeChatCrypto } = require('./chatCrypto');
+const { realClaudeAdapter, realGeminiAdapter, assertClaudeEntry, assertGeminiEntry } = require('../core/providers/usageHarness');
+
+/** The usage an adapter really hands back (non-streaming), for the cache tests. */
+const claudeUsage = async () => (await realClaudeAdapter().chat('k', null, 'claude-sonnet-4-6', [{ role: 'user', content: 'x' }])).usage;
+const geminiUsage = async () => (await realGeminiAdapter().chat('k', null, 'gemini-3-flash-preview', [{ role: 'user', content: 'x' }])).usage;
 const { PrivacyBlocked } = require('./chatShield');
 
 const PROJECT = {
@@ -169,7 +174,7 @@ function world(overrides = {}) {
         shield,
         llmChat: overrides.llmChat || (async (modelId, msgs, options) => {
             log.llm.push({ modelId, msgs, options });
-            return { content: overrides.answer ?? 'Here is my take.', usage: { prompt_tokens: 120, completion_tokens: 30, total_tokens: 150 } };
+            return { content: overrides.answer ?? 'Here is my take.', usage: overrides.usage ?? { prompt_tokens: 120, completion_tokens: 30, total_tokens: 150 } };
         }),
         projectTools: overrides.projectTools || { offered: async () => [], forAnswer: () => ({ execute: async () => '{}', created: [] }) },
         runToolLoop: overrides.runToolLoop,
@@ -854,5 +859,15 @@ test('Auto answers a direct natural-language address without waiting for partici
     }
     for (const content of ['We bespreken AI morgen', 'hoi allemaal', 'AI tooling vergelijken', 'AI kan helpen.', 'Wat weet Bob over AI?']) {
         assert.deepEqual(decideAiTrigger({ aiMode: 'auto', content }), { trigger: false, reason: 'auto_pending' });
+    }
+});
+
+test('the usage row carries the cache read/write of a Claude or Gemini call, not zeros', async () => {
+    for (const [usage, assertEntry] of [[await claudeUsage(), assertClaudeEntry], [await geminiUsage(), assertGeminiEntry]]) {
+        const w = world({ usage });
+        const reply = await ask(w);
+        await reply.done;
+        assert.strictEqual(w.log.usage.length, 1);
+        assertEntry(w.log.usage[0]);
     }
 });

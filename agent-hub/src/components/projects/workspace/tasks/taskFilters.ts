@@ -3,7 +3,7 @@
 import type { ProjectTask, TaskPriority } from '../../../../api/queries/projectTasks';
 import { isOverdue, priorityRank } from './taskText';
 
-export type TaskWho = 'all' | 'me' | 'unassigned' | string;
+type TaskWho = 'all' | 'me' | 'unassigned' | string;
 export type TaskSort = 'due' | 'priority' | 'newest';
 
 export interface TaskFilters {
@@ -19,6 +19,11 @@ export const NO_FILTERS: TaskFilters = { who: 'all', priority: 'all', label: '',
 
 export function hasFilters(f: TaskFilters): boolean {
     return !!f.search?.trim() || f.who !== 'all' || f.priority !== 'all' || !!f.label || f.overdueOnly;
+}
+
+/** How many of the menu filters are on (the search box is not counted: it shows itself). */
+export function activeFilterCount(f: TaskFilters): number {
+    return Number(f.who !== 'all') + Number(f.priority !== 'all') + Number(!!f.label) + Number(f.overdueOnly);
 }
 
 function heldBy(task: ProjectTask, who: TaskWho, me: string | null): boolean {

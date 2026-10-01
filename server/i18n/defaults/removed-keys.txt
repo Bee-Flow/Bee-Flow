@@ -167,3 +167,8 @@ projects.run_active
 projects.shared_by_colleague
 projects.viewer_readonly
 solutions.open_project
+
+# Azure OpenAI (2026-10): the API version field is gone; the adapter always uses
+# Azure's v1 GA API and ignores any configured version.
+azure.api_version
+azure.api_version_help

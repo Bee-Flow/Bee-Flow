@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { readinessStamp, useReadiness } from '../../../../api/queries/automation/readiness';
+import AssistantCapabilities from '../chat/AssistantCapabilities';
 import AdvancedSection from './AdvancedSection';
 import AiActSection, { aiActOpen, aiActVisible } from './AiActSection';
 import GeneralSection from './GeneralSection';
@@ -12,12 +13,14 @@ import StartSection from './StartSection';
 import { ReadOnlyFieldset, canEditRoutine, useQueuedSave } from './settingsUi';
 import type { SaveFn, SettingsAutomation } from './settingsUi';
 
-export type SettingsSectionId = 'general' | 'start' | 'notifications' | 'sharing' | 'ai-act' | 'advanced';
-export const SETTINGS_SECTIONS: SettingsSectionId[] = ['general', 'start', 'notifications', 'sharing', 'ai-act', 'advanced'];
+export type SettingsSectionId = 'general' | 'start' | 'notifications' | 'sharing' | 'ai-act' | 'advanced' | 'assistant';
+export const SETTINGS_SECTIONS: SettingsSectionId[] = ['general', 'start', 'notifications', 'sharing', 'ai-act', 'assistant', 'advanced'];
 
 export interface SettingsPageProps {
     automation: SettingsAutomation | null;
     onSave: SaveFn;
+    workMode?: string;
+    onWorkModeChange?: (mode: string) => void;
     /** Section to scroll to on open (a deep link, or a click in the header/rail). */
     initialSection?: SettingsSectionId | string | null;
     /** Switch the builder to another tab ('build', 'runs', 'versions'). */
@@ -67,7 +70,7 @@ const CONTENT = 'min-w-0 row-start-2 px-4 py-6 @[900px]/settings:row-start-1 @[9
  * machine, which also drives "Automatically saved" in the header); only a
  * dialog with its own button waits for a click.
  */
-export default function SettingsPage({ automation, onSave: saveRow, initialSection: link = null, onAutomationChange }: SettingsPageProps) {
+export default function SettingsPage({ automation, onSave: saveRow, initialSection: link = null, onAutomationChange, workMode = 'approve', onWorkModeChange }: SettingsPageProps) {
     const { t } = useTranslation();
     const initialSection = link;
     const onSave = useQueuedSave(saveRow, automation?.definition);
@@ -85,9 +88,10 @@ export default function SettingsPage({ automation, onSave: saveRow, initialSecti
         notifications: t('routines.settings.notifications', 'Notifications'),
         sharing: t('routines.settings.sharing', 'Who can do what'),
         'ai-act': t('routines.settings.ai_act', 'AI Act check'),
+        assistant: t('routines.assistant.title', 'Assistant'),
         advanced: t('routines.settings.advanced', 'Advanced'),
     };
-    const visible = SETTINGS_SECTIONS.filter((s) => s !== 'ai-act' || showAiAct);
+    const visible = SETTINGS_SECTIONS.filter((s) => (s !== 'ai-act' || showAiAct) && (s !== 'assistant' || !!onWorkModeChange));
 
     const scrollTo = (id: SettingsSectionId) => {
         setActive(id);
@@ -196,6 +200,7 @@ export default function SettingsPage({ automation, onSave: saveRow, initialSecti
                     {section('notifications', <ReadOnlyFieldset readOnly={readOnly}><NotificationsSection automation={automation} onSave={onSave} /></ReadOnlyFieldset>)}
                     {section('sharing', <SharingSection automation={automation} onSave={onSave} onAutomationChange={onAutomationChange} />)}
                     {showAiAct && section('ai-act', <AiActSection automation={automation} onSave={onSave} />)}
+                    {onWorkModeChange && section('assistant', <AssistantCapabilities workMode={workMode} onChange={onWorkModeChange} />)}
                     {section('advanced', <AdvancedSection automation={automation} onSave={onSave} defaultOpen={initialSection === 'advanced'} readOnly={readOnly} />)}
                 </div>
             </div>

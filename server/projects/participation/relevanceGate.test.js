@@ -28,6 +28,11 @@ const {
     GATE_CHARS, GATE_MESSAGES,
 } = require('./relevanceGate');
 const { PrivacyBlocked } = require('../chatShield');
+const { realClaudeAdapter, realGeminiAdapter, assertClaudeEntry, assertGeminiEntry } = require('../../core/providers/usageHarness');
+
+/** The usage an adapter really hands back (non-streaming), for the cache tests. */
+const claudeUsage = async () => (await realClaudeAdapter().chat('k', null, 'claude-sonnet-4-6', [{ role: 'user', content: 'x' }])).usage;
+const geminiUsage = async () => (await realGeminiAdapter().chat('k', null, 'gemini-3-flash-preview', [{ role: 'user', content: 'x' }])).usage;
 
 const NOW = Date.parse('2026-09-29T10:30:00Z');
 const at = (minAgo) => new Date(NOW - minAgo * 60_000).toISOString();
@@ -183,4 +188,13 @@ test('a shield block, a timeout, a provider error and an unusable answer are all
     const junk = world({ structured: null });
     assert.deepStrictEqual(await ask(junk), { available: false, skipReason: 'unparseable', model: 'fast-1' });
     assert.strictEqual(junk.log.usage.length, 1, 'a completed call is paid for, usable or not');
+});
+
+test('the gate usage row carries the cache read/write of a Claude or Gemini call, not zeros', async () => {
+    for (const [usage, assertEntry] of [[await claudeUsage(), assertClaudeEntry], [await geminiUsage(), assertGeminiEntry]]) {
+        const w = world({ usage });
+        await ask(w);
+        assert.strictEqual(w.log.usage.length, 1);
+        assertEntry(w.log.usage[0]);
+    }
 });

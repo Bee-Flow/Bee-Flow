@@ -18,17 +18,19 @@
  * "Remember my choice" is offered because reviewing a document is twenty
  * near-identical questions, and asking twenty times trains people to stop
  * reading. A refused decision keeps the review up with the reason, so it can
- * be answered again — unless the question is gone (the server holds it about
- * a minute): then the review has already closed and a toast says why.
+ * be answered again — unless the question is gone (the server expires it
+ * after ten minutes of silence; this sheet heartbeats while it is open):
+ * then the review has already closed and a toast says why.
  */
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Modal, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { describeError } from '@/core/api/errors';
 import { useTranslation } from '@/core/i18n';
 import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
+import { postDlpDecisionTouch } from '@/features/chat/api/endpoints';
 import { DlpQuestionExpired, type DlpChoice, type DlpResolver } from '@/features/chat/hooks/dlpResolver';
 import { mergeSpans, type ManualMark } from '@/features/chat/model/dlpSpans';
 import type { DlpDecision } from '@/features/chat/model/types';
@@ -38,6 +40,11 @@ import { DlpHighlightedText } from './DlpHighlightedText';
 import { DlpReviewActions } from './DlpReviewActions';
 import { DlpReviewHeader } from './DlpReviewHeader';
 import { DlpSummaryBar } from './DlpSummaryBar';
+
+// The server expires an unanswered question after ten minutes of silence;
+// while this sheet is open we heartbeat well under that (the web's
+// useDlpDecision does the same), so reviewing a long document is safe.
+const TOUCH_INTERVAL_MS = 60 * 1000;
 
 const makeStyles = (theme: Theme) => ({
     root: { flex: 1, justifyContent: 'flex-end' as const, backgroundColor: 'rgba(0, 0, 0, 0.5)' },
@@ -63,6 +70,13 @@ export function DlpReviewSheet({ decision, onChoose }: { decision: DlpDecision; 
     const [busy, setBusy] = useState<DlpChoice | null>(null);
     const [error, setError] = useState<string | null>(null);
     const spans = useMemo(() => mergeSpans(decision.findings, marks), [decision.findings, marks]);
+
+    useEffect(() => {
+        const beat = () => { postDlpDecisionTouch(decision.decisionId).catch(() => {}); };
+        beat();
+        const interval = setInterval(beat, TOUCH_INTERVAL_MS);
+        return () => clearInterval(interval);
+    }, [decision.decisionId]);
 
     const choose = (choice: DlpChoice) => {
         setBusy(choice);

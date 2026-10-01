@@ -47,7 +47,7 @@ const READ_ONLY = new Set([
     'notebook_read',
     'regex_list_rules', 'regex_test_pattern',
     // Outlook / MS
-    'outlook_search', 'outlook_read', 'outlook_list_recent', 'outlook_list_folders',
+    'outlook_search', 'outlook_read', 'outlook_list_recent',
     'ms_calendar_list_events', 'ms_calendar_search_events', 'ms_calendar_get_event',
     'onedrive_search', 'onedrive_list', 'onedrive_list_files', 'onedrive_get_file',
     'ms_contacts_search', 'ms_contacts_list',
@@ -198,6 +198,8 @@ const SIDE_EFFECTS = new Set([
     'routine_propose_evolution', 'routine_apply_evolution',
     // Presentations — a .pptx is written into storage (chat) or Nextcloud.
     'create_presentation', 'nextcloud_create_presentation',
+    // Word documents — a .docx is written into storage or Nextcloud.
+    'create_word_document',
     // Nextcloud Files
     'nextcloud_upload_file', 'nextcloud_create_spreadsheet', 'nextcloud_create_document',
     'nextcloud_create_folder', 'nextcloud_delete', 'nextcloud_move', 'nextcloud_copy',

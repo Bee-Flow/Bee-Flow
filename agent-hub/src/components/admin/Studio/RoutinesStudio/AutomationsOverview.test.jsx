@@ -125,6 +125,49 @@ describe('AutomationsOverview', () => {
         expect(within(lanes[1]).getByText('Sketch')).toBeTruthy();
     });
 
+    it('filters by folder in any view once the library has folders', () => {
+        render(<AutomationsOverview automations={LIB} rowProps={rowProps} folders={[{ id: 'f1', name: 'Finance' }]} />);
+        // Pills only exist with folders; every org folder keeps a pill, even at 0.
+        expect(screen.getByTestId('automations-overview-folder-all').textContent).toBe('Any folder4');
+        expect(screen.getByTestId('automations-overview-folder-f1').textContent).toBe('Finance1');
+        fireEvent.click(screen.getByTestId('automations-overview-folder-f1'));
+        expect(rowTitles()).toEqual(['d']);
+        fireEvent.click(screen.getByTestId('automations-overview-folder-__none'));
+        expect(rowTitles()).toEqual(['b', 'c', 'a']);
+        // Folder narrowing joins the other pills under Clear.
+        fireEvent.click(screen.getByRole('button', { name: /Clear/ }));
+        expect(rowTitles()).toHaveLength(4);
+    });
+
+    it('offers no folder pills without folders, and recovers when a filtered folder disappears', () => {
+        const { rerender } = render(<AutomationsOverview automations={LIB} rowProps={rowProps} folders={[]} />);
+        expect(screen.queryByTestId('automations-overview-folder-all')).toBeNull();
+        rerender(<AutomationsOverview automations={LIB} rowProps={rowProps} folders={[{ id: 'f1', name: 'Finance' }]} />);
+        fireEvent.click(screen.getByTestId('automations-overview-folder-f1'));
+        expect(rowTitles()).toEqual(['d']);
+        rerender(<AutomationsOverview automations={LIB} rowProps={rowProps} folders={[]} />);
+        expect(rowTitles()).toHaveLength(4);
+    });
+
+    it('"New folder" in the New menu asks for a name and creates the folder', async () => {
+        const user = userEvent.setup();
+        const onCreateFolder = vi.fn();
+        render(<AutomationsOverview automations={LIB} rowProps={rowProps} onCreate={vi.fn()} onCreateFolder={onCreateFolder} />);
+        await user.click(screen.getByRole('button', { name: 'Choose what to create' }));
+        await user.click(screen.getByRole('menuitem', { name: /New folder/ }));
+        const input = screen.getByRole('textbox', { name: 'Folder name' });
+        expect(document.activeElement).toBe(input);
+        await user.type(input, 'Finance{Enter}');
+        expect(onCreateFolder).toHaveBeenCalledWith('Finance');
+        expect(screen.queryByRole('textbox', { name: 'Folder name' })).toBeNull();
+        // An empty name creates nothing — the button stays disabled.
+        await user.click(screen.getByRole('button', { name: 'Choose what to create' }));
+        await user.click(screen.getByRole('menuitem', { name: /New folder/ }));
+        expect(screen.getByRole('button', { name: 'Create folder' }).disabled).toBe(true);
+        await user.click(screen.getByRole('button', { name: 'Cancel' }));
+        expect(onCreateFolder).toHaveBeenCalledTimes(1);
+    });
+
     it('a row opens on click and its kebab opens the same actions menu as the sidebar', () => {
         const props = new Map();
         const rp = (a) => { if (!props.has(a.id)) props.set(a.id, rowProps(a)); return props.get(a.id); };

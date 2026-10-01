@@ -23,7 +23,13 @@ const GATEWAY_DROP_MESSAGE = 'The connection to the builder dropped while it was
  *  canvas and composer contribute to it. */
 export interface AutomationBuilderSendOptions {
     message?: string;
+    targetAutomationId?: string | null;
     modelTier?: string;
+    workMode?: string;
+    alwaysPlanLarge?: boolean;
+    pauseAfterStep?: boolean;
+    approvedPlanId?: string | null;
+    selectedStepId?: string | null;
     timezone?: string;
     history?: unknown;
     attachments?: unknown[];
@@ -72,6 +78,9 @@ export interface AutomationBuilderState {
     lastDone: Record<string, unknown> | null;
     /** The agent's self-managed plan — a read-only checklist. */
     todos: BuilderTodo[];
+    reviewPlan: Record<string, unknown> | null;
+    reviewQuestions: unknown[] | null;
+    proposal: Record<string, unknown> | null;
     /** Bookkeeping for the CURRENT turn's silence before the first token; see
      *  openTurn(). Reset on every send; null until the first one. */
     turn: BuilderTurn | null;
@@ -122,6 +131,7 @@ export default function useAutomationBuilderStream(initial: AutomationBuilderIni
         aborted: null,
         lastDone: null,
         todos: [],
+        reviewPlan: null, reviewQuestions: null, proposal: null,
         turn: null,
         toolDraft: null,
         engine: null,
@@ -144,7 +154,7 @@ export default function useAutomationBuilderStream(initial: AutomationBuilderIni
     const appliedPollSeqRef = useRef(0);
 
     const reset = useCallback(() => {
-        setState(s => ({ ...s, messages: [], draft: null, summary: '', dryRun: null, steps: [], finalizedId: null, lastDone: null, error: null, validation: null, aborted: null, todos: [], toolDraft: null, dryRunSeq: 0 }));
+        setState(s => ({ ...s, messages: [], draft: null, summary: '', dryRun: null, steps: [], finalizedId: null, lastDone: null, error: null, validation: null, aborted: null, todos: [], toolDraft: null, dryRunSeq: 0, reviewPlan: null, reviewQuestions: null, proposal: null }));
     }, []);
 
     /**
@@ -171,6 +181,9 @@ export default function useAutomationBuilderStream(initial: AutomationBuilderIni
                 summary: snapshot.summary || s.summary,
                 validation: snapshot.lastValidation || s.validation,
                 todos: Array.isArray(snapshot.todos) ? snapshot.todos : s.todos,
+                reviewPlan: 'reviewPlan' in snapshot ? (snapshot.reviewPlan as Record<string, unknown>) ?? null : s.reviewPlan,
+                reviewQuestions: (snapshot.reviewQuestions as unknown[]) || null,
+                proposal: 'proposal' in snapshot ? (snapshot.proposal as Record<string, unknown>) ?? null : s.proposal,
                 builderSessionId: snapshot.sessionId || s.builderSessionId,
                 // Allow lazy assignment of the automationId when the builder
                 // creates a draft via the visual editor BEFORE the chat
@@ -217,11 +230,14 @@ export default function useAutomationBuilderStream(initial: AutomationBuilderIni
      * client-side (server-side it still ran; next save round-trip
      * will reconcile).
      */
+    const dismissProposal = useCallback(() => setState(s => ({ ...s, proposal: null })), []);
+    const dismissPlan = useCallback(() => setState(s => ({ ...s, reviewPlan: null })), []);
+
     const dismissExternalDraft = useCallback(() => {
         setState(s => ({ ...s, pendingExternalDraft: null }));
     }, []);
 
-    const send = useCallback(async ({ message, modelTier = 'auto', timezone, history, attachments = [], webSearchEnabled = true, disabledMedia = {}, canvasScope = null, resume = false, seedMetadata = null }: AutomationBuilderSendOptions) => {
+    const send = useCallback(async ({ message, targetAutomationId, modelTier = 'auto', workMode, alwaysPlanLarge, pauseAfterStep, approvedPlanId = null, selectedStepId = null, timezone, history, attachments = [], webSearchEnabled = true, disabledMedia = {}, canvasScope = null, resume = false, seedMetadata = null }: AutomationBuilderSendOptions) => {
         if (abortRef.current) {
             try { abortRef.current.abort(); } catch {}
         }
@@ -238,6 +254,7 @@ export default function useAutomationBuilderStream(initial: AutomationBuilderIni
             // phase however well the build had gone.
             aborted: null,
             lastDone: null,
+            proposal: null, reviewQuestions: null,
             turn: openTurn(modelTier),
             toolDraft: null,
             // Clear any stale isStreaming on prior messages (e.g. an aborted
@@ -258,9 +275,10 @@ export default function useAutomationBuilderStream(initial: AutomationBuilderIni
                 body: JSON.stringify({
                     message,
                     modelTier,
+                    ...(workMode ? { workMode, alwaysPlanLarge, pauseAfterStep, approvedPlanId, selectedStepId } : {}),
                     timezone: timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Amsterdam',
                     builderSessionId: state.builderSessionId,
-                    automationId: state.automationId,
+                    automationId: targetAutomationId || state.automationId,
                     // The WHOLE transcript, deliberately unwindowed. The server
                     // decides how much of it reaches the model; a client-side
                     // `.slice(-20)` shifted the head of the conversation by one
@@ -645,7 +663,7 @@ export default function useAutomationBuilderStream(initial: AutomationBuilderIni
             : s));
     }, []);
 
-    return { state, send, stop, reset, hydrate, hydrateLastRun, setDraft, markServerConfirmed, acceptExternalDraft, dismissExternalDraft, executeStep, retryFromStep, stopRun, pollRunProgress, clearDryRun, clearError, setValidation, settleRun, setRunResult, watchActiveRun };
+    return { state, send, stop, reset, hydrate, hydrateLastRun, setDraft, markServerConfirmed, acceptExternalDraft, dismissExternalDraft, dismissProposal, dismissPlan, executeStep, retryFromStep, stopRun, pollRunProgress, clearDryRun, clearError, setValidation, settleRun, setRunResult, watchActiveRun };
 }
 
 // Mark any in-flight assistant message as no-longer-streaming and stamp the
@@ -946,6 +964,15 @@ function handle(setState: Dispatch<SetStateAction<AutomationBuilderState>>, even
                 return { ...s, messages: msgs };
             });
             break;
+        case 'review_questions':
+            setState(s => ({ ...s, reviewQuestions: data.questions as unknown[] }));
+            break;
+        case 'review_plan':
+            setState(s => ({ ...s, reviewPlan: data.plan as Record<string, unknown> }));
+            break;
+        case 'proposal_preview':
+            setState(s => ({ ...s, proposal: data as Record<string, unknown> }));
+            break;
         case 'draft':
             // Conflict-aware: if the user's local draft is already in
             // sync with the last server-confirmed draft, accept silently.
@@ -1051,6 +1078,9 @@ function handle(setState: Dispatch<SetStateAction<AutomationBuilderState>>, even
                     summary: snapshot.summary || s.summary,
                     validation: snapshot.lastValidation || s.validation,
                     todos: Array.isArray(snapshot.todos) ? snapshot.todos : s.todos,
+                reviewPlan: 'reviewPlan' in snapshot ? (snapshot.reviewPlan as Record<string, unknown>) ?? null : s.reviewPlan,
+                reviewQuestions: (snapshot.reviewQuestions as unknown[]) || null,
+                proposal: 'proposal' in snapshot ? (snapshot.proposal as Record<string, unknown>) ?? null : s.proposal,
                 }));
             }
             break;

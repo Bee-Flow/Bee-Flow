@@ -31,6 +31,7 @@ export default function useBuilderHotkeys({
     onSave,
     onDryRun,
     onEscape,
+    onAssistant,
 }) {
     useEffect(() => {
         if (!enabled) return undefined;
@@ -45,6 +46,7 @@ export default function useBuilderHotkeys({
             const meta = e.metaKey || e.ctrlKey;
             if (!meta) return;
             const key = e.key.toLowerCase();
+            if (key === 'j' && onAssistant) { e.preventDefault(); onAssistant(); return; }
             if (key === 'z' && !e.shiftKey) {
                 e.preventDefault();
                 onUndo?.();
@@ -79,5 +81,5 @@ export default function useBuilderHotkeys({
 
         document.addEventListener('keydown', onKey);
         return () => document.removeEventListener('keydown', onKey);
-    }, [enabled, onUndo, onRedo, onSave, onDryRun, onEscape]);
+    }, [enabled, onUndo, onRedo, onSave, onDryRun, onEscape, onAssistant]);
 }

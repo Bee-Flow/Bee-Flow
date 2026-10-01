@@ -164,10 +164,8 @@ async function rerankProviderLLM(rerankTarget, query, results) {
             temperature: 0,
             maxTokens: 800,
             // Deterministic scoring call: disable reasoning so GPT-5 doesn't spend
-            // the budget thinking (and so Azure uses Chat Completions, compatible
-            // with any api-version). Honour the provider's configured api-version.
+            // the budget thinking.
             reasoningEffort: 'none',
-            apiVersion: rerankTarget.apiVersion,
             timeoutMs: 20000,
             retries: { strategy: 'none' },
         });
@@ -241,10 +239,8 @@ async function cleanupPage(cleanupTarget, query, page) {
             temperature: 0.1,
             maxTokens: 700,
             // Summarisation utility call: disable reasoning so GPT-5 doesn't burn
-            // the small output budget thinking (and so Azure uses Chat Completions,
-            // compatible with any api-version). Honour the provider's api-version.
+            // the small output budget thinking.
             reasoningEffort: 'none',
-            apiVersion: cleanupTarget.apiVersion,
             timeoutMs: 30000,
             retries: { strategy: 'none' },
         });

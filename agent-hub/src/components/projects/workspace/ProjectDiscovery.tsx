@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { BookOpen, Pin, Search, X } from 'lucide-react';
+import { BookOpen, CalendarDays, Pin, Search, X } from 'lucide-react';
 import { ITEM_TYPES, useProjectFileContent, useProjectPins, useProjectSearch, useSetProjectPin, type ProjectItem } from '../../../api/queries/projectDiscovery';
 import { useProjectTasksQuery } from '../../../api/queries/projectTasks';
 import useTranslation from '../../../hooks/useTranslation';
 import { canEditProject, type WorkspaceTabProps, type OpenThreadTarget } from './types';
-import { Card, ErrorText, INPUT_CLASS, LoadingRow, SecondaryButton, SELECT_CLASS } from './workspaceUi';
+import { Card, ErrorText, GhostButton, INPUT_CLASS, LoadingRow, SecondaryButton, SELECT_CLASS } from './workspaceUi';
 import { projectErrorText } from './projectErrorText';
-import { todayKey } from './tasks/taskText';
+import { formatDue, isOverdue } from './tasks/taskText';
 
 export function itemTab(item: ProjectItem) {
     return ({ chat: 'chats', task: 'tasks', document: 'documents', notebook: 'notebooks', meeting: 'meetings', file: 'knowledge' } as const)[item.type];
@@ -35,25 +35,52 @@ export function ProjectPins({ projectId, onOpenTab, role, onOpenThread }: Pick<W
     const { t } = useTranslation();
     const query = useProjectPins(projectId);
     const pin = useSetProjectPin(projectId);
-    return <Card title={t('project_home.pinned', 'Pinned for everyone')}>
+    const canPin = canEditProject(role);
+    return <Card title={t('project_home.pinned', 'Pinned for everyone')} testId="overview-pins">
         {query.isPending && <LoadingRow label={t('project_home.loading', 'Loading…')} />}
         {(query.error || pin.error) && <ErrorText>{projectErrorText(t, query.error || pin.error)}</ErrorText>}
-        {query.data?.items.length === 0 && <p className="text-xs text-[var(--text-secondary)]">{t('project_home.pin_help', 'Use project search to pin important conversations, tasks and sources here.')}</p>}
-        {!query.isError && query.data?.items.map(item => <div key={`${item.type}:${item.id}`} className="flex gap-2 items-center py-1">
-            <button className="text-sm text-left flex-1 hover:underline break-words" onClick={() => item.threadType ? onOpenThread?.({ id: item.id, type: item.threadType, agentId: item.agentId || null }) : onOpenTab?.(itemTab(item), item.id)}>{item.title || t('project_home.untitled', 'Untitled')}</button>
-            {canEditProject(role) && <SecondaryButton disabled={pin.isPending} onClick={() => pin.mutate({ item, pinned: false })} aria-label={t('project_home.unpin', 'Unpin')}><X className="w-3 h-3" /></SecondaryButton>}
+        {query.data?.items.length === 0 && <p className="m-0 text-[12px] text-[var(--text-tertiary)]">{canPin
+            ? t('project_home.pin_help', 'Use project search to pin important conversations, tasks and sources here.')
+            : t('project_home.pin_none', 'Nothing is pinned yet.')}</p>}
+        {!query.isError && query.data?.items.map(item => <div key={`${item.type}:${item.id}`} className="flex gap-2 items-center -mx-1.5">
+            <button type="button" className="flex-1 min-w-0 rounded-lg px-1.5 py-1 text-left transition-colors hover:bg-[var(--bg-tertiary)]" onClick={() => item.threadType ? onOpenThread?.({ id: item.id, type: item.threadType, agentId: item.agentId || null }) : onOpenTab?.(itemTab(item), item.id)}>
+                <span className="block text-[12.5px] font-medium text-[var(--text-primary)] break-words">{item.title || t('project_home.untitled', 'Untitled')}</span>
+                <span className="block text-[11px] text-[var(--text-tertiary)]">{t(`project_home.item.${item.type}`, item.type)}</span>
+            </button>
+            {canPin && <SecondaryButton disabled={pin.isPending} onClick={() => pin.mutate({ item, pinned: false })} aria-label={t('project_home.unpin', 'Unpin')}><X className="w-3 h-3" /></SecondaryButton>}
         </div>)}
     </Card>;
 }
 export function MyProjectTasks({ projectId, currentUser, onOpenTab }: Pick<WorkspaceTabProps, 'projectId' | 'currentUser' | 'onOpenTab'>) {
-    const { t } = useTranslation();
+    const { t, locale } = useTranslation();
     const query = useProjectTasksQuery(projectId);
-    const tasks = (query.data?.tasks || []).filter(task => task.status !== 'done' && task.assigneeIds.includes(currentUser?.id || '')).sort((a,b) => (a.dueDate || '9999').localeCompare(b.dueDate || '9999'));
-    return <Card title={t('project_home.my_tasks', 'My open tasks')}>
+    const userId = currentUser?.id;
+    const tasks = userId ? (query.data?.tasks || []).filter(task => task.status !== 'done' && task.assigneeIds.includes(userId)).sort((a, b) => (a.dueDate || '9999').localeCompare(b.dueDate || '9999')) : [];
+    return <Card
+        title={t('project_home.my_tasks', 'My open tasks')}
+        testId="overview-my-tasks"
+        action={tasks.length > 0 ? <GhostButton onClick={() => onOpenTab?.('tasks')}>{t('project_home.overview.see_all', 'See all')}</GhostButton> : undefined}
+    >
+        {query.isPending && <LoadingRow label={t('project_home.loading', 'Loading…')} />}
         {query.error && <ErrorText>{projectErrorText(t, query.error)}</ErrorText>}
-        {!query.isPending && !query.error && tasks.length === 0 && <p className="text-xs text-[var(--text-secondary)]">{t('project_home.no_my_tasks', 'No open tasks assigned to you.')}</p>}
-        {tasks.slice(0, 5).map(task => <button key={task.id} className="block text-left text-sm py-1 w-full hover:underline" onClick={() => onOpenTab?.('tasks', task.id)}>{task.title}<span className={`block text-xs ${task.dueDate && task.dueDate < todayKey() ? 'text-[var(--error)]' : 'text-[var(--text-secondary)]'}`}>{task.dueDate}</span></button>)}
-        {tasks.length > 5 && <SecondaryButton onClick={() => onOpenTab?.('tasks')}>{t('project_home.tab.tasks', 'Tasks')} ({tasks.length})</SecondaryButton>}
+        {!query.isPending && !query.error && tasks.length === 0 && <p className="m-0 text-[12px] text-[var(--text-tertiary)]">{t('project_home.no_my_tasks', 'No open tasks assigned to you.')}</p>}
+        {tasks.length > 0 && <ul className="m-0 p-0 list-none -mx-1.5">
+            {tasks.slice(0, 5).map(task => {
+                const overdue = isOverdue(task.dueDate, task.status);
+                return <li key={task.id}>
+                    <button type="button" data-testid={`my-task-${task.id}`} className="w-full rounded-lg px-1.5 py-1 text-left transition-colors hover:bg-[var(--bg-tertiary)]" onClick={() => onOpenTab?.('tasks', task.id)}>
+                        <span className="block text-[12.5px] font-medium text-[var(--text-primary)] line-clamp-2">{task.title}</span>
+                        {task.dueDate && <span className={`flex items-center gap-1 text-[11px] ${overdue ? 'text-[var(--error-ink)] font-medium' : 'text-[var(--text-tertiary)]'}`}>
+                            <CalendarDays className="w-3 h-3" aria-hidden="true" />
+                            {overdue
+                                ? t('project_home.task_overdue', 'Overdue · {date}', { date: formatDue(task.dueDate, locale) })
+                                : t('project_home.task_due', 'Due {date}', { date: formatDue(task.dueDate, locale) })}
+                        </span>}
+                    </button>
+                </li>;
+            })}
+        </ul>}
+        {tasks.length > 5 && <p className="m-0 mt-1 text-[11px] text-[var(--text-tertiary)]">{t('project_home.more_tasks', '{n} more in Tasks', { n: tasks.length - 5 })}</p>}
     </Card>;
 }
 export default function ProjectDiscovery(props: Pick<WorkspaceTabProps, 'projectId' | 'project' | 'role' | 'onOpenTab'> & { onOpenThread?: (thread: OpenThreadTarget) => void }) {

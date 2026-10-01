@@ -41,7 +41,7 @@ import { StepIcon } from '../flow/stepIcons';
  * list, "Testing the routine… · Read file content · 1/4", and the row before
  * it gets its tick. The real call replaces it when the run lands.
  */
-export default function BuilderActivity({ toolCalls, running = false, liveRun = null, t = null }) {
+export default function BuilderActivity({ toolCalls, running = false, liveRun = null, t = null, onFocusStep = null }) {
     const calls = Array.isArray(toolCalls) ? toolCalls : [];
     if (calls.length === 0) return null;
 
@@ -87,6 +87,7 @@ export default function BuilderActivity({ toolCalls, running = false, liveRun = 
                         tc={calls[i] || null}
                         active={i === activeIdx}
                         live={row === live}
+                        onFocusStep={onFocusStep} t={t}
                     />
                 ))}
             </div>
@@ -116,7 +117,7 @@ function RowGlyph({ batch, live, tc }) {
     return <StepIcon name={tc?.result?.added?.icon} size={13} fallback={<Wrench size={13} />} />;
 }
 
-function ActivityRow({ n, row, tc, active, live = false }) {
+function ActivityRow({ n, row, tc, active, live = false, onFocusStep = null, t = null }) {
     const failedTone = row.status === 'failed';
     // A `builder_add_steps` batch: one row for the call, and under its summary
     // one compact line per step it created — the SAME cards the canvas is
@@ -146,13 +147,14 @@ function ActivityRow({ n, row, tc, active, live = false }) {
                     <span style={tile} aria-hidden="true">
                         <RowGlyph batch={batch} live={live} tc={tc} />
                     </span>
-                    <span className="min-w-0 flex-1 flex items-baseline gap-1.5">
-                        <span className="font-medium text-[var(--text-primary)] whitespace-nowrap">{row.title}</span>
+                    <span className="min-w-0 flex-1 flex flex-col gap-0.5">
+                        <span className="font-medium text-[var(--text-primary)] break-words">{row.title}</span>
                         {row.detail && (
-                            <span className="min-w-0 truncate text-[var(--text-tertiary)]" title={row.detail}>
+                            <span className="min-w-0 break-words text-[var(--text-tertiary)]" title={row.detail}>
                                 {row.detail}
                             </span>
                         )}
+                        {tc?.name && <span className="font-mono text-[10px] text-[var(--text-tertiary)] break-all">{tc.name}</span>}
                     </span>
                     {active
                         ? <Loader2 size={12} className="flex-shrink-0 animate-spin" style={{ color: typeColorVar(row.family) }} />
@@ -178,6 +180,7 @@ function ActivityRow({ n, row, tc, active, live = false }) {
             </summary>
 
             <div className="px-1 pb-1.5 pl-9">
+                {(tc?.result?.added?.id || tc?.arguments?.stepId) && onFocusStep && <button type="button" onClick={() => onFocusStep(tc?.result?.added?.id || tc?.arguments?.stepId)} className="mb-2 rounded-lg px-2 py-1 text-[var(--type-ai)] hover:bg-[var(--bg-secondary)]">{t ? t('routines.assistant.show_step', 'Show step') : 'Show step'}</button>}
                 {/* A refusal says what is wrong in words; the payload is for
                     when the words are not enough. Showing the reason without a
                     click is the whole point of surfacing failures at all. */}

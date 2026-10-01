@@ -17,9 +17,13 @@
 
 const crypto = require('crypto');
 
-const _pending = new Map(); // decisionId → { resolve, reject, timeoutId, userId, conversationId, createdAt }
+const _pending = new Map(); // decisionId → { resolve, reject, timeoutId, userId, conversationId, createdAt, timeoutMs }
 
-const DEFAULT_TIMEOUT_MS = 60 * 1000;
+// Reviewing a finding list and marking spans takes minutes, not seconds —
+// 60s expired under a person mid-edit, and the answer then came back as
+// "Decision not found". Ten minutes of silence is the genuine expiry; the
+// review UI also heartbeats (touch) while it is open.
+const DEFAULT_TIMEOUT_MS = 10 * 60 * 1000;
 
 function _generateId() {
     return `dlp_${Date.now().toString(36)}_${crypto.randomBytes(6).toString('hex')}`;
@@ -45,22 +49,46 @@ function _generateId() {
 function register({ conversationId, userId, timeoutMs = DEFAULT_TIMEOUT_MS } = /** @type {any} */ ({})) {
     const decisionId = _generateId();
     const promise = new Promise((resolve, reject) => {
-        const timeoutId = setTimeout(() => {
-            _pending.delete(decisionId);
-            const err = new Error('DLP decision timed out');
-            err.code = 'DLP_TIMEOUT';
-            reject(err);
-        }, timeoutMs);
-        _pending.set(decisionId, {
+        const entry = {
             resolve,
             reject,
-            timeoutId,
+            timeoutId: null,
             userId: userId || null,
             conversationId: conversationId || null,
             createdAt: Date.now(),
-        });
+            timeoutMs,
+        };
+        entry.timeoutId = _armTimeout(decisionId, entry);
+        _pending.set(decisionId, entry);
     });
     return { decisionId, promise };
+}
+
+function _armTimeout(decisionId, entry) {
+    return setTimeout(() => {
+        _pending.delete(decisionId);
+        const err = new Error('DLP decision timed out');
+        err.code = 'DLP_TIMEOUT';
+        entry.reject(err);
+    }, entry.timeoutMs);
+}
+
+/**
+ * Refresh a pending decision's TTL — the review UI heartbeats while it is
+ * open so a person mid-edit is never expired from under their cursor.
+ * Same ownership rule as resolve. Returns false on not-found / not-owner.
+ *
+ * @param {string} decisionId
+ * @param {string} callerUserId
+ * @returns {boolean}
+ */
+function touch(decisionId, callerUserId) {
+    const entry = _pending.get(decisionId);
+    if (!entry) return false;
+    if (entry.userId && callerUserId && entry.userId !== callerUserId) return false;
+    clearTimeout(entry.timeoutId);
+    entry.timeoutId = _armTimeout(decisionId, entry);
+    return true;
 }
 
 /**
@@ -107,5 +135,7 @@ module.exports = {
     register,
     resolve,
     reject,
+    touch,
     size,
+    DEFAULT_TIMEOUT_MS,
 };

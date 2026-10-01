@@ -8,6 +8,7 @@ module.exports = {
     "project_chat.empty_unified": "Start a conversation with your project members. Mention @AI whenever you need help.",
     "project_chat.filter_unread": "Unread",
     "project_chat.filter_shared": "Shared",
+    "project_chat.count_summary": "{team} team · {ai} AI",
     "project_chat.no_matches": "No conversations match",
     "project_chat.try_filter": "Try another search or show all conversations.",
     "project_chat.conversations": "Conversations",

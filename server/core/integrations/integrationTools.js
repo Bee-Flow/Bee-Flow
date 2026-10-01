@@ -364,6 +364,24 @@ async function getIntegrationTools({ userId, session, isAdmin, agentConfig, rout
         if (isAppOn('ms-calendar')) addTools(MS_CALENDAR_TOOLS);
         if (isAppOn('onedrive')) addTools(ONEDRIVE_TOOLS);
         if (isAppOn('ms-contacts')) addTools(MS_CONTACTS_TOOLS);
+    } else if (userId && (isAppOn('outlook') || isAppOn('outlook-readonly'))) {
+        // Multi-provider: a Google (or Nextcloud) session whose user ALSO
+        // connected Microsoft 365 through Settings → Connections — or a
+        // routine session whose primary provider is not Microsoft but which
+        // carries `routineProviders.microsoft`. The session itself stays as it
+        // is (the Google tools above need its token); the Outlook tools get a
+        // Microsoft-only shim at dispatch (toolDispatcher). Only Outlook is
+        // lifted here: its approval routes resolve the same shim, the other
+        // Microsoft apps still read the live session.
+        let msSession = null;
+        try {
+            const { resolveMicrosoftSession } = require('../../auth/microsoftSessionHydration');
+            msSession = await resolveMicrosoftSession(session, userId);
+        } catch (_) { /* non-fatal — Outlook just stays unavailable */ }
+        if (msSession?.accessToken) {
+            if (isAppOn('outlook')) addTools(OUTLOOK_TOOLS);
+            if (isAppOn('outlook-readonly')) addTools(OUTLOOK_READONLY_TOOLS);
+        }
     }
 
     // Image Generation — requires Google API key
@@ -578,6 +596,9 @@ async function getIntegrationTools({ userId, session, isAdmin, agentConfig, rout
     // No credentials, no org toggle; the simple mode is the only switch.
     if (!userSimpleMode) {
         addTools(require('../../integrations/presentationTools').PRESENTATION_TOOLS);
+        // Word documents — the same footing: a real .docx in the org's Word
+        // house style, kept in storage (or Nextcloud) behind a download link.
+        addTools(require('../../integrations/wordDocumentTools').WORD_DOCUMENT_TOOLS);
     }
 
     // Personal memory — the user's own user_memories, read and written through
@@ -1010,6 +1031,7 @@ async function buildToolHint(tools, _userId = null) {
     }
     if (tools.some(t => t.function.name === 'generate_image')) integrations.push('Image generation');
     if (tools.some(t => t.function.name === 'create_presentation')) integrations.push('Presentations (create_presentation builds a real .pptx deck and returns a download link you must put in your reply; nextcloud_create_presentation saves it into Nextcloud so it opens in Nextcloud Office)');
+    if (tools.some(t => t.function.name === 'create_word_document')) integrations.push('Word documents (create_word_document builds a real, editable .docx in the organisation\'s Word house style and returns a download link you must put in your reply; with nextcloudPath it is saved into Nextcloud instead)');
     if (tools.some(t => t.function.name === 'generate_music')) integrations.push('Music generation (instrumental AI music via Lyria)');
     if (tools.some(t => t.function.name === 'generate_video')) integrations.push('Video generation (short AI video clips via Veo 3.1 — takes 1-3 minutes)');
     if (tools.some(t => t.function.name === 'agent_search')) integrations.push('Agent Search (AI-powered web search with reranking)');

@@ -30,6 +30,11 @@ import { typeGroupOf } from '../flow/nodeTypeColors';
  * the product's, not the model's.
  */
 const VERBS = {
+    builder_ask_questions: { key: 'routines.assistant.act.questions', en: 'Asked questions before continuing' },
+    builder_inspect_step: { key: 'routines.assistant.act.read_step', en: 'Read the step' },
+    builder_inspect_mapping: { key: 'routines.assistant.act.read_mapping', en: 'Checked bindings and available fields' },
+    builder_inspect_run: { key: 'routines.assistant.act.read_run', en: 'Checked values from the latest run' },
+    builder_write_plan: { key: 'routines.assistant.act.write_plan', en: 'Wrote the plan for review' },
     builder_propose_trigger: { key: 'routines.builder.act.trigger', en: 'Set the trigger' },
     builder_remove_step: { key: 'routines.builder.act.remove', en: 'Removed a step' },
     builder_update_step: { key: 'routines.builder.act.update', en: 'Adjusted a step' },
@@ -180,7 +185,7 @@ export function describeToolCall(tc, t = null) {
     const type = added ? str(added.type) : null;
     return {
         title: titleFor(name, type, t),
-        detail: (added && str(added.label)) || '',
+        detail: (added && str(added.label)) || str(result?.step?.label) || str(tc?.arguments?.stepId) || '',
         type,
         family: type ? typeGroupOf(type) : null,
         status,

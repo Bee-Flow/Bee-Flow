@@ -67,6 +67,7 @@ let events;
 let activity;
 let bell;
 let asked;
+let transient;
 
 const requireProjectRole = fakeRequireProjectRole(ROLES);
 
@@ -81,6 +82,7 @@ const api = serve('/api/projects', makeProjectTasksRouter({
     readMeeting: async (req, project, id) => (id === NOTE.id && project.id === 'p1' ? NOTE : null),
     listPeople: async () => [{ id: 'olga', name: 'Olga' }, { id: 'ed', name: 'Ed Editor' }, { id: 'eve', name: 'Eve' }],
     emit: async (projectId, event) => { events.push({ projectId, ...event }); },
+    publishTransient: async (...args) => { transient.push(args); },
     notifier: { assigned: async (a) => { bell.push(a); } },
     resolveOrgs: async () => ({ orgId: 'org1', limitOrgId: 'org1' }),
     improveLimiter: function rateLimitMiddleware(req, res, next) { next(); },
@@ -99,7 +101,7 @@ before(async () => {
     for (const id of Object.keys(PROJECTS)) await pg.query('INSERT INTO projects (id, name, owner_id) VALUES ($1, $1, $2)', [id, 'olga']);
 });
 after(async () => { await api.close(); await pg.close(); });
-beforeEach(() => { events = []; activity = []; bell = []; asked = []; });
+beforeEach(() => { events = []; activity = []; bell = []; asked = []; transient = []; });
 
 const call = (method, url, opts = {}) => api.call(method, url, opts);
 async function make(body = {}, user = EDITOR, projectId = 'p1') {
@@ -456,4 +458,102 @@ test('invalid planning ranges refuse single and batch creation before writing an
     assert.strictEqual((await call('POST', '/api/projects/p1/tasks', { body: { title: 'Invalid', startDate: '2026-11-02', dueDate: '2026-11-01' } })).status, 400);
     assert.strictEqual((await call('POST', '/api/projects/p1/tasks/batch', { body: { items: [{ title: 'Valid' }, { title: 'Invalid', startDate: '2026-11-02', dueDate: '2026-11-01' }] } })).status, 400);
     assert.strictEqual((await store.listTasks('p1')).length, before);
+});
+
+const poker = (step, body, user) => call('POST', `/api/projects/p1/tasks/poker/session/${step}`, { body, user });
+
+test('poker starts on one task alone, and not while a session runs or on a task that is not there', async () => {
+    const a = await make({ title: 'Solo' });
+    const b = await make({ title: 'Other' });
+    const started = await poker('start', { taskId: a.id });
+    assert.strictEqual(started.status, 201, started.text);
+    assert.strictEqual(started.body.session.taskTitle, 'Solo');
+    assert.deepStrictEqual(started.body.session.queueTaskIds, [], 'no queue for a one-task session');
+    assert.deepStrictEqual(started.body.session.queueTitles, []);
+    assert.strictEqual((await poker('start', { taskIds: [b.id] })).status, 409, 'one session per project');
+    assert.strictEqual((await poker('start', {})).status, 400, 'taskId or taskIds is required');
+    assert.strictEqual((await poker('start', { taskIds: ['nope'] })).status, 404, 'a queued task must exist in the project');
+    const cancelled = await poker('cancel', { sessionId: started.body.session.sessionId });
+    assert.strictEqual(cancelled.status, 200, cancelled.text);
+});
+
+test('a queued poker session estimates every task in turn and completes at the end of the queue', async () => {
+    const a = await make({ title: 'A' });
+    const b = await make({ title: 'B' });
+    const c = await make({ title: 'C' });
+    const started = await poker('start', { taskIds: [a.id, b.id, c.id] });
+    assert.strictEqual(started.status, 201, started.text);
+    const { sessionId } = started.body.session;
+    assert.strictEqual(started.body.session.taskId, a.id);
+    assert.strictEqual(started.body.session.taskTitle, 'A');
+    assert.deepStrictEqual(started.body.session.queueTaskIds, [b.id, c.id]);
+    assert.deepStrictEqual(started.body.session.queueTitles, ['B', 'C'], 'queue titles opened like the task title');
+    // Saving an estimate needs the cards on the table first.
+    const early = await poker('next', { sessionId, storyPoints: 5 });
+    assert.strictEqual(early.status, 409);
+    assert.strictEqual(early.body.code, 'poker_session_not_revealed');
+    assert.strictEqual((await store.getTask('p1', a.id)).storyPoints, null, 'nothing scored too early');
+    // First item: a viewer votes, the editor reveals, next scores it and moves to b.
+    assert.strictEqual((await poker('vote', { sessionId, vote: '5' }, VIEWER)).status, 200);
+    assert.strictEqual((await poker('reveal', { sessionId })).status, 200);
+    const one = await poker('next', { sessionId, storyPoints: 5 });
+    assert.strictEqual(one.status, 200, one.text);
+    assert.strictEqual(one.body.task.id, a.id);
+    assert.strictEqual(one.body.task.storyPoints, 5);
+    assert.strictEqual(one.body.session.taskId, b.id);
+    assert.strictEqual(one.body.session.phase, 'voting');
+    assert.deepStrictEqual(one.body.session.voterIds, [], 'a fresh vote for the next item');
+    assert.deepStrictEqual(one.body.session.queueTaskIds, [c.id]);
+    assert.deepStrictEqual(one.body.session.queueTitles, ['C']);
+    // Second item.
+    await poker('vote', { sessionId, vote: '8' }, VIEWER);
+    await poker('reveal', { sessionId });
+    const two = await poker('next', { sessionId, storyPoints: 8 });
+    assert.strictEqual(two.body.task.id, b.id);
+    assert.strictEqual(two.body.session.taskId, c.id);
+    assert.deepStrictEqual(two.body.session.queueTaskIds, []);
+    // Last item: the queue is empty, so saving the estimate closes the session.
+    await poker('vote', { sessionId, vote: '3' }, VIEWER);
+    await poker('reveal', { sessionId });
+    const three = await poker('next', { sessionId, storyPoints: 3 });
+    assert.strictEqual(three.body.task.id, c.id);
+    assert.strictEqual(three.body.task.storyPoints, 3);
+    assert.strictEqual(three.body.session, null, 'the session is over');
+    assert.strictEqual((await store.getTask('p1', c.id)).storyPoints, 3);
+    assert.strictEqual((await call('GET', '/api/projects/p1/tasks/poker/session', { user: VIEWER })).body.session, null);
+    assert.deepStrictEqual(events.filter((e) => e.kind === 'task.updated').map((e) => e.payload.taskId), [a.id, b.id, c.id]);
+    assert.ok(transient.every(([, event]) => event.kind === 'task.poker.updated'));
+    // A finished session frees the project for the next one.
+    assert.strictEqual((await poker('start', { taskId: a.id })).status, 201);
+    await poker('cancel', { sessionId: (await store.getPokerSession('p1')).sessionId });
+});
+
+test('next needs an editor and a real session', async () => {
+    const a = await make({ title: 'Guarded' });
+    const started = await poker('start', { taskIds: [a.id] });
+    const { sessionId } = started.body.session;
+    assert.strictEqual((await poker('next', { sessionId, storyPoints: 5 }, VIEWER)).status, 403);
+    assert.strictEqual((await poker('next', { sessionId: 'no-such-session', storyPoints: 5 })).status, 409);
+    assert.strictEqual((await poker('next', { sessionId, storyPoints: 4 })).status, 400, 'still a Fibonacci estimate');
+    await poker('cancel', { sessionId });
+});
+
+test('dependency links survive storage, stay separate from related tasks and reject cycles', async () => {
+    const a = await make({ title: 'Predecessor' });
+    const b = await make({ title: 'Successor', links: [{ kind: 'task', id: a.id, relation: 'depends_on' }] });
+    assert.deepStrictEqual(b.links, [{ kind: 'task', id: a.id, relation: 'depends_on' }]);
+    assert.deepStrictEqual((await store.getTask('p1', b.id)).links, b.links);
+    const c = await make({ links: [{ kind: 'task', id: b.id, relation: 'depends_on' }] });
+    const cycle = await call('PATCH', `/api/projects/p1/tasks/${a.id}`, { body: { links: [{ kind: 'task', id: c.id, relation: 'depends_on' }] } });
+    assert.strictEqual(cycle.status, 400);
+    assert.deepStrictEqual((await store.getTask('p1', a.id)).links, []);
+    const related = await call('PATCH', `/api/projects/p1/tasks/${a.id}`, { body: { links: [{ kind: 'task', id: b.id }] } });
+    assert.strictEqual(related.status, 200, related.text);
+    const converted = await call('PATCH', `/api/projects/p1/tasks/${a.id}`, { body: { links: [{ kind: 'task', id: b.id, relation: 'depends_on' }] } });
+    assert.strictEqual(converted.status, 400);
+    const invalid = await call('PATCH', `/api/projects/p1/tasks/${a.id}`, { body: { links: [{ kind: 'document', id: 'doc-1', relation: 'depends_on' }] } });
+    assert.strictEqual(invalid.status, 400);
+    const removed = await call('PATCH', `/api/projects/p1/tasks/${b.id}`, { body: { links: [] } });
+    assert.strictEqual(removed.status, 200, removed.text);
+    assert.deepStrictEqual(removed.body.task.links, []);
 });

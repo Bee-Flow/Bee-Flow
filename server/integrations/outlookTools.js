@@ -7,6 +7,7 @@
 
 const { graphFetch, isMicrosoftConnected } = require('./msGraphClient');
 const log = require('../telemetry/log');
+const { MESSAGE_ID_TEXT, FOLDER_TEXT, assertGraphId } = require('./graphIds');
 
 /**
  * Tool definitions in OpenAI function-calling format.
@@ -79,7 +80,7 @@ const OUTLOOK_TOOLS = [
         type: 'function',
         function: {
             name: 'outlook_compose',
-            description: 'Compose and send a new email or reply to an existing email. The user will see a preview with Send, Save as Draft, and Discard buttons before anything is sent — no email is sent automatically. IMPORTANT: When replying, set replyToMessageId to the original message ID. For replies, prefix subject with "Re: ". For forwarding, prefix with "Fwd: " and include the original email body.',
+            description: 'Compose and send a new email or reply to an existing email. In a chat the user sees a preview with Send and Discard buttons before anything is sent; in an unattended run (automation, scheduled agent) the email is sent directly. IMPORTANT: When replying, set replyToMessageId to the original message ID. For replies, prefix subject with "Re: ". For forwarding, prefix with "Fwd: " and include the original email body.',
             parameters: {
                 type: 'object',
                 properties: {
@@ -135,8 +136,18 @@ function stripHtml(html) {
 
 /**
  * Execute an Outlook tool call.
+ *
+ * @param {string} toolName
+ * @param {Object} args
+ * @param {Object} session - a Microsoft session (SSO or the vault shim)
+ * @param {Object} [opts]
+ * @param {boolean} [opts.autoSend=false] - For outlook_compose: when true the
+ *   mail is sent straight away instead of returning an email_draft for the
+ *   user to approve. Only unattended callers (the automation runner, a
+ *   scheduled agent run) set it — there is nobody to click Send there, and a
+ *   draft would sit unsent forever. Same contract as gmail_compose.
  */
-async function executeOutlookTool(toolName, args, session) {
+async function executeOutlookTool(toolName, args, session, opts = {}) {
     if (!isMicrosoftConnected(session)) {
         throw new Error('Not connected to Outlook — user must log in with Microsoft');
     }
@@ -172,6 +183,7 @@ async function executeOutlookTool(toolName, args, session) {
         const { maxResults = 10, folder = 'inbox', unreadOnly = false } = args;
         const top = Math.min(Math.max(parseInt(maxResults) || 10, 1), 20);
 
+        assertGraphId(folder, FOLDER_TEXT);
         const isSentFolder = String(folder).toLowerCase() === 'sentitems';
         const orderField = isSentFolder ? 'sentDateTime' : 'receivedDateTime';
 
@@ -202,6 +214,7 @@ async function executeOutlookTool(toolName, args, session) {
     } else if (toolName === 'outlook_read') {
         const { messageId } = args;
         if (!messageId) throw new Error('messageId is required');
+        assertGraphId(messageId, MESSAGE_ID_TEXT);
 
         const msg = await graphFetch(
             `/me/messages/${messageId}?$select=id,subject,from,toRecipients,ccRecipients,receivedDateTime,body,hasAttachments,conversationId`,
@@ -254,6 +267,7 @@ async function executeOutlookTool(toolName, args, session) {
     } else if (toolName === 'outlook_compose') {
         const { to, cc, bcc, subject, body, replyToMessageId } = args;
         if (!to || !subject || !body) throw new Error('to, subject, and body are required');
+        if (replyToMessageId) assertGraphId(replyToMessageId, MESSAGE_ID_TEXT);
 
         // For replies, fetch conversation context
         let conversationId = null;
@@ -267,6 +281,19 @@ async function executeOutlookTool(toolName, args, session) {
             } catch (err) {
                 log.info('[Outlook] Could not fetch reply context:', err.message);
             }
+        }
+
+        if (opts.autoSend) {
+            await executeOutlookSend({ to, cc, bcc, subject, body, replyToMessageId }, session);
+            log.info(`[Outlook] (autoSend) Email sent to ${String(to).split(',').length} recipient(s)`);
+            return {
+                sent: true,
+                to,
+                subject,
+                replyToMessageId: replyToMessageId || null,
+                conversationId: conversationId || null,
+                message: `Email sent to ${to}.`,
+            };
         }
 
         return {
@@ -347,6 +374,7 @@ async function executeOutlookSend(draft, session) {
 
     // If replying, use the reply endpoint
     if (draft.replyToMessageId) {
+        assertGraphId(draft.replyToMessageId, MESSAGE_ID_TEXT);
         await graphFetch(`/me/messages/${draft.replyToMessageId}/reply`, session, {
             method: 'POST',
             body: JSON.stringify({

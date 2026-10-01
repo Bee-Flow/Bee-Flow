@@ -7,7 +7,8 @@
 const { run, getOne, getAll, exec } = require('../db');
 const { makeStoreInit } = require('./lib/storeInit');
 const { runDdl } = require('./lib/_ddl');
-const { computeCost } = require('../core/llm/modelCosts');
+const { rateUsage } = require('../core/llm/modelCosts');
+const priceCatalog = require('../core/llm/priceCatalog');
 const { currentClient } = require('../telemetry/requestClient');
 const log = require('../telemetry/log');
 
@@ -44,7 +45,7 @@ async function _initDB() {
             source TEXT DEFAULT 'unknown',
             duration_ms INTEGER DEFAULT 0,
             organization_id TEXT,
-            estimated_cost REAL DEFAULT 0,
+            estimated_cost DOUBLE PRECISION DEFAULT 0,
             conversation_id TEXT
         )
     `);
@@ -78,7 +79,7 @@ async function _initDB() {
         // billed_cost — for PAYG (metered) subscriptions, the marked-up cost we
         // reported to Stripe at log time. NULL on fixed-plan rows so dashboards
         // can distinguish "this org never had PAYG history" from "PAYG cost 0".
-        `ALTER TABLE ai_usage_log ADD COLUMN IF NOT EXISTS billed_cost REAL`,
+        `ALTER TABLE ai_usage_log ADD COLUMN IF NOT EXISTS billed_cost DOUBLE PRECISION`,
         // client — which client made the call: 'web' | 'android' | 'api' |
         // 'unknown'. Every client has always sent X-Beeflow-Client and nothing
         // ever read it, so until this column existed no query could separate a
@@ -86,6 +87,37 @@ async function _initDB() {
         // already exists; see telemetry/requestClient.js for what it may and may
         // not become.
         `ALTER TABLE ai_usage_log ADD COLUMN IF NOT EXISTS client TEXT DEFAULT 'unknown'`,
+        // ── Rating evidence (one row = one self-contained, re-derivable cost) ──
+        // A row stores the rate card it was priced with, so a cost can be explained
+        // and corrected later without guessing what the price list said that day.
+        // All nullable without a default: metadata-only on a volume table, and a
+        // NULL honestly means "logged before this existed".
+        //   price_*          per-1M-token rates actually charged, in `price_currency`,
+        //                    AFTER tier/geo/regional multipliers and long-context
+        //                    rates. price_cache_write is the 5m rate, the 1h rate,
+        //                    or the token-weighted mean of a mixed write.
+        //   price_source     where the rate came from (catalogue source, 'override',
+        //                    'local', 'litellm', 'repo:...', 'upper_bound')
+        //   catalog_version  version of the catalogue card, when one was used
+        //   cost_basis       'exact' | 'list' | 'estimated' | 'unknown' | 'local'
+        //   price_currency   currency the price source quotes (Scaleway: EUR)
+        //   currency         currency of estimated_cost / billed_cost (the plan's)
+        //   fx_rate          price_currency -> currency rate that was applied (1 when equal)
+        //   service_tier     billed tier when the provider reported one:
+        //                    standard | batch | flex | priority
+        //   usage_raw        the normalised usage facts and the pricing detail
+        `ALTER TABLE ai_usage_log ADD COLUMN IF NOT EXISTS price_input DOUBLE PRECISION`,
+        `ALTER TABLE ai_usage_log ADD COLUMN IF NOT EXISTS price_output DOUBLE PRECISION`,
+        `ALTER TABLE ai_usage_log ADD COLUMN IF NOT EXISTS price_cache_read DOUBLE PRECISION`,
+        `ALTER TABLE ai_usage_log ADD COLUMN IF NOT EXISTS price_cache_write DOUBLE PRECISION`,
+        `ALTER TABLE ai_usage_log ADD COLUMN IF NOT EXISTS price_source TEXT`,
+        `ALTER TABLE ai_usage_log ADD COLUMN IF NOT EXISTS catalog_version TEXT`,
+        `ALTER TABLE ai_usage_log ADD COLUMN IF NOT EXISTS cost_basis TEXT`,
+        `ALTER TABLE ai_usage_log ADD COLUMN IF NOT EXISTS price_currency TEXT`,
+        `ALTER TABLE ai_usage_log ADD COLUMN IF NOT EXISTS currency TEXT`,
+        `ALTER TABLE ai_usage_log ADD COLUMN IF NOT EXISTS fx_rate DOUBLE PRECISION`,
+        `ALTER TABLE ai_usage_log ADD COLUMN IF NOT EXISTS service_tier TEXT`,
+        `ALTER TABLE ai_usage_log ADD COLUMN IF NOT EXISTS usage_raw JSONB`,
         `CREATE INDEX IF NOT EXISTS idx_usage_timestamp ON ai_usage_log(timestamp DESC)`,
         `CREATE INDEX IF NOT EXISTS idx_usage_model ON ai_usage_log(model)`,
         `CREATE INDEX IF NOT EXISTS idx_usage_agent ON ai_usage_log(agent_id)`,
@@ -106,6 +138,14 @@ async function _initDB() {
         // partial index: tool_name IS NOT NULL — getToolUsage() filters this column
         `CREATE INDEX IF NOT EXISTS idx_usage_tool_name ON ai_usage_log(tool_name) WHERE tool_name IS NOT NULL`,
     ]);
+
+    // estimated_cost / billed_cost were REAL (float4: ~7 significant digits, so a
+    // sub-cent call and a large sum both lose digits). See widenCostColumns.
+    try {
+        await widenCostColumns();
+    } catch (e) {
+        log.error(`[UsageStore] could not widen the cost columns: ${e.message}`);
+    }
 
     // PAYG meter event outbox — durable queue for Stripe meter event delivery.
     // The hot path inserts a row here instead of firing-and-forgetting to
@@ -131,6 +171,73 @@ async function _initDB() {
         `CREATE INDEX IF NOT EXISTS idx_payg_outbox_pending ON payg_meter_outbox(created_at) WHERE delivered_at IS NULL`,
     ]);
 
+}
+
+// Above this many rows the column rewrite is a runbook job, not a boot step:
+// ALTER COLUMN TYPE rewrites the whole table under an ACCESS EXCLUSIVE lock, which
+// on a large ai_usage_log would block every usage insert for the duration and run
+// into the pool's 30s statement_timeout on every boot (see the runbook rule in
+// stores/lib/_ddl.js).
+const WIDEN_COST_COLUMNS_MAX_ROWS = 500_000;
+
+const WIDEN_COST_COLUMNS_SQL = `
+    DO $$
+    BEGIN
+        IF EXISTS (SELECT 1 FROM information_schema.columns
+                    WHERE table_schema = current_schema() AND table_name = 'ai_usage_log'
+                      AND column_name = 'estimated_cost' AND data_type = 'real') THEN
+            ALTER TABLE ai_usage_log ALTER COLUMN estimated_cost TYPE DOUBLE PRECISION USING estimated_cost::numeric::double precision;
+        END IF;
+        IF EXISTS (SELECT 1 FROM information_schema.columns
+                    WHERE table_schema = current_schema() AND table_name = 'ai_usage_log'
+                      AND column_name = 'billed_cost' AND data_type = 'real') THEN
+            ALTER TABLE ai_usage_log ALTER COLUMN billed_cost TYPE DOUBLE PRECISION USING billed_cost::numeric::double precision;
+        END IF;
+    END $$`;
+
+/**
+ * Widen estimated_cost and billed_cost from REAL to DOUBLE PRECISION.
+ *
+ * DOUBLE PRECISION rather than NUMERIC on purpose: node-postgres hands NUMERIC
+ * back as a string, and every consumer of these columns (SUM(...) in the usage
+ * routes, the cost caps in core/entitlements/limits.js, the dashboards) does
+ * arithmetic on them. float8 keeps 15 significant digits, enough for the
+ * per-call amounts and for the micro-unit rounding of the PAYG outbox, and still
+ * arrives as a number.
+ *
+ * Idempotent: a column that is already DOUBLE PRECISION is left alone (the check
+ * runs again inside the DDL's advisory lock, so two replicas booting together
+ * rewrite once). The old float4 value converts through NUMERIC so 0.1 stays 0.1
+ * instead of becoming 0.10000000149011612.
+ *
+ * Size guard: above WIDEN_COST_COLUMNS_MAX_ROWS rows the boot skips the rewrite
+ * and logs the exact statement for the runbook; new rows insert fine into REAL
+ * columns in the meantime (they just keep float4 precision until it is run).
+ * `{ force: true }` is the runbook entry point.
+ *
+ * @param {{ force?: boolean }} [opts]
+ * @returns {Promise<{ widened: boolean, reason?: string }>}
+ */
+async function widenCostColumns({ force = false } = {}) {
+    const cols = await getAll(
+        `SELECT column_name, data_type FROM information_schema.columns
+          WHERE table_schema = current_schema() AND table_name = 'ai_usage_log'
+            AND column_name IN ('estimated_cost', 'billed_cost')`);
+    if (!cols.some((c) => c.data_type === 'real')) return { widened: false, reason: 'already_wide' };
+
+    if (!force) {
+        const probe = await getOne(
+            `SELECT COUNT(*)::int AS n FROM (SELECT 1 FROM ai_usage_log LIMIT ${WIDEN_COST_COLUMNS_MAX_ROWS + 1}) probe`);
+        if ((probe && Number(probe.n)) > WIDEN_COST_COLUMNS_MAX_ROWS) {
+            log.warn(`[UsageStore] ai_usage_log has more than ${WIDEN_COST_COLUMNS_MAX_ROWS} rows: leaving estimated_cost/billed_cost as REAL at boot. `
+                + 'Run once in a maintenance window: require("./stores/usageStore").widenCostColumns({ force: true })');
+            return { widened: false, reason: 'table_too_large' };
+        }
+    }
+    const res = await runDdl('usageStore', [WIDEN_COST_COLUMNS_SQL], { lockTimeout: '60s' });
+    if (res.failures.length > 0) return { widened: false, reason: 'ddl_failed' };
+    log.info('[UsageStore] estimated_cost / billed_cost widened to DOUBLE PRECISION');
+    return { widened: true };
 }
 
 log.info('[UsageStore] Initialized (PostgreSQL)');
@@ -226,6 +333,82 @@ function invalidatePaygCache(organizationId, userId) {
 
 // ============ Logging ============
 
+// ── Rating evidence helpers ─────────────────────────────────────────────────
+
+const USAGE_RAW_MAX_BYTES = 8 * 1024;
+
+const _num = (v) => (Number.isFinite(Number(v)) ? Number(v) : null);
+const _bool = (v) => (typeof v === 'boolean' ? v : null);
+const _ident = (v) => (typeof v === 'string' && /^[a-z0-9][a-z0-9_.:-]{0,63}$/i.test(v) ? v.toLowerCase() : null);
+
+/**
+ * The usage facts and pricing detail stored with a row (`usage_raw`). Built from
+ * a whitelist, not by spreading the entry: the entry carries whatever the caller
+ * attached, and provider-reported values are untrusted. The nested tool_use and
+ * modality objects come from usageNormalizer (already bounded); the size cap below
+ * is the backstop that keeps one row from carrying an unbounded document.
+ */
+function _usageRaw(entry, rated) {
+    const doc = {
+        v: 1,
+        usage: {
+            prompt_tokens: _num(entry.prompt_tokens),
+            completion_tokens: _num(entry.completion_tokens),
+            cached_tokens: _num(entry.cached_tokens),
+            cache_creation_tokens: _num(entry.cache_creation_tokens),
+            cache_creation_5m_tokens: _num(entry.cache_creation_5m_tokens),
+            cache_creation_1h_tokens: _num(entry.cache_creation_1h_tokens),
+            cache_creation_ttl_assumed: _bool(entry.cache_creation_ttl_assumed),
+            reasoning_tokens: _num(entry.reasoning_tokens),
+            prompt_includes_cache: _bool(entry.prompt_includes_cache),
+            cache_ttl: _ident(entry.cache_ttl),
+            service_tier: _ident(entry.service_tier),
+            inference_geo: _ident(entry.inference_geo),
+            traffic_type: _ident(entry.traffic_type),
+            tool_use: entry.tool_use && typeof entry.tool_use === 'object' ? entry.tool_use : null,
+            modality: entry.modality && typeof entry.modality === 'object' ? entry.modality : null,
+        },
+        pricing: {
+            at: rated.at,
+            tier: rated.tier,
+            inference_geo: rated.inference_geo,
+            long_context: rated.long_context,
+            valid_from: rated.valid_from,
+            list_rates: rated.rates,
+            multiplier: rated.multiplier,
+            notes: rated.notes,
+        },
+    };
+    let json = JSON.stringify(doc);
+    if (json.length > USAGE_RAW_MAX_BYTES) {
+        doc.usage.tool_use = null;
+        doc.usage.modality = null;
+        json = JSON.stringify(doc);
+    }
+    return json.length > USAGE_RAW_MAX_BYTES ? JSON.stringify({ v: 1, truncated: true, pricing: { at: rated.at, tier: rated.tier } }) : json;
+}
+
+/**
+ * Conversion factor `from` -> `to` (price currency -> plan currency).
+ * Resolves through the USD-based rate table of core/text/currency, with the same
+ * strict switch: a failed lookup for a metered plan throws (no wrong number is
+ * logged), anything else falls back to the configured-or-1.0 behaviour.
+ * Returns NaN for a rate that cannot be inverted or divided.
+ */
+async function _fxFactor(from, to, strict) {
+    const currency = require('../core/text/currency');
+    if (from === 'USD') return currency.getUsdToCurrencyRate(to, { strict });
+    if (to === 'USD') {
+        const r = await currency.getUsdToCurrencyRate(from, { strict });
+        return Number.isFinite(r) && r > 0 ? 1 / r : NaN;
+    }
+    const [rFrom, rTo] = await Promise.all([
+        currency.getUsdToCurrencyRate(from, { strict }),
+        currency.getUsdToCurrencyRate(to, { strict }),
+    ]);
+    return Number.isFinite(rFrom) && rFrom > 0 && Number.isFinite(rTo) && rTo > 0 ? rTo / rFrom : NaN;
+}
+
 async function logUsage(entry) {
     await initDB();
     try {
@@ -240,16 +423,31 @@ async function logUsage(entry) {
         const parentCallId = entry.parent_call_id || null;
         const swarmRunId = entry.swarm_run_id || null;
         const model = entry.model || 'unknown';
+        // The call is rated with the price in force AT THE CALL'S OWN TIMESTAMP,
+        // once, here; the rate card goes on the row and nothing re-prices it later.
+        // A call cannot have happened in the future, so a later `timestamp` is
+        // clamped to now: a future-dated catalogue card never applies early.
+        const callTimestamp = entry.timestamp || now;
+        const callAt = new Date(Math.min(priceCatalog.toMs(callTimestamp), Date.now()));
         // Cache-aware cost: cached reads at provider discount, cache writes at
-        // TTL-specific premium (Anthropic 1.25× for 5m, 2× for 1h). USD —
-        // modelCosts works in LiteLLM's native USD per 1M tokens.
-        const costUsd = computeCost(model, promptTokens, completionTokens, cachedTokens, cacheCreationTokens, cacheTtl);
+        // TTL-specific premium (Anthropic 1.25× for 5m, 2× for 1h, each part of a
+        // mixed write at its own), service tier, geo and long-context rates when
+        // the call's facts say so. In the CURRENCY OF THE PRICE SOURCE (USD, except
+        // Scaleway: EUR) — converted to the plan currency below, once.
+        const rated = rateUsage({ ...entry, model, timestamp: callAt });
+        const costNative = rated.cost;
+        const nativeCurrency = rated.currency;
 
         // OTel domain metric — PII-safe operational attributes only. Best-effort;
         // must never break usage logging (which is billing-critical). This is the
         // single authoritative sink for every model call, so one hook covers all
         // paths (chat, title, automation, swarm, tasks).
         try {
+            let costUsd = costNative;
+            if (nativeCurrency !== 'USD' && costNative > 0) {
+                const perUsd = await require('../core/text/currency').getUsdToCurrencyRate(nativeCurrency);
+                costUsd = perUsd > 0 ? costNative / perUsd : costNative;
+            }
             require('../telemetry/metrics').recordLlmUsage({
                 provider: entry.provider,   // may be undefined → derived from model
                 model,
@@ -266,19 +464,19 @@ async function logUsage(entry) {
         // persist the marked-up `billed_cost` alongside the raw cost in a
         // single INSERT. Same target value is reused for the Stripe meter
         // event below, ensuring local history and Stripe stay in sync.
-        const paygTarget = (costUsd > 0)
+        const paygTarget = (costNative > 0)
             ? await _resolvePaygTarget(entry.organization_id || null, entry.user_id || null).catch(err => {
                 log.error('[UsageStore] PAYG resolve failed:', err.message);
                 return null;
             })
             : null;
 
-        // Convert USD → plan currency. PAYG target carries the plan currency;
-        // for fixed-plan or no-subscription callers, fall back to a separate
-        // lightweight lookup. Stripe meter events report micro-units in the
-        // plan's currency, so the local cost columns must match.
+        // Plan currency. PAYG target carries it; for fixed-plan or
+        // no-subscription callers, fall back to a separate lightweight lookup.
+        // Stripe meter events report micro-units in the plan's currency, so the
+        // local cost columns must match.
         let targetCurrency = 'USD';
-        if (costUsd > 0) {
+        if (costNative > 0) {
             if (paygTarget?.currency) {
                 targetCurrency = paygTarget.currency;
             } else if (entry.organization_id || entry.user_id) {
@@ -288,47 +486,54 @@ async function logUsage(entry) {
             }
         }
         // FX lookup. For PAYG customers a silent fallback to 1.0 would bill
-        // the USD figure as if it were EUR (a 5–15 % under-bill or over-bill
-        // depending on the pair). When we have a paying customer on a
-        // non-USD currency and the rate provider fails, refuse to log so the
-        // caller surfaces "billing service degraded" instead of writing the
-        // wrong number to ai_usage_log. For non-PAYG callers, 1.0 is a safe
-        // reporting fallback — the column is informational only.
+        // the source-currency figure as if it were the plan currency (a 5–15 %
+        // under-bill or over-bill depending on the pair). When we have a paying
+        // customer on a different currency and the rate provider fails, refuse
+        // to log so the caller surfaces "billing service degraded" instead of
+        // writing the wrong number to ai_usage_log. For non-PAYG callers, 1.0 is
+        // a safe reporting fallback — the column is informational only.
         //
         // The currency helper handles three layers of resilience:
         //   1. 5-minute hot cache for the resolved rate
         //   2. 24-hour last-good cache for transient configStore failures
         //   3. `strict: true` (PAYG only) — throw on cache miss + lookup
         //      failure, rather than silently substituting 1.0.
+        //
+        // A price that is already in the plan's currency (Scaleway EUR on a EUR
+        // plan) needs no conversion at all, and is not round-tripped through USD.
         let fxRate = 1;
-        if (costUsd > 0 && targetCurrency !== 'USD') {
-            const currency = require('../core/text/currency');
+        if (costNative > 0 && targetCurrency !== nativeCurrency) {
             try {
-                fxRate = await currency.getUsdToCurrencyRate(targetCurrency, { strict: !!paygTarget });
+                fxRate = await _fxFactor(nativeCurrency, targetCurrency, !!paygTarget);
             } catch (e) {
                 if (paygTarget) {
                     // Re-throw so the LLM handler surfaces 503 to the user.
                     throw e;
                 }
-                log.error(`[UsageStore] FX rate lookup failed for USD→${targetCurrency} (non-PAYG): ${e.message}`);
+                log.error(`[UsageStore] FX rate lookup failed for ${nativeCurrency}→${targetCurrency} (non-PAYG): ${e.message}`);
                 fxRate = 1;
             }
             if (fxRate == null || !isFinite(fxRate) || fxRate <= 0) {
                 if (paygTarget) {
-                    throw new Error(`fx_rate_unavailable: USD→${targetCurrency}`);
+                    throw new Error(`fx_rate_unavailable: ${nativeCurrency}→${targetCurrency}`);
                 }
                 fxRate = 1;
             }
         }
-        const cost = costUsd * fxRate;
+        const cost = costNative * fxRate;
         const billedCost = paygTarget ? cost * (1 + paygTarget.markupPercent / 100) : null;
+        const ledgerCurrency = costNative > 0 ? targetCurrency : nativeCurrency;
+        // The tier is recorded only when the provider reported one.
+        const reportedTier = entry.service_tier || entry.traffic_type ? rated.tier : null;
 
         const insertResult = await run(`
-            INSERT INTO ai_usage_log (timestamp, user_id, agent_id, agent_name, agent_type, model, prompt_tokens, completion_tokens, total_tokens, cached_tokens, cache_creation_tokens, reasoning_tokens, cache_ttl, stop_reason, parent_call_id, swarm_run_id, tool_name, source, duration_ms, organization_id, estimated_cost, billed_cost, conversation_id, client)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)
+            INSERT INTO ai_usage_log (timestamp, user_id, agent_id, agent_name, agent_type, model, prompt_tokens, completion_tokens, total_tokens, cached_tokens, cache_creation_tokens, reasoning_tokens, cache_ttl, stop_reason, parent_call_id, swarm_run_id, tool_name, source, duration_ms, organization_id, estimated_cost, billed_cost, conversation_id, client,
+                                      price_input, price_output, price_cache_read, price_cache_write, price_source, catalog_version, cost_basis, price_currency, currency, fx_rate, service_tier, usage_raw)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24,
+                    $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36::jsonb)
             RETURNING id
         `, [
-            entry.timestamp || now,
+            callTimestamp,
             entry.user_id || null,
             entry.agent_id || null,
             entry.agent_name || null,
@@ -357,7 +562,19 @@ async function logUsage(entry) {
             // 'unknown', which is the honest answer: a machine-initiated turn
             // is not a client choice. `entry.client` is honoured when a caller
             // genuinely knows better than the ambient context.
-            entry.client || currentClient()
+            entry.client || currentClient(),
+            rated.price_input,
+            rated.price_output,
+            rated.price_cache_read,
+            rated.price_cache_write,
+            rated.source,
+            rated.catalog_version,
+            rated.cost_basis,
+            nativeCurrency,
+            ledgerCurrency,
+            fxRate,
+            reportedTier,
+            _usageRaw(entry, rated),
         ]);
         if (cachedTokens > 0) {
             log.info(`[UsageStore] 💰 Cache savings: ${cachedTokens} cached tokens (model: ${model})`);

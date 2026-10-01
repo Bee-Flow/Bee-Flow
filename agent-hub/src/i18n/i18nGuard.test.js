@@ -233,6 +233,10 @@ const CARRIERS = [
     'phKey', 'hintKey', 'shortKey', 'explainKey', 'badgeKey', 'actionHintKey',
     'objectiveKey', 'remediationKey', 'descriptionKey', 'bodyMdKey',
     'questionKey', 'instructionKey', 'i18nKey',
+    // Lesson content (BFSF-474): quiz choice feedback and explanation, sim
+    // pair sides and note, sim scenario brief — the generator emits these
+    // beside their English fallbacks in onboarding/generated/lessons.js.
+    'feedbackKey', 'explanationKey', 'leftKey', 'rightKey', 'noteKey', 'briefKey',
 ];
 
 /**

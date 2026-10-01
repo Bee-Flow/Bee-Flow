@@ -494,9 +494,9 @@ function parseDefinition(value) {
  *
  * ── WHY THIS KIND IS SO OFTEN `partial` ─────────────────────────────
  * `POST /notebooks/:id/sources/meeting` records the text and the name
- * `Meeting Note: <title>`, and nothing else: there is no column saying WHICH
- * meeting it came from. `source_ref_id` is the column that fixes it, it is
- * not on this install yet, and the rows written before it cannot be
+ * `Meeting Note: <title>`, and used to record nothing else: no column said
+ * WHICH meeting it came from. `source_ref_id` fixes it (notebookStore adds the
+ * column and the route fills it), but the rows written before it cannot be
  * backfilled — a title is not an id, two meetings share one every week, and
  * renaming a meeting rewrites nothing. So:
  *

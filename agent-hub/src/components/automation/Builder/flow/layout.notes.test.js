@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildLayout, DEFAULT_NOTE_SIZE } from './layout';
+import { buildLayout, DEFAULT_NOTE_SIZE, NOTE_Z_INDEX } from './layout';
 
 /**
  * BFSF-411 — a note's node shape (its own resizable box, not the fixed card
@@ -84,5 +84,27 @@ describe('buildLayout — a positionless note never forces a real-step re-layout
         };
         const { nodes } = buildLayout(def, { runByStep: new Map(), issuesByStep: new Map() });
         expect(nodes.find(n => n.id === 'note_1').position).toEqual({ x: 42, y: 42 });
+    });
+});
+
+describe('buildLayout — a note is pinned to the background layer (BFSF-479)', () => {
+    const defWithNote = () => ({
+        trigger: trigger(),
+        steps: [
+            step('a'),
+            { id: 'note_1', type: 'note', text: 'x', position: { x: 0, y: 200 }, size: { width: 300, height: 180 } },
+        ],
+        edges: [{ from: 'trg', to: 'a' }],
+    });
+
+    it('a note node carries the fixed background z-index', () => {
+        const { nodes } = buildLayout(defWithNote(), { runByStep: new Map(), issuesByStep: new Map() });
+        expect(nodes.find(n => n.id === 'note_1').zIndex).toBe(NOTE_Z_INDEX);
+        expect(NOTE_Z_INDEX).toBeLessThan(0);
+    });
+
+    it('a real step gets no z-index of its own (it rides the default layer)', () => {
+        const { nodes } = buildLayout(defWithNote(), { runByStep: new Map(), issuesByStep: new Map() });
+        expect(nodes.find(n => n.id === 'a').zIndex).toBeUndefined();
     });
 });

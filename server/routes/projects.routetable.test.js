@@ -217,6 +217,16 @@ const EXPECTED = [
     // Tasks (routes/projects/tasks.js): reading is viewer+, writing editor+;
     // who may delete one (its author, the project owner) is decided in the handler.
     'GET /:id/tasks [requireProjectRoleMw]',
+    // Planning poker (the same router): one session per project. Voting is
+    // viewer+ (every member estimates); starting, steering and closing the
+    // session is editor+.
+    'GET /:id/tasks/poker/session [requireProjectRoleMw]',
+    'POST /:id/tasks/poker/session/start [requireProjectRoleMw,validateRequest]',
+    'POST /:id/tasks/poker/session/vote [requireProjectRoleMw,validateRequest]',
+    'POST /:id/tasks/poker/session/reveal [requireProjectRoleMw,validateRequest]',
+    'POST /:id/tasks/poker/session/finish [requireProjectRoleMw,validateRequest]',
+    'POST /:id/tasks/poker/session/cancel [requireProjectRoleMw,validateRequest]',
+    'POST /:id/tasks/poker/session/next [requireProjectRoleMw,validateRequest]',
     'POST /:id/tasks [requireProjectRoleMw,validateRequest]',
     'POST /:id/tasks/batch [requireProjectRoleMw,validateRequest]',
     'GET /:id/meetings/:meetingId/task-suggestions [requireProjectRoleMw]',
@@ -224,6 +234,21 @@ const EXPECTED = [
     'POST /:id/tasks/:taskId/improve [requireProjectRoleMw,rateLimitMiddleware]',
     'PATCH /:id/tasks/:taskId [requireProjectRoleMw,validateRequest]',
     'DELETE /:id/tasks/:taskId [requireProjectRoleMw]',
+    // The task router's error mapper (a 4-argument handler, so it flattens to
+    // USE:anonymous): the date-range and poker-queue constraints become 400/409.
+    'USE:anonymous',
+    // Sprints (routes/projects/sprints.js): listing is viewer+, every change is
+    // editor+; only one sprint is active at a time (the store demotes the rest).
+    'GET /:id/sprints [requireProjectRoleMw]',
+    'POST /:id/sprints [requireProjectRoleMw,validateRequest]',
+    'PATCH /:id/sprints/:sprintId [requireProjectRoleMw,validateRequest]',
+    'DELETE /:id/sprints/:sprintId [requireProjectRoleMw]',
+    'POST /:id/sprints/:sprintId/items [requireProjectRoleMw,validateRequest]',
+    'DELETE /:id/sprints/:sprintId/items/:taskId [requireProjectRoleMw]',
+    'POST /:id/sprints/:sprintId/start [requireProjectRoleMw]',
+    'POST /:id/sprints/:sprintId/complete [requireProjectRoleMw]',
+    // The sprint router's error mapper: the date-range constraint becomes a 400.
+    'USE:anonymous',
     // A person's colour in the project: the owner for anyone, everybody else for themselves (decided in the handler).
     'PUT /:id/members/:userId/color [requireProjectRoleMw,validateRequest]',
     // Project files, "my chats" and presence (routes/projects/workspace.js).

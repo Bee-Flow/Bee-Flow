@@ -77,6 +77,7 @@
 
 const crypto = require('crypto');
 const log = require('../telemetry/log');
+const { usageLogFields } = require('../core/providers/usageNormalizer');
 const { listProjectAudience, listChatAgents, isChatAgentAllowed } = require('./chatAudience');
 const { makeChatShield } = require('./chatShield');
 const { loadTaggedItems, taggedItemsBlock, TAGGED_TOTAL_CHARS, TAGGED_ITEM_CHARS } = require('./chatTaggedItems');
@@ -120,14 +121,6 @@ function mentionsAssistant(content, agentName = null) {
     return new RegExp(`(^|[^\\w@])@${escapeRegExp(name)}(?![\\w-])`, 'i').test(text);
 }
 
-/**
- * Does this post get an answer now, and why (`kind` is stored on the answer
- * as its `ai_trigger`)? In `auto` mode a post that does not ask is
- * `auto_pending`: the participation engine takes it from there.
- *
- * @param {{ aiMode: string, content: string, askAi?: boolean, agentName?: string|null }} p
- * @returns {{ trigger: true, kind: 'ask'|'mention'|'always' } | { trigger: false, reason: string }}
- */
 // In Auto, an unambiguous direct address is an explicit request too. Do this
 // before the delayed relevance gate and PII masking can mistake "AI" for a name.
 function addressesAssistant(content) {
@@ -136,6 +129,14 @@ function addressesAssistant(content) {
         || (/\b(?:je|jij|you)\b/iu.test(text) && /\b(?:ai|assistant|assistent)\s*[?？]$/iu.test(text));
 }
 
+/**
+ * Does this post get an answer now, and why (`kind` is stored on the answer
+ * as its `ai_trigger`)? In `auto` mode a post that does not ask is
+ * `auto_pending`: the participation engine takes it from there.
+ *
+ * @param {{ aiMode: string, content: string, askAi?: boolean, agentName?: string|null }} p
+ * @returns {{ trigger: true, kind: 'ask'|'mention'|'always' } | { trigger: false, reason: string }}
+ */
 function decideAiTrigger({ aiMode, content, askAi = false, agentName = null }) {
     if (aiMode === 'off') return { trigger: false, reason: 'ai_off' };
     if (aiMode === 'always') return { trigger: true, kind: 'always' };
@@ -487,7 +488,7 @@ function makeChatAssistant(deps = {}) {
             // Automatic answers reach everyone and were never asked for: they
             // read the conversation only, not what a member tagged.
             const loadedItems = !auto && Array.isArray(trigger.refs) && trigger.refs.length
-                ? await loadTagged(trigger.refs, { userId }) : [];
+                ? await loadTagged(trigger.refs, { userId, project }) : [];
             const tagged = taggedItemsBlock(loadedItems);
             let sourceBudget = TAGGED_TOTAL_CHARS;
             const usedSources = [];
@@ -559,12 +560,7 @@ function makeChatAssistant(deps = {}) {
                     agent_name: 'project-chat',
                     agent_type: 'chat',
                     model: model.modelId,
-                    prompt_tokens: num(usage, 'prompt_tokens', 'promptTokens'),
-                    completion_tokens: num(usage, 'completion_tokens', 'completionTokens'),
-                    total_tokens: num(usage, 'total_tokens', 'totalTokens'),
-                    cached_tokens: num(usage, 'cached_tokens', 'cachedTokens'),
-                    cache_creation_tokens: num(usage, 'cache_creation_input_tokens', 'cache_creation_tokens'),
-                    reasoning_tokens: num(usage, 'reasoning_tokens', 'reasoningTokens'),
+                    ...usageLogFields(usage),
                     stop_reason: result?.stop_reason || null,
                     source: auto ? 'project_chat_auto' : 'project_chat',
                     duration_ms: Date.now() - started,

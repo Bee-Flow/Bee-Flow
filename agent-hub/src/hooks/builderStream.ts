@@ -184,6 +184,7 @@ export interface BuilderStreamData {
     parentId?: string;
     hasSideEffects?: boolean;
     inspect?: unknown;
+    questions?: unknown[];
 
     // what the build produced
     definition?: unknown;

@@ -7,7 +7,7 @@
 // pops up or moves while somebody reads. "Show changes" opens the item's
 // history on the comparison between the version the reader last saw and now.
 
-import { ChevronRight, FileText, Mic, NotebookPen, Users } from 'lucide-react';
+import { CheckCircle2, ChevronRight, FileText, Mic, NotebookPen, Users } from 'lucide-react';
 import React, { Suspense, useMemo, useState } from 'react';
 import {
     useMarkAllSeen, useMarkItemSeen, useProjectChangesQuery, versionsBaseUrl, type ChangeGroup, type ChangeItemType,
@@ -164,7 +164,7 @@ function SinceList({ groups, chats, people, currentUserId, onOpenItem, onOpenCha
         />
     );
     if (!groups.length && !chats.length) {
-        return <p className="m-0 text-[12.5px] text-[var(--text-tertiary)]" data-testid="since-nothing">{t('project_home.since.nothing', 'Nothing new. Everything others changed, you have already seen.')}</p>;
+        return <p className="m-0 text-[12.5px] text-[var(--text-tertiary)]" data-testid="since-nothing">{t('project_home.since.nothing', 'You are up to date: nothing new from others.')}</p>;
     }
     return (
         <ul className="m-0 p-0 list-none -mx-1 space-y-0.5">
@@ -249,6 +249,18 @@ export default function SinceLastVisit({ projectId, role, currentUserId, onOpenI
     const { groups, prevVisitAt } = changes.data;
     // A first visit has no "last visit": say nothing rather than list the project's whole past.
     if (!prevVisitAt && unreadChats.length === 0) return null;
+    // Nothing new: one quiet line, not a whole card.
+    if (!groups.length && unreadChats.length === 0) {
+        return (
+            <p className="m-0 flex items-center gap-2 px-1 text-[12px] text-[var(--text-tertiary)]" data-testid="overview-since">
+                <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0 text-[var(--success-ink)]" aria-hidden="true" />
+                <span data-testid="since-nothing">
+                    {t('project_home.since.nothing', 'You are up to date: nothing new from others.')}
+                    {prevVisitAt && ` ${t('project_home.since.when', 'Your last visit was {when}.', { when: rel(prevVisitAt) })}`}
+                </span>
+            </p>
+        );
+    }
 
     return (
         <Card

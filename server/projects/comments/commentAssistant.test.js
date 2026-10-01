@@ -26,6 +26,7 @@ const { test, before, after, beforeEach } = require('node:test');
 const assert = require('node:assert');
 const crypto = require('node:crypto');
 const { pgliteDb } = require('../../testUtils/pgliteDb');
+const { realClaudeAdapter, realGeminiAdapter, assertClaudeEntry, assertGeminiEntry } = require('../../core/providers/usageHarness');
 const { makeProjectCommentStore, DDL } = require('../../stores/projectCommentStore');
 const participationStoreModule = require('../../stores/projectAiParticipationStore');
 const { makeCommentCrypto } = require('./commentCrypto');
@@ -42,6 +43,7 @@ const NOTEBOOK_MD = '# Plan\n\n## Budget\nWe agreed **the budget** is 40k for Q3
 let log;
 let lockHeld;
 let modelAnswer;
+let modelUsage;
 let shieldMode;
 let limitText;
 let model;
@@ -71,7 +73,7 @@ function assistant(overrides = {}) {
         llmChat: async (modelId, messages, options) => {
             log.push(['llm', { modelId, messages, options }]);
             if (modelAnswer instanceof Error) throw modelAnswer;
-            return { content: modelAnswer, usage: { prompt_tokens: 120, completion_tokens: 30, total_tokens: 150 } };
+            return { content: modelAnswer, usage: modelUsage ?? { prompt_tokens: 120, completion_tokens: 30, total_tokens: 150 } };
         },
         resolveModel: async (args) => { log.push(['model', args]); return model; },
         searchKnowledge: async (args) => { log.push(['kb', args]); return 'Budget policy: travel is separate.'; },
@@ -101,6 +103,7 @@ beforeEach(() => {
     log = [];
     lockHeld = false;
     modelAnswer = 'Travel is booked separately, [PERSON_1] can confirm.';
+    modelUsage = undefined;
     shieldMode = 'pass';
     limitText = null;
     model = { modelId: 'fast-model', options: { maxTokens: 800 }, providerConfig: { providerType: 'test' } };
@@ -310,4 +313,16 @@ test('an answer somebody asked for starts the quiet time before the AI may join 
 test('describePassage names the item kind', () => {
     assert.match(describePassage({ kind: 'document', name: '', passage: null }), /untitled document/);
     assert.match(describePassage({ kind: 'notebook', name: 'N', passage: { found: true, whole: false, quote: 'q', heading: '', section: 's' } }), /The text around it:/);
+});
+
+test('the usage row carries the cache read/write of a Claude or Gemini call, not zeros', async () => {
+    const claude = (await realClaudeAdapter().chat('k', null, 'claude-sonnet-4-6', [{ role: 'user', content: 'x' }])).usage;
+    const gemini = (await realGeminiAdapter().chat('k', null, 'gemini-3-flash-preview', [{ role: 'user', content: 'x' }])).usage;
+    for (const [usage, assertEntry] of [[claude, assertClaudeEntry], [gemini, assertGeminiEntry]]) {
+        log = [];
+        modelUsage = usage;
+        await ask(await thread());
+        assert.strictEqual(of('usage').length, 1);
+        assertEntry(of('usage')[0]);
+    }
 });

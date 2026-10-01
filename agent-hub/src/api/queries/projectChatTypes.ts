@@ -60,8 +60,8 @@ export interface TeamChatTrace {
     original: string; sent: string; tokenMap: Record<string, string>; returned: string;
 }
 
-/** A document, notebook or meeting note of the project that a message tags. */
-export interface TeamChatRef { kind: 'document' | 'notebook' | 'meeting'; id: string }
+/** A project item that a message tags. */
+export interface TeamChatRef { kind: 'document' | 'notebook' | 'meeting' | 'task'; id: string }
 
 export interface TeamChatMessage {
     id: string;
@@ -126,7 +126,7 @@ export interface TeamChatMessages {
 export type TeamChatAiStatus = 'queued' | 'skipped' | 'busy';
 export interface TeamChatAiResult { status: TeamChatAiStatus; reason?: string }
 
-export interface CreateTeamChat { title?: string; aiMode: TeamChatAiMode; agentId?: string | null; message?: string }
+export interface CreateTeamChat { title?: string; aiMode: TeamChatAiMode; agentId?: string | null; message?: string; refs?: TeamChatRef[] }
 
 /** An AI answer the AI gave on its own, rather than one somebody asked for. */
 export function isAutomaticAnswer(m: Pick<TeamChatMessage, 'authorKind' | 'aiTrigger'>): boolean {

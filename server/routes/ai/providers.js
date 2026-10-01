@@ -69,7 +69,8 @@ const providerFields = {
     project: text('The Vertex project'),
     location: text('The Vertex location'),
     serviceAccountKey: secret('The service-account key').transform((v) => v || undefined),
-    // Azure OpenAI.
+    // Azure OpenAI: accepted and ignored. Azure runs on the v1 GA API, which
+    // has no api-version; older clients still send one.
     apiVersion: text('The Azure API version'),
 };
 const optional = (shape) => Object.fromEntries(Object.entries(shape).map(([k, s]) => [k, s.optional()]));
@@ -123,11 +124,11 @@ router.get('/providers', requireAuth, async (req, res) => {
 // POST /ai/providers
 router.post('/providers', requireAuth, requireAdmin, validate({ body: CreateProviderBody }), async (req, res) => {
     try {
-        const { name, type, url, model, apiKey, project, location, apiVersion, serviceAccountKey } = req.body;
+        const { name, type, url, model, apiKey, project, location, serviceAccountKey } = req.body;
         if (!url && type !== 'google-vertex' && type !== 'azure') {
             return res.status(400).json({ error: NAME_TEXT });
         }
-        const provider = await addProvider({ name, type, url: url || (type === 'azure' ? '' : 'vertex-ai'), model, apiKey, project, location, apiVersion, serviceAccountKey });
+        const provider = await addProvider({ name, type, url: url || (type === 'azure' ? '' : 'vertex-ai'), model, apiKey, project, location, serviceAccountKey });
         if (provider) {
             invalidateModelCache(); // Clear all cache since new provider added
             res.status(201).json({
@@ -148,8 +149,8 @@ router.post('/providers', requireAuth, requireAdmin, validate({ body: CreateProv
 // (updateProvider merges), which is why a misspelled one must not pass.
 router.put('/providers/:id', requireAuth, requireAdmin, validate({ body: UpdateProviderBody }), async (req, res) => {
     try {
-        const { name, type, url, model, apiKey, project, location, apiVersion, serviceAccountKey } = req.body;
-        const success = await updateProvider(req.params.id, { name, type, url, model, apiKey, project, location, apiVersion, serviceAccountKey });
+        const { name, type, url, model, apiKey, project, location, serviceAccountKey } = req.body;
+        const success = await updateProvider(req.params.id, { name, type, url, model, apiKey, project, location, serviceAccountKey });
         if (success) {
             invalidateModelCache(req.params.id); // Invalidate this provider's cache
             res.json({ success: true });

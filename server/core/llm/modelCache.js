@@ -117,7 +117,6 @@ async function getModelsForProvider(providerId, forceRefresh = false) {
         project: provider.project,
         location: provider.location,
         serviceAccountKey: provider.serviceAccountKey,
-        apiVersion: provider.apiVersion,
     });
 
     if (models.length > 0) {
@@ -216,6 +215,11 @@ async function getProviderForModel(modelId) {
                 if (provider.type === 'scaleway') registerScalewayModel(modelId);
                 // Mistral: its own price, plus the regional uplift when the
                 // provider points at api.eu / api.us (and not when it moves back).
+                // Azure: which model sits behind a custom-named deployment, for
+                // pricing, the context window and the reasoning defaults.
+                if (provider.type === 'azure') {
+                    await require('../providers/azureDeployments').refreshAzureDeployments();
+                }
                 if (provider.type === 'mistral') {
                     registerMistralModel(modelId);
                     setMistralRegionalModel(modelId, isMistralRegionalUrl(provider.url));
@@ -239,7 +243,6 @@ async function getProviderForModel(modelId) {
                     project: provider.project || null,
                     location: provider.location || null,
                     serviceAccountKey: provider.serviceAccountKey || null,
-                    apiVersion: provider.apiVersion || null,
                 };
             }
         } catch (e) {

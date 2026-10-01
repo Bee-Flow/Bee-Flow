@@ -67,6 +67,31 @@ export function isScrollbarPress(e) {
         || (e.clientY > rect.top + ch && e.clientY <= rect.bottom);
 }
 
+/** Keys a text field needs for its caret; the menu pattern must not take them from it. */
+const TEXT_KEYS = new Set(['Home', 'End', 'ArrowLeft', 'ArrowRight']);
+
+const NON_TEXT_INPUTS = new Set(['checkbox', 'radio', 'button', 'submit', 'reset', 'range', 'color', 'file', 'image']);
+
+/** Where the ARIA menu keys move the focus: ArrowDown/Up cycle, Home/End jump; null for any other key. */
+function nextMenuIndex(key, idx, length) {
+    if (key === 'ArrowDown') return (idx + 1) % length;
+    if (key === 'ArrowUp') return (idx - 1 + length) % length;
+    if (key === 'Home') return 0;
+    if (key === 'End') return length - 1;
+    return null;
+}
+
+function keepsCaret(e) {
+    return TEXT_KEYS.has(e.key) && isTextEntry(e.target);
+}
+
+function isTextEntry(el) {
+    if (!(el instanceof HTMLElement)) return false;
+    if (el.tagName === 'TEXTAREA') return true;
+    if (el.tagName === 'INPUT') return !NON_TEXT_INPUTS.has(el.type);
+    return el.isContentEditable || !!el.closest('[contenteditable=""], [contenteditable="true"]');
+}
+
 export default function AnchoredMenu({
     open = false,
     onClose,
@@ -146,13 +171,13 @@ export default function AnchoredMenu({
         items()[0]?.focus?.();
         const onKey = (e) => {
             const list = items();
-            if (!list.length) return;
-            const idx = list.indexOf(document.activeElement);
-            if (e.key === 'ArrowDown') { e.preventDefault(); list[(idx + 1) % list.length]?.focus?.(); }
-            else if (e.key === 'ArrowUp') { e.preventDefault(); list[(idx - 1 + list.length) % list.length]?.focus?.(); }
-            else if (e.key === 'Home') { e.preventDefault(); list[0]?.focus?.(); }
-            else if (e.key === 'End') { e.preventDefault(); list[list.length - 1]?.focus?.(); }
-            else if (e.key === 'Tab') { e.preventDefault(); onClose?.(); }
+            // A text field inside the menu (a search box) keeps its caret keys.
+            if (!list.length || keepsCaret(e)) return;
+            if (e.key === 'Tab') { e.preventDefault(); onClose?.(); return; }
+            const next = nextMenuIndex(e.key, list.indexOf(document.activeElement), list.length);
+            if (next === null) return;
+            e.preventDefault();
+            list[next]?.focus?.();
         };
         panel.addEventListener('keydown', onKey);
         return () => {

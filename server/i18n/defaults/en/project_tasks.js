@@ -3,6 +3,17 @@
 // Merged into GUI_DEFAULTS by ./index.js. The frontend copy (agent-hub/src/i18n/en-defaults.js)
 // is GENERATED from these files: after an edit, run `node scripts/gen-i18n-defaults.mjs`.
 module.exports = {
+    "project_tasks.timeline_relations_hint": "Connections follow the Relationships saved on each task. Arrows point to the dependent task; warning colors indicate overlapping dependency dates.",
+    "project_tasks.relationship_legend": "Relationship legend",
+    "project_tasks.task_relationships": "Task relationships",
+    "project_tasks.relation_depends_on": "Depends on",
+    "project_tasks.relation_parent_child": "Parent / child",
+    "project_tasks.relation_related": "Related",
+    "project_tasks.dependency_hint": "Arrows run from a prerequisite to the task that depends on it. Orange lines indicate overlapping dates. Use the link buttons to connect two tasks.",
+    "project_tasks.connect_from": "Choose a task that depends on {title}",
+    "project_tasks.dependencies": "Task dependencies",
+    "project_tasks.connect_dependency": "Make {title} depend on the selected task",
+    "project_tasks.start_dependency": "Connect dependency from {title}",
     "project_tasks.invalid_date_range": "The start date must be on or before the due date.",
     "project_tasks.planning": "Planning",
     "project_tasks.drag_task": "Drag task: {title}",

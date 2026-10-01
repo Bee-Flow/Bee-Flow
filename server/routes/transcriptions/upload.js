@@ -576,7 +576,7 @@ router.post('/', requireAuth, upload.single('audio'), validate({ body: UploadBod
                 });
             } else if (!res.headersSent) {
                 // Failed before the processing note / 202 — surface synchronously.
-                res.status(500).json({ error: `Transcription failed: ${err.message}` });
+                res.status(500).json({ error: 'Transcription failed' });
             }
         } catch (dbErr) {
             log.error('[Transcriptions] Failed to record transcription failure:', dbErr.message);

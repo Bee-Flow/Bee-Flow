@@ -4,11 +4,11 @@
 // already became a task are shown and left alone. Nothing is created until
 // the person confirms.
 
-import { Mic, Sparkles } from 'lucide-react';
+import { Loader2, Mic, Sparkles } from 'lucide-react';
 import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import {
-    TASK_PRIORITIES, useCreateTasksBatch, useImproveMeetingTasks, useMeetingTaskSuggestions, useProjectTasksQuery, useUpdateTask,
-    type ChecklistItem, type MeetingTaskImprovement, type MeetingTaskSuggestion, type ProjectTask, type TaskInput, type TaskPriority,
+    useCreateTasksBatch, useImproveMeetingTasks, useMeetingTaskSuggestions, useProjectTasksQuery, useUpdateTask,
+    type MeetingTaskImprovement, type MeetingTaskSuggestion, type ProjectTask, type TaskInput,
 } from '../../../../api/queries/projectTasks';
 import { useProjectResourcesQuery } from '../../../../api/queries/projects';
 import useTranslation, { type TranslateFn } from '../../../../hooks/useTranslation';
@@ -17,9 +17,10 @@ import { toast } from '../../../shared/Toast';
 import { useChatPeople } from '../chat/chatPeople';
 import { projectErrorText } from '../projectErrorText';
 import type { WorkspaceUser } from '../types';
-import { ErrorText, INPUT_CLASS, LoadingRow, Notice, PrimaryButton, SecondaryButton, SELECT_CLASS } from '../workspaceUi';
-import { LabelChip } from './TaskFields';
-import { priorityLabel } from './taskText';
+import { ErrorText, LoadingRow, Notice, PrimaryButton, SecondaryButton } from '../workspaceUi';
+import MeetingSuggestionRow, { NOBODY, type Row } from './MeetingSuggestionRow';
+import { CHIP_CLASS } from './TaskFields';
+import { GHOST_ACTION } from './taskDialogParts';
 
 export interface MeetingTasksDialogProps {
     projectId: string;
@@ -31,23 +32,8 @@ export interface MeetingTasksDialogProps {
     onCreated?: (count: number) => void;
 }
 
-interface Row {
-    selected: boolean;
-    title: string;
-    assigneeId: string;
-    dueDate: string;
-    priority: TaskPriority;
-    /** What the AI added: a description, labels and steps; empty until it has answered. */
-    description: string;
-    labels: string[];
-    checklist: ChecklistItem[];
-    /** The AI chose this person (shown, and changeable). */
-    aiAssignee: boolean;
-    improved: boolean;
-}
-
 /** What the AI adds to a task that exists: the description goes in front of what is there, what the person set stays. */
-export function improvedPatch(task: ProjectTask, row: Row): Partial<TaskInput> {
+function improvedPatch(task: ProjectTask, row: Row): Partial<TaskInput> {
     const description = row.description.trim();
     const kept = task.description.trim();
     return {
@@ -61,7 +47,7 @@ export function improvedPatch(task: ProjectTask, row: Row): Partial<TaskInput> {
 }
 
 /** The AI's expansion laid over a row: what the person already set (a member the notes named, a date) is kept. */
-export function mergeImprovement(row: Row, imp: MeetingTaskImprovement): Row {
+function mergeImprovement(row: Row, imp: MeetingTaskImprovement): Row {
     const keepAssignee = !!row.assigneeId;
     return {
         ...row,
@@ -75,9 +61,6 @@ export function mergeImprovement(row: Row, imp: MeetingTaskImprovement): Row {
         improved: true,
     };
 }
-
-/** What the note says when nobody was named (English and Dutch). */
-const NOBODY = /^(unassigned|niet toegewezen|nobody|niemand|n\/a|-)?$/i;
 
 /** Where the task came from, and who the note gave it to when that was nobody we could name. */
 export function descriptionFor(t: TranslateFn, meetingTitle: string, s: Pick<MeetingTaskSuggestion, 'at' | 'assigneeName' | 'suggestedAssigneeId'>): string {
@@ -116,17 +99,17 @@ function MeetingPicker({ projectId, onPick }: { projectId: string; onPick: (id: 
     const resources = useProjectResourcesQuery(projectId);
     const meetings = (resources.data?.meetings || []).filter(m => typeof m.id === 'string');
     if (resources.isPending) return <LoadingRow label={t('project_tasks.loading_meetings', 'Loading meetings…')} />;
-    if (!meetings.length) return <p className="m-0 text-sm text-[var(--text-tertiary)]">{t('project_tasks.no_meetings', 'No meetings in this project yet. Record or upload one in the Meetings tab.')}</p>;
+    if (!meetings.length) return <p className="m-0 py-6 text-center text-[12.5px] text-[var(--text-tertiary)]">{t('project_tasks.no_meetings', 'No meetings in this project yet. Record or upload one in the Meetings tab.')}</p>;
     return (
-        <ul className="list-none m-0 p-0 space-y-1.5" aria-label={t('project_tasks.pick_meeting', 'Choose a meeting')}>
+        <ul className="list-none m-0 p-0 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)] divide-y divide-[var(--border-subtle)] overflow-hidden" aria-label={t('project_tasks.pick_meeting', 'Choose a meeting')}>
             {meetings.map(m => (
                 <li key={m.id}>
                     <button type="button" onClick={() => onPick(m.id)} data-testid={`pick-meeting-${m.id}`}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg border border-[var(--border-subtle)] text-left hover:bg-[var(--item-hover-bg)]">
-                        <Mic className="w-4 h-4 flex-shrink-0 text-[var(--kind-meet)]" aria-hidden="true" />
-                        <span className="flex-1 min-w-0 truncate text-[13px] text-[var(--text-primary)]">{m.title || m.name || t('project_content.meeting_untitled', 'Untitled meeting')}</span>
+                        className="w-full flex items-center gap-3 h-10 px-3 text-left hover:bg-[var(--item-hover-bg)] focus-visible:bg-[var(--item-hover-bg)] outline-none transition-colors">
+                        <Mic className="w-3.5 h-3.5 flex-none text-[var(--kind-meet)]" aria-hidden="true" />
+                        <span className="flex-1 min-w-0 truncate text-[13px] font-medium text-[var(--text-primary)]">{m.title || m.name || t('project_content.meeting_untitled', 'Untitled meeting')}</span>
                         {typeof m.actionItemCount === 'number' && (
-                            <span className="text-[12px] text-[var(--text-tertiary)]">{t('project_tasks.action_items', '{count} action items', { count: m.actionItemCount })}</span>
+                            <span className="flex-none text-[11.5px] text-[var(--text-tertiary)] tabular-nums">{t('project_tasks.action_items', '{count} action items', { count: m.actionItemCount })}</span>
                         )}
                     </button>
                 </li>
@@ -135,62 +118,38 @@ function MeetingPicker({ projectId, onPick }: { projectId: string; onPick: (id: 
     );
 }
 
-function SuggestionRow({ s, row, people, onChange }: {
-    s: MeetingTaskSuggestion; row: Row; people: { id: string; name: string }[]; onChange: (patch: Partial<Row>) => void;
+/** One line above the list: what to do (or that everything is a task already), and what the AI is doing. */
+function StatusLine({ hintId, nothingNew, improve, onRetry }: {
+    hintId: string; nothingNew: boolean; improve: { isPending: boolean; isError: boolean; isSuccess: boolean }; onRetry: () => void;
 }) {
     const { t } = useTranslation();
-    const made = !!s.createdTaskId;
     return (
-        <li className={`rounded-xl border px-3 py-2.5 space-y-2 ${made && !row.improved ? 'border-[var(--border-subtle)] opacity-60' : 'border-[var(--border-default)]'}`} data-testid={`suggestion-${s.itemId}`}>
-            <div className="flex items-start gap-2.5">
-                <input type="checkbox" checked={row.selected} disabled={made && !row.improved} onChange={e => onChange({ selected: e.target.checked })}
-                    aria-label={made
-                        ? t('project_tasks.update_item', 'Update the existing task with the AI: {text}', { text: s.text })
-                        : t('project_tasks.include_item', 'Make a task of: {text}', { text: s.text })}
-                    className="mt-1.5 accent-[var(--accent-primary)]" />
-                <div className="flex-1 min-w-0 space-y-1.5">
-                    <input className={INPUT_CLASS} value={row.title} maxLength={200} disabled={made || !row.selected}
-                        aria-label={t('project_tasks.title_label', 'What needs to be done?')} onChange={e => onChange({ title: e.target.value })} />
-                    <div className="flex flex-wrap items-center gap-2">
-                        <select className={SELECT_CLASS} value={row.assigneeId} disabled={made || !row.selected} onChange={e => onChange({ assigneeId: e.target.value })}
-                            aria-label={t('project_tasks.assignees', 'Assigned to')}>
-                            <option value="">{t('project_tasks.who_unassigned', 'Not given to anyone')}</option>
-                            {people.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                        </select>
-                        <input type="date" className={SELECT_CLASS} value={row.dueDate} disabled={made || !row.selected} onChange={e => onChange({ dueDate: e.target.value })}
-                            aria-label={t('project_tasks.due_label', 'Due date')} />
-                        <select className={SELECT_CLASS} value={row.priority} disabled={made || !row.selected} onChange={e => onChange({ priority: e.target.value as TaskPriority })}
-                            aria-label={t('project_tasks.priority_label', 'Priority')}>
-                            {TASK_PRIORITIES.map(p => <option key={p} value={p}>{priorityLabel(t, p)}</option>)}
-                        </select>
-                        {!NOBODY.test(s.assigneeName.trim()) && !s.suggestedAssigneeId && !made && (
-                            <span className="text-[11.5px] text-[var(--text-tertiary)]">{t('project_tasks.note_says', 'The notes say: {name}', { name: s.assigneeName })}</span>
-                        )}
-                        {row.aiAssignee && row.assigneeId && !made && (
-                            <span className="inline-flex items-center gap-1 text-[11.5px] text-[var(--accent-primary)]" data-testid={`ai-assignee-${s.itemId}`}>
-                                <Sparkles className="w-3 h-3" aria-hidden="true" />{t('project_tasks.ai_chose_person', 'Suggested by the AI')}
-                            </span>
-                        )}
-                        {made && <span className="text-[11.5px] text-[var(--accent-primary)]">{row.improved ? t('project_tasks.already_task_update', 'Already a task: tick to let the AI improve it') : t('project_tasks.already_task', 'Already a task')}</span>}
-                        {s.done && !made && <span className="text-[11.5px] text-[var(--text-tertiary)]">{t('project_tasks.done_in_meeting', 'Marked done in the notes')}</span>}
-                    </div>
-                    {row.improved && row.selected && (
-                        <div className="space-y-1.5" data-testid={`ai-detail-${s.itemId}`}>
-                            <textarea className={`${INPUT_CLASS} min-h-[64px] resize-y`} value={row.description} maxLength={2000}
-                                aria-label={t('project_tasks.description_label', 'Description')} onChange={e => onChange({ description: e.target.value })} />
-                            {(row.labels.length > 0 || row.checklist.length > 0) && (
-                                <div className="flex flex-wrap items-center gap-1.5">
-                                    {row.labels.map(l => <LabelChip key={l} label={l} onRemove={() => onChange({ labels: row.labels.filter(x => x !== l) })} />)}
-                                    {row.checklist.length > 0 && (
-                                        <span className="text-[11.5px] text-[var(--text-tertiary)]">{t('project_tasks.steps_count', '{count} steps', { count: row.checklist.length })}</span>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                    )}
-                </div>
-            </div>
-        </li>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 mb-3 min-h-6">
+            {nothingNew
+                ? <p id={hintId} className="m-0 flex-1 min-w-0 text-[12px] text-[var(--text-secondary)]" data-testid="all-already-tasks"
+                    title={t('project_tasks.all_already', 'Every open action item is already a task. When the AI has answered you can tick one to let it improve that task: a fuller description, labels, steps and who it is for.')}>
+                    {t('project_tasks.all_already_short', 'Every open item is already a task. Tick one to let the AI improve it.')}
+                </p>
+                : <p id={hintId} className="m-0 flex-1 min-w-0 text-[12px] text-[var(--text-tertiary)]">{t('project_tasks.review_hint', 'Check the items that should become tasks. Each task links back to the meeting.')}</p>}
+            {improve.isPending && (
+                <span className={`${CHIP_CLASS} bg-[var(--bg-secondary)] text-[var(--text-secondary)]`} role="status" data-testid="ai-improving" title={t('project_tasks.ai_improving', 'The AI is filling in descriptions, labels and who it is for…')}>
+                    <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />{t('project_tasks.ai_working', 'Improving…')}
+                </span>
+            )}
+            {improve.isError && (
+                <span className="inline-flex items-center gap-1" role="status" data-testid="ai-improve-failed">
+                    <span className={`${CHIP_CLASS} bg-[color-mix(in_srgb,var(--warning)_14%,transparent)] text-[var(--warning-ink)]`} title={t('project_tasks.ai_failed', 'The AI could not expand these. You can still make them as they are, or try again.')}>
+                        {t('project_tasks.ai_failed_short', 'The AI couldn’t expand these')}
+                    </span>
+                    <button type="button" onClick={onRetry} className={GHOST_ACTION}>{t('project_tasks.try_again', 'Try again')}</button>
+                </span>
+            )}
+            {improve.isSuccess && (
+                <span className={`${CHIP_CLASS} bg-[color-mix(in_srgb,var(--success)_14%,transparent)] text-[var(--success-ink)]`} role="status">
+                    <Sparkles className="w-3 h-3" aria-hidden="true" />{t('project_tasks.ai_improved', 'Improved')}
+                </span>
+            )}
+        </div>
     );
 }
 
@@ -271,62 +230,80 @@ function Suggestions({ projectId, meetingId, currentUser, onClose, onCreated }: 
     const busy = create.isPending || update.isPending;
 
     return (
-        <Modal open onClose={onClose} size="lg" disableEscapeClose={create.isPending || update.isPending}
+        <Modal open onClose={onClose} size="lg" disableEscapeClose={busy}
             title={t('project_tasks.from_meeting_title', 'Tasks from the meeting')}
             description={query.data?.meeting.title || undefined}
             footer={(
-                <div className="flex items-center gap-2">
-                    <SecondaryButton onClick={improveNow} busy={improve.isPending} disabled={busy || !suggestions.length} data-testid="meeting-tasks-improve">
-                        <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />{t('project_tasks.improve_with_ai', 'Improve with AI')}
-                    </SecondaryButton>
-                    <SecondaryButton onClick={() => setAll(true)} disabled={create.isPending || !suggestions.length}>{t('project_tasks.select_all', 'Select all')}</SecondaryButton>
-                    <SecondaryButton onClick={() => setAll(false)} disabled={create.isPending || !suggestions.length}>{t('project_tasks.select_none', 'Select none')}</SecondaryButton>
+                <div className="flex items-center gap-2 w-full">
+                    <button type="button" onClick={improveNow} disabled={busy || improve.isPending || !suggestions.length} data-testid="meeting-tasks-improve" className={`${GHOST_ACTION} h-8 px-2`}>
+                        {improve.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" /> : <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />}
+                        {t('project_tasks.improve_with_ai', 'Improve with AI')}
+                    </button>
                     <span className="flex-1" />
                     <SecondaryButton onClick={onClose} disabled={busy}>{t('project_content.cancel', 'Cancel')}</SecondaryButton>
                     <PrimaryButton onClick={submit} busy={busy} disabled={!chosen.length && !updating.length} data-testid="meeting-tasks-create" aria-describedby={`${ids}-hint`}>
-                        {updating.length && !chosen.length
-                            ? t('project_tasks.update_n', 'Improve {count} tasks', { count: updating.length })
-                            : updating.length
-                                ? t('project_tasks.make_and_update_n', 'Make {made} tasks and improve {updated}', { made: chosen.length, updated: updating.length })
-                                : t('project_tasks.make_n', 'Make {count} tasks', { count: chosen.length })}
+                        {createLabel(t, chosen.length, updating.length)}
                     </PrimaryButton>
                 </div>
             )}>
             {query.isPending && <LoadingRow label={t('project_tasks.loading_items', 'Reading the action items…')} />}
             {query.isError && <Notice tone="error" role="alert">{t('project_tasks.suggestions_failed', 'Could not read the action items of this meeting.')}</Notice>}
             {query.data && suggestions.length === 0 && (
-                <p className="m-0 text-sm text-[var(--text-tertiary)]">{t('project_tasks.no_action_items', 'This meeting has no action items.')}</p>
+                <p className="m-0 py-6 text-center text-[12.5px] text-[var(--text-tertiary)]">{t('project_tasks.no_action_items', 'This meeting has no action items.')}</p>
             )}
             {suggestions.length > 0 && (
                 <>
-                    <p id={`${ids}-hint`} className="m-0 mb-3 text-[12.5px] text-[var(--text-tertiary)]">
-                        {t('project_tasks.review_hint', 'Check the items that should become tasks. Each task links back to the meeting.')}
-                    </p>
-                    {nothingNew && (
-                        <p className="m-0 mb-3 text-[12.5px] text-[var(--text-secondary)]" data-testid="all-already-tasks">
-                            {t('project_tasks.all_already', 'Every open action item is already a task. When the AI has answered you can tick one to let it improve that task: a fuller description, labels, steps and who it is for.')}
-                        </p>
-                    )}
-                    {improve.isPending && (
-                        <p className="m-0 mb-3 inline-flex items-center gap-1.5 text-[12.5px] text-[var(--accent-primary)]" role="status" data-testid="ai-improving">
-                            <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />{t('project_tasks.ai_improving', 'The AI is filling in descriptions, labels and who it is for…')}
-                        </p>
-                    )}
-                    {improve.isError && (
-                        <p className="m-0 mb-3 text-[12.5px] text-[var(--text-tertiary)]" role="status" data-testid="ai-improve-failed">
-                            {t('project_tasks.ai_failed', 'The AI could not expand these. You can still make them as they are, or try again.')}
-                        </p>
-                    )}
-                    <ul className="list-none m-0 p-0 space-y-2" aria-label={t('project_tasks.suggestions', 'Action items')}>
-                        {suggestions.map(s => rows[s.itemId] && (
-                            <SuggestionRow key={s.itemId} s={s} row={rows[s.itemId]} people={people}
-                                onChange={patch => setRows(prev => ({ ...prev, [s.itemId]: { ...prev[s.itemId], ...patch } }))} />
-                        ))}
-                    </ul>
+                    <StatusLine hintId={`${ids}-hint`} nothingNew={nothingNew} improve={improve} onRetry={improveNow} />
+                    <SuggestionList suggestions={suggestions} rows={rows} people={people} disabled={create.isPending}
+                        onAll={setAll} onRow={(id, patch) => setRows(prev => ({ ...prev, [id]: { ...prev[id], ...patch } }))} />
                 </>
             )}
-            <ErrorText>{error || ''}</ErrorText>
+            <div className="mt-2"><ErrorText>{error || ''}</ErrorText></div>
         </Modal>
+    );
+}
+
+/** What the primary button says: make, improve, or both. */
+function createLabel(t: TranslateFn, made: number, updated: number): string {
+    if (updated && !made) return t('project_tasks.update_n', 'Improve {count} tasks', { count: updated });
+    if (updated) return t('project_tasks.make_and_update_n', 'Make {made} tasks and improve {updated}', { made, updated });
+    return t('project_tasks.make_n', 'Make {count} tasks', { count: made });
+}
+
+/** The items as one divided list, with a header row that ticks all or none. */
+function SuggestionList({ suggestions, rows, people, disabled, onAll, onRow }: {
+    suggestions: MeetingTaskSuggestion[];
+    rows: Record<string, Row>;
+    people: React.ComponentProps<typeof MeetingSuggestionRow>['people'];
+    disabled: boolean;
+    onAll: (selected: boolean) => void;
+    onRow: (id: string, patch: Partial<Row>) => void;
+}) {
+    const { t } = useTranslation();
+    const all = useRef<HTMLInputElement>(null);
+    // Only the items that can be ticked count: one already made is tickable once the AI improved it.
+    const tickable = suggestions.filter(s => rows[s.itemId] && (!s.createdTaskId || rows[s.itemId].improved));
+    const ticked = tickable.filter(s => rows[s.itemId].selected).length;
+    const allOn = tickable.length > 0 && ticked === tickable.length;
+    useEffect(() => { if (all.current) all.current.indeterminate = ticked > 0 && !allOn; }, [ticked, allOn]);
+    return (
+        <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)] overflow-hidden">
+            <div className="flex items-center gap-3 h-9 px-3 border-b border-[var(--border-subtle)]">
+                <input ref={all} type="checkbox" checked={allOn} disabled={disabled || !tickable.length} onChange={() => onAll(!allOn)}
+                    aria-label={allOn ? t('project_tasks.select_none', 'Select none') : t('project_tasks.select_all', 'Select all')}
+                    className="flex-none accent-[var(--accent-primary)]" />
+                <span className="flex-1 text-[11px] font-semibold uppercase tracking-[0.05em] text-[var(--text-tertiary)]">
+                    {t('project_tasks.suggestions', 'Action items')}
+                    <span className="ml-1.5 font-normal tabular-nums">{suggestions.length}</span>
+                </span>
+                <span className="text-[11.5px] text-[var(--text-tertiary)] tabular-nums">{t('project_tasks.selected_count', '{count} selected', { count: ticked })}</span>
+            </div>
+            <ul className="list-none m-0 p-0 divide-y divide-[var(--border-subtle)]" aria-label={t('project_tasks.suggestions', 'Action items')}>
+                {suggestions.map(s => rows[s.itemId] && (
+                    <MeetingSuggestionRow key={s.itemId} s={s} row={rows[s.itemId]} people={people} onChange={patch => onRow(s.itemId, patch)} />
+                ))}
+            </ul>
+        </div>
     );
 }
 

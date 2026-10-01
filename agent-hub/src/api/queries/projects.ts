@@ -140,6 +140,7 @@ export const projectKeys = {
     messages: (id: string, chatId: string) => ['projects', id, 'chats', chatId, 'messages'] as const,
     files: (id: string) => ['projects', id, 'files'] as const,
     tasks: (id: string) => ['projects', id, 'tasks'] as const,
+    sprints: (id: string) => ['projects', id, 'sprints'] as const,
 };
 
 /** A PUT refused because someone else saved first. `current` is their version. */

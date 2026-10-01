@@ -44,7 +44,7 @@ module.exports = {
     '/api/notebooks': { gate: 'notebooks', beta: null, notes: 'Enterprise tier; configStore.feature_notebooks_enabled remains as a per-deployment kill switch (runs AFTER the licence gate so the frontend sees the actionable feature_locked body first)' },
     '/api/webpages': { gate: 'webpages', beta: 'webpages', notes: 'Enterprise tier + beta opt-in' },
     '/api/transcriptions': { gate: 'meeting_notes', beta: 'meeting_notes', notes: 'Enterprise tier + beta opt-in' },
-    '/api/gmeet-notes-settings': { gate: 'meeting_notes', beta: null, notes: 'License-only (no beta gate) — Google Meet → Meeting Notes org/user settings; kept on requireLicenseFeature like /api/talk-notes-settings so it is not over-gated.' },
+    '/api/gmeet-notes-settings': { gate: 'meeting_notes', beta: null, notes: 'Licence AND the meeting_notes capability, like /api/talk-notes-settings — Google Meet → Meeting Notes org/user settings. Meeting Notes can be rolled out per group, so the personal endpoints follow the capability; an org admin may still reach the org-level ones (auth/capabilityOrOrgAdmin.js).' },
     '/api/skills': { gate: 'skills', beta: 'skills', notes: 'Community tier + beta opt-in (skills stays in community)' },
     // '/api/security' is intentionally absent: Security Scan moved out of core to
     // a downloadable .bfmod (Hub marketplace); the module owns + gates that mount.

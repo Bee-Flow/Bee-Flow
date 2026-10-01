@@ -51,6 +51,8 @@ export interface UseDraftHistoryReturn<T extends Draft> {
     canRedo: boolean;
     /** Clear both stacks (used after server-confirmed loads). */
     reset: () => void;
+    /** Record the state before a streamed external edit as one undo entry. */
+    checkpoint: (before: T) => void;
 }
 
 interface Stacks<T> {
@@ -117,6 +119,12 @@ export default function useDraftHistory<T extends Draft>(
         applyRef.current?.(nextDef);
     }, [setStacksBoth]);
 
+    const checkpoint = useCallback((before: T) => {
+        if (sameDraft(before, currentRef.current)) return;
+        setStacksBoth({ past: [...stacksRef.current.past, safeClone(before)].slice(-CAP), future: [] });
+        lastCommitAtRef.current = 0;
+    }, [setStacksBoth]);
+
     const undo = useCallback(() => {
         const { past: p, future: f } = stacksRef.current;
         if (p.length === 0) return;
@@ -145,6 +153,7 @@ export default function useDraftHistory<T extends Draft>(
 
     return {
         commit,
+        checkpoint,
         undo,
         redo,
         canUndo: past.length > 0,

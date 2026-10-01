@@ -211,9 +211,9 @@ Community feature — building automations is in the free core. Sharing them acr
 
 ## Skills
 
-Community feature, but the whole mount also sits behind the **Skills beta** opt-in
-(`requireCapability('skills')`), so an org that has not enabled the beta gets no route at
-all. Every write additionally needs the `manage_skills` permission. There is no
+Community feature, generally available and on by default. The whole mount sits behind
+`requireCapability('skills')`, so an org that switched Skills off (or whose cloud plan leaves
+it out) gets no route at all. Every write additionally needs the `manage_skills` permission. There is no
 marketplace: skills are written, not browsed or installed.
 
 | Method | Path | Auth | Purpose |

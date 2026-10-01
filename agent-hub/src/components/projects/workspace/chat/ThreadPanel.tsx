@@ -47,7 +47,7 @@ export default function ThreadPanel({ projectId, chatId, threadId, base, canPost
             {notice}
             {canPost && (
                 <ChatComposer {...composer} reply={null} onCancelReply={() => undefined}
-                    placeholder={t('project_chat.thread_placeholder', 'Reply in the thread. Type @ to mention someone, the AI, a document, a notebook or a meeting.')} />
+                    placeholder={t('project_chat.thread_placeholder', 'Reply in the thread. Type @ to tag people, tasks, documents and more.')} />
             )}
         </aside>
     );

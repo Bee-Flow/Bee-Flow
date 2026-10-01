@@ -167,6 +167,38 @@ export function CalendarUpcomingFilterFields({ filter, setFilter }) {
     );
 }
 
+/**
+ * google-sheets.spreadsheet.changed (BFSF-480) — the filter keys the
+ * declaration's `configFields` describes. spreadsheetId is the switch that
+ * matters: set, the trigger polls that sheet's CONTENTS and diffs row by row
+ * (the declaration's contentWatch variant); empty, it watches the edit time
+ * of every spreadsheet you can reach. The hint says so in the field, because
+ * the two modes read identically otherwise.
+ */
+export function SheetsChangedFilterFields({ filter, setFilter }) {
+    return (
+        <FilterShell title="Google Sheets filter (all optional)">
+            <FormRow label="Spreadsheet ID" hint="From the sheet URL: docs.google.com/spreadsheets/d/<id>/edit. Set this to watch the sheet's contents row by row; leave empty to fire whenever any of your spreadsheets is edited.">
+                <input type="text" aria-label="Spreadsheet ID" value={filter.spreadsheetId || ''} onChange={(e) => setFilter('spreadsheetId', e.target.value || undefined)}
+                    placeholder="1AbCDeFgHiJkLmNoPqRsTuV" className={inputClass() + ' font-mono'} />
+            </FormRow>
+            <FormRow label="Sheet / tab" hint="Tab name, e.g. Budget. Only with a spreadsheet picked; default is the first tab.">
+                <input type="text" aria-label="Sheet / tab" value={filter.sheet || ''} onChange={(e) => setFilter('sheet', e.target.value || undefined)}
+                    placeholder="Budget" className={inputClass()} />
+            </FormRow>
+            <FormRow label="Range" hint="A1 notation without the tab name, e.g. A1:D100, or C:C to watch one column. Default: the whole tab.">
+                <input type="text" aria-label="Range" value={filter.range || ''} onChange={(e) => setFilter('range', e.target.value || undefined)}
+                    placeholder="A1:D100" className={inputClass() + ' font-mono'} />
+            </FormRow>
+            {filter.spreadsheetId && (
+                <div className="text-[11px] text-[var(--text-tertiary)] leading-snug">
+                    A changed row fires with <code>row</code> (its values), <code>rowIndex</code>, and the previous value under <code>previous</code>. Row numbers are positions — inserting a row at the top reads as edits to the rows below it.
+                </div>
+            )}
+        </FilterShell>
+    );
+}
+
 export function DriveFileNewFilterFields({ filter, setFilter }) {
     return (
         <FilterShell title="Drive file.new filter (all optional)">
@@ -552,6 +584,7 @@ export const FILTER_FORM_BY_KEY = {
     'google-calendar.event.changed': CalendarChangedFilterFields,
     'google-calendar.event.upcoming': CalendarUpcomingFilterFields,
     'google-drive.file.new': DriveFileNewFilterFields,
+    'google-sheets.spreadsheet.changed': SheetsChangedFilterFields,
     'nextcloud.file.new': NextcloudFileFilterFields,
     'nextcloud.file.changed': NextcloudFileFilterFields,
     'nextcloud.file.deleted': NextcloudFileFilterFields,

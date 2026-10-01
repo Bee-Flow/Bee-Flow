@@ -1,7 +1,7 @@
 /**
  * Wire-shape guarantees for the message helpers.
  *
- * Run: cd server && node --test --test-force-exit utils/messageUtils.test.js
+ * Run: cd server && node --test utils/messageUtils.test.js
  *
  * `stripInternalFields` is the last thing every OpenAI-shaped adapter runs
  * before the SDK call (providers/base.js, providers/openai.js — and through
@@ -65,4 +65,18 @@ test('sanitizeMessages keeps thinking (adapters that replay it read it here)', (
     const [out] = sanitizeMessages([{ role: 'assistant', content: 'x', thinking: [{ text: 't', signature: 's' }], parentId: 'p1', id: 'm1' }]);
     assert.deepStrictEqual(out.thinking, [{ text: 't', signature: 's' }]);
     assert.ok(!('parentId' in out) && !('id' in out));
+});
+
+test('sanitizeMessages flattens an object content (the raw SSE path has no adapter behind it)', () => {
+    const toolCalls = [{ id: 'c1', type: 'function', function: { name: 'automation_1', arguments: '{}' } }];
+    const blocks = [{ type: 'text', text: 'kijk' }];
+    const out = sanitizeMessages([
+        { role: 'user', content: blocks },
+        { role: 'assistant', content: null, tool_calls: toolCalls },
+        { role: 'tool', tool_call_id: 'c1', content: { sent: true } },
+    ]);
+    assert.strictEqual(out[0].content, blocks, 'a block array is left alone');
+    assert.strictEqual(out[1].content, null, 'a pure tool_calls turn keeps its null');
+    assert.strictEqual(out[2].content, '{"sent":true}');
+    assert.strictEqual(out[2].tool_call_id, 'c1');
 });

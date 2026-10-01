@@ -150,7 +150,7 @@ you'll see in 403 responses:
 | `agent_routines` | Community | Scheduled agent runs (Studio → Routines), `/api/ai-tasks`. Free personal use; GA beta, Community |
 | `automation_sharing` | Enterprise | Sharing automations/routines across a team. **Reserve gate** — pins the paid collaboration boundary for the free builder; no route consumes it yet |
 | `approvals` | Enterprise | Approvals — the human decision surface for paused automations and App Studio apps. Gates BROWSING: `GET /api/automation/approvals`, `/approvals/facets`, `/approvals/directory`. **Deliberately does not gate** `GET /approvals/:id`, `POST /approvals/:id/decide`, `POST /approvals/:id/withdraw`, the approval's attachment download, or the legacy `POST /api/automation/runs/:runId/approve-step` — a lapsed or downgraded licence must still be able to finish approvals already pending, or the paused runs behind them would be stuck for good |
-| `meeting_notes` | Enterprise | Transcription + summarisation, `/api/transcriptions`, `/api/meet-bot` |
+| `meeting_notes` | Enterprise | Transcription + summarisation, `/api/transcriptions`, `/api/meet-bot`. GA (no longer beta): on for every organisation on an Enterprise install without an opt-in |
 | `component_designer` | Enterprise | Custom UI components, `/components` |
 | `notebooks` | Enterprise | Per-user research notebooks, `/api/notebooks` |
 | `projects` | Enterprise | Projects / team workspaces (sidebar accordion + `/api/projects`) |
@@ -182,11 +182,14 @@ higher: on a Community install every `requireBetaFeature(...)` call
 short-circuits to a 403 with
 `{ error: 'feature_locked', reason: 'beta_requires_enterprise', required:
 'enterprise', upgrade_url: … }` so the UI can route the user to the right
-CTA. **The exception is the free automation builder:** `automations` and
-`agent_routines` are GA betas whose licence feature lives in Community, so they
-are *exempt* from the beta tier floor and work on a Community install
-(`server/core/betaFeatures.js` returns them below the floor). Super-admins bypass
-the tier check (same exemption that already exists for licensed-feature gates).
+CTA. **The exception is a GA entry whose licence feature lives in Community:**
+`automations`, `agent_routines`, `learning_center` and `skills` are exempt from
+the beta tier floor and work on a Community install
+(`server/core/entitlements/betaFeatures.js` returns them below the floor).
+`meeting_notes` and `advanced_analytics` are GA as well, but their licence
+features are Enterprise, so GA only removes the per-organisation opt-in there; a
+Community install still does not get them. Super-admins bypass the tier check
+(same exemption that already exists for licensed-feature gates).
 
 ## Limit enforcement
 

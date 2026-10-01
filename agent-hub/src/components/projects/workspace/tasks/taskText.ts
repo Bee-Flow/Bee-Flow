@@ -17,6 +17,21 @@ export function isOverdue(dueDate: string | null, status: TaskStatus, today = to
     return !!dueDate && status !== 'done' && dueDate < today;
 }
 
+/** Due today or within the next `days` days, and not done: the quiet warning before "overdue". */
+export function isDueSoon(dueDate: string | null, status: TaskStatus, today = todayKey(), days = 2): boolean {
+    if (!dueDate || status === 'done' || dueDate < today) return false;
+    const limit = new Date(`${today}T00:00:00`);
+    if (Number.isNaN(limit.getTime())) return false;
+    limit.setDate(limit.getDate() + days);
+    return dueDate <= todayKey(limit);
+}
+
+/** How urgent a due date reads: 'overdue', 'soon' or null for a calm date (or none). */
+export function dueState(dueDate: string | null, status: TaskStatus, today = todayKey()): 'overdue' | 'soon' | null {
+    if (isOverdue(dueDate, status, today)) return 'overdue';
+    return isDueSoon(dueDate, status, today) ? 'soon' : null;
+}
+
 export function formatDue(dueDate: string, locale: string): string {
     const d = new Date(`${dueDate}T00:00:00`);
     return Number.isNaN(d.getTime()) ? dueDate : d.toLocaleDateString(locale, { day: 'numeric', month: 'short' });
@@ -36,9 +51,9 @@ export function priorityTone(priority: TaskPriority): string | null {
     return null;
 }
 
-/** `2/5`: how much of a checklist is done, or null without one. */
-export function checklistProgress(items: ChecklistItem[]): { done: number; total: number } | null {
-    return items.length ? { done: items.filter(i => i.done).length, total: items.length } : null;
+/** `2/5`: how much of a checklist is done, or null without one (also for a task that has no checklist field). */
+export function checklistProgress(items: ChecklistItem[] | null | undefined): { done: number; total: number } | null {
+    return items?.length ? { done: items.filter(i => i.done).length, total: items.length } : null;
 }
 
 const RANK: Record<TaskPriority, number> = { urgent: 0, high: 1, normal: 2, low: 3 };

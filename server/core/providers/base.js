@@ -17,6 +17,7 @@
 const { stripInternalFields } = require('../../utils/messageUtils');
 const { parseGemmaArgs } = require('../llm/leakedToolCalls');
 const log = require('../../telemetry/log');
+const { normalizeUsage } = require('./usageNormalizer');
 
 // Parity with claude.js (`?? DEFAULT_MAX_TOKENS`). Without a default, a
 // caller that passed no cap let a self-hosted model generate until its
@@ -80,10 +81,12 @@ class BaseProvider {
     isRestrictedModel(_modelId) { return false; }
     supportsReasoning(_modelId) { return false; }
     supportsVision(_modelId) { return false; }
-    // Native document blocks ({type:'document'} with raw PDF bytes). Only
-    // Anthropic's API understands them — an OpenAI-compatible endpoint answers
-    // an unknown content block with a 400 that fails the whole request, so
-    // callers must gate on this rather than trying and catching.
+    // Native document blocks ({type:'document'} with raw PDF bytes). Claude
+    // reads them as-is; the OpenAI and Azure adapters translate them into a
+    // Responses `input_file`. Any other OpenAI-compatible endpoint answers an
+    // unknown content block with a 400 that fails the whole request, so
+    // callers must gate on this rather than trying and catching (chat turns go
+    // through core/documents/nativePdf.js).
     supportsDocuments(_modelId) { return false; }
 
     // Can this adapter GUARANTEE a response matching `schema`, via native
@@ -240,7 +243,10 @@ class BaseProvider {
             content: content || null,
             ...(thinking ? { thinking } : {}),
             toolCalls: message?.tool_calls || null,
-            usage: data.usage || null,
+            // Normalised: OpenAI-compatible endpoints (local runtimes, Scaleway)
+            // report cache reuse in prompt_tokens_details, which callers used to
+            // have to read defensively.
+            usage: normalizeUsage(this.name, data.usage, { service_tier: data.service_tier }),
             ...(stopReason ? { stop_reason: stopReason } : {}),
             raw: data,
         };
@@ -257,7 +263,9 @@ class BaseProvider {
      *   - ('text', { text }) — text content delta
      *   - ('thinking', { text }) — reasoning/thinking delta
      *   - ('tool_use', { id, name, input }) — tool call
-     *   - ('done', { usage }) — stream complete
+     *   - ('done', { prompt_tokens, completion_tokens, cached_tokens, ... , stop_reason }) —
+     *     stream complete; the usage is the NORMALISED shape (usageNormalizer.js),
+     *     flat on the payload
      *   - ('error', { error }) — stream error
      */
     async stream(apiKey, baseUrl, model, messages, options = {}, onEvent) {
@@ -525,17 +533,13 @@ class BaseProvider {
                         };
                     }
                     if (parsed.usage) {
-                        streamUsage = {
-                            prompt_tokens: parsed.usage.prompt_tokens || 0,
-                            completion_tokens: parsed.usage.completion_tokens || 0,
-                            total_tokens: parsed.usage.total_tokens || 0,
-                            // llama.cpp reports reuse in timings.cache_n, not in
-                            // prompt_tokens_details — read both so a local turn
-                            // does not log every prompt as fully uncached.
-                            cached_tokens: parsed.usage.prompt_tokens_details?.cached_tokens
-                                ?? (Number.isFinite(streamTimings?.cache_n) ? streamTimings.cache_n : 0),
-                            reasoning_tokens: parsed.usage.completion_tokens_details?.reasoning_tokens || 0,
-                        };
+                        streamUsage = normalizeUsage(this.name, parsed.usage, { service_tier: parsed.service_tier });
+                        // llama.cpp reports reuse in timings.cache_n, not in
+                        // prompt_tokens_details — read both so a local turn
+                        // does not log every prompt as fully uncached.
+                        if (!streamUsage.cached_tokens && Number.isFinite(streamTimings?.cache_n)) {
+                            streamUsage.cached_tokens = streamTimings.cache_n;
+                        }
                     }
 
                     // Prefill progress (llama-server, `return_progress: true`):

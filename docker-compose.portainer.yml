@@ -14,6 +14,7 @@
 #        SERVICES_API_KEY      = openssl rand -hex 32
 #        DB_PASSWORD           = openssl rand -hex 16
 #        RUSTFS_PASSWORD       = openssl rand -hex 16
+#        BROWSER_WS_PATH       = openssl rand -hex 24
 #   4. Deploy. First boot pulls models on guard-service (~2 min).
 #
 # After deploying:
@@ -204,6 +205,11 @@ services:
       # GPU-only services intentionally left empty
       WHISPERX_URL: ""
       RERANKER_URL: ""
+
+      # Shared headless browser: the `browser` sidecar below (PDF export,
+      # thumbnails, SPA ingestion, browse_web). Set BROWSER_WS_PATH in the stack
+      # environment (openssl rand -hex 24).
+      BROWSER_WS_ENDPOINT: ws://browser:9222/${BROWSER_WS_PATH:-beeflow-browser}
     volumes:
       - beeflow-data:/app/data
     depends_on:
@@ -222,6 +228,34 @@ services:
       start_period: 60s
     networks:
       - beeflow
+      - beeflow-browser
+
+  # ── Shared headless browser (PDF export, thumbnails, SPA ingestion, browse_web)
+  # The server image carries no Chromium. This sidecar is the Playwright server
+  # it drives over BROWSER_WS_ENDPOINT, so none of that needs the Docker socket.
+  # Playwright's launchServer has no authentication, so the sidecar sits on its
+  # OWN network shared only with the server (never beeflow-network, where the
+  # database, object storage and the guard live), publishes no port, and serves
+  # at the path in BROWSER_WS_PATH (selfhost.sh generates a random one; set your
+  # own when you deploy this file by hand). The network is not `internal`:
+  # browse_web and SPA ingestion load public pages. The runner's Playwright must
+  # match the server's (scripts/check-playwright-lockstep.mjs).
+  browser:
+    image: ghcr.io/bee-flow/pwt-runner:latest
+    container_name: beeflow-browser
+    command: serve
+    environment:
+      PWT_SERVE_HOST: 0.0.0.0
+      PWT_SERVE_PORT: 9222
+      PWT_SERVE_WS_PATH: ${BROWSER_WS_PATH:-beeflow-browser}
+    shm_size: 256m
+    mem_limit: ${BROWSER_MEMORY_LIMIT:-1g}
+    pids_limit: 512
+    init: true
+    security_opt: [ "no-new-privileges:true" ]
+    networks:
+      - beeflow-browser
+    restart: unless-stopped
 
   # ── Agent Hub (React frontend, served by nginx) ──────────────
   agent-hub:
@@ -258,4 +292,7 @@ volumes:
 
 networks:
   beeflow:
+    driver: bridge
+  # Only the server and the browser sidecar. See the `browser` service.
+  beeflow-browser:
     driver: bridge

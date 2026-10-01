@@ -44,6 +44,7 @@ const {
     rememberMistralCapabilities,
 } = require('./mistralModels');
 const log = require('../../telemetry/log');
+const { normalizeUsage } = require('./usageNormalizer');
 
 // Parity with base.js: without a cap a runaway reply generates until the
 // context window is full.
@@ -123,28 +124,11 @@ function conversationCacheKey(key) {
  * modelCosts subtracts them itself (modelCosts `_uncachedInputTokens`).
  * Fields the SDK schema does not name arrive raw, so the cached and reasoning
  * counts are read in the API's own spelling (and the camelCase one, in case a
- * later SDK names them).
+ * later SDK names them). The reading itself lives in the shared normaliser
+ * (providers/usageNormalizer.js).
  */
 function toSnakeUsage(usage) {
-    if (!usage || typeof usage !== 'object') return null;
-    /** @type {Record<string, any>} */
-    const u = usage;
-    const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
-    return {
-        prompt_tokens: num(u.promptTokens ?? u.prompt_tokens),
-        completion_tokens: num(u.completionTokens ?? u.completion_tokens),
-        total_tokens: num(u.totalTokens ?? u.total_tokens),
-        cached_tokens: num(
-            u.prompt_tokens_details?.cached_tokens
-            ?? u.promptTokensDetails?.cachedTokens
-            ?? u.num_cached_tokens
-            ?? u.numCachedTokens
-        ),
-        reasoning_tokens: num(
-            u.completion_tokens_details?.reasoning_tokens
-            ?? u.completionTokensDetails?.reasoningTokens
-        ),
-    };
+    return normalizeUsage('mistral', usage);
 }
 
 /**

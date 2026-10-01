@@ -354,7 +354,7 @@ function register(router) {
             res.json({ success: true });
         } catch (err) {
             log.error('[Webpages] Update failed:', err);
-            res.status(500).json({ error: 'Failed to update webpage: ' + err.message });
+            res.status(500).json({ error: 'Failed to update webpage' });
         }
     });
 }

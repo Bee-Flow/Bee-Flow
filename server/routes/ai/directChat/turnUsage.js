@@ -7,6 +7,7 @@
  */
 
 const log = require('../../../telemetry/log');
+const { usageLogFields } = require('../../../core/providers/usageNormalizer');
 
 async function logTurnUsage(turn) {
     const { streamUsage } = turn;
@@ -17,17 +18,9 @@ async function logTurnUsage(turn) {
             agent_name: 'direct-chat',
             agent_type: 'chat',
             model: turn.modelId,
-            prompt_tokens: streamUsage?.prompt_tokens || 0,
-            completion_tokens: streamUsage?.completion_tokens || 0,
-            total_tokens: streamUsage?.total_tokens || ((streamUsage?.prompt_tokens || 0) + (streamUsage?.completion_tokens || 0)),
-            cached_tokens: streamUsage?.cached_tokens || 0,
-            cache_creation_tokens: streamUsage?.cache_creation_tokens || 0,
-            // These two were missing, so every direct-chat turn logged zero
-            // reasoning tokens and no cache TTL. Cost was still right —
-            // reasoning tokens are already inside completion_tokens — but
-            // the monitoring dashboards showed reasoning as unused.
-            reasoning_tokens: streamUsage?.reasoning_tokens || 0,
-            cache_ttl: streamUsage?.cache_ttl || null,
+            // Tokens, cache read/write (5m/1h split, cache_ttl), reasoning: the
+            // adapter's normalised `done` payload (core/providers/usageNormalizer.js).
+            ...usageLogFields(streamUsage),
             stop_reason: streamUsage?.stop_reason || null,
             source: 'direct_chat',
             duration_ms: Date.now() - turn.streamStartTime,

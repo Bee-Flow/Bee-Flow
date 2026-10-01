@@ -75,49 +75,44 @@ export default function MeetingOutputsBar({
 
     if (pending) {
         return (
-            <p
-                className={`flex items-center gap-1.5 text-[11px] ${className}`}
-                style={{ color: 'var(--text-tertiary)' }}
-                data-testid="meeting-outputs-loading"
-            >
+            <p className={`flex items-center gap-1.5 text-[11px] text-[var(--text-tertiary)] ${className}`} data-testid="meeting-outputs-loading">
                 <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />
                 {t('meetings.outputs_checking', 'Checking what happens to this meeting…')}
             </p>
         );
     }
 
+    const kindNames = kinds.map(k => kindLabelFor(t, k, 2)).join(', ');
+    // One quiet line. What could not be checked comes FIRST, so an incomplete
+    // list is never read as a complete one; the full sentence is its tooltip.
     return (
-        <div className={`flex flex-col gap-1 ${className}`} data-testid="meeting-outputs">
-            {/* Said BEFORE the list, so an incomplete list is never read as a
-                complete one. Both messages can be true at once. */}
+        <div className={`flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] text-[var(--text-tertiary)] ${className}`} data-testid="meeting-outputs">
+            {list.length > 0 && <span>{t('meetings.outputs_title', 'What happens to this meeting')}</span>}
             {error && (
-                <p className="flex items-center gap-1.5 text-[11px]" role="status" style={{ color: 'var(--warning)' }}>
+                <span role="status" className="inline-flex items-center gap-1 text-[var(--warning-ink)]"
+                    title={t('meetings.outputs_error', 'Could not check what happens to this meeting — this list may be incomplete.')}>
                     <AlertTriangle className="w-3 h-3 shrink-0" aria-hidden="true" />
-                    {t('meetings.outputs_error', 'Could not check what happens to this meeting — this list may be incomplete.')}
-                </p>
+                    {t('meetings.outputs_error_short', 'Could not check everything')}
+                </span>
             )}
             {kinds.length > 0 && (
-                <p className="flex items-center gap-1.5 text-[11px]" role="status" style={{ color: 'var(--warning)' }} data-testid="meeting-outputs-unchecked">
+                <span role="status" className="inline-flex items-center gap-1 text-[var(--warning-ink)]" data-testid="meeting-outputs-unchecked"
+                    title={t('meetings.outputs_unchecked', 'Could not check {kinds}, so something may be missing from this list.', { kinds: kindNames })}>
                     <AlertTriangle className="w-3 h-3 shrink-0" aria-hidden="true" />
-                    {t('meetings.outputs_unchecked', 'Could not check {kinds}, so something may be missing from this list.', {
-                        kinds: kinds.map(k => kindLabelFor(t, k, 2)).join(', '),
-                    })}
-                </p>
+                    {t('meetings.outputs_unchecked_short', 'Not checked: {kinds}', { kinds: kindNames })}
+                </span>
             )}
-
             {list.length === 0 ? (
-                // Only ever printed when there was nothing to say AND nothing
-                // went unanswered — the two warnings above carry the other cases.
-                <p className="text-[11px]" style={{ color: 'var(--text-tertiary)' }} data-testid="meeting-outputs-empty">
+                // "Nothing picks this up" only when nothing went unanswered;
+                // otherwise the honest claim is the weaker one.
+                <span data-testid="meeting-outputs-empty">
+                    {(error || kinds.length > 0) && <span aria-hidden="true">· </span>}
                     {error || kinds.length > 0
-                        ? t('meetings.outputs_none_known', 'Nothing else found.')
+                        ? t('meetings.outputs_none_known', 'Nothing found so far')
                         : t('meetings.outputs_none', 'Nothing picks this meeting up yet.')}
-                </p>
+                </span>
             ) : (
-                <div className="flex flex-wrap items-center gap-1" role="list" aria-label={t('meetings.outputs_title', 'What happens to this meeting')}>
-                    <span className="text-[11px] mr-0.5" style={{ color: 'var(--text-tertiary)' }}>
-                        {t('meetings.outputs_title', 'What happens to this meeting')}
-                    </span>
+                <div className="contents" role="list" aria-label={t('meetings.outputs_title', 'What happens to this meeting')}>
                     {list.map((row, i) => (
                         <OutputChip
                             key={`${usageKind(row)}:${row.id ?? i}:${row.siteLabel ?? ''}`}
@@ -174,17 +169,12 @@ function OutputChip({ row, currentUserId, onNavigate, t }) {
         <>
             {Icon && <Icon style={{ width: 11, height: 11, flexShrink: 0, color }} aria-hidden="true" />}
             <span className="truncate max-w-[160px]">{title}</span>
-            {detail && <span className="truncate max-w-[120px]" style={{ color: 'var(--text-tertiary)' }}>· {detail}</span>}
-            {navigable && <ArrowUpRight style={{ width: 10, height: 10, color: 'var(--text-tertiary)' }} aria-hidden="true" />}
+            {detail && <span className="truncate max-w-[120px] text-[var(--text-tertiary)]">· {detail}</span>}
+            {navigable && <ArrowUpRight className="w-2.5 h-2.5 text-[var(--text-tertiary)]" aria-hidden="true" />}
         </>
     );
 
-    const style = {
-        background: 'var(--bg-secondary)',
-        borderColor: 'var(--border-default)',
-        color: 'var(--text-secondary)',
-        outlineColor: 'var(--accent-primary)',
-    };
+    const chip = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] bg-[var(--bg-secondary)] border-[var(--border-default)] text-[var(--text-secondary)]';
 
     return navigable ? (
         <button
@@ -192,8 +182,7 @@ function OutputChip({ row, currentUserId, onNavigate, t }) {
             role="listitem"
             data-testid="meeting-output-chip"
             onClick={() => onNavigate(href)}
-            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] hover:bg-[var(--bg-tertiary)] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1"
-            style={style}
+            className={`${chip} hover:bg-[var(--bg-tertiary)] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--accent-primary)]`}
         >
             {body}
         </button>
@@ -201,8 +190,7 @@ function OutputChip({ row, currentUserId, onNavigate, t }) {
         <span
             role="listitem"
             data-testid="meeting-output-chip"
-            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px]"
-            style={style}
+            className={chip}
         >
             {body}
         </span>

@@ -98,9 +98,9 @@ test('an unknown provider yields an empty list without touching an adapter', asy
 });
 
 test('vendor-specific connection fields reach the adapter', async () => {
-    store.ai = { providers: [provider({ id: 'v', type: 'google-vertex', url: 'vertex-ai', project: 'proj', location: 'eu', serviceAccountKey: '{}', apiVersion: null })] };
+    store.ai = { providers: [provider({ id: 'v', type: 'google-vertex', url: 'vertex-ai', project: 'proj', location: 'eu', serviceAccountKey: '{}' })] };
     await getModelsForProvider('v');
-    assert.deepStrictEqual(adapter.calls[0].extra, { project: 'proj', location: 'eu', serviceAccountKey: '{}', apiVersion: null });
+    assert.deepStrictEqual(adapter.calls[0].extra, { project: 'proj', location: 'eu', serviceAccountKey: '{}' });
 });
 
 // ─── invalidateModelCache ────────────────────────────────────────────────────
@@ -144,7 +144,7 @@ test('getAllCachedModelIds lists every cached model once per provider name', asy
 // ─── getProviderForModel ─────────────────────────────────────────────────────
 
 test('getProviderForModel returns the connection record of the provider that serves the model', async () => {
-    store.ai = { providers: [provider({ apiVersion: '2025-04-01-preview' })] };
+    store.ai = { providers: [provider()] };
     const rec = await getProviderForModel('gpt-4o-mini');
     assert.deepStrictEqual(rec, {
         url: 'https://api.openai.com/v1',
@@ -156,7 +156,6 @@ test('getProviderForModel returns the connection record of the provider that ser
         project: null,
         location: null,
         serviceAccountKey: null,
-        apiVersion: '2025-04-01-preview',
     });
 });
 

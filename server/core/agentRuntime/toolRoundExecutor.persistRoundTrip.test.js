@@ -18,7 +18,7 @@
  * This drives the three real modules that meet at that seam — no DB, no
  * provider — and asserts the shape survives a full turn-to-turn round-trip.
  *
- * Run: cd server && node --test --test-force-exit core/agentRuntime/toolRoundExecutor.persistRoundTrip.test.js
+ * Run: cd server && node --test core/agentRuntime/toolRoundExecutor.persistRoundTrip.test.js
  */
 
 const test = require('node:test');

@@ -269,7 +269,7 @@ async function executeToolRound({
                     // step below. classifyToolClass lives in orgShield (single source
                     // of truth shared with the admin route/UI).
                     const { classifyToolClass: _classifyToolClass } = require('../privacy/orgShield');
-                    const _toolClass = _classifyToolClass(toolName);
+                    const _toolClass = _classifyToolClass(toolName, toolArgs);
                     const _piiThreshold = (typeof dlpShield?.piiDetectionConfidenceThreshold === 'number')
                         ? dlpShield.piiDetectionConfidenceThreshold : 0.7;
                     const _blockCats = new Set((dlpShield?.toolPiiPolicy?.[_toolClass]?.blockCategories) || []);

@@ -12,7 +12,7 @@ const log = require('../../telemetry/log');
 const router = express.Router();
 
 const userStore = require('../../stores/userStore');
-const { requireAuth, requireAdmin, getUserPermissions, resolveUserOrgIds } = require('../permissions');
+const { requireAuth, requireAdmin, getUserPermissions, resolveUserOrgIds, invalidateAllPermissionCaches, GROUP_GRANT_IMPLIED_PERMISSIONS } = require('../permissions');
 const { requireOrgAdmin } = require('./orgAdminGuards');
 const configStore = require('../../stores/configStore');
 const { ALL_INTEGRATIONS } = require('./integrationCatalog');
@@ -504,7 +504,10 @@ async function buildGroupAccessResponse(orgId) {
     await entitlements.registry.refreshModuleCapabilityFilter();
     const matrixCaps = entitlements.registry.listCapabilities().filter(c => c.userFacing && c.groupTogglable);
     const capIdSet = new Set(matrixCaps.map(c => c.id));
-    const capabilities = matrixCaps.map(c => ({ id: c.id, kind: c.kind, name: c.name, description: c.description, category: c.category, lifecycle: c.lifecycle }));
+    // groupScoped tells the matrix that this beta is NOT tied to the org-access
+    // menu: "All members" is a real toggle for it (in both modes, the plan stays
+    // the ceiling) and a group can hold it on its own.
+    const capabilities = matrixCaps.map(c => ({ id: c.id, kind: c.kind, name: c.name, description: c.description, category: c.category, lifecycle: c.lifecycle, groupScoped: !!c.groupScoped }));
     const allGroups = await userStore.getAllGroups();
     const groups = allGroups
         .filter(g => g.organizationId === orgId)
@@ -521,6 +524,8 @@ async function buildGroupAccessResponse(orgId) {
         // grant what the org has been given access to. Locked rows = outside the
         // menu. The super-admin sets the menu in the Organisation access surface.
         ceiling: inMatrix(snap.orgAvailable),
+        // For a group-scoped beta this reflects org_beta_everyone (buildOrgGrant
+        // reads it), so the "All members" toggle shows what is stored.
         everyone: inMatrix(snap.orgEnabled),
         groups,
         // On cloud the subscription governs which betas the org has; the beta
@@ -528,6 +533,35 @@ async function buildGroupAccessResponse(orgId) {
         // MCP servers) and core are org + per-group distributable in both modes.
         betaGoverned: snap.mode === 'cloud',
     };
+}
+
+// The org_beta_everyone list to store after an "All members" save. Every
+// group-scoped beta the org may currently use is decided by `chosenBeta` (the
+// clamped grant). One OUTSIDE the org's access keeps its previous state: the
+// admin could not see or toggle it, so a save must not quietly decide it — when
+// the plan or menu brings it back it is as it was. A never-chosen list (null)
+// counts as "everyone" for that carry-over, matching how buildOrgGrant reads it.
+// The scoped ids come from the STATIC beta list, never registry.listCapabilities():
+// that one leaves out betas of an inactive platform module, and a save while the
+// meetingNotes module is off would then store [] and silently narrow Meeting
+// Notes to granted groups once the module is switched on. A stored id that is
+// not (or no longer) a group-scoped beta is kept as-is for the same reason.
+// "Decided by this save" = in the org's access AND listed in the matrix (the
+// filtered list): a beta of an inactive module is not shown, so not chosen.
+async function nextBetaEveryone(orgId, bound, chosenBeta, registry) {
+    const scopedIds = BETA_FEATURES.filter(f => f.groupScoped).map(f => f.id);
+    const scopedSet = new Set(scopedIds);
+    const shown = new Set(registry.listCapabilities().map(c => c.id));
+    const inBound = new Set((bound.beta || []).filter(id => shown.has(id)));
+    const chosen = new Set(chosenBeta);
+    const stored = await userStore.getOrgBetaEveryone(orgId);
+    const next = [];
+    for (const id of scopedIds) {
+        if (inBound.has(id)) { if (chosen.has(id)) next.push(id); continue; }
+        if (stored == null || stored.includes(id)) next.push(id);
+    }
+    for (const id of stored || []) if (!scopedSet.has(id) && !next.includes(id)) next.push(id);
+    return next;
 }
 
 // Shared writer for the org-wide "All members" grants (clamped to ceiling).
@@ -549,6 +583,10 @@ async function writeOrgAccessGrants(orgId, granted, actorId) {
     }
     await userStore.setOrgEnabledIntegrations(orgId, buckets.integration); // NC bypasses; MCP included
     if (snap.mode !== 'cloud') await userStore.setOrgEnabledBetaFeatures(orgId, buckets.beta); // cloud betas governed
+    // Group-scoped betas: the everyone-choice is stored in BOTH modes (on cloud
+    // the subscription stays the ceiling, it just no longer decides who inside
+    // the org gets it).
+    await userStore.setOrgBetaEveryone(orgId, await nextBetaEveryone(orgId, bound, buckets.beta, entitlements.registry));
     await userStore.setOrgGrantedCapabilities(orgId, [...buckets.core]);
     await entitlements.invalidateForOrg(orgId);
     try {
@@ -713,6 +751,13 @@ router.put('/groups/:id/access', requireAuth, validate({ body: GrantedBody }), a
         await userStore.logAccessAudit('group.access.update', 'group', id, userId || null, { grantedCapabilities: prev }, { grantedCapabilities: clean }, group.organizationId || null);
     } catch (e) { log.warn('[Entitlements] group-access audit failed:', e.message); }
     await entitlements.invalidateForOrg(group.organizationId);
+    // A grant such as meeting_notes carries a UI permission to the group's
+    // members (getUserPermissions), so their cached permission sets are stale
+    // the moment such a grant flips.
+    const implied = Object.keys(GROUP_GRANT_IMPLIED_PERMISSIONS);
+    if (implied.some(capId => prev.includes(capId) !== clean.includes(capId))) {
+        try { await invalidateAllPermissionCaches(); } catch (e) { log.warn('[Entitlements] permission cache invalidation failed:', e.message); }
+    }
     res.json({ success: true, granted: clean });
 });
 

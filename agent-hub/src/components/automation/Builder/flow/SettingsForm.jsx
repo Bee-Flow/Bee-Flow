@@ -12,19 +12,20 @@ import {
 } from './settings/actionEditors';
 import { emptySlotsIn } from '../mapping/boundPaths';
 import { AiStepFields } from './settings/aiStepEditors';
-import ReturnToAppFields from './settings/returnToAppEditor';
 import { ApprovalFields } from './settings/approvalEditors';
 import {
     DateTimeFields, WaitFields, LimitFields, DedupeFields, AggregateFields, SummarizeFields,
 } from './settings/collectionEditors';
 import DatatableFields from './settings/datatableEditors';
-import KnowledgeWriteFields from './settings/knowledgeWriteEditors';
 import { useFormDensity, useFormMode } from './settings/formDensity';
 import { inputClass, controlSurfaceClass, hintTextClass, FormRow, ValidationLine } from './settings/formPrimitives';
 import { defaultLabelPlaceholder, extractFormState, buildPatch, deepEqual, carryPendingRows } from './settings/formState';
+import JsonConfigSection from './settings/JsonConfigEditor';
+import KnowledgeWriteFields from './settings/knowledgeWriteEditors';
 import NodePurpose from './settings/NodePurpose';
 import ParseJsonFields from './settings/ParseJsonFields';
 import { PrivacyShieldFields } from './settings/privacyEditors';
+import ReturnToAppFields from './settings/returnToAppEditor';
 import { RouteFields } from './settings/routeEditors';
 import { SetFields } from './settings/setEditors';
 import { TriggerFields, FormPageFields } from './settings/triggerEditors';
@@ -484,12 +485,11 @@ export default function SettingsForm({
                 )}
 
                 {/* Not in Simple mode: that view's whole point is that it
-                    doesn't talk about JSON. The mode toggle is the way
-                    deeper. */}
+                    doesn't talk about JSON. BFSF-481: the sentence used to be
+                    dead text naming a view that did not exist; now it IS the
+                    control. */}
                 {formMode !== 'simple' && (
-                    <div className="text-[11px] text-[var(--text-tertiary)]">
-                        Advanced options are available in the JSON view.
-                    </div>
+                    <JsonConfigSection draft={draft} onApply={setDraft} />
                 )}
             </div>
 

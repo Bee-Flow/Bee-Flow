@@ -24,6 +24,7 @@
  */
 
 const crypto = require('crypto');
+const { trackUsageTotals } = require('../../../core/providers/usageNormalizer');
 const { validateAppDefinition } = require('../../../appStudio/validate');
 const { MUTATING_TOOLS, DATA_MODEL_TOOLS, applyToolCall, persistDraft } = require('../../../appStudio/builderTools');
 const { effortForIteration } = require('../../../appStudio/builderModelProfiles');
@@ -189,8 +190,7 @@ async function runBuildLoop(turn, {
             // adapter payload verbatim: llama.cpp `timings` (prompt_n,
             // cache_n, predicted_per_second) and cached_tokens feed the
             // engine line on the canvas.
-            usageTotals.inputTokens += Number(response.usage.prompt_tokens) || 0;
-            usageTotals.outputTokens += Number(response.usage.completion_tokens) || 0;
+            trackUsageTotals(usageTotals, response.usage);
             accumulateUsage(roundTotals, response.usage);
             send('usage', { ...response.usage, iter, effort: turnEffort, totals: { ...roundTotals }, ...usageTotals });
         }

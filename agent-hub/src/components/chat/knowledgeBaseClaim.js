@@ -67,24 +67,6 @@ export function directChatKbList(kbs, listKnown) {
 }
 
 /**
- * May this account attach knowledge bases to a chat itself?
- *
- * A product gate, not an access check — the server re-authorises every id on
- * every read and every turn regardless of what this says. It decides who gets
- * the PICKER, which is why it is a poor gate for the pill itself: a
- * conversation that already carries bases searches them for whoever opens it,
- * so hiding the statement along with the control would make the grounding
- * invisible rather than absent. It lives here, next to the claim it qualifies,
- * so the two halves of that distinction cannot drift apart.
- */
-export function chatKnowledgeBasesAllowed(user) {
-    if (!user) return false;
-    if (user.isAdmin) return true;
-    if (Array.isArray(user.permissions) && user.permissions.includes('all')) return true;
-    return Array.isArray(user.betaFeatures) && user.betaFeatures.includes('knowledge_bases_beta');
-}
-
-/**
  * The server's cap on how many bases one conversation may carry. PATCH
  * refuses a longer list outright and stores nothing, so the composer stops
  * one short of asking rather than showing a rejection it could predict.

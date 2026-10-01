@@ -26,13 +26,18 @@
  * chat-completions and Mistral) drop the field themselves — see their
  * `stripInternalFields` / normalizeMessages.
  *
+ * `content` goes through `coerceWireContent`: the raw SSE path
+ * (chatStream/rawSseStream.js) builds its request body from this output
+ * directly, with no adapter `stripInternalFields` behind it, so an object
+ * content revived from an old history row would 400 every later turn.
+ *
  * @param {Array} msgs - Chat messages array
  * @returns {Array} Cleaned messages with only API-safe fields
  */
 const log = require('../telemetry/log');
 function sanitizeMessages(msgs) {
     return msgs.map(m => {
-        const clean = { role: m.role, content: m.content };
+        const clean = { role: m.role, content: coerceWireContent(m.content, m.role) };
         if (m.tool_calls) clean.tool_calls = m.tool_calls;
         if (m.tool_call_id) clean.tool_call_id = m.tool_call_id;
         if (m.name) clean.name = m.name;

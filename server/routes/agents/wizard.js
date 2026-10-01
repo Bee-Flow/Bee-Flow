@@ -137,6 +137,17 @@ async function getAvailableIntegrations(userId) {
 
     const isGoogleUser = !!user?.oauthProvider && user.oauthProvider === 'google';
     const isMicrosoftUser = !!user?.oauthProvider && user.oauthProvider === 'microsoft';
+    // Microsoft 365 connected through Settings → Connections (the vault),
+    // which is how a Google-SSO or password user gets Outlook into an agent:
+    // getIntegrationTools lifts the Outlook tools off that credential.
+    let hasMicrosoftConnection = false;
+    let hasGoogleConnection = false;
+    try {
+        const routineCredentialStore = require('../../stores/routineCredentialStore');
+        const rows = await routineCredentialStore.listProvidersForUser(userId);
+        hasMicrosoftConnection = rows.some(r => r.provider === 'microsoft' && r.status === 'active');
+        hasGoogleConnection = rows.some(r => r.provider === 'google' && r.status === 'active');
+    } catch (_) { /* no vault → SSO-only gating, as before */ }
     const hasFirefliesKey = !!(await configStore.getSecret(`fireflies_api_key_user_${userId}`).catch(() => null));
     const hasYouTrackConfig = !!(await configStore.getSecret(`youtrack_url_user_${userId}`).catch(() => null))
         && !!(await configStore.getSecret(`youtrack_token_user_${userId}`).catch(() => null));
@@ -163,7 +174,15 @@ async function getAvailableIntegrations(userId) {
         if (orgEnabled && !orgEnabled.includes(item.id)) return false;
         if (orgActiveSet && !ncIdSet.has(item.id) && !orgActiveSet.has(item.id)) return false;
         if (item.group === 'google') return isGoogleUser;
-        if (item.id === 'outlook' || item.id === 'ms-calendar' || item.id === 'onedrive' || item.id === 'ms-contacts') return isMicrosoftUser;
+        // Outlook works off a vault connection next to any SSO session; the
+        // other Microsoft apps only when nothing else owns the session (the
+        // vault then hydrates it as Microsoft), as getIntegrationTools does.
+        // That hydration tries Google first, so an active Google vault row
+        // wins the session and these three would load no tools.
+        if (item.id === 'outlook') return isMicrosoftUser || hasMicrosoftConnection;
+        if (item.id === 'ms-calendar' || item.id === 'onedrive' || item.id === 'ms-contacts') {
+            return isMicrosoftUser || (hasMicrosoftConnection && !hasGoogleConnection && !user?.oauthProvider);
+        }
         if (item.requiresKey) return !!status[item.requiresKey];
         return true;
     });

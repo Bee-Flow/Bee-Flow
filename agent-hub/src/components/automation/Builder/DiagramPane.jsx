@@ -110,6 +110,7 @@ const DiagramPane = forwardRef(function DiagramPane({
     definition,
     runSteps = [],
     onNodeClick,
+    onAskAssistant = null,
     onNodeExpand,      // (nodeId) — double-click: open the FULL editor
     onDefinitionChange,
     validation = null,
@@ -188,6 +189,7 @@ const DiagramPane = forwardRef(function DiagramPane({
                 definition={definition}
                 runSteps={runSteps}
                 onNodeClick={onNodeClick}
+                onAskAssistant={onAskAssistant}
                 onNodeExpand={onNodeExpand}
                 onDefinitionChange={onDefinitionChange}
                 validation={validation}
@@ -238,7 +240,7 @@ const DiagramPane = forwardRef(function DiagramPane({
 export default DiagramPane;
 
 const DiagramPaneInner = forwardRef(function DiagramPaneInner({
-    definition, runSteps, onNodeClick, onNodeExpand, onDefinitionChange,
+    definition, runSteps, onNodeClick, onNodeExpand, onDefinitionChange, onAskAssistant = null,
     validation, readOnly, editable, structuralEditsBlocked,
     onRequestAddNode, onRequestOpenPalette, onRequestAddAfter, onRequestInsertOnEdge,
     onDropStep = null,
@@ -897,6 +899,18 @@ const DiagramPaneInner = forwardRef(function DiagramPaneInner({
     // definition update (so a group move is one undo step). What was missing
     // was the gesture and any sign that a selection existed at all.
     const [selectedIds, setSelectedIds] = useState([]);
+    useEffect(() => {
+        if (!onAskAssistant || selectedIds.length !== 1) return undefined;
+        const onKey = event => {
+            if ((event.ctrlKey || event.metaKey) && !event.altKey && event.key.toLowerCase() === 'j') {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                onAskAssistant(selectedIds[0]);
+            }
+        };
+        document.addEventListener('keydown', onKey, true);
+        return () => document.removeEventListener('keydown', onKey, true);
+    }, [onAskAssistant, selectedIds]);
     const onSelectionChange = useCallback(({ nodes: sel }) => {
         setSelectedIds((prev) => {
             const next = (sel || []).map(n => n.id);
@@ -1162,6 +1176,12 @@ const DiagramPaneInner = forwardRef(function DiagramPaneInner({
                 // take arrays.
                 panOnDrag={interactive ? [1] : false}
                 selectionOnDrag={interactive}
+                // Selection must NOT lift a note out of its background layer
+                // (BFSF-479): with the default elevation a selected note would
+                // pop +1000 over the nodes and connectors it is supposed to sit
+                // beneath. useRenderedGraph re-applies the same lift to every
+                // selected non-note node, so cards keep their pop-to-front.
+                elevateNodesOnSelect={false}
                 selectionKeyCode="Shift"
                 multiSelectionKeyCode={['Meta', 'Control']}
                 selectNodesOnDrag={false}
@@ -1324,6 +1344,7 @@ const DiagramPaneInner = forwardRef(function DiagramPaneInner({
                     onExecute={onExecuteStep && !runInFlight ? () => onExecuteStep(ctxMenu.stepId) : null}
                     onToggleInline={ctxMenuLayerKey && onToggleInline ? () => onToggleInline(ctxMenu.stepId, ctxMenuLayerKey) : null}
                     inlineExpanded={inlineExpandedIds.has(ctxMenu.stepId)}
+                    onAskAssistant={onAskAssistant ? () => onAskAssistant(ctxMenu.stepId) : null}
                     onClose={closeCtxMenu}
                 />
             )}

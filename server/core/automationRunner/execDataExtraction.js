@@ -50,6 +50,7 @@ const {
 // ai_step's prompt (egressCoverage.test.js is the table of these routes).
 const safety = require('./safety');
 const usageStore = require('../../stores/usageStore');
+const { usageLogFields } = require('../providers/usageNormalizer');
 const { resolveDataExtractionModel, extractionRequestOptions } = require('./dataExtractionModel');
 const log = require('../../telemetry/log');
 
@@ -473,16 +474,13 @@ async function execDataExtraction(step, ctx, runState, mode) {
 
     // Usage bookkeeping (source='routine'), the same row an ai_step writes.
     try {
-        const u = response && response.usage ? response.usage : {};
-        const prompt = u.promptTokens || u.prompt_tokens || u.input_tokens || 0;
-        const completion = u.completionTokens || u.completion_tokens || u.output_tokens || 0;
         usageStore.logUsage({
             user_id: ctx.userId, organization_id: ctx.orgId || null,
             agent_id: ctx.automationId, agent_name: ctx.automationTitle || null,
             agent_type: 'routine', model: modelId, source: 'routine',
-            conversation_id: ctx.automationId, prompt_tokens: prompt,
-            completion_tokens: completion,
-            total_tokens: u.totalTokens || u.total_tokens || (prompt + completion),
+            conversation_id: ctx.automationId,
+            // Normalised by the adapter (cache read/write included).
+            ...usageLogFields(response && response.usage),
         }).catch(() => {});
     } catch (_) {}
 

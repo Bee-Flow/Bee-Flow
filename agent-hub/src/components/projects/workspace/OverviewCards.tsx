@@ -2,7 +2,7 @@
 // right-hand column (instructions, members, knowledge). Each card is a door
 // into a tab; none of them edits anything in place.
 
-import { BookOpen, FileText, Mic, NotebookPen, Upload, UserPlus } from 'lucide-react';
+import { BookOpen, ChevronRight, FileText, Mic, NotebookPen, Upload, UserPlus } from 'lucide-react';
 import React from 'react';
 import {
     useProjectMembersQuery, useProjectResourcesQuery, type Project, type ProjectRole,
@@ -50,8 +50,12 @@ export function QuickActions({ role, onOpenTab, notebooksEnabled = true }: { rol
     const actions = useQuickActions(role, notebooksEnabled);
     if (actions.length === 0) return null;
     return (
-        <details className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)] p-3">
-            <summary className="cursor-pointer text-sm font-medium">{t('project_home.quick.title', 'Add to this project')}</summary>
+        <details className="group rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)] px-3.5 py-3" data-testid="overview-quick">
+            <summary className="flex items-center gap-1.5 cursor-pointer list-none [&::-webkit-details-marker]:hidden text-[13px] font-semibold text-[var(--text-primary)] select-none">
+                <ChevronRight className="w-3.5 h-3.5 text-[var(--text-tertiary)] transition-transform group-open:rotate-90" aria-hidden="true" />
+                <span className="flex-1">{t('project_home.quick.title', 'Add to this project')}</span>
+                <span className="text-[11.5px] font-normal text-[var(--text-tertiary)] group-open:hidden">{t('project_home.quick.hint', 'Document, meeting, files…')}</span>
+            </summary>
             <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
                 {actions.map(({ id, Icon, iconStyle, title, description, tab, intent }) => (
                     <button
@@ -120,7 +124,12 @@ export function MembersCard({ role, projectId, onOpenTab }: { role: ProjectRole;
                         ))}
                     </div>
                     <span className="text-[12px] text-[var(--text-tertiary)]">
-                        {t('project_home.members.access_count', '{people} people · {groups} groups', { people: people.length, groups })}
+                        {people.length === 1
+                            ? t('project_home.overview.people_one', '1 person')
+                            : t('project_home.overview.people', '{n} people', { n: people.length })}
+                        {groups > 0 && ` · ${groups === 1
+                            ? t('project_home.overview.groups_one', '1 group')
+                            : t('project_home.overview.groups', '{n} groups', { n: groups })}`}
                         {online.length > 0 && ` · ${t('project_home.overview.online_count', '{n} online', { n: online.length })}`}
                     </span>
                 </div>

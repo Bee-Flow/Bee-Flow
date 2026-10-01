@@ -33,7 +33,6 @@ export default function OrgAzureConfigPanel({ user }) {
     const [azureEndpoint, setAzureEndpoint] = useState('');
     const [azureApiKey, setAzureApiKey] = useState('');
     const [hasAzureApiKey, setHasAzureApiKey] = useState(false);
-    const [azureApiVersion, setAzureApiVersion] = useState('2024-04-01-preview');
     const [azureModels, setAzureModels] = useState('');
 
     // ── Chat Model Tiers ──
@@ -68,7 +67,6 @@ export default function OrgAzureConfigPanel({ user }) {
                 const d = await res.json();
                 setAzureEndpoint(d.azureEndpoint || '');
                 setHasAzureApiKey(d.hasAzureApiKey || false);
-                setAzureApiVersion(d.azureApiVersion || '2024-04-01-preview');
                 setAzureModels(d.azureModels || '');
                 if (d.chatModelTiers) setChatModelTiers(d.chatModelTiers);
                 setSsoClientId(d.ssoClientId || '');
@@ -158,7 +156,6 @@ export default function OrgAzureConfigPanel({ user }) {
                 azureEndpoint={azureEndpoint} setAzureEndpoint={setAzureEndpoint}
                 azureApiKey={azureApiKey} setAzureApiKey={setAzureApiKey}
                 hasAzureApiKey={hasAzureApiKey}
-                azureApiVersion={azureApiVersion} setAzureApiVersion={setAzureApiVersion}
                 azureModels={azureModels} setAzureModels={setAzureModels}
                 {...sharedSaveProps}
             />

@@ -4,7 +4,7 @@
 
 import { ArrowDown, Loader2, MessagesSquare } from 'lucide-react';
 import type { TranslateFn } from '../../../../hooks/useTranslation';
-import React, { useCallback, useLayoutEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import {
     useDeleteTeamChatMessage, useEditTeamChatMessage, useLoadOlderMessages, useTeamChatFeedback, useTeamChatMessages, type TeamChatMessage,
 } from '../../../../api/queries/projectChats';
@@ -16,7 +16,7 @@ import { GhostButton, Notice } from '../workspaceUi';
 import type { MessageContext } from './ChatMessageBubble';
 import ChatMessageGroup from './ChatMessageGroup';
 import { useFollowNewest, useThreadRoot } from './listHooks';
-import { formatDayLabel, groupMessages, isNewDay, mainConversation, summarizeThreads, threadConversation, type MessageGroup } from './messageGroups';
+import { firstUnreadMessageId, formatDayLabel, groupMessages, isNewDay, mainConversation, repliesToPrevious, summarizeThreads, threadConversation, type MessageGroup } from './messageGroups';
 
 export type BaseMessageContext = Omit<MessageContext, 'findMessage' | 'onDelete' | 'onEdit' | 'onNotHelpful'>;
 
@@ -87,7 +87,57 @@ function DaySeparator({ iso, t }: { iso: string; t: TranslateFn }) {
     );
 }
 
-function EmptyChat() {
+/** "New since your last visit": a DaySeparator in the accent colour, above the first unread message. */
+function UnreadDivider() {
+    const { t } = useTranslation();
+    const label = t('project_chat.unread_divider', 'New since your last visit');
+    return (
+        <li className="flex items-center gap-3 px-4 py-2 list-none" role="separator" aria-label={label} data-testid="team-chat-unread-divider">
+            <span className="flex-1 h-px bg-[var(--accent-primary)]" />
+            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold text-white bg-[var(--accent-primary)]">{label}</span>
+            <span className="flex-1 h-px bg-[var(--accent-primary)]" />
+        </li>
+    );
+}
+
+/** Placeholder bubbles while the first page of messages is on its way. */
+function SkeletonRows() {
+    const { t } = useTranslation();
+    const widths = ['w-2/5', 'w-3/5', 'w-1/3', 'w-1/2'];
+    return (
+        <div className="flex flex-col gap-4 px-4 py-10 max-w-4xl mx-auto" role="status"
+            aria-label={t('project_chat.loading_messages', 'Loading messages…')} data-testid="team-chat-skeleton">
+            {widths.map((w, i) => (
+                <div key={i} className={`flex items-start gap-2.5 ${i % 2 ? 'flex-row-reverse' : ''}`}>
+                    <span className="w-8 h-8 rounded-full flex-shrink-0 bg-[var(--bg-tertiary)] animate-pulse" />
+                    <span className={`h-9 ${w} rounded-2xl bg-[var(--bg-tertiary)] animate-pulse`} />
+                </div>
+            ))}
+        </div>
+    );
+}
+
+/** A suggestion that drops its text into the composer, for an empty chat. */
+function StarterChips({ onPick }: { onPick: (text: string) => void }) {
+    const { t } = useTranslation();
+    const starters = [
+        { label: t('project_chat.starter_hello', 'Say hello to the team'), text: t('project_chat.starter_hello_text', 'Hello team!') },
+        { label: t('project_chat.starter_summary', 'Ask @ai for a summary'), text: t('project_chat.starter_summary_text', '@ai Can you summarise where this project stands?') },
+        { label: t('project_chat.starter_next', 'Ask @ai for next steps'), text: t('project_chat.starter_next_text', '@ai What should we tackle next?') },
+    ];
+    return (
+        <div className="flex flex-wrap items-center justify-center gap-2 mt-3 max-w-md" data-testid="team-chat-starters">
+            {starters.map(s => (
+                <button key={s.label} type="button" onClick={() => onPick(s.text)}
+                    className="px-3 py-1.5 rounded-full text-[12px] font-medium border border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--accent-primary)] hover:text-[var(--text-primary)] transition-colors">
+                    {s.label}
+                </button>
+            ))}
+        </div>
+    );
+}
+
+function EmptyChat({ onPick }: { onPick?: (text: string) => void }) {
     const { t } = useTranslation();
     return (
         <div className="flex flex-col items-center justify-center text-center gap-2 py-16 px-6" data-testid="team-chat-empty">
@@ -96,6 +146,7 @@ function EmptyChat() {
             <p className="m-0 max-w-sm text-[12.5px] text-[var(--text-secondary)]">
                 {t('project_chat.empty_body', 'Say hello to the team. Mention @ai when you want the assistant to join in.')}
             </p>
+            {onPick && <StarterChips onPick={onPick} />}
         </div>
     );
 }
@@ -130,13 +181,17 @@ function NewMessagesPill({ count, onClick }: { count: number; onClick: () => voi
     );
 }
 
-export default function ChatMessageList({ projectId, chatId, base, footer, threadId = null }: {
+export default function ChatMessageList({ projectId, chatId, base, footer, threadId = null, unreadCount = 0, onStarter }: {
     projectId: string;
     chatId: string;
     base: BaseMessageContext;
     footer?: React.ReactNode;
     /** Show one thread (its root and replies) instead of the main conversation. */
     threadId?: string | null;
+    /** How many messages were unread when the chat opened (the divider's position; main list only). */
+    unreadCount?: number;
+    /** Drops a starter text into the composer, offered by the empty state. */
+    onStarter?: (text: string) => void;
 }) {
     const { t } = useTranslation();
     const query = useTeamChatMessages(projectId, chatId);
@@ -146,10 +201,6 @@ export default function ChatMessageList({ projectId, chatId, base, footer, threa
     const { handlers, confirmDialog } = useMessageActions(projectId, chatId, messages);
     const threads = useMemo(() => summarizeThreads(messages), [messages]);
     const threadOf = useCallback((id: string) => threads.get(id), [threads]);
-    const ctx = useMemo<MessageContext>(
-        () => ({ ...base, ...handlers, traceScope: { projectId, chatId }, ...(threadId ? {} : { threadOf }) }),
-        [base, handlers, threadOf, threadId, projectId, chatId],
-    );
     const { groups, rootGroups } = useMemo(() => {
         if (!threadId) {
             const main = mainConversation(messages, data?.pending || []);
@@ -162,6 +213,11 @@ export default function ChatMessageList({ projectId, chatId, base, footer, threa
             groups: groupMessages(shown.messages.filter(m => m.id !== threadId), shown.pending),
         };
     }, [messages, data, threadId]);
+    const adjacent = useMemo(() => repliesToPrevious(groups), [groups]);
+    const ctx = useMemo<MessageContext>(
+        () => ({ ...base, ...handlers, traceScope: { projectId, chatId }, quotesPrevious: (id: string) => adjacent.has(id), ...(threadId ? {} : { threadOf }) }),
+        [base, handlers, threadOf, threadId, projectId, chatId, adjacent],
+    );
 
     const containerRef = useRef<HTMLDivElement>(null);
     const { onScroll, jumpToNewest, unseen } = useFollowNewest({
@@ -169,6 +225,21 @@ export default function ChatMessageList({ projectId, chatId, base, footer, threa
     });
     const root = useThreadRoot(projectId, chatId, threadId, data);
     const keepPlace = useKeepPlace(containerRef, messages[0]?.id);
+    // Where the "new since your last visit" line goes: the first message that
+    // was unread on opening (threads never get one). Kept for the visit — it
+    // is gone the next time the chat opens, when the read marker has moved.
+    const firstUnread = useMemo(() => (threadId || !unreadCount
+        ? null
+        : firstUnreadMessageId(mainConversation(messages, []).messages, unreadCount, base.currentUserId)),
+    [messages, threadId, unreadCount, base.currentUserId]);
+    // The search's active match scrolls into view as it moves.
+    const activeMatch = base.highlight?.activeMessageId ?? null;
+    useEffect(() => {
+        if (!activeMatch) return;
+        const box = containerRef.current;
+        const escaped = typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(activeMatch) : activeMatch;
+        box?.querySelector(`[data-message-id="${escaped}"]`)?.scrollIntoView?.({ block: 'center' });
+    }, [activeMatch]);
     const loadOlder = () => {
         keepPlace();
         older.mutate(undefined, { onError: () => toast.error(t('project_chat.older_failed', 'Could not load earlier messages.')) });
@@ -186,11 +257,7 @@ export default function ChatMessageList({ projectId, chatId, base, footer, threa
                             </GhostButton>
                         </div>
                     )}
-                    {query.isPending && (
-                        <div className="flex items-center justify-center gap-2 py-16 text-[13px] text-[var(--text-secondary)]" role="status">
-                            <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />{t('project_chat.loading_messages', 'Loading messages…')}
-                        </div>
-                    )}
+                    {query.isPending && <SkeletonRows />}
                     {query.isError && !data && (
                         <div className="p-4">
                             <Notice tone="error" role="alert" action={<GhostButton onClick={() => query.refetch()}>{t('project_chat.retry', 'Try again')}</GhostButton>}>
@@ -198,7 +265,7 @@ export default function ChatMessageList({ projectId, chatId, base, footer, threa
                             </Notice>
                         </div>
                     )}
-                    {data && !groups.length && !threadId && <EmptyChat />}
+                    {data && !groups.length && !threadId && <EmptyChat onPick={onStarter} />}
                     {threadId && data && root.state !== 'found' && <ThreadRootPlaceholder loading={root.state === 'loading'} onRetry={root.retry} />}
                     {rootGroups.length > 0 && (
                         <div className="pt-3 pb-1 border-b border-[var(--border-subtle)] bg-[var(--bg-secondary)]/40" data-testid="team-chat-thread-root">
@@ -215,6 +282,9 @@ export default function ChatMessageList({ projectId, chatId, base, footer, threa
                                 <React.Fragment key={group.key}>
                                     {(i === 0 ? !threadId : isNewDay(lastAt(groups[i - 1]), group.createdAt)) && (
                                         <DaySeparator iso={group.createdAt} t={t} />
+                                    )}
+                                    {firstUnread && group.items.some(item => item.type === 'message' && item.message.id === firstUnread) && (
+                                        <UnreadDivider />
                                     )}
                                     <ChatMessageGroup group={group} ctx={ctx} />
                                 </React.Fragment>

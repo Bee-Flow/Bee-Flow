@@ -48,6 +48,11 @@ import useAutomationApi from '../../../hooks/useAutomationApi';
 import { useTranslation } from '../../../hooks/useTranslation';
 import scopedStorage from '../../../utils/scopedStorage';
 import InputArea from '../../chat/InputArea';
+import WorkModePicker, { WORK_MODES } from './chat/WorkModePicker';
+import PlanReview from './chat/PlanReview';
+import ProposalCard from './chat/ProposalCard';
+import QuestionsCard from './chat/QuestionsCard';
+import { AssistantFieldProvider } from './chat/AssistantFieldContext';
 import { toast } from '../../shared/Toast';
 import { ribbonAnchor, addOptionsFor } from './flow/ribbon/ribbonAnchor';
 // The plan panel floats over the canvas's left edge: 240 px wide, 12 px clear
@@ -97,6 +102,9 @@ export default function BuildTab({
     headerProps = null,
     mode = 'automation',
     assistantOpen, setAssistantOpen,
+    alwaysPlanLarge = true, setAlwaysPlanLarge = null,
+    workMode = 'approve', setWorkMode = null, assistantContext = null, onClearAssistantContext = null,
+    onAskAssistant = null, onApplyProposal = null, onDiscardProposal = null, onApprovePlan = null, onRejectPlan = null,
     chatWidth, onChatResizeStart,
     // The form-test overlay: `{ form, triggerStepId }` while open. Rendered here
     // rather than in the shell so it sits OVER the canvas — the point of the
@@ -988,6 +996,11 @@ export default function BuildTab({
     // The assistant is summonable: shown only when opened, and never in step
     // mode (v1 Steps are built visually — no AI chat).
     const showChat = assistantOpen && mode !== 'step';
+    const [reviewOpen, setReviewOpen] = useState(false);
+    const [previewOpen, setPreviewOpen] = useState(false);
+    const reviewPlanId = state.reviewPlan?.id;
+    useEffect(() => { if (reviewPlanId && ['review', 'paused'].includes(state.reviewPlan?.status)) setReviewOpen(true); }, [reviewPlanId, state.reviewPlan?.status]);
+    useEffect(() => { if (!state.proposal) setPreviewOpen(false); }, [state.proposal]);
     // The plan exists only once the agent has written one — so this is "while
     // it builds", and it stays readable for a moment after the turn ends.
     const hasPlan = Array.isArray(state.todos) && state.todos.length > 0;
@@ -1094,29 +1107,33 @@ export default function BuildTab({
             {showChat && (
                 <div
                     style={{ width: chatWidth }}
-                    className="flex flex-col bg-[var(--bg-secondary)] border-r border-[var(--border-default)] flex-shrink-0 min-w-[240px] max-w-[600px]"
+                    className="@container/assistant flex flex-col bg-[var(--bg-secondary)] border-r border-[var(--border-default)] flex-shrink-0 min-w-[240px] max-w-[600px]"
+                    data-popover-boundary
                     data-surface="subtle"
                 >
-                    <div className="flex items-center justify-between gap-2 px-3 py-1.5 border-b border-[var(--border-default)]">
+                    <div className="flex items-center justify-between gap-2 px-3 h-12 bg-[var(--bg-card)] border-b border-[var(--border-default)]">
                         <div className="flex items-center gap-2 min-w-0">
-                            <span className="w-7 h-7 rounded-lg bg-[var(--accent)]/15 text-[var(--accent)] flex items-center justify-center flex-shrink-0">
+                            <span className="w-7 h-7 rounded-lg bg-[color-mix(in_srgb,var(--type-ai)_14%,transparent)] text-[var(--type-ai)] flex items-center justify-center flex-shrink-0">
                                 <Sparkles size={14} />
                             </span>
-                            <span className="text-sm font-semibold text-[var(--text-primary)] truncate">Assistant</span>
+                            <span className="text-sm font-semibold text-[var(--text-primary)] truncate">{t('routines.assistant.title', 'Assistant')}</span>
+                            {state.reviewPlan && <button type="button" onClick={() => setReviewOpen(!reviewOpen)} aria-pressed={reviewOpen} className="rounded-md px-2 py-1 text-[11px] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]">{t('routines.assistant.plan', 'Plan')} v{state.reviewPlan.version}</button>}
                         </div>
                         <button
                             onClick={() => setAssistantOpen(false)}
-                            title="Close the assistant"
-                            aria-label="Close the assistant"
+                            title={t('routines.assistant.close', 'Close the assistant')}
+                            aria-label={t('routines.assistant.close', 'Close the assistant')}
                             className="p-1 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
                         >
                             <X size={15} />
                         </button>
                     </div>
-                    <div ref={messagesContainerRef} onScroll={onMessagesScroll} className="flex-1 overflow-y-auto px-4 py-6 custom-scrollbar">
+                    <div ref={messagesContainerRef} onScroll={onMessagesScroll} className="flex-1 overflow-y-auto px-4 py-4 custom-scrollbar">
                         {state.messages.length === 0 && (
                             <AssistantWelcome
                                 triggerKind={scopedDef?.trigger?.kind}
+                                definition={scopedDef}
+                                selectedStep={ndvStep || stepById(assistantContext?.id)}
                                 onPick={(text) => setChatInput(text)}
                             />
                         )}
@@ -1125,6 +1142,7 @@ export default function BuildTab({
                                 <MessageBubble
                                     key={i}
                                     msg={m}
+                                    onFocusStep={(id) => { openNdv(id); diagramRef.current?.focusStep?.(id); }}
                                     // Only the message being streamed — a run
                                     // belongs to the turn that started it.
                                     liveRun={i === state.messages.length - 1 ? liveRunFocus : null}
@@ -1137,11 +1155,25 @@ export default function BuildTab({
                             {waitingForFirstToken && (
                                 <BuilderWaitingCard turn={state.turn} startedAt={buildStart.at} modelKey={waitModelKey} />
                             )}
+                            <QuestionsCard key={state.reviewQuestions?.[0]?.id || 'questions'} questions={state.reviewQuestions} running={state.running} onAnswer={text => onSend(text, [])} />
+                            <ProposalCard key={state.proposal?.id || 'preview'} realOutputById={realOutputById} proposal={state.proposal} running={state.running} onApply={onApplyProposal} onDiscard={onDiscardProposal} onPreview={() => setPreviewOpen(true)} />
                             <div ref={messagesEndRef} />
                         </div>
                     </div>
-                    <div className="w-full flex flex-col flex-shrink-0">
+                    <div className="w-full flex flex-col flex-shrink-0 p-3" onKeyDownCapture={e => {
+                        if (e.key === 'Tab' && e.shiftKey && setWorkMode && !state.running) {
+                            e.preventDefault();
+                            setWorkMode(WORK_MODES[(WORK_MODES.findIndex(m => m.id === workMode) + 1) % WORK_MODES.length].id);
+                        }
+                    }}>
+                        {assistantContext && <div className="flex items-center gap-1.5 mb-2 px-2 py-1.5 rounded-lg border border-[var(--border-default)] bg-[var(--bg-card)] text-[11px] text-[var(--type-ai)]"><Sparkles size={12} /><span className="flex-1 min-w-0 truncate">@{assistantContext.label}</span><button type="button" onClick={onClearAssistantContext} aria-label={t('routines.assistant.clear_context', 'Clear step context')}><X size={12} /></button></div>}
+                        {/(?:^|\s)@[^@\s]*$/.test(chatInput) && <div className="mb-2 max-h-44 overflow-y-auto rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] p-1" role="listbox" aria-label={t('routines.assistant.mention_step', 'Mention a step')}>
+                            {[flatDef?.trigger, ...(flatDef?.triggers || []), ...(flatDef?.steps || [])].filter(Boolean).filter(step => (step.label || step.type || step.kind || '').toLowerCase().includes(chatInput.split('@').at(-1).toLowerCase())).map(step => <button key={step.id} type="button" role="option" aria-selected={assistantContext?.id === step.id} onClick={() => { onAskAssistant?.(step.id); setChatInput(chatInput.replace(/@[^@\s]*$/, '')); }} className="block w-full rounded-lg px-2 py-2 text-left text-xs hover:bg-[var(--bg-secondary)]">@{step.label || step.type || step.kind}</button>)}
+                        </div>}
                         <InputArea
+                            compact
+                            placeholder={t('routines.assistant.placeholder', 'Describe what you want…')}
+                            toolbarExtra={setWorkMode ? <WorkModePicker alwaysPlanLarge={alwaysPlanLarge} onAlwaysPlanLargeChange={setAlwaysPlanLarge} value={workMode} onChange={setWorkMode} disabled={state.running} /> : null}
                             onSendMessage={onSend}
                             onStopGenerating={onStopBuild || undefined}
                             isLoading={state.running}
@@ -1169,6 +1201,15 @@ export default function BuildTab({
                 The summary sits on top so it doesn't compete with the canvas
                 for vertical space. */}
             <div className="flex-1 min-w-0 flex flex-col relative bg-[var(--bg-primary)]">
+                {reviewOpen && state.reviewPlan && <PlanReview plan={state.reviewPlan} running={state.running} onReject={onRejectPlan} onApprove={pauseAfterStep => { setReviewOpen(false); onApprovePlan?.(pauseAfterStep); }} onClose={() => setReviewOpen(false)} onComment={(section, index, line) => {
+                    setAssistantOpen(true);
+                    setWorkMode?.('plan');
+                    setChatInput(t('routines.assistant.plan_comment_prompt', 'Comment on plan v{version}, {section} {n}: "{line}" — ', { version: state.reviewPlan.version, section, n: index + 1, line }));
+                }} />}
+                {previewOpen && state.proposal && <div className="absolute inset-0 z-20 flex flex-col bg-[var(--bg-primary)]">
+                    <div className="flex flex-wrap items-center gap-2 px-4 py-2 bg-[var(--bg-card)] border-b border-[var(--border-default)] text-xs"><Sparkles size={13} /><span className="flex-1">{t('routines.assistant.proposal', 'Proposal')}</span><button type="button" disabled={state.running} onClick={() => { setPreviewOpen(false); setAssistantOpen(true); }} className="rounded-lg px-3 py-1.5 bg-[var(--text-primary)] text-[var(--bg-primary)] disabled:opacity-50">{t('routines.assistant.review_changes', 'Review changes')}</button><button type="button" onClick={() => setPreviewOpen(false)} className="p-1.5" aria-label={t('routines.assistant.show_canvas', 'Show canvas')}><X size={14} /></button></div>
+                    <div className="flex-1 min-h-0 [&_.react-flow__node>div]:!border-dashed [&_.react-flow__node]:opacity-75"><DiagramPane definition={state.proposal.definition} editable={false} /></div>
+                </div>}
                 {state.pendingExternalDraft && (
                     <div className="px-4 py-2 border-b border-amber-500/30 bg-amber-500/10 flex items-center justify-between gap-3 flex-shrink-0">
                         <div className="text-xs text-amber-700 dark:text-amber-400">
@@ -1261,7 +1302,8 @@ export default function BuildTab({
                         // The empty canvas (design 1e): every trigger as a card, and the
                         // assistant one click away.
                         onAddTrigger={handleAddNode}
-                        onOpenAssistant={mode !== 'step' ? () => setAssistantOpen(true) : null}
+                        onOpenAssistant={mode !== 'step' ? () => (onAskAssistant ? onAskAssistant() : setAssistantOpen(true)) : null}
+                        onAskAssistant={mode !== 'step' ? onAskAssistant : null}
                         // Marks the edited card, its source (dashed) and what comes
                         // next (dimmed) while the drawer is open.
                         editingStepId={ndvStep?.id || null}
@@ -1367,6 +1409,7 @@ export default function BuildTab({
                     A flex sibling of the canvas row, so the canvas shrinks by
                     itself; no portal, no backdrop. */}
                 {ndvStep && (
+                    <AssistantFieldProvider value={onAskAssistant ? field => onAskAssistant(ndvStep.id, field) : null}>
                     <NodeDetailView
                         key={ndvStep.id}
                         density={ndvDensity}
@@ -1401,6 +1444,7 @@ export default function BuildTab({
                         onAddAfterStep={editsLocked ? null : onAddAfterStep}
                         onClose={closeNdv}
                     />
+                    </AssistantFieldProvider>
                 )}
                 {formTest && (
                     <FormRunOverlay

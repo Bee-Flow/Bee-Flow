@@ -13,6 +13,8 @@ const router = express.Router();
 const { requireAuth } = require('../../auth/permissions');
 const { isMicrosoftConnected, graphFetch } = require('../../integrations/msGraphClient');
 const { executeOutlookSend, executeOutlookSaveDraft } = require('../../integrations/outlookTools');
+const { GRAPH_ID_RE, MESSAGE_ID_TEXT, FOLDER_TEXT } = require('../../integrations/graphIds');
+const { resolveMicrosoftSession } = require('../../auth/microsoftSessionHydration');
 const { validate } = require('../../core/http/validate');
 const { z } = require('zod');
 
@@ -45,11 +47,8 @@ const worded = (message) => z.string({ required_error: message, invalid_type_err
 const required = (name, what) => worded(`${name} is required — ${what}.`).trim().min(1, `${name} is required — ${what}.`);
 const optionalText = (name) => worded(`${name} must be text.`).nullish();
 
-// Graph ids are long, opaque and base64url-ish; well-known folder names are
-// plain words. Both are covered without letting a path separator through.
-const GRAPH_ID_RE = /^[A-Za-z0-9_=-]{1,512}$/;
-const FOLDER_TEXT = 'folder is a mail folder name (inbox, sentitems, drafts, …) or a folder id.';
-const MESSAGE_ID_TEXT = 'That is not an Outlook message id.';
+// GRAPH_ID_RE, FOLDER_TEXT and MESSAGE_ID_TEXT come from integrations/graphIds,
+// so the tool path (including unattended autoSend) and this route apply one rule.
 
 const MessagesQuery = z.object({
     search: worded('search must be text.').optional(),
@@ -76,16 +75,29 @@ const EmailBody = z.object({
     _provider: z.enum(['microsoft'], { errorMap: () => ({ message: '_provider is microsoft on this route.' }) }).optional(),
 }).strict();
 
+/**
+ * The session Graph calls run on. A Microsoft session is used as it is; a
+ * Google/Nextcloud SSO session whose user connected Microsoft 365 separately
+ * gets a Microsoft-only shim from the vault (auth/microsoftSessionHydration),
+ * so the approval card's Send works for them too and the Google tokens on
+ * req.session are never touched.
+ */
+async function msSessionOf(req) {
+    return (await resolveMicrosoftSession(req.session)) || req.session;
+}
+
 // ── Status ──────────────────────────────────────────────────────────────────
 router.get('/status', requireAuth, async (req, res) => {
-    const isConnected = isMicrosoftConnected(req.session);
-    log.info('[Outlook] Status check — hasAccessToken:', !!req.session?.accessToken, 'oauthProvider:', req.session?.oauthProvider, 'connected:', isConnected);
+    const msSession = await msSessionOf(req);
+    const isConnected = isMicrosoftConnected(msSession);
+    log.info('[Outlook] Status check — hasAccessToken:', !!msSession?.accessToken, 'oauthProvider:', req.session?.oauthProvider, 'connected:', isConnected);
     res.json({ connected: isConnected });
 });
 
 // ── List / Search Messages ──────────────────────────────────────────────────
 router.get('/messages', requireAuth, validate({ query: MessagesQuery }), async (req, res, next) => {
-    if (!isMicrosoftConnected(req.session)) {
+    const msSession = await msSessionOf(req);
+    if (!isMicrosoftConnected(msSession)) {
         return res.status(401).json({ error: 'Not connected to Outlook' });
     }
 
@@ -102,7 +114,7 @@ router.get('/messages', requireAuth, validate({ query: MessagesQuery }), async (
             path = `/me/messages?$search="${encodeURIComponent(search)}"&$top=${limit}&$select=id,subject,from,toRecipients,receivedDateTime,sentDateTime,bodyPreview,isRead,hasAttachments`;
         }
 
-        const data = await graphFetch(path, req.session);
+        const data = await graphFetch(path, msSession);
 
         const messages = (data.value || []).map(msg => ({
             id: msg.id,
@@ -128,13 +140,14 @@ router.get('/messages', requireAuth, validate({ query: MessagesQuery }), async (
 
 // ── Get Single Message ──────────────────────────────────────────────────────
 router.get('/messages/:id', requireAuth, validate({ params: MessageParams }), async (req, res) => {
-    if (!isMicrosoftConnected(req.session)) {
+    const msSession = await msSessionOf(req);
+    if (!isMicrosoftConnected(msSession)) {
         return res.status(401).json({ error: 'Not connected to Outlook' });
     }
 
     const msg = await graphFetch(
         `/me/messages/${req.params.id}?$select=id,subject,from,toRecipients,ccRecipients,receivedDateTime,body,hasAttachments,conversationId`,
-        req.session
+        msSession
     );
 
     let body = '';
@@ -161,13 +174,13 @@ router.get('/messages/:id', requireAuth, validate({ params: MessageParams }), as
 
 // ── Send Email (after user approval) ────────────────────────────────────────
 router.post('/send', requireAuth, validate({ body: EmailBody }), async (req, res) => {
-    const result = await executeOutlookSend(req.body, req.session);
+    const result = await executeOutlookSend(req.body, await msSessionOf(req));
     res.json(result);
 });
 
 // ── Save as Draft ───────────────────────────────────────────────────────────
 router.post('/draft', requireAuth, validate({ body: EmailBody }), async (req, res) => {
-    const result = await executeOutlookSaveDraft(req.body, req.session);
+    const result = await executeOutlookSaveDraft(req.body, await msSessionOf(req));
     res.json(result);
 });
 

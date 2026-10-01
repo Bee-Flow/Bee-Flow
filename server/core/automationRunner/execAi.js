@@ -28,6 +28,7 @@ const {
     stepInputsSynthetic,
 } = require('./shared');
 const log = require('../../telemetry/log');
+const { createUsageAccumulator, usageLogFields } = require('../providers/usageNormalizer');
 
 // ── Step executors ──────────────────────────────────────
 
@@ -1067,14 +1068,11 @@ async function execAiStep(step, ctx, runState, mode) {
     }
 
     // Usage/termination bookkeeping so automation LLM spend is visible & billable.
-    const usageAccum = { prompt: 0, completion: 0, total: 0 };
-    const accrueUsage = (resp) => {
-        const u = resp && resp.usage ? resp.usage : null;
-        if (!u) return;
-        usageAccum.prompt += u.promptTokens || u.prompt_tokens || u.input_tokens || 0;
-        usageAccum.completion += u.completionTokens || u.completion_tokens || u.output_tokens || 0;
-        usageAccum.total += u.totalTokens || u.total_tokens || (usageAccum.prompt + usageAccum.completion ? 0 : 0);
-    };
+    // One accumulator over every round (providers/usageNormalizer.js): tokens,
+    // cache read/write with the 5m/1h split, tier and tool counts. Adapters
+    // return normalised usage; a raw provider block is read too.
+    const usageAcc = createUsageAccumulator();
+    const accrueUsage = (resp) => usageAcc.add(resp && resp.usage ? resp.usage : null);
 
     // Tool-calling loop. When tools are off (the default) this collapses to
     // a single chat call exactly as before. When tools are on, the model can
@@ -1323,9 +1321,8 @@ async function execAiStep(step, ctx, runState, mode) {
             user_id: ctx.userId, organization_id: ctx.orgId || null,
             agent_id: ctx.automationId, agent_name: ctx.automationTitle || null,
             agent_type: 'routine', model: modelId, source: 'routine',
-            conversation_id: ctx.automationId, prompt_tokens: usageAccum.prompt,
-            completion_tokens: usageAccum.completion,
-            total_tokens: usageAccum.total || (usageAccum.prompt + usageAccum.completion),
+            conversation_id: ctx.automationId,
+            ...usageLogFields(usageAcc.total()),
         }).catch(() => {});
     } catch (_) {}
     if (hitIterationCap) {

@@ -37,6 +37,7 @@ const pass = (req, res, next) => next();
 const MOCKS = {
     '../core/dlp/decisionQueue': {
         resolve: (id, decision, userId) => { touched.push({ what: 'resolve', args: [id, decision, userId] }); return id === 'dec-1'; },
+        touch: (id, userId) => { touched.push({ what: 'touch', args: [id, userId] }); return id === 'dec-1'; },
     },
     '../auth/permissions': { requireAuth: pass },
 };
@@ -63,10 +64,10 @@ test.after(() => { Module._resolveFilename = originalResolve; });
 // harness has to answer one the way index.js does.
 const { terminalErrorHandler } = require('../core/http/terminalErrorHandler');
 
-function dispatch({ body }) {
+function dispatch({ body, url = '/' }) {
     return new Promise((resolve, reject) => {
         const req = {
-            method: 'POST', url: '/', originalUrl: '/', path: '/', body, query: {}, headers: {},
+            method: 'POST', url, originalUrl: url, path: url, body, query: {}, headers: {},
             session: { user: { id: 'u1' } }, get() { return undefined; },
         };
         const res = {
@@ -163,4 +164,21 @@ test('the phone\'s body — no marks — resolves with an empty list and "rememb
 test('an unknown decision is still a 404 once the body is well-formed', async () => {
     const res = await dispatch({ body: { decisionId: 'dec-gone', choice: 'allow' } });
     assert.strictEqual(res.statusCode, 404);
+});
+
+test('POST /touch heartbeats a pending decision with the caller\'s user id', async () => {
+    const res = await dispatch({ url: '/touch', body: { decisionId: 'dec-1' } });
+    assert.strictEqual(res.statusCode, 200);
+    assert.deepStrictEqual(res.body, { ok: true });
+    assert.deepStrictEqual(touched, [{ what: 'touch', args: ['dec-1', 'u1'] }]);
+});
+
+test('POST /touch is a 404 once the decision is gone, and refuses a malformed body', async () => {
+    let res = await dispatch({ url: '/touch', body: { decisionId: 'dec-gone' } });
+    assert.strictEqual(res.statusCode, 404);
+    assert.strictEqual(res.body.error, 'Decision not found, expired, or not owned by this user.');
+
+    res = await dispatch({ url: '/touch', body: { decisionId: 'dec-1', choice: 'allow' } });
+    assert.strictEqual(res.statusCode, 400, 'a touch carrying a choice is refused, not silently read as a decision');
+    assert.deepStrictEqual(touched, [{ what: 'touch', args: ['dec-gone', 'u1'] }], 'only the well-formed beats reached the queue');
 });

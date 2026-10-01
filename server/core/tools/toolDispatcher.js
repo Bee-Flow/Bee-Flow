@@ -262,6 +262,25 @@ async function dispatchTool(toolName, toolArgs, context = {}) {
         });
     }
 
+    // ─── Word documents (.docx) ─────────────────────────────────
+    if (toolName === 'create_word_document') {
+        const { executeWordDocumentTool, nextcloudDocxPath } = require('../../integrations/wordDocumentTools');
+        const wordCtx = { userId, session, orgId: orgId || session?.connectorOrgId || session?.user?.organizationId || null };
+        // "Save it in Nextcloud": the destination passes the same scope guard
+        // a direct nextcloud_create_document call would. Denied or not
+        // connected, the document is still built and kept in Bee Flow storage
+        // with the reason alongside (as create_presentation does) — never lost,
+        // and nothing reaches Nextcloud.
+        const ncPath = nextcloudDocxPath(toolArgs?.nextcloudPath, toolArgs || {});
+        if (ncPath) {
+            const ncScopeGuard = require('../integrations/ncScopeGuard');
+            const denied = await ncScopeGuard.checkToolCall({ toolName: 'nextcloud_create_document', toolArgs: { path: ncPath }, userId, orgId });
+            if (denied) wordCtx.nextcloudError = denied.error || 'Nextcloud access was denied';
+            else wordCtx.nextcloudPath = ncPath;
+        }
+        return await executeWordDocumentTool(toolArgs, wordCtx);
+    }
+
     // ─── Video Generation ───────────────────────────────────────
     if (toolName === 'generate_video') {
         const { executeVideoGenTool } = require('./videoGenTool');
@@ -580,7 +599,14 @@ async function dispatchTool(toolName, toolArgs, context = {}) {
         });
     }
     if (isOutlookTool(toolName)) {
-        return await executeOutlookTool(toolName, toolArgs, session);
+        // A Google (or Nextcloud) session may carry Outlook tools when the user
+        // connected Microsoft 365 separately (getIntegrationTools adds them off
+        // the vault credential). Graph must then get a Microsoft-only shim,
+        // never this session's foreign token; a Microsoft session passes
+        // through unchanged. `autoSend` follows gmail_compose exactly.
+        const { resolveMicrosoftSession } = require('../../auth/microsoftSessionHydration');
+        const msSession = (await resolveMicrosoftSession(session, userId)) || session;
+        return await executeOutlookTool(toolName, toolArgs, msSession, { autoSend: !!context.autoSend });
     }
     if (isMsCalendarTool(toolName)) {
         return await executeMsCalendarTool(toolName, toolArgs, session);

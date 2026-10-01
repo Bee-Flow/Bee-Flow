@@ -45,6 +45,7 @@
 'use strict';
 
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
+const { usageLogFields } = require('../../core/providers/usageNormalizer');
 const { refIdsOf } = require('../../core/skills/skillStructure');
 const {
     buildTestAddendum,
@@ -207,11 +208,9 @@ async function logTestUsage({ userId, userOrgId, modelId, usage, startMs, source
             agent_name: 'skill-test',
             agent_type: 'system',
             model: modelId,
-            prompt_tokens: usage?.prompt_tokens || 0,
-            completion_tokens: usage?.completion_tokens || 0,
-            total_tokens: usage?.total_tokens || ((usage?.prompt_tokens || 0) + (usage?.completion_tokens || 0)),
-            cached_tokens: usage?.cached_tokens || 0,
-            cache_creation_tokens: usage?.cache_creation_tokens || 0,
+            // Normalised by the adapter (providers/usageNormalizer.js): cache read/write,
+            // the 5m/1h split and reasoning tokens ride along.
+            ...usageLogFields(usage),
             source,
             duration_ms: Date.now() - startMs,
             organization_id: userOrgId || null,

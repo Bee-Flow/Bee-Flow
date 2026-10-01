@@ -235,7 +235,8 @@ async function buildPromptAndHistory({ req, send, userId, message, conversationI
 
         // ─── House style awareness ──────────────────────────────────
         // When the org has a default kantoorstijl, tell the model so it can
-        // match tone — actual formatting is applied at Notebook export time.
+        // match tone — actual formatting is applied when a .docx is built
+        // (create_word_document, or the Notebook's Word export).
         let houseStyleContext = '';
         try {
             if (userOrgForTiers) {
@@ -243,7 +244,7 @@ async function buildPromptAndHistory({ req, send, userId, message, conversationI
                 const houseStyle = await houseStyleStore.getDefaultForOrg(userOrgForTiers);
                 if (houseStyle) {
                     const tone = houseStyle.styleMeta?.toneDescription;
-                    houseStyleContext = `\n\n[HOUSE STYLE ACTIVE]\nOrg Word/DOCX kantoorstijl "${houseStyle.name}" wordt automatisch toegepast bij export naar .docx${houseStyle.description ? ` — ${houseStyle.description}` : ''}.${tone ? ` Tone of voice: ${tone}.` : ''} Schrijf documenten in het Notebook in Markdown — opmaak wordt bij export geregeld; geen inline styling nodig.`;
+                    houseStyleContext = `\n\n[HOUSE STYLE ACTIVE]\nOrg Word/DOCX kantoorstijl "${houseStyle.name}" wordt automatisch toegepast op elk .docx: create_word_document en de Word-export van het Notebook${houseStyle.description ? ` — ${houseStyle.description}` : ''}.${tone ? ` Tone of voice: ${tone}.` : ''} Schrijf de inhoud in Markdown — lettertype, koppen, marges en header/footer komen uit de kantoorstijl; geen inline styling nodig.`;
                 }
             }
         } catch (e) {

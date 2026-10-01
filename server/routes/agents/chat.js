@@ -66,11 +66,24 @@ const flag = (name) => z.boolean({ invalid_type_error: `${name} is true or false
 
 const MESSAGE_TEXT = 'Message is required';
 
+/**
+ * One turn of a client-supplied `history`. Everything but `content` is the
+ * runtime's to read, so the rest stays open (`passthrough`). `content` is
+ * narrowed to what a provider accepts -- text, a list of content blocks, or
+ * nothing -- because an object here is replayed verbatim on every later turn
+ * and comes back as the provider's 400 "messages[N].content ... got an object".
+ */
+const HISTORY_TURN_TEXT = 'Each history turn is an object whose content is text, a list of content blocks or empty.';
+const HistoryTurn = z.object({
+    content: z.union([z.string(), z.array(z.unknown()), z.null()], { errorMap: () => ({ message: HISTORY_TURN_TEXT }) }).optional(),
+}, { invalid_type_error: HISTORY_TURN_TEXT }).passthrough();
+
 const TurnBody = bodyOf({
     message: worded(MESSAGE_TEXT).min(1, MESSAGE_TEXT),
     // Read by the runtime, not here: their shape belongs to the turn, and
     // `attachments` carries inline data URLs the uploader already bounds.
-    history: z.array(z.unknown(), { invalid_type_error: 'history is a list of turns.' }).optional(),
+    // Only a history turn's `content` is checked (see HistoryTurn).
+    history: z.array(HistoryTurn, { invalid_type_error: 'history is a list of turns.' }).optional(),
     attachments: z.array(z.unknown(), { invalid_type_error: 'attachments is a list.' }).optional(),
     messageId: id('messageId'),
     parentId: id('parentId'),

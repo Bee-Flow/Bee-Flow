@@ -567,7 +567,7 @@ router.post('/:id/sources/meeting', requireAuth, validate({ body: MeetingBody })
         // contentText up front so retry works even if ingestion dies before
         // its own content_text write.
         const source = await notebookStore.addSource({
-            notebookId, type: 'meeting', name: sourceName,
+            notebookId, type: 'meeting', name: sourceName, sourceRefId: meeting.id,
             wordCount: countWords(sourceText),
             contentText: sourceText.slice(0, MAX_STORED_TEXT)
         });

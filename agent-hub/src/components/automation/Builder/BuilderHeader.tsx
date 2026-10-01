@@ -56,6 +56,8 @@ export interface BuilderHeaderProps {
     onTabChange?: ((tab: BuilderTab) => void) | null;
     onUndo?: Fn;
     onRedo?: Fn;
+    onAssistant?: Fn;
+    assistantOpen?: boolean;
     canUndo?: boolean;
     canRedo?: boolean;
     /** 'step' = a reusable Step (kind='block'): Publish replaces Activate / Test. */
@@ -110,7 +112,7 @@ export default function BuilderHeader(props: BuilderHeaderProps) {
         scope = null, onExitScope, onDeleteLayer, diagnoseAnchorRef, savingState = 'idle', tab = 'build', onTabChange,
         onUndo, onRedo, canUndo = false, canRedo = false, mode = 'automation', step = null, orgGroups = [],
         onPublishStep, onSetStepSharing, onSetStepExpose, onSetStepIcon, onSetStepCategory,
-        tabsSlot = null, infoSlot = null, breadcrumbSlot = null,
+        tabsSlot = null, infoSlot = null, breadcrumbSlot = null, onAssistant, assistantOpen = false,
     } = props;
     const { t } = useTranslation();
     const isStepMode = mode === 'step';
@@ -201,6 +203,11 @@ export default function BuilderHeader(props: BuilderHeaderProps) {
                             </button>
                         </div>
                     )}
+                    {!isStepMode && onAssistant && <button type="button" onClick={() => onAssistant()} aria-pressed={assistantOpen}
+                        title={t('routines.assistant.open', 'Ask the assistant (⌘J)')} aria-label={t('routines.assistant.open', 'Ask the assistant (⌘J)')}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border-default)] px-2.5 py-1.5 text-[var(--type-ai)] hover:bg-[var(--bg-secondary)]">
+                        <Sparkles size={13} /><span className="@max-[1400px]/bar:hidden">{t('routines.assistant.title', 'Assistant')}</span><kbd className="@max-[1600px]/bar:hidden text-[10px]">⌘ J</kbd>
+                    </button>}
                     <SavingPill state={savingState} settled={tab === 'settings'} />
                     {isStepMode ? (
                         <StepActionCluster

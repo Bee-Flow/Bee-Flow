@@ -20,6 +20,24 @@ test('internal tools resolve to null (never logged as egress)', () => {
     assert.strictEqual(resolveIntegration('notebook_search', {}), null);
 });
 
+test('document builders: local in Bee Flow storage, external (the Nextcloud URL) with nextcloudPath', () => {
+    const ctx = { nextcloudUrl: 'https://cloud.example' };
+    for (const tool of ['create_word_document', 'create_presentation']) {
+        const kept = resolveIntegration(tool, { title: 'x' }, ctx);
+        assert.strictEqual(kept.isLocal, true, tool);
+        assert.strictEqual(kept.server, null, tool);
+        assert.strictEqual(kept.direction, 'received', tool);
+
+        const nc = resolveIntegration(tool, { title: 'x', nextcloudPath: '/Documents' }, ctx);
+        assert.strictEqual(nc.isLocal, false, `${tool} into Nextcloud is egress, like nextcloud_create_document`);
+        assert.strictEqual(nc.server, 'https://cloud.example', tool);
+        assert.strictEqual(nc.direction, 'sent', tool);
+
+        assert.strictEqual(resolveIntegration(tool, { nextcloudPath: '  ' }, ctx).isLocal, true, 'a blank path is no destination');
+        assert.strictEqual(resolveIntegration(tool, { nextcloudPath: true }, ctx).isLocal, true, 'only a string is a path');
+    }
+});
+
 test('cint_: a custom integration resolves with its base URL, but only for a caller that looked it up', () => {
     const ctx = { customIntegration: { name: 'Invoice API', baseUrl: 'https://api.invoices.example/v2' } };
     const meta = resolveIntegration('cint_ab12cd34_list_invoices', {}, ctx);

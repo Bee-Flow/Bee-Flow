@@ -40,6 +40,7 @@
 
 const crypto = require('crypto');
 const log = require('../../telemetry/log');
+const { usageLogFields } = require('../../core/providers/usageNormalizer');
 
 const GATE_TIMEOUT_MS = 8_000;
 const GATE_MESSAGES = 12;
@@ -217,11 +218,6 @@ function withTimeout(promise, ms) {
     return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 
-const num = (u, ...keys) => {
-    for (const k of keys) if (Number.isFinite(u?.[k])) return u[k];
-    return 0;
-};
-
 /**
  * @param {object} deps
  * @param {(modelId: string, messages: object[], tool: object, options: object) => Promise<{ structured: any, usage?: any }>} [deps.chat]
@@ -318,8 +314,11 @@ function makeRelevanceGate(deps = {}) {
 
         try {
             const usage = result?.usage || {};
-            let prompt = num(usage, 'prompt_tokens', 'promptTokens', 'input_tokens');
-            let completion = num(usage, 'completion_tokens', 'completionTokens', 'output_tokens');
+            // Normalised shape (core/providers/usageNormalizer.js); a raw provider
+            // block (input_tokens, camelCase, usageMetadata) is read too.
+            const used = usageLogFields(usage);
+            let prompt = used.prompt_tokens;
+            let completion = used.completion_tokens;
             if (!prompt && !completion) {
                 // One adapter reports no usage at all: estimate, so the cost cap still sees the call.
                 prompt = estimateTokens(SYSTEM_PROMPT) + estimateTokens(input);
@@ -331,10 +330,10 @@ function makeRelevanceGate(deps = {}) {
                 agent_name: `project-${surface}-gate`,
                 agent_type: 'chat',
                 model: model.modelId,
+                ...used,
                 prompt_tokens: prompt,
                 completion_tokens: completion,
-                total_tokens: num(usage, 'total_tokens', 'totalTokens') || prompt + completion,
-                cached_tokens: num(usage, 'cached_tokens', 'cachedTokens'),
+                total_tokens: used.total_tokens || prompt + completion,
                 source: `project_${surface}_gate`,
                 duration_ms: now() - started,
                 conversation_id: containerId,

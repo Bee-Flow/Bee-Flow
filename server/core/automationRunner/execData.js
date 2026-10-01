@@ -8,6 +8,7 @@ const { resolveValue, resolveInputs } = require('../../automation/bind');
 const { evaluate, parseExpr } = require('../../automation/expr');
 const safety = require('./safety');
 const usageStore = require('../../stores/usageStore');
+const { usageLogFields } = require('../providers/usageNormalizer');
 const { COLLECTION_OP_MAX_ITEMS } = require('./shared');
 const { resolveArrayRef, skippedArrayRef } = require('./execCollections');
 
@@ -515,16 +516,13 @@ async function execParseJson(step, ctx, runState, mode) {
 
     // Cost attribution (source='routine') — same shape as execAiStep.
     try {
-        const u = result.usage || {};
-        const promptTokens = u.promptTokens || u.prompt_tokens || u.input_tokens || 0;
-        const completionTokens = u.completionTokens || u.completion_tokens || u.output_tokens || 0;
         usageStore.logUsage({
             user_id: ctx.userId, organization_id: ctx.orgId || null,
             agent_id: ctx.automationId, agent_name: ctx.automationTitle || null,
             agent_type: 'routine', model: modelId, source: 'routine',
-            conversation_id: ctx.automationId, prompt_tokens: promptTokens,
-            completion_tokens: completionTokens,
-            total_tokens: u.totalTokens || u.total_tokens || (promptTokens + completionTokens),
+            conversation_id: ctx.automationId,
+            // Normalised by the adapter (cache read/write included).
+            ...usageLogFields(result.usage),
         }).catch(() => {});
     } catch (_) {}
 

@@ -45,6 +45,22 @@ describe('flowSummary — what the north-west chip counts', () => {
 describe('DiagramPane — overlay zones', () => {
     beforeEach(cleanup);
 
+    it('opens the assistant with the selected step through the context menu', () => {
+        const onAskAssistant = vi.fn();
+        const { container } = renderCanvas({ onAskAssistant });
+        fireEvent.contextMenu(container.querySelector('.react-flow__node[data-id="a"]'), { clientX: 200, clientY: 200 });
+        fireEvent.click(screen.getByRole('menuitem', { name: /ask the assistant/i }));
+        expect(onAskAssistant).toHaveBeenCalledWith('a');
+    });
+
+    it('opens the assistant with canvas selection on Ctrl+J', () => {
+        const onAskAssistant = vi.fn();
+        const { container } = renderCanvas({ onAskAssistant, onNodeClick: vi.fn() });
+        fireEvent.click(container.querySelector('.react-flow__node[data-id="a"]'));
+        fireEvent.keyDown(document, { key: 'j', ctrlKey: true });
+        expect(onAskAssistant).toHaveBeenCalledWith('a');
+    });
+
     it('north-west: the summary chip names what the canvas holds', () => {
         renderCanvas();
         expect(screen.getByTestId('flow-summary').textContent).toBe('4 steps · 1 branch · 1 loop');

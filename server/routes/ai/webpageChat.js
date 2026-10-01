@@ -612,7 +612,7 @@ Now: ${formatLocalNow(timezone)}`;
             // base64-decode-as-utf8-and-slice, which fed the model raw PDF
             // binary and made it claim it "can't read the file."
             const { extractAttachment, formatTextHeader, formatImagesHeader, formatFailureNote } = require('../../core/documents/attachmentExtractor');
-            const isClaude = (config?.providerType || '').toLowerCase() === 'claude' || (config?.providerType || '').toLowerCase() === 'anthropic';
+            const { nativePdfPart, isShieldActive } = require('../../core/documents/nativePdf');
 
             const contentParts = [];
             if (message) contentParts.push({ type: 'text', text: message });
@@ -642,12 +642,17 @@ Now: ${formatLocalNow(timezone)}`;
                             const docText = `${formatTextHeader(att, result)}\n---\n${safe}\n---`;
                             const _wasTokenised = safe !== result.text;
                             contentParts.push({ type: 'text', text: docText });
-                            // Skip shipping the raw PDF alongside when the text was
-                            // tokenised — the raw bytes would bypass the redaction.
-                            if (looksLikePdf && isClaude && !_wasTokenised) {
-                                const base64Data = att.content.includes(',') ? att.content.split(',')[1] : att.content;
-                                const mediaType = att.type && att.type.includes('pdf') ? att.type : 'application/pdf';
-                                contentParts.push({ type: 'document', source: { type: 'base64', media_type: mediaType, data: base64Data } });
+                            // The original PDF alongside (Claude, OpenAI, Azure), never
+                            // while the Privacy Shield is active: the raw bytes carry
+                            // what the text scan never saw. Rule: core/documents/nativePdf.js.
+                            if (looksLikePdf) {
+                                const pdfPart = nativePdfPart({
+                                    adapter, modelId, providerType: config?.providerType,
+                                    shieldActive: isShieldActive(_psShield), tokenised: _wasTokenised,
+                                    base64Data: att.content.includes(',') ? att.content.split(',')[1] : att.content,
+                                    mediaType: att.type, filename: att.name, tag: 'WebpageChat',
+                                });
+                                if (pdfPart) contentParts.push(pdfPart);
                             }
                         } else if (result.kind === 'images') {
                             contentParts.push({ type: 'text', text: formatImagesHeader(att, result) });

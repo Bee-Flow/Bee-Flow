@@ -493,7 +493,8 @@ router.post('/:id/activate', validate({ body: ActivateBody }), async (req, res) 
         try {
             discovered = await client.discoverTools(row, { secretObject });
         } catch (e) {
-            return res.status(502).json({ error: `Tool discovery failed: ${e.message}` });
+            log.warn('[OrgIntegrations] tool discovery failed:', e.message);
+            return res.status(502).json({ error: 'Tool discovery failed' });
         }
         warnings.push(...(discovered.warnings || []));
         toolsCache = buildMcpToolsCache(discovered.tools, row.slug);
@@ -575,7 +576,8 @@ router.post('/:id/refresh-tools', validate({ body: NoBody }), async (req, res) =
     try {
         discovered = await client.discoverTools(row, { secretObject });
     } catch (e) {
-        return res.status(502).json({ error: `Tool discovery failed: ${e.message}` });
+        log.warn('[OrgIntegrations] tool refresh failed:', e.message);
+        return res.status(502).json({ error: 'Tool discovery failed' });
     }
     const def = { ...row.definition, mcp: { ...row.definition.mcp, discoveredTools: discovered.tools } };
     const updated = await store().saveDefinition(row.id, def, req.session.user.id);

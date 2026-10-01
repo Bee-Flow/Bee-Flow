@@ -174,6 +174,22 @@ const SYSTEM_PERMISSIONS = [
     { id: 'modify_n8n_workflows', name: 'Modify n8n Workflows', description: 'Allow AI to create, edit, delete, activate, and execute n8n workflows on behalf of the user', group: 'actions' },
 ];
 
+/**
+ * Capability grants that carry a UI permission with them.
+ *
+ * A group-scoped beta (betaFeatures.js `groupScoped`) is meant to be rolled
+ * out per group from the Access matrix. Its Studio section is ALSO gated on a
+ * role permission (studioApps.jsx, mobile studio registry), and the default
+ * `member` role does not carry that permission — so a group grant alone left
+ * the members it was meant for staring at a hidden section. Granting the
+ * capability to a group therefore grants the matching permission to that
+ * group's members. Everyone else keeps resolving it from their role exactly as
+ * before, so the org's Roles screen still decides for org-wide access.
+ */
+const GROUP_GRANT_IMPLIED_PERMISSIONS = Object.freeze({
+    meeting_notes: Object.freeze(['use_meeting_notes']),
+});
+
 // ── Load org role → permissions mapping from config file ──
 let _orgRolePermissions = null;
 function getOrgRolePermissions() {
@@ -619,6 +635,12 @@ async function getUserPermissions(userId, session = null) {
 
             // Add group-level permissions
             for (const p of (group.permissions || [])) permSet.add(p);
+
+            // …and the permissions a capability grant to this group implies.
+            const granted = Array.isArray(group.granted_capabilities) ? group.granted_capabilities : [];
+            for (const capId of granted) {
+                for (const p of (GROUP_GRANT_IMPLIED_PERMISSIONS[capId] || [])) permSet.add(p);
+            }
 
             // Resolve roles attached to the group
             for (const rid of (group.roles || [])) {
@@ -1305,6 +1327,7 @@ module.exports = {
     invalidatePermissionCache,
     invalidateAllPermissionCaches,
     invalidateUserExistenceCache,
+    GROUP_GRANT_IMPLIED_PERMISSIONS,
     OrgRoles,
     SystemRoles,
     Permissions,

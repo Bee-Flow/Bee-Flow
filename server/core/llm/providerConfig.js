@@ -168,9 +168,6 @@ async function saveAIConfig(aiConfig) {
         if (aiConfig.azureApiKey !== undefined) {
             await configStore.setSecret('azure_api_key', aiConfig.azureApiKey || '');
         }
-        if (aiConfig.azureApiVersion !== undefined) {
-            await configStore.setConfig('azure_api_version', aiConfig.azureApiVersion || '');
-        }
 
         const ai = await configStore.getConfig('ai') || {};
 
@@ -401,13 +398,12 @@ async function ensureAzureProvider() {
 
     if (!ai.providers) ai.providers = [];
 
-    const apiVersion = await configStore.getConfig('azure_api_version') || '2025-04-01-preview';
-
     const existing = ai.providers.find(p => p.id === 'azure-default');
     if (existing) {
         existing.url = endpoint;
         existing.apiKey = apiKey;
-        existing.apiVersion = apiVersion;
+        // Leftover from the dated Azure API; the adapter runs on v1 GA.
+        delete existing.apiVersion;
     } else {
         ai.providers.push({
             id: 'azure-default',
@@ -416,7 +412,6 @@ async function ensureAzureProvider() {
             url: endpoint,
             model: '',
             apiKey,
-            apiVersion,
         });
         log.info('[AIAgent] Auto-created default Azure AI provider');
     }
@@ -597,8 +592,6 @@ async function addProvider(provider) {
         if (provider.project) newProvider.project = provider.project;
         if (provider.location) newProvider.location = provider.location;
         if (provider.serviceAccountKey) newProvider.serviceAccountKey = provider.serviceAccountKey;
-        // Azure specific fields
-        if (provider.apiVersion) newProvider.apiVersion = provider.apiVersion;
 
         ai.providers.push(newProvider);
 
@@ -635,7 +628,6 @@ async function updateProvider(providerId, updates) {
             project: updates.project !== undefined ? updates.project : existing.project,
             location: updates.location !== undefined ? updates.location : existing.location,
             serviceAccountKey: updates.serviceAccountKey !== undefined ? updates.serviceAccountKey : existing.serviceAccountKey,
-            apiVersion: updates.apiVersion !== undefined ? updates.apiVersion : existing.apiVersion,
         };
 
         await configStore.setConfig('ai', ai);

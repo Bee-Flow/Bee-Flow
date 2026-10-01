@@ -187,3 +187,42 @@ test('the database prevents a partial date update from crossing the other endpoi
     assert.strictEqual(kept.startDate, '2026-10-08');
     assert.strictEqual(kept.dueDate, '2026-10-10');
 });
+
+test('a poker session walks its queue: score the current task, pop the next, complete at the end', async () => {
+    await pg.query(`INSERT INTO projects (id, name, owner_id) VALUES ('p-poker', 'p-poker', 'owner') ON CONFLICT DO NOTHING`);
+    const a = await make('p-poker');
+    const b = await make('p-poker');
+    const c = await make('p-poker');
+    const s = await store.startPokerSession('p-poker', 'sess-1', a.id, 'ann', [b.id, c.id]);
+    assert.deepStrictEqual(s.queue, [b.id, c.id]);
+    assert.strictEqual(await store.startPokerSession('p-poker', 'sess-2', b.id, 'ann'), null, 'one session per project');
+    // The queue only moves once the votes are revealed.
+    assert.strictEqual(await store.advancePokerSession('p-poker', 'sess-1', 5), null);
+    await store.castPokerVote('p-poker', 'sess-1', 'ann', '5');
+    await store.revealPokerVotes('p-poker', 'sess-1');
+    const first = await store.advancePokerSession('p-poker', 'sess-1', 5);
+    assert.strictEqual(first.task.id, a.id);
+    assert.strictEqual(first.task.storyPoints, 5);
+    assert.strictEqual(first.session.taskId, b.id);
+    assert.strictEqual(first.session.phase, 'voting');
+    assert.deepStrictEqual(first.session.queue, [c.id]);
+    assert.deepStrictEqual(first.session.votes, {}, 'a fresh vote for the next task');
+    await store.revealPokerVotes('p-poker', 'sess-1');
+    const second = await store.advancePokerSession('p-poker', 'sess-1', 8);
+    assert.strictEqual(second.session.taskId, c.id);
+    assert.deepStrictEqual(second.session.queue, []);
+    await store.revealPokerVotes('p-poker', 'sess-1');
+    const last = await store.advancePokerSession('p-poker', 'sess-1', 3);
+    assert.strictEqual(last.task.id, c.id);
+    assert.strictEqual(last.session.phase, 'completed', 'the queue is empty: the session is over');
+    assert.deepStrictEqual(
+        await Promise.all([a, b, c].map(async (t) => (await store.getTask('p-poker', t.id)).storyPoints)),
+        [5, 8, 3],
+    );
+    // A completed session frees the project, and a queue-less start behaves like before.
+    const solo = await store.startPokerSession('p-poker', 'sess-3', a.id, 'ann');
+    assert.deepStrictEqual(solo.queue, []);
+    await store.revealPokerVotes('p-poker', 'sess-3');
+    const done = await store.advancePokerSession('p-poker', 'sess-3', 2);
+    assert.strictEqual(done.session.phase, 'completed');
+});

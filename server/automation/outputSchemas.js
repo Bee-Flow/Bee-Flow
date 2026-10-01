@@ -209,13 +209,16 @@ const OUTPUT_SCHEMAS = {
     },
 
     // ── Outlook / Microsoft 365 ───────────────────────────────────
-    outlook_send: {
-        shape: { sent: 'boolean', messageId: 'string', conversationId: 'string', message: 'string' },
-        sample: { sent: true, messageId: 'msg-sent-1', conversationId: 'conv-1', message: 'Email sent via Outlook.' },
-    },
+    // There is no `outlook_send` tool: sending is outlook_compose with the
+    // runtime's autoSend. Graph's sendMail/reply answer 202 without a body,
+    // so unlike gmail_compose there is no messageId to hand on; the
+    // conversationId is only known for a reply.
     outlook_compose: {
-        shape: { sent: 'boolean', messageId: 'string', message: 'string' },
-        sample: { sent: true, messageId: 'msg-sent-1', message: 'Email sent.' },
+        shape: {
+            sent: 'boolean', to: 'string', subject: 'string',
+            replyToMessageId: 'string|null', conversationId: 'string|null', message: 'string',
+        },
+        sample: { sent: true, to: 'recipient@example.com', subject: 'Sample subject', replyToMessageId: null, conversationId: null, message: 'Email sent to recipient@example.com.' },
     },
     ms_calendar_create_event: {
         shape: { id: 'string', subject: 'string', start: 'string', end: 'string', webLink: 'string' },
@@ -348,6 +351,13 @@ const OUTPUT_SCHEMAS = {
     create_presentation: {
         shape: { success: 'boolean', downloadUrl: 'string', filename: 'string', size: 'integer', slideCount: 'integer', houseStyle: 'boolean', warnings: 'string[]' },
         sample: { success: true, downloadUrl: '/api/storage/file/users/u1/presentations/1700000000_ab12cd_q3-review.pptx', filename: 'q3-review.pptx', size: 61440, slideCount: 7, houseStyle: true, warnings: [] },
+    },
+    create_word_document: {
+        // Kept in storage: downloadUrl + size. With nextcloudPath (and Nextcloud
+        // reachable) the upload fields + webUrl instead. `houseStyle` is the
+        // name of the Word house style applied, or false.
+        shape: { success: 'boolean', downloadUrl: 'string|undefined', filename: 'string', size: 'integer|undefined', path: 'string|undefined', webUrl: 'string|null|undefined', houseStyle: 'string|boolean' },
+        sample: { success: true, downloadUrl: '/api/storage/file/users/u1/documents/1700000000_ab12cd_offerte-acme.docx', filename: 'offerte-acme.docx', size: 12288, houseStyle: 'Kantoorstijl' },
     },
     nextcloud_deck_create_card: {
         // Returns the raw Deck card JSON (POST .../cards). Demo write tool.

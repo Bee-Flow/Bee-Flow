@@ -21,10 +21,9 @@
 
 // ── Beta feature buckets ────────────────────────────────────────────────────
 const BETA_FREE      = [];
-const BETA_PLUS      = ['knowledge_bases_beta'];
-const BETA_TEAM      = ['automations', 'agent_routines', 'knowledge_bases_beta'];
+const BETA_PLUS      = [];
+const BETA_TEAM      = ['automations', 'agent_routines'];
 const BETA_BUSINESS  = [
-    'knowledge_bases_beta',
     'automations', 'agent_routines',
     'meeting_notes', 'voice_chat',
     'webpages', 'skills',

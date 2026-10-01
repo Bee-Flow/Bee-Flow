@@ -27,6 +27,8 @@
  *     defaultState,   // 'on'|'off' — GA betas + community integrations = 'on'
  *     userFacing,     // surfaced in the org Access & Permissions matrix
  *     groupTogglable, // org-admin may grant this per group
+ *     groupScoped,    // beta only: the menu alone does not grant it to every
+ *                     //   member; see `groupScoped` in betaFeatures.js
  *     aliasOf,        // deprecated beta aliases
  *     _ncFamily,      // nextcloud-* — keeps the existing orgActiveSet exemption
  *   }
@@ -344,6 +346,7 @@ function build() {
             defaultState: f.lifecycle === 'ga' ? 'on' : 'off',
             userFacing: !f.deprecated && f.lifecycle !== 'experimental',
             groupTogglable: !f.deprecated,
+            groupScoped: !!f.groupScoped,
             aliasOf: f.aliasOf || null,
             deprecated: !!f.deprecated,
         });

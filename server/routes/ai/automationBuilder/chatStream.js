@@ -54,6 +54,7 @@
  */
 
 const express = require('express');
+const { randomUUID } = require('node:crypto');
 const log = require('../../../telemetry/log');
 const router = express.Router();
 
@@ -81,6 +82,8 @@ const { loadOrCreateDraft, persistDraftWrap } = require('./builderDraft');
 const { runDelegationTool } = require('./layerDelegation');
 const { streamWithRetry } = require('./modelStream');
 const { inferPlanProgress } = require('./planProgress');
+const { INSPECTION_NAMES, INSPECTION_TOOLS, inspect } = require('./inspectionTools');
+const { MODES, PLAN_TOOL, QUESTIONS_TOOL, writeQuestions, toolAllowed, modeInstruction, writePlan, changedSteps } = require('./workMode');
 const { createThoughtNarrator } = require('./thoughtNarrator');
 const { composeTurnMessages } = require('./turnMessages');
 const { scanToolDraft, deriveDraftKey, makeDraftThrottle, makeProgressThrottle } = require('./toolDraft');
@@ -113,6 +116,11 @@ const TurnBody = bodyOf({
     builderSessionId: text('builderSessionId is the id the previous turn handed back.').nullish(),
     automationId: text('automationId is the id of the routine being built.').nullish(),
     modelTier: text('modelTier is the name of a model tier.').nullish(),
+    alwaysPlanLarge: flag('alwaysPlanLarge is true or false.').optional(),
+    pauseAfterStep: flag('pauseAfterStep is true or false.').optional(),
+    workMode: choice(MODES, 'workMode is discuss, approve, plan or build.').optional(),
+    approvedPlanId: text('approvedPlanId is the exact plan revision approved by the user.').nullish(),
+    selectedStepId: text('selectedStepId is the step the user is asking about.').nullish(),
     history: z.array(z.unknown(), { invalid_type_error: 'history is the list of earlier turns.' }).nullish(),
     attachments: z.array(z.unknown(), { invalid_type_error: 'attachments is a list of files.' }).nullish(),
     webSearchEnabled: flag('webSearchEnabled is true or false.').nullish(),
@@ -212,6 +220,7 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
         builderSessionId: clientSession,
         automationId,
         modelTier = 'auto',
+        workMode = 'build', alwaysPlanLarge = false, pauseAfterStep = false, approvedPlanId = null, selectedStepId = null,
         history = [],
         attachments = [],
         webSearchEnabled = true,
@@ -307,6 +316,27 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
             try { snapshot = await automationStore.getBuilderSession(draftWrap.automationId, userId); }
             catch (_) { snapshot = null; /* non-fatal */ }
         }
+        let reviewPlan = snapshot?.reviewPlan || null;
+        let reviewQuestions = null;
+        const planCurrent = !reviewPlan?.baseDefinition || JSON.stringify(reviewPlan.baseDefinition) === JSON.stringify(draftWrap.def);
+        const approvedPlan = workMode === 'plan' && approvedPlanId && reviewPlan?.id === approvedPlanId && ['review', 'paused'].includes(reviewPlan.status) && planCurrent ? reviewPlan : null;
+        if (approvedPlanId && !approvedPlan) {
+            send('error', { error: 'This plan revision is no longer available. Review and approve the latest plan.' });
+            return res.end();
+        }
+        const turnMode = approvedPlan ? 'build' : workMode;
+        const bufferedBuild = turnMode === 'build' && alwaysPlanLarge && !approvedPlan;
+        const permissionMode = bufferedBuild ? 'approve' : turnMode;
+        const isolated = turnMode !== 'build' || bufferedBuild;
+        let pausedAfterStep = false;
+        let baseDraft = structuredClone(draftWrap.def);
+        let baseTitle = draftWrap.title;
+        let baseDescription = draftWrap.description;
+        // Preview mutations operate on their own copy; the persisted definition
+        // and all runtime actions remain untouched until a human applies it.
+        if (isolated) draftWrap.def = structuredClone(baseDraft);
+        if (approvedPlan) reviewPlan = { ...reviewPlan, status: 'building', pauseAfterStep };
+        if (reviewPlan) send('review_plan', { plan: reviewPlan });
         // Resume support — when the client asks (?resume=1), re-emit the
         // last persisted snapshot before processing the new turn. The
         // client uses this to rehydrate any chat history + draft +
@@ -569,6 +599,8 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
             },
         });
 
+        if (req.body.workMode) messages.push({ role: 'system', content: modeInstruction(turnMode, approvedPlan) + (bufferedBuild ? '\nChanges are being staged to check their size. Four or more changed steps require a human-reviewed plan before applying anything. Do not claim staged changes are applied. Do not test until staging is committed.' : '') + (approvedPlan && pauseAfterStep ? '\nPause after ONE step change. Avoid batches; the user must explicitly continue before the next step. Read the current draft to avoid repeating completed changes.' : '') + (selectedStepId ? `\nThe user's selected step is ${selectedStepId}. Resolve its label and settings from the draft above.` : '') });
+
         // Filter the tool schema set: by feature flag AND by profile.
         // The 'core' subset shrinks the tool menu from 26 to 13 for small
         // models. The five legacy array tools are still listed in full
@@ -623,6 +655,11 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
             } else {
                 webpageInspectorEnabled = false;
             }
+        }
+        if (req.body.workMode) {
+            tools = tools.filter(t => (toolAllowed(t.function.name, permissionMode) && !(bufferedBuild && t.function.name === 'builder_remove_step')) || (bufferedBuild && t.function.name === 'builder_request_dry_run'));
+            tools.push(...INSPECTION_TOOLS, QUESTIONS_TOOL);
+            if (turnMode === 'plan') tools.push(PLAN_TOOL);
         }
         const { isWebpageAutomationTool, executeWebpageAutomationTool } = require('../../../integrations/webpageAutomationTools');
         // The webpage tools above are the org's own tools (the dispatcher's
@@ -759,7 +796,7 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
             // model that has already made progress can still stop and talk.
             // Verified on the demo box 2026-09-16: llama-server honours
             // tool_choice:'required' on later rounds, not just the first.
-            const turnToolChoice = (profile.forceFirstToolCall && (iter === 0 || repinToolChoice))
+            const turnToolChoice = (turnMode !== 'discuss' && turnMode !== 'plan' && profile.forceFirstToolCall && (iter === 0 || repinToolChoice))
                 ? 'required'
                 : 'auto';
             repinToolChoice = false;
@@ -959,6 +996,52 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
                         lastRefusal = { tool: name, error: toolResult.error, label: name };
                         continue;
                     }
+                    if (pausedAfterStep || (bufferedBuild && name === 'builder_remove_step') || (approvedPlan && pauseAfterStep && ((name === 'builder_add_steps' && args.steps?.length > 1) || name === 'builder_generate_layer' || name === 'builder_generate_layers' || name === 'builder_request_dry_run'))) {
+                        toolResult = { error: 'Pause after each step is enabled. Make one step change, then wait for the user to continue. Batch changes and run actions need a separate turn.' };
+                        send('tool_call', { name, arguments: args, result: toolResult });
+                        messages.push({ role: 'tool', tool_call_id: tc.id, content: JSON.stringify(toolResult) });
+                        continue;
+                    }
+                    const unchangedRun = bufferedBuild && name === 'builder_request_dry_run' && draftWrap.automationId && JSON.stringify(baseDraft) === JSON.stringify(draftWrap.def);
+                    if (req.body.workMode && !toolAllowed(name, permissionMode) && !unchangedRun) {
+                        toolResult = { error: `This tool is not permitted in ${turnMode} mode. Read, explain or propose a plan instead. Removing a step needs a human-approved proposal.` };
+                        send('tool_call', { name, arguments: args, result: toolResult });
+                        messages.push({ role: 'tool', tool_call_id: tc.id, content: JSON.stringify(toolResult) });
+                        refusedThisIter = true;
+                        continue;
+                    }
+                    if (req.body.workMode && name === 'builder_ask_questions') {
+                        reviewQuestions = writeQuestions(args);
+                        toolResult = reviewQuestions ? { ok: true, awaitingAnswers: true } : { error: 'Provide 1–3 questions with 2–4 answers each.' };
+                        if (reviewQuestions) send('review_questions', { questions: reviewQuestions });
+                        send('tool_call', { name, arguments: args, result: toolResult });
+                        messages.push({ role: 'tool', tool_call_id: tc.id, content: JSON.stringify(toolResult) });
+                        acceptedThisIter = !!reviewQuestions;
+                        continue;
+                    }
+                    if (reviewQuestions) {
+                        toolResult = { error: 'Wait for the user to answer the questions before continuing.' };
+                        send('tool_call', { name, arguments: args, result: toolResult });
+                        messages.push({ role: 'tool', tool_call_id: tc.id, content: JSON.stringify(toolResult) });
+                        continue;
+                    }
+                    if (req.body.workMode && INSPECTION_NAMES.has(name)) {
+                        try { toolResult = await inspect(name, args, draftWrap, { store: automationStore, pii: require('../../../core/privacy/piiDetection') }); }
+                        catch (e) { toolResult = { error: e.message }; }
+                        send('tool_call', { name, arguments: args, result: toolResult });
+                        messages.push({ role: 'tool', tool_call_id: tc.id, content: truncateToolResultJson(toolResult) });
+                        acceptedThisIter = !toolResult.error;
+                        continue;
+                    }
+                    if (name === 'builder_write_plan' && turnMode === 'plan') {
+                        const nextPlan = writePlan(args, reviewPlan);
+                        if (nextPlan) { reviewPlan = { ...nextPlan, baseDefinition: structuredClone(baseDraft) }; send('review_plan', { plan: reviewPlan }); }
+                        toolResult = nextPlan ? { ok: true, planId: nextPlan.id, awaitingApproval: true } : { error: 'Provide a title, goal and non-empty list of step descriptions.' };
+                        send('tool_call', { name, arguments: args, result: toolResult });
+                        messages.push({ role: 'tool', tool_call_id: tc.id, content: JSON.stringify(toolResult) });
+                        acceptedThisIter = !!nextPlan;
+                        continue;
+                    }
                     // ── Self-planning (route-handled, non-mutating): record the
                     //    agent's to-do list and surface it to the user. ──
                     if (name === 'builder_set_plan') {
@@ -998,8 +1081,11 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
                             });
                         } catch (e) { toolResult = { error: e.message }; }
                         send('tool_call', { name, arguments: args, result: toolResult });
-                        await persistDraftWrap(draftWrap);
-                        send('draft', { definition: draftWrap.def, automationId: draftWrap.automationId });
+                        if (!isolated) {
+                            await persistDraftWrap(draftWrap);
+                            send('draft', { definition: draftWrap.def, automationId: draftWrap.automationId });
+                        }
+                        else if (!bufferedBuild) send('proposal_preview', { definition: draftWrap.def, baseDefinition: baseDraft, title: draftWrap.title, description: draftWrap.description });
                         mutatedThisIter = true; // post-loop validation feedback runs
                         messages.push({ role: 'tool', tool_call_id: tc.id, content: typeof toolResult === 'string' ? toolResult : truncateToolResultJson(toolResult) });
                         if (toolResult && typeof toolResult === 'object' && toolResult.error) {
@@ -1159,13 +1245,17 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
 
                     // After every mutation, persist + emit a draft snapshot.
                     if (mutates(name)) {
-                        await persistDraftWrap(draftWrap);
-                        send('draft', { definition: draftWrap.def, automationId: draftWrap.automationId });
+                        if (!isolated) {
+                            await persistDraftWrap(draftWrap);
+                            send('draft', { definition: draftWrap.def, automationId: draftWrap.automationId });
+                        }
+                        else if (!bufferedBuild) send('proposal_preview', { definition: draftWrap.def, baseDefinition: baseDraft, title: draftWrap.title, description: draftWrap.description });
+                        if (approvedPlan && pauseAfterStep && JSON.stringify(baseDraft) !== JSON.stringify(draftWrap.def)) pausedAfterStep = true;
                         mutatedThisIter = true;
                     }
                     // The name changed — after the persist, so the event carries
                     // the id a first mutation just minted.
-                    if (name === 'builder_set_metadata' && toolResult && typeof toolResult === 'object' && !toolResult.error) {
+                    if (!isolated && name === 'builder_set_metadata' && toolResult && typeof toolResult === 'object' && !toolResult.error) {
                         sendMetadata();
                     }
                     if (name === 'builder_summarise') {
@@ -1213,6 +1303,8 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
                         acceptedThisIter = true;
                     }
                 }
+                if (reviewQuestions || pausedAfterStep) break;
+
 
                 // Validation feedback loop: after any mutation, validate the
                 // draft and feed the structured records back to the LLM. This
@@ -1350,7 +1442,7 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
             // round to a tool call once; if it talks again, let it through so a
             // genuine question or refusal can still reach the user.
             const draftHasSteps = Array.isArray(draftWrap?.def?.steps) && draftWrap.def.steps.length > 0;
-            if (!prosePinUsed && profile.forceFirstToolCall && !draftHasSteps) {
+            if (turnMode !== 'discuss' && turnMode !== 'plan' && !prosePinUsed && profile.forceFirstToolCall && !draftHasSteps) {
                 prosePinUsed = true;
                 repinToolChoice = true;
                 log.warn(`[AutomationBuilder] round ${iter} answered in prose with an empty draft — pinning one round to a tool call`);
@@ -1389,7 +1481,7 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
         // unfinished and the presenter pressed Mark as done on stage.
         // The draft still has to pass validateDefinition and have a trigger and
         // a real step, so nothing half-built is finalised by this.
-        if (!lastFinalized && !stopReason) {
+        if (!isolated && !lastFinalized && !stopReason && !pausedAfterStep && !reviewQuestions) {
             const finalCheck = validateDefinition(draftWrap.def, { deliverableEvents: getDeliverableEvents() });
             const def = draftWrap.def;
             const hasTrigger = !!def?.trigger;
@@ -1433,7 +1525,7 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
         // and put the default back) — gets its name now, so the list, the
         // header and the playbook rail never show the default. Only a
         // persisted draft: a turn that built nothing has no row to name.
-        if (draftWrap.automationId && (!draftWrap.title || draftWrap.title === UNTITLED_AUTOMATION)) {
+        if (!isolated && draftWrap.automationId && (!draftWrap.title || draftWrap.title === UNTITLED_AUTOMATION)) {
             try {
                 const titled = ensureDraftTitle(draftWrap, { brief });
                 if (titled.derived) {
@@ -1445,6 +1537,34 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
             }
         }
 
+        const proposal = turnMode === 'approve' && (JSON.stringify(baseDraft) !== JSON.stringify(draftWrap.def) || baseTitle !== draftWrap.title || baseDescription !== draftWrap.description)
+            ? { id: randomUUID(), definition: draftWrap.def, baseDefinition: baseDraft, title: draftWrap.title, description: draftWrap.description } : null;
+        if (proposal) send('proposal_preview', proposal);
+        if (approvedPlan) {
+            reviewPlan = { ...reviewPlan, status: reviewQuestions || pausedAfterStep ? 'paused' : 'built', baseDefinition: structuredClone(draftWrap.def) };
+            send('review_plan', { plan: reviewPlan });
+        }
+        if (bufferedBuild) {
+            const changes = changedSteps(baseDraft, draftWrap.def);
+            if (changes.length >= 4) {
+                reviewPlan = { ...writePlan({ title: draftWrap.title || 'Automation changes', goal: message || 'Update this automation', steps: changes, tests: ['Validate the flow and check the field mappings before a test run.'] }, reviewPlan), baseDefinition: structuredClone(baseDraft) };
+                send('review_plan', { plan: reviewPlan });
+            } else if ((changes.length || baseTitle !== draftWrap.title || baseDescription !== draftWrap.description) && !reviewQuestions) {
+                await persistDraftWrap(draftWrap);
+                send('draft', { definition: draftWrap.def, automationId: draftWrap.automationId });
+                sendMetadata();
+                // Keep the committed result as the baseline for the snapshot.
+                baseDraft = structuredClone(draftWrap.def);
+                baseTitle = draftWrap.title; baseDescription = draftWrap.description;
+            }
+        }
+        if (isolated) { draftWrap.def = baseDraft; draftWrap.title = baseTitle; draftWrap.description = baseDescription; }
+        // A new plan needs a document to own its saved conversation. Only the
+        // original empty draft is saved here, never a proposed definition.
+        if (!draftWrap.automationId && (reviewPlan || proposal || reviewQuestions)) {
+            await persistDraftWrap(draftWrap);
+            send('builder_session', { builderSessionId: draftWrap.builderSessionId, automationId: draftWrap.automationId });
+        }
         // Snapshot for SSE-resume and for the next turn's prompt. Captures the
         // conversation so far (unsliced — the head-anchored window at compose
         // time bounds what the model sees), the assistant's reply with its
@@ -1467,6 +1587,7 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
                         lastUserMessage,
                         ...(assistantOut ? [assistantOut] : []),
                     ],
+                    reviewPlan, reviewQuestions, proposal,
                     todos: Array.isArray(draftWrap._todos) ? draftWrap._todos : [],
                     ...(catalogOrder ? { catalogOrder } : {}),
                     updatedAt: new Date().toISOString(),

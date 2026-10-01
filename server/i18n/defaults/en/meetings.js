@@ -36,11 +36,13 @@ module.exports = {
     'meetings.delete_unchecked': 'Some of what could use this meeting could not be checked ({kinds}), so this list may be incomplete.',
     'meetings.outputs_checking': 'Checking what happens to this meeting…',
     'meetings.outputs_error': 'Could not check what happens to this meeting — this list may be incomplete.',
+    'meetings.outputs_error_short': 'Could not check everything',
     'meetings.outputs_every_meeting': 'on every meeting',
     'meetings.outputs_none': 'Nothing picks this meeting up yet.',
-    'meetings.outputs_none_known': 'Nothing else found.',
+    'meetings.outputs_none_known': 'Nothing found so far',
     'meetings.outputs_title': 'What happens to this meeting',
     'meetings.outputs_unchecked': 'Could not check {kinds}, so something may be missing from this list.',
+    'meetings.outputs_unchecked_short': 'Not checked: {kinds}',
 
     // ── Meetings ─────────────────────────────────────────────────
     'meetings.title': 'Meeting Notes',

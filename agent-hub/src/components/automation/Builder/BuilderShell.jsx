@@ -4,7 +4,8 @@ import UsedByButtonsCapsule from './UsedByButtonsCapsule';
 import ExecutionsPanel from '../../admin/Studio/Executions/ExecutionsPanel';
 import { BuilderConfirmProvider } from './BuilderConfirmContext';
 import BuilderHeader from './BuilderHeader';
-import InputArea from '../../chat/InputArea';
+import { deepEqual } from '../../../utils/deepEqual';
+import useTranslation from '../../../hooks/useTranslation';
 import { toast } from '../../shared/Toast';
 import BuildTab from './BuildTab';
 import { triggerAppRef } from './flow/appRefLabel';
@@ -97,7 +98,7 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
     const apiCreateOne = isStep ? api.createStep : api.createAutomation;
     const apiUpdateOne = isStep ? api.updateStep : api.updateAutomation;
     const unwrapRow = (r) => (r && (r.automation || r.step)) || r;
-    const { state, send, stop: stopBuild, hydrate, hydrateLastRun, setDraft, markServerConfirmed, acceptExternalDraft, dismissExternalDraft, executeStep, retryFromStep, stopRun, pollRunProgress, setRunResult, watchActiveRun, clearDryRun, clearError, setValidation, settleRun } = useAutomationBuilderStream({ automationId });
+    const { state, send, stop: stopBuild, hydrate, hydrateLastRun, setDraft, markServerConfirmed, acceptExternalDraft, dismissExternalDraft, dismissProposal, dismissPlan, executeStep, retryFromStep, stopRun, pollRunProgress, setRunResult, watchActiveRun, clearDryRun, clearError, setValidation, settleRun } = useAutomationBuilderStream({ automationId });
     const { serverAutomation, setServerAutomation } = useBuilderHydration({
         state, automationId, apiGetOne, unwrapRow, isStep, hydrate, hydrateLastRun, onAutomationIdResolved,
     });
@@ -250,6 +251,28 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
         onMessagesScroll,
     } = useBuilderChatPanel({ forceAssistantOpen, initialChatInput, forcedTier, running: state.running });
 
+    const { t } = useTranslation();
+    const modeStorageKey = `automationWorkMode:${automationId || 'new'}`;
+    const [workMode, setWorkMode] = useState(() => {
+        if (autoSendInput || forcedTier) return 'build';
+        const saved = scopedStorage.getItem(modeStorageKey);
+        return ['discuss', 'approve', 'plan', 'build'].includes(saved) ? saved : 'approve';
+    });
+    useEffect(() => { scopedStorage.setItem(`automationWorkMode:${state.automationId || automationId || 'new'}`, workMode); }, [workMode, state.automationId, automationId]);
+    const [alwaysPlanLarge, setAlwaysPlanLarge] = useState(() => scopedStorage.getItem(`automationLargePlan:${automationId || 'new'}`) !== 'false');
+    useEffect(() => { scopedStorage.setItem(`automationLargePlan:${state.automationId || automationId || 'new'}`, String(alwaysPlanLarge)); }, [alwaysPlanLarge, state.automationId, automationId]);
+    const [assistantContext, setAssistantContext] = useState(null);
+    const askAssistant = useCallback((stepId = null, field = null) => {
+        setTab('build');
+        setAssistantOpen(true);
+        const step = stepByIdForAssistant.current?.(stepId || ndvStepId);
+        if (step) setAssistantContext({ id: step.id, label: step.label || step.type || step.kind });
+        if (field) setChatInput(t('routines.assistant.map_prompt', 'Help me map the field "{field}". It expects {kind}. Current binding: {binding}.', {
+            field: field.label || '', kind: field.expectKind || 'a value', binding: JSON.stringify(field.value ?? null),
+        }));
+    }, [ndvStepId, setTab, setAssistantOpen, setChatInput, t]);
+    const stepByIdForAssistant = useRef(null);
+
     // Inline-rename saving state. Three transitions:
     //   idle → saving → saved → idle (after 1.5s)
     //   idle → saving → error
@@ -368,15 +391,29 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
     const stepById = useCallback((id) => allSteps.find(s => s.id === id) || null, [allSteps]);
     const runStepById = useCallback((id) => (state.steps || []).find(s => s.stepId === id && !s.parentStepId) || null, [state.steps]);
 
+    stepByIdForAssistant.current = stepById;
+
     // InputArea calls onSendMessage(text, attachments, parentId).
     // We read webSearchEnabled / disabledMedia from scopedStorage so the
     // toggles in the input UI are picked up automatically.
-    const onSend = (text, attachments) => {
+    const turnBaseRef = useRef(null);
+    const onSend = async (text, attachments, options = {}) => {
+        try {
+        const pendingSave = forceSaveNow();
+        if (pendingSave) await pendingSave;
+        const targetAutomationId = state.automationId || serverAutomation?.id || (!isBlankDefinition(effectiveDef) ? await ensureAutomationCreated(effectiveDef) : null);
         setError(null);
         const webSearchEnabled = scopedStorage.getItem('webSearchEnabled') !== 'false';
         const disabledMedia = scopedStorage.getJSON('disabledMedia', {}) || {};
+        turnBaseRef.current = workMode === 'build' || options.approvedPlanId ? structuredClone(effectiveDef || normalizeDefinitionShape(null)) : null;
         send({
             message: text,
+            targetAutomationId,
+            workMode: options.approvedPlanId ? 'plan' : workMode,
+            approvedPlanId: options.approvedPlanId || null,
+            alwaysPlanLarge: !!alwaysPlanLarge && !autoSendInput && !forcedTier,
+            pauseAfterStep: !!options.pauseAfterStep,
+            selectedStepId: assistantContext?.id || ndvStepId || null,
             modelTier: tierForSend,
             attachments: attachments || [],
             webSearchEnabled,
@@ -386,6 +423,7 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
             canvasScope: scopeKey,
             seedMetadata: seedMetadata || null,
         });
+        } catch (error) { setError(error.message || String(error)); }
     };
 
     // "Build it directly" — when the parent opens a fresh builder with an
@@ -409,6 +447,8 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
     // an abort, or an HTTP/stream error. Fires once per turn.
     const wasRunningRef = useRef(false);
     const reportTurnEnd = useEffectEvent(() => {
+        if (turnBaseRef.current) draftHistory.checkpoint(turnBaseRef.current);
+        turnBaseRef.current = null;
         onTurnEnd?.({
             finalized: !!(state.lastDone && state.lastDone.finalized),
             aborted: !!state.aborted,
@@ -942,7 +982,7 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
         clearTimeout(visualSaveTimer.current);
         visualSaveTimer.current = null;
         pendingSaveRef.current.def = null; // flushing now — nothing left pending
-        if (effectiveDef) performVisualSave(effectiveDef);
+        if (effectiveDef) return performVisualSave(effectiveDef);
     }, [effectiveDef, performVisualSave]);
 
     /**
@@ -963,6 +1003,7 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
         onSave: forceSaveNow,
         onDryRun,
         onEscape,
+        onAssistant: () => askAssistant(),
     });
 
     useEffect(() => () => {
@@ -1123,6 +1164,33 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
             ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
             : 'bg-amber-500/15 text-amber-600 dark:text-amber-400';
 
+    const clearReview = async (action, revisionId) => {
+        try {
+        const aid = state.automationId || serverAutomation?.id;
+        if (aid && revisionId) {
+            const response = await authFetch(`${API_BASE}/api/automation/builder/session/${encodeURIComponent(aid)}/review`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action, revisionId }),
+            });
+            if (!response.ok) { toast.error(t('routines.assistant.review_changed', 'The saved review has changed. Reload the latest revision.')); return false; }
+        }
+        if (action === 'rejectPlan') dismissPlan(); else dismissProposal();
+        return true;
+        } catch (error) { toast.error(error.message || String(error)); return false; }
+    };
+
+    const applyProposal = async (reviewedDefinition) => {
+        const proposal = state.proposal;
+        if (!proposal || state.running) return;
+        if (!deepEqual(effectiveDef, proposal.baseDefinition) && !(isBlankDefinition(effectiveDef) && isBlankDefinition(proposal.baseDefinition))) {
+            toast.error(t('routines.assistant.stale_proposal', 'The flow has changed since this proposal. Ask the assistant for an updated proposal.'));
+            return;
+        }
+        if (!await clearReview('discardProposal', proposal.id)) return;
+        onVisualEditRoot(reviewedDefinition?.steps ? reviewedDefinition : proposal.definition);
+        if (proposal.title || proposal.description != null) await onSaveAutomation({ title: proposal.title || serverAutomation?.title, description: proposal.description || '' });
+        toast.success(t('routines.assistant.applied', 'Proposal applied. Undo reverts the flow changes.'));
+    };
+
     const triggerKind = effectiveDef?.trigger?.kind || serverAutomation?.triggerType;
     const aidForHistory = state.automationId || automationId;
 
@@ -1151,6 +1219,7 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
         title, triggerKind, isActive, isDraft, statusLabel, statusBadgeClass, canActivate,
         canDiagnose: isAppEventTrigger, busy, onBack, backLabel, onOpenList, onActivate, onDeactivate,
         onDryRun, onRunLive, onDiagnose, onRename, mode,
+        onAssistant: isStep ? null : () => askAssistant(), assistantOpen,
         triggers: secondaryTriggerOptions, primaryTriggerLabel,
         step: isStep ? serverAutomation : null, orgGroups, onPublishStep,
         onSetStepSharing, onSetStepExpose, onSetStepIcon, onSetStepCategory, scope, onExitScope,
@@ -1242,6 +1311,17 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
                         setSelectedTier={setTierForPicker}
                         user={user}
                         onSend={onSend}
+                        workMode={workMode}
+                        setWorkMode={setWorkMode}
+                        alwaysPlanLarge={alwaysPlanLarge}
+                        setAlwaysPlanLarge={setAlwaysPlanLarge}
+                        assistantContext={assistantContext}
+                        onClearAssistantContext={() => setAssistantContext(null)}
+                        onAskAssistant={askAssistant}
+                        onApplyProposal={applyProposal}
+                        onDiscardProposal={() => clearReview('discardProposal', state.proposal?.id)}
+                        onRejectPlan={() => clearReview('rejectPlan', state.reviewPlan?.id)}
+                        onApprovePlan={(pauseAfterStep) => onSend(t('routines.assistant.approved_prompt', 'I approve this plan. Build it and report any deviations.'), [], { approvedPlanId: state.reviewPlan?.id, pauseAfterStep })}
                         onStopBuild={stopBuild}
                         messagesContainerRef={messagesContainerRef}
                         messagesBodyRef={messagesBodyRef}
@@ -1277,6 +1357,8 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
                         automation={serverAutomation}
                         onSave={onSaveAutomation}
                         initialSection={settingsSection}
+                        workMode={workMode}
+                        onWorkModeChange={isStep ? undefined : setWorkMode}
                         onOpenTab={setTab}
                         onAutomationChange={setServerAutomation}
                     />

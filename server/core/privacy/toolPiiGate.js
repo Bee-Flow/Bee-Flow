@@ -109,7 +109,7 @@ function replaceBlocked(text, blocked) {
 async function checkToolArgs({ toolName, args, shield }) {
     if (!shield?.enabled) return { verdict: 'allow', toolClass: null, labels: [], logLabels: [] };
     const { classifyToolClass, isBlockedForTool } = _deps.orgShield();
-    const toolClass = classifyToolClass(toolName);
+    const toolClass = classifyToolClass(toolName, args || {});
     const allow = { verdict: 'allow', toolClass, labels: [], logLabels: [] };
     const blockList = blockListFor(shield, toolClass);
     if (blockList.length === 0) return allow;
@@ -132,7 +132,7 @@ async function checkToolArgs({ toolName, args, shield }) {
     const entities = Array.isArray(scan?.entities) ? scan.entities : [];
     if (entities.length === 0) return allow;
 
-    const verdict = isBlockedForTool(toolName, entities.flatMap(categoriesOf), shield.toolPiiPolicy);
+    const verdict = isBlockedForTool(toolName, entities.flatMap(categoriesOf), shield.toolPiiPolicy, args || {});
     if (!verdict.blocked) return allow;
     const hit = new Set(verdict.blockedCategories);
     const blocked = entities.filter(e => categoriesOf(e).some(c => hit.has(c)));

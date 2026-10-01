@@ -98,6 +98,34 @@ describe('CreateMenuButton', () => {
         expect(screen.queryByRole('button', { name: 'Choose what to create' })).toBeNull();
     });
 
+    it('a folder handler joins the menu after the building block', async () => {
+        const user = userEvent.setup();
+        const onCreateFolder = vi.fn();
+        setup({ onCreateFolder });
+        await user.click(screen.getByRole('button', { name: 'Choose what to create' }));
+        const items = within(screen.getByRole('menu')).getAllByRole('menuitem');
+        expect(items.map(i => i.textContent)).toEqual([
+            'New automationDefaultRuns by itself when something happens, or when you start it',
+            'New building blockA reusable step you can drop into any automation',
+            'New folderGroups automations here in the overview and in the sidebar',
+        ]);
+        await user.click(items[2]);
+        expect(onCreateFolder).toHaveBeenCalledTimes(1);
+        expect(screen.queryByRole('menu')).toBeNull();
+    });
+
+    it('a folder handler alone still earns the chevron', async () => {
+        const user = userEvent.setup();
+        const onCreateFolder = vi.fn();
+        setup({ onCreateBlock: null, onCreateFolder });
+        await user.click(screen.getByRole('button', { name: 'Choose what to create' }));
+        const items = within(screen.getByRole('menu')).getAllByRole('menuitem');
+        expect(items).toHaveLength(2);
+        expect(within(screen.getByRole('menu')).queryByRole('menuitem', { name: /New building block/ })).toBeNull();
+        await user.click(within(screen.getByRole('menu')).getByRole('menuitem', { name: /New folder/ }));
+        expect(onCreateFolder).toHaveBeenCalledTimes(1);
+    });
+
     it('the label variant is the accent "New" of the overview', () => {
         setup({ variant: 'label', testId: 'overview-create' });
         const main = screen.getByTestId('overview-create-main');

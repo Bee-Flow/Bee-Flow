@@ -8,8 +8,8 @@ import { AlertTriangle, Lock, Sparkles } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ApiError } from '../../../../api/client';
 import {
-    discardPendingMessage, newClientMsgId, useProjectChatQuery, useSendTeamChatMessage,
-    useTeamChatAgents, useUpdateProjectChat, type PendingTeamChatMessage, type SendTeamChatMessage, type TeamChat,
+    discardPendingMessage, newClientMsgId, useLoadOlderMessages, useProjectChatQuery, useSendTeamChatMessage,
+    useTeamChatAgents, useTeamChatMessages, useUpdateProjectChat, type PendingTeamChatMessage, type SendTeamChatMessage, type TeamChat,
     type TeamChatAiResult, type TeamChatMessage, type TeamChatRef,
 } from '../../../../api/queries/projectChats';
 import { useProjectResourcesQuery, type Project, type ProjectRole } from '../../../../api/queries/projects';
@@ -18,11 +18,13 @@ import { toast } from '../../../shared/Toast';
 import { projectErrorText } from '../projectErrorText';
 import { useProjectLive } from '../ProjectLiveContext';
 import type { TaskLink } from '../../../../api/queries/projectTasks';
+import { useProjectTasksQuery } from '../../../../api/queries/projectTasks';
 import type { WorkspaceUser } from '../types';
 import { GhostButton, LoadingRow, Notice, SecondaryButton } from '../workspaceUi';
 import type { BaseMessageContext } from './ChatMessageList';
 import ChatComposer, { type ComposerDraft } from './ChatComposer';
 import ChatMessageList from './ChatMessageList';
+import ChatSearchBar from './ChatSearchBar';
 import { useChatPeople } from './chatPeople';
 import type { MentionCandidate } from './mentions';
 import { excerptOf } from './messageGroups';
@@ -32,6 +34,7 @@ import TypingIndicator from './TypingIndicator';
 import { draftKey } from './drafts';
 import { takeFirstAnswer } from './firstAnswer';
 import { aiToneFor, projectIcon } from '../projectVisuals';
+import useChatSearch from './useChatSearch';
 import { useChatTier } from './useChatTier';
 import { useTeamChatLive, type TeamChatAiProblem } from './useTeamChatLive';
 
@@ -103,10 +106,13 @@ function problemNotice(problem: TeamChatAiProblem, t: TranslateFn): string | nul
     return null;
 }
 
+const NO_MESSAGES: TeamChatMessage[] = [];
+
 function useNames(projectId: string, chat: TeamChat, currentUser: WorkspaceUser | null, agents: { id: string; name?: string }[]) {
     const { t } = useTranslation();
     const people = useChatPeople(projectId, currentUser);
     const { data: resources } = useProjectResourcesQuery(projectId);
+    const { data: taskData } = useProjectTasksQuery(projectId);
     return useMemo(() => {
         const nameOf = (id: string | null | undefined) => people.nameOf(id)
             || (id && id === currentUser?.id ? t('project_chat.you', 'You') : t('project_chat.someone', 'A member'));
@@ -121,7 +127,7 @@ function useNames(projectId: string, chat: TeamChat, currentUser: WorkspaceUser 
             const agentName = chat.agentId ? agents.find(a => a.id === chat.agentId)?.name : null;
             if (agentName) candidates.push({ key: `agent:${chat.agentId}`, kind: 'agent', label: agentName, token: agentName });
         }
-        // Documents and notebooks filed in the project can be tagged by name.
+        // Filed resources and work items can be tagged by name.
         const items: { ref: TeamChatRef; name: string }[] = [];
         for (const [kind, section] of [['document', resources?.documents], ['notebook', resources?.notebooks], ['meeting', resources?.meetings]] as const) {
             for (const it of section || []) {
@@ -130,12 +136,22 @@ function useNames(projectId: string, chat: TeamChat, currentUser: WorkspaceUser 
                 if (typeof it.id === 'string' && name.trim()) items.push({ ref: { kind, id: it.id }, name: name.trim() });
             }
         }
+        const tasks = (taskData?.tasks || []).filter(item => !item.unreadable && item.title.trim());
+        const titleCounts = new Map<string, number>();
+        for (const item of tasks) titleCounts.set(item.title.toLocaleLowerCase(), (titleCounts.get(item.title.toLocaleLowerCase()) || 0) + 1);
+        for (const item of tasks) {
+            items.push({ ref: { kind: 'task', id: item.id }, name: item.title });
+            candidates.push({ key: `task:${item.id}`, kind: 'task', label: item.title,
+                token: titleCounts.get(item.title.toLocaleLowerCase())! > 1 ? `${item.title} (${item.id.slice(0, 6)})` : item.title,
+                ref: { kind: 'task', id: item.id } });
+        }
         for (const it of items) {
+            if (it.ref.kind === 'task') continue;
             candidates.push({ key: `${it.ref.kind}:${it.ref.id}`, kind: it.ref.kind, label: it.name, token: it.name, ref: it.ref });
         }
         const refTitle = (ref: TeamChatRef) => items.find(i => i.ref.kind === ref.kind && i.ref.id === ref.id)?.name || '';
         return { nameOf, avatarOf: people.avatarOf, colorOf: people.colorOf, assistantName, candidates, refTitle, tokens: ['ai', 'assistant', ...candidates.map(c => c.token)] };
-    }, [people, currentUser, agents, chat.aiMode, chat.agentId, resources, t]);
+    }, [people, currentUser, agents, chat.aiMode, chat.agentId, resources, taskData, t]);
 }
 
 /** What the AI said about a message its author sent, with a way to dismiss it. */
@@ -186,6 +202,20 @@ function TeamChatView({ chat, projectId, project, role, currentUser, onBack, onN
     const [threadId, setThreadId] = useState<string | null>(initialThreadId ?? null);
     const tier = useChatTier();
     const { applyAi, clearNotice } = sender;
+    const messagesQuery = useTeamChatMessages(projectId, chat.id);
+    const allMessages = messagesQuery.data?.messages || NO_MESSAGES;
+    const older = useLoadOlderMessages(projectId, chat.id);
+    const [searchOpen, setSearchOpen] = useState(false);
+    const search = useChatSearch(allMessages);
+    const [prefill, setPrefill] = useState<{ text: string; nonce: number } | null>(null);
+    const [editRequest, setEditRequest] = useState<{ messageId: string; nonce: number } | null>(null);
+    // The unread count only rides along from the chats list (the detail answer never carries it), so keep the one seen at open.
+    const [unreadAtOpen] = useState(() => (typeof chat.unread === 'number' ? chat.unread : 0));
+    // ArrowUp in an empty composer edits the latest message of your own.
+    const onEditLastOwn = useCallback(() => {
+        const last = [...allMessages].reverse().find(m => !m.threadId && m.authorKind === 'user' && m.authorUserId === me && !m.deleted);
+        if (last) setEditRequest({ messageId: last.id, nonce: Date.now() });
+    }, [allMessages, me]);
 
     // What the AI said about the first message that created this chat (the form that made it is gone).
     useEffect(() => {
@@ -209,7 +239,10 @@ function TeamChatView({ chat, projectId, project, role, currentUser, onBack, onN
         ) : undefined, refTitle: names.refTitle, onOpenRef: onOpenItem,
         aiTone: aiToneFor(project?.color), aiIcon: project ? projectIcon(project.icon) : undefined, onRetry: sender.retry, onDiscard: sender.discard,
         onShowAiSettings: onNavigate ? () => onNavigate('settings/preferences') : undefined,
-    }), [me, role, canPost, chat.archived, chat.id, project?.color, project?.icon, names, sender.retry, sender.discard, onNavigate, onOpenItem, onCreateTask]);
+        highlight: searchOpen && search.query.trim() ? { query: search.query.trim(), activeMessageId: search.activeId } : undefined,
+        editRequest,
+    }), [me, role, canPost, chat.archived, chat.id, project?.color, project?.icon, names, sender.retry, sender.discard, onNavigate, onOpenItem, onCreateTask,
+        searchOpen, search.query, search.activeId, editRequest]);
     // Inside a thread there is no second thread and no quoting.
     const threadBase = useMemo<BaseMessageContext>(() => ({ ...base, onReply: undefined, onOpenThread: undefined }), [base]);
 
@@ -228,12 +261,19 @@ function TeamChatView({ chat, projectId, project, role, currentUser, onBack, onN
         <div className="relative h-full flex min-h-0 bg-[var(--bg-primary)]" data-testid="project-team-chat">
             <div className="flex-1 min-w-0 flex flex-col min-h-0">
                 <TeamChatHeader projectId={projectId} chat={chat} role={role} currentUserId={me} agents={agents} onBack={onBack} onDeleted={onBack}
-                    onCreateTask={onCreateTask ? () => onCreateTask([{ kind: 'chat', id: chat.id }], chat.title || '') : undefined} />
-                <ChatMessageList projectId={projectId} chatId={chat.id} base={base} footer={live.threadId ? undefined : typingLine} />
+                    onCreateTask={onCreateTask ? () => onCreateTask([{ kind: 'chat', id: chat.id }], chat.title || '') : undefined}
+                    onToggleSearch={() => setSearchOpen(o => !o)} searchOpen={searchOpen} />
+                {searchOpen && (
+                    <ChatSearchBar search={search} hasOlder={!!messagesQuery.data?.hasOlder} loadingOlder={older.isPending}
+                        onLoadOlder={() => older.mutate(undefined, { onError: () => toast.error(t('project_chat.older_failed', 'Could not load earlier messages.')) })}
+                        onClose={() => setSearchOpen(false)} />
+                )}
+                <ChatMessageList projectId={projectId} chatId={chat.id} base={base} footer={live.threadId ? undefined : typingLine}
+                    unreadCount={unreadAtOpen} onStarter={writable ? text => setPrefill({ text, nonce: Date.now() }) : undefined} />
                 <AiNotice text={mainNotice} onDismiss={dismissNotice} />
                 {writable ? (
                     <ChatComposer draftKey={draftKey(me, chat.id)} candidates={names.candidates} aiEnabled={chat.aiMode !== 'off'} reply={replyChip} tier={tier}
-                        onCancelReply={() => setReply(null)} onTyping={() => notifyTyping(chat.id)}
+                        onCancelReply={() => setReply(null)} onTyping={() => notifyTyping(chat.id)} onEditLastOwn={onEditLastOwn} prefill={prefill}
                         onSend={(draft) => { sender.submit(draft, reply?.id || null); setReply(null); }} />
                 ) : <ReadOnlyBar chat={chat} canEdit={canPost} projectId={projectId} />}
             </div>

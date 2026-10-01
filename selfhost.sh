@@ -286,6 +286,19 @@ ensure_analytics_secret() {
     fi
 }
 
+# The browser sidecar serves Playwright at ws://browser:9222/<BROWSER_WS_PATH>
+# and launchServer has no authentication, so the path is a secret like the
+# others: random, generated once, never overwritten. A .env from before the
+# sidecar existed does not have it; without it both sides fall back to the
+# compose file's fixed default, which works but is guessable. Same pattern as
+# ensure_analytics_secret: fill the gap, never touch a value that is set.
+ensure_browser_ws_path() {
+    if [ -z "$(env_get BROWSER_WS_PATH)" ]; then
+        set_env BROWSER_WS_PATH "$(gen_hex 24)"
+        log "Generated BROWSER_WS_PATH in .env (the browser sidecar's private path)"
+    fi
+}
+
 # Template keys missing from .env are REPORTED, never written: .env belongs to
 # the operator (it holds their secrets), and every new key ships with a working
 # default in the compose file — so silence would be wrong but so is writing.
@@ -381,6 +394,7 @@ install() {
     ensure_env
     persist_profiles
     ensure_analytics_secret
+    ensure_browser_ws_path
     wire_guard
     wire_classify
     log "Pulling images from ghcr.io/bee-flow (public, no login needed)…"
@@ -421,6 +435,7 @@ upgrade() {
     log "plus the rustfs-data volume. Commands: ${DOCS_UPGRADES}"
     persist_profiles
     ensure_analytics_secret
+    ensure_browser_ws_path
 
     # Pull FIRST and pull LOUDLY: when the pull fails nothing has been touched
     # and the running stack simply stays on its current version. (Unlike the

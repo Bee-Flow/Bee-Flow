@@ -35,6 +35,10 @@ describe('Azure tiers', () => {
     it('reads the deployed models from the comma list', () => {
         expect(deployedModels(' gpt-4.1, ,gpt-5-mini ')).toEqual(['gpt-4.1', 'gpt-5-mini']);
     });
+
+    it('keeps the deployment name of a name=model entry', () => {
+        expect(deployedModels('prod-chat = gpt-6-astra, gpt-4.1')).toEqual(['prod-chat', 'gpt-4.1']);
+    });
 });
 
 describe('Azure checks and status', () => {

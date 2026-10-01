@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import ConnectionsManager from './ConnectionsManager';
+import { Microsoft365Group } from './Microsoft365Integration';
 import N8nSection from './N8nSection';
 import SimpleApiKeyIntegration from './SimpleApiKeyIntegration';
 import { getIntegrationIcon } from '../../config/integrationIcons';
@@ -1035,6 +1036,9 @@ const IntegrationsSection = ({ statuses, onSaved, isOrgAdmin, user, showOrgInteg
                     </div>
                 </div>
             )}
+
+            {/* Microsoft 365: shown when a Microsoft app is in the effective set */}
+            <Microsoft365Group isEnabled={isEnabled} onSaved={() => onSaved('microsoft')} />
 
             {/* Productivity */}
             {productivityItems > 0 && (

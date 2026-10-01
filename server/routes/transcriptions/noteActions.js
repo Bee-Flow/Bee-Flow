@@ -374,7 +374,7 @@ router.post('/:id/regenerate-summary', requireAuth, validate({ body: RegenerateB
         });
     } catch (err) {
         log.error('[Transcriptions] Regenerate summary error:', err.message);
-        res.status(500).json({ error: `Failed to regenerate: ${err.message}` });
+        res.status(500).json({ error: 'Failed to regenerate' });
     }
 });
 
@@ -436,8 +436,8 @@ router.get('/:id/export', requireAuth, validate({ query: ExportQuery }),
  * `unchecked` COUNTS AS IN USE. A scan that could not run is not a consumer
  * that is absent, and this is the one moment where guessing wrong cannot be
  * undone. That does mean a meeting can sit permanently behind a 409 while
- * some kind is unanswerable (`notebook_sources.source_ref_id` has not landed
- * yet, so today that is every meeting): the client's danger zone names what
+ * some kind is unanswerable (an older notebook meeting source written before
+ * `notebook_sources.source_ref_id` existed keeps notebooks unanswerable): the client's danger zone names what
  * could not be checked, makes the person type the meeting's title against
  * that warning, and then sends `?confirm=1`. The escape hatch is deliberate
  * and it is a CONFIRMED one — never a silent retry.

@@ -98,7 +98,33 @@ describe('OverviewTab — quick actions and cards', () => {
         const knowledge = screen.getByTestId('overview-knowledge');
         await waitFor(() => expect(within(knowledge).getByText('Files').nextSibling).toHaveTextContent('1'));
         expect(within(screen.getByTestId('overview-instructions')).getByText('Answer briefly.')).toBeInTheDocument();
-        expect(await within(screen.getByTestId('overview-members')).findByText(/3 people · 1 groups/)).toBeInTheDocument();
+        expect(await within(screen.getByTestId('overview-members')).findByText(/3 people · 1 group\b/)).toBeInTheDocument();
+    });
+
+    it('leaves out a zero group count', async () => {
+        renderOverview('owner', { 'GET /api/projects/p1/members': { ...makeMembers(), members: makeMembers().members.filter((m: { sharedWithType: string }) => m.sharedWithType !== 'group') } });
+        const line = await within(screen.getByTestId('overview-members')).findByText(/people/);
+        expect(line).not.toHaveTextContent(/group/);
+    });
+
+    it('lists my open tasks with a readable due date, overdue ones marked', async () => {
+        const task = (id: string, title: string, dueDate: string | null, status = 'todo') => ({ id, title, dueDate, status, assigneeIds: [EDITOR_ID] });
+        const { user, onOpenTab } = renderOverview('editor', {
+            'GET /api/projects/p1/tasks': { tasks: [task('t1', 'Later', '2999-10-30'), task('t2', 'Late', '2000-01-02'), task('t3', 'Finished', '2000-01-01', 'done')] },
+        });
+        const card = screen.getByTestId('overview-my-tasks');
+        await within(card).findByText('Late');
+        expect(within(card).queryByText('Finished')).toBeNull();
+        expect(within(card).queryByText(/2999-10-30/)).toBeNull();
+        expect(screen.getByTestId('my-task-t2')).toHaveTextContent(/Overdue/);
+        expect(screen.getByTestId('my-task-t1')).toHaveTextContent(/Due /);
+        await user.click(screen.getByTestId('my-task-t1'));
+        expect(onOpenTab).toHaveBeenCalledWith('tasks', 't1');
+    });
+
+    it('does not tell a viewer to pin, which only editors can', async () => {
+        renderOverview('viewer', { 'GET /api/projects/p1/pins': { items: [] } });
+        expect(await within(screen.getByTestId('overview-pins')).findByText('Nothing is pinned yet.')).toBeInTheDocument();
     });
 });
 

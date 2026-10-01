@@ -40,6 +40,8 @@ export default function RoutinesLauncher({
     segment, onCreateAutomation, onCreateTask, onOpenAutomation, onPickTemplate, onBuildSuggestion, onAskSuggestion,
     // A new building block, offered beside "New automation" in the overview.
     onCreateStep = null, onEditingChange = null,
+    // "New folder" — the third entry in the overview's New menu (BFSF-478).
+    onCreateFolder = null,
     // The overview tab: the sidebar's (filtered) automations, the filter that
     // produced them, folders for the board's folder lanes, the live-run poll,
     // and the per-row callback builder the sidebar rows use.
@@ -111,6 +113,7 @@ export default function RoutinesLauncher({
                             rowProps={automationRowProps}
                             onCreate={onCreateAutomation}
                             onCreateBlock={onCreateStep}
+                            onCreateFolder={onCreateFolder}
                             canCreate={canCreateAutomation}
                         />
                     </div>

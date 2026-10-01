@@ -78,4 +78,18 @@ router.post('/', requireAuth, validate({ body: DecisionBody }), async (req, res)
     res.json({ ok: true });
 });
 
+const TouchBody = z.object({
+    decisionId: worded(DECISION_TEXT).trim().min(1, DECISION_TEXT),
+}, { required_error: BODY_TEXT, invalid_type_error: BODY_TEXT }).strict();
+
+// Heartbeat: the review UI POSTs here while it is open so a person editing
+// their redaction is never expired mid-review (see decisionQueue.touch).
+router.post('/touch', requireAuth, validate({ body: TouchBody }), async (req, res) => {
+    const ok = decisionQueue.touch(req.body.decisionId, req.session.user.id);
+    if (!ok) {
+        return res.status(404).json({ error: 'Decision not found, expired, or not owned by this user.' });
+    }
+    res.json({ ok: true });
+});
+
 module.exports = router;

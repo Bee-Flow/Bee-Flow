@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import {
-    countStates, countTriggers, filterRows, groupRows, sortRows,
+    NO_FOLDER, countFolders, countStates, countTriggers, filterRows, groupRows, sortRows,
     stepCountOf, triggerKindOf, triggerTextOf,
 } from './overviewModel';
 
@@ -63,6 +63,26 @@ describe('overviewModel — filtering', () => {
 
     it('counts trigger kinds', () => {
         expect(countTriggers(LIB)).toEqual({ all: 5, schedule: 2, manual: 1, webhook: 1, app_event: 1 });
+    });
+
+    it('filters by folder: a folder id, "No folder" for loose rows, all by default', () => {
+        const folders = [{ id: 'f1', name: 'Finance' }];
+        expect(filterRows(LIB, { folder: 'f1', folders }).map(r => r.id)).toEqual(['e']);
+        expect(filterRows(LIB, { folder: NO_FOLDER, folders }).map(r => r.id)).toEqual(['a', 'b', 'c', 'd']);
+        expect(filterRows(LIB).map(r => r.id)).toEqual(['a', 'b', 'c', 'd', 'e']);
+    });
+
+    it('a folderId that is not a known folder counts as loose, and combines with state', () => {
+        const folders = [{ id: 'f1', name: 'Finance' }];
+        const rows = LIB.concat(row({ id: 'z', folderId: 'gone' }));
+        expect(filterRows(rows, { folder: NO_FOLDER, folders }).map(r => r.id)).toContain('z');
+        expect(filterRows(rows, { folder: 'f1', folders, state: 'live' }).map(r => r.id)).toEqual(['e']);
+    });
+
+    it('counts folders: every org folder gets an entry, unknown folderIds are loose', () => {
+        const folders = [{ id: 'f1', name: 'Finance' }, { id: 'f2', name: 'Empty' }];
+        const rows = LIB.concat(row({ id: 'z', folderId: 'gone' }));
+        expect(countFolders(rows, folders)).toEqual({ all: 6, [NO_FOLDER]: 5, f1: 1, f2: 0 });
     });
 });
 

@@ -368,11 +368,17 @@ function makeProjectChatsRouter(deps = {}) {
         return kept;
     }
 
-    /** Tagged documents and notebooks must be filed in this project; anything else is a 400. */
+    /** Tagged items must belong to this project; anything else is a 400. */
     async function checkedRefs(projectId, refs) {
         const unique = [];
         for (const r of refs || []) if (!unique.some((u) => u.kind === r.kind && u.id === r.id)) unique.push({ kind: r.kind, id: r.id });
         for (const kind of new Set(unique.map((r) => r.kind))) {
+            if (kind === 'task') {
+                for (const r of unique.filter(item => item.kind === 'task')) {
+                    if (!(await taskStore().getTask(projectId, r.id))) throw badRequest('ref_not_in_project', 'You can only tag tasks in this project.');
+                }
+                continue;
+            }
             const filed = await filedIds(projectId, kind);
             if (unique.some((r) => r.kind === kind && !filed.has(r.id))) {
                 throw badRequest('ref_not_in_project', 'You can only tag documents, notebooks and meeting notes that are filed in this project.');
@@ -543,7 +549,7 @@ function makeProjectChatsRouter(deps = {}) {
         if (message) {
             let out;
             try {
-                out = await postMessage(req, { project, chat, box, content: message, messageId });
+                out = await postMessage(req, { project, chat, box, content: message, messageId, refs: req.body.refs || [] });
             } catch (err) {
                 // The first message never landed (what follows the store cannot throw out of
                 // postMessage): take the chat back, or it stays as an empty orphan and a

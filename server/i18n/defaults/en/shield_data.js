@@ -155,6 +155,7 @@ module.exports = {
     "shield_data.pattern_label": "Pattern",
     "shield_data.pattern_matches": "Matches {m} of {n} examples",
     "shield_data.pattern_misses": "Not matched: {list}",
+    "shield_data.pattern_syntax": "Letters and digits stand for themselves, \\d means “any digit”, [A-Z] “any capital letter”, and {n} repeats the part before it. So KL-\\d{5} finds KL-12345 but not KL-1234.",
     "shield_data.pattern_too_long": "Keep the pattern under 300 characters.",
     "shield_data.pattern_use": "Use this",
     "shield_data.posture_label": "Your own data",

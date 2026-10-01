@@ -158,10 +158,10 @@ services:
       - RUSTFS_SECRET_KEY=${RUSTFS_SECRET_KEY:?Set RUSTFS_SECRET_KEY in .env}
       # Local CPU reranker for KB search quality (optional)
       - RERANKER_URL=${RERANKER_URL:-}
-      # Shared headless-browser container (browse_web, browser agent, PDF export,
-      # thumbnails, SPA ingestion).
-      - PLAYWRIGHT_RUNNER_MEMORY_MB=${PLAYWRIGHT_RUNNER_MEMORY_MB:-1024}
-      - PLAYWRIGHT_RUNNER_CPUS=${PLAYWRIGHT_RUNNER_CPUS:-1.0}
+      # Shared headless browser: the `browser` sidecar below (PDF export,
+      # thumbnails, SPA ingestion, browse_web). Point it elsewhere to use an
+      # external Playwright server.
+      - BROWSER_WS_ENDPOINT=${BROWSER_WS_ENDPOINT:-ws://browser:9222/${BROWSER_WS_PATH:-beeflow-browser}}
     volumes:
       # Persist uploaded files and generated content
       - beeflow-data:/app/data
@@ -170,11 +170,13 @@ services:
       - ./components:/components
       # Persist workflows - workflows are stored in root/workflows by default in index.js
       - ./workflows:/workflows
-      # Docker socket — allows server to spawn terminal-agent + browser containers on the host
+      # Docker socket — lets the server spawn terminal-agent and Tests Studio
+      # runner containers. The shared browser is the `browser` sidecar, not this.
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - beeflow-network
       - search-network
+      - beeflow-browser-network
     restart: unless-stopped
     depends_on:
       postgres:
@@ -185,6 +187,37 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
+
+  # ── Shared headless browser (PDF export, thumbnails, SPA ingestion, browse_web)
+  # The server image carries no Chromium. This sidecar is the Playwright server
+  # it drives over BROWSER_WS_ENDPOINT, so none of that needs the Docker socket.
+  # Playwright's launchServer has no authentication, so the sidecar sits on its
+  # OWN network shared only with the server (never beeflow-network, where the
+  # database, object storage and the guard live), publishes no port, and serves
+  # at the path in BROWSER_WS_PATH (selfhost.sh generates a random one; set your
+  # own when you deploy this file by hand). The network is not `internal`:
+  # browse_web and SPA ingestion load public pages. The runner's Playwright must
+  # match the server's (scripts/check-playwright-lockstep.mjs).
+  browser:
+    # Built from this checkout, like the server, so the two Playwright
+    # versions cannot drift apart.
+    build:
+      context: ./server/pwt-runner
+    image: beeflow-pwt-runner:local
+    container_name: beeflow-browser
+    command: serve
+    environment:
+      - PWT_SERVE_HOST=0.0.0.0
+      - PWT_SERVE_PORT=9222
+      - PWT_SERVE_WS_PATH=${BROWSER_WS_PATH:-beeflow-browser}
+    shm_size: 256m
+    mem_limit: ${BROWSER_MEMORY_LIMIT:-1g}
+    pids_limit: 512
+    init: true
+    security_opt: [ "no-new-privileges:true" ]
+    networks:
+      - beeflow-browser-network
+    restart: unless-stopped
 
   # Agent Hub Frontend
   agent-hub:
@@ -362,6 +395,9 @@ volumes:
 networks:
   beeflow-network:
     name: beeflow-network
+  # Only the server and the browser sidecar. See the `browser` service.
+  beeflow-browser-network:
+    name: beeflow-browser-network
   search-network:
     name: search-network
     external: true

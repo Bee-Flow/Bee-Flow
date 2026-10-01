@@ -37,6 +37,13 @@ const log = require('../../telemetry/log');
 //                      on a plan that allows it (org admin can still
 //                      disable, but doesn't have to opt in)
 //   - 'deprecated'   — slated for removal; UI shows sunset banner
+//
+// `groupScoped` (optional, default false): the org-access menu alone does NOT
+// hand this beta to every member. It reaches "All members" only while its id
+// is in the org's everyone-list (organizations.org_beta_everyone; NULL = every
+// group-scoped beta, so orgs that never chose keep the old behaviour), and
+// otherwise only the groups the org admin granted it to. See buildOrgGrant in
+// entitlements.js and writeOrgAccessGrants in auth/admin/featureAccessRoutes.js.
 const BetaLifecycle = Object.freeze({
     EXPERIMENTAL: 'experimental',
     BETA: 'beta',
@@ -115,14 +122,13 @@ async function _scopeAllowsBeta({ userId = null, organizationId = null, tierHint
 }
 
 const BETA_FEATURES = [
-    { id: 'meeting_notes', name: 'Meeting Notes', description: 'Audio transcription, meeting summaries, and action item extraction', licenseFeature: 'meeting_notes', lifecycle: BetaLifecycle.BETA },
-    { id: 'advanced_analytics', name: 'Advanced Analytics', description: 'Extended analytics dashboards and reporting', licenseFeature: 'advanced_analytics', lifecycle: BetaLifecycle.BETA },
+    { id: 'meeting_notes', name: 'Meeting Notes', description: 'Audio transcription, meeting summaries, and action item extraction', licenseFeature: 'meeting_notes', lifecycle: BetaLifecycle.GA, groupScoped: true },
+    { id: 'advanced_analytics', name: 'Advanced Analytics', description: 'Extended analytics dashboards and reporting', licenseFeature: 'advanced_analytics', lifecycle: BetaLifecycle.GA },
     { id: 'custom_themes', name: 'Custom Themes', description: 'Organization-level custom branding and theme support', licenseFeature: 'custom_themes', lifecycle: BetaLifecycle.BETA },
-    { id: 'skills', name: 'Skills', description: 'Reusable instruction packs for consistent AI task execution', licenseFeature: 'skills', lifecycle: BetaLifecycle.BETA },
-    { id: 'flow', name: 'Flow Model Tier', description: 'Multi-stage orchestration chat tier ("Flow") that bootstraps chat-local session skills. Requires the Skills beta feature to function — both must be enabled.', lifecycle: BetaLifecycle.BETA },
+    { id: 'skills', name: 'Skills', description: 'Reusable instruction packs for consistent AI task execution', licenseFeature: 'skills', lifecycle: BetaLifecycle.GA },
+    { id: 'flow', name: 'Flow Model Tier', description: 'Multi-stage orchestration chat tier ("Flow") that bootstraps chat-local session skills. Requires the Skills feature to function.', lifecycle: BetaLifecycle.BETA },
     { id: 'voice_chat', name: 'Voice Chat (Beta)', description: 'Realtime voice conversation with direct chat or agents, powered by Mistral Voxtral (STT + TTS). Requires a configured Mistral API key.', licenseFeature: 'voice_chat', lifecycle: BetaLifecycle.BETA },
     { id: 'swarm', name: 'Swarm Agents', description: 'Multi-agent swarms (Deep Research, etc.) that run specialised AI workers in parallel phases and synthesise a single answer. Workers share findings via a Hive Mind notebook.', licenseFeature: 'swarm', lifecycle: BetaLifecycle.BETA },
-    { id: 'knowledge_bases_beta', name: 'Knowledge Bases (Beta badge)', description: 'Show a "beta" badge on the Knowledge Bases sidebar item. Cosmetic — does not gate access.', lifecycle: BetaLifecycle.BETA },
     { id: 'webpages', name: 'Webpages', description: 'AI-built full-stack web apps. Vanilla (HTML/CSS/JS) or React + Material UI projects with a real per-page database, a sandboxed acts-as-author backend (integrations + automations), live preview, auto-versioning, KB-grounded AI chat, publishing/sharing, and ZIP download.', licenseFeature: 'webpages', lifecycle: BetaLifecycle.GA },
     // n8n-style free builder: GA (auto-on, no opt-in panel) and Community-
     // licensed. The blanket BETA_TIER_FLOOR short-circuit in getUserBetaFeatures

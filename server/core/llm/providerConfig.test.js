@@ -100,7 +100,7 @@ test('saveAIConfig files each vendor key as a secret and derives that vendor\'s 
     const ok = await saveAIConfig({
         url: 'https://api.mistral.ai/v1', model: 'ministral-8b-latest',
         openaiApiKey: 'sk-openai', claudeApiKey: 'sk-claude', googleApiKey: 'g-key',
-        azureEndpoint: 'https://acme.openai.azure.com', azureApiKey: 'az-key', azureApiVersion: '2025-04-01-preview',
+        azureEndpoint: 'https://acme.openai.azure.com', azureApiKey: 'az-key', azureApiVersion: '2025-04-01-preview', // old clients still send it
         piiDetectionEnabled: true,
     });
     assert.strictEqual(ok, true);
@@ -115,7 +115,9 @@ test('saveAIConfig files each vendor key as a secret and derives that vendor\'s 
     assert.strictEqual(byId['openai-default'].apiKey, 'sk-openai');
     assert.strictEqual(byId['claude-default'].url, 'https://api.anthropic.com/v1');
     assert.strictEqual(byId['google-default'].type, 'google');
-    assert.strictEqual(byId['azure-default'].apiVersion, '2025-04-01-preview');
+    assert.strictEqual(byId['azure-default'].url, 'https://acme.openai.azure.com');
+    assert.strictEqual(byId['azure-default'].apiVersion, undefined, 'Azure runs on v1 GA: no api-version is stored');
+    assert.strictEqual(store.config.get('azure_api_version'), undefined);
     assert.ok(!byId['mistral-default'], 'no Mistral key was saved, so no Mistral row');
 });
 
@@ -189,9 +191,8 @@ test('addProvider: the first row becomes the default, vendor-specific fields are
     assert.strictEqual(created.location, 'europe-west4');
     assert.strictEqual(ai().defaultProviderId, created.id);
 
-    const second = await addProvider({ id: 'azure-1', name: 'Azure', type: 'azure', url: 'https://acme.openai.azure.com', apiVersion: 'v' });
+    const second = await addProvider({ id: 'azure-1', name: 'Azure', type: 'azure', url: 'https://acme.openai.azure.com' });
     assert.strictEqual(second.id, 'azure-1');
-    assert.strictEqual(second.apiVersion, 'v');
     assert.strictEqual(ai().defaultProviderId, created.id, 'a second row does not steal the default');
 });
 

@@ -211,7 +211,6 @@ router.post('/direct/conversations/:id/session-skills/regenerate', requireAuth, 
         modelId: bootstrapModelId,
         message: seedMessage,
         timezone: req.body.timezone,
-        apiVersion: bootstrapConfig.apiVersion || undefined,
         userContext,
     });
 

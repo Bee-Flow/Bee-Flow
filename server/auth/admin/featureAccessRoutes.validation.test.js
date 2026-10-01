@@ -22,12 +22,21 @@
 process.env.NODE_ENV = 'test';
 
 const test = require('node:test');
+const { describe } = test;
 const assert = require('node:assert');
 const Module = require('module');
 
 // Every store and side-effect call lands in `touched`. A refused request must
 // leave it empty.
 const touched = [];
+// Mutable fixture for the group-scoped beta tests at the bottom; the defaults
+// keep the validation tests above exactly as they were (no capabilities).
+const fx = {
+    caps: [],
+    snap: { ceiling: {}, orgAvailable: {} },
+    groups: [{ id: 'finance', organizationId: 'orgA' }],
+    betaEveryone: null,
+};
 const pass = (req, res, next) => next();
 const hit = (what) => (...args) => { touched.push({ what, args }); };
 
@@ -36,17 +45,23 @@ const MOCKS = {
         requireAuth: pass, requireAdmin: pass,
         getUserPermissions: async () => ['all'],
         resolveUserOrgIds: async () => new Set(['orgA']),
+        invalidateAllPermissionCaches: async () => { touched.push({ what: 'invalidateAllPermissionCaches', args: [] }); },
+        GROUP_GRANT_IMPLIED_PERMISSIONS: { meeting_notes: ['use_meeting_notes'] },
     },
     './orgAdminGuards': { requireOrgAdmin: () => pass },
     './integrationCatalog': { ALL_INTEGRATIONS: [{ id: 'gmail' }, { id: 'drive' }] },
     '../../stores/userStore': {
         getUser: async (id) => ({ id, organizationId: 'orgA', orgRole: 'org_admin' }),
         getOrganization: async (id) => ({ id, enabledIntegrations: null }),
-        getAllGroups: async () => [{ id: 'finance', organizationId: 'orgA' }],
+        getAllGroups: async () => fx.groups,
         getOrgEnabledBetaFeatures: async () => [],
         setOrgEnabledBetaFeatures: hit('setOrgEnabledBetaFeatures'),
         setOrgEnabledIntegrations: async (...a) => { touched.push({ what: 'setOrgEnabledIntegrations', args: a }); return true; },
         setOrgAvailableCapabilities: hit('setOrgAvailableCapabilities'),
+        setOrgGrantedCapabilities: async (...a) => { touched.push({ what: 'setOrgGrantedCapabilities', args: a }); return true; },
+        getOrgBetaEveryone: async () => fx.betaEveryone,
+        setOrgBetaEveryone: async (...a) => { touched.push({ what: 'setOrgBetaEveryone', args: a }); return true; },
+        updateGroup: async (...a) => { touched.push({ what: 'updateGroup', args: a }); return true; },
         logAccessAudit: async () => {},
     },
     '../../stores/configStore': { getConfig: async () => null, setConfig: async () => {} },
@@ -57,9 +72,15 @@ const MOCKS = {
         getEffectiveOrgBetaAllowList: async () => [],
     },
     '../../core/entitlements/entitlements': {
-        registry: { getCapability: () => null, list: () => [] },
+        registry: {
+            getCapability: (id) => fx.caps.find(c => c.id === id) || null,
+            listCapabilities: () => fx.caps,
+            list: () => fx.caps,
+            refreshMcpIntegrationDescriptors: async () => {},
+            refreshModuleCapabilityFilter: async () => {},
+        },
         invalidateForOrg: async () => {},
-        resolveEntitlements: async () => ({ ceiling: {}, orgAvailable: {} }),
+        resolveEntitlements: async () => fx.snap,
         snapshotHas: () => false,
     },
     '../../modules': { listInactiveCapabilityIds: async () => [] },
@@ -158,4 +179,116 @@ test('the clamping itself is untouched — an id outside the ceiling is still dr
     const res = await dispatch({ method: 'PUT', url: '/organizations/orgA/active-integrations', body: { enabled: ['gmail', 'not-a-real-integration'] } });
     assert.strictEqual(res.statusCode, 200);
     assert.deepStrictEqual(res.body.enabled, ['gmail']);
+});
+
+
+// ── Group-scoped betas (meeting_notes) ──────────────────────────────────────
+// The "All members" toggle of a group-scoped beta is stored in its own list
+// (org_beta_everyone) in BOTH modes, and a group may hold the beta on its own.
+describe('group-scoped betas in the Access matrix', () => {
+    const MEETING = { id: 'meeting_notes', kind: 'beta', name: 'Meeting Notes', userFacing: true, groupTogglable: true, groupScoped: true };
+    const WEBPAGES = { id: 'webpages', kind: 'beta', name: 'Webpages', userFacing: true, groupTogglable: true, groupScoped: false };
+    const NOTEBOOKS = { id: 'notebooks', kind: 'core', name: 'Notebooks', userFacing: true, groupTogglable: true };
+    const snapWith = (mode, betas) => ({
+        mode,
+        ceiling: { core: ['notebooks'], beta: betas, integration: [] },
+        orgAvailable: { core: ['notebooks'], beta: betas, integration: [] },
+        orgEnabled: { core: ['notebooks'], beta: betas.filter(b => b !== 'meeting_notes'), integration: [] },
+    });
+    const stored = (what) => touched.filter(t => t.what === what).map(t => t.args);
+
+    const STATIC_BETAS = MOCKS['../../core/entitlements/betaFeatures'].BETA_FEATURES;
+    test.beforeEach(() => {
+        STATIC_BETAS.length = 0;
+        STATIC_BETAS.push({ id: 'meeting_notes', groupScoped: true }, { id: 'webpages' });
+        fx.caps = [MEETING, WEBPAGES, NOTEBOOKS];
+        fx.snap = snapWith('cloud', ['meeting_notes', 'webpages']);
+        fx.groups = [{ id: 'finance', organizationId: 'orgA', granted_capabilities: [] }];
+        fx.betaEveryone = null;
+    });
+    test.after(() => {
+        STATIC_BETAS.length = 0;
+        fx.caps = [];
+        fx.snap = { ceiling: {}, orgAvailable: {} };
+        fx.groups = [{ id: 'finance', organizationId: 'orgA' }];
+        fx.betaEveryone = null;
+    });
+
+    test('the matrix payload flags the group-scoped beta and reads everyone from the resolver', async () => {
+        const res = await dispatch({ method: 'GET', url: '/organizations/orgA/group-access' });
+        assert.strictEqual(res.statusCode, 200);
+        const meeting = res.body.capabilities.find(c => c.id === 'meeting_notes');
+        assert.strictEqual(meeting.groupScoped, true);
+        assert.strictEqual(res.body.capabilities.find(c => c.id === 'webpages').groupScoped, false);
+        assert.ok(!res.body.everyone.includes('meeting_notes'));
+        assert.ok(res.body.everyone.includes('webpages'));
+    });
+
+    for (const mode of ['cloud', 'self-hosted']) {
+        test(`${mode}: switching it off for All members stores an empty everyone-list`, async () => {
+            fx.snap = snapWith(mode, ['meeting_notes', 'webpages']);
+            const res = await dispatch({ method: 'PUT', url: '/organizations/orgA/org-access', body: { granted: ['webpages', 'notebooks'] } });
+            assert.strictEqual(res.statusCode, 200);
+            assert.deepStrictEqual(stored('setOrgBetaEveryone'), [['orgA', []]]);
+        });
+
+        test(`${mode}: switching it on for All members stores it`, async () => {
+            fx.snap = snapWith(mode, ['meeting_notes', 'webpages']);
+            await dispatch({ method: 'PUT', url: '/organizations/orgA/org-access', body: { granted: ['meeting_notes'] } });
+            assert.deepStrictEqual(stored('setOrgBetaEveryone'), [['orgA', ['meeting_notes']]]);
+        });
+    }
+
+    test('a group-scoped beta outside the org\'s access keeps its stored state', async () => {
+        // Not in the menu: the admin cannot see it, so a save must not decide it.
+        fx.snap = snapWith('cloud', ['webpages']);
+        fx.betaEveryone = null; // never chosen ⇒ everyone
+        await dispatch({ method: 'PUT', url: '/organizations/orgA/org-access', body: { granted: ['webpages'] } });
+        assert.deepStrictEqual(stored('setOrgBetaEveryone'), [['orgA', ['meeting_notes']]]);
+
+        touched.length = 0;
+        fx.betaEveryone = [];
+        await dispatch({ method: 'PUT', url: '/organizations/orgA/org-access', body: { granted: ['webpages'] } });
+        assert.deepStrictEqual(stored('setOrgBetaEveryone'), [['orgA', []]]);
+    });
+
+    test('a save while the Meeting Notes module is inactive keeps its stored state', async () => {
+        // listCapabilities() leaves out an inactive module's capabilities, so
+        // the matrix did not show it; getCapability still knows it.
+        fx.caps = [WEBPAGES, NOTEBOOKS];
+        MOCKS['../../core/entitlements/entitlements'].registry.getCapability = (id) => [MEETING, WEBPAGES, NOTEBOOKS].find(c => c.id === id) || null;
+        try {
+            fx.betaEveryone = null;
+            await dispatch({ method: 'PUT', url: '/organizations/orgA/org-access', body: { granted: ['webpages'] } });
+            assert.deepStrictEqual(stored('setOrgBetaEveryone'), [['orgA', ['meeting_notes']]]);
+
+            touched.length = 0;
+            fx.betaEveryone = [];
+            await dispatch({ method: 'PUT', url: '/organizations/orgA/org-access', body: { granted: ['webpages'] } });
+            assert.deepStrictEqual(stored('setOrgBetaEveryone'), [['orgA', []]]);
+        } finally {
+            MOCKS['../../core/entitlements/entitlements'].registry.getCapability = (id) => fx.caps.find(c => c.id === id) || null;
+        }
+    });
+
+    test('a stored id that is no longer a group-scoped beta is kept', async () => {
+        fx.betaEveryone = ['retired_beta'];
+        await dispatch({ method: 'PUT', url: '/organizations/orgA/org-access', body: { granted: ['meeting_notes'] } });
+        assert.deepStrictEqual(stored('setOrgBetaEveryone'), [['orgA', ['meeting_notes', 'retired_beta']]]);
+    });
+
+    test('PUT /groups/:id/access stores the grant and refreshes permission caches', async () => {
+        const res = await dispatch({ method: 'PUT', url: '/groups/finance/access', body: { granted: ['meeting_notes', 'not-a-capability'] } });
+        assert.strictEqual(res.statusCode, 200);
+        assert.deepStrictEqual(res.body.granted, ['meeting_notes']);
+        assert.deepStrictEqual(stored('updateGroup'), [['finance', { grantedCapabilities: ['meeting_notes'] }]]);
+        assert.strictEqual(stored('invalidateAllPermissionCaches').length, 1, 'use_meeting_notes derives from the grant');
+    });
+
+    test('a group grant outside the org\'s access is dropped', async () => {
+        fx.snap = snapWith('cloud', ['webpages']);
+        const res = await dispatch({ method: 'PUT', url: '/groups/finance/access', body: { granted: ['meeting_notes'] } });
+        assert.deepStrictEqual(res.body.granted, []);
+        assert.strictEqual(stored('invalidateAllPermissionCaches').length, 0, 'nothing implied changed');
+    });
 });

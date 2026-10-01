@@ -73,9 +73,17 @@ function stepToJs(lessonId, s) {
         case 'slide':
             put(K('title'), s.title); put(K('body'), s.bodyMd);
             return `{ type: STEP_TYPES.SLIDE, id: ${js(s.id)}, ${icon}titleKey: ${js(K('title'))}, titleFallback: ${js(s.title)}, bodyMdKey: ${js(K('body'))}, bodyMdFallback: ${js(s.bodyMd)} }`;
-        case 'quiz':
-            put(K('q'), s.question);
-            return `{ type: STEP_TYPES.QUIZ, id: ${js(s.id)}, icon: ${js(s.icon || '❓')}, questionKey: ${js(K('q'))}, questionFallback: ${js(s.question)}${s.multi ? ', multi: true' : ''}, choices: [${s.choices.map((c) => `{ id: ${js(c.id)}, labelFallback: ${js(c.label)}, correct: ${!!c.correct}${c.feedback ? `, feedbackFallback: ${js(c.feedback)}` : ''} }`).join(', ')}], explanationFallback: ${js(s.explanation)} }`;
+        case 'quiz': {
+            put(K('q'), s.question); put(K('explanation'), s.explanation);
+            const choiceJs = s.choices.map((c) => {
+                const lk = key(lessonId, s.id, 'choice', c.id, 'label');
+                const fk = key(lessonId, s.id, 'choice', c.id, 'feedback');
+                put(lk, c.label);
+                if (c.feedback) put(fk, c.feedback);
+                return `{ id: ${js(c.id)}, labelKey: ${js(lk)}, labelFallback: ${js(c.label)}, correct: ${!!c.correct}${c.feedback ? `, feedbackKey: ${js(fk)}, feedbackFallback: ${js(c.feedback)}` : ''} }`;
+            });
+            return `{ type: STEP_TYPES.QUIZ, id: ${js(s.id)}, icon: ${js(s.icon || '❓')}, questionKey: ${js(K('q'))}, questionFallback: ${js(s.question)}${s.multi ? ', multi: true' : ''}, choices: [${choiceJs.join(', ')}], explanationKey: ${js(K('explanation'))}, explanationFallback: ${js(s.explanation)} }`;
+        }
         case 'exercise':
             put(K('title'), s.title); put(K('instruction'), s.instruction); put(K('placeholder'), s.placeholder);
             return `{ type: STEP_TYPES.EXERCISE, id: ${js(s.id)}, exerciseId: ${js(s.exerciseId)}, ${icon}titleKey: ${js(K('title'))}, titleFallback: ${js(s.title)}, instructionKey: ${js(K('instruction'))}, instructionFallback: ${js(s.instruction)}, placeholderKey: ${js(K('placeholder'))}, placeholderFallback: ${js(s.placeholder)}, passScore: ${s.passScore}, maxAttempts: ${s.maxAttempts} }`;
@@ -83,14 +91,45 @@ function stepToJs(lessonId, s) {
             put(K('title'), s.title); put(K('instruction'), s.instruction);
             const sim = s.sim;
             let simJs;
-            if (sim.kind === 'match') simJs = `{ kind: 'match', pairs: [${sim.pairs.map((p) => `{ id: ${js(p.id)}, left: ${js(p.left)}, right: ${js(p.right)}${p.note ? `, noteFallback: ${js(p.note)}` : ''} }`).join(', ')}] }`;
-            else if (sim.kind === 'order') simJs = `{ kind: 'order', items: [${sim.items.map((i) => `{ id: ${js(i.id)}, label: ${js(i.label)} }`).join(', ')}], solution: ${js(sim.solution)}, feedbackFallback: ${js(sim.feedback)} }`;
-            else simJs = `{ kind: 'flow-build', scenarios: [${sim.scenarios.map((sc) => `{ id: ${js(sc.id)}, briefFallback: ${js(sc.brief)}, trigger: { options: ${js(sc.trigger.options)}, correct: ${js(sc.trigger.correct)}, feedback: ${js(sc.trigger.feedback || {})} }, steps: { palette: ${js(sc.steps.palette)}, solution: ${js(sc.steps.solution)}, feedback: ${js(sc.steps.feedback || {})} } }`).join(', ')}] }`;
+            if (sim.kind === 'match') {
+                const pairJs = sim.pairs.map((p) => {
+                    const lk = key(lessonId, s.id, 'pair', p.id, 'left');
+                    const rk = key(lessonId, s.id, 'pair', p.id, 'right');
+                    const nk = key(lessonId, s.id, 'pair', p.id, 'note');
+                    put(lk, p.left); put(rk, p.right);
+                    if (p.note) put(nk, p.note);
+                    return `{ id: ${js(p.id)}, leftKey: ${js(lk)}, left: ${js(p.left)}, rightKey: ${js(rk)}, right: ${js(p.right)}${p.note ? `, noteKey: ${js(nk)}, noteFallback: ${js(p.note)}` : ''} }`;
+                });
+                simJs = `{ kind: 'match', pairs: [${pairJs.join(', ')}] }`;
+            } else if (sim.kind === 'order') {
+                const itemJs = sim.items.map((i) => {
+                    const lk = key(lessonId, s.id, 'item', i.id, 'label');
+                    put(lk, i.label);
+                    return `{ id: ${js(i.id)}, labelKey: ${js(lk)}, label: ${js(i.label)} }`;
+                });
+                const fk = K('feedback');
+                put(fk, sim.feedback);
+                simJs = `{ kind: 'order', items: [${itemJs.join(', ')}], solution: ${js(sim.solution)}, feedbackKey: ${js(fk)}, feedbackFallback: ${js(sim.feedback)} }`;
+            } else {
+                // flow-build: the scenario BRIEF is keyed; the option/palette
+                // vocabularies stay fallback-only for now (they double as the
+                // solution's node names, so keying them is a matching change,
+                // not a lookup change — see the handoff note for BFSF-474).
+                const scenarioJs = sim.scenarios.map((sc) => {
+                    const bk = key(lessonId, s.id, 'scenario', sc.id, 'brief');
+                    put(bk, sc.brief);
+                    return `{ id: ${js(sc.id)}, briefKey: ${js(bk)}, briefFallback: ${js(sc.brief)}, trigger: { options: ${js(sc.trigger.options)}, correct: ${js(sc.trigger.correct)}, feedback: ${js(sc.trigger.feedback || {})} }, steps: { palette: ${js(sc.steps.palette)}, solution: ${js(sc.steps.solution)}, feedback: ${js(sc.steps.feedback || {})} } }`;
+                });
+                simJs = `{ kind: 'flow-build', scenarios: [${scenarioJs.join(', ')}] }`;
+            }
             return `{ type: STEP_TYPES.SIM, id: ${js(s.id)}, ${icon}titleKey: ${js(K('title'))}, titleFallback: ${js(s.title)}, instructionKey: ${js(K('instruction'))}, instructionFallback: ${js(s.instruction)}, sim: ${simJs} }`;
         }
-        case 'action':
+        case 'action': {
             put(K('title'), s.title); put(K('instruction'), s.instruction);
-            return `{ type: STEP_TYPES.ACTION, id: ${js(s.id)}, checkId: ${js(s.checkId)}, ${icon}titleKey: ${js(K('title'))}, titleFallback: ${js(s.title)}, instructionKey: ${js(K('instruction'))}, instructionFallback: ${js(s.instruction)}, launch: { navigateTo: ${js(s.launch.navigateTo)}, labelFallback: ${js(s.launch.label)} } }`;
+            const lk = K('launch');
+            put(lk, s.launch.label);
+            return `{ type: STEP_TYPES.ACTION, id: ${js(s.id)}, checkId: ${js(s.checkId)}, ${icon}titleKey: ${js(K('title'))}, titleFallback: ${js(s.title)}, instructionKey: ${js(K('instruction'))}, instructionFallback: ${js(s.instruction)}, launch: { navigateTo: ${js(s.launch.navigateTo)}, labelKey: ${js(lk)}, labelFallback: ${js(s.launch.label)} } }`;
+        }
         case 'tour':
             put(K('title'), s.title); put(K('body'), s.body);
             return `{ id: ${js(s.id)}, target: ${js(s.target)}${s.navigateTo ? `, navigateTo: ${js(s.navigateTo)}` : ''}, placement: ${js(s.placement || 'bottom')}, optional: true, timeoutMs: ${s.timeoutMs}, ${icon}titleKey: ${js(K('title'))}, titleFallback: ${js(s.title)}, bodyKey: ${js(K('body'))}, bodyFallback: ${js(s.body)} }`;

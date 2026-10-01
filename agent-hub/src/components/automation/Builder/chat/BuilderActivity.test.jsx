@@ -37,7 +37,7 @@ describe('BuilderActivity', () => {
         expect(screen.getByText('Keep high priority')).toBeTruthy();
         expect(screen.getByText('Count them')).toBeTruthy();
         expect(screen.getByText('Collect summaries')).toBeTruthy();
-        expect(screen.queryByText(/builder_add_array_op/)).toBeNull();
+        expect(screen.getAllByText('builder_add_array_op')).toHaveLength(3);
     });
 
     it('shows a refusal reason without a click, and keeps the hint', () => {

@@ -18,9 +18,10 @@ export interface ChecklistItem { id: string; text: string; done: boolean }
 /** Where a task came from: a meeting and one of its action items. */
 export interface TaskSource { kind: 'meeting'; id: string; itemId: string }
 
-/** What a task points at. A thread is a message of a chat that has replies. */
+/** What a task points at, including another task. A thread is a message of a chat that has replies. */
 export type TaskLink =
     | { kind: 'document' | 'notebook' | 'meeting' | 'chat'; id: string }
+    | { kind: 'task'; id: string; relation?: 'depends_on' }
     | { kind: 'thread'; id: string; chatId: string };
 
 export interface ProjectTask {
@@ -29,6 +30,11 @@ export interface ProjectTask {
     description: string;
     status: TaskStatus;
     priority: TaskPriority;
+    itemType?: 'epic' | 'story' | 'user-story' | 'task';
+    parentTaskId?: string | null;
+    storyPoints?: number | null;
+    /** The sprint this task is planned in; null when it sits in the backlog. */
+    sprintId?: string | null;
     labels: string[];
     checklist: ChecklistItem[];
     /** Position in its column on the board (ascending). */
@@ -51,6 +57,10 @@ export interface TaskInput {
     description?: string;
     status?: TaskStatus;
     priority?: TaskPriority;
+    itemType?: ProjectTask['itemType'];
+    parentTaskId?: string | null;
+    storyPoints?: number | null;
+    sprintId?: string | null;
     labels?: string[];
     checklist?: ChecklistItem[];
     assigneeIds?: string[];
@@ -58,6 +68,21 @@ export interface TaskInput {
     startDate?: string | null;
     dueDate?: string | null;
     source?: TaskSource;
+}
+
+export interface PokerSession {
+    sessionId: string;
+    taskId: string;
+    taskTitle: string;
+    phase: 'voting' | 'revealed';
+    startedBy: string;
+    voterIds: string[];
+    ownVote: string | null;
+    votes: Record<string, string> | null;
+    /** Queued task ids behind the current one (a session started with `taskIds`). */
+    queueTaskIds?: string[];
+    /** Opened titles of the queue, parallel to `queueTaskIds`; null for one that went away. */
+    queueTitles?: (string | null)[];
 }
 
 /** A change to a task, or a move: `beforeId` puts it in `status`'s column right before that task (null: at the end). */
@@ -94,6 +119,41 @@ export function useProjectTasksQuery(projectId: string | null | undefined) {
         },
     });
 }
+
+const pokerPath = (projectId: string) => `${tasksPath(projectId)}/poker/session`;
+
+export function usePokerSessionQuery(projectId: string) {
+    return useQuery<PokerSession | null, Error>({
+        queryKey: [...projectKeys.tasks(projectId), 'poker-session'],
+        queryFn: async ({ signal }) => {
+            const body = await apiClient.get<{ session?: PokerSession | null }>(pokerPath(projectId), { signal });
+            return body?.session || null;
+        },
+        refetchInterval: query => query.state.data?.phase ? 3000 : false,
+    });
+}
+
+function usePokerAction<TInput extends object>(projectId: string, action: string) {
+    const qc = useQueryClient();
+    return useMutation<{ session?: PokerSession | null; task?: ProjectTask; ok?: boolean }, Error, TInput>({
+        mutationFn: async input => {
+            const body = await write('Could not update planning poker',
+                () => apiClient.post<{ session?: PokerSession | null; task?: ProjectTask; ok?: boolean }>(pokerPath(projectId) + `/${action}`, input, { retry: false }));
+            if (!body) throw new Error('Could not update planning poker');
+            return body;
+        },
+        onSuccess: () => { qc.invalidateQueries({ queryKey: projectKeys.tasks(projectId) }); },
+    });
+}
+
+/** Start on one task (`taskId`) or on a queue (`taskIds`: the first is estimated now, the rest follow). */
+export function useStartPokerSession(projectId: string) { return usePokerAction<{ taskId?: string; taskIds?: string[] }>(projectId, 'start'); }
+export function useCastPokerVote(projectId: string) { return usePokerAction<{ sessionId: string; vote: string }>(projectId, 'vote'); }
+export function useRevealPokerVotes(projectId: string) { return usePokerAction<{ sessionId: string }>(projectId, 'reveal'); }
+export function useFinishPokerSession(projectId: string) { return usePokerAction<{ sessionId: string; storyPoints: number }>(projectId, 'finish'); }
+/** Save the agreed estimate on the current task and open the next queued one (the session completes at the end of the queue). */
+export function useNextPokerTask(projectId: string) { return usePokerAction<{ sessionId: string; storyPoints: number }>(projectId, 'next'); }
+export function useCancelPokerSession(projectId: string) { return usePokerAction<{ sessionId: string }>(projectId, 'cancel'); }
 
 export function useCreateTask(projectId: string) {
     const qc = useQueryClient();

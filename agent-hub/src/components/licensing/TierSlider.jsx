@@ -399,8 +399,11 @@ export default function TierSlider({ tiers = {}, value = 'fast', onChange, varia
         if (!el) return;
         const r = el.getBoundingClientRect();
         const margin = 8;
-        if (r.left < margin) setEdgeNudge(margin - r.left);
-        else if (r.right > window.innerWidth - margin) setEdgeNudge((window.innerWidth - margin) - r.right);
+        const bounds = rootRef.current?.closest('[data-popover-boundary]')?.getBoundingClientRect();
+        const left = bounds ? bounds.left + margin : margin;
+        const right = bounds ? bounds.right - margin : window.innerWidth - margin;
+        if (r.left < left) setEdgeNudge(left - r.left);
+        else if (r.right > right) setEdgeNudge(right - r.right);
     }, [open]);
 
     useEffect(() => {
@@ -537,7 +540,7 @@ export default function TierSlider({ tiers = {}, value = 'fast', onChange, varia
                         // viewport if that would hang it off an edge.
                         left: '50%',
                         transform: `translateX(calc(-50% + ${edgeNudge}px))`,
-                        width: 'min(320px, calc(100vw - 16px))',
+                        width: 'min(320px, calc(100vw - 16px), calc(100cqw - 24px))',
                         border: '1px solid var(--border-default)',
                         borderRadius: '16px', padding: '16px',
                         background: 'var(--bg-card, #fff)',

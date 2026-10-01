@@ -264,7 +264,12 @@ async function execForEachStep(step, ctx, runState, mode, runLeaf, checkCancel =
     // nosemgrep: ajinabraham.njsscan.eval.eval_node.eval_nodejs -- the only timer below is setTimeout(fn, ms) with a function and a numeric delay; nothing is evaluated
     const retry = (step.retry && step.retry.max > 0) ? step.retry : null;
     const maxAttempts = retry ? retry.max + 1 : 1;
-    for (let i = 0; i < items.length; i++) {
+    // Only Gmail message reads opt into bounded parallelism. Other actions
+    // may depend on order or have side effects. askOnce stays serial so
+    // duplicate IDs can reuse the first result from the run memo.
+    const concurrency = mode === 'live' && step.type === 'integration_action'
+        && step.tool === 'gmail_read' && !step.askOnce ? 5 : 1;
+    const runItem = async (i) => {
         // Honour cancellation between items — a long fan-out (hundreds of
         // API calls) must stop promptly, not only at the next step boundary.
         if (checkCancel) await checkCancel();
@@ -313,11 +318,24 @@ async function execForEachStep(step, ctx, runState, mode, runLeaf, checkCancel =
             lastErr.errorClass = 'tool_error';
         }
         if (ok) {
-            results.push({ index: i, item: items[i], output: out, status: 'success' });
+            results[i] = { index: i, item: items[i], output: out, status: 'success' };
         } else {
             failed++;
-            results.push({ index: i, item: items[i], error: lastErr.message, errorClass: lastErr.errorClass || classifyUnknownError(lastErr), attempts: maxAttempts, status: 'error' });
+            results[i] = { index: i, item: items[i], error: lastErr.message, errorClass: lastErr.errorClass || classifyUnknownError(lastErr), attempts: maxAttempts, status: 'error' };
         }
+    };
+    for (let start = 0; start < items.length; start += concurrency) {
+        if (concurrency === 1) {
+            await runItem(start);
+            continue;
+        }
+        // Drain in-flight reads before propagating cancellation/a pause, so
+        // no calls keep running after the step has been recorded as stopped.
+        const batch = await Promise.allSettled(
+            items.slice(start, start + concurrency).map((_, offset) => runItem(start + offset)),
+        );
+        const rejected = batch.find(r => r.status === 'rejected');
+        if (rejected) throw rejected.reason;
     }
     // §WS2.5 — a fan-out where EVERY item failed is a real step failure, not a
     // green 'success'. Throw so it routes the on_error edge / is recorded as an

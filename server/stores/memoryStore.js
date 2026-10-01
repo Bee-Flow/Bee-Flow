@@ -19,6 +19,7 @@ const { run, getOne, getAll, exec } = require('../db');
 const { makeStoreInit } = require('./lib/storeInit');
 const { v4: uuidv4 } = require('uuid');
 const { resolveEmbedTarget } = require('../core/embed/resolveTarget');
+const { toV1BaseUrl } = require('../core/providers/azureUrl');
 const log = require('../telemetry/log');
 
 // Optional self-hosted GPU embedding service (legacy). Disabled when
@@ -139,8 +140,9 @@ async function getEmbedding(text) {
         if (target?.endpoint && target?.modelId && (target.apiKey || isLocalProviderType(target.providerType))) {
             const root = target.endpoint.replace(/\/+$/, '');
             const isAzure = target.providerType === 'azure';
+            // Azure v1 GA: no api-version, the deployment name goes in the body as `model`.
             const url = isAzure
-                ? `${root}/openai/deployments/${encodeURIComponent(target.modelId)}/embeddings?api-version=2024-06-01`
+                ? `${toV1BaseUrl(target.endpoint)}/embeddings`
                 : (root.endsWith('/v1') ? `${root}/embeddings` : `${root}/v1/embeddings`);
             const headers = isAzure
                 ? { 'Content-Type': 'application/json', 'api-key': target.apiKey }
@@ -148,9 +150,7 @@ async function getEmbedding(text) {
                     'Content-Type': 'application/json',
                     ...(target.apiKey ? { Authorization: `Bearer ${target.apiKey}` } : {}),
                 };
-            const body = isAzure
-                ? JSON.stringify({ input: [text] })
-                : JSON.stringify({ model: target.modelId, input: [text] });
+            const body = JSON.stringify({ model: target.modelId, input: [text] });
             const res = await fetch(url, { method: 'POST', headers, body, signal: AbortSignal.timeout(8000) });
             if (res.ok) {
                 const data = /** @type {{ data?: Array<{ embedding?: number[] }> }} */ (await res.json());
@@ -860,6 +860,7 @@ module.exports = {
     findByKey, updateMemoryValue, confirmMemory,
     upsertRoutineCoverage, getRoutineCoverage, pruneExpiredCoverage,
     ROUTINE_COVERAGE_TYPE,
+    getEmbedding,
 };
 
 // Awaitbare init-ingang voor migrateDb (memoised — zelfde promise als de load-time init).

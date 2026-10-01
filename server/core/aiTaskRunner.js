@@ -17,6 +17,7 @@ const { pool } = require('../db');
 const terminationStore = require('../stores/terminationStore');
 const { sanitizeError } = require('./privacy/errorSanitizer');
 const log = require('../telemetry/log');
+const { createUsageAccumulator, usageLogFields } = require('./providers/usageNormalizer');
 
 const RUNNER_INTERVAL_MS = 60_000; // 60 seconds
 const MAX_CONCURRENT = 5;
@@ -268,8 +269,9 @@ async function executeTask(task, { manual = false, store = aiTaskStore, surface 
     // iteration 19 has paid for 18 real model rounds.
     let userOrgForTier = null;
     let modelId = null;
-    let promptTokensTotal = 0;
-    let completionTokensTotal = 0;
+    // One accumulator over every round of the loop (providers/usageNormalizer.js):
+    // tokens, cache read/write (with the 5m/1h split), tier and tool counts.
+    const usageAcc = createUsageAccumulator();
     let lastIter = 0;
     let usageLogged = false;
 
@@ -301,9 +303,7 @@ async function executeTask(task, { manual = false, store = aiTaskStore, surface 
                 model: modelId,
                 source: surface,
                 conversation_id: task.id || null,
-                prompt_tokens: promptTokensTotal,
-                completion_tokens: completionTokensTotal,
-                total_tokens: promptTokensTotal + completionTokensTotal,
+                ...usageLogFields(usageAcc.total()),
                 duration_ms: Date.now() - startTime,
                 organization_id: userOrgForTier || null,
             }).catch(warn);
@@ -425,9 +425,9 @@ async function executeTask(task, { manual = false, store = aiTaskStore, surface 
             conversation_id: task.id || null,
             iteration_count: lastIter,
             duration_ms: Date.now() - startTime,
-            prompt_tokens: promptTokensTotal,
-            completion_tokens: completionTokensTotal,
-            total_tokens: promptTokensTotal + completionTokensTotal,
+            prompt_tokens: usageAcc.total().prompt_tokens,
+            completion_tokens: usageAcc.total().completion_tokens,
+            total_tokens: usageAcc.total().prompt_tokens + usageAcc.total().completion_tokens,
         });
 
         // Tool-calling loop (max iterations)
@@ -440,8 +440,9 @@ async function executeTask(task, { manual = false, store = aiTaskStore, surface 
                 tools: tools.length > 0 ? tools : undefined,
                 toolChoice: tools.length > 0 ? 'auto' : undefined,
             });
-            promptTokensTotal += response?.usage?.prompt_tokens || 0;
-            completionTokensTotal += response?.usage?.completion_tokens || 0;
+            // adapter.chat returns normalised usage (non-stream Claude/Gemini
+            // included); the accumulator also accepts a raw provider block.
+            usageAcc.add(response?.usage);
 
             // Track any assistant text the model produced alongside tool
             // calls — if we later exhaust iterations without a clean break,

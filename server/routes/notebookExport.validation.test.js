@@ -25,6 +25,10 @@ const Module = require('module');
 
 // Every render, build or send lands in `touched`. A refused request must leave it empty.
 const touched = [];
+// When set, the browser backend throws this instead of rendering.
+let renderFailure = null;
+// When set, SignRequest throws this instead of sending.
+let signFailure = null;
 const pass = (req, res, next) => next();
 
 const MOCKS = {
@@ -33,8 +37,15 @@ const MOCKS = {
         buildExportHTML: (html, opts) => `<html data-title="${opts.title}">${html}</html>`,
         cleanContentForExport: (html) => html,
     },
-    '../stores/houseStyleStore': {
-        getById: async (id, orgId) => (id === 'hs-1' && orgId === 'org-1' ? { id: 'hs-1', name: 'Huisstijl', styleMeta: {} } : null),
+    // The house-style helpers live in core/documents/docxHouseStyle.js and
+    // read the store from there (see the resolver below).
+    '../../stores/houseStyleStore': {
+        getById: async (id, orgId) => {
+            if (orgId !== 'org-1') return null;
+            if (id === 'hs-1') return { id: 'hs-1', name: 'Huisstijl', styleMeta: {} };
+            if (id === 'hs-hf') return { id: 'hs-hf', name: 'Briefpapier', styleMeta: { header: { text: 'Acme BV' }, footer: { text: 'Vertrouwelijk' } } };
+            return null;
+        },
         getDefaultForOrg: async () => { touched.push({ what: 'defaultStyle' }); return null; },
     },
     '../stores/notebookStore': {
@@ -45,14 +56,23 @@ const MOCKS = {
         getAppPassword: async () => ({ username: 'alice', password: 'app-pass' }),
     },
     '../services/browserProvider': {
-        withContext: async () => { touched.push({ what: 'render' }); return Buffer.from('%PDF-1.7'); },
+        isBackendUnavailable: (err) => !!err && err.code === 'browser_backend_unavailable',
+        withContext: async () => {
+            touched.push({ what: 'render' });
+            if (renderFailure) throw renderFailure;
+            return Buffer.from('%PDF-1.7');
+        },
     },
     '../auth/permissions': { requireAuth: pass },
     '../integrations/signrequestTools': {
-        sendPdfForSigning: async (userId, p) => { touched.push({ what: 'sign', args: [p] }); return { uuid: 's1', signers: [] }; },
+        sendPdfForSigning: async (userId, p) => {
+            touched.push({ what: 'sign', args: [p] });
+            if (signFailure) throw signFailure;
+            return { uuid: 's1', signers: [] };
+        },
     },
     '../stores/configStore': { getConfig: async () => ({ nextcloudUrl: 'https://cloud.example' }) },
-    'html-to-docx': async () => { touched.push({ what: 'docx' }); return Buffer.from('PK'); },
+    'html-to-docx': async (...args) => { touched.push({ what: 'docx', args }); return Buffer.from('PK'); },
 };
 
 const MOCK_IDS = {};
@@ -63,7 +83,7 @@ for (const [request, exportsObj] of Object.entries(MOCKS)) {
 }
 const originalResolve = Module._resolveFilename;
 Module._resolveFilename = function (request, parent, ...rest) {
-    if (parent && /routes[\\/]notebookExport\.js$/.test(parent.filename)
+    if (parent && /(routes[\\/]notebookExport|core[\\/]documents[\\/]docxHouseStyle)\.js$/.test(parent.filename)
         && Object.prototype.hasOwnProperty.call(MOCK_IDS, request)) {
         return MOCK_IDS[request];
     }
@@ -99,7 +119,7 @@ function dispatch({ url, body }) {
 const refusedAt = (res, path) => res.statusCode === 400 && res.body.details.some((d) => d.path === path);
 const calls = (what) => touched.filter((t) => t.what === what);
 
-test.beforeEach(() => { touched.length = 0; });
+test.beforeEach(() => { touched.length = 0; renderFailure = null; signFailure = null; });
 
 // ── title and content ───────────────────────────────────────────────
 
@@ -193,10 +213,63 @@ test('an existing house style, none, and the org default all still export', asyn
     assert.strictEqual(calls('defaultStyle').length, 1, 'only the request without an id asks for the default');
 });
 
+test('the house style\'s header and footer reach html-to-docx as its positional arguments', async () => {
+    const before = calls('docx').length;
+    const res = await dispatch({ url: '/nb-1/export/docx', body: { content: '<p>x</p>', houseStyleId: 'hs-hf' } });
+    assert.strictEqual(res.statusCode, 200);
+    const [, header, options, footer] = calls('docx')[before].args;
+    assert.match(header, /Acme BV/);
+    assert.match(footer, /Vertrouwelijk/);
+    assert.strictEqual(options.headerHTML, undefined, 'not as an option key, which the library ignores');
+    assert.strictEqual(options.footerHTML, undefined);
+});
+
 // ── Nextcloud folder ────────────────────────────────────────────────
 
 test('a folder that steps up with .. is refused before anything is rendered or uploaded', async () => {
     const res = await dispatch({ url: '/nb-1/export/nextcloud', body: { content: '<p>x</p>', folder: '/BeeFlow/../../other' } });
     assert.ok(refusedAt(res, 'body.folder'));
     assert.deepStrictEqual(touched, []);
+});
+
+// ── A render that fails ─────────────────────────────────────────────
+
+function backendDown() {
+    const err = new Error('Browser backend unavailable (docker_unavailable: connect ENOENT /var/run/docker.sock). '
+        + 'Run the browser sidecar and set BROWSER_WS_ENDPOINT, or set BROWSER_ALLOW_LOCAL_LAUNCH=true.');
+    err.code = 'browser_backend_unavailable';
+    return err;
+}
+
+for (const route of ['pdf', 'signrequest', 'nextcloud']) {
+    test(`no browser backend on /export/${route} is a 503 the user can act on, without the operator's words`, async () => {
+        renderFailure = backendDown();
+        const body = { content: '<p>x</p>', title: 'Plan' };
+        if (route === 'signrequest') body.signers = [{ email: 'anna@example.nl' }];
+        const res = await dispatch({ url: `/nb-1/export/${route}`, body });
+        assert.strictEqual(res.statusCode, 503);
+        assert.strictEqual(res.body.code, 'pdf_renderer_unavailable');
+        assert.strictEqual(res.body.error,
+            require('../i18n/defaults/en/notebooks')['notebooks.pdf_renderer_unavailable'],
+            'the sentence comes from the English dictionary the client translates');
+        assert.doesNotMatch(JSON.stringify(res.body), /docker|ENOENT|BROWSER_|sock/i);
+        assert.deepStrictEqual(calls('sign'), [], 'nothing was sent after a failed render');
+    });
+}
+
+test('any other render failure is the generic 500 with a correlation id, not the error text', async () => {
+    renderFailure = new Error('page.pdf: Target closed at /runner/node_modules/playwright-core/lib/x.js:12');
+    const res = await dispatch({ url: '/nb-1/export/pdf', body: { content: '<p>x</p>' } });
+    assert.strictEqual(res.statusCode, 500);
+    assert.ok(res.body.correlationId);
+    assert.doesNotMatch(JSON.stringify(res.body), /Target closed|playwright|runner/);
+});
+
+test('SignRequest that is not set up is a 400 that says where to set it up', async () => {
+    signFailure = Object.assign(new Error('SignRequest not configured. Add your SignRequest subdomain and API token in Settings → Integrations.'),
+        { code: 'signrequest_not_configured' });
+    const res = await dispatch({ url: '/nb-1/export/signrequest', body: { content: '<p>x</p>', signers: [{ email: 'anna@example.nl' }] } });
+    assert.strictEqual(res.statusCode, 400);
+    assert.strictEqual(res.body.code, 'signrequest_not_configured');
+    assert.match(res.body.error, /Settings → Integrations/);
 });

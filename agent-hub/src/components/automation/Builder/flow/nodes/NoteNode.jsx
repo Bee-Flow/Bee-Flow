@@ -2,6 +2,7 @@ import { NodeResizer } from '@xyflow/react';
 import { StickyNote } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNodeRuntime } from '../NodeRuntimeContext';
+import { renderNoteText } from './noteRichText';
 
 /**
  * A free-floating canvas annotation (BFSF-411) — sticky-note text tied to a
@@ -16,6 +17,15 @@ import { useNodeRuntime } from '../NodeRuntimeContext';
  *     commits/cancels
  *   - drag a corner (when selected) to resize
  *   - a small swatch row (when selected) picks the note's colour
+ *   - the text understands a tiny markup subset — **bold**, *italic*,
+ *     `- ` bullets and `1. ` numbered lines (noteRichText.jsx, BFSF-479) —
+ *     which renders styled once the edit commits
+ *
+ * A note is ALWAYS the canvas's background layer (BFSF-479): layout.js pins
+ * it to z-index -1 beneath every node and connector, and the canvas never
+ * elevates it on selection — a big coloured note is a grouping box, not a
+ * card that competes with the flow. There is deliberately no
+ * bring-to-front/send-to-back control.
  *
  * Writes go through NodeRuntimeContext's `onPatchStep` — the same
  * "a node edits its own fields, no edge surgery" seam every canvas-only
@@ -96,30 +106,37 @@ export default function NoteNode({ id, data, selected }) {
             </div>
             <div className="flex-1 min-h-0 px-2 pb-2 pt-1">
                 {editing ? (
-                    <textarea
-                        ref={textareaRef}
-                        className={`w-full h-full resize-none bg-transparent outline-none text-[12px] leading-snug ${palette.text}`}
-                        value={draft}
-                        onChange={(e) => setDraft(e.target.value)}
-                        onBlur={commit}
-                        onKeyDown={(e) => {
-                            // Escape discards the in-progress edit; every other
-                            // key (including Enter — notes are multi-line) is
-                            // ordinary typing and must not reach the canvas'
-                            // own shortcuts (Delete/Backspace would otherwise
-                            // delete the NODE while its own text is selected).
-                            if (e.key === 'Escape') { setDraft(step.text || ''); setEditing(false); }
-                            e.stopPropagation();
-                        }}
-                        onMouseDown={(e) => e.stopPropagation()}
-                        placeholder="Write a note…"
-                    />
+                    <>
+                        <textarea
+                            ref={textareaRef}
+                            className={`w-full h-full resize-none bg-transparent outline-none text-[12px] leading-snug ${palette.text}`}
+                            value={draft}
+                            onChange={(e) => setDraft(e.target.value)}
+                            onBlur={commit}
+                            onKeyDown={(e) => {
+                                // Escape discards the in-progress edit; every other
+                                // key (including Enter — notes are multi-line) is
+                                // ordinary typing and must not reach the canvas'
+                                // own shortcuts (Delete/Backspace would otherwise
+                                // delete the NODE while its own text is selected).
+                                if (e.key === 'Escape') { setDraft(step.text || ''); setEditing(false); }
+                                e.stopPropagation();
+                            }}
+                            onMouseDown={(e) => e.stopPropagation()}
+                            placeholder="Write a note…"
+                        />
+                        <div className={`text-[9px] leading-tight opacity-50 select-none ${palette.text}`}>
+                            **bold** · *italic* · - bullet · 1. numbered
+                        </div>
+                    </>
                 ) : (
                     <div
-                        className={`w-full h-full overflow-auto whitespace-pre-wrap break-words text-[12px] leading-snug ${palette.text} ${editable ? 'cursor-text' : ''}`}
+                        className={`w-full h-full overflow-auto break-words text-[12px] leading-snug ${palette.text} ${editable ? 'cursor-text' : ''}`}
                         onClick={editable ? startEditing : undefined}
                     >
-                        {step.text || (editable ? <span className="opacity-50 italic">Double-click to write a note…</span> : '(empty note)')}
+                        {step.text
+                            ? renderNoteText(step.text)
+                            : (editable ? <span className="opacity-50 italic">Double-click to write a note…</span> : '(empty note)')}
                     </div>
                 )}
             </div>

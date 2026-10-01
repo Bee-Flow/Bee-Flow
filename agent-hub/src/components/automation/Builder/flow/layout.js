@@ -21,6 +21,17 @@ const PORT_LABELLED_TYPES = new Set(['condition', 'guard', 'switch', 'loop']);
 // being a resize.
 export const DEFAULT_NOTE_SIZE = { width: 220, height: 140 };
 
+// A note (BFSF-479) is ALWAYS the canvas's background layer — n8n sticky-note
+// style: it never covers a workflow node, and a connector passing over it is
+// never interrupted by it (the note's fill used to swallow the line where the
+// two overlapped). React Flow paints each edge svg and node wrapper by its
+// own z-index inside one shared stacking context (the viewport), and edges
+// always land at >= 0 — so -1 pins a note below every node AND every
+// connector without touching zIndexMode. A SELECTED note stays down too
+// because the canvas sets elevateNodesOnSelect={false} and re-applies the
+// +1000 pop only to non-note nodes (see useRenderedGraph.js).
+export const NOTE_Z_INDEX = -1;
+
 /**
  * Auto-layout the automation graph. Returns nodes/edges in the shape
  * React Flow expects (`{id, type, position, data}` for nodes,
@@ -174,7 +185,7 @@ export function buildLayout(def, { runByStep, issuesByStep, onAddAfter = null, o
                 }
                 : {}),
             ...(noteSize
-                ? { width: noteSize.width, height: noteSize.height, style: { width: noteSize.width, height: noteSize.height } }
+                ? { width: noteSize.width, height: noteSize.height, zIndex: NOTE_Z_INDEX, style: { width: noteSize.width, height: noteSize.height } }
                 : {}),
             // A container's entry node is structural: deleting a flowlet's
             // input would leave a triggerless mini-definition the validator

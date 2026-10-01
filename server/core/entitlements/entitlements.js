@@ -21,7 +21,8 @@
  *                         (MCP = integrations; restricted plans opt-in per allow-list, unrestricted/null = all)
  *   GLOBAL kill-switch  : ceiling.core −= notebooks/projects when feature_*_enabled === false
  *   orgGrant            : integration ← org_enabled_integrations (NC + exempt bypass; mcp:<id> too);
- *                         beta ← cloud:ceiling | self:org_enabled_beta_features + GA-auto-on;
+ *                         beta ← the org-access menu (both modes), except group-scoped
+ *                                betas outside org_beta_everyone (NULL ⇒ everyone);
  *                         core ← org_granted_capabilities + non-togglable core implicitly
  *   groupGrant(user)    : ⋃ granted_capabilities of the user's groups IN THIS ORG (scoped per org)
  *   EFFECTIVE           = (orgGrant ∪ groupGrant) ∩ ceiling ; super-admin ⇒ ceiling (skip grants)
@@ -374,7 +375,21 @@ async function buildOrgGrant({ mode, orgId, ceiling }) {
     // single-switch model — a menu-enabled beta (GA or not) is on for everyone, and
     // OFF in the menu ⇒ off for everyone. This replaces the old self-hosted
     // org_enabled_beta_features + GA-only gate (that column is now vestigial here).
-    for (const id of ceiling.beta) g.beta.add(id);
+    //
+    // Exception: a GROUP-SCOPED beta (betaFeatures.js `groupScoped`, e.g.
+    // meeting_notes) reaches all members only while it is in the org's
+    // everyone-list (org_beta_everyone). Outside it, buildGroupGrant hands it to
+    // the granted groups alone. NULL = never chosen = everyone, so an org that
+    // never touched the toggle keeps the pre-list behaviour. A read failure
+    // fails CLOSED (groups only), like the other grant reads here.
+    let betaEveryone = null;
+    try { betaEveryone = await userStore().getOrgBetaEveryone(orgId); } catch (_) { betaEveryone = []; }
+    const everyoneSet = Array.isArray(betaEveryone) ? new Set(betaEveryone) : null;
+    for (const id of ceiling.beta) {
+        const cap = registry.getCapability(id);
+        if (cap && cap.groupScoped && everyoneSet && !everyoneSet.has(id)) continue;
+        g.beta.add(id);
+    }
 
     // core — cloud: org_granted_capabilities (the matrix "All members" column).
     // self-hosted: the org-access menu is the org-wide switch, so every togglable

@@ -12,9 +12,9 @@ URL: `/app/studio/skills` (the Studio rail, under **AI**). There is no `/app/ski
 
 ## Availability
 
-`skills` is a **Community** feature — it is in the free core, not behind a paid tier. It is also a **beta**, so the licence alone is not enough: the section stays visible but disabled until an admin switches the Skills beta on under **Admin → Beta features**.
+`skills` is a **Community** feature — it is in the free core, not behind a paid tier — and it is generally available, so it is on by default for every organisation, self-hosted Community included. No beta opt-in is needed.
 
-That combination is deliberate. `/api/skills` sits behind a compound capability — licence **and** beta opt-in — so an org that never enabled the beta sees a locked row with a hint, instead of an open section whose list quietly returns nothing.
+`/api/skills` still sits behind a compound capability (`requireCapability('skills')`): an organisation admin can still leave Skills out of the organisation's access menu or limit it to certain groups, and on Bee Flow Cloud the plan decides whether it is included. When it is off, the section shows a locked row with a hint, instead of an open section whose list quietly returns nothing.
 
 ## The landing is a table
 

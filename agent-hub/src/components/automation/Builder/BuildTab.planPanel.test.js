@@ -30,7 +30,7 @@ describe('BuildTab — the plan on the canvas', () => {
     it('lives inside the canvas wrapper, before the canvas itself', () => {
         const wrapper = SRC.indexOf('<div className="relative flex-1 min-w-0">');
         const panel = SRC.indexOf('<CanvasPlanPanel');
-        const canvas = SRC.indexOf('<DiagramPane');
+        const canvas = SRC.indexOf('<DiagramPane', panel);
         expect(wrapper).toBeGreaterThan(-1);
         expect(panel).toBeGreaterThan(wrapper);
         expect(panel).toBeLessThan(canvas);

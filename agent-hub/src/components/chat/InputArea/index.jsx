@@ -8,7 +8,7 @@ import scopedStorage from '../../../utils/scopedStorage';
 import { seedTextForApp } from '../../apps/appCatalog';
 import CoworkComposer from '../../cowork/CoworkComposer';
 import ActiveSkillChips from '../../skills/ActiveSkillChips';
-import { chatKnowledgeBasesAllowed, usableInChat } from '../knowledgeBaseClaim';
+import { usableInChat } from '../knowledgeBaseClaim';
 import useDictation from '../useDictation';
 import VoiceInlinePanel from '../Voice/VoiceInlinePanel';
 import useVoiceChatReady from '../Voice/useVoiceChatReady';
@@ -86,6 +86,7 @@ const InputArea = ({
     // immediately — that is the point, and both are covered by tests.
     placeholder = null,
     compact = false,
+    toolbarExtra = null,
     // How many sources this chat can actually draw on — a notebook counts its
     // READY sources. `null` means "this surface has no such thing", which is
     // not the same as zero and shows no pill at all.
@@ -289,8 +290,11 @@ const InputArea = ({
     // `!!kbClaim` is the honesty gate, not a convenience: without the server's
     // list there is no picker to open and nothing truthful to put on a pill,
     // so the whole control stays away rather than offering an empty one.
+    // Any signed-in account may pick (the knowledge_bases_beta gate is gone);
+    // the server re-authorises every id on every read and every turn anyway,
+    // so `!!user` only keeps the picker away from the anonymous embed widget.
     const canPickKBs = !_simpleMode && directMode && typeof onChangeKBIds === 'function'
-        && !!kbClaim && chatKnowledgeBasesAllowed(user);
+        && !!kbClaim && !!user;
     // Someone who may NOT pick still deserves to know. Reading a conversation
     // loads its attached bases whether or not this account has the picker, and
     // every turn then searches them — so without this the grounding would be
@@ -540,7 +544,7 @@ const InputArea = ({
                         handleKeyDown={handleKeyDown}
                         handlePaste={handlePaste}
                         composerPlaceholder={composerPlaceholder}
-                        tools={chatToolsGroup}
+                        tools={toolbarExtra ? <div className="flex items-center gap-1 min-w-0">{chatToolsGroup}{toolbarExtra}</div> : chatToolsGroup}
                         actions={(
                             <ComposerActions
                                 shieldClaim={shieldClaim}

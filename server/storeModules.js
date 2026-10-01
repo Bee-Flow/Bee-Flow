@@ -33,6 +33,9 @@ const STORE_MODULES = [
     { name: 'appStore', file: './stores/appStore' },
     { name: 'memoryStore', file: './stores/memoryStore' },
     { name: 'usageStore', file: './stores/usageStore' },
+    // Time-dated price cards (model_price_catalog) that core/llm/modelCosts rates a call
+    // with; its init also loads the in-memory index modelCosts reads.
+    { name: 'modelPriceCatalogStore', file: './stores/modelPriceCatalogStore' },
     { name: 'knowledgeStore', file: './stores/knowledgeStore' },
     { name: 'notificationStore', file: './stores/notificationStore' },
     { name: 'projectStore', file: './stores/projectStore' },
@@ -67,6 +70,9 @@ const STORE_MODULES = [
     // (project_member_colors). FK to projects, so after projectStore; their
     // inits also await projectStore's.
     { name: 'projectTaskStore', file: './stores/projectTaskStore' },
+    // Sprints in a project (project_sprints); its DDL also adds
+    // project_tasks.sprint_id, so it comes after projectTaskStore.
+    { name: 'projectSprintStore', file: './stores/projectSprintStore' },
     { name: 'projectMemberColorStore', file: './stores/projectMemberColorStore' },
     { name: 'reminderStore', file: './stores/reminderStore' },
     { name: 'templateStore', file: './stores/templateStore' },

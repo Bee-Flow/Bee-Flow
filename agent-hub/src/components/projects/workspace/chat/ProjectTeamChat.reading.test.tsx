@@ -105,6 +105,37 @@ it('shows no pill for a message of your own', async () => {
     expect(screen.queryByTestId('team-chat-new-messages')).not.toBeInTheDocument();
 });
 
+it('marks where the unread messages start, above the first one', async () => {
+    server.on('GET', CHAT, { chat: teamChat({ unread: 1 }), role: 'editor' })
+        .on('GET', `${CHAT}/messages`, { messages: [message(1), message(2, { authorUserId: 'u-ben' })], hasMore: false });
+    renderChat();
+    await screen.findByText('Message 2');
+    const divider = screen.getByTestId('team-chat-unread-divider');
+    expect(divider).toHaveTextContent('New since your last visit');
+    const above = divider.nextElementSibling as HTMLElement;
+    expect(within(above).getByTestId('team-chat-message-m2')).toBeInTheDocument();
+});
+
+it('shows no unread divider when everything was read, or the unread ones are your own', async () => {
+    const first = renderChat();
+    await screen.findByText('Message 1');
+    expect(screen.queryByTestId('team-chat-unread-divider')).not.toBeInTheDocument();
+    first.unmount();
+
+    server.on('GET', CHAT, { chat: teamChat({ unread: 2 }), role: 'editor' })
+        .on('GET', `${CHAT}/messages`, { messages: [message(1, { authorUserId: 'u-me' }), message(2, { authorUserId: 'u-me' })], hasMore: false });
+    renderChat();
+    await screen.findByText('Message 1');
+    expect(screen.queryByTestId('team-chat-unread-divider')).not.toBeInTheDocument();
+});
+
+it('shows skeleton messages while the first page loads', async () => {
+    server.on('GET', `${CHAT}/messages`, () => new Promise(() => {}));
+    renderChat();
+    expect(await screen.findByTestId('team-chat-skeleton')).toBeInTheDocument();
+    expect(screen.queryByTestId('team-chat-empty')).not.toBeInTheDocument();
+});
+
 // A thread whose first message is older than the newest page the chat loaded.
 function threadServer(before: (query: Record<string, string>) => unknown) {
     const reply1 = message(60, { id: 'r1', threadId: 'm1', content: 'A reply' });

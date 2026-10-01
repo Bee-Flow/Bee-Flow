@@ -11,7 +11,7 @@ import { useCallback, useState } from 'react';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import { embedImagesAsBase64 } from '../../../utils/imageEmbedding';
 import { renderMermaidToSVG, svgToPngDataUrl } from '../MermaidBlock';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation, { type TranslateFn } from '../../../hooks/useTranslation';
 
 export interface NotebookNotice { kind: 'error' | 'success' | 'info'; message: string; link?: { href: string; label: string } | null }
 
@@ -39,9 +39,22 @@ export function exportFileName(title: string, ext: string): string {
     return `${clean || 'notebook'}.${ext}`;
 }
 
-async function readError(res: Response, fallback: string): Promise<Error> {
-    const err = await res.json().catch(() => ({}));
-    return new Error((err as { error?: string }).error || fallback);
+/** Server error codes whose sentence the client translates (server/i18n/defaults/en/notebooks.js). */
+const TRANSLATED_CODES: Record<string, string> = {
+    pdf_renderer_unavailable: 'notebooks.pdf_renderer_unavailable',
+};
+
+/** The sentence for a failed export: a known code in the user's language, else the server's words. */
+export function exportErrorText(body: unknown, t: TranslateFn, fallback: string): string {
+    const { error, code } = (body || {}) as { error?: string; code?: string };
+    const key = code ? TRANSLATED_CODES[code] : undefined;
+    if (key) return t(key, error || fallback);
+    return error || fallback;
+}
+
+async function readError(res: Response, t: TranslateFn, fallback: string): Promise<Error> {
+    const body = await res.json().catch(() => ({}));
+    return new Error(exportErrorText(body, t, fallback));
 }
 
 export default function useNotebookExports({ notebookId, title, getContent, onNotice }: Options) {
@@ -78,7 +91,7 @@ export default function useNotebookExports({ notebookId, title, getContent, onNo
             }
             content = await embedImagesAsBase64(content);
             const res = await post(`/export/${format}`, { content, title });
-            if (!res.ok) throw await readError(res, t('notebooks.export_failed_status', 'Export failed ({status})', { status: res.status }));
+            if (!res.ok) throw await readError(res, t, t('notebooks.export_failed_status', 'Export failed ({status})', { status: res.status }));
             const blob = await res.blob();
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -107,7 +120,7 @@ export default function useNotebookExports({ notebookId, title, getContent, onNo
         try {
             const content = await embedImagesAsBase64(raw);
             const res = await post('/export/signrequest', { content, title, signers, subject, message });
-            if (!res.ok) throw await readError(res, t('notebooks.sign_failed_status', 'Sending for signing failed ({status})', { status: res.status }));
+            if (!res.ok) throw await readError(res, t, t('notebooks.sign_failed_status', 'Sending for signing failed ({status})', { status: res.status }));
             return await res.json();
         } catch (e) {
             // Inside the dialog: a banner behind its backdrop would go unseen.
@@ -127,7 +140,7 @@ export default function useNotebookExports({ notebookId, title, getContent, onNo
             const content = await embedImagesAsBase64(raw);
             const res = await post('/export/nextcloud', { content, title });
             const data = await res.json().catch(() => ({}));
-            if (!res.ok) throw new Error(data.error || t('notebooks.nextcloud_failed_status', 'Saving to Nextcloud failed ({status})', { status: res.status }));
+            if (!res.ok) throw new Error(exportErrorText(data, t, t('notebooks.nextcloud_failed_status', 'Saving to Nextcloud failed ({status})', { status: res.status })));
             onNotice({
                 kind: 'success',
                 message: t('notebooks.nextcloud_saved', 'Saved to Nextcloud: {path}', { path: data.path || '' }),

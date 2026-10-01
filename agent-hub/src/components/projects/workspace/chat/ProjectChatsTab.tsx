@@ -133,9 +133,15 @@ function FilterBar({ filter, onChange, items, loading }: { filter: ConversationF
         options={[
             { value: 'all', label: t('project_chat.filter_all', 'All'), badge: loading ? null : items.length },
             { value: 'unread', label: t('project_chat.filter_unread', 'Unread'), badge: loading ? null : visibleChats(items, 'unread').length },
-            { value: 'shared', label: t('project_chat.filter_shared', 'Shared') },
-            { value: 'private', label: t('project_chat.private', 'Private') },
+            { value: 'shared', label: t('project_chat.filter_shared', 'Shared'), badge: loading ? null : visibleChats(items, 'shared').length },
+            { value: 'private', label: t('project_chat.private', 'Private'), badge: loading ? null : visibleChats(items, 'private').length },
         ]} />;
+}
+
+/** The header's quiet count: how many team chats and AI chats the list holds. */
+function countSummary(items: ChatListItem[], t: TranslateFn): string {
+    const team = items.filter(i => i.kind === 'team').length;
+    return t('project_chat.count_summary', '{team} team · {ai} AI', { team, ai: items.length - team });
 }
 
 /** Loading, the rows, or an empty state that explains the feature — never "empty" when a source failed. */
@@ -180,18 +186,20 @@ function ChatsOverview(props: ChatsTabProps) {
     return (
         <div className="h-full flex flex-col min-h-0" data-testid="project-chats-tab">
             <StudioSectionHeader icon={MessageSquare} title={t('project_chat.title', 'Chats')} testId="project-chats-header"
-                statusChip={list.loading ? null : String(list.items.length)} primary={canEdit ? <PrimaryButton onClick={() => setMode('team')}><Plus className="w-4 h-4" />{t('project_chat.new_chat', 'New chat')}</PrimaryButton> : undefined} />
+                statusChip={list.loading ? null : countSummary(list.items, t)} primary={canEdit ? <PrimaryButton onClick={() => setMode('team')}><Plus className="w-4 h-4" />{t('project_chat.new_chat', 'New chat')}</PrimaryButton> : undefined} />
             <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
-                <div className="max-w-6xl mx-auto px-4 sm:px-8 py-6 space-y-5">
+                <div className="max-w-5xl mx-auto px-4 sm:px-8 py-5 space-y-4">
                     {mode && canEdit && (
                         <NewChatComposer mode={mode} project={props.project} onModeChange={setMode} onClose={() => setMode(null)}
                             onStartChat={props.onStartChat} onOpenTeamChat={id => props.onOpenSub(id)} />
                     )}
-                    <div className="flex flex-wrap items-center gap-3 justify-between">
-                        <div><h2 className="text-xl font-semibold m-0">{t('project_chat.conversations', 'Conversations')}</h2><p className="text-sm text-[var(--text-secondary)] mt-1">{t('project_chat.overview_hint', 'Your team, decisions and AI help in one place.')}</p></div>
-                        <label className="relative w-full sm:w-72"><Search className="absolute left-3 top-3 w-4 h-4 text-[var(--text-tertiary)]" /><input type="search" value={search} onChange={e => setSearch(e.target.value)} className={`${INPUT_CLASS} pl-9`} placeholder={t('project_chat.search', 'Search conversations')} aria-label={t('project_chat.search', 'Search conversations')} /></label>
+                    <div className="flex flex-wrap items-center gap-2 justify-between">
+                        <FilterBar filter={filter} onChange={setFilter} items={list.items} loading={list.loading} />
+                        <label className="relative w-full sm:w-64">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-tertiary)]" aria-hidden="true" />
+                            <input type="search" value={search} onChange={e => setSearch(e.target.value)} className={`${INPUT_CLASS} pl-9`} placeholder={t('project_chat.search', 'Search conversations')} aria-label={t('project_chat.search', 'Search conversations')} />
+                        </label>
                     </div>
-                    <FilterBar filter={filter} onChange={setFilter} items={list.items} loading={list.loading} />
                     <SourceErrors sources={list.sources} />
                     <ChatsBody list={list} filter={filter} search={search} canEdit={canEdit} ctx={ctx} answering={answering}
                         onNew={() => setMode('team')} />
@@ -215,7 +223,7 @@ function OpenTeamChat(props: ChatsTabProps & { sub: string }) {
         <>
             <ProjectTeamChat key={props.sub} projectId={props.projectId} project={props.project} role={props.role} currentUser={props.currentUser}
                 chatId={chatId} initialThreadId={threadId || null} onBack={() => props.onOpenSub(null)} onNavigate={props.onNavigate}
-                onOpenItem={(ref) => props.onOpenTab?.(ref.kind === 'notebook' ? 'notebooks' : ref.kind === 'meeting' ? 'meetings' : 'documents', ref.id)}
+                onOpenItem={(ref) => props.onOpenTab?.(ref.kind === 'task' ? 'tasks' : ref.kind === 'notebook' ? 'notebooks' : ref.kind === 'meeting' ? 'meetings' : 'documents', ref.id)}
                 onCreateTask={(links, title, description) => tasks.openNew(links, title, description)} />
             {tasks.dialog}
         </>

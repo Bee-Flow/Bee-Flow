@@ -76,7 +76,7 @@ function stubResolve(adapter, chatResult) {
     };
     llmClient._resolve = async () => ({
         apiKey: 'k', baseUrl: '', adapter, providerType: adapter.name, modelId: 'm',
-        project: null, location: null, serviceAccountKey: null, apiVersion: null,
+        project: null, location: null, serviceAccountKey: null,
     });
     return {
         calls,

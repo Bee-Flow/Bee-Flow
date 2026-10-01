@@ -61,7 +61,7 @@ export default function useBuilderChatPanel({
     const [chatWidth, setChatWidth] = useState(() => {
         const raw = parseInt(scopedStorage.getItem('routinesChatWidth') || '', 10);
         // 320 by default (design 1c) — a width the user chose is kept as is.
-        return Number.isFinite(raw) && raw >= 240 && raw <= 600 ? raw : 320;
+        return Number.isFinite(raw) && raw >= 240 && raw <= 600 ? raw : 360;
     });
     useEffect(() => {
         scopedStorage.setItem('routinesChatWidth', String(chatWidth));

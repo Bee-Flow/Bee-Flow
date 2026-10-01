@@ -396,4 +396,5 @@ module.exports = {
     'notebooks.card_edited_by': 'Edited by {name} · {when}',
     'notebooks.card_open_changed': 'Open notebook {name} (changed since you last looked)',
     'notebooks.collab_elsewhere': 'This notebook is being edited together in its project right now, so your change was not saved here. It is kept in the version history.',
+    'notebooks.pdf_renderer_unavailable': 'PDF export is not available on this server. Ask your administrator to set up the PDF renderer.',
 };

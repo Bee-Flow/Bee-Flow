@@ -124,10 +124,10 @@ function RecentList({ projectId, onOpen }: { projectId: string; onOpen: (e: Rece
 
 function ProjectHeading({ name, description, icon, color }: { name: string; description?: string; icon?: string; color?: string }) {
     return (
-        <div className="flex items-start gap-4 rounded-2xl border border-[var(--border-subtle)] p-6 sm:p-8" style={{ background: `linear-gradient(120deg, color-mix(in srgb, ${color || 'var(--accent-primary)'} 12%, var(--bg-card)), var(--bg-card))` }}>
-            <span style={projectTileStyle(color, 56)} aria-hidden="true">{projectIcon(icon)}</span>
+        <div className="flex items-center gap-3.5 rounded-2xl border border-[var(--border-subtle)] px-5 py-4" style={{ background: `linear-gradient(120deg, color-mix(in srgb, ${color || 'var(--accent-primary)'} 12%, var(--bg-card)), var(--bg-card))` }}>
+            <span style={projectTileStyle(color, 44)} aria-hidden="true">{projectIcon(icon)}</span>
             <div className="min-w-0">
-                <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-[var(--text-primary)] m-0 break-words">{name}</h1>
+                <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-[var(--text-primary)] m-0 break-words">{name}</h1>
                 {description && <p className="mt-1 text-[13px] text-[var(--text-tertiary)] m-0 line-clamp-2">{description}</p>}
             </div>
         </div>
@@ -153,7 +153,7 @@ export default function OverviewTab({
         <div className="h-full flex flex-col min-h-0" data-testid="project-overview-tab">
             <StudioSectionHeader icon={House} title={t('project_home.tab.overview', 'Overview')} />
             <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
-                <div className="max-w-6xl mx-auto px-4 sm:px-8 py-6 space-y-6">
+                <div className="max-w-6xl mx-auto px-4 sm:px-8 py-5 space-y-5">
                     <ProjectHeading name={project.name} description={project.description} icon={project.icon} color={project.color} />
                     <ProjectComplianceHint projectId={projectId} role={role} here="overview" onOpenTab={(tab) => onOpenTab(normalizeWorkspaceTab(tab))} />
                     <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_280px]">

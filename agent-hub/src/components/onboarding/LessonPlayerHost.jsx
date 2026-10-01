@@ -28,8 +28,11 @@ export default function LessonPlayerHost({ user, onNavigate }) {
             const lessonId = e?.detail?.lessonId;
             if (!lessonId) return;
             // A lesson made entirely of live-app tour steps skips the player.
+            // The Learning Center is the only opener, so the tour engine gets
+            // the return context with it: completion brings the learner back
+            // here instead of the onboarding home-jump to Direct chat (BFSF-472).
             if (lessonIdIsPureTour(lessonId)) {
-                try { window.dispatchEvent(new CustomEvent(TOUR_START_EVENT, { detail: { lessonId } })); } catch (_) { /* ignore */ }
+                try { window.dispatchEvent(new CustomEvent(TOUR_START_EVENT, { detail: { lessonId, returnTo: 'settings/learning' } })); } catch (_) { /* ignore */ }
                 return;
             }
             try {

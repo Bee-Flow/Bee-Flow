@@ -103,11 +103,44 @@ export function countTriggers(rows) {
     return counts;
 }
 
-export function filterRows(rows, { state = 'all', trigger = 'all', activeRunIds = null } = {}) {
+/** The folder filter's word for "at the top level, outside every folder". */
+export const NO_FOLDER = '__none';
+
+/**
+ * A folderId pointing at a folder this user cannot see — or one just deleted
+ * elsewhere — counts as loose, the same rule FolderedRoutineList groups by and
+ * the folder board lanes paint. Without `folders` every folderId is taken at
+ * face value.
+ */
+function matchesFolder(a, folder, folders) {
+    if (folder === 'all') return true;
+    const known = folders ? new Set(folders.map(f => f.id)) : null;
+    const fid = a.folderId && (!known || known.has(a.folderId)) ? a.folderId : null;
+    return folder === NO_FOLDER ? fid === null : fid === folder;
+}
+
+export function filterRows(rows, { state = 'all', trigger = 'all', folder = 'all', folders = null, activeRunIds = null } = {}) {
     return rows.filter(a =>
         matchesState(a, state, activeRunIds)
-        && (trigger === 'all' || triggerKindOf(a) === trigger),
+        && (trigger === 'all' || triggerKindOf(a) === trigger)
+        && matchesFolder(a, folder, folders),
     );
+}
+
+/**
+ * Count per folder pill, over the rows the OTHER filters let through — the
+ * same contract as countStates/countTriggers. Every org folder gets an entry
+ * (0 is a real count), so a folder nobody filed into yet stays discoverable.
+ */
+export function countFolders(rows, folders = []) {
+    const counts = { all: rows.length, [NO_FOLDER]: 0 };
+    for (const f of folders) counts[f.id] = 0;
+    for (const a of rows) {
+        const hit = a.folderId && Object.hasOwn(counts, a.folderId);
+        if (hit) counts[a.folderId] += 1;
+        else counts[NO_FOLDER] += 1;
+    }
+    return counts;
 }
 
 const ts = (v) => {

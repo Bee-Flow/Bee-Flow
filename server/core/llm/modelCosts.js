@@ -1,21 +1,42 @@
 // @typecheck
 /**
- * Model Cost Registry — AI model pricing
- * 
+ * Model Cost Registry — AI model pricing, rated with the price IN FORCE when the
+ * call was made.
+ *
  * Pricing sources (in priority order):
  * 1. Custom admin overrides (persisted via configStore)
- * 2. Self-hosted models (Ollama / vLLM / llama.cpp / …) — always €0
- * 3. Scaleway-served models — Scaleway's own tariff, never another host's rate
+ * 2. Self-hosted models (Ollama / vLLM / llama.cpp / …) — always €0, strictly
+ *    before any price lookup
+ * 3. The price catalogue (table `model_price_catalog`, in-memory index in
+ *    ./priceCatalog.js): dated cards per provider/model/tier. The card whose
+ *    valid_from <= call time < valid_to wins, so a future-dated card never touches
+ *    a call made before it and an old call is never re-priced. A card is
+ *    provider-specific by construction (a Scaleway card is Scaleway's tariff).
+ * 4. Scaleway-served models — Scaleway's own tariff, never another host's rate
  *    for the same open weights
- * 4. Mistral-served models — Mistral's own list price, same reason
- * 5. Community pricing database (2600+ models, fetched from GitHub, 24h cache)
+ * 5. Mistral-served models — Mistral's own list price, same reason
+ * 6. Community pricing database (2600+ models, LiteLLM) and our own repo
+ *    snapshots (the *Models.js catalogues)
  *
- * Prices are in USD per 1 million tokens.
+ * 3 is empty until the import job has filled it, so nothing changes for an
+ * install without catalogue rows: 4-6 are the pre-existing behaviour.
+ *
+ * Prices are per 1 million tokens, in the currency of the source (USD, except
+ * Scaleway which quotes EUR). `rateUsage` is the one function that rates a call
+ * and returns the evidence (rates used, source, catalogue version, cost basis);
+ * `computeCost` and `computeCostSplit` are thin number-only wrappers over it.
+ *
+ * Stored-cost contract: usageStore.logUsage rates a call ONCE, at write time,
+ * with the call's own timestamp, and stores the result and the rates on the row.
+ * Nothing here re-prices history.
  */
 
 const configStore = require('../../stores/configStore');
 const { getModelPricing, getPricingByKey, initPricing } = require('./pricingService');
+const pricingService = require('./pricingService');
+const priceCatalog = require('./priceCatalog');
 const { isLocalModel } = require('../providers/localModels');
+const { azureModelFor } = require('../providers/azureDeployments');
 const {
     isScalewayServedModel,
     scalewayPricingKey,
@@ -168,41 +189,179 @@ function _warnUnknownModel(modelName) {
     log.warn(`[ModelCosts] Unknown model '${modelName}' — using upper-bound rates; add it to pricing data or as a custom override.`);
 }
 
+// ─── Rate cards ──────────────────────────────────────────────────────────────
+//
+// Every source below produces the same internal "card": the list rates of one
+// model from one source at one moment, plus what the source knows about tiers and
+// long context. `_resolveCard` walks the sources in precedence order and returns
+// the first card; `rateUsage` turns a card and the billing facts of a call into a
+// cost. `legacy` is the object the pre-catalogue API returned for that source,
+// so getModelCost keeps its exact shape (and identity, for overrides).
+
 /**
- * Get cost rates for a model (handles various ID formats).
- * Priority: custom override → self-hosted (€0) → community pricing data → null
- * @returns {{ input: number, output: number } | null}  prices per 1M tokens
+ * Which adapter family a bare model id belongs to, for the catalogue lookup.
+ * Registry knowledge (Scaleway/Mistral serving) beats the name; null when the id
+ * says nothing, in which case only an unambiguous catalogue row is used.
  */
-function getModelCost(modelName) {
+function inferProviderType(model) {
+    if (!model) return null;
+    const m = String(model).toLowerCase();
+    if (isScalewayServedModel(model)) return 'scaleway';
+    if (isMistralServedModel(model)) return 'mistral';
+    if (/^claude/.test(m)) return 'claude';
+    if (/^gemini/.test(m)) return 'google';
+    if (/^eugpt/.test(m)) return 'eugpt';
+    if (/^(gpt|chatgpt|o\d|text-embedding|dall-e|whisper|tts-)/.test(m)) return 'openai';
+    if (/^(mistral|ministral|magistral|codestral|devstral|pixtral|voxtral)-/.test(m)) return 'mistral';
+    return null;
+}
+
+/** Providers to try in the catalogue, most specific first. */
+function _catalogProviders(model, hint) {
+    const out = [];
+    const h = priceCatalog.normalizeProvider(hint);
+    if (h) {
+        out.push(h);
+        // A host that resells another vendor's models prices them like the vendor
+        // when it has no card of its own; the card is then a list price.
+        if (h === 'azure' || h === 'google-vertex') {
+            const family = inferProviderType(model);
+            if (family && family !== h) out.push(family);
+        }
+        return out;
+    }
+    const inferred = inferProviderType(model);
+    if (inferred) return [inferred];
+    // Nothing in the id tells the family: use the catalogue only when exactly one
+    // provider has a card for it (never pick between hosts of the same weights).
+    const only = priceCatalog.providersFor(model);
+    return only.length === 1 ? only : [];
+}
+
+/** Catalogue sources whose cards are community/repo data rather than a provider's own price. */
+const LIST_SOURCE = /^(litellm|community|repo|openrouter|estimate)/i;
+
+function _basisForSource(source) {
+    return LIST_SOURCE.test(String(source || '')) ? 'list' : 'exact';
+}
+
+function _cardFromRow(row, std, { viaFamily }) {
+    const mult = row.multipliers || (std && std.multipliers) || null;
+    return {
+        kind: 'catalog',
+        source: row.source,
+        currency: row.currency,
+        catalogVersion: row.catalog_version,
+        validFrom: row.valid_from,
+        basis: viaFamily ? 'list' : _basisForSource(row.source),
+        input: row.input,
+        output: row.output,
+        cacheRead: row.cache_read,
+        cacheWrite5m: row.cache_write_5m,
+        cacheWrite1h: row.cache_write_1h,
+        longCtx: row.long_ctx_threshold ? { threshold: row.long_ctx_threshold, rates: row.long_ctx_rates } : null,
+        tierPriced: row.tier !== 'standard',
+        multipliers: mult,
+        legacy: { input: row.input, output: row.output, cacheRead: row.cache_read ?? 0 },
+    };
+}
+
+function _catalogCard(model, ctx) {
+    const providers = _catalogProviders(model, ctx.provider);
+    for (let i = 0; i < providers.length; i++) {
+        const p = providers[i];
+        const std = priceCatalog.lookup({ provider: p, model, tier: 'standard', at: ctx.at });
+        const tiered = ctx.tier && ctx.tier !== 'standard'
+            ? priceCatalog.lookup({ provider: p, model, tier: ctx.tier, at: ctx.at })
+            : null;
+        const row = tiered || std;
+        if (row) return _cardFromRow(row, std, { viaFamily: i > 0 });
+    }
+    return null;
+}
+
+function _simpleCard(kind, source, currency, basis, rates, extra = {}) {
+    return {
+        kind, source, currency, catalogVersion: null, validFrom: null, basis,
+        input: rates.input, output: rates.output,
+        cacheRead: Number.isFinite(rates.cacheRead) ? rates.cacheRead : null,
+        cacheWrite5m: null, cacheWrite1h: null,
+        longCtx: null, tierPriced: false, multipliers: null, tierRates: null,
+        legacy: rates,
+        ...extra,
+    };
+}
+
+function _communityCard(model) {
+    const detail = typeof pricingService.getModelPricingDetail === 'function'
+        ? pricingService.getModelPricingDetail(model)
+        : null;
+    if (detail) {
+        const { source, tiers, longCtx } = detail;
+        const rates = { input: detail.input, output: detail.output, cacheRead: detail.cacheRead };
+        return _simpleCard('community', source === 'repo' ? 'repo' : 'litellm', 'USD', 'list', rates, {
+            tierRates: tiers && Object.keys(tiers).length ? tiers : null,
+            longCtx: longCtx
+                ? { threshold: longCtx.threshold, rates: { input: longCtx.input, output: longCtx.output, ...(longCtx.cacheRead !== undefined ? { cache_read: longCtx.cacheRead } : {}) } }
+                : null,
+            legacy: rates,
+        });
+    }
+    const pricing = getModelPricing(model);
+    return pricing ? _simpleCard('community', 'litellm', 'USD', 'list', pricing, { legacy: pricing }) : null;
+}
+
+/**
+ * The first card in precedence order, or null when no source prices the model.
+ * @param {string} modelName
+ * @param {{ provider?: string, at?: number, tier?: string }} [ctx]
+ */
+function _resolveCard(modelName, ctx = {}) {
     if (!modelName) return null;
 
     // 1. Custom override (exact match)
     const custom = getCustomOverrides();
-    if (custom[modelName]) return custom[modelName];
+    if (custom[modelName]) {
+        const o = custom[modelName];
+        return _simpleCard('override', 'override', 'USD', 'exact', o, { legacy: o });
+    }
 
-    // 2. Self-hosted model → €0. This MUST come before the community-pricing
-    // lookup: an open-weight model has a listed price at every cloud host that
-    // serves it, and matching on that would bill a customer's own GPU at
-    // Together/Fireworks rates. It also keeps local models away from the
-    // unknown-model upper-bound fallback in computeCost.
-    if (isLocalModel(modelName)) return LOCAL_MODEL_RATES;
+    // 1b. A custom-named Azure deployment (`prod-chat=gpt-6-astra`) is priced
+    // as the model behind it. After the override, so an admin can still price
+    // the deployment itself.
+    const azureModel = azureModelFor(modelName);
+    if (azureModel !== modelName) return _resolveCard(azureModel, { ...ctx, provider: ctx.provider || 'azure' });
 
-    // 3. Scaleway-served model → Scaleway's own tariff. This MUST come before
+    // 2. Self-hosted model → €0. This MUST come before every price lookup,
+    // the catalogue included: an open-weight model has a listed price at every
+    // cloud host that serves it, and matching on that would bill a customer's own
+    // GPU at Together/Fireworks rates. It also keeps local models away from the
+    // unknown-model upper-bound fallback.
+    if (isLocalModel(modelName)) {
+        return _simpleCard('local', 'local', 'USD', 'local', LOCAL_MODEL_RATES, { legacy: LOCAL_MODEL_RATES });
+    }
+
+    // 3. The dated catalogue.
+    const fromCatalog = _catalogCard(modelName, ctx);
+    if (fromCatalog) return fromCatalog;
+
+    // 4. Scaleway-served model → Scaleway's own tariff. This MUST come before
     // the community-pricing lookup for the same reason self-hosted does: every
     // model Scaleway serves is open-weight and also sold by Fireworks, Groq,
     // Together and others, so the fuzzy "ends with /<id>" match would price a
     // Scaleway call at whichever host happens to sort first. The exact
     // scaleway/<vendor>/<id> key is preferred (it tracks the community data as
     // Scaleway's prices change); the catalog's published list price is the
-    // fallback for models the database has not picked up yet.
+    // fallback for models the database has not picked up yet. Both carry
+    // Scaleway's own EUR figures, so the card is EUR: no USD round-trip.
     if (isScalewayServedModel(modelName)) {
         const exact = getPricingByKey(scalewayPricingKey(modelName));
-        if (exact) return exact;
+        if (exact) return _simpleCard('community', 'litellm:scaleway', 'EUR', 'list', exact, { legacy: exact });
         const listed = getScalewayListPrice(modelName);
-        if (listed) return listed;
+        if (listed) return _simpleCard('repo', 'repo:scaleway', 'EUR', 'list', listed, { legacy: listed });
     }
 
-    // 3b. Mistral-served model → Mistral's own price, before the fuzzy lookup
+    // 4b. Mistral-served model → Mistral's own price, before the fuzzy lookup
     // for the Scaleway reason: Ministral and Mistral Small are open weights
     // that other hosts sell too. The ORDER is the reverse of Scaleway's,
     // though — the catalog's list price first, the community key second.
@@ -213,22 +372,43 @@ function getModelCost(modelName) {
     // fallback for ids it does not price.
     if (isMistralServedModel(modelName)) {
         const listed = getMistralListPrice(modelName);
-        if (listed) return listed;
+        if (listed) return _simpleCard('repo', 'repo:mistral', 'USD', 'list', listed, { legacy: listed });
         const exact = getPricingByKey(mistralPricingKey(modelName));
-        if (exact) return exact;
+        if (exact) return _simpleCard('community', 'litellm:mistral', 'USD', 'list', exact, { legacy: exact });
     }
 
-    // 4. Community pricing lookup (handles provider prefixes + fuzzy matching)
-    const pricing = getModelPricing(modelName);
-    if (pricing) return pricing;
+    // 5. Community pricing lookup (handles provider prefixes + fuzzy matching)
+    const community = _communityCard(modelName);
+    if (community) return community;
 
-    // 5. Case-insensitive custom override match
+    // 6. Case-insensitive custom override match
     const lower = modelName.toLowerCase();
     for (const [key, val] of Object.entries(custom)) {
-        if (key.toLowerCase() === lower) return val;
+        if (key.toLowerCase() === lower) return _simpleCard('override', 'override', 'USD', 'exact', val, { legacy: val });
     }
 
     return null;
+}
+
+/**
+ * Get cost rates for a model (handles various ID formats).
+ * Priority: custom override → self-hosted (€0) → price catalogue → provider
+ * tariffs → community pricing data → null
+ *
+ * @param {string} modelName
+ * @param {{ at?: Date|number|string, provider?: string, service_tier?: string }} [facts]
+ *   the call's timestamp (default now) and provider/tier, to pick the catalogue
+ *   card in force at that moment
+ * @returns {{ input: number, output: number } | null}  prices per 1M tokens
+ */
+function getModelCost(modelName, facts = {}) {
+    if (!modelName) return null;
+    const card = _resolveCard(modelName, {
+        provider: facts.provider_type || facts.provider,
+        at: priceCatalog.toMs(facts.at ?? facts.timestamp),
+        tier: _billingTier(facts.service_tier, facts.traffic_type).tier,
+    });
+    return card ? card.legacy : null;
 }
 
 /**
@@ -237,7 +417,7 @@ function getModelCost(modelName) {
  */
 function getCacheDiscount(model) {
     if (!model) return 1;
-    const m = model.toLowerCase();
+    const m = azureModelFor(model).toLowerCase();
     // Anthropic/Claude: 10% of input across most of the family — but NOT all of
     // it. Fable 5.1 reads at $0.25/MTok against a $10 input rate (0.025x, a
     // quarter of Fable 5's), so a flat 0.1 would overbill it fourfold. The
@@ -294,7 +474,7 @@ function getCacheDiscount(model) {
  */
 function getCacheWriteMultiplier(model, ttl) {
     if (!model) return 1;
-    const m = model.toLowerCase();
+    const m = azureModelFor(model).toLowerCase();
     if (/claude/.test(m)) {
         const { cacheWriteMultiplier } = require('../providers/claudeModels');
         return cacheWriteMultiplier(ttl);  // 5-min is the default
@@ -302,66 +482,302 @@ function getCacheWriteMultiplier(model, ttl) {
     return 1;
 }
 
+// ─── Billing facts ───────────────────────────────────────────────────────────
+
 /**
- * Uncached (full-price) input tokens for a call.
- *
- * The two provider families report input usage differently:
- *
- *  - Anthropic: `usage.input_tokens` is ALREADY the uncached remainder —
- *    `cache_read_input_tokens` and `cache_creation_input_tokens` are reported
- *    separately and are NOT included in it. `core/providers/claude.js` maps
- *    `prompt_tokens = usage.input_tokens` verbatim (and `usageStore` documents
- *    the same contract), so subtracting the cache pieces again zeroed the
- *    uncached input and billed it at nothing on every cache hit.
- *  - OpenAI / Gemini: `prompt_tokens` is the FULL input and the cached count is
- *    a subset of it, so the cache pieces must be subtracted.
- *
- * The `Math.max(0, …)` guard stays for the subtracting family: a provider that
- * reports a cached count larger than the prompt total must not produce a
- * negative (i.e. cost-reducing) input component.
+ * The billing tier a provider reported, as one of standard | batch | flex |
+ * priority. Anthropic reports `standard`/`priority`/`batch`, OpenAI
+ * `default`/`flex`/`priority`/`auto`, Vertex a traffic type
+ * (`ON_DEMAND`, `ON_DEMAND_PRIORITY`, `ON_DEMAND_FLEX`, ...). A value we do not
+ * recognise (OpenAI `scale`, Vertex `PROVISIONED_THROUGHPUT`: committed capacity
+ * that is not billed per token) is priced as standard and flagged, so the row
+ * says "estimated" instead of claiming an exact rate.
  */
-function _uncachedInputTokens(model, promptTokens, cachedTokens, cacheCreationTokens) {
-    const m = String(model || '').toLowerCase();
-    if (/claude/.test(m)) return Math.max(0, promptTokens);
-    return Math.max(0, promptTokens - cachedTokens - cacheCreationTokens);
+const TIER_ALIASES = Object.freeze({
+    '': 'standard', standard: 'standard', default: 'standard', auto: 'standard', standard_only: 'standard',
+    on_demand: 'standard', not_available: 'standard', unspecified: 'standard', traffic_type_unspecified: 'standard',
+    batch: 'batch', batches: 'batch',
+    flex: 'flex', on_demand_flex: 'flex',
+    priority: 'priority', on_demand_priority: 'priority',
+});
+
+function _billingTier(serviceTier, trafficType) {
+    // The tier the provider billed wins; a Vertex traffic type is consulted only
+    // when there is no service tier (Vertex has none).
+    const raw = String(serviceTier || trafficType || '').trim().toLowerCase();
+    if (Object.prototype.hasOwnProperty.call(TIER_ALIASES, raw)) return { tier: TIER_ALIASES[raw], unrecognised: false };
+    return { tier: 'standard', unrecognised: true };
+}
+
+/** Anthropic `inference_geo`: global/unspecified bills at the list rate, a pinned geo may carry a premium. */
+function _billingGeo(raw) {
+    const g = String(raw || '').trim().toLowerCase();
+    return !g || g === 'global' || g === 'not_available' || g === 'unspecified' ? null : g;
+}
+
+// Tier multipliers when the source does not carry the tier's own rate. Batch and
+// flex are half price at every provider that offers them (documented, uniform);
+// the priority premium differs per provider and model and has no safe default,
+// so it stays at 1 and the call is flagged "estimated".
+const DEFAULT_TIER_MULTIPLIER = Object.freeze({ batch: 0.5, flex: 0.5 });
+
+const _clampTokens = (v) => {
+    const n = Number(v);
+    return Number.isFinite(n) && n > 0 ? n : 0;
+};
+
+/**
+ * Rate one call: the price card in force at the call's timestamp, applied to the
+ * call's billing facts. This is the single place a call is priced.
+ *
+ * Input (all optional but `model`; the shape of a usageStore log entry, which is
+ * the normalised usage of core/providers/usageNormalizer plus bookkeeping):
+ *   timestamp | at            when the call happened (default now): picks the card
+ *   provider_type | provider  adapter type, when the caller knows it
+ *   prompt_tokens             input tokens as the provider reports them
+ *   completion_tokens, cached_tokens, cache_creation_tokens
+ *   cache_creation_5m_tokens / cache_creation_1h_tokens   the per-TTL split of the write
+ *   cache_ttl                 legacy single TTL for a write without a split
+ *   cache_creation_ttl_assumed  the TTL was a guess (priced, but flagged 'estimated')
+ *   prompt_includes_cache     false for Anthropic (prompt_tokens is the uncached remainder)
+ *   service_tier, traffic_type, inference_geo
+ *
+ * @returns {{
+ *   cost: number, input_cost: number, output_cost: number, currency: string,
+ *   model: string, provider: string|null, at: string,
+ *   tier: string, inference_geo: string|null, long_context: boolean,
+ *   source: string, catalog_version: string|null, valid_from: string|null,
+ *   cost_basis: 'exact'|'list'|'estimated'|'unknown'|'local',
+ *   rates: { input: number, output: number, cache_read: number, cache_write_5m: number, cache_write_1h: number },
+ *   multiplier: { tier_input: number, tier_output: number, geo: number, regional: number, total: number },
+ *   price_input: number, price_output: number, price_cache_read: number, price_cache_write: number,
+ *   notes: string[]
+ * }}
+ */
+function rateUsage(entry = {}) {
+    const model = entry.model;
+    const atMs = priceCatalog.toMs(entry.timestamp ?? entry.at);
+    const providerHint = entry.provider_type || entry.provider;
+    const { tier, unrecognised: tierUnrecognised } = _billingTier(entry.service_tier, entry.traffic_type);
+    const geo = _billingGeo(entry.inference_geo);
+    const notes = [];
+
+    const prompt = _clampTokens(entry.prompt_tokens);
+    const completion = _clampTokens(entry.completion_tokens);
+    const cached = _clampTokens(entry.cached_tokens);
+    let creation = _clampTokens(entry.cache_creation_tokens);
+    let n5 = _clampTokens(entry.cache_creation_5m_tokens);
+    let n1 = _clampTokens(entry.cache_creation_1h_tokens);
+    if (n5 + n1 > 0) {
+        // A split wins. A write total that exceeds it keeps its remainder at the
+        // legacy TTL; a split that exceeds the total raises the total.
+        if (creation > n5 + n1) { if (entry.cache_ttl === '1h') n1 += creation - n5 - n1; else n5 += creation - n5 - n1; }
+        creation = n5 + n1;
+    } else if (creation > 0) {
+        if (entry.cache_ttl === '1h') n1 = creation; else n5 = creation;
+    }
+
+    const base = {
+        model: model || '',
+        provider: priceCatalog.normalizeProvider(providerHint) || inferProviderType(model),
+        at: new Date(atMs).toISOString(),
+        tier,
+        inference_geo: geo,
+    };
+
+    let card = _resolveCard(model, { provider: providerHint, at: atMs, tier });
+    // A card with a non-finite or negative rate (a corrupt override, a garbled
+    // community entry) must not turn into a NaN or negative cost on an invoice:
+    // it is treated like an unknown model.
+    if (card && !(Number.isFinite(card.input) && Number.isFinite(card.output) && card.input >= 0 && card.output >= 0)) {
+        log.warn(`[ModelCosts] ignoring an invalid price for '${model}' (source ${card.source})`);
+        notes.push('invalid_rates_ignored');
+        card = null;
+    }
+    if (!card) {
+        // Unknown model — fall back to the upper bound so we never silently
+        // charge €0 for a real API call. The customer is over-billed
+        // slightly until the model lands in the pricing data or an admin
+        // adds a custom override. The row says so: cost_basis 'unknown'.
+        const upper = _getUpperBound();
+        if (!upper) {
+            log.error(`[ModelCosts] No pricing data available (pricing fetch failed?); cost for '${model}' defaulting to 0.`);
+            return {
+                ...base, cost: 0, input_cost: 0, output_cost: 0, currency: 'USD', long_context: false,
+                source: 'none', catalog_version: null, valid_from: null, cost_basis: 'unknown',
+                rates: { input: 0, output: 0, cache_read: 0, cache_write_5m: 0, cache_write_1h: 0 },
+                multiplier: { tier_input: 1, tier_output: 1, geo: 1, regional: 1, total: 1 },
+                price_input: 0, price_output: 0, price_cache_read: 0, price_cache_write: 0,
+                notes: ['no_price_data'],
+            };
+        }
+        _warnUnknownModel(model);
+        card = _simpleCard('upper_bound', 'upper_bound', 'USD', 'unknown', upper);
+        notes.push('unknown_model_upper_bound');
+    }
+    let basis = card.basis;
+
+    // ── token accounting ────────────────────────────────────────────────────
+    // The two provider families report input usage differently:
+    //  - Anthropic: `usage.input_tokens` (our prompt_tokens) is ALREADY the
+    //    uncached remainder — cache read and write are reported next to it and
+    //    are NOT included. Subtracting them again zeroed the uncached input and
+    //    billed it at nothing on every cache hit.
+    //  - OpenAI / Gemini / Mistral / Scaleway: prompt_tokens is the FULL input
+    //    and the cached count is a subset of it, so the cache pieces are
+    //    subtracted (Math.max guards a provider that reports a cached count
+    //    above the total: never a negative, cost-reducing input component).
+    // The normalised usage says which it is (`prompt_includes_cache`); a legacy
+    // caller without the flag is told apart by model name, as before.
+    const includesCache = typeof entry.prompt_includes_cache === 'boolean'
+        ? entry.prompt_includes_cache
+        : !/claude/.test(String(model || '').toLowerCase());
+    const uncachedInput = includesCache ? Math.max(0, prompt - cached - creation) : Math.max(0, prompt);
+    const totalInput = includesCache ? prompt : prompt + cached + creation;
+
+    // ── list rates of the card (standard tier), cache rates resolved ────────
+    const input = card.input;
+    const output = card.output;
+    let rates = {
+        input,
+        output,
+        cacheRead: Number.isFinite(card.cacheRead) && card.cacheRead > 0 ? card.cacheRead : input * getCacheDiscount(model),
+        w5: Number.isFinite(card.cacheWrite5m) ? card.cacheWrite5m : input * getCacheWriteMultiplier(model, '5m'),
+        w1: Number.isFinite(card.cacheWrite1h) ? card.cacheWrite1h : input * getCacheWriteMultiplier(model, '1h'),
+    };
+
+    // ── long-context tier: the whole request above the threshold ────────────
+    let longContext = false;
+    if (card.longCtx && totalInput > card.longCtx.threshold) {
+        const L = card.longCtx.rates || {};
+        const lin = Number.isFinite(L.input) ? L.input : rates.input;
+        const ratio = rates.input > 0 ? lin / rates.input : 1;
+        rates = {
+            input: lin,
+            output: Number.isFinite(L.output) ? L.output : rates.output,
+            cacheRead: Number.isFinite(L.cache_read) ? L.cache_read : rates.cacheRead * ratio,
+            w5: Number.isFinite(L.cache_write_5m) ? L.cache_write_5m : rates.w5 * ratio,
+            w1: Number.isFinite(L.cache_write_1h) ? L.cache_write_1h : rates.w1 * ratio,
+        };
+        longContext = true;
+    }
+
+    // ── service tier ────────────────────────────────────────────────────────
+    // A catalogue card of the tier itself is already priced; an admin override
+    // and a local/upper-bound card are flat. Otherwise: the source's own tier
+    // rate, then the card's multiplier, then the documented default.
+    let tierIn = 1;
+    let tierOut = 1;
+    if (tierUnrecognised) { notes.push('tier_unrecognised'); }
+    if (tier !== 'standard' && !card.tierPriced && !['override', 'local', 'upper_bound'].includes(card.kind)) {
+        const abs = card.tierRates && card.tierRates[tier];
+        const mult = card.multipliers && card.multipliers[tier];
+        if (abs && input > 0) {
+            tierIn = abs.input / input;
+            tierOut = output > 0 ? abs.output / output : tierIn;
+        } else if (Number.isFinite(mult)) {
+            tierIn = mult; tierOut = mult;
+        } else if (Object.prototype.hasOwnProperty.call(DEFAULT_TIER_MULTIPLIER, tier)) {
+            tierIn = DEFAULT_TIER_MULTIPLIER[tier]; tierOut = tierIn;
+            notes.push(`tier_${tier}_default_multiplier`);
+        } else {
+            notes.push(`tier_${tier}_multiplier_unknown`);
+        }
+    }
+
+    // ── geo and regional ────────────────────────────────────────────────────
+    let geoMult = 1;
+    if (geo && !['override', 'local', 'upper_bound'].includes(card.kind)) {
+        const g = card.multipliers && card.multipliers.geo && card.multipliers.geo[geo];
+        if (Number.isFinite(g)) geoMult = g;
+        else notes.push(`geo_${geo}_multiplier_unknown`);
+    }
+    // The registry says whether the call went to a regional endpoint; a catalogue
+    // card may carry the factor, the built-in 1.1 remains the fallback.
+    const legacyUplift = getRegionalUplift(model);
+    const regional = legacyUplift !== 1 && card.multipliers && Number.isFinite(card.multipliers.regional)
+        ? card.multipliers.regional
+        : legacyUplift;
+    const total = geoMult * regional;
+
+    const r = {
+        input: rates.input * tierIn,
+        output: rates.output * tierOut,
+        cacheRead: rates.cacheRead * tierIn,
+        w5: rates.w5 * tierIn,
+        w1: rates.w1 * tierIn,
+    };
+    // A source that gives the tier's own cached-read rate (flex/priority) is exact.
+    if (tier !== 'standard' && !longContext && card.tierRates && card.tierRates[tier] && Number.isFinite(card.tierRates[tier].cacheRead)) {
+        r.cacheRead = card.tierRates[tier].cacheRead;
+    }
+
+    // ── cost (same order as the pre-catalogue formula, so unchanged inputs give unchanged numbers) ──
+    const inputCost = (((uncachedInput / 1_000_000) * r.input)
+        + ((cached / 1_000_000) * r.cacheRead)
+        + ((n5 / 1_000_000) * r.w5)
+        + ((n1 / 1_000_000) * r.w1)) * total;
+    const outputCost = ((completion / 1_000_000) * r.output) * total;
+    const cost = (((uncachedInput / 1_000_000) * r.input)
+        + ((cached / 1_000_000) * r.cacheRead)
+        + ((n5 / 1_000_000) * r.w5)
+        + ((n1 / 1_000_000) * r.w1)
+        + ((completion / 1_000_000) * r.output)) * total;
+
+    // ── cost basis ──────────────────────────────────────────────────────────
+    if (creation > 0 && entry.cache_creation_ttl_assumed && r.w5 !== r.w1) notes.push('cache_ttl_assumed');
+    if ((basis === 'exact' || basis === 'list') && notes.some((n) => n === 'tier_unrecognised' || n.endsWith('_default_multiplier') || n.endsWith('_multiplier_unknown') || n === 'cache_ttl_assumed')) {
+        basis = 'estimated';
+    }
+
+    // The cache-write rate that was charged: the TTL part used, or the token-weighted mean of a mixed write.
+    const writeRate = creation > 0 ? ((n5 * r.w5) + (n1 * r.w1)) / creation : r.w5;
+    return {
+        ...base,
+        cost, input_cost: inputCost, output_cost: outputCost,
+        currency: card.currency,
+        long_context: longContext,
+        source: card.source,
+        catalog_version: card.catalogVersion,
+        valid_from: card.validFrom,
+        cost_basis: basis,
+        rates: { input: rates.input, output: rates.output, cache_read: rates.cacheRead, cache_write_5m: rates.w5, cache_write_1h: rates.w1 },
+        multiplier: { tier_input: tierIn, tier_output: tierOut, geo: geoMult, regional, total },
+        price_input: r.input * total,
+        price_output: r.output * total,
+        price_cache_read: r.cacheRead * total,
+        price_cache_write: writeRate * total,
+        notes,
+    };
 }
 
 /**
- * Compute estimated cost for a single API call.
+ * Compute estimated cost for a single API call (number only; see `rateUsage` for
+ * the evidence behind it).
  * Supports cache-aware pricing — cached input tokens are billed at a read
  * discount, cache-creation tokens at a TTL-specific write premium.
  * @param {string} model
  * @param {number} promptTokens - Input tokens as the provider reports them: for
  *   Anthropic the uncached remainder, for OpenAI/Gemini the full input
- *   (cached tokens included). See `_uncachedInputTokens`.
+ *   (cached tokens included). See the token accounting in `rateUsage`.
  * @param {number} completionTokens - Output tokens (includes reasoning, billed at output rate)
  * @param {number} cachedTokens - Input tokens served from cache
  * @param {number} cacheCreationTokens - Anthropic cache write tokens
  * @param {string|null} cacheTtl - '5m' or '1h' — only meaningful for Anthropic cache writes
- * @returns {number} cost in USD
+ * @param {object} [facts] - timestamp, service_tier, inference_geo, cache_creation_5m/1h_tokens, ...
+ *   (see rateUsage); without it the call is rated now, at the standard tier
+ * @returns {number} cost in the currency of the price source (USD, except Scaleway: EUR)
  */
-function computeCost(model, promptTokens = 0, completionTokens = 0, cachedTokens = 0, cacheCreationTokens = 0, cacheTtl = null) {
-    let rates = getModelCost(model);
-    if (!rates) {
-        // Unknown model — fall back to the upper bound so we never silently
-        // charge €0 for a real API call. The customer is over-billed
-        // slightly until the model lands in the pricing data or an admin
-        // adds a custom override.
-        rates = _getUpperBound();
-        if (!rates) {
-            log.error(`[ModelCosts] No pricing data available (pricing fetch failed?); cost for '${model}' defaulting to 0.`);
-            return 0;
-        }
-        _warnUnknownModel(model);
-    }
-    const uncachedInput = _uncachedInputTokens(model, promptTokens, cachedTokens, cacheCreationTokens);
-    const cacheReadRate = _cacheReadRate(model, rates);
-    const cacheWriteRate = rates.input * getCacheWriteMultiplier(model, cacheTtl);
-    const base = ((uncachedInput / 1_000_000) * rates.input)
-         + ((cachedTokens / 1_000_000) * cacheReadRate)
-         + ((cacheCreationTokens / 1_000_000) * cacheWriteRate)
-         + ((completionTokens / 1_000_000) * rates.output);
-    return base * getRegionalUplift(model);
+function computeCost(model, promptTokens = 0, completionTokens = 0, cachedTokens = 0, cacheCreationTokens = 0, cacheTtl = null, facts = {}) {
+    return rateUsage({
+        ...facts,
+        model,
+        prompt_tokens: promptTokens,
+        completion_tokens: completionTokens,
+        cached_tokens: cachedTokens,
+        cache_creation_tokens: cacheCreationTokens,
+        cache_ttl: cacheTtl,
+    }).cost;
 }
 
 /**
@@ -390,43 +806,22 @@ function getRegionalUplift(model) {
 }
 
 /**
- * Resolve the per-token cached-read rate. Prefer the model's explicit
- * cache_read rate from the pricing data (accurate per model, auto-updating);
- * fall back to the provider discount heuristic when it's absent.
- */
-function _cacheReadRate(model, rates) {
-    if (rates && Number.isFinite(rates.cacheRead) && rates.cacheRead > 0) {
-        return rates.cacheRead;
-    }
-    return rates.input * getCacheDiscount(model);
-}
-
-/**
  * Compute estimated cost split into input and output.
+ * Same rating (and the same uplift) as computeCost — the two must agree, or the
+ * split stops summing to the stored total that routes/usage.js re-derives from it.
  * @returns {{ input_cost: number, output_cost: number }}
  */
-function computeCostSplit(model, promptTokens = 0, completionTokens = 0, cachedTokens = 0, cacheCreationTokens = 0, cacheTtl = null) {
-    let rates = getModelCost(model);
-    if (!rates) {
-        rates = _getUpperBound();
-        if (!rates) {
-            log.error(`[ModelCosts] No pricing data available; split cost for '${model}' defaulting to 0.`);
-            return { input_cost: 0, output_cost: 0 };
-        }
-        _warnUnknownModel(model);
-    }
-    const uncachedInput = _uncachedInputTokens(model, promptTokens, cachedTokens, cacheCreationTokens);
-    const cacheReadRate = _cacheReadRate(model, rates);
-    const cacheWriteRate = rates.input * getCacheWriteMultiplier(model, cacheTtl);
-    // Same uplift as computeCost — the two must agree, or the split stops
-    // summing to the stored total that routes/usage.js re-derives from it.
-    const uplift = getRegionalUplift(model);
-    return {
-        input_cost: (((uncachedInput / 1_000_000) * rates.input)
-                  + ((cachedTokens / 1_000_000) * cacheReadRate)
-                  + ((cacheCreationTokens / 1_000_000) * cacheWriteRate)) * uplift,
-        output_cost: ((completionTokens / 1_000_000) * rates.output) * uplift,
-    };
+function computeCostSplit(model, promptTokens = 0, completionTokens = 0, cachedTokens = 0, cacheCreationTokens = 0, cacheTtl = null, facts = {}) {
+    const r = rateUsage({
+        ...facts,
+        model,
+        prompt_tokens: promptTokens,
+        completion_tokens: completionTokens,
+        cached_tokens: cachedTokens,
+        cache_creation_tokens: cacheCreationTokens,
+        cache_ttl: cacheTtl,
+    });
+    return { input_cost: r.input_cost, output_cost: r.output_cost };
 }
 
 /**
@@ -514,6 +909,8 @@ module.exports = {
     getCacheWriteMultiplier,
     computeCost,
     computeCostSplit,
+    rateUsage,
+    inferProviderType,
     getAllModelCosts,
     getModelCostsForConfig,
     setModelCost,

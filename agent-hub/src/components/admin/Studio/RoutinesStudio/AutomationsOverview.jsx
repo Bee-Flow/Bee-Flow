@@ -4,8 +4,8 @@ import {
 import React, { useMemo, useState } from 'react';
 import ContextMenu from './ContextMenu';
 import {
-    GROUPS, SORTS, STATUS_LABEL, TRIGGER_KINDS, TRIGGER_LABEL, VIEWS,
-    countStates, countTriggers, filterRows, groupRows, isFailing, sortRows,
+    GROUPS, NO_FOLDER, SORTS, STATUS_LABEL, TRIGGER_KINDS, TRIGGER_LABEL, VIEWS,
+    countFolders, countStates, countTriggers, filterRows, groupRows, isFailing, sortRows,
     stepCountOf, triggerKindOf, triggerTextOf,
 } from './overviewModel';
 import OverviewToolbar from './OverviewToolbar';
@@ -16,6 +16,7 @@ import scopedStorage from '../../../../utils/scopedStorage';
 import { formatNextRun } from '../../../automation/taskFormatters';
 import EmptyState from '../../../shared/EmptyState';
 import { kindColorVar } from '../../../shared/kindColors';
+import Modal from '../../../shared/Modal';
 import { automation as lifecycleOf } from '../../../shared/statusOf';
 import { STATUS_TOKENS, statusLabel, tokenFor } from '../../../shared/statusTokens';
 
@@ -88,6 +89,7 @@ export default function AutomationsOverview({
     rowProps,
     onCreate = null,
     onCreateBlock = null,
+    onCreateFolder = null,
     canCreate = true,
 }) {
     const [view, setViewState] = useState(() => readStored(VIEW_KEY, VIEWS, 'list'));
@@ -95,24 +97,36 @@ export default function AutomationsOverview({
     const [groupBy, setGroupState] = useState(() => readStored(GROUP_KEY, GROUPS, 'status'));
     const [state, setState] = useState('all');
     const [trigger, setTrigger] = useState('all');
+    const [folder, setFolder] = useState('all');
+    // "New folder" opens a small name dialog — the naming input the sidebar
+    // hosts inline cannot sit in a toolbar menu.
+    const [folderDialogOpen, setFolderDialogOpen] = useState(false);
 
     const setView = (v) => { setViewState(v); store(VIEW_KEY, v); };
     const setSort = (v) => { setSortState(v); store(SORT_KEY, v); };
     const setGroupBy = (v) => { setGroupState(v); store(GROUP_KEY, v); };
 
-    // Each pill row counts over what the OTHER row lets through, so a number
+    // A folder deleted elsewhere (or by the sidebar) must not leave the
+    // filter stuck on a lane that no longer exists.
+    const effectiveFolder = folder !== 'all' && folder !== NO_FOLDER && !folders.some(f => f.id === folder) ? 'all' : folder;
+
+    // Each pill row counts over what the OTHER rows let through, so a number
     // on a pill is what clicking it shows.
     const stateCounts = useMemo(
-        () => countStates(filterRows(automations, { trigger, activeRunIds }), activeRunIds),
-        [automations, trigger, activeRunIds],
+        () => countStates(filterRows(automations, { trigger, folder: effectiveFolder, folders, activeRunIds }), activeRunIds),
+        [automations, trigger, effectiveFolder, folders, activeRunIds],
     );
     const triggerCounts = useMemo(
-        () => countTriggers(filterRows(automations, { state, activeRunIds })),
-        [automations, state, activeRunIds],
+        () => countTriggers(filterRows(automations, { state, folder: effectiveFolder, folders, activeRunIds })),
+        [automations, state, effectiveFolder, folders, activeRunIds],
+    );
+    const folderCounts = useMemo(
+        () => countFolders(filterRows(automations, { state, trigger, activeRunIds }), folders),
+        [automations, state, trigger, activeRunIds, folders],
     );
     const rows = useMemo(
-        () => sortRows(filterRows(automations, { state, trigger, activeRunIds }), sort),
-        [automations, state, trigger, activeRunIds, sort],
+        () => sortRows(filterRows(automations, { state, trigger, folder: effectiveFolder, folders, activeRunIds }), sort),
+        [automations, state, trigger, effectiveFolder, folders, activeRunIds, sort],
     );
     const lanes = useMemo(
         () => (view === 'board' ? groupRows(rows, groupBy, { folders }) : null),
@@ -120,8 +134,8 @@ export default function AutomationsOverview({
     );
 
     const filtering = String(query || '').trim() !== '';
-    const narrowed = state !== 'all' || trigger !== 'all';
-    const clearFilters = () => { setState('all'); setTrigger('all'); };
+    const narrowed = state !== 'all' || trigger !== 'all' || effectiveFolder !== 'all';
+    const clearFilters = () => { setState('all'); setTrigger('all'); setFolder('all'); };
 
     const stateOptions = [
         { value: 'all', label: 'All', count: stateCounts.all },
@@ -135,6 +149,13 @@ export default function AutomationsOverview({
     const triggerOptions = [
         { value: 'all', label: 'Any trigger', count: triggerCounts.all },
         ...TRIGGER_KINDS.filter(k => triggerCounts[k]).map(k => ({ value: k, label: TRIGGER_LABEL[k], count: triggerCounts[k] })),
+    ];
+    // Folders always keep their pill, even at 0 — an empty folder is still a
+    // place to file into. Only offered at all when the library HAS folders.
+    const folderOptions = folders.length === 0 ? [] : [
+        { value: 'all', label: 'Any folder', count: folderCounts.all },
+        { value: NO_FOLDER, label: 'No folder', count: folderCounts[NO_FOLDER] },
+        ...folders.map(f => ({ value: f.id, label: f.name || 'Untitled folder', count: folderCounts[f.id] })),
     ];
 
     let body;
@@ -185,6 +206,9 @@ export default function AutomationsOverview({
                 trigger={trigger}
                 onTrigger={setTrigger}
                 triggerOptions={triggerOptions}
+                folder={effectiveFolder}
+                onFolder={setFolder}
+                folderOptions={folderOptions}
                 narrowed={narrowed}
                 onClear={clearFilters}
                 view={view}
@@ -195,13 +219,68 @@ export default function AutomationsOverview({
                 onGroup={setGroupBy}
                 onCreate={onCreate}
                 onCreateBlock={onCreateBlock}
+                onCreateFolder={onCreateFolder ? () => setFolderDialogOpen(true) : null}
                 canCreate={canCreate}
             />
 
             <div className={`flex-1 min-h-0 ${view === 'board' ? 'overflow-hidden' : 'overflow-y-auto'}`}>
                 {body}
             </div>
+            {folderDialogOpen && (
+                <NewFolderDialog
+                    onCreate={(name) => { setFolderDialogOpen(false); onCreateFolder?.(name); }}
+                    onClose={() => setFolderDialogOpen(false)}
+                />
+            )}
         </div>
+    );
+}
+
+/**
+ * "New folder" from the overview's New menu. The sidebar names a folder inline
+ * (FolderedRoutineList); a toolbar menu cannot host an input, so the overview
+ * gets the same name/commit/cancel as a small dialog instead.
+ */
+function NewFolderDialog({ onCreate, onClose }) {
+    const { t } = useTranslation();
+    const [name, setName] = useState('');
+    const commit = () => { if (name.trim()) onCreate(name); };
+    return (
+        <Modal open onClose={onClose} size="sm" label={t('routines.library.newFolder', 'New folder')}>
+            <form
+                onSubmit={(e) => { e.preventDefault(); commit(); }}
+                className="flex flex-col gap-3"
+            >
+                <span className="text-sm font-semibold text-[var(--text-primary)]">
+                    {t('routines.library.newFolder', 'New folder')}
+                </span>
+                <input
+                    autoFocus
+                    value={name}
+                    aria-label={t('routines.library.folderName', 'Folder name')}
+                    placeholder={t('routines.library.folderName', 'Folder name')}
+                    onChange={(e) => setName(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}
+                    className="bg-[var(--bg-primary)] border border-[var(--border-default)] rounded-md px-2.5 py-1.5 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent-primary)]"
+                />
+                <div className="flex justify-end gap-2">
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="px-3 py-1.5 rounded-md text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] transition"
+                    >
+                        {t('routines.library.cancel', 'Cancel')}
+                    </button>
+                    <button
+                        type="submit"
+                        disabled={!name.trim()}
+                        className="px-3 py-1.5 rounded-md text-xs font-medium bg-[var(--accent-primary)] text-[var(--accent-primary-fg)] transition disabled:opacity-50"
+                    >
+                        {t('routines.library.createFolder', 'Create folder')}
+                    </button>
+                </div>
+            </form>
+        </Modal>
     );
 }
 

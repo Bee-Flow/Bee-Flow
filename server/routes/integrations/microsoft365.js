@@ -303,6 +303,10 @@ router.get('/status', requireAuth, async (req, res) => {
         needsReauth,
         sharedMailboxGranted,
         email: connected || needsReauth ? email : null,
+        // Connected only through the Microsoft login, no vault row: the
+        // tile then hides Disconnect, which would clear the SSO tokens from
+        // this session and break every Microsoft app until the next login.
+        viaSso: sessionConnected && cred?.status !== 'active',
     });
 });
 
@@ -343,6 +347,12 @@ function openerTargetOrigin() {
     return /^https?:\/\//i.test(host) ? host.replace(/\/+$/, '') : `https://${host}`;
 }
 
+// The message can carry the account's address as Graph returned it; it is
+// text, never markup.
+function escapeHtml(value) {
+    return String(value).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+}
+
 function callbackHTML(message, success) {
     return `<!DOCTYPE html>
 <html><head><title>Microsoft 365</title>
@@ -356,7 +366,7 @@ function callbackHTML(message, success) {
 </head><body>
 <div class="card">
   <div class="icon">${success ? '✅' : '❌'}</div>
-  <h2>${message}</h2>
+  <h2>${escapeHtml(message)}</h2>
   <p>${success ? 'You can close this window.' : 'Please close this window and try again.'}</p>
 </div>
 <script>

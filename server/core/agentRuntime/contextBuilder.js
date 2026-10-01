@@ -126,17 +126,17 @@ Skip these unless there is a material update since the date shown. If you do inc
     //   - notebookspaceContent: the panel is currently open. `undefined` =
     //     closed; `""` = "open but blank".
     // ─── House style awareness ───────────────────────────────────
-    // Org-level Word/DOCX template that gets applied at Notebook export time.
-    // We tell the model the style is active so it can match tone/structure; the
-    // model should NOT try to set fonts or colors in Markdown — styling is
-    // applied automatically when the user exports to .docx.
+    // Org-level Word/DOCX template that gets applied to every .docx Bee Flow
+    // builds (create_word_document, the Notebook's Word export). We tell the
+    // model the style is active so it can match tone/structure; the model
+    // should NOT try to set fonts or colors in Markdown.
     if (messageMetadata?.orgId) {
         try {
             const houseStyle = await houseStyleStore.getDefaultForOrg(messageMetadata.orgId);
             if (houseStyle) {
                 const tone = houseStyle.styleMeta?.toneDescription;
                 systemPrompt += `\n\n[HOUSE STYLE ACTIVE]
-Org Word/DOCX kantoorstijl "${houseStyle.name}" wordt automatisch toegepast bij export naar .docx${houseStyle.description ? ` — ${houseStyle.description}` : ''}.${tone ? ` Tone of voice: ${tone}.` : ''} Schrijf documenten in het Notebook in Markdown — opmaak (lettertype, koppen, marges, header/footer) wordt bij export geregeld; geen inline styling nodig.`;
+Org Word/DOCX kantoorstijl "${houseStyle.name}" wordt automatisch toegepast op elk .docx: create_word_document en de Word-export van het Notebook${houseStyle.description ? ` — ${houseStyle.description}` : ''}.${tone ? ` Tone of voice: ${tone}.` : ''} Schrijf de inhoud in Markdown — opmaak (lettertype, koppen, marges, header/footer) komt uit de kantoorstijl; geen inline styling nodig.`;
             }
         } catch (e) {
             log.warn('[contextBuilder] house style lookup failed:', e.message);

@@ -647,7 +647,7 @@ router.post('/threads/:id/reply', validate({ body: S.ReplyBody }), async (req, r
     } catch (sendErr) {
         log.error('[SupportInbox] send failed:', sendErr.message);
         await supportStore.setMessageEmailStatus(msg.id, { ok: false, error: sendErr.message, at: new Date().toISOString() });
-        res.status(502).json({ error: `Reply saved but sending failed: ${sendErr.message}`, messageId: msg.id });
+        res.status(502).json({ error: 'Reply saved but sending failed', messageId: msg.id });
     }
 });
 

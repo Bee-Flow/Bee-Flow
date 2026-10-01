@@ -1237,6 +1237,7 @@ router.put('/:id/conversations', requireRole('editor'), validate({ body: S.Conve
 // `/:id/<word>…`, so none of them can shadow the one-segment routes above.
 router.use('/', require('./projects/chats'));
 router.use('/', require('./projects/tasks'));
+router.use('/', require('./projects/sprints'));
 router.use('/', require('./projects/memberColors'));
 router.use('/', require('./projects/workspace'));
 router.use('/', require('./projects/discovery'));

@@ -85,6 +85,8 @@ const INVALIDATION_RULES: Array<[(kind: string) => boolean, (id: string) => Read
     [k => k.startsWith('file.'), id => [projectKeys.files(id), projectKeys.resources(id)]],
     [k => k.startsWith('chat.') && !k.startsWith('chat.ai.'), id => [projectKeys.chats(id)]],
     [k => k.startsWith('task.'), id => [projectKeys.tasks(id)]],
+    // A sprint change can also move tasks in or out of it, so both lists go stale.
+    [k => k.startsWith('sprint.'), id => [projectKeys.sprints(id), projectKeys.tasks(id)]],
     [k => DETAIL_KINDS.has(k), id => [projectKeys.detail(id)]],
 ];
 

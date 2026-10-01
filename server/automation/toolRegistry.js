@@ -172,6 +172,8 @@ const INLINE_TOOL_APPS = [
     // Injected for every non-simple-mode user — a first-party artefact tool
     // (like create_document), so no enabledKey and no org toggle.
     { app: 'presentations',   label: 'Presentations', module: '../integrations/presentationTools',  arrayName: 'PRESENTATION_TOOLS',     enabledKey: null,            availableTo: ['agent', 'routine_step'], availability: 'installation', grantsRequireEntry: true },
+    // The .docx sibling of create_presentation, injected next to it.
+    { app: 'word-documents',  label: 'Word documents', module: '../integrations/wordDocumentTools', arrayName: 'WORD_DOCUMENT_TOOLS',    enabledKey: null,            availableTo: ['agent', 'routine_step'], availability: 'installation', grantsRequireEntry: true },
 ];
 
 /**

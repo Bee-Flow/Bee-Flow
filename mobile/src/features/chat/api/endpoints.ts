@@ -164,6 +164,15 @@ export async function postDlpDecision(
     );
 }
 
+/**
+ * Heartbeat for an open review: refreshes the question's TTL so a person
+ * mid-edit is never expired from under their cursor (decisionQueue.touch).
+ * Best-effort — callers ignore failures.
+ */
+export async function postDlpDecisionTouch(decisionId: string): Promise<void> {
+    await api.post('/api/chat/dlp-decision/touch', { decisionId }, { retry: false });
+}
+
 // ── Feedback ────────────────────────────────────────────────────────
 
 /** One message as the feedback snapshot carries it (the web's shape). */

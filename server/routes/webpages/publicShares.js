@@ -183,7 +183,7 @@ function register(router) {
                 // a missing snapshot.
                 await publicShareStore.deleteShare(share.id, userId).catch(() => {});
                 log.error('[Webpages] Snapshot failed:', snapErr);
-                return res.status(500).json({ error: 'Failed to snapshot webpage: ' + snapErr.message });
+                return res.status(500).json({ error: 'Failed to snapshot webpage' });
             }
 
             res.json({

@@ -368,7 +368,7 @@ router.post('/:id/reprocess', requireAuth, validate({ body: NOTHING, query: NO_Q
                     log.warn(`[Transcriptions] Reprocess of ${transcriptionId} failed but the claim was already lost — leaving the note alone`);
                 }
             } else if (!res.headersSent) {
-                res.status(500).json({ error: `Reprocessing failed: ${err.message}` });
+                res.status(500).json({ error: 'Reprocessing failed' });
             }
         } catch (dbErr) {
             log.error('[Transcriptions] Failed to record reprocess failure:', dbErr.message);

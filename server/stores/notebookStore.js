@@ -139,6 +139,13 @@ async function _initDB() {
         ALTER TABLE notebook_sources ADD COLUMN IF NOT EXISTS sort_order INTEGER DEFAULT 0;
         ALTER TABLE notebook_sources ADD COLUMN IF NOT EXISTS stage TEXT;
         ALTER TABLE notebook_sources ADD COLUMN IF NOT EXISTS content_text TEXT;
+        -- Which record a source was copied from (a meeting's id for type
+        -- 'meeting'), so "what happens to this meeting" can name the notebooks
+        -- that hold it instead of saying it could not check them. The partial
+        -- index keeps meetingUsage's probe for older, ref-less meeting rows cheap.
+        ALTER TABLE notebook_sources ADD COLUMN IF NOT EXISTS source_ref_id TEXT;
+        CREATE INDEX IF NOT EXISTS idx_notebook_sources_ref ON notebook_sources(source_ref_id) WHERE source_ref_id IS NOT NULL;
+        CREATE INDEX IF NOT EXISTS idx_notebook_sources_meeting_noref ON notebook_sources(id) WHERE type = 'meeting' AND source_ref_id IS NULL;
     `);
 
     // One-off backfill: meeting-note sources were stored as generic 'text'
@@ -788,17 +795,17 @@ async function clearProjectFromNotebooks(projectId) {
 
 // ── Source CRUD ─────────────────────────────────────────────────────
 
-async function addSource({ notebookId, type, name, storageKey, fileName, metadata, wordCount, contentText, stage }) {
+async function addSource({ notebookId, type, name, storageKey, fileName, metadata, wordCount, contentText, stage, sourceRefId }) {
     await initDB();
     const id = crypto.randomUUID();
     // Append to the end of the manual order.
     const ord = await getOne('SELECT COALESCE(MAX(sort_order), -1) + 1 AS next FROM notebook_sources WHERE notebook_id = $1', [notebookId]);
     const sortOrder = ord?.next ?? 0;
     await run(
-        `INSERT INTO notebook_sources (id, notebook_id, type, name, storage_key, file_name, metadata, status, word_count, content_text, stage, sort_order)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, 'processing', $8, $9, $10, $11)`,
+        `INSERT INTO notebook_sources (id, notebook_id, type, name, storage_key, file_name, metadata, status, word_count, content_text, stage, sort_order, source_ref_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, 'processing', $8, $9, $10, $11, $12)`,
         [id, notebookId, type, name || 'Untitled', storageKey || null, fileName || null,
-         JSON.stringify(metadata || {}), wordCount || 0, contentText || null, stage || 'queued', sortOrder]
+         JSON.stringify(metadata || {}), wordCount || 0, contentText || null, stage || 'queued', sortOrder, sourceRefId ? String(sourceRefId) : null]
     );
     await touchActivity(notebookId, 'source');
     return { id, notebookId, type, name, storageKey, fileName, metadata: metadata || {}, status: 'processing', stage: stage || 'queued', wordCount: wordCount || 0, sortOrder };

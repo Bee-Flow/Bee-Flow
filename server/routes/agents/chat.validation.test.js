@@ -188,3 +188,34 @@ test('a title request without content is refused in words', async () => {
 test('a describe request with a misspelled key is refused', async () => {
     await refuses({ url: '/describe-building', body: { cod: 'x' } }, 'body');
 });
+
+// ═══ history ════════════════════════════════════════════════════════
+
+test('a history turn whose content is an object is refused by name', async () => {
+    // Replayed verbatim, it is the provider's 400 "messages[N].content ... got
+    // an object" on every later turn of the conversation.
+    await refuses({
+        url: '/a1/chat/stream',
+        body: { message: 'hi', history: [{ role: 'user', content: 'a' }, { role: 'tool', content: { sent: true } }] },
+    }, 'body.history.1.content');
+});
+
+test('a history turn that is not an object is refused by name', async () => {
+    await refuses({ url: '/a1/chat/stream', body: { message: 'hi', history: ['hello'] } }, 'body.history.0');
+});
+
+test('history with text, content blocks, null content and extra fields is accepted', async () => {
+    const res = await dispatch({
+        url: '/a1/chat/stream',
+        body: {
+            message: 'hi',
+            history: [
+                { role: 'user', content: 'a', attachments: [{ name: 'x.pdf' }] },
+                { role: 'user', content: [{ type: 'text', text: 'b' }] },
+                { role: 'assistant', content: null },
+                { role: 'assistant' },
+            ],
+        },
+    });
+    assert.strictEqual(res.statusCode, 200, JSON.stringify(res.body));
+});

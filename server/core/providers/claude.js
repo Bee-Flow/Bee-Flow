@@ -15,6 +15,7 @@ const {
 const { downscaleClaudeMessages } = require("../documents/imageDownscale");
 const { inlineInternalImages } = require("../documents/imageInline");
 const log = require('../../telemetry/log');
+const { normalizeUsage } = require("./usageNormalizer");
 
 const DEFAULT_MAX_TOKENS = 8192;
 
@@ -976,7 +977,7 @@ class ClaudeProvider extends BaseProvider {
             toolCalls: toolCalls && toolCalls.length > 0 ? toolCalls : null,
             stopReason: response.stop_reason,
             stopDetails: response.stop_details || null,
-            usage: response.usage || null,
+            usage: normalizeUsage('claude', response.usage),
             raw: response,
         };
     }
@@ -1012,6 +1013,7 @@ class ClaudeProvider extends BaseProvider {
         /** @type {{ partId: string, redacted: boolean, signature: string|null, redactedData?: string } | null} */
         let currentThinking = null; // Track in-progress thinking / redacted_thinking block
         let thinkingPartCounter = 0;
+        /** @type {Record<string, any> | null} */
         let streamUsage = null;
         let stopReason = null;
         let stopDetails = null;
@@ -1148,33 +1150,19 @@ class ClaudeProvider extends BaseProvider {
                 stopReason = finalMessage.stop_reason || null;
                 stopDetails = finalMessage.stop_details || null;
                 if (finalMessage.usage) {
-                    const u = finalMessage.usage;
-                    const cacheCreate5m = u.cache_creation?.ephemeral_5m_input_tokens || 0;
-                    const cacheCreate1h = u.cache_creation?.ephemeral_1h_input_tokens || 0;
-                    const cacheCreateTotal = u.cache_creation_input_tokens
-                        || (cacheCreate5m + cacheCreate1h)
-                        || 0;
-                    // When both TTLs were written, attribute the row to the
-                    // dominant TTL so cost stays approximately right. Mixed
-                    // writes are rare in this codebase (only system gets 1h).
-                    let cacheTtl = null;
-                    if (cacheCreate1h > 0 && cacheCreate1h >= cacheCreate5m) cacheTtl = '1h';
-                    else if (cacheCreate5m > 0) cacheTtl = '5m';
-                    else if (cacheCreateTotal > 0) cacheTtl = '1h';  // fallback: extractSystem places a 1h breakpoint
+                    // Same normaliser as the non-streaming chat(): input_tokens
+                    // stays the uncached remainder (usageNormalizer header), the
+                    // 5m/1h cache-write split is carried instead of one
+                    // "dominant" TTL, and tier/geo/server-tool counts ride along.
                     streamUsage = {
-                        prompt_tokens: u.input_tokens || 0,
-                        completion_tokens: u.output_tokens || 0,
-                        total_tokens: (u.input_tokens || 0) + (u.output_tokens || 0),
-                        cached_tokens: u.cache_read_input_tokens || 0,
-                        cache_creation_tokens: cacheCreateTotal,
-                        cache_ttl: cacheTtl,
+                        ...normalizeUsage('claude', finalMessage.usage),
                         stop_reason: finalMessage.stop_reason || null,
                     };
                     if (streamUsage.cached_tokens > 0) {
                         log.info(`[Claude] ⚡ Cache hit: ${streamUsage.cached_tokens} cached input tokens (saved ~${Math.round(streamUsage.cached_tokens * 0.9)} token-equivalents)`);
                     }
                     if (streamUsage.cache_creation_tokens > 0) {
-                        log.info(`[Claude] 📦 Cache created: ${streamUsage.cache_creation_tokens} tokens (ttl=${streamUsage.cache_ttl}, 5m=${cacheCreate5m}, 1h=${cacheCreate1h})`);
+                        log.info(`[Claude] 📦 Cache created: ${streamUsage.cache_creation_tokens} tokens (5m=${streamUsage.cache_creation_5m_tokens}, 1h=${streamUsage.cache_creation_1h_tokens})`);
                     }
                 }
             } catch (e) {

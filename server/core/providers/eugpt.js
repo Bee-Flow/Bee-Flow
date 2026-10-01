@@ -33,6 +33,7 @@
 const BaseProvider = require('./base');
 const { EUGPT_WIRE_MODEL, describeEuGptModel } = require('./eugptModels');
 const log = require('../../telemetry/log');
+const { normalizeUsage } = require('./usageNormalizer');
 
 // Discovery must not hang a config screen. Chat calls use the caller's
 // options.timeoutMs instead (see BaseProvider).
@@ -238,16 +239,7 @@ class EuGptProvider extends BaseProvider {
     // ─── Responses ───────────────────────────────────────────────────
 
     _normalizeUsage(usage) {
-        if (!usage || typeof usage !== 'object') return null;
-        const prompt = usage.input_tokens ?? usage.prompt_tokens ?? 0;
-        const completion = usage.output_tokens ?? usage.completion_tokens ?? 0;
-        return {
-            prompt_tokens: prompt,
-            completion_tokens: completion,
-            total_tokens: usage.total_tokens ?? (prompt + completion),
-            cached_tokens: usage.input_tokens_details?.cached_tokens ?? 0,
-            reasoning_tokens: usage.output_tokens_details?.reasoning_tokens ?? 0,
-        };
+        return normalizeUsage('eugpt', usage);
     }
 
     /** 'stop' | a truncation reason — the codebase-wide `stop_reason` vocabulary. */

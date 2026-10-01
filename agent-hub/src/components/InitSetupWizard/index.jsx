@@ -42,7 +42,6 @@ const InitSetupWizard = ({ onComplete }) => {
     // Step: Azure config (shared between paths)
     const [azureEndpoint, setAzureEndpoint] = useState('');
     const [azureKey, setAzureKey] = useState('');
-    const [azureVersion, setAzureVersion] = useState('2025-04-01-preview');
     const [azureModels, setAzureModels] = useState('');
 
     // Step: Search
@@ -67,7 +66,8 @@ const InitSetupWizard = ({ onComplete }) => {
     const clearMessages = () => setError('');
 
     const modelOptions = isAzure && azureModels.trim()
-        ? azureModels.split(',').map(m => m.trim()).filter(Boolean)
+        // `prod-chat=gpt-6-astra` maps a deployment to its model; the tier stores the deployment name.
+        ? azureModels.split(',').map(m => m.split('=')[0].trim()).filter(Boolean)
         : [];
 
     const updateTier = (key, value) => setTierConfig(prev => ({ ...prev, [key]: { ...prev[key], modelId: value } }));
@@ -149,7 +149,6 @@ const InitSetupWizard = ({ onComplete }) => {
             if (isAzure) {
                 if (azureEndpoint.trim()) aiBody.azureEndpoint = azureEndpoint;
                 if (azureKey.trim()) aiBody.azureApiKey = azureKey;
-                aiBody.azureApiVersion = azureVersion;
                 aiBody.azureModels = azureModels.trim();
                 aiBody.officeAppsEnabled = officeAppsEnabled;
                 if (bingKey.trim()) {
@@ -354,7 +353,6 @@ const InitSetupWizard = ({ onComplete }) => {
                             <StepAzureSetup
                                 azureEndpoint={azureEndpoint} setAzureEndpoint={setAzureEndpoint}
                                 azureKey={azureKey} setAzureKey={setAzureKey}
-                                azureVersion={azureVersion} setAzureVersion={setAzureVersion}
                                 azureModels={azureModels} setAzureModels={setAzureModels}
                                 bingKey={bingKey} setBingKey={setBingKey}
                                 bingMarket={bingMarket} setBingMarket={setBingMarket}
@@ -369,7 +367,6 @@ const InitSetupWizard = ({ onComplete }) => {
                             <StepAiProvider aiProvider={aiProvider} setAiProvider={setAiProvider}
                                 azureEndpoint={azureEndpoint} setAzureEndpoint={setAzureEndpoint}
                                 azureKey={azureKey} setAzureKey={setAzureKey}
-                                azureVersion={azureVersion} setAzureVersion={setAzureVersion}
                                 azureModels={azureModels} setAzureModels={setAzureModels}
                                 genericKey={genericKey} setGenericKey={setGenericKey}
                                 clearMessages={clearMessages} inputClass={INPUT_CLASS} inputStyle={INPUT_STYLE} />

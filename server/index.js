@@ -687,8 +687,8 @@ const { requireFeature: requireLicenseFeature } = require('./license/middleware'
 // grant into one decision (compound betas enforce license AND beta). Replaces
 // the requireLicenseFeature(+requireBetaFeature) pairs below where the route is a
 // compound beta or a user-facing core capability. Routes whose gate is a
-// community-licensed GA feature (automations/ai-tasks) or license-only
-// (talk-notes-settings) keep requireLicenseFeature to avoid over-gating.
+// community-licensed GA feature (automations/ai-tasks) keep
+// requireLicenseFeature to avoid over-gating.
 const { requireCapability } = require('./core/entitlements/entitlements');
 app.use('/api/documents', require('./routes/documents'));
 app.use('/api/notifications', require('./routes/notifications'));
@@ -911,18 +911,26 @@ app.use('/verify', requireModule('learning'), require('./routes/verifyCertificat
 app.use('/api/dictate', require('./routes/dictate'));
 // Meeting Notes — compound beta (license 'meeting_notes' AND the beta).
 app.use('/api/transcriptions', requireModule('meetingNotes'), requireCapability('meeting_notes'), requireTraining('meeting_notes'), require('./routes/transcriptions'));
-// Nextcloud Talk → Meeting Notes settings (org + user toggles). License-only
-// (no beta gate) — kept on requireLicenseFeature so it isn't over-gated.
-app.use('/api/talk-notes-settings', requireModule('meetingNotes'), requireLicenseFeature('meeting_notes'), require('./routes/talkNotesSettings'));
+// Nextcloud Talk → Meeting Notes settings (org + user toggles). Licence AND
+// the meeting_notes capability: Meeting Notes can be rolled out per group
+// (groupScoped), and a person outside that rollout must not reach its
+// settings, templates or connectors either. The org-level endpoints are
+// administration: an org admin outside the rollout still configures it for the
+// people inside it (auth/capabilityOrOrgAdmin.js), the personal ones are not.
+const { requireCapabilityOrOrgAdmin, settingsOrgIdFor, summaryTemplateOrgIdFor } = require('./auth/capabilityOrOrgAdmin');
+const _meetingNotesGate = (orgIdFor) => requireCapabilityOrOrgAdmin(requireCapability('meeting_notes'), {
+    orgIdFor, isOrgAdminForOrg: require('./auth/permissions').isOrgAdminForOrg, log,
+});
+app.use('/api/talk-notes-settings', requireModule('meetingNotes'), requireLicenseFeature('meeting_notes'), _meetingNotesGate(settingsOrgIdFor), require('./routes/talkNotesSettings'));
 // Per-user Nextcloud access scope ("What Bee Flow may access"). Deliberately
 // NO license gate: narrowing what an assistant may touch is a privacy
 // control, never a premium feature.
 app.use('/api/nc-scope', require('./routes/ncScope'));
-// Google Meet → Meeting Notes settings (org + user toggles). License-only
-// (no beta gate) — same rationale as talk-notes-settings above.
-app.use('/api/gmeet-notes-settings', requireModule('meetingNotes'), requireLicenseFeature('meeting_notes'), require('./routes/gmeetNotesSettings'));
+// Google Meet → Meeting Notes settings (org + user toggles). Same gates as
+// talk-notes-settings above.
+app.use('/api/gmeet-notes-settings', requireModule('meetingNotes'), requireLicenseFeature('meeting_notes'), _meetingNotesGate(settingsOrgIdFor), require('./routes/gmeetNotesSettings'));
 // Custom summary-regeneration templates (user / org / group scopes).
-app.use('/api/summary-templates', requireModule('meetingNotes'), requireLicenseFeature('meeting_notes'), require('./routes/summaryTemplates'));
+app.use('/api/summary-templates', requireModule('meetingNotes'), requireLicenseFeature('meeting_notes'), _meetingNotesGate(summaryTemplateOrgIdFor), require('./routes/summaryTemplates'));
 // Per-person voiceprints for pyannoteAI speaker identification. Same compound
 // gate as /api/transcriptions — the templates only have value there, and the
 // router additionally refuses everything unless pyannoteAI is the active

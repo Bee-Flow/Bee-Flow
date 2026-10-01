@@ -247,12 +247,12 @@ test('an endpoint without a scheme is refused, not saved for the SDK to fail on 
     assert.deepStrictEqual(touched, []);
 });
 
-test('the body the OpenAI card sends still saves', async () => {
+test('the body the OpenAI card sends still saves, an old client\'s api-version ignored', async () => {
     const res = await put({
         section: 'openai', azureEndpoint: 'https://res.openai.azure.com/', azureApiVersion: '2025-04-01-preview', azureModels: 'gpt-4o',
     });
     assert.strictEqual(res.statusCode, 200);
-    assert.deepStrictEqual(touched.map((t) => t.args[0]), ['azure_endpoint', 'azure_api_version', 'azure_models']);
+    assert.deepStrictEqual(touched.map((t) => t.args[0]), ['azure_endpoint', 'azure_models']);
 });
 
 // ── group sync ──────────────────────────────────────────────────────

@@ -156,6 +156,18 @@ router.get('/user-settings', requireAuth, async (req, res) => {
 
     const isGoogleUser = req.session.oauthProvider === 'google';
     const isMicrosoftUser = req.session.oauthProvider === 'microsoft';
+    // A Microsoft 365 vault connection NEXT TO another SSO identity (Google,
+    // Nextcloud): the session stays the other provider's, but
+    // getIntegrationTools lifts the Outlook tools off this credential, so the
+    // app picker must offer Outlook too (agent-hub integrationAvailability).
+    let hasMicrosoftConnection = isMicrosoftUser;
+    if (!hasMicrosoftConnection && userId) {
+        try {
+            const routineCredentialStore = require('../../../stores/routineCredentialStore');
+            const rows = await routineCredentialStore.listProvidersForUser(userId);
+            hasMicrosoftConnection = rows.some(r => r.provider === 'microsoft' && r.status === 'active');
+        } catch (_) { /* non-fatal — Outlook just stays SSO-gated */ }
+    }
     const enabledApps = await configStore.getConfig(`enabled_apps_user_${userId}`);
 
     // Load org-level enabled integrations.
@@ -275,6 +287,7 @@ router.get('/user-settings', requireAuth, async (req, res) => {
         hasElevenLabsKey: !!(await configStore.getSecret('elevenlabs_api_key')),
         isGoogleUser,
         isMicrosoftUser,
+        hasMicrosoftConnection,
         enabledApps: enabledApps || null,
         orgEnabledIntegrations,
         hasN8nConfig,

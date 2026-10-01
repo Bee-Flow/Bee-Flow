@@ -1731,7 +1731,7 @@ describe('the organisation integrations (features/orgIntegrations)', () => {
         for (const section of ["'openai'", "'chatModels'", "'docProcessing'", "'sso'"]) expect(source).toContain(section);
         expect(
             absentTokens(source, [
-                'azureEndpoint', 'hasAzureApiKey', 'azureApiVersion', 'azureModels', 'chatModelTiers',
+                'azureEndpoint', 'hasAzureApiKey', 'azureModels', 'chatModelTiers',
                 'useAzureDocProcessing', 'hasAzureDocKey', 'hasAzureEmbedKey', 'ssoClientId',
                 'hasSsoClientSecret', 'ssoTenantId', 'autoApproveSSO', 'groupSyncSettings', 'groupSyncStatus',
             ]),

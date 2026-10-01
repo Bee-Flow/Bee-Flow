@@ -10,7 +10,7 @@ export default function ChatModelsSection({ chatModelTiers, setChatModelTiers, a
 
     const modelList = allModels.length > 0
         ? allModels
-        : (azureModels ? azureModels.split(',').map(m => m.trim()).filter(Boolean).map(m => ({ id: m, name: m })) : []);
+        : (azureModels ? azureModels.split(',').map(m => m.split('=')[0].trim()).filter(Boolean).map(m => ({ id: m, name: m })) : []);
 
     const updateTier = (tierKey, field, value) => {
         setChatModelTiers(prev => ({

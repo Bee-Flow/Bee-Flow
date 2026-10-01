@@ -125,7 +125,10 @@ describe('a LIST into a slot that wants one value — answered inline (artboard 
         insert('steps.s1.output.addresses');
         const box = screen.getByTestId('mismatch-resolver');
         expect(document.querySelector('[data-list-pick-chooser]')).toBeNull();
-        expect(within(box).getByText('All of them, one per line')).toBeTruthy();
+        // Collapsed by default (BFSF-482): the applied default is a chip…
+        expect(within(box).getByTestId('mismatch-selected').textContent).toBe('All of them, one per line');
+        // …and the rest of the list menu sits behind "List options".
+        fireEvent.click(within(box).getByRole('button', { name: 'List options' }));
         expect(within(box).getByText('Only the first')).toBeTruthy();
         expect(within(box).getByText('Only the count (3)')).toBeTruthy();
     });
@@ -142,14 +145,16 @@ describe('a LIST into a slot that wants one value — answered inline (artboard 
     it('re-applies first() when the author picks "Only the first"', async () => {
         const { onChange, insert } = renderEditor();
         insert('steps.s1.output.addresses');
+        await userEvent.click(screen.getByRole('button', { name: 'List options' }));
         await userEvent.click(screen.getByText('Only the first'));
         expect(onChange.mock.calls.at(-1)[0]).toEqual({ kind: 'expr', value: 'first(steps.s1.output.addresses)' });
         expect(screen.getByText('Only the first').getAttribute('aria-pressed')).toBe('true');
     });
 
-    it('keeps a comma-separated join one click away, under "more"', async () => {
+    it('keeps a comma-separated join two clicks away, under "List options" → "more"', async () => {
         const { onChange, insert } = renderEditor();
         insert('steps.s1.output.addresses');
+        await userEvent.click(screen.getByRole('button', { name: 'List options' }));
         await userEvent.click(screen.getByText('more'));
         await userEvent.click(screen.getByText('All of them, comma separated'));
         expect(onChange.mock.calls.at(-1)[0]).toEqual({ kind: 'expr', value: 'join(steps.s1.output.addresses, ", ")' });
@@ -179,6 +184,7 @@ describe('a GROUP into a slot that wants one value — a question that used to b
     it('offers the group\'s own fields, and binds the one the author picks', () => {
         const { onChange, insert } = renderEditor();
         insert('steps.s1.output.sender');
+        fireEvent.click(screen.getByRole('button', { name: 'Field options' }));
         fireEvent.click(screen.getByRole('button', { name: 'Email' }));
         expect(onChange.mock.calls.at(-1)[0]).toEqual({ kind: 'ref', path: 'steps.s1.output.sender.email' });
     });
@@ -186,6 +192,7 @@ describe('a GROUP into a slot that wants one value — a question that used to b
     it('marks the chosen remedy, so the box says what the field holds', () => {
         const { insert } = renderEditor();
         insert('steps.s1.output.sender');
+        fireEvent.click(screen.getByRole('button', { name: 'Field options' }));
         fireEvent.click(screen.getByRole('button', { name: 'Name' }));
         expect(screen.getByRole('button', { name: 'Name' }).getAttribute('aria-pressed')).toBe('true');
     });
@@ -215,14 +222,19 @@ describe('a TABLE into a slot that wants one value — the table menu, not the l
         const { insert } = renderEditor();
         insert('steps.s1.output.results');
         expect(screen.getByTestId('mismatch-resolver')).toBeTruthy();
-        expect(screen.getByRole('button', { name: 'As a table' })).toBeTruthy();
+        // The applied default reads as a chip while collapsed…
+        expect(screen.getByTestId('mismatch-selected').textContent).toBe('As a table');
         expect(screen.getByText(/It can go in as a table/)).toBeTruthy();
+        // …and opening "Table options" shows the table menu, never the list one.
+        fireEvent.click(screen.getByRole('button', { name: 'Table options' }));
+        expect(screen.getByRole('button', { name: 'As a table' })).toBeTruthy();
         expect(screen.queryByRole('button', { name: /All of them, one per line/ })).toBeNull();
     });
 
     it('counts ROWS, not items, when the author asks how many', () => {
         const { onChange, insert } = renderEditor();
         insert('steps.s1.output.results');
+        fireEvent.click(screen.getByRole('button', { name: 'Table options' }));
         fireEvent.click(screen.getByRole('button', { name: 'Only how many rows (2)' }));
         expect(onChange.mock.calls.at(-1)[0]).toEqual({ kind: 'expr', value: 'count(steps.s1.output.results)' });
     });
@@ -230,6 +242,7 @@ describe('a TABLE into a slot that wants one value — the table menu, not the l
     it('offers a run per row, and hands the forEach up to the step', () => {
         const { onChange, onRequestForEach, insert } = renderEditor();
         insert('steps.s1.output.results');
+        fireEvent.click(screen.getByRole('button', { name: 'Table options' }));
         fireEvent.click(screen.getByRole('button', { name: 'A separate run for each row' }));
         expect(onRequestForEach).toHaveBeenCalled();
         expect(onChange.mock.calls.at(-1)[0]).toBeTruthy();
@@ -238,6 +251,7 @@ describe('a TABLE into a slot that wants one value — the table menu, not the l
     it('offers no per-row run when the step cannot fan out', () => {
         const { insert } = renderEditor({ onRequestForEach: null });
         insert('steps.s1.output.results');
+        fireEvent.click(screen.getByRole('button', { name: 'Table options' }));
         expect(screen.queryByRole('button', { name: 'A separate run for each row' })).toBeNull();
     });
 });

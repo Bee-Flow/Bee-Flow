@@ -226,3 +226,56 @@ test('items with no resolvable id are ignored, not treated as one item', async (
     await run(h);
     assert.strictEqual(JSON.parse(h.saved[0].lastCursor).h.length, 1);
 });
+
+// ── contentWatch: a filter-picked target switches what is watched ───────
+//
+// google-sheets is the real consumer: no spreadsheetId in the filter → the
+// base spec diffs the file list; a picked spreadsheet → the variant polls the
+// sheet's rows and diffs them by position. These tests use the acme shape so
+// the mechanism is proven without the integration.
+
+const acmeContentWatch = () => acmeEvent({
+    contentWatch: {
+        when: 'widgetId',
+        tool: 'acme_get_widget_rows',
+        buildArgs: (filter) => ({ widgetId: filter.widgetId }),
+        itemsPath: 'values',
+        idPath: '$index',
+        changePaths: ['$'],
+        emit: { mode: 'item', map: { row: '$', rowIndex: '$index' }, includeChanges: true },
+        emitFromFilter: { widgetId: 'widgetId' },
+    },
+});
+
+test('without the filter key the base spec is used, untouched', async () => {
+    const h = harness({ result: widgets([{ sku: 'W-1', state: 'idle' }]), sub: { filter: {} } });
+    await run(h, acmeContentWatch());
+    assert.strictEqual(h.calls[0].tool, 'acme_list_widgets');
+    assert.deepStrictEqual(h.calls[0].args, { limit: 100 });
+});
+
+test('a filter-picked target switches the tool and derives args from the filter', async () => {
+    const h = harness({ result: { values: [['a', 1], ['b', 2]] }, sub: { filter: { widgetId: 'W-9' } } });
+    const first = await run(h, acmeContentWatch());
+    assert.strictEqual(h.calls[0].tool, 'acme_get_widget_rows');
+    assert.deepStrictEqual(h.calls[0].args, { widgetId: 'W-9' });
+    assert.deepStrictEqual(first.events, [], 'first poll anchors');
+
+    const h2 = harness({
+        result: { values: [['a', 1], ['b', 3], ['c', 4]] },
+        sub: { filter: { widgetId: 'W-9' }, lastCursor: aged(h.saved[0].lastCursor) },
+    });
+    const second = await run(h2, acmeContentWatch());
+    assert.strictEqual(second.events.length, 1, 'a new row is not a change of a watched row');
+    assert.deepStrictEqual(second.events[0].row, ['b', 3]);
+    assert.strictEqual(second.events[0].rowIndex, 1);
+    assert.strictEqual(second.events[0].widgetId, 'W-9', 'emitFromFilter echoes the watched target');
+    assert.deepStrictEqual(second.events[0].previous, { '$': ['b', 2] });
+    assert.deepStrictEqual(second.events[0].current, { '$': ['b', 3] });
+});
+
+test('resolveEffectiveSource leaves a spec without contentWatch alone', () => {
+    const src = acmeEvent().source;
+    assert.strictEqual(_internals.resolveEffectiveSource(src, { widgetId: 'W-1' }), src);
+    assert.strictEqual(_internals.resolveEffectiveSource(src, null), src);
+});

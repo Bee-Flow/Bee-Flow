@@ -731,6 +731,10 @@ export default function AITasksDesigner({ initialTaskId = null, initialStepId = 
                         // "New building block", beside "New automation" in the
                         // overview's split button.
                         onCreateStep={automationsAllowed ? onNewBlock : null}
+                        // "New folder" — folders organize the overview too
+                        // (folder pills + board lanes), so making one belongs
+                        // in its New menu as well (BFSF-478).
+                        onCreateFolder={automationsAllowed ? createFolder : null}
                         // All automations tab — the same rows, filter and
                         // per-row actions the sidebar draws, in list / cards /
                         // board form.

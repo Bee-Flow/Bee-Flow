@@ -59,26 +59,74 @@ const BROWSER_CPUS = parseFloat(process.env.BROWSER_CONTAINER_CPUS || '1.0');
 const BROWSER_SHM_MB = parseInt(process.env.BROWSER_CONTAINER_SHM_MB || '256', 10);
 const BROWSER_READY_TIMEOUT_MS = parseInt(process.env.BROWSER_READY_TIMEOUT_MS || '60000', 10);
 
+// The Docker probe's outside world, swappable in tests (__setDepsForTests).
+const DEFAULT_DEPS = {
+    createDocker: () => new Docker({ socketPath: '/var/run/docker.sock' }),
+    accessSync: (p, mode) => fs.accessSync(p, mode),
+    log,
+};
+let _deps = DEFAULT_DEPS;
+
 function getDocker() {
-    return new Docker({ socketPath: '/var/run/docker.sock' });
+    return _deps.createDocker();
+}
+
+const DOCKER_SOCKET = '/var/run/docker.sock';
+// How long a negative probe is trusted. A `false` used to be cached for the
+// life of the process, so a socket mounted (or a daemon started) after boot
+// was never noticed without a restart.
+const DOCKER_UNAVAILABLE_RETRY_MS = (() => {
+    const v = Number(process.env.DOCKER_UNAVAILABLE_RETRY_MS);
+    return process.env.DOCKER_UNAVAILABLE_RETRY_MS && Number.isFinite(v) && v >= 0 ? v : 30000;
+})();
+
+/**
+ * Why the socket cannot be used, in words an operator can act on. ENOENT and
+ * EACCES are the two common self-host mistakes (no socket mounted; the server
+ * user is not in the socket's group) and are told apart on purpose.
+ */
+function dockerUnavailableReason(err) {
+    const code = err && err.code;
+    if (code === 'ENOENT') {
+        return `the Docker socket ${DOCKER_SOCKET} is not mounted into the server (ENOENT). Run the browser `
+            + `sidecar and set BROWSER_WS_ENDPOINT, or mount the socket.`;
+    }
+    if (code === 'EACCES' || code === 'EPERM') {
+        return `the server user may not open ${DOCKER_SOCKET} (${code}): add the socket's group id to the `
+            + `server with group_add, or run the browser sidecar and set BROWSER_WS_ENDPOINT.`;
+    }
+    return `the Docker daemon did not answer on ${DOCKER_SOCKET} (${code || (err && err.message) || 'unknown error'}).`;
 }
 
 /**
- * Cheap availability probe — the socket file must exist AND the daemon must
- * answer a ping. Callers use this to pick the container path vs the host
- * fallback. Cached after first success.
+ * Cheap availability probe — the socket file must be readable and writable
+ * AND the daemon must answer a ping. Callers use this to pick the container
+ * path vs the host fallback. A success is cached for the process; a failure
+ * only for DOCKER_UNAVAILABLE_RETRY_MS, and its reason is logged once per
+ * change, not on every probe.
  */
 let _available = null;
+let _unavailableAt = 0;
+let _lastReason = null;
 async function dockerAvailable() {
-    if (_available !== null) return _available;
+    if (_available === true) return true;
+    if (_available === false && Date.now() - _unavailableAt < DOCKER_UNAVAILABLE_RETRY_MS) return false;
     try {
-        if (!fs.existsSync('/var/run/docker.sock')) { _available = false; return false; }
+        _deps.accessSync(DOCKER_SOCKET, fs.constants.R_OK | fs.constants.W_OK);
         await getDocker().ping();
         _available = true;
-    } catch (_) {
+        _lastReason = null;
+        return true;
+    } catch (err) {
+        const reason = dockerUnavailableReason(err);
+        if (reason !== _lastReason) {
+            _deps.log.warn(`[PwtRunner] Docker unavailable: ${reason}`);
+            _lastReason = reason;
+        }
         _available = false;
+        _unavailableAt = Date.now();
+        return false;
     }
-    return _available;
 }
 
 function isServerInContainer() {
@@ -152,6 +200,17 @@ async function buildRunnerImage(docker, image, onLine) {
     });
 }
 
+/**
+ * Which ghcr.io/bee-flow/pwt-runner tags to try, in order. A production server
+ * tries the released `latest` first; `dev` (the main-branch build) leads only
+ * outside production, so a customer install never runs an unreleased runner
+ * while `latest` is reachable.
+ */
+function registryTagChain(env) {
+    if (env.PLAYWRIGHT_RUNNER_IMAGE_TAG) return [env.PLAYWRIGHT_RUNNER_IMAGE_TAG];
+    return env.NODE_ENV === 'production' ? ['latest', 'dev'] : ['dev', 'latest'];
+}
+
 let _resolvedImage = null;
 async function resolvePwtImage(docker, onLine) {
     if (_resolvedImage) return _resolvedImage;
@@ -167,9 +226,7 @@ async function resolvePwtImage(docker, onLine) {
     // built against a different Playwright version.
     if (await imageExists(docker, LOCAL_IMAGE_TAG)) { _resolvedImage = LOCAL_IMAGE_TAG; return LOCAL_IMAGE_TAG; }
 
-    const tagChain = process.env.PLAYWRIGHT_RUNNER_IMAGE_TAG
-        ? [process.env.PLAYWRIGHT_RUNNER_IMAGE_TAG]
-        : ['dev', 'latest'];
+    const tagChain = registryTagChain(process.env);
     let lastPullErr = null;
     for (const tag of tagChain) {
         const registryImage = `ghcr.io/bee-flow/pwt-runner:${tag}`;
@@ -396,8 +453,23 @@ async function getBrowserEndpoint(opts) {
     return s.wsEndpoint;
 }
 
+/**
+ * Test seam: swap the Docker client factory, the socket access check and the
+ * logger, and forget the cached probe result. No argument restores the real ones.
+ */
+function __setDepsForTests(over = null) {
+    _deps = { ...DEFAULT_DEPS, ...(over || {}) };
+    _available = null;
+    _unavailableAt = 0;
+    _lastReason = null;
+}
+
 module.exports = {
+    __setDepsForTests,
     dockerAvailable,
+    dockerUnavailableReason,
+    registryTagChain,
+    DOCKER_UNAVAILABLE_RETRY_MS,
     isServerInContainer,
     resolvePwtImage,
     ensurePwtNetwork,

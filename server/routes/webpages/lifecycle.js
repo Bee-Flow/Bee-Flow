@@ -63,7 +63,7 @@ function register(router) {
             res.json({ success: true, webpage: cloned });
         } catch (err) {
             log.error('[Webpages] Clone failed:', err);
-            res.status(500).json({ error: 'Failed to clone webpage: ' + err.message });
+            res.status(500).json({ error: 'Failed to clone webpage' });
         }
     });
 

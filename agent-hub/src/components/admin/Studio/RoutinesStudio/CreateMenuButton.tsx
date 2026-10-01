@@ -1,4 +1,4 @@
-import { ChevronDown, Package, Plus, Workflow } from 'lucide-react';
+import { ChevronDown, FolderPlus, Package, Plus, Workflow } from 'lucide-react';
 import { useRef, useState } from 'react';
 import type { ComponentType, KeyboardEvent, ReactNode, RefObject } from 'react';
 import { useTranslation } from '../../../../hooks/useTranslation';
@@ -12,6 +12,8 @@ export interface CreateMenuButtonProps {
     onCreateAutomation: () => void;
     /** Without it there is nothing to choose, so the chevron is left out. */
     onCreateBlock?: (() => void) | null;
+    /** "New folder" — the overview offers it beside the building block. */
+    onCreateFolder?: (() => void) | null;
     /** 'icon' is the sidebar's small +, 'label' the overview's accent "New". */
     variant?: 'icon' | 'label';
     /** data-tour anchor on the main part (the Learning Center points at it). */
@@ -43,6 +45,7 @@ const SHAPES = {
 export default function CreateMenuButton({
     onCreateAutomation,
     onCreateBlock = null,
+    onCreateFolder = null,
     variant = 'icon',
     tourAnchor,
     testId = 'create-menu',
@@ -50,12 +53,15 @@ export default function CreateMenuButton({
     const { t } = useTranslation();
     const chevronRef = useRef<HTMLButtonElement | null>(null);
     const [open, setOpen] = useState(false);
-    const newAutomation = t('routines.library.newAutomation', 'New automation');
-
     const pick = (run: () => void) => {
         setOpen(false);
         run();
     };
+    // The menu's rows, built outside the component so the button's own logic
+    // stays a flat split button (see buildMenuItems below).
+    const items = buildMenuItems(t, pick, { onCreateAutomation, onCreateBlock, onCreateFolder });
+    // Anything beyond the default earns the chevron and its menu.
+    const hasMenu = items.length > 1;
     const onChevronKey = (e: KeyboardEvent<HTMLButtonElement>) => {
         if (e.key === 'ArrowDown') {
             e.preventDefault();
@@ -65,6 +71,7 @@ export default function CreateMenuButton({
 
     const label = variant === 'label';
     const { shell, part } = SHAPES[variant];
+    const newAutomation = items[0].title;
 
     return (
         <>
@@ -81,7 +88,7 @@ export default function CreateMenuButton({
                     <Plus size={label ? 13 : 15} aria-hidden="true" />
                     {label && t('routines.library.new', 'New')}
                 </button>
-                {onCreateBlock && (
+                {hasMenu && (
                     <>
                         <span
                             aria-hidden="true"
@@ -104,28 +111,79 @@ export default function CreateMenuButton({
                     </>
                 )}
             </div>
-            {onCreateBlock && (
+            {hasMenu && (
                 <CreateMenu
                     open={open}
                     onClose={() => setOpen(false)}
                     anchorRef={chevronRef}
                     testId={`${testId}-list`}
-                    onAutomation={() => pick(onCreateAutomation)}
-                    onBlock={() => pick(onCreateBlock)}
+                    items={items}
                 />
             )}
         </>
     );
 }
 
-/** The two things a + can make, the default first. */
-function CreateMenu({ open, onClose, anchorRef, testId, onAutomation, onBlock }: {
+/** One row of the create menu: icon tile, title, hint, optional badge. */
+interface CreateMenuItem {
+    icon: ReactNode;
+    tile: string;
+    title: string;
+    hint: string;
+    badge?: string;
+    onClick: () => void;
+}
+
+type TFn = (key: string, fallback: string) => string;
+
+/**
+ * What a + can make, the default first. A module-level builder so the button
+ * component itself stays a flat split button: every "is this offered?" branch
+ * lives here, and a new create-kind is one more block in this list.
+ */
+function buildMenuItems(t: TFn, pick: (run: () => void) => void, handlers: {
+    onCreateAutomation: () => void;
+    onCreateBlock: (() => void) | null;
+    onCreateFolder: (() => void) | null;
+}): CreateMenuItem[] {
+    const items: CreateMenuItem[] = [{
+        icon: <Workflow size={14} aria-hidden="true" />,
+        tile: 'bg-[color-mix(in_srgb,var(--type-trigger)_14%,transparent)] text-[var(--type-trigger)]',
+        title: t('routines.library.newAutomation', 'New automation'),
+        hint: t('routines.library.newAutomationHint', 'Runs by itself when something happens, or when you start it'),
+        badge: t('routines.library.default', 'Default'),
+        onClick: () => pick(handlers.onCreateAutomation),
+    }];
+    if (handlers.onCreateBlock) {
+        const run = handlers.onCreateBlock;
+        items.push({
+            icon: <Package size={14} aria-hidden="true" />,
+            tile: 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)]',
+            title: t('routines.library.newBlock', 'New building block'),
+            hint: t('routines.library.newBlockHint', 'A reusable step you can drop into any automation'),
+            onClick: () => pick(run),
+        });
+    }
+    if (handlers.onCreateFolder) {
+        const run = handlers.onCreateFolder;
+        items.push({
+            icon: <FolderPlus size={14} aria-hidden="true" />,
+            tile: 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)]',
+            title: t('routines.library.newFolder', 'New folder'),
+            hint: t('routines.library.newFolderHint', 'Groups automations here in the overview and in the sidebar'),
+            onClick: () => pick(run),
+        });
+    }
+    return items;
+}
+
+/** The menu itself: whatever buildMenuItems decided to offer. */
+function CreateMenu({ open, onClose, anchorRef, testId, items }: {
     open: boolean;
     onClose: () => void;
     anchorRef: RefObject<HTMLButtonElement | null>;
     testId: string;
-    onAutomation: () => void;
-    onBlock: () => void;
+    items: CreateMenuItem[];
 }) {
     const { t } = useTranslation();
     // Escape closes this menu and nothing else: stopped here, it never reaches
@@ -148,21 +206,7 @@ function CreateMenu({ open, onClose, anchorRef, testId, onAutomation, onBlock }:
             className="p-1.5"
             data-testid={testId}
         >
-            <MenuRow
-                icon={<Workflow size={14} aria-hidden="true" />}
-                tile="bg-[color-mix(in_srgb,var(--type-trigger)_14%,transparent)] text-[var(--type-trigger)]"
-                title={t('routines.library.newAutomation', 'New automation')}
-                hint={t('routines.library.newAutomationHint', 'Runs by itself when something happens, or when you start it')}
-                badge={t('routines.library.default', 'Default')}
-                onClick={onAutomation}
-            />
-            <MenuRow
-                icon={<Package size={14} aria-hidden="true" />}
-                tile="bg-[var(--bg-tertiary)] text-[var(--text-secondary)]"
-                title={t('routines.library.newBlock', 'New building block')}
-                hint={t('routines.library.newBlockHint', 'A reusable step you can drop into any automation')}
-                onClick={onBlock}
-            />
+            {items.map(item => <MenuRow key={item.title} {...item} />)}
         </AnchoredMenu>
     );
 }

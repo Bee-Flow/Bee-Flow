@@ -132,6 +132,11 @@ services:
       - LLM_API_URL=${LLM_API_URL:-}
       - LLM_API_KEY=${LLM_API_KEY:-}
       - OLLAMA_URL=${OLLAMA_URL:-}
+
+      # ── Shared headless browser: the `browser` sidecar below (PDF export,
+      # thumbnails, SPA ingestion, browse_web). Point it elsewhere to use an
+      # external Playwright server.
+      - BROWSER_WS_ENDPOINT=${BROWSER_WS_ENDPOINT:-ws://browser:9222/${BROWSER_WS_PATH:-beeflow-browser}}
     volumes:
       - beeflow-data:/app/data
     depends_on:
@@ -139,7 +144,7 @@ services:
         condition: service_healthy
       rustfs:
         condition: service_started
-    networks: [ beeflow-network ]
+    networks: [ beeflow-network, beeflow-browser-network ]
     restart: unless-stopped
     healthcheck:
       test: [ "CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT:-3001}/api/health" ]
@@ -147,6 +152,39 @@ services:
       timeout: 10s
       start_period: 90s
       retries: 3
+
+  # ── Shared headless browser (PDF export, thumbnails, SPA ingestion, browse_web)
+  # The server image carries no Chromium. This sidecar is the Playwright server
+  # it drives over BROWSER_WS_ENDPOINT, so none of that needs the Docker socket.
+  # Playwright's launchServer has no authentication, so the sidecar sits on its
+  # OWN network shared only with the server (never beeflow-network, where the
+  # database, object storage and the guard live), publishes no port, and serves
+  # at the path in BROWSER_WS_PATH (selfhost.sh generates a random one; set your
+  # own when you deploy this file by hand). The network is not `internal`:
+  # browse_web and SPA ingestion load public pages. The runner's Playwright must
+  # match the server's (scripts/check-playwright-lockstep.mjs). pwt-runner is
+  # not mirrored to Docker Hub, so this one image comes from ghcr.io (a registry
+  # allow-list must admit ghcr.io/bee-flow/pwt-runner too), and Docker Hub's
+  # version tags do not exist there. With TAG=latest the two :latest images move
+  # together. When you PIN TAG to a version, pin BROWSER_IMAGE as well, to
+  # ghcr.io/bee-flow/pwt-runner:sha-<commit> of that same release, or a later
+  # runner's Playwright refuses the older server (HTTP 428, PDF export stops).
+  browser:
+    image: ${BROWSER_IMAGE:-ghcr.io/bee-flow/pwt-runner:latest}
+    container_name: beeflow-browser
+    command: serve
+    environment:
+      - PWT_SERVE_HOST=0.0.0.0
+      - PWT_SERVE_PORT=9222
+      - PWT_SERVE_WS_PATH=${BROWSER_WS_PATH:-beeflow-browser}
+    shm_size: 256m
+    mem_limit: ${BROWSER_MEMORY_LIMIT:-1g}
+    pids_limit: 512
+    init: true
+    security_opt: [ "no-new-privileges:true" ]
+    networks:
+      - beeflow-browser-network
+    restart: unless-stopped
 
   # ── Web interface ──────────────────────────────────────────────
   # This is the one users open, and the only container that needs to be
@@ -212,6 +250,9 @@ services:
 
 networks:
   beeflow-network:
+    driver: bridge
+  # Only the server and the browser sidecar. See the `browser` service.
+  beeflow-browser-network:
     driver: bridge
 
 volumes:

@@ -87,7 +87,6 @@ Set **at least one**. Agents pick whichever is configured for their model.
 | `MISTRAL_API_KEY` | Mistral | Hosted Mistral. |
 | `AZURE_OPENAI_ENDPOINT` | Azure OpenAI | E.g. `https://my-aoai.openai.azure.com`. |
 | `AZURE_OPENAI_KEY` | Azure OpenAI | API key. |
-| `AZURE_OPENAI_API_VERSION` | `2024-08-01-preview` | API version string. |
 | `AZURE_OPENAI_DEPLOYMENT_GPT4` | (deployment name) | Maps the GPT-4 model alias to your deployment. |
 | `AZURE_OPENAI_DEPLOYMENT_EMBED` | (deployment name) | For Azure-hosted embeddings. |
 | `VOXTRAL_API_KEY` | Voxtral | Voice (STT + TTS). |

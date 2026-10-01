@@ -125,3 +125,40 @@ describe('resolveUserPermissionsForAudit', () => {
         assert.notDeepEqual(naive, safe, 'if these ever agree, the trap defence has been removed');
     });
 });
+
+// A capability granted to a group can carry its UI permission along
+// (GROUP_GRANT_IMPLIED_PERMISSIONS). Meeting Notes is rolled out per group from
+// the Access matrix, and the default `member` role has no use_meeting_notes, so
+// without this the members it was granted to never saw the Studio section.
+describe('a group capability grant implies its UI permission', () => {
+    function seedGroups() {
+        fx.users = {
+            scribe: { id: 'scribe', role: 'user', orgRole: 'member', groups: ['g-meet'], organizationId: 'orgA' },
+            bystander: { id: 'bystander', role: 'user', orgRole: 'member', groups: ['g-other'], organizationId: 'orgA' },
+        };
+        fx.groups = [
+            { id: 'g-meet', organizationId: 'orgA', granted_capabilities: ['meeting_notes'] },
+            { id: 'g-other', organizationId: 'orgA', granted_capabilities: ['gmail'] },
+        ];
+        fx.roles = [];
+        for (const id of Object.keys(fx.users)) {
+            try { invalidatePermissionCache(id); } catch (_) { /* best effort */ }
+        }
+    }
+
+    test('the map names meeting_notes → use_meeting_notes', () => {
+        assert.deepEqual([...permissions.GROUP_GRANT_IMPLIED_PERMISSIONS.meeting_notes], ['use_meeting_notes']);
+    });
+
+    test('a member of a group granted meeting_notes holds use_meeting_notes', async () => {
+        seedGroups();
+        const perms = await resolveUserPermissionsForAudit('scribe');
+        assert.ok(perms.includes('use_meeting_notes'), `got ${JSON.stringify(perms)}`);
+    });
+
+    test('a member whose groups grant something else does not', async () => {
+        seedGroups();
+        const perms = await resolveUserPermissionsForAudit('bystander');
+        assert.ok(!perms.includes('use_meeting_notes'), `got ${JSON.stringify(perms)}`);
+    });
+});

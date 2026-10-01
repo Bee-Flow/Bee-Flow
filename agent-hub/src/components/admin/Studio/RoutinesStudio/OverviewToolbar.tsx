@@ -45,6 +45,10 @@ export interface OverviewToolbarProps {
     trigger: string;
     onTrigger: (next: string) => void;
     triggerOptions: PillOption[];
+    /** Folder pills — only when the library HAS folders to filter by. */
+    folder?: string;
+    onFolder?: (next: string) => void;
+    folderOptions?: PillOption[];
     narrowed: boolean;
     onClear: () => void;
     view: string;
@@ -55,6 +59,7 @@ export interface OverviewToolbarProps {
     onGroup: (next: string) => void;
     onCreate?: (() => void) | null;
     onCreateBlock?: (() => void) | null;
+    onCreateFolder?: (() => void) | null;
     canCreate?: boolean;
 }
 
@@ -64,8 +69,12 @@ export interface OverviewToolbarProps {
  * ultrawide screen Sort and New stay above the table they act on.
  */
 export default function OverviewToolbar(props: OverviewToolbarProps) {
-    const { hasRows, view, sort, groupBy, onCreate, onCreateBlock, canCreate = true } = props;
+    const { hasRows, view, sort, groupBy, onCreate, onCreateBlock, onCreateFolder, canCreate = true } = props;
     const showTriggers = props.triggerOptions.length > 2;
+    // Like the trigger row: a folder nobody made is not a filter worth offering.
+    const showFolders = (props.folderOptions?.length ?? 0) > 1 && !!props.onFolder;
+    const folderValue = props.folder ?? 'all';
+    const onFolder = props.onFolder ?? (() => {});
     return (
         <div className="flex-shrink-0 border-b border-[var(--border-default)]">
             <div className="mx-auto max-w-[110rem] flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2 min-h-[3rem]">
@@ -84,6 +93,12 @@ export default function OverviewToolbar(props: OverviewToolbarProps) {
                                     <FilterPills value={props.trigger} onChange={props.onTrigger} options={props.triggerOptions} ariaLabel="Filter by trigger" testId="automations-overview-trigger" />
                                 </>
                             )}
+                            {showFolders && (
+                                <>
+                                    <span aria-hidden="true" className="w-px h-4 bg-[var(--border-default)]" />
+                                    <FilterPills value={folderValue} onChange={onFolder} options={props.folderOptions} ariaLabel="Filter by folder" testId="automations-overview-folder" />
+                                </>
+                            )}
                             {props.narrowed && (
                                 <button
                                     type="button"
@@ -95,7 +110,7 @@ export default function OverviewToolbar(props: OverviewToolbarProps) {
                             )}
                         </div>
                         <div className="@[84rem]/overview:hidden">
-                            <FilterMenu {...props} showTriggers={showTriggers} />
+                            <FilterMenu {...props} showTriggers={showTriggers} showFolders={showFolders} />
                         </div>
                     </>
                 ) : (
@@ -130,7 +145,7 @@ export default function OverviewToolbar(props: OverviewToolbarProps) {
                     {/* The same split + as the sidebar: the main part makes an
                         automation, the chevron also offers a building block. */}
                     {onCreate && canCreate && (
-                        <CreateMenuButton variant="label" onCreateAutomation={onCreate} onCreateBlock={onCreateBlock} testId="overview-create" />
+                        <CreateMenuButton variant="label" onCreateAutomation={onCreate} onCreateBlock={onCreateBlock} onCreateFolder={onCreateFolder} testId="overview-create" />
                     )}
                 </div>
             </div>
@@ -142,14 +157,23 @@ export default function OverviewToolbar(props: OverviewToolbarProps) {
  * The folded pills: one "Filter" button (it names what is narrowed, "Filter:
  * Live · Schedule") opening a small panel with the same two pill rows.
  */
-function FilterMenu({ state, onState, stateOptions, trigger, onTrigger, triggerOptions, narrowed, onClear, showTriggers }: OverviewToolbarProps & { showTriggers: boolean }) {
+/** What the folded button names: the labels of the narrowed filters. */
+function pickedLabels({ state, stateOptions, trigger, triggerOptions, folder, folderOptions }: Pick<OverviewToolbarProps, 'state' | 'stateOptions' | 'trigger' | 'triggerOptions' | 'folder' | 'folderOptions'>) {
+    return [
+        state !== 'all' ? stateOptions.find(o => o.value === state)?.label : null,
+        trigger !== 'all' ? triggerOptions.find(o => o.value === trigger)?.label : null,
+        folder && folder !== 'all' ? folderOptions?.find(o => o.value === folder)?.label : null,
+    ].filter(Boolean);
+}
+
+function FilterMenu({ state, onState, stateOptions, trigger, onTrigger, triggerOptions, folder, onFolder, folderOptions, narrowed, onClear, showTriggers, showFolders }: OverviewToolbarProps & { showTriggers: boolean; showFolders: boolean }) {
     const { t } = useTranslation();
     const [open, setOpen] = useState(false);
     const anchorRef = useRef<HTMLButtonElement | null>(null);
-    const picked = [
-        state !== 'all' ? stateOptions.find(o => o.value === state)?.label : null,
-        trigger !== 'all' ? triggerOptions.find(o => o.value === trigger)?.label : null,
-    ].filter(Boolean);
+    // Only read when showFolders (the parent includes onFolder in that flag).
+    const folderValue = folder ?? 'all';
+    const onFolderSafe = onFolder ?? (() => {});
+    const picked = pickedLabels({ state, stateOptions, trigger, triggerOptions, folder, folderOptions });
     const filter = t('routines.overview.filter', 'Filter');
     const heading = 'text-[10px] uppercase tracking-[.08em] font-semibold text-[var(--text-tertiary)]';
     return (
@@ -192,7 +216,12 @@ function FilterMenu({ state, onState, stateOptions, trigger, onTrigger, triggerO
                         <FilterPills value={trigger} onChange={onTrigger} options={triggerOptions} ariaLabel="Filter by trigger" />
                     </div>
                 )}
-                {narrowed && (
+                {showFolders && (
+                    <div className="flex flex-col gap-1.5">
+                        <span className={heading}>{t('routines.overview.filterFolder', 'Folder')}</span>
+                        <FilterPills value={folderValue} onChange={onFolderSafe} options={folderOptions} ariaLabel="Filter by folder" />
+                    </div>
+                )}                {narrowed && (
                     <button
                         type="button"
                         onClick={() => { onClear(); setOpen(false); }}

@@ -177,10 +177,57 @@ function buildCursor({ entries, trunc, trackValues, now }) {
     return serialized;
 }
 
-function buildPayload(item, src, { before, projected, reason, itemId }) {
+/**
+ * The spec an event declares is the DEFAULT. A `contentWatch` block swaps in a
+ * different tool/shape the moment the subscription's filter names the thing to
+ * watch — a picked spreadsheet, for example, switches google-sheets from "the
+ * file's modifiedTime moved" to diffing the sheet's actual rows. Source
+ * arguments are otherwise static in v1, and this is the deliberate exception:
+ * the variant's args are derived from the subscriber's own filter, not from
+ * anything another tenant controls.
+ *
+ * contentWatch = {
+ *   when: '<filter key>',            // the variant engages only when this is set
+ *   tool, itemsPath, idPath, ...     // same fields as a source spec; each one
+ *                                    // overrides its base-spec counterpart
+ *   argsFromFilter: { arg: key },    // generic interpolation from the filter…
+ *   buildArgs: (filter) => args,     // …or full control (takes precedence)
+ *   emitFromFilter: { field: key },  // echo filter values onto every payload
+ * }
+ */
+function resolveEffectiveSource(src, filter) {
+    const cw = src?.contentWatch;
+    if (!cw || typeof cw !== 'object') return src;
+    const want = cw.when ? filter?.[cw.when] : null;
+    if (want === undefined || want === null || want === '') return src;
+    const {
+        when: _when, argsFromFilter, buildArgs, emitFromFilter, ...overrides
+    } = cw;
+    let args = typeof buildArgs === 'function' ? buildArgs(filter) : { ...(cw.args || {}) };
+    if (typeof buildArgs !== 'function') {
+        for (const [argName, filterKey] of Object.entries(argsFromFilter || {})) {
+            const v = filter?.[filterKey];
+            if (v !== undefined && v !== null && v !== '') args[argName] = v;
+        }
+    }
+    const effective = { ...src, ...overrides, args };
+    delete effective.contentWatch;
+    if (emitFromFilter && typeof emitFromFilter === 'object') effective._emitFromFilter = emitFromFilter;
+    return effective;
+}
+
+function buildPayload(item, src, { before, projected, reason, itemId, filter }) {
     const payload = {};
     for (const [target, path] of Object.entries(src.emit.map || {})) {
-        payload[target] = walkRelativePath(path, item);
+        // '$index' names the item's own position — the identity of a row in a
+        // watched range, which carries no id of its own.
+        payload[target] = path === '$index' ? itemId : walkRelativePath(path, item);
+    }
+    if (src._emitFromFilter) {
+        for (const [target, filterKey] of Object.entries(src._emitFromFilter)) {
+            const v = filter?.[filterKey];
+            if (v !== undefined && v !== null && v !== '') payload[target] = v;
+        }
     }
     if (src.auto) {
         // Nobody declared this shape, so hand the whole item over and let the
@@ -308,7 +355,7 @@ async function userHasIntegration(userId, capabilityId, passCtx) {
  * Returns { events, skipped } — `skipped` is a reason string when no poll ran.
  */
 async function runPollDiff(sub, eventDef, passCtx, deps = {}) {
-    const src = eventDef.source;
+    const src = resolveEffectiveSource(eventDef.source, sub.filter);
     const store = deps.automationStore || require('../../stores/automationStore');
     const now = Date.now();
 
@@ -349,8 +396,11 @@ async function runPollDiff(sub, eventDef, passCtx, deps = {}) {
     const emitted = [];
     const seenIds = new Set();
 
-    for (const item of items) {
-        const rawId = walkRelativePath(shape.idPath, item);
+    for (let index = 0; index < items.length; index += 1) {
+        const item = items[index];
+        // '$index' identities belong to the position itself — a watched range
+        // diffing plain row arrays has no per-row id to key on.
+        const rawId = shape.idPath === '$index' ? index : walkRelativePath(shape.idPath, item);
         if (rawId == null || rawId === '') continue;      // unidentifiable ⇒ cannot diff
         const id12 = h(String(rawId), ID_HASH_LEN);
         seenIds.add(id12);
@@ -368,7 +418,7 @@ async function runPollDiff(sub, eventDef, passCtx, deps = {}) {
 
         if (fires && emitted.length < maxPerTick) {
             emitted.push(buildPayload(item, src, {
-                before, projected, itemId: rawId, reason: isNew ? 'appeared' : 'changed',
+                before, projected, itemId: rawId, reason: isNew ? 'appeared' : 'changed', filter: sub.filter,
             }));
             entries.push({ id12, chg12, vals: src.trackValues ? projected : undefined });
         } else if (fires) {
@@ -413,5 +463,5 @@ module.exports = {
     // Exported rather than duplicated so both stay on one candidate list.
     ID_CANDIDATES,
     // exported for tests
-    _internals: { parseCursor, buildCursor, projectChangePaths, canonical, normaliseToolResult, MAX_CURSOR_BYTES },
+    _internals: { parseCursor, buildCursor, projectChangePaths, canonical, normaliseToolResult, resolveEffectiveSource, MAX_CURSOR_BYTES },
 };
