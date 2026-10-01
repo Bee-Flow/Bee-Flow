@@ -9,8 +9,7 @@
 import { useMemo } from 'react';
 import { Table2 } from 'lucide-react';
 import FieldKeyCombobox from '../../mapping/FieldKeyCombobox';
-import ValueBuilder from '../../mapping/ValueBuilder';
-import { isScalarKind } from '../../mapping/fieldKinds';
+import ValueSlot from '../../valueSlot/ValueSlot';
 import { columnTypeKind, opTakesList, opTakesNoValue } from '../../../../admin/Studio/Datatables/datatableDisplay';
 import AccordionSection from '../AccordionSection';
 import { RetrySection, retryIsSet } from './collectionEditors';
@@ -267,7 +266,7 @@ export default function DatatableFields({
                                     their own — opTakesNoValue is the shared answer
                                     to "does this operator still want a value?". */}
                                 {!opTakesNoValue(w?.op) && (
-                                    <ValueBuilder
+                                    <ValueSlot
                                         value={w?.value}
                                         onChange={(v) => setWhere(where.map((x, j) => (j === i ? { ...x, value: v } : x)))}
                                         label="Value"
@@ -290,8 +289,7 @@ export default function DatatableFields({
                                         // not ask "this wants one value, what did you
                                         // mean?" about it, a question the author cannot
                                         // answer without making the filter wrong.
-                                        expectShape={opTakesList(w?.op) ? 'list' : 'scalar'}
-                                        expectKind={opTakesList(w?.op) ? null : columnTypeKind(colType)}
+                                        expectKind={opTakesList(w?.op) ? 'list' : (columnTypeKind(colType) || 'text')}
                                     />
                                 )}
                             </div>
@@ -374,8 +372,10 @@ export default function DatatableFields({
                                 // "[object Object]".
                                 const kind = columnTypeKind(c.type);
                                 return (
-                                    <ValueBuilder
+                                    <ValueSlot
                                         key={c.key}
+                                        fieldId={c.key}
+                                        field={c.key}
                                         value={values[c.key]}
                                         onChange={(v) => set('values', { ...values, [c.key]: v })}
                                         label={c.name || c.key}
@@ -383,7 +383,6 @@ export default function DatatableFields({
                                         placeholder={`leave empty to skip ${c.name || c.key}`}
                                         onFocusField={onFocusField}
                                         previewSample={previewSample}
-                                        expectShape={kind === 'list' ? 'list' : (isScalarKind(kind) ? 'scalar' : 'unknown')}
                                         expectKind={kind}
                                     />
                                 );

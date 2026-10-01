@@ -30,22 +30,13 @@ export function isTruncatedOutput(v) {
 }
 
 /**
- * Overlay real output onto a design-time sample, key by key. Real data wins;
- * a real scalar/array replaces the sample subtree wholesale (a real Gmail
- * `results` array is the truth, not a merge candidate). Sample keys the real
- * output lacks survive — a describer may know fields a particular run didn't
- * happen to produce.
- *
- * (Moved verbatim from NodeDetailView so the whole builder shares one
- * definition of "real wins".)
+ * Overlay real output onto a design-time sample, key by key: real data wins,
+ * a real scalar/array replaces the sample subtree wholesale, and sample keys
+ * the real output lacks survive (the core's overlayReal marks them
+ * unconfirmed). One definition, in the shared mapping core, for the whole
+ * builder, the phone and the upstream describers.
  */
-export function deepOverlay(base, real) {
-    if (real === null || typeof real !== 'object' || Array.isArray(real)) return real;
-    if (base === null || typeof base !== 'object' || Array.isArray(base)) return real;
-    const out = { ...base };
-    for (const k of Object.keys(real)) out[k] = (k in base) ? deepOverlay(base[k], real[k]) : real[k];
-    return out;
-}
+export { deepOverlay } from '@shared/mapping/index.mjs';
 
 /**
  * The freshest real output per node id.

@@ -1,6 +1,7 @@
 import { ChevronDown, FunctionSquare, Search } from 'lucide-react';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { onBindingDragOver, getBindingDropPath } from './bindingDnd';
+import { columnKeyOf } from './keyPath';
 import { humanizeFieldKey } from '../flow/displayHelpers';
 import { previewValue } from '../../../../utils/bindingHelpers';
 import { denseInputClass } from '../flow/settings/formStyles';
@@ -45,7 +46,7 @@ export default function FieldPicker({
 
     const path = value?.kind === 'ref' ? String(value.path || '') : '';
     const current = useMemo(() => options.find(o => o.path === path) || null, [options, path]);
-    const currentLabel = current?.label || (path ? humanizeFieldKey(lastSegment(path)) : '');
+    const currentLabel = current?.label || (path ? humanizeFieldKey(columnKeyOf(path)) : '');
     const currentSample = current?.sample;
 
     const emit = (nextPath) => {
@@ -164,7 +165,7 @@ export default function FieldPicker({
                                     }}
                                     className={`w-full flex items-center gap-2 px-2 py-1.5 text-left text-xs hover:bg-[var(--bg-secondary)] ${o.path === path ? 'bg-[var(--bg-secondary)]' : ''}`}
                                 >
-                                    <span className="truncate text-[var(--text-primary)]">{o.label || humanizeFieldKey(lastSegment(o.path))}</span>
+                                    <span className="truncate text-[var(--text-primary)]">{o.label || humanizeFieldKey(columnKeyOf(o.path))}</span>
                                     {o.sample !== undefined && o.sample !== null && (
                                         <span className="ml-auto shrink-0 max-w-[45%] truncate text-[10px] text-[var(--text-tertiary)]">
                                             {previewValue(o.sample, 24)}
@@ -196,10 +197,4 @@ export default function FieldPicker({
             </AnchoredMenu>
         </div>
     );
-}
-
-/** `steps.g1.output.results[*].subject` → `subject`. */
-function lastSegment(path) {
-    const cleaned = String(path || '').replace(/\[(?:\*|\d+)\]/g, '');
-    return cleaned.split('.').filter(Boolean).pop() || '';
 }

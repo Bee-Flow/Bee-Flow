@@ -55,3 +55,20 @@ export { stopForEach, renameItemVar } from './repeat.mjs';
 export {
     normalizeKey, sampleType, isSecretLikeKey, typeFits, idAffinityBase, matchInputs,
 } from './match.mjs';
+
+// ── Sources (M3): fields, labels and upstream discovery as SourceNodes ──
+export {
+    MAX_DEPTH, fieldsFromSample, textChildren, sampleFromSchema, overlayReal, deepOverlay, hasPath,
+    previewOf, isPlaceholder,
+} from './fields.mjs';
+export { humanizeKey, labelParts, labelText } from './label.mjs';
+export {
+    collectUpstream, computeUpstreamGroups, computeLoopBodyGroups, buildToolOutputMap, wrapGroupForEach,
+    describeNode, describeNodeIn, describeLoopBody, DESCRIBED_TYPES,
+    seg, sampleToFields, resolveElementSample, elementFieldOptions, collectArrayPaths, samplePlaceholderFor,
+    overlayGroupWithReal, triggerMetaSample, describeTriggerMeta, inferLoopItemSample, suggestItemVar,
+    pickSample, leadSkillId, DEFAULT_ENV, resolveEnv,
+} from './upstream/index.mjs';
+// A legacy binding shown as a pick (liftLegacy; null means "Formula"), and a
+// pick written for the places that only hold the legacy spelling (lowerPick).
+export { liftLegacy, legacyPathOf, lowerPick } from './upgrade.mjs';

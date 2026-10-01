@@ -3,14 +3,17 @@ import {
     Zap, Sparkles, Blocks, GitFork, Repeat, FileText, ClipboardList, ShieldCheck, Flag, Workflow,
     type LucideIcon,
 } from 'lucide-react';
-import { useState, type ComponentType } from 'react';
+import { useState } from 'react';
+import { startPathDrag } from './bindingDnd';
 import { pathInUse } from './boundPaths';
 import { planIncomingFields, technicalPreview } from './incomingFields';
-import { FieldRow as FieldRowJs, startPathDrag } from './VariableTree';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { walkPath } from '../../../../utils/bindingHelpers';
 import { summariseData } from '../flow/dataSummary';
 import { familyVarClass } from '../ndv/familyVar';
+import type { PickOpts } from '../output/mapAttrs';
+import SourceNode from '../sources/SourceNode';
+import type { TreeGroup, TreeNode } from '../sources/useSourceTree';
 
 /**
  * One source step in the Comes-in column (round 4, artboard 4a/4c): a
@@ -24,11 +27,7 @@ const FAMILY_ICON: Record<string, LucideIcon> = {
     data: FileText, pause: ClipboardList, guard: ShieldCheck, end: Flag,
 };
 
-// Untyped JS row; its props are checked there.
-const FieldRow = FieldRowJs as unknown as ComponentType<Record<string, unknown>>;
-
-interface Field { key: string; path: string; sample?: unknown; children?: Field[] }
-export interface InputGroup { id: string; label: string; kind?: string; basePath: string; sample?: unknown; fields?: Field[] }
+export type InputGroup = TreeGroup;
 
 export default function InputNodeSection({
     group, family, number, used, usedPaths, previewSample, onPick, defaultOpen, onOpenTable,
@@ -40,7 +39,7 @@ export default function InputNodeSection({
     used: number;
     usedPaths: Set<string> | null;
     previewSample: unknown;
-    onPick: (path: string, opts?: { raw?: boolean }) => void;
+    onPick: (path: string, opts?: PickOpts) => void;
     defaultOpen: boolean;
     onOpenTable: () => void;
     iteration?: { index: number; total: number; truncated?: boolean; skipped?: number } | null;
@@ -70,8 +69,8 @@ export default function InputNodeSection({
         ...(used > 0 ? [t('routines.mapping.in_use', '{n} in use', { n: used })] : []),
     ].join(' · ');
     const capped = !!(iteration?.truncated && (iteration.skipped || 0) > 0);
-    const row = (f: Field) => (
-        <FieldRow key={f.path} field={f} onInsert={onPick} depth={0} previewSample={previewSample} inUse={usedPaths} human />
+    const row = (f: TreeNode) => (
+        <SourceNode key={f.path || f.key} node={f} onInsert={onPick} depth={0} previewSample={previewSample} usedPaths={usedPaths} human />
     );
 
     return (

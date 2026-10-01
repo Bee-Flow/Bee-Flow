@@ -1,14 +1,12 @@
 import { Trash2 } from 'lucide-react';
-import { useEffect, useRef, useState, type ComponentType } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { suggestKeyFromPath } from '../../../../../utils/bindingHelpers';
 import { rowInputClass, cardClass, subLabelClass } from '../../flow/settings/formStyles';
-import BindingFieldJs from '../BindingField';
+import ValueSlot from '../../valueSlot/ValueSlot';
+import type { FieldHandle } from '../../valueSlot/fieldHandle';
+import BindingField from '../BindingField';
 import { onBindingDragOver, getBindingDropPath } from '../bindingDnd';
-import ValueBuilderJs from '../ValueBuilder';
 
-// The two value editors are untyped JS; their props are checked there.
-const BindingField = BindingFieldJs as unknown as ComponentType<Record<string, unknown>>;
-const ValueBuilder = ValueBuilderJs as unknown as ComponentType<Record<string, unknown>>;
 const toKey = suggestKeyFromPath as (path: string) => string;
 const dropPath = getBindingDropPath as (e: unknown) => string | null;
 const rowInput = rowInputClass as (extra?: string, opts?: { invalid?: boolean }) => string;
@@ -97,8 +95,8 @@ export interface GenericRowProps {
     onRename: (key: string) => void;
     onAdoptPath?: ((path: string, suggested: string) => void) | null;
     onRemove: () => void;
-    onFocusField?: unknown;
-    previewSample?: unknown;
+    onFocusField?: ((handle: FieldHandle) => void) | null;
+    previewSample?: object | null;
     autoMapped?: boolean;
     visual?: boolean;
     nameLabel?: string | null;
@@ -150,7 +148,7 @@ export default function GenericRow({
             <div>
                 {valueLabel && slotLabel(valueLabel)}
                 {visual ? (
-                    <ValueBuilder
+                    <ValueSlot
                         value={value}
                         onChange={onChange}
                         placeholder={valuePlaceholder}
@@ -158,6 +156,8 @@ export default function GenericRow({
                         previewSample={previewSample}
                         allowRaw={allowRaw}
                         label={fieldKey}
+                        fieldId={fieldKey}
+                        field={fieldKey}
                     />
                 ) : (
                     <BindingField

@@ -1,15 +1,18 @@
 /**
  * DIFFERENTIAL lockstep: agent-hub `Builder/mapping/valueParts.js` and
  * `refTokens.js` beside their ports. When this fails the web side changed —
- * update the port, don't loosen the test.
+ * update the port, don't loosen the test. valueParts.js left agent-hub with
+ * M4 (the shared mapping core replaced it): its answers are the recorded ones
+ * (testing/frozenWeb.ts).
  */
 
 import * as rt from './refTokens';
+import { frozenWeb } from './testing/frozenWeb';
 import { BUILDER, requireWeb, webValue } from './testing/web';
 import * as vp from './valueParts';
 import * as vt from './valueTransforms';
 
-const webVp = requireWeb(`${BUILDER}/mapping/valueParts.js`);
+const webVp = frozenWeb('valueParts', `${BUILDER}/mapping/valueParts.js`);
 const webRt = requireWeb(`${BUILDER}/mapping/refTokens.js`);
 
 const BINDINGS: unknown[] = [
@@ -103,6 +106,9 @@ describe('refTokens', () => {
         'mysteps.x.output', 'vars.trigger', 'x.loop.y', 'loop.item.name + loop.row', 'trigger', 'trigger.output',
         'Hi {{steps.a.output.name}}, see {{ trigger.output.link }} and {{ lower(x) }}',
         '{{loop.item}}', '{{unknown.path}}', 'steps.a.output[*].x', 'steps.a.output.results[0].id', null, 42,
+        'steps.x.output["content-type"]', '{{trigger.output["x-id"]}}', 'item.amount > vars.limit', '{{ item["a b"] }}',
+        'trigger.subject', 'trigger.firedAt', 'steps.x.output["unclosed', 'item', 'vars',
+        'count(items)', 'itemCount + 1', 'subject == "3 items left"', "contains(x, 'an item') && item.a",
     ];
 
     it.each(TEXTS)('parseRefTokens(%p)', (text) => {
@@ -116,7 +122,7 @@ describe('refTokens', () => {
     });
 
     it('classifies and names refs', () => {
-        for (const p of ['steps.a.output.x', 'loop.row.y', 'trigger.output.z', 'trigger', 'nope', 5]) {
+        for (const p of ['steps.a.output.x', 'loop.row.y', 'trigger.output.z', 'trigger', 'nope', 5, 'item.a', 'vars.b', 'trigger.subject', 'steps.a.output["b c"]']) {
             expect(rt.classifyRef(p)).toStrictEqual(webRt.classifyRef?.(p));
         }
         const labels = new Map([['a', 'Search']]);
@@ -124,6 +130,7 @@ describe('refTokens', () => {
             { source: 'steps', stepId: 'a', fieldPath: 'x' }, { source: 'steps', stepId: 'gone', fieldPath: '' },
             { source: 'trigger', fieldPath: 'y' }, { source: 'loop', itemVar: 'row', fieldPath: '' },
             { source: 'loop', fieldPath: 'z' }, { source: 'other', path: 'p' }, null,
+            { source: 'trigger', fieldPath: 'subject', noOutput: true }, { source: 'item', fieldPath: 'a' }, { source: 'vars', fieldPath: '' },
         ] as const;
         for (const tok of tokens) {
             expect(rt.resolveChipLabel(tok as never, labels)).toStrictEqual(webRt.resolveChipLabel?.(tok, labels));

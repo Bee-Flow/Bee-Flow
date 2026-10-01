@@ -198,7 +198,7 @@ jobs:
               - 'server/routes/webpages/*'
               - 'server/services/{ncUserGroupSync.js,stripeService.js}'
               - 'server/shared/expr/*'
-              - 'server/shared/mapping/*'
+              - 'server/shared/mapping/**'
               - 'server/stores/*'
               - 'server/stores/agent/sharedConversations.js'
               - 'server/stores/automationStore/{folders.js,forms.js,lifecycle.js,runs.js,versions.js,webhooks.js}'
@@ -287,7 +287,8 @@ jobs:
               # agent-hub files the flow editor's and expr's lockstep tests
               # require(), and what those require in turn (serverClosure.test.ts)
               - 'agent-hub/src/components/automation/Builder/{applyAddNode,notificationDefaults}.js'
-              - 'agent-hub/src/components/automation/Builder/{flow,mapping,utils}/**'
+              - 'agent-hub/src/components/automation/Builder/{flow,mapping,sources,utils}/**'
+              - 'agent-hub/src/components/automation/Builder/output/mapAttrs.ts'
               - 'agent-hub/src/components/agents/AgentWizard/state/refineMerge.js'
               - 'agent-hub/src/shared/expr/**'
               - 'agent-hub/src/shared/mapping/**'

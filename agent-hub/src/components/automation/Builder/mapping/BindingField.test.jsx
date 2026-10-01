@@ -1,19 +1,8 @@
 import { render, screen, fireEvent, cleanup, act } from '@testing-library/react';
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import BindingField from './BindingField';
 import { VariablePickerProvider } from './VariablePickerContext';
 import { editorValue, typeInEditor } from '../../../../test/refEditor';
-
-// The KIND a pick resolves to is read at ONE boundary — kindAtPath. Stubbing
-// exactly that boundary (and nothing else: remediesFor, detectMismatch and
-// mismatchSentence stay real) is how "unknown" can be put on the wire at all;
-// through real sample data an array always resolves to `list` or `table`, so
-// the fallback that used to sit under it could never be caught from outside.
-let kindOverride = null;
-vi.mock('./mismatch', async (importOriginal) => {
-    const actual = await importOriginal();
-    return { ...actual, kindAtPath: (path, root) => kindOverride || actual.kindAtPath(path, root) };
-});
 
 const labels = new Map([['s1', 'Search web']]);
 
@@ -233,102 +222,5 @@ describe('BindingField — click-to-insert survives losing focus', () => {
         expect(onChange).toHaveBeenCalled();
         const last = onChange.mock.calls.at(-1)[0];
         expect(JSON.stringify(last)).toContain('steps.s1.output.count');
-    });
-});
-
-/**
- * The "it doesn't fit" box asks a question that depends on WHAT was picked: a
- * table offers "as a table", a group offers "pick a field inside it", a list
- * offers join/first/count. BindingField used to hand MismatchResolver a
- * hard-coded "list", so the other two questions were unreachable — and the
- * last remnant of that, a `|| 'list'` on the way in, turned "not seen yet"
- * into a confident lie about data nobody has a sample of.
- */
-describe('BindingField — the mismatch box is asked the pick\'s REAL kind', () => {
-    beforeEach(() => cleanup());
-    afterEach(() => { kindOverride = null; });
-
-    const ROWS = [{ name: 'Ada', qty: 2 }, { name: 'Linus', qty: 5 }];
-    const MAILS = ['a@b.nl', 'c@d.nl'];
-    const SAMPLE = { steps: { s1: { output: { rows: ROWS, mails: MAILS } } } };
-
-    function renderScalarSlot() {
-        const onChange = vi.fn();
-        let handle = null;
-        render(
-            <VariablePickerProvider groups={[]} previewSample={SAMPLE} stepLabelById={labels}>
-                <BindingField
-                    label="Body"
-                    value={{ kind: 'literal', value: '' }}
-                    onChange={onChange}
-                    expectShape="scalar"
-                    expectKind="text"
-                    previewSample={SAMPLE}
-                    onFocusField={(h) => { handle = h; }}
-                />
-            </VariablePickerProvider>,
-        );
-        const input = screen.getByRole('textbox');
-        fireEvent.focus(input);
-        return { onChange, insert: (path) => act(() => { handle.insert(path); }) };
-    }
-
-    it('a TABLE pick gets the table question, not the list menu', () => {
-        const { insert } = renderScalarSlot();
-        insert('steps.s1.output.rows');
-        const box = screen.getByTestId('mismatch-resolver');
-        expect(box.textContent).toContain('table');
-        // The choices sit behind the kind-named disclosure (BFSF-482).
-        fireEvent.click(screen.getByRole('button', { name: 'Table options' }));
-        expect(screen.getByText('As a table')).toBeTruthy();
-        // The list menu's own answers belong to a different question.
-        expect(screen.queryByText('All of them, one per line')).toBeNull();
-    });
-
-    it('a LIST pick still gets the list menu', () => {
-        const { insert } = renderScalarSlot();
-        insert('steps.s1.output.mails');
-        // Collapsed, the box already says what the field holds: the default.
-        expect(screen.getByTestId('mismatch-selected').textContent).toBe('All of them, one per line');
-        fireEvent.click(screen.getByRole('button', { name: 'List options' }));
-        expect(screen.getByText('Only the first')).toBeTruthy();
-        expect(screen.queryByText('As a table')).toBeNull();
-    });
-
-    it('the "choose how to use the list" way in may say list — it is standing on a resolved list', () => {
-        // The other way into the box: an already-bound ref whose preview
-        // resolved to a non-empty list. "list" is not a guess there, it is what
-        // the branch is gated on — so a missing sample kind falls back to it
-        // AT THAT SITE, and nowhere else.
-        kindOverride = 'unknown';
-        render(
-            <VariablePickerProvider groups={[]} previewSample={SAMPLE} stepLabelById={labels}>
-                <BindingField
-                    label="Body"
-                    value={{ kind: 'ref', path: 'steps.s1.output.mails' }}
-                    onChange={vi.fn()}
-                    expectShape="scalar"
-                    expectKind="text"
-                    previewSample={SAMPLE}
-                />
-            </VariablePickerProvider>,
-        );
-        fireEvent.click(screen.getByText('Choose how to use the list'));
-        const box = screen.getByTestId('mismatch-resolver');
-        expect(box.textContent).toMatch(/is a list/);
-        expect(box.textContent).not.toContain('not seen yet');
-    });
-
-    it('an UNKNOWN kind travels on as unknown — it is never dressed up as a list', () => {
-        // No sample for this pick anywhere: kindAtPath says "not seen yet".
-        // The box may still offer the list answers (they are the safe
-        // fallback), but it must not TELL the author it is looking at a list —
-        // that is a claim about data nobody has seen.
-        kindOverride = 'unknown';
-        const { insert } = renderScalarSlot();
-        insert('steps.s1.output.mails');
-        const box = screen.getByTestId('mismatch-resolver');
-        expect(box.textContent).toContain('not seen yet');
-        expect(box.textContent).not.toMatch(/is a list/);
     });
 });

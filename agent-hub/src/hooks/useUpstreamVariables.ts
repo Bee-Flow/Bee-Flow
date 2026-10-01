@@ -1,7 +1,12 @@
 import { useMemo } from 'react';
 import { computeUpstreamGroups } from '../components/automation/Builder/mapping/upstream';
 
-/** One bindable field inside a group, and its children one level down. */
+/**
+ * One bindable field inside a group, and its children: the parts of the
+ * core's SourceNode (`@shared/mapping`) the builder's string-based editors
+ * read. Group fields always carry a legacy path; only a value read from a
+ * JSON string has none, and those are never in a group's field list.
+ */
 export interface UpstreamField {
     key: string;
     path: string;
@@ -9,7 +14,7 @@ export interface UpstreamField {
     children?: UpstreamField[];
 }
 
-/** One upstream node's bindable output, as upstream/groups.js documents it. */
+/** One upstream node's bindable output (core upstream/groups.mjs). */
 export interface UpstreamGroup {
     id: string;
     label: string;
@@ -19,7 +24,7 @@ export interface UpstreamGroup {
     fields: UpstreamField[];
     /**
      * This group's sample was overlaid with a real run or pinned output
-     * (mapping/upstream/realOverlay.js). It is the EVIDENCE flag: a counted
+     * (core upstream/realOverlay.mjs). It is the EVIDENCE flag: a counted
      * claim about incoming data may only be made when it is set, because the
      * sample is otherwise the catalog's curated placeholder.
      */
@@ -29,11 +34,9 @@ export interface UpstreamGroup {
 /** Real run/pinned outputs per step id, from mapping/realOutputs.js. */
 export type RealOutputMap = ReadonlyMap<string, unknown>;
 
-// groups.js is still JavaScript and annotates nothing, so TS reads the
-// `realOutputById = null` default as that parameter's whole type and rejects
-// the Map every caller passes. This states the contract its module header
-// describes; it goes away when that module becomes TypeScript.
-const computeGroups = computeUpstreamGroups as (
+// The core types a field's path as `string | null` (a value read from text has
+// none); group fields always have one, which is the contract stated here.
+const computeGroups = computeUpstreamGroups as unknown as (
     definition: unknown,
     currentStepId: string | null | undefined,
     catalog: unknown,
@@ -42,8 +45,9 @@ const computeGroups = computeUpstreamGroups as (
 
 /**
  * React wrapper around `computeUpstreamGroups` (the pure discovery logic
- * lives in Builder/mapping/upstream.js so the auto-mapper can reuse the
- * exact same candidate set the user sees in the VariableTree).
+ * lives in the shared mapping core, bound in Builder/mapping/upstream.ts, so
+ * the auto-mapper can reuse the exact same candidate set the user sees in
+ * the VariableTree).
  *
  * `realOutputById` (memoized by the caller) folds run/pinned outputs into the
  * groups so pickers show real values.

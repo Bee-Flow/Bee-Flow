@@ -93,7 +93,7 @@ describe('SettingsForm — the "still empty" footer pill', () => {
         // user just filled in.
         renderForm({ id: 's1', type: 'set', label: '', fields: { name: '' } });
         expect(screen.getByTestId('settings-empty-slots').textContent).toBe('1 field still empty');
-        const label = screen.getByDisplayValue('');
+        const label = screen.getByLabelText('Step name');
         fireEvent.change(label, { target: { value: 'Renamed' } });
         // The label is not a declared slot, so the count is unchanged — but the
         // pill re-rendered off the draft rather than going stale or vanishing.

@@ -20,12 +20,22 @@ const VENDOR = path.join(__dirname, 'vendor');
 const ORIGINALS = ['server/shared/mapping', 'agent-hub/src/shared/mapping'];
 
 const isTest = (name: string) => /\.(test|spec)\.[^.]+$/.test(name);
-const sourceFiles = fs.readdirSync(path.join(REPO, ORIGINALS[0] as string)).filter((f) => !isTest(f)).sort();
+
+/** Every non-test file under `dir`, as sorted '/'-separated relative paths (upstream/ included). */
+function listFiles(dir: string, rel = ''): string[] {
+    return fs.readdirSync(path.join(dir, rel), { withFileTypes: true }).flatMap((entry) => {
+        const child = rel ? `${rel}/${entry.name}` : entry.name;
+        if (entry.isDirectory()) return listFiles(dir, child);
+        return entry.isFile() && !isTest(entry.name) ? [child] : [];
+    }).sort();
+}
+
+const sourceFiles = listFiles(path.join(REPO, ORIGINALS[0] as string));
 
 describe('vendor/ is a verbatim copy of the shared mapping core', () => {
     it('holds every file the server has, and nothing else', () => {
-        expect(sourceFiles).toEqual(expect.arrayContaining(['corpus.mjs', 'index.d.mts', 'index.mjs', 'legacy.mjs']));
-        expect(fs.readdirSync(VENDOR).sort()).toEqual(sourceFiles);
+        expect(sourceFiles).toEqual(expect.arrayContaining(['corpus.mjs', 'index.d.mts', 'index.mjs', 'legacy.mjs', 'upstream/index.mjs']));
+        expect(listFiles(VENDOR)).toEqual(sourceFiles);
     });
 
     it.each(ORIGINALS.flatMap((dir) => sourceFiles.map((file) => [dir, file] as const)))('%s/%s', (dir, file) => {

@@ -6,7 +6,6 @@ import { useTranslation } from '../../../../hooks/useTranslation';
 import { listBadgeClass } from '../flow/settings/formStyles';
 import { filterFields } from './filterFields';
 import { startPathDrag } from './bindingDnd';
-import { fieldListShape } from './listShape';
 import { humanizeFieldKey } from '../flow/displayHelpers';
 import { friendlyBasePath } from './VariableTree';
 
@@ -43,6 +42,11 @@ export default function VariablePicker({
     // that path's step — the options you can pick in step 7 — with the
     // current field marked, and one click back to every step.
     focusPath = '',
+    // Take focus into the search box when opened (the {} button: the user is
+    // about to search). Inline autocomplete opens it with false: the author
+    // is typing a word in the field ('tr' of 'true'), and the next keystrokes
+    // belong there, not in the picker's search.
+    autoFocus = true,
 }) {
     const [query, setQuery] = useState('');
     const [hoverField, setHoverField] = useState(null);
@@ -125,7 +129,7 @@ export default function VariablePicker({
                 <Search size={12} className="text-[var(--text-tertiary)]" />
                 <input
                     type="text"
-                    autoFocus
+                    autoFocus={autoFocus}
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder={scoped && focusGroup ? t('routines.picker.search_in', 'Search in {step}…', { step: focusGroup.label }) : 'Search variables…'}
@@ -247,14 +251,17 @@ function PickerLeaf({ field, depth, onPick, onHoverField, previewSample = null, 
     // Announce a list before it is picked, with the TRUE flattened count —
     // `field.sample` for a `[*]` path is the first ELEMENT, so counts read
     // from it were simply wrong.
-    const shape = fieldListShape(field, previewSample);
+    const list = listOf(field, previewSample);
+    // What the field needs to name and shape the value without walking for it again.
+    const about = { source: field.source, labelParts: field.labelParts, shape: field.shape, count: field.count };
+    const pick = (raw) => onPick?.(field.path, { raw, ...about });
 
     const handleClick = (e) => {
         if (hasChildren && e.target.closest('[data-expand-btn]')) {
             setExpanded(o => !o);
             return;
         }
-        onPick?.(field.path, { raw: e.altKey });
+        pick(e.altKey);
     };
 
     return (
@@ -268,7 +275,7 @@ function PickerLeaf({ field, depth, onPick, onHoverField, previewSample = null, 
                 // App Studio never renders, so its drop targets were unreachable
                 // there. One attribute here makes them live in both.
                 draggable
-                onDragStart={(e) => startPathDrag(e, field.path)}
+                onDragStart={(e) => startPathDrag(e, field.path, field.source ? about : null)}
                 onClick={handleClick}
                 onMouseEnter={() => onHoverField(field)}
                 onMouseLeave={() => onHoverField(null)}
@@ -277,7 +284,7 @@ function PickerLeaf({ field, depth, onPick, onHoverField, previewSample = null, 
                 onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
-                        onPick?.(field.path, { raw: e.altKey });
+                        pick(e.altKey);
                     }
                 }}
                 aria-current={isCurrent ? 'true' : undefined}
@@ -307,9 +314,14 @@ function PickerLeaf({ field, depth, onPick, onHoverField, previewSample = null, 
                 <span className="text-[var(--text-primary)] truncate min-w-0" title={field.key}>
                     {humanizeFieldKey(field.key) || field.key}
                 </span>
-                {shape && (
-                    <span className={listBadgeClass()} title={t(shape.explainKey, shape.explainEn, shape.explainParams)}>
-                        {shape.count != null ? `${t('routines.builder.list_word', 'list')} · ${shape.count}` : t('routines.builder.list_word', 'list')}
+                {list && (
+                    <span
+                        className={listBadgeClass()}
+                        title={list.count != null
+                            ? t('mapping.picker.list_title', 'A list of {count} values', { count: list.count })
+                            : t('mapping.picker.list_title_unknown', 'A list. Run the step above to see how many it holds.')}
+                    >
+                        {list.count != null ? `${t('routines.builder.list_word', 'list')} · ${list.count}` : t('routines.builder.list_word', 'list')}
                     </span>
                 )}
                 <span className="ml-auto text-[10px] text-[var(--text-tertiary)] truncate max-w-[120px] font-mono">
@@ -379,11 +391,8 @@ function resolveLeafSample(field, sampleRoot) {
  * there so the panel is always fully reachable. It is not AnchoredMenu itself
  * because this popover is a flex column with a sticky search header and a
  * preview footer — it owns its own inner scroller.
- *
- * Exported: ListPickChooser anchors and flips with the same rules, so the two
- * popovers a field can open never behave differently.
  */
-export function usePopoverPosition(anchorEl, open) {
+function usePopoverPosition(anchorEl, open) {
     const [pos, setPos] = useState({ left: 0, top: 0, maxHeight: 420 });
     useEffect(() => {
         if (!open || !anchorEl) return undefined;
@@ -413,4 +422,17 @@ export function usePopoverPosition(anchorEl, open) {
         };
     }, [anchorEl, open]);
     return pos;
+}
+
+/**
+ * Is a picker row a list, and how many does it hold? Counted on the merged
+ * sample through the runtime's walker (a `[*]` column flattens, so its count
+ * is the true total); a list only the design-time sample shows has no count
+ * worth printing.
+ */
+function listOf(field, previewSample) {
+    if (!field?.path) return null;
+    const live = previewSample != null ? walkPath(field.path, previewSample) : undefined;
+    if (Array.isArray(live)) return { count: live.length };
+    return Array.isArray(field.sample) ? { count: null } : null;
 }

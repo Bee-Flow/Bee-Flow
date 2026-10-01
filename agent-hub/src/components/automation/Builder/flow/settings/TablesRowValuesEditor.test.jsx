@@ -1,9 +1,9 @@
 import { render, screen, fireEvent, cleanup, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { literalTableId, readValuesMap, withoutValuesInput } from './tablesRowValues';
 import TablesRowValuesEditor from './TablesRowValuesEditor';
-import { editor, typeInEditor } from '../../../../../test/refEditor';
 import { authFetch } from '../../../../../utils/helpers';
 import { VariablePickerProvider } from '../../mapping/VariablePickerContext';
 
@@ -94,6 +94,12 @@ const rowTitled = (title) => rows().find(r => within(r).queryByText(title));
 describe('TablesRowValuesEditor', () => {
     beforeEach(() => { cleanup(); authFetch.mockReset(); });
 
+    // Put a whole value in a column's slot, as one edit (over what it holds).
+    const typeInto = async (row, text) => {
+        await userEvent.tripleClick(within(row).getByRole('textbox'));
+        await userEvent.paste(text);
+    };
+
     it('renders one typed row per column of the table it fetched', async () => {
         mockColumns();
         renderEditor();
@@ -114,9 +120,8 @@ describe('TablesRowValuesEditor', () => {
         mockColumns();
         const { onChange } = renderEditor({ value: {} });
         await waitFor(() => expect(rows()).toHaveLength(COLUMNS.length));
-        typeInEditor(editor(rowTitled('Bedrijf')), 'Acme BV');
-        expect(onChange).toHaveBeenCalledTimes(1);
-        const emitted = onChange.mock.calls[0][0];
+        await typeInto(rowTitled('Bedrijf'), 'Acme BV');
+        const emitted = onChange.mock.calls.at(-1)[0];
         expect(typeof emitted).toBe('object');
         expect(emitted.kind).toBeUndefined();
         expect(emitted).toEqual({ Bedrijf: { kind: 'literal', value: 'Acme BV' } });
@@ -127,9 +132,10 @@ describe('TablesRowValuesEditor', () => {
         const value = { Totaal: { kind: 'ref', path: 'loop.e.output.amount_total' }, Bedrijf: { kind: 'literal', value: 'Acme' } };
         const { onChange } = renderEditor({ value });
         await waitFor(() => expect(rows()).toHaveLength(COLUMNS.length));
-        // The ref renders as a chip naming the step, not the raw path.
-        expect(within(rowTitled('Totaal')).getByText('Loop item · e')).toBeTruthy();
-        fireEvent.click(within(rowTitled('Totaal')).getByLabelText('Remove this value'));
+        // The ref renders as a chip naming the value, not the raw path.
+        expect(within(rowTitled('Totaal')).getByTestId('value-chip').textContent).toContain('Amount total');
+        expect(rowTitled('Totaal').textContent).not.toContain('loop.e');
+        await userEvent.click(within(rowTitled('Totaal')).getByRole('button', { name: /^Remove / }));
         expect(onChange).toHaveBeenCalledWith({ Bedrijf: { kind: 'literal', value: 'Acme' } });
     });
 
@@ -143,7 +149,7 @@ describe('TablesRowValuesEditor', () => {
         await waitFor(() => expect(rows()).toHaveLength(COLUMNS.length));
         // `excl_btw` only differs from "Excl. btw" in spelling → it lands on
         // that row, exactly as the tool resolves it at run time.
-        expect(within(rowTitled('Excl. btw')).getByText('Loop item · e')).toBeTruthy();
+        expect(within(rowTitled('Excl. btw')).getByTestId('value-chip').textContent).toContain('Excl BTW');
         // `vat` reaches no column → shown, named, removable.
         const stray = screen.getByTestId('tables-row-stray');
         expect(within(stray).getByText('vat')).toBeTruthy();
@@ -156,8 +162,8 @@ describe('TablesRowValuesEditor', () => {
         mockColumns();
         const { onChange } = renderEditor({ value: { excl_btw: { kind: 'literal', value: '1' } } });
         await waitFor(() => expect(rows()).toHaveLength(COLUMNS.length));
-        typeInEditor(editor(rowTitled('Excl. btw')), '12');
-        expect(onChange).toHaveBeenCalledWith({ 'Excl. btw': { kind: 'literal', value: '12' } });
+        await typeInto(rowTitled('Excl. btw'), '12');
+        expect(onChange).toHaveBeenLastCalledWith({ 'Excl. btw': { kind: 'literal', value: '12' } });
     });
 
     it('Auto-map fills by normalised name only: excl_btw → "Excl. btw", bedrijf → "Bedrijf"; amount_total stays unmapped', async () => {
@@ -210,8 +216,8 @@ describe('TablesRowValuesEditor', () => {
         fireEvent.click(screen.getByText('Add columns'));
         expect(rows()).toHaveLength(2);
         expect(within(rowTitled('Excl. btw')).queryByTestId('tables-row-type')).toBeNull();
-        typeInEditor(editor(rowTitled('Excl. btw')), '12');
-        expect(onChange).toHaveBeenCalledWith({ 'Excl. btw': { kind: 'literal', value: '12' } });
+        await typeInto(rowTitled('Excl. btw'), '12');
+        expect(onChange).toHaveBeenLastCalledWith({ 'Excl. btw': { kind: 'literal', value: '12' } });
     });
 
     it('a failed read falls back to typed titles, names the failure and offers a retry', async () => {

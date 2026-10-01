@@ -311,3 +311,150 @@ export declare function matchInputs(
     candidates: MatchCandidate[],
     opts?: { idAffinity?: boolean; unique?: boolean; ambiguous?: boolean; skipSecrets?: boolean; max?: number },
 ): MatchResult;
+// ── Sources (M3): fields, labels and upstream discovery as SourceNodes ──
+
+/** One part of a value's label (label.mjs); the client words `index` and `each`. */
+export type LabelPart = { key: string; text: string } | { index: number } | { each: true };
+
+/** The shape of a sample value (fields.mjs shapeOfSample). */
+export type SampleShape = 'missing' | 'scalar' | 'object' | 'list' | 'table' | 'json';
+
+/** One pickable value: its Source and legacy path, how to name it, and what it holds. */
+export interface SourceNode {
+    /** The last key (or a describer's own name for the value). */
+    key: string;
+    /** The legacy path string (formatPath of `source`); null for a value read from text. */
+    path: string | null;
+    sample: unknown;
+    /** Null under a base that is not a Source (`trigger.kind` and other run metadata). */
+    source: Source | null;
+    labelParts: LabelPart[];
+    shape: SampleShape;
+    /** Elements in the sample, for a list or a table. */
+    count?: number;
+    /** A short, language-free text of the value; '' when there is none to show. */
+    preview: string;
+    /** False when real output exists and lacks this key. */
+    confirmed: boolean;
+    children?: SourceNode[];
+    /** One value per iteration of a step's forEach: never auto-mapped into a scalar. */
+    perIteration?: boolean;
+    /** Read from a JSON string (textChildren); not addressable by a legacy path. */
+    fromText?: boolean;
+}
+
+/** One upstream node's bindable output. */
+export interface SourceGroup {
+    id: string;
+    label: string;
+    kind: string;
+    basePath: string;
+    sample: unknown;
+    fields: SourceNode[];
+    hasRealData?: boolean;
+    forEach?: boolean;
+}
+
+/** What the describers need from the client they run in (upstream/env.mjs). */
+export interface UpstreamEnv {
+    label?: (key: string, fallback: string, vars?: Record<string, unknown>) => string;
+    isTerminalStepType?: (type: unknown) => boolean;
+    pickSourceById?: (id: unknown) => { app?: string; sampleData?: Record<string, unknown> } | null;
+    applyOpsToSampleRow?: (row: Record<string, unknown>, operations: unknown) => Record<string, unknown>;
+    datetimeTargetColumn?: (step: unknown) => string;
+    impliedListMode?: (step: unknown) => Record<string, unknown> | null;
+    isDateTimeListMode?: (step: unknown) => boolean;
+    now?: () => Date;
+}
+
+/** Tool name -> its catalog output sample and schema. */
+export type ToolOutputMap = Map<string, { sample: unknown; schema: unknown }>;
+
+/** The describe context describeNodeIn reads. */
+export interface DescribeContext {
+    definition?: unknown;
+    toolToOutput?: ToolOutputMap;
+    triggerOutputs?: Record<string, unknown>;
+    sampleRoot?: unknown;
+    catalog?: unknown;
+    env?: UpstreamEnv;
+}
+
+export declare const MAX_DEPTH: number;
+export declare function fieldsFromSample(sample: unknown, base: unknown): SourceNode[];
+export declare function textChildren(node: unknown): SourceNode[];
+export declare function sampleFromSchema(schema: unknown): Record<string, unknown> | null;
+export declare function overlayReal(fields: SourceNode[] | null | undefined, real: unknown): SourceNode[];
+export declare function deepOverlay(base: unknown, real: unknown): unknown;
+export declare function hasPath(value: unknown, segs: SourceSegment[]): boolean;
+export declare function previewOf(value: unknown): string;
+export declare function isPlaceholder(value: unknown): boolean;
+export declare function humanizeKey(key: unknown): string;
+export declare function labelParts(segs: unknown): LabelPart[];
+export declare function labelText(parts: unknown, sep?: string): string;
+export declare function collectUpstream(definition: unknown, currentStepId: string): Array<Record<string, unknown>>;
+export declare function computeUpstreamGroups(
+    definition: unknown,
+    currentStepId: string | null | undefined,
+    catalog: unknown,
+    realOutputById?: ReadonlyMap<string, unknown> | null,
+    env?: UpstreamEnv,
+): SourceGroup[];
+export declare function computeLoopBodyGroups(
+    loopStep: unknown,
+    bodyIndex: number,
+    outerGroups: SourceGroup[] | null | undefined,
+    previewSample: unknown,
+    catalog: unknown,
+    definition: unknown,
+    env?: UpstreamEnv,
+): SourceGroup[];
+export declare function buildToolOutputMap(catalog: unknown): ToolOutputMap;
+export declare function wrapGroupForEach(group: SourceGroup | null, node: unknown): SourceGroup | null;
+export declare function describeNode(
+    node: unknown,
+    definition: unknown,
+    toolToOutput: ToolOutputMap,
+    triggerOutputs: Record<string, unknown>,
+    sampleRoot?: unknown,
+    catalog?: unknown,
+    env?: UpstreamEnv,
+): SourceGroup | null;
+export declare function describeNodeIn(node: unknown, ctx: DescribeContext): SourceGroup | null;
+export declare function describeLoopBody(loopStep: unknown, ctx: DescribeContext, upTo?: number): SourceGroup[];
+export declare const DESCRIBED_TYPES: readonly string[];
+export declare function seg(key: unknown): string | null;
+export declare function sampleToFields(sample: unknown, basePath: string): SourceNode[];
+export declare function resolveElementSample(arrayRef: unknown, sampleRoot: unknown): unknown;
+export declare function elementFieldOptions(elementSample: unknown): Array<{ key: string; sample: unknown }>;
+/** The part of a group collectArrayPaths reads (older callers' groups qualify too). */
+export interface ArrayPathGroup {
+    basePath?: string;
+    fields?: ReadonlyArray<{ key: string; path: string | null; sample?: unknown; children?: ReadonlyArray<{ key: string; path: string | null; sample?: unknown }> }>;
+}
+export declare function collectArrayPaths(groups: ReadonlyArray<ArrayPathGroup> | null | undefined, previewSample?: unknown): Array<{ key: string; path: string; sample: unknown }>;
+export declare function samplePlaceholderFor(type: unknown): unknown;
+export declare function overlayGroupWithReal(group: SourceGroup, realOutput: unknown): SourceGroup;
+export declare function triggerMetaSample(definition: unknown, env?: UpstreamEnv): Record<string, unknown>;
+export declare function describeTriggerMeta(definition: unknown, catalog: unknown, env?: UpstreamEnv): SourceGroup | null;
+export declare function inferLoopItemSample(overRef: unknown, definition: unknown, toolToOutput: ToolOutputMap, sampleRoot?: unknown): Record<string, unknown> | null;
+export declare function suggestItemVar(key: unknown): string;
+export declare function pickSample(field: unknown, env?: UpstreamEnv): unknown;
+export declare function leadSkillId(node: unknown): string | null;
+export declare const DEFAULT_ENV: Readonly<Required<UpstreamEnv>>;
+export declare function resolveEnv(env?: UpstreamEnv): Readonly<Required<UpstreamEnv>>;
+// M4a: a legacy binding shown as a pick (upgrade.mjs); null means "Formula".
+export declare function liftLegacy(
+    binding: unknown,
+    sample: object | null | undefined,
+    lastRun?: object | null,
+    deps?: { evaluate?: (src: string, scope: object) => unknown; parse?: ParseDeps },
+): PickBinding | null;
+/** A Source as the legacy path the runtime walks, `[*]` where the sample (or the picked `hint` path) shows a list; null when unwritable. */
+export declare function legacyPathOf(source: unknown, sample?: object | null, hint?: string | null): string | null;
+/** A pick as the legacy binding that gives the same value, or null when there is none. */
+export declare function lowerPick(
+    pick: unknown,
+    sample?: object | null,
+    hint?: string | null,
+): { kind: 'ref'; path: string } | { kind: 'expr'; value: string } | null;

@@ -9,6 +9,7 @@ import { useTranslation } from '../../../../hooks/useTranslation';
 import { useVariablePickerContext } from '../mapping/VariablePickerContext';
 import { forEachOf, legacySource, listLabel, repeatCount, repeatOf } from '../flow/settings/advanced/stepRepeat';
 import type { Draft } from '../flow/settings/advanced/stepRepeat';
+import { INLINE_LINK } from '../flow/settings/formStyles';
 
 interface Props {
     /** The step as it is on screen (the settings draft). */
@@ -28,7 +29,7 @@ export default function RepeatNotice({ draft, onShow = null }: Props) {
     const count = repeatCount(draft, previewSample);
     return (
         <p className="flex items-start gap-1.5 text-[12px] leading-relaxed text-[var(--text-secondary)]" role="note" data-testid="repeat-notice">
-            <Repeat size={13} className="shrink-0 mt-[3px] text-[var(--accent)]" aria-hidden="true" />
+            <Repeat size={13} className="shrink-0 mt-[3px] text-[var(--text-secondary)]" aria-hidden="true" />
             <span>
                 {count != null
                     ? t('mapping.repeat.notice', 'Runs separately for each item in {list} ({count}×).', { list, count })
@@ -36,7 +37,7 @@ export default function RepeatNotice({ draft, onShow = null }: Props) {
                 {onShow && (
                     <>
                         {' '}
-                        <button type="button" onClick={onShow} className="text-[var(--accent)] hover:underline">
+                        <button type="button" onClick={onShow} className={INLINE_LINK}>
                             {t('mapping.repeat.notice_change', 'Change')}
                         </button>
                     </>

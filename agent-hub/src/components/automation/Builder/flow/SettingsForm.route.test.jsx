@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, cleanup, waitFor, within } from '@testing-library/react';
-import { editor, editors, editorValue, editorWithValue, typeInEditor } from '../../../../test/refEditor';
+import { editor, editors, editorValue, typeInEditor } from '../../../../test/refEditor';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import SettingsForm from './SettingsForm';
 import { VariablePickerProvider } from '../mapping/VariablePickerContext';
@@ -74,7 +74,8 @@ describe('SettingsForm — Filter (unified If/Switch/Filter)', () => {
         // The raw picker is one click away, not on screen by default.
         expect(screen.queryByDisplayValue('steps.g.output.results')).toBeNull();
         fireEvent.click(screen.getByText('change'));
-        expect(editorWithValue(document.body, 'steps.g.output.results')).toBeTruthy();
+        // The list itself, as a chip with its name (never the path).
+        expect(screen.getAllByTestId('value-chip').some(c => c.textContent.includes('Results'))).toBe(true);
     });
 
     it('offers the item\'s fields by name in the rule row', () => {

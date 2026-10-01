@@ -126,7 +126,8 @@ describe('SettingsForm — Edit data (set)', () => {
         expect(screen.getByText('Results')).toBeTruthy();
         expect(screen.queryByDisplayValue('steps.g.output.results')).toBeNull();
         fireEvent.click(screen.getByLabelText('Change the source list'));
-        expect(editorWithValue(document.body, 'steps.g.output.results')).toBeTruthy();
+        // The list itself, as a chip with its name (never the path).
+        expect(screen.getAllByTestId('value-chip').some(c => c.textContent.includes('Results'))).toBe(true);
     });
 
     it('list mode hides forEach and shows the Table tools section instead', () => {
@@ -141,9 +142,9 @@ describe('SettingsForm — Edit data (set)', () => {
         // The `sender` field is bound to item.from_email: the value slot shows
         // the humanised chip and the value it would produce, and the path
         // itself appears nowhere on screen.
-        expect(screen.getByText('Current row')).toBeTruthy();
-        expect(screen.getByText('▸ From email')).toBeTruthy();
-        expect(await screen.findByText(/a@b\.nl/)).toBeTruthy();
+        const chip = screen.getByTestId('value-chip');
+        expect(chip.textContent).toContain('From email of current row');
+        expect(chip.textContent).toContain('a@b.nl');
         expect(screen.queryByText(/item\.from_email/)).toBeNull();
         expect(screen.queryByText(/steps\.g\.output/)).toBeNull();
         // The slots say what they are for.
@@ -159,20 +160,23 @@ describe('SettingsForm — Edit data (set)', () => {
         // the chip on the next line already did. What lands is unchanged — the
         // expr below is still the raw `item.subject`.
         fireEvent.click(await screen.findByText('Subject'));
-        expect(screen.getByText('▸ Subject')).toBeTruthy();
+        expect(screen.getByTestId('value-chip').textContent).toContain('Subject of current row');
         save();
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
-        // `item` isn't a runtime ref ROOT, so a row path lands as the expr the
-        // rest of the editor writes for it (bindingFromInput owns that call).
-        expect(onPatch.mock.calls[0][0].fields.sender).toEqual({ kind: 'expr', value: 'item.subject' });
+        // A pick of the current row's column: its Source, the `item` root.
+        expect(onPatch.mock.calls[0][0].fields.sender).toEqual({
+            kind: 'pick', v: 1, from: { root: 'item', path: ['subject'] }, take: 'one', as: 'native',
+        });
     });
 
-    it('“Adjust it” turns a picked value into a formula without anyone typing one', async () => {
-        const { onPatch } = renderForm(LIST_STEP);
-        fireEvent.change(screen.getByLabelText('Adjust the value'), { target: { value: 'lower' } });
-        save();
-        await waitFor(() => expect(onPatch).toHaveBeenCalled());
-        expect(onPatch.mock.calls[0][0].fields.sender).toEqual({ kind: 'expr', value: 'lower(item.from_email)' });
+    it('a formula on a picked value is written under the value\'s options › Advanced', async () => {
+        renderForm(LIST_STEP);
+        await userEvent.click(screen.getByRole('button', { name: /^Change how From email/ }));
+        await userEvent.click(within(screen.getByTestId('pick-options')).getByRole('button', { name: 'Advanced' }));
+        await userEvent.click(screen.getByRole('button', { name: 'Write a formula instead' }));
+        // The formula editor, with its Text / Formula switch, holding the value as stored.
+        expect(screen.getByRole('group', { name: 'Value mode' })).toBeTruthy();
+        expect(editorWithValue(document.body, 'item.from_email')).toBeTruthy();
     });
 
     it('draws the VISUAL value editor because that is the default — no flag asks for it', () => {
@@ -181,12 +185,11 @@ describe('SettingsForm — Edit data (set)', () => {
         // editor became the renderer for every step-bound slot, so passing it
         // said "this surface is special" about a surface that is not — and the
         // sibling action editor already passed nothing. What has to stay true
-        // is the RESULT, not the flag: both modes get ValueBuilder's own
-        // controls ("Use data from a step", the "Use it as / Adjust it"
-        // select) and never the raw binding box's mode toggle.
+        // is the RESULT, not the flag: both modes get the value slot (a chip
+        // for a picked value, "Use data from a step" for a typed one) and
+        // never the raw binding box's mode toggle.
         renderForm(LIST_STEP);
-        expect(screen.getAllByText(/Use data from a step|Add data/).length).toBeGreaterThan(0);
-        expect(screen.getByLabelText('Adjust the value')).toBeTruthy();
+        expect(screen.getByTestId('value-chip')).toBeTruthy();
         expect(screen.queryByRole('group', { name: 'Value mode' })).toBeNull();
 
         cleanup();
@@ -196,8 +199,11 @@ describe('SettingsForm — Edit data (set)', () => {
     });
 
     it('the raw formula editor is offered in the full view only', () => {
-        renderForm(LIST_STEP);
-        expect(screen.getAllByLabelText('Write this value as a formula').length).toBe(1);
+        renderForm(SINGLE_STEP);
+        expect(screen.getAllByTestId('slot-formula-open')).toHaveLength(1);
+        cleanup();
+        renderForm(SINGLE_STEP, { density: 'quick' });
+        expect(screen.queryByTestId('slot-formula-open')).toBeNull();
     });
 
     it('the quick view keeps the fields and the table tools, and drops the plumbing', () => {
@@ -205,11 +211,11 @@ describe('SettingsForm — Edit data (set)', () => {
         // What the step DOES stays…
         expect(screen.getByText('Fields added to each row')).toBeTruthy();
         expect(screen.getByText('Table tools')).toBeTruthy();
-        expect(screen.getByText('Current row')).toBeTruthy();
+        expect(screen.getByTestId('value-chip').textContent).toContain('current row');
         // …the source it was wired to, the overrides and the formula escape go.
         expect(screen.queryByText('Working through')).toBeNull();
         expect(screen.queryByText('Advanced')).toBeNull();
-        expect(screen.queryByLabelText('Write this value as a formula')).toBeNull();
+        expect(screen.queryByTestId('slot-formula-open')).toBeNull();
     });
 
     it('an unpicked source still shows in the quick view — hiding it would dead-end the step', () => {
@@ -291,7 +297,7 @@ describe('SettingsForm — Edit data (set)', () => {
         fireEvent.click(total);
         // The new field reads as a chip in the user's words — the parseJson
         // call it actually stores is never shown as text.
-        expect(screen.getByText('· from the JSON: order.total')).toBeTruthy();
+        expect(screen.getAllByTestId('value-chip').some(c => c.textContent.includes('read from the text: order.total'))).toBe(true);
         expect(screen.queryByText(/parseJson/)).toBeNull();
         save();
         await waitFor(() => expect(onPatch).toHaveBeenCalled());

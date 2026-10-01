@@ -1,18 +1,19 @@
 /**
- * DIFFERENTIAL lockstep: agent-hub `Builder/mapping/upstream/*` and the port
- * describe the same fixture definition identically, step by step. When this
- * fails the web side changed — update the port, don't loosen the test.
+ * DIFFERENTIAL lockstep: agent-hub `Builder/mapping/upstream.ts` and this
+ * folder's index.ts bind the SAME core describers (the shared mapping core)
+ * to their own client modules, and must describe the same fixture definition
+ * identically, step by step. What can still differ is the binding: a group
+ * name, the Set step's operations, the form-pick registry, a signature. When
+ * this fails, fix the env or the wrapper, don't loosen the test.
  */
-
-import fs from 'node:fs';
 
 import { buildRealOutputMap } from '../realOutputs';
 import { CATALOG, chainDefinition } from '../testing/fixture';
-import { BUILDER, requireWeb, webPath } from '../testing/web';
+import { BUILDER, requireWeb } from '../testing/web';
 import type { FlowDefinition, FlowNode, VariableGroup } from '../types';
 import * as up from './index';
 
-const web = requireWeb(`${BUILDER}/mapping/upstream/index.js`);
+const web = requireWeb(`${BUILDER}/mapping/upstream.ts`);
 
 beforeAll(() => {
     // triggerMetaSample stamps `firedAt` with the clock.
@@ -169,12 +170,6 @@ describe('the smaller exports', () => {
 });
 
 describe('the describer table', () => {
-    it('describes every type the web chain describes', () => {
-        const src = fs.readFileSync(webPath(`${BUILDER}/mapping/upstream/describeNode.js`), 'utf8');
-        const webTypes = new Set([...src.matchAll(/node\.type === '([a-z_]+)'/g)].map((m) => m[1]));
-        expect([...up.DESCRIBED_TYPES].sort()).toStrictEqual([...webTypes].sort());
-    });
-
     it('describeNode on its own', () => {
         const tools = up.buildToolOutputMap(CATALOG);
         for (const node of [null, ...(DEF.steps || []), { ...(DEF.trigger as FlowNode), __isTrigger: true }]) {

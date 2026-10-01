@@ -1,5 +1,6 @@
 import { ChevronRight, List } from 'lucide-react';
-import { mapAttrs, type MapCtx } from './mapAttrs';
+import { WILD } from '@shared/mapping/index.mjs';
+import { colSegments, mapAttrs, pickTarget, type MapCtx } from './mapAttrs';
 import { COL_MAX_PX, humanize } from './valueHelpers';
 
 interface ColHeaderProps {
@@ -14,8 +15,10 @@ interface ColHeaderProps {
 // (`output` or `output.content`). When `expandable`, a chevron drills the
 // object column into its sub-fields; an expanded child shows a clickable
 // parent prefix that collapses it again. The cell itself maps every row's
-// value at that column (`map.path[*].col`).
+// value at that column (`map.path[*].col`, the key quoted when it is not an
+// identifier: `rows[*]["Order date"]`).
 export default function ColHeader({ col, map, expandable, isListCol = false, onToggle }: ColHeaderProps) {
+    const column = pickTarget(map, [WILD, ...colSegments(col)]);
     const segs = col.split('.');
     const leaf = segs[segs.length - 1];
     const rawParent = segs.length > 1 ? segs.slice(0, -1).join('.') : null;
@@ -25,12 +28,12 @@ export default function ColHeader({ col, map, expandable, isListCol = false, onT
     const parentLabel = parentKey ? humanize(parentKey) : null;
     return (
         <th
-            {...mapAttrs(map, `[*].${col}`)}
+            {...mapAttrs(map, [WILD, ...colSegments(col)])}
             // These two CLOBBER mapAttrs' own title/className (explicit props
             // come after the spread), so the Alt hint must live here.
             style={{ maxWidth: COL_MAX_PX }}
             className={`text-left font-semibold text-[var(--text-secondary)] px-2 py-1 border-b border-[var(--border-default)] whitespace-nowrap ${map ? 'cursor-grab active:cursor-grabbing hover:bg-[var(--accent)]/10' : ''}`}
-            title={map ? `Drag or click to map every row's ${humanize(leaf)} (${map.path}[*].${col}). Hold Alt to insert the list as it is.` : undefined}
+            title={column ? `Drag or click to map every row's ${humanize(leaf)} (${column.path}). Hold Alt to insert the list as it is.` : undefined}
         >
             <span className="inline-flex items-center gap-1 max-w-full">
                 {parentKey && (
@@ -57,10 +60,10 @@ export default function ColHeader({ col, map, expandable, isListCol = false, onT
                         <ChevronRight size={11} />
                     </button>
                 )}
-                {map && !col.includes('.') && !col.includes('[*]') && (
+                {map && column && !col.includes('.') && !col.includes('[*]') && (
                     <button
                         type="button"
-                        onClick={(e) => { e.stopPropagation(); map.onPick?.(`${map.path}[*].${col}`, { raw: false }); }}
+                        onClick={(e) => { e.stopPropagation(); map.onPick?.(column.path, { raw: false, source: column.source }); }}
                         // NOT the string "Show fields": the expand chevron is
                         // located by that exact label.
                         aria-label={`Choose how to use every row's ${humanize(leaf)}`}

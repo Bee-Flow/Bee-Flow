@@ -4,9 +4,10 @@
 // SettingsForm.jsx.
 import { RotateCw } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { useTranslation } from '../../../../../hooks/useTranslation';
 import { walkPath } from '../../../../../utils/bindingHelpers';
 import FieldKeyCombobox from '../../mapping/FieldKeyCombobox';
-import PathField from '../../mapping/PathField';
+import ValueSlot from '../../valueSlot/ValueSlot';
 import ToolInputForm from '../../mapping/ToolInputForm';
 import { collectArrayPaths, resolveElementSample, elementFieldOptions } from '../../mapping/upstream';
 import { useVariablePickerContext } from '../../mapping/VariablePickerContext';
@@ -137,7 +138,7 @@ function RetryWaitTotal({ tries, waitMs, rowCap }) {
  *
  * A value that is NOT on the list (an AI-built step, or a hand-edited one) is
  * shown as its own option rather than snapped onto the nearest neighbour.
- * Same rule as PathField: opening a step is not consent to rewrite it, and a
+ * Same rule as the value slots: opening a step is not consent to rewrite it, and a
  * mount-time normalisation shows up later as a diff the author never made.
  *
  * WHY THIS RENDERS ONLY WHEN `retry` IS ALREADY A KEY IN THE DRAFT:
@@ -331,14 +332,16 @@ function describeSourceList(source, groups, previewSample) {
 }
 
 function CollectionArrayRefField({ draft, set, groups, onFocusField, previewSample }) {
-    // Array-only picker over the SHARED PathField control: friendly quick-picks
+    // Array-only picker over the SHARED value slot (path storage): friendly quick-picks
     // (nested + real-run arrays via collectArrayPaths), {} variable picker,
     // drag-to-map, name chips, and a soft "isn't a list" warning.
     const quickPicks = useMemo(() => collectArrayPaths(groups, previewSample), [groups, previewSample]);
     return (
         <>
             <FormRow label="Source list" required hint="Pick a list from a previous step — or type a path manually.">
-                <PathField
+                <ValueSlot
+                    storage="path"
+                    allowTyping={false}
                     value={draft.arrayRef || ''}
                     onChange={(v) => set('arrayRef', v)}
                     expectArray
@@ -376,6 +379,7 @@ function useElementSample(arrayRef, previewSample) {
 }
 
 function DateTimeFields({ draft, set, groups, onFocusField, previewSample, errorSections = new Set() }) {
+    const { t } = useTranslation();
     const op = draft.op || 'now';
     const needsInput = op !== 'now';
     const needsInput2 = op === 'diff';
@@ -428,17 +432,17 @@ function DateTimeFields({ draft, set, groups, onFocusField, previewSample, error
                         ? 'Which column of that list holds the date. Write it as item.<column>.'
                         : 'Pick a date from a previous step, or type a fixed date like 2026-07-01.'}
                 >
-                    <PathField
+                    <ValueSlot
+                        storage="path"
                         value={draft.input || ''}
                         onChange={(v) => {
                             // A dropped COLUMN switches the step to list mode —
                             // see dateInputPatch for why.
                             for (const [k, val] of Object.entries(dateInputPatch(v, { listMode }))) set(k, val);
                         }}
-                        allowLiteral="date"
                         onFocusField={onFocusField}
                         previewSample={previewSample}
-                        placeholder={listMode ? 'item.updated' : 'trigger.output.timestamp'}
+                        placeholder={t('mapping.slot.date_placeholder', 'Type a date, or pick one from Comes in')}
                     />
                 </FormRow>
             )}
@@ -458,13 +462,13 @@ function DateTimeFields({ draft, set, groups, onFocusField, previewSample, error
             )}
             {needsInput2 && (
                 <FormRow label="Second date" hint="Difference is calculated as second date − input date.">
-                    <PathField
+                    <ValueSlot
+                        storage="path"
                         value={draft.input2 || ''}
                         onChange={(v) => set('input2', v)}
-                        allowLiteral="date"
                         onFocusField={onFocusField}
                         previewSample={previewSample}
-                        placeholder="trigger.output.endsAt"
+                        placeholder={t('mapping.slot.date_placeholder', 'Type a date, or pick one from Comes in')}
                     />
                 </FormRow>
             )}

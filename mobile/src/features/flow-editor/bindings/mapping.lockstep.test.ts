@@ -15,11 +15,18 @@ import * as mm from './mismatch';
 import { isEmptyBinding, partitionInputs } from './partitionInputs';
 import * as ro from './realOutputs';
 import { CATALOG, chainDefinition } from './testing/fixture';
+import { frozenWeb } from './testing/frozenWeb';
 import { BUILDER, requireWeb, webValue } from './testing/web';
 import type { VariableGroup } from './types';
 import { computeUpstreamGroups } from './upstream';
 
-const m = (name: string) => requireWeb(`${BUILDER}/mapping/${name}.js`);
+// listShape and mismatch left agent-hub with M4 (the shared mapping core
+// replaced them): their answers are the recorded ones (testing/frozenWeb.ts).
+const FROZEN: Record<string, ReturnType<typeof frozenWeb>> = {
+    listShape: frozenWeb('listShape', `${BUILDER}/mapping/listShape.js`),
+    mismatch: frozenWeb('mismatch', `${BUILDER}/mapping/mismatch.js`),
+};
+const m = (name: string) => FROZEN[name] ?? requireWeb(`${BUILDER}/mapping/${name}.js`);
 
 const ROOT = {
     trigger: { output: { subject: 'Hi', when: '2026-01-02', flag: true, n: 3, blob: 'x '.repeat(80), para: `${'a '.repeat(40)}\n\n${'b '.repeat(40)}` } },

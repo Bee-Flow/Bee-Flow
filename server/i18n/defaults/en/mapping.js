@@ -1,6 +1,9 @@
 // English GUI defaults — namespace "mapping": every key whose part before the first "." is "mapping".
 // Merged into GUI_DEFAULTS by ./index.js. The frontend copy (agent-hub/src/i18n/en-defaults.js)
 // is GENERATED from these files: after an edit, run `node scripts/gen-i18n-defaults.mjs`.
+//
+// The data-mapping screens (the source panel, and from M4 on the value slots). One writer:
+// the mapping milestones; other branches add their own namespace.
 module.exports = {
     // ── The v2 data mapping (picks, composed texts, per-item repeat) ──────
     // One writer: the automation data-mapping work. The run warnings come
@@ -79,4 +82,103 @@ module.exports = {
     'mapping.repeat.refused_already': 'This step already runs separately for each item in {list}.',
     'mapping.repeat.refused_legacy': 'This step already runs once per item the older way. Turn that off first.',
     'mapping.repeat.refused_invalid': 'That list cannot be repeated over.',
+    // Source panel ("Comes in"): one row per value an earlier step hands over.
+    'mapping.source.from_text': 'read from text',
+    'mapping.source.from_text_title': 'Read from the text this field holds. To use one of these values for now, use the whole field.',
+    'mapping.source.open': 'Show what is inside {label}',
+    'mapping.source.close': 'Hide what is inside {label}',
+    'mapping.source.unconfirmed': 'Not in the last run',
+
+    // M4a: value slot
+    // The building blocks of a field that holds a value from an earlier
+    // step (agent-hub Builder/valueSlot/): the chip, the one sentence under
+    // it, the options that change how the value is used, and the question
+    // where a clicked value should go. {label} is a value's name in words,
+    // never a path; {count} is how many values a list holds.
+    'mapping.slot.formula': 'Formula',
+    'mapping.slot.stale': 'No longer available: {label}',
+    'mapping.slot.repick': 'Pick again',
+    'mapping.slot.remove': 'Remove {label}',
+    'mapping.slot.open_options': 'Change how {label} is used',
+    'mapping.slot.list_count': '{count} values',
+    'mapping.slot.formula_title': 'Formula: {summary}',
+    'mapping.slot.formula_gives': 'Gives:',
+    'mapping.slot.change': 'Change',
+    'mapping.slot.sentence.all_count': 'all {count}',
+    'mapping.slot.sentence.all': 'all of them',
+    'mapping.slot.sentence.text_lines': 'Comes as text: {all}, one per line.',
+    'mapping.slot.sentence.text_comma': 'Comes as text: {all}, separated by commas.',
+    'mapping.slot.sentence.text_bullets': 'Comes as text: {all}, as a bulleted list.',
+    'mapping.slot.sentence.list_count': 'Comes as a list of {count}.',
+    'mapping.slot.sentence.list': 'Comes as a list.',
+    'mapping.slot.sentence.native': 'Comes as it is: {all}.',
+    'mapping.slot.sentence.json': 'Comes as data: {all}.',
+    'mapping.slot.sentence.first': 'Only the first.',
+    'mapping.slot.sentence.last': 'Only the last.',
+    'mapping.slot.sentence.first_of': 'Only the first of {count}.',
+    'mapping.slot.sentence.last_of': 'Only the last of {count}.',
+    'mapping.slot.sentence.count': 'The number of them.',
+    'mapping.slot.sentence.count_n': 'The number of them ({count}).',
+    'mapping.slot.sentence.each': 'One value per run, for each item.',
+    'mapping.slot.sentence.column': 'Which column?',
+    'mapping.slot.sentence.column_none': 'No column matches this field. Which column?',
+    'mapping.slot.sentence.column_choose': 'Choose a column',
+    'mapping.slot.options.title': 'How should {label} be used?',
+    'mapping.slot.options.one': 'The value',
+    'mapping.slot.options.all': 'All of them',
+    'mapping.slot.options.all_lines': 'All, one per line',
+    'mapping.slot.options.all_comma': 'All, with commas',
+    'mapping.slot.options.all_bullets': 'All, as a bulleted list',
+    'mapping.slot.options.first': 'Only the first',
+    'mapping.slot.options.last': 'Only the last',
+    'mapping.slot.options.count': 'The number',
+    'mapping.slot.options.each': 'One per run, for each item',
+    'mapping.slot.options.no_example': 'No example yet',
+    'mapping.slot.options.empty_example': '(empty)',
+    'mapping.slot.options.advanced': 'Advanced',
+    'mapping.slot.options.formula_hint': 'Write a formula instead',
+    'mapping.slot.options.row': 'Exactly this row',
+    'mapping.slot.options.row_apply': 'Use row',
+    'mapping.slot.options.repeat': 'Run this step separately for each item',
+    'mapping.slot.target.title': 'Where should this go?',
+    'mapping.slot.target.value': 'Put {label} in:',
+    'mapping.slot.target.required': 'Required',
+    'mapping.slot.target.none': 'Every field of this step is filled. Click a field first, then pick a value.',
+    'mapping.slot.target.close': 'Close',
+    'mapping.slot.label.of': '{field} of {parent}',
+    'mapping.slot.label.of_all': '{field} of all {parent}',
+    'mapping.slot.label.of_first': '{field} of the first {parent}',
+    'mapping.slot.label.of_last': '{field} of the last {parent}',
+    'mapping.slot.label.of_current': '{field} (of this {parent})',
+    'mapping.slot.label.from': '{field} from {step}',
+    'mapping.slot.label.from_first': 'The first {field} from {step}',
+    'mapping.slot.label.from_last': 'The last {field} from {step}',
+    'mapping.slot.label.from_current': '{field} (this one, from {step})',
+    'mapping.slot.label.count_of': 'Number of {parent}',
+    'mapping.slot.label.first': 'The first {parent}',
+    'mapping.slot.label.last': 'The last {parent}',
+    'mapping.slot.label.row': '{parent}, row {row}',
+    'mapping.slot.label.output_of': 'Output of {step}',
+    'mapping.slot.label.trigger': 'Incoming data',
+    'mapping.slot.label.value': 'Value',
+    // The value slot in a step's form (valueSlot/ValueSlot.tsx): typed, or
+    // picked from "Comes in"; a second pick replaces the first, with Undo.
+    'mapping.slot.placeholder': 'Type a value, or pick one from Comes in',
+    'mapping.slot.date_placeholder': 'Type a date, or pick one from Comes in',
+    'mapping.slot.use_data': 'Use data from a step',
+    'mapping.slot.add_value': 'Add a value from a step',
+    'mapping.slot.replaced': 'Replaced',
+    'mapping.slot.undo': 'Undo',
+    'mapping.slot.n_items': '{count} items',
+    'mapping.slot.upgrade_note': 'This value is saved in the older format. Choosing an option saves it in the new one; each option shows what the field will get.',
+    'mapping.slot.compose.text': 'Text',
+    'mapping.slot.formula.from_text': '{value}, read from the text: {path}',
+    'mapping.slot.advanced.formula': 'Formula',
+    'mapping.slot.advanced.formula_for': 'Write {field} as a formula',
+    'mapping.slot.advanced.this_value': 'this value',
+    // The formula editor (mapping/BindingField.tsx) and its value picker.
+    'mapping.formula.insert': 'Insert a value',
+    'mapping.formula.insert_into': 'Insert into {field}',
+    'mapping.picker.list_title': 'A list of {count} values',
+    'mapping.picker.list_title_unknown': 'A list. Run the step above to see how many it holds.',
 };

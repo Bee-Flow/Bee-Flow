@@ -161,13 +161,18 @@ describe('the step header says it, and links to the setting', () => {
             (h) => { handle.current = h as { insert: (p: string) => void }; },
         );
         const user = userEvent.setup();
-        await user.click(screen.getAllByRole('textbox').find(b => b.closest('[data-testid="param-to"]'))!);
+        const slot = within(screen.getByTestId('param-to')).getByTestId('value-slot');
+        act(() => { slot.focus(); slot.dispatchEvent(new FocusEvent('focusin', { bubbles: true })); });
         expect(handle.current).toBeTruthy();
         act(() => { handle.current!.insert('steps.get.output.orders'); });
-        // The table's own choices are all still there; a run per row is not.
-        await user.click(screen.getByRole('button', { name: 'Table options' }));
-        expect(screen.getByRole('button', { name: /Only how many rows/ })).toBeTruthy();
-        expect(screen.queryByRole('button', { name: /A separate run for each/ })).toBeNull();
+        // The list's own choices are all still there; a run per item is not
+        // (it lives under Advanced › Run this step separately for each…).
+        await user.click(within(screen.getByTestId('pick-sentence')).getByRole('button', { name: 'Change' }));
+        const options = () => screen.getByTestId('pick-options');
+        const advanced = within(options()).queryByRole('button', { name: 'Advanced' });
+        if (advanced) await user.click(advanced);
+        expect(within(options()).queryByRole('button', { name: /separately for each item/ })).toBeNull();
+        expect(within(options()).queryByRole('radio', { name: /One per run, for each item/ })).toBeNull();
         expect(screen.queryByTestId('repeat-notice')).toBeNull();
     });
 });

@@ -82,6 +82,6 @@ describe('CallContractFields — param rows are named, not keyed', () => {
         );
         expect(screen.getByText('Klant')).toBeTruthy();
         // The value still arrives at the slot keyed by `klant_naam`.
-        expect(document.body.textContent).toContain('Jansen');
+        expect(screen.getByDisplayValue('Jansen')).toBeTruthy();
     });
 });

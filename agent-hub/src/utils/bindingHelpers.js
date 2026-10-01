@@ -7,7 +7,7 @@
  * `insertAtCursor` which mutates a DOM input/textarea.
  */
 
-import { walkPath as runtimeWalkPath } from '@shared/mapping/index.mjs';
+import { REF_RE, walkPath as runtimeWalkPath } from '@shared/mapping/index.mjs';
 
 // Exported so the chip/token layer (mapping/refTokens.js) shares the exact
 // same notion of "contains an interpolation" — keep this the single source.
@@ -39,6 +39,18 @@ export function isCleanPath(text) {
 }
 
 /**
+ * Is the typed expression ONE reference under a root the runtime reads?
+ * A clean path is, as it always was; so is a path whose keys are escaped
+ * (`steps.x.output.rows[*]["Order date"]`), which the runtime's ref grammar
+ * (REF_RE) reads as one path too. Without that, a correctly escaped pick was
+ * stored as an expression and lost the list and kind checks a ref gets.
+ */
+function isRefText(v) {
+    if (isCleanPath(v)) return VALID_REF_ROOTS.includes(v.split('.')[0]);
+    return REF_RE.test(v) && VALID_REF_ROOTS.includes(v.split(/[.[]/)[0]);
+}
+
+/**
  * Pick the most appropriate binding kind for the user's typed value
  * given the current "mode". Mode is the user-facing toggle:
  *   - 'fixed'      — a literal text value, OR a template if it contains {{...}}
@@ -50,9 +62,7 @@ export function bindingFromInput(value, mode) {
     if (mode === 'expression') {
         const v = String(value ?? '').trim();
         if (!v) return { kind: 'literal', value: '' };
-        if (isCleanPath(v) && VALID_REF_ROOTS.includes(v.split('.')[0])) {
-            return { kind: 'ref', path: v };
-        }
+        if (isRefText(v)) return { kind: 'ref', path: v };
         return { kind: 'expr', value: v };
     }
     // fixed mode

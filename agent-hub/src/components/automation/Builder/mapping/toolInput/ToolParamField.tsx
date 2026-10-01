@@ -1,20 +1,17 @@
 import type { ComponentType } from 'react';
 import { EnumChoice, FrequentValues, ProblemNote, SuggestionChip, type ParamSuggestion } from './ParamExtras';
-import { describeExample, isMultilineProp, shortEnum, type SchemaProp } from './toolInputHelpers';
-import BindingFieldJs from '../BindingField';
+import { describeExample, isMultilineProp, paramLabel, shortEnum, type SchemaProp } from './toolInputHelpers';
+import ValueSlot from '../../valueSlot/ValueSlot';
+import type { FieldHandle } from '../../valueSlot/fieldHandle';
+import BindingField from '../BindingField';
 import { FieldLabelRow as FieldLabelRowJs } from '../fieldChrome';
 import { expectedKindFor } from '../fieldKinds';
-import { expectedShapeFor } from '../listShape';
 import { isEmptyBinding } from '../partitionInputs';
-import ValueBuilderJs from '../ValueBuilder';
 
-// The value editors and the label row are untyped JS; their props are checked there.
-const BindingField = BindingFieldJs as unknown as ComponentType<Record<string, unknown>>;
-const ValueBuilder = ValueBuilderJs as unknown as ComponentType<Record<string, unknown>>;
+// The label row is untyped JS; its props are checked there.
 const FieldLabelRow = FieldLabelRowJs as unknown as ComponentType<Record<string, unknown>>;
 const isEmpty = isEmptyBinding as (b: unknown) => boolean;
 const kindOf = expectedKindFor as (p: unknown) => string;
-const shapeOf = expectedShapeFor as (p: unknown) => string;
 
 /** Kinds a "Frequently used" chip can fill: one plain value. */
 const FREQUENT_KINDS = new Set(['text', 'email', 'number', 'date', 'choice']);
@@ -29,7 +26,7 @@ const FREQUENT_KINDS = new Set(['text', 'email', 'number', 'date', 'choice']);
  */
 export default function ToolParamField({
     fieldKey, prop, required, value, onChange, visual, allowRaw, onFocusField, previewSample,
-    autoMapped, onRequestForEach, suggestion = null, tool = null, problem = null,
+    autoMapped, suggestion = null, tool = null, problem = null,
 }: {
     fieldKey: string;
     prop: SchemaProp | undefined;
@@ -38,15 +35,16 @@ export default function ToolParamField({
     onChange: (binding: unknown) => void;
     visual: boolean;
     allowRaw: boolean;
-    onFocusField?: unknown;
-    previewSample?: unknown;
+    onFocusField?: ((handle: FieldHandle) => void) | null;
+    previewSample?: object | null;
     autoMapped: boolean;
-    onRequestForEach?: unknown;
     suggestion?: ParamSuggestion | null;
     tool?: string | null;
     problem?: string | null;
 }) {
-    const label = prop?.title || fieldKey;
+    // A person's name for the setting: its title, else a short description,
+    // else the key made readable ("To", not `to`).
+    const label = paramLabel(fieldKey, prop);
     const empty = isEmpty(value);
     const expectKind = kindOf(prop);
     const options = shortEnum(prop);
@@ -65,12 +63,31 @@ export default function ToolParamField({
                 <EnumChoice options={options} value={literal} recommended={recommended} onPick={setLiteral} label={label} />
             </div>
         );
-    } else {
-        const Field = visual ? ValueBuilder : BindingField;
+    } else if (visual) {
         editor = (
-            <Field
+            <ValueSlot
                 label={label}
+                fieldId={fieldKey}
+                field={fieldKey}
+                schema={prop}
                 showChrome
+                hint={prop?.description}
+                required={required}
+                placeholder={describeExample(prop) || null}
+                value={value ?? null}
+                onChange={onChange}
+                onFocusField={onFocusField}
+                previewSample={previewSample}
+                multiLine={isMultilineProp(prop)}
+                autoMapped={autoMapped}
+                allowRaw={allowRaw}
+                expectKind={expectKind}
+            />
+        );
+    } else {
+        editor = (
+            <BindingField
+                label={label}
                 hint={prop?.description}
                 required={required}
                 placeholder={describeExample(prop)}
@@ -80,10 +97,7 @@ export default function ToolParamField({
                 previewSample={previewSample}
                 multiline={isMultilineProp(prop)}
                 autoMapped={autoMapped}
-                allowRaw={allowRaw}
-                expectShape={shapeOf(prop)}
                 expectKind={expectKind}
-                onRequestForEach={onRequestForEach}
             />
         );
     }

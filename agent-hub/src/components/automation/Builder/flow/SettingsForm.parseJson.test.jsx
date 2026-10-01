@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
-import { editor, editors, editorValue, editorWithValue, typeInEditor } from '../../../../test/refEditor';
+import { editor, editors, editorValue, typeInEditor } from '../../../../test/refEditor';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import SettingsForm from './SettingsForm';
 import { VariablePickerProvider } from '../mapping/VariablePickerContext';
@@ -179,7 +179,9 @@ describe('SettingsForm — ParseJsonFields', () => {
         ];
         renderForm(getStep(), { groups, previewSample: SAMPLE });
         fireEvent.click(screen.getByText('Use HTTP response body'));
-        expect(editorWithValue(document.body, 'steps.h1.output.body')).toBeTruthy();
+        // The source field shows the body as a chip, by name, not as a path.
+        expect(screen.getByTestId('value-chip').textContent).toContain('Body');
+        expect(document.body.textContent).not.toContain('steps.h1');
     });
 });
 

@@ -53,4 +53,17 @@ describe('FieldKeyCombobox', () => {
         fireEvent.drop(input, { dataTransfer: dndEvent('steps.s1.output.items[*].email') });
         expect(onChange).toHaveBeenCalledWith('email');
     });
+
+    // Regression: the upstream fields quote any key that is not an identifier,
+    // and the old `split('.').pop()` stored `rows[*]["first name"]` as the
+    // column key, which no row ever has.
+    it('drop of a quoted key stores the key itself', () => {
+        const onChange = vi.fn();
+        render(<FieldKeyCombobox value="" onChange={onChange} options={options} />);
+        const input = screen.getByRole('textbox');
+        fireEvent.drop(input, { dataTransfer: dndEvent('steps.x.output.rows[*]["first name"]') });
+        expect(onChange).toHaveBeenLastCalledWith('first name');
+        fireEvent.drop(input, { dataTransfer: dndEvent('steps.x.output["content-type"]') });
+        expect(onChange).toHaveBeenLastCalledWith('content-type');
+    });
 });

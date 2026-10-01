@@ -43,7 +43,7 @@ function FriendlyArray({ arr, map, allowExpand }: { arr: unknown[]; map: MapCtx 
     const shown = arr.slice(0, MAX_ROWS);
     return (
         <ul className="list-disc pl-4 space-y-0.5">
-            {shown.map((v, i) => <li key={i} {...mapAttrs(map, `[${i}]`)}><InlineValue value={v} /></li>)}
+            {shown.map((v, i) => <li key={i} {...mapAttrs(map, [i])}><InlineValue value={v} /></li>)}
             {arr.length > MAX_ROWS && <li className="list-none text-[var(--text-tertiary)]">+{arr.length - MAX_ROWS} more</li>}
         </ul>
     );
@@ -59,7 +59,7 @@ function FriendlyObject({ obj, map, allowExpand }: { obj: PlainObject; map: MapC
                 {/* `truncated` is one of the transport fields the unwrap hides,
                     and the one that must never disappear quietly. */}
                 {obj.truncated === true && <ClipWarning />}
-                <FriendlyValue value={obj[only]} map={childMap(map, `.${only}`)} allowExpand={allowExpand} />
+                <FriendlyValue value={obj[only]} map={childMap(map, [only])} allowExpand={allowExpand} />
             </>
         );
     }
@@ -67,8 +67,8 @@ function FriendlyObject({ obj, map, allowExpand }: { obj: PlainObject; map: MapC
         <div className="space-y-1.5">
             {entries.map(([k, v]) => {
                 const scalar = v === null || typeof v !== 'object';
-                const km = childMap(map, `.${k}`);
-                const attrs = mapAttrs(km, '');
+                const km = childMap(map, [k]);
+                const attrs = mapAttrs(km);
                 return (
                     <div key={k} className={scalar ? 'flex gap-1.5 items-baseline' : ''}>
                         <span {...attrs} className={`text-[var(--text-secondary)] font-semibold shrink-0 ${attrs.className || ''}`.trim()}>{humanize(k)}{scalar ? ':' : ''}</span>

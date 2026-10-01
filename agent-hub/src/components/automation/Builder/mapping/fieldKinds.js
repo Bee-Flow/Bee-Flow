@@ -6,16 +6,15 @@
  * one-line detail: "list of 3 · text", "group · 3 fields",
  * "table · 14 rows · 4 columns", "file · report.pdf · 12 KB".
  *
- * Pure and React-free, like listShape.js and upstream.js, so the auto-mapper
- * and the pickers can read the same answer. Counting a LIST is delegated to
- * listShape.pathListShape — it is the only code that flattens `[*]` columns
- * correctly, and there must never be a second walker.
+ * Pure and React-free, like upstream.js, so the auto-mapper and the pickers
+ * can read the same answer. A LIST is counted through walkPath, the runtime's
+ * own walker (it flattens a `[*]` column to its real total); there must never
+ * be a second walker.
  *
  * `unknown` is a real answer, not a fallback to "text": a design-time
  * placeholder (`'<string>'`, null) is not evidence of anything, and the UI
  * says "not seen yet — run the step above" rather than guessing a word.
  */
-import { pathListShape } from './listShape';
 import { walkPath } from '../../../../utils/bindingHelpers';
 
 export const KINDS = Object.freeze(['text', 'email', 'number', 'yesno', 'date', 'choice', 'list', 'group', 'table', 'file', 'unknown']);
@@ -134,10 +133,10 @@ export function describeField(field, sampleRoot = null, t = null) {
     const word = tr(KIND_WORD[kind].key, KIND_WORD[kind].en);
 
     if (kind === 'list' || kind === 'table') {
-        // The count through listShape (it knows a `[*]` column's real total);
-        // fall back to the element count of what we hold.
-        const shape = field?.path ? pathListShape(field.path, sampleRoot) : null;
-        const count = shape?.count ?? (Array.isArray(value) ? value.length : null);
+        // The count through the runtime's walker (it knows a `[*]` column's
+        // real total); fall back to the element count of what we hold.
+        const live = field?.path && sampleRoot != null ? walkPath(String(field.path).trim(), sampleRoot) : undefined;
+        const count = Array.isArray(live) ? live.length : (Array.isArray(value) ? value.length : null);
         if (kind === 'table') {
             const cols = Array.isArray(value) && value.length ? Object.keys(value.find(r => r && typeof r === 'object') || {}).length : null;
             const rowsText = count === 1 ? tr('routines.kind.row', '{n} row', { n: 1 }) : tr('routines.kind.rows', '{n} rows', { n: count ?? '?' });
@@ -180,9 +179,10 @@ export function describeField(field, sampleRoot = null, t = null) {
 }
 
 /**
- * What KIND a tool parameter wants, from its JSON schema — the sibling of
- * listShape.expectedShapeFor, one level finer. 'unknown' means the chooser
- * and the empty-slot note stay silent.
+ * What KIND a tool parameter wants, from its JSON schema: the word the
+ * field's label row and empty-slot note use (what the value slot does with a
+ * pick comes from the shared core's slotShape). 'unknown' means the
+ * empty-slot note stays silent.
  */
 export function expectedKindFor(schemaProp) {
     if (!schemaProp || typeof schemaProp !== 'object') return 'unknown';

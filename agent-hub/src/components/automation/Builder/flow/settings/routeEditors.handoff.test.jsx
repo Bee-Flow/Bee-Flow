@@ -175,7 +175,8 @@ describe('Condition editor — the semantic handoff', () => {
         fireEvent.click(await screen.findByRole('button', { name: /Add the step/i }));
         // Named ports in ordinary rows — not a frozen blob the author now has
         // to live with.
-        expect(screen.getByDisplayValue('complaint')).toBeTruthy();
+        // (The row's value slot shows 'complaint' too, as typed text.)
+        expect(screen.getAllByDisplayValue('complaint').length).toBeGreaterThan(0);
         expect(screen.getByDisplayValue('something_else')).toBeTruthy();
     });
 

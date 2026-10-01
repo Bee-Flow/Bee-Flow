@@ -1,6 +1,6 @@
 /**
  * The variable picker's rows, as pure data — the list half of the web's
- * VariablePicker / VariableTree / InputDataPanel (agent-hub
+ * VariablePicker / VariableTree / SourcePanel (agent-hub
  * `Builder/mapping/`), over the groups `computeUpstreamGroups` describes.
  *
  * One flat list (a FlatList wants one): a header row per group, then its

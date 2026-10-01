@@ -5,7 +5,7 @@ import { useTranslation } from '../../../../../hooks/useTranslation';
 import { walkPath } from '../../../../../utils/bindingHelpers';
 import { skipGroupOfStep } from '../../../../shared/statusTokens';
 import JsonTreePicker from '../../mapping/JsonTreePicker';
-import PathField from '../../mapping/PathField';
+import ValueSlot from '../../valueSlot/ValueSlot';
 import { sampleToFields } from '../../mapping/upstream';
 import { VariablePickerProvider, useVariablePickerContext } from '../../mapping/VariablePickerContext';
 import AccordionSection from '../AccordionSection';
@@ -322,11 +322,12 @@ function JsonExtractSection({ draft, set, listMode, elementSample, previewSample
                 </button>
             </div>
             {changing && (
-                <PathField
+                <ValueSlot
+                    storage="path"
+                    allowTyping={false}
                     value={sourcePath}
                     onChange={(v) => setCustomSource(v)}
                     previewSample={previewSample}
-                    placeholder={listMode ? 'item.body' : 'steps.step1.output.body'}
                 />
             )}
             {parsed !== undefined ? (

@@ -1,5 +1,6 @@
 // Small, pure readings of one tool parameter's JSON schema, for the
 // schema-driven inputs editor (ToolInputForm).
+import { humanizeKey } from '@shared/mapping/index.mjs';
 
 export interface SchemaProp {
     type?: string | string[];
@@ -25,6 +26,22 @@ export function describeExample(prop: SchemaProp | null | undefined): string {
     if (prop.type === 'array') return '[…]';
     if (prop.type === 'object') return '{…}';
     return '';
+}
+
+/**
+ * The name a person reads for a parameter: its schema title; else its
+ * description when that is a short name rather than a sentence ("Recipient
+ * e-mail address"); else the key made readable (`to` → "To", `body_html` →
+ * "Body HTML"). Never the raw key.
+ */
+export function paramLabel(key: string, prop: SchemaProp | null | undefined): string {
+    const title = typeof prop?.title === 'string' ? prop.title.trim() : '';
+    if (title) return title;
+    const description = typeof prop?.description === 'string' ? prop.description.trim().replace(/\.$/, '') : '';
+    if (description && description.length <= 40 && !/[.:;!?(]/.test(description) && description.split(/\s+/).length <= 5) {
+        return description.charAt(0).toUpperCase() + description.slice(1);
+    }
+    return humanizeKey(key) || key;
 }
 
 /** Long-text parameters get a multi-line editor: by format, or by a telling name. */

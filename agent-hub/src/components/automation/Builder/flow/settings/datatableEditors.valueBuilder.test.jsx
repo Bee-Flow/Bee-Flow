@@ -5,16 +5,15 @@ import DatatableFields from './datatableEditors';
 import { VariablePickerProvider } from '../../mapping/VariablePickerContext';
 
 /**
- * The datatable step's two value slots now render the VISUAL editor, and —
- * the part that matters — each one says what it wants from the COLUMN and the
- * OPERATOR rather than assuming.
+ * The datatable step's two value slots render the value slot, and — the part
+ * that matters — each one says what it wants from the COLUMN and the
+ * OPERATOR rather than assuming. What a picked list becomes is decided from
+ * that once, at pick time, and stored with the pick:
  *
- * Both directions are failures, and both are silent:
- *   claiming too little — a list bound into a `text` column goes in as
- *   "[object Object]" and nobody is asked;
- *   claiming too much — asking "this wants one value, what did you mean?"
- *   about `is one of`, whose right-hand side really is a list, teaches the
- *   author to click past the question that matters.
+ *   a list into a `text` column is readable text ("Comes as text: …"), never
+ *   "[object Object]" and never JSON;
+ *   a list into `is one of` (or a multiselect column) stays a list: that
+ *   comparison really is one, so nothing is turned into text there.
  */
 const ADDRESSES = ['a@b.nl', 'c@d.nl'];
 const SAMPLE = { steps: { s1: { output: { addresses: ADDRESSES, name: 'Ada' } } } };
@@ -50,6 +49,9 @@ function renderFields(draft) {
             />
         </VariablePickerProvider>,
     );
+    // The last value the step wrote into a column / the filter's value.
+    const lastValue = (key) => set.mock.calls.filter(([k]) => k === 'values').at(-1)?.[1]?.[key];
+    const lastWhere = () => set.mock.calls.filter(([k]) => k === 'where').at(-1)?.[1]?.[0]?.value;
     const insertInto = (label, path, opts) => {
         const box = screen.getByLabelText(label);
         fireEvent.focus(box);
@@ -57,7 +59,7 @@ function renderFields(draft) {
         expect(handle, `no insert handle published for "${label}"`).toBeTruthy();
         act(() => { handle.insert(path, opts); });
     };
-    return { set, insertInto };
+    return { set, insertInto, lastValue, lastWhere };
 }
 
 const writeDraft = () => ({ datatableId: 'tbl1', op: 'insert_row', values: {} });
@@ -72,61 +74,56 @@ describe('the datatable step writes values through the visual editor', () => {
         expect(screen.getByLabelText('Tags')).toBeTruthy();
     });
 
-    it('asks what a list means when it lands in a TEXT column', () => {
-        const { insertInto } = renderFields(writeDraft());
+    it('a list into a TEXT column becomes readable text, said in one sentence', () => {
+        const { insertInto, lastValue } = renderFields(writeDraft());
         insertInto('Name', 'steps.s1.output.addresses');
-        // Answered inline under the field since round 4 (artboard 2a), not in a popover.
-        expect(screen.getByTestId('mismatch-resolver')).toBeTruthy();
+        expect(lastValue('name')).toMatchObject({ kind: 'pick', v: 1, take: 'all', as: 'text' });
     });
 
-    it('asks nothing when the same list lands in a MULTISELECT column', () => {
-        // The column declares that it holds several values. Asking here would
-        // be a question with no right answer.
-        const { insertInto } = renderFields(writeDraft());
+    it('the same list into a MULTISELECT column stays a list', () => {
+        // The column declares that it holds several values: nothing to turn into text.
+        const { insertInto, lastValue } = renderFields(writeDraft());
         insertInto('Tags', 'steps.s1.output.addresses');
-        expect(document.querySelector('[data-list-pick-chooser]')).toBeNull();
-        expect(screen.queryByTestId('mismatch-resolver')).toBeNull();
+        expect(lastValue('tags')).toMatchObject({ kind: 'pick', take: 'all', as: 'list' });
     });
 
-    it('asks nothing when a single value lands in a text column', () => {
-        const { insertInto } = renderFields(writeDraft());
+    it('a single value into a text column is the value itself', () => {
+        const { insertInto, lastValue } = renderFields(writeDraft());
         insertInto('Name', 'steps.s1.output.name');
-        expect(document.querySelector('[data-list-pick-chooser]')).toBeNull();
+        expect(lastValue('name')).toMatchObject({ kind: 'pick', take: 'one', as: 'text', from: { root: 'steps', id: 's1', path: ['name'] } });
     });
 });
 
 describe('the datatable filter asks per OPERATOR, not per slot', () => {
     beforeEach(cleanup);
 
-    it('asks about a list on "is" — that comparison takes one value', () => {
-        const { insertInto } = renderFields(whereDraft('eq'));
+    it('turns a list on "is" into one value — that comparison takes one', () => {
+        const { insertInto, lastWhere } = renderFields(whereDraft('eq'));
         insertInto('Value', 'steps.s1.output.addresses');
-        expect(screen.getByTestId('mismatch-resolver')).toBeTruthy();
+        expect(lastWhere()).toMatchObject({ kind: 'pick', take: 'all', as: 'text' });
     });
 
-    it('stays quiet on "is one of" — that comparison IS a list', () => {
-        const { insertInto } = renderFields(whereDraft('in'));
+    it('keeps the list on "is one of" — that comparison IS a list', () => {
+        const { insertInto, lastWhere } = renderFields(whereDraft('in'));
         insertInto('Value', 'steps.s1.output.addresses');
-        expect(document.querySelector('[data-list-pick-chooser]')).toBeNull();
-        expect(screen.queryByTestId('mismatch-resolver')).toBeNull();
+        expect(lastWhere()).toMatchObject({ kind: 'pick', take: 'all', as: 'list' });
     });
 
     it('stays quiet on "is none of" — the operator the OTHER copies of this list forget', () => {
         // `notIn` is where a hand-rolled operator set drifts: the BI filter
         // editor's own copy says {in, between} and leaves it out, which would
-        // pop the "this wants one value" question on a filter that is right.
+        // turn the list into one value on a filter that is right.
         // The panel asks the SHARED helper (opTakesList) instead of keeping a
         // list of its own, and this case is what pins that.
-        const { insertInto } = renderFields(whereDraft('notIn'));
+        const { insertInto, lastWhere } = renderFields(whereDraft('notIn'));
         insertInto('Value', 'steps.s1.output.addresses');
-        expect(document.querySelector('[data-list-pick-chooser]')).toBeNull();
-        expect(screen.queryByTestId('mismatch-resolver')).toBeNull();
+        expect(lastWhere()).toMatchObject({ kind: 'pick', take: 'all', as: 'list' });
     });
 
     it('stays quiet on "is between" too', () => {
-        const { insertInto } = renderFields(whereDraft('between'));
+        const { insertInto, lastWhere } = renderFields(whereDraft('between'));
         insertInto('Value', 'steps.s1.output.addresses');
-        expect(document.querySelector('[data-list-pick-chooser]')).toBeNull();
+        expect(lastWhere()).toMatchObject({ kind: 'pick', take: 'all', as: 'list' });
     });
 
     it('drops the value slot entirely on "is empty" — the row IS the condition', () => {

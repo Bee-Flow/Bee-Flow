@@ -8,7 +8,9 @@ import { useCallback, useState } from 'react';
  *
  * Returns:
  *   open          — boolean
- *   openPicker(el, { initialQuery, focusPath }) — show the picker anchored to `el`
+ *   openPicker(el, { initialQuery, focusPath, autoFocus }) — show the picker
+ *                   anchored to `el`; `autoFocus: false` (inline autocomplete)
+ *                   leaves the caret in the field being typed in
  *   closePicker() — hide it
  *   pickerProps   — spread onto <VariablePicker {...pickerProps} ... />
  */
@@ -22,11 +24,13 @@ export default function useVariablePicker() {
     // The path a clicked pill stands for: the picker opens scoped to that
     // step ("the options I can pick in step 7").
     const [focusPath, setFocusPath] = useState('');
+    const [autoFocus, setAutoFocus] = useState(true);
 
     const openPicker = useCallback((el, opts = {}) => {
         setAnchor(el || null);
         setInitialQuery(opts.initialQuery || '');
         setFocusPath(opts.focusPath || '');
+        setAutoFocus(opts.autoFocus !== false);
         setOpen(true);
     }, []);
 
@@ -40,6 +44,6 @@ export default function useVariablePicker() {
         open,
         openPicker,
         closePicker,
-        pickerProps: { open, anchorEl: anchor, onClose: closePicker, initialQuery, focusPath },
+        pickerProps: { open, anchorEl: anchor, onClose: closePicker, initialQuery, focusPath, autoFocus },
     };
 }

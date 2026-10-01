@@ -1,5 +1,6 @@
 import { ChevronDown } from 'lucide-react';
 import { onBindingDragOver, getBindingDropPath } from './bindingDnd';
+import { columnKeyOf } from './keyPath';
 import React, { useCallback, useRef, useState } from 'react';
 import { previewValue } from '../../../../utils/bindingHelpers';
 import { useTranslation } from '../../../../hooks/useTranslation';
@@ -19,7 +20,7 @@ import AnchoredMenu from '../../../shared/AnchoredMenu';
  * Props:
  *   value, onChange(nextKey)
  *   options — [{ key, sample }] from elementFieldOptions(resolveElementSample(...))
- *   onFocusField — same broadcast contract as BindingField/PathField
+ *   onFocusField — same broadcast contract as BindingField and the value slots
  */
 export default function FieldKeyCombobox({
     value = '',
@@ -35,12 +36,6 @@ export default function FieldKeyCombobox({
     const anchorRef = useRef(null);
     const close = useCallback(() => setOpen(false), []);
 
-    const lastSegment = (path) => {
-        const cleaned = String(path || '').trim().replace(/\[(?:\*|\d+)\]$/, '');
-        const seg = cleaned.split('.').pop() || '';
-        return seg.replace(/\[(?:\*|\d+)\]$/, '');
-    };
-
     const emit = (next) => onChange?.(next);
 
     const onFocus = () => {
@@ -48,7 +43,7 @@ export default function FieldKeyCombobox({
         onFocusField?.({
             id: label || placeholder || 'field',
             label: label || placeholder || 'field',
-            insert: (path) => emit(lastSegment(path)),
+            insert: (path) => emit(columnKeyOf(path)),
         });
     };
     // Deliberately NOT closed on blur any more. The old `onBlur` + 150 ms
@@ -61,7 +56,7 @@ export default function FieldKeyCombobox({
     const onDrop = (e) => {
         const path = getBindingDropPath(e);
         if (!path) return;
-        emit(lastSegment(path));
+        emit(columnKeyOf(path));
     };
 
     const trimmed = String(value || '').trim();

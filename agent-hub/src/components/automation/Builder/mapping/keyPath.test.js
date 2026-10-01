@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
-import { joinKeyPath, keyPickable } from './keyPath';
+import { columnKeyOf, joinKeyPath, keyPickable } from './keyPath';
 import { walkPath, walkRelativePath } from '../../../../utils/bindingHelpers';
 
 /**
@@ -79,5 +79,26 @@ describe('keyPickable', () => {
         expect(keyPickable('')).toBe(true);
         expect(keyPickable('...')).toBe(true);
         expect(() => keyPickable(null)).not.toThrow();
+    });
+});
+
+describe('columnKeyOf', () => {
+    // FieldKeyCombobox stores this as the column a Set/Sort/Dedupe step reads
+    // with `item?.[key]`: a quoted key has to come back unquoted, or the step
+    // looks for a column called `rows[*]["first name"]`.
+    it('reads the last key through brackets, quotes and list markers', () => {
+        expect(columnKeyOf('steps.x.output.rows[*]["first name"]')).toBe('first name');
+        expect(columnKeyOf('steps.x.output["content-type"]')).toBe('content-type');
+        expect(columnKeyOf('steps.s1.output["line-items"][*]["unit price"]')).toBe('unit price');
+        expect(columnKeyOf(`steps.s1.output.rows[*]['he said "hi"']`)).toBe('he said "hi"');
+        expect(columnKeyOf('steps.x.output.results[*].subject')).toBe('subject');
+        expect(columnKeyOf('steps.x.output.items[0]')).toBe('items');
+        expect(columnKeyOf('subject')).toBe('subject');
+    });
+
+    it('reads a hand-typed path the way it was meant, and gives up on nothing', () => {
+        expect(columnKeyOf('steps.x.output.Order date')).toBe('Order date');
+        expect(columnKeyOf('')).toBe('');
+        expect(columnKeyOf(null)).toBe('');
     });
 });

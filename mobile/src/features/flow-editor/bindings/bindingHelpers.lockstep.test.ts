@@ -48,6 +48,7 @@ const BINDINGS: unknown[] = [
 const TEXTS = [
     '', 'steps.a.output.x', '  trigger.output.y ', 'vars.k', 'secrets.api', 'loop.item.x', 'item.x', 'x + 1',
     'hello {{trigger.output.name}}', '{{ }}', 'a.b[*].c', '$var', '1abc', 'steps.a.output.results[*].x',
+    'steps.x.output.rows[*]["Order date"]', "trigger.output['content-type']", 'steps.x.output["a b"] + 1', 'nope["x"]',
 ];
 
 describe('walkPath / walkRelativePath / previewValue', () => {

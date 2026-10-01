@@ -5,7 +5,7 @@ import { inputClass, textareaClass, FormRow } from './formPrimitives';
 import useAutomationApi from '../../../../../hooks/useAutomationApi';
 import { walkPath, walkRelativePath, previewValue, suggestKeyFromPath } from '../../../../../utils/bindingHelpers';
 import JsonTreePicker from '../../mapping/JsonTreePicker';
-import PathField from '../../mapping/PathField';
+import ValueSlot from '../../valueSlot/ValueSlot';
 
 /**
  * Settings editor for the parse_json step.
@@ -116,7 +116,7 @@ export default function ParseJsonFields({ step, draft, set, groups = [], onFocus
 
     // Which row's PATH input has focus — a tree pick then fills that row
     // instead of appending a new one (same delayed-clear pattern as
-    // PathField's onBlur so the click still sees the focus).
+    // value slot's onBlur so the click still sees the focus).
     const pathFocusRef = useRef(null);
     const onPickPath = (path) => {
         const focusIdx = pathFocusRef.current;
@@ -181,10 +181,11 @@ export default function ParseJsonFields({ step, draft, set, groups = [], onFocus
             </div>
             <AccordionSection stepType="parse_json" sectionKey="source" title="Source" defaultOpen forceOpen={errorSections.has('source')}>
                 <FormRow label="Source" hint="Where the JSON comes from. Empty = the previous step's output. Text is parsed as JSON automatically.">
-                    <PathField
+                    <ValueSlot
+                        storage="path"
+                        allowTyping={false}
                         value={draft.sourceRef || ''}
                         onChange={(next) => set('sourceRef', next)}
-                        placeholder="steps.step1.output.body"
                         onFocusField={onFocusField}
                         previewSample={previewSample}
                     />

@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { editorWithValue, typeInEditor } from '../../../../test/refEditor';
+import { typeInEditor } from '../../../../test/refEditor';
 import SettingsForm from './SettingsForm';
 import { VariablePickerProvider } from '../mapping/VariablePickerContext';
 import scopedStorage from '../../../../utils/scopedStorage';
@@ -45,7 +45,9 @@ beforeEach(() => {
 describe('SettingsForm — guard', () => {
     it('asks what to scan and says where the two branches go', () => {
         renderForm(guardStep());
-        expect(editorWithValue(document.body, 'steps.read.output.text')).toBeTruthy();
+        // What to scan reads as a chip with the value's name, never as a path.
+        expect(screen.getByTestId('value-chip').textContent).toContain('Text');
+        expect(document.body.textContent).not.toContain('steps.read');
         // The branches ARE the step — leaving the author to discover them from
         // the ports is how a guard ends up wired to nothing.
         const branchLine = screen.getByText(/wire an alert to the first/i);
@@ -55,6 +57,8 @@ describe('SettingsForm — guard', () => {
 
     it('saves what to scan', async () => {
         const { onPatch } = renderForm(guardStep({ sourceRef: '' }));
+        // A path typed by hand is written under the value's Advanced › Formula.
+        fireEvent.click(screen.getByRole('button', { name: 'Write this value as a formula' }));
         typeInEditor(screen.getAllByRole('textbox').find(el => el.hasAttribute('data-ref-editor')), 'trigger.output.body');
         fireEvent.click(screen.getByText('Save'));
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
@@ -143,7 +147,7 @@ describe('SettingsForm — guard', () => {
         // runs here.
         renderForm({ id: 'u1', type: 'untokenize', sourceRef: 'steps.ai.output.text', label: 'Show real values again' });
         expect(screen.getByText(/What to restore/)).toBeTruthy();
-        expect(editorWithValue(document.body, 'steps.ai.output.text')).toBeTruthy();
+        expect(screen.getByTestId('value-chip').textContent).toContain('Text');
         expect(screen.queryByRole('button', { name: 'Advanced' })).toBeNull();
         expect(screen.queryByText(/Only report matches above/)).toBeNull();
     });
