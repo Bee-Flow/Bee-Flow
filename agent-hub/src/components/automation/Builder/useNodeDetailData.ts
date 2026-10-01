@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import type { CurrentItem } from '@shared/mapping/index.mjs';
 import { summariseData } from './flow/dataSummary';
 import { stepNumbers } from './flow/flowOrder';
 import { isInlineId, parseInlineId } from './flow/inlineFlowlets';
@@ -6,7 +7,7 @@ import { matchValidationToStep } from './flow/matchValidationToStep';
 import type { DataSummary, FlowDefinition, FlowEdge, FlowStep, RunStepRow } from './flow/types';
 import { usedPathsIn } from './mapping/boundPaths';
 import { buildRealOutputMap, buildSampleRoot } from './mapping/realOutputs';
-import { buildToolOutputMap, describeNode } from './mapping/upstream';
+import { buildToolOutputMap, computeRepeatItemGroup, describeNode } from './mapping/upstream';
 import useSkillOutputs from './sources/useSkillOutputs';
 import useAutomationApi from '../../../hooks/useAutomationApi';
 import useUpstreamVariables from '../../../hooks/useUpstreamVariables';
@@ -48,6 +49,10 @@ export interface NodeDetailData {
     wiredCaseNames: Set<string> | null;
     stepEdges: FlowEdge[];
     groups: UpstreamGroup[];
+    /** `groups` plus the step's current item when it repeats (step.repeat): for the source panel only. */
+    sourceGroups: UpstreamGroup[];
+    /** The step's own current item (a repeat or a forEach), for naming the values that read it. */
+    currentItem: CurrentItem | null;
     previewSample: unknown;
     stepTypeById: Map<string, string | undefined>;
     stepNumberById: Map<string, number | string>;
@@ -164,6 +169,20 @@ export default function useNodeDetailData({
     );
     const groups = useUpstreamVariables(definition, step?.id, upstreamCatalog, effectiveRealOutputs);
     const previewSample = useMemo(() => buildSampleRoot(groups), [groups]);
+    // A step that runs once per item (step.repeat) offers its current item on
+    // top of Comes in, as `take: 'each'` picks. Only the source panel and the
+    // value slots get it: the string pickers would insert its `<list>[*]`
+    // paths, which read the whole list.
+    const repeatGroup = useMemo(
+        () => computeRepeatItemGroup(definition, step?.id, upstreamCatalog, previewSample) as UpstreamGroup | null,
+        [definition, step?.id, upstreamCatalog, previewSample],
+    );
+    const sourceGroups = useMemo(() => (repeatGroup ? [...groups, repeatGroup] : groups), [groups, repeatGroup]);
+    // The step's own current item (repeat or forEach): what a value slot names "E-mail (of this orderregel)".
+    const currentItem = useMemo(
+        () => sourceGroups.map(g => g.currentItem).find(Boolean) || null,
+        [sourceGroups],
+    );
     // For the Incoming column and the reference pills: each source step's
     // type (→ family colour), its number on the canvas, and which of its
     // fields this step already binds (mapping/boundPaths.js).
@@ -212,8 +231,8 @@ export default function useNodeDetailData({
     // count is a fact about data that has been fetched, never about a list
     // nobody has looked at yet. No run, no pill.
     const loopContext = useMemo(
-        () => resolveLoopContext({ groups, definition, rootDefinition, stepId: step?.id, runSteps }),
-        [groups, definition, rootDefinition, step?.id, runSteps],
+        () => resolveLoopContext({ groups: sourceGroups, definition, rootDefinition, stepId: step?.id, runSteps }),
+        [sourceGroups, definition, rootDefinition, step?.id, runSteps],
     );
 
     // "What goes in, what comes out" — the quick view's one line of data, and
@@ -232,6 +251,8 @@ export default function useNodeDetailData({
         wiredCaseNames,
         stepEdges,
         groups,
+        sourceGroups,
+        currentItem,
         previewSample,
         stepTypeById,
         stepNumberById,
@@ -281,6 +302,11 @@ export function resolveInSummary({ groups = [], previewSample = null, loopContex
     return summarise(walkPath(nearest.basePath, previewSample) ?? nearest.sample);
 }
 
+/** A name inside a sentence: "Orderregel" → "orderregel", but "IBAN" stays. */
+function lowerFirst(text: string): string {
+    return /^[A-Z]{2}/.test(text) ? text : text.charAt(0).toLowerCase() + text.slice(1);
+}
+
 /** The loop step's own row in the last run, as execFlow.js writes it. */
 interface LoopRunOutput {
     iterations?: number;
@@ -313,11 +339,11 @@ export function resolveLoopContext({ groups = [], definition = null, rootDefinit
     stepId?: string | null;
     runSteps?: RunStepRow[];
 }): LoopContext | null {
-    const itemGroup = (groups || []).find(g => String(g?.basePath || '').startsWith('loop.'));
+    const itemGroup = (groups || []).find(g => !!g?.currentItem || String(g?.basePath || '').startsWith('loop.'));
     if (!itemGroup) return null;
     const candidates: string[] = [];
     const gid = String(itemGroup.id || '');
-    if (gid && gid !== '__loop_item') candidates.push(gid.replace(/__foreach$/, ''));
+    if (gid && gid !== '__loop_item') candidates.push(gid.replace(/__(foreach|repeat)$/, ''));
     // An expanded loop body: `loop_abc__2` names the container in its prefix.
     if (stepId && isInlineId(stepId)) {
         const { prefix } = parseInlineId(stepId) || {};
@@ -358,7 +384,10 @@ export function resolveLoopContext({ groups = [], definition = null, rootDefinit
         truncated,
         skipped: truncated ? Math.max(0, total - runs) : 0,
         // "one per <the list it loops over>" — the loop's own label is what the
-        // author named it, which is what 2b's "één per bank" is.
-        listLabel: loopStep?.label || itemGroup.label || null,
+        // author named it, which is what 2b's "één per bank" is. A step that
+        // runs once per item is not a loop: its item is named after the list.
+        listLabel: itemGroup.currentItem?.take === 'each' && itemGroup.currentItem.noun
+            ? lowerFirst(itemGroup.currentItem.noun)
+            : loopStep?.label || itemGroup.label || null,
     };
 }

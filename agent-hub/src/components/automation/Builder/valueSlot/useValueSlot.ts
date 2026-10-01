@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useId, useMemo, useState } from 'react';
-import type { PickBinding, PickIntent, Shape, Slot } from '@shared/mapping/index.mjs';
+import { currentItemNoun } from '@shared/mapping/index.mjs';
+import type { CurrentItem, PickBinding, PickIntent, Shape, Slot } from '@shared/mapping/index.mjs';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { bindingFromInput as bindingFromInputJs } from '../../../../utils/bindingHelpers';
 import { useVariablePickerContext as usePickerContextJs } from '../mapping/VariablePickerContext';
@@ -7,8 +8,8 @@ import { useFieldHandle, type FieldHandle, type InsertOpts } from './fieldHandle
 import { previewText, resolvePreview } from './PickOptions';
 import type { DraggedSource } from './slotDnd';
 import {
-    acceptPick, columnChoice, countAt, crossesList, draggedFrom, groupLabelOf, isStale, makePick, manyForOne, pickFor, shapeAt, storedPathOf, storePick,
-    viewOf, slotFor, type Columns, type GroupLike, type SlotSpec, type SlotStorage, type SlotView,
+    acceptPick, columnChoice, countAt, crossesList, draggedFrom, groupLabelOf, isStale, itemShapeAt, makePick, manyForOne, pickFor, shapeAt,
+    storedPathOf, storePick, viewOf, slotFor, withItemScope, type Columns, type GroupLike, type SlotSpec, type SlotStorage, type SlotView,
 } from './slotModel';
 import { pickLabel } from './usePickLabel';
 import { useRegisterSlot, useSlotRegistryContext } from './useSlotRegistry';
@@ -16,6 +17,7 @@ import { useRegisterSlot, useSlotRegistryContext } from './useSlotRegistry';
 const bindingFromInput = bindingFromInputJs as (text: unknown, mode: 'fixed' | 'expression') => unknown;
 const usePickerContext = usePickerContextJs as () => {
     groups: GroupLike[]; previewSample: object | null; stepLabelById: Map<string, string> | null; stepTypeById: Map<string, string> | null;
+    currentItem?: CurrentItem | null;
 };
 
 /** How long "Replaced · Undo" stays. */
@@ -37,7 +39,10 @@ export interface PickInfo {
     pick: PickBinding;
     lifted: boolean;
     label: string;
+    /** The source's shape: the list's, for a pick of the current item. */
     shape: Shape;
+    /** A pick of the step's current item (`each`): the options offer "for each item". */
+    readsItem: boolean;
     count: number | null;
     preview: string | null;
     stale: boolean;
@@ -110,21 +115,27 @@ export function useValueSlot({
         if (view.kind !== 'pick') return null;
         const { pick } = view;
         const shape = shapeAt(pick.from, sample);
-        const count = countAt(pick.from, sample);
+        // A pick of the current item: what ONE item holds decides the count
+        // and the amber note, and the preview is the first item's value.
+        const currentItem = ctx.currentItem || null;
+        const itemShape = itemShapeAt(pick, sample, currentItem);
+        const gets = itemShape ?? shape;
+        const count = itemShape === null ? countAt(pick.from, sample) : null;
         const groupLabel = groupLabelOf(pick.from, groups, ctx.stepLabelById);
-        const resolved = resolvePreview(pick.from, pick, sample);
+        const resolved = resolvePreview(pick.from, pick, withItemScope(sample, currentItem));
         return {
             pick,
             lifted: view.lifted,
-            label: pickLabel(t, pick, { groupLabel, crossesList: crossesList(pick.from, sample) }),
+            label: pickLabel(t, pick, { groupLabel, crossesList: crossesList(pick.from, sample), itemNoun: currentItemNoun(pick.from, currentItem) }),
             shape,
-            count: shape === 'list' || shape === 'table' ? count : null,
+            readsItem: itemShape !== null,
+            count: gets === 'list' || gets === 'table' ? count : null,
             preview: previewText(resolved),
             stale: isStale(pick.from, groups, sample),
-            warning: manyForOne(pick, shape, slot),
-            columns: storage === 'path' ? null : columnChoice(pick, sample, slot),
+            warning: itemShape === 'unknown' ? false : manyForOne(pick, gets, slot),
+            columns: storage === 'path' || itemShape !== null ? null : columnChoice(pick, sample, slot),
         };
-    }, [view, sample, groups, ctx.stepLabelById, t, slot, storage]);
+    }, [view, sample, groups, ctx.stepLabelById, ctx.currentItem, t, slot, storage]);
 
     /** A change to the pick on screen (an option, a column), in the slot's spelling. */
     const setPick = (pick: PickBinding) => {

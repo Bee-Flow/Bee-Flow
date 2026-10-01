@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import type { ComposeBinding, PickPart, PickIntent, Slot } from '@shared/mapping/index.mjs';
+import { currentItemNoun } from '@shared/mapping/index.mjs';
+import type { ComposeBinding, CurrentItem, PickPart, PickIntent, Slot } from '@shared/mapping/index.mjs';
 import { useTranslation } from '../../../../hooks/useTranslation';
+import { useVariablePickerContext } from '../mapping/VariablePickerContext';
 import PickOptions, { previewText, resolvePreview } from './PickOptions';
-import { countAt, crossesList, groupLabelOf, shapeAt, type GroupLike } from './slotModel';
+import { countAt, crossesList, groupLabelOf, itemShapeAt, shapeAt, withItemScope, type GroupLike } from './slotModel';
 import { pickLabel } from './usePickLabel';
 import ValueChip from './ValueChip';
 
@@ -26,6 +28,7 @@ export default function ComposeParts({ compose, onChange, sample, slot, groups, 
     disabled?: boolean;
 }) {
     const { t } = useTranslation();
+    const { currentItem } = useVariablePickerContext() as { currentItem?: CurrentItem | null };
     const [open, setOpen] = useState<number | null>(null);
     const parts = compose.parts;
     const write = (next: Array<string | PickPart>) => {
@@ -55,14 +58,19 @@ export default function ComposeParts({ compose, onChange, sample, slot, groups, 
                     );
                 }
                 const shape = shapeAt(part.from, sample);
-                const many = shape === 'list' || shape === 'table';
-                const name = pickLabel(t, part, { groupLabel: groupLabelOf(part.from, groups, stepLabelById), crossesList: crossesList(part.from, sample) });
+                const itemShape = itemShapeAt(part, sample, currentItem);
+                const many = itemShape === null && (shape === 'list' || shape === 'table');
+                const name = pickLabel(t, part, {
+                    groupLabel: groupLabelOf(part.from, groups, stepLabelById),
+                    crossesList: crossesList(part.from, sample),
+                    itemNoun: currentItemNoun(part.from, currentItem),
+                });
                 return (
                     <div key={`p${i}`} className="flex flex-col gap-1">
                         <ValueChip
                             label={name}
                             count={many ? countAt(part.from, sample) : null}
-                            preview={previewText(resolvePreview(part.from, part, sample))}
+                            preview={previewText(resolvePreview(part.from, part, withItemScope(sample, currentItem)))}
                             disabled={disabled}
                             onOpen={() => setOpen(o => (o === i ? null : i))}
                             onRemove={() => write(parts.filter((_, j) => j !== i))}
@@ -73,6 +81,7 @@ export default function ComposeParts({ compose, onChange, sample, slot, groups, 
                                 sample={sample}
                                 slot={textSlot}
                                 shape={shape}
+                                repeating={itemShape !== null}
                                 value={part}
                                 label={name}
                                 onSelect={(intent: PickIntent) => {

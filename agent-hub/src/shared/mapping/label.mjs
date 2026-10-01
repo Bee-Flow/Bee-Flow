@@ -52,6 +52,40 @@ export function humanizeKey(key) {
 }
 
 /**
+ * A list's name read as one of its items: "Orderregels" → "Orderregel",
+ * "Lines" → "Line", "Categories" → "Category", "Addresses" → "Address".
+ * Only the last word changes, and only an -s plural the rule is sure of; any
+ * other text ("Klanten", "Status", "Data") is returned as it is.
+ * @param {unknown} text
+ */
+export function singularLabel(text) {
+    const s = String(text ?? '').trim();
+    const m = /^(.*?)([A-Za-z]{4,})$/.exec(s);
+    if (!m) return s;
+    const [, head, word] = m;
+    const lower = word.toLowerCase();
+    let one = word;
+    if (lower.endsWith('ies')) one = `${word.slice(0, -3)}${word.endsWith('IES') ? 'Y' : 'y'}`;
+    else if (/(ss|sh|ch|x|z)es$/.test(lower)) one = word.slice(0, -2);
+    else if (/[^siu]s$/.test(lower)) one = word.slice(0, -1);
+    return head + one;
+}
+
+/**
+ * The name one item of the list `over` goes by: the list's last key, read
+ * as one item ("Orderregel" for `orderregels`). Null for a list without a
+ * key (a step whose whole output is the list).
+ * @param {{ path?: unknown[] } | null | undefined} over — a Source
+ */
+export function itemNoun(over) {
+    const path = over && Array.isArray(over.path) ? over.path : [];
+    for (let i = path.length - 1; i >= 0; i--) {
+        if (typeof path[i] === 'string' && path[i]) return singularLabel(humanizeKey(path[i])) || null;
+    }
+    return null;
+}
+
+/**
  * The label parts of a value, from the segments that lead to it.
  * @param {Array<string|number|object>} segs
  * @returns {Array<{key: string, text: string} | {index: number} | {each: true}>}

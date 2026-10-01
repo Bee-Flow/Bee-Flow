@@ -343,6 +343,20 @@ export interface SourceNode {
     perIteration?: boolean;
     /** Read from a JSON string (textChildren); not addressable by a legacy path. */
     fromText?: boolean;
+    /** A value of the step's current item (step.repeat): picked with `take: 'each'`, never as its legacy path. */
+    take?: 'each';
+}
+
+/**
+ * What a "current item" group is (upstream/loops.mjs): the item of a v2
+ * repeat (`take: 'each'`, picks of `over`) or of a legacy forEach
+ * (`take: 'loop'`, refs of `loop.<itemVar>`), and the item's name.
+ */
+export interface CurrentItem {
+    take: 'each' | 'loop';
+    over?: MappingSource;
+    itemVar?: string;
+    noun: string | null;
 }
 
 /** One upstream node's bindable output. */
@@ -355,6 +369,8 @@ export interface SourceGroup {
     fields: SourceNode[];
     hasRealData?: boolean;
     forEach?: boolean;
+    /** Set on the step's own current item group (forEach or repeat). */
+    currentItem?: CurrentItem;
 }
 
 /** What the describers need from the client they run in (upstream/env.mjs). */
@@ -383,7 +399,7 @@ export interface DescribeContext {
 }
 
 export declare const MAX_DEPTH: number;
-export declare function fieldsFromSample(sample: unknown, base: unknown): SourceNode[];
+export declare function fieldsFromSample(sample: unknown, base: unknown, extra?: Record<string, unknown>): SourceNode[];
 export declare function textChildren(node: unknown): SourceNode[];
 export declare function sampleFromSchema(schema: unknown): Record<string, unknown> | null;
 export declare function overlayReal(fields: SourceNode[] | null | undefined, real: unknown): SourceNode[];
@@ -394,6 +410,10 @@ export declare function isPlaceholder(value: unknown): boolean;
 export declare function humanizeKey(key: unknown): string;
 export declare function labelParts(segs: unknown): LabelPart[];
 export declare function labelText(parts: unknown, sep?: string): string;
+/** A list's name read as one of its items: "Orderregels" → "Orderregel". */
+export declare function singularLabel(text: unknown): string;
+/** The name one item of the list `over` goes by, or null when the list has no key. */
+export declare function itemNoun(over: { path?: unknown[] } | null | undefined): string | null;
 export declare function collectUpstream(definition: unknown, currentStepId: string): Array<Record<string, unknown>>;
 export declare function computeUpstreamGroups(
     definition: unknown,
@@ -411,6 +431,17 @@ export declare function computeLoopBodyGroups(
     definition: unknown,
     env?: UpstreamEnv,
 ): SourceGroup[];
+/** The current item of a step that repeats (step.repeat), as `take: 'each'` picks; null otherwise. */
+export declare function computeRepeatItemGroup(
+    definition: unknown,
+    currentStepId: string | null | undefined,
+    catalog: unknown,
+    sampleRoot?: unknown,
+    env?: UpstreamEnv,
+): SourceGroup | null;
+export declare function describeRepeatItem(step: unknown, definition: unknown, toolToOutput: ToolOutputMap, sampleRoot?: unknown, env?: UpstreamEnv): SourceGroup | null;
+/** The name of the current item a Source reads, when `currentItem` is the item it reads; null otherwise. */
+export declare function currentItemNoun(source: Partial<MappingSource> | null | undefined, currentItem: CurrentItem | null | undefined): string | null;
 export declare function buildToolOutputMap(catalog: unknown): ToolOutputMap;
 export declare function wrapGroupForEach(group: SourceGroup | null, node: unknown): SourceGroup | null;
 export declare function describeNode(

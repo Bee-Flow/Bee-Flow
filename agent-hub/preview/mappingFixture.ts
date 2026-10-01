@@ -95,6 +95,17 @@ export const SCENARIOS: Record<string, Json> = {
     'pick-text-with-value': {
         subject: { kind: 'compose', v: 1, parts: ['Uw bestelling ', { from: { root: 'trigger', path: ['orders', 0, 'id'] }, take: 'one', as: 'text' }] },
     },
+    // The step runs once per contact (REPEATS): "Current contact" on top of
+    // Comes in, and a value picked from it reads that one contact.
+    'repeat-current-item': {
+        to: pick(['contacts', 'E-mail'], { take: 'each', as: 'text' }),
+        subject: { kind: 'compose', v: 1, parts: ['Hallo ', { from: { root: 'trigger', path: ['contacts', 'naam'] }, take: 'each', as: 'text' }] },
+    },
+};
+
+/** The steps that run once per item, per scenario (`step.repeat`). */
+export const REPEATS: Record<string, Json> = {
+    'repeat-current-item': { over: { root: 'trigger', path: ['contacts'] }, max: 100 },
 };
 
 const NAME = { from: { root: 'trigger', path: ['customer', 'name'] }, take: 'one', as: 'text', label: 'Name' };
@@ -133,7 +144,10 @@ export function definitionFor(scenario: string) {
     const fetch = { id: 'fetch', type: 'http_request', label: 'Berichten ophalen', method: 'GET', url: 'https://api.voorbeeld.nl/berichten', pinnedOutput: FETCH_OUTPUT };
     const mail = STEP_SCENARIOS[scenario]
         ? { id: 'mail', ...STEP_SCENARIOS[scenario] }
-        : { id: 'mail', type: 'integration_action', tool: 'gmail_send_email', label: 'Bevestiging mailen', inputs: SCENARIOS[scenario] || {} };
+        : {
+            id: 'mail', type: 'integration_action', tool: 'gmail_send_email', label: 'Bevestiging mailen', inputs: SCENARIOS[scenario] || {},
+            ...(REPEATS[scenario] ? { repeat: REPEATS[scenario] } : {}),
+        };
     return {
         definition: { trigger, steps: [fetch, mail], edges: [{ from: 'trg', to: 'fetch' }, { from: 'fetch', to: 'mail' }] },
         step: mail,

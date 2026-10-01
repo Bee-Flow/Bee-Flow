@@ -25,6 +25,8 @@ export interface DraggedSource {
     shape?: Shape;
     /** Elements in the sample, for a list or a table. */
     count?: number;
+    /** A value of the step's current item (source panel): the pick takes `each`. */
+    take?: 'each';
 }
 
 type DragEventLike = { dataTransfer: DataTransfer | null; preventDefault: () => void };
@@ -77,7 +79,7 @@ export function parseDraggedSource(raw: string | null | undefined): DraggedSourc
     try { data = JSON.parse(raw); } catch { return null; }
     if (!data || typeof data !== 'object' || Array.isArray(data)) return null;
     if ('root' in data) data = { source: data };
-    const { source: given, labelParts, groupLabel, shape, count } = data as Record<string, unknown>;
+    const { source: given, labelParts, groupLabel, shape, count, take } = data as Record<string, unknown>;
     const source = pickableSource(given);
     if (!source) return null;
     const out: DraggedSource = { source };
@@ -85,6 +87,7 @@ export function parseDraggedSource(raw: string | null | undefined): DraggedSourc
     if (typeof groupLabel === 'string') out.groupLabel = groupLabel;
     if (typeof shape === 'string') out.shape = shape as Shape;
     if (typeof count === 'number' && Number.isFinite(count)) out.count = count;
+    if (take === 'each') out.take = 'each';
     return out;
 }
 

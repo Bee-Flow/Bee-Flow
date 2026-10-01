@@ -346,6 +346,7 @@ function PickView({ info, storage, slotProps, label, disabled, optionsOpen, setO
                     sample={s.sample}
                     slot={s.slot}
                     shape={info.shape}
+                    repeating={info.readsItem}
                     value={pick}
                     label={info.label || label || undefined}
                     canUse={storage === 'legacy' ? lowerable : undefined}

@@ -22,14 +22,14 @@
  *   dataSteps.mjs         datatable and knowledge-base steps
  */
 export { collectUpstream } from './graphWalk.mjs';
-export { computeUpstreamGroups, computeLoopBodyGroups, buildToolOutputMap, wrapGroupForEach } from './groups.mjs';
+export { computeUpstreamGroups, computeLoopBodyGroups, computeRepeatItemGroup, buildToolOutputMap, wrapGroupForEach } from './groups.mjs';
 export { describeNode, describeNodeIn, describeLoopBody, DESCRIBED_TYPES } from './describeNode.mjs';
 export {
     seg, sampleToFields, resolveElementSample, elementFieldOptions, collectArrayPaths, samplePlaceholderFor,
 } from './sampleFields.mjs';
 export { overlayGroupWithReal } from './realOverlay.mjs';
 export { triggerMetaSample, describeTriggerMeta } from './triggers.mjs';
-export { inferLoopItemSample, suggestItemVar, runsPerItem } from './loops.mjs';
+export { inferLoopItemSample, suggestItemVar, runsPerItem, describeRepeatItem, currentItemNoun } from './loops.mjs';
 export { pickSample } from './formAnswers.mjs';
 export { leadSkillId } from './aiSteps.mjs';
 export { DEFAULT_ENV, resolveEnv } from './env.mjs';

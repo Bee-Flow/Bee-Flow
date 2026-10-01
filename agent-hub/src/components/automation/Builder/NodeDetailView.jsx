@@ -75,7 +75,7 @@ export default function NodeDetailView({
 }) {
     const { t } = useTranslation();
     const {
-        catalog, isSecondaryTrigger, wiredCaseNames, stepEdges, groups, previewSample,
+        catalog, isSecondaryTrigger, wiredCaseNames, stepEdges, groups, sourceGroups, currentItem, previewSample,
         stepTypeById, stepNumberById, usedPaths, stepIssues,
         describedSample, emptyFormAnswers, loopContext, inSummary, outSummary,
     } = useNodeDetailData({
@@ -86,7 +86,7 @@ export default function NodeDetailView({
 
     // Which field a value clicked in "Comes in" goes to, or the question
     // "Where should this go?" when no field of this step has had focus yet.
-    const { registry, onFocusField, onInsert: onInsertFromTree, ask, onChooseTarget, closeAsk, activeLabel } = useActiveField({ stepId: step?.id, groups, stepLabelById });
+    const { registry, onFocusField, onInsert: onInsertFromTree, ask, onChooseTarget, closeAsk, activeLabel } = useActiveField({ stepId: step?.id, groups: sourceGroups, stepLabelById });
 
     const quick = density === 'quick';
     const goFull = useCallback(() => onDensityChange?.('full'), [onDensityChange]);
@@ -273,7 +273,7 @@ export default function NodeDetailView({
                             </NdvColumnHeader>
                             <div className="relative flex-1 min-h-0 flex flex-col">
                                 <SourcePanel
-                                    groups={groups}
+                                    groups={sourceGroups}
                                     previewSample={previewSample}
                                     onPick={onInsertFromTree}
                                     stepTypeById={stepTypeById}
@@ -309,7 +309,7 @@ export default function NodeDetailView({
                             </NdvColumnHeader>
                         )}
                         <FormDensityContext.Provider value={densityValue}>
-                            <VariablePickerProvider groups={groups} previewSample={previewSample} stepLabelById={stepLabelById} stepTypeById={stepTypeById}>
+                            <VariablePickerProvider groups={groups} previewSample={previewSample} stepLabelById={stepLabelById} stepTypeById={stepTypeById} currentItem={currentItem}>
                                 <SlotRegistryContext.Provider value={registry}>
                                     <SettingsHost
                                         key={step.id}

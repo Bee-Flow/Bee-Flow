@@ -103,6 +103,18 @@ describe('mapping preview scenarios in the step drawer', () => {
         expect(chip.textContent).toContain('No longer available');
     });
 
+    it('repeat-current-item: the current contact sits on top of Comes in and its values read "of this contact"', async () => {
+        const drawer = renderScenario('repeat-current-item');
+        const chip = await waitFor(() => within(param('to')).getByTestId('value-chip'));
+        expect(chip.textContent).toContain('E-mail (of this contact)');
+        // The first contact's value, as the run gives it for that item.
+        expect(chip.textContent).toContain('anna@voorbeeld.nl');
+        const input = within(drawer).getByTestId('ndv-col-input').parentElement as HTMLElement;
+        const first = within(input).getAllByTestId('input-group')[0];
+        expect(first.textContent).toContain('Current contact');
+        expect(first.textContent).toContain('anna@voorbeeld.nl');
+    });
+
     it('legacy-formula and list-in-text: the grey Formula chip, the template in words', async () => {
         renderScenario('legacy-formula');
         const chip = await waitFor(() => within(param('subject')).getByTestId('value-chip'));

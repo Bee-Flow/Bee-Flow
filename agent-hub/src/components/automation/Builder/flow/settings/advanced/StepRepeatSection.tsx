@@ -9,7 +9,7 @@
 // same thing for every item). The rewriting is the shared core's
 // (stepRepeat.ts → repeat.mjs).
 
-import { manyItems, walkSource } from '@shared/mapping/index.mjs';
+import { itemNoun, manyItems, walkSource } from '@shared/mapping/index.mjs';
 import type { MappingSource } from '@shared/mapping/index.mjs';
 import { Check, Repeat } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -22,6 +22,7 @@ import { useTranslation } from '../../../../../../hooks/useTranslation';
 import type { TranslateFn } from '../../../../../../hooks/useTranslation';
 import LoopOverPicker from '../../../mapping/LoopOverPicker';
 import { useVariablePickerContext } from '../../../mapping/VariablePickerContext';
+import { currentItemTitle } from '../../../sources/useSourceTree';
 import { AMBER_NOTE, FormRow, inputClass } from '../formPrimitives';
 
 interface Props {
@@ -33,7 +34,7 @@ interface Props {
     onFocusField?: unknown;
 }
 
-interface Pending { label: string; each: number; patch: Patch }
+interface Pending { label: string; each: number; patch: Patch; noun: string | null }
 
 type Labels = Map<string, string>;
 
@@ -109,7 +110,8 @@ function MaxRow({ value, onChange, t }: { value: number | undefined; onChange: (
 
 /** What turning it on will do, before it is done. */
 function RepeatPreview({ pending, onConfirm, onCancel, t }: { pending: Pending; onConfirm: () => void; onCancel: () => void; t: TranslateFn }) {
-    let effect = t('mapping.repeat.preview_none', 'No value reads the current item yet, so every run would do the same thing. Pick values from that list once this is on.');
+    // Where the values of one item will be: the group on top of Comes in, by the name it has there.
+    let effect = t('mapping.repeat.preview_none_source', 'No value reads the current item yet, so every run would do the same thing. Once this is on, pick values from “{group}” at the top of Comes in.', { group: currentItemTitle(t, pending.noun) });
     if (pending.each === 1) effect = t('mapping.repeat.preview_one', '1 value will read the current item.');
     else if (pending.each > 1) effect = t('mapping.repeat.preview_many', '{n} values will read the current item.', { n: pending.each });
     return (
@@ -189,7 +191,7 @@ export default function StepRepeatSection({ draft, set, stepType, groups = [], o
             setNote(repeatRefusal(res.error, listLabel(repeat?.over || legacySource(forEach?.overRef), labels, t), t));
             return;
         }
-        setPending({ label: listLabel(choice.source, labels, t), each: res.each, patch: res.patch });
+        setPending({ label: listLabel(choice.source, labels, t), each: res.each, patch: res.patch, noun: itemNoun(choice.source) });
         setChoosing(false);
     };
 

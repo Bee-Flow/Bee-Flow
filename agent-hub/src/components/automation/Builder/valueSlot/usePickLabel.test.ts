@@ -18,7 +18,24 @@ describe('pickLabel: a value named in words, never a path', () => {
         expect(pickLabel(t, { from, take: 'first' })).toBe('Product of the first orderregels');
         expect(pickLabel(t, { from, take: 'last' })).toBe('Product of the last orderregels');
         expect(pickLabel(t, { from, take: 'count' })).toBe('Number of product');
-        expect(pickLabel(t, { from, take: 'each' })).toBe('Product (of this orderregels)');
+        expect(pickLabel(t, { from, take: 'each' })).toBe('Product (of this orderregel)');
+    });
+
+    it('a value of the current item: "<field> (of this <item>)", the item named after its list', () => {
+        const from = { root: 'steps' as const, id: 's1', path: ['orderregels', 'product', 'email'] };
+        expect(pickLabel(t, { from, take: 'each' }, { itemNoun: 'Orderregel' })).toBe('Email (of this orderregel)');
+        // Without the step's item name: the key it sits in, read as one item.
+        expect(pickLabel(t, { from, take: 'each' })).toBe('Email (of this product)');
+        // The source panel's parts are relative to the item.
+        expect(pickLabel(t, { from, take: 'each' }, { labelParts: [key('email')], itemNoun: 'Orderregel', groupLabel: 'Orders' })).toBe('Email (of this orderregel)');
+        // The item itself, for a list of plain values.
+        expect(pickLabel(t, { from: { root: 'steps', id: 's1', path: ['tags'] }, take: 'each' }, { itemNoun: 'Tag', groupLabel: 'Orders' })).toBe('Current tag');
+    });
+
+    it('a loop item\'s own key reads as a value of this item', () => {
+        expect(pickLabel(t, { from: { root: 'loop', id: 'regel', path: ['email'] } }, { groupLabel: 'Current orderregel' })).toBe('Email (of this regel)');
+        expect(pickLabel(t, { from: { root: 'loop', id: 'regel', path: ['email'] } }, { itemNoun: 'Orderregel' })).toBe('Email (of this orderregel)');
+        expect(pickLabel(t, { from: { root: 'loop', id: 'regel', path: ['klant', 'email'] } })).toBe('Email of klant');
     });
 
     it('a list position: the first row, row n', () => {

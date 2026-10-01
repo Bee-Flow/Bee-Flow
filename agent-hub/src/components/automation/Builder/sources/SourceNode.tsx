@@ -66,7 +66,8 @@ export default function SourceNode({ node, onInsert = null, depth, previewSample
     const children = nodeChildren(node, value);
     const hasChildren = children.length > 0;
     const pickable = !!node.path;
-    const desc = describe({ ...node, path: node.path || undefined }, previewSample, t);
+    // A value of the current item is described as it is in one item, not along its whole-list path.
+    const desc = describe({ ...node, path: (node.take !== 'each' && node.path) || undefined }, previewSample, t);
     const used = !!(usedPaths && node.path && inUse(node.path, usedPaths));
     const unconfirmed = isUnconfirmed(node);
     const label = nodeLabel(node);
@@ -75,7 +76,8 @@ export default function SourceNode({ node, onInsert = null, depth, previewSample
     // A group built without Sources (an older caller) still hands one over.
     const source = node.source !== undefined ? node.source : (node.path ? parseLegacyPath(node.path) : null);
     // What the field needs to name and shape the value without walking for it again.
-    const about = { source, labelParts: node.labelParts, shape: node.shape, count: node.count };
+    // A value of the current item goes as an `each` pick (core describeRepeatItem).
+    const about = { source, labelParts: node.labelParts, shape: node.shape, count: node.count, ...(node.take === 'each' ? { take: node.take } : {}) };
     const insert = (raw: boolean) => {
         if (node.path) onInsert?.(node.path, { raw, ...about });
     };

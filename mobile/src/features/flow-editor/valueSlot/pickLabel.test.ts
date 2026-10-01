@@ -11,7 +11,7 @@ describe('pickLabel', () => {
         ['a field inside a record', { from: steps(['Klant', 'E-mail adres']) }, '', 'E-mail adres of klant'],
         ['a column of a list, all of it', { from: steps(['orders', 'product']), take: 'all' }, '', 'Product of all orders'],
         ['the first of a column', { from: steps(['orders', 'product']), take: 'first' }, '', 'Product of the first orders'],
-        ['the current item', { from: steps(['orders', 'product']), take: 'each' }, '', 'Product (of this orders)'],
+        ['the current item', { from: steps(['orders', 'product']), take: 'each' }, '', 'Product (of this order)'],
         ['a count', { from: steps(['orders']), take: 'count' }, '', 'Number of orders'],
         ['the first row', { from: steps(['orders', 0]) }, '', 'The first orders'],
         ['a later row', { from: steps(['orders', 2]) }, '', 'Orders, row 3'],

@@ -22,6 +22,7 @@ import {
     collectUpstream,
     computeUpstreamGroups as coreComputeUpstreamGroups,
     computeLoopBodyGroups as coreComputeLoopBodyGroups,
+    computeRepeatItemGroup as coreComputeRepeatItemGroup,
     buildToolOutputMap,
     describeNode as coreDescribeNode,
     sampleToFields,
@@ -71,6 +72,20 @@ export function computeUpstreamGroups(
     realOutputById: ReadonlyMap<string, unknown> | null = null,
 ): SourceGroup[] {
     return coreComputeUpstreamGroups(definition, currentStepId, catalog, realOutputById, BUILDER_ENV);
+}
+
+/**
+ * The current item of a step that runs once per item (`step.repeat`), as
+ * `take: 'each'` picks, for the source panel only (never a string picker).
+ * `sampleRoot` is the drawer's preview root. Null when the step does not repeat.
+ */
+export function computeRepeatItemGroup(
+    definition: unknown,
+    currentStepId: string | null | undefined,
+    catalog: unknown,
+    sampleRoot: unknown = null,
+): SourceGroup | null {
+    return coreComputeRepeatItemGroup(definition, currentStepId, catalog, sampleRoot, BUILDER_ENV);
 }
 
 export function computeLoopBodyGroups(

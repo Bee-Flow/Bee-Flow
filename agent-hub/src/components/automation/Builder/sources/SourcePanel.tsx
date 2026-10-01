@@ -1,8 +1,8 @@
 import { Search, X, MousePointer2, MessageCircleQuestion } from 'lucide-react';
-import { Fragment, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import SourceNode from './SourceNode';
 import TableTakeover from './TableTakeover';
-import { isLoopItemGroup, useSourceTree, type TreeGroup } from './useSourceTree';
+import { isLoopItemGroup, useSourceTree, withItemTitles, type TreeGroup } from './useSourceTree';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { typeGroupOf } from '../flow/nodeTypeColors';
 import { countInUse } from '../mapping/boundPaths';
@@ -16,8 +16,10 @@ import type { PickOpts } from '../output/mapAttrs';
  * One bordered block per source step, nearest first (InputNodeSection): at
  * most six values with a human name, a kind icon and a sample value from the
  * last run, the values this step already uses on top, and the system fields
- * folded under "Technical details". The current LOOP ITEM, when there is
- * one, sits on top in the loop colour. Each value is a SourceNode: nested
+ * folded under "Technical details". The CURRENT ITEM, when there is one,
+ * sits on top in the loop colour: a loop's item, or the item of a step that
+ * runs once per item ("Current order line", named after its list). A value
+ * of the latter goes into a field as a pick of that one item (`take: 'each'`). Each value is a SourceNode: nested
  * data opens like folders, a list opens to its columns, a key the last run
  * lacked is dimmed.
  *
@@ -60,11 +62,12 @@ function familyOfGroup(group: TreeGroup, stepTypeById: Map<string, string> | nul
 }
 
 export default function SourcePanel({
-    groups = [], previewSample = null, onPick,
+    groups: given = [], previewSample = null, onPick,
     stepTypeById = null, stepNumberById = null, usedPaths = null,
     loopIteration = null, manualStart = false, onAddStartQuestion = null,
 }: SourcePanelProps) {
     const { t } = useTranslation();
+    const groups = useMemo(() => withItemTitles(given, t), [given, t]);
     const [query, setQuery] = useState('');
     const [searchOpen, setSearchOpen] = useState(false);
     const [tableFor, setTableFor] = useState<string | null>(null); // group id whose table took over

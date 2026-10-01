@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import type { CurrentItem } from '@shared/mapping/index.mjs';
 import { computeUpstreamGroups } from '../components/automation/Builder/mapping/upstream';
 
 /**
@@ -29,6 +30,8 @@ export interface UpstreamGroup {
      * sample is otherwise the catalog's curated placeholder.
      */
     hasRealData?: boolean;
+    /** The step's own current item (core CurrentItem): a forEach's `loop.<var>`, or a repeat's `each` picks. */
+    currentItem?: CurrentItem;
 }
 
 /** Real run/pinned outputs per step id, from mapping/realOutputs.js. */

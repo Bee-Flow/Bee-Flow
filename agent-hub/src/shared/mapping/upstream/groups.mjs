@@ -28,7 +28,7 @@ import { collectUpstream } from './graphWalk.mjs';
 import { describeNodeIn, describeLoopBody } from './describeNode.mjs';
 import { overlayGroupWithReal } from './realOverlay.mjs';
 import { triggerMetaSample, describeTriggerMeta } from './triggers.mjs';
-import { describeForEachItem, loopItemGroup, inferLoopItemSample, wrapGroupForEach, runsPerItem } from './loops.mjs';
+import { describeForEachItem, describeRepeatItem, loopItemGroup, inferLoopItemSample, wrapGroupForEach, runsPerItem } from './loops.mjs';
 import { resolveEnv } from './env.mjs';
 import { resolveElementSample } from './sampleFields.mjs';
 
@@ -90,6 +90,21 @@ export function computeUpstreamGroups(definition, currentStepId, catalog, realOu
         if (itemGroup) groups.push(itemGroup);
     }
     return groups.filter(g => !isOwnContainer(g.id, currentStepId));
+}
+
+/**
+ * The current item of `currentStepId` when it runs once per item the v2 way
+ * (`step.repeat`), as the source panel offers it on top: picks with
+ * `take: 'each'` (loops.mjs describeRepeatItem). Null when the step does not
+ * repeat. Kept out of computeUpstreamGroups on purpose: the string-path
+ * pickers would insert its `<list>[*]` paths as refs of the whole list.
+ * `sampleRoot` is the client's preview root (real or pinned data first).
+ */
+export function computeRepeatItemGroup(definition, currentStepId, catalog, sampleRoot = null, env = undefined) {
+    if (!definition || !currentStepId) return null;
+    const cur = (definition.steps || []).find(s => s && s.id === currentStepId);
+    if (!cur || !cur.repeat) return null;
+    return describeRepeatItem(cur, definition, buildToolOutputMap(catalog), sampleRoot, resolveEnv(env));
 }
 
 /**

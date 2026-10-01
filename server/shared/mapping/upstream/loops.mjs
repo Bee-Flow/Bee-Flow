@@ -8,8 +8,11 @@
  * not the other is indistinguishable from a broken binding.
  */
 import { walkPath } from '../legacy.mjs';
-import { WILD, isWild, parseLegacyPath } from '../source.mjs';
-import { fieldsFromSample, shapeOfSample } from '../fields.mjs';
+import { WILD, formatPath, isPrefix, isWild, parseLegacyPath } from '../source.mjs';
+import { fieldsFromSample, makeNode, shapeOfSample } from '../fields.mjs';
+import { humanizeKey, itemNoun } from '../label.mjs';
+import { manyItems, walkSource } from '../walk.mjs';
+import { sourceProblems } from '../validate.mjs';
 import { groupLabel } from './env.mjs';
 import { fieldAt, loopBase, stepBase } from './sampleFields.mjs';
 
@@ -126,22 +129,101 @@ export function wrapGroupForEach(group, node) {
     };
 }
 
+/** A name inside a sentence: "Orderregel" → "orderregel", but "IBAN" stays. */
+function lowerFirst(text) {
+    if (/^[A-Z]{2}/.test(text)) return text;
+    return text.charAt(0).toLowerCase() + text.slice(1);
+}
+
+/** "Current order line": the current item, named after its list. */
+function currentItemLabel(env, noun) {
+    return noun
+        ? groupLabel(env, 'current_item_named', 'Current {item}', { item: lowerFirst(noun) })
+        : groupLabel(env, 'current_item_plain', 'Current item');
+}
+
 /**
  * Per-item loop variable for a step that iterates over an upstream array
- * (`step.forEach`), surfaced for the iterating step itself.
+ * (`step.forEach`), surfaced for the iterating step itself: its values are
+ * `loop.<itemVar>.*` refs. Named after the list ("Current order line"),
+ * else after the item variable. `currentItem` says what the group is
+ * (`take: 'loop'`: picks of it are plain refs of the loop variable).
  */
 export function describeForEachItem(step, definition, toolToOutput, sampleRoot = null, env) {
     const fe = step.forEach || {};
     const itemVar = fe.itemVar || 'item';
     const sample = inferLoopItemSample(fe.overRef, definition, toolToOutput, sampleRoot) || {};
+    const over = typeof fe.overRef === 'string' ? parseLegacyPath(fe.overRef.trim()) : null;
+    const noun = itemNoun(over) || humanizeKey(itemVar) || null;
     return {
         id: `${step.id}__foreach`,
-        label: groupLabel(env, 'current_item_short', 'Current item ({name})', { name: itemVar }),
+        label: currentItemLabel(env, noun),
         kind: 'loop',
         basePath: `loop.${itemVar}`,
         sample,
+        currentItem: { take: 'loop', itemVar, noun },
         fields: fieldsFromSample(sample, loopBase(itemVar)),
     };
+}
+
+/**
+ * The current item of a step that runs once per item the v2 way
+ * (`step.repeat = { over }`), for that step itself: every value of ONE item
+ * of the list, each a pick with `take: 'each'` of the list's Source plus the
+ * path inside the item (what repeat.mjs toggleRepeat writes, and what
+ * execRepeat reads per item). A list of plain values offers the item itself.
+ *
+ * Not part of computeUpstreamGroups: its legacy paths (`<list>[*].email`)
+ * read the WHOLE list as a ref, so only a surface that stores the pick (the
+ * source panel, with the value slots) may offer it.
+ *
+ * The item's shape comes from `sampleRoot` (real or pinned data first),
+ * else from the list's catalog sample. Null when the step does not repeat
+ * over a valid Source.
+ */
+export function describeRepeatItem(step, definition, toolToOutput, sampleRoot = null, env) {
+    const over = step && step.repeat ? step.repeat.over : null;
+    if (!over || sourceProblems(over).length) return null;
+    const listPath = formatPath(over);
+    if (!listPath) return null;
+    const source = { root: over.root, ...(over.id !== undefined ? { id: over.id } : {}), path: [...over.path] };
+    const element = repeatElement(source, sampleRoot) ?? inferLoopItemSample(listPath, definition, toolToOutput, sampleRoot);
+    const noun = itemNoun(source);
+    const base = { source, text: `${listPath}[*]`, rel: [] };
+    const each = { take: 'each' };
+    let fields = [];
+    if (isPlainObject(element)) fields = fieldsFromSample(element, base, each);
+    else if (element !== undefined && element !== null && !Array.isArray(element)) fields = [makeNode(base, noun || 'item', element, each)];
+    return {
+        id: `${step.id}__repeat`,
+        label: currentItemLabel(env, noun),
+        kind: 'loop',
+        basePath: base.text,
+        sample: element ?? {},
+        currentItem: { take: 'each', over: source, noun },
+        fields,
+    };
+}
+
+/** The first item of the list `over` in the sample root, read the way execRepeat reads it. */
+function repeatElement(over, sampleRoot) {
+    if (!sampleRoot || typeof sampleRoot !== 'object') return undefined;
+    const { items } = manyItems(walkSource(over, sampleRoot));
+    return items.find(isPlainObject) ?? items.find(v => v !== undefined && v !== null && typeof v !== 'object');
+}
+
+/**
+ * The name of the item a value is read from, when it is the current item of
+ * the step (a group's `currentItem`): "Orderregel" for an `each` pick under
+ * the list, or a `loop.<itemVar>` ref of a forEach. Null otherwise.
+ * @param {object|null|undefined} source — a v2 Source
+ * @param {{ take?: string, over?: object|null, itemVar?: string, noun?: string|null } | null | undefined} currentItem
+ */
+export function currentItemNoun(source, currentItem) {
+    if (!source || !currentItem || !currentItem.noun) return null;
+    if (currentItem.take === 'loop') return source.root === 'loop' && source.id === currentItem.itemVar ? currentItem.noun : null;
+    if (currentItem.take === 'each') return currentItem.over && isPrefix(currentItem.over, source) ? currentItem.noun : null;
+    return null;
 }
 
 /** The group a loop's body sees as its current item: `loop.<itemVar>`. */

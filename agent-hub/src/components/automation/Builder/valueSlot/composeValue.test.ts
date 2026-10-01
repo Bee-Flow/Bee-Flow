@@ -216,6 +216,15 @@ describe('partForInsert: a picked value as a part of this text', () => {
             .toMatchObject({ from: { root: 'steps', id: 'fetch', path: ['items', 'sku'] }, take: 'all', join: 'lines' });
     });
 
+    it('a value of the current item: that one item\'s value, never a {{ }} placeholder', () => {
+        const LINE_PRODUCT: MappingSource = { root: 'trigger', path: ['orders', 'lines', 'product'] };
+        // As one item holds it: one value, not all of the column the sample shows.
+        expect(partForInsert({ path: 'trigger.output.orders[*].lines[*].product', source: LINE_PRODUCT, take: 'each' }, LINES, SAMPLE))
+            .toEqual({ from: LINE_PRODUCT, take: 'each', as: 'text', label: 'Product' });
+        // A `{{ }}` path reads the whole list: such a text takes nothing.
+        expect(placeholderForInsert({ path: 'trigger.output.orders[*].lines[*].product', source: LINE_PRODUCT, take: 'each' })).toBeNull();
+    });
+
     it('a path that reads no Source gives nothing', () => {
         expect(partForInsert({ path: 'secrets.apiKey' }, LINES, SAMPLE)).toBeNull();
         expect(partForInsert({}, LINES, SAMPLE)).toBeNull();

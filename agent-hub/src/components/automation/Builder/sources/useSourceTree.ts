@@ -11,8 +11,9 @@
 import { useMemo } from 'react';
 import {
     humanizeKey, labelText, textChildren, walkPath,
-    type LabelPart, type Source, type SourceNode as CoreSourceNode,
+    type CurrentItem, type LabelPart, type Source, type SourceNode as CoreSourceNode,
 } from '@shared/mapping/index.mjs';
+import type { TranslateFn } from '../../../../hooks/useTranslation';
 import { filterGroups } from '../mapping/filterFields';
 
 /** A row's node: the core's SourceNode, of which older groups carry only the first four keys. */
@@ -27,6 +28,8 @@ export type TreeNode = Pick<CoreSourceNode, 'key' | 'sample'> & {
     confirmed?: boolean;
     fromText?: boolean;
     perIteration?: boolean;
+    /** A value of the step's current item (step.repeat): picked as `take: 'each'`. */
+    take?: 'each';
 };
 
 export interface TreeGroup {
@@ -37,11 +40,34 @@ export interface TreeGroup {
     sample?: unknown;
     fields?: TreeNode[];
     hasRealData?: boolean;
+    /** The step's own current item (core describeRepeatItem / describeForEachItem). */
+    currentItem?: CurrentItem;
 }
 
-/** Is this the current loop item (`loop.<var>`), which the panel puts on top? */
-export function isLoopItemGroup(group: Pick<TreeGroup, 'basePath'> | null | undefined): boolean {
-    return String(group?.basePath || '').startsWith('loop.');
+/**
+ * Is this the current item (a loop's `loop.<var>`, or the item of a step that
+ * runs once per item), which the panel puts on top?
+ */
+export function isLoopItemGroup(group: Pick<TreeGroup, 'basePath' | 'currentItem'> | null | undefined): boolean {
+    return !!group?.currentItem || String(group?.basePath || '').startsWith('loop.');
+}
+
+/** A name inside a sentence: "Orderregel" → "orderregel", but "IBAN" stays. */
+function lowerFirst(text: string): string {
+    if (/^[A-Z]{2}/.test(text)) return text;
+    return text.charAt(0).toLowerCase() + text.slice(1);
+}
+
+/** "Current order line": the step's current item, named after its list, in the current language. */
+export function currentItemTitle(t: TranslateFn, noun: string | null | undefined): string {
+    return noun
+        ? t('mapping.source.current_item', 'Current {item}', { item: lowerFirst(noun) })
+        : t('mapping.source.current_item_plain', 'Current item');
+}
+
+/** The groups with the step's current item named in the current language (the core names it in English). */
+export function withItemTitles<G extends TreeGroup>(groups: readonly G[], t: TranslateFn): G[] {
+    return groups.map(g => (g.currentItem ? { ...g, label: currentItemTitle(t, g.currentItem.noun) } : g));
 }
 
 /**
@@ -74,9 +100,13 @@ export function nodeTitle(node: Pick<TreeNode, 'key' | 'labelParts'>): string {
 
 /**
  * The value a row shows: the real one (last run or pin, through the
- * preview sample) when its path resolves there, else the describer's sample.
+ * preview sample) when its path resolves there, else the describer's sample
+ * (already the real first item, for the current item).
  */
-export function nodeValue(node: Pick<TreeNode, 'path' | 'sample'>, previewSample: unknown): unknown {
+export function nodeValue(node: Pick<TreeNode, 'path' | 'sample' | 'take'>, previewSample: unknown): unknown {
+    // A value of the current item is shown as it is in ONE item; its path
+    // (`<list>[*].email`) would read every item at once.
+    if (node.take === 'each') return node.sample;
     if (previewSample && node.path) {
         const v = walkPath(node.path, previewSample);
         if (v !== undefined) return v;

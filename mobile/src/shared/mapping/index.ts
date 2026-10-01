@@ -52,6 +52,7 @@ export {
     resolveTokens,
     sampleToFields,
     seg,
+    singularLabel,
     sourceFromPath,
     suggestItemVar,
     textChildren,

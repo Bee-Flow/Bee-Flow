@@ -29,7 +29,7 @@ const EN = require('../../../../../server/i18n/defaults/en/mapping.js') as Recor
 
 type Labels = Map<string, string> | null;
 const webLabel = requireWeb(`${BUILDER}/valueSlot/usePickLabel.ts`) as unknown as {
-    pickLabel: (t: TranslateFn, pick: unknown, ctx: { groupLabel: string }) => string;
+    pickLabel: (t: TranslateFn, pick: unknown, ctx: { groupLabel: string; itemNoun?: string | null }) => string;
     formulaSummary: (t: TranslateFn, binding: unknown, labels: Labels) => string;
 };
 const webSentence = requireWeb(`${BUILDER}/valueSlot/PickSentence.tsx`) as unknown as {
@@ -54,6 +54,7 @@ const PATHS: unknown[][] = [
     ['orders', 3, 'id'],
     ['orders', WILD, 'sku'],
     ['first_name'],
+    ['tags'],
     ['API key'],
     ['customerId', 'billingAddress', 'postCode'],
     [0],
@@ -65,6 +66,7 @@ const FROMS = (path: unknown[]) => [
     { root: 'run', path },
     { root: 'vars', path },
     { root: 'item', path },
+    { root: 'loop', id: 'regel', path },
 ];
 
 function picks(): PickLike[] {
@@ -84,6 +86,12 @@ describe('pickLabel against the web', () => {
             expect([pick, pickLabel(said, pick, group)]).toEqual([pick, webLabel.pickLabel(said, pick, { groupLabel: group })]);
         }
         expect(pickLabel(said, null, group)).toBe(webLabel.pickLabel(said, null, { groupLabel: group }));
+    });
+
+    it.each([null, 'Orderregel', 'Tag'])('names the current item the same, item %j', (itemNoun) => {
+        for (const pick of picks()) {
+            expect([pick, pickLabel(said, pick, 'Orders', itemNoun)]).toEqual([pick, webLabel.pickLabel(said, pick, { groupLabel: 'Orders', itemNoun })]);
+        }
     });
 });
 

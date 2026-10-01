@@ -66,6 +66,8 @@ describe('StepRepeatSection — the one place a step is set to run per item', ()
         await user.click(toggle());
         await user.click(screen.getByText('Orders from Get orders'));
         expect(screen.getByTestId('repeat-preview').textContent).toContain('every run would do the same thing');
+        // Where to pick them: the group named after the list, on top of Comes in.
+        expect(screen.getByTestId('repeat-preview').textContent).toContain('pick values from “Current order” at the top of Comes in');
     });
 
     it('regression: switching it off leaves no per-item run, and the values read the whole list', async () => {

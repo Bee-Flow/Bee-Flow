@@ -2,7 +2,7 @@ import { render, screen, cleanup, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SourcePanel from './SourcePanel';
-import { computeUpstreamGroups, overlayGroupWithReal } from '../mapping/upstream';
+import { computeRepeatItemGroup, computeUpstreamGroups, overlayGroupWithReal } from '../mapping/upstream';
 
 /**
  * The source panel over groups the core describes (M3): nested data opens
@@ -85,5 +85,23 @@ describe('SourcePanel over core SourceNodes', () => {
         const title = rowOf('Naam').getAttribute('title') || '';
         expect(title).toContain('Klant › Naam');
         expect(title).not.toContain('steps.');
+    });
+
+    it('a step that runs once per item: its current item on top, named after the list, its values picked per item', async () => {
+        const def = { ...DEFINITION, steps: [DEFINITION.steps[0], { id: 'next', type: 'code', repeat: { over: { root: 'steps', id: 'order', path: ['Orderregels'] } } }] };
+        const sample = { steps: { order: { output: ORDER } } };
+        const item = computeRepeatItemGroup(def, 'next', null, sample);
+        expect(item).toBeTruthy();
+        const onPick = vi.fn();
+        render(<SourcePanel groups={[...groups(), item!]} previewSample={sample} onPick={onPick} />);
+        const [first] = screen.getAllByTestId('input-group');
+        expect(first.textContent).toContain('Current orderregel');
+        // One item's value, not the whole column.
+        expect(within(first).getByText('“Stoel”')).toBeTruthy();
+        await userEvent.click(within(first).getByText('Product'));
+        expect(onPick).toHaveBeenCalledWith('steps.order.output.Orderregels[*].Product', expect.objectContaining({
+            take: 'each',
+            source: { root: 'steps', id: 'order', path: ['Orderregels', 'Product'] },
+        }));
     });
 });

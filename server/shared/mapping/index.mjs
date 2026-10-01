@@ -61,13 +61,13 @@ export {
     MAX_DEPTH, fieldsFromSample, textChildren, sampleFromSchema, overlayReal, deepOverlay, hasPath,
     previewOf, isPlaceholder,
 } from './fields.mjs';
-export { humanizeKey, labelParts, labelText } from './label.mjs';
+export { humanizeKey, labelParts, labelText, singularLabel, itemNoun } from './label.mjs';
 export {
-    collectUpstream, computeUpstreamGroups, computeLoopBodyGroups, buildToolOutputMap, wrapGroupForEach,
+    collectUpstream, computeUpstreamGroups, computeLoopBodyGroups, computeRepeatItemGroup, buildToolOutputMap, wrapGroupForEach,
     describeNode, describeNodeIn, describeLoopBody, DESCRIBED_TYPES,
     seg, sampleToFields, resolveElementSample, elementFieldOptions, collectArrayPaths, samplePlaceholderFor,
     overlayGroupWithReal, triggerMetaSample, describeTriggerMeta, inferLoopItemSample, suggestItemVar, runsPerItem,
-    pickSample, leadSkillId, DEFAULT_ENV, resolveEnv,
+    describeRepeatItem, currentItemNoun, pickSample, leadSkillId, DEFAULT_ENV, resolveEnv,
 } from './upstream/index.mjs';
 // A legacy binding shown as a pick (liftLegacy; null means "Formula"), and a
 // pick written for the places that only hold the legacy spelling (lowerPick).

@@ -25,6 +25,8 @@ export interface InsertOpts {
     labelParts?: LabelPart[];
     shape?: string;
     count?: number;
+    /** A value of the step's current item: the pick takes `each`. */
+    take?: 'each';
 }
 
 export interface FieldHandle {

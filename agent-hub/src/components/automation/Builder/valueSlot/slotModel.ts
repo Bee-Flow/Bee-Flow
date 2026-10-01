@@ -1,11 +1,11 @@
 import { evaluate } from '@shared/expr/index.mjs';
 import * as parse from '@shared/expr/parse.mjs';
 import {
-    MAPPING_VERSION, TRIGGER_RUN_KEYS, defaultIntent, humanizeKey, isCompose, isMany, isPick, legacyPathOf, liftLegacy, lowerPick,
-    manyItems, shapeOf, slotShape, sourceBase, sourceFromPath, walkSource,
+    MAPPING_VERSION, TRIGGER_RUN_KEYS, defaultIntent, humanizeKey, isCompose, isMany, isPick, isPrefix, legacyPathOf,
+    liftLegacy, lowerPick, manyItems, shapeOf, slotShape, sourceBase, sourceFromPath, walkMany, walkSource,
 } from '@shared/mapping/index.mjs';
 import type {
-    ComposeBinding, MappingSource, PickBinding, PickIntent, PickPart, Shape, Slot, Source,
+    ComposeBinding, CurrentItem, MappingSource, PickBinding, PickIntent, PickPart, Shape, Slot, Source,
 } from '@shared/mapping/index.mjs';
 import { bindingFromInput as bindingFromInputJs } from '../../../../utils/bindingHelpers';
 import { pickableSource, type DraggedSource } from './slotDnd';
@@ -161,6 +161,7 @@ export function draggedFrom(
     if (extra.groupLabel) out.groupLabel = extra.groupLabel;
     if (extra.shape) out.shape = extra.shape as Shape;
     if (typeof extra.count === 'number') out.count = extra.count;
+    if (extra.take === 'each') out.take = 'each';
     return out;
 }
 
@@ -259,6 +260,13 @@ export interface AcceptContext {
 
 /** The pick a dragged source becomes in this slot: core defaultIntent, and a column for a table. */
 export function pickFor(dragged: DraggedSource, { slot, sample, names = [] }: AcceptContext): { pick: PickBinding; shape: Shape } {
+    if (dragged.take === 'each') {
+        // A value of the current item: as ONE item holds it (the panel's
+        // shape), not as the whole list's column reads in the sample.
+        const shape = shapeAt(dragged.source, null, dragged.shape);
+        const { warning: _w, ...intent } = defaultIntent(shape, slot);
+        return { pick: makePick(dragged.source, { ...intent, take: 'each' }), shape };
+    }
     let source = dragged.source;
     let shape = shapeAt(source, sample, dragged.shape);
     if (shape === 'table' && wantsValueList(slot)) {
@@ -292,6 +300,8 @@ function partOf(pick: PickBinding): PickPart {
 export function acceptPick(current: unknown, pick: PickBinding, ctx: AcceptContext): { value: unknown; replaced: boolean } {
     const view = viewOf(current, ctx.storage, ctx.sample);
     const replaced = view.kind !== 'empty';
+    // A path or a legacy binding cannot read the current item: such a field keeps what it holds.
+    if (pick.take === 'each' && ctx.storage !== 'binding') return { value: current, replaced: false };
     if (ctx.storage === 'path') {
         // The list itself: its path, with [*] where the data shows a list on the way.
         return { value: legacyPathOf(pick.from, ctx.sample, ctx.hint) ?? '', replaced };
@@ -393,6 +403,35 @@ export function formulaOutput(binding: unknown, storage: SlotStorage): unknown {
     // A lone `{{p}}` is the path p; the runtime walks a path field, never renders it.
     const lone = /^\s*\{\{\s*([^{}]+?)\s*\}\}\s*$/.exec(text);
     return lone ? lone[1] : text;
+}
+
+// ── The current item (a step that runs once per item) ──────────────────
+
+/** The first item of the list a step repeats over, in the sample; undefined without one. */
+function firstItem(currentItem: CurrentItem | null | undefined, sample: Sample): unknown {
+    if (!sample || currentItem?.take !== 'each' || !currentItem.over) return undefined;
+    const { items } = manyItems(walkSource(currentItem.over, sample));
+    return items[0];
+}
+
+/**
+ * The sample with the list's first item as the current one, the scope
+ * execRepeat sets per item, so an `each` pick previews as the run gives it
+ * for that item (the core resolver reads `_mappingScope`). The sample as it
+ * is when the step does not repeat or the list is empty there.
+ */
+export function withItemScope(sample: Sample, currentItem: CurrentItem | null | undefined): Sample {
+    const item = firstItem(currentItem, sample);
+    if (item === undefined || !sample || !currentItem?.over) return sample;
+    return { ...sample, _mappingScope: { over: currentItem.over, item, index: 0 } } as Sample;
+}
+
+/** The shape of what an `each` pick reads in the first item; null when it is not one of the current item. */
+export function itemShapeAt(pick: Pick<PickBinding, 'from' | 'take'>, sample: Sample, currentItem: CurrentItem | null | undefined): Shape | null {
+    if (pick.take !== 'each' || currentItem?.take !== 'each' || !currentItem.over || !isPrefix(currentItem.over, pick.from)) return null;
+    const item = firstItem(currentItem, sample);
+    if (item === undefined) return 'unknown';
+    return shapeOf(walkMany(item, pick.from.path.slice(currentItem.over.path.length))) as Shape;
 }
 
 // ── Where a source comes from ───────────────────────────────────────────

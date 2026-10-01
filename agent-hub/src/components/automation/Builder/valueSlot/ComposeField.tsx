@@ -137,7 +137,7 @@ export function droppedValue(e: { dataTransfer: DataTransfer | null; preventDefa
     const rawSource = dt.getData(SOURCE_MIME);
     if (rawSource) {
         const dragged = parseDraggedSource(rawSource);
-        if (dragged) req = { source: dragged.source, shape: dragged.shape ?? null };
+        if (dragged) req = { source: dragged.source, shape: dragged.shape ?? null, ...(dragged.take ? { take: dragged.take } : {}) };
         else {
             // The source panel's rows send the bare Source.
             try {
@@ -316,8 +316,8 @@ export default function ComposeField({
     }, [disabled, pieceFor, nodesFor, emit]);
 
     // The source panel's click lands here through the step drawer's handle.
-    const insertPath = useCallback((path: string, opts?: { source?: MappingSource | null }) => {
-        insertValue({ path, source: opts?.source ?? null });
+    const insertPath = useCallback((path: string, opts?: { source?: MappingSource | null; take?: 'each' }) => {
+        insertValue({ path, source: opts?.source ?? null, ...(opts?.take ? { take: opts.take } : {}) });
     }, [insertValue]);
 
     // Unique within the step: the form's text slots, a presentation's slide
@@ -334,7 +334,7 @@ export default function ComposeField({
         label: name,
         required,
         isEmpty: () => empty,
-        accept: (dragged) => insertValue({ source: dragged.source, shape: dragged.shape ?? null }),
+        accept: (dragged) => insertValue({ source: dragged.source, shape: dragged.shape ?? null, ...(dragged.take ? { take: dragged.take } : {}) }),
     });
 
     const onFocus = () => {

@@ -2,8 +2,8 @@
 import { describe, expect, it } from 'vitest';
 import type { MappingSource, PickBinding } from '@shared/mapping/index.mjs';
 import {
-    acceptPick, columnChoice, crossesList, draggedFrom, formulaInput, formulaOutput, groupLabelOf, isStale, lowerable, makePick,
-    manyForOne, matchColumn, pickFor, slotFor, storedPathOf, storePick, viewOf,
+    acceptPick, columnChoice, crossesList, draggedFrom, formulaInput, formulaOutput, groupLabelOf, isStale, itemShapeAt, lowerable, makePick,
+    manyForOne, matchColumn, pickFor, slotFor, storedPathOf, storePick, viewOf, withItemScope,
 } from './slotModel';
 
 const SAMPLE = {
@@ -140,6 +140,38 @@ describe('acceptPick — what a slot holds after a pick', () => {
         expect(lowerable({ take: 'all', as: 'text', join: 'bullets' })).toBe(false);
         expect(lowerable({ take: 'each', as: 'native' })).toBe(false);
         expect(lowerable({ take: 'first', as: 'native' })).toBe(true);
+    });
+});
+
+describe('the current item — a step that runs once per item', () => {
+    const over = src('people');
+    const currentItem = { take: 'each' as const, over, noun: 'Person' };
+    const email = makePick(src('people', 'E-mail'), { take: 'each', as: 'text' });
+
+    it('a value of the current item arrives as an each pick, as the field wants it', () => {
+        const dragged = draggedFrom('trigger.output.people[*]["E-mail"]', { source: src('people', 'E-mail'), take: 'each' });
+        expect(dragged?.take).toBe('each');
+        expect(pickFor(dragged!, { storage: 'binding', slot: LINE, sample: SAMPLE }).pick).toEqual(email);
+        const number = pickFor({ source: src('orders', 'total'), take: 'each' }, { storage: 'binding', slot: NUMBER, sample: SAMPLE }).pick;
+        expect(number).toMatchObject({ take: 'each', as: 'number' });
+    });
+
+    it('a field that only holds a path or a formula cannot read the current item: it keeps what it has', () => {
+        const ctx = { slot: LINE, sample: SAMPLE };
+        expect(acceptPick({ kind: 'literal', value: 'x' }, email, { ...ctx, storage: 'legacy' })).toEqual({ value: { kind: 'literal', value: 'x' }, replaced: false });
+        expect(acceptPick('trigger.output.tags', email, { ...ctx, storage: 'path' })).toEqual({ value: 'trigger.output.tags', replaced: false });
+        expect(acceptPick(null, email, { ...ctx, storage: 'binding' })).toEqual({ value: email, replaced: false });
+    });
+
+    it('previews on the first item, and is shaped as one item holds it', () => {
+        const scoped = withItemScope(SAMPLE, currentItem) as { _mappingScope?: unknown };
+        expect(scoped._mappingScope).toEqual({ over, item: { Naam: 'Ada', 'E-mail': 'ada@x.nl' }, index: 0 });
+        expect(itemShapeAt(email, SAMPLE, currentItem)).toBe('single');
+        expect(itemShapeAt({ ...email, take: 'all' }, SAMPLE, currentItem)).toBeNull();
+        expect(itemShapeAt(makePick(src('orders', 'lines'), { take: 'each', as: 'list' }), SAMPLE, { ...currentItem, over: src('orders') })).toBe('table');
+        // No repeat, or nothing in the list: the sample as it is.
+        expect(withItemScope(SAMPLE, null)).toBe(SAMPLE);
+        expect(withItemScope(SAMPLE, { ...currentItem, over: src('nothing') })).toBe(SAMPLE);
     });
 });
 

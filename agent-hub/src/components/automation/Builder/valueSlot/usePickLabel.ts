@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useTranslation, type TranslateFn } from '../../../../hooks/useTranslation';
-import { humanizeKey, labelParts, sourceFromPath } from '@shared/mapping/index.mjs';
+import { humanizeKey, labelParts, singularLabel, sourceFromPath } from '@shared/mapping/index.mjs';
 import type { LabelPart, MappingSource, Take } from '@shared/mapping/index.mjs';
 
 /**
@@ -48,6 +48,12 @@ export interface PickLabelContext {
      * Unknown (undefined): the parent is taken to be the list when it is a key.
      */
     crossesList?: boolean;
+    /**
+     * The name of the step's current item when the value reads it
+     * ("Orderregel", core currentItemNoun). Without it an `each` pick is
+     * named after the key it sits in, read as one item.
+     */
+    itemNoun?: string | null;
 }
 
 type KeyPart = { key: string; text: string };
@@ -117,12 +123,39 @@ export function pickLabel(t: TranslateFn, pick: PickLike | null | undefined, ctx
     if (isIndex(last)) return positionLabel(t, last.index, parentKey, group);
 
     const field = (last as KeyPart).text;
+    const ofItem = currentItemLabel(t, pick, field, parentKey, ctx.itemNoun);
+    if (ofItem) return ofItem;
     if (!parentKey && isStepGroup(pick, group)) return stepFieldLabel(t, field, group, pick.take);
     const parent = lowerFirst(parentKey ? parentKey.text : group);
     let take = wordedTake(pick.take, all, before[before.length - 1], !!parent);
     // "of all" names the list the value comes from: the group (a step) is none.
     if (take === 'all' && (ctx.crossesList === false || (!parentKey && ctx.crossesList === undefined))) take = 'one';
     return fieldLabel(t, field, parent, take);
+}
+
+/**
+ * The item a value of the CURRENT item is read from, by name, or null when
+ * the value is not one: an `each` pick (the caller's item name, else the key
+ * it sits in read as one item, "orderregels" → "orderregel"), or a key
+ * straight under a loop item (`loop.line.email`: "Line").
+ */
+function currentItemName(pick: PickLike, parentKey: KeyPart | undefined, itemNoun: string | null | undefined): string | null {
+    if (pick.take === 'each') return itemNoun || (parentKey ? singularLabel(parentKey.text) : null);
+    const from = pick.from as { root?: string; id?: unknown } | null | undefined;
+    if (from?.root !== 'loop' || parentKey) return null;
+    return itemNoun || humanizeKey(from.id) || null;
+}
+
+/**
+ * "E-mail (of this orderregel)" for a value of the current item; "Current
+ * tag" for the item itself (a list of plain values), as the source panel
+ * calls it. Null for any other value.
+ */
+function currentItemLabel(t: TranslateFn, pick: PickLike, field: string, parentKey: KeyPart | undefined, itemNoun: string | null | undefined): string | null {
+    const item = currentItemName(pick, parentKey, itemNoun);
+    if (!item) return null;
+    if (!parentKey && singularLabel(field) === item) return t('mapping.slot.label.current_item', 'Current {item}', { item: lowerFirst(item) });
+    return say(t, WITH_PARENT.each, { field, parent: lowerFirst(item) });
 }
 
 /** Is the group a step's (or the trigger's) own name? */
@@ -171,8 +204,8 @@ export function listPathLabel(t: TranslateFn, path: string, stepLabelById?: Read
 /** pickLabel in the current language, recomputed only when its inputs change. */
 export function usePickLabel(pick: PickLike | null | undefined, ctx: PickLabelContext = {}): string {
     const { t } = useTranslation();
-    const { labelParts, groupLabel, crossesList } = ctx;
-    return useMemo(() => pickLabel(t, pick, { labelParts, groupLabel, crossesList }), [t, pick, labelParts, groupLabel, crossesList]);
+    const { labelParts, groupLabel, crossesList, itemNoun } = ctx;
+    return useMemo(() => pickLabel(t, pick, { labelParts, groupLabel, crossesList, itemNoun }), [t, pick, labelParts, groupLabel, crossesList, itemNoun]);
 }
 
 // ── Formula summaries ────────────────────────────────────────────────────

@@ -54,12 +54,15 @@ export default function InputNodeSection({
     const [showAll, setShowAll] = useState(false);
     const [techOpen, setTechOpen] = useState(false);
 
-    const value = walkPath(group.basePath, previewSample);
+    // The current item of a step that runs once per item: its fields are
+    // picks of ONE item (`take: 'each'`), and its path names the whole list.
+    const each = group.currentItem?.take === 'each' ? group.currentItem : null;
+    const value = each ? undefined : walkPath(group.basePath, previewSample);
     const data = value === undefined ? group.sample : value;
     // "201 records" beats the word "output": it says what is in there.
     const summary = (summariseData as (v: unknown) => { label?: string } | null)(data);
     const fields = group.fields || [];
-    const isItem = String(group.basePath || '').startsWith('loop.');
+    const isItem = !!group.currentItem || String(group.basePath || '').startsWith('loop.');
     const Icon = (family && FAMILY_ICON[family]) || Workflow;
     const isUsed = (p: string) => (usedPaths ? (pathInUse as (p: string, s: Set<string>) => boolean)(p, usedPaths) : false);
     // A search already narrowed the list: show every match, fold nothing.
@@ -83,19 +86,21 @@ export default function InputNodeSection({
             <div className={`flex items-center border-b border-[var(--border-default)] ${isItem ? 'bg-[color-mix(in_srgb,var(--type-loop)_8%,transparent)]' : ''}`}>
                 <div
                     draggable
-                    onDragStart={(e) => startPathDrag(e, group.basePath)}
+                    onDragStart={(e) => startPathDrag(e, group.basePath, each?.over ? { source: each.over, take: 'each' } : null)}
                     onClick={() => setOpen(o => !o)}
                     role="button"
                     tabIndex={0}
                     onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(o => !o); } }}
-                    title={[summary?.label, t('routines.mapping.drag_whole_output', 'Drag to use the whole output ({path})', { path: group.basePath })].filter(Boolean).join(' · ')}
+                    title={[summary?.label, each
+                        ? t('mapping.source.drag_whole_item', 'Drag to use this whole item')
+                        : t('routines.mapping.drag_whole_output', 'Drag to use the whole output ({path})', { path: group.basePath })].filter(Boolean).join(' · ')}
                     className="flex-1 min-w-0 flex items-center gap-2 px-2.5 py-[9px] text-xs cursor-grab active:cursor-grabbing select-none"
                 >
                     {open ? <ChevronDown size={14} className="shrink-0 text-[var(--text-tertiary)]" /> : <ChevronRight size={14} className="shrink-0 text-[var(--text-tertiary)]" />}
                     <Icon size={14} className="shrink-0 text-[var(--fam)]" />
                     {number != null && <span className="text-[var(--text-primary)] font-semibold whitespace-nowrap">{t('routines.mapping.step_n', 'Step {n}', { n: number })} ·</span>}
                     <span className="text-[var(--text-primary)] font-semibold truncate">{group.label}</span>
-                    {isItem && <span className="text-[var(--text-tertiary)] truncate">{t('routines.mapping.current_item', 'current item of the loop')}</span>}
+                    {isItem && !group.currentItem && <span className="text-[var(--text-tertiary)] truncate">{t('routines.mapping.current_item', 'current item of the loop')}</span>}
                     <span className="ml-auto text-[11px] text-[var(--text-tertiary)] whitespace-nowrap" data-testid="input-group-meta">{meta}</span>
                     {/* "1 of 4" (artboard 2b): the last run's loop row. When the
                         run hit its ceiling, the dropped tail is said in the same
@@ -113,15 +118,18 @@ export default function InputNodeSection({
                         </span>
                     )}
                 </div>
-                <button
-                    type="button"
-                    onClick={onOpenTable}
-                    title={t('routines.mapping.open_table_title', 'Open {label} as a table — map a whole column or a single cell', { label: group.label })}
-                    aria-label={t('routines.mapping.open_table', 'Open {label} as a table', { label: group.label })}
-                    className="shrink-0 mr-1 p-1 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] opacity-0 group-hover/sec:opacity-100 focus:opacity-100 transition"
-                >
-                    <Table2 size={12} />
-                </button>
+                {/* The table maps columns of the whole list: not what the current item is. */}
+                {!each && (
+                    <button
+                        type="button"
+                        onClick={onOpenTable}
+                        title={t('routines.mapping.open_table_title', 'Open {label} as a table — map a whole column or a single cell', { label: group.label })}
+                        aria-label={t('routines.mapping.open_table', 'Open {label} as a table', { label: group.label })}
+                        className="shrink-0 mr-1 p-1 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] opacity-0 group-hover/sec:opacity-100 focus:opacity-100 transition"
+                    >
+                        <Table2 size={12} />
+                    </button>
+                )}
             </div>
             {open && (
                 <div className="py-1">
@@ -156,8 +164,10 @@ export default function InputNodeSection({
                     )}
                     {fields.length === 0 && (
                         <div className="px-4 py-1 text-[11px] text-[var(--text-tertiary)] italic">
-                            {/* One key for the whole sentence, so any language can reorder it. */}
-                            {t('routines.mapping.no_named_fields', 'No named fields — open {table} to map from the raw output.', { table: t('routines.mapping.table', 'Table') })}
+                            {each
+                                ? t('mapping.source.current_item_empty', 'No item seen in this list yet. Run the steps before this one to see what an item holds.')
+                                // One key for the whole sentence, so any language can reorder it.
+                                : t('routines.mapping.no_named_fields', 'No named fields — open {table} to map from the raw output.', { table: t('routines.mapping.table', 'Table') })}
                         </div>
                     )}
                 </div>

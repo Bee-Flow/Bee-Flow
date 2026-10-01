@@ -325,6 +325,8 @@ export interface InsertRequest {
     source?: MappingSource | null;
     /** The shape the panel saw, when it knows it better than the sample. */
     shape?: Shape | null;
+    /** A value of the step's current item (source panel): the part takes `each`. */
+    take?: 'each' | null;
 }
 
 /**
@@ -339,11 +341,13 @@ export function partForInsert(req: InsertRequest, slot: Slot, sample?: object | 
     const given = req.source && !sourceProblems(req.source).length ? req.source : null;
     const from = given || lifted?.from || (path ? sourceFromPath(path) : null);
     if (!from) return null;
-    let shape: Shape = req.shape || sourceShape(from, sample);
+    // A value of the current item is shaped as one item holds it (the panel's shape), not as the whole list.
+    let shape: Shape = req.shape || (req.take === 'each' ? 'unknown' : sourceShape(from, sample));
     // No sample to look at: a `[*]` in the path says it is a list.
-    if ((shape === 'unknown' || shape === 'missing') && lifted?.take === 'all') shape = 'list';
+    if ((shape === 'unknown' || shape === 'missing') && lifted?.take === 'all' && req.take !== 'each') shape = 'list';
     const { take, as, join }: PickIntent & { warning?: string } = defaultIntent(shape, slot);
-    const part: PickPart = { from, take, as };
+    // A value of the current item: that one item's value, written into the text.
+    const part: PickPart = { from, take: req.take === 'each' ? 'each' : take, as };
     if (join) part.join = join;
     const label = partLabel(from);
     if (label) part.label = label;
@@ -352,6 +356,8 @@ export function partForInsert(req: InsertRequest, slot: Slot, sample?: object | 
 
 /** The placeholder a picked value becomes in a text that takes `{{ }}` text only. */
 export function placeholderForInsert(req: InsertRequest): string | null {
+    // `{{ }}` text has no way to read the current item: its path reads the whole list.
+    if (req.take === 'each') return null;
     if (typeof req.path === 'string' && req.path.trim()) return `{{${req.path.trim()}}}`;
     const path = req.source ? describeSource(req.source) : '';
     return path ? `{{${path}}}` : null;

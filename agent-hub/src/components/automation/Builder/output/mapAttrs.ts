@@ -13,6 +13,8 @@ export interface PickOpts {
     shape?: string;
     /** Elements in the sample, for a list or a table. */
     count?: number;
+    /** A value of the step's current item: picked with `take: 'each'`. */
+    take?: 'each';
 }
 
 /** The drag/click-to-map context an output view threads down its tree. */

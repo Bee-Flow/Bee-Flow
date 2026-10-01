@@ -261,12 +261,14 @@ function nodesOfObject(obj, at, depth, opts) {
  * opens to its columns (`items[*].sku`), before any run, from whatever its
  * elements hold. A non-object sample has no fields: the group itself is the
  * value.
+ * `extra` is set on every node (the current item's `take: 'each'`).
  * @param {unknown} sample
  * @param {string|object} base
+ * @param {object} [extra]
  */
-export function fieldsFromSample(sample, base) {
+export function fieldsFromSample(sample, base, extra = undefined) {
     if (!isPlainObject(sample)) return [];
-    return nodesOfObject(sample, baseOf(base), 0, {});
+    return nodesOfObject(sample, baseOf(base), 0, extra ? { extra } : {});
 }
 
 /**

@@ -13,7 +13,7 @@
  */
 
 import type { TranslateFn } from '@/core/i18n';
-import { humanizeKey, labelParts, sourceFromPath, type LabelPart, type MappingSource } from '@/shared/mapping';
+import { humanizeKey, labelParts, singularLabel, sourceFromPath, type LabelPart, type MappingSource } from '@/shared/mapping';
 
 export interface PickLike {
     from?: Partial<MappingSource> | null;
@@ -99,10 +99,37 @@ function fieldLabel(t: TranslateFn, field: string, parent: string, take: string)
 }
 
 /**
- * The label of a pick (or a compose part), worded with `t`. `groupLabel` is
- * the display name of the step or trigger the value comes from.
+ * The item a value of the CURRENT item is read from, by name, or null when
+ * the value is not one: an `each` pick (the caller's item name, else the key
+ * it sits in read as one item, "orderregels" → "orderregel"), or a key
+ * straight under a loop item (`loop.line.email`: "Line"). As the web's.
  */
-export function pickLabel(t: TranslateFn, pick: PickLike | null | undefined, groupLabel = ''): string {
+function currentItemName(pick: PickLike, parentKey: KeyPart | undefined, itemNoun: string | null | undefined): string | null {
+    if (pick.take === 'each') return itemNoun || (parentKey ? singularLabel(parentKey.text) : null);
+    const from = pick.from as { root?: string; id?: unknown } | null | undefined;
+    if (from?.root !== 'loop' || parentKey) return null;
+    return itemNoun || humanizeKey(from.id) || null;
+}
+
+/**
+ * "E-mail (of this orderregel)" for a value of the current item; "Current
+ * tag" for the item itself (a list of plain values), as the source panel
+ * calls it. Null for any other value.
+ */
+function currentItemLabel(t: TranslateFn, pick: PickLike, { field, parentKey, itemNoun }: KeyContext): string | null {
+    const item = currentItemName(pick, parentKey, itemNoun);
+    if (!item) return null;
+    if (!parentKey && singularLabel(field) === item) return t('mapping.slot.label.current_item', 'Current {item}', { item: lowerFirst(item) });
+    return say(t, WITH_PARENT.each as Phrase, { field, parent: lowerFirst(item) });
+}
+
+/**
+ * The label of a pick (or a compose part), worded with `t`. `groupLabel` is
+ * the display name of the step or trigger the value comes from; `itemNoun`
+ * the name of the step's current item when the value reads it (core
+ * currentItemNoun).
+ */
+export function pickLabel(t: TranslateFn, pick: PickLike | null | undefined, groupLabel = '', itemNoun: string | null = null): string {
     if (!pick) return '';
     if (typeof pick.label === 'string' && pick.label.trim()) return pick.label.trim();
     const all = labelParts(Array.isArray(pick.from?.path) ? pick.from.path : []);
@@ -114,7 +141,24 @@ export function pickLabel(t: TranslateFn, pick: PickLike | null | undefined, gro
     const parentKey = [...before].reverse().find(isKey);
     if (isIndex(last)) return positionLabel(t, last.index, parentKey, groupLabel);
 
-    const field = (last as KeyPart).text;
+    return keyLabel(t, pick, { field: (last as KeyPart).text, parentKey, all, before, groupLabel, itemNoun });
+}
+
+/** What a value named by a key is worded from. */
+interface KeyContext {
+    field: string;
+    parentKey: KeyPart | undefined;
+    all: LabelPart[];
+    before: LabelPart[];
+    groupLabel: string;
+    itemNoun: string | null;
+}
+
+/** A value named by its key: of the current item, at the top of a step, or inside its parent. */
+function keyLabel(t: TranslateFn, pick: PickLike, ctx: KeyContext): string {
+    const { field, parentKey, all, before, groupLabel } = ctx;
+    const ofItem = currentItemLabel(t, pick, ctx);
+    if (ofItem) return ofItem;
     if (!parentKey && groupLabel && NAMED_ROOTS.has(String(pick.from?.root))) return stepFieldLabel(t, field, groupLabel, pick.take);
     const parent = lowerFirst(parentKey ? parentKey.text : groupLabel);
     return fieldLabel(t, field, parent, keyTake(pick.take, all, before, { key: !!parentKey, any: !!parent }));

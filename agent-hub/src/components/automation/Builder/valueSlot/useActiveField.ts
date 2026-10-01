@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { currentItemNoun, type CurrentItem } from '@shared/mapping/index.mjs';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { readableFieldName, type FieldHandle, type InsertOpts } from './fieldHandle';
 import type { DraggedSource } from './slotDnd';
@@ -52,9 +53,12 @@ export function useActiveField({ stepId, groups, stepLabelById }: {
         const dragged = draggedFrom(path, opts);
         if (!dragged) return;
         const groupLabel = groupLabelOf(dragged.source, groups, stepLabelById);
+        const currentItem = (groups || []).map(g => (g as { currentItem?: CurrentItem }).currentItem).find(Boolean);
         setAsk({
             dragged,
-            label: pickLabel(t, { from: dragged.source, take: 'one' }, { labelParts: dragged.labelParts, groupLabel }),
+            label: pickLabel(t, { from: dragged.source, take: dragged.take || 'one' }, {
+                labelParts: dragged.labelParts, groupLabel, itemNoun: currentItemNoun(dragged.source, currentItem),
+            }),
             targets: registry.emptySlots().map(h => ({
                 id: h.id,
                 label: readableFieldName(h.label) || t('mapping.slot.label.value', 'Value'),
