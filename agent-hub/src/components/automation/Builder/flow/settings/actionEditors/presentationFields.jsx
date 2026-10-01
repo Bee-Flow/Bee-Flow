@@ -1,14 +1,14 @@
 // The presentation editor: slides in, a PowerPoint or PDF deck out — the
 // slide source, the file, and the deck's look.
 import { Plus, Trash2 } from 'lucide-react';
-import TemplateField from '../../../mapping/TemplateField';
+import ComposeField from '../../../valueSlot/ComposeField';
 import AccordionSection from '../../AccordionSection';
 import { FormRow, inputClass } from '../formPrimitives';
 
 const DECK_FONT_OPTIONS = ['Calibri', 'Arial', 'Helvetica', 'Verdana', 'Segoe UI', 'Trebuchet MS', 'Century Gothic', 'Georgia', 'Cambria', 'Times New Roman', 'Garamond', 'Consolas'];
 
-/** A colour swatch beside a template field: pick a hex, or bind a value from an earlier step. */
-function ColourTemplateRow({ value, onChange, onFocusField, previewSample, placeholder, ariaLabel, fallback = '#123a5e' }) {
+/** A colour swatch beside a text field: pick a hex, or bind a value from an earlier step. */
+function ColourTemplateRow({ field, value, onChange, onFocusField, previewSample, placeholder, ariaLabel, fallback = '#123a5e' }) {
     return (
         <div className="flex items-center gap-2">
             <input
@@ -19,7 +19,7 @@ function ColourTemplateRow({ value, onChange, onFocusField, previewSample, place
                 aria-label={ariaLabel}
             />
             <div className="flex-1">
-                <TemplateField value={value || ''} onChange={onChange} rows={1} onFocusField={onFocusField} previewSample={previewSample} placeholder={placeholder} />
+                <ComposeField stepType="presentation" field={field} value={value || ''} onChange={onChange} rows={1} onFocusField={onFocusField} previewSample={previewSample} placeholder={placeholder} />
             </div>
         </div>
     );
@@ -54,7 +54,7 @@ function PresentationFields({ draft, set, onFocusField, previewSample, errorSect
                 </div>
                 {mode === 'source' ? (
                     <FormRow label="Slides from" required hint={'The outline an AI step wrote ("# " title, "## " per slide, "- " bullets), or the results of a Slide step that runs once per item.'}>
-                        <TemplateField
+                        <ComposeField stepType="presentation" field="slides"
                             value={draft.slides || ''}
                             onChange={(next) => set('slides', next)}
                             rows={2}
@@ -69,7 +69,7 @@ function PresentationFields({ draft, set, onFocusField, previewSample, errorSect
                             {rows.map((row, i) => (
                                 <div key={i} className="flex items-start gap-2">
                                     <div className="flex-1">
-                                        <TemplateField
+                                        <ComposeField stepType="presentation" field="slides" slotKey={String(i)}
                                             value={row || ''}
                                             onChange={(next) => setRows(rows.map((r, j) => (j === i ? next : r)))}
                                             rows={1}
@@ -101,7 +101,7 @@ function PresentationFields({ draft, set, onFocusField, previewSample, errorSect
                     </select>
                 </FormRow>
                 <FormRow label="Title" hint="The cover title, and the filename when you leave that blank. Falls back to the outline's own title.">
-                    <TemplateField
+                    <ComposeField stepType="presentation" field="title"
                         value={draft.title || ''}
                         onChange={(next) => set('title', next)}
                         rows={1}
@@ -111,7 +111,7 @@ function PresentationFields({ draft, set, onFocusField, previewSample, errorSect
                     />
                 </FormRow>
                 <FormRow label="Subtitle" hint="On the cover: audience, date, author.">
-                    <TemplateField
+                    <ComposeField stepType="presentation" field="subtitle"
                         value={draft.subtitle || ''}
                         onChange={(next) => set('subtitle', next)}
                         rows={1}
@@ -120,7 +120,7 @@ function PresentationFields({ draft, set, onFocusField, previewSample, errorSect
                     />
                 </FormRow>
                 <FormRow label="Filename" hint="Without the extension — that follows from the format.">
-                    <TemplateField
+                    <ComposeField stepType="presentation" field="fileName"
                         value={draft.fileName || ''}
                         onChange={(next) => set('fileName', next)}
                         rows={1}
@@ -148,7 +148,7 @@ function PresentationFields({ draft, set, onFocusField, previewSample, errorSect
                     </select>
                 </FormRow>
                 <FormRow label="Accent colour" hint="#RRGGBB, or a value from an earlier step. Blank = the house style's accent.">
-                    <ColourTemplateRow value={draft.accent} onChange={(next) => set('accent', next)} onFocusField={onFocusField} previewSample={previewSample} placeholder="#1A73E8" ariaLabel="Accent colour" />
+                    <ColourTemplateRow field="accent" value={draft.accent} onChange={(next) => set('accent', next)} onFocusField={onFocusField} previewSample={previewSample} placeholder="#1A73E8" ariaLabel="Accent colour" />
                 </FormRow>
                 <FormRow label="Typeface">
                     <select value={draft.font || ''} onChange={(e) => set('font', e.target.value)} className={inputClass()}>
@@ -157,7 +157,7 @@ function PresentationFields({ draft, set, onFocusField, previewSample, errorSect
                     </select>
                 </FormRow>
                 <FormRow label="Logo" hint={'The image URL a Generate image step produced, a data: URL, or "none" to leave the house-style logo off. Blank = the house-style logo.'}>
-                    <TemplateField
+                    <ComposeField stepType="presentation" field="logo"
                         value={draft.logo || ''}
                         onChange={(next) => set('logo', next)}
                         rows={1}
@@ -195,7 +195,7 @@ function PresentationFields({ draft, set, onFocusField, previewSample, errorSect
                     <summary className="text-xs cursor-pointer text-[var(--text-secondary)] select-none">More look options</summary>
                     <div className="mt-2 space-y-2">
                         <FormRow label="Background" hint="#RRGGBB or a value from an earlier step; text colours adapt so they stay readable.">
-                            <ColourTemplateRow value={draft.background} onChange={(next) => set('background', next)} onFocusField={onFocusField} previewSample={previewSample} placeholder="#FFFFFF" ariaLabel="Background colour" fallback="#ffffff" />
+                            <ColourTemplateRow field="background" value={draft.background} onChange={(next) => set('background', next)} onFocusField={onFocusField} previewSample={previewSample} placeholder="#FFFFFF" ariaLabel="Background colour" fallback="#ffffff" />
                         </FormRow>
                         <FormRow label="Title typeface">
                             <select value={draft.titleFont || ''} onChange={(e) => set('titleFont', e.target.value)} className={inputClass()}>
@@ -204,7 +204,7 @@ function PresentationFields({ draft, set, onFocusField, previewSample, errorSect
                             </select>
                         </FormRow>
                         <FormRow label="Footer line" hint="Shown small on every slide, e.g. “Vertrouwelijk · Q3 2026”. Blank = the house-style footer.">
-                            <TemplateField value={draft.footerText || ''} onChange={(next) => set('footerText', next)} rows={1} onFocusField={onFocusField} previewSample={previewSample} placeholder="Vertrouwelijk · {{trigger.output.date}}" />
+                            <ComposeField stepType="presentation" field="footerText" value={draft.footerText || ''} onChange={(next) => set('footerText', next)} rows={1} onFocusField={onFocusField} previewSample={previewSample} placeholder="Vertrouwelijk · {{trigger.output.date}}" />
                         </FormRow>
                         <FormRow label="Slide numbers">
                             <select value={draft.slideNumbers || ''} onChange={(e) => set('slideNumbers', e.target.value)} className={inputClass()} data-testid="presentation-slide-numbers">
@@ -229,7 +229,7 @@ function PresentationFields({ draft, set, onFocusField, previewSample, errorSect
                 </FormRow>
                 {draft.saveCopy === true && (
                     <FormRow label="Name of the copy" hint="Defaults to the title plus today's date.">
-                        <TemplateField
+                        <ComposeField stepType="presentation" field="copyName"
                             value={draft.copyName || ''}
                             onChange={(next) => set('copyName', next)}
                             rows={1}

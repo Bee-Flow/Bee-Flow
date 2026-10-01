@@ -17,6 +17,7 @@
 
 import { humanizeExpression, humanizeFieldKey } from './displayHelpers';
 import { formatWaitDuration } from './waitDuration';
+import { textForDisplay } from '../valueSlot/composeValue';
 
 /**
  * The source list, named the way the user named the step that made it.
@@ -121,7 +122,7 @@ export function knowledgeWriteSummary(step, { kbNameById } = {}) {
     // paint. Say the true, less specific thing instead.
     const name = kbNameById?.[step.knowledgeBaseId] || null;
     const where = name ? name : 'a knowledge base';
-    if (!String(step.content || '').trim()) return { muted: `nothing to write into ${where} yet` };
+    if (!textForDisplay(step.content).trim()) return { muted: `nothing to write into ${where} yet` };
     return `Save into ${where}`;
 }
 
@@ -165,6 +166,14 @@ export function dateTimeSummary(step) {
 }
 
 /**
+ * The file name a document step writes, else its title, as one line of text.
+ * Either may be a compose the editor or the AI builder wrote: read as text.
+ */
+function documentName(step) {
+    return textForDisplay(step.fileName).trim() || textForDisplay(step.title).trim();
+}
+
+/**
  * "PDF · from step 3" — the format, and where the text comes from. A step with
  * no content bound yet says so, because that is the one thing that stops it
  * producing anything.
@@ -172,7 +181,7 @@ export function dateTimeSummary(step) {
 export function generateDocumentSummary(step) {
     const kind = step.format === 'docx' ? 'Word' : 'PDF';
     if (!step.content) return { muted: `${kind} — no text chosen yet` };
-    const name = step.fileName || step.title;
+    const name = documentName(step);
     const look = step.preset || step.logo === 'none' ? ` · ${step.preset || ''}${step.preset && step.logo === 'none' ? ', ' : ''}${step.logo === 'none' ? 'no logo' : ''}` : '';
     return `${name ? `${kind} · ${name}` : kind}${look}`;
 }
@@ -180,11 +189,13 @@ export function generateDocumentSummary(step) {
 /** "Omzet" / "one per item" — the slide's title, or what it still needs. */
 export function slideSummary(step) {
     const chart = step.chart && typeof step.chart === 'object' ? step.chart : null;
-    const has = (step.title || '').trim() || (step.content || '').trim() || (step.image || '').trim() || chart || step.stats;
+    // A title or content the AI builder composed is an object: read as text.
+    const title = textForDisplay(step.title).trim();
+    const has = title || textForDisplay(step.content).trim() || textForDisplay(step.image).trim() || chart || step.stats;
     if (!has) return { muted: 'no title or content yet' };
     const visual = chart ? ` · ${chart.type || 'column'} chart` : (step.stats ? ' · KPI tiles' : (step.layout === 'timeline' ? ' · timeline' : ''));
     const per = step.forEach ? ' · one per item' : '';
-    return `${(step.title || '').trim() || 'untitled'}${visual}${per}`;
+    return `${title || 'untitled'}${visual}${per}`;
 }
 
 /** "PowerPoint · Q3 review" — the file kind and its name, or what it still needs. */
@@ -193,7 +204,7 @@ export function presentationSummary(step) {
     const s = step.slides;
     const empty = s === undefined || s === null || (typeof s === 'string' && !s.trim()) || (Array.isArray(s) && s.length === 0);
     if (empty) return { muted: `${kind} — no slides chosen yet` };
-    const name = step.fileName || step.title;
+    const name = documentName(step);
     const look = step.preset || step.logo === 'none' ? ` · ${step.preset || ''}${step.preset && step.logo === 'none' ? ', ' : ''}${step.logo === 'none' ? 'no logo' : ''}` : '';
     return `${name ? `${kind} · ${name}` : kind}${look}`;
 }
@@ -210,7 +221,7 @@ export function presentationSummary(step) {
 export function fillDocumentSummary(step) {
     if (!step.documentId) return { muted: 'no document chosen yet' };
     const bound = Object.keys(step.values || {}).length;
-    const name = step.documentName || step.fileName || '';
+    const name = step.documentName || textForDisplay(step.fileName).trim();
     const values = bound ? `${bound} value${bound === 1 ? '' : 's'}` : 'nothing bound yet';
     return name ? `${name} · ${values}` : `PDF · ${values}`;
 }
@@ -246,7 +257,8 @@ export function waitSummary(step) {
  * is a paragraph of context whose opening sentence is the ask.
  */
 export function approvalSummary(step) {
-    const q = typeof step.prompt === 'string' ? step.prompt.trim().split('\n')[0].trim() : '';
+    // A composed question is an object: read as text, each value by its name.
+    const q = textForDisplay(step.prompt).trim().split('\n')[0].trim();
     if (!q) return { muted: 'no question yet' };
     return q.length > 60 ? `${q.slice(0, 59)}…` : q;
 }

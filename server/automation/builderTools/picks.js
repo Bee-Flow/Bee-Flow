@@ -23,9 +23,10 @@
  *
  * Only the text fields the shared core lists as compose-capable
  * (shared/mapping/sites.mjs) get a compose; a field whose executor reads a
- * plain string only keeps its template. ai_step.prompt is not converted
- * here: its `{{name}}` reads the step's own inputs by name, which no pick
- * can say, and the values belong in `inputs` (as picks) anyway.
+ * plain string only keeps its template, and so does a field the table marks
+ * `lift: false`. ai_step.prompt is one: its `{{name}}` reads the step's own
+ * inputs by name, which no pick can say, and the values belong in `inputs`
+ * (as picks) anyway.
  *
  * Legacy refs and templates the model writes into `inputs` are kept as they
  * are (bindings.js); they resolve exactly as they always have.
@@ -33,60 +34,33 @@
 
 const {
     MAPPING_VERSION, normalizePick, sourceFromPath,
-    isPick, isCompose, describeSource, textSitesOf, textAsTemplate, templateToCompose,
+    isPick, isCompose, describeSource, textSitesOf, textAsTemplate, templateToCompose, humanizeKey,
 } = require('../../shared/mapping/index.mjs');
 
-// Text sites whose `{{ }}` text stays a template. An ai_step's prompt reads
-// the step's own inputs by name (`{{emails}}`), which no pick can say. A
-// slide's content renders a list as a markdown bullet list that starts its
-// own block (interpolateTemplate's listAsMarkdown: a blank line before it);
-// render.mjs's 'bullets' join glues the first bullet onto the label line
-// before it, so the slide would change. Lifted once that join opens a block.
-const KEEP_TEMPLATE = new Set(['ai_step.prompt', 'slide.content']);
+// Text sites whose `{{ }}` text stays a template (an ai_step's prompt, a
+// slide's content) are marked `lift: false` in the shared sites table, so
+// the editor keeps them a template too; see sites.mjs for why.
 // A text site that holds ONE binding rather than a text: a data_extraction's
 // source is canonicalised by its own sanitizer (sanitizeDataExtractionSource).
 const NOT_A_TEXT = new Set(['data_extraction.source']);
 
-// Lower-case words of a key that read as an acronym.
-const ACRONYMS = new Set(['id', 'url', 'uri', 'api', 'pdf', 'csv', 'html', 'json', 'xml', 'iban', 'btw', 'kvk', 'vat', 'ip', 'utc', 'uuid', 'sms']);
-
 /**
- * A short human name for the key a Source reads: its last key. A key typed
- * with spaces ("E-mail adres") is already a label and kept as written; an
- * identifier is split at camelCase and underscores in sentence case
- * ("replyText" → "Reply text", "messageId" → "Message ID", "AFAS" as it is).
- * Indexes are skipped; a Source that reads no key gets no label. A display
- * cache only — the run never reads it.
- *
- * TODO(M3 merge): the M3 track adds humanizeKey to
- * server/shared/mapping/label.mjs with exactly these rules, so the editor and
- * the builder name a value the same way. When it lands, replace the body
- * below with `humanizeKey(key)` from the core and delete ACRONYMS here.
+ * A short human name for the key a Source reads: its last key, through the
+ * shared core's humanizeKey (label.mjs), so the editor and the builder name
+ * a value the same way. A key typed with spaces ("E-mail adres") is already
+ * a label and kept as written; an identifier is split at camelCase and
+ * underscores in sentence case ("replyText" → "Reply text", "messageId" →
+ * "Message ID", "AFAS" as it is). Indexes are skipped; a Source that reads
+ * no key gets no label. A display cache only — the run never reads it.
  * @param {object} from
  * @returns {string|undefined}
  */
 function labelForSource(from) {
     const path = from && Array.isArray(from.path) ? from.path : [];
-    let key;
     for (let i = path.length - 1; i >= 0; i--) {
-        if (typeof path[i] === 'string' && path[i].trim()) { key = path[i].trim(); break; }
+        if (typeof path[i] === 'string' && path[i].trim()) return humanizeKey(path[i]) || undefined;
     }
-    if (key === undefined) return undefined;
-    if (/\s/.test(key)) return key;
-    const words = key
-        .replace(/_+/g, ' ')
-        .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
-        .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
-        .split(/\s+/)
-        .filter(Boolean);
-    if (!words.length) return undefined;
-    return words.map((w, i) => {
-        const lower = w.toLowerCase();
-        if (ACRONYMS.has(lower)) return lower.toUpperCase();
-        // A word written in capitals (AFAS, BSN) stays that way.
-        if (w.length > 1 && w === w.toUpperCase() && /[A-Z]/.test(w)) return w;
-        return i === 0 ? lower.charAt(0).toUpperCase() + lower.slice(1) : lower;
-    }).join(' ');
+    return undefined;
 }
 
 /** The pick (or compose part) with a label, when it has none and one can be derived. */
@@ -243,7 +217,7 @@ function textFieldValue(value, { stepType, field, fallback = (v) => v }) {
         else if ((v.kind === 'template' || v.kind === 'literal') && typeof v.value === 'string') v = v.value;
     }
     if (typeof v !== 'string') return fallback(v);
-    if (!site || site.compose === false || KEEP_TEMPLATE.has(`${stepType}.${field}`)) return v;
+    if (!site || site.compose === false || site.lift === false) return v;
     return composeFromTemplate(v, { stepType, field, sole }) || v;
 }
 

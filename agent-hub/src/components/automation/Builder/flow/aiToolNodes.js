@@ -1,5 +1,6 @@
 import { cardHeightForPorts, CARD_H } from './nodeTypeColors';
 import { routePorts } from './routeModel';
+import { textForDisplay } from '../valueSlot/composeValue';
 
 /**
  * AI-step tools, drawn on the canvas.
@@ -317,11 +318,13 @@ export function aiStepCardText(step, { t, agentName = null, typeLabel = 'AI step
         return { variant, typeLabel: t('routines.card.ai_step_skill', 'AI step · skill'), sub: t('routines.card.skill_no_agent', 'skill · no agent'), subTitle: undefined };
     }
     // The first line of the prompt is the summary: the card has one line.
-    const promptPreview = (step.prompt || '').split('\n').map((l) => l.trim()).filter(Boolean).join(' ');
+    // A composed prompt shows its values by name (textForDisplay).
+    const prompt = textForDisplay(step.prompt);
+    const promptPreview = prompt.split('\n').map((l) => l.trim()).filter(Boolean).join(' ');
     return {
         variant,
         typeLabel,
         sub: promptPreview || { muted: 'no prompt yet' },
-        subTitle: promptPreview ? (step.prompt || '').slice(0, 280) : undefined,
+        subTitle: promptPreview ? prompt.slice(0, 280) : undefined,
     };
 }

@@ -3,6 +3,7 @@ import { Bell } from 'lucide-react';
 import { nodeDefaultLabel, nodeHelp, nodeTypeLabel } from '../nodeDefs';
 import StepNodeBase, { NodeChip, ForEachBadge } from './StepNodeBase';
 import { humanizeExpression } from '../displayHelpers';
+import { textForDisplay } from '../../valueSlot/composeValue';
 import { CHANNEL_LABELS } from '../../notificationDefaults';
 
 export default function NotificationNode({ id, data }) {
@@ -12,8 +13,9 @@ export default function NotificationNode({ id, data }) {
     // (BFSF-350).
     const channels = (Array.isArray(step.channels) && step.channels.length ? step.channels : ['notification'])
         .map(c => CHANNEL_LABELS[c] || c);
-    const title = step.title || '';
-    const bodyText = step.body || '';
+    // A title or body with a value in it is a compose: read as text.
+    const title = textForDisplay(step.title);
+    const bodyText = textForDisplay(step.body);
     const friendlyTitle = humanizeExpression(title, stepLabelById);
     const friendlyBody = humanizeExpression(bodyText, stepLabelById);
 

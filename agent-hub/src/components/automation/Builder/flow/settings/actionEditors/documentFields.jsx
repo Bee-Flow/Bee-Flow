@@ -2,7 +2,7 @@
 // text, and fill a document designed in Studio placeholder by placeholder.
 import { useEffect, useMemo, useState } from 'react';
 import { listTemplates, documentRequest } from '../../../../../../pages/documents/documentsApi';
-import TemplateField from '../../../mapping/TemplateField';
+import ComposeField from '../../../valueSlot/ComposeField';
 import AccordionSection from '../../AccordionSection';
 import { AMBER_NOTE, cardClass, FormRow, hintTextClass, inputClass } from '../formPrimitives';
 
@@ -22,7 +22,7 @@ function GenerateDocumentFields({ draft, set, onFocusField, previewSample, error
         <>
             <AccordionSection stepType="generate_document" sectionKey="content" title="Content" defaultOpen forceOpen={errorSections.has('content')}>
                 <FormRow label="Text" required hint="Click a value in the right panel to insert it — usually the step that wrote the text.">
-                    <TemplateField
+                    <ComposeField stepType="generate_document" field="content"
                         value={draft.content || ''}
                         onChange={(next) => set('content', next)}
                         rows={3}
@@ -47,7 +47,7 @@ function GenerateDocumentFields({ draft, set, onFocusField, previewSample, error
                     </select>
                 </FormRow>
                 <FormRow label="Title" hint="Shown as the heading on the first page, and used as the filename when you leave that blank.">
-                    <TemplateField
+                    <ComposeField stepType="generate_document" field="title"
                         value={draft.title || ''}
                         onChange={(next) => set('title', next)}
                         rows={1}
@@ -57,7 +57,7 @@ function GenerateDocumentFields({ draft, set, onFocusField, previewSample, error
                     />
                 </FormRow>
                 <FormRow label="Filename" hint="Without the extension — that follows from the format.">
-                    <TemplateField
+                    <ComposeField stepType="generate_document" field="fileName"
                         value={draft.fileName || ''}
                         onChange={(next) => set('fileName', next)}
                         rows={1}
@@ -88,6 +88,24 @@ function GenerateDocumentFields({ draft, set, onFocusField, previewSample, error
             </AccordionSection>
         </>
     );
+}
+
+/**
+ * A stored fill value as the field shows it: a number or yes/no as its text,
+ * a text, compose or pick as it is (String() of a pick would show
+ * "[object Object]" and lose the binding on the next edit).
+ */
+function fillValue(v) {
+    if (v === undefined || v === null) return '';
+    return typeof v === 'object' ? v : (typeof v === 'string' ? v : String(v));
+}
+
+/** What a typed fill value is stored as: a number or yes/no placeholder keeps its type. */
+function typedFillValue(p, next) {
+    if (typeof next !== 'string') return next;
+    if (p.type === 'number' && next.trim() && Number.isFinite(Number(next))) return Number(next);
+    if (p.type === 'boolean' && ['true', 'false'].includes(next)) return next === 'true';
+    return next;
 }
 
 /**
@@ -194,9 +212,9 @@ function FillDocumentFields({ draft, set, onFocusField, previewSample, errorSect
                             ? `A list${p.fields?.length ? `, one block per item with ${p.fields.join(', ')}` : ''}. Bind it to a whole list — one value and nothing else around it.`
                             : (p.kind === 'condition' ? 'Decides whether its block is printed at all.' : undefined))}
                     >
-                        <TemplateField
-                            value={String((draft.values || {})[p.key] ?? '')}
-                            onChange={(next) => setValue(p.key, p.type === 'number' && next.trim() && Number.isFinite(Number(next)) ? Number(next) : p.type === 'boolean' && ['true','false'].includes(next) ? next === 'true' : next)}
+                        <ComposeField stepType="fill_document" field={`values.${p.key}`}
+                            value={fillValue((draft.values || {})[p.key])}
+                            onChange={(next) => setValue(p.key, typedFillValue(p, next))}
                             rows={1}
                             onFocusField={onFocusField}
                             previewSample={previewSample}
@@ -217,7 +235,7 @@ function FillDocumentFields({ draft, set, onFocusField, previewSample, errorSect
                     </FormRow>
                 )}
                 <FormRow label="Filename" hint={(picked?.docType === 'presentation' || contract?.docType === 'presentation') ? "Without the extension — that is added. Leave it blank to use the presentation's own name." : "Without the .pdf — that is added. Leave it blank to use the document's own name."}>
-                    <TemplateField
+                    <ComposeField stepType="fill_document" field="fileName"
                         value={draft.fileName || ''}
                         onChange={(next) => set('fileName', next)}
                         rows={1}
@@ -234,7 +252,7 @@ function FillDocumentFields({ draft, set, onFocusField, previewSample, errorSect
                 </FormRow>
                 {draft.saveCopy === true && (
                     <FormRow label="Name of the copy" hint="Defaults to the document's name plus today's date.">
-                        <TemplateField
+                        <ComposeField stepType="fill_document" field="copyName"
                             value={draft.copyName || ''}
                             onChange={(next) => set('copyName', next)}
                             rows={1}

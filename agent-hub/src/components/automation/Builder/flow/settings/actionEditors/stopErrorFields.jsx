@@ -1,6 +1,6 @@
 // The stop_error editor: the message a deliberate halt records as the run's
 // reason.
-import TemplateField from '../../../mapping/TemplateField';
+import ComposeField from '../../../valueSlot/ComposeField';
 import AccordionSection from '../../AccordionSection';
 import { FormRow } from '../formPrimitives';
 
@@ -8,7 +8,7 @@ function StopErrorFields({ draft, set, onFocusField, previewSample, errorSection
     return (
         <AccordionSection stepType="stop_error" sectionKey="config" title="Configuration" defaultOpen forceOpen={errorSections.has('config')}>
             <FormRow label="Error message" hint="Surfaced as the run error. Template-interpolated.">
-                <TemplateField
+                <ComposeField stepType="stop_error" field="message"
                     value={draft.message || ''}
                     onChange={(next) => set('message', next)}
                     rows={3}

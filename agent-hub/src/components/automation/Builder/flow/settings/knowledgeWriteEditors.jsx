@@ -16,7 +16,7 @@
 //      why the base has two thousand near-identical entries.
 import { BookOpen } from 'lucide-react';
 import { useMemo } from 'react';
-import TemplateField from '../../mapping/TemplateField';
+import ComposeField from '../../valueSlot/ComposeField';
 import AccordionSection from '../AccordionSection';
 import { RetrySection, retryIsSet } from './collectionEditors';
 import StepRepeatSection from './advanced/StepRepeatSection';
@@ -95,7 +95,7 @@ function ContentSection({ draft, set, onFocusField, previewSample, errorSections
                 required
                 hint="Click a value in the right panel to insert it — usually the step that wrote the article. An agent will quote this back as fact, so send it finished text, not working notes."
             >
-                <TemplateField
+                <ComposeField stepType="knowledge_write" field="content"
                     value={draft.content || ''}
                     onChange={(next) => set('content', next)}
                     rows={4}
@@ -106,7 +106,7 @@ function ContentSection({ draft, set, onFocusField, previewSample, errorSections
             </FormRow>
 
             <FormRow label="Title" hint="What the document is called where a person browses the base.">
-                <TemplateField
+                <ComposeField stepType="knowledge_write" field="title"
                     value={draft.title || ''}
                     onChange={(next) => set('title', next)}
                     rows={1}
@@ -120,7 +120,7 @@ function ContentSection({ draft, set, onFocusField, previewSample, errorSections
                 label="Source reference"
                 hint="Something stable and unique for this subject — a ticket link, a record id. The next run with the same reference REPLACES this document instead of adding another."
             >
-                <TemplateField
+                <ComposeField stepType="knowledge_write" field="sourceUri"
                     value={draft.sourceUri || ''}
                     onChange={(next) => set('sourceUri', next)}
                     rows={1}

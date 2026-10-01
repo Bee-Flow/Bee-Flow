@@ -7,6 +7,12 @@ import { PRIVACY_STEP_TYPES, readPrivacy, writePrivacy } from '../privacyModel';
 import { defaultTriggerLabel } from '../triggerLabels';
 import { paramsToSchema, schemaToParams } from '../triggerSchemaUtils';
 
+/** A text field as the form keeps it: a string, or a compose binding; anything else as ''. */
+function textOrCompose(v) {
+    if (typeof v === 'string') return v;
+    return v && typeof v === 'object' && v.kind === 'compose' ? v : '';
+}
+
 /** Move the previous binding's value into the new shape so the user
  *  doesn't lose what they typed when toggling kind. */
 export function convertValue(binding, fromKind, toKind) {
@@ -594,16 +600,17 @@ function extractTypeFormState(step) {
         };
     }
     if (step.type === 'knowledge_write') {
-        // All three are `{{…}}` template STRINGS, the shape TemplateField edits
-        // and the shape the runner interpolates — never binding objects.
+        // All three are texts the runner renders: a `{{…}}` template string
+        // or a compose (the AI builder writes one), the shapes ComposeField
+        // edits. Any other binding object is not a text and opens empty.
         return {
             ...base,
             forEach: step.forEach || null,
             repeat: step.repeat || null,
             knowledgeBaseId: step.knowledgeBaseId || '',
-            title: typeof step.title === 'string' ? step.title : '',
-            content: typeof step.content === 'string' ? step.content : '',
-            sourceUri: typeof step.sourceUri === 'string' ? step.sourceUri : '',
+            title: textOrCompose(step.title),
+            content: textOrCompose(step.content),
+            sourceUri: textOrCompose(step.sourceUri),
             nearDuplicateStrategy: step.nearDuplicateStrategy || 'skip',
         };
     }
@@ -814,7 +821,8 @@ export function buildPatch(step, draft) {
         patch.notes = draft.notes || '';
         // Absent, not '', when nothing is set: the validator accepts a missing
         // image/layout and the runner reads absent layout as "pick one".
-        patch.image = (draft.image || '').trim() || undefined;
+        // A composed image (a value from an earlier step) is kept as it is.
+        patch.image = (typeof draft.image === 'string' ? draft.image.trim() : draft.image) || undefined;
         patch.layout = draft.layout && draft.layout !== 'auto' ? draft.layout : undefined;
         // The visual picker decides which stored field survives; the others
         // are cleared so a slide never carries two visuals at once.

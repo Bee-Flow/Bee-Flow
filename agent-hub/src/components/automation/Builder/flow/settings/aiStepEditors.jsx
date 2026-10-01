@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../../utils/helpers';
 import { tierLabel, configuredTierKeys } from '../../../../licensing/tierMeta';
-import TemplateField from '../../mapping/TemplateField';
+import ComposeField from '../../valueSlot/ComposeField';
 import ToolInputForm from '../../mapping/ToolInputForm';
 import AccordionSection from '../AccordionSection';
 import { humanizeToolName } from '../displayHelpers';
@@ -49,12 +49,17 @@ function AiStepFields({ draft, set, modelTiers, catalog = null, groups = [], onF
                             ? t('routines.agent_step.task_hint', 'Short: the skill already knows how. Drop in fields from earlier steps with the {} button.')
                             : 'What the AI should do. Drag data from the Input panel (or use the {} button) to drop in a value from a previous step — it\'s filled in with the real value when the step runs.'}
                     >
-                        <TemplateField
+                        <ComposeField stepType="ai_step" field="prompt"
                             value={draft.prompt || ''}
                             onChange={(next) => set('prompt', next)}
                             rows={4}
                             onFocusField={onFocusField}
                             previewSample={previewSample}
+                            // The model reads a list as JSON well: a list in
+                            // the prompt needs no joining, and {{name}} reads
+                            // this step's own input.
+                            listAs="json"
+                            namedInputs={draft.inputs}
                             placeholder="Summarise this email and decide if it needs an urgent reply."
                         />
                     </FormRow>

@@ -46,6 +46,40 @@ describe('usedPathsIn — the references a step already holds', () => {
  * The rule that keeps the pill worth reading: a DECLARED slot with nothing in
  * it counts; an optional tool parameter nobody filled in does not.
  */
+describe('usedPathsIn — picks and composes (the v2 mapping)', () => {
+    const step = {
+        id: 'n1', type: 'notification',
+        title: 'Hi',
+        body: {
+            kind: 'compose', v: 1,
+            parts: ['Beste ', { from: { root: 'trigger', path: ['customer', 'name'] }, take: 'one', as: 'text' }, ', uw orders: ',
+                { from: { root: 'steps', id: 'fetch', path: ['orders', 'lines', 'sku'] }, take: 'all', as: 'text', join: 'lines' }],
+        },
+        inputs: { to: { kind: 'pick', v: 1, from: { root: 'steps', id: 'fetch', path: ['customer', 'E-mail adres'] }, take: 'one', as: 'native' } },
+        repeat: { over: { root: 'steps', id: 'rows', path: ['items'] } },
+    };
+
+    it('a compose part, a pick and the repeat list count as in use, though no text holds their path', () => {
+        const used = usedPathsIn(step);
+        expect(used.has('trigger.output.customer.name')).toBe(true);
+        expect(used.has('steps.fetch.output.orders.lines.sku')).toBe(true);
+        expect(used.has('steps.fetch.output.customer["E-mail adres"]')).toBe(true);
+        expect(used.has('steps.rows.output.items')).toBe(true);
+    });
+
+    it('the source panel spells a list with [*]; a pick does not: both are the same value', () => {
+        const used = usedPathsIn(step);
+        expect(pathInUse('steps.fetch.output.orders[*].lines[*].sku', used)).toBe(true);
+        expect(pathInUse('steps.fetch.output.orders', used)).toBe(true);
+        expect(pathInUse('steps.fetch.output.ordersX', used)).toBe(false);
+    });
+
+    it('a compose that holds only blank text is empty; one with a value is not', () => {
+        const blank = { inputs: { a: { kind: 'compose', v: 1, parts: ['  '] }, b: step.body } };
+        expect(emptySlotsIn(blank).keys).toEqual(['a']);
+    });
+});
+
 describe('emptySlotsIn — declared slots that hold nothing', () => {
     it('counts a named field left empty, and does not count one that is bound', () => {
         const set = { id: 's1', type: 'set', fields: {

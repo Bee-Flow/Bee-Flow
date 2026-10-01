@@ -121,6 +121,21 @@ test('a text whose executor reads only a string is marked compose: false', () =>
     assert.deepStrictEqual(textSitesOf('nope'), []);
 });
 
+test('lift: a template is turned into a compose only where the text takes one and lift is not off', () => {
+    const site = (type, field) => textSitesOf(type).find(t => t.field === field);
+    // An ai_step's prompt reads its own inputs by name; a slide's content
+    // renders a list as a markdown block. Both render a stored compose.
+    for (const [type, field] of [['ai_step', 'prompt'], ['slide', 'content']]) {
+        assert.equal(site(type, field).compose, true, `${type}.${field} renders a compose`);
+        assert.equal(site(type, field).lift, false, `${type}.${field} keeps its template`);
+    }
+    assert.equal(site('notification', 'body').lift, true);
+    // A text that takes no compose never lifts to one.
+    for (const [type, entry] of Object.entries(STEP_SITES)) {
+        for (const t of entry.text || []) if (!t.compose) assert.equal(t.lift, false, `${type}.${t.field}`);
+    }
+});
+
 test('stepBindingSites: every place this step keeps a value, in table order', () => {
     const step = {
         id: 'n1', type: 'notification', title: 'Hi', body: { kind: 'compose', v: 1, parts: ['x'] },

@@ -99,6 +99,8 @@ export interface TextSite {
     field: string;
     compose: boolean;
     each: boolean;
+    /** A `{{ }}` text here may be lifted to a compose (false: kept a template). */
+    lift: boolean;
 }
 
 /** An opaque walk result: plain data, or the marker of a walk that crossed a list. */

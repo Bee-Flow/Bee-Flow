@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import useAutomationApi from '../../../../../hooks/useAutomationApi';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import ConditionBuilder from '../../mapping/ConditionBuilder';
-import TemplateField from '../../mapping/TemplateField';
+import ComposeField from '../../valueSlot/ComposeField';
 import AccordionSection from '../AccordionSection';
 import { ApprovalStagesEditor, DirectoryOptions } from './approvalStages';
 import { slugifyFieldName } from './FormBuilderFields';
@@ -158,7 +158,7 @@ export function approvalQuestionName(question, index, questions = []) {
 /**
  * The approval editor: one question, one deadline.
  *
- * The question is a TemplateField rather than a plain input because the whole
+ * The question is a ComposeField rather than a plain input because the whole
  * point of an approval is that someone can see what they are deciding on — an
  * approver reading "Approve?" has to go and find the invoice themselves, which
  * is how approvals become rubber stamps. The engine interpolates this string
@@ -297,9 +297,9 @@ function ApprovalFields({ draft, set, onFocusField, previewSample, errorSections
                 <FormRow
                     label="Question for the approver"
                     required
-                    hint="What the person is asked. Use {{ }} to pull in values from earlier steps, so they can see what they are deciding on."
+                    hint="What the person is asked. Drop in values from earlier steps, so they can see what they are deciding on."
                 >
-                    <TemplateField
+                    <ComposeField stepType="approval" field="prompt"
                         value={draft.prompt || ''}
                         onChange={(next) => set('prompt', next)}
                         rows={3}
@@ -312,7 +312,7 @@ function ApprovalFields({ draft, set, onFocusField, previewSample, errorSections
                     label="More information"
                     hint="Shown under the question. Give the approver the context they need — amounts, recipients, the drafted text. Markdown works."
                 >
-                    <TemplateField
+                    <ComposeField stepType="approval" field="approval.details"
                         value={draft.details || ''}
                         onChange={(next) => set('details', next)}
                         rows={4}
@@ -330,7 +330,7 @@ function ApprovalFields({ draft, set, onFocusField, previewSample, errorSections
                         {attachments.map((att, i) => (
                             <div key={i} className="flex items-start gap-1.5">
                                 <div className="flex-1 min-w-0">
-                                    <TemplateField
+                                    <ComposeField stepType="approval" field="approval.attachments" slotKey={String(i)}
                                         value={att.binding || ''}
                                         onChange={(next) => setAttachment(i, { binding: next })}
                                         rows={1}

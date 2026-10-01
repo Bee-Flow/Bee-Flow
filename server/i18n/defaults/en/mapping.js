@@ -181,4 +181,17 @@ module.exports = {
     'mapping.formula.insert_into': 'Insert into {field}',
     'mapping.picker.list_title': 'A list of {count} values',
     'mapping.picker.list_title_unknown': 'A list. Run the step above to see how many it holds.',
+    // ── ComposeField: a text with values in it (M5b) ──────────────────
+    // A prompt, a body, a subject: typed text with value pills. The example
+    // under it shows what the run makes of the text.
+    'mapping.compose.example': 'Example',
+    'mapping.compose.list_lifts': 'This list goes in as JSON text: {preview}. Change anything in this text and it goes in as readable text instead.',
+    'mapping.compose.name_title': 'Filled in with "{name}" when the step runs',
+    'mapping.compose.repick': 'Pick another value',
+    'mapping.compose.close_options': 'Close',
+    'mapping.compose.insert_into': 'Insert into {label}',
+    'mapping.compose.insert': 'Insert a value',
+    // A typed formula next to a value it cannot be stored with (a whole list):
+    // the field keeps its last saved text until one of the two is removed.
+    'mapping.compose.unsaved_formula': 'The formula {formula} cannot be combined with the other values in this text. Remove one of them: until then, this change is not saved.',
 };

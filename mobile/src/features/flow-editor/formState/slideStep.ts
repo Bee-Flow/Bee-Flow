@@ -89,7 +89,8 @@ function chartPatch(draft: FormDraft): Record<string, unknown> | undefined {
 /** Absent, not '', when nothing is set; the visual decides which field survives. */
 function visualPatch(patch: StepPatch, draft: FormDraft): void {
     const visual = draft.visual || 'none';
-    patch.image = trimmed(draft.image) || undefined;
+    // A composed image (a value from an earlier step) is kept as it is.
+    patch.image = (typeof draft.image === 'string' ? draft.image.trim() : draft.image) || undefined;
     patch.layout = draft.layout && draft.layout !== 'auto' ? draft.layout : undefined;
     patch.chart = chartPatch(draft);
     patch.stats = visual === 'stats' && trimmed(draft.stats) ? trimmed(draft.stats) : undefined;

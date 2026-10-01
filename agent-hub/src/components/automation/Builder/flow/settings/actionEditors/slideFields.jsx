@@ -1,6 +1,6 @@
 // The slide editor: one slide as a value — its title and content, the visual
 // it carries (chart, KPI tiles, image or timeline) and its layout.
-import TemplateField from '../../../mapping/TemplateField';
+import ComposeField from '../../../valueSlot/ComposeField';
 import AccordionSection from '../../AccordionSection';
 import { RetrySection, retryIsSet } from '../collectionEditors';
 import StepRepeatSection from '../advanced/StepRepeatSection';
@@ -61,7 +61,7 @@ function SlideVisualFields({ draft, set, onFocusField, previewSample }) {
                         </select>
                     </FormRow>
                     <FormRow label="Data" required hint={'The rows of a datatable or query step, a "|" table, or "label: value" lines. Columns are picked automatically: the first text column labels, every number column becomes a series.'}>
-                        <TemplateField
+                        <ComposeField stepType="slide" field="chart.data"
                             value={draft.chartData || ''}
                             onChange={(next) => set('chartData', next)}
                             rows={3}
@@ -93,7 +93,7 @@ function SlideVisualFields({ draft, set, onFocusField, previewSample }) {
             )}
             {visual === 'stats' && (
                 <FormRow label="Tiles" required hint={'One tile per line: value | label | change (change is optional). At most four.'}>
-                    <TemplateField
+                    <ComposeField stepType="slide" field="stats"
                         value={draft.stats || ''}
                         onChange={(next) => set('stats', next)}
                         rows={4}
@@ -105,7 +105,7 @@ function SlideVisualFields({ draft, set, onFocusField, previewSample }) {
             )}
             {visual === 'image' && (
                 <FormRow label="Image" hint="The image URL a Generate image step produced, or a data: URL. Remote pictures are not fetched.">
-                    <TemplateField
+                    <ComposeField stepType="slide" field="image"
                         value={draft.image || ''}
                         onChange={(next) => set('image', next)}
                         rows={1}
@@ -132,7 +132,7 @@ function SlideFields({ draft, set, groups = [], onFocusField, previewSample, err
         <>
             <AccordionSection stepType="slide" sectionKey="content" title="Slide" defaultOpen forceOpen={errorSections.has('content')}>
                 <FormRow label="Title" required hint="The slide heading. Click a value in the right panel to insert it.">
-                    <TemplateField
+                    <ComposeField stepType="slide" field="title"
                         value={draft.title || ''}
                         onChange={(next) => set('title', next)}
                         rows={1}
@@ -142,7 +142,7 @@ function SlideFields({ draft, set, groups = [], onFocusField, previewSample, err
                     />
                 </FormRow>
                 <FormRow label="Content" hint={'Markdown: "- " bullets (two spaces in front = sub-point), a paragraph, a "|" table, a "> " quote. A list bound here becomes bullets.'}>
-                    <TemplateField
+                    <ComposeField stepType="slide" field="content"
                         value={draft.content || ''}
                         onChange={(next) => set('content', next)}
                         rows={5}
@@ -157,7 +157,7 @@ function SlideFields({ draft, set, groups = [], onFocusField, previewSample, err
 
             <AccordionSection stepType="slide" sectionKey="options" title="Options" defaultOpen={perItemIsSet(draft) || retryIsSet(draft)} forceOpen={errorSections.has('options')} hasContent={perItemIsSet(draft) || retryIsSet(draft) || !!draft.notes || !!draft.style || (draft.layout && draft.layout !== 'auto')}>
                 <FormRow label="Speaker notes" hint="What the presenter says — shown in the notes pane, not on the slide.">
-                    <TemplateField
+                    <ComposeField stepType="slide" field="notes"
                         value={draft.notes || ''}
                         onChange={(next) => set('notes', next)}
                         rows={2}

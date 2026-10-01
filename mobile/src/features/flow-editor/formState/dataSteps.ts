@@ -158,15 +158,24 @@ export const patchDatatable: Patcher = (patch, step, draft) => {
     applyForEachPatch(patch, step, draft);
 };
 
-/** All three are `{{…}}` template STRINGS — never binding objects. */
+/** A text field as the form keeps it: a string, or a compose binding; anything else as ''. */
+function textOrCompose(v: unknown): unknown {
+    if (typeof v === 'string') return v;
+    return v && typeof v === 'object' && (v as { kind?: unknown }).kind === 'compose' ? v : '';
+}
+
+/**
+ * All three are texts the runner renders: a `{{…}}` template string or a
+ * compose (the AI builder writes one). Any other binding object opens empty.
+ */
 export const extractKnowledgeWrite: Extractor = (step, base) => ({
     ...base,
     forEach: or(step.forEach, null),
     repeat: or(step.repeat, null),
     knowledgeBaseId: or(step.knowledgeBaseId, ''),
-    title: strOr(step.title, ''),
-    content: strOr(step.content, ''),
-    sourceUri: strOr(step.sourceUri, ''),
+    title: textOrCompose(step.title),
+    content: textOrCompose(step.content),
+    sourceUri: textOrCompose(step.sourceUri),
     nearDuplicateStrategy: or(step.nearDuplicateStrategy, 'skip'),
 });
 

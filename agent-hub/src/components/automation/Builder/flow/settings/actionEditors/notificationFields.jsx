@@ -1,8 +1,8 @@
 // The notification editor: the message a run sends while it is going, and the
 // channels it goes out on.
 import ChannelPills from '../../../ChannelPills';
-import TemplateField from '../../../mapping/TemplateField';
 import { normalizeChannels, stepChannelsToUi } from '../../../notificationDefaults';
+import ComposeField from '../../../valueSlot/ComposeField';
 import AccordionSection from '../../AccordionSection';
 import { RetrySection, retryIsSet } from '../collectionEditors';
 import StepRepeatSection from '../advanced/StepRepeatSection';
@@ -14,7 +14,7 @@ function NotificationFields({ draft, set, groups = [], onFocusField, previewSamp
         <>
         <AccordionSection stepType="notification" sectionKey="message" title="Message" defaultOpen forceOpen={errorSections.has('message')}>
             <FormRow label="Title">
-                <TemplateField
+                <ComposeField stepType="notification" field="title"
                     value={draft.title || ''}
                     onChange={(next) => set('title', next)}
                     rows={1}
@@ -24,13 +24,13 @@ function NotificationFields({ draft, set, groups = [], onFocusField, previewSamp
                 />
             </FormRow>
             <FormRow label="Body" required hint="Click a value in the right panel to insert it.">
-                <TemplateField
+                <ComposeField stepType="notification" field="body"
                     value={draft.body || ''}
                     onChange={(next) => set('body', next)}
                     rows={4}
                     onFocusField={onFocusField}
                     previewSample={previewSample}
-                    placeholder="From: {{trigger.output.from}}\nSubject: {{trigger.output.subject}}"
+                    placeholder={'From: {{trigger.output.from}}\nSubject: {{trigger.output.subject}}'}
                 />
             </FormRow>
             {/* Where it goes. The runner has honoured `channels` all along but

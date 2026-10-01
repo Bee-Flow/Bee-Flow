@@ -89,7 +89,12 @@ describe('picking a document', () => {
 
 describe('a value row', () => {
     it('stores a number as a number and true / false as a yes/no, only for those types', () => {
-        expect(WEB).toContain("p.type === 'number' && next.trim() && Number.isFinite(Number(next)) ? Number(next) : p.type === 'boolean' && ['true','false'].includes(next) ? next === 'true' : next");
+        for (const line of [
+            "if (p.type === 'number' && next.trim() && Number.isFinite(Number(next))) return Number(next);",
+            "if (p.type === 'boolean' && ['true', 'false'].includes(next)) return next === 'true';",
+        ]) {
+            expect(WEB).toContain(line);
+        }
         expect(typedPlaceholderValue(param({ type: 'number' }), '12.5')).toBe(12.5);
         expect(typedPlaceholderValue(param({ type: 'number' }), ' ')).toBe(' ');
         expect(typedPlaceholderValue(param({ type: 'number' }), '{{steps.a.output.n}}')).toBe('{{steps.a.output.n}}');
