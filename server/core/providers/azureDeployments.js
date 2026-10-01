@@ -22,7 +22,10 @@ let _models = new Map();
 /** Reads the raw `azure_models` value. Swappable for tests via configureAzureDeployments. */
 let _readDeploymentList = async () => require('../../stores/configStore').getConfig('azure_models');
 
-/** Injection seam: replace where the deployment list is read from. */
+/**
+ * Injection seam: replace where the deployment list is read from.
+ * @param {{ readDeploymentList?: () => Promise<unknown> }} [seams]
+ */
 function configureAzureDeployments({ readDeploymentList } = {}) {
     if (typeof readDeploymentList === 'function') _readDeploymentList = readDeploymentList;
 }
