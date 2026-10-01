@@ -1,5 +1,5 @@
 {
   "_comment": "Highest number of source-text assertions server may still carry. Lower it with `node scripts/source-text-tests.mjs server --update` after a conversion; raising it is a deliberate edit that belongs in a commit message with a reason.",
-  "_generated": "2026-09-23",
-  "assertions": 116
+  "_generated": "2026-10-01",
+  "assertions": 114
 }

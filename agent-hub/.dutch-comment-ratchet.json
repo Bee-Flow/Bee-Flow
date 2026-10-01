@@ -1,5 +1,5 @@
 {
   "_comment": "Highest number of files with Dutch comments agent-hub/src may still carry. Lower it with `node scripts/count-ratchet.mjs dutch-comment agent-hub --update` after a conversion; raising it is a deliberate edit that belongs in a commit message with a reason.",
-  "_generated": "2026-09-24",
-  "count": 297
+  "_generated": "2026-10-01",
+  "count": 292
 }
