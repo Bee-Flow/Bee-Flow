@@ -240,7 +240,7 @@ test('an ai_step input named after a data root is refused where the model can re
 test('a compact pick is expanded to the stored form', () => {
     const { inputs: fixed, error } = validateAndFixBindings({ to: { pick: 'steps.get.output.rows[*].email', take: 'all' } }, emptyDefinition());
     assert.equal(error, null);
-    assert.deepStrictEqual(fixed.to, { kind: 'pick', v: 1, from: { root: 'steps', id: 'get', path: ['rows', 'email'] }, take: 'all', as: 'native' });
+    assert.deepStrictEqual(fixed.to, { kind: 'pick', v: 1, from: { root: 'steps', id: 'get', path: ['rows', 'email'] }, take: 'all', as: 'native', label: 'Email' });
 });
 
 test('a stored pick and a compose pass through', () => {
@@ -249,13 +249,16 @@ test('a stored pick and a compose pass through', () => {
     const { inputs: fixed, error } = validateAndFixBindings({ a: pick, b: compose }, emptyDefinition());
     assert.equal(error, null);
     assert.deepStrictEqual(fixed.a, pick);
-    assert.deepStrictEqual(fixed.b, { kind: 'compose', v: 1, parts: ['Hoi ', { from: { root: 'trigger', path: ['naam'] }, take: 'one', as: 'text' }] });
+    assert.deepStrictEqual(fixed.b, { kind: 'compose', v: 1, parts: ['Hoi ', { from: { root: 'trigger', path: ['naam'] }, take: 'one', as: 'text', label: 'Naam' }] });
 });
 
-test('the compact form is stamped with the version, and that repair is named', () => {
-    const { inputs: fixed, repairs } = validateAndFixBindings({ to: { pick: 'trigger.output.naam' } }, emptyDefinition());
+// The compact forms are what the model is taught (M5): expanding them is no
+// repair, so nothing is said about it.
+test('the compact form is stamped with the version, and no repair is named for it', () => {
+    const { inputs: fixed, repairs } = validateAndFixBindings({ to: { pick: 'trigger.output.naam' }, body: { compose: ['Hoi ', { pick: 'trigger.output.naam' }] } }, emptyDefinition());
     assert.equal(fixed.to.v, 1);
-    assert.ok((repairs || []).some(r => /^inputs\.to: expanded the compact \{pick:…\}/.test(r)), JSON.stringify(repairs));
+    assert.deepStrictEqual(fixed.body, { kind: 'compose', v: 1, parts: ['Hoi ', { from: { root: 'trigger', path: ['naam'] }, take: 'one', as: 'text', label: 'Naam' }] });
+    assert.equal(repairs, undefined);
 });
 
 // resolve.mjs reads a pick or a compose only when v === 1; without it the

@@ -77,7 +77,7 @@ Targeting:
     pick a default webpage; bind it as a literal: \`{ webpageId: { kind:"literal", value:"<id>" } }\`.
   - If the user wants the automation to choose at run time, add an \`ai_step\`
     with \`tools:["webpages_list", ...]\` that picks one, and ref it in later
-    steps: \`{ webpageId: { kind:"ref", path:"steps.<aiId>.output.webpageId" } }\`.
+    steps: \`{ webpageId: { pick:"steps.<aiId>.output.webpageId" } }\`.
 
 Database rules (HARD):
   - ALWAYS use \`?\` placeholders and pass values via \`params\`. NEVER interpolate
@@ -123,7 +123,7 @@ the AI context, use the \`sourceHandle\` pattern:
      month → supplier). Bind each \`parentFolderId\` to the previous step's
      \`output.folderId\`.
   6. \`builder_add_action\` → \`drive_upload_file\` with
-     \`sourceHandle: { kind: "ref", path: "steps.<read>.output.sourceHandle" }\`,
+     \`sourceHandle: { pick: "steps.<read>.output.sourceHandle" }\`,
      \`name: trigger.output.attachments[0].filename\`,
      \`parentFolderId\` bound to the deepest folder step. NEVER bind the raw
      \`content\` / base64 of an attachment — always use the handle.
@@ -264,8 +264,8 @@ draft is a typed DAG of steps:
                      slide step with forEach, then slides:"{{steps.<slide>.output.results[*].output.slide}}".
                      Output is {fileId,filename,mimeType,size,format,slideCount,sourceHandle} —
                      the same file shape as generate_document, so a form_page download field,
-                     an approval attachment and nextcloud_upload_file (sourceHandle:{kind:"ref",
-                     path:"steps.<id>.output.sourceHandle"} → opens in Nextcloud Office) take it unchanged.
+                     an approval attachment and nextcloud_upload_file (sourceHandle:{pick:
+                     "steps.<id>.output.sourceHandle"} → opens in Nextcloud Office) take it unchanged.
                      VISUALS in shape (1): tell the ai_step it may add a chart as a \`\`\`chart block
                      ("type: bar", "labels: Q1, Q2", "Omzet: 10, 20") or "<!-- chart: bar -->" above a
                      table, KPI tiles as a \`\`\`stats block ("€ 1,2M | Omzet | +12%"), "<!-- layout: timeline -->"
@@ -423,20 +423,33 @@ reply — always bundle it with the work it describes.
    - Inputs MUST use binding objects. NEVER pass a bare string as an input value.
      Wrong:  \`{ query: "label:Invoices" }\`
      Right:  \`{ query: { kind: "literal", value: "label:Invoices" } }\`
-   - Reference upstream data with the "ref" or "template" binding kinds.
-     **Every ref path MUST start with one of: \`trigger\`, \`steps\`, \`vars\`,
-     \`secrets\`, \`loop\`.** Field names alone are NOT valid paths.
-       Wrong:  \`{ kind: "ref", path: "from" }\`             — missing root
-       Wrong:  \`{ kind: "ref", path: "subject" }\`          — missing root
-       Wrong:  \`{ kind: "ref", path: "output.from" }\`      — missing trigger/steps prefix
-       Right:  \`{ kind: "ref", path: "trigger.output.from" }\`
-       Right:  \`{ kind: "ref", path: "steps.ai_47.output.replyText" }\`
-       Right:  \`{ kind: "template", value: "Re: {{trigger.output.subject}}" }\`
+   - Reference upstream data with a PICK: \`{ pick: "<path>" }\`, plus
+     \`take\` when the field wants more than the one value there:
+     "all" (the whole list), "first", "last" or "count". A key on a list
+     reads that key of every item, so \`steps.s1.output.results.email\` with
+     take:"all" is every result's e-mail. **Every path MUST start with one
+     of: \`trigger\`, \`steps\`, \`vars\`, \`loop\`.** Field names alone
+     are NOT valid paths.
+       Wrong:  \`{ pick: "from" }\`                        — missing root
+       Wrong:  \`{ pick: "output.from" }\`                 — missing trigger/steps prefix
+       Right:  \`{ pick: "trigger.output.from" }\`
+       Right:  \`{ pick: "steps.ai_47.output.replyText" }\`
+       Right:  \`{ pick: "steps.s1.output.results.email", take: "all" }\`
+     A \`{ kind: "ref", path }\` or \`{ kind: "template", value }\` binding
+     still works; write new bindings as picks.
      An index into a list is written in brackets, and so is a key with a
      space or a dash in it; a dotted \`.0\` or \`.content-type\` resolves to
      nothing at run time.
        Wrong:  \`trigger.output.attachments.0.filename\`, \`steps.h.output.body.content-type\`
        Right:  \`trigger.output.attachments[0].filename\`, \`steps.h.output.body["content-type"]\`
+   - Text fields (notification title/body, http url/body, approval prompt,
+     document content) are TEXT with \`{{…}}\` placeholders:
+     \`"Re: {{trigger.output.subject}}"\`. They are stored as a text with
+     picked values, so a list in one prints as readable text (one item per
+     line), never as JSON: \`{{steps.s1.output.results[*].subject}}\` is
+     every subject. To choose the layout, give the field as a compose:
+     \`{compose:["Orders:\\n", {pick:"steps.s1.output.items.product", take:"all", join:"bullets"}]}\`
+     (join: lines | comma | bullets).
    - For a Gmail \`mail.new\` trigger, the available output fields are:
      \`messageId, threadId, from, to, cc, subject, snippet, labelIds, date,
      hasAttachment, attachments[{filename, mimeType, size, attachmentId}]\`.
@@ -444,7 +457,8 @@ reply — always bundle it with the work it describes.
      array is pre-populated — branch on \`trigger.output.hasAttachment\` and
      bind \`trigger.output.attachments[0].attachmentId\` directly to
      \`gmail_read_attachment\`; no extra \`gmail_read\` step is needed.
-   - Inside a loop body, refer to the current item as \`loop.<itemVar>\`.
+   - Inside a loop body, refer to the current item as \`loop.<itemVar>\`
+     (\`{ pick: "loop.<itemVar>.<field>" }\`).
 5. **Edit IN PLACE**. To change an existing step, call \`builder_update_step({stepId, patch})\`
    — it keeps the step's id and ALL wiring, so downstream
    \`steps.<id>.output.*\` references keep working. NEVER delete and recreate a
@@ -629,7 +643,7 @@ When something must happen for EACH item of an upstream array, pick the lighter 
   (one save_row / update_rows per item — bind \`loop.<itemVar>.<field>\` in values and where) and
   \`knowledge_write\` (one article per item — give each a distinct \`sourceUri\`, or every item
   overwrites the same document):
-  \`builder_add_action({ tool:"gmail_read", forEach:{ overRef:"steps.<search>.output.messages", itemVar:"email" }, inputs:{ messageId:{kind:"ref",path:"loop.email.id"} } })\`.
+  \`builder_add_action({ tool:"gmail_read", forEach:{ overRef:"steps.<search>.output.messages", itemVar:"email" }, inputs:{ messageId:{pick:"loop.email.id"} } })\`.
   Inside that step, reference the current item as \`loop.<itemVar>\`. The step's result
   becomes an array at \`steps.<id>.output.results\`.
 - **MULTIPLE steps per item** (read THEN summarise THEN label) → still \`forEach\`, CHAINED.
@@ -920,7 +934,7 @@ ${batchSection}
 ${loopBullets}
    - For an \`ai_step\`, split instructions: put the role/persona/tone/output-style in \`systemPrompt\` and the concrete per-run task + data references in \`prompt\`. Leave \`systemPrompt\` off for trivial one-off transforms.
    - EXTRACTION IS NOT AN ai_step. To pull named fields out of text (an invoice, an e-mail, a PDF's text) use a \`data_extraction\` step (\`builder_add_data_extraction\`, or type "data_extraction" in a batch): \`source\` is one binding to the text and \`fields\` [{name,type,description,required}] IS the output shape — both at the TOP LEVEL of the step, there is no \`inputs\` map here — no outputSchema — and the output is \`steps.<id>.output.<name>\` (null when absent). Use an \`ai_step\` for judgement and writing.
-   - DATATABLES. Table exists in the "Datatables you may use" block → \`add_row\` into it with its id AND key. Table missing → \`builder_create_datatable({name, fields:[{name,type}]})\` first (design time, not a step — a create-table step does not exist), then \`add_row\` with the returned id/key. \`values\` keys = column keys (lowercase with underscores: "Excl. btw" → \`excl_btw\`), values = \`{kind:"ref"}\` bindings, one row per item via forEach over the extraction's \`output.results\`. Name extraction fields after the destination columns. For a Nextcloud Tables row name the table by its exact title when you do not know its id: \`tableId:{kind:"literal", value:"Facturen"}\` — do not guess a number.
+   - DATATABLES. Table exists in the "Datatables you may use" block → \`add_row\` into it with its id AND key. Table missing → \`builder_create_datatable({name, fields:[{name,type}]})\` first (design time, not a step — a create-table step does not exist), then \`add_row\` with the returned id/key. \`values\` keys = column keys (lowercase with underscores: "Excl. btw" → \`excl_btw\`), values = \`{pick:"loop.x.output.<field>"}\` bindings, one row per item via forEach over the extraction's \`output.results\`. Name extraction fields after the destination columns. For a Nextcloud Tables row name the table by its exact title when you do not know its id: \`tableId:{kind:"literal", value:"Facturen"}\` — do not guess a number.
 4. To CHANGE a step, use \`builder_update_step({stepId, patch})\` — it keeps the id and wiring. To MOVE a step, or put it on a condition's other branch, patch its position the same way: \`builder_update_step({stepId, patch:{afterStepId:"<id>", branch:"else"}})\` — same id, same refs. NEVER delete and re-add a step to edit or move it (that mints a new id and breaks downstream refs).
 5. Call \`builder_summarise\` so the user can see the plan, in the same reply as the dry run.
 6. Call \`builder_request_dry_run\` to test. Read errors. Fix every failing step with ${repairCall} and rerun — all in the SAME reply. Dry-run \`_hint\` keys are ground truth: rebind to them.
@@ -930,18 +944,20 @@ ${loopBullets}
 
 EVERY tool input value must be a binding object — never a bare string/number:
 
+  pick:      { pick: "trigger.output.from" }   — a value from the trigger or an earlier step
+             { pick: "steps.s1.output.results.email", take: "all" }   — every value of a list field
   literal:   { kind: "literal", value: "label:Invoices" }
-  ref:       { kind: "ref", path: "trigger.output.from" }
-  template:  { kind: "template", value: "Re: {{trigger.output.subject}}" }
   expr:      { kind: "expr", value: "item.priority === 'high'" }
 
-Ref paths MUST start with one of: \`trigger\`, \`steps\`, \`vars\`, \`secrets\`, \`loop\`.
+A pick path MUST start with one of: \`trigger\`, \`steps\`, \`vars\`, \`loop\`.
 Field names alone (e.g. \`"from"\`, \`"subject"\`) are NOT valid paths — prepend \`trigger.output.\`.
-Prefer \`{kind:"ref"}\` over \`{{templates}}\` wherever a binding object is accepted; a \`{{…}}\` template belongs only in fields that ARE template strings (notification title/body, http url/body, approval prompt), one reference each.
+A key on a list reads that key of every item: \`steps.s1.output.results.email\` is the e-mail of each result. \`take\` says what the field gets: "one" (default), "all" (the whole list), "first", "last", "count".
+An index is \`[0]\`, a key with spaces or dashes \`["key"]\`. A \`{kind:"ref", path}\` or \`{kind:"template", value}\` still works; write new bindings as picks.
+Text fields (notification title/body, http url/body, approval prompt, document content) are TEXT with \`{{…}}\` placeholders: \`"Re: {{trigger.output.subject}}"\`. A list placeholder (\`{{steps.s1.output.results[*].subject}}\`) prints one item per line, never JSON. To choose that layout, give the field as a compose: \`{compose:["Orders:\\n", {pick:"steps.s1.output.items.product", take:"all", join:"bullets"}]}\` (join: lines | comma | bullets). An ai_step reads data through its \`inputs\` (picks), named in the prompt.
 
 Beside \`trigger.output.*\`, every run knows WHICH trigger fired: ${triggerKinds}
 
-Forwarding a mail attachment to Drive? Pass the \`sourceHandle\` returned by \`gmail_read_attachment\` to \`drive_upload_file\` (\`sourceHandle: { kind: "ref", path: "steps.<read>.output.sourceHandle" }\`). NEVER bind raw base64 or the OCR'd \`content\` as the file body.
+Forwarding a mail attachment to Drive? Pass the \`sourceHandle\` returned by \`gmail_read_attachment\` to \`drive_upload_file\` (\`sourceHandle: { pick: "steps.<read>.output.sourceHandle" }\`). NEVER bind raw base64 or the OCR'd \`content\` as the file body.
 
 ## Placing steps
 

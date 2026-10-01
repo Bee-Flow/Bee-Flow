@@ -6,6 +6,7 @@
  */
 
 const { newId, appendAfter } = require('./draftGraph');
+const { textFieldValue } = require('./picks');
 
 /**
  * Hours an approval may sit before the run is closed as expired.
@@ -185,7 +186,9 @@ function applyAddApproval(draft, args) {
     const step = {
         id: newId('appr'),
         type: 'approval',
-        prompt: typeof args.prompt === 'string' ? args.prompt : '',
+        // A `{{…}}` text becomes a compose where the shared core can hold
+        // every placeholder: a list quoted in the question reads as a list.
+        prompt: textFieldValue(args.prompt, { stepType: 'approval', field: 'prompt', fallback: () => '' }),
         approval: normalizeApprovalConfig(args),
         label: args.label || 'Approval',
     };

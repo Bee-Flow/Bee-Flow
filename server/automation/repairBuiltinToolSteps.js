@@ -37,8 +37,32 @@ const REPAIRABLE = {
             'url', 'method', 'headers', 'body', 'timeoutMs', 'blockPrivateTargets',
             'parseResponse', 'askOnce', 'cacheInto', 'authConnectionId',
         ],
+        // The text fields, kept as the text lifted from `inputs` (see
+        // keepLegacyText).
+        textFields: ['url', 'body'],
     },
 };
+
+/**
+ * The repaired step with its text fields as the `{{ }}` text they were.
+ *
+ * The builder stores a `{{ }}` text as a compose (a list in it renders as
+ * readable text instead of JSON). This repair runs on every read of a STORED
+ * definition, which ran its texts as templates: rebuilt into composes they
+ * would render differently (a list in a url as 'a⏎b' instead of JSON) with
+ * nobody having edited anything. So a text the builder turned into a pick or
+ * a compose goes back to the exact text it was built from; one that was no
+ * text at all cannot be kept as it was, and the step is left alone (null).
+ */
+function keepLegacyText(repaired, args, fields) {
+    for (const field of fields) {
+        const built = repaired[field];
+        if (!built || typeof built !== 'object' || Array.isArray(built)) continue;
+        if (typeof args[field] !== 'string') return null;
+        repaired[field] = args[field];
+    }
+    return repaired;
+}
 
 /** Generic step fields that belong to the step, not to its type. */
 const CARRY_OVER = ['label', 'icon', 'note', 'disabled', 'retry', 'forEach'];
@@ -149,7 +173,8 @@ function repairStep(step) {
     }
     if (!built || built.error || !built.added) return null;
 
-    const repaired = { ...built.added, id: step.id };
+    const repaired = keepLegacyText({ ...built.added, id: step.id }, args, spec.textFields || []);
+    if (!repaired) return null;
     for (const key of CARRY_OVER) {
         if (step[key] !== undefined) repaired[key] = step[key];
     }

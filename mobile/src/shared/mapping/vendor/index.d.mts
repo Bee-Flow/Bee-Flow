@@ -281,3 +281,13 @@ export declare function toggleRepeat(step: object, over: MappingSource, opts?: {
     { step: object & { repeat: StepRepeat } } | { error: 'already_repeating' | 'legacy_for_each' | 'invalid_source' };
 export declare function toggleRepeatOff(step: object): { step: object };
 export declare function rebaseLoopRefs(step: object): { step: object & { repeat: StepRepeat } } | { refused: string[] };
+
+// M5a: what a definition reads through picks and composes (reads.mjs), and
+// the one rule for lifting a legacy template or path to them (template.mjs).
+export declare function picksIn(value: unknown): PickPart[];
+export declare function pickPaths(value: unknown): string[];
+export declare function stepReadPaths(step: unknown): string[];
+export declare function textAsTemplate(value: unknown): string;
+export declare function stepIdsRead(value: unknown): string[];
+export declare function pickForLegacyPath(path: unknown): { from: MappingSource; take: 'one' | 'all' } | null;
+export declare function templateToCompose(text: unknown, where?: { stepType?: string; field?: string; sole?: boolean }): PickBinding | ComposeBinding | null;

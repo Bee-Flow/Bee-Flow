@@ -26,11 +26,21 @@
  */
 
 const { DATATABLE_OPS } = require('../validate/constants');
+const { isCompactPick, isCompactCompose } = require('./picks');
 const { KEY_RE, SYSTEM_COLUMNS } = require('../../core/dataEngine/dataModel/vocabulary');
 
 const isPlainObject = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
-const BINDING_KINDS = new Set(['ref', 'literal', 'template', 'expr']);
-const isBinding = (v) => isPlainObject(v) && typeof v.kind === 'string' && BINDING_KINDS.has(v.kind);
+const BINDING_KINDS = new Set(['ref', 'literal', 'template', 'expr', 'pick', 'compose']);
+// A pick or compose in its compact spelling ({pick:"…"}, {compose:[…]}) is a
+// binding too: the kind it will be stored as. A column map with a column
+// called "pick" holds a binding there, not a path or a Source, so it stays a map.
+const kindOf = (v) => {
+    if (typeof v.kind === 'string') return v.kind;
+    if (isCompactCompose(v)) return 'compose';
+    if (isCompactPick(v) && (typeof v.pick === 'string' || typeof v.pick.root === 'string')) return 'pick';
+    return undefined;
+};
+const isBinding = (v) => isPlainObject(v) && BINDING_KINDS.has(kindOf(v));
 
 /**
  * A title or key as a matching key: lower-case, diacritics stripped, every
@@ -371,7 +381,7 @@ function mapColumnKeys(map, columns, { what = 'values', tableName = 'this table'
         // Without this the binding's own keys (kind, path) would be reported
         // as unknown columns — true, but pointing the model at the wrong fix.
         return {
-            error: `${what} must be a plain column → value map; it cannot be one ${map.kind} binding for the whole row — bind each column's value instead (${what}: {email: "{{steps.x.output.email}}"}).`,
+            error: `${what} must be a plain column → value map; it cannot be one ${kindOf(map)} binding for the whole row — bind each column's value instead (${what}: {email: "{{steps.x.output.email}}"}).`,
             _fixHint: `Reject reason: ${what} is a binding, not a column map. Send an object keyed by column key, one entry per column, and resend the same step.`,
         };
     }

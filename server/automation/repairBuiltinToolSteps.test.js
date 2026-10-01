@@ -43,6 +43,9 @@ test('a repaired step carries the builder defaults a real one gets', () => {
     assert.deepEqual(fixed.headers, {});
 });
 
+// Review M5a: the builder stores a `{{ }}` text as a compose, but this repair
+// runs on every read of a STORED definition: its url and body stay the
+// template strings they ran as.
 test('ref bindings become templates, literals keep their type', () => {
     const fixed = repairStep(brokenHttpStep({
         inputs: {

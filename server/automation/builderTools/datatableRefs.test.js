@@ -393,3 +393,15 @@ test('mapColumnName: ambiguous is refused; a non-string or blank name is left to
     assert.deepStrictEqual(mapColumnName(ref, columns), { key: ref });
     assert.deepStrictEqual(mapColumnName('x', undefined), { key: 'x' });
 });
+
+// M5: the model is taught the compact pick. One pick for the whole row is the
+// same mistake as one ref for it; a COLUMN called "pick" is still a column.
+test('a compact pick or compose for the whole row is refused like a ref; a column named "pick" is a column', () => {
+    const one = mapColumnKeys({ pick: 'steps.x.output.row' }, null);
+    assert.match(one.error, /cannot be one pick binding for the whole row/);
+    const two = mapColumnKeys({ compose: ['a'] }, null);
+    assert.match(two.error, /cannot be one compose binding for the whole row/);
+    const column = mapColumnKeys({ pick: { pick: 'steps.x.output.keuze' } }, null);
+    assert.ok(!column.error, column.error);
+    assert.deepStrictEqual(Object.keys(column.map), ['pick']);
+});

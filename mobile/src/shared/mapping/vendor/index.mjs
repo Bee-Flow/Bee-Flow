@@ -49,3 +49,8 @@ export { inlineText, renderText, renderCompose } from './render.mjs';
 export {
     REPEAT_DEFAULT_MAX, REPEAT_MAX, mapStepPicks, toggleRepeat, toggleRepeatOff, rebaseLoopRefs,
 } from './repeat.mjs';
+
+// M5a: what a definition reads through picks and composes (reads.mjs), and
+// the one rule for lifting a legacy template or path to them (template.mjs).
+export { picksIn, pickPaths, stepReadPaths, stepIdsRead, textAsTemplate } from './reads.mjs';
+export { pickForLegacyPath, templateToCompose } from './template.mjs';

@@ -103,7 +103,7 @@ function buildFewShotMessages(count = 0, { toolset = 'full' } = {}) {
                 },
             }),
         },
-        // The ai_step reads the search results through `inputs` (a ref
+        // The ai_step reads the search results through `inputs` (a pick
         // binding), never through a {{template}} inside `prompt`: a brace
         // inside a string value is what the local runtime's tool-call parser
         // chops (core/llm/partialJsonScan.looksGarbled).
@@ -117,8 +117,8 @@ function buildFewShotMessages(count = 0, { toolset = 'full' } = {}) {
                     arguments: JSON.stringify({
                         steps: [
                             { tempId: 'search', type: 'integration_action', spec: { tool: 'gmail_search', inputs: { query: { kind: 'literal', value: 'label:Invoices is:unread' }, maxResults: { kind: 'literal', value: 25 } }, label: 'Find unread invoices' } },
-                            { tempId: 'sum', type: 'ai_step', spec: { prompt: 'Summarise the emails in `emails` (sender, subject, amount if visible) as a short bulleted digest.', inputs: { emails: { kind: 'ref', path: 'steps.$search.output.results' } }, outputSchema: { digest: 'string' }, label: 'Summarise invoices' } },
-                            { tempId: 'send', type: 'integration_action', spec: { tool: 'gmail_compose', inputs: { to: { kind: 'literal', value: 'me@example.com' }, subject: { kind: 'literal', value: 'Invoice digest' }, body: { kind: 'ref', path: 'steps.$sum.output.digest' } }, label: 'Email me the digest' } },
+                            { tempId: 'sum', type: 'ai_step', spec: { prompt: 'Summarise the emails in `emails` (sender, subject, amount if visible) as a short bulleted digest.', inputs: { emails: { pick: 'steps.$search.output.results' } }, outputSchema: { digest: 'string' }, label: 'Summarise invoices' } },
+                            { tempId: 'send', type: 'integration_action', spec: { tool: 'gmail_compose', inputs: { to: { kind: 'literal', value: 'me@example.com' }, subject: { kind: 'literal', value: 'Invoice digest' }, body: { pick: 'steps.$sum.output.digest' } }, label: 'Email me the digest' } },
                         ],
                     }),
                 },
@@ -266,11 +266,11 @@ function buildFewShotMessages(count = 0, { toolset = 'full' } = {}) {
                     arguments: JSON.stringify({
                         steps: [
                             { tempId: 'list', type: 'integration_action', spec: { tool: 'nextcloud_list_files', inputs: { path: { kind: 'literal', value: '/Invoices-Test' } }, label: 'List invoices' } },
-                            { tempId: 'read', type: 'integration_action', spec: { tool: 'nextcloud_read_file', inputs: { path: { kind: 'ref', path: 'loop.f.path' } }, forEach: { overRef: 'steps.$list.output.items', itemVar: 'f' }, label: 'Read each PDF' } },
+                            { tempId: 'read', type: 'integration_action', spec: { tool: 'nextcloud_read_file', inputs: { path: { pick: 'loop.f.path' } }, forEach: { overRef: 'steps.$list.output.items', itemVar: 'f' }, label: 'Read each PDF' } },
                             {
                                 tempId: 'extract', type: 'data_extraction',
                                 spec: {
-                                    source: { kind: 'ref', path: 'loop.r.output.content' },
+                                    source: { pick: 'loop.r.output.content' },
                                     fields: [
                                         { name: 'datum', type: 'date', description: 'Invoice date', required: true },
                                         { name: 'leverancier', type: 'string', description: 'Supplier name' },
@@ -288,12 +288,12 @@ function buildFewShotMessages(count = 0, { toolset = 'full' } = {}) {
                                 spec: {
                                     op: 'add_row', datatableId: 'tbl_fact01', datatableKey: 'facturen',
                                     values: {
-                                        datum: { kind: 'ref', path: 'loop.x.output.datum' },
-                                        leverancier: { kind: 'ref', path: 'loop.x.output.leverancier' },
-                                        factuurnummer: { kind: 'ref', path: 'loop.x.output.factuurnummer' },
-                                        excl_btw: { kind: 'ref', path: 'loop.x.output.excl_btw' },
-                                        btw: { kind: 'ref', path: 'loop.x.output.btw' },
-                                        totaal: { kind: 'ref', path: 'loop.x.output.totaal' },
+                                        datum: { pick: 'loop.x.output.datum' },
+                                        leverancier: { pick: 'loop.x.output.leverancier' },
+                                        factuurnummer: { pick: 'loop.x.output.factuurnummer' },
+                                        excl_btw: { pick: 'loop.x.output.excl_btw' },
+                                        btw: { pick: 'loop.x.output.btw' },
+                                        totaal: { pick: 'loop.x.output.totaal' },
                                     },
                                     forEach: { overRef: 'steps.$extract.output.results', itemVar: 'x' },
                                     label: 'Append row to Facturen',
@@ -426,8 +426,8 @@ function buildFewShotMessages(count = 0, { toolset = 'full' } = {}) {
                     name: 'builder_add_steps',
                     arguments: JSON.stringify({
                         steps: [
-                            { tempId: 'extract', type: 'data_extraction', spec: { source: { kind: 'ref', path: 'trigger.output.tekst' }, fields: [{ name: 'leverancier', type: 'string', description: 'Naam van de leverancier' }, { name: 'factuurnummer', type: 'string', description: 'Factuurnummer', required: true }, { name: 'totaal', type: 'number', description: 'Totaalbedrag inclusief btw' }], label: 'Factuurvelden uitlezen' } },
-                            { tempId: 'save', type: 'datatable', spec: { op: 'add_row', datatableId: 'tbl_7c2d9e', datatableKey: 'inkomende_facturen', values: { leverancier: { kind: 'ref', path: 'steps.$extract.output.leverancier' }, factuurnummer: { kind: 'ref', path: 'steps.$extract.output.factuurnummer' }, totaal: { kind: 'ref', path: 'steps.$extract.output.total' } }, label: 'Rij toevoegen' } },
+                            { tempId: 'extract', type: 'data_extraction', spec: { source: { pick: 'trigger.output.tekst' }, fields: [{ name: 'leverancier', type: 'string', description: 'Naam van de leverancier' }, { name: 'factuurnummer', type: 'string', description: 'Factuurnummer', required: true }, { name: 'totaal', type: 'number', description: 'Totaalbedrag inclusief btw' }], label: 'Factuurvelden uitlezen' } },
+                            { tempId: 'save', type: 'datatable', spec: { op: 'add_row', datatableId: 'tbl_7c2d9e', datatableKey: 'inkomende_facturen', values: { leverancier: { pick: 'steps.$extract.output.leverancier' }, factuurnummer: { pick: 'steps.$extract.output.factuurnummer' }, totaal: { pick: 'steps.$extract.output.total' } }, label: 'Rij toevoegen' } },
                         ],
                     }),
                 },
@@ -479,7 +479,7 @@ function buildFewShotMessages(count = 0, { toolset = 'full' } = {}) {
             role: 'assistant',
             content: 'De rij mist `totaal`: het extractieveld heet `totaal`, niet `total`.',
             tool_calls: [
-                { id: 'ex_c9', type: 'function', function: { name: 'builder_update_step', arguments: JSON.stringify({ stepId: 'dt_b5b5c4', patch: { values: { totaal: { kind: 'ref', path: 'steps.ex_71a76c.output.totaal' } } } }) } },
+                { id: 'ex_c9', type: 'function', function: { name: 'builder_update_step', arguments: JSON.stringify({ stepId: 'dt_b5b5c4', patch: { values: { totaal: { pick: 'steps.ex_71a76c.output.totaal' } } } }) } },
                 { id: 'ex_c10', type: 'function', function: { name: 'builder_request_dry_run', arguments: '{}' } },
             ],
         },
@@ -488,7 +488,7 @@ function buildFewShotMessages(count = 0, { toolset = 'full' } = {}) {
         {
             role: 'tool', tool_call_id: 'ex_c9',
             content: JSON.stringify({
-                updated: { id: 'dt_b5b5c4', type: 'datatable', label: 'Rij toevoegen', op: 'add_row', datatableId: 'tbl_7c2d9e', datatableKey: 'inkomende_facturen', where: [], values: { leverancier: { kind: 'ref', path: 'steps.ex_71a76c.output.leverancier' }, factuurnummer: { kind: 'ref', path: 'steps.ex_71a76c.output.factuurnummer' }, totaal: { kind: 'ref', path: 'steps.ex_71a76c.output.totaal' } } },
+                updated: { id: 'dt_b5b5c4', type: 'datatable', label: 'Rij toevoegen', op: 'add_row', datatableId: 'tbl_7c2d9e', datatableKey: 'inkomende_facturen', where: [], values: { leverancier: { kind: 'pick', v: 1, from: { root: 'steps', id: 'ex_71a76c', path: ['leverancier'] }, take: 'one', as: 'native', label: 'Leverancier' }, factuurnummer: { kind: 'pick', v: 1, from: { root: 'steps', id: 'ex_71a76c', path: ['factuurnummer'] }, take: 'one', as: 'native', label: 'Factuurnummer' }, totaal: { kind: 'pick', v: 1, from: { root: 'steps', id: 'ex_71a76c', path: ['totaal'] }, take: 'one', as: 'native', label: 'Totaal' } } },
                 _draftSteps: [
                     { id: 'trg', type: 'trigger', kind: 'form' },
                     { id: 'ex_71a76c', type: 'data_extraction', label: 'Factuurvelden uitlezen', fields: ['leverancier', 'factuurnummer', 'totaal'] },
@@ -610,7 +610,7 @@ function buildFewShotMessages(count = 0, { toolset = 'full' } = {}) {
                         arguments: JSON.stringify({
                             prompt: 'Draft a short, friendly reply. Respond with JSON {"replyText":"..."}.',
                             outputSchema: { replyText: 'string' },
-                            inputs: { snippet: { kind: 'ref', path: 'trigger.output.snippet' } },
+                            inputs: { snippet: { pick: 'trigger.output.snippet' } },
                         }),
                     },
                 }],
@@ -665,9 +665,9 @@ function buildFewShotMessages(count = 0, { toolset = 'full' } = {}) {
                             prompt: 'Draft a polite acknowledgement to this email. Respond with JSON {"replyText":"..."}.',
                             outputSchema: { replyText: 'string' },
                             inputs: {
-                                from: { kind: 'ref', path: 'trigger.output.from' },
-                                subject: { kind: 'ref', path: 'trigger.output.subject' },
-                                snippet: { kind: 'ref', path: 'trigger.output.snippet' },
+                                from: { pick: 'trigger.output.from' },
+                                subject: { pick: 'trigger.output.subject' },
+                                snippet: { pick: 'trigger.output.snippet' },
                             },
                         }),
                     },
@@ -685,8 +685,8 @@ function buildFewShotMessages(count = 0, { toolset = 'full' } = {}) {
                             afterStepId: 's_ai',
                             tool: 'gmail_compose',
                             inputs: {
-                                replyToMessageId: { kind: 'ref', path: 'trigger.output.messageId' },
-                                body: { kind: 'ref', path: 'steps.s_ai.output.replyText' },
+                                replyToMessageId: { pick: 'trigger.output.messageId' },
+                                body: { pick: 'steps.s_ai.output.replyText' },
                             },
                         }),
                     },
@@ -726,7 +726,7 @@ function buildFewShotMessages(count = 0, { toolset = 'full' } = {}) {
                         name: 'builder_add_action',
                         arguments: JSON.stringify({
                             tool: 'nextcloud_read_file',
-                            inputs: { path: { kind: 'ref', path: 'trigger.output.path' } },
+                            inputs: { path: { pick: 'trigger.output.path' } },
                         }),
                     },
                 }],
@@ -743,7 +743,7 @@ function buildFewShotMessages(count = 0, { toolset = 'full' } = {}) {
                             afterStepId: 's_read',
                             prompt: 'Summarise this document in 3 sentences. Respond with JSON {"summary":"..."}.',
                             outputSchema: { summary: 'string' },
-                            inputs: { text: { kind: 'ref', path: 'steps.s_read.output.content' } },
+                            inputs: { text: { pick: 'steps.s_read.output.content' } },
                         }),
                     },
                 }],
@@ -763,7 +763,7 @@ function buildFewShotMessages(count = 0, { toolset = 'full' } = {}) {
                                 // `token` is the Talk room token — ask the user for it
                                 // (this placeholder must be replaced before activating).
                                 token: { kind: 'literal', value: '<your-talk-room-token>' },
-                                message: { kind: 'ref', path: 'steps.s_ai.output.summary' },
+                                message: { pick: 'steps.s_ai.output.summary' },
                             },
                         }),
                     },
@@ -804,9 +804,9 @@ function buildFewShotMessages(count = 0, { toolset = 'full' } = {}) {
                         arguments: JSON.stringify({
                             tool: 'gmail_read_attachment',
                             inputs: {
-                                messageId: { kind: 'ref', path: 'trigger.output.messageId' },
-                                attachmentId: { kind: 'ref', path: 'trigger.output.attachments[0].attachmentId' },
-                                filename: { kind: 'ref', path: 'trigger.output.attachments[0].filename' },
+                                messageId: { pick: 'trigger.output.messageId' },
+                                attachmentId: { pick: 'trigger.output.attachments[0].attachmentId' },
+                                filename: { pick: 'trigger.output.attachments[0].filename' },
                             },
                         }),
                     },
@@ -824,7 +824,7 @@ function buildFewShotMessages(count = 0, { toolset = 'full' } = {}) {
                             afterStepId: 's_read',
                             prompt: 'Determine if this text is an invoice. If yes, extract supplier, year (YYYY) and month (MM). Respond with JSON.',
                             outputSchema: { isInvoice: 'boolean', supplier: 'string', year: 'string', month: 'string' },
-                            inputs: { text: { kind: 'ref', path: 'steps.s_read.output.content' } },
+                            inputs: { text: { pick: 'steps.s_read.output.content' } },
                         }),
                     },
                 }],
@@ -855,7 +855,7 @@ function buildFewShotMessages(count = 0, { toolset = 'full' } = {}) {
                         arguments: JSON.stringify({
                             afterStepId: 's_if',
                             tool: 'drive_create_folder',
-                            inputs: { name: { kind: 'ref', path: 'steps.s_ai.output.year' } },
+                            inputs: { name: { pick: 'steps.s_ai.output.year' } },
                         }),
                     },
                 }],
@@ -872,8 +872,8 @@ function buildFewShotMessages(count = 0, { toolset = 'full' } = {}) {
                             afterStepId: 's_year',
                             tool: 'drive_create_folder',
                             inputs: {
-                                name: { kind: 'ref', path: 'steps.s_ai.output.month' },
-                                parentFolderId: { kind: 'ref', path: 'steps.s_year.output.folderId' },
+                                name: { pick: 'steps.s_ai.output.month' },
+                                parentFolderId: { pick: 'steps.s_year.output.folderId' },
                             },
                         }),
                     },
@@ -891,8 +891,8 @@ function buildFewShotMessages(count = 0, { toolset = 'full' } = {}) {
                             afterStepId: 's_month',
                             tool: 'drive_create_folder',
                             inputs: {
-                                name: { kind: 'ref', path: 'steps.s_ai.output.supplier' },
-                                parentFolderId: { kind: 'ref', path: 'steps.s_month.output.folderId' },
+                                name: { pick: 'steps.s_ai.output.supplier' },
+                                parentFolderId: { pick: 'steps.s_month.output.folderId' },
                             },
                         }),
                     },
@@ -910,9 +910,9 @@ function buildFewShotMessages(count = 0, { toolset = 'full' } = {}) {
                             afterStepId: 's_supp',
                             tool: 'drive_upload_file',
                             inputs: {
-                                name: { kind: 'ref', path: 'trigger.output.attachments[0].filename' },
-                                parentFolderId: { kind: 'ref', path: 'steps.s_supp.output.folderId' },
-                                sourceHandle: { kind: 'ref', path: 'steps.s_read.output.sourceHandle' },
+                                name: { pick: 'trigger.output.attachments[0].filename' },
+                                parentFolderId: { pick: 'steps.s_supp.output.folderId' },
+                                sourceHandle: { pick: 'steps.s_read.output.sourceHandle' },
                             },
                         }),
                     },

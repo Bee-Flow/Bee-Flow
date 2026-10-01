@@ -12,6 +12,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert');
+const { textAsTemplate } = require('../shared/mapping/index.mjs');
 const { applyToolCall, TOOL_SCHEMAS } = require('./builderTools');
 const { validateDefinition } = require('./validate');
 
@@ -101,7 +102,8 @@ test('an update patches in place and leaves the other fields alone', async () =>
     assert.strictEqual(step.id, id, 'the id survives — downstream bindings keep working');
     assert.strictEqual(step.format, 'docx');
     assert.strictEqual(step.title, 'Eerste', 'the title was not wiped');
-    assert.strictEqual(step.content, '{{trigger.output.text}}');
+    assert.strictEqual(step.content.kind, 'compose', 'M5: stored as a text with picked values');
+    assert.strictEqual(textAsTemplate(step.content), '{{trigger.output.text}}');
 });
 
 test('a patched clamp matches the one applied on add', async () => {

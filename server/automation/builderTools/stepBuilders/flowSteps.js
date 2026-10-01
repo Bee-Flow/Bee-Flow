@@ -9,6 +9,7 @@ const {
 } = require('../draftGraph');
 const { TEMP_ID_RX, rewriteTempRefs } = require('../tempRefs');
 const { validateAndFixBindings } = require('../bindings');
+const { composeTextFields, textFieldValue } = require('../picks');
 
 function applyAddCondition(draft, args) {
     const step = { id: newId('cond'), type: 'condition', expr: args.expr, label: args.label || 'Condition' };
@@ -134,7 +135,10 @@ function applyAddLoop(draft, args) {
             if (v.error) childErrors.push(`body[${idx}] (${fixed.id}): ${v.error}`);
             fixed.inputs = v.inputs;
         }
-        return fixed;
+        // A body step arrives whole, not through its add tool: its text
+        // fields get the same stored form here (a compose where the shared
+        // core can hold every placeholder).
+        return composeTextFields(fixed);
     }).filter(Boolean);
     if (childErrors.length) return { error: childErrors.join(' ') };
 
@@ -244,7 +248,7 @@ function applyAddFormPage(draft, args) {
 }
 
 function applyAddStopError(draft, args) {
-    const step = { id: newId('stop'), type: 'stop_error', message: args.message, label: args.label || 'Stop with an error' };
+    const step = { id: newId('stop'), type: 'stop_error', message: textFieldValue(args.message, { stepType: 'stop_error', field: 'message' }), label: args.label || 'Stop with an error' };
     appendAfter(draft, args.afterStepId, step, { branch: args.branch, caseName: args.caseName, splice: args.splice === true });
     return { added: step };
 }

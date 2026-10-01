@@ -122,6 +122,22 @@ test('update: slides is replaced wholesale, format/houseStyle/layout are coerced
     assert.deepStrictEqual(validateDefinition(dw.def).errors, []);
 });
 
+// Review M5a: update_step sent a pick through bindingToTemplate, which has
+// no text for one, and stored slides: '' without an error.
+test('update: slides given as a pick is stored as the add path stores it', async () => {
+    const dw = freshWrap();
+    const slides = { pick: 'trigger.output.rows[*].slide' };
+    const added = await addDeck(dw, { slides, title: 'Eerste' });
+    assert.ok(!added.error, added.error);
+    const fromAdd = byType(dw, 'presentation').slides;
+    assert.strictEqual(fromAdd.kind, 'pick');
+    assert.strictEqual(fromAdd.take, 'all');
+    await applyToolCall('builder_update_step', { stepId: byType(dw, 'presentation').id, patch: { slides: '{{trigger.output.text}}' } }, dw);
+    const res = await applyToolCall('builder_update_step', { stepId: byType(dw, 'presentation').id, patch: { slides } }, dw);
+    assert.ok(!res.error, res.error);
+    assert.deepStrictEqual(byType(dw, 'presentation').slides, fromAdd);
+});
+
 test('replace: a generate_document can be swapped for a presentation and keeps its id', async () => {
     const dw = freshWrap();
     await applyToolCall('builder_add_generate_document', { content: '{{trigger.output.text}}', layout: 'slides' }, dw);

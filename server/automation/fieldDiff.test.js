@@ -228,3 +228,18 @@ test('garbage in: nulls and non-objects never throw', () => {
     assert.strictEqual(isLayoutOnlyChange(null, {}), true);
     assert.doesNotThrow(() => describeVersion({ steps: 'nope', edges: 5 }, { steps: [null, 3, { id: 'a', type: 'code' }] }));
 });
+
+// M5: a pick reads as its label (else its step and path, like a ref), a
+// compose as its text with each value in ‹ ›; never as an object.
+test('a pick and a compose read as what they show, not as data', () => {
+    const next = clone(BASE);
+    next.steps[1].inputs = {
+        to: { kind: 'pick', v: 1, from: { root: 'steps', id: 'read', path: ['files', 0, 'name'] }, take: 'one', as: 'native', label: 'Bestandsnaam' },
+        raw: { kind: 'pick', v: 1, from: { root: 'steps', id: 'read', path: ['files', 'name'] }, take: 'all', as: 'list' },
+    };
+    next.steps[1].prompt = { kind: 'compose', v: 1, parts: ['Vat ', { from: { root: 'steps', id: 'read', path: ['files'] }, take: 'all', as: 'text', label: 'Bestanden' }, ' samen'] };
+    const byPath = Object.fromEntries(fieldDiff(BASE, next).map((c) => [c.path, c]));
+    assert.strictEqual(byPath['inputs.to'].after, 'Bestandsnaam');
+    assert.strictEqual(byPath['inputs.raw'].after, 'Read invoice › files.name');
+    assert.strictEqual(byPath.prompt.after, 'Vat ‹Bestanden› samen');
+});

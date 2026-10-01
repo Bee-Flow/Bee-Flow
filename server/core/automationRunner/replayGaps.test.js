@@ -53,6 +53,20 @@ test('readsStep sees a binding wherever it sits in the step', () => {
     assert.ok(readsStep({ expr: "steps['http1'].output" }, 'http1'), 'bracketed, single quotes');
 });
 
+// Review M5a: the AI builder writes picks and composes, which hold no
+// `steps.<id>` text; a "no" here would let a resumed run send empty values.
+test('readsStep sees a pick and a compose part, a repeat and a loop over a step', () => {
+    const { templateToCompose } = require('../../shared/mapping/index.mjs');
+    const body = templateToCompose('Summary: {{steps.ai_1.output.text}}', { stepType: 'notification', field: 'body' });
+    assert.equal(body.kind, 'compose');
+    assert.ok(readsStep({ type: 'notification', body }, 'ai_1'));
+    const pick = { kind: 'pick', v: 1, from: { root: 'steps', id: 'ai_1', path: ['text'] }, take: 'one', as: 'native' };
+    assert.ok(readsStep({ type: 'integration_action', inputs: { text: pick } }, 'ai_1'));
+    assert.ok(readsStep({ type: 'loop', body: [{ inputs: { text: pick } }] }, 'ai_1'), 'inside a loop body');
+    assert.ok(readsStep({ type: 'integration_action', repeat: { over: { root: 'steps', id: 'ai_1', path: ['rows'] } } }, 'ai_1'));
+    assert.equal(readsStep({ type: 'integration_action', inputs: { text: pick } }, 'ai_10'), false);
+});
+
 test('readsStep does not confuse one step id with a longer one', () => {
     assert.equal(readsStep({ params: { body: '{{steps.a_10.output}}' } }, 'a_1'), false);
     assert.equal(readsStep({ params: { body: '{{steps.a-1b.output}}' } }, 'a-1'), false);

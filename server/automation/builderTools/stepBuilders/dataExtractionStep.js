@@ -8,6 +8,8 @@
 const { newId, appendAfter } = require('../draftGraph');
 const { validateAndFixBindings, sanitizeForEach, unboundLoopVarError, repairRefPath } = require('../bindings');
 const { checkLoopRef } = require('../outputFields');
+const { refPathOf, withRefPath } = require('../picks');
+const { pickForLegacyPath } = require('../../../shared/mapping/index.mjs');
 const {
     DATA_EXTRACTION_FIELD_TYPES, DATA_EXTRACTION_FIELD_NAME_RE,
     DATA_EXTRACTION_MAX_FIELDS, DATA_EXTRACTION_MAX_INSTRUCTIONS_CHARS,
@@ -61,8 +63,9 @@ function sanitizeDataExtractionFields(raw) {
  * The text a data_extraction step reads: ONE binding, canonicalised through
  * the same repair pass every input gets (bare "{{…}}" → template, a
  * kind-less {path} → ref, a mis-rooted trigger field → trigger.output.<f>).
- * A bare ref-looking string is upgraded to a ref rather than frozen as the
- * literal words "steps.x.output.y".
+ * A bare ref-looking string is upgraded to a binding of that value rather
+ * than frozen as the literal words "steps.x.output.y" (sourceForPath); a ref
+ * the model wrote stays the ref it is.
  */
 function sanitizeDataExtractionSource(raw, draft) {
     if (raw === undefined || raw === null || raw === '') {
@@ -75,7 +78,7 @@ function sanitizeDataExtractionSource(raw, draft) {
     }
     let candidate = raw;
     if (typeof raw === 'string' && !/\{\{[^}]+\}\}/.test(raw) && /^\s*(trigger|steps|vars|loop|secrets)\./.test(raw)) {
-        candidate = { kind: 'ref', path: raw.trim() };
+        candidate = sourceForPath(raw.trim());
     }
     const { inputs, error } = validateAndFixBindings({ source: candidate }, draft);
     if (error) return { error: error.replace(/inputs\.source/g, 'source') };
@@ -83,7 +86,10 @@ function sanitizeDataExtractionSource(raw, draft) {
     if (source && source.kind === 'literal') {
         return { error: 'source must reference upstream text, not a literal value — use {kind:"ref", path:"steps.<id>.output.<field>"} or a {{…}} template.' };
     }
-    const where = fileLocationField(source);
+    // The file-location check reads a ref's path: a pick is checked on the
+    // path it reads.
+    const readPath = refPathOf(source);
+    const where = fileLocationField(readPath ? { kind: 'ref', path: readPath } : source);
     if (where) {
         const v = /^loop\.([A-Za-z_$][\w$]*)/.exec(where)?.[1] || 'f';
         return {
@@ -92,6 +98,19 @@ function sanitizeDataExtractionSource(raw, draft) {
         };
     }
     return { source };
+}
+
+/**
+ * The binding a source given as a bare path is: a pick where a pick reads
+ * exactly what the path read (the shared core's pickForLegacyPath; a `[*]`
+ * then takes all of the list, as the ref did), else the ref it always was
+ * (`.length`, an index into a text, a `[*]` that ends the path).
+ * @param {string} path
+ */
+function sourceForPath(path) {
+    const lifted = pickForLegacyPath(path);
+    if (!lifted) return { kind: 'ref', path };
+    return lifted.take === 'all' ? { pick: path, take: 'all' } : { pick: path };
 }
 
 // The same repair bindings.js applies to every ref path it stores
@@ -129,9 +148,11 @@ function deriveDataExtractionSource({ promptRefs, forEach } = {}) {
     if (!distinct.length) return null;
     if (distinct.length === 1) {
         const path = distinct[0];
+        const source = sourceForPath(path);
+        const spelled = source.kind === 'ref' ? `{kind:"ref", path:"${path}"}` : `{pick:"${path}"${source.take ? `, take:"${source.take}"` : ''}}`;
         return {
-            source: { kind: 'ref', path },
-            note: `source was not set — derived from the one placeholder {{${path}}} in the prompt (the prompt is not where the text is bound). Set source:{kind:"ref", path:"${path}"} explicitly next time.`,
+            source,
+            note: `source was not set — derived from the one placeholder {{${path}}} in the prompt (the prompt is not where the text is bound). Set source:${spelled} explicitly next time.`,
         };
     }
     // The example is the candidate most likely to be the text: the one under
@@ -232,10 +253,11 @@ function applyAddDataExtraction(draft, rawArgs, draftWrap) {
     // actually looks like — repaired when the model skipped a fan-out's
     // envelope, refused when the item has no such field at all (the
     // 2026-09-12 extraction that read a listing entry's `content`).
-    if (forEach && source.kind === 'ref' && typeof source.path === 'string' && source.path.startsWith(`loop.${forEach.itemVar}.`)) {
-        const chk = checkLoopRef(draft, source.path, forEach, draftWrap);
+    const sourcePath = refPathOf(source);
+    if (forEach && sourcePath && sourcePath.startsWith(`loop.${forEach.itemVar}.`)) {
+        const chk = checkLoopRef(draft, sourcePath, forEach, draftWrap);
         if (chk.ok && chk.path) {
-            source = { ...source, path: chk.path };
+            source = withRefPath(source, chk.path);
             notes.push(chk.note.replace(/^binding /, 'source '));
         } else if (!chk.ok) {
             return loopItemSourceError(chk, forEach, draftWrap);

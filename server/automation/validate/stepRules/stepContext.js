@@ -10,6 +10,7 @@
 
 const { isObject } = require('../helpers');
 const { createFieldsOf } = require('../bindingPaths');
+const { stepReadPaths } = require('../../../shared/mapping/index.mjs');
 
 /**
  * Build the context for ONE graph. The caller's bindings are carried through
@@ -81,10 +82,18 @@ function createStepContext({
             let text;
             try { text = JSON.stringify(s); } catch (_) { continue; }
             if (!text) continue;
+            // A pick holds its path as data; read as the legacy path it spells.
+            const picked = stepReadPaths(s).join('\n');
             scan(text, `steps.${stepId}.output`, null);
+            scan(picked, `steps.${stepId}.output`, null);
+            // A pick through a fan-out's results (`results.output.<f>`, a key
+            // on a list maps over it) reads each item's output: the same read
+            // as `loop.<v>.output.<f>` under a forEach over those results.
+            scan(picked, `steps.${stepId}.output.results.output`, viaLoop);
             const over = isObject(s.forEach) ? s.forEach.overRef : null;
             if (typeof over === 'string' && new RegExp(`^steps\\.${esc(stepId)}\\.output(\\.results)?$`).test(over.trim())) {
                 scan(text, `loop.${s.forEach.itemVar || 'item'}.output`, viaLoop);
+                scan(picked, `loop.${s.forEach.itemVar || 'item'}.output`, viaLoop);
             }
         }
         return { all: [...found], viaLoop: [...viaLoop] };
