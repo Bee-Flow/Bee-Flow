@@ -2,7 +2,9 @@
 // it carries (chart, KPI tiles, image or timeline) and its layout.
 import TemplateField from '../../../mapping/TemplateField';
 import AccordionSection from '../../AccordionSection';
-import { ForEachSection, RetrySection, retryIsSet } from '../collectionEditors';
+import { RetrySection, retryIsSet } from '../collectionEditors';
+import StepRepeatSection from '../advanced/StepRepeatSection';
+import { perItemIsSet } from '../advanced/stepRepeat';
 import { FormRow, inputClass, SectionNote } from '../formPrimitives';
 
 const SLIDE_LAYOUT_OPTIONS = [
@@ -153,7 +155,7 @@ function SlideFields({ draft, set, groups = [], onFocusField, previewSample, err
                 <SlideVisualFields draft={draft} set={set} onFocusField={onFocusField} previewSample={previewSample} />
             </AccordionSection>
 
-            <AccordionSection stepType="slide" sectionKey="options" title="Options" defaultOpen={!!draft.forEach || retryIsSet(draft)} forceOpen={errorSections.has('options')} hasContent={!!draft.forEach || retryIsSet(draft) || !!draft.notes || !!draft.style || (draft.layout && draft.layout !== 'auto')}>
+            <AccordionSection stepType="slide" sectionKey="options" title="Options" defaultOpen={perItemIsSet(draft) || retryIsSet(draft)} forceOpen={errorSections.has('options')} hasContent={perItemIsSet(draft) || retryIsSet(draft) || !!draft.notes || !!draft.style || (draft.layout && draft.layout !== 'auto')}>
                 <FormRow label="Speaker notes" hint="What the presenter says — shown in the notes pane, not on the slide.">
                     <TemplateField
                         value={draft.notes || ''}
@@ -175,7 +177,7 @@ function SlideFields({ draft, set, groups = [], onFocusField, previewSample, err
                         <option value="dark">Dark</option>
                     </select>
                 </FormRow>
-                <ForEachSection draft={draft} set={set} groups={groups} onFocusField={onFocusField} />
+                <StepRepeatSection stepType="slide" draft={draft} set={set} groups={groups} onFocusField={onFocusField} />
                 <RetrySection draft={draft} set={set} />
             </AccordionSection>
         </>

@@ -1,11 +1,12 @@
 // The data_extraction editor: which text to read, the field rows that ARE the
 // step's output shape, and any extra guidance for the extraction model.
 import { ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react';
-import React, { useState } from 'react';
 import { useTranslation } from '../../../../../../hooks/useTranslation';
 import BindingField from '../../../mapping/BindingField';
 import AccordionSection from '../../AccordionSection';
-import { ForEachSection, RetrySection, retryIsSet } from '../collectionEditors';
+import { RetrySection, retryIsSet } from '../collectionEditors';
+import StepRepeatSection from '../advanced/StepRepeatSection';
+import { perItemIsSet } from '../advanced/stepRepeat';
 import { AMBER_NOTE, cardClass, hintTextClass, rowInputClass, textareaClass } from '../formPrimitives';
 import {
     EXTRACTION_FIELD_TYPES, MAX_EXTRACTION_FIELDS, MAX_EXTRACTION_INSTRUCTIONS,
@@ -26,15 +27,6 @@ import {
 function DataExtractionFields({ draft, set, groups = [], onFocusField, previewSample, errorSections = new Set() }) {
     const { t } = useTranslation();
     const fields = Array.isArray(draft.fields) ? draft.fields : [];
-    // A list dropped on the source ("one invoice per file") lands here from
-    // BindingField's chooser: write the forEach and open Advanced once, so the
-    // change is visible where it can be undone — the IntegrationActionFields
-    // pattern.
-    const [foreachJustSet, setForeachJustSet] = useState(false);
-    const requestForEach = React.useCallback((fe) => {
-        set('forEach', fe ? { itemVar: 'item', maxIterations: 100, ...(draft.forEach || {}), ...fe } : null);
-        setForeachJustSet(!!fe);
-    }, [draft.forEach, set]);
 
     const updateField = (i, patch) => {
         const next = fields.slice();
@@ -80,7 +72,6 @@ function DataExtractionFields({ draft, set, groups = [], onFocusField, previewSa
                     previewSample={previewSample}
                     expectShape="scalar"
                     expectKind="text"
-                    onRequestForEach={requestForEach}
                 />
                 {/* The one thing about the model an author needs to know, and
                     the one thing they cannot change here. The config key sits
@@ -206,8 +197,8 @@ function DataExtractionFields({ draft, set, groups = [], onFocusField, previewSa
                 />
             </AccordionSection>
 
-            <AccordionSection stepType="data_extraction" sectionKey="advanced" title="Advanced" defaultOpen={!!draft.forEach || retryIsSet(draft)} forceOpen={errorSections.has('advanced') || foreachJustSet} hasContent={!!draft.forEach || retryIsSet(draft)}>
-                <ForEachSection draft={draft} set={set} groups={groups} onFocusField={onFocusField} />
+            <AccordionSection stepType="data_extraction" sectionKey="advanced" title="Advanced" defaultOpen={perItemIsSet(draft) || retryIsSet(draft)} forceOpen={errorSections.has('advanced')} hasContent={perItemIsSet(draft) || retryIsSet(draft)}>
+                <StepRepeatSection stepType="data_extraction" draft={draft} set={set} groups={groups} onFocusField={onFocusField} />
                 <RetrySection draft={draft} set={set} />
             </AccordionSection>
         </>

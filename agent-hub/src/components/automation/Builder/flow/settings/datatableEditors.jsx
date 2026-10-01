@@ -13,7 +13,9 @@ import ValueBuilder from '../../mapping/ValueBuilder';
 import { isScalarKind } from '../../mapping/fieldKinds';
 import { columnTypeKind, opTakesList, opTakesNoValue } from '../../../../admin/Studio/Datatables/datatableDisplay';
 import AccordionSection from '../AccordionSection';
-import { ForEachSection, RetrySection, retryIsSet } from './collectionEditors';
+import { RetrySection, retryIsSet } from './collectionEditors';
+import StepRepeatSection from './advanced/StepRepeatSection';
+import { perItemIsSet } from './advanced/stepRepeat';
 import { controlSurfaceClass, FormRow, inputClass } from './formPrimitives';
 
 // Mirrors core/dataEngine FILTER_OPS. Labelled in the words a person would use,
@@ -395,10 +397,10 @@ export default function DatatableFields({
                 the validator allows forEach on datatable steps since 2026-09-04. */}
             <AccordionSection
                 stepType="datatable" sectionKey="advanced" title="Advanced"
-                forceOpen={errorSections.has('advanced')} hasContent={!!draft.forEach || retryIsSet(draft)}
+                forceOpen={errorSections.has('advanced')} hasContent={perItemIsSet(draft) || retryIsSet(draft)}
             >
-                <FormRow label="Iteration" hint="Off by default: the step runs once. Turn on to run it once per item of an upstream list (then reference {{loop.item…}} in the conditions and values).">
-                    <ForEachSection draft={draft} set={set} groups={groups} onFocusField={onFocusField} />
+                <FormRow label="Iteration" hint="Off by default: the step runs once. Turn on to run it once per item of an upstream list. The conditions and values can then read the current item.">
+                    <StepRepeatSection stepType="datatable" draft={draft} set={set} groups={groups} onFocusField={onFocusField} />
                 </FormRow>
                 <RetrySection draft={draft} set={set} />
             </AccordionSection>

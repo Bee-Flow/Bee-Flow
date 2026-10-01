@@ -56,9 +56,12 @@ describe('drawing a connection', () => {
     });
 
     it('fills the target\'s inputs from what now flows into it, when the catalog is known', () => {
+        // The read runs once per search result (the author's setting): its
+        // message id comes from the current result.
+        const read = { id: 'read', type: 'integration_action', tool: 'gmail_read', forEach: { overRef: 'steps.search.output.results', itemVar: 'mail' } };
         const def: FlowDefinition = {
             trigger: { id: 'trg', type: 'trigger', kind: 'manual' },
-            steps: [{ id: 'search', type: 'integration_action', tool: 'gmail_search' }, { id: 'read', type: 'integration_action', tool: 'gmail_read' }],
+            steps: [{ id: 'search', type: 'integration_action', tool: 'gmail_search' }, read],
             edges: [{ from: 'trg', to: 'search' }],
         };
         const result = connectNodes(def, { source: 'search', target: 'read', handle: null }, { catalog: CATALOG });
@@ -67,6 +70,16 @@ describe('drawing a connection', () => {
         expect(bare.ok && bare.mapped).toBe(0);
         expect(bare.ok && bare.definition.steps[1]?.inputs).toBeUndefined();
         expect(result.ok && result.definition.steps[1]?.inputs).toBeTruthy();
+    });
+
+    it('never makes the target run once per item', () => {
+        const def: FlowDefinition = {
+            trigger: { id: 'trg', type: 'trigger', kind: 'manual' },
+            steps: [{ id: 'search', type: 'integration_action', tool: 'gmail_search' }, { id: 'read', type: 'integration_action', tool: 'gmail_read' }],
+            edges: [{ from: 'trg', to: 'search' }],
+        };
+        const result = connectNodes(def, { source: 'search', target: 'read', handle: null }, { catalog: CATALOG });
+        expect(result.ok && result.definition.steps[1]?.forEach).toBeUndefined();
     });
 });
 

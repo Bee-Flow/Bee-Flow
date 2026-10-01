@@ -60,7 +60,7 @@ export {
     collectUpstream, computeUpstreamGroups, computeLoopBodyGroups, buildToolOutputMap, wrapGroupForEach,
     describeNode, describeNodeIn, describeLoopBody, DESCRIBED_TYPES,
     seg, sampleToFields, resolveElementSample, elementFieldOptions, collectArrayPaths, samplePlaceholderFor,
-    overlayGroupWithReal, triggerMetaSample, describeTriggerMeta, inferLoopItemSample, suggestItemVar,
+    overlayGroupWithReal, triggerMetaSample, describeTriggerMeta, inferLoopItemSample, suggestItemVar, runsPerItem,
     pickSample, leadSkillId, DEFAULT_ENV, resolveEnv,
 } from './upstream/index.mjs';
 // M4a: a legacy binding shown as a pick (upgrade.mjs); null means "Formula".
@@ -69,3 +69,9 @@ export { liftLegacy } from './upgrade.mjs';
 // the one rule for lifting a legacy template or path to them (template.mjs).
 export { picksIn, pickPaths, stepReadPaths, stepIdsRead, textAsTemplate } from './reads.mjs';
 export { pickForLegacyPath, templateToCompose } from './template.mjs';
+// M6: per-item repeat and the one auto-map rule (match.mjs: which earlier
+// value goes into which empty input, for the web auto-map and the AI builder).
+export { stopForEach, renameItemVar } from './repeat.mjs';
+export {
+    normalizeKey, sampleType, isSecretLikeKey, typeFits, idAffinityBase, matchInputs,
+} from './match.mjs';

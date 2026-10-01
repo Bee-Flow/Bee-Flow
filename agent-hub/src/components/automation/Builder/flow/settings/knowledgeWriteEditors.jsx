@@ -18,7 +18,9 @@ import { BookOpen } from 'lucide-react';
 import { useMemo } from 'react';
 import TemplateField from '../../mapping/TemplateField';
 import AccordionSection from '../AccordionSection';
-import { ForEachSection, RetrySection, retryIsSet } from './collectionEditors';
+import { RetrySection, retryIsSet } from './collectionEditors';
+import StepRepeatSection from './advanced/StepRepeatSection';
+import { perItemIsSet } from './advanced/stepRepeat';
 import { FormRow, inputClass } from './formPrimitives';
 
 /** Fallback list, so the panel still works if the catalog call failed. */
@@ -147,7 +149,7 @@ function AdvancedSection({ draft, set, groups, onFocusField, errorSections, stra
         <AccordionSection
             stepType="knowledge_write" sectionKey="advanced" title="Advanced"
             forceOpen={errorSections.has('advanced')}
-            hasContent={!!draft.forEach || retryIsSet(draft) || strategy !== 'skip'}
+            hasContent={perItemIsSet(draft) || retryIsSet(draft) || strategy !== 'skip'}
         >
             <FormRow
                 label="If something similar is already there"
@@ -168,8 +170,8 @@ function AdvancedSection({ draft, set, groups, onFocusField, errorSections, stra
                 {strategies.find(s => s.value === strategy)?.blurb || ''}
             </p>
 
-            <FormRow label="Iteration" hint="Off by default: the step runs once. Turn on to write one document per item of an upstream list (then reference {{loop.item…}} in the text, the title and the source reference).">
-                <ForEachSection draft={draft} set={set} groups={groups} onFocusField={onFocusField} />
+            <FormRow label="Iteration" hint="Off by default: the step runs once. Turn on to write one document per item of an upstream list. The text, the title and the source reference can then read the current item.">
+                <StepRepeatSection stepType="knowledge_write" draft={draft} set={set} groups={groups} onFocusField={onFocusField} />
             </FormRow>
             <RetrySection draft={draft} set={set} />
         </AccordionSection>

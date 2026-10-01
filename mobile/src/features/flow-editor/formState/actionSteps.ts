@@ -17,6 +17,7 @@ export const extractIntegration: Extractor = (step, base) => ({
     sideEffect: step.sideEffect ?? null,
     inputs: or(step.inputs, {}),
     forEach: or(step.forEach, null),
+    repeat: or(step.repeat, null),
     askOnce: normalizeAskOnce(step.askOnce),
 });
 
@@ -37,6 +38,7 @@ export const extractCode: Extractor = (step, base) => ({
     inputs: or(step.inputs, {}),
     allowedHosts: arrOr(step.allowedHosts, []),
     forEach: or(step.forEach, null),
+    repeat: or(step.repeat, null),
 });
 
 export const patchCode: Patcher = (patch, step, draft) => {
@@ -54,6 +56,7 @@ export const extractNotification: Extractor = (step, base) => ({
     body: or(step.body, ''),
     channels: arrOr(step.channels, null),
     forEach: or(step.forEach, null),
+    repeat: or(step.repeat, null),
 });
 
 export const patchNotification: Patcher = (patch, step, draft) => {
@@ -80,6 +83,7 @@ export const extractHttp: Extractor = (step, base): FormDraft => ({
     blockPrivateTargets: step.blockPrivateTargets !== false,
     parseResponse: or(step.parseResponse, 'auto'),
     forEach: or(step.forEach, null),
+    repeat: or(step.repeat, null),
     auth: authRef(step.auth),
     askOnce: normalizeAskOnce(step.askOnce),
     cacheInto: normalizeCacheInto(step.cacheInto),

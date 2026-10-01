@@ -13,6 +13,16 @@ import { fieldsFromSample, shapeOfSample } from '../fields.mjs';
 import { groupLabel } from './env.mjs';
 import { fieldAt, loopBase, stepBase } from './sampleFields.mjs';
 
+/**
+ * Does this step run once per item, the older way (`step.forEach`) or the
+ * new one (`step.repeat`)? Either way its output is the fan-out envelope
+ * `{ iterations, succeeded, failed, results: [{ index, item, output, status }] }`
+ * (server execRepeat.js), never its flat tool output.
+ */
+export function runsPerItem(node) {
+    return !!(node && ((node.forEach && node.forEach.overRef) || (node.repeat && node.repeat.over)));
+}
+
 function isPlainObject(v) {
     return v !== null && typeof v === 'object' && !Array.isArray(v);
 }
@@ -86,9 +96,9 @@ export function describeLoop(node, toolToOutput, definition, sampleRoot = null, 
 }
 
 /**
- * Re-shape an upstream group whose node iterates (`step.forEach`). The
- * runtime output is the `{ iterations, succeeded, failed, results }`
- * envelope (execForEachStep), so every per-iteration field becomes a
+ * Re-shape an upstream group whose node iterates (`step.forEach` or
+ * `step.repeat`). The runtime output is the `{ iterations, succeeded, failed,
+ * results }` envelope (execRepeat.js), so every per-iteration field becomes a
  * flattened `…output.results[*].output.<key>`, with its nested keys kept
  * (`results[*].output.organizer.email`), and the run counters are surfaced.
  *
@@ -97,7 +107,7 @@ export function describeLoop(node, toolToOutput, definition, sampleRoot = null, 
  * loop-source guess off it.
  */
 export function wrapGroupForEach(group, node) {
-    if (!group || !node?.forEach?.overRef) return group;
+    if (!group || !runsPerItem(node)) return group;
     const base = stepBase(node.id);
     const flat = group.sample || {};
     const isObject = flat !== null && typeof flat === 'object' && !Array.isArray(flat);
@@ -190,7 +200,7 @@ export function inferLoopItemSample(overRef, definition, toolToOutput, sampleRoo
     // When the source step iterates, its real output is the forEach envelope:
     // resolve the path (incl. `[*]`) against that wrapped shape so
     // `…results[*].output.<arr>` lands on the element, not undefined.
-    let cur = node?.forEach?.overRef
+    let cur = runsPerItem(node)
         ? { iterations: 0, succeeded: 0, failed: 0, results: [{ index: 0, item: {}, output: meta.sample, status: 'success' }] }
         : meta.sample;
     for (const seg of source.path) {

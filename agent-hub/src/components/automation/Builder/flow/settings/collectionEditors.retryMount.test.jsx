@@ -8,8 +8,8 @@ import { RETRY_FORM_TYPES, FOREACH_FORM_TYPES } from './formState';
 /**
  * Every editor that CAN carry the "if this fails" row actually mounts it.
  *
- * The row lives in nine per-type editors rather than inside ForEachSection,
- * because three of those editors wrap ForEachSection in a FormRow labelled
+ * The row lives in nine per-type editors rather than inside StepRepeatSection,
+ * because three of those editors wrap StepRepeatSection in a FormRow labelled
  * "Iteration" and a row nested there would inherit that label — it would read
  * as part of the loop setting, which it is not.
  *
@@ -18,7 +18,7 @@ import { RETRY_FORM_TYPES, FOREACH_FORM_TYPES } from './formState';
  * the retry row — which is exactly how the loop toggle itself shipped on one
  * step type and stayed missing on five (C12/C16/C18). So the rule is
  * mechanical and checked from the SOURCE, not from a render: an editor that
- * renders <ForEachSection/> renders <RetrySection/> too, unless its step type
+ * renders <StepRepeatSection/> renders <RetrySection/> too, unless its step type
  * is deliberately off RETRY_FORM_TYPES.
  */
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -48,7 +48,7 @@ const NO_RETRY = new Map([
 
 describe('the retry row is mounted everywhere it is offered', () => {
     const rendersForEach = editorFiles().filter((f) =>
-        fs.readFileSync(f, 'utf8').includes('<ForEachSection'));
+        fs.readFileSync(f, 'utf8').includes('<StepRepeatSection'));
 
     it('finds the editors at all — a rename must not silently empty this test', () => {
         // Without this the whole file passes vacuously the day someone moves
@@ -67,13 +67,13 @@ describe('the retry row is mounted everywhere it is offered', () => {
         });
 
     it('mounts it OUTSIDE the "Iteration" FormRow, whose label is not this row\'s', () => {
-        // The three editors that wrap ForEachSection in a labelled row are the
+        // The three editors that wrap StepRepeatSection in a labelled row are the
         // reason the mount is per-editor. A regression here is invisible in a
         // unit render — the row still works, it just sits under a heading that
         // describes a different setting.
         for (const base of ['aiStepEditors.jsx', 'datatableEditors.jsx', 'knowledgeWriteEditors.jsx']) {
             const src = fs.readFileSync(path.join(here, base), 'utf8');
-            const closeRow = src.indexOf('</FormRow>', src.indexOf('<ForEachSection'));
+            const closeRow = src.indexOf('</FormRow>', src.indexOf('<StepRepeatSection'));
             const mount = src.indexOf('<RetrySection');
             expect(mount).toBeGreaterThan(closeRow);
         }

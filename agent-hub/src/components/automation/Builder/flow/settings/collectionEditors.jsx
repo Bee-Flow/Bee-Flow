@@ -1,12 +1,11 @@
-// Shared sections (ForEachSection, RetrySection, FieldsSection,
+// Shared sections (RetrySection, FieldsSection,
 // SourceSummaryRow, CollectionArrayRefField, useElementSample) plus the small
 // collection / datetime / wait step editors, extracted verbatim from
 // SettingsForm.jsx.
-import { Repeat, RotateCw } from 'lucide-react';
+import { RotateCw } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { walkPath } from '../../../../../utils/bindingHelpers';
 import FieldKeyCombobox from '../../mapping/FieldKeyCombobox';
-import LoopOverPicker from '../../mapping/LoopOverPicker';
 import PathField from '../../mapping/PathField';
 import ToolInputForm from '../../mapping/ToolInputForm';
 import { collectArrayPaths, resolveElementSample, elementFieldOptions } from '../../mapping/upstream';
@@ -16,67 +15,6 @@ import { datetimeTargetColumn, dateInputPatch } from '../datetimeTarget';
 import { humanizeFieldKey } from '../displayHelpers';
 import { WAIT_UNIT_FACTOR, clampWaitSeconds, waitUnitFor } from '../waitDuration';
 import { controlSurfaceClass, FormRow, inputClass } from './formPrimitives';
-
-/**
- * "Run once per item" — turns a step into a per-item iterator over an
- * upstream array (`step.forEach`). The runner runs the step once per
- * element with `loop.<itemVar>` bound; auto-map sets this up automatically
- * when you wire an array source into a step whose inputs match the elements.
- */
-function ForEachSection({ draft, set, groups, onFocusField }) {
-    const fe = draft.forEach || null;
-    const enabled = !!fe;
-    const { previewSample } = useVariablePickerContext();
-    const toggle = (on) => set('forEach', on
-        ? { overRef: fe?.overRef || '', itemVar: fe?.itemVar || 'item', maxIterations: fe?.maxIterations ?? 100 }
-        : null);
-    // How many times this step would actually run — resolved from the merged
-    // real/sample root, so it is the same number the run will produce.
-    const overCount = (() => {
-        if (!enabled || !fe?.overRef || !previewSample) return null;
-        const arr = walkPath(fe.overRef, previewSample);
-        return Array.isArray(arr) ? arr.length : null;
-    })();
-    return (
-        <div className="rounded-lg border border-[var(--border-default)] p-3 space-y-2">
-            <label className="flex items-center gap-2 text-sm cursor-pointer">
-                <input type="checkbox" checked={enabled} onChange={(e) => toggle(e.target.checked)} />
-                <span className="inline-flex items-center gap-1.5 font-medium text-[var(--text-primary)]">
-                    <Repeat size={13} /> Run once per item
-                </span>
-            </label>
-            {/* Plain words first; the raw loop.<var> syntax is demoted to the
-                tooltip — it used to LEAD this sentence. */}
-            <p className="text-[11px] text-[var(--text-secondary)]" title={`Reference each one as loop.${fe?.itemVar || 'item'}`}>
-                Each row is available to this step as its current row.
-            </p>
-            {overCount != null && (
-                <p className="text-[11px] text-[var(--text-secondary)] font-medium">
-                    This step will run {overCount} time{overCount === 1 ? '' : 's'} — once for each row.
-                </p>
-            )}
-            {enabled && (
-                <div className="space-y-3 pt-1">
-                    <LoopOverPicker
-                        overRef={fe.overRef || ''}
-                        itemVar={fe.itemVar || 'item'}
-                        onChange={(patch) => set('forEach', { ...fe, ...patch })}
-                        groups={groups}
-                        onFocusField={onFocusField}
-                    />
-                    <FormRow label="Max iterations" hint="Safety cap. 1–1000.">
-                        <input
-                            type="number" min={1} max={1000}
-                            value={fe.maxIterations ?? 100}
-                            onChange={(e) => set('forEach', { ...fe, maxIterations: Number(e.target.value) })}
-                            className={inputClass()}
-                        />
-                    </FormRow>
-                </div>
-            )}
-        </div>
-    );
-}
 
 /**
  * Whether this step's retry row counts as CONFIGURED — what the Advanced
@@ -137,7 +75,9 @@ function retryChoices(offered, stored) {
  * the condition execution.js dispatches per item on. A half-filled picker
  * still reads as one step, which is what it still runs as.
  */
-function retryRowCap(forEach) {
+function retryRowCap(forEach, repeat = null) {
+    // A repeat (the v2 per-item run, execRepeat.js) retries per item the same way.
+    if (repeat && repeat.over) return Math.min(Number(repeat.max) || 100, 1000);
     if (!forEach || !forEach.overRef) return 1;
     return Math.min(Number(forEach.maxIterations) || 100, 1000);
 }
@@ -272,7 +212,7 @@ function RetrySection({ draft, set }) {
                         as it does now. Every attempt is kept in the run history, so you can see how
                         often it took more than one.
                     </p>
-                    <RetryWaitTotal tries={tries} waitMs={waitMs} rowCap={retryRowCap(draft.forEach)} />
+                    <RetryWaitTotal tries={tries} waitMs={waitMs} rowCap={retryRowCap(draft.forEach, draft.repeat)} />
                 </div>
             )}
         </div>
@@ -712,6 +652,6 @@ function SummarizeFields({ draft, set, groups, onFocusField, previewSample, erro
 }
 
 export {
-    ForEachSection, RetrySection, retryIsSet, FieldsSection, SourceSummaryRow, CollectionArrayRefField, useElementSample,
+    RetrySection, retryIsSet, FieldsSection, SourceSummaryRow, CollectionArrayRefField, useElementSample,
     DateTimeFields, WaitFields, LimitFields, DedupeFields, AggregateFields, SummarizeFields,
 };

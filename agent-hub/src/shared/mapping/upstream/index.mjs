@@ -29,7 +29,7 @@ export {
 } from './sampleFields.mjs';
 export { overlayGroupWithReal } from './realOverlay.mjs';
 export { triggerMetaSample, describeTriggerMeta } from './triggers.mjs';
-export { inferLoopItemSample, suggestItemVar } from './loops.mjs';
+export { inferLoopItemSample, suggestItemVar, runsPerItem } from './loops.mjs';
 export { pickSample } from './formAnswers.mjs';
 export { leadSkillId } from './aiSteps.mjs';
 export { DEFAULT_ENV, resolveEnv } from './env.mjs';

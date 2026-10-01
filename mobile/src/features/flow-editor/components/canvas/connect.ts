@@ -37,7 +37,7 @@ export interface ConnectRequest {
 }
 
 export type ConnectResult =
-    | { ok: true; definition: FlowDefinition; mapped: number; forEach: boolean }
+    | { ok: true; definition: FlowDefinition; mapped: number }
     | { ok: false; refusal: ConnectRefusal };
 
 const isTrigger = (def: FlowDefinition, id: string) => def.trigger?.id === id || (def.triggers || []).some((t) => t.id === id);
@@ -74,10 +74,10 @@ export function connectNodes(def: FlowDefinition, request: ConnectRequest, { cat
     // laying out with the new line would move half the flow.
     const placed = seedPositions(def) as FlowDefinition;
     let next: FlowDefinition = { ...placed, edges: [...placed.edges, edge] };
-    if (!catalog) return { ok: true, definition: next, mapped: 0, forEach: false };
+    if (!catalog) return { ok: true, definition: next, mapped: 0 };
     const mapped = applyAutoMapToStep(next, request.target, catalog);
     next = mapped.definition;
-    return { ok: true, definition: next, mapped: mapped.mappedKeys.length, forEach: mapped.forEachEnabled };
+    return { ok: true, definition: next, mapped: mapped.mappedKeys.length };
 }
 
 export interface EdgeRef {

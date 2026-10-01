@@ -15,7 +15,9 @@ import { Maximize2 } from 'lucide-react';
 import { useEffect, useMemo, useState, type ComponentType, type ReactNode } from 'react';
 import { useTranslation } from '../../../../../../hooks/useTranslation';
 import AccordionSectionJs from '../../AccordionSection';
-import { ForEachSection, RetrySection, retryIsSet } from '../collectionEditors';
+import { RetrySection, retryIsSet } from '../collectionEditors';
+import StepRepeatSection from '../advanced/StepRepeatSection';
+import { perItemIsSet } from '../advanced/stepRepeat';
 import CapabilityLine from '../codeStep/CapabilityLine';
 import CodeParamsForm from '../codeStep/CodeParamsForm';
 import { upstreamFieldsFrom, type InputsMap } from '../codeStep/codeParams';
@@ -151,8 +153,8 @@ export function CodeFields(props: CodeFieldsProps) {
                 {state.failed && <p className={hintTextClass()}>{t('code_step.checks_unavailable', 'The safety checks could not run just now. The step still saves; the checks run again when the code changes.')}</p>}
             </AccordionSection>
             {/* Run-once-per-item: the runner and validator have always allowed it here. */}
-            <AccordionSection stepType="code" sectionKey="advanced" title={t('code_step.section.advanced', 'Advanced')} defaultOpen={!!draft.forEach || retryIsSet(draft)} forceOpen={errorSections.has('advanced')} hasContent={!!draft.forEach || retryIsSet(draft)}>
-                <ForEachSection draft={draft} set={set} groups={groups} onFocusField={onFocusField} />
+            <AccordionSection stepType="code" sectionKey="advanced" title={t('code_step.section.advanced', 'Advanced')} defaultOpen={perItemIsSet(draft) || retryIsSet(draft)} forceOpen={errorSections.has('advanced')} hasContent={perItemIsSet(draft) || retryIsSet(draft)}>
+                <StepRepeatSection stepType="code" draft={draft} set={set} groups={groups} onFocusField={onFocusField} />
                 <RetrySection draft={draft} set={set} />
             </AccordionSection>
             {large && (

@@ -68,9 +68,9 @@ export function useEdgeEditCallbacks({
         // new upstream source, then auto-map its still-empty inputs.
         let nextDef = seedPositions({ ...definition, edges: nextEdges });
         if (autoMapEnabled && catalog) {
-            const { definition: mapped, mappedKeys, forEachEnabled } = applyAutoMapToStep(nextDef, target, catalog, { realOutputById });
+            const { definition: mapped, mappedKeys } = applyAutoMapToStep(nextDef, target, catalog, { realOutputById });
             nextDef = mapped;
-            if (mappedKeys.length || forEachEnabled) onAutoMapped?.(target, mappedKeys.length, forEachEnabled);
+            if (mappedKeys.length) onAutoMapped?.(target, mappedKeys.length);
         }
         onDefinitionChange?.(nextDef);
     }, [definition, editable, structuralEditsBlocked, onDefinitionChange, autoMapEnabled, catalog, realOutputById, onAutoMapped, inLoopBody]);

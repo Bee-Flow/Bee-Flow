@@ -84,11 +84,11 @@ describe('SettingsForm — accordion sections', () => {
         await waitFor(() => expect(onPatch).toHaveBeenCalled(), { timeout: 2000 });
     });
 
-    it('AI step exposes a "Run once per item" loop toggle under Advanced', () => {
+    it('AI step exposes the "Run this step separately for each…" toggle under Advanced', () => {
         renderForm({ id: 's1', type: 'ai_step', label: 'My AI', prompt: 'Do X', inputs: {}, outputFields: [] });
         // The loop control lives inside the AI step's Advanced section.
-        expect(screen.queryByText('Run once per item')).toBeNull();
+        expect(screen.queryByText('Run this step separately for each…')).toBeNull();
         fireEvent.click(screen.getByRole('button', { name: 'Advanced' }));
-        expect(screen.getByText('Run once per item')).toBeTruthy();
+        expect(screen.getByText('Run this step separately for each…')).toBeTruthy();
     });
 });

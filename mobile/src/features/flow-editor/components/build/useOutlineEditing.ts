@@ -67,18 +67,16 @@ function useLateAutoMap(store: DraftStore, catalog: Catalog | null, runRows: Run
         if (!catalog || !pending.current.length) return;
         const ids = pending.current.splice(0);
         let mapped = 0;
-        let forEach = false;
         store.getState().applyOp((def) => {
             let next = def;
             for (const id of ids) {
                 const r = applyAutoMapToStep(next, id, catalog, { realOutputById: realOutputs(next, runRows) });
                 next = r.definition;
                 mapped += r.mappedKeys.length;
-                forEach ||= r.forEachEnabled;
             }
             return next;
         });
-        if (mapped || forEach) toast(mappedWords(t, mapped), 'success');
+        if (mapped) toast(mappedWords(t, mapped), 'success');
     }, [catalog, store, runRows, toast, t]);
     return pending;
 }
@@ -185,7 +183,7 @@ export function useOutlineEditing({ store, catalog, runByStep, runRows, onOpen, 
     /** What follows an insert: queue a late auto-map, say what was mapped, open the new step. */
     const afterInsert = (done: MappedInsert, payload: StepPayload) => {
         if (done.awaitingCatalog && done.addedId) lateAutoMap.current.push(done.addedId);
-        if (done.mapped || done.forEach) toast(mappedWords(t, done.mapped), 'success');
+        if (done.mapped) toast(mappedWords(t, done.mapped), 'success');
         if (done.address && payload.kind !== 'trigger' && payload.kind !== 'note') onOpen(done.address);
     };
 

@@ -28,7 +28,7 @@ import { collectUpstream } from './graphWalk.mjs';
 import { describeNodeIn, describeLoopBody } from './describeNode.mjs';
 import { overlayGroupWithReal } from './realOverlay.mjs';
 import { triggerMetaSample, describeTriggerMeta } from './triggers.mjs';
-import { describeForEachItem, loopItemGroup, inferLoopItemSample, wrapGroupForEach } from './loops.mjs';
+import { describeForEachItem, loopItemGroup, inferLoopItemSample, wrapGroupForEach, runsPerItem } from './loops.mjs';
 import { resolveEnv } from './env.mjs';
 import { resolveElementSample } from './sampleFields.mjs';
 
@@ -54,10 +54,10 @@ export function computeUpstreamGroups(definition, currentStepId, catalog, realOu
     const groups = [];
     for (const node of upstream) {
         let g = describeNodeIn(node, ctx);
-        // A step that "runs once per item" (step.forEach) returns the
-        // runner's envelope, not its flat tool output; re-shape the group so
-        // downstream binding uses the runtime-correct paths.
-        if (g && !node.__isTrigger && node.forEach && node.forEach.overRef) {
+        // A step that "runs once per item" (step.forEach, or step.repeat)
+        // returns the runner's envelope, not its flat tool output; re-shape
+        // the group so downstream binding uses the runtime-correct paths.
+        if (g && !node.__isTrigger && runsPerItem(node)) {
             g = wrapGroupForEach(g, node);
         }
         if (!g) continue;

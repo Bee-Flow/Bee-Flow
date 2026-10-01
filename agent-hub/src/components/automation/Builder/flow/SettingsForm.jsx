@@ -11,6 +11,7 @@ import {
     findActionAndSiblings,
 } from './settings/actionEditors';
 import { emptySlotsIn } from '../mapping/boundPaths';
+import RepeatNotice from '../valueSlot/RepeatNotice';
 import { AiStepFields } from './settings/aiStepEditors';
 import { ApprovalFields } from './settings/approvalEditors';
 import {
@@ -150,7 +151,21 @@ export default function SettingsForm({
     // Which accordion sections hold a validation error — those are forced
     // open so an error is never hidden behind a collapsed section. Cheap
     // enough to compute each render (the React Compiler memoizes it).
-    const errorSections = sectionsWithErrors(step, stepIssues);
+    // The step header's "runs separately for each item" sentence links to the
+    // setting: its section is forced open like an error's (a slide keeps it
+    // under Options), then scrolled to once it has rendered.
+    const [revealRepeat, setRevealRepeat] = useState(false);
+    const repeatSection = step.type === 'slide' ? 'options' : 'advanced';
+    const flaggedSections = sectionsWithErrors(step, stepIssues);
+    const errorSections = revealRepeat ? new Set([...flaggedSections, repeatSection]) : flaggedSections;
+    useEffect(() => {
+        if (!revealRepeat) return undefined;
+        const timer = setTimeout(() => {
+            document.querySelector('[data-step-repeat-section]')?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });
+            setRevealRepeat(false);
+        }, 0);
+        return () => clearTimeout(timer);
+    }, [revealRepeat]);
 
     // The footer's "1 field still empty" count. Read off the DRAFT (what is on
     // screen), merged onto the step so a slot the draft does not carry — a
@@ -293,6 +308,7 @@ export default function SettingsForm({
                     the quick view is where a first-time author lands, and it
                     is the one place in the builder that can afford to say. */}
                 <NodePurpose step={step} />
+                <RepeatNotice draft={draft} onShow={() => setRevealRepeat(true)} />
 
                 <FormRow label="Label" hint="A name and an optional symbol for this step, shown on its node.">
                     <div className="flex items-center gap-2">

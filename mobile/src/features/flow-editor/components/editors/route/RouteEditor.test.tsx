@@ -157,7 +157,7 @@ describe('LoopEditor', () => {
     it('says how each item is reached in its pill’s words, and asks for a typed list with Insert data', async () => {
         await renderEditor({ id: 'l1', type: 'loop', label: 'Each', overRef: '', itemVar: 'row', body: [] } as unknown as FlowNode, { groups, sampleRoot });
         expect(await screen.findByText('Each item is available to the steps inside as Loop item · row — pick it with Insert data.')).toBeTruthy();
-        await fireEvent.press(screen.getByRole('button', { name: 'Advanced' }));
+        await fireEvent.press(screen.getByRole('button', { name: 'Formula' }));
         expect(screen.getByPlaceholderText('Tap Insert data to pick a list')).toBeTruthy();
     });
 });

@@ -1,7 +1,7 @@
 // The integration_action editor: which operation the node runs, the inputs
 // that operation takes, and the advanced section that fans it out or lets it
 // ask the app only once.
-import React, { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import ActionCard from './ActionCard';
 import { buildParamSuggestions } from './paramSuggestions';
 import { useTranslation } from '../../../../../../hooks/useTranslation';
@@ -10,7 +10,9 @@ import ToolInputForm from '../../../mapping/ToolInputForm';
 import AccordionSection from '../../AccordionSection';
 import { humanizeToolName } from '../../displayHelpers';
 import FieldHint from '../../FieldHint';
-import { ForEachSection, RetrySection, retryIsSet } from '../collectionEditors';
+import { RetrySection, retryIsSet } from '../collectionEditors';
+import StepRepeatSection from '../advanced/StepRepeatSection';
+import { perItemIsSet } from '../advanced/stepRepeat';
 import { runStepProblem } from '../runProblem';
 import { isTablesRowTool, withoutValuesInput } from '../tablesRowValues';
 import TablesRowValuesEditor from '../TablesRowValuesEditor';
@@ -48,14 +50,6 @@ function IntegrationActionFields({ step, draft, set, catalog, groups = [], onFoc
         const patch = autoMapInputs(inputSchema, draft.inputs || {}, groups || []);
         if (Object.keys(patch).length) set('inputs', { ...(draft.inputs || {}), ...patch });
     };
-    // A list-pick chooser choice of "run this step once for each row" lands
-    // here: write the forEach and force the Advanced section (which holds its
-    // editor) open once, so the change is visible where it can be undone.
-    const [foreachJustSet, setForeachJustSet] = useState(false);
-    const requestForEach = React.useCallback((fe) => {
-        set('forEach', fe ? { itemVar: 'item', maxIterations: 100, ...(draft.forEach || {}), ...fe } : null);
-        setForeachJustSet(!!fe);
-    }, [draft.forEach, set]);
     // Same app = one node with a switchable operation (n8n-style). Keep the
     // inputs that also exist in the new operation; drop the rest.
     const onChangeOperation = (newTool) => {
@@ -81,7 +75,7 @@ function IntegrationActionFields({ step, draft, set, catalog, groups = [], onFoc
     const { problemKey, problemText, cardProblem } = runProblem(runStep, t);
     // Both the seed-open and the "already configured, keep it in Simple mode"
     // signal ask the same question, so ask it once.
-    const advancedIsSet = !!draft.forEach || !!draft.askOnce || retryIsSet(draft);
+    const advancedIsSet = perItemIsSet(draft) || !!draft.askOnce || retryIsSet(draft);
     return (
         <>
             {/* The action as a card, not an Operation dropdown (round 4). */}
@@ -113,7 +107,8 @@ function IntegrationActionFields({ step, draft, set, catalog, groups = [], onFoc
                     previewSample={previewSample}
                     autoMappedKeys={step.autoMapped || []}
                     onAutoMap={onAutoMap}
-                    onRequestForEach={requestForEach}
+                    // No "a separate run for each item" from a field: running
+                    // the step per item is set under Advanced, and only there.
                     // Only let the user add ad-hoc fields when the tool can
                     // actually accept them: a fixed schema (gmail_search etc.)
                     // doesn't, so hide "Add custom field"; a tool with no
@@ -138,8 +133,8 @@ function IntegrationActionFields({ step, draft, set, catalog, groups = [], onFoc
                     />
                 )}
             </AccordionSection>
-            <AccordionSection stepType="integration_action" sectionKey="advanced" title="Advanced" defaultOpen={advancedIsSet} forceOpen={errorSections.has('advanced') || foreachJustSet} hasContent={advancedIsSet}>
-                <ForEachSection draft={draft} set={set} groups={groups} onFocusField={onFocusField} />
+            <AccordionSection stepType="integration_action" sectionKey="advanced" title="Advanced" defaultOpen={advancedIsSet} forceOpen={errorSections.has('advanced')} hasContent={advancedIsSet}>
+                <StepRepeatSection stepType="integration_action" draft={draft} set={set} groups={groups} onFocusField={onFocusField} />
                 <RetrySection draft={draft} set={set} />
                 <AskOnceRow draft={draft} set={set} {...askOnceAvailability(action, appLabel)} />
             </AccordionSection>

@@ -71,7 +71,10 @@ export const FOREACH_FORM_TYPES: ReadonlySet<string> = new Set([
     'datatable', 'knowledge_write', 'data_extraction',
 ]);
 
-/** Normalise when on; an explicit null clears an existing one when switched off. */
+/**
+ * Normalise when on; an explicit null clears an existing one when switched
+ * off. The older `forEach` and the `repeat` alike.
+ */
 export function applyForEachPatch(patch: StepPatch, step: Step, draft: FormDraft): void {
     const fe = draft.forEach as Record<string, unknown> | null | undefined;
     if (fe) {
@@ -82,6 +85,12 @@ export function applyForEachPatch(patch: StepPatch, step: Step, draft: FormDraft
         };
     } else if (step.forEach) {
         patch.forEach = null;
+    }
+    const rep = draft.repeat as Record<string, unknown> | null | undefined;
+    if (rep && rep.over) {
+        patch.repeat = { over: rep.over, max: clamp(Number(rep.max) || 100, 1, 1000) };
+    } else if (step.repeat) {
+        patch.repeat = null;
     }
 }
 

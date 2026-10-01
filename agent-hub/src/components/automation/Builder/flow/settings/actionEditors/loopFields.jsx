@@ -4,6 +4,7 @@ import { Workflow } from 'lucide-react';
 import LoopBodyEditor from '../../../mapping/LoopBodyEditor';
 import LoopOverPicker from '../../../mapping/LoopOverPicker';
 import AccordionSection from '../../AccordionSection';
+import { planLoopItemRename } from '../advanced/stepRepeat';
 import { FormRow, inputClass } from '../formPrimitives';
 
 function LoopFields({
@@ -18,7 +19,12 @@ function LoopFields({
                     itemVar={draft.itemVar || 'item'}
                     onChange={(patch) => {
                         if ('overRef' in patch) set('overRef', patch.overRef);
-                        if ('itemVar' in patch) set('itemVar', patch.itemVar);
+                        if (!('itemVar' in patch) || patch.itemVar === (draft.itemVar || 'item')) return;
+                        // A new name (typed, or suggested by a newly picked
+                        // list) carries the body's `loop.<old>` reads along;
+                        // a name the run could not bind is not taken.
+                        const res = planLoopItemRename(draft, patch.itemVar);
+                        if (!res.error) for (const [k, v] of Object.entries(res.patch)) set(k, v);
                     }}
                     groups={groups}
                     onFocusField={onFocusField}

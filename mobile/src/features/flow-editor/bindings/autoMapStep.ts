@@ -1,14 +1,14 @@
 /**
  * Auto-map ONE step against its upstream context, per step type — and apply
  * that to a definition, marking the filled keys `autoMapped` so the editor can
- * show the "auto" pill. From agent-hub `Builder/mapping/autoMapInputs.js`
+ * show the "auto" pill. From agent-hub `Builder/mapping/autoMapInputs.ts`
  * (autoMapStep / applyAutoMapToStep); pinned by autoMap.lockstep.test.ts.
  */
 
 import { autoMapInputs, findInputSchemaForTool, nearestArrayRef, nearestScannableRef } from './autoMap';
-import { tryIterationMapping } from './autoMapIteration';
+import { mapFromItem } from './autoMapIteration';
 import { getLayerContract } from './flowDeps/flowletScope';
-import type { Catalog, FlowDefinition, FlowNode, ForEach, JsonSchema, VariableGroup } from './types';
+import type { Catalog, FlowDefinition, FlowNode, JsonSchema, VariableGroup } from './types';
 import { computeUpstreamGroups } from './upstream';
 import { reconcileRouteEdges } from '../model/route/routeEdges';
 
@@ -20,7 +20,6 @@ export interface AutoMapOptions {
 export interface AutoMapResult {
     step: FlowNode;
     mappedKeys: string[];
-    forEachEnabled?: boolean;
 }
 
 const LIST_OPS = new Set(['filter', 'limit', 'dedupe', 'aggregate', 'summarize']);
@@ -58,23 +57,20 @@ interface MapContext {
     opts: AutoMapOptions;
 }
 
+/**
+ * A repeating step's own item first (never switching a per-item run on),
+ * then the rest from upstream, without offering the item a second time.
+ */
 function mapIntegration(step: FlowNode, { definition, catalog, groups, opts }: MapContext): AutoMapResult {
     const schema = findInputSchemaForTool(catalog, step.tool);
-    const patch = autoMapInputs(schema, step.inputs || {}, groups, opts);
-    let nextInputs: Record<string, unknown> = { ...(step.inputs || {}), ...patch };
-    let keys = Object.keys(patch);
-    let forEach: ForEach | null = null;
-    // Iteration fallback — never over a forEach the user set.
-    const iter = step.forEach ? null : tryIterationMapping(schema, nextInputs, groups, { definition, catalog });
-    if (iter) {
-        nextInputs = { ...nextInputs, ...iter.patch };
-        keys = [...keys, ...Object.keys(iter.patch)];
-        forEach = iter.forEach;
-    }
-    if (!keys.length && !forEach) return unchanged(step);
-    const nextStep: FlowNode = { ...step, inputs: nextInputs as FlowNode['inputs'] };
-    if (forEach) nextStep.forEach = forEach;
-    return { step: nextStep, mappedKeys: keys, forEachEnabled: !!forEach };
+    const item = mapFromItem(step, schema, groups, { definition, catalog });
+    const fromItem = item?.patch || {};
+    const withItem: Record<string, unknown> = { ...(step.inputs || {}), ...fromItem };
+    const upstream = item?.groupId ? groups.filter((g) => g.id !== item.groupId) : groups;
+    const patch = autoMapInputs(schema, withItem, upstream, opts);
+    const keys = [...Object.keys(fromItem), ...Object.keys(patch)];
+    if (!keys.length) return unchanged(step);
+    return { step: { ...step, inputs: { ...withItem, ...patch } as FlowNode['inputs'] }, mappedKeys: keys };
 }
 
 /** A flowlet call's pseudo-schema: its declared params, or its existing keys. */
@@ -99,6 +95,7 @@ function mapPrivacy(step: FlowNode, groups: VariableGroup[]): AutoMapResult {
 function mapSet(step: FlowNode, groups: VariableGroup[], opts: AutoMapOptions): AutoMapResult {
     const pristine = !Object.keys((step.fields as object) || {}).length
         && !step.forEach
+        && !step.repeat
         && typeof step.arrayRef !== 'string'
         && !(Array.isArray(step.operations) && step.operations.length);
     const listSource = pristine || (typeof step.arrayRef === 'string' && isScaffoldOverRef(step.arrayRef));
@@ -157,13 +154,13 @@ export function applyAutoMapToStep<D extends FlowDefinition>(
     stepId: string,
     catalog: Catalog | null | undefined,
     opts: AutoMapOptions = {},
-): { definition: D; mappedKeys: string[]; forEachEnabled: boolean } {
+): { definition: D; mappedKeys: string[] } {
     const steps = definition?.steps || [];
     const idx = steps.findIndex((s) => s.id === stepId);
-    if (idx === -1) return { definition, mappedKeys: [], forEachEnabled: false };
+    if (idx === -1) return { definition, mappedKeys: [] };
     const prev = steps[idx] as FlowNode;
-    const { step: mapped, mappedKeys, forEachEnabled } = autoMapStep(prev, definition, catalog, opts);
-    if (!mappedKeys.length && !forEachEnabled) return { definition, mappedKeys: [], forEachEnabled: false };
+    const { step: mapped, mappedKeys } = autoMapStep(prev, definition, catalog, opts);
+    if (!mappedKeys.length) return { definition, mappedKeys: [] };
     const inputKeys = mappedKeys.filter((k) => k !== 'overRef' && k !== 'arrayRef');
     const previous = Array.isArray(mapped.autoMapped) ? (mapped.autoMapped as string[]) : [];
     const withMarker = inputKeys.length ? { ...mapped, autoMapped: Array.from(new Set([...previous, ...inputKeys])) } : mapped;
@@ -171,5 +168,5 @@ export function applyAutoMapToStep<D extends FlowDefinition>(
     nextSteps[idx] = withMarker;
     let next = { ...definition, steps: nextSteps } as D;
     if (withMarker.type !== prev.type) next = reconcileRouteEdges(next, stepId, prev, withMarker);
-    return { definition: next, mappedKeys, forEachEnabled: !!forEachEnabled };
+    return { definition: next, mappedKeys };
 }

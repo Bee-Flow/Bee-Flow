@@ -1,39 +1,22 @@
 /**
  * Automatic input mapping: when A → B is connected, fill B's still-EMPTY
  * inputs with `{kind:'ref'}` bindings to matching upstream outputs.
- * Conservative by design — exact and normalised name matches only, gated by
- * type, never overwriting what the user set, nearest upstream first. Port of
- * the matching half of agent-hub `Builder/mapping/autoMapInputs.js` (the
- * "run once per item" fallback is autoMapIteration.ts, the per-step-type half
- * autoMapStep.ts); pinned by autoMap.lockstep.test.ts.
+ * Conservative by design — name matches only, gated by type, never
+ * overwriting what the user set, nearest upstream first. WHICH name matches
+ * is the shared core's one rule (shared/mapping matchInputs), the same the
+ * web builder and the AI builder use. Port of the matching half of agent-hub
+ * `Builder/mapping/autoMapInputs.ts` (a repeating step's own item is
+ * autoMapIteration.ts, the per-step-type half autoMapStep.ts); pinned by
+ * autoMap.lockstep.test.ts.
  */
+
+import { isSecretLikeKey, matchInputs, normalizeKey, sampleType } from '@/shared/mapping';
+import type { MatchCandidate, MatchInput } from '@/shared/mapping';
 
 import { isEmptyBinding } from './partitionInputs';
 import type { Binding, Catalog, JsonSchema, VariableField, VariableGroup } from './types';
 
-export function normalizeKey(name: unknown): string {
-    return String(name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-}
-
-export function sampleType(v: unknown): string {
-    if (v === null || v === undefined) return 'null';
-    if (Array.isArray(v)) return 'array';
-    return typeof v;
-}
-
-export function isSecretLikeKey(key: unknown): boolean {
-    return /(password|passwd|secret|token|apikey|api[_-]?key|credential|client[_-]?secret|private[_-]?key)/i.test(String(key || ''));
-}
-
-/** JSON-Schema property type vs an upstream sample's type. Permissive when unknown. */
-export function typeCompatible(propType: unknown, candType: string): boolean {
-    if (!propType || !candType || candType === 'null') return true;
-    let pt = propType;
-    if (Array.isArray(pt)) pt = pt.find((x) => x !== 'null') || pt[0];
-    if (pt === 'integer') pt = 'number';
-    if (pt === 'string') return ['string', 'number', 'boolean'].includes(candType);
-    return pt === candType;
-}
+export { isSecretLikeKey, normalizeKey, sampleType };
 
 /** A tool's inputSchema from the catalog. */
 export function findInputSchemaForTool(catalog: Catalog | null | undefined, tool: unknown): JsonSchema | null {
@@ -45,60 +28,37 @@ export function findInputSchemaForTool(catalog: Catalog | null | undefined, tool
     return null;
 }
 
-interface Candidate {
-    key: string;
-    path: string;
-    type: string;
-    groupIndex: number;
-    fieldIndex: number;
-}
-
-function pushField(out: Candidate[], f: VariableField, gi: number, fi: number): number {
-    out.push({ key: f.key, path: f.path, type: sampleType(f.sample), groupIndex: gi, fieldIndex: fi++ });
+function pushField(out: MatchCandidate[], f: VariableField, near: number): void {
+    out.push({ key: f.key, path: f.path, type: sampleType(f.sample), near });
     for (const c of f.children || []) {
         // `[*]` children resolve to an ARRAY at run time — never a scalar param.
         if (/\[\*\]/.test(c.path)) continue;
-        out.push({ key: c.key, path: c.path, type: sampleType(c.sample), groupIndex: gi, fieldIndex: fi++ });
+        out.push({ key: c.key, path: c.path, type: sampleType(c.sample), near });
     }
-    return fi;
 }
 
 /** Upstream groups (and one nesting level) as candidates; per-iteration fields skipped (BFSF-369). */
-function flattenCandidates(groups: VariableGroup[] | null | undefined): Candidate[] {
-    const out: Candidate[] = [];
+function groupCandidates(groups: VariableGroup[] | null | undefined): MatchCandidate[] {
+    const out: MatchCandidate[] = [];
     (groups || []).forEach((g, gi) => {
-        let fi = 0;
-        for (const f of g.fields || []) {
-            if (f.perIteration) fi++;
-            else fi = pushField(out, f, gi, fi);
-        }
+        for (const f of g.fields || []) if (!f.perIteration) pushField(out, f, gi);
     });
     return out;
 }
 
-/** Nearest = highest groupIndex, then earliest field; unused paths first. */
-function chooseNearest(list: Candidate[], used: Set<string>): Candidate | null {
-    if (!list.length) return null;
-    const unused = list.filter((c) => !used.has(c.path));
-    const pool = unused.length ? unused : list;
-    return pool.slice().sort((a, b) => b.groupIndex - a.groupIndex || a.fieldIndex - b.fieldIndex)[0] ?? null;
-}
-
-function bestCandidate(key: string, propType: unknown, candidates: Candidate[], used: Set<string>): Candidate | null {
-    const exact = candidates.filter((c) => c.key === key && typeCompatible(propType, c.type));
-    const pick = chooseNearest(exact, used);
-    if (pick) return pick;
-    const nkey = normalizeKey(key);
-    return chooseNearest(candidates.filter((c) => normalizeKey(c.key) === nkey && typeCompatible(propType, c.type)), used);
-}
-
 const ARRAY_NAME_RE = /items|results|rows|records|data|list|messages|emails|events|files|entries/i;
 
-/** Nearest upstream array-typed field path (a loop's overRef, a list op's arrayRef). */
+/**
+ * Nearest upstream list (a loop's overRef, a list op's arrayRef). A step that
+ * ran once per item IS a list, its `results`; walking past it picked an older
+ * list two steps back.
+ */
 export function nearestArrayRef(groups: VariableGroup[] | null | undefined): string | null {
     const list = groups || [];
     for (let gi = list.length - 1; gi >= 0; gi--) {
-        const fields = ((list[gi] as VariableGroup).fields || []).filter((f) => !f.perIteration);
+        const g = list[gi] as VariableGroup & { forEach?: boolean };
+        if (g.forEach && g.basePath) return `${g.basePath}.results`;
+        const fields = (g.fields || []).filter((f) => !f.perIteration);
         const preferred = fields.find((f) => sampleType(f.sample) === 'array' && ARRAY_NAME_RE.test(f.key));
         if (preferred) return preferred.path;
         const anyArr = fields.find((f) => sampleType(f.sample) === 'array');
@@ -134,25 +94,14 @@ export function nearestScannableRef(groups: VariableGroup[] | null | undefined):
     return list[list.length - 1]?.basePath || null;
 }
 
-/** Required keys first, so the most important fields win the nearest candidate. */
-export function requiredFirst(keys: string[], required: Set<string>): string[] {
-    return keys.slice().sort((a, b) => (required.has(b) ? 1 : 0) - (required.has(a) ? 1 : 0));
-}
-
-interface MapPass {
-    properties: Record<string, { type?: unknown }> | null;
-    candidates: Candidate[];
-    existing: Record<string, unknown>;
-    used: Set<string>;
-}
-
-/** The binding for one key, or null (already set, secret-like, or no match). */
-function mapOne(key: string, pass: MapPass): Binding | null {
-    if (!isEmptyBinding(pass.existing[key]) || isSecretLikeKey(key)) return null;
-    const match = bestCandidate(key, pass.properties?.[key]?.type, pass.candidates, pass.used);
-    if (!match) return null;
-    pass.used.add(match.path);
-    return { kind: 'ref', path: match.path };
+/** The inputs a schema (or, without one, the existing keys) asks to fill, empty ones only. */
+export function emptyInputs(schema: JsonSchema | null | undefined, existing: Record<string, unknown> | null | undefined): MatchInput[] {
+    const properties = schema?.properties || null;
+    const required = new Set(schema?.required || []);
+    const keys = properties ? Object.keys(properties) : Object.keys(existing || {});
+    return keys
+        .filter((key) => isEmptyBinding((existing || {})[key]))
+        .map((key) => ({ key, type: properties?.[key]?.type as MatchInput['type'], required: required.has(key) }));
 }
 
 /**
@@ -165,17 +114,8 @@ export function autoMapInputs(
     upstreamGroups: VariableGroup[] | null | undefined,
     opts: { maxPerStep?: number } = {},
 ): Record<string, Binding> {
-    const maxPerStep = opts.maxPerStep ?? 12;
-    const properties = targetInputSchema?.properties || null;
-    const candidates = flattenCandidates(upstreamGroups);
+    const candidates = groupCandidates(upstreamGroups);
     if (!candidates.length) return {};
-    const pass: MapPass = { properties, candidates, existing: existingInputs || {}, used: new Set() };
-    const keys = requiredFirst(properties ? Object.keys(properties) : Object.keys(pass.existing), new Set(targetInputSchema?.required || []));
-    const patch: Record<string, Binding> = {};
-    for (const key of keys) {
-        if (Object.keys(patch).length >= maxPerStep) break;
-        const binding = mapOne(key, pass);
-        if (binding) patch[key] = binding;
-    }
-    return patch;
+    const { matches } = matchInputs(emptyInputs(targetInputSchema, existingInputs), candidates, { skipSecrets: true, max: opts.maxPerStep ?? 12 });
+    return Object.fromEntries(matches.map((m) => [m.key, { kind: 'ref', path: m.path } as Binding]));
 }

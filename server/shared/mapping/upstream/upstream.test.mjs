@@ -10,7 +10,7 @@ import { walkPath } from '../legacy.mjs';
 import { formatPath, isWild } from '../source.mjs';
 import {
     computeUpstreamGroups, computeLoopBodyGroups, describeNode, overlayGroupWithReal, seg, sampleToFields,
-    collectArrayPaths, inferLoopItemSample, buildToolOutputMap, DESCRIBED_TYPES,
+    collectArrayPaths, inferLoopItemSample, buildToolOutputMap, DESCRIBED_TYPES, runsPerItem,
 } from './index.mjs';
 
 function allNodes(fields) {
@@ -118,6 +118,40 @@ test('forEach reshape escapes keys and keeps nested children', () => {
     assert.equal(allNodes(g.fields).find(f => f.key === 'list').perIteration, undefined);
     const run = { steps: { cal: { output: { results: [{ output: { organizer: { email: 'a' } } }, { output: { organizer: { email: 'b' } } }] } } } };
     assert.deepStrictEqual(walkPath('steps.cal.output.results[*].output.organizer.email', run), ['a', 'b']);
+});
+
+test('regression (M6): a repeating step shows downstream as its results entries, like forEach', () => {
+    const def = {
+        trigger: { id: 't', kind: 'manual' },
+        steps: [
+            { id: 'cal', type: 'integration_action', tool: 'cal', repeat: { over: { root: 'trigger', path: ['items'] }, max: 100 } },
+            { id: 'next', type: 'code' },
+        ],
+        edges: [{ from: 't', to: 'cal' }, { from: 'cal', to: 'next' }],
+    };
+    const catalog = { apps: [{ actions: [{ name: 'cal', outputSample: { organizer: { email: 'x@y' }, events: [{ id: 'e1' }] } }] }] };
+    const g = group(computeUpstreamGroups(def, 'next', catalog), 'cal');
+    assert.equal(g.forEach, true);
+    assert.deepStrictEqual(paths(g), [
+        'steps.cal.output.iterations', 'steps.cal.output.succeeded', 'steps.cal.output.failed',
+        'steps.cal.output.results[*].output.organizer',
+        'steps.cal.output.results[*].output.organizer.email',
+        'steps.cal.output.results[*].output.events',
+        'steps.cal.output.results[*].output.events[*].id',
+    ]);
+    // The element of a list read through the repeating step's entries resolves
+    // against the fan-out envelope, not the flat output.
+    const toolToOutput = buildToolOutputMap(catalog);
+    assert.deepStrictEqual(inferLoopItemSample('steps.cal.output.results[*].output.events', def, toolToOutput), { id: 'e1' });
+});
+
+test('runsPerItem: forEach with an overRef or repeat with an over', () => {
+    assert.equal(runsPerItem({ forEach: { overRef: 'x' } }), true);
+    assert.equal(runsPerItem({ repeat: { over: { root: 'trigger', path: [] } } }), true);
+    assert.equal(runsPerItem({ forEach: {} }), false);
+    assert.equal(runsPerItem({ repeat: {} }), false);
+    assert.equal(runsPerItem({}), false);
+    assert.equal(runsPerItem(null), false);
 });
 
 test('an AI step without its own schema offers its leading skill\'s fields', () => {

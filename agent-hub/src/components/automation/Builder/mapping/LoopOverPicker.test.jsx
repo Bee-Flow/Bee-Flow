@@ -30,10 +30,10 @@ describe('LoopOverPicker — friendly labels', () => {
         expect(screen.queryByText('steps.s1.output.results')).toBeNull();
     });
 
-    it('keeps the raw path input behind Advanced', () => {
+    it('keeps the raw path input behind Formula', () => {
         renderPicker();
         expect(screen.queryByPlaceholderText('steps.s1.output.results')).toBeNull();
-        fireEvent.click(screen.getByText('Advanced'));
+        fireEvent.click(screen.getByText('Formula'));
         expect(screen.getByPlaceholderText('steps.s1.output.results')).toBeTruthy();
     });
 

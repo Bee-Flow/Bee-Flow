@@ -276,9 +276,13 @@ export declare function renderCompose(compose: { parts: Array<string | PickPart>
 
 export declare const REPEAT_DEFAULT_MAX: number;
 export declare const REPEAT_MAX: number;
-export declare function mapStepPicks<T>(step: T, fn: (pick: PickBinding | PickPart) => PickBinding | PickPart): T;
+export declare function mapStepPicks<T>(
+    step: T,
+    fn: (pick: PickBinding | PickPart) => PickBinding | PickPart,
+    refFn?: ((ref: { kind: 'ref'; path: string }) => unknown) | null,
+): T;
 export declare function toggleRepeat(step: object, over: MappingSource, opts?: { max?: number }):
-    { step: object & { repeat: StepRepeat } } | { error: 'already_repeating' | 'legacy_for_each' | 'invalid_source' };
+    { step: object & { repeat: StepRepeat }; each: number } | { error: 'already_repeating' | 'legacy_for_each' | 'invalid_source' };
 export declare function toggleRepeatOff(step: object): { step: object };
 export declare function rebaseLoopRefs(step: object): { step: object & { repeat: StepRepeat } } | { refused: string[] };
 
@@ -410,6 +414,8 @@ export declare function triggerMetaSample(definition: unknown, env?: UpstreamEnv
 export declare function describeTriggerMeta(definition: unknown, catalog: unknown, env?: UpstreamEnv): SourceGroup | null;
 export declare function inferLoopItemSample(overRef: unknown, definition: unknown, toolToOutput: ToolOutputMap, sampleRoot?: unknown): Record<string, unknown> | null;
 export declare function suggestItemVar(key: unknown): string;
+/** Does this step run once per item (`forEach` or `repeat`), so its output is the fan-out envelope? */
+export declare function runsPerItem(node: unknown): boolean;
 export declare function pickSample(field: unknown, env?: UpstreamEnv): unknown;
 export declare function leadSkillId(node: unknown): string | null;
 export declare const DEFAULT_ENV: Readonly<Required<UpstreamEnv>>;
@@ -430,3 +436,29 @@ export declare function textAsTemplate(value: unknown): string;
 export declare function stepIdsRead(value: unknown): string[];
 export declare function pickForLegacyPath(path: unknown): { from: MappingSource; take: 'one' | 'all' } | null;
 export declare function templateToCompose(text: unknown, where?: { stepType?: string; field?: string; sole?: boolean }): PickBinding | ComposeBinding | null;
+
+// M6: per-item repeat and the one auto-map rule.
+export declare function stopForEach(step: object): { step: object; orphaned?: string[] };
+export declare function renameItemVar(step: object, to: string): { step: object } | { error: 'invalid_name' | 'no_item' | 'name_in_use' };
+
+/** An input auto-map may fill (only the empty ones are handed in). */
+export interface MatchInput { key: string; type?: string | string[]; required?: boolean }
+/**
+ * A value auto-map may bind, by its last key. `near`: higher is closer to the
+ * step. `depth`: objects down from a top-level field (0); shallower wins a tie.
+ */
+export interface MatchCandidate { key: string; path: string; type?: string; near?: number; depth?: number }
+export interface MatchResult {
+    matches: Array<{ key: string; path: string; how: 'exact' | 'normalized' | 'id' }>;
+    ambiguous: Array<{ key: string; paths: string[] }>;
+}
+export declare function normalizeKey(name: unknown): string;
+export declare function sampleType(value: unknown): 'null' | 'array' | 'string' | 'number' | 'boolean' | 'object' | 'bigint' | 'symbol' | 'function' | 'undefined';
+export declare function isSecretLikeKey(key: unknown): boolean;
+export declare function typeFits(propType: string | string[] | undefined, candType: string | undefined): boolean;
+export declare function idAffinityBase(key: unknown): string | null;
+export declare function matchInputs(
+    inputs: MatchInput[],
+    candidates: MatchCandidate[],
+    opts?: { idAffinity?: boolean; unique?: boolean; ambiguous?: boolean; skipSecrets?: boolean; max?: number },
+): MatchResult;

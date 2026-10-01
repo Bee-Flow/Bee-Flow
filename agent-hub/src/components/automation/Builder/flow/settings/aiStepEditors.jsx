@@ -12,7 +12,9 @@ import { humanizeToolName } from '../displayHelpers';
 import FieldHint from '../FieldHint';
 import ToolPicker from '../ToolPicker';
 import { AgentStepFields } from './agentStepFields';
-import { ForEachSection, RetrySection, retryIsSet } from './collectionEditors';
+import { RetrySection, retryIsSet } from './collectionEditors';
+import StepRepeatSection from './advanced/StepRepeatSection';
+import { perItemIsSet } from './advanced/stepRepeat';
 import { FormRow, inputClass, textareaClass } from './formPrimitives';
 import { ProblemRing, runStepProblem } from './runProblem';
 import { StructuredOutputFields } from './structuredOutputFields';
@@ -69,7 +71,7 @@ function AiStepFields({ draft, set, modelTiers, catalog = null, groups = [], onF
     hid a configured section in Simple mode with no way to reach it. Same
     reasoning for `knowledgeBaseIds` (BFSF-410): a configured grounding list
     must show as configured in Simple mode too, not just Advanced. */}
-            <AccordionSection stepType="ai_step" sectionKey="advanced" title="Advanced" forceOpen={errorSections.has('advanced') || !!tierProblem} hasContent={!!draft.systemPrompt || (!!draft.modelTier && draft.modelTier !== 'auto') || !!draft.model || !!draft.forEach || retryIsSet(draft) || !!draft.allowTools || (draft.tools?.length > 0) || (draft.knowledgeBaseIds?.length > 0) || !!draft.useMemory}>
+            <AccordionSection stepType="ai_step" sectionKey="advanced" title="Advanced" forceOpen={errorSections.has('advanced') || !!tierProblem} hasContent={!!draft.systemPrompt || (!!draft.modelTier && draft.modelTier !== 'auto') || !!draft.model || perItemIsSet(draft) || retryIsSet(draft) || !!draft.allowTools || (draft.tools?.length > 0) || (draft.knowledgeBaseIds?.length > 0) || !!draft.useMemory}>
                 <FormRow label="System prompt" hint="Optional. Overrides the default 'You are a step inside a no-code automation' framing — set a tone, role, or domain.">
                     <textarea rows={3} value={draft.systemPrompt || ''} onChange={(e) => set('systemPrompt', e.target.value)} placeholder="(default: a generic automation-step system prompt)" className={textareaClass()} />
                 </FormRow>
@@ -114,8 +116,8 @@ function AiStepFields({ draft, set, modelTiers, catalog = null, groups = [], onF
                 <FormRow label="Knowledge bases" hint="Ground this step in these knowledge bases — searched once before the step runs and added to the prompt as reference material. Good for steerable content like a brand style guide or a positioning doc.">
                     <AiStepKbSelect draft={draft} set={set} />
                 </FormRow>
-                <FormRow label="Iteration" hint="Off by default: the AI runs once and sees all mapped data at once. Turn on to run the prompt once per item of an upstream list (then reference {{loop.item…}}).">
-                    <ForEachSection draft={draft} set={set} groups={groups} onFocusField={onFocusField} />
+                <FormRow label="Iteration" hint="Off by default: the AI runs once and sees all mapped data at once. Turn on to run the prompt once per item of an upstream list. The prompt can then read the current item.">
+                    <StepRepeatSection stepType="ai_step" draft={draft} set={set} groups={groups} onFocusField={onFocusField} />
                 </FormRow>
                 <RetrySection draft={draft} set={set} />
             </AccordionSection>

@@ -10,7 +10,9 @@ import { sampleToFields } from '../../mapping/upstream';
 import { VariablePickerProvider, useVariablePickerContext } from '../../mapping/VariablePickerContext';
 import AccordionSection from '../AccordionSection';
 import { humanizeFieldKey } from '../displayHelpers';
-import { ForEachSection, FieldsSection, SourceSummaryRow, useElementSample } from './collectionEditors';
+import { FieldsSection, SourceSummaryRow, useElementSample } from './collectionEditors';
+import StepRepeatSection from './advanced/StepRepeatSection';
+import { perItemIsSet } from './advanced/stepRepeat';
 import { useFormMode } from './formDensity';
 import { FormRow, inputClass } from './formPrimitives';
 import { parseSampleSource, suggestFieldName } from './ParseJsonFields';
@@ -160,7 +162,7 @@ function SetFields({ step, draft, set, groups = [], onFocusField, previewSample,
                     />
                 </AccordionSection>
             )}
-            <AccordionSection stepType="set" sectionKey="advanced" title="Advanced" defaultOpen={!listMode && !!draft.forEach} forceOpen={errorSections.has('advanced')} hasContent={!listMode && !!draft.forEach}>
+            <AccordionSection stepType="set" sectionKey="advanced" title="Advanced" defaultOpen={!listMode && perItemIsSet(draft)} forceOpen={errorSections.has('advanced')} hasContent={!listMode && perItemIsSet(draft)}>
                 <FormRow label="Works on" hint="Detected from the step above — override it here if the guess is wrong.">
                     <select
                         value={listMode ? 'items' : 'single'}
@@ -192,10 +194,10 @@ function SetFields({ step, draft, set, groups = [], onFocusField, previewSample,
                         previewSample={previewSample}
                     />
                 )}
-                {!listMode && <ForEachSection draft={draft} set={set} groups={groups} onFocusField={onFocusField} />}
-                {listMode && step?.forEach && (
+                {!listMode && <StepRepeatSection stepType="set" draft={draft} set={set} groups={groups} onFocusField={onFocusField} />}
+                {listMode && (step?.forEach || step?.repeat) && (
                     <div className="text-[11px] text-amber-600 dark:text-amber-400">
-                        List mode replaces “Run once per item” — saving removes the old per-item setting.
+                        List mode replaces “Run this step separately for each…” — saving removes the per-item setting.
                     </div>
                 )}
             </AccordionSection>

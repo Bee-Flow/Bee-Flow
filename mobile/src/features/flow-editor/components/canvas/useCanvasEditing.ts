@@ -82,7 +82,7 @@ export function useCanvasEditing({ store, definition, scene, catalog, locked, on
         }
         apply(() => result.definition);
         setPending(null);
-        const words = result.mapped || result.forEach
+        const words = result.mapped
             ? t('mobile.flow.auto_mapped', 'Filled {n} inputs from the step before', { n: result.mapped })
             : t('mobile.flow.canvas.connected', 'Connected');
         toast(words, 'success');

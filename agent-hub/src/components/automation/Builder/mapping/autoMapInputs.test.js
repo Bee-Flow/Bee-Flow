@@ -1,9 +1,9 @@
+import { MATCH_CASES } from '@shared/mapping/matchCases.mjs';
 import { describe, it, expect } from 'vitest';
 import {
     autoMapInputs, autoMapStep, applyAutoMapToStep,
     normalizeKey, sampleType, isSecretLikeKey, nearestArrayRef,
 } from './autoMapInputs';
-import { computeUpstreamGroups, inferLoopItemSample, buildToolOutputMap } from './upstream';
 
 // Two upstream groups in topological order (nearest last), matching the
 // computeUpstreamGroups shape.
@@ -303,7 +303,7 @@ describe('Edit data (set) — list mode is detected, not configured', () => {
     });
 });
 
-describe('iteration auto-detection (run once per item)', () => {
+describe('per item is never automatic', () => {
     // gmail search (array of emails) → gmail read attachment (scalar inputs).
     const definition = {
         trigger: { id: 'trg', type: 'trigger', kind: 'manual' },
@@ -327,47 +327,38 @@ describe('iteration auto-detection (run once per item)', () => {
         triggerOutputs: { __manual: { fields: [], sample: {} } },
     };
 
-    it('enables forEach over the nearest array and binds <entity>Id → loop.<item>.id', () => {
-        const { step, mappedKeys, forEachEnabled } = autoMapStep(definition.steps[1], definition, catalog);
-        expect(forEachEnabled).toBe(true);
-        expect(step.forEach).toEqual({ overRef: 'steps.s1.output.results', itemVar: 'result', maxIterations: 100 });
-        expect(step.inputs.messageId).toEqual({ kind: 'ref', path: 'loop.result.id' });
-        // No attachment id exists in the search element → left empty for the user.
-        expect(step.inputs.attachmentId).toBeUndefined();
-        expect(mappedKeys).toContain('messageId');
-    });
-
-    it('applyAutoMapToStep persists forEach + marks the bound input as auto', () => {
+    it('a list upstream never switches "run once per item" on', () => {
+        const { step, mappedKeys } = autoMapStep(definition.steps[1], definition, catalog);
+        expect(mappedKeys).toEqual([]);
+        expect(step.forEach).toBeUndefined();
+        expect(step.repeat).toBeUndefined();
         const out = applyAutoMapToStep(definition, 's2', catalog);
-        const s2 = out.definition.steps.find(s => s.id === 's2');
-        expect(out.forEachEnabled).toBe(true);
-        expect(s2.forEach.overRef).toBe('steps.s1.output.results');
-        expect(s2.autoMapped).toContain('messageId');
+        expect(out.definition).toBe(definition);
+        expect(out).not.toHaveProperty('forEachEnabled');
     });
 
-    it('binds an exact element-name match directly (no id-affinity needed)', () => {
+    it('a step the author set to run per item (legacy forEach) binds from its item: <entity>Id takes the item id', () => {
         const def = {
             ...definition,
-            steps: [
-                { id: 's1', type: 'integration_action', tool: 'gmail_search', inputs: {} },
-                { id: 's2', type: 'integration_action', tool: 'reader', inputs: {} },
-            ],
+            steps: [definition.steps[0], { ...definition.steps[1], forEach: { overRef: 'steps.s1.output.results', itemVar: 'mail', maxIterations: 5 } }],
         };
-        const cat = {
-            apps: [{
-                actions: [
-                    { name: 'gmail_search', outputSample: { results: [{ messageId: 'm1', subject: 's' }] } },
-                    { name: 'reader', inputSchema: { properties: { messageId: { type: 'string' } }, required: ['messageId'] } },
-                ],
-            }],
-            triggerOutputs: { __manual: { fields: [], sample: {} } },
-        };
-        const { step, forEachEnabled } = autoMapStep(def.steps[1], def, cat);
-        expect(forEachEnabled).toBe(true);
-        expect(step.inputs.messageId).toEqual({ kind: 'ref', path: 'loop.result.messageId' });
+        const { step, mappedKeys } = autoMapStep(def.steps[1], def, catalog);
+        expect(step.inputs.messageId).toEqual({ kind: 'ref', path: 'loop.mail.id' });
+        // No attachment id exists in the search element → left empty for the user.
+        expect(step.inputs.attachmentId).toBeUndefined();
+        expect(mappedKeys).toEqual(['messageId']);
+        expect(step.forEach).toEqual({ overRef: 'steps.s1.output.results', itemVar: 'mail', maxIterations: 5 });
     });
 
-    it('does NOT iterate when a scalar upstream already satisfies the required input', () => {
+    it('a step set to repeat binds an each pick of its item', () => {
+        const over = { root: 'steps', id: 's1', path: ['results'] };
+        const def = { ...definition, steps: [definition.steps[0], { ...definition.steps[1], repeat: { over, max: 100 } }] };
+        const { step } = autoMapStep(def.steps[1], def, catalog);
+        expect(step.inputs.messageId).toEqual({ kind: 'pick', v: 1, from: { ...over, path: ['results', 'id'] }, take: 'each', as: 'native' });
+        expect(step.repeat).toEqual({ over, max: 100 });
+    });
+
+    it('does not read the item when a scalar upstream already has the name', () => {
         const def = {
             trigger: { id: 'trg', type: 'trigger', kind: 'manual' },
             steps: [
@@ -386,81 +377,142 @@ describe('iteration auto-detection (run once per item)', () => {
             }],
             triggerOutputs: { __manual: { fields: [], sample: {} } },
         };
-        const { step, forEachEnabled } = autoMapStep(def.steps[1], def, cat);
-        expect(forEachEnabled).toBeFalsy();
+        const { step } = autoMapStep(def.steps[1], def, cat);
         expect(step.forEach).toBeUndefined();
         expect(step.inputs.messageId).toEqual({ kind: 'ref', path: 'steps.s1.output.messageId' });
     });
+});
 
-    it('iterates a forEach step\'s attachments via results[*].output (nested loop)', () => {
-        // search → read (forEach over results) → read_attachment. read's real
-        // output is the forEach envelope, so the attachment iterable lives at
-        // steps.s2.output.results[*].output.attachments — NOT steps.s2.output.attachments.
-        const def = {
+/**
+ * Regression (confirmed bug): manual auto-map after a forEach step picked an
+ * OLDER list two steps back, or mapped nothing. Flow: list files → read each
+ * file (forEach) → a step that needs `content`. The read step's entries are
+ * the list now (its `results`), and its own output fields are reached under
+ * `output.` of the current entry.
+ */
+describe('regression: auto-map after a step that ran once per item', () => {
+    const base = (third, listItems = [{ path: '/a.pdf', name: 'a.pdf' }]) => ({
+        definition: {
             trigger: { id: 'trg', type: 'trigger', kind: 'manual' },
             steps: [
-                { id: 's1', type: 'integration_action', tool: 'gmail_search', inputs: {} },
+                { id: 'list', type: 'integration_action', tool: 'files_list', inputs: {} },
                 {
-                    id: 's2', type: 'integration_action', tool: 'gmail_read', inputs: { messageId: { kind: 'ref', path: 'loop.result.id' } },
-                    forEach: { overRef: 'steps.s1.output.results', itemVar: 'result', maxIterations: 100 },
+                    id: 'read', type: 'integration_action', tool: 'files_read',
+                    inputs: { path: { kind: 'ref', path: 'loop.file.path' } },
+                    forEach: { overRef: 'steps.list.output.files', itemVar: 'file', maxIterations: 100 },
                 },
-                { id: 's3', type: 'integration_action', tool: 'gmail_read_attachment', inputs: {} },
+                { id: 'w', ...third },
             ],
-            edges: [{ from: 'trg', to: 's1' }, { from: 's1', to: 's2' }, { from: 's2', to: 's3' }],
-        };
-        const cat = {
+            edges: [{ from: 'trg', to: 'list' }, { from: 'list', to: 'read' }, { from: 'read', to: 'w' }],
+        },
+        catalog: {
             apps: [{
                 actions: [
-                    { name: 'gmail_search', outputSample: { results: [{ id: 'm1' }], total: 1 } },
-                    { name: 'gmail_read', outputSample: { id: 'm1', threadId: 't1', subject: 's', attachments: [{ attachmentId: 'a1', filename: 'x.pdf', mimeType: 'application/pdf', size: 10, canOCR: true, messageId: 'm1', threadId: 't1' }] } },
-                    { name: 'gmail_read_attachment', inputSchema: { properties: { messageId: { type: 'string' }, attachmentId: { type: 'string' }, mimeType: { type: 'string' } }, required: ['messageId', 'attachmentId'] }, outputSample: { content: '...' } },
+                    { name: 'files_list', outputSample: { files: listItems } },
+                    { name: 'files_read', inputSchema: { properties: { path: { type: 'string' } }, required: ['path'] }, outputSample: { path: '/a.pdf', content: 'text' } },
+                    { name: 'notes_write', inputSchema: { properties: { content: { type: 'string' } }, required: ['content'] } },
                 ],
             }],
             triggerOutputs: { __manual: { fields: [], sample: {} } },
-        };
-
-        // The read group exposes the flattened iterable, not the flat path.
-        const groups = computeUpstreamGroups(def, 's3', cat);
-        const readGroup = groups.find(g => g.id === 's2');
-        // `!perIteration` is the discriminator, not Array.isArray: since
-        // BFSF-369 a per-iteration SCALAR is also carried as an array sample
-        // (one entry per iteration), so the shape alone no longer tells a real
-        // list apart from a column of scalars.
-        const arrField = (readGroup.fields || []).find(f => Array.isArray(f.sample) && !f.perIteration);
-        expect(arrField.path).toBe('steps.s2.output.results[*].output.attachments');
-
-        // …and the scalars the step itself returned are reachable now, where
-        // they used to be dropped from the picker entirely (BFSF-369).
-        const subject = (readGroup.fields || []).find(f => f.key === 'subject');
-        expect(subject.path).toBe('steps.s2.output.results[*].output.subject');
-        expect(subject.perIteration).toBe(true);
-
-        // inferLoopItemSample resolves that path to the attachment element.
-        const el = inferLoopItemSample('steps.s2.output.results[*].output.attachments', def, buildToolOutputMap(cat));
-        expect(el.attachmentId).toBeDefined();
-        expect(el.messageId).toBeDefined();
-
-        // Auto-map fans out over the attachments with both ids bound from the item.
-        const { step, forEachEnabled } = autoMapStep(def.steps[2], def, cat);
-        expect(forEachEnabled).toBe(true);
-        expect(step.forEach.overRef).toBe('steps.s2.output.results[*].output.attachments');
-        expect(step.forEach.itemVar).toBe('attachment');
-        expect(step.inputs.messageId).toEqual({ kind: 'ref', path: 'loop.attachment.messageId' });
-        expect(step.inputs.attachmentId).toEqual({ kind: 'ref', path: 'loop.attachment.attachmentId' });
+        },
     });
 
-    it('respects an existing user-set forEach (never overrides)', () => {
-        const def = {
-            ...definition,
-            steps: [
-                definition.steps[0],
-                { ...definition.steps[1], forEach: { overRef: 'steps.s1.output.results', itemVar: 'x', maxIterations: 5 } },
-            ],
-        };
-        const { step } = autoMapStep(def.steps[1], def, catalog);
-        expect(step.forEach.itemVar).toBe('x');
-        expect(step.forEach.maxIterations).toBe(5);
+    it('never fans out over the older list, even when its items share the name', () => {
+        const { definition, catalog } = base({ type: 'integration_action', tool: 'notes_write', inputs: {} }, [{ path: '/a.pdf', content: 'preview' }]);
+        const { step, mappedKeys } = autoMapStep(definition.steps[2], definition, catalog);
+        expect(step.forEach).toBeUndefined();
+        expect(JSON.stringify(step.inputs || {})).not.toContain('steps.list');
+        expect(mappedKeys).toEqual([]);
     });
+
+    it('with "run once per item" over the read step\'s entries, content comes from that entry\'s output', () => {
+        const { definition, catalog } = base({
+            type: 'integration_action', tool: 'notes_write', inputs: {},
+            forEach: { overRef: 'steps.read.output.results', itemVar: 'r', maxIterations: 100 },
+        });
+        const { step } = autoMapStep(definition.steps[2], definition, catalog);
+        expect(step.inputs.content).toEqual({ kind: 'ref', path: 'loop.r.output.content' });
+    });
+
+    it('the same with a repeat: an each pick of the entry\'s output', () => {
+        const over = { root: 'steps', id: 'read', path: ['results'] };
+        const { definition, catalog } = base({ type: 'integration_action', tool: 'notes_write', inputs: {}, repeat: { over, max: 100 } });
+        const { step } = autoMapStep(definition.steps[2], definition, catalog);
+        expect(step.inputs.content).toEqual({ kind: 'pick', v: 1, from: { ...over, path: ['results', 'output', 'content'] }, take: 'each', as: 'native' });
+    });
+
+    it('a loop or list op below it takes the read step\'s entries, not the older list', () => {
+        const { definition, catalog } = base({ type: 'loop', overRef: '', itemVar: 'item', body: [] });
+        const { step } = autoMapStep(definition.steps[2], definition, catalog);
+        expect(step.overRef).toBe('steps.read.output.results');
+    });
+
+    // The read step set to repeat (the way the step's Advanced section writes
+    // it) hands on the same envelope as a legacy forEach: its entries, never
+    // its flat tool output.
+    const withRepeatedRead = (third, listItems) => {
+        const { definition, catalog } = base(third, listItems);
+        const read = { ...definition.steps[1], inputs: {}, repeat: { over: { root: 'steps', id: 'list', path: ['files'] }, max: 100 } };
+        delete read.forEach;
+        return { definition: { ...definition, steps: [definition.steps[0], read, definition.steps[2]] }, catalog };
+    };
+
+    it('regression: after a repeating step, auto-map does not bind its flat output', () => {
+        const { definition, catalog } = withRepeatedRead({ type: 'integration_action', tool: 'notes_write', inputs: {} });
+        const { step, mappedKeys } = autoMapStep(definition.steps[2], definition, catalog);
+        expect(JSON.stringify(step.inputs || {})).not.toContain('steps.read.output.content');
+        expect(mappedKeys).toEqual([]);
+    });
+
+    it('regression: a loop below a repeating step takes its entries, not the older list', () => {
+        const { definition, catalog } = withRepeatedRead({ type: 'loop', overRef: '', itemVar: 'item', body: [] }, [{ path: '/a.pdf', content: 'x' }]);
+        const { step } = autoMapStep(definition.steps[2], definition, catalog);
+        expect(step.overRef).toBe('steps.read.output.results');
+    });
+
+    it('regression: a repeat over a repeating step\'s entries reads the entry\'s output', () => {
+        const over = { root: 'steps', id: 'read', path: ['results'] };
+        const { definition, catalog } = withRepeatedRead({ type: 'integration_action', tool: 'notes_write', inputs: {}, repeat: { over, max: 100 } });
+        const { step } = autoMapStep(definition.steps[2], definition, catalog);
+        expect(step.inputs.content).toEqual({ kind: 'pick', v: 1, from: { ...over, path: ['results', 'output', 'content'] }, take: 'each', as: 'native' });
+    });
+});
+
+describe('the shared matching cases (shared/mapping/matchCases.mjs, also run by the server\'s AI auto-bind)', () => {
+    for (const c of MATCH_CASES) {
+        it(c.name, () => {
+            const properties = Object.fromEntries(Object.entries(c.inputs).map(([k, v]) => [k, { type: v.type }]));
+            const target = { name: 'target', inputSchema: { properties, required: Object.keys(c.inputs) } };
+            const steps = c.fanout
+                ? [
+                    { id: 'src', type: 'integration_action', tool: 'lister', inputs: {} },
+                    { id: 'up', type: 'integration_action', tool: 'reader', inputs: {}, forEach: { overRef: 'steps.src.output.rows', itemVar: 'x' } },
+                    { id: 't', type: 'integration_action', tool: 'target', inputs: {}, forEach: { overRef: 'steps.up.output.results', itemVar: 'row' } },
+                ]
+                : [
+                    { id: 'up', type: 'integration_action', tool: 'lister', inputs: {} },
+                    { id: 't', type: 'integration_action', tool: 'target', inputs: {}, forEach: { overRef: 'steps.up.output.rows', itemVar: 'row' } },
+                ];
+            const definition = {
+                trigger: { id: 'trg', type: 'trigger', kind: 'manual' },
+                steps,
+                edges: steps.map((s, i) => ({ from: i ? steps[i - 1].id : 'trg', to: s.id })),
+            };
+            const catalog = {
+                apps: [{ actions: [
+                    { name: 'lister', outputSample: { rows: c.fanout ? [{ n: 1 }] : [c.item] } },
+                    { name: 'reader', outputSample: c.item },
+                    target,
+                ] }],
+                triggerOutputs: { __manual: { fields: [], sample: {} } },
+            };
+            const { step } = autoMapStep(steps[steps.length - 1], definition, catalog);
+            for (const [key, path] of Object.entries(c.expect)) {
+                if (path === null) expect(step.inputs?.[key]).toBeUndefined();
+                else expect(step.inputs[key]).toEqual({ kind: 'ref', path: `loop.row.${path}` });
+            }
+        });
+    }
 });
 
 describe('regression: [*] element children never auto-map into scalar params', () => {
@@ -538,12 +590,12 @@ describe('auto-map with real run/pinned data', () => {
         expect(step.arrayRef).toBe('steps.s1.output.results');
     });
 
-    it('iteration auto-detection reads the element shape from real rows', () => {
+    it('a step set to run per item reads its element shape from real rows', () => {
         const def = {
             ...definition,
             steps: [
                 definition.steps[0],
-                { id: 'act', type: 'integration_action', tool: 'read_message', inputs: {} },
+                { id: 'act', type: 'integration_action', tool: 'read_message', inputs: {}, forEach: { overRef: 'steps.s1.output.results', itemVar: 'result' } },
             ],
             edges: [{ from: 'trg', to: 's1' }, { from: 's1', to: 'act' }],
         };
@@ -551,9 +603,7 @@ describe('auto-map with real run/pinned data', () => {
             apps: [{ actions: [{ name: 'read_message', inputSchema: { properties: { messageId: { type: 'number' } }, required: ['messageId'] } }] }],
             triggerOutputs: {},
         };
-        const { step, forEachEnabled } = autoMapStep(def.steps[1], def, cat, { realOutputById });
-        expect(forEachEnabled).toBe(true);
-        expect(step.forEach.overRef).toBe('steps.s1.output.results');
+        const { step } = autoMapStep(def.steps[1], def, cat, { realOutputById });
         expect(step.inputs.messageId).toEqual({ kind: 'ref', path: 'loop.result.id' });
     });
 
