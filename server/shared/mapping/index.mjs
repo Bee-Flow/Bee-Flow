@@ -63,3 +63,5 @@ export {
     overlayGroupWithReal, triggerMetaSample, describeTriggerMeta, inferLoopItemSample, suggestItemVar,
     pickSample, leadSkillId, DEFAULT_ENV, resolveEnv,
 } from './upstream/index.mjs';
+// M4a: a legacy binding shown as a pick (upgrade.mjs); null means "Formula".
+export { liftLegacy } from './upgrade.mjs';

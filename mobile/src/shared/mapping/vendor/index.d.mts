@@ -414,3 +414,10 @@ export declare function pickSample(field: unknown, env?: UpstreamEnv): unknown;
 export declare function leadSkillId(node: unknown): string | null;
 export declare const DEFAULT_ENV: Readonly<Required<UpstreamEnv>>;
 export declare function resolveEnv(env?: UpstreamEnv): Readonly<Required<UpstreamEnv>>;
+// M4a: a legacy binding shown as a pick (upgrade.mjs); null means "Formula".
+export declare function liftLegacy(
+    binding: unknown,
+    sample: object | null | undefined,
+    lastRun?: object | null,
+    deps?: { evaluate?: (src: string, scope: object) => unknown; parse?: ParseDeps },
+): PickBinding | null;
