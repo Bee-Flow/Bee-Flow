@@ -25,6 +25,8 @@ Trigger ─▶ Step 1 ─▶ Step 2 ─▶ … ─▶ Step N
 
 Every step has a stable `id`, a `type`, an optional `label`, and a set of `inputs` bound to upstream values. The runner walks the DAG defined by `definition.edges`; branches and loops fan out from there.
 
+How you put a value from an earlier step into a field — picking, lists, and running a step once per item — is explained in plain language in [Using values from earlier steps](../automations/mapping.md).
+
 ## Trigger types
 
 | Type | When it fires | Config |

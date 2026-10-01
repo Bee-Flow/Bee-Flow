@@ -243,3 +243,23 @@ test('a pick and a compose read as what they show, not as data', () => {
     assert.strictEqual(byPath['inputs.raw'].after, 'Read invoice › files.name');
     assert.strictEqual(byPath.prompt.after, 'Vat ‹Bestanden› samen');
 });
+
+// The mobile lockstep tests require this file (through diffSummary.js) under
+// jest, which cannot require an ES module: a diff with no pick or compose in
+// it must not load the mapping core (it used to, at the top of the file, and
+// mobile's settings.lockstep.test.ts could not even start).
+test('a diff without a pick or a compose never loads the ES module mapping core', () => {
+    const { execFileSync } = require('node:child_process');
+    // With require(ESM) switched off, Node refuses an ES module the way jest
+    // does: loading the mapping core anywhere on this path would throw.
+    const script = `
+        const { fieldDiff, describeVersion } = require(${JSON.stringify(require.resolve('./fieldDiff'))});
+        const base = ${JSON.stringify(BASE)};
+        const next = JSON.parse(JSON.stringify(base));
+        next.steps[1].prompt = 'Summarise {{steps.read.output.name}}';
+        next.steps[0].inputs.folder = { kind: 'ref', path: 'trigger.output.folder' };
+        process.stdout.write(String(fieldDiff(base, next).length) + ' ' + typeof describeVersion(base, next));
+    `;
+    const out = execFileSync(process.execPath, ['--no-experimental-require-module', '-e', script], { encoding: 'utf8' });
+    assert.strictEqual(out, '2 object');
+});

@@ -10,7 +10,7 @@
 import React from 'react';
 
 import { useTranslation } from '@/core/i18n';
-import { BindingInput, NumberField, SelectField, ToggleField } from '@/features/flow-editor/components/fields';
+import { BindingInput, NumberField, SelectField, textFieldValue, ToggleField } from '@/features/flow-editor/components/fields';
 import { readableExample } from '@/features/flow-editor/components/outline/readableText';
 
 import { CacheIntoRow } from './CacheIntoRow';
@@ -133,8 +133,8 @@ export function HttpRequestEditor(editor: StepEditorProps) {
                     required
                     label={t('mobile.flow.http.url', 'URL')}
                     hint={t('mobile.flow.http.url_hint', 'Tap Insert data to put in a value from an earlier step, e.g. {example}.', { example: readableExample(URL_WITH_DATA) })}
-                    value={typeof draft.url === 'string' ? draft.url : ''}
-                    onChange={(v) => set('url', String(v))}
+                    value={textFieldValue(draft.url)}
+                    onChange={(v) => set('url', v)}
                     prompt={URL_EXAMPLE}
                     disabled={ctx.disabled}
                     testID="http-url"
@@ -161,8 +161,8 @@ export function HttpRequestEditor(editor: StepEditorProps) {
                         multiline
                         label={t('mobile.flow.http.body', 'Body')}
                         hint={t('mobile.flow.http.body_hint', 'Raw text or JSON. Tap Insert data to put in a value from an earlier step.')}
-                        value={typeof draft.body === 'string' ? draft.body : ''}
-                        onChange={(v) => set('body', String(v))}
+                        value={textFieldValue(draft.body)}
+                        onChange={(v) => set('body', v)}
                         prompt={readableExample(BODY_EXAMPLE)}
                         disabled={ctx.disabled}
                         testID="http-body"

@@ -10,7 +10,7 @@ import React from 'react';
 
 import { useTranslation } from '@/core/i18n';
 import { useTiers } from '@/features/chat';
-import { BindingInput, FieldRow, MultilineField, RowsEditor, SelectField, ToggleField } from '@/features/flow-editor/components/fields';
+import { BindingInput, FieldRow, MultilineField, RowsEditor, SelectField, textFieldValue, ToggleField } from '@/features/flow-editor/components/fields';
 import type { OutputField } from '@/features/flow-editor/formState';
 import type { Inputs } from '@/features/flow-editor/schemaForm';
 
@@ -96,8 +96,8 @@ export function AiStepEditor(editor: StepEditorProps) {
                 mode="template"
                 multiline
                 required
-                value={typeof draft.prompt === 'string' ? draft.prompt : ''}
-                onChange={(v) => set('prompt', String(v ?? ''))}
+                value={textFieldValue(draft.prompt)}
+                onChange={(v) => set('prompt', v ?? '')}
                 label={t('routines.prompt', 'Prompt')}
                 hint={t('mobile.flow.ai.prompt_hint', "What the AI should do. Tap Insert data to drop in a value from a previous step — it's filled in with the real value when the step runs.")}
                 prompt={t('mobile.flow.ai.prompt_example', 'Summarise this email and decide if it needs an urgent reply.')}

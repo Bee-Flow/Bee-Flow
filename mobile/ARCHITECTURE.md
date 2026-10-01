@@ -265,13 +265,17 @@ up:
 
 ```
 shared/expr/vendor/   the expression engine, byte-identical to agent-hub/src/shared/expr
-shared/mapping/vendor/ the binding core (path walker, legacy kinds), generated from server/shared/mapping
+shared/mapping/vendor/ the mapping core (paths, walking, shapes, picks and composed texts,
+                      labels, upstream fields), generated from server/shared/mapping
 model/                the graph, pure: normalize, edges, flowOrder, nodeDefs, palette,
                       route model, issues, summaries, layout, history, flowlets;
                       model/outline/: insert, remove, duplicate, move, pin, disable,
                       step addresses and findNode
-bindings/             values and references: valueParts, refTokens, upstream (the shared
-                      core's describers, bound to the phone), autoMap
+bindings/             legacy references and their names (dataPath, refTokens), upstream (the
+                      shared core's describers, bound to the phone), autoMap
+valueSlot/            a value picked from an earlier step: ValueChip, the sentence, PickOptionsSheet,
+                      composed texts; the model is the shared core's, the words (pickLabel,
+                      pickSentence, the option names) a port pinned by valueSlot.lockstep.test.ts
 formState/            per step type: step → draft (extract) and draft → patch (buildPatch)
 schemaForm/           an app action's inputs from its catalog inputSchema (ToolInputForm)
 api/ · hooks/         definition, catalog, versions, runs, templates, links, folders,

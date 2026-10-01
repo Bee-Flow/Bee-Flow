@@ -121,7 +121,8 @@ function RowBox({ name, onName, message, onRemove, value, onValue, disabled, sty
                 <NameBox name={name} onCommit={onName} message={message} styles={styles} />
                 {onRemove ? <RemoveButton label={name} onPress={onRemove} styles={styles} /> : null}
             </View>
-            <BindingInput value={value} onChange={(b) => onValue(b as BindingValue)} disabled={disabled} />
+            {/* Each row is a binding the runtime resolves (a set field, a step input): it may hold a pick. */}
+            <BindingInput value={value} onChange={(b) => onValue(b as BindingValue)} storesPicks disabled={disabled} />
         </>
     );
 }

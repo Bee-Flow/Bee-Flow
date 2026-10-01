@@ -3,12 +3,13 @@
  *
  * vendor/corpus.mjs is server/shared/mapping/corpus.mjs, recorded from the
  * server runtime (automation/bind.js). Every case runs through the vendored
- * core and through the flow editor's own walker (bindings/walkPath.ts), so a
+ * core and through the walkers the flow editor imports (the bindings barrel,
+ * which re-exports the core's: the port it kept of them is gone), so a
  * preview on the phone is held to what the run gets. The server runs the same
  * file under node --test, the web under vitest.
  */
 
-import * as editor from '@/features/flow-editor/bindings/walkPath';
+import * as editor from '@/features/flow-editor/bindings';
 import { evaluate } from '@/shared/expr';
 
 import { createLegacyResolver, walkPath, walkRelativePath } from './index';
@@ -140,7 +141,7 @@ describe('the golden binding corpus: v2 pick and compose', () => {
 });
 
 // REGRESSION (confirmed bug "Preview shows a value for paths the runtime
-// rejects"): walkPath.ts skipped REF_RE, so `items.0.x` and `body.content-type`
+// rejects"): the old bindings/walkPath.ts port skipped REF_RE, so `items.0.x` and `body.content-type`
 // previewed a value the run resolves to undefined.
 describe('the flow editor preview rejects what the runtime rejects', () => {
     const root = {

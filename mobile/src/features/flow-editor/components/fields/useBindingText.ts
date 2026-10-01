@@ -8,11 +8,13 @@
 
 import { useEffect, useRef, useState, type RefObject } from 'react';
 
+import { insertAtSelection } from '@/features/flow-editor/bindings';
 import { deepEqual } from '@/features/flow-editor/formState';
+import { markerFor } from '@/features/flow-editor/valueSlot/composeText';
+import type { PickPart } from '@/shared/mapping';
 
 import {
     bindingToText,
-    canAdjust,
     insertPath,
     takesBarePaths,
     textToBinding,
@@ -37,6 +39,11 @@ export interface BindingTextState {
     emit: (next: EditableText) => void;
     /** A picked path at the caret. */
     insert: (path: string) => void;
+    /**
+     * A value part at the caret: into a composed text, or — in typed text —
+     * turning the text into one (the text around the caret kept as it is).
+     */
+    insertPart: (part: PickPart) => void;
     /** The latest `insert`, for a handle held across renders (the Input tab's tap). */
     latestInsert: RefObject<(path: string) => void>;
     /** The selection in the stored text, as the field reports it. */
@@ -65,9 +72,7 @@ export function useBindingText(value: unknown, mode: BindingInputMode, onChange:
 
     const emit = (typed: EditableText) => {
         // A pasted {{path}} in a path or a formula shows as the bare path it is stored as.
-        const edited = takesBarePaths(mode, typed.formula) ? { ...typed, text: unwrapRefs(typed.text) } : typed;
-        // An adjustment belongs to one picked value: text typed around it drops it.
-        const next = edited.adjust && (edited.formula || !canAdjust(edited.text)) ? { ...edited, adjust: null } : edited;
+        const next = takesBarePaths(mode, typed.formula) ? { ...typed, text: unwrapRefs(typed.text) } : typed;
         setShown(next);
         const out = textToBinding(next.text, mode, next.formula, next);
         setSent(out);
@@ -82,6 +87,14 @@ export function useBindingText(value: unknown, mode: BindingInputMode, onChange:
         emit({ ...base, text: edit.value });
         setCaret({ at: edit.caret });
     };
+    const insertPart = (part: PickPart) => {
+        const parts = [...(shown.compose ?? []), part];
+        const at = selection.current?.version === version ? selection.current.range : null;
+        const edit = insertAtSelection(shown.text, at, markerFor(parts.length - 1));
+        selection.current = { range: { start: edit.caret, end: edit.caret }, version };
+        emit({ text: edit.value, formula: false, compose: parts });
+        setCaret({ at: edit.caret });
+    };
     const latestInsert = useRef(insert);
     useEffect(() => {
         latestInsert.current = insert;
@@ -89,5 +102,5 @@ export function useBindingText(value: unknown, mode: BindingInputMode, onChange:
     const onSelection = (range: TextRange) => {
         selection.current = { range, version };
     };
-    return { shown, emit, insert, latestInsert, onSelection, caret };
+    return { shown, emit, insert, insertPart, latestInsert, onSelection, caret };
 }

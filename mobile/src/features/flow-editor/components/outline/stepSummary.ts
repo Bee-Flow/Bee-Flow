@@ -20,7 +20,7 @@ import {
 } from '@/features/flow-editor/model';
 import { triggerName, triggerSummary } from '@/features/flow-editor/model/outline';
 
-import { readablePath, readableRule, readableSummary, readableText } from './readableText';
+import { composeWords, readablePath, readableRule, readableSummary, readableText } from './readableText';
 import { summariseSetStep } from './setSummary';
 
 export interface SummaryContext {
@@ -31,7 +31,8 @@ export interface SummaryContext {
 }
 
 type Step = Record<string, unknown>;
-const str = (v: unknown): string => (typeof v === 'string' ? v : '');
+// A text field may hold a composed text (the v2 mapping): its words, values named.
+const str = (v: unknown): string => (typeof v === 'string' ? v : composeWords(v) ?? '');
 const labels = (ctx: SummaryContext) => ctx.stepLabelById ?? null;
 const keysOf = (v: unknown): string[] => (v && typeof v === 'object' && !Array.isArray(v) ? Object.keys(v) : []);
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;

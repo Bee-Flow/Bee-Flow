@@ -1,51 +1,48 @@
 /**
  * The text a BindingInput edits, and back — the phone's version of the web's
- * value builder (agent-hub `Builder/mapping/ValueBuilder.jsx`, `TemplateField`,
- * `PathField`), which lets an author type around `{{path}}` pills.
+ * value field, which lets an author type around `{{path}}` pills.
  *
  * The field's text is the plain text — data written as `{{path}}` — and
  * PillTextInput draws each reference as a pill inside it, named the way the
- * web names them (bindings/valueParts `describeDataPath`). Three value shapes:
+ * web names them (bindings/dataPath `describeDataPath`). Four value shapes:
  *
  *   binding   a `{kind, …}` binding (tool inputs, Edit data fields, a call's
- *             inputs). Text mode goes through valueParts' visual model:
- *             `parseValue` → parts → text, text → parts → `buildValue`, so a
- *             `{{steps.a.output.x}}` alone is a ref and mixed text a template,
- *             exactly the kinds the web writes. Anything the visual model does
- *             not cover (a transform, a JSON pick, an expression) is edited in
- *             FORMULA mode as the expression itself.
- *   template  a plain string the runtime interpolates (a prompt, a body).
+ *             inputs). `{{steps.a.output.x}}` alone is a ref, mixed text a
+ *             template, plain text a literal — the kinds the web writes.
+ *             Anything else (a function, a comparison) is edited in FORMULA
+ *             mode as the expression itself. A pick or a composed text is
+ *             the shared mapping core's (features/flow-editor/valueSlot):
+ *             a pick is never edited as text, a composed text is (below).
+ *   template  a plain string the runtime interpolates (a prompt, a body), or
+ *             a composed text stored there.
  *   path      a bare path (`steps.x.output.items`) — a list to work through,
  *             a value to scan. A pick replaces it whole.
  *   expression a free expression stored as its text (a raw condition): a
  *             pick goes in at the caret as a bare path, around what is typed.
+ *
+ * A composed text (`{ kind: 'compose', parts }`) is edited as raw text with a
+ * marker per value (valueSlot/composeText), its parts table carried beside
+ * the text, and written back as the compose it spells: never as a `{{ }}`
+ * template, whose lists and records render differently.
  */
 
 import {
     bindingFromInput,
-    buildValue,
     describeDataPath,
     formatPathForInsert,
     inputFromBinding,
     insertAtSelection,
     isDataPath,
-    parseValue,
     type Binding,
     type BindingValue,
     type StepLabelMap,
     type TextEdit,
-    type ValuePart,
 } from '@/features/flow-editor/bindings';
 import { renderBindingValue } from '@/features/flow-editor/model/route/bindingText';
+import { composeToText, plainText, textToCompose } from '@/features/flow-editor/valueSlot/composeText';
+import { isCompose, isPick, type ComposeBinding, type PickPart } from '@/shared/mapping';
 
 export type BindingInputMode = 'binding' | 'template' | 'path' | 'expression';
-
-/** A one-click adjustment of a single picked value (valueTransforms): `formatDate(path, "D MMMM YYYY")`. */
-export interface Adjustment {
-    transform: string;
-    arg: string | null;
-    arg2: string | null;
-}
 
 /** A field read out of JSON text another step returned: `parseJson(path, "customer.name")`. */
 export interface JsonPick {
@@ -57,33 +54,51 @@ export interface EditableText {
     text: string;
     /** The binding is an expression, edited as one (binding mode only). */
     formula: boolean;
-    /** The adjustment of the one picked value the text holds, if any (binding mode only). */
-    adjust?: Adjustment | null;
     /** The whole value is one JSON pick, shown as its pill (the text is then empty). */
     pick?: JsonPick | null;
+    /** The text is a composed text: its value parts, which the text's markers name. */
+    compose?: PickPart[] | null;
 }
 
 /** What a value holds besides its text. */
-export type TextExtras = Pick<EditableText, 'adjust' | 'pick'>;
+export type TextExtras = Pick<EditableText, 'pick' | 'compose'>;
+
+/** One run of a text: literal text, or a data path the text holds as `{{path}}`. */
+export type TextPart = { type: 'text'; text: string } | { type: 'data'; path: string };
 
 const TOKEN_RE = /\{\{([^}]*)\}\}/g;
+// `parseJson(<path>)` / `parseJson(<path>, "<path in the json>")`, escape-free:
+// what Edit data's "Pick fields from it" writes.
+const JSON_CALL = /^parseJson\(\s*([^,()]+?)\s*(?:,\s*(["'])([^"']*)\2\s*)?\)$/;
+
+/**
+ * What a text field (a prompt, a body, a title) hands its BindingInput: the
+ * text, or a pick or composed text the v2 mapping stored there — which the
+ * field shows and writes back as it is. Anything else reads as empty. A
+ * caller that read only strings showed a composed prompt as empty, and the
+ * first keystroke wrote the words over it.
+ */
+export function textFieldValue(value: unknown): unknown {
+    if (typeof value === 'string' || isCompose(value) || isPick(value)) return value;
+    return value == null || typeof value === 'object' ? '' : String(value);
+}
 
 function asText(value: unknown): string {
-    if (value == null) return '';
+    if (value == null || typeof value === 'object') return '';
     return typeof value === 'string' ? value : String(value);
 }
 
 /** Parts → text, data written as `{{path}}`. */
-export function partsToText(parts: readonly ValuePart[]): string {
+export function partsToText(parts: readonly TextPart[]): string {
     return parts.map((p) => (p.type === 'text' ? p.text : `{{${p.path}}}`)).join('');
 }
 
 /**
- * Text → the visual parts, or null when a `{{ }}` holds something that is not
+ * Text → its parts, or null when a `{{ }}` holds something that is not
  * a pickable path (a hand-written formula inside a template).
  */
-export function textToParts(text: string): ValuePart[] | null {
-    const parts: ValuePart[] = [];
+export function textToParts(text: string): TextPart[] | null {
+    const parts: TextPart[] = [];
     let last = 0;
     for (const m of text.matchAll(TOKEN_RE)) {
         const inner = (m[1] as string).trim();
@@ -97,42 +112,64 @@ export function textToParts(text: string): ValuePart[] | null {
     return parts;
 }
 
-/**
- * What the field shows for a stored value. A single picked value with an
- * adjustment (`upper(…)`, `formatDate(…, "…")`) is shown as its pill with the
- * adjustment beside it, as the web's value builder shows it — not as a formula.
- */
+/** A composed text as the field's raw text and its parts. */
+function composeEditable(compose: ComposeBinding): EditableText {
+    const { raw, parts } = composeToText(compose);
+    return { text: raw, formula: false, compose: parts };
+}
+
+/** The text of a binding the text editor can show as text (with pills), or null. */
+function plainBindingText(b: { kind?: unknown; value?: unknown; path?: unknown }): string | null {
+    if (b.kind === 'literal') return b.value == null ? '' : typeof b.value === 'object' ? null : String(b.value);
+    if (b.kind === 'ref') {
+        const path = String(b.path || '').trim();
+        return !path ? '' : isDataPath(path) ? `{{${path}}}` : null;
+    }
+    if (b.kind === 'template') {
+        const text = String(b.value || '');
+        return textToParts(text) ? text : null;
+    }
+    if (b.kind === 'expr') {
+        const src = String(b.value || '').trim();
+        return !src ? '' : isDataPath(src) ? `{{${src}}}` : null;
+    }
+    return null;
+}
+
+/** What the field shows for a stored value. */
 export function bindingToText(value: unknown, mode: BindingInputMode): EditableText {
+    if ((mode === 'binding' || mode === 'template') && isCompose(value)) return composeEditable(value);
     if (mode !== 'binding' || value == null || typeof value !== 'object') return { text: asText(value), formula: false };
-    const parsed = parseValue(value as BindingValue);
-    const only = parsed.parts.length === 1 ? parsed.parts[0] : null;
-    if (parsed.supported && !parsed.transform && only?.type === 'json') {
-        return { text: '', formula: false, pick: { path: only.path, jsonPath: only.jsonPath } };
-    }
-    const visual = parsed.supported && parsed.parts.every((p) => p.type !== 'json');
-    if (visual) {
-        const text = partsToText(parsed.parts);
-        if (!parsed.transform) return { text, formula: false };
-        return { text, formula: false, adjust: { transform: parsed.transform, arg: parsed.transformArg, arg2: parsed.transformArg2 } };
-    }
-    const { mode: inputMode, text } = inputFromBinding(value as BindingValue);
-    return { text, formula: inputMode === 'expression' };
+    // A pick shows as its chip (valueSlot), never as text.
+    if (isPick(value)) return { text: '', formula: false };
+    const b = value as { kind?: unknown; value?: unknown; path?: unknown };
+    const json = b.kind === 'expr' && typeof b.value === 'string' ? JSON_CALL.exec(b.value.trim()) : null;
+    if (json && isDataPath(json[1])) return { text: '', formula: false, pick: { path: (json[1] as string).trim(), jsonPath: json[3] ?? '' } };
+    const text = plainBindingText(b);
+    if (text !== null) return { text, formula: false };
+    const { mode: inputMode, text: raw } = inputFromBinding(value as BindingValue);
+    return { text: raw, formula: inputMode === 'expression' };
 }
 
-/** Is the text exactly one picked value — the only shape an adjustment applies to? */
-export function canAdjust(text: string): boolean {
-    const parts = textToParts(text);
-    return parts?.length === 1 && parts[0]?.type === 'data';
+function jsonBinding(pick: JsonPick): Binding {
+    if (!pick.jsonPath) return { kind: 'expr', value: `parseJson(${pick.path})` };
+    const quote = pick.jsonPath.includes('"') ? "'" : '"';
+    return { kind: 'expr', value: `parseJson(${pick.path}, ${quote}${pick.jsonPath}${quote})` };
 }
 
-/** Text mode: the visual parts, a JSON pick, or — for a `{{ }}` the pills cannot show — fixed text. */
-function visualBinding(text: string, { adjust, pick }: TextExtras): Binding {
-    if (pick && !text) return buildValue([{ type: 'json', path: pick.path, jsonPath: pick.jsonPath }]);
-    const parts = textToParts(text);
+/**
+ * Text mode: nothing → empty literal, one text → literal, one picked path →
+ * ref (or expr), mixed → template, a JSON pick as its call; a `{{ }}` the
+ * pills cannot show stays fixed text.
+ */
+function visualBinding(text: string, pick: JsonPick | null | undefined): Binding {
+    if (pick && !text) return jsonBinding(pick);
+    const parts = textToParts(text)?.filter((p) => (p.type === 'text' ? p.text !== '' : !!p.path));
     if (!parts) return bindingFromInput(text, 'fixed');
-    // An adjustment belongs to ONE picked value; text around it drops it (the web's rule).
-    if (!adjust || !canAdjust(text)) return buildValue(parts);
-    return buildValue(parts, adjust.transform, adjust.arg, adjust.arg2);
+    const only = parts[0];
+    if (!only) return { kind: 'literal', value: '' };
+    if (parts.length === 1) return only.type === 'text' ? { kind: 'literal', value: only.text } : bindingFromInput(only.path, 'expression');
+    return { kind: 'template', value: partsToText(parts) };
 }
 
 /** What a typed text means, in the field's shape. */
@@ -150,10 +187,17 @@ export function takesBarePaths(mode: BindingInputMode, formula: boolean): boolea
     return formula || mode === 'path' || mode === 'expression';
 }
 
-export function textToBinding(text: string, mode: BindingInputMode, formula = false, extras: TextExtras = {}): Binding | string {
+export function textToBinding(text: string, mode: BindingInputMode, formula = false, extras: TextExtras = {}): Binding | ComposeBinding | string {
+    if (extras.compose && (mode === 'binding' || mode === 'template')) {
+        const compose = textToCompose(text, extras.compose);
+        if (compose) return compose;
+        // No value left: the text it says, as the field stores text.
+        const plain = plainText(text);
+        return mode === 'template' ? plain : { kind: 'literal', value: plain };
+    }
     if (mode !== 'binding') return mode === 'template' ? text : unwrapRefs(text).trim();
     if (formula) return bindingFromInput(unwrapRefs(text), 'expression');
-    return visualBinding(text, extras);
+    return visualBinding(text, extras.pick);
 }
 
 /**
@@ -208,7 +252,8 @@ export function chipsIn(text: string, expression: boolean, labels: StepLabelMap 
 
 /**
  * The same value, written as a formula: a template becomes `concat(…)`, a
- * pill its bare path, fixed text a quoted string — nothing is lost.
+ * pill its bare path, fixed text a quoted string — nothing is lost. (A
+ * composed text has no formula spelling and never offers the switch.)
  */
 export function toFormula(text: string, extras: TextExtras = {}): EditableText {
     return { text: renderBindingValue(textToBinding(text, 'binding', false, extras)), formula: true };

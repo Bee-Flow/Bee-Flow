@@ -16,9 +16,9 @@
  */
 
 import { translate as t } from '@/core/i18n';
+import { slotShape, type Slot } from '@/shared/mapping';
 
 import { type FieldKind, expectedKindFor } from '../bindings/fieldKinds';
-import { expectedShapeFor } from '../bindings/listShape';
 import { partitionInputs } from '../bindings/partitionInputs';
 import type { BindingValue, JsonSchema, JsonSchemaProp } from '../bindings/types';
 
@@ -29,7 +29,10 @@ export interface SchemaFormField {
     required: boolean;
     placeholder: string;
     multiline: boolean;
-    expectShape: 'list' | 'scalar' | 'unknown';
+    /** What the field wants of a picked value (the core's slotShape of its schema). */
+    slot: Slot;
+    /** The parameter's own schema, for the value field (BindingInput `schema`). */
+    schema: JsonSchemaProp;
     expectKind: FieldKind;
     /** A declared option list — the phone offers it as a picker. */
     options: unknown[] | null;
@@ -100,7 +103,8 @@ function fieldFor(key: string, prop: JsonSchemaProp, ctx: { required: Set<string
         required: ctx.required.has(key),
         placeholder: describeExample(prop),
         multiline: isMultilineProp(prop),
-        expectShape: expectedShapeFor(prop),
+        slot: slotShape(prop, { field: key }),
+        schema: prop,
         expectKind: expectedKindFor(prop),
         options: Array.isArray(prop.enum) && prop.enum.length ? prop.enum : null,
         value: ctx.inputs[key] ?? null,

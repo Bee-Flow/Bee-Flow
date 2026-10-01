@@ -51,17 +51,12 @@ const NBSP = ' ';
  * How a pill reads inside the field. Padded like the web's `px-1.5`, and its
  * spaces non-breaking so a pill never wraps in two (`whitespace-nowrap`).
  */
-export function pillLabel(chip: Pick<TextChip, 'name' | 'suffix'>, note = ''): string {
-    const words = note ? `${chipLabel(chip)} · ${note}` : chipLabel(chip);
-    return `${NBSP}${words.replace(/ /g, NBSP)}${NBSP}`;
+export function pillLabel(chip: Pick<TextChip, 'name' | 'suffix'>): string {
+    return `${NBSP}${chipLabel(chip).replace(/ /g, NBSP)}${NBSP}`;
 }
 
-/**
- * The raw text split into literal runs and pills, with both coordinates.
- * `note` is said on every pill after its name — the adjustment of a single
- * picked value ("· as a written date"), which the web draws on the chip.
- */
-export function pillText(raw: string, chips: readonly TextChip[], note = ''): PillText {
+/** The raw text split into literal runs and pills, with both coordinates. */
+export function pillText(raw: string, chips: readonly TextChip[]): PillText {
     const segments: PillSegment[] = [];
     let display = '';
     let last = 0;
@@ -74,7 +69,7 @@ export function pillText(raw: string, chips: readonly TextChip[], note = ''): Pi
     for (const chip of chips) {
         if (chip.start < last) continue;
         text(last, chip.start);
-        const label = pillLabel(chip, note);
+        const label = pillLabel(chip);
         segments.push({ kind: 'pill', chip, label, rawStart: chip.start, rawEnd: chip.end, start: display.length, end: display.length + label.length });
         display += label;
         last = chip.end;

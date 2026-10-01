@@ -19,6 +19,8 @@
  *   ref       { kind:'ref', path:'trigger.output.old' }        → …output.new
  *   template  "Dag {{trigger.output.old}}"                      → {{…output.new}}
  *   expr      "trigger.output.old == 'x'"                       → …output.new
+ *   pick      { kind:'pick', from:{ root:'trigger', path:['old'] } } → ['new']
+ *   compose   every value part's `from`, the same way
  *
  * Three rules it follows, each of which is a bug it exists to avoid:
  *
@@ -113,11 +115,25 @@ function renameInExpr(src, base, from, to) {
 }
 
 /**
+ * The source of a pick (or of a compose's value part), renamed when it sits
+ * under `base` — `trigger.output` is root `trigger`, `steps.<id>.output` root
+ * `steps` with that id — and its first segment is the field. Same object when
+ * it does not.
+ */
+function renameInSource(source, base, from, to) {
+    if (!source || typeof source !== 'object' || !Array.isArray(source.path) || source.path[0] !== from) return source;
+    const pageId = /^steps\.([^.]+)\.output$/.exec(base)?.[1] ?? null;
+    const under = base === 'trigger.output' ? source.root === 'trigger' : source.root === 'steps' && source.id === pageId;
+    return under ? { ...source, path: [to, ...source.path.slice(1)] } : source;
+}
+
+/**
  * Deep-walk a value, returning a rewritten COPY and counting what changed.
  *
- * Only objects whose `kind` is one of the four binding kinds are wrappers;
- * a `literal` ships verbatim at run time, so its payload is left alone — the
- * same carve-out bind.js and portability.js make.
+ * Only objects whose `kind` is a binding kind are wrappers (a pick, and each
+ * value part of a compose, name the field in their `from`); a `literal` ships
+ * verbatim at run time, so its payload is left alone — the same carve-out
+ * bind.js and portability.js make.
  */
 function rewriteDeep(value, base, from, to, counter) {
     if (Array.isArray(value)) return value.map(v => rewriteDeep(v, base, from, to, counter));
@@ -139,6 +155,23 @@ function rewriteDeep(value, base, from, to, counter) {
         const next = renameInExpr(value.value, base, from, to);
         if (next !== value.value) counter.count += 1;
         return { ...value, value: next };
+    }
+    if (kind === 'pick') {
+        const next = renameInSource(value.from, base, from, to);
+        if (next !== value.from) counter.count += 1;
+        return { ...value, from: next };
+    }
+    if (kind === 'compose' && Array.isArray(value.parts)) {
+        let moved = false;
+        const parts = value.parts.map((part) => {
+            if (!part || typeof part !== 'object') return part;
+            const next = renameInSource(part.from, base, from, to);
+            if (next === part.from) return { ...part };
+            moved = true;
+            return { ...part, from: next };
+        });
+        if (moved) counter.count += 1;
+        return { ...value, parts };
     }
 
     const out = {};

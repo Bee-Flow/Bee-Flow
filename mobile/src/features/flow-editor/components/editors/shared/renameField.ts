@@ -6,7 +6,7 @@
  * A declared field (a form question, a trigger parameter) has two names: the
  * label a person reads, and the `name` other steps bind (`trigger.output.<name>`,
  * `steps.<pageId>.output.<name>`). Renaming the second rewrites every ref,
- * template and expression in the SAME edit, and only:
+ * template, expression, pick and compose value part in the SAME edit, and only:
  *   - under THIS field's base (two pages may share a slug);
  *   - on a WHOLE segment (`naam` never touches `naam_bedrijf`);
  *   - outside string literals in an expression.
@@ -93,6 +93,34 @@ function rewriteBinding(value: Obj, kind: string, r: Rename): Obj | null {
     return kind === 'ref' ? { ...value, path: next } : { ...value, value: next };
 }
 
+/**
+ * The source of a pick (or of a compose's value part), renamed when it sits
+ * under the base — `trigger.output` is root `trigger`, `steps.<id>.output`
+ * root `steps` with that id — and its first segment is the field. Same object
+ * when it does not.
+ */
+function renameInSource(source: unknown, r: Rename): unknown {
+    const src = source as Obj | null;
+    if (!src || typeof src !== 'object' || !Array.isArray(src.path) || src.path[0] !== r.from) return source;
+    const pageId = /^steps\.([^.]+)\.output$/.exec(r.base)?.[1] ?? null;
+    const under = r.base === 'trigger.output' ? src.root === 'trigger' : src.root === 'steps' && src.id === pageId;
+    return under ? { ...src, path: [r.to, ...src.path.slice(1)] } : source;
+}
+
+/** A compose with each value part's source renamed; counted once, as a template is. */
+function rewriteCompose(value: Obj, parts: unknown[], r: Rename): Obj {
+    let moved = false;
+    const next = parts.map((part) => {
+        if (!part || typeof part !== 'object') return part;
+        const from = renameInSource((part as Obj).from, r);
+        if (from === (part as Obj).from) return { ...(part as Obj) };
+        moved = true;
+        return { ...(part as Obj), from };
+    });
+    if (moved) r.count += 1;
+    return { ...value, parts: next };
+}
+
 /** A rewritten COPY of any value; a `literal` ships verbatim at run time, so its payload stays. */
 function rewriteDeep(value: unknown, r: Rename): unknown {
     if (Array.isArray(value)) return value.map((v) => rewriteDeep(v, r));
@@ -104,6 +132,12 @@ function rewriteDeep(value: unknown, r: Rename): unknown {
         const bound = rewriteBinding(obj, kind, r);
         if (bound) return bound;
     }
+    if (kind === 'pick') {
+        const from = renameInSource(obj.from, r);
+        if (from !== obj.from) r.count += 1;
+        return { ...obj, from };
+    }
+    if (kind === 'compose' && Array.isArray(obj.parts)) return rewriteCompose(obj, obj.parts, r);
     const out: Obj = {};
     for (const k of Object.keys(obj)) out[k] = rewriteDeep(obj[k], r);
     return out;

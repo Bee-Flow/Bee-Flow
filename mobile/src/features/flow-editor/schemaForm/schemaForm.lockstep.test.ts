@@ -181,9 +181,9 @@ describe('the port on its own', () => {
         });
         expect(model.mode).toBe('schema');
         expect(model.essential.map((f) => f.key)).toStrictEqual(['query', 'limit']);
-        expect(model.advanced.map((f) => [f.key, f.expectKind, f.expectShape, f.options, f.autoMapped])).toStrictEqual([
-            ['format', 'choice', 'scalar', ['full', 'raw'], false],
-            ['tags', 'table', 'list', null, false],
+        expect(model.advanced.map((f) => [f.key, f.expectKind, f.slot, f.options, f.autoMapped])).toStrictEqual([
+            ['format', 'choice', { as: 'text', multiLine: false }, ['full', 'raw'], false],
+            ['tags', 'table', { as: 'list', multiLine: false, items: 'object' }, null, false],
         ]);
         expect(model.essential[0]).toMatchObject({ label: 'Query', hint: 'What to find', required: true, value: null, placeholder: '' });
         expect(model.essential[1]).toMatchObject({ autoMapped: true, value: { kind: 'literal', value: 3 }, placeholder: 'e.g. 42' });

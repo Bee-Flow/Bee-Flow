@@ -17,10 +17,14 @@ const GROUPS: VariableGroup[] = [
         label: 'gmail search',
         kind: 'step',
         basePath: 'steps.act_1.output',
-        sample: { total: 2 },
-        fields: [{ key: 'total', path: 'steps.act_1.output.total', sample: 2 }],
+        sample: { total: 2, orders: [{ product: 'Stoel' }, { product: 'Tafel' }] },
+        fields: [
+            { key: 'total', path: 'steps.act_1.output.total', sample: 2 },
+            { key: 'product', path: 'steps.act_1.output.orders[*].product', sample: 'Stoel' },
+        ],
     },
 ];
+
 
 /** A field that keeps what it sends, as the step editor does; `replacement` is a value set from elsewhere (undo, the AI builder). */
 function Harness({
@@ -28,11 +32,12 @@ function Harness({
     onValue,
     simple = false,
     replacement,
+    sampleRoot = null,
     ...rest
-}: Omit<BindingInputProps, 'value' | 'onChange'> & { initial: unknown; onValue: (v: unknown) => void; simple?: boolean; replacement?: unknown }) {
+}: Omit<BindingInputProps, 'value' | 'onChange'> & { initial: unknown; onValue: (v: unknown) => void; simple?: boolean; replacement?: unknown; sampleRoot?: unknown }) {
     const [value, setValue] = useState<unknown>(initial);
     return (
-        <VariablePickerProvider groups={GROUPS} sampleRoot={null} stepLabelById={new Map([['act_1', 'gmail search']])} simple={simple}>
+        <VariablePickerProvider groups={GROUPS} sampleRoot={sampleRoot} stepLabelById={new Map([['act_1', 'gmail search']])} simple={simple}>
             {replacement === undefined ? null : (
                 <Pressable accessibilityRole="button" onPress={() => setValue(replacement)}>
                     <Text>replace from outside</Text>
@@ -139,25 +144,14 @@ describe('BindingInput', () => {
         expect(onValue).toHaveBeenLastCalledWith('steps.act_1.output.results');
     });
 
-    it('shows an adjusted value as its pill, the adjustment on it and in the row under it', async () => {
+    it('keeps a value with a function around it the formula it is, its data as a pill', async () => {
         const onValue = jest.fn();
         await renderWithProviders(
             <Harness label="Date" initial={{ kind: 'expr', value: 'formatDate(steps.act_1.output.total, "DD-MM-YYYY")' }} onValue={onValue} testID="date" />,
         );
-        expect(shownText(screen.getByTestId('date-input'))).toBe(' gmail search ▸ Total · as a written date ');
-        expect(screen.getByRole('tab', { name: 'Text' }).props.accessibilityState).toMatchObject({ selected: true });
-        expect(screen.getByText('02-09-2026')).toBeTruthy();
-    });
-
-    it('adjusts a single picked value from the row under it', async () => {
-        const onValue = jest.fn();
-        await renderWithProviders(<Harness label="Name" initial={{ kind: 'ref', path: 'steps.act_1.output.total' }} onValue={onValue} testID="name" />);
-        await fireEvent.press(screen.getByTestId('adjust-select'));
-        await fireEvent.press(screen.getByText('UPPERCASE'));
-        expect(onValue).toHaveBeenLastCalledWith({ kind: 'expr', value: 'upper(steps.act_1.output.total)' });
-        await fireEvent.press(screen.getByTestId('adjust-select'));
-        await fireEvent.press(screen.getByText('use it as it is'));
-        expect(onValue).toHaveBeenLastCalledWith({ kind: 'ref', path: 'steps.act_1.output.total' });
+        expect(shownText(screen.getByTestId('date-input'))).toBe('formatDate( gmail search ▸ Total , "DD-MM-YYYY")');
+        expect(screen.getByRole('tab', { name: 'Formula' }).props.accessibilityState).toMatchObject({ selected: true });
+        expect(onValue).not.toHaveBeenCalled();
     });
 
     it('shows a JSON pick as its pill, not a parseJson formula, and takes it out', async () => {
@@ -179,11 +173,6 @@ describe('BindingInput', () => {
         );
         await fireEvent.press(screen.getByRole('tab', { name: 'Formula' }));
         expect(shownText(screen.getByTestId('name-input'))).toBe('parseJson( gmail search ▸ Total , "customer.name")');
-    });
-
-    it('offers no adjustment for text with data in it', async () => {
-        await renderWithProviders(<Harness label="Subject" initial={{ kind: 'template', value: 'Re: {{steps.act_1.output.total}}' }} onValue={jest.fn()} />);
-        expect(screen.queryByTestId('adjust-select')).toBeNull();
     });
 
     it('hides the formula switch in the Simple view, unless the field holds a formula', async () => {

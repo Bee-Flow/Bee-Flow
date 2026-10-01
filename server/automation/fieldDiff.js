@@ -29,7 +29,20 @@
 
 'use strict';
 
-const { isPick, isCompose, describeSource } = require('../shared/mapping/index.mjs');
+// The mapping core is ESM, loaded on first use rather than at the top: the
+// mobile lockstep tests require this file (via diffSummary.js) under jest,
+// whose module system cannot require an ES module. Only a value that says
+// it is a pick or a compose ever needs the core, so a diff without one never
+// loads it. Node itself loads it either way (require(ESM), >= 22.12).
+let mappingCore = null;
+function mapping() {
+    if (!mappingCore) mappingCore = require('../shared/mapping/index.mjs');
+    return mappingCore;
+}
+const kindIs = (v, kind) => v !== null && typeof v === 'object' && v.kind === kind;
+const isPick = (v) => kindIs(v, 'pick') && mapping().isPick(v);
+const isCompose = (v) => kindIs(v, 'compose') && mapping().isCompose(v);
+const describeSource = (source) => mapping().describeSource(source);
 
 // ── Layout ───────────────────────────────────────────────────────────────
 

@@ -2,38 +2,17 @@
  * DIFFERENTIAL lockstep: agent-hub `utils/bindingHelpers.js` and its port run
  * the same inputs and must agree. When this fails the web side changed —
  * update the port, don't loosen the test.
+ *
+ * The path walkers are not compared here any more: both sides read paths with
+ * the shared mapping core, which shared/mapping/corpus.test.ts holds to the
+ * server. previewValue is the phone's own (bindingHelpers.test.ts).
  */
 
 import * as port from './bindingHelpers';
 import * as cond from './conditionText';
 import { requireWeb } from './testing/web';
-import * as walk from './walkPath';
 
 const web = requireWeb('utils/bindingHelpers.js');
-
-const ROOT = {
-    trigger: { output: { subject: 'Hi', n: 3, 'content-type': 'json', list: [{ a: 1 }, { a: 2 }] } },
-    steps: {
-        s1: { output: { results: [{ subject: 'x', tags: ['a', 'b'] }, { subject: 'y', tags: ['c'] }], total: 2 } },
-        fe: { output: { results: [{ output: { v: 1 } }, { output: { v: [2, 3] } }, { output: null }] } },
-    },
-    arr: [10, 20],
-};
-
-const PATHS = [
-    '', 'trigger', 'trigger.output.subject', 'trigger.output["content-type"]', "trigger.output['content-type']",
-    'trigger.output.list[1].a', 'trigger.output.list[*].a', 'steps.s1.output.results[*].subject',
-    'steps.s1.output.results[*].tags', 'steps.fe.output.results[*].output.v', 'steps.s1.output.total.constructor',
-    'constructor', 'trigger.output.subject.length', 'arr[0]', 'arr[5]', 'trigger.output.list[', 'steps..s1',
-    'trigger.output.list[*]', 'nope.x', '__proto__',
-];
-
-const REL = [
-    '', '$', 'a', 'a.b', '[0]', '[0].x', '[*].sku', '0', 'a-b', '["a-b"]', 'a["b"]', "a['b']", 'a[*].b', 'a.',
-];
-const REL_VALUES: unknown[] = [
-    { a: { b: 1 }, 'a-b': 2 }, [{ x: 1, sku: 's1' }, { sku: 's2' }], 'text', null, [[1, 2]],
-];
 
 const BINDINGS: unknown[] = [
     null, undefined, 'bare', 42, true, { kind: 'literal', value: 'x' }, { kind: 'literal', value: null },
@@ -49,32 +28,6 @@ const TEXTS = [
     '', 'steps.a.output.x', '  trigger.output.y ', 'vars.k', 'secrets.api', 'loop.item.x', 'item.x', 'x + 1',
     'hello {{trigger.output.name}}', '{{ }}', 'a.b[*].c', '$var', '1abc', 'steps.a.output.results[*].x',
 ];
-
-describe('walkPath / walkRelativePath / previewValue', () => {
-    it.each(PATHS)('walkPath(%p)', (p) => {
-        expect(walk.walkPath(p, ROOT)).toStrictEqual(web.walkPath?.(p, ROOT));
-    });
-
-    it('walkPath on a missing root', () => {
-        expect(walk.walkPath('a', null)).toStrictEqual(web.walkPath?.('a', null));
-        expect(walk.walkPath(null, ROOT)).toStrictEqual(web.walkPath?.(null, ROOT));
-    });
-
-    it.each(REL)('walkRelativePath(%p)', (p) => {
-        for (const v of REL_VALUES) {
-            expect(walk.walkRelativePath(p, v)).toStrictEqual(web.walkRelativePath?.(p, v));
-        }
-        expect(walk.walkRelativePath(null, 1)).toBe(web.walkRelativePath?.(null, 1));
-    });
-
-    it.each([
-        null, undefined, '', 'short', 'x'.repeat(60), 0, 3.5, true, [], [1], [1, 2], {}, { a: 1 },
-        { a: 1, b: 2, c: 3, d: 4 }, Symbol.for('s'),
-    ])('previewValue(%p)', (v) => {
-        expect(walk.previewValue(v)).toBe(web.previewValue?.(v));
-        expect(walk.previewValue(v, 5)).toBe(web.previewValue?.(v, 5));
-    });
-});
 
 describe('mode <-> binding', () => {
     it.each(TEXTS)('bindingFromInput(%p)', (text) => {

@@ -11,9 +11,13 @@
  * ever stored.
  */
 
-import { describeDataPath, describeListPath, isDataPath, type StepLabelMap } from '@/features/flow-editor/bindings';
+import { translate } from '@/core/i18n';
+import { describeDataPath, isDataPath, type StepLabelMap } from '@/features/flow-editor/bindings';
 import { chipLabel, chipsIn, type TextChip } from '@/features/flow-editor/components/fields/bindingText';
 import { describeRuleExpr, humanizeExpression, type Summary, type Translate } from '@/features/flow-editor/model';
+import { humanizeFieldTail } from '@/features/flow-editor/model/displayHelpers';
+import { pickLabel } from '@/features/flow-editor/valueSlot/pickLabel';
+import { isCompose } from '@/shared/mapping';
 
 const TOKEN_RE = /\{\{([^}]*)\}\}/g;
 
@@ -25,11 +29,25 @@ export function refWords(chip: Pick<TextChip, 'name' | 'suffix'>): string {
 const within = (c: TextChip, a: number, b: number) => c.start >= a && c.end <= b;
 
 /**
+ * A composed text (the v2 mapping: `{ kind: 'compose', parts }`) as a line of
+ * text — its words, each value named between ‹ › the way its pill names it:
+ * "Beste ‹Naam of klant›". Null for anything else.
+ */
+export function composeWords(value: unknown, labels: StepLabelMap = null): string | null {
+    if (!isCompose(value)) return null;
+    return value.parts
+        .map((p) => (typeof p === 'string' ? p : `‹${pickLabel(translate, p, p.from.root === 'steps' ? labels?.get?.(p.from.id) ?? '' : '')}›`))
+        .join('');
+}
+
+/**
  * The references in a text, named. Every `{{path}}` is one; a bare path is
  * one in an expression, or inside a `{{ … }}` that holds more than a path
  * (`{{ upper(steps.a.output.name) }}`). Everything else stays as written.
  */
 export function readableText(text: unknown, labels: StepLabelMap = null, { expression = false }: { expression?: boolean } = {}): string {
+    const words = composeWords(text, labels);
+    if (words !== null) return words;
     const src = typeof text === 'string' ? text : '';
     if (!src) return '';
     const wrapped = chipsIn(src, false, labels);
@@ -47,6 +65,19 @@ export function readableText(text: unknown, labels: StepLabelMap = null, { expre
     return out + src.slice(last);
 }
 
+const WILDCARD = '[*]';
+
+/**
+ * A column path (one value from each row, `results[*].subject`) named:
+ * "gmail search ▸ Subject (inside each row)", never an internal step id.
+ */
+function describeColumnPath(raw: string, labels: StepLabelMap, t: Translate | null): string {
+    const at = raw.indexOf(WILDCARD);
+    const step = describeDataPath(raw.slice(0, at), labels).name;
+    const field = humanizeFieldTail(raw.slice(at + WILDCARD.length));
+    return t ? t('routines.builder.column_path_label', '{step} ▸ {field} (inside each row)', { step, field }) : `${step} ▸ ${field} (inside each row)`;
+}
+
 /**
  * A path a step reads — the list a loop works through, the value a check
  * scans — named: "‹gmail search ▸ Results›", a column "‹gmail search ▸
@@ -57,7 +88,7 @@ export function readablePath(path: unknown, labels: StepLabelMap = null, t: Tran
     const raw = (typeof path === 'string' ? path : '').trim().replace(/(?:\[\*\])+$/, '');
     if (!raw) return '';
     if (!isDataPath(raw)) return readableText(raw, labels, { expression: true });
-    return `‹${raw.includes('[*]') ? describeListPath(raw, labels, t) : chipLabel(describeDataPath(raw, labels))}›`;
+    return `‹${raw.includes(WILDCARD) ? describeColumnPath(raw, labels, t) : chipLabel(describeDataPath(raw, labels))}›`;
 }
 
 /**

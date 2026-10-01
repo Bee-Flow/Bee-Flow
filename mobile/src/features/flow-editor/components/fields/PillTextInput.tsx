@@ -51,8 +51,11 @@ export interface PillTextInputProps extends Omit<TextFieldProps, 'value' | 'onCh
     /** The selection, in the stored text's positions. */
     onSelectionChange?: (raw: TextRange) => void;
     caret?: CaretRequest | null;
-    /** Said on the pill after its name: the value's adjustment. */
-    note?: string | null;
+    /**
+     * The pills of a raw text when they are not `{{path}}` references: the
+     * values of a composed text (valueSlot/composeText), named by the caller.
+     */
+    chipsOf?: ((raw: string) => TextChip[]) | null;
 }
 
 /** What was just typed, in the raw text it belongs to. */
@@ -65,13 +68,13 @@ interface Typed {
 interface ViewOptions {
     expression: boolean;
     labels: StepLabelMap;
-    note: string;
+    chipsOf?: ((raw: string) => TextChip[]) | null;
 }
 
-function viewOf(raw: string, { expression, labels, note }: ViewOptions, held: TextRange | null): PillText {
-    const chips = chipsIn(raw, expression, labels);
+function viewOf(raw: string, { expression, labels, chipsOf }: ViewOptions, held: TextRange | null): PillText {
+    const chips = chipsOf ? chipsOf(raw) : chipsIn(raw, expression, labels);
     const shown = held ? chips.filter((c) => c.end <= held.start || c.start >= held.end) : chips;
-    return pillText(raw, shown, note);
+    return pillText(raw, shown);
 }
 
 /** The family a reference's pill is painted in (the web's pillTint). */
@@ -92,7 +95,7 @@ export function pillStyle(theme: Theme, chip: TextChip, types: StepTypeMap): Tex
     return { ...theme.fonts.medium, backgroundColor: family ? familyTint(theme, family, 14) : theme.colors.bgTertiary, color: ink };
 }
 
-export function PillTextInput({ text, expression, labels, types, onChangeText, onSelectionChange, caret, note, onBlur, ...rest }: PillTextInputProps) {
+export function PillTextInput({ text, expression, labels, types, onChangeText, onSelectionChange, caret, chipsOf, onBlur, ...rest }: PillTextInputProps) {
     const theme = useTheme();
     const input = useRef<TextInput>(null);
     // The display selection as the native field last reported it.
@@ -103,7 +106,7 @@ export function PillTextInput({ text, expression, labels, types, onChangeText, o
     const [place, setPlace] = useState<CaretRequest | null>(null);
 
     const held = typed && typed.raw === text ? typed.range : null;
-    const options: ViewOptions = { expression, labels, note: note ?? '' };
+    const options: ViewOptions = { expression, labels, chipsOf };
     const view = viewOf(text, options, held);
     const latest = useRef(view);
     useLayoutEffect(() => {

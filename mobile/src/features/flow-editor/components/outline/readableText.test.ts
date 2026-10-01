@@ -1,4 +1,4 @@
-import { readableExample, readablePath, readableRule, readableSummary, readableText } from './readableText';
+import { composeWords, readableExample, readablePath, readableRule, readableSummary, readableText } from './readableText';
 
 const LABELS = new Map([
     ['act_4d4307a', 'gmail search'],
@@ -80,5 +80,19 @@ describe('readableSummary and readableExample', () => {
         expect(readableExample('steps.step1.output.amount > 1000', true)).toBe('‹Previous step ▸ Amount› > 1000');
         expect(readableExample('https://api.example.com/endpoint')).toBe('https://api.example.com/endpoint');
         expect(readableExample(undefined)).toBeUndefined();
+    });
+});
+
+describe('a composed text (the v2 mapping)', () => {
+    const compose = {
+        kind: 'compose', v: 1,
+        parts: ['Beste ', { from: { root: 'trigger', path: ['naam'] }, take: 'one', as: 'text' }, ', uw orders: ', { from: { root: 'steps', id: 's1', path: ['lines', 'product'] }, take: 'all', as: 'text', join: 'comma' }],
+    };
+
+    it('reads as its words with each value named, never "[object Object]" or a path', () => {
+        const labels = new Map([['s1', 'Orders ophalen']]);
+        expect(readableText(compose, labels)).toBe('Beste ‹Naam›, uw orders: ‹Product of all lines›');
+        expect(composeWords('plain')).toBeNull();
+        expect(composeWords({ kind: 'compose', v: 1, parts: [{ bad: true }] })).toBeNull();
     });
 });

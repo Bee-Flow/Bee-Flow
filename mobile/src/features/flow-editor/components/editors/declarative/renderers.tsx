@@ -20,6 +20,7 @@ import {
     RowsEditor,
     SelectField,
     StringListField,
+    textFieldValue,
     ToggleField,
 } from '@/features/flow-editor/components/fields';
 import type { FormDraft } from '@/features/flow-editor/formState';
@@ -69,7 +70,7 @@ function options(p: RenderProps) {
 const common = (p: RenderProps) => ({ label: p.label, hint: p.hint, required: p.required, disabled: p.disabled });
 
 const renderTemplate: Renderer = (p) => (
-    <BindingInput mode="template" {...common(p)} value={text(p.value)} onChange={p.set} prompt={p.prompt} multiline={p.field.kind === 'template' && p.field.multiline} />
+    <BindingInput mode="template" {...common(p)} value={textFieldValue(p.value)} onChange={p.set} prompt={p.prompt} multiline={p.field.kind === 'template' && p.field.multiline} />
 );
 
 const renderSegmented: Renderer = (p) => (
