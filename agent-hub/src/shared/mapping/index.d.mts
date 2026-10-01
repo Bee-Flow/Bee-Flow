@@ -460,3 +460,18 @@ export declare function upgradeStepRepeat(step: unknown, opts?: UpgradeDeps):
     { step: object & { repeat: StepRepeat }; converted: Array<{ field: string; pick: PickBinding }> } | { refused: UpgradeKeptReason[] };
 export declare function upgradeDefinition<T>(definition: T, opts?: UpgradeDeps):
     { definition: T; changed: UpgradeEntry[]; kept: UpgradeEntry[] };
+// M8b: update on open (what is left to upgrade) and the gate of the AI fix.
+
+/** A legacy binding an upgrade could rewrite: where it is, and its stored text (never a run value). */
+export interface LegacyBindingSite {
+    stepId: string | null;
+    field: string;
+    kind: 'ref' | 'expr' | 'for_each';
+    text: string;
+}
+export declare function legacyBindings(definition: unknown): LegacyBindingSite[];
+export declare function hasLegacyBindings(definition: unknown): boolean;
+/** Whether the AI fix may replace a legacy binding at all: it reads only values a run-level runState holds, and no list function. */
+export declare function replaceableBinding(binding: unknown): boolean;
+export declare function checkReplacement(binding: unknown, proposal: unknown, opts?: UpgradeDeps):
+    { ok: true } | { ok: false; reason: 'invalid' | 'would_change' | 'no_evidence' };

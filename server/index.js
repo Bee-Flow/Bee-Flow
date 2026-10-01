@@ -621,6 +621,9 @@ app.use('/api/ai-participation', require('./routes/aiParticipation'));
 // (members read, admins write; requireAuth on every route).
 app.use('/api/org-collab', require('./routes/orgCollab'));
 app.use('/api/org-integration-cache', require('./routes/orgIntegrationCache'));
+// "Update mappings when an automation is opened" (M8b): members read, admins
+// write; requireAuth on every route.
+app.use('/api/org-automation-mappings', require('./routes/orgAutomationMappings'));
 app.use('/api/org-azure-config', require('./routes/orgAzureConfig'));
 app.use('/api/house-styles', require('./routes/houseStyles'));
 // Compliance Hub — Enterprise-tier feature.

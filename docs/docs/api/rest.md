@@ -177,7 +177,8 @@ Community feature — building automations is in the free core. Sharing them acr
 | POST | `/api/automation/:id/deactivate` | U | Switch off |
 | POST | `/api/automation/:id/run` | U | Run now (waits up to 60 s for the result) |
 | POST | `/api/automation/:id/dry-run` | U | Test run, side effects synthesised |
-| POST | `/api/automation/:id/upgrade-mappings` | U | Show stored mappings as values (picks) where the result stays the same, checked against the last runs; `?dryRun=1` previews, otherwise a new version is saved (edit role) |
+| POST | `/api/automation/:id/upgrade-mappings` | U | Show stored mappings as values (picks) where the result stays the same, checked against the last runs; `?dryRun=1` previews, otherwise a new version is saved (edit role). `aiFixes` applies ticked AI suggestions (checked again); `auto: true` is the update on open, saved only when the organisation switched it on |
+| POST | `/api/automation/:id/upgrade-mappings/ai-fix` | U | Ask the workspace's fast-tier model to rewrite the fields that stay a Formula; only suggestions that read the same values and give the same result on the recent runs, the pinned sample and the shapes a later run may hold (missing, null, an empty list, a text, a record) come back, nothing is saved. Formulas with first, last, count or join, and fields that read a loop's item, are not asked about. The model sees the formulas and the shape of the data, never its values (edit role) |
 | GET | `/api/automation/:id/runs` | U | List runs |
 | GET | `/api/automation/runs/:id` | U | Run detail |
 | GET | `/api/automation/runs/:id/steps` | U | The steps of a run, with their inputs and outputs |
@@ -188,6 +189,8 @@ Community feature — building automations is in the free core. Sharing them acr
 | POST | `/api/automation/:id/webhook/:slug/rotate` | U | New secret, same URL |
 | DELETE | `/api/automation/:id/webhook/:slug` | U | Delete a webhook URL |
 | POST | `/api/automation/webhook/:slug` | S¹ | Webhook trigger entry |
+| GET | `/api/org-automation-mappings/:orgId` | U | Whether opening an automation applies the mapping update by itself (members) |
+| PUT | `/api/org-automation-mappings/:orgId` | U | Switch that on or off: `{ autoUpgradeOnOpen }` (org admin) |
 
 ¹ HMAC-SHA256 signature in `X-BeeFlow-Signature` plus a single-use `X-BeeFlow-Nonce`, no token. See [Automations → Webhook trigger format](../features/automations.md#webhook-trigger-format).
 

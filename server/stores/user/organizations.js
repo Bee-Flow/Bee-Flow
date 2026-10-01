@@ -397,6 +397,9 @@ function orgConfigKeys(orgId) {
         // organisation, so both die with it.
         `${require('../collabDocStore').COLLAB_SETTINGS_KEY_PREFIX}${orgId}`,
         `${require('../../projects/participation/policy').CONFIG_KEY_PREFIX}${orgId}`,
+        // "Update mappings when an automation is opened": a choice made for
+        // THIS organisation's automations, so it dies with it.
+        `${require('../../automation/mappingSettings').CONFIG_KEY_PREFIX}${orgId}`,
     ];
 }
 

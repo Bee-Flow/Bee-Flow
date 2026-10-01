@@ -651,6 +651,19 @@ export const ROUTES = {
         dryRun: true,
     }),
 
+    // "Update mappings" (M8b): the builder asks once on open whether the
+    // organisation applies the update by itself; the demo organisation does
+    // not. The dialog's dry run finds nothing it could prove the same: the
+    // demo has no live run to compare with.
+    'POST /api/automation/:id/upgrade-mappings': ({ state, params, query }) => {
+        const a = find(state.automations, params.id);
+        if (!a) return notFound();
+        const dryRun = query.get('dryRun') === '1';
+        return dryRun
+            ? { dryRun: true, saved: false, version: a.version ?? null, changed: [], kept: [], counts: { changed: 0, kept: 0 }, evidence: { lastRun: false, sample: false } }
+            : { dryRun: false, saved: false, version: a.version ?? null, autoOff: true };
+    },
+
     // The Runs tab, the Versions tab and Settings (handoff 5). The builder
     // rehydrates the canvas from the newest run's step rows on mount
     // (hydrateLastRun), which is the failed test run: every step upstream

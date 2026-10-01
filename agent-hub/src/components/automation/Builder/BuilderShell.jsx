@@ -18,6 +18,7 @@ import { densityForOpen } from './flow/settings/formDensity';
 import useFormModePreference from './flow/settings/useFormModePreference';
 import { triggerTypeLabel } from './flow/triggerLabels';
 import useRoutineDraftHistory from './flow/useRoutineDraftHistory';
+import MappingsUpgradeBanner from './MappingsUpgradeBanner';
 import RunsTab from './runs/RunsTab';
 import AiActQuestionsDialog from './settings/AiActQuestionsDialog';
 import SettingsTab from './SettingsTab';
@@ -344,6 +345,13 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
     const effectiveDef = !isBlankDefinition(state.draft) ? state.draft
         : !isBlankDefinition(serverAutomation?.definition) ? serverAutomation.definition
         : blockSeed;
+    // The canvas holds what the server holds: no unsaved edit, no draft the
+    // assistant is still building. The update on open (MappingsUpgradeBanner)
+    // only rewrites a definition nobody is in the middle of changing.
+    const canvasPristine = useMemo(
+        () => isBlankDefinition(state.draft) || deepEqual(state.draft, serverAutomation?.definition),
+        [state.draft, serverAutomation?.definition],
+    );
 
     // The button in an app this builder belongs to. Two sources, and the URL
     // wins: `?from=` is where the person came from RIGHT NOW, while the
@@ -973,6 +981,20 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
     }, [adoptPersistedDefinition, draftHistory]);
 
     /**
+     * The update on open (MappingsUpgradeBanner) saved while the canvas was
+     * being edited: the canvas wins. Its debounced save, when one is pending,
+     * writes it anyway; otherwise that save may have landed before the
+     * update did, so write the canvas again and the server holds what is on
+     * screen instead of the update without the edit.
+     */
+    const latestDefRef = useRef(effectiveDef);
+    latestDefRef.current = effectiveDef;
+    const persistCanvas = useCallback(() => {
+        if (visualSaveTimer.current) return;
+        if (latestDefRef.current) performVisualSave(latestDefRef.current);
+    }, [performVisualSave]);
+
+    /**
      * Force-flush any pending debounced save. Lets Cmd+S behave the way
      * users expect ("save it now") without waiting for the 500ms timer
      * to elapse. No-op when nothing is dirty.
@@ -1284,6 +1306,20 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
             )}
 
             <div className="flex-1 min-h-0 relative">
+                {/* "Update mappings" when an automation is opened (M8b): the
+                    offer, or the organisation's update on open with Undo,
+                    floating over the canvas. Only on the Editor and never
+                    while a run is shown; mounted on every tab so it asks
+                    once per open, not per tab switch. */}
+                {!isStep && (
+                    <MappingsUpgradeBanner
+                        automation={serverAutomation}
+                        active={tab === 'build' && !state.running}
+                        pristine={canvasPristine}
+                        onApplied={syncServerRow}
+                        onSuperseded={persistCanvas}
+                    />
+                )}
                 {tab === 'build' && (
                     <BuildTab
                         headerProps={headerProps}

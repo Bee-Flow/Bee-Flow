@@ -99,7 +99,12 @@ async function lastRunState(automation, store) {
 
 /**
  * The upgrade of `automation`'s definition, dry-run on its own data:
- * `{ definition, changed, kept, evidence: { lastRun, sample } }`.
+ * `{ definition, changed, kept, evidence: { lastRun, sample }, states }`.
+ *
+ * `states` is the runStates themselves (`{ lastRun, sample }`, each null when
+ * there is none), for the AI fix's gate (mappingAiFix.js), which dry-runs a
+ * proposal on the same data. It is run data: a route answers with the report
+ * and `evidence`, never with `states`.
  * @param {{ id: string, definition?: object }} automation
  * @param {object} store the automation store (run reads only)
  */
@@ -107,7 +112,7 @@ async function upgradeAutomationMappings(automation, store) {
     const definition = automation.definition;
     const [lastRun, sample] = [await lastRunState(automation, store), sampleState(definition)];
     const result = upgradeDefinition(definition, { sample, lastRun, evaluate, parse });
-    return { ...result, evidence: { lastRun: !!lastRun, sample: !!sample } };
+    return { ...result, evidence: { lastRun: !!lastRun, sample: !!sample }, states: { lastRun, sample } };
 }
 
 module.exports = { upgradeAutomationMappings, lastRunState, sampleState };

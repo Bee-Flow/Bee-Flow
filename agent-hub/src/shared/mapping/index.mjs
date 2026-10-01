@@ -67,3 +67,5 @@ export {
 export { liftLegacy } from './upgrade.mjs';
 // M8: "Koppelingen bijwerken": a whole definition upgraded, binding by binding, with a dry run.
 export { upgradeStepRepeat, upgradeDefinition } from './upgrade.mjs';
+// M8b: update on open (what is left to upgrade) and the gate of the AI fix.
+export { legacyBindings, hasLegacyBindings, replaceableBinding, checkReplacement } from './upgrade.mjs';

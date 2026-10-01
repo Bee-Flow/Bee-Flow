@@ -253,6 +253,7 @@ const EXPECTED = [
     'POST /:id/suggest-description',
     'GET /:id/counts',
     // "Koppelingen bijwerken" (routes/automation/upgradeMappings.js).
+    'POST /:id/upgrade-mappings/ai-fix',
     'POST /:id/upgrade-mappings',
 ];
 

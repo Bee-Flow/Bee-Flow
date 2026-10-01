@@ -213,8 +213,11 @@ export function liftLegacy(binding, sample, lastRun, { evaluate, parse } = {}) {
 // ── M8: "Koppelingen bijwerken", a whole definition at once ─────────────
 //
 // An opt-in action on one automation (routes/automation/upgradeMappings.js).
-// It never runs on load: a stored definition keeps resolving as it does
-// until its owner asks for this, sees the preview and applies it.
+// It never runs on load by itself: a stored definition keeps resolving as it
+// does until someone who may edit it asks for this, sees the preview and
+// applies it, or (M8b) their organisation switched on "update mappings when
+// an automation is opened", which applies the same provably-equal rewrite as
+// a new version that can be undone.
 //
 //   upgradeStepRepeat   a legacy forEach + `loop.<var>` refs as a repeat +
 //                       `each` picks (repeat.mjs rebaseLoopRefs), checked
@@ -544,4 +547,285 @@ export function upgradeDefinition(definition, { sample, lastRun, evaluate, parse
         out.layers = layers;
     }
     return { definition: changed.length ? out : definition, changed, kept };
+}
+
+// ── M8b: update on open, and the AI fix ─────────────────────────────────
+//
+// legacyBindings      what the builder looks at when an automation opens: is
+//                     there anything left that the action above, or the AI
+//                     fix below, could rewrite? Cheap, no data: it reads the
+//                     same sites upgradeDefinition rewrites, nothing more.
+// replaceableBinding  whether a legacy binding is one the AI fix may replace
+//                     at all, before any data is looked at (see legacyReads).
+// checkReplacement    the one gate a proposed replacement of a legacy binding
+//                     passes before anyone may apply it (the AI fix,
+//                     server/automation/mappingAiFix.js). Who proposed it does
+//                     not matter; it must read exactly the values the legacy
+//                     binding reads, resolve to exactly what that resolves to
+//                     on every runState at hand (one of which gives a value),
+//                     and keep doing so when each value it reads is replaced by
+//                     the shapes a later run easily holds (EDGE_VALUES).
+
+/** Every legacy ref or expr in `value` (a pick, a compose, a literal and a template are not). */
+function collectLegacy(value, field, where, out) {
+    if (value === null || typeof value !== 'object') return;
+    if (Array.isArray(value)) { value.forEach((v, i) => collectLegacy(v, `${field}.${i}`, where, out)); return; }
+    if (isPick(value) || isCompose(value)) return;
+    if (value.kind === 'literal' || value.kind === 'template') return;
+    if (value.kind === 'ref') { out.push({ ...where, field, kind: 'ref', text: typeof value.path === 'string' ? value.path : '' }); return; }
+    if (value.kind === 'expr') { out.push({ ...where, field, kind: 'expr', text: typeof value.value === 'string' ? value.value : '' }); return; }
+    for (const k of Object.keys(value)) collectLegacy(value[k], `${field}.${k}`, where, out);
+}
+
+function collectSteps(steps, out) {
+    for (const step of Array.isArray(steps) ? steps : []) {
+        if (!isRecord(step) || step.type === 'note') continue;
+        const where = { stepId: typeof step.id === 'string' ? step.id : null };
+        if (isRecord(step.forEach) && !step.repeat) {
+            out.push({ ...where, field: 'forEach', kind: 'for_each', text: typeof step.forEach.overRef === 'string' ? step.forEach.overRef : '' });
+        }
+        for (const field of bindingFields(step)) collectLegacy(fieldValue(step, field), field, where, out);
+        if (step.type === 'loop') collectSteps(step.body, out);
+        if (step.type === 'parallel' && Array.isArray(step.branches)) for (const b of step.branches) collectSteps(b, out);
+    }
+    return out;
+}
+
+/**
+ * The legacy bindings of a definition's own graph that an upgrade could
+ * rewrite: `[{ stepId, field, kind: 'ref'|'expr'|'for_each', text }]`, in
+ * step order. The same sites upgradeDefinition walks (a forEach, and every
+ * ref and expr in a binding site); a flowlet's steps are left out, since no
+ * run's data reaches them (see upgradeDefinition). `text` is the path or the
+ * expression as stored: the definition's own text, never a run value.
+ * @param {unknown} definition
+ * @returns {Array<{ stepId: string|null, field: string, kind: 'ref'|'expr'|'for_each', text: string }>}
+ */
+export function legacyBindings(definition) {
+    return isRecord(definition) ? collectSteps(definition.steps, []) : [];
+}
+
+/** Whether a definition still holds a legacy binding an upgrade could rewrite (legacyBindings). */
+export function hasLegacyBindings(definition) {
+    return legacyBindings(definition).length > 0;
+}
+
+// What a legacy binding reads, and whether that is something a dry run on
+// the run's data can speak for at all.
+
+/** The roots a run-level runState binds (sourceBase): a dry run here sees their values. */
+const RUN_ROOTS = new Set(['steps', 'trigger', 'run', 'vars']);
+
+/** The expr identifiers that are values, not reads. */
+const EXPR_WORDS = new Set(['true', 'false', 'null']);
+
+// One segment of a member chain in an expr: `.key`, `[0]`, `[*]`, `["key"]`.
+const CHAIN_SEGMENT = /\s*(?:\.\s*([A-Za-z_$][A-Za-z0-9_$]*)|\[\s*([0-9]+|\*|"[^"]*"|'[^']*')\s*\])/y;
+const STRING_LITERAL = /"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/g;
+const IDENTIFIER = /[A-Za-z_$][A-Za-z0-9_$]*/g;
+
+/** The key a Source is compared by: root, step and path. */
+function sourceKey(from) {
+    return JSON.stringify([from.root, from.root === 'steps' ? from.id : null, from.path]);
+}
+
+/**
+ * The Sources an expr reads, or null when it reads anything a dry run on the
+ * run's data cannot speak for. Each root an expr names (an identifier that
+ * is not a member, a function or a word) must start a plain member chain
+ * (`steps.s1.output.items[*].name`) that sourceFromPath reads; a computed
+ * index, a member call or any other root (`loop`, `item`, a row's own keys)
+ * is null. first/last/count/join anywhere are null too: they differ from
+ * their pick on an empty list, a null entry, a record and a text (see
+ * upgradeStep), which is what M8 refuses to rewrite.
+ */
+function exprReads(text) {
+    // Same length, so an index in `blank` is one in `text`.
+    const blank = text.replace(STRING_LITERAL, m => `${m[0]}${' '.repeat(m.length - 2)}${m[0]}`);
+    const reads = [];
+    for (const m of blank.matchAll(IDENTIFIER)) {
+        const name = m[0];
+        const end = m.index + name.length;
+        if (/\.\s*$/.test(blank.slice(0, m.index))) continue; // a member: read with its chain
+        if (/[0-9]$/.test(blank.slice(0, m.index))) return null; // `1e5`-like: not a name we read
+        if (/^\s*\(/.test(blank.slice(end))) {
+            if (Object.prototype.hasOwnProperty.call(FUNCTION_TAKES, name)) return null;
+            continue;
+        }
+        if (EXPR_WORDS.has(name)) continue;
+        if (name !== 'steps' && name !== 'trigger' && name !== 'vars') return null;
+        let path = name;
+        let at = end;
+        for (;;) {
+            CHAIN_SEGMENT.lastIndex = at;
+            const seg = CHAIN_SEGMENT.exec(text);
+            if (!seg) break;
+            path += seg[1] !== undefined ? `.${seg[1]}` : `[${seg[2]}]`;
+            at = CHAIN_SEGMENT.lastIndex;
+        }
+        // A chain that goes on as something we do not read: a computed index, a call.
+        if (/^\s*[[(]/.test(blank.slice(at))) return null;
+        const from = sourceFromPath(path);
+        if (!from || !RUN_ROOTS.has(from.root)) return null;
+        reads.push(from);
+    }
+    return reads;
+}
+
+/**
+ * The Sources a legacy ref or expr reads (`[{ root, id?, path }]`), or null
+ * when it is no binding the AI fix may replace: not a ref or an expr, or one
+ * that reads a scope no run-level runState binds (the item of a loop or a
+ * forEach, the row of a list step), or a formula that calls first, last,
+ * count or join (exprReads). Bindings only the runtime scope fills would
+ * look like constants to a dry run, and the list functions differ from any
+ * pick on shapes a dry run seldom holds.
+ */
+function legacyReads(binding) {
+    if (!isRecord(binding)) return null;
+    if (binding.kind === 'ref') {
+        const from = typeof binding.path === 'string' ? sourceFromPath(binding.path) : null;
+        return from && RUN_ROOTS.has(from.root) ? [from] : null;
+    }
+    if (binding.kind === 'expr') return typeof binding.value === 'string' ? exprReads(binding.value) : null;
+    return null;
+}
+
+/**
+ * Whether the AI fix may replace this legacy binding at all, before any
+ * data is looked at: a ref or an expr that reads at least one value, and
+ * only values a run-level runState holds (see legacyReads).
+ * @param {unknown} binding
+ * @returns {boolean}
+ */
+export function replaceableBinding(binding) {
+    const reads = legacyReads(binding);
+    return !!reads && reads.length > 0;
+}
+
+// The shapes a value a run reads may turn out to have on a later run, even
+// when no runState at hand holds them: gone, empty, a null entry, a list, a
+// text, a record, a number. A replacement must give what the legacy binding
+// gives on each (first() of [] is null where a pick gives no value, a `+`
+// writes null as "null" where a compose writes nothing, ...).
+const ABSENT = Symbol('absent');
+const UNREACHABLE = Symbol('unreachable');
+const EDGE_VALUES = Object.freeze([ABSENT, null, [], [null], ['a', 'b'], 'text', { key: 'value' }, 0]);
+
+/**
+ * `value` with whatever `path` reaches (from segment `i`) replaced by
+ * `leaf`, copied along the way and never changed in place; a key on a list
+ * is replaced in every element, as a pick reads it. UNREACHABLE where the
+ * path runs into a text or a number: what a walk reads there (a JSON text)
+ * is not something to replace.
+ */
+function withLeaf(value, path, i, leaf) {
+    if (i === path.length) return leaf;
+    const seg = path[i];
+    let cur = value;
+    if (cur === undefined || cur === null) cur = typeof seg === 'number' ? [] : {};
+    if (typeof cur !== 'object') return UNREACHABLE;
+    if (Array.isArray(cur) && typeof seg !== 'number') {
+        const out = (cur.length ? cur : [{}]).map(el => withLeaf(el, path, i, leaf));
+        return out.includes(UNREACHABLE) ? UNREACHABLE : out;
+    }
+    const key = String(seg);
+    if (REFUSED_KEYS.includes(key)) return UNREACHABLE;
+    const next = withLeaf(Object.prototype.hasOwnProperty.call(cur, key) ? cur[key] : undefined, path, i + 1, leaf);
+    if (next === UNREACHABLE) return UNREACHABLE;
+    const copy = Array.isArray(cur) ? [...cur] : { ...cur };
+    if (next !== ABSENT) copy[key] = next;
+    else if (Array.isArray(copy)) copy[key] = undefined;
+    else delete copy[key];
+    return copy;
+}
+
+/** A runState with the value `from` reads replaced by `leaf` (withLeaf), or UNREACHABLE. */
+function withSourceValue(state, from, leaf) {
+    const own = (o, k) => (isRecord(o) && Object.prototype.hasOwnProperty.call(o, k) ? o[k] : undefined);
+    const fill = (v) => (v === ABSENT ? undefined : v);
+    if (from.root === 'steps') {
+        const steps = isRecord(state.steps) ? state.steps : {};
+        const entry = isRecord(steps[from.id]) ? steps[from.id] : {};
+        const output = withLeaf(entry.output, from.path, 0, leaf);
+        return output === UNREACHABLE ? UNREACHABLE : { ...state, steps: { ...steps, [from.id]: { ...entry, output: fill(output) } } };
+    }
+    if (from.root === 'trigger') {
+        const trigger = isRecord(state.trigger) ? state.trigger : {};
+        const output = withLeaf(trigger.output, from.path, 0, leaf);
+        return output === UNREACHABLE ? UNREACHABLE : { ...state, trigger: { ...trigger, output: fill(output) } };
+    }
+    if (from.root === 'run' || from.root === 'vars') {
+        const key = from.root === 'run' ? 'trigger' : 'vars';
+        // A run Source names a key of the trigger itself: never replace it whole.
+        if (from.root === 'run' && !from.path.length) return UNREACHABLE;
+        const base = withLeaf(own(state, key), from.path, 0, leaf);
+        return base === UNREACHABLE ? UNREACHABLE : { ...state, [key]: fill(base) };
+    }
+    return UNREACHABLE;
+}
+
+/**
+ * Whether `proposal` may replace the legacy `binding`: `{ ok: true }`, or
+ * `{ ok: false, reason }` with
+ *   'invalid'       not a binding the fix may replace (replaceableBinding:
+ *                   a loop item, a row, a list function, ...), or the
+ *                   proposal is no valid pick or compose (validate.mjs),
+ *                   reads the item of a repeat or a loop, reads nothing, or
+ *                   does not read exactly the values the legacy binding
+ *                   reads (a later step, the field's own step, another key
+ *                   that happens to hold the same value today)
+ *   'would_change'  a runState where the two resolve differently, an
+ *                   undefined on one side included, or an EDGE_VALUES shape
+ *                   of a value they read on which they do
+ *   'no_evidence'   no runState gives the legacy binding a value (null and
+ *                   an empty list are none either), or a value it reads
+ *                   could not be tried in another shape: without data
+ *                   nothing shows they agree, so nothing may change
+ *
+ * @param {unknown} binding — the stored legacy binding
+ * @param {unknown} proposal — the pick or compose proposed for it
+ * @param {{ sample?: object|null, lastRun?: object|null, evaluate?: Function, parse?: object }} [opts]
+ * @returns {{ ok: true } | { ok: false, reason: 'invalid'|'would_change'|'no_evidence' }}
+ */
+export function checkReplacement(binding, proposal, { sample, lastRun, evaluate, parse } = {}) {
+    const reads = legacyReads(binding);
+    if (!reads || !reads.length) return { ok: false, reason: 'invalid' };
+    if (!isPick(proposal) && !isCompose(proposal)) return { ok: false, reason: 'invalid' };
+    const picks = isPick(proposal) ? [proposal] : proposal.parts.filter(p => typeof p !== 'string');
+    if (!picks.length || picks.some(p => p.take === 'each' || !RUN_ROOTS.has(p.from.root))) return { ok: false, reason: 'invalid' };
+    // The same values, no more and no fewer: a dry run holds every step's
+    // final output, a later step's too, so a proposal reading another
+    // Source that holds the same value today would pass it, and at run time
+    // read nothing (or something else).
+    const legacyKeys = new Set(reads.map(sourceKey));
+    const sources = new Map(picks.map(p => [sourceKey(p.from), p.from]));
+    if (legacyKeys.size !== sources.size || [...legacyKeys].some(k => !sources.has(k))) return { ok: false, reason: 'invalid' };
+
+    const resolver = resolverFor(evaluate, parse);
+    const states = dataStates(sample, lastRun);
+    const differs = (state) => !sameValue(
+        resolver.resolveValue(binding, state, { silent: true }),
+        resolver.resolveValue(proposal, state, { silent: true }),
+    );
+    let evidence = false;
+    for (const state of states) {
+        if (differs(state)) return { ok: false, reason: 'would_change' };
+        if (!isEmptyData(resolver.resolveValue(binding, state, { silent: true }))) evidence = true;
+    }
+    if (!evidence) return { ok: false, reason: 'no_evidence' };
+    // Every value read, in every shape a later run may hand it, at least once.
+    for (const from of sources.values()) {
+        let tried = false;
+        for (const state of states) {
+            for (const leaf of EDGE_VALUES) {
+                const variant = withSourceValue(state, from, leaf);
+                if (variant === UNREACHABLE) continue;
+                if (differs(variant)) return { ok: false, reason: 'would_change' };
+                tried = true;
+            }
+        }
+        if (!tried) return { ok: false, reason: 'no_evidence' };
+    }
+    return { ok: true };
 }

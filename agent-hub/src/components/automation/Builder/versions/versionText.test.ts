@@ -38,6 +38,8 @@ describe('describeVersion', () => {
             .toBe('Retries changed');
         expect(describeVersion(row({ descriptionJson: [{ code: 'mappings_upgraded', params: { count: 3 } }] }), t))
             .toBe('Mappings updated (3 field(s))');
+        expect(describeVersion(row({ descriptionJson: [{ code: 'mappings_upgraded', params: { count: 2, auto: true } }] }), t))
+            .toBe('Mappings updated on opening (2 field(s))');
     });
 
     it('translates a setting by its code and falls back to the English label', () => {

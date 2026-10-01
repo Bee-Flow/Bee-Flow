@@ -1,11 +1,12 @@
-import { useState } from 'react';
-import { CheckCircle2, Loader2, X } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
+import { CheckCircle2, Loader2, Sparkles, X } from 'lucide-react';
 import { humanizeKey } from '@shared/mapping/index.mjs';
 import Modal from '../../shared/Modal';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { TranslateFn } from '../../../hooks/useTranslation';
 import {
-    useApplyUpgradeMappings, useUpgradeMappingsPreview, type UpgradeEntry, type UpgradeReport,
+    useAiFixMappings, useApplyUpgradeMappings, useUpgradeMappingsPreview,
+    type AiSuggestion, type ReportEntry, type UpgradeEntry, type UpgradeReport,
 } from '../../../api/queries/automation/upgradeMappings';
 import { PRIMARY_BTN, SECONDARY_BTN } from './settings/settingsUi';
 
@@ -33,7 +34,7 @@ function fieldName(field: string): string {
 }
 
 /** What a value reads: "Orders ophalen › Klant › E-mail", "Incoming data › Naam". */
-function readText(t: TranslateFn, e: UpgradeEntry): string {
+function readText(t: TranslateFn, e: Pick<UpgradeEntry, 'root' | 'source' | 'label'>): string {
     const from = e.root === 'trigger' || e.root === 'run'
         ? t('mapping.slot.label.trigger', 'Incoming data')
         : e.root === 'vars'
@@ -42,13 +43,13 @@ function readText(t: TranslateFn, e: UpgradeEntry): string {
     return [from, e.label || ''].filter(Boolean).join(' › ');
 }
 
-function stepText(t: TranslateFn, e: UpgradeEntry): string {
+function stepText(t: TranslateFn, e: Pick<UpgradeEntry, 'step' | 'stepId' | 'layer'>): string {
     const name = e.step || t('mapping.upgrade.step_unnamed', 'Step {id}', { id: e.stepId || '?' });
     return e.layer ? `${name} (${t('mapping.upgrade.in_flowlet', 'in flowlet {name}', { name: e.layer })})` : name;
 }
 
 /** One line of either list: the step and field, then what it reads (or why it stays). */
-function EntryRow({ entry, kept }: { entry: UpgradeEntry; kept: boolean }) {
+function EntryRow({ entry, kept }: { entry: ReportEntry; kept: boolean }) {
     const { t } = useTranslation();
     const reads = readText(t, entry);
     let what: string;
@@ -60,6 +61,7 @@ function EntryRow({ entry, kept }: { entry: UpgradeEntry; kept: boolean }) {
             <div className="flex items-baseline gap-1.5 min-w-0">
                 <span className="font-medium text-[var(--text-primary)] truncate">{stepText(t, entry)}</span>
                 {entry.kind !== 'for_each' && <span className="text-[var(--text-tertiary)] truncate">· {fieldName(entry.field)}</span>}
+                {entry.ai && <span className="ml-auto shrink-0 text-[var(--text-tertiary)]">{t('mapping.upgrade.ai_badge', 'Suggested by AI')}</span>}
             </div>
             {what && <div className="text-[var(--text-secondary)] truncate">{what}</div>}
             {kept && <div className="text-[var(--text-tertiary)]">{reasonText(t, entry.reason)}</div>}
@@ -67,7 +69,7 @@ function EntryRow({ entry, kept }: { entry: UpgradeEntry; kept: boolean }) {
     );
 }
 
-function EntryList({ title, entries, kept }: { title: string; entries: UpgradeEntry[]; kept: boolean }) {
+function EntryList({ title, entries, kept }: { title: string; entries: ReportEntry[]; kept: boolean }) {
     if (!entries.length) return null;
     return (
         <section className="flex flex-col gap-1.5">
@@ -77,6 +79,119 @@ function EntryList({ title, entries, kept }: { title: string; entries: UpgradeEn
             </ul>
         </section>
     );
+}
+
+/**
+ * The kept fields the AI fix may look at (server: automation/mappingAiFix.js
+ * aiFixCandidates): a ref or an expr of the automation's own graph that
+ * stays a Formula, or whose pick would read differently. Never one kept for
+ * want of data: without data nothing may change.
+ */
+const AI_REASONS = new Set(['formula', 'would_change']);
+function aiEligible(report: UpgradeReport | null | undefined): number {
+    if (!report) return 0;
+    return report.kept.filter(e => !e.layer && (e.kind === 'ref' || e.kind === 'expr') && !!e.reason && AI_REASONS.has(e.reason)).length;
+}
+
+const suggestionKey = (s: Pick<AiSuggestion, 'stepId' | 'field'>) => `${s.stepId}\u0000${s.field}`;
+
+/** One AI suggestion, with the box that applies it. */
+function SuggestionRow({ suggestion, checked, onToggle }: { suggestion: AiSuggestion; checked: boolean; onToggle: () => void }) {
+    const { t } = useTranslation();
+    const what = typeof suggestion.composed === 'number'
+        ? t('mapping.upgrade.ai_composed', 'A text with {n} value(s)', { n: suggestion.composed })
+        : readText(t, suggestion);
+    const name = `${stepText(t, suggestion)} · ${fieldName(suggestion.field)}`;
+    return (
+        <li className="flex items-start gap-2 px-3 py-2" data-testid="upgrade-ai">
+            <input type="checkbox" checked={checked} onChange={onToggle} aria-label={name} className="mt-0.5" />
+            <div className="flex flex-col gap-0.5 min-w-0">
+                <div className="flex items-baseline gap-1.5 min-w-0">
+                    <span className="font-medium text-[var(--text-primary)] truncate">{stepText(t, suggestion)}</span>
+                    <span className="text-[var(--text-tertiary)] truncate">· {fieldName(suggestion.field)}</span>
+                </div>
+                {what && <div className="text-[var(--text-secondary)] truncate">{what}</div>}
+            </div>
+        </li>
+    );
+}
+
+/**
+ * "Let AI try the rest": ask the AI about the fields that stay a Formula.
+ * What comes back passed a dry run on the recent runs (same result), and is
+ * still only applied when the person ticks it.
+ */
+function AiSection({ eligible, ai, onAsk }: { eligible: number; ai: AiPicks; onAsk: () => void }) {
+    const { t } = useTranslation();
+    if (!eligible) return null;
+    const { pending, result, picked, toggle: onToggle } = ai;
+    const failure = ai.error === null ? null : (ai.error || t('mapping.upgrade.ai_failed', 'Could not ask the AI right now. Nothing was changed.'));
+    return (
+        <section className="flex flex-col gap-1.5" data-testid="upgrade-ai-section">
+            {!result && (
+                <div className="flex flex-col gap-1.5 rounded-[10px] border border-[var(--border-default)] p-3">
+                    <p className="text-[var(--text-secondary)] leading-[17px]">
+                        {t('mapping.upgrade.ai_intro', 'AI can try to rewrite the fields that stay a Formula. It sees the formulas and the names of your fields, never the data in them. Bee only shows a suggestion when it gives exactly the same result on the last runs.')}
+                    </p>
+                    <button type="button" onClick={onAsk} disabled={pending} className={`${SECONDARY_BTN} self-start`}>
+                        {pending
+                            ? <><Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden />{t('mapping.upgrade.ai_asking', 'AI is looking at the fields…')}</>
+                            : <><Sparkles className="w-3.5 h-3.5" aria-hidden />{t('mapping.upgrade.ai_ask', 'Let AI try {n} field(s)', { n: eligible })}</>}
+                    </button>
+                    {failure && <p role="alert" className="text-[var(--error)]">{failure}</p>}
+                </div>
+            )}
+            {result && (
+                <>
+                    <h3 className="text-[12px] font-semibold text-[var(--text-secondary)]">{t('mapping.upgrade.ai_title', 'Suggested by AI, checked: same result')}</h3>
+                    {result.suggestions.length
+                        ? (
+                            <ul className="rounded-[10px] border border-[var(--border-default)] divide-y divide-[var(--border-default)] text-[12px]">
+                                {result.suggestions.map(s => (
+                                    <SuggestionRow key={suggestionKey(s)} suggestion={s} checked={picked.has(suggestionKey(s))} onToggle={() => onToggle(s)} />
+                                ))}
+                            </ul>
+                        )
+                        : <p className="text-[var(--text-secondary)]">{t('mapping.upgrade.ai_none', 'AI found no rewrite that gives exactly the same result. These fields stay a Formula.')}</p>}
+                    {result.suggestions.length > 0 && <p className="text-[var(--text-tertiary)]">{t('mapping.upgrade.ai_hint', 'Tick the suggestions you want to apply.')}</p>}
+                </>
+            )}
+        </section>
+    );
+}
+
+/** The AI fix's answer and the suggestions the person ticked. */
+function useAiPicks(automationId: string) {
+    const aiFix = useAiFixMappings(automationId);
+    const [picked, setPicked] = useState<Set<string>>(() => new Set());
+    const suggestions = aiFix.data?.suggestions ?? [];
+    return {
+        result: aiFix.data ?? null,
+        pending: aiFix.isPending,
+        error: aiFix.isError ? (aiFix.error?.message || '') : null,
+        picked,
+        chosen: suggestions.filter(s => picked.has(suggestionKey(s))),
+        ask: (version: number | null) => aiFix.mutate(version),
+        toggle: (s: AiSuggestion) => setPicked((prev) => {
+            const next = new Set(prev);
+            const key = suggestionKey(s);
+            if (next.has(key)) next.delete(key); else next.add(key);
+            return next;
+        }),
+        clear: () => { aiFix.reset(); setPicked(new Set()); },
+    };
+}
+type AiPicks = ReturnType<typeof useAiPicks>;
+
+type Stale = 'version' | 'ai' | null;
+
+/** Why the apply did not go through: checked again (stale), or refused. */
+function Notices({ stale, failed, message }: { stale: Stale; failed: boolean; message?: string }) {
+    const { t } = useTranslation();
+    if (stale === 'version') return <p role="alert" className="text-[var(--warning)]">{t('mapping.upgrade.stale', 'This automation changed after the check. Bee checked it again; look at the result before you apply it.')}</p>;
+    if (stale === 'ai') return <p role="alert" className="text-[var(--warning)]">{t('mapping.upgrade.ai_stale', 'An AI suggestion no longer gives the same result on the latest run. Nothing was changed; Bee checked again.')}</p>;
+    if (!failed) return null;
+    return <p role="alert" className="text-[var(--error)]">{message || t('mapping.upgrade.apply_failed', 'Could not update the mappings. Nothing was changed.')}</p>;
 }
 
 /** "X velden bijgewerkt, Y blijven Formule": the fields that move, the ones that stay. */
@@ -93,8 +208,8 @@ function Summary({ report, done }: { report: UpgradeReport; done: boolean }) {
     );
 }
 
-/** Waiting for the dry run, or the report: the summary and both lists. */
-function ReportBody({ report, failed, done }: { report: UpgradeReport | null; failed: boolean; done: boolean }) {
+/** Waiting for the dry run, or the report: the summary, both lists, and the AI's suggestions. */
+function ReportBody({ report, failed, done, children }: { report: UpgradeReport | null; failed: boolean; done: boolean; children?: ReactNode }) {
     const { t } = useTranslation();
     if (!report) {
         return (
@@ -115,6 +230,7 @@ function ReportBody({ report, failed, done }: { report: UpgradeReport | null; fa
             {empty && <p className="text-[var(--text-secondary)]">{t('mapping.upgrade.nothing', 'There is nothing to update.')}</p>}
             <EntryList title={done ? t('mapping.upgrade.done_title', 'Updated') : t('mapping.upgrade.changed_title', 'Will be updated')} entries={report.changed} kept={false} />
             <EntryList title={t('mapping.upgrade.kept_title', 'Stays as it is')} entries={report.kept} kept />
+            {!done && children}
         </>
     );
 }
@@ -148,6 +264,13 @@ function Footer({ done, canApply, pending, count, onApply, onClose }: {
  * preview showed; a routine saved in between is refused (409), and the
  * preview is read again. `onApplied` gets the saved row, so the builder can
  * adopt the new definition.
+ *
+ * M8b: for the fields that stay a Formula the person may ask the AI
+ * (POST /:id/upgrade-mappings/ai-fix). Its suggestions come back already
+ * checked (same result on the recent runs) and are listed apart; only the
+ * ones ticked are applied, with the rest, in the same new version. One that
+ * no longer gives the same result when applied refuses the apply (409
+ * ai_fix_changed): the suggestions are dropped and the preview read again.
  */
 export default function UpgradeMappingsDialog({ open, automationId, onClose, onApplied }: {
     open: boolean;
@@ -158,29 +281,31 @@ export default function UpgradeMappingsDialog({ open, automationId, onClose, onA
     const { t } = useTranslation();
     const preview = useUpgradeMappingsPreview(automationId, { enabled: open });
     const apply = useApplyUpgradeMappings(automationId);
+    const ai = useAiPicks(automationId);
     const [done, setDone] = useState<UpgradeReport | null>(null);
-    const [stale, setStale] = useState(false);
+    const [stale, setStale] = useState<Stale>(null);
     const heading = t('mapping.upgrade.title', 'Update mappings');
 
     const onApply = () => {
         if (!preview.data) return;
-        setStale(false);
-        apply.mutate(preview.data.version, {
+        setStale(null);
+        const aiFixes = ai.chosen.map(s => ({ stepId: s.stepId, field: s.field, binding: s.binding }));
+        apply.mutate({ version: preview.data.version, ...(aiFixes.length ? { aiFixes } : {}) }, {
             onSuccess: (r) => {
                 setDone(r);
                 if (r.saved && r.automation) onApplied?.(r.automation);
             },
             onError: (e) => {
-                if (e.code !== 'version_changed') return;
-                setStale(true);
+                if (e.code !== 'version_changed' && e.code !== 'ai_fix_changed') return;
+                setStale(e.code === 'ai_fix_changed' ? 'ai' : 'version');
+                // What the AI suggested was checked on data that has moved on.
+                ai.clear();
                 void preview.refetch();
             },
         });
     };
 
-    const count = preview.data?.changed.length ?? 0;
-    const canApply = !done && !preview.isFetching && count > 0;
-    const failure = apply.isError && !stale ? (apply.error?.message || t('mapping.upgrade.apply_failed', 'Could not update the mappings. Nothing was changed.')) : null;
+    const count = (preview.data?.changed.length ?? 0) + ai.chosen.length;
     return (
         <Modal open={open} onClose={onClose} size="auto" className="w-full max-w-[600px]" label={heading} variant="bare">
             <div className="rounded-[14px] bg-[var(--bg-card)] shadow-xl text-xs text-[var(--text-primary)] flex flex-col max-h-[90vh] overflow-hidden">
@@ -191,12 +316,19 @@ export default function UpgradeMappingsDialog({ open, automationId, onClose, onA
                     </button>
                 </div>
                 <div className="p-[18px] flex flex-col gap-3 overflow-y-auto">
-                    <ReportBody report={done || preview.data || null} failed={preview.isError} done={!!done} />
-                    {stale && <p role="alert" className="text-[var(--warning)]">{t('mapping.upgrade.stale', 'This automation changed after the check. Bee checked it again; look at the result before you apply it.')}</p>}
-                    {failure && <p role="alert" className="text-[var(--error)]">{failure}</p>}
+                    <ReportBody report={done || preview.data || null} failed={preview.isError} done={!!done}>
+                        {!preview.isFetching && (
+                            <AiSection
+                                eligible={aiEligible(preview.data)}
+                                ai={ai}
+                                onAsk={() => ai.ask(preview.data?.version ?? null)}
+                            />
+                        )}
+                    </ReportBody>
+                    <Notices stale={stale} failed={apply.isError && !stale} message={apply.error?.message} />
                 </div>
                 <div className="px-[18px] py-3 border-t border-[var(--border-default)] flex gap-2 justify-end">
-                    <Footer done={!!done} canApply={canApply} pending={apply.isPending} count={count} onApply={onApply} onClose={onClose} />
+                    <Footer done={!!done} canApply={!done && !preview.isFetching && count > 0} pending={apply.isPending} count={count} onApply={onApply} onClose={onClose} />
                 </div>
             </div>
         </Modal>
