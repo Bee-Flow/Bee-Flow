@@ -10,7 +10,7 @@
  * rate on the usage row). The only edit the API allows is closing an open-ended
  * row (`closeRow`), for a promo that ends or a model that is withdrawn.
  *
- * The in-memory index that modelCosts reads lives in core/llm/priceCatalog.js
+ * The in-memory index that modelCosts reads lives in stores/lib/priceCatalog.js
  * (pure, no database); this store loads it at boot (`initDB`), refreshes it after
  * every write, and registers itself as its refresher so a write on another
  * replica arrives within the index TTL.
@@ -28,7 +28,7 @@
 const { run, getAll, exec } = require('../db');
 const { makeStoreInit } = require('./lib/storeInit');
 const { runDdl } = require('./lib/_ddl');
-const priceCatalog = require('../core/llm/priceCatalog');
+const priceCatalog = require('./lib/priceCatalog');
 const log = require('../telemetry/log');
 
 const initDB = makeStoreInit('ModelPriceCatalogStore', _initDB);
@@ -88,7 +88,7 @@ async function refreshIndex() {
  * Append one price card. A card for the same (provider, model, tier, valid_from)
  * that already exists is left untouched (append-only), and `inserted` is false.
  *
- * @param {object} card  see core/llm/priceCatalog.validateRow for the fields
+ * @param {object} card  see stores/lib/priceCatalog.validateRow for the fields
  * @returns {Promise<{ inserted: boolean, id: number|null }>}
  */
 async function addPrice(card) {

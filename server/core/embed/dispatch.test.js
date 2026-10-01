@@ -84,7 +84,7 @@ test('anything other than "query" is treated as a document', () => {
 // ── Azure: the v1 GA surface ──────────────────────────────────────────────────
 // Azure embeddings go to `POST <origin>/openai/v1/embeddings` with the deployment
 // name as `model` in the body and no `api-version`: the same base URL the chat
-// adapter builds (core/providers/azureUrl.js). The old dated route
+// adapter builds (utils/azureUrl.js). The old dated route
 // (`/openai/deployments/<x>/embeddings?api-version=2024-06-01`) must not come back.
 
 const realFetch = global.fetch;

@@ -6,7 +6,7 @@
  */
 
 import type { FilterForm } from './fields';
-import { CALENDAR_CHANGED, CALENDAR_UPCOMING, DRIVE_FILE_NEW, GMAIL, GMAIL_LABEL } from './google';
+import { CALENDAR_CHANGED, CALENDAR_UPCOMING, DRIVE_FILE_NEW, GMAIL, GMAIL_LABEL, SHEETS_CHANGED } from './google';
 import {
     NEXTCLOUD_ACTIVITY,
     NEXTCLOUD_CALENDAR,
@@ -25,6 +25,7 @@ export const FILTER_FORMS: Readonly<Record<string, FilterForm>> = {
     'google-calendar.event.changed': CALENDAR_CHANGED,
     'google-calendar.event.upcoming': CALENDAR_UPCOMING,
     'google-drive.file.new': DRIVE_FILE_NEW,
+    'google-sheets.spreadsheet.changed': SHEETS_CHANGED,
     'nextcloud.file.new': NEXTCLOUD_FILE,
     'nextcloud.file.changed': NEXTCLOUD_FILE,
     'nextcloud.file.deleted': NEXTCLOUD_FILE,

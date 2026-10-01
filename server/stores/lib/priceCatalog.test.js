@@ -11,7 +11,7 @@
  *     is dropped (never thrown on, never half-applied) and a hostile shape
  *     (prototype keys, NaN, negative or absurd rates) cannot get in.
  *
- * Run: cd server && node --test core/llm/priceCatalog.test.js
+ * Run: cd server && node --test stores/lib/priceCatalog.test.js
  */
 
 'use strict';
@@ -111,7 +111,7 @@ test('invalid rows are dropped, the valid ones still load, nothing throws', () =
         null, 'string', 42,
     ]);
     assert.strictEqual(res.loaded, 1);
-    assert.strictEqual(res.dropped, 13);
+    assert.strictEqual(res.dropped, 14);
     assert.ok(catalog.lookup({ provider: 'claude', model: 'claude-test-1', at: T0 }));
     assert.strictEqual(catalog.lookup({ provider: 'claude', model: 'nan-rate', at: T0 }), null);
 });
@@ -185,4 +185,19 @@ test('a stale snapshot is refreshed in the background and a failing refresh keep
     assert.strictEqual(catalog.lookup({ provider: 'claude', model: 'claude-test-1', at: T0 }).input, 4, 'last good snapshot stays');
     assert.ok(calls >= 2);
     await catalog.refreshNow(); // settle any background refresh before the test ends
+});
+
+test('listActive: one standard row per model, the one in force at the time (donors for an estimate)', () => {
+    catalog.setRows([
+        row({ model_id: 'm-a', input: 1, valid_from: new Date(T0).toISOString() }),
+        row({ model_id: 'm-a', input: 2, valid_from: new Date(T0 + 30 * DAY).toISOString() }),
+        row({ model_id: 'm-b', provider: 'openai', valid_from: new Date(T0 + 60 * DAY).toISOString() }),
+        row({ model_id: 'm-c', valid_from: new Date(T0).toISOString(), valid_to: new Date(T0 + 10 * DAY).toISOString() }),
+        row({ model_id: 'm-a', tier: 'batch', input: 0.5, valid_from: new Date(T0).toISOString() }),
+    ]);
+    const ids = (at) => catalog.listActive({ at }).map((r) => `${r.model_id}:${r.input}`).sort();
+    assert.deepStrictEqual(ids(T0 + 5 * DAY), ['m-a:1', 'm-c:3']);
+    assert.deepStrictEqual(ids(T0 + 40 * DAY), ['m-a:2'], 'm-c expired, m-b not yet started, the batch card is not a donor');
+    assert.deepStrictEqual(ids(T0 + 70 * DAY), ['m-a:2', 'm-b:3']);
+    assert.deepStrictEqual(catalog.listActive({ at: T0 - DAY }), []);
 });

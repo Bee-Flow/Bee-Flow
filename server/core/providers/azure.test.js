@@ -104,6 +104,22 @@ test('non-reasoning models go through Responses too, without reasoning params', 
     assert.strictEqual(captured.responses.prompt_cache_retention, '24h', 'gpt-4.1 offers extended retention on Azure');
 });
 
+test('azure usage is stamped as azure (billing then looks for the Azure card and can flag an unmapped deployment)', async () => {
+    deploymentList = 'prod-chat=gpt-5.6-sol';
+    const azure = new AzureProvider();
+    azure.createClient = () => ({
+        responses: { create: async () => ({ id: 'r', output: [], output_text: 'ok', usage: { input_tokens: 10, output_tokens: 5 } }) },
+    });
+    const result = await azure.chat('k', EP, 'prod-chat', MSGS, {});
+    assert.strictEqual(result.usage.provider_type, 'azure');
+    assert.strictEqual(result.usage.prompt_tokens, 10);
+    // the stamp survives the normaliser every consumer runs it through
+    const { usageLogFields } = require('./usageNormalizer');
+    assert.strictEqual(usageLogFields(result.usage).provider_type, 'azure');
+    // ...and the billed model is the one behind the deployment
+    assert.strictEqual(require('../llm/modelCosts').resolveBilledModel('prod-chat', result.usage.provider_type), 'gpt-5.6-sol');
+});
+
 test('cache parameters: 24h only where Azure offers it, never prompt_cache_options', async () => {
     deploymentList = '';
     const azure = new AzureProvider();

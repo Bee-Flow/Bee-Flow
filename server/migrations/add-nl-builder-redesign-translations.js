@@ -123,6 +123,11 @@ const NL_TRANSLATIONS = {
     'routines.mismatch.choice_foreach_row': 'Voor elke rij een aparte run',
     'routines.mismatch.choice_summary_rows': 'Eén leesbaar blok per rij',
     'routines.mismatch.choice_keep_table': 'De hele tabel behouden',
+    'routines.mismatch.fewer': 'minder',
+    'routines.mismatch.options_generic': 'Opties',
+    'routines.mismatch.options_group': 'Veldopties',
+    'routines.mismatch.options_list': 'Lijstopties',
+    'routines.mismatch.options_table': 'Tabelopties',
 
     // ── Kaartbadges op het canvas (artboard 1g) ─────────────────────────────
     'routines.card.badge_running': 'draait',

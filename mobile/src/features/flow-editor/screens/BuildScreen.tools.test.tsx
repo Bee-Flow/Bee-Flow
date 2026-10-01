@@ -224,8 +224,8 @@ describe('Ask AI', () => {
         const store = peekDraftStore('a1');
 
         await fireEvent.press(screen.getByLabelText('Ask AI'));
-        await fireEvent.press(await screen.findByText('Search my inbox and summarise the results'));
-        expect(screen.getByTestId('ai-input').props.value).toBe('Search my inbox and summarise the results');
+        await fireEvent.press(await screen.findByText('Process each item with AI'));
+        expect(screen.getByTestId('ai-input').props.value).toBe('Process each item with AI');
         await fireEvent.press(screen.getByTestId('ai-send'));
 
         await waitFor(() => expect(store?.getState().definition).toEqual(AI_DRAFT));

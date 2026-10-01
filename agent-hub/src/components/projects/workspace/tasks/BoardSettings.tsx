@@ -101,7 +101,7 @@ export default function BoardSettings({ projectId, board, onClose, focus }: { pr
     const help = t('project_tasks.column_help', 'Columns are shared with everyone. Keep one column for each status. Move tasks out before removing a column. WIP limits highlight too much work in progress.');
 
     return (
-        <Modal open onClose={onClose} size="lg" data-testid="board-settings"
+        <Modal open onClose={onClose} size="lg" className="overflow-hidden" data-testid="board-settings"
             title={(
                 <span className="inline-flex items-center gap-1.5 text-[14px]">
                     {t('project_tasks.board_columns', 'Board columns')}

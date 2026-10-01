@@ -54,6 +54,9 @@
  *                               counts ({text, image, audio, video, document},
  *                               only the non-zero ones), from Gemini's
  *                               *TokensDetails and OpenAI's *_tokens_details.
+ *   provider_type               present only when the adapter names itself (Azure:
+ *                               'azure'); lets pricing pick the host's own card
+ *                               and say "unmapped deployment". Allow-listed.
  *   cache_ttl                   LEGACY single-TTL attribution ('1h' | '5m' | null)
  *                               kept only because `ai_usage_log.cache_ttl` and
  *                               modelCosts.computeCost still price a write at one
@@ -77,6 +80,10 @@ const MAX_COUNT = 2_000_000_000;
 const MAX_TOOL_KEYS = 16;
 const IDENT = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,39}$/;
 const TOOL_KEY = /^[a-z][a-z0-9_]{0,39}$/;
+// Which adapter produced the usage, when the adapter says so (today: Azure, whose
+// deployment names carry no model). Closed list: a provider cannot name itself
+// anything else, and the value only steers which price card is looked up.
+const PROVIDER_TYPES = new Set(['claude', 'openai', 'azure', 'google', 'google-vertex', 'mistral', 'scaleway', 'eugpt']);
 
 /** Non-negative integer (at most MAX_COUNT) from anything numeric, else 0. */
 function num(v) {
@@ -319,6 +326,8 @@ function fromGeneric(raw, hint, meta) {
     out.inference_geo = str(raw.inference_geo ?? raw.inferenceGeo) ?? str(meta?.inference_geo);
     out.traffic_type = str(raw.traffic_type ?? raw.trafficType) ?? str(meta?.traffic_type);
     out.tool_use = mergeToolUse(raw.server_tool_use, raw.tool_use, meta?.tool_use);
+    const providerType = str(raw.provider_type);
+    if (providerType && PROVIDER_TYPES.has(providerType)) out.provider_type = providerType;
     out.modality = {
         prompt: pickModality(detailModalities(promptDetails), passModality(raw.modality?.prompt)),
         completion: pickModality(detailModalities(completionDetails), passModality(raw.modality?.completion)),
@@ -383,7 +392,7 @@ function createUsageAccumulator() {
             ]) total[k] = Math.min(total[k] + u[k], MAX_COUNT);
             total.cache_creation_ttl_assumed = total.cache_creation_ttl_assumed || u.cache_creation_ttl_assumed;
             total.prompt_includes_cache = u.prompt_includes_cache;
-            for (const k of ['service_tier', 'inference_geo', 'traffic_type']) {
+            for (const k of ['service_tier', 'inference_geo', 'traffic_type', 'provider_type']) {
                 if (u[k]) total[k] = u[k];
             }
             for (const [k, v] of Object.entries(u.tool_use)) {

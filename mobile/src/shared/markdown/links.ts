@@ -89,6 +89,8 @@ export const PHONE_WEB_PAGES: readonly (readonly [page: string, address: string]
     ['agents', '/app/a/'],
     ['agents', '/app/agent/'],
     ['agents', '/app/d/'],
+    ['projects', '/app/projects'],
+    ['projects', '/app/projects/'],
     ['settings', '/app/settings'],
     ['settings', '/app/settings/'],
     ['apps', '/app/apps'],
@@ -167,7 +169,7 @@ export function isAppLink(href: string, serverUrl: string | null): boolean {
  *
  * The screen wins even when it is only approximate (the Studio hub for a
  * section this build does not know): the web page is no better on a phone —
- * the web sends Studio, the admin pages, notebooks and projects to the Agents
+ * the web sends Studio, the admin pages and notebooks to the Agents
  * chat, after a sign-in. Null for an address neither side can show, so the
  * caller says so instead of spending a sign-in on a page that bounces.
  */

@@ -118,9 +118,9 @@ export function HierarchyRow(props: RowProps) {
                 ) : <span className="w-5 flex-none" aria-hidden="true" />}
                 <StatusGlyph status={task.status} />
                 <TypeChip type={type} />
-                {/* Stretched over the row: one click target with the title as its name. */}
+                {/* Stretched over the row: one click target with the title as its name. Its focus ring is square, like the row's full-bleed background behind it. */}
                 <button type="button" onClick={() => onOpen(task)}
-                    className={`min-w-0 flex-1 truncate text-left text-[13px] after:absolute after:inset-0 after:content-[''] after:rounded-md focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-[var(--accent-primary)] ${type === 'epic' ? 'font-semibold' : 'font-medium'} ${done ? 'text-[var(--text-tertiary)] line-through' : 'text-[var(--text-primary)]'}`}>
+                    className={`min-w-0 flex-1 truncate text-left text-[13px] after:absolute after:inset-0 after:content-[''] focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-[var(--accent-primary)] ${type === 'epic' ? 'font-semibold' : 'font-medium'} ${done ? 'text-[var(--text-tertiary)] line-through' : 'text-[var(--text-primary)]'}`}>
                     {title}
                 </button>
                 <RowMeta node={node} t={t} />

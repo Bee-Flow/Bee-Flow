@@ -77,18 +77,18 @@ const STRICT_PROVIDERS = new Set(['scaleway']);
 // ─── Fallback pricing for models not yet in the community database ──────────
 // Prices are per 1M tokens (USD). Sourced from official provider pages.
 //
-// This matters more than it looks: without a price, computeCost falls through
-// to _getUpperBound() — the most expensive input/output rate of EVERY model we
-// know — and that number lands on real PAYG invoices. The community database
-// lags a new OpenAI model by days to weeks, which is exactly the window in
-// which a freshly released flagship gets used.
+// This matters more than it looks: without a price, rateUsage can only
+// ESTIMATE the call from the nearest known model (cost_basis 'unknown', see
+// unknownModelRate.js), and an estimate lands on real PAYG invoices. The
+// community database lags a new OpenAI model by days to weeks, which is exactly
+// the window in which a freshly released flagship gets used.
 //
 // Consulted only AFTER the community database, so a price cut upstream still
 // wins over our snapshot.
 const { listPricedModels } = require('../providers/openaiModels');
 // Anthropic was missing here entirely, so a Claude model the community database
 // had not picked up yet — a freshly released flagship, exactly when it gets
-// used — fell straight through to the upper-bound rates.
+// used — had no price at all and was only estimated.
 const { listPricedModels: listClaudePricedModels } = require('../providers/claudeModels');
 
 const FALLBACK_PRICING = {
@@ -293,6 +293,46 @@ function getAllModelPricing() {
 }
 
 /**
+ * Every model we have a price for, as donors for the estimate of a model nothing
+ * prices (unknownModelRate.js): our own OpenAI and Anthropic snapshots first,
+ * then the community data on top (as in getModelPricing, community wins).
+ * Each entry names the provider that sells it (our adapter vocabulary: claude,
+ * openai, azure, google, google-vertex, mistral, scaleway; null for any other
+ * host), so a donor is only ever taken from the provider the unknown model belongs to.
+ * Built on a Map: a key from the (third-party) data file can never touch a prototype.
+ *
+ * @returns {Array<{ id: string, vendor: string|null, input: number, output: number, cacheRead: number|null, currency: string, source: string }>}
+ */
+function listKnownPricing() {
+    const byId = new Map();
+    const put = (id, rates, vendor, currency, source) => {
+        if (typeof id !== 'string' || !id) return;
+        byId.set(id, { id, vendor, input: rates.input, output: rates.output, cacheRead: rates.cacheRead ?? null, currency, source });
+    };
+    for (const [id, r] of Object.entries(listPricedModels())) put(id, r, 'openai', 'USD', 'repo');
+    for (const [id, r] of Object.entries(listClaudePricedModels())) put(id, r, 'claude', 'USD', 'repo');
+    for (const [id, r] of Object.entries(getAllModelPricing())) {
+        if (typeof r?.input !== 'number' || typeof r?.output !== 'number') continue;
+        const vendor = vendorOfCommunityProvider(r.provider);
+        put(id, r, vendor, vendor === 'scaleway' ? 'EUR' : 'USD', 'litellm');
+    }
+    return [...byId.values()];
+}
+
+/** The adapter type behind a community `litellm_provider` string, or null for any other host. */
+function vendorOfCommunityProvider(p) {
+    const s = String(p || '').toLowerCase();
+    if (s === 'anthropic') return 'claude';
+    if (s === 'openai' || s === 'text-completion-openai') return 'openai';
+    if (s === 'azure') return 'azure';
+    if (s === 'gemini') return 'google';
+    if (s.startsWith('vertex_ai')) return 'google-vertex';
+    if (s === 'mistral') return 'mistral';
+    if (s === 'scaleway') return 'scaleway';
+    return null;
+}
+
+/**
  * Initialize pricing on startup (non-blocking).
  */
 function initPricing() {
@@ -305,6 +345,7 @@ module.exports = {
     getModelPricingDetail,
     getPricingByKey,
     getAllModelPricing,
+    listKnownPricing,
     // Legacy aliases (backwards compat)
     getLiteLLMCost: getModelPricing,
     getAllLiteLLMCosts: getAllModelPricing,

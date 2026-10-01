@@ -164,14 +164,14 @@ describe('servedOnPhoneWeb', () => {
     it('knows the web pages a phone is shown, by their own addresses', () => {
         for (const path of ['/app', '/app/', '/app?x=1', '/app/a/s1', '/app/agent/a1', '/app/d/c1', '/app/settings', '/app/settings/appearance',
             '/app/apps', '/app/apps/', '/app/apps/p1', '/app/forms', '/app/forms/tok', '/app/cowork', '/app/cowork/c1', '/app/work/c1',
-            '/app/studio/cowork/c1', '/app/studio/approvals', '/app/studio/approvals/ap1#top']) {
+            '/app/studio/cowork/c1', '/app/studio/approvals', '/app/studio/approvals/ap1#top', '/app/projects', '/app/projects/p1']) {
             expect({ path, served: servedOnPhoneWeb(path) }).toEqual({ path, served: true });
         }
     });
 
     it('does not count the rest of the web, nor its catch-all chat', () => {
         for (const path of ['/app/studio', '/app/studio/automations/a1', '/app/studio/approvalsx', '/app/admin/security/users', '/app/org-settings',
-            '/app/notebooks/n1', '/app/projects/p1', '/app/webpages/w1', '/app/billing', '/app/routines', '/app/a', '/app/some/future/screen',
+            '/app/notebooks/n1', '/app/webpages/w1', '/app/billing', '/app/routines', '/app/a', '/app/some/future/screen',
             '/app/settingsx', '/app/workbench']) {
             expect({ path, served: servedOnPhoneWeb(path) }).toEqual({ path, served: false });
         }

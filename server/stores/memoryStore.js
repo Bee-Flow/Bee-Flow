@@ -19,7 +19,7 @@ const { run, getOne, getAll, exec } = require('../db');
 const { makeStoreInit } = require('./lib/storeInit');
 const { v4: uuidv4 } = require('uuid');
 const { resolveEmbedTarget } = require('../core/embed/resolveTarget');
-const { toV1BaseUrl } = require('../core/providers/azureUrl');
+const { toV1BaseUrl } = require('../utils/azureUrl');
 const log = require('../telemetry/log');
 
 // Optional self-hosted GPU embedding service (legacy). Disabled when

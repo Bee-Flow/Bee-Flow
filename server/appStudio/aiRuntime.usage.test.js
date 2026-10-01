@@ -14,32 +14,27 @@
  */
 const { test } = require('node:test');
 const assert = require('node:assert');
-const Module = require('module');
 const {
     realClaudeAdapter, realClaudeStreamAdapter, realGeminiAdapter, assertClaudeEntry, assertGeminiEntry,
 } = require('../core/providers/usageHarness');
 
-function mock(id, exports) {
-    const p = require.resolve(id);
-    const m = new Module(p);
-    m.exports = exports;
-    m.loaded = true;
-    require.cache[p] = m;
-}
+const { preloadStubs } = require('../testUtils/stubRequire');
 
 const usageCalls = [];
-mock('../stores/usageStore', { logUsage: async (entry) => { usageCalls.push(entry); } });
-mock('../stores/configStore', {
-    getConfig: async () => null, setConfig: async () => {}, getSecret: async () => null, setSecret: async () => {},
-});
-mock('../core/aiAgent', { getAIConfig: async () => ({}), getProviderForModel: async () => ({}) });
-mock('../core/kb/kbVisibility', { filterKbIdsForUser: async (ids) => ids, filterKbIdsForEmbed: async (ids) => ids });
-mock('../core/kb/askerContext', { askerContext: async () => ({ orgIds: new Set(), userGroups: [] }) });
-mock('../core/agentRuntime/knowledgeSearch', { quickKBSearch: async () => [] });
-mock('../stores/studioAppDataStore', { getAttachment: async () => null });
-mock('../stores/storageStore', { buildStudioAppAttachmentKey: () => 'k', streamFile: async () => null });
-mock('../core/documents/attachmentExtractor', {
-    extractAttachment: async () => null, formatTextHeader: () => '', formatImagesHeader: () => '', formatFailureNote: () => '',
+preloadStubs(require, {
+    '../stores/usageStore': { logUsage: async (entry) => { usageCalls.push(entry); } },
+    '../stores/configStore': {
+        getConfig: async () => null, setConfig: async () => {}, getSecret: async () => null, setSecret: async () => {},
+    },
+    '../core/aiAgent': { getAIConfig: async () => ({}), getProviderForModel: async () => ({}) },
+    '../core/kb/kbVisibility': { filterKbIdsForUser: async (ids) => ids, filterKbIdsForEmbed: async (ids) => ids },
+    '../core/kb/askerContext': { askerContext: async () => ({ orgIds: new Set(), userGroups: [] }) },
+    '../core/agentRuntime/knowledgeSearch': { quickKBSearch: async () => [] },
+    '../stores/studioAppDataStore': { getAttachment: async () => null },
+    '../stores/storageStore': { buildStudioAppAttachmentKey: () => 'k', streamFile: async () => null },
+    '../core/documents/attachmentExtractor': {
+        extractAttachment: async () => null, formatTextHeader: () => '', formatImagesHeader: () => '', formatFailureNote: () => '',
+    },
 });
 
 const llmClient = require('../core/llm/llmClient');

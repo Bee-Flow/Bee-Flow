@@ -184,21 +184,25 @@ export default function TaskTimeline({ tasks, timeline, canEdit, busy, people, o
                 if (!data || !offset || busy || !canEdit) return;
                 const dates = moveDates(data.task, data.mode, offset); if (dates) onDates(data.task, dates);
             }}>
-                <div className="overflow-auto max-h-[70vh] rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)] custom-scrollbar" tabIndex={0} role="region" aria-label={t('project_tasks.gantt_chart', 'Gantt chart')}>
-                    <div className="min-w-max">
-                        <TimelineHeader timeline={timeline} planned={scheduled.length} overdue={overdue} />
-                        <div className="relative">
-                            <DayLayer timeline={timeline} />
-                            {showLoad && <LoadRow timeline={timeline} load={load} />}
+                {/* The frame clips, the scroller inside it scrolls: square scrollbars and their corner
+                    would otherwise paint over the rounded corners. */}
+                <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)] overflow-hidden has-[>[role=region]:focus-visible]:ring-2 has-[>[role=region]:focus-visible]:ring-[var(--accent-primary)]">
+                    <div className="overflow-auto max-h-[70vh] custom-scrollbar outline-none [&::-webkit-scrollbar]:h-2.5 [&::-webkit-scrollbar-corner]:bg-transparent" tabIndex={0} role="region" aria-label={t('project_tasks.gantt_chart', 'Gantt chart')}>
+                        <div className="min-w-max">
+                            <TimelineHeader timeline={timeline} planned={scheduled.length} overdue={overdue} />
                             <div className="relative">
-                                {showLinks && <Relations edges={edges} timeline={timeline} rows={scheduled.length} />}
-                                {scheduled.map(task => (
-                                    <TimelineRow key={task.id} task={task} shown={preview?.id === task.id ? preview.dates : task} timeline={timeline} people={people}
-                                        tooltip={tooltip(task)} canEdit={canEdit} busy={busy} previewing={preview?.id === task.id}
-                                        onOpen={() => onOpen(task)} onDependency={onDependency} />
-                                ))}
+                                <DayLayer timeline={timeline} />
+                                {showLoad && <LoadRow timeline={timeline} load={load} />}
+                                <div className="relative">
+                                    {showLinks && <Relations edges={edges} timeline={timeline} rows={scheduled.length} />}
+                                    {scheduled.map(task => (
+                                        <TimelineRow key={task.id} task={task} shown={preview?.id === task.id ? preview.dates : task} timeline={timeline} people={people}
+                                            tooltip={tooltip(task)} canEdit={canEdit} busy={busy} previewing={preview?.id === task.id}
+                                            onOpen={() => onOpen(task)} onDependency={onDependency} />
+                                    ))}
+                                </div>
+                                {!scheduled.length && <p className="relative m-0 py-6 text-center text-[12.5px] text-[var(--text-tertiary)]">{t('project_tasks.no_planned', 'Give a task a start date or deadline to see it here.')}</p>}
                             </div>
-                            {!scheduled.length && <p className="relative m-0 py-6 text-center text-[12.5px] text-[var(--text-tertiary)]">{t('project_tasks.no_planned', 'Give a task a start date or deadline to see it here.')}</p>}
                         </div>
                     </div>
                 </div>

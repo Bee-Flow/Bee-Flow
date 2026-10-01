@@ -298,3 +298,21 @@ test('usageTotalsLogFields falls back to the plain pair when nothing was tracked
     assert.deepStrictEqual([f.prompt_tokens, f.completion_tokens, f.total_tokens, f.cached_tokens], [7, 3, 10, 0]);
     assert.strictEqual(usageTotalsLogFields(undefined).prompt_tokens, 0);
 });
+
+// ─── provider_type (adapter self-stamp) ─────────────────────────────
+
+test('provider_type survives normalisation only for an adapter type from the closed list', () => {
+    assert.strictEqual(normalizeUsage('openai', { prompt_tokens: 1, provider_type: 'azure' }).provider_type, 'azure');
+    for (const hostile of ['evil', 'AZURE; DROP', '__proto__', 'azure x', '', 5, {}, null]) {
+        assert.ok(!('provider_type' in normalizeUsage('openai', { prompt_tokens: 1, provider_type: hostile })), String(hostile));
+    }
+    assert.ok(!('provider_type' in normalizeUsage('openai', { prompt_tokens: 1 })), 'absent unless stamped');
+    assert.ok(!('provider_type' in emptyUsage()));
+    // idempotent, and carried by the accumulator
+    const once = normalizeUsage('openai', { prompt_tokens: 1, provider_type: 'azure' });
+    assert.strictEqual(normalizeUsage('openai', once).provider_type, 'azure');
+    const acc = createUsageAccumulator();
+    acc.add({ prompt_tokens: 1, provider_type: 'azure' });
+    acc.add({ prompt_tokens: 2 });
+    assert.strictEqual(acc.total().provider_type, 'azure');
+});

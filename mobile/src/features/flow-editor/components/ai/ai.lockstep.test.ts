@@ -7,8 +7,9 @@
  *                 The web's integration table is emptied (and the phone given
  *                 no catalog), so an app action falls back to its type on both
  *                 sides; lucide is a name proxy, as in the canvas tests.
- *   TEXTUAL       welcome.ts ↔ chat/AssistantWelcome.jsx: the suggestions
- *                 and which trigger picks the first.
+ *   DIFFERENTIAL  welcome.ts ↔ chat/AssistantWelcome.jsx: the suggestion
+ *                 logic, cut out of the web component and run beside the
+ *                 port for each trigger, step count and selected step.
  */
 
 import fs from 'node:fs';
@@ -64,14 +65,35 @@ describe('the activity rows', () => {
 
 describe('the welcome', () => {
     const src = fs.readFileSync(`${CHAT}/AssistantWelcome.jsx`, 'utf8');
+    // The web's chip logic, cut out of its component and run beside the port:
+    // from `const steps` to the JSX, with its icons as plain names.
+    const body = src.slice(src.indexOf('const steps ='), src.indexOf('return <div'));
+    const icons = (/import \{([^}]+)\} from 'lucide-react'/.exec(src)?.[1] ?? '').split(',').map((s) => s.trim()).filter(Boolean);
+    const webChips = new Function('triggerKind', 'definition', 'selectedStep', 't', ...icons, `${body}\nreturn chips.slice(0, 4).map((c) => c.text);`) as (
+        triggerKind: string,
+        definition: unknown,
+        selectedStep: unknown,
+        tr: typeof t,
+        ...names: string[]
+    ) => string[];
 
-    it('offers the web suggestions, the first by trigger', () => {
-        const cases: [string, string | null][] = [['schedule', 'schedule'], ['app_event', 'app_event'], ['webhook', 'webhook'], ['manual', null], ['form', null]];
-        for (const [kind, branch] of cases) {
-            const [first, ...rest] = welcomeSuggestions(kind, t);
-            if (branch) expect(src).toMatch(new RegExp(`triggerKind === '${branch}'\\) chips\\.push\\('${first}'\\)`));
-            else expect(src).toContain(`else chips.push('${first}')`);
-            for (const chip of rest) expect(src).toContain(`chips.push('${chip}')`);
+    it('reads the web suggestions at all', () => {
+        expect(icons.length).toBeGreaterThan(3);
+        expect(body).toContain('chips');
+    });
+
+    it.each(['schedule', 'app_event', 'webhook', 'manual', 'form'])('offers the web suggestions for a %s trigger, empty or with steps', (kind) => {
+        for (const steps of [0, 1, 3]) {
+            const definition = { steps: Array.from({ length: steps }, (_, i) => ({ id: `s${i}`, type: 'set' })) };
+            expect(welcomeSuggestions(kind, t, { steps })).toEqual(webChips(kind, definition, null, t, ...icons));
+        }
+    });
+
+    it.each(['code', 'ai_step', 'set'])('offers the web suggestions for a selected %s step', (type) => {
+        for (const steps of [0, 2]) {
+            const definition = { steps: Array.from({ length: steps }, (_, i) => ({ id: `s${i}`, type })) };
+            const selectedStep = { id: 's0', type };
+            expect(welcomeSuggestions('schedule', t, { steps, selectedStep })).toEqual(webChips('schedule', definition, selectedStep, t, ...icons));
         }
     });
 });

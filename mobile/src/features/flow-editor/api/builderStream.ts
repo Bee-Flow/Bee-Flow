@@ -234,5 +234,14 @@ export function builderFrames(callbacks: () => BuilderFrameCallbacks): FrameAdap
         ping: IGNORE,
         prompt_progress: IGNORE,
         usage: IGNORE,
+
+        // The web's work modes (discuss / approve / plan, workMode in
+        // chatStream.js): a reviewed plan, the model's clarifying questions,
+        // and a staged proposal to accept or discard. The phone sends no
+        // workMode, so its turns build directly; a plan left on a session by
+        // the desktop is reviewed there.
+        review_plan: IGNORE,
+        review_questions: IGNORE,
+        proposal_preview: IGNORE,
     };
 }

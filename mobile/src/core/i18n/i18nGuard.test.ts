@@ -327,6 +327,8 @@ const OTHER_CHANGE = "routines.sharing.change_pill changes who a routine is shar
 const OTHER_STEPS = "routines.ribbon's 'Steps' heads the step ribbon's search results and category; this heads another list of steps";
 const OTHER_ICON = "routines.settings.icon is the routine settings' own field";
 const OTHER_SHOW_ALL = "routines.output.show_all shows every column of a step's output table";
+const OTHER_OPTIONS = "routines.mismatch.options_generic heads the mapping mismatch resolver's choices; this heads a field's own options";
+const OTHER_DISCARD = "routines.assistant.discard throws away the assistant's proposal or plan; this discards something else";
 const OTHER_DOCUMENTS = "routines.ribbon.data_documents is a row of the step ribbon, and documents.title heads Studio Documents; this is the knowledge documents";
 const SAME_WORDS_OWN_KEY = new Map<string, string>([
     ['mobile.error.retry', PAGE_SPECIFIC_RETRY],
@@ -452,6 +454,11 @@ const SAME_WORDS_OWN_KEY = new Map<string, string>([
     ['mobile.webpages.public.change', OTHER_CHANGE],
     ['mobile.webpages.settings.bases', VERSION_SETTING],
     ['mobile.webpages.settings.icon', OTHER_ICON],
+    // The builder's work modes (2026-10) say 'Apply', 'Discard' and 'Options' for the first time.
+    ['mobile.datatables.options', OTHER_OPTIONS],
+    ['mobile.flow.section.options', OTHER_OPTIONS],
+    ['mobile.flow.json.apply', "routines.assistant.apply applies the assistant's proposal; this applies a step's hand-edited JSON"],
+    ['mobile.ui.discard', OTHER_DISCARD],
     ['mobile.webpages.versions.source_published', "routines' 'Published' is a library step's state; this says a publish made the version (the web's own word for that is 'Publish')"],
 ]);
 

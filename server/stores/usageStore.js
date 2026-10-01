@@ -7,8 +7,7 @@
 const { run, getOne, getAll, exec } = require('../db');
 const { makeStoreInit } = require('./lib/storeInit');
 const { runDdl } = require('./lib/_ddl');
-const { rateUsage } = require('../core/llm/modelCosts');
-const priceCatalog = require('../core/llm/priceCatalog');
+const { rateUsage, resolveBilledModel } = require('../core/llm/modelCosts');
 const { currentClient } = require('../telemetry/requestClient');
 const log = require('../telemetry/log');
 
@@ -215,10 +214,10 @@ const WIDEN_COST_COLUMNS_SQL = `
  * columns in the meantime (they just keep float4 precision until it is run).
  * `{ force: true }` is the runbook entry point.
  *
- * @param {{ force?: boolean }} [opts]
+ * @param {{ force?: boolean, maxRows?: number }} [opts]
  * @returns {Promise<{ widened: boolean, reason?: string }>}
  */
-async function widenCostColumns({ force = false } = {}) {
+async function widenCostColumns({ force = false, maxRows = WIDEN_COST_COLUMNS_MAX_ROWS } = {}) {
     const cols = await getAll(
         `SELECT column_name, data_type FROM information_schema.columns
           WHERE table_schema = current_schema() AND table_name = 'ai_usage_log'
@@ -227,10 +226,10 @@ async function widenCostColumns({ force = false } = {}) {
 
     if (!force) {
         const probe = await getOne(
-            `SELECT COUNT(*)::int AS n FROM (SELECT 1 FROM ai_usage_log LIMIT ${WIDEN_COST_COLUMNS_MAX_ROWS + 1}) probe`);
-        if ((probe && Number(probe.n)) > WIDEN_COST_COLUMNS_MAX_ROWS) {
-            log.warn(`[UsageStore] ai_usage_log has more than ${WIDEN_COST_COLUMNS_MAX_ROWS} rows: leaving estimated_cost/billed_cost as REAL at boot. `
-                + 'Run once in a maintenance window: require("./stores/usageStore").widenCostColumns({ force: true })');
+            `SELECT COUNT(*)::int AS n FROM (SELECT 1 FROM ai_usage_log LIMIT ${Math.floor(maxRows) + 1}) probe`);
+        if ((probe && Number(probe.n)) > maxRows) {
+            log.warn(`[UsageStore] ai_usage_log has more than ${maxRows} rows: leaving estimated_cost/billed_cost as REAL at boot. `
+                + 'Run once in a maintenance window: widenCostColumns({ force: true }) exported by stores/usageStore.js');
             return { widened: false, reason: 'table_too_large' };
         }
     }
@@ -337,6 +336,15 @@ function invalidatePaygCache(organizationId, userId) {
 
 const USAGE_RAW_MAX_BYTES = 8 * 1024;
 
+// Lazy, like every other FX use in this file: the helper pulls in configStore.
+const _currency = () => require('../core/text/currency');
+
+/** A call timestamp as epoch ms; anything unparseable counts as "now". */
+function _timeMs(v) {
+    const ms = v instanceof Date ? v.getTime() : Date.parse(String(v));
+    return Number.isFinite(ms) ? ms : Date.now();
+}
+
 const _num = (v) => (Number.isFinite(Number(v)) ? Number(v) : null);
 const _bool = (v) => (typeof v === 'boolean' ? v : null);
 const _ident = (v) => (typeof v === 'string' && /^[a-z0-9][a-z0-9_.:-]{0,63}$/i.test(v) ? v.toLowerCase() : null);
@@ -348,7 +356,7 @@ const _ident = (v) => (typeof v === 'string' && /^[a-z0-9][a-z0-9_.:-]{0,63}$/i.
  * modality objects come from usageNormalizer (already bounded); the size cap below
  * is the backstop that keeps one row from carrying an unbounded document.
  */
-function _usageRaw(entry, rated) {
+function _usageRaw(entry, rated, deployment) {
     const doc = {
         v: 1,
         usage: {
@@ -377,6 +385,7 @@ function _usageRaw(entry, rated) {
             list_rates: rated.rates,
             multiplier: rated.multiplier,
             notes: rated.notes,
+            ...(deployment ? { deployment: String(deployment).slice(0, 128) } : {}),
         },
     };
     let json = JSON.stringify(doc);
@@ -396,7 +405,7 @@ function _usageRaw(entry, rated) {
  * Returns NaN for a rate that cannot be inverted or divided.
  */
 async function _fxFactor(from, to, strict) {
-    const currency = require('../core/text/currency');
+    const currency = _currency();
     if (from === 'USD') return currency.getUsdToCurrencyRate(to, { strict });
     if (to === 'USD') {
         const r = await currency.getUsdToCurrencyRate(from, { strict });
@@ -422,19 +431,25 @@ async function logUsage(entry) {
         const stopReason = entry.stop_reason || null;
         const parentCallId = entry.parent_call_id || null;
         const swarmRunId = entry.swarm_run_id || null;
-        const model = entry.model || 'unknown';
+        // An Azure call carries a deployment name the admin chose; the row records
+        // (and prices) the model behind it, as the deployment list says it is
+        // right now, so a later re-mapping of the deployment cannot change what
+        // this row means. The deployment name stays in usage_raw.
+        const requestedModel = entry.model || 'unknown';
+        const model = resolveBilledModel(requestedModel, entry.provider_type) || requestedModel;
+        const deployment = model !== requestedModel ? requestedModel : null;
         // The call is rated with the price in force AT THE CALL'S OWN TIMESTAMP,
         // once, here; the rate card goes on the row and nothing re-prices it later.
         // A call cannot have happened in the future, so a later `timestamp` is
         // clamped to now: a future-dated catalogue card never applies early.
         const callTimestamp = entry.timestamp || now;
-        const callAt = new Date(Math.min(priceCatalog.toMs(callTimestamp), Date.now()));
+        const callAt = new Date(Math.min(_timeMs(callTimestamp), Date.now()));
         // Cache-aware cost: cached reads at provider discount, cache writes at
         // TTL-specific premium (Anthropic 1.25× for 5m, 2× for 1h, each part of a
         // mixed write at its own), service tier, geo and long-context rates when
         // the call's facts say so. In the CURRENCY OF THE PRICE SOURCE (USD, except
         // Scaleway: EUR) — converted to the plan currency below, once.
-        const rated = rateUsage({ ...entry, model, timestamp: callAt });
+        const rated = rateUsage({ ...entry, model, provider_type: entry.provider_type || (deployment ? 'azure' : undefined), timestamp: callAt });
         const costNative = rated.cost;
         const nativeCurrency = rated.currency;
 
@@ -445,7 +460,7 @@ async function logUsage(entry) {
         try {
             let costUsd = costNative;
             if (nativeCurrency !== 'USD' && costNative > 0) {
-                const perUsd = await require('../core/text/currency').getUsdToCurrencyRate(nativeCurrency);
+                const perUsd = await _currency().getUsdToCurrencyRate(nativeCurrency);
                 costUsd = perUsd > 0 ? costNative / perUsd : costNative;
             }
             require('../telemetry/metrics').recordLlmUsage({
@@ -574,7 +589,7 @@ async function logUsage(entry) {
             ledgerCurrency,
             fxRate,
             reportedTier,
-            _usageRaw(entry, rated),
+            _usageRaw(entry, rated, deployment),
         ]);
         if (cachedTokens > 0) {
             log.info(`[UsageStore] 💰 Cache savings: ${cachedTokens} cached tokens (model: ${model})`);
@@ -1262,6 +1277,7 @@ module.exports = {
     getPromptCacheStats,
     getPromptCacheHitRate,
     invalidatePaygCache,
+    widenCostColumns,
 };
 
 // Awaitbare init-ingang voor migrateDb (memoised — zelfde promise als de load-time init).

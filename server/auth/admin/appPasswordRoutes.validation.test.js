@@ -60,30 +60,9 @@ Module._resolveFilename = function (request, parent, ...rest) {
 const router = require('./appPasswordRoutes');
 test.after(() => { Module._resolveFilename = originalResolve; });
 
-// A schema refusal travels as an error to the terminal handler, so the
-// harness has to answer one the way index.js does.
-const { terminalErrorHandler } = require('../../core/http/terminalErrorHandler');
+const { dispatcher } = require('../../core/http/routeHarness');
 
-function dispatch({ method, url, body = {}, session }) {
-    return new Promise((resolve, reject) => {
-        const req = {
-            method, url, originalUrl: url, path: url, body, query: {}, headers: {},
-            session: session || { user: { id: 'u1' }, oauthProvider: 'nextcloud', accessToken: 'tok' }, get() { return undefined; },
-        };
-        const res = {
-            statusCode: 200, headersSent: false,
-            set() { return this; }, setHeader() {},
-            status(c) { this.statusCode = c; return this; },
-            json(b) { this.body = b; this.headersSent = true; resolve(this); return this; },
-            send(b) { this.body = b; this.headersSent = true; resolve(this); return this; },
-            end() { this.headersSent = true; resolve(this); return this; },
-        };
-        router(req, res, (err) => {
-            if (!err) return reject(new Error(`fell through: ${method} ${url}`));
-            terminalErrorHandler(err, req, res, (e) => reject(e));
-        });
-    });
-}
+const dispatch = dispatcher(router, { session: () => ({ user: { id: 'u1' }, oauthProvider: 'nextcloud', accessToken: 'tok' }) });
 
 test.beforeEach(() => { touched.length = 0; });
 

@@ -1,13 +1,14 @@
 /**
  * The Google filters: Gmail's new mail and label added, Google Calendar's
- * changed and upcoming event, and Drive's new file — the web's
- * GmailFilterFields, GmailLabelFilterFields, CalendarChangedFilterFields,
- * CalendarUpcomingFilterFields and DriveFileNewFilterFields.
+ * changed and upcoming event, Drive's new file and a changed spreadsheet —
+ * the web's GmailFilterFields, GmailLabelFilterFields,
+ * CalendarChangedFilterFields, CalendarUpcomingFilterFields,
+ * DriveFileNewFilterFields and SheetsChangedFilterFields.
  */
 
 import { msg } from '@/features/flow-editor/components/editors/declarative/spec';
 
-import { ANY, listFilter, numberFilter, raw, selectFilter, textFilter, tickFilter, type FilterForm } from './fields';
+import { ANY, filterNote, filterOf, listFilter, numberFilter, raw, selectFilter, textFilter, tickFilter, type FilterForm } from './fields';
 
 const FROM = msg('mobile.flow.filter.from_contains', 'From contains');
 const SUBJECT = msg('mobile.flow.filter.subject_contains', 'Subject contains');
@@ -104,5 +105,42 @@ export const DRIVE_FILE_NEW: FilterForm = {
             msg('mobile.flow.filter.exclude_own_uploads', 'Exclude my own uploads'),
             msg('mobile.flow.filter.exclude_own_uploads_box', 'Skip files I uploaded'),
         ),
+    ],
+};
+
+/**
+ * Two modes in one form: with a spreadsheet id it watches that sheet's rows,
+ * without one it fires whenever any reachable spreadsheet is edited. The
+ * closing note only means something in the first mode, so (like the web) it
+ * shows only once an id is set.
+ */
+export const SHEETS_CHANGED: FilterForm = {
+    title: msg('mobile.flow.filter.sheets_title', 'Google Sheets filter (all optional)'),
+    fields: [
+        textFilter('spreadsheetId', msg('mobile.flow.filter.spreadsheet_id', 'Spreadsheet ID'), {
+            example: '1AbCDeFgHiJkLmNoPqRsTuV',
+            hint: msg(
+                'mobile.flow.filter.spreadsheet_id_hint',
+                "From the sheet URL: docs.google.com/spreadsheets/d/<id>/edit. Set this to watch the sheet's contents row by row; leave empty to fire whenever any of your spreadsheets is edited.",
+            ),
+        }),
+        textFilter('sheet', msg('mobile.flow.filter.sheet_tab', 'Sheet / tab'), {
+            example: 'Budget',
+            hint: msg('mobile.flow.filter.sheet_tab_hint', 'Tab name, e.g. Budget. Only with a spreadsheet picked; default is the first tab.'),
+        }),
+        textFilter('range', msg('mobile.flow.filter.range', 'Range'), {
+            example: 'A1:D100',
+            hint: msg('mobile.flow.filter.range_hint', 'A1 notation without the tab name, e.g. A1:D100, or C:C to watch one column. Default: the whole tab.'),
+        }),
+        {
+            ...filterNote(
+                'sheetsRowNote',
+                msg(
+                    'mobile.flow.filter.sheets_row_note',
+                    'A changed row fires with row (its values), rowIndex, and the previous value under previous. Row numbers are positions — inserting a row at the top reads as edits to the rows below it.',
+                ),
+            ),
+            visibleWhen: (draft) => !!filterOf(draft).spreadsheetId,
+        },
     ],
 };

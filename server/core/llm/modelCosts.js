@@ -8,7 +8,7 @@
  * 2. Self-hosted models (Ollama / vLLM / llama.cpp / …) — always €0, strictly
  *    before any price lookup
  * 3. The price catalogue (table `model_price_catalog`, in-memory index in
- *    ./priceCatalog.js): dated cards per provider/model/tier. The card whose
+ *    ../../stores/lib/priceCatalog.js): dated cards per provider/model/tier. The card whose
  *    valid_from <= call time < valid_to wins, so a future-dated card never touches
  *    a call made before it and an old call is never re-priced. A card is
  *    provider-specific by construction (a Scaleway card is Scaleway's tariff).
@@ -21,6 +21,11 @@
  * 3 is empty until the import job has filled it, so nothing changes for an
  * install without catalogue rows: 4-6 are the pre-existing behaviour.
  *
+ * A model none of these knows is rated `cost_basis: 'unknown'`, from the nearest
+ * same-family or same-provider model (unknownModelRate.js), never from the most
+ * expensive model of all; it is noted in unknownModelRegistry.js. A self-hosted
+ * model never gets there: it is priced at zero at step 2.
+ *
  * Prices are per 1 million tokens, in the currency of the source (USD, except
  * Scaleway which quotes EUR). `rateUsage` is the one function that rates a call
  * and returns the evidence (rates used, source, catalogue version, cost basis);
@@ -31,11 +36,21 @@
  * Nothing here re-prices history.
  */
 
-const configStore = require('../../stores/configStore');
 const { getModelPricing, getPricingByKey, initPricing } = require('./pricingService');
 const pricingService = require('./pricingService');
-const priceCatalog = require('./priceCatalog');
+const priceCatalog = require('../../stores/lib/priceCatalog');
+const { prepareCandidates, estimateRate } = require('./unknownModelRate');
+const { recordUnknownModel, listUnknownModels, unknownModelStats, resetUnknownModels } = require('./unknownModelRegistry');
 const { isLocalModel } = require('../providers/localModels');
+const { getCustomOverrides, refreshCustomOverrides, setModelCost, resetModelCost, onOverridesChanged } = require('./costOverrides');
+const {
+    getCacheDiscount,
+    getCacheWriteMultiplier,
+    getRegionalUplift,
+    billingTier: _billingTier,
+    billingGeo: _billingGeo,
+    DEFAULT_TIER_MULTIPLIER,
+} = require('./rateRules');
 const { azureModelFor } = require('../providers/azureDeployments');
 const {
     isScalewayServedModel,
@@ -46,8 +61,6 @@ const {
     isMistralServedModel,
     mistralPricingKey,
     getMistralListPrice,
-    mistralCacheReadRatio,
-    mistralRegionalUplift,
 } = require('../providers/mistralModels');
 const log = require('../../telemetry/log');
 
@@ -58,135 +71,62 @@ const LOCAL_MODEL_RATES = Object.freeze({ input: 0, output: 0, cacheRead: 0 });
 // Initialize pricing data on startup (non-blocking)
 initPricing();
 
-// ─── Custom Overrides (admin-edited via AI Config) ───────────────────────────
+
+// ─── Unknown models ──────────────────────────────────────────────────────────
 //
-// The overrides live in configStore, which is async; the lookups below are
-// synchronous and sit on every LLM call's cost path. So reads go through a
-// process-local snapshot: loaded on first use, then refreshed from the store at
-// most every OVERRIDES_TTL_MS, which is how a save on another replica arrives
-// here. Writes go through configStore.mutateConfig — an atomic read-modify-write
-// across replicas — one at a time, in the order they were made.
-//
-// This used to call configStore.getConfig synchronously. It JSON-parsed the
-// Promise that came back, threw, and fell back to {} — so no override was ever
-// applied, and every save started from {} and wrote only its own model, wiping
-// the others.
+// A model no source prices used to be billed at the most expensive input and
+// output rate of every model we know (measured: ~20x any real model). It is now
+// estimated from the nearest same-family or same-provider model (see
+// unknownModelRate.js for the rules), and the donor list is memoised here: built
+// from the catalogue rows in force at the call's time, our repo snapshots, the
+// community data and the admin overrides, at most one rebuild per 10-minute bucket
+// (so a new pricing fetch flows in, and a backdated call sees its own period's
+// catalogue). Cleared when an override changes.
 
-const CONFIG_KEY = 'model_cost_overrides';
-const OVERRIDES_TTL_MS = 60_000;
+const ESTIMATE_BUCKET_MS = 10 * 60_000;
+const ESTIMATE_CACHE_MAX = 500;
+/** bucket -> prepared donors, newest few only. */
+const _poolByBucket = new Map();
+/** `${bucket}|${provider}|${model}` -> estimate (or null), cleared with the pools. */
+const _estimates = new Map();
 
-let _overrides = {};
-let _overridesLoadedAt = 0;
-let _overridesLoading = null;
-let _writes = Promise.resolve();
-
-/** Stored as an object; rows written by the old code hold the same JSON as text. */
-function _asOverrides(raw) {
-    let value = raw;
-    if (typeof value === 'string') {
-        try { value = JSON.parse(value); } catch { value = null; }
-    }
-    return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+function resetEstimateCache() {
+    _poolByBucket.clear();
+    _estimates.clear();
 }
+onOverridesChanged(resetEstimateCache);
 
-/**
- * Re-read the overrides from the store. A failed read keeps the last good
- * snapshot: falling back to {} would quietly bill at list price again.
- */
-function refreshCustomOverrides() {
-    if (_overridesLoading) return _overridesLoading;
-    _overridesLoading = Promise.resolve()
-        .then(() => configStore.getConfig(CONFIG_KEY))
-        .then((raw) => {
-            _overrides = _asOverrides(raw);
-            _overridesLoadedAt = Date.now();
-            resetUpperBoundCache();
-        })
-        .catch((e) => { log.warn(`[ModelCosts] could not read the cost overrides: ${e.message}`); })
-        .finally(() => { _overridesLoading = null; });
-    return _overridesLoading;
-}
-
-function getCustomOverrides() {
-    if (Date.now() - _overridesLoadedAt > OVERRIDES_TTL_MS) refreshCustomOverrides();
-    return _overrides;
-}
-
-/** One write at a time: a caller that loops without awaiting loses nothing. */
-function _mutateOverrides(change) {
-    const run = _writes.then(async () => {
-        const next = await configStore.mutateConfig(CONFIG_KEY, (current) => change({ ..._asOverrides(current) }));
-        _overrides = _asOverrides(next);
-        _overridesLoadedAt = Date.now();
-        resetUpperBoundCache();
-    });
-    _writes = run.catch((e) => { log.error(`[ModelCosts] could not save a cost override: ${e.message}`); });
-    return run;
-}
-
-/**
- * Set a custom cost for a model (admin override).
- */
-function setModelCost(modelId, input, output) {
-    return _mutateOverrides((overrides) => {
-        overrides[modelId] = { input: Number(input), output: Number(output) };
-        return overrides;
-    });
-}
-
-/**
- * Remove custom cost override for a model (revert to default pricing).
- */
-function resetModelCost(modelId) {
-    return _mutateOverrides((overrides) => {
-        delete overrides[modelId];
-        return overrides;
-    });
-}
-
-// ─── Lookups ─────────────────────────────────────────────────────────────────
-
-// Memoised upper-bound rates (most-expensive across all known models). Used
-// as a safe fallback for unknown models so customers calling a brand-new
-// model name aren't billed €0 until LiteLLM data lands. Re-computed lazily
-// once per process; cleared via `resetUpperBoundCache` (admin custom-override
-// edits invalidate it so a newly-added high-cost override is picked up).
-let _upperBoundCache = null;
-let _upperBoundComputedAt = 0;
-const _unknownModelWarned = new Set();
-
-function _computeUpperBound() {
+function _donorPool(atMs) {
+    const bucket = Math.floor(atMs / ESTIMATE_BUCKET_MS);
+    const hit = _poolByBucket.get(bucket);
+    if (hit) return hit;
+    const list = [];
     try {
-        const all = getAllModelCosts(); // { name: { input, output } } including custom overrides
-        let maxInput = 0;
-        let maxOutput = 0;
-        for (const rates of Object.values(all)) {
-            if (Number.isFinite(rates?.input) && rates.input > maxInput) maxInput = rates.input;
-            if (Number.isFinite(rates?.output) && rates.output > maxOutput) maxOutput = rates.output;
+        for (const row of priceCatalog.listActive({ at: atMs })) {
+            list.push({ id: row.model_id, vendor: row.provider, input: row.input, output: row.output, cacheRead: row.cache_read, currency: row.currency, source: row.source });
         }
-        if (maxInput <= 0 && maxOutput <= 0) return null;
-        return { input: maxInput, output: maxOutput };
-    } catch (_) { return null; }
+    } catch (e) { log.warn(`[ModelCosts] could not read the catalogue for an estimate: ${e.message}`); }
+    try {
+        if (typeof pricingService.listKnownPricing === 'function') list.push(...pricingService.listKnownPricing());
+    } catch (e) { log.warn(`[ModelCosts] could not read the pricing data for an estimate: ${e.message}`); }
+    for (const [id, o] of Object.entries(getCustomOverrides())) {
+        list.push({ id, vendor: inferProviderType(id), input: Number(o?.input), output: Number(o?.output), cacheRead: null, currency: 'USD', source: 'override' });
+    }
+    const pool = prepareCandidates(list);
+    if (_poolByBucket.size >= 4) _poolByBucket.delete(_poolByBucket.keys().next().value);
+    _poolByBucket.set(bucket, pool);
+    return pool;
 }
 
-function _getUpperBound() {
-    // 10-min TTL keeps the cache hot during normal traffic but lets a new
-    // pricing fetch (24h cycle) eventually flow in.
-    if (_upperBoundCache && (Date.now() - _upperBoundComputedAt) < 10 * 60_000) return _upperBoundCache;
-    _upperBoundCache = _computeUpperBound();
-    _upperBoundComputedAt = Date.now();
-    return _upperBoundCache;
-}
-
-function resetUpperBoundCache() {
-    _upperBoundCache = null;
-    _upperBoundComputedAt = 0;
-}
-
-function _warnUnknownModel(modelName) {
-    if (!modelName || _unknownModelWarned.has(modelName)) return;
-    _unknownModelWarned.add(modelName);
-    log.warn(`[ModelCosts] Unknown model '${modelName}' — using upper-bound rates; add it to pricing data or as a custom override.`);
+/** The estimate for an unknown model (or null: none possible), memoised. */
+function _estimateUnknown(model, vendor, atMs) {
+    const bucket = Math.floor(atMs / ESTIMATE_BUCKET_MS);
+    const key = `${bucket}|${vendor || ''}|${model}`;
+    if (_estimates.has(key)) return _estimates.get(key);
+    const est = estimateRate({ model, vendor, pool: _donorPool(atMs) });
+    if (_estimates.size >= ESTIMATE_CACHE_MAX) _estimates.clear();
+    _estimates.set(key, est);
+    return est;
 }
 
 // ─── Rate cards ──────────────────────────────────────────────────────────────
@@ -261,6 +201,7 @@ function _cardFromRow(row, std, { viaFamily }) {
         cacheWrite1h: row.cache_write_1h,
         longCtx: row.long_ctx_threshold ? { threshold: row.long_ctx_threshold, rates: row.long_ctx_rates } : null,
         tierPriced: row.tier !== 'standard',
+        tierRates: null,
         multipliers: mult,
         legacy: { input: row.input, output: row.output, cacheRead: row.cache_read ?? 0 },
     };
@@ -336,7 +277,7 @@ function _resolveCard(modelName, ctx = {}) {
     // the catalogue included: an open-weight model has a listed price at every
     // cloud host that serves it, and matching on that would bill a customer's own
     // GPU at Together/Fireworks rates. It also keeps local models away from the
-    // unknown-model upper-bound fallback.
+    // unknown-model path (estimate, and a flag in the registry).
     if (isLocalModel(modelName)) {
         return _simpleCard('local', 'local', 'USD', 'local', LOCAL_MODEL_RATES, { legacy: LOCAL_MODEL_RATES });
     }
@@ -396,7 +337,7 @@ function _resolveCard(modelName, ctx = {}) {
  * tariffs → community pricing data → null
  *
  * @param {string} modelName
- * @param {{ at?: Date|number|string, provider?: string, service_tier?: string }} [facts]
+ * @param {any} [facts]  `{ at | timestamp, provider | provider_type, service_tier, traffic_type }`:
  *   the call's timestamp (default now) and provider/tier, to pick the catalogue
  *   card in force at that moment
  * @returns {{ input: number, output: number } | null}  prices per 1M tokens
@@ -411,115 +352,10 @@ function getModelCost(modelName, facts = {}) {
     return card ? card.legacy : null;
 }
 
-/**
- * Get the cache READ discount multiplier for a model's provider.
- * Cached input tokens are billed at this fraction of the normal input rate.
- */
-function getCacheDiscount(model) {
-    if (!model) return 1;
-    const m = azureModelFor(model).toLowerCase();
-    // Anthropic/Claude: 10% of input across most of the family — but NOT all of
-    // it. Fable 5.1 reads at $0.25/MTok against a $10 input rate (0.025x, a
-    // quarter of Fable 5's), so a flat 0.1 would overbill it fourfold. The
-    // per-model rate lives in the catalog; 0.1 remains the fallback there.
-    if (/claude/.test(m)) {
-        const { cacheReadDiscount } = require('../providers/claudeModels');
-        return cacheReadDiscount(m);
-    }
-    // Google/Gemini: 2.5/3.x cached reads cost 10% of input (90% off);
-    // legacy 2.0 was 25% (75% off). Only used when the pricing data has no
-    // explicit cache_read rate — see computeCost's rates.cacheRead preference.
-    if (/gemini/.test(m)) return /gemini-(2\.5|3)/.test(m) ? 0.1 : 0.25;
-    // OpenAI: the discount is NOT uniform, which is why this used to be wrong.
-    // Everything from GPT-5 on reads cached input at 10% of the normal rate;
-    // the o-series sits between 25% and 50% per model. The catalog carries the
-    // published cached rate per model, so derive the ratio from that and only
-    // guess for ids it has never heard of.
-    if (/gpt|o\d/.test(m)) {
-        const { getOpenAIListPrice } = require('../providers/openaiModels');
-        const price = getOpenAIListPrice(m);
-        if (price && price.input > 0 && Number.isFinite(price.cachedInput)) {
-            return price.cachedInput / price.input;
-        }
-        // Unknown OpenAI id: follow the generation. The GPT-4 era read cached
-        // input at 50%; everything from GPT-5 on reads it at 10%.
-        const { describeOpenAIModel } = require('../providers/openaiModels');
-        return /^gpt-4/.test(describeOpenAIModel(m).family) ? 0.5 : 0.1;
-    }
-    // Mistral: cached input costs 10% of the input price on every current
-    // model (docs.mistral.ai/studio/conversations/advanced/prompt-caching).
-    // Read from the catalog so a model that differs one day needs one edit.
-    if (isMistralServedModel(model) || /^(mistral|ministral|magistral|codestral|devstral|pixtral)-/.test(m)) {
-        return mistralCacheReadRatio(m) ?? 0.1;
-    }
-    // Default: no discount (treat cached same as uncached)
-    return 1;
-}
 
-/**
- * Get the cache WRITE multiplier for a model's provider.
- * Anthropic charges a premium on cache writes; the premium depends on the TTL
- * the request asked for (5-min default vs 1-hour extended).
- *
- * OpenAI DID bill cache writes at the uncached rate up to GPT-5.5, and from
- * GPT-5.6 on charges 1.25x for them. We cannot bill that difference: unlike
- * Anthropic, OpenAI reports no cache-write token count in `usage`, so
- * cache_creation_tokens is always 0 on that path and there is nothing to
- * multiply. Estimating the write volume would put an invented number on an
- * invoice, which is worse than a known-missing one — so this stays at 1 until
- * OpenAI exposes the count. Gemini genuinely does not bill writes separately.
- *
- * @param {string} model
- * @param {string|null} ttl  — '5m' (or null/falsy default) → 1.25×; '1h' → 2×
- */
-function getCacheWriteMultiplier(model, ttl) {
-    if (!model) return 1;
-    const m = azureModelFor(model).toLowerCase();
-    if (/claude/.test(m)) {
-        const { cacheWriteMultiplier } = require('../providers/claudeModels');
-        return cacheWriteMultiplier(ttl);  // 5-min is the default
-    }
-    return 1;
-}
 
-// ─── Billing facts ───────────────────────────────────────────────────────────
-
-/**
- * The billing tier a provider reported, as one of standard | batch | flex |
- * priority. Anthropic reports `standard`/`priority`/`batch`, OpenAI
- * `default`/`flex`/`priority`/`auto`, Vertex a traffic type
- * (`ON_DEMAND`, `ON_DEMAND_PRIORITY`, `ON_DEMAND_FLEX`, ...). A value we do not
- * recognise (OpenAI `scale`, Vertex `PROVISIONED_THROUGHPUT`: committed capacity
- * that is not billed per token) is priced as standard and flagged, so the row
- * says "estimated" instead of claiming an exact rate.
- */
-const TIER_ALIASES = Object.freeze({
-    '': 'standard', standard: 'standard', default: 'standard', auto: 'standard', standard_only: 'standard',
-    on_demand: 'standard', not_available: 'standard', unspecified: 'standard', traffic_type_unspecified: 'standard',
-    batch: 'batch', batches: 'batch',
-    flex: 'flex', on_demand_flex: 'flex',
-    priority: 'priority', on_demand_priority: 'priority',
-});
-
-function _billingTier(serviceTier, trafficType) {
-    // The tier the provider billed wins; a Vertex traffic type is consulted only
-    // when there is no service tier (Vertex has none).
-    const raw = String(serviceTier || trafficType || '').trim().toLowerCase();
-    if (Object.prototype.hasOwnProperty.call(TIER_ALIASES, raw)) return { tier: TIER_ALIASES[raw], unrecognised: false };
-    return { tier: 'standard', unrecognised: true };
-}
-
-/** Anthropic `inference_geo`: global/unspecified bills at the list rate, a pinned geo may carry a premium. */
-function _billingGeo(raw) {
-    const g = String(raw || '').trim().toLowerCase();
-    return !g || g === 'global' || g === 'not_available' || g === 'unspecified' ? null : g;
-}
-
-// Tier multipliers when the source does not carry the tier's own rate. Batch and
-// flex are half price at every provider that offers them (documented, uniform);
-// the priority premium differs per provider and model and has no safe default,
-// so it stays at 1 and the call is flagged "estimated".
-const DEFAULT_TIER_MULTIPLIER = Object.freeze({ batch: 0.5, flex: 0.5 });
+/** Cards that carry no tier or geo structure of their own: a flat rate. */
+const FLAT_CARDS = ['override', 'local', 'estimate'];
 
 const _clampTokens = (v) => {
     const n = Number(v);
@@ -595,25 +431,39 @@ function rateUsage(entry = {}) {
         card = null;
     }
     if (!card) {
-        // Unknown model — fall back to the upper bound so we never silently
-        // charge €0 for a real API call. The customer is over-billed
-        // slightly until the model lands in the pricing data or an admin
-        // adds a custom override. The row says so: cost_basis 'unknown'.
-        const upper = _getUpperBound();
-        if (!upper) {
-            log.error(`[ModelCosts] No pricing data available (pricing fetch failed?); cost for '${model}' defaulting to 0.`);
+        // Unknown model. Never the most expensive model of all: the nearest
+        // same-family / same-provider model is the estimate (cost_basis stays
+        // 'unknown', the source and notes say how the rate came about), and the
+        // registry keeps count so an admin can fix the mapping or add the price.
+        // A self-hosted model cannot get here (it was priced at zero above).
+        const resolvedModel = azureModelFor(model);
+        const vendor = base.provider || inferProviderType(resolvedModel);
+        const unmapped = vendor === 'azure' && resolvedModel === model;
+        const est = _estimateUnknown(resolvedModel, vendor, atMs);
+        notes.push('unknown_model');
+        if (unmapped) notes.push('unmapped_azure_deployment');
+        recordUnknownModel({
+            model: resolvedModel,
+            provider: vendor,
+            reason: unmapped ? 'unmapped_deployment' : 'unknown_model',
+            deployment: resolvedModel !== model ? model : null,
+            estimate: est,
+        });
+        if (!est) {
+            // Nothing to borrow from. No number is invented: the row is flagged
+            // and costs 0 until the model is priced or mapped.
+            notes.push('no_price_data');
             return {
                 ...base, cost: 0, input_cost: 0, output_cost: 0, currency: 'USD', long_context: false,
                 source: 'none', catalog_version: null, valid_from: null, cost_basis: 'unknown',
                 rates: { input: 0, output: 0, cache_read: 0, cache_write_5m: 0, cache_write_1h: 0 },
                 multiplier: { tier_input: 1, tier_output: 1, geo: 1, regional: 1, total: 1 },
                 price_input: 0, price_output: 0, price_cache_read: 0, price_cache_write: 0,
-                notes: ['no_price_data'],
+                notes,
             };
         }
-        _warnUnknownModel(model);
-        card = _simpleCard('upper_bound', 'upper_bound', 'USD', 'unknown', upper);
-        notes.push('unknown_model_upper_bound');
+        notes.push(est.level === 'family' ? 'estimate_family' : 'estimate_provider');
+        card = _simpleCard('estimate', est.source, est.currency, 'unknown', est);
     }
     let basis = card.basis;
 
@@ -664,12 +514,12 @@ function rateUsage(entry = {}) {
 
     // ── service tier ────────────────────────────────────────────────────────
     // A catalogue card of the tier itself is already priced; an admin override
-    // and a local/upper-bound card are flat. Otherwise: the source's own tier
+    // and a local/estimate card are flat. Otherwise: the source's own tier
     // rate, then the card's multiplier, then the documented default.
     let tierIn = 1;
     let tierOut = 1;
     if (tierUnrecognised) { notes.push('tier_unrecognised'); }
-    if (tier !== 'standard' && !card.tierPriced && !['override', 'local', 'upper_bound'].includes(card.kind)) {
+    if (tier !== 'standard' && !card.tierPriced && !FLAT_CARDS.includes(card.kind)) {
         const abs = card.tierRates && card.tierRates[tier];
         const mult = card.multipliers && card.multipliers[tier];
         if (abs && input > 0) {
@@ -687,7 +537,7 @@ function rateUsage(entry = {}) {
 
     // ── geo and regional ────────────────────────────────────────────────────
     let geoMult = 1;
-    if (geo && !['override', 'local', 'upper_bound'].includes(card.kind)) {
+    if (geo && !FLAT_CARDS.includes(card.kind)) {
         const g = card.multipliers && card.multipliers.geo && card.multipliers.geo[geo];
         if (Number.isFinite(g)) geoMult = g;
         else notes.push(`geo_${geo}_multiplier_unknown`);
@@ -752,6 +602,21 @@ function rateUsage(entry = {}) {
 }
 
 /**
+ * The model a call is billed AND logged as. On Azure the id a request carries is
+ * a deployment name the admin chose (`prod-chat`); the model behind it comes from
+ * the deployment list (`prod-chat=gpt-6-astra`, azureDeployments.js, the same
+ * registry the Azure adapter's `_modelFor` reads). A call of another provider keeps
+ * its id: only an Azure call, or one that does not say, is looked up.
+ * @param {string} model
+ * @param {string} [providerType]
+ */
+function resolveBilledModel(model, providerType) {
+    if (!model || typeof model !== 'string') return model;
+    const p = priceCatalog.normalizeProvider(providerType);
+    return p && p !== 'azure' ? model : azureModelFor(model);
+}
+
+/**
  * Compute estimated cost for a single API call (number only; see `rateUsage` for
  * the evidence behind it).
  * Supports cache-aware pricing — cached input tokens are billed at a read
@@ -780,30 +645,6 @@ function computeCost(model, promptTokens = 0, completionTokens = 0, cachedTokens
     }).cost;
 }
 
-/**
- * Multiplier for a call answered by a regional-processing endpoint.
- *
- * OpenAI charges 10% more on its EU/regional domains for models released on or
- * after 2026-03-05. Keeping inference inside the EU is a deliberate, paid-for
- * choice, so it has to land on the invoice — silently absorbing it would make
- * EU-mode orgs look cheaper than they are and quietly eat the margin. Mistral
- * charges the same 10% on its regional endpoints, on every model.
- *
- * Reads the EU-served registry rather than a per-call flag, for the same reason
- * the local and Scaleway registries exist: cost accounting runs a long way from
- * the provider record.
- */
-function getRegionalUplift(model) {
-    if (!model) return 1;
-    try {
-        const { isEuServedModel, euUpliftApplies, EU_RESIDENCY_UPLIFT } = require('../providers/openaiModels');
-        if (isEuServedModel(model) && euUpliftApplies(model)) return EU_RESIDENCY_UPLIFT;
-    } catch (_) { /* registry unavailable — bill at the list rate */ }
-    // Mistral's regional endpoints (api.eu / api.us) cost 1.1× on every model.
-    const mistral = mistralRegionalUplift(model);
-    if (mistral !== 1) return mistral;
-    return 1;
-}
 
 /**
  * Compute estimated cost split into input and output.
@@ -910,10 +751,14 @@ module.exports = {
     computeCost,
     computeCostSplit,
     rateUsage,
+    resolveBilledModel,
     inferProviderType,
     getAllModelCosts,
     getModelCostsForConfig,
     setModelCost,
     resetModelCost,
     refreshCustomOverrides,
+    listUnknownModels,
+    unknownModelStats,
+    resetUnknownModels,
 };

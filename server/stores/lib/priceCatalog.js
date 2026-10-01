@@ -93,9 +93,12 @@ function _multiplier(v) {
     return Number.isFinite(n) && n > 0 && n <= MAX_MULTIPLIER ? n : NaN;
 }
 
+const BROKEN_JSON = Symbol('broken json');
+
+/** A JSON column: already parsed (jsonb through node-postgres) or still text. */
 function _json(v) {
     if (typeof v !== 'string') return v;
-    try { return JSON.parse(v); } catch { return undefined; }
+    try { return JSON.parse(v); } catch { return BROKEN_JSON; }
 }
 
 function _ms(v, fallback) {
@@ -109,7 +112,7 @@ function _ms(v, fallback) {
  * return the cleaned card, or `{ error }` naming the first problem.
  *
  * @param {any} raw
- * @returns {{ row: object } | { error: string }}
+ * @returns {{ row?: any, error?: string }}
  */
 function validateRow(raw) {
     if (!raw || typeof raw !== 'object') return { error: 'row is not an object' };
@@ -143,7 +146,7 @@ function validateRow(raw) {
         if (!Number.isFinite(th) || th <= 0 || th > MAX_THRESHOLD_TOKENS) return { error: 'invalid long_ctx_threshold' };
         longCtxThreshold = Math.floor(th);
         const lr = _json(raw.long_ctx_rates);
-        if (!lr || typeof lr !== 'object' || Array.isArray(lr)) return { error: 'long_ctx_threshold needs long_ctx_rates' };
+        if (lr === BROKEN_JSON || !lr || typeof lr !== 'object' || Array.isArray(lr)) return { error: 'long_ctx_threshold needs long_ctx_rates' };
         longCtxRates = Object.create(null);
         for (const k of LONG_CTX_RATE_KEYS) {
             if (!Object.prototype.hasOwnProperty.call(lr, k) || lr[k] == null) continue;
@@ -158,7 +161,7 @@ function validateRow(raw) {
     let multipliers = null;
     const mRaw = _json(raw.multipliers);
     if (mRaw !== null && mRaw !== undefined) {
-        if (typeof mRaw !== 'object' || Array.isArray(mRaw)) return { error: 'multipliers must be an object' };
+        if (mRaw === BROKEN_JSON || typeof mRaw !== 'object' || Array.isArray(mRaw)) return { error: 'multipliers must be an object' };
         multipliers = Object.create(null);
         for (const k of TIER_MULTIPLIER_KEYS) {
             if (!Object.prototype.hasOwnProperty.call(mRaw, k) || mRaw[k] == null) continue;
@@ -335,6 +338,27 @@ function providersFor(model) {
     return [...(_providersByModel.get(String(model).toLowerCase()) || [])];
 }
 
+/**
+ * Every standard-tier row in force at `at`, one per (provider, model): the donor
+ * pool for modelCosts' estimate of a model nothing prices. Rows are frozen
+ * and already validated, so the caller may read them freely.
+ * @param {{ at?: Date|number|string }} [q]
+ * @returns {object[]}
+ */
+function listActive({ at } = {}) {
+    _maybeRefresh();
+    const ms = toMs(at);
+    const out = [];
+    for (const [k, list] of _byKey) {
+        if (!k.endsWith('|standard')) continue;
+        for (let i = list.length - 1; i >= 0; i--) {
+            const r = list[i];
+            if (r.validFromMs <= ms && ms < r.validToMs) { out.push(r); break; }
+        }
+    }
+    return out;
+}
+
 /** Snapshot size and age, for admin/diagnostics. */
 function stats() {
     return { rows: _count, loadedAt: _loadedAt || null };
@@ -351,6 +375,7 @@ module.exports = {
     refreshNow,
     lookup,
     providersFor,
+    listActive,
     stats,
     toMs,
 };

@@ -5,8 +5,8 @@
  * composer. The flow changes behind the sheet as the drafts arrive; edits
  * are paused meanwhile, and one undo takes a whole turn back.
  *
- * Before the first message it offers three suggestions that fill the
- * composer (never send), the first one fitting the routine's trigger.
+ * Before the first message it offers suggestions that fill the composer
+ * (never send), fitting the routine's steps or, while it has none, its trigger.
  */
 
 import React, { createContext, useContext, useRef } from 'react';
@@ -44,7 +44,7 @@ function Message({ message }: { message: BuilderMessage }) {
 const renderMessage: ListRenderItem<BuilderMessage> = ({ item }) => <Message message={item} />;
 const keyOf = (_m: BuilderMessage, index: number) => String(index);
 
-function Welcome({ triggerKind, onPick }: { triggerKind: string | null; onPick: (text: string) => void }) {
+function Welcome({ triggerKind, steps, onPick }: { triggerKind: string | null; steps: number; onPick: (text: string) => void }) {
     const t = useTranslation();
     const styles = useThemedStyles(makeStyles);
     return (
@@ -55,7 +55,7 @@ function Welcome({ triggerKind, onPick }: { triggerKind: string | null; onPick: 
                 message={t('mobile.flow.ai.welcome_hint', 'Describe what you want and it wires the trigger and steps for you.')}
             />
             <View style={styles.chips}>
-                {welcomeSuggestions(triggerKind, t).map((s) => (
+                {welcomeSuggestions(triggerKind, t, { steps }).map((s) => (
                     <Chip key={s} label={s} onPress={() => onPick(s)} />
                 ))}
             </View>
@@ -77,6 +77,7 @@ export function AiBuilderSheet({ assistant, draft, onFindings, appLabel }: AiBui
     const { ai } = assistant;
     const automationId = useDraftState(draft.store, (s) => s.automationId);
     const triggerKind = useDraftState(draft.store, (s) => s.definition?.trigger?.kind ?? null);
+    const stepCount = useDraftState(draft.store, (s) => s.definition?.steps?.length ?? 0);
     const snapshot = useBuilderSession(automationId).data ?? null;
     const liveTodos = useTurn(ai.turn, (s) => s.todos);
     const todos = planOf(liveTodos, snapshot);
@@ -113,7 +114,7 @@ export function AiBuilderSheet({ assistant, draft, onFindings, appLabel }: AiBui
                     renderItem={renderMessage}
                     keyExtractor={keyOf}
                     ListHeaderComponent={header}
-                    ListEmptyComponent={ai.streaming ? null : <Welcome triggerKind={triggerKind} onPick={assistant.setText} />}
+                    ListEmptyComponent={ai.streaming ? null : <Welcome triggerKind={triggerKind} steps={stepCount} onPick={assistant.setText} />}
                     ListFooterComponent={<LiveTurn turn={ai.turn} streaming={ai.streaming} store={draft.store} onFindings={onFindings} appLabel={appLabel} />}
                     onContentSizeChange={() => list.current?.scrollToEnd({ animated: true })}
                     keyboardShouldPersistTaps="handled"

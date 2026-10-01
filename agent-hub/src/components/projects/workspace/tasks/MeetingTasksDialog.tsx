@@ -230,7 +230,7 @@ function Suggestions({ projectId, meetingId, currentUser, onClose, onCreated }: 
     const busy = create.isPending || update.isPending;
 
     return (
-        <Modal open onClose={onClose} size="lg" disableEscapeClose={busy}
+        <Modal open onClose={onClose} size="lg" className="overflow-hidden" disableEscapeClose={busy}
             title={t('project_tasks.from_meeting_title', 'Tasks from the meeting')}
             description={query.data?.meeting.title || undefined}
             footer={(
@@ -312,7 +312,7 @@ export default function MeetingTasksDialog(props: MeetingTasksDialogProps) {
     const [picked, setPicked] = useState<string | null>(props.meetingId ?? null);
     if (picked) return <Suggestions {...props} meetingId={picked} />;
     return (
-        <Modal open onClose={props.onClose} size="md" title={t('project_tasks.from_meeting_title', 'Tasks from the meeting')}
+        <Modal open onClose={props.onClose} size="md" className="overflow-hidden" title={t('project_tasks.from_meeting_title', 'Tasks from the meeting')}
             description={t('project_tasks.pick_meeting', 'Choose a meeting')}
             footer={<SecondaryButton onClick={props.onClose}>{t('project_content.cancel', 'Cancel')}</SecondaryButton>}>
             <MeetingPicker projectId={props.projectId} onPick={setPicked} />

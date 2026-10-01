@@ -49,7 +49,7 @@ function QuickAdd({ columnId, open, onOpenChange, onCreate }: {
                     else if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); void submit(); }
                 }}
                 className="block w-full resize-none bg-transparent p-0.5 text-[13px] leading-snug outline-none text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)]"
-                placeholder={t('project_tasks.task_title', 'What needs doing?')} aria-label={t('project_tasks.title_label', 'Title')} />
+                placeholder={t('project_tasks.task_title', 'What needs doing?')} aria-label={t('project_tasks.title_label', 'What needs to be done?')} />
             <div className="flex items-center gap-1.5">
                 <PrimaryButton type="submit" busy={busy} disabled={!title.trim()} className="!h-7">{t('project_tasks.add_task', 'Add task')}</PrimaryButton>
                 <GhostButton onClick={() => onOpenChange(false)}>{t('project_content.cancel', 'Cancel')}</GhostButton>

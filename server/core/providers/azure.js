@@ -45,7 +45,7 @@
 const OpenAIProvider = require('./openai');
 const { describeOpenAIModel } = require('./openaiModels');
 const log = require('../../telemetry/log');
-const { toV1BaseUrl } = require('./azureUrl');
+const { toV1BaseUrl } = require('../../utils/azureUrl');
 const { parseDeployments, refreshAzureDeployments, azureModelFor } = require('./azureDeployments');
 
 /** Azure's documented limit on a tool/function description. */
@@ -87,9 +87,25 @@ class AzureProvider extends OpenAIProvider {
         return refreshAzureDeployments();
     }
 
-    /** The model id to look capabilities up on; the deployment name itself when unmapped. */
+    /**
+     * The model id to look capabilities up on; the deployment name itself when
+     * unmapped. Billing resolves through the same registry: usageStore.logUsage
+     * logs and prices the call as this model (modelCosts.resolveBilledModel), and
+     * a deployment that is NOT mapped (and not a model id we can price) is flagged
+     * as an unknown model instead of being billed at a guessed rate.
+     */
     _modelFor(deployment) {
         return azureModelFor(deployment);
+    }
+
+    /**
+     * Same usage as OpenAI, stamped as Azure: the usage row then looks for the
+     * Azure price card first (the deployment name is not a vendor model id).
+     */
+    _normalizeUsage(usage, meta) {
+        const normalised = super._normalizeUsage(usage, meta);
+        if (normalised) normalised.provider_type = 'azure';
+        return normalised;
     }
 
     supportsReasoning(model) { return super.supportsReasoning(this._modelFor(model)); }

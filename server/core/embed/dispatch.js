@@ -15,7 +15,7 @@
 const configStore = require('../../stores/configStore');
 const { recordEmbedCall } = require('../../telemetry/metrics');
 const log = require('../../telemetry/log');
-const { toV1BaseUrl } = require('../providers/azureUrl');
+const { toV1BaseUrl } = require('../../utils/azureUrl');
 
 /**
  * Generate embeddings via Azure OpenAI (legacy direct config).
