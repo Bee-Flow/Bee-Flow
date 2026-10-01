@@ -281,3 +281,11 @@ export declare function toggleRepeat(step: object, over: MappingSource, opts?: {
     { step: object & { repeat: StepRepeat } } | { error: 'already_repeating' | 'legacy_for_each' | 'invalid_source' };
 export declare function toggleRepeatOff(step: object): { step: object };
 export declare function rebaseLoopRefs(step: object): { step: object & { repeat: StepRepeat } } | { refused: string[] };
+
+// M4a: a legacy binding shown as a pick (upgrade.mjs); null means "Formula".
+export declare function liftLegacy(
+    binding: unknown,
+    sample: object | null | undefined,
+    lastRun?: object | null,
+    deps?: { evaluate?: (src: string, scope: object) => unknown; parse?: ParseDeps },
+): PickBinding | null;

@@ -49,3 +49,6 @@ export { inlineText, renderText, renderCompose } from './render.mjs';
 export {
     REPEAT_DEFAULT_MAX, REPEAT_MAX, mapStepPicks, toggleRepeat, toggleRepeatOff, rebaseLoopRefs,
 } from './repeat.mjs';
+
+// M4a: a legacy binding shown as a pick (upgrade.mjs); null means "Formula".
+export { liftLegacy } from './upgrade.mjs';
