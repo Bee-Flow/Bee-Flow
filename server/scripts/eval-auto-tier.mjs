@@ -80,10 +80,11 @@ for (const { tier, text } of corpus) {
     serviceRows.push({ want: tier, got: out?.tier || null });
     if (raw) {
         // The raw scores behind the verdict (served from the client's score cache).
-        const labels = Object.values(TIER_LABELS).sort();
+        const labels = Object.values(TIER_LABELS).flat().sort();
         const { scores: [s] } = await classify([text.trim()], labels, { endpoint });
-        const tierOf = (l) => Object.keys(TIER_LABELS).find((t) => TIER_LABELS[t] === l);
-        const [a, b] = labels.map((l) => ({ t: tierOf(l), s: s[l] })).sort((x, y) => y.s - x.s);
+        const [a, b] = Object.entries(TIER_LABELS)
+            .map(([t, ls]) => ({ t, s: Math.max(...ls.map((l) => s[l])) }))
+            .sort((x, y) => y.s - x.s);
         console.log(`${(out?.tier || '-').padEnd(14)} ${tier.padEnd(14)} ${a.t}=${a.s.toFixed(3)} ${b.t}=${b.s.toFixed(3)}  ${text.slice(0, 60)}`);
     }
 }

@@ -25,20 +25,30 @@ const log = require('../../telemetry/log');
 
 const DEFAULT_DEADLINE_MS = Number(process.env.AUTO_TIER_CLASSIFIER_DEADLINE_MS) || 800;
 /** Below this top score the model is guessing. */
-const MIN_TOP_SCORE = 0.5;
-/** A top label this close to the runner-up is a coin toss. */
-const MIN_MARGIN = 0.05;
+const MIN_TOP_SCORE = 0.4;
+/** The winning tier must score this many times the runner-up. */
+const MIN_RATIO = 2;
 
 /**
- * One plain-language label per canonical tier. Tuned with
- * scripts/eval-auto-tier.mjs; change them there, not by feel.
+ * Several short, concrete labels per canonical tier; a tier scores as its
+ * best label. Long descriptive sentences scored low on every label (a
+ * zero-shot model matches what a text IS, not how hard it is), so these name
+ * kinds of requests instead.
+ *
+ * Tuned with scripts/eval-auto-tier.mjs against its corpus (cut-offs chosen
+ * on half, checked on the other half; 2026-10-02): the service decides 45 of
+ * 60 prompts with 2 wrong and never picks Flow wrongly, where one long label
+ * per tier decided 18. The service scores all labels in one pass (joint
+ * mode), so their ORDER changes the scores: they are sent sorted, and any
+ * tuning must sort them too. Change them with the script, not by feel. The
+ * service takes at most 16 labels in all.
  */
 const TIER_LABELS = {
-    fast: 'a greeting, small talk or a quick factual question',
-    thinking: 'a technical question, code help or an explanation of one topic',
-    writer: 'a request to write a long text such as an essay, article, story or email',
-    standard: 'a multi-step task: plan or research first, then produce and check a result',
-    deep_thinking: 'a hard problem needing deep research, proofs or careful trade-off analysis',
+    fast: ['greeting', 'thanks', 'trivia question', 'translation'],
+    thinking: ['code', 'technical explanation', 'pros and cons'],
+    writer: ['essay or article', 'letter or email', 'story, poem or speech', 'marketing or social media post'],
+    standard: ['multi-step plan', 'research and then a report'],
+    deep_thinking: ['mathematical proof', 'deep analysis'],
 };
 
 /** Canonical tier → configured keys that can serve it, preferred first. */
@@ -52,13 +62,13 @@ const TIER_KEYS = {
 
 /**
  * @param {Record<string, { modelId?: string }>} tiers
- * @returns {Map<string, string>} label → configured tier key
+ * @returns {Map<string, string[]>} configured tier key → its labels
  */
 function labelsFor(tiers) {
     const out = new Map();
     for (const [canonical, keys] of Object.entries(TIER_KEYS)) {
         const key = keys.find((k) => tiers[k]?.modelId);
-        if (key) out.set(TIER_LABELS[canonical], key);
+        if (key) out.set(key, TIER_LABELS[canonical]);
     }
     return out;
 }
@@ -76,14 +86,14 @@ function labelsFor(tiers) {
  */
 async function classifyTierViaService(text, tiers, { heuristic = null, deadlineMs = DEFAULT_DEADLINE_MS, endpoint, request } = {}) {
     if (!text || typeof text !== 'string' || !text.trim()) return null;
-    const byLabel = labelsFor(tiers || {});
-    // One label is no choice; the caller's own logic covers it.
-    if (byLabel.size < 2) return null;
+    const byTier = labelsFor(tiers || {});
+    // One tier is no choice; the caller's own logic covers it.
+    if (byTier.size < 2) return null;
 
     const target = endpoint || await require('../classify/classifierEndpoint').getClassifierEndpoint().catch(() => null);
     if (!target || !target.url) return null;
 
-    const labels = [...byLabel.keys()].sort();
+    const labels = [...byTier.values()].flat().sort();
     const started = Date.now();
     let scores;
     // A plain timer, not AbortSignal.timeout(): that one is unref'd and so
@@ -108,15 +118,16 @@ async function classifyTierViaService(text, tiers, { heuristic = null, deadlineM
     const ms = Date.now() - started;
     if (!scores) return null;
 
-    const ranked = labels.map((label) => ({ label, score: scores[label] })).sort((a, b) => b.score - a.score);
-    const { label: topLabel, score: top } = ranked[0];
+    const ranked = [...byTier].map(([key, ls]) => ({ key, score: Math.max(...ls.map((l) => scores[l])) }))
+        .sort((a, b) => b.score - a.score);
+    const { key: topKey, score: top } = ranked[0];
     const runnerUp = ranked[1]?.score ?? 0;
-    if (top < MIN_TOP_SCORE || top - runnerUp < MIN_MARGIN) {
-        log.info(`[Classifier] service: too close to call (top=${top.toFixed(3)}, margin=${(top - runnerUp).toFixed(3)}) in ${ms}ms`);
+    if (top < MIN_TOP_SCORE || top < MIN_RATIO * runnerUp) {
+        log.info(`[Classifier] service: too close to call (top=${top.toFixed(3)}, runner-up=${runnerUp.toFixed(3)}) in ${ms}ms`);
         return null;
     }
 
-    let tier = /** @type {string} */ (byLabel.get(topLabel));
+    let tier = topKey;
     // Structural signals the text model cannot see well: code, or several
     // heavy signals together, never go to the cheapest tier.
     const thinkingKey = TIER_KEYS.thinking.find((k) => tiers[k]?.modelId);
@@ -127,4 +138,4 @@ async function classifyTierViaService(text, tiers, { heuristic = null, deadlineM
     return { tier, score: top, ms };
 }
 
-module.exports = { classifyTierViaService, TIER_LABELS, MIN_TOP_SCORE, MIN_MARGIN };
+module.exports = { classifyTierViaService, TIER_LABELS, MIN_TOP_SCORE, MIN_RATIO };

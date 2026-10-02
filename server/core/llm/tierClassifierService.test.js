@@ -29,9 +29,11 @@ function service(byTier, { status = 200, hang = false } = {}) {
         }
         if (status !== 200) return { status, json: { detail: 'nope' } };
         const { texts, labels } = opts.body;
+        // The first label of a tier carries its score; the rest stay low, so
+        // the test also proves a tier scores as its best label.
         const scoreOf = (l) => {
-            const tier = Object.keys(TIER_LABELS).find((t) => TIER_LABELS[t] === l);
-            return byTier[tier] ?? 0.01;
+            const tier = Object.keys(TIER_LABELS).find((t) => TIER_LABELS[t].includes(l));
+            return TIER_LABELS[tier][0] === l ? (byTier[tier] ?? 0.01) : 0.01;
         };
         return {
             status: 200,
@@ -58,7 +60,7 @@ test('sends only the text and the labels of available tiers', async () => {
     assert.deepStrictEqual(calls[0].body.texts, ['explain how a hash map works']);
     assert.deepStrictEqual(
         [...calls[0].body.labels].sort(),
-        [TIER_LABELS.fast, TIER_LABELS.thinking, TIER_LABELS.deep_thinking].sort(),
+        [...TIER_LABELS.fast, ...TIER_LABELS.thinking, ...TIER_LABELS.deep_thinking].sort(),
     );
 });
 
@@ -73,8 +75,8 @@ test('a low top score is no opinion', async () => {
     assert.strictEqual(await classifyTierViaService('some text here', TIERS, { endpoint, request }), null);
 });
 
-test('a near tie is no opinion', async () => {
-    const { request } = service({ fast: 0.8, thinking: 0.78 });
+test('a winner under twice the runner-up is no opinion', async () => {
+    const { request } = service({ fast: 0.8, thinking: 0.41 });
     assert.strictEqual(await classifyTierViaService('some other text', TIERS, { endpoint, request }), null);
 });
 
@@ -107,4 +109,16 @@ test('the deadline returns null fast and never trips the shared breaker', async 
     const out = await classifyTierViaService('after the slow ones', TIERS, { endpoint, request: ok.request });
     assert.strictEqual(out?.tier, 'thinking');
     assert.strictEqual(ok.calls.length, 1);
+});
+
+test('a winner at twice the runner-up decides', async () => {
+    const { request } = service({ fast: 0.8, thinking: 0.4 });
+    const out = await classifyTierViaService('one more sample text', TIERS, { endpoint, request });
+    assert.strictEqual(out?.tier, 'fast');
+});
+
+test('every label is unique and the full set fits the service limit of 16', () => {
+    const all = Object.values(TIER_LABELS).flat();
+    assert.ok(all.length <= 16);
+    assert.strictEqual(new Set(all).size, all.length);
 });
