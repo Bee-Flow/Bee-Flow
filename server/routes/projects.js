@@ -747,11 +747,13 @@ router.delete('/:id/members/:memberId', memberMutationLimiter, async (req, res) 
 // of this project, only the raster types, and served as the bytes it holds: nothing else is ever read from it.
 const AVATAR_DATA_URL = /^data:(image\/(?:png|jpeg|webp|gif));base64,([A-Za-z0-9+/=\s]+)$/;
 router.get('/:id/avatars/:userId', requireRole('viewer'), async (req, res) => {
+    // nosemgrep: ajinabraham.njsscan.xss.xss_node.express_xss -- nothing from the request is echoed: the body is the stored avatar decoded from base64, served only as png/jpeg/webp/gif with nosniff and a sandboxing CSP
     const project = await projectStore.getProject(req.params.id);
     if (!project) throw notFound();
     const shares = await projectStore.getProjectShares(project.id);
     const isMember = project.ownerId === req.params.userId
         || shares.some((s) => s.sharedWithType === 'user' && s.sharedWithId === req.params.userId);
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos, ajinabraham.njsscan.xss.xss_node.express_xss -- AVATAR_DATA_URL is anchored with one character class run, so it cannot backtrack; the response is the image bytes (see above)
     const user = isMember ? await userStore.getUser(req.params.userId) : null;
     const match = user && typeof user.avatar === 'string' && await belongsToProjectOrg(user.id, await projectOrgOf(project))
         ? AVATAR_DATA_URL.exec(user.avatar) : null;

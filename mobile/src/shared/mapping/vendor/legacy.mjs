@@ -107,6 +107,7 @@ export function resolveTokens(tokens, cur) {
  */
 export function walkPath(path, root) {
     if (!path || typeof path !== 'string') return undefined;
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- REF_RE is anchored at both ends and each repeated segment starts with a character (. or [) the run before it cannot match, so matching is linear
     if (!REF_RE.test(path)) return undefined;
     const tokens = tokenizePath(path);
     if (!tokens) return undefined;

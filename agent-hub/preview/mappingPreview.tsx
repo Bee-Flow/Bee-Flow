@@ -25,8 +25,9 @@ document.documentElement.setAttribute('data-theme', params.get('theme') === 'dar
 const realFetch = window.fetch.bind(window);
 window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
-    if (!/\/(api|auth)\//.test(url)) return realFetch(input, init);
-    const body = /\/automation\/catalog(\?|$)/.test(url) ? CATALOG : /forms/.test(url) ? { forms: [] } : {};
+    if (!url.includes('/api/') && !url.includes('/auth/')) return realFetch(input, init);
+    const catalog = url.endsWith('/automation/catalog') || url.includes('/automation/catalog?');
+    const body = catalog ? CATALOG : url.includes('forms') ? { forms: [] } : {};
     return new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } });
 };
 

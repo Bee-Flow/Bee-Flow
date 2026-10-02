@@ -8,7 +8,7 @@ import {
 import type {
     ComposeBinding, MappingSource, PickBinding, PickIntent, PickPart, Shape, Slot,
 } from '@shared/mapping/index.mjs';
-import { previewValue, walkPath } from '../../../../utils/bindingHelpers';
+import { detectTemplate, previewValue, walkPath } from '../../../../utils/bindingHelpers';
 
 /**
  * The model behind ComposeField: a text field's stored value as PIECES the
@@ -240,8 +240,6 @@ export function piecesAsLegacyTemplate(pieces: SlotPiece[]): string | null {
     return out;
 }
 
-const BLANK_RE = /^\s*$/;
-
 /**
  * A fill_document value that is one value as a pick of the value itself, so
  * a list stays a list there (template.mjs `sole`); null when it is a text.
@@ -250,7 +248,7 @@ const BLANK_RE = /^\s*$/;
  * and so is a pill with a space or a new line after it.
  */
 function solePick(parts: Array<string | PickPart>): PickBinding | null {
-    const core = parts.filter((p, i) => !(typeof p === 'string' && (i === 0 || i === parts.length - 1) && BLANK_RE.test(p)));
+    const core = parts.filter((p, i) => !(typeof p === 'string' && (i === 0 || i === parts.length - 1) && p.trim() === ''));
     const only = core.length === 1 ? core[0] : null;
     if (!only || typeof only === 'string') return null;
     const pick: PickBinding = { kind: 'pick', v: MAPPING_VERSION, ...only, as: only.as === 'text' ? 'native' : only.as };
@@ -452,7 +450,7 @@ export function exampleOf(value: unknown, sample: object | null | undefined, lis
         return { text, list: null };
     }
     if (typeof value !== 'string' || !value) return null;
-    if (!/\{\{[^}]+\}\}/.test(value)) return null;
+    if (!detectTemplate(value)) return null;
     if (!sample) return { text: value, list: null };
     let list: ListNote | null = null;
     const text = value.replace(PLACEHOLDER_RE, (full: string, expr: string) => {

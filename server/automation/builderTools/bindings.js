@@ -209,6 +209,7 @@ function repairTriggerRooting(cleaned, triggerFields) {
     const root = rootOfPath(cleaned);
     if (root === 'trigger') {
         // Any depth: 'trigger.attachments[0].filename' too.
+        // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- REF_RE (shared/mapping/legacy.mjs) is anchored and linear: each repeated segment starts with a character the run before it cannot match
         const second = REF_RE.test(cleaned) ? tokenizePath(cleaned)[1] : null;
         if (second && second.type === 'prop' && typeof second.key === 'string' && second.key !== 'output'
             && (!TRIGGER_RUN_KEYS.includes(second.key) || triggerFields.has(second.key))) {

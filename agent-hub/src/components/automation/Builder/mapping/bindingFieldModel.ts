@@ -17,9 +17,35 @@ export type Mode = 'fixed' | 'expression';
 
 type Binding = { kind: 'ref'; path: string } | { kind: 'expr'; value: string } | { kind: 'template'; value: string };
 
-const LONE_TEMPLATE_RE = /^\s*\{\{\s*([^}]+?)\s*\}\}\s*$/;
+// `{{ x }}` alone. The inner text is trimmed in code, not by the pattern: a
+// `\s*` on both sides of a lazy `[^}]+?` backtracks cubically over a run of
+// spaces (`{{` and 2000 spaces froze the field).
+const LONE_TEMPLATE_RE = /^\s*\{\{([^}]*)\}\}\s*$/;
 // One of the calls a picked list is written as: `join(p, "\n")`, `first(p)`.
-const LONE_CALL_RE = /^\s*(?:first|last|count|join)\(\s*([^,()]+?)\s*(?:,\s*(?:"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'))?\s*\)\s*$/;
+// Only the head and the separator are patterns (loneCallArg does the rest):
+// as one regex, the optional separator between `\s*` runs backtracked
+// exponentially on `first(` and a few hundred spaces.
+const LONE_CALL_HEAD_RE = /^\s*(?:first|last|count|join)\(/;
+const CALL_SEPARATOR_RE = /^,\s*(?:"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')$/;
+
+/** The reference inside a lone `{{ x }}`, or null (an empty `{{ }}` names nothing). */
+function loneTemplateRef(s: string): string | null {
+    const m = LONE_TEMPLATE_RE.exec(s);
+    return m ? m[1].trim() || null : null;
+}
+
+/** The first argument of a lone `first(p)` / `join(p, "\n")` call, or null. */
+function loneCallArg(s: string): string | null {
+    const head = LONE_CALL_HEAD_RE.exec(s);
+    if (!head) return null;
+    const rest = s.slice(head[0].length).trimEnd();
+    if (!rest.endsWith(')')) return null;
+    const args = rest.slice(0, -1).trimEnd();
+    const end = args.search(/[,()]/);
+    const arg = (end === -1 ? args : args.slice(0, end)).trim();
+    if (!arg) return null;
+    return end === -1 || CALL_SEPARATOR_RE.test(args.slice(end)) ? arg : null;
+}
 
 /**
  * Does the text hold ONE picked value: a reference, or a reference in the
@@ -33,11 +59,10 @@ const LONE_CALL_RE = /^\s*(?:first|last|count|join)\(\s*([^,()]+?)\s*(?:,\s*(?:"
 export function isLoneRef(text: string, mode: Mode): boolean {
     const s = String(text ?? '');
     if (mode === 'expression') {
-        const call = LONE_CALL_RE.exec(s);
-        return bindingFromInput(call ? call[1] : s, 'expression').kind === 'ref';
+        return bindingFromInput(loneCallArg(s) ?? s, 'expression').kind === 'ref';
     }
-    const m = LONE_TEMPLATE_RE.exec(s);
-    return !!m && !!classifyRef(m[1]);
+    const ref = loneTemplateRef(s);
+    return !!ref && !!classifyRef(ref);
 }
 
 const MANY = new Set(['list', 'table']);
@@ -84,8 +109,7 @@ export function pickedBinding(
 export function translateForMode(text: string, nextMode: Mode): string {
     const s = String(text ?? '');
     if (nextMode === 'expression') {
-        const m = LONE_TEMPLATE_RE.exec(s);
-        return m ? m[1] : s;
+        return loneTemplateRef(s) ?? s;
     }
     const bare = s.trim();
     if (!bare || TEMPLATE_RE.test(s)) return s;

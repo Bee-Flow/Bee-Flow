@@ -1,6 +1,6 @@
 import { evaluate } from '@shared/expr/engine.mjs';
 import { describe, it, expect } from 'vitest';
-import { bindingFromInput, getAutocompleteToken, replaceRange, suggestKeyFromPath, renderBindingValue, buildConditionExpr } from './bindingHelpers';
+import { bindingFromInput, detectTemplate, getAutocompleteToken, replaceRange, suggestKeyFromPath, renderBindingValue, buildConditionExpr } from './bindingHelpers';
 
 // Real textarea (jsdom) so selectionStart/setSelectionRange behave like the
 // inspector's inputs. Caret defaults to end-of-value.
@@ -232,5 +232,21 @@ describe('bindingFromInput — escaped paths stay a ref', () => {
         expect(bindingFromInput('nope["x"]', 'expression').kind).toBe('expr');
         expect(bindingFromInput('item["x"]', 'expression').kind).toBe('expr');
         expect(bindingFromInput('steps.x.output.y', 'expression')).toEqual({ kind: 'ref', path: 'steps.x.output.y' });
+    });
+});
+
+describe('detectTemplate', () => {
+    it('answers what TEMPLATE_RE answers', () => {
+        const yes = ['{{a}}', 'x {{ steps.a.output.y }} z', '{{{a}}', '{{a{b}}', 'x{{{}}', '}{{a}}}'];
+        const no = ['', 'plain', '{{}}', '{{a}', '{a}}', '{{a}x}', '{ {a}}', 42, null];
+        for (const t of yes) expect(detectTemplate(t), t).toBe(true);
+        for (const t of no) expect(detectTemplate(t), String(t)).toBe(false);
+    });
+
+    it('stays linear on a long run of braces (the regex was quadratic)', () => {
+        const start = performance.now();
+        expect(detectTemplate('{'.repeat(200_000))).toBe(false);
+        expect(detectTemplate('{{a'.repeat(100_000))).toBe(false);
+        expect(performance.now() - start).toBeLessThan(500);
     });
 });

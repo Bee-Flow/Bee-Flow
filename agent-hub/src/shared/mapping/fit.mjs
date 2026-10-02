@@ -75,6 +75,7 @@ function toNumber(value, parse) {
 
 function toDate(value, parse) {
     if (typeof value !== 'string' && typeof value !== 'number') return undefined;
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- ISO_DATE is anchored at both ends with fixed-width fields; its one open run (the fraction, \d+) is followed by a character it cannot match, so matching is linear
     if (typeof value === 'string' && ISO_DATE.test(value.trim())) {
         // Already ISO: kept as written, so a date stays a date and an offset
         // stays the offset it was given in. Only a day that exists ('2026-13-45'

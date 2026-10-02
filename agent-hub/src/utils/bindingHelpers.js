@@ -22,11 +22,23 @@ const SIMPLE_PATH_RE = /^[a-zA-Z_$][\w$.[\]*]*$/;
 const VALID_REF_ROOTS = ['trigger', 'steps', 'vars', 'secrets', 'loop'];
 
 /**
- * Does the text contain a `{{ path }}` interpolation?
+ * Does the text contain a `{{ path }}` interpolation? The same answer as
+ * TEMPLATE_RE.test(text), in one pass: the regex restarts its `[^}]+` scan
+ * at every `{{`, so a long run of `{` took seconds (quadratic). A match is a
+ * `}}` whose text since the previous `}` holds a `{{` with at least one
+ * character after it.
  */
 export function detectTemplate(text) {
     if (typeof text !== 'string') return false;
-    return TEMPLATE_RE.test(text);
+    const pieces = text.split('}');
+    // pieces[t] ends at a `}`, and that `}` is followed by another one when
+    // pieces[t + 1] is empty and not the last piece.
+    for (let t = 0; t + 2 < pieces.length; t++) {
+        if (pieces[t + 1] !== '') continue;
+        const open = pieces[t].indexOf('{{');
+        if (open !== -1 && open + 2 < pieces[t].length) return true;
+    }
+    return false;
 }
 
 /**

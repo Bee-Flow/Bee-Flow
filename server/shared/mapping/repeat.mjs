@@ -165,6 +165,7 @@ function loopRefRe(itemVar) {
 /** Does `text` read the forEach item (`loop.<var>`, `loop["<var>"]`) or `loop._index`? */
 export function readsLoopItem(text, itemVar) {
     if (typeof text !== 'string' || !text.includes('loop')) return false;
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- itemVar is escaped to a literal, and each \s* run is followed by a character it cannot match, so matching is linear in the text
     return loopRefRe(itemVar).test(text);
 }
 

@@ -20,6 +20,7 @@ const FOLDER_TEXT = 'folder is a mail folder name (inbox, sentitems, drafts, …
 
 /** Throws `message` unless `value` is a string matching GRAPH_ID_RE. */
 function assertGraphId(value, message) {
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- GRAPH_ID_RE is anchored with one bounded class ({1,512}), so it cannot backtrack
     if (typeof value !== 'string' || !GRAPH_ID_RE.test(value)) {
         throw new Error(message);
     }

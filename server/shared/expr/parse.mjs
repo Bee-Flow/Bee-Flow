@@ -209,6 +209,7 @@ export function parseDate(value, { numberAs = 'auto' } = {}) {
         if (!Number.isFinite(value)) return null;
         return at(numberAs === 'ms' ? value : epochFromNumber(value), null);
     }
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- DATE_ONLY and DATE_TIME are anchored at both ends; every run is bounded or (the fraction) followed by a character it cannot match, so matching is linear
     const s = String(value).trim();
     let m = DATE_ONLY.exec(s);
     if (m) return at(Date.UTC(+m[1], +m[2] - 1, +m[3]), null);

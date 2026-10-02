@@ -45,6 +45,7 @@ export function humanizeKey(key) {
             const lower = w.toLowerCase();
             if (ACRONYMS.has(lower)) return lower.toUpperCase();
             // A word written in capitals (AFAS, BSN) stays that way.
+            // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- one character class, no quantifier: nothing to backtrack over
             if (w.length > 1 && w === w.toUpperCase() && /[A-Z]/.test(w)) return w;
             return i === 0 ? lower.charAt(0).toUpperCase() + lower.slice(1) : lower;
         })
