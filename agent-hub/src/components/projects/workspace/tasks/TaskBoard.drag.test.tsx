@@ -5,7 +5,13 @@ import type { ProjectTask } from '../../../../api/queries/projectTasks';
 import TaskBoard from './TaskBoard';
 
 const task = { id: 'a', title: 'Drag this card', status: 'todo', priority: 'normal', labels: [], links: [], checklist: [], assigneeIds: [], dueDate: null, sortOrder: 1 } as unknown as ProjectTask;
-afterEach(() => vi.restoreAllMocks());
+// After a drop, dnd-kit keeps a capture-phase click blocker on `document` for
+// 50 ms (MouseSensor detach). Wait it out, or the next test's first click lands
+// inside that window and is swallowed — which only shows on a fast runner.
+afterEach(async () => {
+    vi.restoreAllMocks();
+    await new Promise(resolve => setTimeout(resolve, 60));
+});
 
 function renderBoard(canEdit = true) {
     vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
