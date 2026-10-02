@@ -123,6 +123,10 @@ export default function BindingField({
     const mode: Mode = formulaOnly ? 'expression' : modeState;
     const [text, setText] = useState(seed.text);
     const [focused, setFocused] = useState(false);
+    // The blur is deferred so a click in "Comes in" still finds the field;
+    // cancelled on refocus and on unmount, so it never fires on a torn-down tree.
+    const blurTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    useEffect(() => () => { if (blurTimer.current) clearTimeout(blurTimer.current); }, []);
     const [helpOpen, setHelpOpen] = useState(false);
     const inputRef = useRef<Editor | null>(null);
     const { t } = useTranslation();
@@ -290,9 +294,9 @@ export default function BindingField({
                         rows={3}
                         onChange={(next: string) => emit(next, mode)}
                         onInput={onEditorInput}
-                        onFocus={() => { setFocused(true); onFocusField?.(handle); }}
+                        onFocus={() => { if (blurTimer.current) clearTimeout(blurTimer.current); setFocused(true); onFocusField?.(handle); }}
                         // Clicks in "Comes in" blur the field first; the handle stays valid.
-                        onBlur={() => setTimeout(() => setFocused(false), 150)}
+                        onBlur={() => { blurTimer.current = setTimeout(() => setFocused(false), 150); }}
                         onDragOver={onBindingDragOver}
                         onDrop={onDrop}
                         placeholder={placeholder}
