@@ -82,13 +82,47 @@ test('forceRefresh asks the adapter again', async () => {
     assert.strictEqual(adapter.calls.length, 2);
 });
 
-test('an empty discovery is not cached, so the next call retries', async () => {
+test('an empty discovery is remembered briefly, then asked again', async (t) => {
+    t.mock.timers.enable({ apis: ['Date'], now: Date.now() });
     store.ai = { providers: [provider()] };
     adapter.models = [];
     assert.deepStrictEqual(await getModelsForProvider('p1'), []);
     adapter.models = [{ id: 'gpt-4o' }];
+    assert.deepStrictEqual(await getModelsForProvider('p1'), [], 'still empty inside the window');
+    assert.strictEqual(adapter.calls.length, 1);
+    t.mock.timers.tick(31_000);
     assert.deepStrictEqual(ids(await getModelsForProvider('p1')), ['gpt-4o']);
     assert.strictEqual(adapter.calls.length, 2);
+});
+
+test('invalidating a provider forgets that it was empty', async () => {
+    store.ai = { providers: [provider()] };
+    adapter.models = [];
+    await getModelsForProvider('p1');
+    adapter.models = [{ id: 'gpt-4o' }];
+    invalidateModelCache('p1');
+    assert.deepStrictEqual(ids(await getModelsForProvider('p1')), ['gpt-4o']);
+});
+
+test('a failed discovery is remembered too, so a dead endpoint is not probed every turn', async () => {
+    store.ai = { providers: [provider({ apiKey: FAILING_KEY })] };
+    await assert.rejects(() => getModelsForProvider('p1'), /discovery failed/);
+    assert.deepStrictEqual(await getModelsForProvider('p1'), []);
+    assert.strictEqual(adapter.calls.length, 1);
+});
+
+test('an expired list is served at once and refreshed once in the background', async (t) => {
+    t.mock.timers.enable({ apis: ['Date'], now: Date.now() });
+    store.ai = { providers: [provider()] };
+    await getModelsForProvider('p1');
+    adapter.models = [{ id: 'gpt-5.2' }];
+    t.mock.timers.tick(61_000);
+    const [a, b] = await Promise.all([getModelsForProvider('p1'), getModelsForProvider('p1')]);
+    assert.deepStrictEqual(ids(a), ['gpt-4o', 'gpt-4o-mini'], 'stale, not waited for');
+    assert.deepStrictEqual(ids(b), ['gpt-4o', 'gpt-4o-mini']);
+    await new Promise((r) => setImmediate(r));
+    assert.strictEqual(adapter.calls.length, 2, 'one background refresh, not one per call');
+    assert.deepStrictEqual(ids(await getModelsForProvider('p1')), ['gpt-5.2']);
 });
 
 test('an unknown provider yields an empty list without touching an adapter', async () => {
@@ -169,6 +203,16 @@ test('getProviderForModel skips a provider whose discovery fails and finds the m
     store.ai = { providers: [provider({ id: 'broken', name: 'Broken', apiKey: FAILING_KEY }), provider({ id: 'p2', name: 'Two' })] };
     const rec = await getProviderForModel('gpt-4o');
     assert.strictEqual(rec.providerId, 'p2');
+});
+
+test('getProviderForModel asks a provider whose cached list holds the model first', async () => {
+    store.ai = { providers: [provider({ id: 'p1', name: 'One' }), provider({ id: 'p2', name: 'Two' })] };
+    adapter.models = [{ id: 'only-on-two' }];
+    await getModelsForProvider('p2');
+    adapter.calls = [];
+    const rec = await getProviderForModel('only-on-two');
+    assert.strictEqual(rec.providerId, 'p2');
+    assert.strictEqual(adapter.calls.length, 0, 'no discovery of p1 on the way');
 });
 
 test('getProviderForModel throws when no configured provider serves the model', async () => {

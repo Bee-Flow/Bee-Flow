@@ -2,17 +2,22 @@
 /**
  * Prompt Complexity Classifier — auto-tier model selection.
  *
- * Three-stage pipeline, evaluated in order:
+ * Pipeline, evaluated in order, cheapest first. A chat turn waits for this
+ * before anything streams, so every stage is bounded:
  *   1. Universal heuristic shortcut — language-agnostic structural signals
  *      (length, code fences, math operators, URLs, lists). High-confidence
- *      cases (very short / very long / heavy code) return immediately with
- *      no LLM call.
+ *      cases (short plain questions / very long / heavy code) return
+ *      immediately with no call at all.
  *   2. In-memory cache — repeat prompts (same message + same available
  *      tiers) reuse the previous decision. TTL 10 min, LRU eviction.
- *   3. LLM classifier — fallback for ambiguous cases. Multilingual prompt
- *      with few-shot examples in EN/NL/DE/ES so the model classifies by
- *      intent regardless of language. Model is admin-configurable via the
- *      `auto_classifier_model` config key (defaults to the fast tier).
+ *   3. classify-service — the CPU zero-shot classifier, a few hundred ms,
+ *      when it is installed (tierClassifierService.js). Deadline-bound.
+ *   4. LLM classifier — only when the service is absent or undecided.
+ *      Multilingual prompt with few-shot examples in EN/NL/DE/ES so the
+ *      model classifies by intent regardless of language. Model is
+ *      admin-configurable via the `auto_classifier_model` config key
+ *      (defaults to the fast tier). Hard time limit, truncated input.
+ *   5. Heuristic verdict when everything above had no answer.
  *
  * Tier-key normalisation maps the legacy `pro`/`smart` keys to their
  * modern equivalents (`deep_thinking`/`thinking`) when configured.
@@ -40,6 +45,14 @@ const URL_PATTERN = /\bhttps?:\/\/|www\./gi;
 const LIST_LINE = /^\s*(?:[-*•]|\d+[.)])\s+\S/m;
 
 // ─── Cache ────────────────────────────────────────────────────────
+
+/** The LLM stage may hold a turn this long, whatever the adapter does with timeoutMs. */
+const LLM_DEADLINE_MS = Number(process.env.AUTO_TIER_LLM_DEADLINE_MS) || 2000;
+/** The LLM sees the start and the end of a long message; intent lives there. */
+const LLM_HEAD_CHARS = 1500;
+const LLM_TAIL_CHARS = 500;
+/** A plain question this short never needs more than the fast tier. */
+const SHORT_PLAIN_MAX = 40;
 
 const CACHE_MAX = 500;
 const CACHE_TTL_MS = 10 * 60 * 1000;
@@ -99,6 +112,15 @@ function classifyPromptComplexity(message) {
     // Any language: a 1–12 char input is a greeting/ack, never deep work.
     if (len <= 12) {
         return { tier: 'fast', score: 0, reason: 'very short input', confident: true };
+    }
+
+    // ── High-confidence shortcut: a short, plain question ──
+    // "what is the capital of France?" — one line, no code/URL/math/list,
+    // at most one question. Short enough that no tier above fast applies.
+    if (len <= SHORT_PLAIN_MAX && !msg.includes('\n') && (msg.match(/\?/g) || []).length <= 1
+        && !CODE_PUNCTUATION.test(msg) && !ARROW_FN.test(msg) && !CODE_FENCE.test(msg)
+        && !MATH_OPERATORS.test(msg) && !MATH_ARITHMETIC.test(msg) && !/\bhttps?:\/\/|www\./i.test(msg)) {
+        return { tier: 'fast', score: 0, reason: 'short plain question', confident: true };
     }
 
     // ── Code signals ──
@@ -276,6 +298,12 @@ Hard rules:
 - Respond with ONLY the tier name, no punctuation, no explanation.`;
 }
 
+// Start and end of a long message: the ask is usually at one of the two.
+function truncateForLLM(text) {
+    if (text.length <= LLM_HEAD_CHARS + LLM_TAIL_CHARS) return text;
+    return `${text.slice(0, LLM_HEAD_CHARS)}\n…\n${text.slice(-LLM_TAIL_CHARS)}`;
+}
+
 // Map legacy tier keys to current ones if the modern key is configured.
 function normaliseTierKey(suggested, tiers) {
     if (!suggested) return suggested;
@@ -348,29 +376,50 @@ async function classifyWithLLM(message, tiers, { userOrgId = null } = {}) {
         ? adminModel.trim()
         : tiers.fast?.modelId;
 
-    if (!classifyModel) {
-        const tier = tiers[heuristic.tier]?.modelId ? heuristic.tier : 'fast';
-        log.info(`[Classifier] heuristic (no classifier model): tier="${tier}" (${heuristic.reason})`);
-        return { tier, method: 'heuristic', reason: heuristic.reason };
-    }
-
     // Stage 2: cache lookup.
-    const cacheKey = buildCacheKey(msgText, availableTiers, classifyModel);
+    const cacheKey = buildCacheKey(msgText, availableTiers, classifyModel || '');
     const cached = cacheGet(cacheKey);
     if (cached) {
         log.info(`[Classifier] cache: tier="${cached.tier}"`);
         return { tier: cached.tier, method: 'cache', reason: cached.reason };
     }
 
-    // Stage 3: LLM call.
+    // Stage 3: classify-service (CPU, a few hundred ms) when it is installed.
+    const viaService = await require('./tierClassifierService')
+        .classifyTierViaService(msgText, tiers, { heuristic })
+        .catch(() => null);
+    if (viaService && tiers[viaService.tier]?.modelId) {
+        const out = { tier: viaService.tier, method: 'classifier', reason: `classifier (${viaService.score.toFixed(2)})` };
+        cacheSet(cacheKey, { tier: out.tier, reason: out.reason });
+        return out;
+    }
+
+    if (!classifyModel) {
+        const tier = tiers[heuristic.tier]?.modelId ? heuristic.tier : 'fast';
+        log.info(`[Classifier] heuristic (no classifier model): tier="${tier}" (${heuristic.reason})`);
+        return { tier, method: 'heuristic', reason: heuristic.reason };
+    }
+
+    // Stage 4: LLM call, bounded in time and input size.
     try {
         const llmClient = require('./llmClient');
         const prompt = buildClassifierPrompt(availableTiers);
-
-        const result = await llmClient.chat(classifyModel, [
-            { role: 'system', content: prompt },
-            { role: 'user', content: msgText },
-        ], { maxTokens: 8, temperature: 0, reasoningEffort: 'none', budgetTokens: 0 });
+        const started = Date.now();
+        const deadline = AbortSignal.timeout(LLM_DEADLINE_MS);
+        /** @type {ReturnType<typeof setTimeout> | undefined} */
+        let timer;
+        // Not every adapter honours timeoutMs/signal, so the race is what
+        // actually bounds the turn; the late answer is dropped.
+        const result = await Promise.race([
+            llmClient.chat(classifyModel, [
+                { role: 'system', content: prompt },
+                { role: 'user', content: truncateForLLM(msgText) },
+            ], { maxTokens: 8, temperature: 0, reasoningEffort: 'none', budgetTokens: 0, timeoutMs: LLM_DEADLINE_MS, signal: deadline }),
+            new Promise((_, reject) => {
+                timer = setTimeout(() => reject(new Error(`no answer within ${LLM_DEADLINE_MS}ms`)), LLM_DEADLINE_MS);
+            }),
+        ]).finally(() => clearTimeout(timer));
+        log.info(`[Classifier] llm answered in ${Date.now() - started}ms`);
 
         const raw = (result.content || '').trim().toLowerCase().replace(/[^a-z_]/g, '');
         let suggested = normaliseTierKey(raw, tiers);
@@ -393,7 +442,7 @@ async function classifyWithLLM(message, tiers, { userOrgId = null } = {}) {
         log.info(`[Classifier] LLM failed: ${err.message}, falling back to heuristic`);
     }
 
-    // Stage 4: heuristic fallback (when LLM fails or returns garbage).
+    // Stage 5: heuristic fallback (when LLM fails or returns garbage).
     // Cached too — otherwise a repeatedly-run step (e.g. inside a forEach)
     // with the same prompt re-hits the LLM and re-fails every iteration.
     const fallbackKey = normaliseTierKey(heuristic.tier, tiers);
