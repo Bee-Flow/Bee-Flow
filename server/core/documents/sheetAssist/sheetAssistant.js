@@ -61,6 +61,11 @@ const TOOLS = Object.freeze([
         parameters: { type: 'object', properties: { text: { type: 'string' } }, required: ['text'] },
     } },
     { type: 'function', function: {
+        name: 'evaluate',
+        description: 'Compute formulas against the sheet WITHOUT writing them, e.g. ["=COUNTA(A2:A500)", "=SUM(C2:C500)/COUNT(C2:C500)"]. Use this for every number you report that comes from the cells (counts, totals, averages, maxima): never count or calculate yourself. Up to 20 formulas per call.',
+        parameters: { type: 'object', properties: { formulas: { type: 'array', items: { type: 'string' } } }, required: ['formulas'] },
+    } },
+    { type: 'function', function: {
         name: 'set_cells',
         description: 'Set cells to values or formulas: { "A1": "Total", "B7": "=SUM(B2:B6)", "C3": "" } ("" clears). Staged, not saved yet; the answer says what each written cell now shows and which cells newly show an error.',
         parameters: { type: 'object', properties: { cells: { type: 'object', additionalProperties: { type: 'string' } } }, required: ['cells'] },
@@ -76,13 +81,19 @@ const TOOLS = Object.freeze([
         parameters: { type: 'object', properties: { range: { type: 'string' } }, required: ['range'] },
     } },
 ]);
-const READ_TOOLS = Object.freeze(TOOLS.filter((t) => t.function.name === 'read_range' || t.function.name === 'find'));
+const READ_TOOL_NAMES = Object.freeze(['read_range', 'find', 'evaluate']);
+const READ_TOOLS = Object.freeze(TOOLS.filter((t) => READ_TOOL_NAMES.includes(t.function.name)));
+const MAX_EVALUATE = 20;
+/** A cell holding exactly a number, typed rather than computed. */
+const PLAIN_NUMBER_RE = /^\s*[-+]?(\d+\.?\d*|\.\d+)(e[-+]?\d+)?\s*%?\s*$/i;
 
 function systemPrompt(readOnly) {
     return [
         'You are the assistant inside a spreadsheet in Bee Flow. You read and change THIS sheet through tools.',
         'The sheet has columns A–Z and rows 1–2000. Formulas start with "=" and support: + - * / ^ & (joins text) %, comparisons = <> < > <= >=, references like B3 or $B$3, ranges like A1:B9, and the functions SUM, AVERAGE, MIN, MAX, COUNT, COUNTA, IF, AND, OR, NOT, ROUND, ABS, CONCAT, LEN, UPPER, LOWER, TRIM — nothing else (no VLOOKUP, SUMIF, dates or named ranges). Errors: #DIV/0!, #REF!, #NAME?, #VALUE!, #CIRC!, #NUM!, #ERROR!.',
         'Work efficiently: the digest below is what you know; read more (read_range, find) only when the answer needs cells you have not seen. Prefer formulas over typed results so the sheet stays live, and fill_formula for a column or row of similar formulas. Keep existing data, headers and layout unless asked to change them; put new columns next to the data, with a header in the header row.',
+        'NEVER count, add up or calculate anything from the cells yourself — not a row count, not a total, not an average. A number that comes from the data is ALWAYS a formula: write it into the sheet when it belongs there (=COUNTA(A2:A120), =SUM(D2:D40)), or compute it with the evaluate tool when you only need it for your answer, and report what the formula returned. Type a plain number into a cell only when the user gives you that number.',
+        'When the user selected cells, rows or columns, the request is about that selection: act on it (e.g. "add a formula" means formulas for those cells), and put new results right next to it — a total below a column selection, a new column to the right of the data for a row-wise calculation, with a header.',
         'Check your work: every write answers with what the cells now show and any new errors. Fix errors and wrong results before you finish.',
         readOnly
             ? 'You may only READ this sheet (the user is a viewer). Answer questions; if they ask for a change, say they cannot make changes here.'
@@ -113,10 +124,10 @@ function makeSheetAssistant(deps = {}) {
 
     /**
      * @param {any} doc   the spreadsheet document, as getDocument returned it to the caller
-     * @param {{ message: string, selection?: string|null, history?: Array<{role: string, content: string}>, modelTier?: string|null, userId: string, orgId: string|null }} o
+     * @param {{ message: string, selection?: string|null, selectionKind?: 'cell'|'range'|'rows'|'columns'|null, history?: Array<{role: string, content: string}>, modelTier?: string|null, userId: string, orgId: string|null }} o
      * @returns {Promise<{ reply: string, changes: Record<string, { before: string, after: string }>, rounds: number, tier: string|null }>}
      */
-    async function ask(doc, { message, selection = null, history = [], modelTier = null, userId, orgId }) {
+    async function ask(doc, { message, selection = null, selectionKind = null, history = [], modelTier = null, userId, orgId }) {
         const tableId = doc.settings?.sheet?.datatableId;
         const readOnly = doc.projectRole === 'viewer';
         const model = await resolveModel({ userId, orgId, modelTier: modelTier || 'auto', message: String(message).slice(0, 2000) });
@@ -141,7 +152,7 @@ function makeSheetAssistant(deps = {}) {
         };
 
         const selRange = selection ? parseRange(selection) : null;
-        const digest = sheetDigest(sheet, shown, { name: doc.name, selection: selRange });
+        const digest = sheetDigest(sheet, shown, { name: doc.name, selection: selRange, selectionKind });
         const first = await outbound(`Request: ${String(message).slice(0, 4000)}\n\n<sheet>\n${digest}\n</sheet>`);
         const messages = [
             { role: 'system', content: systemPrompt(readOnly) },
@@ -172,8 +183,13 @@ function makeSheetAssistant(deps = {}) {
             const sample = names.length <= 40 ? names : [...names.slice(0, 20), ...names.slice(-5)];
             const results = sample.map((n) => `${n}=${shown[n]?.display ?? ''}`).join(', ');
             const newErrors = errorList(shown, Infinity).filter((e) => !before.has(e.split(' ')[0]));
+            // A typed number is fine when the user gave it; one the model worked
+            // out from the data is a value that goes stale. Said back, so the
+            // model replaces it with the formula that computes it.
+            const typed = names.filter((n) => PLAIN_NUMBER_RE.test(writes[n] || ''));
             return `Staged ${names.length} cell(s). Now showing: ${results}${names.length > sample.length ? ` (… ${names.length - sample.length} more)` : ''}.`
-                + (newErrors.length ? ` NEW ERRORS: ${newErrors.slice(0, 20).join(', ')}${newErrors.length > 20 ? ' …' : ''}.` : ' No new errors.');
+                + (newErrors.length ? ` NEW ERRORS: ${newErrors.slice(0, 20).join(', ')}${newErrors.length > 20 ? ' …' : ''}.` : ' No new errors.')
+                + (typed.length ? ` NOTE: ${typed.slice(0, 10).join(', ')}${typed.length > 10 ? ' …' : ''} got a typed number. If it was counted or calculated from other cells, replace it with the formula that computes it.` : '');
         }
 
         /** Check and normalise what the model asked to write. */
@@ -192,7 +208,7 @@ function makeSheetAssistant(deps = {}) {
         }
 
         async function executeTool(/** @type {string} */ name, /** @type {any} */ args) {
-            if (readOnly && !['read_range', 'find'].includes(name)) return 'Error: this sheet is read-only for the user.';
+            if (readOnly && !READ_TOOL_NAMES.includes(name)) return 'Error: this sheet is read-only for the user.';
             if (name === 'read_range') {
                 const r = parseRange(args?.range);
                 if (!r) return 'Error: give a range like "A1:D20" inside A1:Z2000.';
@@ -208,6 +224,21 @@ function makeSheetAssistant(deps = {}) {
                     .slice(0, MAX_FIND)
                     .map(([n, raw]) => `${n}: ${String(raw).slice(0, 80)}`);
                 return outbound(hits.length ? hits.join('\n') : 'No cell contains that text.');
+            }
+            if (name === 'evaluate') {
+                const list = Array.isArray(args?.formulas) ? args.formulas.slice(0, MAX_EVALUATE) : [];
+                if (!list.length) return 'Error: give formulas, e.g. ["=COUNTA(A2:A100)"].';
+                // Each formula in a scratch cell outside the sheet's columns
+                // (the engine reaches past Z), evaluated over the staged sheet.
+                const scratch = { ...sheet };
+                const names = list.map((f, i) => {
+                    const cell = `ZZ${i + 1}`;
+                    const text = restore(String(f || ''));
+                    scratch[cell] = text.startsWith('=') ? text : `=${text}`;
+                    return cell;
+                });
+                const out = evaluate(scratch);
+                return outbound(names.map((cell) => `${scratch[cell]} → ${out[cell]?.display ?? ''}`).join('\n'));
             }
             if (name === 'set_cells') {
                 const { writes, error } = cleanWrites(args?.cells);

@@ -7,7 +7,7 @@
  *   GET   /:id/sheet          → { columns, rows, cells: { A1: raw }, readOnly }
  *   PATCH /:id/sheet          { cells: { B3: '12', C3: '=SUM(B1:B3)', D4: '' } } → { ok, cells }
  *   GET   /:id/sheet.csv      the computed values, as a CSV download
- *   POST  /:id/sheet/assistant  { message, selection?, history?, modelTier? }
+ *   POST  /:id/sheet/assistant  { message, selection?, selectionKind?, history?, modelTier? }
  *                             → { reply, changes: { B2: { before, after } }, tier }
  *                             the spreadsheet assistant (core/documents/sheetAssist):
  *                             reads and changes the sheet, the changes already saved
@@ -47,6 +47,7 @@ const ROLE_TEXT = 'history is the earlier turns: { role: user|assistant, content
 const AssistantBody = bodyOf({
     message: worded('Say what the assistant should do.').trim().min(1, 'Say what the assistant should do.').max(4000, 'Keep the request under 4,000 characters.'),
     selection: worded('selection is a cell or range such as B2:D9.').max(20).nullable().optional(),
+    selectionKind: z.enum(['cell', 'range', 'rows', 'columns'], { errorMap: () => ({ message: 'selectionKind is cell, range, rows or columns.' }) }).nullable().optional(),
     modelTier: z.enum(/** @type {[string, ...string[]]} */ (DEPTHS), { errorMap: () => ({ message: `modelTier is one of ${DEPTHS.join(', ')}.` }) }).optional(),
     history: z.array(z.object({ role: z.enum(['user', 'assistant']), content: z.string().max(4000) }), { invalid_type_error: ROLE_TEXT }).max(20).optional(),
 }, 'Asking the spreadsheet assistant');
@@ -204,7 +205,7 @@ function makeSheetRouter(deps = {}) {
         const limit = await checkLimits(orgId, userId);
         if (limit) throw new HttpError(402, 'usage_limit', String(limit));
         const answer = await assistant().ask(doc, {
-            message: req.body.message, selection: req.body.selection || null,
+            message: req.body.message, selection: req.body.selection || null, selectionKind: req.body.selectionKind || null,
             history: req.body.history || [], modelTier: req.body.modelTier || 'auto', userId, orgId,
         });
         res.json(answer);

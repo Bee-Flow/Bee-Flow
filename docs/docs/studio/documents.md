@@ -108,6 +108,19 @@ Use the arrow keys, Enter and Tab to move, F2 or a double click to edit, and Del
 clear. Copy and paste work with other spreadsheet programs. Changes save on their own.
 **Download CSV** exports the computed values.
 
+Select a cell, a range, whole columns (click a column letter) or whole rows (click a row
+number); Shift extends the selection. Some things are instant, without the AI:
+
+- the bar under the grid shows the **Sum**, **Average** and **Count** of the selection;
+- **Ctrl+D** fills the first row of the selection down, **Ctrl+R** fills its first column
+  right (references shift as in any spreadsheet);
+- **Alt+=** adds a SUM of the numbers above (or to the left).
+
+For everything else, ask the AI right at the selection: click the ✦ button at its corner
+or press **Ctrl+K** (⌘K on a Mac), type what you want ("add a formula for the margin",
+"a total below", "% of the total next to it") and press Enter. The result shows next to
+the selection, with **Undo**.
+
 The cells are stored in a **datatable** of yours. It is listed under Studio → Datatables,
 so routines and apps can read the sheet like any other table. Each row of that table is a
 row of the sheet: `row_no` is the row number and the columns `a` to `z` hold what was
@@ -130,6 +143,9 @@ itself. When it is done, the changed cells light up and its reply says what chan
   cell. On a large sheet that is the first and last rows plus a profile of each column,
   and it reads more only when the question needs it. It writes a whole column with one
   formula that shifts per row, as fill-down does.
+- **Never calculates by itself.** Every number that comes from the data is a formula: a
+  count of rows is `=COUNTA(…)` in the sheet, not a number the AI worked out. When it only
+  needs a number for its answer, it has the formula calculated and reports the result.
 - **Checks its own work.** Nothing is saved while it works. Every change is calculated
   straight away with the same formula engine as the grid, so the assistant sees the
   results and any `#DIV/0!` or `#REF!` it caused and corrects them first. All changes are

@@ -138,7 +138,7 @@ test('a viewer gets the reading tools only, and a write is refused', async () =>
     let refused;
     const { assistant, calls } = world(async (run) => { refused = await run('set_cells', { cells: { A1: 'x' } }); return 'You can only read this sheet.'; });
     await assistant.ask({ ...DOC, projectRole: 'viewer' }, { message: 'Change A1', userId: 'u1', orgId: 'org1' });
-    assert.deepStrictEqual(calls.loops[0].tools, ['read_range', 'find']);
+    assert.deepStrictEqual(calls.loops[0].tools, ['read_range', 'find', 'evaluate']);
     assert.match(refused, /read-only/);
     assert.deepStrictEqual(calls.writes, []);
     assert.match(calls.loops[0].messages[0].content, /You may only READ this sheet/);
@@ -181,4 +181,36 @@ test('no model configured is a 503, and a run over the change cap is refused bef
     assert.strictEqual(Object.keys(out.changes).length, 23 * 76);
     assert.strictEqual(out.changes.A80, undefined);
     assert.strictEqual(calls.writes.flatMap((w) => Object.keys(w)).length, 23 * 76);
+});
+
+test('numbers come from formulas: evaluate computes without writing, and a typed number is flagged', async () => {
+    let computed; let typed;
+    const { assistant, calls } = world(async (run, messages) => {
+        assert.match(messages[0].content, /NEVER count, add up or calculate anything from the cells yourself/);
+        computed = await run('evaluate', { formulas: ['=COUNTA(A2:A9)', 'SUM(B2:B3)', '=AVERAGE(C2:C3)'] });
+        typed = await run('set_cells', { cells: { E1: '5' } });
+        await run('set_cells', { cells: { E1: '=SUM(B2:B3)' } });
+        return 'There are 2 items (=COUNTA(A2:A9)) and 5 units in total, now in E1.';
+    });
+    await ask(assistant, { message: 'How many items and units?' });
+    assert.strictEqual(computed, '=COUNTA(A2:A9) → 2\n=SUM(B2:B3) → 5\n=AVERAGE(C2:C3) → 2.75');
+    assert.match(typed, /NOTE: E1 got a typed number\. If it was counted or calculated from other cells, replace it with the formula/);
+    // evaluate wrote nothing; only the final formula is saved.
+    assert.deepStrictEqual(calls.writes, [{ E1: '=SUM(B2:B3)' }]);
+});
+
+test('a selection of whole columns or rows is named as such', async () => {
+    const seen = [];
+    const { assistant } = world(async (run, messages) => { seen.push(messages.at(-1).content); return 'ok'; });
+    await ask(assistant, { selection: 'B1:C3', selectionKind: 'columns' });
+    await ask(assistant, { selection: 'A2:C2', selectionKind: 'rows' });
+    assert.match(seen[0], /The user has selected whole columns B:C \(B1:C3\):/);
+    assert.match(seen[1], /The user has selected whole row 2 \(A2:C2\):/);
+});
+
+test('evaluate needs formulas, and a viewer may use it', async () => {
+    let said;
+    const { assistant } = world(async (run) => { said = await run('evaluate', { formulas: [] }); await run('evaluate', { formulas: ['=1+1'] }); return 'ok'; });
+    await assistant.ask({ ...DOC, projectRole: 'viewer' }, { message: 'x', userId: 'u', orgId: null });
+    assert.match(said, /^Error: give formulas/);
 });

@@ -113,10 +113,10 @@ function errorList(/** @type {Shown} */ shown, max = 30) {
 /**
  * @param {Cells} cells
  * @param {Shown} shown
- * @param {{ name: string, selection?: { c0: number, r0: number, c1: number, r1: number } | null }} o
+ * @param {{ name: string, selection?: { c0: number, r0: number, c1: number, r1: number } | null, selectionKind?: string|null }} o
  * @returns {string}
  */
-function sheetDigest(cells, shown, { name, selection = null }) {
+function sheetDigest(cells, shown, { name, selection = null, selectionKind = null }) {
     const { rows, cols } = usedExtent(cells);
     const filled = Object.values(cells).filter((v) => v !== '').length;
     if (!rows) return `Sheet "${name}" is empty. Columns A–Z, rows 1–2000.`;
@@ -139,7 +139,13 @@ function sheetDigest(cells, shown, { name, selection = null }) {
     if (selection) {
         const names = cellsIn(selection);
         const sel = `${names[0]}${names.length > 1 ? `:${names[names.length - 1]}` : ''}`;
-        parts.push(`The user has selected ${sel}${names.length <= 400 ? ':' : ` (${names.length} cells; read_range it if needed).`}`);
+        const L = (/** @type {number} */ c) => colName(c);
+        const what = selectionKind === 'columns'
+            ? `whole column${selection.c1 > selection.c0 ? 's' : ''} ${L(selection.c0)}${selection.c1 > selection.c0 ? `:${L(selection.c1)}` : ''} (${sel})`
+            : selectionKind === 'rows'
+                ? `whole row${selection.r1 > selection.r0 ? 's' : ''} ${selection.r0 + 1}${selection.r1 > selection.r0 ? `:${selection.r1 + 1}` : ''} (${sel})`
+                : sel;
+        parts.push(`The user has selected ${what}${names.length <= 400 ? ':' : ` (${names.length} cells; read_range it if needed).`}`);
         if (names.length <= 400) parts.push(rowsBlock(cells, shown, { r0: selection.r0 + 1, r1: selection.r1 + 1, c0: selection.c0, c1: selection.c1 }));
     }
     return parts.join('\n');

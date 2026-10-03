@@ -171,12 +171,12 @@ test('the sheet gate runs the datatables gates in order and says no without thro
 
 test('the assistant answers with its reply, the saved changes and the tier that answered', async () => {
     const res = await as('editor', 'POST', '/s1/sheet/assistant', {
-        message: 'Add totals', selection: 'B2:C3', modelTier: 'thinking', history: [{ role: 'user', content: 'hi' }],
+        message: 'Add totals', selection: 'B2:C3', selectionKind: 'range', modelTier: 'thinking', history: [{ role: 'user', content: 'hi' }],
     });
     assert.strictEqual(res.status, 200, res.text);
     assert.deepStrictEqual(res.body, { reply: 'Done.', changes: { D2: { before: '', after: '=B2*C2' } }, rounds: 1, tier: 'thinking' });
     assert.deepStrictEqual(state.asked, [{
-        doc: 's1', role: 'editor', message: 'Add totals', selection: 'B2:C3', modelTier: 'thinking',
+        doc: 's1', role: 'editor', message: 'Add totals', selection: 'B2:C3', selectionKind: 'range', modelTier: 'thinking',
         history: [{ role: 'user', content: 'hi' }], userId: 'editor', orgId: 'org1',
     }]);
 });
@@ -191,6 +191,7 @@ test('the tier defaults to auto; a viewer may still ask (the assistant only read
 test('a malformed request, a spent budget or a privacy hold is answered with a code', async () => {
     assert.strictEqual((await as('owner', 'POST', '/s1/sheet/assistant', { message: '' })).status, 400);
     assert.strictEqual((await as('owner', 'POST', '/s1/sheet/assistant', { message: 'x', modelTier: 'turbo' })).status, 400);
+    assert.strictEqual((await as('owner', 'POST', '/s1/sheet/assistant', { message: 'x', selectionKind: 'sheet' })).status, 400);
     assert.strictEqual((await as('stranger', 'POST', '/s1/sheet/assistant', { message: 'x' })).status, 404);
     state.overLimit = true;
     const limit = await as('owner', 'POST', '/s1/sheet/assistant', { message: 'x' });

@@ -1,10 +1,9 @@
 // @typecheck
 /**
  * Cell references for the spreadsheet assistant: a range as a list of cells,
- * and a formula FILLED from one cell to another — the relative references
- * shift with it, `$`-anchored parts stay, text inside quotes is never touched.
- * That is spreadsheet fill-down/fill-right, and it is what lets the assistant
- * write one formula for a whole column instead of 500 of them.
+ * and a formula FILLED over a range (shared/expr/sheetFill.mjs shifts it per
+ * cell, exactly as the grid's own fill-down does). That is what lets the
+ * assistant write one formula for a whole column instead of 500 of them.
  *
  * Bounds are this product's sheet: columns A–Z, rows 1–MAX_ROWS.
  */
@@ -50,35 +49,8 @@ function cellsIn(/** @type {{ c0: number, r0: number, c1: number, r1: number }} 
     return out;
 }
 
-const REF_RE = /(\$?)([A-Z]{1,3})(\$?)(\d{1,7})(?![A-Za-z0-9_(])/g;
-
-/**
- * The formula `raw` as it reads when filled `dCol` columns right and `dRow`
- * rows down. A relative reference that would leave the sheet becomes #REF!,
- * as in a spreadsheet. Anything that is not a formula is returned unchanged.
- *
- * @param {string} raw
- * @param {number} dCol
- * @param {number} dRow
- */
-function shiftFormula(raw, dCol, dRow) {
-    if (typeof raw !== 'string' || !raw.startsWith('=') || (!dCol && !dRow)) return raw;
-    // Split on string literals ("…", with "" as an escaped quote) so a
-    // reference-shaped word inside text stays as typed.
-    return raw.split(/("(?:[^"]|"")*")/g).map((part, i) => {
-        if (i % 2 === 1) return part;
-        return part.replace(REF_RE, (whole, colAbs, col, rowAbs, row, offset, str) => {
-            // A letter right before it makes it part of a longer word (a
-            // function name such as LOG10 is followed by '(' and excluded above).
-            if (offset > 0 && /[A-Za-z0-9_.]/.test(str[offset - 1])) return whole;
-            if (col.length > 1) return whole;
-            const c = col.charCodeAt(0) - 65 + (colAbs ? 0 : dCol);
-            const r = Number(row) + (rowAbs ? 0 : dRow);
-            if (c < 0 || c >= MAX_COLS || r < 1 || r > MAX_ROWS) return '#REF!';
-            return `${colAbs}${colName(c)}${rowAbs}${r}`;
-        });
-    }).join('');
-}
+/** Shared with the grid's fill-down (shared/expr/sheetFill.mjs): one way to shift a formula. */
+const { shiftFormula } = require('../../../shared/expr/sheetFill.mjs');
 
 /**
  * Fill `formula`, written as it reads in the range's FIRST cell, over every
