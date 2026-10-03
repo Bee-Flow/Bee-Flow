@@ -17,11 +17,13 @@ export interface SheetGridProps {
     cells: Record<string, string>;
     computed: Computed;
     readOnly: boolean;
+    /** Cells to light up briefly (the assistant's changes). */
+    flashed?: Set<string>;
     /** The grid element, for whoever hands focus back to it. */
     containerRef?: React.Ref<HTMLElement>;
 }
 
-export default function SheetGrid({ grid, cells, computed, readOnly, containerRef }: SheetGridProps) {
+export default function SheetGrid({ grid, cells, computed, readOnly, flashed, containerRef }: SheetGridProps) {
     const { t } = useTranslation();
     const idPrefix = useId();
     const own = useRef<HTMLElement | null>(null);
@@ -56,7 +58,7 @@ export default function SheetGrid({ grid, cells, computed, readOnly, containerRe
                         ))}
                     </tr>
                 </thead>
-                <SheetRows grid={grid} cells={cells} computed={computed} letters={letters} idPrefix={idPrefix} referenced={referenced} />
+                <SheetRows grid={grid} cells={cells} computed={computed} letters={letters} idPrefix={idPrefix} referenced={referenced} flashed={flashed} />
             </table>
             <div className="sticky left-0 w-max p-3">
                 <button

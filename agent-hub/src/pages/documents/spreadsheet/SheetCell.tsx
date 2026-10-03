@@ -18,6 +18,8 @@ export interface SheetCellProps {
     selected: boolean;
     /** The formula being edited reads this cell. */
     referenced: boolean;
+    /** The assistant just changed this cell. */
+    flash?: boolean;
     /** The text being edited, or null when this cell is not being edited. */
     draft: string | null;
     origin: 'grid' | 'bar';
@@ -60,11 +62,12 @@ function SheetCell(p: SheetCellProps) {
     let tone = '';
     if (p.active) tone = 'outline outline-2 -outline-offset-2 outline-[var(--accent-primary)] z-[1] ';
     if (p.referenced) tone += 'bg-[color-mix(in_srgb,var(--warning)_28%,transparent)] ';
+    else if (p.flash) tone += 'bg-[color-mix(in_srgb,var(--accent-primary)_24%,transparent)] transition-colors ';
     else if (p.selected) tone += 'bg-[color-mix(in_srgb,var(--accent-primary)_14%,transparent)] ';
     return (
         <td
             id={p.id} role="gridcell" aria-selected={p.selected} aria-colindex={p.col + 2}
-            data-cell={p.name} data-col={p.col}
+            data-cell={p.name} data-col={p.col} data-flash={p.flash ? 'true' : undefined}
             title={p.error ? p.errorTip : undefined}
             className={`relative h-7 min-w-28 max-w-28 w-28 p-0 text-[13px] scroll-mt-9 scroll-ml-14 ${BORDER} ${tone}`}
         >

@@ -13,20 +13,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getSheet, MAX_CELLS_PER_REQUEST, patchSheet } from './sheetApi';
 import { evaluateSheet } from './sheetEngine';
 import { usedRowsOf } from './sheetModel';
+import useServerCells, { overlay } from './useServerCells';
 
 export type SheetSaveState = 'saved' | 'saving' | 'unsaved' | 'error';
 
 export const SAVE_DEBOUNCE_MS = 600;
 export const sheetQueryKey = (id: string) => ['studio-document-sheet', id] as const;
-
-/** The server's cells with the edits laid over them ("" removes a cell). */
-function overlay(base: Record<string, string> | undefined, edits: Record<string, string>): Record<string, string> {
-    const merged: Record<string, string> = { ...(base ?? {}) };
-    for (const [name, value] of Object.entries(edits)) {
-        if (value === '') delete merged[name]; else merged[name] = value;
-    }
-    return merged;
-}
 
 export default function useSheet(id: string) {
     // gcTime 0 + staleTime Infinity: never refetch under the person's hands,
@@ -92,6 +84,8 @@ export default function useSheet(id: string) {
         timer.current = setTimeout(() => { timer.current = null; flush().catch(() => undefined); }, SAVE_DEBOUNCE_MS);
     }, [flush]);
 
+    const { applySaved, refresh } = useServerCells(idRef, pending, setEdits, setSavedAt, query.refetch);
+
     // Leaving or closing the page sends what is still queued.
     useEffect(() => {
         const onUnload = (e: BeforeUnloadEvent) => {
@@ -114,7 +108,7 @@ export default function useSheet(id: string) {
         readOnly, columns: data?.columns ?? 26,
         cells, computed, usedRows,
         status, error, savedAt,
-        setCells, flush,
+        setCells, flush, applySaved, refresh,
         retry: () => { flush().catch(() => undefined); },
     };
 }

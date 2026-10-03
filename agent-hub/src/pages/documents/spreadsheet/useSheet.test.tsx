@@ -86,4 +86,14 @@ describe('useSheet', () => {
         await act(async () => { await result.current.flush(); });
         expect(api.patchSheet).not.toHaveBeenCalled();
     });
+
+    it('applySaved lays saved cells over the baseline without queueing a save', async () => {
+        const { result } = await mount({ A1: '1', B1: 'x' });
+        act(() => result.current.applySaved({ A1: '2', B1: '', C1: '=A1*2' }));
+        expect(result.current.cells).toEqual({ A1: '2', C1: '=A1*2' });
+        expect(result.current.computed.C1.display).toBe('4');
+        await act(async () => { await result.current.flush(); });
+        expect(api.patchSheet).not.toHaveBeenCalled();
+        expect(result.current.status).toBe('saved');
+    });
 });

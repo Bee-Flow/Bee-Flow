@@ -4,7 +4,8 @@
  * Dutch for spreadsheets in Documents (2026-10): the Spreadsheet document type
  * in the library and the gallery (`documents.sheet.*`,
  * `documents.type.spreadsheet`) and its grid editor (`spreadsheet.*`: the
- * formula bar, saving, the CSV download and what each formula error means).
+ * formula bar, saving, the CSV download and what each formula error means)
+ * and its assistant panel (`spreadsheet.assistant.*`).
  *
  * Terminology follows the existing Dutch catalogues: a spreadsheet is a
  * spreadsheet (the word Dutch uses), a cell a cel, a formula a formule, a
@@ -49,6 +50,32 @@ const NL_TRANSLATIONS = Object.freeze({
     'spreadsheet.save_failed': 'Je wijzigingen konden niet worden opgeslagen.',
     'spreadsheet.too_large': 'Deze spreadsheet is te groot om nog meer cellen te bevatten.',
     'spreadsheet.view_only': 'Alleen lezen',
+    // ── The spreadsheet assistant ───────────────────────────────────
+    'spreadsheet.assistant.changed_one': '1 cel gewijzigd',
+    'spreadsheet.assistant.changed_other': '{count} cellen gewijzigd',
+    'spreadsheet.assistant.chip_errors': 'Fouten zoeken en herstellen',
+    'spreadsheet.assistant.chip_explain': 'De geselecteerde formule uitleggen',
+    'spreadsheet.assistant.chip_summarise': 'Deze sheet samenvatten',
+    'spreadsheet.assistant.chip_total': 'Een totaalrij toevoegen',
+    'spreadsheet.assistant.close': 'De assistent sluiten',
+    'spreadsheet.assistant.conversation': 'Gesprek',
+    'spreadsheet.assistant.empty_hint': 'Ik kan je cellen lezen, formules uitleggen en de wijzigingen maken die je vraagt.',
+    'spreadsheet.assistant.empty_title': 'Vraag iets over deze sheet',
+    'spreadsheet.assistant.failed': 'De assistent kon geen antwoord geven.',
+    'spreadsheet.assistant.hint': 'Enter om te versturen, Shift+Enter voor een nieuwe regel',
+    'spreadsheet.assistant.input_label': 'Bericht aan de assistent',
+    'spreadsheet.assistant.open': 'Assistent',
+    'spreadsheet.assistant.placeholder': 'Stel een vraag of beschrijf een wijziging',
+    'spreadsheet.assistant.placeholder_read_only': 'Stel een vraag over deze sheet',
+    'spreadsheet.assistant.read_only': 'Alleen lezen: ik kan vragen beantwoorden maar geen cellen wijzigen.',
+    'spreadsheet.assistant.selection': 'Selectie: {range}',
+    'spreadsheet.assistant.send': 'Versturen',
+    'spreadsheet.assistant.stop': 'Stoppen',
+    'spreadsheet.assistant.stopped': 'Gestopt. De sheet is opnieuw geladen voor het geval er al wijzigingen waren opgeslagen.',
+    'spreadsheet.assistant.title': 'Assistent',
+    'spreadsheet.assistant.undo': 'Ongedaan maken',
+    'spreadsheet.assistant.undone': 'Ongedaan gemaakt',
+    'spreadsheet.assistant.working': 'Bezig met je sheet…',
 });
 
 /**

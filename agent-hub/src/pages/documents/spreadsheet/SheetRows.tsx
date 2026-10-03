@@ -18,6 +18,8 @@ export interface SheetRowsProps {
     idPrefix: string;
     /** The names of the cells the formula being edited reads. */
     referenced: Set<string> | null;
+    /** The names of the cells the assistant just changed. */
+    flashed?: Set<string>;
 }
 
 /** What a cell shows: its result, or its raw text when nothing was computed. */
@@ -29,9 +31,9 @@ function viewOf(raw: string | undefined, res: CellResult | undefined) {
     };
 }
 
-type RowProps = Omit<SheetRowsProps, 'referenced'> & { r: number; referenced: Set<string> | null };
+type RowProps = Omit<SheetRowsProps, 'referenced' | 'flashed'> & { r: number; referenced: Set<string> | null; flashed?: Set<string> };
 
-function SheetRow({ grid, cells, computed, letters, idPrefix, referenced, r }: RowProps) {
+function SheetRow({ grid, cells, computed, letters, idPrefix, referenced, flashed, r }: RowProps) {
     const { t } = useTranslation();
     const { actions, active, editing } = grid;
     const tds = [];
@@ -48,6 +50,7 @@ function SheetRow({ grid, cells, computed, letters, idPrefix, referenced, r }: R
                 active={active.col === c && active.row === r}
                 selected={grid.isInRange(c, r)}
                 referenced={!!referenced?.has(name)}
+                flash={!!flashed?.has(name)}
                 draft={isEditing ? editing.draft : null}
                 origin={isEditing ? editing.origin : 'grid'}
                 inputLabel={t('spreadsheet.cell_input', 'Cell {cell}', { cell: name })}

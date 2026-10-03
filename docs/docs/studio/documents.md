@@ -118,7 +118,33 @@ its cells.
 Spreadsheets need Datatables in your plan. Without them the type is not offered. A
 spreadsheet you already have stays readable and editable if the plan changes.
 
-In a chat, the assistant can read a spreadsheet and fill in or change its cells. It
+### The spreadsheet assistant
+
+Open **Assistant** in a spreadsheet's header and ask in your own words. For example:
+"add a VAT column at 21%", "which customer spent the most?", "fix the errors in column E"
+or "explain the formula in D7". The assistant reads the sheet and makes the changes
+itself. When it is done, the changed cells light up and its reply says what changed.
+**Undo** puts them back.
+
+- **Efficient.** The assistant starts from a compact summary of the sheet, not every
+  cell. On a large sheet that is the first and last rows plus a profile of each column,
+  and it reads more only when the question needs it. It writes a whole column with one
+  formula that shifts per row, as fill-down does.
+- **Checks its own work.** Nothing is saved while it works. Every change is calculated
+  straight away with the same formula engine as the grid, so the assistant sees the
+  results and any `#DIV/0!` or `#REF!` it caused and corrects them first. All changes are
+  then saved together.
+- **Depth.** Pick **Auto**, **Fast**, **Think** or **Deep Thinking** under the message
+  box, the same as in a chat. On Auto, Bee Flow chooses per question. The answer says
+  which depth answered.
+- **Privacy.** The Privacy Shield applies to everything the assistant sends to the
+  model. The sheet's contents are treated as data, never as instructions.
+- **View only.** On a sheet you can only view (a project you are a viewer of), you can
+  still ask questions, but the assistant makes no changes.
+
+The assistant changes at most 2,000 cells per request.
+
+In a chat, the assistant can also read a spreadsheet and fill in or change its cells. It
 cannot start a new one.
 
 ## Parameters and conditional sections
