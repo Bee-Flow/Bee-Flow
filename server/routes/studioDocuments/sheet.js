@@ -7,6 +7,10 @@
  *   GET   /:id/sheet          → { columns, rows, cells: { A1: raw }, readOnly }
  *   PATCH /:id/sheet          { cells: { B3: '12', C3: '=SUM(B1:B3)', D4: '' } } → { ok, cells }
  *   GET   /:id/sheet.csv      the computed values, as a CSV download
+ *   POST  /:id/sheet/assistant  { message, selection?, history?, modelTier? }
+ *                             → { reply, changes: { B2: { before, after } }, tier }
+ *                             the spreadsheet assistant (core/documents/sheetAssist):
+ *                             reads and changes the sheet, the changes already saved
  *   (and `duplicateSheet`, which POST /:id/duplicate hands a spreadsheet to)
  *
  * The cells live in a datatable owned by the document's owner
@@ -38,6 +42,14 @@ const CreateBody = bodyOf({
     folderId: worded('folderId is the id of one of your document folders.').max(200).nullable().optional(),
 }, 'Starting a spreadsheet');
 const CELLS_TEXT = 'cells maps a cell such as "B3" to what is typed in it ("" clears it).';
+const DEPTHS = ['auto', 'fast', 'thinking', 'pro', 'deep_thinking'];
+const ROLE_TEXT = 'history is the earlier turns: { role: user|assistant, content }.';
+const AssistantBody = bodyOf({
+    message: worded('Say what the assistant should do.').trim().min(1, 'Say what the assistant should do.').max(4000, 'Keep the request under 4,000 characters.'),
+    selection: worded('selection is a cell or range such as B2:D9.').max(20).nullable().optional(),
+    modelTier: z.enum(/** @type {[string, ...string[]]} */ (DEPTHS), { errorMap: () => ({ message: `modelTier is one of ${DEPTHS.join(', ')}.` }) }).optional(),
+    history: z.array(z.object({ role: z.enum(['user', 'assistant']), content: z.string().max(4000) }), { invalid_type_error: ROLE_TEXT }).max(20).optional(),
+}, 'Asking the spreadsheet assistant');
 const WriteBody = bodyOf({
     cells: z.record(z.union([z.string(), z.null()]), { required_error: CELLS_TEXT, invalid_type_error: CELLS_TEXT }),
 }, 'Changing cells');
@@ -105,6 +117,9 @@ function fileNameOf(name) {
  * @param {Function} [deps.gate]   the datatables gates as one middleware
  * @param {(cells: Record<string, string>) => any} [deps.evaluate]  shared/expr/sheet.mjs evaluateSheet
  * @param {Function} [deps.requireAuth]
+ * @param {any} [deps.assistant]     core/documents/sheetAssist/sheetAssistant surface ({ ask })
+ * @param {(orgId: string|null, userId: string) => Promise<string|null>} [deps.checkLimits]
+ * @param {Function} [deps.assistantLimiter]
  */
 function makeSheetRouter(deps = {}) {
     const router = express.Router({ mergeParams: true });
@@ -119,6 +134,12 @@ function makeSheetRouter(deps = {}) {
         return boundGate;
     };
     const requireSheets = (/** @type {any} */ req, /** @type {any} */ res, /** @type {Function} */ next) => gate()(req, res, next);
+    const assistant = () => deps.assistant || require('../../core/documents/sheetAssist/sheetAssistant');
+    const checkLimits = deps.checkLimits || ((orgId, userId) => require('../../core/entitlements/limits').checkSubscriptionLimits(orgId, 'chat', userId));
+    // An answer is several model calls; this is well above a person working
+    // with the panel and still stops a runaway loop.
+    const assistantLimiter = deps.assistantLimiter || require('../../utils/perUserRateLimit')
+        .perUserRateLimit({ windowMs: 60_000, max: 20, name: 'sheet-assistant' });
 
     /** The spreadsheet this reader may see, or a 404 (another type is not a sheet). */
     async function sheetFor(/** @type {any} */ req) {
@@ -174,6 +195,19 @@ function makeSheetRouter(deps = {}) {
         res.setHeader('X-Content-Type-Options', 'nosniff');
         // A BOM so spreadsheet apps read the file as UTF-8.
         res.send('\uFEFF' + sheetCsv(raw, evaluate));
+    }));
+
+    router.post('/:id/sheet/assistant', requireAuth, assistantLimiter, validate({ body: AssistantBody }), handle(async (req, res) => {
+        const { doc } = await sheetFor(req);
+        const userId = req.session.user.id;
+        const orgId = req.session.connectorOrgId || req.session.user.organizationId || null;
+        const limit = await checkLimits(orgId, userId);
+        if (limit) throw new HttpError(402, 'usage_limit', String(limit));
+        const answer = await assistant().ask(doc, {
+            message: req.body.message, selection: req.body.selection || null,
+            history: req.body.history || [], modelTier: req.body.modelTier || 'auto', userId, orgId,
+        });
+        res.json(answer);
     }));
 
     /**

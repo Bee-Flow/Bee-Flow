@@ -17,7 +17,7 @@ const { HttpError } = require('../../core/http/errors');
 const { makeSheetRouter, sheetCsv } = require('./sheet');
 const { makeSheetGate, sheetsVisible } = require('./sheetGate');
 
-const state = { cells: {}, writes: [], created: [], dropped: [], copies: [], gateOpen: true, failCreate: false };
+const state = { cells: {}, writes: [], created: [], dropped: [], copies: [], gateOpen: true, failCreate: false, asked: [], overLimit: false };
 const DOCS = {
     s1: { id: 's1', userId: 'owner', name: 'Budget', docType: 'spreadsheet', settings: { sheet: { datatableId: 'dt1' } } },
     p1: { id: 'p1', userId: 'owner', name: 'A page', docType: 'page', settings: {} },
@@ -57,10 +57,19 @@ const router = makeSheetRouter({
     gate: (req, res, next) => (state.gateOpen ? next() : next(new HttpError(403, 'sheets_unavailable', 'Spreadsheets are not available to you.'))),
     evaluate: require('../../shared/expr/sheet.mjs').evaluateSheet,
     requireAuth: (req, res, next) => (req.session?.user ? next() : res.status(401).json({ error: 'Authentication required' })),
+    assistant: {
+        async ask(doc, o) {
+            state.asked.push({ doc: doc.id, role: doc.projectRole || 'owner', ...o });
+            if (o.message === 'privacy') throw new HttpError(422, 'privacy_review_required', 'Review first.');
+            return { reply: 'Done.', changes: { D2: { before: '', after: '=B2*C2' } }, rounds: 1, tier: 'thinking' };
+        },
+    },
+    checkLimits: async () => (state.overLimit ? 'You have used this month\'s AI budget.' : null),
+    assistantLimiter: (req, res, next) => next(),
 });
 const api = h.serve('/api/studio-documents', router);
 test.after(api.close);
-test.beforeEach(() => Object.assign(state, { cells: { A1: '2', A2: '3', A3: '=A1*A2' }, writes: [], created: [], dropped: [], copies: [], gateOpen: true, failCreate: false }));
+test.beforeEach(() => Object.assign(state, { cells: { A1: '2', A2: '3', A3: '=A1*A2' }, writes: [], created: [], dropped: [], copies: [], gateOpen: true, failCreate: false, asked: [], overLimit: false }));
 
 const as = (user, method, path, body) => api.call(method, `/api/studio-documents${path}`, { user: user && { id: user, organizationId: 'org1' }, body });
 
@@ -158,4 +167,37 @@ test('the sheet gate runs the datatables gates in order and says no without thro
     assert.strictEqual(await sheetsVisible(open, req), true);
     const unknown = makeSheetGate({ gates: [(req2, res) => res.status(503).json({})] });
     await assert.rejects(unknown(req, {}, () => {}), (e) => e.status === 503 && e.code === 'sheets_unknown');
+});
+
+test('the assistant answers with its reply, the saved changes and the tier that answered', async () => {
+    const res = await as('editor', 'POST', '/s1/sheet/assistant', {
+        message: 'Add totals', selection: 'B2:C3', modelTier: 'thinking', history: [{ role: 'user', content: 'hi' }],
+    });
+    assert.strictEqual(res.status, 200, res.text);
+    assert.deepStrictEqual(res.body, { reply: 'Done.', changes: { D2: { before: '', after: '=B2*C2' } }, rounds: 1, tier: 'thinking' });
+    assert.deepStrictEqual(state.asked, [{
+        doc: 's1', role: 'editor', message: 'Add totals', selection: 'B2:C3', modelTier: 'thinking',
+        history: [{ role: 'user', content: 'hi' }], userId: 'editor', orgId: 'org1',
+    }]);
+});
+
+test('the tier defaults to auto; a viewer may still ask (the assistant only reads for them)', async () => {
+    const res = await as('viewer', 'POST', '/s1/sheet/assistant', { message: 'What is the total?' });
+    assert.strictEqual(res.status, 200, res.text);
+    assert.strictEqual(state.asked[0].modelTier, 'auto');
+    assert.strictEqual(state.asked[0].role, 'viewer');
+});
+
+test('a malformed request, a spent budget or a privacy hold is answered with a code', async () => {
+    assert.strictEqual((await as('owner', 'POST', '/s1/sheet/assistant', { message: '' })).status, 400);
+    assert.strictEqual((await as('owner', 'POST', '/s1/sheet/assistant', { message: 'x', modelTier: 'turbo' })).status, 400);
+    assert.strictEqual((await as('stranger', 'POST', '/s1/sheet/assistant', { message: 'x' })).status, 404);
+    state.overLimit = true;
+    const limit = await as('owner', 'POST', '/s1/sheet/assistant', { message: 'x' });
+    assert.strictEqual(limit.status, 402);
+    assert.strictEqual(limit.body.code, 'usage_limit');
+    state.overLimit = false;
+    const held = await as('owner', 'POST', '/s1/sheet/assistant', { message: 'privacy' });
+    assert.strictEqual(held.status, 422);
+    assert.strictEqual(held.body.code, 'privacy_review_required');
 });
