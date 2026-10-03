@@ -38,7 +38,7 @@ export interface SectionDef {
 const enc = encodeURIComponent;
 
 export const SECTIONS: readonly SectionDef[] = [
-    { key: 'notebooks', kind: 'notebook', tile: 'meeting', movable: true, ownerFields: ['userId', 'ownerId'], webPath: (id) => `/app/notebooks/${enc(id)}` },
+    { key: 'notebooks', kind: 'notebook', tile: 'meeting', movable: true, ownerFields: ['userId', 'ownerId'], webPath: (id) => `/app/studio/documents/notebook/${enc(id)}` },
     { key: 'apps', kind: 'app', tile: 'app', movable: true, ownerFields: ['userId', 'ownerId'], webPath: (id) => `/app/apps/${enc(id)}` },
     { key: 'automations', kind: 'automation', tile: 'automation', movable: true, ownerFields: ['userId', 'ownerId'], webPath: (id) => `/app/studio/automations/${enc(id)}` },
     { key: 'webpages', kind: 'webpage', tile: 'webpage', movable: true, ownerFields: ['userId', 'ownerId'], webPath: (id) => `/app/studio/webpages/${enc(id)}` },

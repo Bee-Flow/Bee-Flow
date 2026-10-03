@@ -47,7 +47,7 @@ module.exports = {
     "studio.tab.skills": "Skills",
     "studio.tab.webpages": "Webpages",
     "studio.tab.documents": "Documents",
-    "studio.tab.documents_desc": "Invoices, quotes and letters — editable by hand, downloadable as PDF",
+    "studio.tab.documents_desc": "Pages, notebooks, invoices, quotes and letters — editable by hand, downloadable as PDF",
 
     // Studio shared patterns (Track 0, 2026-09) — the status capsule (StatusActionPill / statusOf.js)
     "studio.status.live": "Live",

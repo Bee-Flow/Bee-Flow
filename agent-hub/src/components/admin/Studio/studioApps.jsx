@@ -618,7 +618,7 @@ export const STUDIO_APPS = [
         labelKey: 'studio.tab.documents',
         labelFallback: 'Documents',
         descKey: 'studio.tab.documents_desc',
-        descFallback: 'Invoices, quotes and letters — editable by hand, downloadable as PDF',
+        descFallback: 'Pages, notebooks, invoices, quotes and letters — editable by hand, downloadable as PDF',
         Icon: FileText,
         kind: 'document',
         category: 'build',
@@ -630,7 +630,10 @@ export const STUDIO_APPS = [
         gate: () => true,
         create: { labelKey: 'studio.new.document', labelFallback: 'Document', onCreate: navigateTo('studio/documents') },
         Component: lazy(() => import('../../../pages/documents/DocumentsPage')),
-        getProps: ({ initialDocumentId, onNavigate }) => ({
+        // A notebook is a document type: `initialDocumentId` is `notebook/<id>`
+        // for one (pages/documents/notebookRef), its URL studio/documents/notebook/<id>.
+        getProps: ({ user, initialDocumentId, onNavigate }) => ({
+            user,
             initialDocumentId,
             onDocumentChange: (id) => onNavigate && onNavigate(id ? `studio/documents/${id}` : 'studio/documents'),
         }),

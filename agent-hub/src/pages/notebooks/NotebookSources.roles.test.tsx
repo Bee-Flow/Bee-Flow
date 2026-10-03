@@ -2,7 +2,7 @@ import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import NotebookSources from './NotebookSources.jsx';
+import NotebookSources from './NotebookSources';
 
 vi.mock('../../components/meeting-picker/MeetingPicker', () => ({ default: () => null }));
 vi.mock('../meeting-notes/capture/CaptureContext', () => ({ useCapture: () => ({ openCapture: () => {} }) }));
@@ -79,7 +79,7 @@ describe('NotebookSources: read-only for a viewer', () => {
         for (const name of ['Remove source', 'Rename', 'Select multiple', 'Retry ingestion']) {
             expect(screen.queryByRole('button', { name })).not.toBeInTheDocument();
         }
-        expect(screen.queryByRole('button', { name: 'URL' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /^Website$/ })).not.toBeInTheDocument();
         await user.dblClick(screen.getByText('Report.pdf'));
         expect(screen.queryByDisplayValue('Report.pdf')).not.toBeInTheDocument();
         expect(onPreviewSource).toHaveBeenCalledWith('s1');

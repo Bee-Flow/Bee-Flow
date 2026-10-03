@@ -165,6 +165,7 @@ const NL_TRANSLATIONS = [
     'add-nl-collaboration-wave2-editor-versions-translations',     // Collaboration round 2: editing together, versions and compare, comments, since your last visit, AI that joins by itself, notebooks
     'add-nl-collaboration-wave2-documents-compliance-translations', // Collaboration round 2: documents library, pages, designed documents and presentations, compliance checks for projects
     'add-nl-project-tasks-translations',       // Project tasks: list and board, priority, labels, checklist, tasks from a meeting, comments; team chat threads and tagged items
+    'add-nl-notebooks-as-documents-translations', // A notebook as a document type: in the Documents library, and the notebook workspace's header and sources rail
 ];
 
 /**

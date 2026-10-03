@@ -367,7 +367,7 @@ const Sidebar = ({
     // (BFSF-172). Gate it on the same view flags the other nav items use.
     const _otherViewActive = showMarketplace || showSettings || showAITasks
         || showSkillsPanel
-        || ['studio', 'notebooks', 'admin', 'cowork', 'apps', 'appRun', 'forms', 'formView'].includes(currentPage);
+        || ['studio', 'admin', 'cowork', 'apps', 'appRun', 'forms', 'formView'].includes(currentPage);
 
     // Studio sections for the sidebar group — the same registry + gates the
     // Studio shell renders from (built-ins first, then runtime modules).
@@ -636,9 +636,8 @@ const Sidebar = ({
         // opt-in and permissions remain as additional org-level controls.
         // Meeting Notes lives inside Studio (Mic tab) and is reached there;
         // no top-level sidebar entry.
-        ...(!_simpleMode && !isMobile && hasLicenseFeature('notebooks') && _featureFlags.notebooks !== false && _featureFlags.notebooksMenu !== false && (_permissions.includes('all') || _permissions.includes('use_notebooks'))
-            ? [{ key: 'notebooks', label: t('sidebar.notebooks', 'Notebooks'), icon: FileText, onClick: () => onNavigate && onNavigate('notebooks'), active: currentPage === 'notebooks' }]
-            : []),
+        // Notebooks have no row of their own: a notebook is a document type, in
+        // Studio → Documents.
     ];
 
     /* ── Flyout-panel and nav rows render in sidebar/FlyoutRow and

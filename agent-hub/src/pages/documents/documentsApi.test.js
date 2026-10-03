@@ -83,7 +83,12 @@ describe('documentsApi — writes', () => {
         fetchMock.mockResolvedValue(ok({}));
         expect(await listDocuments()).toEqual([]);
         fetchMock.mockResolvedValue(ok({}));
-        expect(await listDocumentsPage()).toEqual({ documents: [], total: 0, people: {} });
+        expect(await listDocumentsPage()).toEqual({ documents: [], total: 0, people: {}, notebooks: false });
+    });
+
+    it('carries whether the library lists notebooks', async () => {
+        fetchMock.mockResolvedValue(ok({ documents: [], total: 0, people: {}, notebooks: true }));
+        expect((await listDocumentsPage()).notebooks).toBe(true);
     });
 
     it('asks for the archive, unarchives and beats presence on their own paths', async () => {

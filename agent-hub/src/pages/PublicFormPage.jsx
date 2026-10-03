@@ -175,7 +175,7 @@ export default function PublicFormPage({ token, authenticated = false }) {
         );
         const body = await r.json().catch(() => ({}));
         if (!r.ok || !body?.notebookId) throw new Error(body?.error || 'Could not open this in Notebooks.');
-        window.location.href = `/app/notebooks/${body.notebookId}`;
+        window.location.href = `/app/studio/documents/notebook/${body.notebookId}`;
     }, [token]);
 
     /**
@@ -205,7 +205,7 @@ export default function PublicFormPage({ token, authenticated = false }) {
         );
         const body = await r.json().catch(() => ({}));
         if (!r.ok || !body?.notebookId) throw new Error(body?.error || 'Could not save this to Notebooks.');
-        window.location.href = `/app/notebooks/${body.notebookId}`;
+        window.location.href = `/app/studio/documents/notebook/${body.notebookId}`;
     }, [token, state.ending]);
     const saveToNotebook = notebookHandlerFor(authenticated, saveToNotebookImpl);
 

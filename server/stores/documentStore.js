@@ -36,6 +36,7 @@ const { runDdl, CODES } = require('./lib/_ddl');
 const { projectRoleOf, canEditAs } = require('./lib/projectRole');
 const versions = require('./documentVersions');
 const { isCoEdited } = require('./lib/coEditGuard');
+const notebookLibrary = require('./notebookLibrary');
 
 // A document is a person-sized artefact. 512 KB of markup is already a very
 // long invoice; the cap exists so a runaway model or a paste-bomb cannot turn
@@ -245,6 +246,8 @@ function mapListRow(row) {
         archived: row.archived === true,
         createdAt: row.created_at,
         updatedAt: row.updated_at,
+        // Notebook rows only: how many sources it reads.
+        ...(row.source_count === null || row.source_count === undefined ? {} : { sourceCount: Number(row.source_count) || 0 }),
     };
 }
 
@@ -367,6 +370,11 @@ function accessSql(alias = 'd', write = false) {
 // A document a project member may see: filed, a plain document (templates and
 // sections have their own team sharing and are never project content), and not
 // archived by its owner.
+// What a library row reads, in the order notebookLibrary.notebookBranchSql
+// answers them, so the two halves of the library UNION line up.
+const LIBRARY_COLUMNS = `d.id, d.user_id, d.name, d.doc_type, d.description, d.kind, d.visibility, d.folder_id, d.categories,
+    d.version_id, OCTET_LENGTH(d.body_html) AS html_size, d.project_id, d.updated_by, d.archived, d.created_at, d.updated_at,
+    NULL::int AS source_count`;
 const PROJECT_DOCUMENT_SQL = `d.project_id IS NOT NULL AND d.kind = 'document' AND d.archived = false`;
 
 /**
@@ -412,35 +420,49 @@ async function listDocumentsPage(context, options = {}) {
     const { limit = 50, offset = 0, query = '', kind, visibility, folderId, category, sort } = options;
     const archived = options.archived === true;
     const params = [null, a.userId];
+    const bind = (value) => { params.push(value); return '$' + params.length; };
     const where = archived ? [accessSql(), 'd.archived = true', 'd.user_id = $2'] : [accessSql(), 'd.archived = false'];
-    const add = (sql, value) => { params.push(value); where.push(sql.replace('?', '$' + params.length)); };
-    if (query) add('(d.name ILIKE ? OR d.description ILIKE ?)', '%' + String(query).slice(0, 200) + '%');
-    // A search uses the same parameter for both columns.
-    if (query) where[where.length - 1] = where.at(-1).replace('?', '$' + params.length);
-    if (kind) add('d.kind = ?', kind);
+    // The filters a notebook row answers too, by placeholder (notebookLibrary).
+    const shared = { query: '', folder: null, folderSet: folderId !== undefined, category: '' };
+    if (query) {
+        shared.query = bind('%' + String(query).slice(0, 200) + '%');
+        where.push(`(d.name ILIKE ${shared.query} OR d.description ILIKE ${shared.query})`);
+    }
+    if (kind) where.push(`d.kind = ${bind(kind)}`);
     else if (options.onlyFillable) where.push("d.kind != 'section'");
     // `docType` narrows to one type; 'designed' is every document written in
-    // the frame, so neither a presentation nor a page.
+    // the frame, so neither a presentation nor a page. 'notebook' is no
+    // studio_documents type: only notebook rows answer it.
     if (options.docType === DESIGNED_FILTER) {
-        add('d.doc_type <> ?', DECK_DOC_TYPE);
-        add('d.doc_type <> ?', PAGE_DOC_TYPE);
-    } else if (options.docType && DOC_TYPES.includes(options.docType)) add('d.doc_type = ?', options.docType);
-    if (visibility) add('d.visibility = ?', visibility);
-    if (folderId !== undefined) folderId ? add('d.folder_id = ?', folderId) : where.push('d.folder_id IS NULL');
-    if (category) add('d.categories @> ?::jsonb', JSON.stringify([category]));
+        where.push(`d.doc_type <> ${bind(DECK_DOC_TYPE)}`, `d.doc_type <> ${bind(PAGE_DOC_TYPE)}`);
+    } else if (options.docType === notebookLibrary.NOTEBOOK_DOC_TYPE) where.push('false');
+    else if (options.docType && DOC_TYPES.includes(options.docType)) where.push(`d.doc_type = ${bind(options.docType)}`);
+    if (visibility) where.push(`d.visibility = ${bind(visibility)}`);
+    if (shared.folderSet) {
+        if (folderId) shared.folder = bind(folderId);
+        where.push(folderId ? `d.folder_id = ${shared.folder}` : 'd.folder_id IS NULL');
+    }
+    if (category) {
+        shared.category = bind(JSON.stringify([category]));
+        where.push(`d.categories @> ${shared.category}::jsonb`);
+    }
+    // Notebooks join the list only for a reader the route let through the
+    // notebook gates, and only where the filters leave room for one.
+    const withNotebooks = options.includeNotebooks === true && notebookLibrary.listsNotebooks({ ...options, archived });
+    if (withNotebooks) await notebookLibrary.ready();
+    const from = `SELECT ${LIBRARY_COLUMNS} FROM studio_documents d WHERE ${where.join(' AND ')}`
+        + (withNotebooks ? ` UNION ALL ${notebookLibrary.notebookBranchSql(shared)}` : '');
     params[0] = Math.min(Math.max(Number(limit) || 50, 1), 200);
-    params.push(Math.max(Number(offset) || 0, 0));
-    const order = sort === 'name' ? 'd.name ASC, d.id' : 'd.updated_at DESC, d.id';
-    const rows = await getAll(`SELECT d.*, OCTET_LENGTH(d.body_html) AS html_size, COUNT(*) OVER() AS total_count
-        FROM studio_documents d
-        WHERE ${where.join(' AND ')} ORDER BY ${order} LIMIT $1 OFFSET $${params.length}`, params);
+    const offsetAt = bind(Math.max(Number(offset) || 0, 0));
+    const order = sort === 'name' ? 'u.name ASC, u.id' : 'u.updated_at DESC, u.id';
+    const rows = await getAll(`SELECT u.*, COUNT(*) OVER() AS total_count FROM (${from}) u
+        ORDER BY ${order} LIMIT $1 OFFSET ${offsetAt}`, params);
     // An offset past the end answers no rows and so no window count; ask once.
     let total = rows[0] ? Number(rows[0].total_count) || 0 : 0;
     if (!rows.length && Number(params[params.length - 1]) > 0) {
         // $1 (the page size) is not needed for a count; typed and passed as
         // null so the filters keep their parameter numbers.
-        const count = await getOne(`SELECT COUNT(*)::int AS n FROM studio_documents d
-            WHERE $1::int IS NULL AND ${where.join(' AND ')}`, [null, ...params.slice(1, -1)]);
+        const count = await getOne(`SELECT COUNT(*)::int AS n FROM (${from}) u WHERE $1::int IS NULL`, [null, ...params.slice(1, -1)]);
         total = Number(count?.n) || 0;
     }
     return { documents: rows.map(mapListRow), total };
@@ -618,6 +640,7 @@ async function deleteFolder(userId, id) {
         const { rows } = await client.query('SELECT * FROM studio_document_folders WHERE id=$1 AND user_id=$2 FOR UPDATE',[id,userId]);
         if (!rows[0]) throw failure('Folder not found',404);
         await client.query('UPDATE studio_documents SET folder_id=$2 WHERE folder_id=$1 AND user_id=$3',[id,rows[0].parent_id,userId]);
+        await notebookLibrary.reparentNotebooks(client, userId, id, rows[0].parent_id);
         await client.query('UPDATE studio_document_folders SET parent_id=$2 WHERE parent_id=$1 AND user_id=$3',[id,rows[0].parent_id,userId]);
         await client.query('DELETE FROM studio_document_folders WHERE id=$1 AND user_id=$2',[id,userId]);
     });
@@ -731,7 +754,7 @@ async function unarchiveDocument(documentId, context) {
 }
 
 module.exports = {
-    getDocumentVersion, listFolders, createFolder, deleteFolder,
+    getDocumentVersion, listFolders, createFolder, deleteFolder, assertFolder,
     DOC_TYPES,
     DEFAULT_DOC_TYPE,
     DECK_DOC_TYPE,

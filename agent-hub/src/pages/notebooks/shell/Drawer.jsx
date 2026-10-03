@@ -18,8 +18,7 @@ function ResizeStrip({ onMouseDown, side }) {
             role="separator"
             aria-orientation="vertical"
             onMouseDown={onMouseDown}
-            className="w-[5px] shrink-0 cursor-col-resize transition-colors hover:bg-[var(--accent-primary)] z-10"
-            style={{ [side === 'right' ? 'borderLeft' : 'borderRight']: '1px solid var(--border-subtle)' }}
+            className={`w-[5px] shrink-0 cursor-col-resize transition-colors hover:bg-[var(--accent-primary)] z-10 border-[var(--border-subtle)] ${side === 'right' ? 'border-l' : 'border-r'}`}
         />
     );
 }
@@ -45,8 +44,7 @@ export default function Drawer({
 
     const panel = (
         <div
-            className="flex-1 min-w-0 flex flex-col overflow-hidden"
-            style={{ background: 'var(--bg-secondary)' }}
+            className="flex-1 min-w-0 flex flex-col overflow-hidden bg-[var(--bg-secondary)]"
             role="complementary"
             aria-label={label}
         >
@@ -59,8 +57,7 @@ export default function Drawer({
         return (
             <>
                 <div
-                    className="absolute inset-0 z-20"
-                    style={{ background: 'rgba(0,0,0,0.45)' }}
+                    className="absolute inset-0 z-20 bg-black/45"
                     onClick={onClose}
                     aria-hidden="true"
                 />
@@ -84,12 +81,8 @@ export default function Drawer({
         >
             {side === 'right' && resizable && open && <ResizeStrip side="right" onMouseDown={onResizeStart} />}
             <div
-                className="flex flex-col overflow-hidden"
-                style={{
-                    width: resizable ? width - (open ? 5 : 0) : width,
-                    background: 'var(--bg-secondary)',
-                    borderRight: side === 'left' ? '1px solid var(--border-subtle)' : undefined,
-                }}
+                className={`flex flex-col overflow-hidden bg-[var(--bg-secondary)] ${side === 'left' ? 'border-r border-[var(--border-subtle)]' : ''}`}
+                style={{ width: resizable ? width - (open ? 5 : 0) : width }}
             >
                 {open && panel}
             </div>

@@ -72,6 +72,10 @@ export function parseStudioUrl(pathname) {
     // Legacy /app/webpages[/<id>] paths route into Studio's Webpages section.
     const wp = pathname.match(/^\/app\/webpages(?:\/([^/]+))?/);
     if (wp) return { section: 'webpages', id: wp[1] || null, sub: null, subId: null, routineKind: null };
+    // Legacy /app/notebooks[/<id>] paths: a notebook is a document type, so they
+    // land in Documents, on that notebook (`notebook/<id>`, see notebookRef).
+    const nb = pathname.match(/^\/app\/notebooks(?:\/([^/]+))?/);
+    if (nb) return { section: 'documents', id: nb[1] ? 'notebook' : null, sub: nb[1] || null, subId: null, routineKind: null };
     // Legacy /app/meeting-notes[/<id>] paths route into Studio's Meeting Notes section.
     const mn = pathname.match(/^\/app\/meeting-notes(?:\/([^/]+))?/);
     if (mn) return { section: 'meetingNotes', id: mn[1] || null, sub: null, subId: null, routineKind: null };

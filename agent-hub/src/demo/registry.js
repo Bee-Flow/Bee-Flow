@@ -100,14 +100,14 @@ export const DEMO_FEATURES = {
         id: 'notebooks',
         label: 'Notebooks',
         blurb: 'A notebook built from six documents: the draft, the sources, and a chat that cites them. Sample data only.',
-        appPath: '/app/notebooks',
+        // A notebook is a document type: it opens in Studio → Documents.
+        appPath: '/app/studio/documents/notebook/nb_demo_tender',
         expectText: 'Tender 2026-114',
-        Component: lazy(() => import('../pages/NotebooksPage')),
+        Component: lazy(() => import('../pages/documents/DocumentsPage')),
         loadFixtures: () => import('./fixtures/notebooks'),
         props: {
-            initialNotebookId: 'nb_demo_tender',
-            onBack: null,
-            onNotebookChange: null,
+            initialDocumentId: 'notebook/nb_demo_tender',
+            onDocumentChange: null,
         },
     },
     'meeting-notes': {

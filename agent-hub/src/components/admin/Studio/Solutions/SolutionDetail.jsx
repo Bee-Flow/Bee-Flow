@@ -98,7 +98,7 @@ function reduceAutomationRuns(prev, kind, event) {
 // Where each member kind opens. The Solution page is a directory, not a second
 // viewer — same mapping the projects page uses.
 const OPEN_PATH = {
-    notebook: (id) => `/app/notebooks/${id}`,
+    notebook: (id) => `/app/studio/documents/notebook/${id}`,
     app: (id) => `/app/apps/${id}`,
     automation: (id) => `/app/routines/${id}`,
     webpage: (id) => `/app/studio/webpages/${id}`,

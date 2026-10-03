@@ -51,7 +51,8 @@ export async function listDocumentsPage(filters = {}) {
     const query = new URLSearchParams(Object.entries(filters).filter(([,v]) => v !== undefined && v !== null && v !== ''));
     const res = await authFetch(query.size ? `${BASE}?${query}` : BASE);
     const body = await asJson(res, 'Failed to load documents');
-    return { documents: body.documents || [], total: Number(body.total) || 0, people: body.people || {} };
+    // `notebooks`: whether this reader's library lists notebooks (and may start one).
+    return { documents: body.documents || [], total: Number(body.total) || 0, people: body.people || {}, notebooks: body.notebooks === true };
 }
 
 export async function listDocuments(filters = {}) {

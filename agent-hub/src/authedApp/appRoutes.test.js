@@ -207,7 +207,7 @@ describe('FROZEN_LEGACY: paths the server has minted into mailboxes and tickets'
             ['/app/apps/app-1', 'appRun'],
             ['/app/forms', 'forms'],
             ['/app/forms/tok3n', 'formView'],
-            ['/app/notebooks/n1', 'notebooks'],
+            ['/app/notebooks/n1', 'studio'], // a notebook opens in Studio → Documents now
             ['/app/projects/p1', 'projects'],
             ['/app/projects/p1/chats/c1', 'projects'],
             ['/app/projects/new', 'projects'],

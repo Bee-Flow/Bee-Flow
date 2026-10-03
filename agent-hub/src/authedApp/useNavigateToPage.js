@@ -21,7 +21,6 @@ export function useNavigateToPage({
     setCurrentPage,
     setAdminPath,
     setOrgSettingsPath,
-    setInitialNotebookId,
     setInitialCoworkId,
     setShowProfileMenu,
     setShowAgentDesigner,
@@ -35,7 +34,6 @@ export function useNavigateToPage({
     setAppRunId,
     setShowSettings,
     setShowSkillsPanel,
-    setShowNotebooks,
     // Optional so a host without the projects pages can still use the hook.
     setShowProjects = () => {},
     setInitialProjectRoute = () => {},
@@ -52,7 +50,6 @@ export function useNavigateToPage({
             setShowAgentWizard(false);
             setShowAITasks(false);
             setShowSkillsPanel(false);
-            setShowNotebooks(false);
             setShowProjects(false);
             setShowProfileMenu(false);
             setCurrentPage('agents');
@@ -74,7 +71,6 @@ export function useNavigateToPage({
             setShowAgentWizard(false);
             setShowAITasks(false);
             setShowSkillsPanel(false);
-            setShowNotebooks(false);
             setShowProfileMenu(false);
             setCurrentPage('projects');
             const path = projectRoutePath(route.projectId, route.tab, route.sub);
@@ -147,7 +143,6 @@ export function useNavigateToPage({
             setShowSettings(false);
             setShowSkillsPanel(false);
             setShowAITasks(false);
-            setShowNotebooks(false);
             // Compare pathname + search — Editor→Runs inside one routine
             // changes only the query, and comparing the pathname alone meant
             // that transition never wrote the URL at all.
@@ -200,7 +195,6 @@ export function useNavigateToPage({
             setShowSettings(false);
             setShowAgentDesigner(false);
             setShowSkillsPanel(false);
-            setShowNotebooks(false);
             setShowStudio(false);
             const path = taskId ? `/app/routines/${taskId}` : '/app/routines';
             if (window.location.pathname !== path) {
@@ -269,24 +263,12 @@ export function useNavigateToPage({
             window.history.pushState({ page: 'orgSettings' }, '', path);
             return;
         }
-        // Notebooks — rendered inline inside AgentHub (same pattern as
-        // settings / agent designer). Bare 'notebooks' → list view; the
-        // 'notebooks/:id' form deep-links directly to a specific notebook.
+        // Notebooks — a notebook is a document type and lives in Studio →
+        // Documents. 'notebooks' opens the library there; 'notebooks/:id' opens
+        // that notebook (`studio/documents/notebook/<id>`).
         if (page === 'notebooks' || page.startsWith('notebooks/')) {
             const notebookId = page.startsWith('notebooks/') ? page.slice('notebooks/'.length) : null;
-            setInitialNotebookId(notebookId);
-            setShowNotebooks(true);
-            setShowSettings(false);
-            setShowAgentDesigner(false);
-            setShowSkillsPanel(false);
-            setShowAITasks(false);
-            setShowStudio(false);
-            setCurrentPage('notebooks');
-            setShowProfileMenu(false);
-            const path = notebookId ? `/app/notebooks/${notebookId}` : '/app/notebooks';
-            if (window.location.pathname !== path) {
-                window.history.pushState({ page: 'notebooks', notebookId }, '', path);
-            }
+            navigateToPage(notebookId ? `studio/documents/notebook/${notebookId}` : 'studio/documents', { replace });
             return;
         }
         // Cowork — a top-level page with a selectable detail pane. Bare
@@ -297,7 +279,6 @@ export function useNavigateToPage({
             const coworkId = page.startsWith('cowork/') ? page.slice('cowork/'.length) : null;
             setInitialCoworkId(coworkId);
             setShowStudio(false);
-            setShowNotebooks(false);
             setShowSettings(false);
             setShowAgentDesigner(false);
             setShowSkillsPanel(false);
@@ -323,7 +304,6 @@ export function useNavigateToPage({
             const token = page.slice('forms/'.length);
             setFormViewToken(token);
             setShowStudio(false);
-            setShowNotebooks(false);
             setShowSettings(false);
             setShowAgentDesigner(false);
             setShowAgentWizard(false);
@@ -341,7 +321,6 @@ export function useNavigateToPage({
             const appId = page.slice('apps/'.length);
             setAppRunId(appId);
             setShowStudio(false);
-            setShowNotebooks(false);
             setShowSettings(false);
             setShowAgentDesigner(false);
             setShowAgentWizard(false);
@@ -362,7 +341,6 @@ export function useNavigateToPage({
             const webpageId = page.startsWith('webpages/') ? page.slice('webpages/'.length) : null;
             setStudioRoute({ section: 'webpages', id: webpageId });
             setShowStudio(true);
-            setShowNotebooks(false);
             setShowSettings(false);
             setShowAgentDesigner(false);
             setShowSkillsPanel(false);
@@ -388,7 +366,6 @@ export function useNavigateToPage({
         setShowAgentWizard(false);
         setShowAITasks(false);
         setShowSkillsPanel(false);
-        setShowNotebooks(false);
         const path = PAGE_ROUTES[page] || '/';
         window.history.pushState({ page }, '', path);
     }, []);

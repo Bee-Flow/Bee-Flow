@@ -55,6 +55,8 @@ export interface LibraryRow {
     updatedBy?: string | null;
     updatedAt?: string;
     archived?: boolean;
+    /** Notebook rows only: how many sources it reads. */
+    sourceCount?: number;
 }
 
 export interface LibraryFilters {
@@ -115,7 +117,7 @@ export function useLibrary(filters: LibraryFilters) {
                 ...rest,
                 ...(archived ? { archived: '1' } : {}),
                 folderId: rest.folderId,
-            }) as Promise<{ documents: LibraryRow[]; total: number; people: People }>;
+            }) as Promise<{ documents: LibraryRow[]; total: number; people: People; notebooks?: boolean }>;
         },
         placeholderData: keepPreviousData,
     });

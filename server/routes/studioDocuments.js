@@ -77,6 +77,7 @@ const { mergeBodies } = require('../core/documents/sectionMerge');
 const documentFeed = require('../core/documents/documentFeed');
 const { describePeople } = require('../core/documents/documentPeople');
 const { wordStats } = require('../stores/lib/documentText');
+const notebookLibraryRouter = require('./studioDocuments/notebooks');
 
 // ── What a request may send ──────────────────────────────────────────
 // Every query, and every body except three, is closed. What that closes:
@@ -94,8 +95,8 @@ const { wordStats } = require('../stores/lib/documentText');
 const docText = (message, max) => worded(message).max(max, message);
 const anId = (name) => docText(`${name} is the id of a document.`, 200);
 // Read when a request arrives, not at load: the list is the store's.
-const listTypes = () => [...(documentStore.DOC_TYPES || []), 'designed'];
-const DOC_TYPE_TEXT = 'docType is a document type, like page, invoice, letter or presentation, or designed for every type written in the designer.';
+const listTypes = () => [...(documentStore.DOC_TYPES || []), 'designed', 'notebook'];
+const DOC_TYPE_TEXT = 'docType is a document type, like page, notebook, invoice, letter or presentation, or designed for every type written in the designer.';
 const pageOf = (fallbackText) => ({
     limit: wholeNumber(`limit is a whole number. ${fallbackText}`).optional(),
     offset: wholeNumber('offset is a whole number, 0 or more.').optional(),
@@ -359,10 +360,12 @@ router.get('/', requireAuth, validate({ query: ListQuery }), async (req, res) =>
         const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 100, 1), 200);
         const offset = Math.max(parseInt(req.query.offset, 10) || 0, 0);
         const { archived, ...filters } = req.query;
-        const { documents, total } = await documentStore.listDocumentsPage(req.session.user.id, { ...filters, archived: archived === '1', limit, offset });
+        // A notebook is a document type, listed for whoever may open notebooks.
+        const notebooks = await notebookLibraryRouter.notebooksVisible(req);
+        const { documents, total } = await documentStore.listDocumentsPage(req.session.user.id, { ...filters, archived: archived === '1', limit, offset, includeNotebooks: notebooks });
         // Owner and last editor are shown by name; the reader's organisation only.
         const people = await describePeople(documents.flatMap(d => [d.userId, d.updatedBy]), orgIdOf(req));
-        res.json({ documents, total, people });
+        res.json({ documents, total, people, notebooks });
     } catch (err) {
         sendStoreError(res, err, 'Failed to list documents');
     }
@@ -772,5 +775,6 @@ router.get('/:id/pdf', requireAuth, validate({ query: VersionQuery }), async (re
 
 router.use('/:id/versions', require('./studioDocuments/versions'));
 router.use('/', require('./studioDocuments/presence'));
+router.use('/', notebookLibraryRouter);
 
 module.exports = router;

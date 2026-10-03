@@ -14,7 +14,7 @@ Beta features are flags for capabilities that are stable enough to ship but not 
 
 | Flag | What it enables | Status |
 |------|-----------------|:------:|
-| `feature_notebooks_enabled` | The Notebooks page (per-user research workspace) | beta |
+| `feature_notebooks_enabled` | Notebooks: the Notebook document type in Studio → Documents (sources and an assistant that answers from them) | beta |
 | `feature_voice_call_v2` | New full-duplex voice with sub-second latency | beta |
 | `feature_agent_memory_v2` | Improved memory extraction with structured fields | beta |
 | `feature_skills_v2` | Skill composition + dependency graphs | beta |

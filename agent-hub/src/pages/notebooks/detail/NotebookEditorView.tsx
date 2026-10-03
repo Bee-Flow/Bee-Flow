@@ -1,6 +1,6 @@
 /**
- * NotebookEditorView — one open notebook: the header (title, "View only",
- * "In project X", who else is here, save status), the sources on the left,
+ * NotebookEditorView — one open notebook: the shared Studio header (name with
+ * inline rename, "View only", "In project X", who else is here, save status), the sources on the left,
  * the document in the middle, the private AI chat on the right, and on
  * demand the outline, the comments and the version history.
  *
@@ -24,7 +24,7 @@ import NotebookWorkspaceJs from '../NotebookWorkspace';
 import NotebookTOCJs from '../NotebookTOC';
 import ExportMenu from '../ExportMenu';
 import { canEditNotebook, useRenameNotebook, type NotebookDetailData } from '../notebookQueries';
-import NotebookTitle from './NotebookTitle';
+import NotebookHeaderStatus from './NotebookHeaderStatus';
 import NotebookSaveStatus from './NotebookSaveStatus';
 import NotebookConflictPanel from './NotebookConflictPanel';
 import NotebookStarters from './NotebookStarters';
@@ -105,6 +105,16 @@ export default function NotebookEditorView({ data, user, onBack, onListChanged, 
     });
     const importer = useImportFile(nb.id, editorRef, showError);
     const rename = useRenameNotebook(nb.id);
+    // The header's inline rename is fire-and-forget: a failure says so in the
+    // notice bar (the name snaps back to the saved one) instead of vanishing.
+    const renameNotebook = useCallback((name: string) => {
+        const next = name.replace(/\s+/g, ' ').trim().slice(0, 500);
+        if (!next || next === nb.name) return;
+        rename.mutateAsync(next).then(
+            () => onListChanged(),
+            (e: unknown) => showError(t('notebooks.rename_failed', 'The name could not be saved: {message}', { message: (e as Error).message })),
+        );
+    }, [rename, nb.name, onListChanged, showError, t]);
     useMarkNotebookSeen(nb.projectId, nb.id);
 
     const openVersions = useCallback(() => {
@@ -214,22 +224,24 @@ export default function NotebookEditorView({ data, user, onBack, onListChanged, 
             <input type="file" ref={importer.inputRef} className="hidden" onChange={importer.onChange} accept=".pdf,.doc,.docx,.txt,.md,.csv,.xlsx" aria-hidden="true" tabIndex={-1} />
             <NotebookWorkspace
                 variant="notebook"
+                kind="document"
+                // The notebook glyph, as its row in the Documents library shows it.
                 icon={BookOpen}
-                title={(
-                    <NotebookTitle
-                        name={nb.name}
-                        canRename={!readOnly}
+                title={nb.name}
+                onRename={readOnly ? undefined : renameNotebook}
+                renameRequest={renameSignal}
+                statusChip={(
+                    <NotebookHeaderStatus
                         readOnly={readOnly}
                         project={project}
-                        editSignal={renameSignal}
+                        meta={meta}
                         presence={doc.collab.handle ? <CollabPresence handle={doc.collab.handle} /> : null}
-                        onRename={async (name) => { await rename.mutateAsync(name); onListChanged(); }}
+                        saveStatus={<NotebookSaveStatus mode={doc.saveMode} lastSavedAt={doc.autosave.lastSavedAt} onRetry={doc.autosave.retrySave} />}
                         onOpenProject={onOpenProject}
                     />
                 )}
-                meta={meta}
                 onBack={onBack}
-                saveStatus={<NotebookSaveStatus mode={doc.saveMode} lastSavedAt={doc.autosave.lastSavedAt} onRetry={doc.autosave.retrySave} />}
+                backLabel={t('notebooks.back_to_documents', 'Documents')}
                 headerExtras={headerExtras}
                 headerActions={(
                     <ExportMenu

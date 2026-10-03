@@ -69,7 +69,7 @@ import { clearSessionCaches } from './hooks/sessionCaches';
 // The route table, the URL parsers, the full-screen gates and the two big
 // hook groups (auth bootstrap, navigateToPage) live in ./authedApp/*. They are
 // verbatim extractions — this file keeps the same public surface.
-import { PAGE_ROUTES, pageFromPath, parseAITasksUrl, parseAdminPath, parseAgentDesignerUrl, parseAgentUrl, parseCoworkUrl, parseDirectChatUrl, parseNcStudioAppParam, parseNotebookUrl, parseOrgSettingsPath } from './authedApp/appRoutes';
+import { PAGE_ROUTES, pageFromPath, parseAITasksUrl, parseAdminPath, parseAgentDesignerUrl, parseAgentUrl, parseCoworkUrl, parseDirectChatUrl, parseNcStudioAppParam, parseOrgSettingsPath } from './authedApp/appRoutes';
 import { MobileRouteGuard, SubscriptionGate } from './authedApp/guards';
 import { projectHistoryMode } from './authedApp/projectNavigation';
 import { AppBackdrop, LoadingScreen, NoOrganizationScreen, PendingApprovalScreen, RouteFallback, ServerUnavailableScreen } from './authedApp/shellScreens';
@@ -133,7 +133,6 @@ function App() {
     ));
     const [adminPath, setAdminPath] = useState(() => parseAdminPath(window.location.pathname));
     const [orgSettingsPath, setOrgSettingsPath] = useState(() => parseOrgSettingsPath(window.location.pathname));
-    const [initialNotebookId, setInitialNotebookId] = useState(() => parseNotebookUrl(window.location.pathname));
     const [initialCoworkId, setInitialCoworkId] = useState(() => parseCoworkUrl(window.location.pathname));
     const [user, setUser] = useState(null);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -206,11 +205,6 @@ function App() {
     // and the browser's back/forward buttons toggle it.
     const [showSettings, setShowSettings] = useState(() => pageFromPath(window.location.pathname) === 'settings');
     const [showSkillsPanel, setShowSkillsPanel] = useState(false);
-    // Notebooks panel is rendered inline inside AgentHub (same pattern as
-    // showSettings / showAgentDesigner) so the left sidebar stays visible.
-    // Hard-refreshes on /app/notebooks and /app/notebooks/:id still land the
-    // user on the notebook via `initialNotebookId` parsed by pageFromPath.
-    const [showNotebooks, setShowNotebooks] = useState(() => pageFromPath(window.location.pathname) === 'notebooks');
     // Projects route state. `showProjects` distinguishes "on a projects page"
     // from "not"; `initialProjectRoute.projectId` distinguishes the list from a
     // specific project, so /app/projects and /app/projects/:id are separate
@@ -271,7 +265,6 @@ function App() {
             setCurrentPage(page);
             setAdminPath(parseAdminPath(window.location.pathname));
             setOrgSettingsPath(parseOrgSettingsPath(window.location.pathname));
-            setInitialNotebookId(parseNotebookUrl(window.location.pathname));
             if (page === 'cowork') setInitialCoworkId(parseCoworkUrl(window.location.pathname));
             setFormViewToken(window.location.pathname.match(/^\/app\/forms\/([^/]+)/)?.[1] || null);
             // Sync inline-rendered panels with the URL so back/forward opens or closes them.
@@ -286,7 +279,6 @@ function App() {
             const isAITasks = page === 'aiTasks';
             setShowAITasks(isAITasks);
             if (isAITasks) setInitialAITaskId(parseAITasksUrl(window.location.pathname));
-            setShowNotebooks(page === 'notebooks');
             // Back/forward now moves between the project list and individual
             // projects, which it could not do while this was local state.
             const isProjects = page === 'projects';
@@ -315,8 +307,7 @@ function App() {
         setCurrentPage,
         setAdminPath,
         setOrgSettingsPath,
-        setInitialNotebookId,
-        setInitialCoworkId,
+            setInitialCoworkId,
         setShowProfileMenu,
         setShowAgentDesigner,
         setShowAgentWizard,
@@ -329,7 +320,6 @@ function App() {
         setAppRunId,
         setShowSettings,
         setShowSkillsPanel,
-        setShowNotebooks,
         setShowProjects,
         setInitialProjectRoute,
     });
@@ -582,8 +572,7 @@ function App() {
         // here and take over the whole viewport — which meant arriving at
         // either one lost the app sidebar, and the only way back was the
         // browser's Back button. They now fall through to AgentHub and render
-        // in its inline slot off `currentPage`, the same way Cowork and
-        // Notebooks do. (`appRun` below is different on purpose: opening one
+        // in its inline slot off `currentPage`, the same way Cowork does. (`appRun` below is different on purpose: opening one
         // published app IS a standalone end-user surface.)
 
         if (currentPage === 'appRun') {
@@ -623,9 +612,14 @@ function App() {
             if (user?.featureFlags?.templates === false) return navigateToPage('agents');
             return routed('templates', <TemplatesPage user={user} onBack={() => navigateToPage('agents')} />);
         }
-        // Notebooks used to render as a standalone page here, taking over the
-        // whole viewport. It now renders inline inside AgentHub below (same
-        // slot as Settings / Agent Designer) so the app sidebar stays visible.
+        // Notebooks have no page of their own any more: a notebook is a document
+        // type and opens in Studio → Documents. /app/notebooks/<id> already
+        // parses into it (pageFromPath, parseStudioUrl); the bare /app/notebooks
+        // keeps its frozen page key and is normalised here, like Meeting Notes.
+        if (currentPage === 'notebooks') {
+            navigateToPage('notebooks', { replace: true });
+            return null;
+        }
 
         return <AgentHub onNavigate={navigateToPage} user={user} onUpdateUser={(patch) => setUser(prev => prev ? { ...prev, ...patch } : prev)} initialAgentId={initialUrlRef.current.agentId} initialConversationId={initialUrlRef.current.conversationId} initialDirectConvId={initialDirectConvRef.current} onLogout={handleLogout} currentPage={currentPage} showSettings={showSettings} onCloseSettings={() => {
             setShowSettings(false);
@@ -692,20 +686,7 @@ function App() {
                 setCurrentPage('agents');
                 window.history.pushState({ page: 'agents' }, '', '/app');
             }
-        }} showSkillsPanel={showSkillsPanel} onCloseSkillsPanel={() => setShowSkillsPanel(false)} showNotebooks={showNotebooks && user?.featureFlags?.notebooks !== false} initialNotebookId={initialNotebookId} onNotebookChange={(id) => {
-            setInitialNotebookId(id);
-            const path = id ? `/app/notebooks/${id}` : '/app/notebooks';
-            window.history.replaceState({ page: 'notebooks', notebookId: id }, '', path);
-        }} onCloseNotebooks={() => {
-            setShowNotebooks(false);
-            setInitialNotebookId(null);
-            // Mirror the Settings / Agent Designer close pattern — rewrite the
-            // URL back to the app root so /app/notebooks doesn't linger.
-            if (window.location.pathname.startsWith('/app/notebooks')) {
-                setCurrentPage('agents');
-                window.history.pushState({ page: 'agents' }, '', '/app');
-            }
-        }} />;
+        }} showSkillsPanel={showSkillsPanel} onCloseSkillsPanel={() => setShowSkillsPanel(false)} />;
     };
 
     return (

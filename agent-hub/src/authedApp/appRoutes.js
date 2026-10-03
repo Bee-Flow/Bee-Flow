@@ -44,6 +44,9 @@ export const PAGE_ROUTES = {
     // inside Studio so /app/meeting-notes redirects to /app/studio/meeting-notes.
     meetingNotes: '/app/meeting-notes',
     templates: '/app/templates',
+    // A notebook is a document type now: the library and every notebook live
+    // in Studio → Documents, and /app/notebooks[/<id>] parses into it
+    // (pageFromPath → studio, studioRoutes.parseStudioUrl → documents).
     notebooks: '/app/notebooks',
     // Projects had NO route at all: the list and detail views were pure local
     // state in AgentHub, so they could not be linked, bookmarked, reached with
@@ -187,8 +190,9 @@ export function pageFromPath(pathname) {
     // bookmarks and the old sidebar entry still land somewhere.
     if (pathname === '/app/cowork' || pathname.startsWith('/app/cowork/')) return 'cowork';
     if (pathname === '/app/work' || pathname.startsWith('/app/work/')) return 'cowork';
-    // /app/notebooks/:id → notebooks page (must come before generic /app/*)
-    if (pathname.startsWith('/app/notebooks')) return 'notebooks';
+    // Legacy /app/notebooks[/:id] → Studio's Documents section, where notebooks
+    // live now (parseStudioUrl maps the id). Before the generic /app/* match.
+    if (pathname === '/app/notebooks' || pathname.startsWith('/app/notebooks/')) return 'studio';
     // /app/projects, /app/projects/:id, /app/projects/:id/:tab
     if (pathname.startsWith('/app/projects')) return 'projects';
     // /app/webpages/:id → unified Studio (Webpages tab)
@@ -309,11 +313,6 @@ export function parseDirectChatUrl(pathname) {
     return match ? match[1] : null;
 }
 
-// Extract notebook ID from URL: /app/notebooks/:id
-export function parseNotebookUrl(pathname) {
-    const match = pathname.match(/^\/app\/notebooks\/([a-zA-Z0-9_-]+)/);
-    return match ? match[1] : null;
-}
 
 // A Studio app opened from its own Nextcloud app-menu entry. The connector's
 // per-entry page script (nextcloud-connector/src/studioAppMenus.js) mounts the

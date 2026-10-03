@@ -116,6 +116,13 @@ describe('parseStudioUrl', () => {
         expect(parseStudioUrl('/app/meeting-notes/m1')).toEqual({ section: 'meetingNotes', id: 'm1', sub: null, subId: null, routineKind: null });
     });
 
+    it('routes legacy /app/notebooks paths into Documents, onto the notebook', () => {
+        expect(parseStudioUrl('/app/notebooks')).toEqual({ section: 'documents', id: null, sub: null, subId: null, routineKind: null });
+        expect(parseStudioUrl('/app/notebooks/nb1')).toEqual({ section: 'documents', id: 'notebook', sub: 'nb1', subId: null, routineKind: null });
+        // The canonical address of a notebook is the same route.
+        expect(parseStudioUrl('/app/studio/documents/notebook/nb1')).toMatchObject({ section: 'documents', id: 'notebook', sub: 'nb1' });
+    });
+
     it('parses the remaining studio sections', () => {
         expect(parseStudioUrl('/app/studio/approvals').section).toBe('approvals');
         expect(parseStudioUrl('/app/studio/meeting-notes').section).toBe('meetingNotes');

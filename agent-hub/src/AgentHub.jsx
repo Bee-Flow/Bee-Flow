@@ -26,6 +26,7 @@ import { useViewport } from './hooks/useViewport';
 import { lazy } from './utils/lazyWithReload';
 import scopedStorage from './utils/scopedStorage';
 import { rememberStudioItem } from './utils/studioRecents';
+import { documentRefOf } from './pages/documents/notebookRef';
 
 // ── Chat-critical (eager) ────────────────────────────────────────────
 // These components are on the main chat path; deferring them costs more
@@ -42,7 +43,6 @@ const AgentStudio = lazy(() => import('./components/agents/AgentStudio/index'));
 const Studio = lazy(() => import('./components/admin/Studio'));
 const AITasksDesigner = lazy(() => import('./components/automation/index'));
 const SkillsPanel = lazy(() => import('./components/skills/SkillsPanel'));
-const NotebooksPage = lazy(() => import('./pages/NotebooksPage'));
 const CoworkPage = lazy(() => import('./components/cowork/CoworkPage'));
 // The two published directories. They render in this inline slot rather than
 // as standalone routes so the app sidebar stays put — arriving at either used
@@ -94,8 +94,6 @@ const AgentHub = ({
     // instead of the list only appearing once the detail view is closed.
     showProjects = false, initialProjectRoute = null, onProjectRouteChange, onCloseProjects,
     showSkillsPanel = false, onCloseSkillsPanel,
-    // Notebooks rendered inline (previously a standalone page at App level).
-    showNotebooks = false, onCloseNotebooks, initialNotebookId = null, onNotebookChange,
 }) => {
     // Share/collaboration copy is user-facing and Dutch-translated, so it goes
     // through the same dictionary as the rest of the UI rather than being
@@ -497,7 +495,6 @@ const AgentHub = ({
         if (onCloseStudio) onCloseStudio();
         if (onCloseAITasks) onCloseAITasks();
         if (onCloseSkillsPanel) onCloseSkillsPanel();
-        if (onCloseNotebooks) onCloseNotebooks();
         // Same trap one level up: Cowork is a top-level PAGE, and it is matched
         // ABOVE the overlay branches in the main ternary. Closing the overlays
         // is not enough — while `currentPage` is still 'cowork' the page keeps
@@ -809,20 +806,7 @@ const AgentHub = ({
 
             {/* Main Content Area */}
             <div className="flex-1 flex flex-col min-w-0 relative">
-                {showNotebooks ? (
-                    /* Notebooks rendered inline in conversation area (same slot as
-                       Settings / Agent Designer) so the app sidebar stays visible.
-                       NotebooksPage self-gates on the `notebooks` licence feature:
-                       when the org's plan/tier doesn't grant it, the page renders
-                       nothing and redirects back via onBack (onCloseNotebooks)
-                       rather than showing an upgrade panel. */
-                    <NotebooksPage
-                        user={user}
-                        onBack={onCloseNotebooks}
-                        initialNotebookId={initialNotebookId}
-                        onNotebookChange={onNotebookChange}
-                    />
-                ) : showSettings ? (
+                {showSettings ? (
                     /* Settings rendered inline in conversation area — Open WebUI style */
                     <AdvancedSettings onBack={null} onNavigate={onNavigate} onLogout={onLogout} user={user} onUpdateUser={onUpdateUser} onClose={onCloseSettings} />
                 ) : showStudio ? (
@@ -839,7 +823,7 @@ const AgentHub = ({
                         initialStepId={studioRoute.section === 'aiTasks' && studioRoute.routineKind === 'step' ? studioRoute.id : null}
                         initialFlowletKey={studioRoute.section === 'aiTasks' ? (studioRoute.sub || null) : null}
                         initialWebpageId={studioRoute.section === 'webpages' ? studioRoute.id : null}
-                        initialDocumentId={studioRoute.section === 'documents' ? studioRoute.id : null}
+                        initialDocumentId={studioRoute.section === 'documents' ? documentRefOf(studioRoute) : null}
                         initialStudioAppId={studioRoute.section === 'apps' ? studioRoute.id : null}
                         // Meeting Notes accepts a deep link too, so the sidebar's
                         // "recently edited" rows can land on the transcript itself
