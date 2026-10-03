@@ -148,7 +148,7 @@ test('the sheet gate runs the datatables gates in order and says no without thro
     const seen = [];
     const gate = makeSheetGate({ gates: [
         (req, res, next) => { seen.push('module'); next(); },
-        (req, res, next) => { seen.push('licence'); res.status(403).json({ error: 'feature_locked' }); },
+        (req, res, _next) => { seen.push('licence'); res.status(403).json({ error: 'feature_locked' }); },
         (req, res, next) => { seen.push('beta'); next(); },
     ] });
     const req = { session: { user: { id: 'u' } } };
