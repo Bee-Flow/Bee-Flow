@@ -3,12 +3,16 @@
 
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import { SheetApiError } from './sheetApi';
+import type { SelectionKind } from './sheetModel';
 
 export interface AssistantTurn { role: 'user' | 'assistant'; content: string }
 
 export interface AssistantRequest {
     message: string;
+    /** A bounded A1 range inside A1:Z2000. */
     selection?: string | null;
+    /** What the selection is: whole columns / rows are sent as bounded ranges. */
+    selectionKind?: SelectionKind;
     history?: AssistantTurn[];
     modelTier?: string;
 }

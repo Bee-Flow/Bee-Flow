@@ -1,52 +1,16 @@
 // What a person can do to the grid, as plain functions over the grid's state
 // (selection, edit in progress, the latest cells). useGridState.ts owns the
-// state; nothing here renders.
+// state; nothing here renders. Selecting lives in gridSelection.ts.
 
-import type { MutableRefObject } from 'react';
+import { autoSumChanges, fillChanges } from './gridFill';
+import { createSelectionActions } from './gridSelection';
+import type { After, Env, GridActions } from './gridTypes';
 import { cellName } from './sheetEngine';
-import { parseTsv, rangeOf, toTsv, type Pos, type Range } from './sheetModel';
+import { clipToUsed, parseTsv, toTsv, type Range } from './sheetModel';
 
-export interface Editing { col: number; row: number; draft: string; origin: 'grid' | 'bar' }
-export interface Ui { anchor: Pos; focus: Pos; editing: Editing | null }
-/** Where the selection goes when an edit is committed. */
-export type After = 'down' | 'up' | 'right' | 'left' | 'none';
-
-export interface GridActions {
-    select: (pos: Pos, extend?: boolean) => void;
-    extendTo: (pos: Pos) => void;
-    /** Move by a step; true when the selection moved. */
-    move: (dc: number, dr: number, extend?: boolean) => boolean;
-    collapse: () => void;
-    startEdit: (mode: 'keep' | 'replace', char?: string) => void;
-    /** Set the draft; from the formula bar it starts the edit when there is none. */
-    setDraft: (value: string, origin: 'grid' | 'bar') => void;
-    commit: (after?: After) => void;
-    cancel: () => void;
-    clear: () => void;
-    copyText: () => string;
-    cut: () => string;
-    paste: (text: string) => void;
-    addRows: () => void;
-}
-
-/** What the actions read at the moment they run (kept current by the hook). */
-export interface Latest {
-    cells: Record<string, string>;
-    readOnly: boolean;
-    columns: number;
-    rows: number;
-    onCommit: (changes: Record<string, string>) => void;
-}
-
-export interface Env {
-    ui: MutableRefObject<Ui>;
-    setUi: (next: Ui) => void;
-    latest: MutableRefObject<Latest>;
-    addRows: () => void;
-}
+export type { After, Editing, Env, GridActions, Latest, Ui } from './gridTypes';
 
 const STEPS: Record<After, [number, number]> = { down: [0, 1], up: [0, -1], right: [1, 0], left: [-1, 0], none: [0, 0] };
-const samePos = (a: Pos, b: Pos) => a.col === b.col && a.row === b.row;
 
 function eachCell(r: Range, fn: (col: number, row: number) => void) {
     for (let row = r.r1; row <= r.r2; row++) for (let col = r.c1; col <= r.c2; col++) fn(col, row);
@@ -54,11 +18,6 @@ function eachCell(r: Range, fn: (col: number, row: number) => void) {
 
 export function createGridActions(env: Env): GridActions {
     const { ui, setUi, latest } = env;
-    const clamp = (p: Pos): Pos => ({
-        col: Math.max(0, Math.min(latest.current.columns - 1, p.col)),
-        row: Math.max(0, Math.min(latest.current.rows - 1, p.row)),
-    });
-    const rangeNow = (): Range => rangeOf(ui.current.anchor, ui.current.focus);
     const rawAt = (col: number, row: number) => latest.current.cells[cellName(col, row)] ?? '';
     const emit = (changes: Record<string, string>) => { if (Object.keys(changes).length) latest.current.onCommit(changes); };
 
@@ -67,27 +26,18 @@ export function createGridActions(env: Env): GridActions {
         if (!ed) return;
         if (ed.draft !== rawAt(ed.col, ed.row)) emit({ [cellName(ed.col, ed.row)]: ed.draft });
         const [dc, dr] = STEPS[after];
-        const pos = clamp({ col: ed.col + dc, row: ed.row + dr });
-        setUi({ anchor: pos, focus: pos, editing: null });
+        const col = Math.max(0, Math.min(latest.current.columns - 1, ed.col + dc));
+        const row = Math.max(0, Math.min(latest.current.rows - 1, ed.row + dr));
+        setUi({ anchor: { col, row }, focus: { col, row }, editing: null, whole: null });
     };
-    const select = (pos: Pos, extend = false) => {
-        commit('none');
-        const p = clamp(pos);
-        setUi({ anchor: extend ? ui.current.anchor : p, focus: p, editing: null });
-    };
-    const move = (dc: number, dr: number, extend = false) => {
-        const cur = ui.current;
-        const from = extend ? cur.focus : cur.anchor;
-        const to = clamp({ col: from.col + dc, row: from.row + dr });
-        if (samePos(to, cur.focus) && (extend || samePos(cur.anchor, to))) return false;
-        setUi({ anchor: extend ? cur.anchor : to, focus: to, editing: null });
-        return true;
-    };
+    const sel = createSelectionActions(env, commit);
+    const { rangeNow } = sel;
+
     const startEdit = (mode: 'keep' | 'replace', char = '') => {
         const cur = ui.current;
         if (latest.current.readOnly || cur.editing) return;
         const { col, row } = cur.anchor;
-        setUi({ anchor: cur.anchor, focus: cur.anchor, editing: { col, row, draft: mode === 'keep' ? rawAt(col, row) : char, origin: 'grid' } });
+        setUi({ anchor: cur.anchor, focus: cur.anchor, whole: null, editing: { col, row, draft: mode === 'keep' ? rawAt(col, row) : char, origin: 'grid' } });
     };
     const setDraft = (value: string, origin: 'grid' | 'bar') => {
         const cur = ui.current;
@@ -120,13 +70,27 @@ export function createGridActions(env: Env): GridActions {
             if (value !== rawAt(col, r.r1 + i)) changes[cellName(col, r.r1 + i)] = value;
         }));
         emit(changes);
-        setUi({ anchor: { col: r.c1, row: r.r1 }, focus: { col: lastCol, row: r.r1 + grid.length - 1 }, editing: null });
+        setUi({ anchor: { col: r.c1, row: r.r1 }, focus: { col: lastCol, row: r.r1 + grid.length - 1 }, editing: null, whole: null });
+    };
+    // Fill and AutoSum work on what holds data: whole columns / rows are cut to the used part.
+    const usedRange = () => clipToUsed(rangeNow(), ui.current.whole, latest.current.usedRows, latest.current.usedCols);
+    const fill = (direction: 'down' | 'right') => {
+        if (!latest.current.readOnly && !ui.current.editing) emit(fillChanges(usedRange(), direction, rawAt));
+    };
+    const isNumber = (col: number, row: number) => {
+        const { computed } = latest.current;
+        if (computed) return typeof computed[cellName(col, row)]?.value === 'number';
+        const raw = rawAt(col, row).trim();
+        return raw !== '' && Number.isFinite(Number(raw));
+    };
+    const autoSum = () => {
+        if (latest.current.readOnly || ui.current.editing) return;
+        emit(autoSumChanges(rangeNow(), ui.current.whole, latest.current.usedRows, rawAt, isNumber));
     };
 
     return {
-        select, move, startEdit, setDraft, commit, clear, copyText, paste, addRows: env.addRows,
-        extendTo: (pos) => { if (!ui.current.editing) setUi({ ...ui.current, focus: clamp(pos) }); },
-        collapse: () => setUi({ ...ui.current, focus: ui.current.anchor }),
+        ...sel, startEdit, setDraft, commit, clear, copyText, paste, autoSum, addRows: env.addRows,
+        fillDown: () => fill('down'), fillRight: () => fill('right'),
         cancel: () => setUi({ ...ui.current, editing: null }),
         cut: () => { const text = copyText(); clear(); return text; },
     };

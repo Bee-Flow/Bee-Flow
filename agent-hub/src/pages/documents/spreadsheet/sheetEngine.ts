@@ -13,6 +13,7 @@ interface EngineApi {
     parseCellRef: (ref: string) => { col: number; row: number } | null;
     cellName: (col: number, row: number) => string;
     columnName: (col: number) => string;
+    formatValue: (value: unknown, error?: string | null) => string;
     SHEET_FUNCTIONS: unknown;
 }
 const api = engine as unknown as EngineApi;
@@ -20,6 +21,8 @@ const api = engine as unknown as EngineApi;
 export const evaluateSheet = (cells: Record<string, string>): Computed => api.evaluateSheet(cells);
 export const parseCellRef = (ref: string): { col: number; row: number } | null => api.parseCellRef(ref);
 export const cellName = (col: number, row: number): string => api.cellName(col, row);
+/** A value as a cell shows it (no float noise). */
+export const formatValue = (value: unknown): string => api.formatValue(value);
 export const columnName = (col: number): string => api.columnName(col);
 
 /** The names of the functions a formula may call, whatever shape the catalogue has. */

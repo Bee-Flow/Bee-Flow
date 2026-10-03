@@ -15,8 +15,36 @@ const SIMPLE: Record<string, (a: GridActions) => void> = {
     Backspace: (a) => a.clear(),
 };
 
-export function handleGridKey(e: React.KeyboardEvent, a: GridActions, editing: boolean): void {
+/** Ctrl / Cmd + a letter. */
+const WITH_MOD: Record<string, (a: GridActions, ask?: () => void) => void> = {
+    a: (a) => a.selectAll(),
+    d: (a) => a.fillDown(),
+    r: (a) => a.fillRight(),
+    k: (_a, ask) => ask?.(),
+    ' ': (a) => a.selectColumnsOfSelection(),
+};
+
+/** Ctrl/Cmd+letter, Shift+Space and Alt+=. True when the key was one of them. */
+function handleShortcut(e: React.KeyboardEvent, a: GridActions, onAsk?: () => void): boolean {
+    const mod = e.ctrlKey || e.metaKey;
+    let run: (() => void) | null = null;
+    if (e.altKey && !mod) {
+        if (e.key === '=' || e.code === 'Equal') run = () => a.autoSum();
+    } else if (mod && !e.altKey) {
+        const fn = WITH_MOD[e.key.toLowerCase()];
+        if (fn) run = () => fn(a, onAsk);
+    } else if (e.shiftKey && !mod && e.key === ' ') {
+        run = () => a.selectRowsOfSelection();
+    }
+    if (!run) return false;
+    e.preventDefault();
+    run();
+    return true;
+}
+
+export function handleGridKey(e: React.KeyboardEvent, a: GridActions, editing: boolean, onAsk?: () => void): void {
     if (editing || e.defaultPrevented || e.nativeEvent.isComposing) return;
+    if (handleShortcut(e, a, onAsk)) return;
     const arrow = ARROWS[e.key];
     if (arrow) { e.preventDefault(); a.move(arrow[0], arrow[1], e.shiftKey); return; }
     const simple = SIMPLE[e.key];

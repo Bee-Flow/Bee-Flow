@@ -9,10 +9,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import useTranslation from '../../../hooks/useTranslation';
 import { askSheetAssistant, type AssistantChange, type AssistantTurn } from './sheetAssistantApi';
+import type { SelectionKind } from './sheetModel';
 import type { SheetState } from './useSheet';
 
 export const FLASH_MS = 3000;
 const HISTORY_TURNS = 6;
+
+/** A selection with no kind given: one cell, or a block. */
+function kindFromSelection(selection: string | null): SelectionKind | undefined {
+    if (!selection) return undefined;
+    return selection.includes(':') ? 'range' : 'cell';
+}
 
 export interface AssistantMessage {
     id: number;
@@ -30,7 +37,8 @@ export interface SheetAssistant {
     messages: AssistantMessage[];
     busy: boolean;
     flashed: Set<string>;
-    send: (text: string, selection: string | null, modelTier: string) => Promise<void>;
+    /** Ask. Resolves with the assistant's message (an error one when it failed), or null when nothing was sent. */
+    send: (text: string, selection: string | null, modelTier: string, selectionKind?: SelectionKind) => Promise<AssistantMessage | null>;
     stop: () => void;
     undo: (id: number) => void;
 }
@@ -65,36 +73,38 @@ export default function useSheetAssistant(docId: string, sheet: SheetState): She
         abort.current?.abort();
     }, []);
 
-    const send = useCallback(async (text: string, selection: string | null, modelTier: string) => {
+    const send = useCallback(async (text: string, selection: string | null, modelTier: string, selectionKind?: SelectionKind): Promise<AssistantMessage | null> => {
         const message = text.trim();
-        if (!message || abort.current) return;
+        if (!message || abort.current) return null;
         const history: AssistantTurn[] = log.current.filter((m) => !m.error).slice(-HISTORY_TURNS).map((m) => ({ role: m.role, content: m.content }));
         push({ role: 'user', content: message });
         const ctrl = new AbortController();
         abort.current = ctrl;
         setBusy(true);
+        let reply: AssistantMessage;
         try {
             await sheetRef.current.flush().catch(() => undefined);
-            const answer = await askSheetAssistant(docId, { message, selection, history, modelTier }, ctrl.signal);
+            const answer = await askSheetAssistant(docId, { message, selection, selectionKind: selectionKind ?? kindFromSelection(selection), history, modelTier }, ctrl.signal);
             const names = Object.keys(answer.changes).filter((k) => answer.changes[k].before !== answer.changes[k].after);
             const changes = Object.fromEntries(names.map((k) => [k, answer.changes[k]]));
             if (names.length) {
                 sheetRef.current.applySaved(Object.fromEntries(names.map((k) => [k, changes[k].after])));
                 flash(names);
             }
-            push({ role: 'assistant', content: answer.reply, changes: names.length ? changes : undefined, requestedTier: modelTier, tier: answer.tier });
+            reply = push({ role: 'assistant', content: answer.reply, changes: names.length ? changes : undefined, requestedTier: modelTier, tier: answer.tier });
         } catch (e) {
             if (ctrl.signal.aborted) {
                 // The server may have finished and saved: show what it holds.
-                push({ role: 'assistant', error: true, content: t('spreadsheet.assistant.stopped', 'Stopped. The sheet was reloaded in case some changes were already saved.') });
+                reply = push({ role: 'assistant', error: true, content: t('spreadsheet.assistant.stopped', 'Stopped. The sheet was reloaded in case some changes were already saved.') });
                 sheetRef.current.refresh().catch(() => undefined);
             } else {
-                push({ role: 'assistant', error: true, content: (e as Error).message || t('spreadsheet.assistant.failed', 'The assistant could not answer.') });
+                reply = push({ role: 'assistant', error: true, content: (e as Error).message || t('spreadsheet.assistant.failed', 'The assistant could not answer.') });
             }
         } finally {
             abort.current = null;
             setBusy(false);
         }
+        return reply;
     }, [docId, flash, push, t]);
 
     const stop = useCallback(() => { abort.current?.abort(); }, []);

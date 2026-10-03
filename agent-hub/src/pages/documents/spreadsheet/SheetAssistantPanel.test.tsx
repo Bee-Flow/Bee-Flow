@@ -50,7 +50,7 @@ describe('sheet assistant panel', () => {
         await ask('Hello');
         await screen.findByText('Done.');
         expect(assistantApi.askSheetAssistant).toHaveBeenCalledWith(
-            'doc-1', { message: 'Hello', selection: 'B2', history: [], modelTier: 'thinking' }, expect.any(AbortSignal),
+            'doc-1', { message: 'Hello', selection: 'B2', selectionKind: 'cell', history: [], modelTier: 'thinking' }, expect.any(AbortSignal),
         );
         await ask('And again');
         await waitFor(() => expect(assistantApi.askSheetAssistant).toHaveBeenCalledTimes(2));

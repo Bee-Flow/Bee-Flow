@@ -8,22 +8,25 @@ import useTranslation from '../../../hooks/useTranslation';
 import { ICON_BUTTON } from '../editor/ui';
 import SheetAssistantComposer from './SheetAssistantComposer';
 import SheetAssistantMessages, { Suggestions } from './SheetAssistantMessages';
-import useAssistantTier from './useAssistantTier';
+import type { SelectionKind } from './sheetModel';
+import type { AssistantTier } from './useAssistantTier';
 import type { SheetAssistant } from './useSheetAssistant';
 
 export interface SheetAssistantPanelProps {
     assistant: SheetAssistant;
     /** "B2:D9" or "C4": the selection that travels with a question. */
     selection: string | null;
+    selectionKind?: SelectionKind;
+    /** The depth slider's state (owned by the editor, shared with the inline ask). */
+    tier: AssistantTier | null;
     readOnly: boolean;
     onClose: () => void;
 }
 
-export default function SheetAssistantPanel({ assistant, selection, readOnly, onClose }: SheetAssistantPanelProps) {
+export default function SheetAssistantPanel({ assistant, selection, selectionKind, tier, readOnly, onClose }: SheetAssistantPanelProps) {
     const { t } = useTranslation();
-    const tier = useAssistantTier();
     const { messages, busy } = assistant;
-    const ask = (text: string) => { assistant.send(text, selection, tier?.value ?? 'auto').catch(() => undefined); };
+    const ask = (text: string) => { assistant.send(text, selection, tier?.value ?? 'auto', selectionKind).catch(() => undefined); };
     return (
         <aside
             className="flex flex-col w-[360px] max-w-full shrink-0 min-h-0 h-full border-l border-[var(--border-subtle)] bg-[var(--bg-secondary)]"

@@ -8,7 +8,14 @@ import type { CellResult, Computed } from './sheetEngine';
 import { explainError } from './sheetErrors';
 import type { GridState } from './useGridState';
 
-export const HEAD = 'sticky z-[2] bg-[var(--bg-secondary)] text-[11px] font-medium text-[var(--text-secondary)] border-r border-b border-[var(--border-default)] select-none';
+const HEAD = 'sticky z-[2] text-[11px] font-medium border-r border-b border-[var(--border-default)] select-none cursor-pointer';
+const TONES = [
+    'bg-[var(--bg-secondary)] text-[var(--text-secondary)]',
+    'bg-[color-mix(in_srgb,var(--accent-primary)_16%,var(--bg-secondary))] text-[var(--text-primary)]',
+    'bg-[color-mix(in_srgb,var(--accent-primary)_34%,var(--bg-secondary))] text-[var(--text-primary)]',
+];
+/** A header's class: 0 plain, 1 the selection touches it, 2 it is part of a whole row / column selection. */
+export const headClass = (level: 0 | 1 | 2) => `${HEAD} ${TONES[level]}`;
 
 export interface SheetRowsProps {
     grid: GridState;
@@ -37,6 +44,8 @@ function SheetRow({ grid, cells, computed, letters, idPrefix, referenced, flashe
     const { t } = useTranslation();
     const { actions, active, editing } = grid;
     const tds = [];
+    const { range } = grid;
+    const level = r < range.r1 || r > range.r2 ? 0 : (grid.kind === 'rows' ? 2 : 1);
     for (let c = 0; c < grid.columns; c++) {
         const name = `${letters[c]}${r + 1}`;
         const res = computed[name];
@@ -60,7 +69,12 @@ function SheetRow({ grid, cells, computed, letters, idPrefix, referenced, flashe
     }
     return (
         <tr role="row" aria-rowindex={r + 2} data-row={r}>
-            <th scope="row" role="rowheader" className={`${HEAD} left-0 w-12 min-w-12 text-center`}>{r + 1}</th>
+            <th
+                scope="row" role="rowheader" data-rowhead={r} aria-selected={level > 0}
+                className={`${headClass(level)} left-0 w-12 min-w-12 text-center`}
+            >
+                {r + 1}
+            </th>
             {tds}
         </tr>
     );

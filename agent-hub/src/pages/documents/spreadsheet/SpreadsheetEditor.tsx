@@ -11,10 +11,13 @@ import SaveStatusChip from '../editor/SaveStatusChip';
 import FormulaBar from './FormulaBar';
 import SheetAssistantPanel from './SheetAssistantPanel';
 import SheetGrid from './SheetGrid';
+import SheetStatusBar from './SheetStatusBar';
 import { BUTTON, Notice, SheetLoadError, SheetSkeleton } from './SheetStates';
 import { SheetApiError } from './sheetApi';
-import { cellName } from './sheetEngine';
+import { selectionFor } from './sheetModel';
+import useAssistantTier from './useAssistantTier';
 import useGridState from './useGridState';
+import useSheetAsk from './useSheetAsk';
 import useSheetAssistant from './useSheetAssistant';
 import useSheet, { type SheetState } from './useSheet';
 import useSheetActions from './useSheetActions';
@@ -34,12 +37,6 @@ function storedOpen(): boolean {
     try { return localStorage.getItem(OPEN_KEY) === '1'; } catch { return false; }
 }
 
-/** The selection as the assistant takes it: "C4" or "B2:D9". */
-function selectionOf(r: { c1: number; r1: number; c2: number; r2: number }): string {
-    const from = cellName(r.c1, r.r1);
-    return r.c1 === r.c2 && r.r1 === r.r2 ? from : `${from}:${cellName(r.c2, r.r2)}`;
-}
-
 /** The sentence for a failed save. */
 function saveFailureText(sheet: SheetState, t: TranslateFn): string | null {
     const e = sheet.error;
@@ -51,15 +48,18 @@ function saveFailureText(sheet: SheetState, t: TranslateFn): string | null {
 export default function SpreadsheetEditor({ initial, onBack, onRenamed }: SpreadsheetEditorProps) {
     const { t } = useTranslation();
     const sheet = useSheet(initial.id);
-    const grid = useGridState({ cells: sheet.cells, readOnly: sheet.readOnly, usedRows: sheet.usedRows, columns: sheet.columns, onCommit: sheet.setCells });
+    const grid = useGridState({ cells: sheet.cells, readOnly: sheet.readOnly, usedRows: sheet.usedRows, columns: sheet.columns, computed: sheet.computed, onCommit: sheet.setCells });
     const gridRef = useRef<HTMLElement | null>(null);
     const assistant = useSheetAssistant(initial.id, sheet);
     const [assistantOpen, setAssistantOpen] = useState(storedOpen);
-    const toggleAssistant = () => {
-        const next = !assistantOpen;
-        setAssistantOpen(next);
-        try { localStorage.setItem(OPEN_KEY, next ? '1' : '0'); } catch { /* the choice just does not outlive the page */ }
+    const showAssistant = (open: boolean) => {
+        setAssistantOpen(open);
+        try { localStorage.setItem(OPEN_KEY, open ? '1' : '0'); } catch { /* the choice just does not outlive the page */ }
     };
+    const toggleAssistant = () => showAssistant(!assistantOpen);
+    const tier = useAssistantTier();
+    const ask = useSheetAsk({ assistant, grid, usedRows: sheet.usedRows, tier, focusGrid: () => gridRef.current?.focus(), onOpenPanel: () => showAssistant(true) });
+    const selection = selectionFor(grid.range, grid.kind, sheet.usedRows, grid.columns);
     const page = useSheetActions({ initial, sheet, onBack, onRenamed });
     // Focus leaving the bar and the grid sends what is queued.
     const onBlur = (e: React.FocusEvent<HTMLElement>) => {
@@ -102,9 +102,10 @@ export default function SpreadsheetEditor({ initial, onBack, onRenamed }: Spread
                                 {t('spreadsheet.empty_hint', 'Type a value or a formula such as =SUM(A1:A5)')}
                             </p>
                         )}
-                        <SheetGrid grid={grid} cells={sheet.cells} computed={sheet.computed} readOnly={sheet.readOnly} flashed={assistant.flashed} containerRef={gridRef} />
+                        <SheetGrid grid={grid} cells={sheet.cells} computed={sheet.computed} readOnly={sheet.readOnly} flashed={assistant.flashed} ask={ask} containerRef={gridRef} />
+                        <SheetStatusBar range={grid.range} kind={grid.kind} computed={sheet.computed} usedRows={sheet.usedRows} usedCols={grid.usedCols} />
                     </div>
-                    {assistantOpen && <SheetAssistantPanel assistant={assistant} selection={selectionOf(grid.range)} readOnly={sheet.readOnly} onClose={toggleAssistant} />}
+                    {assistantOpen && <SheetAssistantPanel assistant={assistant} selection={selection} selectionKind={grid.kind} tier={tier} readOnly={sheet.readOnly} onClose={toggleAssistant} />}
                 </div>
             )}
         </div>
