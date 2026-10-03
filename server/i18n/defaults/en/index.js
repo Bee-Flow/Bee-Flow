@@ -101,6 +101,7 @@ const NAMESPACES = {
     "skills":          require('./skills.js'),
     "skills_studio":   require('./skills_studio.js'),
     "solutions":       require('./solutions.js'),
+    "spreadsheet":     require('./spreadsheet.js'),
     "starter":         require('./starter.js'),
     "store":           require('./store.js'),
     "studio":          require('./studio.js'),

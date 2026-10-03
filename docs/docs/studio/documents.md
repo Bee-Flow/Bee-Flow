@@ -82,6 +82,45 @@ notebook appears in its owner's Documents library, outside any folder, with its
 sources, chat, versions and project filing as they were. Old `/app/notebooks/…`
 links open the same notebook in Documents.
 
+## Spreadsheets
+
+A spreadsheet is a document of type **Spreadsheet**: a grid of columns A to Z and up to
+2,000 rows. Start one with **New document → Spreadsheet**. Type a value in a cell, or a
+formula that starts with `=`.
+
+Formulas support:
+
+- the operators `+ - * / ^`, `&` (joins text) and `%`;
+- the comparisons `= <> < > <= >=`;
+- cell references (`B3`, also `$B$3`) and ranges (`A1:B9`);
+- the functions `SUM`, `AVERAGE`, `MIN`, `MAX`, `COUNT`, `COUNTA`, `IF`, `AND`, `OR`,
+  `NOT`, `ROUND`, `ABS`, `CONCAT`, `LEN`, `UPPER`, `LOWER` and `TRIM`.
+
+A formula that can't be worked out shows an error code in its cell:
+
+- `#DIV/0!` for a division by zero;
+- `#REF!` for a cell outside the sheet;
+- `#NAME?` for an unknown function;
+- `#VALUE!` for text where a number is needed;
+- `#CIRC!` for a formula that refers back to itself.
+
+Use the arrow keys, Enter and Tab to move, F2 or a double click to edit, and Delete to
+clear. Copy and paste work with other spreadsheet programs. Changes save on their own.
+**Download CSV** exports the computed values.
+
+The cells are stored in a **datatable** of yours. It is listed under Studio → Datatables,
+so routines and apps can read the sheet like any other table. Each row of that table is a
+row of the sheet: `row_no` is the row number and the columns `a` to `z` hold what was
+typed, so a formula is stored as its text. Its columns are managed by the spreadsheet and
+cannot be removed. Deleting that table under Datatables leaves the spreadsheet without
+its cells.
+
+Spreadsheets need Datatables in your plan. Without them the type is not offered. A
+spreadsheet you already have stays readable and editable if the plan changes.
+
+In a chat, the assistant can read a spreadsheet and fill in or change its cells. It
+cannot start a new one.
+
 ## Parameters and conditional sections
 
 **Parameters** defines each input's label, type, requiredness, short explanation,

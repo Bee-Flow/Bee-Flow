@@ -51,8 +51,21 @@ export async function listDocumentsPage(filters = {}) {
     const query = new URLSearchParams(Object.entries(filters).filter(([,v]) => v !== undefined && v !== null && v !== ''));
     const res = await authFetch(query.size ? `${BASE}?${query}` : BASE);
     const body = await asJson(res, 'Failed to load documents');
-    // `notebooks`: whether this reader's library lists notebooks (and may start one).
-    return { documents: body.documents || [], total: Number(body.total) || 0, people: body.people || {}, notebooks: body.notebooks === true };
+    // `notebooks` / `spreadsheets`: whether this reader may have (and start) them.
+    return {
+        documents: body.documents || [], total: Number(body.total) || 0, people: body.people || {},
+        notebooks: body.notebooks === true, spreadsheets: body.spreadsheets === true,
+    };
+}
+
+/** Start a spreadsheet: the server makes the table for its cells, then the document. */
+export async function createSpreadsheet({ name, folderId } = {}) {
+    const res = await authFetch(`${BASE}/sheets`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, ...(folderId ? { folderId } : {}) }),
+    });
+    return (await asJson(res, 'The spreadsheet could not be started')).document;
 }
 
 export async function listDocuments(filters = {}) {

@@ -34,6 +34,8 @@ const log = require('../telemetry/log');
  */
 const readOnlyFor = (doc) => !!doc.projectRole && !canEditAs(doc.projectRole);
 const READ_ONLY = { error: 'Document is read-only.' };
+// A spreadsheet's cells are in a datatable, not in the body slots.
+const sheetTools = () => require('./sheetDocumentTools');
 
 // A page edited live has no stored revision that says what the model read: the
 // live state moves with every keystroke. document_read hands out a versionId
@@ -88,7 +90,7 @@ const DOCUMENT_TOOLS = [
                         type: 'string',
                         // A page is written in the rich-text editor and made from a
                         // project; what the chat creates is designed (body + css).
-                        enum: documentStore.DOC_TYPES.filter((t) => t !== 'page'),
+                        enum: documentStore.DOC_TYPES.filter((t) => t !== 'page' && t !== 'spreadsheet'),
                         description: 'What kind of document this is. Used for the icon and grouping in the Documents list; it does not change how the document renders.',
                     },
                     description: {
@@ -130,6 +132,7 @@ const DOCUMENT_TOOLS = [
                     bodyHtml: { type: 'string', description: 'The document body markup. Omit to leave the current body untouched.' },
                     css: { type: 'string', description: 'The document stylesheet. Omit to leave the current stylesheet untouched.' },
                     summary: { type: 'string', description: 'A short note for the version history, e.g. "Added VAT row".' },
+                    cells: { type: 'object', additionalProperties: { type: 'string' }, description: 'SPREADSHEETS ONLY (docType "spreadsheet", which has no bodyHtml or css): the cells to set, e.g. { "A1": "Rent", "B1": "1200", "B3": "=SUM(B1:B2)" }. Columns A–Z, rows from 1; "" clears a cell. At most 500 cells per call.' },
                 },
                 required: ['documentId'],
             },
@@ -243,6 +246,7 @@ async function executeDocumentTool(toolName, args = {}, ctx = {}) {
     if (toolName === 'document_read') {
         const doc = await documentStore.getDocument(String(args.documentId || ''), userId);
         if (!doc) return { error: 'Document not found.' };
+        if (doc.docType === 'spreadsheet') return sheetTools().readSheetDocument(doc);
         // A page edited live: what people see now is the live state, and the
         // versionId names the live update it was read at.
         const live = await documentFeed.liveCollabFor(doc);
@@ -274,6 +278,7 @@ async function executeDocumentTool(toolName, args = {}, ctx = {}) {
         const existing = await documentStore.getDocument(documentId, userId);
         if (!existing) return { error: 'Document not found.' };
         if (readOnlyFor(existing)) return READ_ONLY;
+        if (existing.docType === 'spreadsheet') return sheetTools().writeSheetDocument(existing, args);
         if (existing.versionId && (existing.bodyHtml || existing.css) && !args.expectedVersionId) return { error: 'Read document_read first and pass its versionId as expectedVersionId.' };
         const expected = parseExpected(args.expectedVersionId);
 
@@ -336,6 +341,7 @@ async function executeDocumentTool(toolName, args = {}, ctx = {}) {
         const doc = await documentStore.getDocument(documentId, userId);
         if (!doc) return { error: 'Document not found.' };
         if (readOnlyFor(doc)) return READ_ONLY;
+        if (doc.docType === 'spreadsheet') return sheetTools().SHEET_EDIT_REFUSAL;
         if (slot === 'css' && doc.docType === 'presentation') return { error: 'A presentation has no stylesheet — edit slot "body" (the slide outline); its look is settings.deck.' };
 
         const field = slot === 'body' ? 'bodyHtml' : 'css';

@@ -9,6 +9,7 @@ export function useDocTypeLabel() {
         switch (docType) {
             case 'page': return t('documents.type.page', 'Page');
             case 'notebook': return t('documents.type.notebook', 'Notebook');
+            case 'spreadsheet': return t('documents.type.spreadsheet', 'Spreadsheet');
             case 'presentation': return t('documents.type.presentation', 'Presentation');
             case 'invoice': return t('documents.type.invoice', 'Invoice');
             case 'quote': return t('documents.type.quote', 'Quote');

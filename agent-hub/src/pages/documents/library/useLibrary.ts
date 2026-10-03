@@ -5,7 +5,7 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
-import { createDocument, deleteDocument, documentRequest, unarchiveDocument, updateDocument } from '../documentsApi';
+import { createDocument, createSpreadsheet, deleteDocument, documentRequest, unarchiveDocument, updateDocument } from '../documentsApi';
 import { notebookApi } from '../../notebooks/hooks/notebookApi';
 import { docKeys, type LibraryFilters, type LibraryRow, type StudioDocument } from '../documentQueries';
 
@@ -13,8 +13,8 @@ export const PAGE_SIZE = 30;
 const SEARCH_DEBOUNCE_MS = 250;
 
 export type LibraryKind = LibraryFilters['kind'];
-/** '' every type; 'page' pages; 'designed' designed documents; 'presentation' decks; 'notebook' notebooks. */
-export type LibraryFormat = '' | 'page' | 'designed' | 'presentation' | 'notebook';
+/** '' every type; 'page' pages; 'designed' designed documents; 'presentation' decks; 'notebook' notebooks; 'spreadsheet' sheets. */
+export type LibraryFormat = '' | 'page' | 'designed' | 'presentation' | 'notebook' | 'spreadsheet';
 
 /** A library row that is a notebook (its content lives behind /api/notebooks). */
 export const isNotebookRow = (row: Pick<LibraryRow, 'docType'>) => row.docType === 'notebook';
@@ -26,7 +26,8 @@ export const isNotebookRow = (row: Pick<LibraryRow, 'docType'>) => row.docType =
  */
 export function formatApplies(format: LibraryFormat, kind: LibraryKind, archived: boolean): boolean {
     if (format === 'notebook') return kind === 'document' && !archived;
-    if (format === 'page') return kind === 'document';
+    // A page or a spreadsheet is never a template or a section.
+    if (format === 'page' || format === 'spreadsheet') return kind === 'document';
     return true;
 }
 
@@ -97,6 +98,10 @@ export function useLibraryActions() {
         },
         onSuccess: refresh,
     });
+    const createSheet = useMutation({
+        mutationFn: (input: { name: string; folderId?: string }) => createSpreadsheet(input) as Promise<StudioDocument>,
+        onSuccess: refresh,
+    });
     const deleteNotebook = useMutation({
         mutationFn: (id: string) => notebookApi(`/${encodeURIComponent(id)}`, { method: 'DELETE' }) as Promise<unknown>,
         onSuccess: refresh,
@@ -109,5 +114,5 @@ export function useLibraryActions() {
         mutationFn: (id: string) => documentRequest(`/folders/${encodeURIComponent(id)}`, undefined, 'DELETE'),
         onSuccess: refresh,
     });
-    return { create, createNotebook, duplicate, archive, unarchive, deleteNotebook, bulk, createFolder, deleteFolder };
+    return { create, createNotebook, createSheet, duplicate, archive, unarchive, deleteNotebook, bulk, createFolder, deleteFolder };
 }

@@ -15,6 +15,8 @@ import DesignedEditor from './editor/DesignedEditor';
 import { LINK_BUTTON } from './editor/ui';
 
 const PageEditor = lazy(() => import('./PageEditor'));
+// A spreadsheet's cells live in a datatable; its own grid editor.
+const SpreadsheetEditor = lazy(() => import('./spreadsheet/SpreadsheetEditor'));
 
 export interface DocumentEditorProps {
     documentId: string;
@@ -70,6 +72,14 @@ export default function DocumentEditor({ documentId, onBack, onRenamed, variant 
         return <LoadProblem missing={status === 404 || !view.isError} onRetry={() => view.refetch()} onBack={onBack} backLabel={backLabel} />;
     }
     const { document: doc, people } = view.data;
+    if (doc.docType === 'spreadsheet') {
+        return (
+            <Suspense fallback={<EditorLoading />}>
+                <SpreadsheetEditor key={doc.id} initial={doc} people={people} variant={variant} currentUser={me}
+                    onBack={onBack} onRenamed={onRenamed} />
+            </Suspense>
+        );
+    }
     if (doc.docType === 'page') {
         return (
             <Suspense fallback={<EditorLoading />}>

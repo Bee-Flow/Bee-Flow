@@ -117,7 +117,7 @@ export function useLibrary(filters: LibraryFilters) {
                 ...rest,
                 ...(archived ? { archived: '1' } : {}),
                 folderId: rest.folderId,
-            }) as Promise<{ documents: LibraryRow[]; total: number; people: People; notebooks?: boolean }>;
+            }) as Promise<{ documents: LibraryRow[]; total: number; people: People; notebooks?: boolean; spreadsheets?: boolean }>;
         },
         placeholderData: keepPreviousData,
     });

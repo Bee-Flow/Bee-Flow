@@ -5,7 +5,7 @@
 // no archive), after a confirmation that says so. Loading, empty and failed are three different
 // screens; while the next page or search loads, the current list stays.
 
-import { ArchiveRestore, BookOpen, Copy, FileText, NotebookPen, Presentation, Trash2 } from 'lucide-react';
+import { ArchiveRestore, BookOpen, Copy, FileText, NotebookPen, Presentation, Sheet, Trash2 } from 'lucide-react';
 import React, { useState } from 'react';
 import ConfirmDialog from '../../../components/shared/ConfirmDialog';
 import EmptyState from '../../../components/shared/EmptyState';
@@ -41,6 +41,7 @@ function rowIcon(docType: string) {
     if (docType === 'presentation') return Presentation;
     if (docType === 'page') return NotebookPen;
     if (docType === 'notebook') return BookOpen;
+    if (docType === 'spreadsheet') return Sheet;
     return FileText;
 }
 

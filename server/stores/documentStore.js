@@ -37,6 +37,7 @@ const { projectRoleOf, canEditAs } = require('./lib/projectRole');
 const versions = require('./documentVersions');
 const { isCoEdited } = require('./lib/coEditGuard');
 const notebookLibrary = require('./notebookLibrary');
+const { SHEET_DOC_TYPE, applySheetRules, keepSheetOnUpdate, sheetSettingsForCreate } = require('./lib/sheetDocument');
 
 // A document is a person-sized artefact. 512 KB of markup is already a very
 // long invoice; the cap exists so a runaway model or a paste-bomb cannot turn
@@ -58,12 +59,12 @@ const MAX_CSS_BYTES = 128 * 1024;
 // together, live, and what one person stores is what the next one's editor
 // loads. Its `css` stays empty; it prints with the house style and the page
 // stylesheet of core/documents/pageDocument.js.
-const DOC_TYPES = Object.freeze(['invoice', 'quote', 'letter', 'report', 'security', 'document', 'presentation', 'page']);
+// A 'spreadsheet' keeps its cells in a datatable (stores/lib/sheetDocument.js).
+const DOC_TYPES = Object.freeze(['invoice', 'quote', 'letter', 'report', 'security', 'document', 'presentation', 'page', 'spreadsheet']);
 const DEFAULT_DOC_TYPE = 'document';
 const DECK_DOC_TYPE = 'presentation';
 const PAGE_DOC_TYPE = 'page';
-// What the library's type filter calls a designed document: everything
-// written in the frame, so neither a presentation nor a page.
+// The library's 'designed': written in the frame (no deck, page or sheet).
 const DESIGNED_FILTER = 'designed';
 
 // A presentation's settings may carry a template deck (two backdrop pictures
@@ -314,6 +315,7 @@ function metadata(input) {
         input.settings = { ...input.settings, deck: normaliseDeckOverrides(input.settings.deck) };
         if (input.kind === 'section') throw failure('A presentation cannot be a reusable section');
     }
+    if (normaliseType(input.docType) === SHEET_DOC_TYPE) applySheetRules(input, failure);
     const cap = isDeck ? MAX_DECK_SETTINGS_BYTES : MAX_SETTINGS_BYTES;
     if (Buffer.byteLength(JSON.stringify(input.settings || {})) > cap) throw failure(`Document settings exceed ${Math.round(cap / 1024)} KB`);
     input.categories = [...new Set((Array.isArray(input.categories) ? input.categories : []).map(x => String(x).trim().slice(0, 80)).filter(Boolean))].slice(0, 30);
@@ -350,7 +352,7 @@ async function createDocument(input) {
     const doc = { id, userId: d.userId, organizationId: org, name: d.name || 'Untitled document',
         docType, description: d.description || '',
         bodyHtml: isPage ? sanitizePageBody(d.bodyHtml) : (d.bodyHtml || ''), css: isPage ? '' : (d.css || ''),
-        settings: d.settings || {}, kind: d.kind || 'document', visibility: d.visibility || 'private',
+        settings: sheetSettingsForCreate(d.settings, docType, input.sheetTableId, failure), kind: d.kind || 'document', visibility: d.visibility || 'private',
         folderId: d.folderId || null, categories: d.categories, versionId, baselineVersionId: versionId };
     doc.settings = { ...doc.settings, resolvedHouseStyleCss: await require('../core/documents/renderFilledDocument').houseStyleCssFor(doc,org) };
     return withTransaction(async client => {
@@ -430,11 +432,12 @@ async function listDocumentsPage(context, options = {}) {
     }
     if (kind) where.push(`d.kind = ${bind(kind)}`);
     else if (options.onlyFillable) where.push("d.kind != 'section'");
+    if (options.onlyFillable) where.push(`d.doc_type <> ${bind(SHEET_DOC_TYPE)}`); // nothing in a sheet is filled in
     // `docType` narrows to one type; 'designed' is every document written in
     // the frame, so neither a presentation nor a page. 'notebook' is no
     // studio_documents type: only notebook rows answer it.
     if (options.docType === DESIGNED_FILTER) {
-        where.push(`d.doc_type <> ${bind(DECK_DOC_TYPE)}`, `d.doc_type <> ${bind(PAGE_DOC_TYPE)}`);
+        where.push(`d.doc_type <> ${bind(DECK_DOC_TYPE)}`, `d.doc_type <> ${bind(PAGE_DOC_TYPE)}`, `d.doc_type <> ${bind(SHEET_DOC_TYPE)}`);
     } else if (options.docType === notebookLibrary.NOTEBOOK_DOC_TYPE) where.push('false');
     else if (options.docType && DOC_TYPES.includes(options.docType)) where.push(`d.doc_type = ${bind(options.docType)}`);
     if (visibility) where.push(`d.visibility = ${bind(visibility)}`);
@@ -571,6 +574,7 @@ async function updateDocument(documentId, context, updates = {}) {
         if (wasPage !== (normaliseType(next.docType) === PAGE_DOC_TYPE)) {
             throw failure('A page stays a page, and a designed document cannot become one. Make a new page instead.', 422, 'document_type_fixed');
         }
+        keepSheetOnUpdate(current, next, normaliseType(next.docType), failure);
         if (wasPage) { next.bodyHtml = sanitizePageBody(next.bodyHtml); next.css = ''; }
         // A page edited live: its body is the live state's (lib/coEditGuard.js), never this save's.
         if (wasPage && next.bodyHtml !== current.bodyHtml && await isCoEdited(client, 'document', documentId)) {
@@ -759,6 +763,7 @@ module.exports = {
     DEFAULT_DOC_TYPE,
     DECK_DOC_TYPE,
     PAGE_DOC_TYPE,
+    SHEET_DOC_TYPE,
     DESIGNED_FILTER,
     VERSION_SOURCES: versions.VERSION_SOURCES,
     MAX_SETTINGS_BYTES,

@@ -1,0 +1,30 @@
+// English GUI defaults — namespace "spreadsheet": every key whose part before the first "." is "spreadsheet".
+// Merged into GUI_DEFAULTS by ./index.js. The frontend copy (agent-hub/src/i18n/en-defaults.js)
+// is GENERATED from these files: after an edit, run `node scripts/gen-i18n-defaults.mjs`.
+module.exports = {
+    'spreadsheet.add_rows': 'Add 50 rows',
+    'spreadsheet.cell_input': 'Cell {cell}',
+    'spreadsheet.download_csv': 'Download CSV',
+    'spreadsheet.download_failed': 'Could not download the CSV.',
+    'spreadsheet.empty_hint': 'Type a value or a formula such as =SUM(A1:A5)',
+    'spreadsheet.error.cycle': 'The formula depends on its own result (a circular reference).',
+    'spreadsheet.error.div0': 'Division by zero.',
+    'spreadsheet.error.generic': 'This formula cannot be calculated: {error}',
+    'spreadsheet.error.name': 'The formula uses a function or name that is not known.',
+    'spreadsheet.error.na': 'No value is available.',
+    'spreadsheet.error.num': 'The result is not a valid number.',
+    'spreadsheet.error.ref': 'The formula points at a cell that does not exist.',
+    'spreadsheet.error.syntax': 'The formula is not written correctly.',
+    'spreadsheet.error.value': 'The formula got a value of the wrong kind, such as text where a number is needed.',
+    'spreadsheet.formula_bar': 'Formula bar',
+    'spreadsheet.functions': 'Functions',
+    'spreadsheet.grid_label': 'Spreadsheet',
+    'spreadsheet.load_failed': 'Could not load the spreadsheet.',
+    'spreadsheet.loading': 'Loading the spreadsheet…',
+    'spreadsheet.name_box': 'Selected cell',
+    'spreadsheet.rename_failed': 'Could not rename the spreadsheet.',
+    'spreadsheet.retry': 'Retry',
+    'spreadsheet.save_failed': 'Could not save your changes.',
+    'spreadsheet.too_large': 'This spreadsheet is too large to hold more cells.',
+    'spreadsheet.view_only': 'View only',
+};

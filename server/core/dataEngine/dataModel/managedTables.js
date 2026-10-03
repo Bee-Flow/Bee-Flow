@@ -70,7 +70,44 @@ const FORM_ANSWERS_FIELDS = Object.freeze([
     { id: 'fld_faxcompl', key: 'completed_at', name: 'Completed', type: 'datetime' },
 ]);
 
+/**
+ * The cells of a SPREADSHEET document (Studio → Documents, docType
+ * 'spreadsheet'; core/documents/sheet). One row per sheet row: `row_no` is
+ * the 1-based row number (unique, so a row is found by its number and two
+ * writers cannot both create row 7), and `a` … `z` hold what was typed in
+ * that column — a value or a formula as text (`=SUM(A1:A3)`). Formulas are
+ * evaluated by the shared sheet engine (shared/expr/sheet.mjs), never stored
+ * evaluated: the table holds what a person typed, like a spreadsheet file.
+ *
+ * Every column is text on purpose: a cell holds a number in one row and a
+ * word in the next, and a typed column would refuse half of what people type.
+ */
+const SHEET_COLUMN_KEYS = Object.freeze('abcdefghijklmnopqrstuvwxyz'.split(''));
+const DOCUMENT_SHEET_FIELDS = Object.freeze([
+    { id: 'fld_sheetrowno', key: 'row_no', name: 'Row', type: 'number', subtype: 'integer', required: true, unique: true },
+    ...SHEET_COLUMN_KEYS.map((k) => ({ id: `fld_sheetcol_${k}`, key: k, name: k.toUpperCase(), type: 'text' })),
+]);
+
 const MANAGED_KINDS = Object.freeze({
+    /**
+     * A spreadsheet document's cells (DOCUMENT_SHEET_FIELDS above). Made by the
+     * document when it is created, never through POST /managed
+     * (`madeByDocument`): a sheet table without its document is a grid nobody
+     * can open. Its rows are an ordinary table's for everyone else — routines
+     * and apps read them like any other.
+     */
+    document_sheet: Object.freeze({
+        kind: 'document_sheet',
+        label: 'Cells of a spreadsheet document',
+        fields: DOCUMENT_SHEET_FIELDS,
+        madeByDocument: true,
+        // Like a form's answers: aged by when the row was made, and off until
+        // the owner sets a window (a spreadsheet is kept until it is deleted).
+        retentionField: 'created_at',
+        defaultRetentionDays: null,
+        defaultDescription: 'The cells of a spreadsheet in Documents: what was typed in each cell, values and formulas, one row per sheet row.',
+        warning: 'The cells are stored in plain text, readable by everyone with access to the spreadsheet or this table.',
+    }),
     /**
      * The answers to a FORM (automation/formAnswers): the third shape. Not an
      * external source (nothing to sync, no linker), not code-owned columns
@@ -245,6 +282,8 @@ function managedFieldsError(kind, nextFields) {
 
 module.exports = {
     MANAGED_KINDS,
+    SHEET_COLUMN_KEYS,
+    DOCUMENT_SHEET_FIELDS,
     HTTP_CACHE_FIELDS,
     FORM_ANSWERS_FIELDS,
     isManagedKind,

@@ -60,12 +60,13 @@ export function LibraryViews({ kind, archived, onView }: { kind: LibraryKind; ar
  * The type pills and the remaining filters. Notebooks are a type only for a
  * reader the server lists them for (`notebooks`).
  */
-export function LibraryFilterBar({ f, notebooks }: { f: ReturnType<typeof useLibraryFilters>; notebooks: boolean }) {
+export function LibraryFilterBar({ f, notebooks, spreadsheets }: { f: ReturnType<typeof useLibraryFilters>; notebooks: boolean; spreadsheets: boolean }) {
     const { t } = useTranslation();
     const types: Array<{ value: LibraryFormat; label: string }> = [
         { value: '', label: t('documents.library.type_all', 'All types') },
         { value: 'page', label: t('documents.library.type_pages', 'Pages') },
         ...(notebooks ? [{ value: 'notebook' as const, label: t('documents.notebook.type_filter', 'Notebooks') }] : []),
+        ...(spreadsheets ? [{ value: 'spreadsheet' as const, label: t('documents.sheet.type_filter', 'Spreadsheets') }] : []),
         { value: 'designed', label: t('documents.library.type_designed', 'Designed documents') },
         { value: 'presentation', label: t('documents.library.type_presentations', 'Presentations') },
     ];

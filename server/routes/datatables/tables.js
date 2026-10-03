@@ -17,6 +17,7 @@ const { ddlForTable } = require('../../core/dataEngine/dataModel/ddl');
 const { normalizeFields } = require('../../core/dataEngine/dataModel/datatableFields');
 const { managedKindSpec } = require('../../core/dataEngine/dataModel/managedTables');
 const { assertDatatableQuota } = require('../../core/dataEngine/datatableLimits');
+const { provisionManagedTable } = require('../../core/dataEngine/provisionManagedTable');
 const {
     gradeForPrincipal, resolveDatatablePrincipal, datatableScopesFor, defaultCreateScope,
 } = require('../../auth/datatableAccess');
@@ -281,6 +282,15 @@ function register(router) {
                 });
             }
 
+            // A spreadsheet's cell table is made by the spreadsheet (Studio →
+            // Documents → New document → Spreadsheet), with the document that opens it.
+            if (spec.madeByDocument) {
+                return res.status(400).json({
+                    error: 'This kind of table is made by a spreadsheet in Documents — start one there',
+                    code: 'kind_needs_document',
+                });
+            }
+
             const { scope: wanted, name, key } = req.body;
             if (wanted !== undefined && !SCOPE_WORDS.includes(wanted)) {
                 return res.status(400).json({
@@ -317,40 +327,13 @@ function register(router) {
             }
             const retentionDays = req.body.retentionDays ?? spec.defaultRetentionDays;
 
-            // Through the same normaliser every other create uses, so a managed
-            // table's fields are byte-identical in shape to an author's. The ids
-            // are the contract's own and survive it — see managedTables.js.
-            const norm = normalizeFields(spec.fields, []);
-            if (!norm.ok) return res.status(500).json({ error: norm.error });
-
-            const scopeKey = keyOf(scope);
-            const table = await db.withTransaction(async (client) => (
-                datatableStore.createDatatable({
-                    scope, ownerUserId: principal.userId,
-                    key, name, description,
-                    fields: norm.fields,
-                    managedKind: spec.kind,
-                    // The whole expiry story: the ordinary sweeper, on the kind's
-                    // own timestamp column.
-                    retentionField: spec.retentionField,
-                    retentionDays,
-                }, {
-                    client,
-                    assertQuota: (usage) => assertDatatableQuota(scope, { addTables: 1, usage }),
-                    applyPhysical: async (c, { before, next, modelVersion }) => {
-                        const created = next.tables[next.tables.length - 1];
-                        const ensure = ddlForTable(created, {
-                            tableKeyById: new Map((next.tables || []).map(x => [x.id, x.key])),
-                            dialect: 'pg',
-                            rowScope: 'all',
-                        });
-                        const plan = migrationPlan(before, next, { ...PG, onlyTableIds: [created.id] });
-                        await datatableDbStore.applyMigration(scopeKey, scopeKey, [ensure, ...plan],
-                            { client: c, targetVersion: modelVersion });
-                    },
-                })
-            ));
-            datatableDbStore.invalidate(scopeKey);
+            // The metadata, the scope model and the CREATE TABLE in one
+            // transaction, through the same normaliser every other create uses
+            // (core/dataEngine/provisionManagedTable — shared with the
+            // spreadsheet document type, which makes its own kind of table).
+            const table = await provisionManagedTable({
+                scope, ownerUserId: principal.userId, spec, key, name, description, retentionDays,
+            });
             res.json({ datatable: publicTable(table, 'owner'), warning: spec.warning });
         } catch (e) {
             if (scope) datatableDbStore.invalidate(keyOf(scope));

@@ -83,7 +83,7 @@ describe('documentsApi — writes', () => {
         fetchMock.mockResolvedValue(ok({}));
         expect(await listDocuments()).toEqual([]);
         fetchMock.mockResolvedValue(ok({}));
-        expect(await listDocumentsPage()).toEqual({ documents: [], total: 0, people: {}, notebooks: false });
+        expect(await listDocumentsPage()).toEqual({ documents: [], total: 0, people: {}, notebooks: false, spreadsheets: false });
     });
 
     it('carries whether the library lists notebooks', async () => {

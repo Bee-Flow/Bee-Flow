@@ -48,7 +48,7 @@ const PRIMARY = 'inline-flex items-center gap-1.5 h-8 px-3 rounded-[10px] text-x
 type Translate = ReturnType<typeof useTranslation>['t'];
 
 /** What a choice in the gallery creates, in the library view it was made from. */
-export function newDocumentInput(choice: Exclude<NewChoice, { type: 'notebook' }>, view: LibraryKind, t: Translate): Omit<NewDocumentInput, 'locale' | 'folderId'> {
+export function newDocumentInput(choice: Exclude<NewChoice, { type: 'notebook' } | { type: 'spreadsheet' }>, view: LibraryKind, t: Translate): Omit<NewDocumentInput, 'locale' | 'folderId'> {
     if (choice.type === 'page') return { name: t('documents.untitled_page', 'Untitled page'), docType: 'page', kind: 'document' };
     // A presentation is never a reusable section.
     const deckKind: LibraryKind = view === 'section' ? 'document' : view;
@@ -83,7 +83,8 @@ function useLibraryPage() {
     }, [qc]);
     // Whether this reader may have notebooks: the server answers with the list.
     const notebooks = list.data?.notebooks === true;
-    return { t, locale, f, list, folders, actions, me, selection, setSelection, error, setError, fail, notebooks, refresh: () => qc.invalidateQueries({ queryKey: docKeys.all }) };
+    const spreadsheets = list.data?.spreadsheets === true;
+    return { t, locale, f, list, folders, actions, me, selection, setSelection, error, setError, fail, notebooks, spreadsheets, refresh: () => qc.invalidateQueries({ queryKey: docKeys.all }) };
 }
 
 function LibraryHeader({ p, onHouseStyle, onNew }: { p: ReturnType<typeof useLibraryPage>; onHouseStyle: () => void; onNew: () => void }) {
@@ -165,11 +166,17 @@ export default function DocumentsPage({ initialDocumentId = null, onDocumentChan
             select(notebookRef(nb.id));
             return;
         }
+        if (choice.type === 'spreadsheet') {
+            const sheet = await actions.createSheet.mutateAsync({ name: t('documents.sheet.untitled', 'Untitled spreadsheet'), folderId: f.folderId || undefined });
+            setGalleryOpen(false);
+            select(sheet.id);
+            return;
+        }
         const doc = await actions.create.mutateAsync({ ...newDocumentInput(choice, f.kind, t), locale: p.locale, folderId: f.folderId || undefined });
         setGalleryOpen(false);
         select(doc.id);
     };
-    const createError = actions.create.error || actions.createNotebook.error;
+    const createError = actions.create.error || actions.createNotebook.error || actions.createSheet.error;
 
     if (showHouseStyle) return <HouseStylePanel onBack={() => setShowHouseStyle(false)} />;
     const notebookId = notebookIdOf(selectedId);
@@ -186,9 +193,9 @@ export default function DocumentsPage({ initialDocumentId = null, onDocumentChan
     return (
         <div className="h-full overflow-auto text-[var(--text-primary)] bg-[var(--bg-primary)]" data-testid="documents-library">
             <div className="max-w-[1100px] mx-auto px-6 py-8 space-y-4">
-                <LibraryHeader p={p} onHouseStyle={() => setShowHouseStyle(true)} onNew={() => { actions.create.reset(); actions.createNotebook.reset(); setGalleryOpen(true); }} />
+                <LibraryHeader p={p} onHouseStyle={() => setShowHouseStyle(true)} onNew={() => { actions.create.reset(); actions.createNotebook.reset(); actions.createSheet.reset(); setGalleryOpen(true); }} />
                 <LibraryViews kind={f.kind} archived={f.archived} onView={(kind, archived) => { f.setArchived(archived); if (kind) f.setKind(kind); }} />
-                <LibraryFilterBar f={f} notebooks={p.notebooks} />
+                <LibraryFilterBar f={f} notebooks={p.notebooks} spreadsheets={p.spreadsheets} />
                 {p.error && <div role="alert" className="flex gap-3 p-3 rounded-xl text-sm border border-[var(--border-subtle)] bg-[color-mix(in_srgb,var(--error)_10%,transparent)]"><span className="flex-1">{p.error}</span><button type="button" className="underline" onClick={() => p.setError(null)}>{t('documents.dismiss', 'Dismiss')}</button></div>}
                 <div className="grid md:grid-cols-[200px_1fr] gap-6">
                     <FolderSidebar folders={p.folders.data || []} folderId={f.folderId} onFolder={f.setFolderId} busy={actions.createFolder.isPending}
@@ -196,7 +203,7 @@ export default function DocumentsPage({ initialDocumentId = null, onDocumentChan
                         onDelete={(folder) => actions.deleteFolder.mutateAsync(folder.id).catch((e) => { p.fail(e); throw e; })} />
                     <LibraryMain p={p} onOpen={open} onCreate={() => setGalleryOpen(true)} />
                 </div>
-                <StarterGallery open={galleryOpen} busy={actions.create.isPending || actions.createNotebook.isPending} notebooks={p.notebooks} onClose={() => setGalleryOpen(false)}
+                <StarterGallery open={galleryOpen} busy={actions.create.isPending || actions.createNotebook.isPending || actions.createSheet.isPending} notebooks={p.notebooks} spreadsheets={p.spreadsheets} onClose={() => setGalleryOpen(false)}
                     error={createError ? projectErrorText(t, createError) || createError.message : null}
                     onChoose={(choice) => { create(choice).catch(() => undefined); }} />
             </div>

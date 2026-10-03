@@ -78,6 +78,7 @@ const documentFeed = require('../core/documents/documentFeed');
 const { describePeople } = require('../core/documents/documentPeople');
 const { wordStats } = require('../stores/lib/documentText');
 const notebookLibraryRouter = require('./studioDocuments/notebooks');
+const sheetRouter = require('./studioDocuments/sheet');
 
 // ── What a request may send ──────────────────────────────────────────
 // Every query, and every body except three, is closed. What that closes:
@@ -211,7 +212,7 @@ function refuseReadOnly(res, doc) {
 }
 
 function sendStoreError(res, err, fallback) {
-    if (err && err.status) return res.status(err.status).json({ error: err.message, code: err.errorClass, issues: err.issues, conflict: err.conflict });
+    if (err && err.status) return res.status(err.status).json({ error: err.message, code: err.errorClass || (typeof err.code === 'string' ? err.code : undefined), issues: err.issues, conflict: err.conflict });
     log.error(`[StudioDocuments] ${fallback}:`, err && err.message);
     return res.status(500).json({ error: fallback });
 }
@@ -362,10 +363,11 @@ router.get('/', requireAuth, validate({ query: ListQuery }), async (req, res) =>
         const { archived, ...filters } = req.query;
         // A notebook is a document type, listed for whoever may open notebooks.
         const notebooks = await notebookLibraryRouter.notebooksVisible(req);
+        const spreadsheets = await sheetRouter.sheetsVisible(req);
         const { documents, total } = await documentStore.listDocumentsPage(req.session.user.id, { ...filters, archived: archived === '1', limit, offset, includeNotebooks: notebooks });
         // Owner and last editor are shown by name; the reader's organisation only.
         const people = await describePeople(documents.flatMap(d => [d.userId, d.updatedBy]), orgIdOf(req));
-        res.json({ documents, total, people, notebooks });
+        res.json({ documents, total, people, notebooks, spreadsheets });
     } catch (err) {
         sendStoreError(res, err, 'Failed to list documents');
     }
@@ -502,6 +504,7 @@ router.post('/:id/duplicate', requireAuth, validate({ body: bodies.duplicate }),
     try {
         const doc = await documentStore.getDocument(req.params.id,req.session.user.id);
         if (!doc) return res.status(404).json({ error:'Document not found' });
+        if (doc.docType === 'spreadsheet') return await sheetRouter.duplicateSheet(req, res, doc);
         const kind = req.body?.kind || 'document';
         const settings = { ...doc.settings, source: { documentId:doc.id,versionId:doc.versionId },
             resolvedHouseStyleCss:await houseStyleCssFor(req,doc) };
@@ -776,5 +779,6 @@ router.get('/:id/pdf', requireAuth, validate({ query: VersionQuery }), async (re
 router.use('/:id/versions', require('./studioDocuments/versions'));
 router.use('/', require('./studioDocuments/presence'));
 router.use('/', notebookLibraryRouter);
+router.use('/', sheetRouter);
 
 module.exports = router;

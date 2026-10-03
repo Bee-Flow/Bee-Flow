@@ -2,13 +2,13 @@
 // sources and an assistant that reads them), a designed document (blank or
 // from a starter with its parameters and sections), or a presentation.
 
-import { BookOpen, FileText, NotebookPen, Plus, Presentation } from 'lucide-react';
+import { BookOpen, FileText, NotebookPen, Plus, Presentation, Sheet } from 'lucide-react';
 import React from 'react';
 import Modal from '../../../components/shared/Modal';
 import useTranslation from '../../../hooks/useTranslation';
 import { useStarters, type Starter } from '../documentQueries';
 
-export type NewChoice = { type: 'page' } | { type: 'notebook' } | { type: 'designed'; starter: Starter | null } | { type: 'deck'; starter: Starter | null };
+export type NewChoice = { type: 'page' } | { type: 'notebook' } | { type: 'spreadsheet' } | { type: 'designed'; starter: Starter | null } | { type: 'deck'; starter: Starter | null };
 
 export interface StarterGalleryProps {
     open: boolean;
@@ -16,6 +16,8 @@ export interface StarterGalleryProps {
     error: string | null;
     /** Offer a notebook: only to a reader the server lists notebooks for. */
     notebooks?: boolean;
+    /** Offer a spreadsheet: only to a reader who may use datatables. */
+    spreadsheets?: boolean;
     onChoose: (choice: NewChoice) => void;
     onClose: () => void;
 }
@@ -32,7 +34,7 @@ function Tile({ icon, title, hint, onClick, busy, testId }: { icon: React.ReactN
     );
 }
 
-export default function StarterGallery({ open, busy, error, notebooks = false, onChoose, onClose }: StarterGalleryProps) {
+export default function StarterGallery({ open, busy, error, notebooks = false, spreadsheets = false, onChoose, onClose }: StarterGalleryProps) {
     const { t, locale } = useTranslation();
     const starters = useStarters(locale || 'en', open);
     const list = starters.data || [];
@@ -45,6 +47,9 @@ export default function StarterGallery({ open, busy, error, notebooks = false, o
                     <Tile icon={<NotebookPen size={20} />} title={t('documents.new.page', 'Page')} hint={t('documents.new.page_hint', 'Write freely, together in real time in a project. Prints with the house style.')} busy={busy} onClick={() => onChoose({ type: 'page' })} testId="documents-new-page" />
                     {notebooks && (
                         <Tile icon={<BookOpen size={20} />} title={t('documents.notebook.new', 'Notebook')} hint={t('documents.notebook.new_hint', 'Add files, websites and notes as sources; the assistant answers from them and helps you write.')} busy={busy} onClick={() => onChoose({ type: 'notebook' })} testId="documents-new-notebook" />
+                    )}
+                    {spreadsheets && (
+                        <Tile icon={<Sheet size={20} />} title={t('documents.sheet.new', 'Spreadsheet')} hint={t('documents.sheet.new_hint', 'Rows and columns with formulas like =SUM(A1:A9). The cells are a datatable that routines and apps can read.')} busy={busy} onClick={() => onChoose({ type: 'spreadsheet' })} testId="documents-new-spreadsheet" />
                     )}
                     <Tile icon={<Plus size={20} />} title={t('documents.new.blank_designed', 'Blank designed document')} hint={t('documents.new.designed_hint', 'A laid-out document with fields a routine can fill.')} busy={busy} onClick={() => onChoose({ type: 'designed', starter: null })} />
                 </section>
