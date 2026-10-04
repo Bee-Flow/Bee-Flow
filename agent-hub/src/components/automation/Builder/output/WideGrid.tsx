@@ -30,9 +30,9 @@ export default function WideGrid({ rows, columns, compact, selected, onSelect }:
     const { t } = useTranslation();
     const pad = compact ? 'py-1' : 'py-[9px]';
     const kindWord = (c: OutputColumn) => {
-        if (c.kind === 'group') return t('routines.kind.group', 'group');
-        if (c.kind === 'table') return t('routines.kind.table', 'table');
-        if (c.kind === 'list') return t('routines.kind.list', 'list');
+        if (c.kind === 'group') return t('automations.kind.group', 'group');
+        if (c.kind === 'table') return t('automations.kind.table', 'table');
+        if (c.kind === 'list') return t('automations.kind.list', 'list');
         return null;
     };
     return (

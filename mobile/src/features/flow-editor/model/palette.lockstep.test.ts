@@ -68,12 +68,12 @@ const CATALOG: PaletteCatalog = {
 };
 const LAYERS = [{ key: 'enrich', title: 'Enrich lead', params: [1, 2] }, { key: 'solo', params: [1] }];
 /**
- * The web translates only what nodeDefs words (`routines.node.*`); what the
+ * The web translates only what nodeDefs words (`automations.node.*`); what the
  * phone adds keys for (`mobile.flow.*`, the ribbon's own keys) the web shows
  * in English. This `t` models exactly that, so the translated scope still
  * compares like for like; keyed.test below checks the phone's extra keys.
  */
-const t = (key: string, fallback: string) => (key.startsWith('routines.node.') ? `«${fallback}»` : fallback);
+const t = (key: string, fallback: string) => (key.startsWith('automations.node.') ? `«${fallback}»` : fallback);
 
 /** The port's output without the i18n keys it adds; the web has none. */
 const plain = <T,>(v: T): T =>
@@ -224,10 +224,10 @@ describe('the keys the phone adds', () => {
     it('translates the picker\'s own words, the group headings and the reasons', () => {
         const groups = palette.buildStepGroups({ catalog: { ...CATALOG, flags: { codeReason: 'runtime' } }, t: shout, hasFormTrigger: false });
         const triggers = groups[0] as { title: string; items: palette.PaletteItem[] };
-        expect(triggers.title).toBe('routines.ribbon.trigger=Trigger');
+        expect(triggers.title).toBe('automations.ribbon.trigger=Trigger');
         expect(triggers.items[0]?.label).toBe('mobile.flow.palette.manual=Trigger manually');
         expect(triggers.items[0]?.desc).toBe('mobile.flow.palette.trigger_replaces_desc=Replaces the current trigger');
-        expect(triggers.items[2]?.desc).toBe('mobile.flow.palette.trigger_adds_desc=Adds another way to start this routine');
+        expect(triggers.items[2]?.desc).toBe('mobile.flow.palette.trigger_adds_desc=Adds another way to start this automation');
         const flow = groups.find((g) => g.key === 'flow') as { sections: { items: palette.PaletteItem[] }[] };
         const items = flow.sections.flatMap((sec) => sec.items);
         expect(items.find((i) => i.id === 'form_page')?.disabledReason).toMatch(/^mobile\.flow\.palette\.needs_form_trigger=/);
@@ -242,7 +242,7 @@ describe('the keys the phone adds', () => {
         const hits = palette.buildSearchResults('schedule', { mode: 'trigger', t: shout });
         expect(hits[0]?.label).toBe('mobile.flow.palette.schedule=On a schedule');
         expect(palette.itemForKey('trigger:webhook', { t: shout })?.label).toBe('mobile.flow.palette.webhook=On webhook call');
-        expect(palette.itemForKey('step:loop', { t: shout })?.label).toBe('routines.node.loop.label=Repeat for each');
+        expect(palette.itemForKey('step:loop', { t: shout })?.label).toBe('automations.node.loop.label=Repeat for each');
         expect(palette.codeItemFor({ flags: { codeReason: 'weird' } })?.disabledReasonKey).toBe('mobile.flow.palette.code_off_unknown');
     });
 });

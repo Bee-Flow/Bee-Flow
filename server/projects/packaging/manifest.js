@@ -8,7 +8,7 @@
  * automation export, the CMS bundle — nulls out cross-entity pointers and tells
  * the recipient to rewire. That is the correct call when you are shipping ONE
  * thing. A Blueprint ships a set of things that were built to call each other,
- * and if the app arrives no longer knowing which routine it runs, the install
+ * and if the app arrives no longer knowing which automation it runs, the install
  * is inert and the feature is pointless.
  *
  * So a pointer at something INSIDE the bundle becomes `{ $ref: 'aut_1' }`, and
@@ -39,33 +39,63 @@
 'use strict';
 
 const FORMAT = 'beeflow.blueprint';
-const SCHEMA_VERSION = 1;
-const SUPPORTED_VERSIONS = [1];
+// 2 adds `solution.slots` and `solution.variables` (pipeline releases). A
+// version-1 file still reads: neither section is required.
+const SCHEMA_VERSION = 2;
+const SUPPORTED_VERSIONS = [1, 2];
 
 /** Bundle-local reference prefixes, one per entity kind. */
 const REF_PREFIX = {
     automations: 'aut', apps: 'app', webpages: 'web',
     datatables: 'dt', agents: 'agt', knowledgeBases: 'kb',
+    skills: 'skl', documents: 'doc',
 };
 
 /** The entity lists a Blueprint carries, in the order install creates them. */
-const ENTITY_KINDS = Object.freeze(['automations', 'apps', 'webpages', 'datatables', 'agents', 'knowledgeBases']);
+// Skills come before the agents and automations that attach them are patched, and
+// document templates before the `fill_document` steps that name them: install
+// resolves pointers in a second pass, so the order of CREATION is what matters,
+// not the order of reading.
+const ENTITY_KINDS = Object.freeze([
+    'automations', 'apps', 'webpages', 'datatables', 'agents', 'knowledgeBases', 'skills', 'documents',
+]);
 
 function isObject(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
 
+/** The numeric tail of a ref (`aut_7` → 7), or 0 when it has none. */
+function refNumber(ref, prefix) {
+    const m = typeof ref === 'string' ? ref.match(new RegExp(`^${prefix}_(\\d+)$`)) : null;
+    return m ? Number(m[1]) : 0;
+}
+
 /**
- * Assign every entity a stable, bundle-local reference.
+ * Assign every entity a bundle-local reference.
  *
- * Positional (`aut_1`, `aut_2`) rather than derived from the real id, so a
+ * Without `refs`: positional (`aut_1`, `aut_2`) over store order, so a
  * Blueprint says nothing about the ids of the installation that produced it.
+ *
+ * With `refs` (a Map entityId → ref, from the ref ledger): each entity keeps
+ * the ref the ledger gave it, so the same automation is `aut_3` in every release
+ * however the store happens to order the list. A member the map does not know
+ * gets the next free number for its prefix, counted over EVERY ref in the map,
+ * so a retired ref is never handed to somebody else.
  */
-function assignRefs(members = {}) {
+function assignRefs(members = {}, { refs = null } = {}) {
     const refByEntityId = new Map();
+    const known = refs instanceof Map ? refs : (isObject(refs) ? new Map(Object.entries(refs)) : null);
     for (const kind of ENTITY_KINDS) {
-        const list = Array.isArray(members[kind]) ? members[kind] : [];
-        list.filter(Boolean).forEach((entity, i) => {
-            refByEntityId.set(entity.id, `${REF_PREFIX[kind]}_${i + 1}`);
-        });
+        const prefix = REF_PREFIX[kind];
+        const list = (Array.isArray(members[kind]) ? members[kind] : []).filter(Boolean);
+        if (!known) {
+            list.forEach((entity, i) => refByEntityId.set(entity.id, `${prefix}_${i + 1}`));
+            continue;
+        }
+        let max = 0;
+        for (const ref of known.values()) max = Math.max(max, refNumber(ref, prefix));
+        for (const entity of list) {
+            const ref = known.get(entity.id);
+            refByEntityId.set(entity.id, typeof ref === 'string' && ref ? ref : `${prefix}_${++max}`);
+        }
     }
     return refByEntityId;
 }
@@ -74,45 +104,17 @@ function assignRefs(members = {}) {
  * Turn in-bundle pointers into `{ $ref }`. Mutates; returns what it rewrote.
  *
  * Anything not in `refByEntityId` is left exactly as it was, for the scrub to
- * null and the report to name.
+ * null and the report to name. The locations themselves live in pointers.js,
+ * the one registry capture, install and the stage checks share; this keeps the
+ * signature the callers already use.
  */
 function rewriteToRefs({ appDefinition = null, automationDefinition = null, webpageBridgeGrants = null }, refByEntityId) {
+    const { toRefs } = require('./pointers');
     const rewritten = [];
-    const asRef = (id) => {
-        const ref = refByEntityId.get(id);
-        if (!ref) return null;
-        rewritten.push({ from: id, ref });
-        return { $ref: ref };
-    };
-
-    if (isObject(appDefinition)) {
-        const { walkObjects } = require('../../appStudio/templateCapture');
-        walkObjects(appDefinition, (obj) => {
-            if (obj.kind !== 'run_automation') return;
-            if (typeof obj.automationId !== 'string' || !obj.automationId) return;
-            const ref = asRef(obj.automationId);
-            if (ref) obj.automationId = ref;
-        });
-    }
-
-    if (isObject(automationDefinition)) {
-        const { walkAllSteps } = require('../../automation/portability');
-        walkAllSteps(automationDefinition, (step) => {
-            if (step.type !== 'call_block') return;
-            if (typeof step.blockId !== 'string' || !step.blockId) return;
-            const ref = asRef(step.blockId);
-            if (ref) step.blockId = ref;
-        });
-    }
-
-    if (isObject(webpageBridgeGrants) && Array.isArray(webpageBridgeGrants.automations)) {
-        for (const grant of webpageBridgeGrants.automations) {
-            if (!isObject(grant) || typeof grant.automationId !== 'string') continue;
-            const ref = asRef(grant.automationId);
-            if (ref) grant.automationId = ref;
-        }
-    }
-
+    const take = (list) => { for (const r of list) rewritten.push({ from: r.from, ref: r.ref }); };
+    if (isObject(appDefinition)) take(toRefs('app', { definition: appDefinition }, refByEntityId));
+    if (isObject(automationDefinition)) take(toRefs('automation', { definition: automationDefinition }, refByEntityId));
+    if (isObject(webpageBridgeGrants)) take(toRefs('webpage', { bridgeGrants: webpageBridgeGrants }, refByEntityId));
     return rewritten;
 }
 
@@ -229,10 +231,10 @@ function withSource(manifest, source) {
  */
 function buildManifest({
     project, entities = {}, requires = [], report = {}, exportedAt = null,
-    key = null, version = 1, source = null,
+    key = null, version = 1, source = null, slots = null, variables = null,
 } = {}) {
     const p = project || {};
-    return {
+    const manifest = {
         format: FORMAT,
         schemaVersion: SCHEMA_VERSION,
         exportedAt: exportedAt || null,
@@ -250,6 +252,46 @@ function buildManifest({
             report,
         },
     };
+    // Only a pipeline release has these two sections; a gallery file is
+    // exactly what it was before they existed.
+    if (Array.isArray(slots)) manifest.solution.slots = slots;
+    if (Array.isArray(variables)) manifest.solution.variables = variables;
+    return manifest;
+}
+
+/**
+ * Sections that may never sit in a manifest (D20). Reference rows and a KB's
+ * document listing live in `solution_release_payloads`, are pruned with their
+ * release and never leave the instance; a manifest is a file that can.
+ */
+const FORBIDDEN_SECTIONS = ['referenceRows', 'knowledgeContent'];
+
+/**
+ * Check `solution.slots` and `solution.variables`. Both name a part with a
+ * PLAIN `ref` string, never `{ $ref }`: they describe the release, they are not
+ * a pointer install resolves, so collectRefs never sees them. A slot that names
+ * a part the file does not carry is refused, like a dangling `$ref`.
+ */
+function checkPipelineSections(solution, declared, errors) {
+    for (const [section, label] of [['slots', 'slot'], ['variables', 'variable']]) {
+        const list = solution[section];
+        if (list === undefined) continue;
+        if (!Array.isArray(list)) { errors.push(`The Blueprint's ${section} section is not a list.`); continue; }
+        for (const item of list) {
+            if (!isObject(item)) { errors.push(`A ${label} in the Blueprint is not an object.`); continue; }
+            if (section === 'slots' && (typeof item.slot !== 'string' || !item.slot)) errors.push('A slot in the Blueprint has no name.');
+            if (section === 'variables' && (typeof item.name !== 'string' || !item.name)) errors.push('A variable in the Blueprint has no name.');
+            if (item.ref === undefined || item.ref === null) {
+                if (section === 'slots') errors.push(`The slot "${item.slot}" does not say which part it belongs to.`);
+                continue;
+            }
+            if (typeof item.ref !== 'string') {
+                errors.push(`The ${label} "${item.slot || item.name}" names its part with something other than a plain ref.`);
+            } else if (!declared.has(item.ref)) {
+                errors.push(`The ${label} "${item.slot || item.name}" belongs to "${item.ref}", which the Blueprint does not contain.`);
+            }
+        }
+    }
 }
 
 /**
@@ -327,6 +369,11 @@ function sanitizeManifest(rawInput) {
     }
     const solution = input.solution;
     if (!isObject(solution)) errors.push('The Blueprint has no solution in it.');
+    for (const section of FORBIDDEN_SECTIONS) {
+        if (input[section] !== undefined || (isObject(solution) && solution[section] !== undefined)) {
+            errors.push(`A Blueprint may not carry "${section}": that content stays on this installation.`);
+        }
+    }
     if (errors.length) return { ok: false, errors };
 
     const entities = isObject(solution.entities) ? solution.entities : {};
@@ -339,13 +386,14 @@ function sanitizeManifest(rawInput) {
     for (const ref of collectRefs(input)) {
         if (!declared.has(ref)) errors.push(`The Blueprint points at "${ref}", which it does not contain.`);
     }
+    checkPipelineSections(solution, declared, errors);
     if (errors.length) return { ok: false, errors };
 
     return { ok: true, manifest: input, refs: declared };
 }
 
 module.exports = {
-    FORMAT, SCHEMA_VERSION, SUPPORTED_VERSIONS, REF_PREFIX, ENTITY_KINDS,
+    FORMAT, SCHEMA_VERSION, SUPPORTED_VERSIONS, REF_PREFIX, ENTITY_KINDS, FORBIDDEN_SECTIONS,
     assignRefs, rewriteToRefs, rewriteRefs, collectRefs, buildManifest, sanitizeManifest,
     stripNeverInstallable, readSource, withSource,
 };

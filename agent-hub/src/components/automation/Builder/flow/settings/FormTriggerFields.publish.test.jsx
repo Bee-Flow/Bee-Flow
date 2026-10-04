@@ -36,7 +36,7 @@ const {
 
 const PAGE = { id: 'tok1', url: 'https://app.test/f/tok1', submissions: 0, triggerStepId: null };
 
-/** A routine whose SAVED definition already carries this form trigger. */
+/** An automation whose SAVED definition already carries this form trigger. */
 const automation = (over = {}) => ({
     id: 'aut_1',
     definition: { trigger: { id: 'trg', type: 'trigger', kind: 'form', form: {} }, steps: [], edges: [] },
@@ -104,13 +104,13 @@ describe('FormTriggerUrlPanel — the link, when it is shown at all', () => {
         api.rotateFormPage.mockReset().mockResolvedValue({ form: { ...PAGE, id: 'tok2', url: 'https://app.test/f/tok2' } });
     });
 
-    it('waits for the routine to save rather than asking about a node the server has not seen', () => {
+    it('waits for the automation to save rather than asking about a node the server has not seen', () => {
         renderPanel({ auto: automation({ definition: { trigger: { id: 'trg', kind: 'webhook' }, steps: [], edges: [] } }) });
-        expect(screen.getByText('Waiting for the routine to save…')).toBeTruthy();
+        expect(screen.getByText('Waiting for the automation to save…')).toBeTruthy();
         expect(api.listFormPages).not.toHaveBeenCalled();
     });
 
-    it('shows the address the routine already has, read-only, without minting a second one', async () => {
+    it('shows the address the automation already has, read-only, without minting a second one', async () => {
         renderPanel();
         const input = await screen.findByLabelText('Public form URL');
         expect(input.value).toBe('https://app.test/f/tok1');
@@ -118,7 +118,7 @@ describe('FormTriggerUrlPanel — the link, when it is shown at all', () => {
         expect(api.createFormPage).not.toHaveBeenCalled();
     });
 
-    it('mints one on first open when the routine has no page yet', async () => {
+    it('mints one on first open when the automation has no page yet', async () => {
         api.listFormPages.mockResolvedValue({ forms: [] });
         renderPanel();
         await waitFor(() => expect(api.createFormPage).toHaveBeenCalledWith('aut_1'));
@@ -169,10 +169,10 @@ describe('FormTriggerUrlPanel — the link, when it is shown at all', () => {
         expect(screen.getByLabelText('Public form URL').value).toBe('https://app.test/f/tok1');
     });
 
-    it('says the link only works while the routine is active, and counts submissions once there are any', async () => {
+    it('says the link only works while the automation is active, and counts submissions once there are any', async () => {
         api.listFormPages.mockResolvedValue({ forms: [{ ...PAGE, submissions: 1 }] });
         renderPanel();
-        expect(await screen.findByText(/only works while the routine is active\. 1 submission so far\./)).toBeTruthy();
+        expect(await screen.findByText(/only works while the automation is active\. 1 submission so far\./)).toBeTruthy();
     });
 
     it('leaves the count off a form nobody has filled in', async () => {
@@ -182,10 +182,10 @@ describe('FormTriggerUrlPanel — the link, when it is shown at all', () => {
     });
 
     it('shows what went wrong instead of an empty panel', async () => {
-        api.listFormPages.mockRejectedValue(new Error('Not your routine'));
-        api.createFormPage.mockRejectedValue(new Error('Not your routine'));
+        api.listFormPages.mockRejectedValue(new Error('Not your automation'));
+        api.createFormPage.mockRejectedValue(new Error('Not your automation'));
         renderPanel();
-        expect(await screen.findByText('Not your routine')).toBeTruthy();
+        expect(await screen.findByText('Not your automation')).toBeTruthy();
         expect(screen.getByText('Generate the link')).toBeTruthy();
     });
 });

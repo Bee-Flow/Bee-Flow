@@ -14,44 +14,44 @@
       "id": "intro",
       "icon": "🧭",
       "title": "Learn the room before you build in it",
-      "bodyMd": "Van Dijk Groep, a sixty-person installation firm, wants one routine: a Monday-morning pipeline briefing. Before anyone drags a single step, it pays to know the room.\n\nThis lesson walks the real builder — the start screen, the canvas, the panel that opens when you click a step, and the controls in the header. Nothing here creates or changes anything in your workspace.\n\nBy the end you should be able to answer, without clicking around: **where do I see what it did**, **where do I get the old version back**, and **why can a routine look perfectly healthy and still serve last week's numbers**."
+      "bodyMd": "Van Dijk Groep, a sixty-person installation firm, wants one automation: a Monday-morning pipeline briefing. Before anyone drags a single step, it pays to know the room.\n\nThis lesson walks the real builder — the start screen, the canvas, the panel that opens when you click a step, and the controls in the header. Nothing here creates or changes anything in your workspace.\n\nBy the end you should be able to answer, without clicking around: **where do I see what it did**, **where do I get the old version back**, and **why can an automation look perfectly healthy and still serve last week's numbers**."
     },
     {
       "type": "tour",
       "id": "tabs",
       "target": "[data-tour=\"automation-start-tabs\"]",
-      "navigateTo": "studio/routines",
+      "navigateTo": "studio/automations",
       "placement": "bottom",
       "optional": true,
       "timeoutMs": 8000,
       "icon": "🚪",
       "title": "Through the door, onto the canvas",
-      "body": "You already met this start screen in chapter 1, so this lesson goes straight through it: whether you start from a template, a suggestion or the + for a blank canvas, you land in the same builder, and describing the routine in plain language happens there, in the assistant beside the canvas. Only the tab you leave it on is remembered for next time. Everything from here on is the builder itself."
+      "body": "You already met this start screen in chapter 1, so this lesson goes straight through it: whether you start from a template, a suggestion or the + for a blank canvas, you land in the same builder, and describing the automation in plain language happens there, in the assistant beside the canvas. Only the tab you leave it on is remembered for next time. Everything from here on is the builder itself."
     },
     {
       "type": "tour",
       "id": "create",
-      "target": "[data-tour=\"routine-create\"]",
+      "target": "[data-tour=\"automation-create\"]",
       "placement": "bottom",
       "optional": true,
       "timeoutMs": 6000,
       "icon": "➕",
       "title": "Or start from a blank canvas",
-      "body": "This opens a new routine straight away. The canvas greets you with \"What does this routine start with?\" and seven trigger cards — Manual, Form, Schedule, Webhook, App event, Agent call, Studio App. Every routine has exactly one primary trigger, so this is the one choice you make first."
+      "body": "This opens a new automation straight away. The canvas greets you with \"What does this automation start with?\" and seven trigger cards — Manual, Form, Schedule, Webhook, App event, Agent call, Studio App. Every automation has exactly one primary trigger, so this is the one choice you make first."
     },
     {
       "type": "slide",
       "id": "ribbon",
       "icon": "🎛️",
       "title": "The ribbon, the canvas, and autosave",
-      "bodyMd": "Once a trigger is on the canvas, the **ribbon** is where steps come from. Its tabs: **Home**, **Apps** (steps from your connected integrations) and **Reusable** (your own saved Steps) — plus a search field (\"Search a step…\") and a **Frequent** cluster of the ones you use most. Every item carries the same hint: \"Click to add, or drag it onto the canvas.\"\n\nA reusable **Step** is the one thing here you can hand on: pressing **Publish** on a Step means \"automations and chats using this Step pick up the change\", and colleagues can drop it into their own routines. The routine you are building is not like that. Routines are owner-private on every licence tier — a Step travels, the routine does not.\n\nThe canvas itself: drag to select, hold Space or middle-drag to pan, Tab jumps to the next step. A toggle, **\"What the marks on the canvas mean\"**, opens a legend for branch labels and for lines that carry personal data.\n\nThere is no Save button. The panel says **\"Changes save automatically.\"** **Undo** (⌘Z) walks back your last canvas change — and its own tooltip warns that this is *not* a saved version."
+      "bodyMd": "Once a trigger is on the canvas, the **ribbon** above it is where steps come from: a search field (\"Add a step…\") and the tabs **AI**, **Logic**, **People**, **Data & documents**, **Other apps** and **My building blocks** — plus **Nextcloud apps** when your organisation has a Nextcloud app. Every item carries the same hint: \"Click to add, or drag it onto the canvas.\" The ribbon adds steps only; an extra trigger comes from the **+** beside a step.\n\nA **building block** is the one thing here you can hand on: pressing **Publish** on one means \"automations and chats using this Step pick up the change\", and colleagues you share it with can drop it into their own automations from **My building blocks**. The automation you are building is not like that. Automations are owner-private on every licence tier — a building block travels, the automation does not.\n\nThe canvas itself: drag to select, hold Space or middle-drag to pan, Tab jumps to the next step. A toggle, **\"What the marks on the canvas mean\"**, opens a legend for branch labels and for lines that carry personal data.\n\nThere is no Save button. The panel says **\"Changes save automatically.\"** **Undo** (⌘Z) walks back your last canvas change — and its own tooltip warns that this is *not* a saved version."
     },
     {
       "type": "slide",
       "id": "inspector",
       "icon": "🔍",
       "title": "Click a step: the node inspector",
-      "bodyMd": "Clicking a step opens a compact panel with just the fields that make it work. Double-click it — or ask for a side column — and you get the full three-column view: **Incoming** (what arrives here), **Settings** (the fields you fill in), **Continues on** (what leaves). Settings is always there; the two side columns fold away.\n\nSettings has two densities — **Simple** and **All options** — so a step with thirty fields shows you six until you ask for the rest.\n\nEach field has two value modes. **Text** is a plain value, where `{{ }}` pulls in data from an earlier step. **Formula** computes one, such as `steps.s1.output.total > 100`. You rarely type such a reference by hand: **\"Insert data from a previous step\"** lists what earlier steps produced and writes the reference for you.\n\nAt the top of the panel sit two honest strips: **\"Fix this before the routine can run:\"** and the softer **\"Worth checking:\"**."
+      "bodyMd": "Clicking a step opens its panel the way you last left it — compact at first, with just the fields that make it work. Double-click it — or ask for a side column — and you get the full three-column view: **Incoming** (what arrives here), **Settings** (the fields you fill in), **Continues on** (what leaves). Settings is always there; the two side columns fold away.\n\nSettings has two densities — **Simple** and **All options** — so a step with thirty fields shows you six until you ask for the rest.\n\nIn a text field, `{{ }}` pulls in data from an earlier step. With All options on, value fields also offer two modes: **Text**, a plain value with `{{ }}` in it, and **Formula**, which computes one, such as `steps.s1.output.total > 100`. You rarely type such a reference by hand: the braces button, **\"Insert data from a previous step\"**, lists what earlier steps produced and writes the reference for you.\n\nAt the top of the panel sit two honest strips: **\"Fix this before the automation can run:\"** and the softer **\"Worth checking:\"**."
     },
     {
       "type": "quiz",
@@ -81,7 +81,7 @@
           "id": "d",
           "label": "Read the \"Worth checking:\" strip at the top of the panel.",
           "correct": false,
-          "feedback": "That strip comments on what you have already filled in — soft warnings, next to the harder \"Fix this before the routine can run:\". Neither strip unhides a field."
+          "feedback": "That strip comments on what you have already filled in — soft warnings, next to the harder \"Fix this before the automation can run:\". Neither strip unhides a field."
         }
       ],
       "explanation": "Settings has two densities, Simple and All options (\"Show all options (n)\" / \"Show fewer options\"), so a step with thirty fields greets you with six. Density, columns and value modes are three different axes: how much of the step you see, what flows in and out, and how one value is produced."
@@ -91,7 +91,7 @@
       "id": "match-header",
       "icon": "🧩",
       "title": "Five needs, five controls",
-      "instruction": "Van Dijk Groep's briefing routine is open in front of you. Match each thing you need right now to the builder control that gives it to you.",
+      "instruction": "Van Dijk Groep's briefing automation is open in front of you. Match each thing you need right now to the builder control that gives it to you.",
       "sim": {
         "kind": "match",
         "pairs": [
@@ -104,8 +104,8 @@
           {
             "id": "versions",
             "left": "Yesterday you deleted three steps and now you want the design from before that back.",
-            "right": "Saved versions",
-            "note": "\"Earlier versions of the routine you can go back to\" — each row offers View diff and Restore this version."
+            "right": "Versions",
+            "note": "\"Earlier versions you can open or make live\" — compare one with today's and \"Restore to v…\" brings that design back as your working copy."
           },
           {
             "id": "undo",
@@ -116,12 +116,12 @@
           {
             "id": "dryrun",
             "left": "You want to watch the whole thing run without a single colleague being e-mailed.",
-            "right": "Dry-run",
-            "note": "The visible half of the run split-button — \"no real actions, a safe preview\". Run live sits behind the chevron, one deliberate click further."
+            "right": "Test",
+            "note": "The visible half of the run split-button runs a dry-run — \"no real actions, a safe preview\". Run live sits behind the chevron, one deliberate click further."
           },
           {
             "id": "settings",
-            "left": "You want to rename the routine and be notified whenever it fails.",
+            "left": "You want to rename the automation and be notified whenever it fails.",
             "right": "Settings",
             "note": "Settings holds Title, Description and the three notification switches: On success, On error, On approval."
           }
@@ -132,30 +132,30 @@
       "type": "slide",
       "id": "pinned",
       "icon": "📌",
-      "title": "The trap: a routine that looks fine and serves stale data",
+      "title": "The trap: an automation that looks fine and serves stale data",
       "bodyMd": "In the node panel there is a small **Pin** control: \"Pin this output (skip live execution; reuse the latest output).\" It is a gift while you build — pin the output of a slow lookup once and every dry-run afterwards is instant.\n\nIt is also the quietest bug in the product. A pinned step does not run. It hands the next step a saved sample, in live runs too, forever. The canvas looks healthy, the run finishes, and that step's status in the run reads **Frozen data**.\n\nPressing **Activate** with a pinned step reports that it \"serves pinned data instead of running — live runs will use that saved sample, not fresh data.\" For a sample captured from a real run that is a warning, not a refusal — you can walk straight past it. Only a sample you typed in by hand is refused outright. Unpin before you ship."
     },
     {
       "type": "quiz",
       "id": "q-formpage",
       "icon": "🚫",
-      "question": "In the scheduled briefing routine, the ribbon shows \"Form: ask for more info\" greyed out. Why?",
+      "question": "In the scheduled briefing automation, the ribbon shows \"Form: ask for more info\" greyed out. Why?",
       "multi": false,
       "choices": [
         {
           "id": "a",
-          "label": "Form pages run on the routine's own form link, so the routine needs the Form trigger to have one.",
+          "label": "Form pages run on the automation's own form link, so the automation needs the Form trigger to have one.",
           "correct": true
         },
         {
           "id": "b",
-          "label": "The step is disabled until the routine has been activated at least once.",
+          "label": "The step is disabled until the automation has been activated at least once.",
           "correct": false,
           "feedback": "Activation state does not change the palette. What is missing here is a Form trigger, and the greyed-out item says so when you hover it."
         },
         {
           "id": "c",
-          "label": "Form pages have to live inside a flowlet, and this routine has none.",
+          "label": "Form pages have to live inside a flowlet, and this automation has none.",
           "correct": false,
           "feedback": "The opposite is true: form pages and approvals are hidden inside a flowlet (a group of steps folded into one block) or a loop body, because a pause in there has no address to resume to."
         },
@@ -163,10 +163,10 @@
           "id": "d",
           "label": "Someone in the organisation has to publish the form first in Studio → Forms.",
           "correct": false,
-          "feedback": "A form-trigger routine is the form. Its public link is minted from the trigger panel, not from a separate object you publish first."
+          "feedback": "A form-trigger automation is the form. Its public link is minted from the trigger panel, not from a separate object you publish first."
         }
       ],
-      "explanation": "Hovering a disabled palette item tells you the reason: \"Form steps run on the routine's own form link — switch the trigger to \"Form\" to use this.\" Disabled-with-a-reason is the product's house style; read the reason before you go looking for a setting."
+      "explanation": "Hovering a disabled palette item tells you the reason: \"Form steps run on the automation's own form link — switch the trigger to \"Form\" to use this.\" Disabled-with-a-reason is the product's house style; read the reason before you go looking for a setting."
     },
     {
       "type": "exercise",
@@ -174,7 +174,7 @@
       "icon": "🎯",
       "exerciseId": "ex-automation-builder-tour-diagnose",
       "title": "Your turn: find it without hunting",
-      "instruction": "Monday, 08:04. Van Dijk Groep's pipeline briefing landed on time, but the totals are last week's. The routine is yours and nobody else can open it — routines are owner-private — so the only editor on Friday afternoon was you. Write the order in which you would open things in the builder, and say what each one tells you. A strong answer names at least three real surfaces (for example the Runs view, a step's recorded input and output, the pin on a node, Saved versions) and says what evidence each gives you before you change anything.",
+      "instruction": "Monday, 08:04. Van Dijk Groep's pipeline briefing landed on time, but the totals are last week's. The automation is yours and nobody else can open it — automations are owner-private — so the only editor on Friday afternoon was you. Write the order in which you would open things in the builder, and say what each one tells you. A strong answer names at least three real surfaces (for example the Runs view, a step's recorded input and output, the pin on a node, the Versions view) and says what evidence each gives you before you change anything.",
       "placeholder": "e.g. First Runs, because … then I open the run and read step 3's recorded output, which tells me … then …",
       "passScore": 70,
       "maxAttempts": 4
@@ -184,7 +184,7 @@
       "id": "finalised",
       "icon": "🚦",
       "title": "Finalised is still a draft",
-      "bodyMd": "When the assistant says it is finished and saved, nothing is scheduled. The status pill still reads **DRAFT**, and the builder tooling is not allowed to switch a routine on. Going live is a human decision: you press **Activate**.\n\nPress it and the server runs the strict validation pass that a draft save skips: an unknown tool, an empty required input, a knowledge base you are not allowed to write to, or a schedule with no upcoming run all refuse activation with the reason attached.\n\nA step pinned to a captured sample, as you now know, only warns — a hand-typed sample is the one pin that refuses. The pill then reads **LIVE**, and the same control becomes **Pause**."
+      "bodyMd": "When the assistant says it is finished and saved, nothing is scheduled. The status pill still reads **Draft · never live**, and the builder tooling is not allowed to switch an automation on. Going live is a human decision: you press **Activate**.\n\nPress it and the server runs the strict validation pass that a draft save skips: an unknown tool, an empty required input, a knowledge base you are not allowed to write to, or a schedule with no upcoming run all refuse activation with the reason attached.\n\nA step pinned to a captured sample, as you now know, only warns — a hand-typed sample is the one pin that refuses. The pill then reads **Live**, and **Pause** takes the place of Activate."
     },
     {
       "type": "quiz",
@@ -195,7 +195,7 @@
       "choices": [
         {
           "id": "a",
-          "label": "The snapshot of the routine as it was when that run happened.",
+          "label": "The snapshot of the automation as it was when that run happened.",
           "correct": true
         },
         {
@@ -206,15 +206,15 @@
         },
         {
           "id": "c",
-          "label": "Nothing — editing a routine clears its run history.",
+          "label": "Nothing — editing an automation clears its run history.",
           "correct": false,
           "feedback": "Editing never touches history. Runs are kept for 90 days by default, whatever you do to the canvas afterwards."
         },
         {
           "id": "d",
-          "label": "Whatever you pick in Saved versions.",
+          "label": "Whatever you pick in the Versions view.",
           "correct": false,
-          "feedback": "Saved versions is the history of the design, which you browse yourself. A run already knows which version it executed and shows that one."
+          "feedback": "The Versions view is the history of the design, which you browse yourself. A run already knows which version it executed and shows that one."
         }
       ],
       "explanation": "Every run stores the version it walked, so its timeline stays truthful after you edit. This surprises people once — then it becomes the reason a failed run is still diagnosable a week later."
@@ -224,35 +224,35 @@
       "id": "recap",
       "icon": "✅",
       "title": "What you can do now",
-      "bodyMd": "- **Name the room.** Canvas plus ribbon, the node inspector with Incoming / Settings / Continues on and its Simple / All options densities, and the header views Editor, Settings, Runs, Saved versions.\n- **Reach for the right control.** Runs for what happened, Saved versions for the design you had, Undo for the last click, Dry-run for a safe rehearsal, Activate for going live.\n- **Remember the quiet one.** A pinned step serves a saved sample in live runs, for ever, until you unpin it — the canvas looks healthy the whole time.\n- **Remember whose it is.** A Step can be published to colleagues; the routine stays yours alone.\n\nIn the practice-canvas lesson that follows you assemble a routine yourself — no workspace of yours is touched."
+      "bodyMd": "- **Name the room.** Canvas plus ribbon, the node inspector with Incoming / Settings / Continues on and its Simple / All options densities, and the header views Editor, Settings, Runs, Versions.\n- **Reach for the right control.** Runs for what happened, Versions for the design you had, Undo for the last click, Test for a safe rehearsal, Activate for going live.\n- **Remember the quiet one.** A pinned step serves a saved sample in live runs, for ever, until you unpin it — the canvas looks healthy the whole time.\n- **Remember whose it is.** A building block can be published to colleagues; the automation stays yours alone.\n\nIn the practice-canvas lesson that follows you assemble an automation yourself — no workspace of yours is touched."
     }
   ],
   "rubrics": {
     "ex-automation-builder-tour-diagnose": {
       "title": "Diagnose a stale briefing",
-      "task": "The learner was asked to write, in order, which builder surfaces they would open to explain why their own routine produced last week's numbers, and what evidence each surface gives them before they change anything.",
+      "task": "The learner was asked to write, in order, which builder surfaces they would open to explain why their own automation produced last week's numbers, and what evidence each surface gives them before they change anything.",
       "criteria": [
         "Starts with evidence rather than an edit — opens the Runs view (or the run's step timeline) before touching the canvas.",
-        "Names at least three distinct real surfaces, for example Runs, a step's recorded input/output, the pin on a node, Saved versions, or a dry-run to confirm the fix.",
+        "Names at least three distinct real surfaces, for example Runs, a step's recorded input/output, the pin on a node, Versions, or a dry-run to confirm the fix.",
         "Says what each surface would actually tell them, not just that they would look at it.",
-        "Keeps the search inside their own work — their own Friday edits, a pinned step, a saved version — rather than blaming a colleague who cannot open the routine at all.",
+        "Keeps the search inside their own work — their own Friday edits, a pinned step, a saved version — rather than blaming a colleague who cannot open the automation at all.",
         "Shows awareness of at least one of the lesson's traps: a pinned step serving a saved sample, or the run timeline showing the version that ran rather than today's canvas."
       ],
       "passScore": 70,
-      "guidance": "Pass a concise answer that sequences evidence before edits and names real surfaces with real labels. Do not pass an answer that only says \"I would check the logs\" or \"I would ask the assistant to fix it\"; do not pass an answer that jumps straight to editing or re-activating; do not pass invented controls (a \"debug mode\", a \"refresh data\" button); do not pass an answer whose explanation is that somebody else changed the routine. A learner who names only two surfaces but explains the pinned-output or snapshot trap precisely may still pass."
+      "guidance": "Pass a concise answer that sequences evidence before edits and names real surfaces with real labels. Do not pass an answer that only says \"I would check the logs\" or \"I would ask the assistant to fix it\"; do not pass an answer that jumps straight to editing or re-activating; do not pass invented controls (a \"debug mode\", a \"refresh data\" button); do not pass an answer whose explanation is that somebody else changed the automation. A learner who names only two surfaces but explains the pinned-output or snapshot trap precisely may still pass."
     }
   },
   "practiceTopic": {
-    "title": "Finding your way around the routine builder",
+    "title": "Finding your way around the automation builder",
     "summary": "Where each control lives in Studio → Automations, and what the node inspector, a pin and an activation really do.",
     "facts": [
-      "The builder header switches between four views: Editor (\"Design the routine on the canvas\"), Settings, Runs and Saved versions.",
-      "The run control is a split button: the visible half is Dry-run (\"no real actions, a safe preview\"); Run live sits behind the chevron.",
-      "A reusable Step can be Published so colleagues pick it up, but routines themselves are owner-private on every licence tier — there is no sharing column on a routine.",
-      "The node inspector opens compact on a single click; a double-click gives the three columns — Incoming, Settings and Continues on — with Simple and All options densities, and each field can be Text or Formula.",
+      "The builder header switches between four views: Editor (\"Design the automation on the canvas\"), Settings, Runs and Versions (\"Earlier versions you can open or make live\").",
+      "The run control is a split button: the visible half is Test, a dry-run (\"no real actions, a safe preview\"); Dry-run (preview) and Run live sit behind the chevron, \"More ways to run\".",
+      "A building block can be Published so colleagues pick it up, but automations themselves are owner-private on every licence tier — there is no sharing column on an automation.",
+      "The node inspector reopens at the size you last left it, compact at first; a double-click gives the three columns — Incoming, Settings and Continues on — with Simple and All options densities, and with All options value fields can be Text or Formula.",
       "There is no save button in the canvas: the panel reads \"Changes save automatically\", and Undo (⌘Z) is explicitly not a saved version.",
       "A pinned step skips execution and serves its saved sample in live runs too; activation warns about a captured sample but refuses a hand-typed one.",
-      "A routine the assistant finalises is still a draft — Activate is a human decision, and only that press runs the strict validation that a draft save skips.",
+      "An automation the assistant finalises is still a draft — Activate is a human decision, and only that press runs the strict validation that a draft save skips.",
       "A run's timeline renders the flow snapshot as it was at run time, not today's canvas, and run history is kept 90 days by default."
     ]
   },

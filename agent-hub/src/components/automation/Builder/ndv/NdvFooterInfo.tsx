@@ -35,7 +35,7 @@ export default function NdvFooterInfo({ quick, inSummary, outSummary, isTrigger,
             <button
                 type="button"
                 onClick={onGoFull}
-                title={t('routines.builder.see_data_in_out', 'See the data going in and coming out')}
+                title={t('automations.builder.see_data_in_out', 'See the data going in and coming out')}
                 data-testid="ndv-footer-inout"
                 className="inline-flex items-center gap-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] min-w-0"
             >
@@ -44,8 +44,8 @@ export default function NdvFooterInfo({ quick, inSummary, outSummary, isTrigger,
             {modeLink || (
                 <button type="button" onClick={onGoFull} className="inline-flex items-center gap-1 shrink-0 text-[var(--text-secondary)] hover:text-[var(--text-primary)] font-medium">
                     {hiddenCount > 0
-                        ? t('routines.ndv.more_options_n', 'More options ({n})', { n: hiddenCount })
-                        : t('routines.ndv.more_options', 'More options')} <ChevronRight size={12} />
+                        ? t('automations.ndv.more_options_n', 'More options ({n})', { n: hiddenCount })
+                        : t('automations.ndv.more_options', 'More options')} <ChevronRight size={12} />
                 </button>
             )}
         </>

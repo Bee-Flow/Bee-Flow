@@ -152,7 +152,7 @@ test('sub-step recording: stepId "cl1/out" with parentStepId "cl1"; secretValues
     await runner.runDag(parentDef, ctx, state, 'live', dispatch, { recordSteps: true });
 
     // The caller comes FIRST now: every step writes a `running` row when it is
-    // dispatched, so the public form's progress trail can say where the routine
+    // dispatched, so the public form's progress trail can say where the automation
     // is. A call_layer is therefore on record before the sub-steps it runs,
     // where it used to appear only on completion — i.e. after them.
     const ids = recorded.map(r => [r.stepId, r.parentStepId ?? null]);

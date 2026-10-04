@@ -76,7 +76,7 @@ const STUDIO_SECTIONS = new Map<string, ListOrDetail>([
     // yet: the section lands on the coming-soon screen, one app in the runner,
     // on its owner's draft.
     ['apps', { href: '/studio/apps', detail: (ref) => `/apps/${ref}?draft=1` }],
-    // A Studio form is keyed by its ROUTINE's id on both sides: the Form page.
+    // A Studio form is keyed by its AUTOMATION's id on both sides: the Form page.
     ['forms', { href: '/forms', detail: (ref) => `/forms/${ref}` }],
     // Meeting notes: the Meeting Notes tab is the list, /recordings/<id> one note.
     ['meeting-notes', { href: '/(tabs)/record', detail: (ref) => `/recordings/${ref}` }],

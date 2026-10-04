@@ -26,18 +26,18 @@ export default function TopicCheckRow({ unit, topic }: { unit: string; topic?: T
     if (checkedRows != null) {
         return checkedRows < totalRows ? (
             <div className="text-[10px] text-[var(--text-tertiary)]">
-                {t('routines.builder.topics.checked_first', 'Checked by the topic classifier against the first {n} of {total} sample {unit}.', { n: checkedRows, total: totalRows, unit })}
+                {t('automations.builder.topics.checked_first', 'Checked by the topic classifier against the first {n} of {total} sample {unit}.', { n: checkedRows, total: totalRows, unit })}
             </div>
         ) : null;
     }
     return (
         <div className="space-y-1">
             <div className="text-[10px] text-[var(--text-tertiary)]">
-                {t('routines.builder.topics.decided_at_run', '“Is about” is decided by the topic classifier when the step runs, so it is not counted here yet.')}
+                {t('automations.builder.topics.decided_at_run', '“Is about” is decided by the topic classifier when the step runs, so it is not counted here yet.')}
             </div>
             {loading ? (
                 <div className="inline-flex items-center gap-1.5 text-[10px] text-[var(--text-tertiary)]">
-                    <Loader2 size={11} className="animate-spin" /> {t('routines.builder.topics.checking', 'Checking the sample {unit}…', { unit })}
+                    <Loader2 size={11} className="animate-spin" /> {t('automations.builder.topics.checking', 'Checking the sample {unit}…', { unit })}
                 </div>
             ) : (
                 <button
@@ -45,11 +45,11 @@ export default function TopicCheckRow({ unit, topic }: { unit: string; topic?: T
                     onClick={onCheck}
                     className="inline-flex items-center gap-1.5 px-2 py-1 text-[11px] rounded border border-[var(--border-default)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition"
                 >
-                    <ScanSearch size={11} /> {t('routines.builder.topics.check', 'Check the sample {unit}', { unit })}
+                    <ScanSearch size={11} /> {t('automations.builder.topics.check', 'Check the sample {unit}', { unit })}
                 </button>
             )}
             <div className="text-[10px] text-[var(--text-tertiary)]">
-                {t('routines.builder.topics.check_sends', 'This sends the text of up to 25 sample {unit} to the topic classifier on this server. Nothing is stored, and nothing leaves the server.', { unit })}
+                {t('automations.builder.topics.check_sends', 'This sends the text of up to 25 sample {unit} to the topic classifier on this server. Nothing is stored, and nothing leaves the server.', { unit })}
             </div>
             {error && <div className="text-[10px] text-amber-600 dark:text-amber-400">{error}</div>}
         </div>

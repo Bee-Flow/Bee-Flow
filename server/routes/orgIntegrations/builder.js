@@ -199,63 +199,10 @@ function checkCredentialValues(values, declaredFields) {
     return { ok: errors.length === 0, errors };
 }
 
-/**
- * Coerce an arbitrary remote MCP tool name into the runner's tool-name shape
- * (^[a-z][a-z0-9_]{2,40}$): lowercase, non [a-z0-9_] runs collapse to '_',
- * leading digit/underscore gets a 't_' prefix, short names are padded, long
- * names truncated to 41 chars.
- */
-function safeToolName(rawName) {
-    let s = String(rawName == null ? '' : rawName)
-        .toLowerCase()
-        .replace(/[^a-z0-9_]+/g, '_')
-        .replace(/_{2,}/g, '_')
-        .replace(/^_+|_+$/g, '');
-    if (!/^[a-z]/.test(s)) s = s ? `t_${s}` : 'tool';
-    if (s.length < 3) s = s.padEnd(3, '0');
-    return s.slice(0, MAX_TOOL_NAME_CHARS);
-}
-
-/**
- * Numeric-suffix dedupe within MAX_TOOL_NAME_CHARS: 'name', 'name_2',
- * 'name_3', … Mutates `taken` (a Set) so successive calls stay unique.
- */
-function dedupeToolName(name, taken) {
-    let candidate = name;
-    let n = 2;
-    while (taken.has(candidate)) {
-        const suffix = `_${n++}`;
-        candidate = name.slice(0, MAX_TOOL_NAME_CHARS - suffix.length) + suffix;
-    }
-    taken.add(candidate);
-    return candidate;
-}
-
-/**
- * Build the activation tools_cache for an mcp_remote integration from
- * discoverTools() output. Entries follow the OpenAI tool shape with the
- * prefixed safe name; `_cint.rawName` preserves the exact remote tool name
- * for dispatch. Tools without a usable name are dropped.
- */
-function buildMcpToolsCache(tools, slug) {
-    const taken = new Set();
-    return (Array.isArray(tools) ? tools : [])
-        .filter(t => t && typeof t === 'object' && typeof t.name === 'string' && t.name)
-        .map(t => {
-            const name = dedupeToolName(safeToolName(t.name), taken);
-            return {
-                type: 'function',
-                function: {
-                    name: `cint_${slug}_${name}`,
-                    description: typeof t.description === 'string' ? t.description : '',
-                    parameters: (t.inputSchema && typeof t.inputSchema === 'object' && !Array.isArray(t.inputSchema))
-                        ? t.inputSchema
-                        : { type: 'object', properties: {}, additionalProperties: false },
-                },
-                _cint: { rawName: t.name },
-            };
-        });
-}
+// safeToolName / dedupeToolName / buildMcpToolsCache moved to
+// core/customIntegrations/mcpToolsCache.js (the MCP library builds the same
+// cache); re-exported below for this module's existing callers.
+const { safeToolName, dedupeToolName, buildMcpToolsCache } = require('../../core/customIntegrations/mcpToolsCache');
 
 // ── Router-level middleware ─────────────────────────────────────────
 
@@ -280,6 +227,11 @@ router.param('id', async (req, res, next, id) => {
         const s = store();
         const row = await s.getById(id).catch(() => null);
         if (!row || row.orgId !== s.resolveOrgId(req.params.orgId)) {
+            return res.status(404).json({ error: 'Not found' });
+        }
+        // MCP-library rows belong to the MCP library (routes/mcpLibrary.js);
+        // editing one here could re-point it outside the org MCP policy.
+        if (require('../../core/customIntegrations/mcpLibrary/gate').isLibraryRow(row)) {
             return res.status(404).json({ error: 'Not found' });
         }
         req.customIntegration = row;
@@ -374,6 +326,11 @@ router.get('/:id', (req, res) => {
 router.put('/:id/definition', validate({ body: DefinitionBody }), async (req, res) => {
     const row = req.customIntegration;
     const { definition } = req.body;
+    // The library marker decides which gate and licence govern a row; a
+    // builder draft carrying it would be governed by the MCP library instead.
+    if (definition.meta && typeof definition.meta === 'object' && definition.meta.source !== undefined) {
+        return res.status(400).json({ error: 'meta.source is reserved for the MCP library.' });
+    }
     const validation = validateCustomIntegration(definition, { kind: row.kind, slug: row.slug });
     const updated = await store().saveDefinition(row.id, definition, req.session.user.id, { lastValidation: validation });
     if (!updated) return res.status(404).json({ error: 'Not found' });

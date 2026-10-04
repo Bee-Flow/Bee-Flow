@@ -65,18 +65,21 @@ function register(router, { upload }) {
             // Extra-file bytes live under the OWNER's RustFS prefix, not the caller's.
             const ownerId = wp.userId;
             const path = req.query.path;
+            const managed = await webpageStore.managedPayloadOf(wp);
             if (path === undefined) {
                 const list = await webpageStore.listExtraFiles(req.params.id);
-                return res.json({ files: list });
+                return res.json({ files: list, managed });
             }
             const file = await webpageStore.readExtraFile({ webpageId: req.params.id, userId: ownerId, path });
             if (!file) return res.status(404).json({ error: 'File not found' });
             if (file.meta.isText) {
-                return res.json({ meta: file.meta, content: file.text });
+                return res.json({ meta: file.meta, content: file.text, managed });
             }
             // Binary: return base64 so the frontend can build a data URL.
-            return res.json({ meta: file.meta, contentBase64: file.bytes.toString('base64') });
+            return res.json({ meta: file.meta, contentBase64: file.bytes.toString('base64'), managed });
         } catch (err) {
+            // A refusal worded for the caller (409 managed_part) keeps its status and code.
+            if (err?.status && err.status < 500) throw err;
             log.error('[Webpages] Get extra file failed:', err);
             res.status(500).json({ error: 'Failed to get file' });
         }
@@ -104,6 +107,8 @@ function register(router, { upload }) {
             webpageUsageSync.reconcileWebpageUsageDetached(req.params.id);
             res.json({ file });
         } catch (err) {
+            // A refusal worded for the caller (409 managed_part) keeps its status and code.
+            if (err?.status && err.status < 500) throw err;
             // upsertExtraFile validates the path and surfaces clear messages
             // (reserved paths, traversal attempts) — pass those through as 400s.
             const status = /^(Reserved|Invalid|Path)/i.test(err.message) ? 400 : 500;
@@ -127,6 +132,8 @@ function register(router, { upload }) {
             webpageUsageSync.reconcileWebpageUsageDetached(req.params.id);
             res.json({ success: true });
         } catch (err) {
+            // A refusal worded for the caller (409 managed_part) keeps its status and code.
+            if (err?.status && err.status < 500) throw err;
             log.error('[Webpages] Delete extra file failed:', err);
             res.status(500).json({ error: 'Failed to delete file' });
         }
@@ -160,6 +167,8 @@ function register(router, { upload }) {
             reSnapshotWebpageShares(req.params.id, userId);
             res.json({ file, contentBase64: req.file.buffer.toString('base64') });
         } catch (err) {
+            // A refusal worded for the caller (409 managed_part) keeps its status and code.
+            if (err?.status && err.status < 500) throw err;
             const status = /(primary slot|relative|may not|contains|too long|required|empty|segment)/i.test(err.message) ? 400 : 500;
             if (status === 500) log.error('[Webpages] Asset upload failed:', err);
             res.status(status).json({ error: err.message || 'Failed to upload asset' });
@@ -198,6 +207,8 @@ function register(router, { upload }) {
             webpageUsageSync.reconcileWebpageUsageDetached(req.params.id);
             res.json({ file });
         } catch (err) {
+            // A refusal worded for the caller (409 managed_part) keeps its status and code.
+            if (err?.status && err.status < 500) throw err;
             const status = /(primary slot|relative|may not|contains|too long|required|empty|segment)/i.test(err.message) ? 400 : 500;
             if (status === 500) log.error('[Webpages] Asset move failed:', err);
             res.status(status).json({ error: err.message || 'Failed to move file' });

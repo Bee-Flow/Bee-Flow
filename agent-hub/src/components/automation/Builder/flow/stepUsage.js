@@ -1,7 +1,7 @@
 import { getJSON, setJSON } from '../../../../utils/scopedStorage';
 
 /**
- * Pure-logic engine for the routines builder's "smart Add-step" menu.
+ * Pure-logic engine for the automations builder's "smart Add-step" menu.
  *
  * Two jobs:
  *   1. Persist per-user step-usage telemetry (how often each addable thing is
@@ -15,12 +15,12 @@ import { getJSON, setJSON } from '../../../../utils/scopedStorage';
  * read storage once and re-rank cheaply. Only recordStep touches storage.
  *
  * Storage keys (user-scoped via scopedStorage):
- *   routinesStepUsage       { [usageKey]: { n: count, t: lastUsedMs } }
- *   routinesStepTransitions { [fromKind]: { [usageKey]: count } }
+ *   automationsStepUsage       { [usageKey]: { n: count, t: lastUsedMs } }
+ *   automationsStepTransitions { [fromKind]: { [usageKey]: count } }
  */
 
-const USAGE_KEY = 'routinesStepUsage';
-const TRANSITIONS_KEY = 'routinesStepTransitions';
+const USAGE_KEY = 'automationsStepUsage';
+const TRANSITIONS_KEY = 'automationsStepTransitions';
 
 const DAY_MS = 86400000;
 const HALF_LIFE_DAYS = 14;

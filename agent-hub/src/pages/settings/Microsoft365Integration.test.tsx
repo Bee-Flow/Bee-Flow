@@ -56,7 +56,7 @@ it('connects through the popup and shows the account after the callback', async 
     const user = userEvent.setup();
     const open = vi.spyOn(window, 'open').mockReturnValue({ closed: false } as Window);
     const onSaved = renderTile();
-    await screen.findByText('Connect Outlook so AI tools and routines can read and send your Microsoft 365 mail');
+    await screen.findByText('Connect Outlook so AI tools and automations can read and send your Microsoft 365 mail');
     await expand(user);
     await user.click(screen.getByRole('button', { name: 'Connect Microsoft 365' }));
 
@@ -70,7 +70,7 @@ it('connects through the popup and shows the account after the callback', async 
         origin: window.location.origin,
     }));
 
-    expect(await screen.findByText('Connected as anna@example.com — Outlook works in chat and routines')).toBeTruthy();
+    expect(await screen.findByText('Connected as anna@example.com — Outlook works in chat and automations')).toBeTruthy();
     expect(onSaved).toHaveBeenCalledTimes(1);
 });
 
@@ -78,7 +78,7 @@ it('ignores a callback message from a foreign origin', async () => {
     const user = userEvent.setup();
     vi.spyOn(window, 'open').mockReturnValue({ closed: false } as Window);
     const onSaved = renderTile();
-    await screen.findByText('Connect Outlook so AI tools and routines can read and send your Microsoft 365 mail');
+    await screen.findByText('Connect Outlook so AI tools and automations can read and send your Microsoft 365 mail');
     await expand(user);
     await user.click(screen.getByRole('button', { name: 'Connect Microsoft 365' }));
     await waitFor(() => expect(window.open).toHaveBeenCalled());
@@ -95,7 +95,7 @@ it('says so when the admin has not configured Microsoft', async () => {
     status = { configured: false, connected: false };
     const user = userEvent.setup();
     renderTile();
-    await screen.findByText('Connect Outlook so AI tools and routines can read and send your Microsoft 365 mail');
+    await screen.findByText('Connect Outlook so AI tools and automations can read and send your Microsoft 365 mail');
     await expand(user);
     expect(screen.getByText(/Microsoft 365 is not configured/)).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Connect Microsoft 365' })).toBeNull();
@@ -105,7 +105,7 @@ it('disconnects a connected account', async () => {
     status = { configured: true, connected: true, email: 'anna@example.com' };
     const user = userEvent.setup();
     const onSaved = renderTile();
-    await screen.findByText('Connected as anna@example.com — Outlook works in chat and routines');
+    await screen.findByText('Connected as anna@example.com — Outlook works in chat and automations');
     await expand(user);
     await user.click(screen.getByRole('button', { name: /Disconnect/ }));
 
@@ -118,7 +118,7 @@ it('hides Disconnect for a Microsoft-SSO connection, which it would break', asyn
     status = { configured: true, connected: true, viaSso: true, email: 'anna@example.com' };
     const user = userEvent.setup();
     renderTile();
-    await screen.findByText('Connected as anna@example.com — Outlook works in chat and routines');
+    await screen.findByText('Connected as anna@example.com — Outlook works in chat and automations');
     await expand(user);
     expect(screen.getByText('Connected through your Microsoft sign-in. Sign out to end it.')).toBeTruthy();
     expect(screen.queryByRole('button', { name: /Disconnect/ })).toBeNull();
@@ -128,7 +128,7 @@ it('offers Reconnect when the grant expired', async () => {
     status = { configured: true, connected: false, needsReauth: true, email: 'anna@example.com' };
     const user = userEvent.setup();
     renderTile();
-    await screen.findByText('Your Microsoft connection expired — reconnect to keep tools and routines working');
+    await screen.findByText('Your Microsoft connection expired — reconnect to keep tools and automations working');
     await expand(user);
     expect(screen.getByRole('button', { name: 'Reconnect' })).toBeTruthy();
 });

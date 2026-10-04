@@ -68,10 +68,10 @@ function FormulaSwitch({ shown, emit }: { shown: EditableText; emit: (next: Edit
             <Segmented
                 value={shown.formula ? 'formula' : 'text'}
                 onChange={(next) => emit(next === 'formula' ? toFormula(shown.text, shown) : (flat ?? shown))}
-                accessibilityLabel={t('routines.builder.mode_group', 'Value mode')}
+                accessibilityLabel={t('automations.builder.mode_group', 'Value mode')}
                 options={[
-                    { value: 'text', label: t('routines.builder.mode_text_word', 'Text'), disabled: !flat },
-                    { value: 'formula', label: t('routines.builder.mode_formula_word', 'Formula') },
+                    { value: 'text', label: t('automations.builder.mode_text_word', 'Text'), disabled: !flat },
+                    { value: 'formula', label: t('automations.builder.mode_formula_word', 'Formula') },
                 ]}
             />
         </View>
@@ -87,8 +87,8 @@ function InsertData({ onPress, testID }: { onPress: () => void; testID?: string 
                 size="sm"
                 variant="ghost"
                 iconName="Plus"
-                label={t('routines.builder.insert_data_word', 'Insert data')}
-                accessibilityHint={t('routines.builder.insert_from_step', 'Insert data from a previous step')}
+                label={t('automations.builder.insert_data_word', 'Insert data')}
+                accessibilityHint={t('automations.builder.insert_from_step', 'Insert data from a previous step')}
                 onPress={onPress}
                 testID={testID}
             />
@@ -126,12 +126,12 @@ export function BindingInput(props: BindingInputProps) {
     const t = useTranslation();
     const picker = useVariablePicker();
     const { shown, emit, insert, latestInsert, onSelection, caret } = useBindingText(value, mode, onChange);
-    const name = label ?? t('routines.builder.value_word', 'Value');
+    const name = label ?? t('automations.builder.value_word', 'Value');
     const onFocus = useActiveField(picker, name, latestInsert);
 
     const expression = shown.formula || mode === 'path' || mode === 'expression';
     const openPicker = () =>
-        picker.open({ list: props.list, title: t('routines.builder.pick_data_for', 'Pick data for {field}', { field: name }), onPick: insert });
+        picker.open({ list: props.list, title: t('automations.builder.pick_data_for', 'Pick data for {field}', { field: name }), onPick: insert });
     const editable = !disabled;
     const { formulaSwitch, adjustable, note } = chromeOf(mode, Boolean(props.textOnly), picker.simple, shown);
     const id = (suffix: string) => (testID ? `${testID}-${suffix}` : undefined);

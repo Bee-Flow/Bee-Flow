@@ -58,7 +58,7 @@ have none of their own yet; those link to the closest page.
 
 -    [Automations](../features/automations.md)
 
-    Multi-step routines that run for you — on a schedule, on an event, or when someone asks.
+    Multi-step automations that run for you — on a schedule, on an event, or when someone asks.
 
 -    [Datatables](datatables.md)
 
@@ -74,7 +74,7 @@ have none of their own yet; those link to the closest page.
 
 -    [Forms](forms.md)
 
-    Every form published in the organisation: is it live, is anything coming in, which routine is behind it.
+    Every form published in the organisation: is it live, is anything coming in, which automation is behind it.
 
 -    [Agents](agent-designer.md)
 
@@ -94,11 +94,11 @@ have none of their own yet; those link to the closest page.
 
 -    [Solutions](solutions.md)
 
-    Bundle routines, apps and webpages into one installable Blueprint.
+    Bundle automations, apps and webpages into one installable Blueprint.
 
 -    [Runs & log](runs.md)
 
-    Every time a routine fired, and what happened.
+    Every time an automation fired, and what happened.
 
 -    [Approvals](approvals.md)
 
@@ -106,9 +106,9 @@ have none of their own yet; those link to the closest page.
 
 </div>
 
-Automations answer to `/app/studio/automations`; the older `/app/studio/routines` and
+Automations answer to `/app/studio/automations`; the older `/app/studio/automations` and
 `/app/studio/ai-tasks` addresses still resolve there, and the legacy standalone page at
-`/app/routines` still opens the same builder.
+`/app/automations` still opens the same builder.
 
 ### Nearby, but not Studio sections
 
@@ -169,5 +169,5 @@ agents people here published — not a public marketplace.
 
 - [Studio → Knowledge bases](knowledge-bases.md) — connecting sources to agents.
 - [Features → Automations](../features/automations.md) — scheduled and event-driven
-  routines.
+  automations.
 - [Licensing → Tiers](../licensing/tiers.md) — which sections your plan unlocks.

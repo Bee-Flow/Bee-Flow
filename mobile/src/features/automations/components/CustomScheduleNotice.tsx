@@ -27,7 +27,7 @@ export function CustomScheduleNotice({ cron, tz, onReplace }: { cron: string; tz
             <Banner tone="info" icon="Clock">
                 {t(
                     'mobile.automations.custom_schedule',
-                    'This routine runs on a custom pattern this picker cannot show. To change the pattern itself, open the trigger in the flow editor.',
+                    'This automation runs on a custom pattern this picker cannot show. To change the pattern itself, open the trigger in the flow editor.',
                 )}
             </Banner>
             <View style={styles.code}>

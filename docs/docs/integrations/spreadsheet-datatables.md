@@ -4,7 +4,7 @@ title: Spreadsheet files as datatables
 
 # Spreadsheet files as datatables
 
-A datatable can be **a spreadsheet from your files**: one worksheet of an Excel file, a CSV file or a Google Sheet that lives in **Google Drive**, **OneDrive** or **Nextcloud Files**. The rows are copied into a real datatable and kept in step with the file, like the [Nextcloud Tables mirror](nextcloud-tables.md); rows changed in Bee Flow are written into the file first. Routines, apps, knowledge bases and pages then use it like any other table.
+A datatable can be **a spreadsheet from your files**: one worksheet of an Excel file, a CSV file or a Google Sheet that lives in **Google Drive**, **OneDrive** or **Nextcloud Files**. The rows are copied into a real datatable and kept in step with the file, like the [Nextcloud Tables mirror](nextcloud-tables.md); rows changed in Bee Flow are written into the file first. Automations, apps, knowledge bases and pages then use it like any other table.
 
 | | |
 |---|---|
@@ -39,7 +39,7 @@ A re-check is cheap: only the file's **version marker** is asked for (a Nextclou
 | Storage | Re-check while open | Ticker | Push |
 |---|---|---|---|
 | **Nextcloud Files** | every 5 s | every minute | Yes — the connector forwards `file.changed`, `file.new`, `file.renamed`, `file.deleted`, `file.restored` and `file.copied` from Nextcloud's `webhook_listeners`. Nextcloud delivers those through its **cron**, so a push can be minutes late unless the instance runs a dedicated webhook worker; never rely on it alone. A rename **by the account that linked the file** re-points the table to the new path; a rename by anyone else, or a delete, makes the next refresh report `spreadsheet_not_found` until an owner re-links (*Re-read the columns* / relink can point the table at the moved file). |
-| **OneDrive** | every 5 s | every minute | Only as a hint: when the linking account has a routine with a OneDrive **file trigger**, the Graph notification that routine already receives also makes every table that account linked in OneDrive re-check now. Without such a routine there is no push — the 5 s re-check and the ticker are the guarantee. |
+| **OneDrive** | every 5 s | every minute | Only as a hint: when the linking account has an automation with a OneDrive **file trigger**, the Graph notification that automation already receives also makes every table that account linked in OneDrive re-check now. Without such an automation there is no push — the 5 s re-check and the ticker are the guarantee. |
 | **Google Drive** | every 5 s | every minute | None. Drive's change notifications need a verified domain, so Google Sheets and files in Drive rely on the re-check and the ticker only — a change in the file shows within seconds while the table is open, within a minute otherwise. |
 
 ## Key column or row number
@@ -53,7 +53,7 @@ A key column that disappears from the header (renamed, removed) makes the table 
 
 ## Writing back
 
-A row added, changed or deleted in Bee Flow — in the Studio, a routine's *Datatable* step, an App Studio action, a page, a bulk import — is written into the **file first**; the copy is refreshed from what the file answered. Before every write the file's marker is compared with the one the last refresh saw: when the file changed in between, **nothing is written**, the copy is refreshed and the caller gets `spreadsheet_conflict` (try again). Several tables linked to sheets of one workbook take turns on that file.
+A row added, changed or deleted in Bee Flow — in the Studio, an automation's *Datatable* step, an App Studio action, a page, a bulk import — is written into the **file first**; the copy is refreshed from what the file answered. Before every write the file's marker is compared with the one the last refresh saw: when the file changed in between, **nothing is written**, the copy is refreshed and the caller gets `spreadsheet_conflict` (try again). Several tables linked to sheets of one workbook take turns on that file.
 
 | Format · storage | Mode | What is kept | What is lost |
 |---|---|---|---|
@@ -65,7 +65,7 @@ A row added, changed or deleted in Bee Flow — in the Studio, a routine's *Data
 
 Formula columns are read (their computed value) and never written: a write into one is refused with `derived_column`. Derived *match* columns are refused the same way.
 
-A **text** value that a spreadsheet would read as a formula — one starting with `=`, `+`, `-` or `@` (a phone number such as `+31 6 …`, a pasted `=SUM(…)`) — is always stored as **text**: Sheets and the Excel workbook API type the cell as text, an `.xlsx` edited in place stores it as a string, and a `.csv` gets it with a leading apostrophe (`'+31 6 …`, what Excel shows; Bee Flow reads the value without it). Rows come from routines, actions and public forms as well as from the file's owner, and a file that runs a formula when it is double-clicked is not one Bee Flow writes. Number, date and yes/no columns are never touched by this: `-5` in a number column is a number.
+A **text** value that a spreadsheet would read as a formula — one starting with `=`, `+`, `-` or `@` (a phone number such as `+31 6 …`, a pasted `=SUM(…)`) — is always stored as **text**: Sheets and the Excel workbook API type the cell as text, an `.xlsx` edited in place stores it as a string, and a `.csv` gets it with a leading apostrophe (`'+31 6 …`, what Excel shows; Bee Flow reads the value without it). Rows come from automations, actions and public forms as well as from the file's owner, and a file that runs a formula when it is double-clicked is not one Bee Flow writes. Number, date and yes/no columns are never touched by this: `-5` in a number column is a number.
 
 ### Files that are not yours
 

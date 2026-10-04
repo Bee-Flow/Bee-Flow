@@ -85,18 +85,18 @@ function listRemedies(p: string, sampleRoot: unknown, opts: ForEachOpts): Remedi
     const b = bindingsForList(p, { separator: NEWLINE });
     const n = shape?.count ?? list.length;
     const primary: Remedy[] = [
-        { id: 'join', binding: b.join, labelKey: 'routines.mismatch.choice_lines', labelEn: 'All of them, one per line', preview: joinedPreview(list, ' / ', true) },
-        { id: 'first', binding: b.first, labelKey: 'routines.mismatch.choice_first', labelEn: 'Only the first', preview: list.length ? show(list[0]) : null },
-        { id: 'count', binding: b.count, labelKey: 'routines.mismatch.choice_count', labelEn: 'Only the count ({n})', labelParams: { n }, preview: String(n) },
+        { id: 'join', binding: b.join, labelKey: 'automations.mismatch.choice_lines', labelEn: 'All of them, one per line', preview: joinedPreview(list, ' / ', true) },
+        { id: 'first', binding: b.first, labelKey: 'automations.mismatch.choice_first', labelEn: 'Only the first', preview: list.length ? show(list[0]) : null },
+        { id: 'count', binding: b.count, labelKey: 'automations.mismatch.choice_count', labelEn: 'Only the count ({n})', labelParams: { n }, preview: String(n) },
     ];
     if (opts.allowForEach) {
-        primary.push(forEachRemedy({ p, sampleRoot, shape }, opts, { key: 'routines.mismatch.choice_foreach', en: 'A separate run for each item' }));
+        primary.push(forEachRemedy({ p, sampleRoot, shape }, opts, { key: 'automations.mismatch.choice_foreach', en: 'A separate run for each item' }));
     }
     const more: Remedy[] = [
-        { id: 'join_comma', binding: bindingsForList(p, { separator: ', ' }).join, labelKey: 'routines.mismatch.choice_comma', labelEn: 'All of them, comma separated', preview: joinedPreview(list, ', ', false) },
-        { id: 'last', binding: b.last, labelKey: 'routines.mismatch.choice_last', labelEn: 'Only the last', preview: list.length ? show(list[list.length - 1]) : null },
+        { id: 'join_comma', binding: bindingsForList(p, { separator: ', ' }).join, labelKey: 'automations.mismatch.choice_comma', labelEn: 'All of them, comma separated', preview: joinedPreview(list, ', ', false) },
+        { id: 'last', binding: b.last, labelKey: 'automations.mismatch.choice_last', labelEn: 'Only the last', preview: list.length ? show(list[list.length - 1]) : null },
         // The one correct answer when the slot really does take a list.
-        { id: 'each', binding: b.each, labelKey: 'routines.mismatch.choice_each', labelEn: 'Keep the whole list', preview: null },
+        { id: 'each', binding: b.each, labelKey: 'automations.mismatch.choice_each', labelEn: 'Keep the whole list', preview: null },
     ];
     return { shape, count: n, primary, more, defaultId: 'join' };
 }
@@ -116,18 +116,18 @@ function groupRemedies(p: string, sampleRoot: unknown): Remedies {
     const fieldRemedy = (key: string): Remedy => ({
         id: `field:${key}`,
         binding: { kind: 'ref', path: joinKeyPath(p, key) },
-        labelKey: 'routines.mismatch.choice_field', labelEn: '{field}', labelParams: { field: humanizeFieldTail(key) },
+        labelKey: 'automations.mismatch.choice_field', labelEn: '{field}', labelParams: { field: humanizeFieldTail(key) },
         preview: show(obj[key]),
     });
     const first = keys[0];
     const summary: Remedy = {
         id: 'summary', binding: { kind: 'expr', value: `groupSummary(${p})` },
-        labelKey: 'routines.mismatch.choice_summary', labelEn: 'The whole group, as a readable summary',
+        labelKey: 'automations.mismatch.choice_summary', labelEn: 'The whole group, as a readable summary',
         preview: first !== undefined ? `${humanizeFieldTail(first)}: ${show(obj[first])}…` : null,
     };
     const whole: Remedy = {
         id: 'each', binding: { kind: 'ref', path: p },
-        labelKey: 'routines.mismatch.choice_whole_group', labelEn: 'Use the whole group as it is', preview: null,
+        labelKey: 'automations.mismatch.choice_whole_group', labelEn: 'Use the whole group as it is', preview: null,
     };
     return {
         shape: null,
@@ -147,16 +147,16 @@ function tableRemedies(p: string, sampleRoot: unknown, opts: ForEachOpts): Remed
     const cols = firstRow ? Object.keys(firstRow) : [];
     const b = bindingsForList(p);
     const primary: Remedy[] = [
-        { id: 'table', binding: { kind: 'expr', value: `asTable(${p})` }, labelKey: 'routines.mismatch.choice_as_table', labelEn: 'As a table', preview: cols.length ? cols.slice(0, 4).map(humanizeFieldTail).join(' | ') : null },
-        { id: 'count', binding: b.count, labelKey: 'routines.mismatch.choice_rows', labelEn: 'Only how many rows ({n})', labelParams: { n }, preview: String(n) },
+        { id: 'table', binding: { kind: 'expr', value: `asTable(${p})` }, labelKey: 'automations.mismatch.choice_as_table', labelEn: 'As a table', preview: cols.length ? cols.slice(0, 4).map(humanizeFieldTail).join(' | ') : null },
+        { id: 'count', binding: b.count, labelKey: 'automations.mismatch.choice_rows', labelEn: 'Only how many rows ({n})', labelParams: { n }, preview: String(n) },
     ];
     if (opts.allowForEach) {
-        primary.push(forEachRemedy({ p, sampleRoot, shape }, opts, { key: 'routines.mismatch.choice_foreach_row', en: 'A separate run for each row' }));
+        primary.push(forEachRemedy({ p, sampleRoot, shape }, opts, { key: 'automations.mismatch.choice_foreach_row', en: 'A separate run for each row' }));
     }
     const more: Remedy[] = [
-        { id: 'first', binding: b.first, labelKey: 'routines.mismatch.choice_first_row', labelEn: 'Only the first row', preview: rows.length ? show(rows[0]) : null },
-        { id: 'summary', binding: { kind: 'expr', value: `groupSummary(${p})` }, labelKey: 'routines.mismatch.choice_summary_rows', labelEn: 'One readable block per row', preview: null },
-        { id: 'each', binding: b.each, labelKey: 'routines.mismatch.choice_keep_table', labelEn: 'Keep the whole table', preview: null },
+        { id: 'first', binding: b.first, labelKey: 'automations.mismatch.choice_first_row', labelEn: 'Only the first row', preview: rows.length ? show(rows[0]) : null },
+        { id: 'summary', binding: { kind: 'expr', value: `groupSummary(${p})` }, labelKey: 'automations.mismatch.choice_summary_rows', labelEn: 'One readable block per row', preview: null },
+        { id: 'each', binding: b.each, labelKey: 'automations.mismatch.choice_keep_table', labelEn: 'Keep the whole table', preview: null },
     ];
     return { shape, count: n, primary, more, defaultId: 'table' };
 }
@@ -188,16 +188,16 @@ export function mismatchSentence(
     const tr = translatorOr(t);
     const params = { actual: kindWord(actualKind, 'unknown', tr), expected: kindWord(expectedKind, 'text', tr) };
     if (actualKind === 'group') {
-        return tr('routines.mismatch.group_into_one', 'is a {actual}, this needs one {expected}. Pick a field inside it.', params);
+        return tr('automations.mismatch.group_into_one', 'is a {actual}, this needs one {expected}. Pick a field inside it.', params);
     }
     if (actualKind === 'table') {
         return count != null
-            ? tr('routines.mismatch.table_into_one_n', 'is a {actual} of {n} rows, this needs one {expected}. It can go in as a table.', { ...params, n: count })
-            : tr('routines.mismatch.table_into_one', 'is a {actual}, this needs one {expected}. It can go in as a table.', params);
+            ? tr('automations.mismatch.table_into_one_n', 'is a {actual} of {n} rows, this needs one {expected}. It can go in as a table.', { ...params, n: count })
+            : tr('automations.mismatch.table_into_one', 'is a {actual}, this needs one {expected}. It can go in as a table.', params);
     }
     return count != null
-        ? tr('routines.mismatch.list_into_one_n', 'is a {actual} of {n}, this needs one {expected}. What do you want?', { ...params, n: count })
-        : tr('routines.mismatch.list_into_one', 'is a {actual}, this needs one {expected}. What do you want?', params);
+        ? tr('automations.mismatch.list_into_one_n', 'is a {actual} of {n}, this needs one {expected}. What do you want?', { ...params, n: count })
+        : tr('automations.mismatch.list_into_one', 'is a {actual}, this needs one {expected}. What do you want?', params);
 }
 
 /** The kind a picked path resolves to right now (for the gate). */

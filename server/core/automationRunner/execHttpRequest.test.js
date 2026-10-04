@@ -312,7 +312,7 @@ test('a non-JSON response gains nothing — its output is what it always was', a
 });
 
 test('a JSON content-type with a malformed body does not throw and adds no data', async () => {
-    // Someone else's server returning nonsense must not stop the routine.
+    // Someone else's server returning nonsense must not stop the automation.
     safeFetchImpl = async () => fakeResponse({ status: 200, headers: { 'content-type': 'application/json' }, body: '{"a":1' });
     const { output } = await execHttpRequest({ id: 'h1', type: 'http_request', url: 'https://x.test/' }, {}, baseState(), 'live');
     assert.strictEqual(output.body, '{"a":1');

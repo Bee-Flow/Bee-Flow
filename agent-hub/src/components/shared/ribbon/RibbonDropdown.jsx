@@ -25,7 +25,7 @@ import useCmdTip from './useCmdTip';
  * without a tip they were the only commands on the ribbon that explained
  * nothing — hovering "Nextcloud Talk" told you no more than reading it did.
  *
- * `buttonProps` land on the pill <button> itself — the routines ribbon stamps
+ * `buttonProps` land on the pill <button> itself — the automations ribbon stamps
  * `data-ribbon-origin` there so the build film can find the pill a card flies
  * from. Spread BEFORE the hover props, so nothing a caller passes can unhook
  * the screen tip.

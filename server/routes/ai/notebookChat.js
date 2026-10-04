@@ -26,7 +26,7 @@ const { NOTEBOOK_DOC_TOOLS, NOTEBOOK_ADD_SOURCE_TOOL, executeNotebookDocTool } =
 const { htmlToMarkdown } = require('../../core/markdown');
 const { AGENT_SEARCH_TOOLS, isAgentSearchTool } = require('../../integrations/agentSearchTools');
 const { runAgentSearchWithEgress } = require('../../integrations/agentSearchEgress');
-const { searchNotebookKB, executeNotebookKBSearchTool, NOTEBOOK_KB_SEARCH_TOOL } = require('../../core/kb/notebookKnowledgeSearch');
+const { searchNotebookKB, findSourceForChunk, executeNotebookKBSearchTool, NOTEBOOK_KB_SEARCH_TOOL } = require('../../core/kb/notebookKnowledgeSearch');
 const { emitPhase, emitPhaseEnd, startPrivacyScanPhase, messageText } = require('../../core/agentRuntime/phaseEvents');
 const { checkSubscriptionLimits } = require('../../core/entitlements/limits');
 
@@ -303,24 +303,17 @@ router.post('/chat/notebook/stream', requireAuth, validate({ body: NotebookTurnB
                     // The tenant the notebook's chunks are stored under: its owner's.
                     userId: notebook.userId, kbIds, query: message,
                     options: { topK: 10, rerank: true, minScore: 0.2 },
+                    // Chunks carry the source id; the prompt and chips show its name.
+                    sources: readySources,
                 });
 
                 if (kbResult.chunks.length > 0) {
-                    // Resolve source names for citation display
-                    const sourceNameMap = {};
-                    readySources.forEach(s => {
-                        sourceNameMap[s.name] = s.name;
-                        sourceNameMap[s.id] = s.name;
-                    });
+                    // searchNotebookKB already mapped each chunk to its source by id
+                    // (exact). What is left is a title that matched no source id, e.g.
+                    // a hit from a base attached by hand: fuzzy-match those only.
                     const resolveSourceName = (rawTitle) => {
                         if (!rawTitle) return 'Unknown Source';
-                        if (sourceNameMap[rawTitle]) return sourceNameMap[rawTitle];
-                        const basename = rawTitle.split('/').pop();
-                        if (sourceNameMap[basename]) return sourceNameMap[basename];
-                        for (const [key, name] of Object.entries(sourceNameMap)) {
-                            if (rawTitle.includes(key) || key.includes(rawTitle)) return name;
-                        }
-                        return rawTitle;
+                        return findSourceForChunk({ title: rawTitle }, readySources)?.name || rawTitle;
                     };
 
                     citationSources = kbResult.citations.map(c => ({
@@ -511,7 +504,7 @@ ${sourceSummary}
 
 CRITICAL INSTRUCTIONS:
 1. ALWAYS ground your responses in the notebook's sources when relevant context is available.
-2. Use inline citations like [Source 1], [Source 2] when referencing specific information from the knowledge base.
+2. When you use specific information from the knowledge base, name the source it comes from (e.g. according to "Report.pdf"). The app shows the cited passages as source chips under your answer on its own. Never use numeric references such as [1] or [Source 1].
 3. If the user asks about something not covered in the sources, clearly state that and provide general knowledge with a disclaimer.
 4. Be comprehensive but concise. Synthesize information across multiple sources when applicable.
 5. If asked to summarize, compare, or analyze — draw from ALL relevant sources.
@@ -541,7 +534,7 @@ DOCUMENT RULES — FOLLOW STRICTLY:
 4. When asked to write, create, or draft something: write it via notebook_doc_write — don't just reply in chat.
 5. The user's message may include selected document text — pass it verbatim as find_text.
 6. After applying a change, briefly confirm what you did (e.g. "I've shortened that paragraph").
-7. For source citations use clickable [Source name](url) links — never [1]-style refs.
+7. In the document, cite a source by its name in plain text (or as a [Source name](url) link only when you really know its URL) — never [1]-style refs.
 8. STYLE CONSISTENCY: when replacing, match the original formatting — don't promote a paragraph to a heading unless asked.
 
 ${searchAvailable ? `[WEB SEARCH & SOURCES]
@@ -950,7 +943,7 @@ Now: ${formatLocalNow(timezone)}`;
             }
             if (toolName === 'notebook_add_source') {
                 if (!canWrite) return { error: VIEWER_WRITE_REFUSAL };
-                const { ingestTextSource } = require('../../agents/notebooks/sourceIngestion');
+                const { ingestTextSource, MAX_SOURCE_TEXT_CHARS, MAX_SOURCES_PER_NOTEBOOK } = require('../../agents/notebooks/sourceIngestion');
                 const sourceName = toolArgs.name || 'AI Research';
                 // The model may echo tokens (`[person_1]`) in the content it asks us
                 // to save as a new source. Restore to real values before ingest so the
@@ -961,6 +954,8 @@ Now: ${formatLocalNow(timezone)}`;
                 const sourceContent = restoreTokens(toolArgs.content || '', _srcMap);
                 const sourceMeta = toolArgs.metadata || {};
                 if (!sourceContent.trim()) return { error: 'Content is required to add a source.' };
+                if (sourceContent.length > MAX_SOURCE_TEXT_CHARS) return { error: `That text is too long to add as one source (over ${MAX_SOURCE_TEXT_CHARS.toLocaleString('en-US')} characters). Add it in smaller parts.` };
+                if (await notebookStore.countSources(notebookId) >= MAX_SOURCES_PER_NOTEBOOK) return { error: `This notebook already holds the maximum of ${MAX_SOURCES_PER_NOTEBOOK} sources. Ask the user to remove some first.` };
                 const source = await notebookStore.addSource({
                     notebookId, type: 'text', name: sourceName, metadata: sourceMeta,
                     wordCount: countWords(sourceContent),
@@ -973,7 +968,7 @@ Now: ${formatLocalNow(timezone)}`;
                 return { success: true, message: `Source "${sourceName}" added and indexing.`, sourceId: source.id };
             }
             if (toolName === 'notebook_kb_search') {
-                return await executeNotebookKBSearchTool(toolArgs, notebook.userId, kbIds);
+                return await executeNotebookKBSearchTool(toolArgs, notebook.userId, kbIds, readySources);
             }
             if (isAgentSearchTool(toolName)) {
                 return await runAgentSearchWithEgress(toolName, toolArgs, {

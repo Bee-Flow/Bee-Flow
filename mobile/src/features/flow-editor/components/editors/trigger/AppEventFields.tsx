@@ -76,7 +76,7 @@ export function AppEventFields(editor: StepEditorProps) {
     return (
         <>
             <SelectField
-                label={t('routines.versions.setting.provider', 'App')}
+                label={t('automations.versions.setting.provider', 'App')}
                 value={provider}
                 options={providerOptions(defs, provider, t)}
                 onChange={(next) => setMany(pickProvider(defs, next))}
@@ -93,7 +93,7 @@ export function AppEventFields(editor: StepEditorProps) {
                 </Warn>
             ) : null}
             <SelectField
-                label={t('routine_editor.trigger.event', 'Event')}
+                label={t('automation_editor.trigger.event', 'Event')}
                 value={event}
                 options={eventOptions(def, event, t)}
                 onChange={(next) => setMany(pickEvent(next))}

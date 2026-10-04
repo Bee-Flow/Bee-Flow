@@ -44,14 +44,14 @@ function Paging({ position, onPage, styles }: { position: FlowPosition; onPage: 
         <View style={styles.paging}>
             <IconButton
                 icon={<Icon name="ChevronUp" size={18} color={glyph(!!position.prevId)} />}
-                accessibilityLabel={t('routines.ndv.prev_step', 'Previous step')}
+                accessibilityLabel={t('automations.ndv.prev_step', 'Previous step')}
                 disabled={!position.prevId}
                 onPress={() => position.prevId && onPage(position.prevId)}
                 testID="step-prev"
             />
             <IconButton
                 icon={<Icon name="ChevronDown" size={18} color={glyph(!!position.nextId)} />}
-                accessibilityLabel={t('routines.ndv.next_step', 'Next step')}
+                accessibilityLabel={t('automations.ndv.next_step', 'Next step')}
                 disabled={!position.nextId}
                 onPress={() => position.nextId && onPage(position.nextId)}
                 testID="step-next"
@@ -99,8 +99,8 @@ export function StepHeader({ step, title, kicker, position, onPage, onRename, on
                 ) : (
                     <IconButton
                         icon={<Icon name="Play" size={18} color={styles.accent.color} />}
-                        accessibilityLabel={t('routines.ndv.test_step', 'Test step')}
-                        accessibilityHint={t('routines.ndv.execute_title', 'Execute this step only (uses upstream replay / pinned data)')}
+                        accessibilityLabel={t('automations.ndv.test_step', 'Test step')}
+                        accessibilityHint={t('automations.ndv.execute_title', 'Execute this step only (uses upstream replay / pinned data)')}
                         onPress={onTest}
                         testID="step-test"
                     />

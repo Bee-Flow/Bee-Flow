@@ -239,7 +239,7 @@ function syncError(status, message, code) {
 
 /**
  * When should this connector run again? A cron schedule is resolved with the
- * SAME parser the routine scheduler uses, so a schedule the editor accepted is
+ * SAME parser the automation scheduler uses, so a schedule the editor accepted is
  * one this can actually compute.
  */
 /**

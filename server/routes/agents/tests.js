@@ -23,11 +23,11 @@
  * things away:
  *   `ephemeral: true`   nothing is written to a conversation;
  *   `testSandbox: true` toolStackAssembly drops everything that sends, every
- *                       routine, and everything that would ask for approval;
+ *                       automation, and everything that would ask for approval;
  *   `unattended: true`  the existing headless rule, so a curated agent's
  *                       confirm-tools are dropped by the policy as well.
  * `autoSend` is passed as an explicit `false`. It is the flag that turns a
- * draft into a real send for headless routines, and `unattended` alone is
+ * draft into a real send for headless automations, and `unattended` alone is
  * enough to get the drop — writing it out means nobody can add it here by
  * reflex later.
  *
@@ -691,7 +691,7 @@ async function runOneTest({ agentId, test, userId, userAuth, orgId, timezone, si
                 testSandbox: true,
                 unattended: true,
                 // Never. This is the flag that turns a composed mail into a
-                // sent one for headless routines.
+                // sent one for headless automations.
                 autoSend: false,
                 userOrgId: userAuth?.userOrgId || null,
                 orgId: orgId || null,

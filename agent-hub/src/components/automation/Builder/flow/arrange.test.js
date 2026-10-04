@@ -101,7 +101,7 @@ describe('arrangeDefinition', () => {
 
         it('reads every row left to right, like text', () => {
             // Ploughing the second row backwards gives shorter connectors, and
-            // it puts step 10 to the left of step 6. On a numbered routine that
+            // it puts step 10 to the left of step 6. On a numbered automation that
             // is unreadable, so each row carriage-returns instead.
             const out = arrangeDefinition(chain(9), narrow);
             const nodes = [trigger(), ...out.steps].map(s => ({

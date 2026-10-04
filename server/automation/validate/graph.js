@@ -62,12 +62,12 @@ function checkScheduleTrigger(trigger, base, pushE) {
     // rejecting them ("99 * * * *" yields an empty minute set) and an
     // impossible calendar date ("0 0 31 2 *") is legal syntax — either way
     // nextRunAt returns null, the row is stored with next_run_at = NULL, and
-    // the routine sits "active" without a single run. Ask the same question
+    // the automation sits "active" without a single run. Ask the same question
     // the scheduler will: is there a next occurrence at all?
     if (!parsed) return;
     try {
         if (nextScheduledRunAt(cron, tz, Date.now(), { skipHolidays: skipHolidays === true }) === null) {
-            pushE({ code: 'trigger.schedule_never_fires', severity: 'error', path: `${base}.schedule.cron`, message: `Schedule "${cron}" has no run time in the next year — this routine would never fire.`, hint: 'Check the day/month combination (e.g. 31 February) and that every value is in range: minute 0-59, hour 0-23, day 1-31, month 1-12, weekday 0-6.' });
+            pushE({ code: 'trigger.schedule_never_fires', severity: 'error', path: `${base}.schedule.cron`, message: `Schedule "${cron}" has no run time in the next year — this automation would never fire.`, hint: 'Check the day/month combination (e.g. 31 February) and that every value is in range: minute 0-59, hour 0-23, day 1-31, month 1-12, weekday 0-6.' });
         }
     } catch (e) {
         // The only thing left that can throw here is the timezone:
@@ -252,13 +252,13 @@ function validateGraph(graph, pathPrefix, opts) {
             for (const issue of validateAppTriggerParams(trigger.params)) {
                 pushE({ code: `app_trigger.${issue.code}`, severity: 'error', path: p(`trigger.${issue.path}`), message: issue.message, hint: issue.hint });
             }
-            // The back-pointer to the button this routine was made from
+            // The back-pointer to the button this automation was made from
             // ({ appId, screenId, nodeId }). Absent is legal; a HALF-written
             // one is not — it would render as "<app> · " with nothing after
             // it, and nothing downstream could tell that apart from an app
             // whose screen was deleted. Shape only: whether the ids still
             // resolve is a per-viewer question (appStudio/appRefLookup.js),
-            // and a routine must not become unsaveable because someone else
+            // and an automation must not become unsaveable because someone else
             // deleted a screen.
             for (const issue of validateAppTriggerRef(trigger.appRef)) {
                 pushE({ code: `app_trigger.${issue.code}`, severity: 'error', path: p(`trigger.${issue.path}`), message: issue.message, hint: issue.hint });
@@ -275,7 +275,7 @@ function validateGraph(graph, pathPrefix, opts) {
         }
         // schedule: the cron IS the trigger. Until now nothing checked it here
         // at all, so `{ kind: 'schedule' }` with no cron sailed through the
-        // draft AND the strict pass. Activated, that routine gets
+        // draft AND the strict pass. Activated, that automation gets
         // trigger_type='schedule' with schedule_cron=NULL (see
         // triggerColumns.js) — claimDueAutomations selects on trigger_type +
         // next_run_at only, and the runner's post-run advance is gated on the
@@ -324,7 +324,7 @@ function validateGraph(graph, pathPrefix, opts) {
     // A provider/event nothing on this install declares can never fire either,
     // but it stays a WARNING and is deliberately not completeness-listed:
     // declarations are per-install, and importing an automation onto a box that
-    // does not have that integration yet must not be blocked — the routine
+    // does not have that integration yet must not be blocked — the automation
     // starts working the moment the integration is added.
     if (scope === 'root' && trigger.kind === 'app_event'
         && trigger.appEvent?.provider && trigger.appEvent?.event) {
@@ -354,7 +354,7 @@ function validateGraph(graph, pathPrefix, opts) {
         }
     }
     // An app_event trigger with no provider/event can NEVER fire: the
-    // subscription sync silently skips it, so the routine activated green and
+    // subscription sync silently skips it, so the automation activated green and
     // then did nothing, with no diagnostic anywhere (C6). Completeness-listed:
     // a freshly-dropped trigger node has no appEvent yet and must stay
     // draft-saveable.
@@ -475,7 +475,7 @@ function validateGraph(graph, pathPrefix, opts) {
     // and hands back its last step's raw output, but a custom node is picked
     // from a palette and bound to BY FIELD NAME — with nothing declared the
     // binding picker has no rows, every `steps.<id>.output.<field>` downstream
-    // resolves to undefined, and the routine saves, runs green and writes
+    // resolves to undefined, and the automation saves, runs green and writes
     // nothing. Its capability manifest is checked here too, because the reach
     // of a code body is a tool name inside a string and the graph cannot see
     // it; codeSandbox enforces exactly these names at run time, so a manifest
@@ -577,7 +577,7 @@ function validateGraph(graph, pathPrefix, opts) {
             pushW({ code: 'edge.color_unknown', severity: 'warning', path: at + '.color', message: `Edge ${e.from} → ${e.to} has unknown colour ${JSON.stringify(e.color)} — the builder will show the default line colour.`, hint: `Use one of: ${[...EDGE_COLOR_KEYS].join(', ')}, or remove the color field.` });
         }
     }
-    // piiLineColors — the routine's PII group → colour overrides (Lines
+    // piiLineColors — the automation's PII group → colour overrides (Lines
     // panel). Same posture as edge.color: cosmetic, values must be palette
     // keys, anything else falls back to the default colour with a warning.
     if (graph.piiLineColors !== undefined) {

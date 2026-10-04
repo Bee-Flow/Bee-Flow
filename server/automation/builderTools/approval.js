@@ -112,7 +112,7 @@ function normalizeApprovalConfig(raw) {
             if (!seats.length) continue;           // a stage nobody sits in can never be decided
             const rule = STAGE_RULES.includes(raw.rule) ? raw.rule : 'all';
             // Keys are what already-cast votes are filed under, so an
-            // author-supplied one is preserved verbatim: re-saving a routine
+            // author-supplied one is preserved verbatim: re-saving an automation
             // mid-approval must not orphan the votes of a stage that already
             // ran. Only a collision or an absence gets a fresh positional key.
             let key = (typeof raw.key === 'string' && raw.key.trim()) ? raw.key.trim().slice(0, 40) : '';

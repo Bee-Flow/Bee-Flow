@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useId, useMemo, useRef, useState } from 'react';
 import { Search, ChevronDown, ChevronRight, Plus, Layers } from 'lucide-react';
 import IntegrationLogo from './nodes/IntegrationLogo';
 import { buildStepGroups, buildSearchResults, gated } from './stepPalette';
@@ -204,6 +204,7 @@ function ItemIcon({ item, size = 18 }) {
  * of the description.
  */
 function SimpleRow({ item, onAdd }) {
+    const descId = useId();
     const disabled = !!item.disabled;
     const add = () => { if (!disabled) onAdd(item.payload); };
     return (
@@ -211,6 +212,10 @@ function SimpleRow({ item, onAdd }) {
             {...(disabled ? null : stepDragProps(item.payload))}
             onClick={add}
             role="button"
+            // The name is the step's name; the description (or the reason it
+            // is disabled) is the description, not part of what the row is called.
+            aria-label={item.label}
+            aria-describedby={disabled || item.desc ? descId : undefined}
             aria-disabled={disabled || undefined}
             tabIndex={0}
             title={disabled ? item.disabledReason : undefined}
@@ -233,8 +238,8 @@ function SimpleRow({ item, onAdd }) {
             <div className="min-w-0 flex-1">
                 <div className="text-sm font-medium text-[var(--text-primary)] truncate">{item.label}</div>
                 {disabled
-                    ? <div className="text-xs text-[var(--text-tertiary)] italic line-clamp-2">{item.disabledReason}</div>
-                    : item.desc && <div className="text-xs text-[var(--text-tertiary)] line-clamp-2">{item.desc}</div>}
+                    ? <div id={descId} className="text-xs text-[var(--text-tertiary)] italic line-clamp-2">{item.disabledReason}</div>
+                    : item.desc && <div id={descId} className="text-xs text-[var(--text-tertiary)] line-clamp-2">{item.desc}</div>}
             </div>
         </div>
     );
@@ -340,6 +345,7 @@ function AppRow({ app, isOpen, onToggle, onAdd }) {
  * carries instructions written at the model rather than at the author.
  */
 function ActionRow({ action, labels, onAdd }) {
+    const descId = useId();
     // The payload keeps the catalog's full label — the node it creates sits on
     // a canvas with no app row above it to say which app this came from.
     const payload = { kind: 'integration_action', tool: action.tool, label: action.label, appId: action.integrationId, sideEffect: action.sideEffect };
@@ -352,6 +358,8 @@ function ActionRow({ action, labels, onAdd }) {
             {...stepDragProps(payload)}
             onClick={() => onAdd(payload)}
             role="button"
+            aria-label={shown}
+            aria-describedby={hasDistinctDesc ? descId : undefined}
             tabIndex={0}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onAdd(payload); } }}
             title={description || shown}
@@ -366,7 +374,7 @@ function ActionRow({ action, labels, onAdd }) {
                     thing on the row that says what the action does, and one
                     clipped line of "List the Nextcloud Tables the user can…"
                     is barely more use than none. */}
-                {hasDistinctDesc && <div className="text-xs leading-snug text-[var(--text-tertiary)] line-clamp-2">{description}</div>}
+                {hasDistinctDesc && <div id={descId} className="text-xs leading-snug text-[var(--text-tertiary)] line-clamp-2">{description}</div>}
             </div>
         </div>
     );
@@ -384,6 +392,7 @@ function SearchResults({ results, q, onAdd }) {
 }
 
 function SearchResultRow({ result, q, onAdd }) {
+    const descId = useId();
     const Icon = result.Icon;
     // Same rule as SimpleRow: a result the graph can't accept is findable and
     // explains itself rather than not being a result at all.
@@ -394,6 +403,8 @@ function SearchResultRow({ result, q, onAdd }) {
             {...(disabled ? null : stepDragProps(result.payload))}
             onClick={add}
             role="button"
+            aria-label={result.label}
+            aria-describedby={disabled || result.secondary ? descId : undefined}
             aria-disabled={disabled || undefined}
             tabIndex={0}
             title={disabled ? result.disabledReason : undefined}
@@ -410,8 +421,8 @@ function SearchResultRow({ result, q, onAdd }) {
             <div className="min-w-0 flex-1">
                 <div className="text-sm text-[var(--text-primary)] truncate">{highlightMatch(result.label, q)}</div>
                 {disabled
-                    ? <div className="text-xs text-[var(--text-tertiary)] italic line-clamp-2">{result.disabledReason}</div>
-                    : result.secondary && <div className="text-xs text-[var(--text-tertiary)] truncate">{result.secondary}</div>}
+                    ? <div id={descId} className="text-xs text-[var(--text-tertiary)] italic line-clamp-2">{result.disabledReason}</div>
+                    : result.secondary && <div id={descId} className="text-xs text-[var(--text-tertiary)] truncate">{result.secondary}</div>}
             </div>
             {result.context && <span className="shrink-0 text-[10px] uppercase tracking-wide text-[var(--text-tertiary)]">{result.context}</span>}
         </div>

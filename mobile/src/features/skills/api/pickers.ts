@@ -1,6 +1,6 @@
 /**
  * The lists the skill editor's pickers draw on — a port of the web's
- * useSkillPickerData.js reads: the routines an agent can call, the knowledge
+ * useSkillPickerData.js reads: the automations an agent can call, the knowledge
  * bases an agent may use, and the tables.
  *
  * THREE ANSWERS PER LIST: a list that could not be read (a 403, a 500, a body
@@ -8,7 +8,7 @@
  * a "may use" grant are GRANTS, and "you have none" said about a list nobody
  * managed to read costs someone a grant they needed.
  *
- * Routines are filtered to `agent_call` triggers on the way in
+ * Automations are filtered to `agent_call` triggers on the way in
  * (skillModel.isAgentCallable): the runtime dispatches nothing else.
  */
 
@@ -41,7 +41,7 @@ async function readList<T>(path: string, pickRows: (body: unknown) => unknown, m
     }
 }
 
-export function listCallableRoutines(): Promise<PickerItem[] | null> {
+export function listCallableAutomations(): Promise<PickerItem[] | null> {
     return readList('/api/automation', (b) => pick(b, 'automations'), (rows) =>
         readAutomationRows(rows)
             .filter((a) => a.id && isAgentCallable(a))

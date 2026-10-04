@@ -30,7 +30,7 @@ beforeEach(() => {
 });
 
 // The film's state — what the waiting card, the engine line, the ghost cell
-// and the checklist read. Same turn contract as the routine builder's hook.
+// and the checklist read. Same turn contract as the automation builder's hook.
 describe('useAppBuilderStream — turn record, engine, tool calls, checklist', () => {
     it('opens a turn on send and fills it from builder_session / ping / round_start / prompt_progress; the first output ends the silence', async () => {
         authFetch.mockResolvedValue(sseResponse([
@@ -120,7 +120,7 @@ describe('useAppBuilderStream — turn record, engine, tool calls, checklist', (
         expect(result.current.pendingPlan).toBeNull();
     });
 
-    it('openTurn and rateOf follow the routine builder contract', () => {
+    it('openTurn and rateOf follow the automation builder contract', () => {
         const t = openTurn('fast');
         expect(Object.keys(t).sort()).toEqual(['firstEventAt', 'iter', 'lastPingAt', 'local', 'modelId', 'phase', 'pings', 'progress', 'promptChars', 'providerType', 'roundStartedAt', 'sentAt', 'sessionAt', 'tier', 'usage']);
         expect(rateOf(4000, 8000)).toBe(500);

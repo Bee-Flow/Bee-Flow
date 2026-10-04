@@ -176,20 +176,20 @@ async function runDeclaredSource(sub, passCtx) {
  * Resolve the session-shaped credentials a polling handler needs.
  *
  * Source order:
- *   1. routineAuth vault (`routine_credentials` table) — long-lived,
+ *   1. automationAuth vault (`automation_credentials` table) — long-lived,
  *      auto-refreshing tokens. Works for users who connected after the
  *      vault feature shipped.
  *   2. user_sessions row — same store the chat path uses via `req.session`.
  *      This is the canonical source for users who connected before the
- *      vault existed; their tokens never landed in routine_credentials.
+ *      vault existed; their tokens never landed in automation_credentials.
  *
  * Both paths return the same shape: `{ accessToken, refreshToken,
- *   oauthProvider, routineProviders, _source }`. The `_source` tag lets
+ *   oauthProvider, automationProviders, _source }`. The `_source` tag lets
  * the diagnose endpoint show the user where their credentials came from
  * ("vault" / "session") so they understand whether the Integrations page
  * needs a re-connect.
  *
- * Note: the user_sessions fallback used to be gated by ROUTINE_AUTH_LEGACY.
+ * Note: the user_sessions fallback used to be gated by AUTOMATION_AUTH_LEGACY.
  * That gate is removed — when a user has working chat-side Gmail tokens
  * but an empty vault, we should ALWAYS use them rather than silently
  * failing the trigger. The trade-off: when their browser session expires,
@@ -219,8 +219,8 @@ async function loadSession(userId) {
 
     // 1) Vault first.
     try {
-        const routineAuth = require('../auth/routineAuth');
-        const built = await routineAuth.buildUserAuth(userId, {
+        const automationAuth = require('../auth/automationAuth');
+        const built = await automationAuth.buildUserAuth(userId, {
             enabledIntegrations: ['gmail', 'google-calendar', 'google-drive', 'google-docs', 'google-contacts', 'google-keep', 'google-groups', 'outlook', 'ms-calendar', 'onedrive', 'ms-contacts', 'nextcloud', 'nextcloud-calendar', 'nextcloud-contacts'],
         });
         if (built && built.accessToken) {
@@ -228,10 +228,10 @@ async function loadSession(userId) {
                 accessToken: built.accessToken,
                 refreshToken: built.refreshToken,
                 oauthProvider: built.oauthProvider,
-                routineProviders: built.routineProviders || {},
+                automationProviders: built.automationProviders || {},
                 _source: 'vault',
                 // Merge connector binding so hybrid users (connector NC +
-                // OAuth Google) can call both kinds of tool in one routine.
+                // OAuth Google) can call both kinds of tool in one automation.
                 ...(connectorFields || {}),
             };
         }
@@ -243,7 +243,7 @@ async function loadSession(userId) {
     // identity directly so resolveAuth routes through /nc/* and the polling
     // pass actually runs their NC triggers.
     if (connectorFields) {
-        return { ...connectorFields, routineProviders: {}, _source: 'connector' };
+        return { ...connectorFields, automationProviders: {}, _source: 'connector' };
     }
 
     // 2) user_sessions fallback. Same shape as req.session for the chat path:
@@ -263,7 +263,7 @@ async function loadSession(userId) {
             accessToken: sess.accessToken,
             refreshToken: sess.refreshToken || null,
             oauthProvider: sess.oauthProvider || null,
-            routineProviders: sess.routineProviders || {},
+            automationProviders: sess.automationProviders || {},
             _source: 'session',
         };
     } catch (e) {
@@ -355,7 +355,7 @@ function _ncNormaliseActivity(row, session) {
     const extension = name.includes('.') ? name.split('.').pop().toLowerCase() : null;
 
     const sessionUid = session?.nextcloudUid
-        || session?.routineProviders?.nextcloud?.nextcloudUid
+        || session?.automationProviders?.nextcloud?.nextcloudUid
         || null;
     const isOwnAction = !!(sessionUid && row.actor === sessionUid);
 

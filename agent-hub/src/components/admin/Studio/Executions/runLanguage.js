@@ -15,7 +15,7 @@ import { tokenFor } from '../../../shared/statusTokens';
  * It used to hand back a finished English string, because the status table
  * used to. That is how the runs list rendered a translated Dutch sentence
  * with an English status word inside it: the last branch of whatHappened
- * interpolated this into `routines.runs.status_plain` ("{status}"), and the
+ * interpolated this into `automations.runs.status_plain` ("{status}"), and the
  * interpolated value never passed through t().
  */
 export function outcomeLabel(run) {
@@ -80,12 +80,12 @@ export function whatHappened(run) {
         if (run?.errorClass === 'ApprovalRejected') {
             const why = firstSentence(String(run?.error || '').replace(/^Approval rejected:?\s*/i, ''), 100);
             return why
-                ? { key: 'routines.runs.rejected_because', params: { reason: why }, en: `Rejected — ${why}`, tone: 'warn' }
-                : { key: 'routines.runs.rejected', params: {}, en: 'Rejected — someone turned this down', tone: 'warn' };
+                ? { key: 'automations.runs.rejected_because', params: { reason: why }, en: `Rejected — ${why}`, tone: 'warn' }
+                : { key: 'automations.runs.rejected', params: {}, en: 'Rejected — someone turned this down', tone: 'warn' };
         }
         const classText = errorClassLabel(run?.errorClass);
         const detail = firstSentence(run?.error) || classText || 'Something went wrong';
-        return { key: 'routines.runs.failed_because', params: { reason: detail }, en: `Failed — ${detail}`, tone: 'error' };
+        return { key: 'automations.runs.failed_because', params: { reason: detail }, en: `Failed — ${detail}`, tone: 'error' };
     }
     if (status === 'success') {
         const handled = Number(run?.handledErrorCount || 0);
@@ -98,27 +98,27 @@ export function whatHappened(run) {
             // one line under the key choice that had just taken it out. Two
             // complete sentences instead, picked together with their key.
             const { key, en } = handled === 1
-                ? { key: 'routines.runs.finished_handled_one', en: `Finished — ${handled} problem handled automatically` }
-                : { key: 'routines.runs.finished_handled', en: `Finished — ${handled} problems handled automatically` };
+                ? { key: 'automations.runs.finished_handled_one', en: `Finished — ${handled} problem handled automatically` }
+                : { key: 'automations.runs.finished_handled', en: `Finished — ${handled} problems handled automatically` };
             return { key, params: { n: handled }, en, tone: 'warn' };
         }
         const summary = firstSentence(run?.summary, 100);
         if (summary) {
-            return { key: 'routines.runs.finished_summary', params: { summary }, en: `Finished — ${summary}`, tone: 'neutral' };
+            return { key: 'automations.runs.finished_summary', params: { summary }, en: `Finished — ${summary}`, tone: 'neutral' };
         }
-        return { key: 'routines.runs.finished', params: {}, en: 'Finished', tone: 'neutral' };
+        return { key: 'automations.runs.finished', params: {}, en: 'Finished', tone: 'neutral' };
     }
     if (status === 'running' || status === 'queued') {
-        return { key: 'routines.runs.still_running', params: {}, en: 'Still running…', tone: 'neutral' };
+        return { key: 'automations.runs.still_running', params: {}, en: 'Still running…', tone: 'neutral' };
     }
     if (status === 'awaiting_approval' || status === 'awaiting_confirm') {
-        return { key: 'routines.runs.waiting_approval', params: {}, en: 'Waiting for someone to approve it', tone: 'warn' };
+        return { key: 'automations.runs.waiting_approval', params: {}, en: 'Waiting for someone to approve it', tone: 'warn' };
     }
     if (status === 'awaiting_form') {
-        return { key: 'routines.runs.waiting_form', params: {}, en: 'Waiting for a form to be filled in', tone: 'warn' };
+        return { key: 'automations.runs.waiting_form', params: {}, en: 'Waiting for a form to be filled in', tone: 'warn' };
     }
     if (status === 'cancelled') {
-        return { key: 'routines.runs.stopped_by_user', params: {}, en: 'Stopped before it finished', tone: 'neutral' };
+        return { key: 'automations.runs.stopped_by_user', params: {}, en: 'Stopped before it finished', tone: 'neutral' };
     }
     // Everything else: the status word IS the sentence. It carries its own
     // key rather than being interpolated into a "{status}" wrapper, so it is
@@ -162,9 +162,9 @@ export function runIdFromText(text) {
 }
 
 /**
- * Which ENTRY POINT a run came in through, for a routine with more than one
+ * Which ENTRY POINT a run came in through, for an automation with more than one
  * trigger: the label of the definition.triggers[] node it started from, or
- * null when it started from the primary trigger (or the routine has only
+ * null when it started from the primary trigger (or the automation has only
  * one). List rows carry the label resolved server-side against the current
  * definition; an open run resolves it against the versioned snapshot that
  * actually ran, so a trigger renamed since still reads as it was.

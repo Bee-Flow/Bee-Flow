@@ -100,8 +100,8 @@ function buildVaultSession(auth) {
         accessToken: auth.accessToken,
         refreshToken: auth.refreshToken,
         save() {
-            const routineCredentialStore = require('../../stores/routineCredentialStore');
-            routineCredentialStore.upsertCredential({
+            const automationCredentialStore = require('../../stores/automationCredentialStore');
+            automationCredentialStore.upsertCredential({
                 userId: auth.userId,
                 orgId: auth.orgId,
                 provider: 'google',
@@ -163,7 +163,7 @@ async function discoverUser(userId) {
     const { hasCapability } = require('../entitlements/entitlements');
     if (!await hasCapability('meeting_notes', { userId, orgId })) return;
 
-    const { getProviderAuth } = require('../../auth/routineAuth');
+    const { getProviderAuth } = require('../../auth/automationAuth');
     const auth = await getProviderAuth(userId, 'google');
     if (!auth) return; // not connected / needs_reauth / transient refresh failure
     if (!hasMeetScopes(auth.scope)) return; // silent — surfaced via the status endpoints
@@ -460,10 +460,10 @@ async function processClaimedJob(job) {
         return;
     }
 
-    const { getProviderAuth } = require('../../auth/routineAuth');
+    const { getProviderAuth } = require('../../auth/automationAuth');
     const auth = await getProviderAuth(job.userId, 'google');
     if (!auth) {
-        // routineAuth pauses+notifies on definitive rejections; park the job so
+        // automationAuth pauses+notifies on definitive rejections; park the job so
         // it stops burning claim slots until discovery unparks it post-reauth.
         await gmeetImportStore.parkNeedsReauth(job.id, new Date(Date.now() + REAUTH_PARK_MS).toISOString());
         return;

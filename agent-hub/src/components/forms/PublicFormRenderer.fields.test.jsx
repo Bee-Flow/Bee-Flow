@@ -262,10 +262,10 @@ describe('PublicFormRenderer — sending it', () => {
     });
 
     it('shows a rejection with no field detail once, above the button', async () => {
-        const onSubmit = vi.fn(async () => { throw new Error('The routine is not accepting answers.'); });
+        const onSubmit = vi.fn(async () => { throw new Error('The automation is not accepting answers.'); });
         render(<PublicFormRenderer form={form(one)} onSubmit={onSubmit} />);
         fireEvent.click(send());
-        expect(await screen.findByRole('alert')).toHaveTextContent('The routine is not accepting answers.');
+        expect(await screen.findByRole('alert')).toHaveTextContent('The automation is not accepting answers.');
     });
 
     it('sends an empty form as an empty answer set — a declaration with no questions is draft-legal', async () => {

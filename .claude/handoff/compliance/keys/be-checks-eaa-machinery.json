@@ -69,7 +69,7 @@
     "compliance.check_eaa_statement_fix": "Publiceer een toegankelijkheidsverklaring en plak de URL onder Compliance → Instellingen; leg het conformiteitsniveau en de datum vast die u erin verklaart.",
 
     "compliance.check_machinery_detection_title": "Industriële besturingsintegraties gedetecteerd?",
-    "compliance.check_machinery_detection_desc": "Software die een veiligheidsfunctie van een machine bestuurt of bewaakt, is een veiligheidscomponent onder de Machineverordening (EU) 2023/1230. Deze controle doorzoekt eigen integraties, routines, koppelingen, 90 dagen uitgaand verkeer en MCP-servers op OPC UA, Modbus, MQTT/SCADA, PLC-leveranciers en industriële termen. Geen treffers betekent dat de verordening niet van toepassing lijkt; treffers zijn een aanleiding om te beoordelen, nooit een oordeel.",
+    "compliance.check_machinery_detection_desc": "Software die een veiligheidsfunctie van een machine bestuurt of bewaakt, is een veiligheidscomponent onder de Machineverordening (EU) 2023/1230. Deze controle doorzoekt eigen integraties, automatiseringen, koppelingen, 90 dagen uitgaand verkeer en MCP-servers op OPC UA, Modbus, MQTT/SCADA, PLC-leveranciers en industriële termen. Geen treffers betekent dat de verordening niet van toepassing lijkt; treffers zijn een aanleiding om te beoordelen, nooit een oordeel.",
     "compliance.check_machinery_detection_fix": "Beoordeel elke gedetecteerde integratie onder Compliance → Machines en leg er een veiligheidscomponentbeoordeling voor vast, of markeer de Machineverordening als niet relevant wanneer geen ervan een machine raakt.",
 
     "compliance.check_machinery_assessment_title": "Veiligheidscomponentbeoordeling vastgelegd",

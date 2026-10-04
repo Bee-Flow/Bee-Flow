@@ -14,7 +14,7 @@ import type { Artifacts, Phase, Playbook } from './types';
 /** POST …/phases/<key>/run, then poll: the server runs these itself. */
 export const SERVER_RUN: ReadonlySet<string> = new Set(['table', 'fill', 'design', 'compliance']);
 /** A builder (or the person) works here; the page PATCHes the status. */
-export const CLIENT_RUN: ReadonlySet<string> = new Set(['routine', 'app', 'app_turn', 'access']);
+export const CLIENT_RUN: ReadonlySet<string> = new Set(['automation', 'app', 'app_turn', 'access']);
 export const TERMINAL: ReadonlySet<string> = new Set(['done', 'skipped', 'locked']);
 export const ACTIONABLE: ReadonlySet<string> = new Set(['ready', 'running', 'awaiting', 'failed']);
 

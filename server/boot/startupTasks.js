@@ -587,13 +587,8 @@ function runStartupTasks() {
     } catch (err) {
         log.warn('[Server] MCP manager load failed:', err.message);
     }
-    // Initialize AI Task background runner (non-blocking)
-    try {
-        require('../core/aiTaskRunner');
-    } catch (err) {
-        log.warn('[Server] AI Task runner load failed:', err.message);
-    }
-    // Cowork runner — own tick, shares aiTaskRunner's execution engine
+    // Cowork runner — the one scheduler tick; aiTaskRunner is its execution
+    // engine (and arms the coverage prune when it loads).
     try {
         require('../core/cowork/coworkRunner');
     } catch (err) {
@@ -698,6 +693,7 @@ function runStartupTasks() {
     }
     // Project task reminders: a daily tick for open tasks due tomorrow, today or late.
     try { require('../jobs/projectTaskDueNotifier').start(); } catch (err) { log.warn('[Server] Project task due notifier load failed:', err.message); }
+    if (isModuleAvailable('projects')) try { require('../jobs/solutionDeployRunner').start(); } catch (err) { log.warn('[Server] Solution deploy runner load failed:', err.message); }
     // Learning Center review nudge — daily tick that reminds lapsed learners
     // (started, unfinished, quiet 7-60d) to do a short review. Max one nudge
     // per user per 14d via configStore marker; advisory-locked across pods.

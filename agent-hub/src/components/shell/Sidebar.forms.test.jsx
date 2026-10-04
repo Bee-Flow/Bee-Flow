@@ -141,13 +141,13 @@ describe('Sidebar — the Forms row', () => {
         expect(['c', 'd', 'e', 'f', 'g'].every(id => screen.getByTestId(`nav-form-${id}`))).toBe(true);
     });
 
-    it('replaces the description with a warning when the routine behind a form is not live', async () => {
+    it('replaces the description with a warning when the automation behind a form is not live', async () => {
         serveForms([form('f1', 'Offerte-controle', { live: false })]);
         renderSidebar();
         await openForms();
 
         await screen.findByTestId('nav-form-f1');
-        expect(screen.getByText('Not live — the routine is paused or still a draft')).toBeTruthy();
+        expect(screen.getByText('Not live — the automation is paused or still a draft')).toBeTruthy();
         expect(screen.queryByText('About Offerte-controle')).toBeNull();
     });
 

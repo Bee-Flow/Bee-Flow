@@ -14,7 +14,7 @@
 /**
  * Find — or create — the kb_sources row a legacy ingest route should hang its
  * document off, so `POST /:id/ingest/text|file|url`, the sitemap walk, the n8n
- * import and the `knowledge_base_ingest` routine action all produce the same
+ * import and the `knowledge_base_ingest` automation action all produce the same
  * source model the new API exposes.
  *
  * NEVER throws: the source is bookkeeping, the ingest is the product. A KB

@@ -51,7 +51,7 @@ export function RunSheet({ visible, runs, definition, onClose, onOpenStep }: Run
     const title = state.kind === 'dry' ? t('mobile.flow.run.dry_title', 'Dry-run preview') : t('mobile.flow.run.title', 'Test run');
     const subtitle = [
         status ? statusLabel(t, statusToken(status)) : null,
-        rows.length === 1 ? t('routines.canvas.summary_step', '{n} step', { n: 1 }) : t('routines.canvas.summary_steps', '{n} steps', { n: rows.length }),
+        rows.length === 1 ? t('automations.canvas.summary_step', '{n} step', { n: 1 }) : t('automations.canvas.summary_steps', '{n} steps', { n: rows.length }),
     ].filter(Boolean).join(' · ');
     const summary = state.run?.summary || state.error;
     const header = summary ? (

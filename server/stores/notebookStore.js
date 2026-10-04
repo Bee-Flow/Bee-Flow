@@ -115,6 +115,14 @@ async function _initDB() {
         // the reader's access, never copied here.
         `ALTER TABLE notebooks ADD COLUMN IF NOT EXISTS last_edited_by TEXT DEFAULT NULL`,
         `ALTER TABLE notebooks ADD COLUMN IF NOT EXISTS last_edited_at TIMESTAMPTZ DEFAULT NULL`,
+        // A notebook is a document type: it is listed in the Documents
+        // library next to pages and designed documents (stores/notebookLibrary.js)
+        // and filed the same way there, in one of the owner's document folders
+        // and under categories. Adding the columns is the whole upgrade: every
+        // existing notebook is in the library from the first boot, unfiled.
+        `ALTER TABLE notebooks ADD COLUMN IF NOT EXISTS folder_id TEXT DEFAULT NULL`,
+        `ALTER TABLE notebooks ADD COLUMN IF NOT EXISTS categories JSONB NOT NULL DEFAULT '[]'::jsonb`,
+        `CREATE INDEX IF NOT EXISTS idx_notebooks_user_updated ON notebooks(user_id, updated_at DESC)`,
     ]);
 
     // ── Notebook Sources table ───────────────────────────────────────
@@ -134,6 +142,7 @@ async function _initDB() {
             updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         );
         CREATE INDEX IF NOT EXISTS idx_notebook_sources_notebook ON notebook_sources(notebook_id);
+        CREATE INDEX IF NOT EXISTS idx_notebook_sources_notebook_status ON notebook_sources(notebook_id, status);
         -- V2 source improvements: manual ordering, ingestion stage, and stored
         -- original text so pasted-text / meeting sources become retryable.
         ALTER TABLE notebook_sources ADD COLUMN IF NOT EXISTS sort_order INTEGER DEFAULT 0;
@@ -798,23 +807,34 @@ async function clearProjectFromNotebooks(projectId) {
 async function addSource({ notebookId, type, name, storageKey, fileName, metadata, wordCount, contentText, stage, sourceRefId }) {
     await initDB();
     const id = crypto.randomUUID();
-    // Append to the end of the manual order.
-    const ord = await getOne('SELECT COALESCE(MAX(sort_order), -1) + 1 AS next FROM notebook_sources WHERE notebook_id = $1', [notebookId]);
-    const sortOrder = ord?.next ?? 0;
-    await run(
+    // Append to the end of the manual order, in one round trip. Two sources
+    // added at the same instant can still share a position; the list breaks
+    // that tie on created_at (getSources), so the order stays stable.
+    const ins = await run(
         `INSERT INTO notebook_sources (id, notebook_id, type, name, storage_key, file_name, metadata, status, word_count, content_text, stage, sort_order, source_ref_id)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, 'processing', $8, $9, $10, $11, $12)`,
+         SELECT $1::text, $2::text, $3::text, $4::text, $5::text, $6::text, $7::jsonb, 'processing', $8::int, $9::text, $10::text,
+                COALESCE(MAX(sort_order), 0) + 1, $11::text
+           FROM notebook_sources WHERE notebook_id = $2::text
+         RETURNING sort_order`,
         [id, notebookId, type, name || 'Untitled', storageKey || null, fileName || null,
-         JSON.stringify(metadata || {}), wordCount || 0, contentText || null, stage || 'queued', sortOrder, sourceRefId ? String(sourceRefId) : null]
+         JSON.stringify(metadata || {}), wordCount || 0, contentText || null, stage || 'queued', sourceRefId ? String(sourceRefId) : null]
     );
+    const sortOrder = ins?.rows?.[0]?.sort_order ?? 0;
     await touchActivity(notebookId, 'source');
     return { id, notebookId, type, name, storageKey, fileName, metadata: metadata || {}, status: 'processing', stage: stage || 'queued', wordCount: wordCount || 0, sortOrder };
 }
 
+// Every column except content_text (up to 1 MB a row): the list is read on every
+// chat turn and every poll, and only needs to know WHETHER there is content.
+// Use getSourceContent(id) for the text itself.
+const SOURCE_LIST_COLUMNS = `id, notebook_id, type, name, storage_key, file_name, metadata, status, error,
+    word_count, created_at, updated_at, sort_order, stage,
+    (content_text IS NOT NULL AND content_text <> '') AS has_content`;
+
 async function getSources(notebookId) {
     await initDB();
     const rows = await getAll(
-        `SELECT * FROM notebook_sources WHERE notebook_id = $1 ORDER BY sort_order ASC, created_at ASC`,
+        `SELECT ${SOURCE_LIST_COLUMNS} FROM notebook_sources WHERE notebook_id = $1 ORDER BY sort_order ASC, created_at ASC`,
         [notebookId]
     );
     return rows.map(mapSourceRow);
@@ -839,7 +859,7 @@ async function reorderSources(notebookId, orderedIds) {
 
 async function getSource(id) {
     await initDB();
-    const r = await getOne('SELECT * FROM notebook_sources WHERE id = $1', [id]);
+    const r = await getOne(`SELECT ${SOURCE_LIST_COLUMNS} FROM notebook_sources WHERE id = $1`, [id]);
     return r ? mapSourceRow(r) : null;
 }
 
@@ -854,18 +874,74 @@ const SOURCE_COLUMNS = {
     sortOrder: 'sort_order',
 };
 
-async function updateSource(id, updates) {
+/**
+ * @param {string} id
+ * @param {object} updates
+ * @param {{ onlyIfProcessing?: boolean }} [opts] With `onlyIfProcessing` the
+ *   write only lands while the row is still `processing`, so a cancel or a
+ *   delete that happened meanwhile wins over the ingestion still running.
+ *   Returns false when nothing was written.
+ */
+async function updateSource(id, updates, { onlyIfProcessing = false } = {}) {
     await initDB();
+    const where = [{ col: 'id', value: id }];
+    if (onlyIfProcessing) where.push({ col: 'status', value: 'processing' });
     const built = buildUpdate({
         table: 'notebook_sources',
         updates,
         columnMap: SOURCE_COLUMNS,
         extraSet: ['updated_at = NOW()'],
-        where: [{ col: 'id', value: id }],
+        where,
     });
     if (!built) return false;
     const { rowCount } = await run(built.sql, built.params);
     return rowCount > 0;
+}
+
+/**
+ * Claim a finished or failed source for a retry: back to processing, in one
+ * conditional write. False when it is already processing (an ingestion is
+ * still running; a second one would race it) or gone.
+ */
+async function claimSourceForRetry(id) {
+    await initDB();
+    const { rowCount } = await run(
+        `UPDATE notebook_sources SET status = 'processing', stage = 'queued', error = NULL, updated_at = NOW()
+          WHERE id = $1 AND status <> 'processing'`, [id]);
+    return rowCount > 0;
+}
+
+/** Current status of a source, or null once the row is gone (deleted). */
+async function getSourceStatus(id) {
+    await initDB();
+    const r = await getOne('SELECT status FROM notebook_sources WHERE id = $1', [id]);
+    return r ? r.status : null;
+}
+
+/** Number of sources in a notebook (for the per-notebook cap). */
+async function countSources(notebookId) {
+    await initDB();
+    const r = await getOne('SELECT COUNT(*) AS n FROM notebook_sources WHERE notebook_id = $1', [notebookId]);
+    return parseInt(r?.n) || 0;
+}
+
+/**
+ * Delete several sources of ONE notebook in two statements. Ids that do not
+ * belong to `notebookId` are skipped, exactly like deleteSource.
+ * @returns {Promise<object[]>} the deleted sources (mapped), for artifact cleanup
+ */
+async function deleteSources(ids, notebookId) {
+    await initDB();
+    const wanted = [...new Set((ids || []).filter(i => typeof i === 'string'))];
+    if (wanted.length === 0) return [];
+    const rows = await getAll(
+        `SELECT ${SOURCE_LIST_COLUMNS} FROM notebook_sources WHERE id = ANY($1::text[]) AND notebook_id = $2`,
+        [wanted, notebookId]
+    );
+    if (rows.length === 0) return [];
+    await run('DELETE FROM notebook_sources WHERE id = ANY($1::text[]) AND notebook_id = $2', [rows.map(r => r.id), notebookId]);
+    await touchActivity(notebookId, 'source');
+    return rows.map(mapSourceRow);
 }
 
 // Delete a source. When `notebookId` is supplied the lookup + delete are scoped
@@ -876,8 +952,8 @@ async function updateSource(id, updates) {
 async function deleteSource(id, notebookId = null) {
     await initDB();
     const r = notebookId
-        ? await getOne('SELECT * FROM notebook_sources WHERE id = $1 AND notebook_id = $2', [id, notebookId])
-        : await getOne('SELECT * FROM notebook_sources WHERE id = $1', [id]);
+        ? await getOne(`SELECT ${SOURCE_LIST_COLUMNS} FROM notebook_sources WHERE id = $1 AND notebook_id = $2`, [id, notebookId])
+        : await getOne(`SELECT ${SOURCE_LIST_COLUMNS} FROM notebook_sources WHERE id = $1`, [id]);
     if (!r) return null;
     await run('DELETE FROM notebook_sources WHERE id = $1', [r.id]);
     await touchActivity(r.notebook_id, 'source');
@@ -905,9 +981,21 @@ async function touchActivity(notebookId, kind) {
  */
 async function timeoutStuckSources(notebookId, { stuckMinutes = 10 } = {}) {
     await initDB();
+    // The list is polled while sources ingest; almost every poll has nothing to
+    // time out. A cheap indexed probe first, so the UPDATE (a write, with its
+    // row locks and WAL) only runs when a row is actually overdue.
+    const overdue = await getOne(
+        `SELECT 1 AS x FROM notebook_sources
+          WHERE notebook_id = $1 AND status = 'processing'
+            AND updated_at < NOW() - ($2::int * INTERVAL '1 minute')
+          LIMIT 1`,
+        [notebookId, stuckMinutes]
+    );
+    if (!overdue) return 0;
     const { rowCount } = await run(
         `UPDATE notebook_sources
             SET status = 'error',
+                stage = 'error',
                 error = 'Ingestion timed out — retry or re-upload.',
                 updated_at = NOW()
           WHERE notebook_id = $1
@@ -940,6 +1028,9 @@ function mapNotebookRow(r) {
         organizationId: r.organization_id || null,
         version: typeof r.version === 'number' ? r.version : (parseInt(r.version) || 0),
         sourceCount: parseInt(r.source_count) || 0,
+        // Where its owner filed it in the Documents library (notebookLibrary).
+        folderId: r.folder_id || null,
+        categories: Array.isArray(r.categories) ? r.categories : parseJSON(r.categories, []),
         lastEditedBy: r.last_edited_by || null,
         lastEditedAt: r.last_edited_at ? new Date(r.last_edited_at).toISOString() : null,
         createdAt: r.created_at ? new Date(r.created_at).toISOString() : null,
@@ -963,7 +1054,7 @@ function mapSourceRow(r) {
         sortOrder: parseInt(r.sort_order) || 0,
         // Flag (not the content) so the list payload stays small but the UI knows
         // a preview is available and whether a text/meeting source can be retried.
-        hasContent: !!(r.content_text && r.content_text.length),
+        hasContent: r.has_content !== undefined ? !!r.has_content : !!(r.content_text && r.content_text.length),
         createdAt: r.created_at ? new Date(r.created_at).toISOString() : null,
         updatedAt: r.updated_at ? new Date(r.updated_at).toISOString() : null,
     };
@@ -1445,8 +1536,12 @@ module.exports = {
     getSources,
     getSource,
     getSourceContent,
+    getSourceStatus,
+    countSources,
+    deleteSources,
     reorderSources,
     updateSource,
+    claimSourceForRetry,
     deleteSource,
     timeoutStuckSources,
     // Versions

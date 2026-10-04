@@ -20,7 +20,7 @@ describe('studioLinkTarget', () => {
         expect(studioLinkTarget('/app/studio/skills/a%20b')).toEqual({ kind: 'route', href: '/skills/a%20b' });
     });
 
-    it('opens a form’s page by its routine’s id, as the web does (forms)', () => {
+    it('opens a form’s page by its automation’s id, as the web does (forms)', () => {
         expect(studioLinkTarget('/app/studio/forms/automation1')).toEqual({ kind: 'route', href: '/forms/automation1' });
         expect(studioLinkTarget('/app/studio/forms')).toEqual({ kind: 'route', href: '/forms' });
     });
@@ -36,7 +36,7 @@ describe('studioLinkTarget', () => {
     });
 
     it('accepts the legacy segments and ids', () => {
-        expect(studioLinkTarget('/app/studio/routines/a1')).toEqual({ kind: 'route', href: '/automations/a1' });
+        expect(studioLinkTarget('/app/studio/automations/a1')).toEqual({ kind: 'route', href: '/automations/a1' });
         expect(studioLinkTarget('/app/studio/aiTasks')).toEqual({ kind: 'route', href: '/automations' });
     });
 

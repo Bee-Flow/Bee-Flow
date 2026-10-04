@@ -7,8 +7,8 @@
  * `connection_grants` row that LENDS a connection (full delegation). The
  * absence of a grant means "bring your own" — the safe default.
  *
- * Secrets are encrypted with the per-org routine-vault key (orgVault.js), the
- * same scheme routine_credentials uses, so a borrowed connection decrypts under
+ * Secrets are encrypted with the per-org automation-vault key (orgVault.js), the
+ * same scheme automation_credentials uses, so a borrowed connection decrypts under
  * the OWNER's org key regardless of who runs it.
  *
  * Phase 1 (this file): schema, CRUD, the central `resolveConnectionForRun`
@@ -63,11 +63,11 @@ const PROVIDER_LEGACY_FIELDS = {};
 for (const [prefix, m] of Object.entries(LEGACY_KEY_MAP)) {
     (PROVIDER_LEGACY_FIELDS[m.provider] ||= []).push({ prefix, field: m.field, kind: m.kind });
 }
-// OAuth providers whose live tokens stay in routine_credentials in Phase 1.
+// OAuth providers whose live tokens stay in automation_credentials in Phase 1.
 // `withings` joins them via the health connector (routes/integrations/withings.js):
 // its tokens land in the same vault, so the same "metadata row here, secret
 // there" split applies.
-const OAUTH_ROUTINE_PROVIDERS = new Set(['google', 'microsoft', 'nextcloud', 'withings']);
+const OAUTH_AUTOMATION_PROVIDERS = new Set(['google', 'microsoft', 'nextcloud', 'withings']);
 
 /**
  * Parse a legacy per-user config key into { provider, field, kind, userId }.
@@ -112,7 +112,7 @@ async function _initDB() {
 }
 // Best-effort one-time backfill of existing per-user secrets into default named
 // connections. Idempotent (skips any (user, provider) already present) and
-// deferred so configStore / userStore / routine tables settle first. Won't fire
+// deferred so configStore / userStore / automation tables settle first. Won't fire
 // in the short-lived `migrateDb.js` runner (it process.exit()s before this).
 // Set INTEGRATION_CONNECTIONS_BACKFILL=0 to disable (e.g. tests).
 if (process.env.INTEGRATION_CONNECTIONS_BACKFILL !== '0') {
@@ -198,7 +198,7 @@ async function createConnection({
  * Create-or-update the single metadata row for an OAuth provider.
  *
  * OAuth providers are one-identity-per-user: the live tokens live in
- * routine_credentials keyed (user_id, provider), so a second
+ * automation_credentials keyed (user_id, provider), so a second
  * integration_connections row for the same pair describes the same credential
  * twice. createConnection has no dedupe, and the connectors call it on EVERY
  * reconnect, so each re-consent added another row — the user saw "Default" and
@@ -251,18 +251,18 @@ async function getConnection(connectionId) {
 
 /**
  * Runtime-only: returns the connection with its DECRYPTED secret object.
- * For OAuth providers backed by routine_credentials, reads live tokens through
- * routineCredentialStore (the new table holds metadata only in Phase 1).
+ * For OAuth providers backed by automation_credentials, reads live tokens through
+ * automationCredentialStore (the new table holds metadata only in Phase 1).
  */
 async function getConnectionWithSecret(connectionId) {
     await initDB();
     const row = await getOne('SELECT * FROM integration_connections WHERE id = $1', [connectionId]);
     if (!row) return null;
     const shaped = shapeConnection(row);
-    if (row.kind === 'oauth' && OAUTH_ROUTINE_PROVIDERS.has(row.provider)) {
+    if (row.kind === 'oauth' && OAUTH_AUTOMATION_PROVIDERS.has(row.provider)) {
         try {
-            const routineCredentialStore = require('./routineCredentialStore');
-            const cred = await routineCredentialStore.getCredential(row.owner_user_id, row.provider);
+            const automationCredentialStore = require('./automationCredentialStore');
+            const cred = await automationCredentialStore.getCredential(row.owner_user_id, row.provider);
             shaped.secret = cred
                 ? { access_token: cred.accessToken, refresh_token: cred.refreshToken, expires_at: cred.expiresAt, scope: cred.scope }
                 : null;
@@ -365,6 +365,24 @@ async function deleteConnection(connectionId) {
     await initDB();
     const { rowCount } = await run('DELETE FROM integration_connections WHERE id = $1', [connectionId]);
     return rowCount > 0;
+}
+
+/**
+ * Delete EVERY connection for one provider inside one org — every member's
+ * own key, not just the caller's. For providers that stop existing (an
+ * org-scoped custom integration being removed): without it the members'
+ * encrypted keys for a server that is gone would stay in the vault forever,
+ * unusable and unlisted. Grants go with their connections (FK cascade).
+ * Scoped by org so a provider id can never reach across tenants.
+ */
+async function deleteConnectionsForProvider({ provider, orgId }) {
+    if (!provider) throw new Error('deleteConnectionsForProvider requires provider');
+    await initDB();
+    const { rowCount } = await run(
+        'DELETE FROM integration_connections WHERE provider = $1 AND org_id = $2',
+        [provider, resolveOrgId(orgId)]
+    );
+    return rowCount;
 }
 
 async function touchLastUsed(connectionId) {
@@ -642,14 +660,14 @@ async function getLegacySecretValue(key) {
 /**
  * Best-effort mirror-write: keep the legacy `<prefix>_user_<id>` config key(s)
  * in sync with a default connection's value so untouched integration code keeps
- * resolving. Skipped for OAuth-routine providers (their tokens live in
- * routine_credentials, read via session/routineAuth — not config keys).
+ * resolving. Skipped for OAuth-automation providers (their tokens live in
+ * automation_credentials, read via session/automationAuth — not config keys).
  */
 async function _mirrorWriteLegacy(row, secretObject) {
     const provider = row.provider;
     const userId = row.owner_user_id;
     if (!provider || !userId || !secretObject) return;
-    if (OAUTH_ROUTINE_PROVIDERS.has(provider)) return;
+    if (OAUTH_AUTOMATION_PROVIDERS.has(provider)) return;
     const fields = PROVIDER_LEGACY_FIELDS[provider];
     if (!fields) return;
     const configStore = require('./configStore');
@@ -702,10 +720,10 @@ async function backfillFromLegacy() {
             created++;
         }
 
-        // ── routine_credentials OAuth rows → metadata-only oauth connections ──
+        // ── automation_credentials OAuth rows → metadata-only oauth connections ──
         const oauthRows = await getAll(
-            "SELECT user_id, org_id, provider, scope, expires_at, status FROM routine_credentials WHERE provider = ANY($1::text[])",
-            [Array.from(OAUTH_ROUTINE_PROVIDERS)]
+            "SELECT user_id, org_id, provider, scope, expires_at, status FROM automation_credentials WHERE provider = ANY($1::text[])",
+            [Array.from(OAUTH_AUTOMATION_PROVIDERS)]
         ).catch(() => []);
         for (const r of oauthRows) {
             const existing = await getOne(
@@ -716,7 +734,7 @@ async function backfillFromLegacy() {
             await createConnection({
                 ownerUserId: r.user_id, orgId: r.org_id, provider: r.provider, label: 'Default',
                 kind: 'oauth', secretObject: null, makeDefault: true, mirror: false,
-                secretMeta: { source: 'routine_credentials', scope: r.scope || null, expires_at: r.expires_at || null },
+                secretMeta: { source: 'automation_credentials', scope: r.scope || null, expires_at: r.expires_at || null },
             });
             created++;
         }
@@ -743,6 +761,7 @@ module.exports = {
     markNeedsReauth,
     markRevoked,
     deleteConnection,
+    deleteConnectionsForProvider,
     touchLastUsed,
     // Sharing
     shareConnection,
@@ -759,7 +778,7 @@ module.exports = {
     getLegacySecretValue,
     backfillFromLegacy,
     // Tests / debugging only
-    _internals: { LEGACY_KEY_MAP, PROVIDER_LEGACY_FIELDS, OAUTH_ROUTINE_PROVIDERS },
+    _internals: { LEGACY_KEY_MAP, PROVIDER_LEGACY_FIELDS, OAUTH_AUTOMATION_PROVIDERS },
 };
 
 // Awaitbare init-ingang voor migrateDb (memoised — zelfde promise als de load-time init).

@@ -42,7 +42,7 @@ function buildFewShotMessages(count = 0, { toolset = 'full' } = {}) {
     // 2026-09-11 CORE_TOOL_NAMES carries builder_add_steps), but LAST — see
     // the ordering note at the bottom of this function.
     // Reply 1 carries the trigger AND the name (builder_set_metadata) beside
-    // the plan and the batch inspect: a routine nobody named ships as
+    // the plan and the batch inspect: an automation nobody named ships as
     // "Untitled automation", and no worked example ever showed the call, so
     // the small band never made it. The last reply is builder_finalize plus
     // one sentence — the end of a build, shown once.
@@ -385,7 +385,7 @@ function buildFewShotMessages(count = 0, { toolset = 'full' } = {}) {
     ];
 
     // Create-table + repair + finalize — Dutch, on the shape the playbook's
-    // routine phase and the live briefs use (form → data_extraction → new
+    // automation phase and the live briefs use (form → data_extraction → new
     // datatable → add_row). Three things nothing else showed the small band:
     //   · builder_create_datatable at DESIGN time, then add_row with the id
     //     and key it RETURNED (the echo carries them and the column keys);
@@ -416,7 +416,7 @@ function buildFewShotMessages(count = 0, { toolset = 'full' } = {}) {
         { role: 'tool', tool_call_id: 'ex_c3', content: JSON.stringify({ title: 'Factuurformulier naar tabel Inkomende facturen', description: 'Leest leverancier, factuurnummer en totaal uit een geplakte factuurtekst en voegt een rij toe aan Inkomende facturen.', _draftSteps: [{ id: 'trg', type: 'trigger', kind: 'form' }], _wiring: 'main: (no edges yet)' }) },
         // applyCreateDatatable (datatableCreate.js): the id, the key, the
         // column keys and the `_next` line naming the exact write call.
-        { role: 'tool', tool_call_id: 'ex_c4', content: JSON.stringify({ datatableId: 'tbl_7c2d9e', datatableKey: 'inkomende_facturen', name: 'Inkomende facturen', fields: [{ key: 'leverancier', type: 'text' }, { key: 'factuurnummer', type: 'text' }, { key: 'totaal', type: 'number' }], created: true, _next: 'Write into it with builder_add_datatable {op:"add_row", datatableId:"tbl_7c2d9e", datatableKey:"inkomende_facturen", values:{<columnKey>: <binding>}} — keys: leverancier, factuurnummer, totaal. The table is empty; the routine fills it.' }) },
+        { role: 'tool', tool_call_id: 'ex_c4', content: JSON.stringify({ datatableId: 'tbl_7c2d9e', datatableKey: 'inkomende_facturen', name: 'Inkomende facturen', fields: [{ key: 'leverancier', type: 'text' }, { key: 'factuurnummer', type: 'text' }, { key: 'totaal', type: 'number' }], created: true, _next: 'Write into it with builder_add_datatable {op:"add_row", datatableId:"tbl_7c2d9e", datatableKey:"inkomende_facturen", values:{<columnKey>: <binding>}} — keys: leverancier, factuurnummer, totaal. The table is empty; the automation fills it.' }) },
         {
             role: 'assistant',
             content: '',

@@ -19,7 +19,7 @@ const describeIfWeb = fs.existsSync(WEB) ? describe : describe.skip;
 
 const roll = (id: string, status: Record<string, number | string>, extra: Record<string, unknown> = {}) => ({
     automationId: id,
-    title: `Routine ${id}`,
+    title: `Automation ${id}`,
     kind: 'automation',
     total: Object.values(status).reduce<number>((a, b) => a + Number(b), 0),
     status,

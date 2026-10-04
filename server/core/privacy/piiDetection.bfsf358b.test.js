@@ -1,12 +1,12 @@
 /**
  * BFSF-358B regression: the Privacy Shield must not rewrite what a user typed.
  *
- * The report: a routine's Gmail step searched for a first name and Google
+ * The report: an automation's Gmail step searched for a first name and Google
  * received the longest full name the run had seen (here, fictionally, "Ruben"
  * became "van Ruben van de Laar") — zero results, while the query as typed
  * does find mail.
  *
- * The mechanism: the routine runner tokenizes EVERY string leaf of a step's
+ * The mechanism: the automation runner tokenizes EVERY string leaf of a step's
  * inputs and restores them from the run vault, and tokenizeText's alias
  * coalescing (rule 2 — "Tom" ⊂ "Tom Smit") folds a short person name into the
  * LONGEST variant seen earlier in the run. Rule 1 does the same to spelling and

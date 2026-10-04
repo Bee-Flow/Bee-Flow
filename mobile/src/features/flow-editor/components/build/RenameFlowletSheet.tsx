@@ -1,7 +1,7 @@
 /**
  * Rename a flowlet — its display title only: calls address a flowlet by its
  * key, which never changes (model/flowlets renameLayer). One undoable edit of
- * the routine's draft. Mounted only while open.
+ * the automation's draft. Mounted only while open.
  */
 
 import React, { useState } from 'react';

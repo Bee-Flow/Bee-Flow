@@ -33,13 +33,13 @@ export const TOUR_ANCHORS = {
     'knowledge-create': { selector: '[data-tour="knowledge-create"]', owner: 'Studio/KnowledgeStudio/KnowledgeOverview.jsx', reveal: {} },
     'integration-card': { selector: '[data-tour="integration-card"]', owner: 'settings/IntegrationsSection.jsx', reveal: {} },
     'memory-manage': { selector: '[data-tour="memory-manage"]', owner: 'settings/MemorySection.jsx', reveal: {} },
-    'routine-create': { selector: '[data-tour="routine-create"]', owner: 'automation/index.jsx', reveal: {} },
+    'automation-create': { selector: '[data-tour="automation-create"]', owner: 'automation/index.jsx', reveal: {} },
     'usage-summary': { selector: '[data-tour="usage-summary"]', owner: 'settings/UsageSection.jsx', reveal: {} },
 
-    // Automations start screen (visible when no routine is selected).
-    'automation-start-tabs': { selector: '[data-tour="automation-start-tabs"]', owner: 'Studio/RoutinesStudio/RoutinesLauncher.jsx', reveal: {} },
+    // Automations start screen (visible when no automation is selected).
+    'automation-start-tabs': { selector: '[data-tour="automation-start-tabs"]', owner: 'Studio/AutomationsStudio/AutomationsLauncher.jsx', reveal: {} },
     // The "Building blocks" group in the automations list (sidebar), where reusable Steps live.
-    'automation-building-blocks': { selector: '[data-tour="automation-building-blocks"]', owner: 'Studio/RoutinesStudio/BuildingBlocksGroup.tsx', reveal: {} },
+    'automation-building-blocks': { selector: '[data-tour="automation-building-blocks"]', owner: 'Studio/AutomationsStudio/BuildingBlocksGroup.tsx', reveal: {} },
 
     // Cowork page (the composer renders on /app/cowork with nothing selected).
     'cowork-composer': { selector: '[data-tour="cowork-composer"]', owner: 'cowork/CoworkComposer.jsx', reveal: {} },

@@ -1,9 +1,9 @@
 /**
  * resolveMicrosoftSession: a Microsoft-only session for Outlook next to
- * whatever the caller's session is (Google SSO, Nextcloud, a routine shim).
+ * whatever the caller's session is (Google SSO, Nextcloud, an automation shim).
  *
- * Pins: a Microsoft session passes through untouched; a routine session's
- * `routineProviders.microsoft` is used before the vault; otherwise the vault
+ * Pins: a Microsoft session passes through untouched; an automation session's
+ * `automationProviders.microsoft` is used before the vault; otherwise the vault
  * credential; the caller's own (Google) tokens are never overwritten, and a
  * token refreshed on the shim lands in the vault.
  *
@@ -19,10 +19,10 @@ const lookups = [];
 const upserts = [];
 
 const restore = installResolveStub({
-    './routineAuth': {
+    './automationAuth': {
         getProviderAuth: async (userId, provider) => { lookups.push({ userId, provider }); return credFixture; },
     },
-    '../stores/routineCredentialStore': {
+    '../stores/automationCredentialStore': {
         upsertCredential: async (row) => { upserts.push(row); },
     },
 });
@@ -70,19 +70,19 @@ test('no Microsoft credential → null', async () => {
     assert.strictEqual(await resolveMicrosoftSession(null), null);
 });
 
-test('a routine session uses routineProviders.microsoft before the vault', async () => {
-    const msCred = { userId: 'u2', orgId: 'o2', accessToken: 'routine-ms-at', refreshToken: 'routine-ms-rt' };
-    const routine = {
+test('an automation session uses automationProviders.microsoft before the vault', async () => {
+    const msCred = { userId: 'u2', orgId: 'o2', accessToken: 'automation-ms-at', refreshToken: 'automation-ms-rt' };
+    const automation = {
         userId: 'u2', oauthProvider: 'google', accessToken: 'g', refreshToken: 'g-rt',
-        routineProviders: { google: { accessToken: 'g' }, microsoft: msCred },
+        automationProviders: { google: { accessToken: 'g' }, microsoft: msCred },
     };
-    const shim = await resolveMicrosoftSession(routine);
-    assert.strictEqual(lookups.length, 0, 'no vault read when the routine already carries the credential');
-    assert.strictEqual(shim.accessToken, 'routine-ms-at');
+    const shim = await resolveMicrosoftSession(automation);
+    assert.strictEqual(lookups.length, 0, 'no vault read when the automation already carries the credential');
+    assert.strictEqual(shim.accessToken, 'automation-ms-at');
     assert.strictEqual(shim.userId, 'u2');
 });
 
-test('the userId argument wins for sessions without a user (routine shims)', async () => {
+test('the userId argument wins for sessions without a user (automation shims)', async () => {
     credFixture = { userId: 'u3', orgId: 'o3', accessToken: 'ms-at' };
     const shim = await resolveMicrosoftSession({ oauthProvider: 'nextcloud', accessToken: 'nc' }, 'u3');
     assert.deepStrictEqual(lookups, [{ userId: 'u3', provider: 'microsoft' }]);
@@ -104,7 +104,7 @@ test('a token refreshed on the shim is written to the vault, not to the caller s
         userId: 'u1', orgId: 'o1', provider: 'microsoft',
         accessToken: 'new-at', refreshToken: 'new-rt', expiresAt: null, scope: 'Mail.Send',
     });
-    assert.strictEqual(credFixture.accessToken, 'new-at', 'the source credential follows (routine sessions reuse it)');
+    assert.strictEqual(credFixture.accessToken, 'new-at', 'the source credential follows (automation sessions reuse it)');
     assert.strictEqual(session.accessToken, 'google-at');
     assert.strictEqual(session.refreshToken, 'google-rt');
 });
@@ -112,7 +112,7 @@ test('a token refreshed on the shim is written to the vault, not to the caller s
 test('save() survives a vault write failure and still calls back', async () => {
     credFixture = { userId: 'u1', orgId: 'o1', accessToken: 'at' };
     const shim = await resolveMicrosoftSession(googleSession());
-    const store = require('../stores/routineCredentialStore');
+    const store = require('../stores/automationCredentialStore');
     const original = store.upsertCredential;
     store.upsertCredential = async () => { throw new Error('db down'); };
     try {

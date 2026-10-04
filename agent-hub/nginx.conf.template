@@ -72,7 +72,12 @@ server {
     #     • cdn.jsdelivr.net — @monaco-editor/react fetches the Monaco AMD
     #       loader from jsdelivr (its built-in default; nothing in the app calls
     #       loader.config to relocate it). Remove this and every code editor in
-    #       the admin UI stops rendering.
+    #       the admin UI stops rendering. The same loader pulls
+    #       editor.main.css and the codicon font from the same host, so
+    #       style-src and font-src list it too: without them the editor
+    #       mounts but renders unstyled and blank (the Code step's
+    #       "Code editor" tab showed an empty box while "Plain text" had the
+    #       code). Self-hosting Monaco would remove all three.
     #     • ${GA_ORIGIN} — Google Tag Manager (gtag.js), injected by
     #       marketing/components/GoogleAnalyticsTracker.jsx when a CMS site has
     #       a GA measurement id configured. EMPTY by default and
@@ -158,7 +163,7 @@ server {
     #   turnstile  https://challenges.cloudflare.com
     #   hcaptcha   https://js.hcaptcha.com https://newassets.hcaptcha.com
     #   recaptcha  https://www.google.com https://www.gstatic.com
-    set $csp_common "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://esm.sh ${GA_ORIGIN} ${ANALYTICS_ORIGIN} ${CAPTCHA_ORIGIN}; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; worker-src 'self' blob:; frame-src 'self' blob: ${CAPTCHA_ORIGIN}; object-src 'self' blob:; connect-src 'self' https://observe.beeflow.nl ${ANALYTICS_ORIGIN} ${EXTRA_CONNECT_SRC}; base-uri 'self'; form-action 'self'";
+    set $csp_common "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://esm.sh ${GA_ORIGIN} ${ANALYTICS_ORIGIN} ${CAPTCHA_ORIGIN}; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net data:; img-src 'self' data: blob: https:; worker-src 'self' blob:; frame-src 'self' blob: ${CAPTCHA_ORIGIN}; object-src 'self' blob:; connect-src 'self' https://observe.beeflow.nl ${ANALYTICS_ORIGIN} ${EXTRA_CONNECT_SRC}; base-uri 'self'; form-action 'self'";
     # Default policy. $csp_embed is the same policy WITHOUT frame-ancestors —
     # see the /chat/ block for why that one exception exists.
     set $csp       "$csp_common; frame-ancestors 'self'";
@@ -266,6 +271,28 @@ server {
     location = /beeflow-runtime.js {
         add_header Cache-Control "no-store, no-cache, must-revalidate" always;
         add_header X-Content-Type-Options "nosniff" always;
+    }
+
+    # Learning Center video pack, served by the backend from LEARN_MEDIA_DIR
+    # (server/learning/learnMedia.js). Without this block the path falls into
+    # `location /` → @render, whose error interception would answer a missing
+    # manifest with the SPA shell and whose 5s read timeout is wrong for video.
+    # Range headers pass through (seeking); the backend sets Cache-Control.
+    # A LEARN_MEDIA_BASE_URL on another origin (a CDN) does not come through
+    # here, and needs that origin in the CSP's media-src/connect-src instead.
+    location ^~ /learn-media/ {
+        proxy_pass $backend;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Range $http_range;
+        proxy_set_header If-Range $http_if_range;
+        proxy_read_timeout 60s;
+        proxy_buffering off;
+        # No add_header here on purpose: the server-level security headers
+        # are inherited only while a location declares none of its own.
     }
 
     location ^~ /embed/assets/ {

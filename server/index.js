@@ -533,6 +533,10 @@ if (process.env.NODE_ENV === 'production' && fs.existsSync(agentHubDistPath)) {
 // allowlist. See middleware/publicUploads.js for why.
 app.use('/uploads', require('./middleware/publicUploads').publicUploadsOnly);
 app.use('/uploads', express.static(path.join(__dirname, 'data', 'uploads')));
+// Learning Center video pack (LEARN_MEDIA_DIR, outside git and the image).
+// Public, allow-listed file types, a bare 404 on a miss so the SPA renderer
+// never answers for it. See learning/learnMedia.js.
+app.use('/learn-media', require('./learning/learnMedia').createLearnMediaRouter());
 
 // ── RustFS Storage Init ───────────────────────────────────────────────────────
 const storageStore = require('./stores/storageStore');
@@ -714,19 +718,26 @@ const projectFeatureGate = featureGate('projects', 'Projects');
 // an anonymous request and the gates — an invariant nothing pinned.
 const { requireAuth: requireAuthedUser } = require('./auth');
 app.use('/api/projects', requireModule('projects'), requireAuthedUser, requireCapability('projects'), projectFeatureGate, require('./routes/projects'));
+// The drain-exempt half of the stage API (design D13): reading a stage, on/off,
+// pause / resume, non-steering values and detach. Deliberately NO module,
+// capability or licence gate: the /api/projects mount above needs `projects`,
+// which sits in the same tier list as `blueprint_packaging`, so a lapse there
+// would strand production. Roles are resolved per route on the stage project
+// itself (projects/stages/stageAuth.js).
+app.use('/api/solution-stages', requireAuthedUser, require('./routes/solutionStages').makeSolutionStagesDrainRouter());
 app.use('/api/reminders', require('./routes/reminders'));
-app.use('/api/ai-tasks', require('./routes/aiTasks'));
 // Cowork — scheduled work from the Chat ⇄ Work switch, with per-run history.
-// Ungated like /api/ai-tasks: the agent-linked variant is beta-gated per route.
+// Ungated: running an item as an agent is beta-gated (agent_routines) per route.
+// The old /api/ai-tasks is gone; its rows moved here (agent-tasks-to-cowork-2026-10).
 app.use('/api/cowork', requireTraining('cowork'), require('./routes/cowork'));
 app.use('/api/automation/builder', requireModule('automation'), requireLicenseFeature('automations'), require('./routes/ai/automationBuilder'));
 app.use('/api/automation', requireModule('automation'), requireLicenseFeature('automations'), requireTraining('automations'), require('./routes/automation'));
 app.use('/api/step', requireModule('automation'), requireLicenseFeature('automations'), require('./routes/step'));
-// Datatables: organisation-scoped tables routines read and write. Same module
+// Datatables: organisation-scoped tables automations read and write. Same module
 // and licence key as automations — the Community line. SHARING inside the
 // router is separately gated on 'automation_sharing' (Enterprise), while
 // reads and row writes stay ungated so a licence lapse never strands a
-// running routine. Mounted on its own path, not under /api/automation, whose
+// running automation. Mounted on its own path, not under /api/automation, whose
 // route table is frozen by automation.routetable.test.js.
 app.use('/api/datatables', requireModule('automation'), requireAuthedUser, requireLicenseFeature('automations'), requireTraining('datatables'), require('./routes/datatables'));
 // App Studio over MCP — the builder toolset for an external coding agent, so a
@@ -739,7 +750,7 @@ if (studioMcp.isEnabled()) {
     app.use('/mcp/studio', require('./routes/mcpStudio'));
     log.info('[Server] App Studio MCP endpoint mounted at /mcp/studio (STUDIO_MCP_ENABLED=1).');
 }
-// Routines over MCP — the same story for the automation builder, so a routine
+// Automations over MCP — the same story for the automation builder, so an automation
 // can be authored against a live instance instead of driven turn by turn
 // through the chat builder. Same gating shape as the Studio endpoint above:
 // without AUTOMATION_MCP_ENABLED=1 the path does not exist and the module is
@@ -747,7 +758,7 @@ if (studioMcp.isEnabled()) {
 const automationMcp = require('./automation/mcpBuilder');
 if (automationMcp.isEnabled()) {
     app.use('/mcp/automations', require('./routes/mcpAutomations'));
-    log.info('[Server] Routines MCP endpoint mounted at /mcp/automations (AUTOMATION_MCP_ENABLED=1).');
+    log.info('[Server] Automations MCP endpoint mounted at /mcp/automations (AUTOMATION_MCP_ENABLED=1).');
 }
 // Bee Flow AS an MCP server. Deliberately NOT under /api: MCP clients are
 // configured with a bare URL, and the endpoint authenticates with its own
@@ -795,6 +806,11 @@ app.use('/api/organizations/:orgId/custom-integrations',
     requireCapability('ai_integration_builder'),
     customIntegrationsFeatureGate,
     require('./routes/orgIntegrations/builder'));
+// MCP library — organisation admins install remote MCP servers for their own
+// organisation; members add their own keys; the server admin sets the policy.
+// Gates live in the router (requirePrimaryOrgAdmin + mcp_marketplace licence,
+// requireSuperAdmin for the policy). Remote-only: nothing here spawns a process.
+app.use('/api/mcp-library', require('./routes/mcpLibrary'));
 app.use('/api/templates', require('./routes/templates'));
 const notebookFeatureGate = featureGate('notebooks', 'Notebooks');
 // Licence gate fires before notebookFeatureGate so the frontend gets the
@@ -841,8 +857,8 @@ app.use('/api/studio-apps', requireModule('apps'), requireCapability('app_studio
 app.use('/api/studio-apps', requireModule('apps'), requireCapability('app_studio'), require('./routes/studioAppDatasets'));
 // AI browsing: the ONE streaming ai_browse step endpoint (SSE screenshots).
 app.use('/api/studio-apps', requireModule('apps'), requireCapability('app_studio'), require('./routes/studioAppBrowse'));
-// Studio Playbooks — phased AI builds (table → routine → fill → app →
-// approvals). A playbook owns a routine AND an app, so both modules and both
+// Studio Playbooks — phased AI builds (table → automation → fill → app →
+// approvals). A playbook owns an automation AND an app, so both modules and both
 // gates apply; writes need manage_apps (router-level); the approvals phase is
 // locked without the approvals capability (checked in the handler).
 app.use('/api/playbooks', requireModule('apps'), requireModule('automation'), requireCapability('app_studio'), requireLicenseFeature('automations'), requireTraining('playbooks'), require('./routes/playbooks'));
@@ -929,6 +945,8 @@ app.use('/api/nc-scope', require('./routes/ncScope'));
 // Google Meet → Meeting Notes settings (org + user toggles). Same gates as
 // talk-notes-settings above.
 app.use('/api/gmeet-notes-settings', requireModule('meetingNotes'), requireLicenseFeature('meeting_notes'), _meetingNotesGate(settingsOrgIdFor), require('./routes/gmeetNotesSettings'));
+// Microsoft Teams → Meeting Notes settings. Same gates.
+app.use('/api/teams-notes-settings', requireModule('meetingNotes'), requireLicenseFeature('meeting_notes'), _meetingNotesGate(settingsOrgIdFor), require('./routes/teamsNotesSettings'));
 // Custom summary-regeneration templates (user / org / group scopes).
 app.use('/api/summary-templates', requireModule('meetingNotes'), requireLicenseFeature('meeting_notes'), _meetingNotesGate(summaryTemplateOrgIdFor), require('./routes/summaryTemplates'));
 // Per-person voiceprints for pyannoteAI speaker identification. Same compound

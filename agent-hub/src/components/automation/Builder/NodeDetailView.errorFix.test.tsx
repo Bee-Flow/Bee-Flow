@@ -43,8 +43,8 @@ const failedRun = (settingKey: string) => ({
         cause: 'Nothing lives at /Invoices/a.pdf.',
         settingKey,
         fixes: [
-            { id: 'pick_other', label: 'Pick another', labelKey: 'routines.output.fix_pick_other', params: { settingKey } },
-            { id: 'retry', label: 'Try again', labelKey: 'routines.output.fix_retry' },
+            { id: 'pick_other', label: 'Pick another', labelKey: 'automations.output.fix_pick_other', params: { settingKey } },
+            { id: 'retry', label: 'Try again', labelKey: 'automations.output.fix_retry' },
         ],
         technical: 'HTTP 404',
     },

@@ -270,7 +270,7 @@ _TIME_OF_DAY_RE = __import__("re").compile(r"^\s*\d{1,2}[:.]\d{2}(?::\d{2})?\s*$
 # a Gmail message id is 16 hex characters and 8 of them are digits, so
 # "19fdc22de311daf4" cleared the 7-digit minimum and came back as a Phone Number
 # at 0.68-0.83 confidence. Redacting one breaks the very call it addresses: a
-# routine reading each mail of a search result died on "Invalid id value" for
+# automation reading each mail of a search result died on "Invalid id value" for
 # every iteration, because what reached Gmail was a placeholder.
 #
 # The categories this applies to (_MIN_DIGITS_BY_CATEGORY) ARE numbers — a phone

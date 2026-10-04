@@ -18,6 +18,19 @@
  *  - Only provider 'http' connections are accepted: without this, a step
  *    could point http_request at an attacker URL with a LENT github/fireflies
  *    connection and exfiltrate its raw token.
+ *  - Host binding (D18): a step whose `auth.allowedHosts` is a non-empty array
+ *    (a Solution stage's `connection` binding writes it) only gets the
+ *    credential for a request whose URL hostname is listed (exact match,
+ *    lower-case, no port). Checked BEFORE the store is touched, with the same
+ *    opaque message as forbidden, so a stage value such as
+ *    `{{vars.api_base}}` cannot steer the owner's credential to another host.
+ *    A step without the list behaves as before. The check is only as good as
+ *    its caller: execOutbound.js must pass the step's `auth` (or
+ *    `allowedHosts: step.auth.allowedHosts`) and the resolved `url`. Until it
+ *    does, the binding is NOT enforced: omitting the list FAILS OPEN (no
+ *    binding, the credential goes to any host). With the list and no `url`
+ *    it fails closed. A redirect to another host after the credential is
+ *    attached is the caller's to refuse.
  *
  * Engine → httpAuth is the only require direction (no cycle); the store and
  * ssrfGuard are required lazily so test harnesses can pre-mock them.
@@ -41,16 +54,40 @@ function cacheKey(conn) {
 
 const NOT_AVAILABLE_MSG = "http_request: the referenced HTTP credential is not available to this automation's owner. Pick one of your own credentials in the step's Authentication settings.";
 
+/** Lower-case hostname of a URL (no port, no brackets stripped), or null when it does not parse. */
+function hostnameOf(url) {
+    try { return new URL(String(url)).hostname.toLowerCase() || null; } catch (_) { return null; }
+}
+
+/**
+ * Is a request to `url` allowed by a step's `allowedHosts`? No list (absent,
+ * not an array, or empty) allows everything, as before host binding. A list
+ * allows exactly the hostnames on it; a URL that does not parse, or a list
+ * with no usable entry, allows nothing.
+ */
+function hostAllowed(allowedHosts, url) {
+    if (!Array.isArray(allowedHosts) || allowedHosts.length === 0) return true;
+    const host = hostnameOf(url);
+    if (!host) return false;
+    return allowedHosts.some((h) => typeof h === 'string' && h.trim().toLowerCase() === host);
+}
+
 /**
  * Resolve the auth header(s) for a step referencing `connectionId`.
+ * `allowedHosts` is the step's `auth.allowedHosts`, `url` the resolved request
+ * URL it is checked against (D18).
  * ctx: the run context ({ userId, orgId, userGroupIds }).
- * deps ({ fetchImpl, now }) is test-only injection.
+ * deps ({ fetchImpl, now, store }) is test-only injection.
  *
  * → { headers: {name: value}, maskValues: string[], label, accessMode }
  * Throws user-safe Errors; never includes secret material.
  */
-async function resolveHttpAuthHeaders({ connectionId, blockPrivateTargets = true }, ctx, deps = {}) {
-    const store = require('../../stores/integrationConnectionStore');
+async function resolveHttpAuthHeaders({ connectionId, blockPrivateTargets = true, allowedHosts = null, auth = null, url = null }, ctx, deps = {}) {
+    // `auth` (the step's whole auth object) is the preferred way to pass the
+    // list: a caller that hands over the step's auth cannot forget its hosts.
+    const hosts = allowedHosts ?? (auth && typeof auth === 'object' ? auth.allowedHosts : null);
+    if (!hostAllowed(hosts, url)) throw new Error(NOT_AVAILABLE_MSG);
+    const store = deps.store || require('../../stores/integrationConnectionStore');
     const authz = await store.authorizeConnectionUse({
         connectionId,
         runningUserId: ctx.userId,
@@ -209,7 +246,7 @@ async function fetchOAuth2Token(conn, secret, { blockPrivateTargets }, deps) {
             if (typeof j.error === 'string' && /^[a-z0-9_]+$/i.test(j.error)) code = j.error;
         } catch (_) { /* body stays out of the message */ }
         try {
-            const store = require('../../stores/integrationConnectionStore');
+            const store = deps.store || require('../../stores/integrationConnectionStore');
             await store.markNeedsReauth(conn.id, `OAuth2 token endpoint rejected the client credentials (HTTP ${resp.status})`);
         } catch (_) { /* best effort */ }
         throw new Error(`http_request: could not obtain an OAuth2 access token for credential "${conn.label}" (token endpoint returned ${resp.status}${code ? `, error "${code}"` : ''}). Check the token URL and client credentials in Settings.`);
@@ -242,5 +279,6 @@ module.exports = {
     MASK_VALUES,
     resolveHttpAuthHeaders,
     evictToken,
+    hostAllowed,
     _internals: { tokenCache, inflight, cacheKey, getOAuth2Token },
 };

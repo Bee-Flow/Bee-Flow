@@ -334,16 +334,16 @@ A handful of features can additionally be toggled per-server via env:
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `ENABLE_TASKS` | `true` | Productivity tasks/projects routes (`/api/projects`, `/api/reminders`, `/api/ai-tasks`). |
+| `ENABLE_TASKS` | `true` | Productivity tasks/projects routes (`/api/projects`, `/api/reminders`). |
 | `ENABLE_MONITORING` | `true` | Monitoring DB writes for the analytics dashboards. |
 | `ENABLE_MEETING_NOTES` | `true` | Meeting-notes UI surface (still requires the `meeting_notes` licence feature to use). |
 | `ENABLE_TEMPLATES` | `true` | Template gallery in Studio. |
 
 Setting any of these to `false` hides the corresponding UI surface even on tiers that would otherwise allow it. Use case: test installs, compliance lockdowns. Other "feature flag"-looking vars (e.g. `FEATURE_NOTEBOOKS_ENABLED`, `FEATURE_SKILLS_ENABLED`) are reserved for future use and ignored today.
 
-## Routine kill switches
+## Automation kill switches
 
-Three switches that turn a routine-runner feature off for the whole server without touching any data or any organisation's own settings. They exist for an incident, not for configuration — the per-organisation and per-step settings are where these features are meant to be turned on and off.
+Three switches that turn an automation-runner feature off for the whole server without touching any data or any organisation's own settings. They exist for an incident, not for configuration — the per-organisation and per-step settings are where these features are meant to be turned on and off.
 
 All three share one grammar: **`1` / `true` / `on` / `yes` switch the feature OFF.** Anything else — including the literal `0` and `false` — leaves it running, so `…_DISABLED=0` means what it looks like it means.
 
@@ -352,6 +352,23 @@ All three share one grammar: **`1` / `true` / `on` / `yes` switch the feature OF
 | `AUTOMATION_ASK_ONCE_DISABLED` | unset (feature on) | Switches off "ask this app only once per run". Steps stop reusing an answer within a run and ask the app every time — slower, never wrong. The durable tier below rides on top of this one, so it goes too. |
 | `INTEGRATION_CACHE_DISABLED` | unset (feature on) | Switches off only the durable tier ("…and keep the answer for later runs"). Nothing new is stored and nothing already stored is served, whatever an organisation's admin has ticked. Per-run reuse keeps working. |
 | `DATATABLE_RETENTION_DISABLED` | unset (feature on) | Stops the datatable row retention sweep, so rows past their table's retention window are no longer deleted. That window is a promise the product makes to a data subject and the Studio keeps showing it — switch it off only for as long as the incident lasts. |
+
+## Learning Center videos (optional)
+
+Some lessons can show a short captioned video. The videos are not in the repository or the images: install a media pack, or leave it out and every lesson plays without its video (nothing breaks, nothing is shown empty).
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `LEARN_MEDIA_DIR` | `data/learn-media` next to the server code (`server/data/learn-media` in a checkout) | Server: directory served at `GET /learn-media/*` (only `.mp4`, `.vtt`, `.jpg`, `.webp`, `.json`; range requests; no listing). Mount a volume here in Docker so the pack survives an image upgrade. |
+| `LEARN_MEDIA_PACK_URL` | (none) | Used by `npm run learn-media:fetch`: https URL (or local path) of a pack `.tar.gz`. The script checks every file's sha256 against the pack's `manifest.json` and only then swaps the new pack in. |
+| `LEARN_MEDIA_PACK_SHA256` | (none) | Optional sha256 of the tarball itself, checked before it is unpacked. |
+| `LEARN_MEDIA_BASE_URL` | (none) | Set on the **agent-hub** (frontend) container: an absolute `https://` URL browsers load the videos from instead of `/learn-media`, e.g. a CDN holding the same pack. Written into `/beeflow-runtime.js` at container start; anything that is not `https://` is ignored. The bundled nginx Content-Security-Policy only allows media from the app's own origin, so a CDN origin also has to be allowed (`media-src` and `connect-src`) in the policy your proxy sends. |
+
+Install or update a pack from a checkout of the repository (point `LEARN_MEDIA_DIR` at the directory or volume the server reads):
+
+```bash
+LEARN_MEDIA_PACK_URL=https://example.com/learn-media-2026.10.tar.gz npm run learn-media:fetch
+```
 
 ## Email (outbound)
 

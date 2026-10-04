@@ -9,12 +9,16 @@
 import { AlertTriangle, Loader2 } from 'lucide-react';
 import React, { Suspense } from 'react';
 import useTranslation from '../../hooks/useTranslation';
+import ManagedPartBanner from '../../components/shared/ManagedPartBanner';
+import { managedOf, type ManagedPart } from '../../components/shared/managedPart';
 import { lazy } from '../../utils/lazyWithReload';
 import { useDocumentView, useSessionUser, type StudioDocument } from './documentQueries';
 import DesignedEditor from './editor/DesignedEditor';
 import { LINK_BUTTON } from './editor/ui';
 
 const PageEditor = lazy(() => import('./PageEditor'));
+// A spreadsheet's cells live in a datatable; its own grid editor.
+const SpreadsheetEditor = lazy(() => import('./spreadsheet/SpreadsheetEditor'));
 
 export interface DocumentEditorProps {
     documentId: string;
@@ -57,6 +61,21 @@ function LoadProblem({ missing, onRetry, onBack, backLabel }: { missing: boolean
     );
 }
 
+/**
+ * A template a Solution stage manages (design 9) is read-only: the banner on
+ * top, and the document handed to its editor as one nobody may write: not
+ * editable, and not filed in a project, because a project is what an editor
+ * joins the live co-editing room through. Reading needs no room.
+ */
+function Managed({ managed, children }: { managed: ManagedPart; children: React.ReactNode }) {
+    return (
+        <div className="flex flex-col h-full min-h-0">
+            <ManagedPartBanner managed={managed} />
+            <div className="flex-1 min-h-0">{children}</div>
+        </div>
+    );
+}
+
 export default function DocumentEditor({ documentId, onBack, onRenamed, variant = 'page', onOpenInStudio, currentUser }: DocumentEditorProps) {
     const { t } = useTranslation();
     const view = useDocumentView(documentId);
@@ -69,14 +88,26 @@ export default function DocumentEditor({ documentId, onBack, onRenamed, variant 
         const status = (view.error as { status?: number } | null)?.status;
         return <LoadProblem missing={status === 404 || !view.isError} onRetry={() => view.refetch()} onBack={onBack} backLabel={backLabel} />;
     }
-    const { document: doc, people } = view.data;
-    if (doc.docType === 'page') {
-        return (
+    const { people } = view.data;
+    const managed = managedOf(view.data);
+    const doc = managed ? { ...view.data.document, editable: false, deletable: false, projectId: null } : view.data.document;
+    let editor;
+    if (doc.docType === 'spreadsheet') {
+        editor = (
+            <Suspense fallback={<EditorLoading />}>
+                <SpreadsheetEditor key={doc.id} initial={doc} people={people} variant={variant} currentUser={me}
+                    onBack={onBack} onRenamed={onRenamed} />
+            </Suspense>
+        );
+    } else if (doc.docType === 'page') {
+        editor = (
             <Suspense fallback={<EditorLoading />}>
                 <PageEditor key={doc.id} initial={doc} people={people} variant={variant} currentUser={me}
                     onBack={onBack} onRenamed={onRenamed} onOpenInStudio={onOpenInStudio} />
             </Suspense>
         );
+    } else {
+        editor = <DesignedEditor key={doc.id} initial={doc} people={people} variant={variant} currentUser={me} onBack={onBack} onRenamed={onRenamed} onOpenInStudio={onOpenInStudio} />;
     }
-    return <DesignedEditor key={doc.id} initial={doc} people={people} variant={variant} currentUser={me} onBack={onBack} onRenamed={onRenamed} onOpenInStudio={onOpenInStudio} />;
+    return managed ? <Managed managed={managed}>{editor}</Managed> : editor;
 }

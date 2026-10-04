@@ -193,13 +193,13 @@ test('dry-run skips the KB search entirely — no permission lookups, no live ca
     assert.doesNotMatch(systemMessage().content, /Reference material:/);
 });
 
-// ── 5. The org-admin bypass does not follow a routine into a retrieval ─────
+// ── 5. The org-admin bypass does not follow an automation into a retrieval ─────
 
-test('a routine owned by an org admin still only grounds on what its owner may read', async () => {
+test('an automation owned by an org admin still only grounds on what its owner may read', async () => {
     // canUserAccessKB lets an org admin READ any base in their org, which is
-    // right for a management screen. Passed through here it meant a routine
+    // right for a management screen. Passed through here it meant an automation
     // owned by an admin ground itself on a colleague's unfinished draft, and
-    // the run log said the routine had read it.
+    // the run log said the automation had read it.
     await execAiStep(
         step({ knowledgeBaseIds: ['kb_ok'] }),
         { ...CTX, orgRole: 'org_admin' },

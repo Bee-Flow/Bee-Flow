@@ -1,8 +1,8 @@
 /**
- * A routine's notifications, as the Settings page shows them
+ * An automation's notifications, as the Settings page shows them
  * (Studio → Automations handoff 5):
  *
- *   GET /:id/notifications   the policy (normalised: an old-shape routine
+ *   GET /:id/notifications   the policy (normalised: an old-shape automation
  *                            comes back in the new shape), the defaults, which
  *                            channels can actually deliver here, and the
  *                            latest delivery attempts.
@@ -91,7 +91,7 @@ function makeNotificationsRouter(overrides = {}) {
                 event: e.event,
                 channel: e.channel,
                 // A Talk row's recipient is its conversation; a person's id
-                // is only shown to people who may read the routine anyway.
+                // is only shown to people who may read the automation anyway.
                 recipient: e.recipient,
                 urgency: e.urgency,
                 createdAt: e.createdAt,

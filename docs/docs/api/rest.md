@@ -206,8 +206,14 @@ Community feature — building automations is in the free core. Sharing them acr
 | GET | `/api/transcriptions` | U | List |
 | POST | `/api/transcriptions` | U | Submit audio |
 | GET | `/api/transcriptions/:id` | U | Read |
-| POST | `/api/meet-bot/join` | U | Send the meeting bot to a URL |
-| POST | `/api/meet-bot/:id/leave` | U | Recall the bot |
+| GET | `/api/transcriptions/gmeet-meetings` | U | Upcoming Google Meet meetings with their record choice |
+| POST | `/api/transcriptions/from-gmeet` | U | Import a finished Google Meet recording |
+| GET | `/api/transcriptions/teams-meetings` | U | Upcoming Microsoft Teams meetings with their record choice |
+| PATCH | `/api/transcriptions/teams-meetings/:eventId` | U | Record or skip one Teams meeting |
+| GET | `/api/transcriptions/teams-recordings` | U | Recently ended Teams meetings you organised |
+| POST | `/api/transcriptions/from-teams` | U | Import a finished Teams meeting |
+| GET/PUT | `/api/teams-notes-settings/user/me` | U | Your Teams → Meeting Notes settings |
+| GET/PUT | `/api/teams-notes-settings/:orgId` | U | Organisation Teams settings (PUT needs an org admin) |
 
 ## Skills
 
@@ -224,7 +230,7 @@ marketplace: skills are written, not browsed or installed.
 | GET | `/api/skills/:id` | U | One skill |
 | PUT | `/api/skills/:id` | U | Update a skill |
 | DELETE | `/api/skills/:id` | U | Delete a skill (409 while it is still in use) |
-| GET | `/api/skills/:id/usage` | U | Which agents and routine steps name it |
+| GET | `/api/skills/:id/usage` | U | Which agents and automation steps name it |
 | POST | `/api/skills/:id/test` | U | Run one graded turn against the skill |
 | GET | `/api/skills/:id/test-runs` | U | Past test verdicts |
 | POST | `/api/skills/ai/draft` | U | Let the AI draft a skill |

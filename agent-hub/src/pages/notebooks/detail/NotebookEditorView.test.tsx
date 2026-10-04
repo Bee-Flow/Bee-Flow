@@ -134,8 +134,8 @@ describe('a viewer', () => {
         renderView(detail({ role: 'viewer', projectRole: 'viewer' }, { project: { ...PROJECT, role: 'viewer' } }));
         expect(screen.getByTestId('editor').dataset.editable).toBe('false');
         expect(screen.getByTestId('notebook-view-only')).toHaveTextContent('View only');
-        expect(screen.queryByTestId('notebook-title-input')).not.toBeInTheDocument();
-        expect(screen.getByTestId('notebook-title').tagName).toBe('H2');
+        expect(screen.getByTestId('studio-section-title').tagName).toBe('H1');
+        expect(screen.getByRole('button', { name: 'Documents' })).toBeInTheDocument();
         expect(screen.queryByTestId('notebook-starters')).not.toBeInTheDocument();
         expect(screen.queryByRole('button', { name: 'Remove source' })).not.toBeInTheDocument();
         expect(h.editorProps?.onAIFill).toBeUndefined();

@@ -579,14 +579,14 @@ test('scripted build: screen + components → drafts, tool_calls, done', async (
     const first = state.adapterCalls[0].messages;
     assert.strictEqual(first[0].role, 'system');
     assert.ok(first[0].content.includes('never code'), 'identity present');
-    // The owner's routines ride the OWNER CONTEXT note in the folded user
+    // The owner's automations ride the OWNER CONTEXT note in the folded user
     // message (since 2026-09-17), never the system prompt — which is what
     // keeps that prompt one text for every user of a box.
-    assert.ok(!first[0].content.includes('auto-1'), 'owner routines are NOT in the static prompt');
+    assert.ok(!first[0].content.includes('auto-1'), 'owner automations are NOT in the static prompt');
     const draftStateIdx = first.findIndex((m) => m.role === 'user' && m.content.startsWith('[DRAFT STATE'));
     assert.ok(draftStateIdx > 0 && draftStateIdx === first.length - 1, 'draft state leads the last (user) message');
     assert.ok(first[draftStateIdx].content.includes('[OWNER CONTEXT — machine-generated'), 'the owner note is in the folded user message');
-    assert.ok(first[draftStateIdx].content.includes('auto-1'), 'with the owner\'s routine ids');
+    assert.ok(first[draftStateIdx].content.includes('auto-1'), 'with the owner\'s automation ids');
     assert.ok(first[draftStateIdx].content.endsWith('Build a lookup app'), 'the human\'s words close it');
 });
 
@@ -1052,7 +1052,7 @@ test('a provider failure after a mutation ends the turn unfinalized — the net 
     assert.deepStrictEqual(eventsOf(events, 'error').map((e) => e.data.code), ['transient_upstream']);
     // "Please send your message again" and "the app validates — saved" cannot
     // both be true; the draft IS saved (after every mutation), it is just not
-    // finalized. Same rule as the routine builder's `!stopReason`.
+    // finalized. Same rule as the automation builder's `!stopReason`.
     assert.strictEqual(eventsOf(events, 'draft').length, 1, 'only the mutation changed the draft');
     assert.strictEqual(eventsOf(events, 'done')[0].data.finalized, false);
     assert.ok(!eventsOf(events, 'message').some((e) => /saved/.test(e.data.content)), 'no "saved" line under the failure');
@@ -1455,7 +1455,7 @@ test('continueToken turn reuses the persisted tier and skips auto re-resolution'
     }
 });
 
-// ── Small-model turn hygiene (parity with the routine builder) ──────
+// ── Small-model turn hygiene (parity with the automation builder) ──────
 
 // The band profile for `test-model-large` is 'mid' (no small/frontier pattern
 // matches); the admin override map is how the demo box makes Gemma 'small'

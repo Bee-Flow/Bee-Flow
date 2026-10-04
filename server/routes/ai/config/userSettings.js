@@ -23,7 +23,7 @@
  *   - `enabledApps` was stored as whatever arrived. As the string "gmail"
  *     the tool gate matched app ids as SUBSTRINGS, and the headless resolver
  *     (enabledIntegrations.parseList) read it as null — "every app enabled"
- *     for routines of someone who had narrowed it to one;
+ *     for automations of someone who had narrowed it to one;
  *   - `signrequestSubdomain` was interpolated raw into
  *     `https://${subdomain}.signrequest.com`, so `host:port/x?` sent the
  *     user's token to any https host the server can reach. It is one DNS
@@ -163,8 +163,8 @@ router.get('/user-settings', requireAuth, async (req, res) => {
     let hasMicrosoftConnection = isMicrosoftUser;
     if (!hasMicrosoftConnection && userId) {
         try {
-            const routineCredentialStore = require('../../../stores/routineCredentialStore');
-            const rows = await routineCredentialStore.listProvidersForUser(userId);
+            const automationCredentialStore = require('../../../stores/automationCredentialStore');
+            const rows = await automationCredentialStore.listProvidersForUser(userId);
             hasMicrosoftConnection = rows.some(r => r.provider === 'microsoft' && r.status === 'active');
         } catch (_) { /* non-fatal — Outlook just stays SSO-gated */ }
     }

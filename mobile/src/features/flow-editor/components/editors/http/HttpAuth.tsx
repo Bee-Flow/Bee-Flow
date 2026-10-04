@@ -1,6 +1,6 @@
 /**
  * Who the request signs in as — the web's HttpAuthPicker. Only the opaque
- * connection id lives in the routine; the secret stays in the vault and is
+ * connection id lives in the automation; the secret stays in the vault and is
  * never shown. A step that names a credential this account can no longer
  * reach keeps showing it as such, rather than silently pointing elsewhere.
  */

@@ -22,7 +22,7 @@
  *    `datatable_identity_unavailable` rather than with `datatable_forbidden`.
  *    An unresolved orgRole degrades to "not an admin" and an unresolved group
  *    list to "in no group", so the old behaviour reported a lookup outage as an
- *    authorisation refusal on a routine that worked yesterday. A personal table
+ *    authorisation refusal on an automation that worked yesterday. A personal table
  *    is unaffected: its rule is "you are the account", which needs none of them.
  *
  * 2. DEGRADE AN UNRESOLVED FILTER TO "ALL ROWS". ANY operation whose condition
@@ -283,7 +283,7 @@ async function execDatatable(step, ctx, runState, mode) {
                 // was: it is rows.length clamped by the page size, so a
                 // condition on `count > 100` after a default page of 50 could
                 // never fire. `count` survives as an alias for one release so
-                // existing routines keep working; count_rows answers the
+                // existing automations keep working; count_rows answers the
                 // question the name promised.
                 returned: rows.length,
                 count: rows.length,
@@ -299,7 +299,7 @@ async function execDatatable(step, ctx, runState, mode) {
     if (op === 'count_rows') {
         // COUNT(*) through compileAggregate, which ANDs the same access
         // predicate into the WHERE that feeds the aggregate — so a count can
-        // never report rows the routine may not read.
+        // never report rows the automation may not read.
         const { sql, params } = queryCompiler.compileAggregate(tableMeta, {
             filters, match, aggregates: [{ fn: 'count', field: '*', as: 'total' }], dialect: 'pg',
         }, readFilter);
@@ -309,7 +309,8 @@ async function execDatatable(step, ctx, runState, mode) {
     }
 
     // ── 5. writes ───────────────────────────────────────────────────────
-    const resolvedValues = resolveInputs(step.values || {}, runState, { allowSecrets: false });
+    // A cell is data: a list in a `{{…}}` is stored as JSON, as it always was.
+    const resolvedValues = resolveInputs(step.values || {}, runState, { allowSecrets: false, listAs: 'json' });
 
     // A credential must never become a permanent row. Rows deliberately skip
     // redactForPersistence (they are the user's own data, not a log), so this
@@ -373,6 +374,11 @@ async function execDatatable(step, ctx, runState, mode) {
     } else {
         accessFilter.assertCanWrite(tableMeta, grade, accessAction);
     }
+    // A Solution stage's reference table: its rows are the release's. The
+    // compiler refuses every write on it (RowsLockedError, errorClass
+    // `managed_part`, which an on_error branch matches); asked here as well so
+    // a preview says so instead of synthesising a write the live run refuses.
+    queryCompiler.assertRowsWritable(tableMeta);
 
     if (mode === 'dry_run') {
         // A preview must not leave rows behind — and it must not describe a
@@ -414,7 +420,7 @@ async function execDatatable(step, ctx, runState, mode) {
                     // The real row count, not a hard-coded 1: the row can be
                     // readable and still out of the UPDATE's scope, and
                     // reporting 1 for a statement that changed nothing is how a
-                    // routine claims to have saved something it did not.
+                    // automation claims to have saved something it did not.
                     return {
                         output: {
                             row: { ...existing, ...values }, id: existing.id,
@@ -429,7 +435,7 @@ async function execDatatable(step, ctx, runState, mode) {
         // validate/constants.js promises authors that a datatable step "fails
         // on … a quota" so an on_error branch catches something; only the HTTP
         // route ever enforced it, and only the per-table row cap, so in a
-        // routine it caught nothing and the shared volume had no ceiling at all.
+        // automation it caught nothing and the shared volume had no ceiling at all.
         await assertDatatableQuota(scope, { table, addRows: 1 });
         // A mirror: the source first, the copy from its answer. A refusal
         // carries `errorClass`, so an on_error branch matches it like any

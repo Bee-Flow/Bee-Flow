@@ -174,7 +174,7 @@ function summariseDefinition(def) {
     lines.push('**Steps:**');
 
     let hasSideEffects = false;
-    // Notes (BFSF-411) are canvas annotations, not steps the routine runs —
+    // Notes (BFSF-411) are canvas annotations, not steps the automation runs —
     // numbering them alongside real steps would misreport what step 4 in the
     // list actually does, and describeStep has no case for 'note' anyway (it
     // would fall through to the raw-type default line).
@@ -188,7 +188,7 @@ function summariseDefinition(def) {
             if (s.type === 'code') hasSideEffects = true;
             if (s.type === 'notification') hasSideEffects = true;
             // It writes a real file that persists past the run and can be
-            // downloaded by whoever the routine hands it to. Cheaper than an
+            // downloaded by whoever the automation hands it to. Cheaper than an
             // email, but not nothing — the author should be told a live run
             // will actually produce it.
             if (s.type === 'generate_document') hasSideEffects = true;
@@ -198,7 +198,7 @@ function summariseDefinition(def) {
             // And for a deck — a real file kept past the run. A slide is an
             // object in the run state, nothing outlives it.
             if (s.type === 'presentation') hasSideEffects = true;
-            // A datatable WRITE outlives the run and other routines read it, so
+            // A datatable WRITE outlives the run and other automations read it, so
             // the author must be told a live run will really change it. Decided
             // per FIELD rather than per type — the same shape integration_action
             // already uses above, where isSideEffect(s.tool) makes the call.
@@ -235,7 +235,7 @@ function bindingMap(map) {
 // model saw a code step as "(N chars)" and had to guess what to bind.
 //
 // Loaded on first use and remembered per code text: the draft state is
-// rebuilt every turn and a routine rarely changes its code between turns.
+// rebuilt every turn and an automation rarely changes its code between turns.
 // Never throws: a summary line is not worth a failed turn, and without the
 // analyser the line keeps only the size, as before.
 const CODE_PARAMS_CACHE_MAX = 64;

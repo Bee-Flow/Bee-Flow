@@ -69,12 +69,24 @@ async function eraseProjectTraces(userId, opts = {}) {
  * delete, and only each conversation's owner can unshare it. Nothing is
  * folded back or detached for it, so it stays exactly as it was.
  *
+ * A Solution stage project, or a Dev project that still has stages, is
+ * neither handed over nor torn down (409 solution_has_stages from the
+ * teardown's own check, asked first): it is KEPT as it is, and logged. The
+ * account deletion refuses a stage's run-as or owner before it gets here
+ * (users.deleteUser, 409 stage_run_as), so this is the second wall, not the
+ * first. `removal` is the capability of a stage's `remove` deployment (design
+ * 6.8); with it, that one stage project is torn down.
+ *
  * @param {string} userId
  * @param {{
  *   listOwned?: (userId: string) => Promise<string[]>,
  *   countSharedThreads?: (projectId: string) => Promise<number>,
- *   teardown?: { deleteProject: (projectId: string) => Promise<boolean> },
+ *   teardown?: {
+ *     deleteProject: (projectId: string, opts?: { removal?: { deploymentId?: string }|null }) => Promise<boolean>,
+ *     teardownRefusal?: (projectId: string, opts?: { removal?: { deploymentId?: string }|null }) => Promise<Error|null>,
+ *   },
  *   handOver?: (projectId: string, fromOwnerId: string) => Promise<string|null>,
+ *   removal?: { deploymentId?: string }|null,
  * }} [opts]  test seam
  * @returns {Promise<{ deleted: number, kept: number, failed: number, handedOver: number }>}
  */
@@ -99,8 +111,17 @@ async function eraseOwnedProjects(userId, opts = {}) {
         report.failed += 1;
         return report;
     }
+    const removal = opts.removal || null;
     for (const projectId of ids) {
         try {
+            const refused = typeof teardown.teardownRefusal === 'function'
+                ? await teardown.teardownRefusal(projectId, { removal })
+                : null;
+            if (refused) {
+                report.kept += 1;
+                log.warn(`[UserStore] project ${projectId} kept: ${/** @type {any} */ (refused).code || 'refused'}`);
+                continue;
+            }
             if (await handOver(projectId, userId)) {
                 report.handedOver += 1;
                 continue;
@@ -110,7 +131,7 @@ async function eraseOwnedProjects(userId, opts = {}) {
                 log.warn(`[UserStore] project ${projectId} kept: conversations are still shared into it`);
                 continue;
             }
-            if (await teardown.deleteProject(projectId)) report.deleted += 1;
+            if (await teardown.deleteProject(projectId, removal ? { removal } : undefined)) report.deleted += 1;
         } catch (e) {
             report.failed += 1;
             log.error(`[UserStore] deleting owned project ${projectId} failed:`, /** @type {Error} */ (e).message);

@@ -244,7 +244,7 @@ export function describeDataPath(path: unknown, stepLabelById: StepLabelMap = nu
     const ref = classifyRef(raw);
     if (ref) {
         const { name, suffix, missing } = resolveChipLabel({ ...ref }, stepLabelById);
-        const shown = missing ? t('routines.ndv.prev_step', 'Previous step') : name;
+        const shown = missing ? t('automations.ndv.prev_step', 'Previous step') : name;
         return { name: shown, suffix: humanizeFieldTail(suffix), missing, source: ref.source };
     }
     const root = raw.split(/[.[]/)[0];

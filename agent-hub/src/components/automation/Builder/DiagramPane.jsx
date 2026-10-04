@@ -155,7 +155,7 @@ const DiagramPane = forwardRef(function DiagramPane({
     onAddTrigger = null,      // (payload) — the empty canvas's trigger cards
     onOpenAssistant = null,   // () — the empty canvas's Assistant button
     editingStepId = null,     // the step open in the drawer (design 1h)
-    // The routine's public form page. Only ever used by the run banner, and
+    // The automation's public form page. Only ever used by the run banner, and
     // only while a run is parked on a form (design 1d, "Formulier openen").
     formUrl = null,
     // What the AI build is doing right now — { running, phase, startedAt,
@@ -407,7 +407,7 @@ const DiagramPaneInner = forwardRef(function DiagramPaneInner({
     }, []);
     // The PII option only means something once a loaded run step carries a
     // pii summary (builder test-runs with the Privacy Shield applied to
-    // routines) — offered disabled with an explanatory tooltip until then.
+    // automations) — offered disabled with an explanatory tooltip until then.
     const hasPiiData = useMemo(() => {
         for (const r of runByStep.values()) if (r?.piiSummary) return true;
         return false;
@@ -1073,7 +1073,7 @@ const DiagramPaneInner = forwardRef(function DiagramPaneInner({
     });
 
     if (!definition || !definition.trigger) {
-        // The first screen of a new routine (BFSF-327) — see
+        // The first screen of a new automation (BFSF-327) — see
         // flow/DiagramEmptyState.jsx. React Flow is not mounted yet, so the
         // build cue lives here through the prompt processing before the first
         // token — the worst dead air of a build.
@@ -1232,7 +1232,7 @@ const DiagramPaneInner = forwardRef(function DiagramPaneInner({
                                     flowletsOpen ? 'bg-[var(--bg-tertiary)]' : 'bg-[var(--bg-card)] hover:bg-[var(--bg-tertiary)]'
                                 }`}
                             >
-                                <Layers size={14} /> {t('routines.canvas.flowlets', 'Flowlets')}
+                                <Layers size={14} /> {t('automations.canvas.flowlets', 'Flowlets')}
                                 {flowletCount > 0 && <span className="text-[var(--text-tertiary)]">{flowletCount}</span>}
                             </button>
                         )}
@@ -1270,7 +1270,7 @@ const DiagramPaneInner = forwardRef(function DiagramPaneInner({
                     <div className="flex items-center gap-1.5">
                         {editingStepId ? (!shortCanvas && (
                             <div className="px-2.5 py-[5px] rounded-lg bg-[var(--bg-card)] border border-[var(--border-default)] text-[12px] text-[var(--text-secondary)] shadow-sm whitespace-nowrap" data-testid="editing-chip">
-                                {t('routines.canvas.editing_chip', 'Step {n} of {total} · Esc closes · Alt+←/→ previous/next', {
+                                {t('automations.canvas.editing_chip', 'Step {n} of {total} · Esc closes · Alt+←/→ previous/next', {
                                     n: runtimeContextValue.stepNumberById.get(editingStepId) ?? '?',
                                     total: [...runtimeContextValue.stepNumberById.values()].filter(v => typeof v === 'number').length,
                                 })}

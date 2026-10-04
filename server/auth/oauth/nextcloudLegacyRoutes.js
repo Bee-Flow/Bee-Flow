@@ -194,7 +194,7 @@ router.get('/callback', async (req, res) => {
         req.session.isAuthenticated = true;
         req.session.isAdmin = freshUserLegacy?.role === 'admin';
 
-        // Long-lived encrypted vault copy for unattended routines.
+        // Long-lived encrypted vault copy for unattended automations.
         if (freshUserLegacy?.organizationId && user?.id) {
             await _vaultUpsertSafe({
                 userId: user.id,

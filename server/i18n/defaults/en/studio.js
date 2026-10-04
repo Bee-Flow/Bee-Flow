@@ -22,14 +22,14 @@ module.exports = {
     "studio.tab.agents_desc": "Create and manage your agents",
     "studio.tab.skills_desc": "Reusable abilities for your agents",
     "studio.tab.knowledge_desc": "Knowledge bases your AI can search",
-    "studio.tab.automations_desc": "Multi-step routines that run for you",
+    "studio.tab.automations_desc": "Multi-step automations that run for you",
     "studio.tab.webpages_desc": "Design and publish public webpages",
     "studio.tab.support_desc": "Shared inbox for support tickets",
     "studio.tab.apps_desc": "Build and publish internal apps",
     "studio.tab.playbooks": "Playbooks",
     "studio.tab.playbooks_desc": "Watch the AI build a table, an automation and an app — one phase at a time",
     "studio.tab.solutions": "Solutions",
-    "studio.tab.solutions_desc": "Bundle routines, apps and webpages into one installable Solution",
+    "studio.tab.solutions_desc": "Bundle automations, apps and webpages into one installable Solution",
     "studio.tab.meeting_notes_desc": "Transcripts, speakers and actions",
     "studio.sidebar_link": "Studio",
     "studio.category.ai": "AI",
@@ -40,14 +40,14 @@ module.exports = {
     "studio.tab.approvals": "Approvals",
     "studio.tab.approvals_desc": "Requests waiting on a person, and every past decision",
     "studio.tab.datatables": "Datatables",
-    "studio.tab.datatables_desc": "Rows your routines keep between runs",
+    "studio.tab.datatables_desc": "Rows your automations keep between runs",
     "studio.tab.knowledge": "Knowledge",
     "studio.tab.meeting_notes": "Meeting Notes",
     "studio.tab.security": "Security Scan",
     "studio.tab.skills": "Skills",
     "studio.tab.webpages": "Webpages",
     "studio.tab.documents": "Documents",
-    "studio.tab.documents_desc": "Invoices, quotes and letters — editable by hand, downloadable as PDF",
+    "studio.tab.documents_desc": "Pages, notebooks, invoices, quotes and letters — editable by hand, downloadable as PDF",
 
     // Studio shared patterns (Track 0, 2026-09) — the status capsule (StatusActionPill / statusOf.js)
     "studio.status.live": "Live",
@@ -89,8 +89,8 @@ module.exports = {
     // ── Forms directory (H2 · Track H) ─────────────────────────────────
     // The builder-side directory of every PUBLISHED form, which is the only
     // place a public form address can still be found. A form is not an object
-    // of its own — it is a routine with a form trigger — so the words here
-    // speak about the routine behind the row wherever that leaks through.
+    // of its own — it is an automation with a form trigger — so the words here
+    // speak about the automation behind the row wherever that leaks through.
     // The three status lines are three ANSWERS, never two plus a blank: a row
     // that did not say whether it is live says so, instead of reading "off".
     'studio.tab.forms_desc': 'Published forms, and what they start',
@@ -136,7 +136,7 @@ module.exports = {
     'studio.attention.skipped': 'Some checks only run for the people who can act on them.',
     'studio.attention.src_agent_no_kb': 'Agent has no knowledge base',
     'studio.attention.src_app_validation': 'App has validation problems',
-    'studio.attention.src_automation_failing': 'Routine failed several times in a row',
+    'studio.attention.src_automation_failing': 'Automation failed several times in a row',
     'studio.attention.src_kb_empty_in_use': 'Knowledge base is used but holds no documents',
     'studio.attention.src_kb_source_error': 'Knowledge source could not refresh',
     'studio.attention.src_solution_blocked': 'Solution has blocking findings',
@@ -151,16 +151,16 @@ module.exports = {
     'studio.map.edge_agent_grounds_kb': 'An agent is grounded in a knowledge base.',
     'studio.map.edge_agent_uses_skill': 'An agent uses a skill.',
     'studio.map.edge_app_asks_approval': 'An app asks a person to approve.',
-    'studio.map.edge_app_runs_automation': 'An app runs a routine.',
-    'studio.map.edge_automation_writes_document': 'A routine writes a document.',
+    'studio.map.edge_app_runs_automation': 'An app runs an automation.',
+    'studio.map.edge_automation_writes_document': 'An automation writes a document.',
     'studio.map.edge_app_uses_datatable': 'An app uses a table.',
     'studio.map.edge_app_uses_datatable_note': 'Not recorded anywhere yet, so no solution shows it.',
-    'studio.map.edge_automation_asks_approval': 'A routine asks a person to approve.',
-    'studio.map.edge_automation_calls_automation': 'A routine calls another routine.',
-    'studio.map.edge_automation_datatable': 'A routine reads and writes a table.',
-    'studio.map.edge_form_triggers_automation': 'A form triggers a routine.',
+    'studio.map.edge_automation_asks_approval': 'An automation asks a person to approve.',
+    'studio.map.edge_automation_calls_automation': 'An automation calls another automation.',
+    'studio.map.edge_automation_datatable': 'An automation reads and writes a table.',
+    'studio.map.edge_form_triggers_automation': 'A form triggers an automation.',
     'studio.map.edge_meeting_feeds_kb': 'A meeting note feeds a knowledge base.',
-    'studio.map.edge_webpage_runs_automation': 'A web page runs a routine.',
+    'studio.map.edge_webpage_runs_automation': 'A web page runs an automation.',
     'studio.map.no_edges': 'Nothing points at this one and it points at nothing: a solution is the box the others travel in.',
     'studio.map.no_edges_generic': 'Nothing on this map points at this one, and it points at nothing.',
     'studio.map.pick': 'Pick a building block to see what it connects to.',

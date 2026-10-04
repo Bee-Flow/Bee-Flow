@@ -47,7 +47,7 @@ const runPath = (runId: string) => `/api/automation/runs/${encodeURIComponent(ru
 
 export async function listAutomations(signal?: AbortSignal): Promise<Automation[]> {
     const res = await api.get<unknown>('/api/automation', { signal });
-    // `kind: 'block'` rows are reusable Steps, not routines — they have no
+    // `kind: 'block'` rows are reusable Steps, not automations — they have no
     // trigger of their own and cannot be run, so they never belong in a list
     // whose whole purpose is "start this".
     return withId(field.list(readAutomation)(pick(res, 'automations'))).filter(
@@ -66,7 +66,7 @@ export async function getAutomation(
 }
 
 /**
- * Save a routine: rename, re-describe, re-time — or, from the flow editor,
+ * Save an automation: rename, re-describe, re-time — or, from the flow editor,
  * the whole definition. One function for PUT /:id, shared by both features.
  *
  * A schedule change sends the patched DEFINITION, not the `scheduleCron`
@@ -86,7 +86,7 @@ export async function updateAutomation(id: string, patch: AutomationPatch): Prom
 }
 
 /**
- * Arm or disarm a routine.
+ * Arm or disarm an automation.
  *
  * Activation is not a flag flip: the server re-validates the whole STORED
  * flow at `stage: 'strict'`, checks every tool against the caller's permitted
@@ -107,7 +107,7 @@ export async function setAutomationActive(id: string, active: boolean): Promise<
  * they did not see. The checks are activation's own (checkBeforeLive in
  * routes/automation/activate.js), so a refusal reads like one: a 400 with
  * `details`, a 409 from the AI Act gate, a 400 `invalid_schedule`. A paused
- * routine stays paused. Never retried: the refusal is the answer.
+ * automation stays paused. Never retried: the refusal is the answer.
  */
 export async function publishAutomation(id: string, version: number | null): Promise<AutomationSaveResult> {
     const body = typeof version === 'number' ? { version } : {};
@@ -115,7 +115,7 @@ export async function publishAutomation(id: string, version: number | null): Pro
 }
 
 /**
- * The routine's counts (routes/automation/actions.js GET /:id/counts). The
+ * The automation's counts (routes/automation/actions.js GET /:id/counts). The
  * phone reads the pending figure, which a save's answer leaves out.
  */
 export async function getAutomationCounts(id: string, signal?: AbortSignal): Promise<AutomationCounts> {
@@ -133,7 +133,7 @@ export async function getAutomationCounts(id: string, signal?: AbortSignal): Pro
  *                                      is information, not a failure
  * The client timeout is raised past the server's own 60s cap so the sync path
  * is never cut off by us first. `triggerStepId` enters through one of the
- * routine's additional triggers (the builder's "Start from"); `triggerPayload`
+ * automation's additional triggers (the builder's "Start from"); `triggerPayload`
  * is what the run enters with (a trigger's saved sample).
  */
 export async function runAutomation(id: string, input: RunInput = {}): Promise<RunTriggerResult | null> {
@@ -218,7 +218,7 @@ export async function listActiveRuns(signal?: AbortSignal): Promise<ActiveRun[]>
 
 /**
  * One run. The row you asked for reports the outcome of the LAST leg of its
- * journey — a routine that paused on a form or an approval continues in a
+ * journey — an automation that paused on a form or an approval continues in a
  * child run, and the server folds that back onto this response
  * (`journeyRunId`), so the phone never shows a "success" that was really a
  * hand-off.

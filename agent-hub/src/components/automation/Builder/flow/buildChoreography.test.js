@@ -438,7 +438,7 @@ describe('chapterOf — the turn\'s chapter from its accepted calls', () => {
         expect(chapterOf([ok('builder_add_step'), ok('builder_finalize')]).finalized).toBe(true);
         expect(chapterOf([ok('builder_add_step'), refused('builder_finalize')]).finalized).toBe(false);
         expect(chapterOf([ok('builder_add_step')]).finalized).toBe(false);
-        // A finalize followed by more edits still counts: the routine was written this turn.
+        // A finalize followed by more edits still counts: the automation was written this turn.
         expect(chapterOf([ok('builder_finalize'), ok('builder_add_step')])).toEqual({ phase: 'building', finalized: true });
     });
 

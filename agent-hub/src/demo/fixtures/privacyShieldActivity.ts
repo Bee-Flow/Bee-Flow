@@ -199,7 +199,7 @@ export const GUARD_OVERVIEW = () => ({
     top_users: TOP_USERS,
     by_surface: byWeight('surface', [
         { surface: 'direct', weight: 46 }, { surface: 'agent', weight: 34 },
-        { surface: 'routine', weight: 15 }, { surface: 'notebook', weight: 5 },
+        { surface: 'automation', weight: 15 }, { surface: 'notebook', weight: 5 },
     ]),
     health: { last_event_at: minutesAgo(38) },
     window: { start: null, end: null, interval: 'day' },
@@ -240,7 +240,7 @@ export const INTEG_OVERVIEW = () => ({
         actors: [
             { actor: 'agent', total: Math.round(TOTAL_CALLS * 0.54) },
             { actor: 'user', total: Math.round(TOTAL_CALLS * 0.31) },
-            { actor: 'routine', total: Math.round(TOTAL_CALLS * 0.15) },
+            { actor: 'automation', total: Math.round(TOTAL_CALLS * 0.15) },
         ],
         users: TOP_USERS.map(u => ({ user_id: u.user_id, display_name: u.display_name, total: Math.round(u.total * 1.7) })),
     },
@@ -293,13 +293,13 @@ const GUARD_EVENT_SEEDS: Array<[number, string, string, string, string | null]> 
     [0, 'direct', 'Person,Email', 'tokenized', null],
     [1, 'agent', 'InternationalBankingAccountNumber', 'tokenized', 'Schadebeoordeling'],
     [0, 'agent', 'Person,PhoneNumber', 'tokenized', 'Polisintake'],
-    [2, 'routine', 'Email', 'redacted', 'Wekelijkse schaderapportage'],
+    [2, 'automation', 'Email', 'redacted', 'Wekelijkse schaderapportage'],
     [3, 'direct', 'NationalIdentificationNumber', 'blocked', null],
     [1, 'agent', 'Person,Address', 'tokenized', 'Klachtdossier'],
     [4, 'direct', 'MedicalCondition', 'blocked', null],
     [2, 'agent', 'Person', 'tokenized', 'Klantenservice-assistent'],
     [0, 'notebook', 'Email,Person', 'tokenized', null],
-    [3, 'routine', 'InternationalBankingAccountNumber,Person', 'tokenized', 'Incassobestand opschonen'],
+    [3, 'automation', 'InternationalBankingAccountNumber,Person', 'tokenized', 'Incassobestand opschonen'],
     [1, 'direct', 'PhoneNumber', 'allowed', null],
     [4, 'agent', 'Address', 'redacted', 'Polisintake'],
     [2, 'agent', 'Email', 'tool_blocked', 'Klachtdossier'],
@@ -321,10 +321,10 @@ export const GUARD_ROWS = () => GUARD_TIMES.map((timestamp, i) => {
         direction: action === 'tool_blocked' ? 'output' : 'input',
         source: surface,
         agent_id: surface === 'agent' ? `agent_${agent}` : null,
-        automation_id: surface === 'routine' ? `routine_${agent}` : null,
+        automation_id: surface === 'automation' ? `automation_${agent}` : null,
         agent_name: agent,
         conversation_id: `conv_${7100 + i}`,
-        model: surface === 'routine' ? 'qwen3-8b' : 'gpt-5',
+        model: surface === 'automation' ? 'qwen3-8b' : 'gpt-5',
         status: 'handled',
     };
 });
@@ -345,12 +345,12 @@ const EGRESS_SEEDS: Array<[number, string, string, number]> = [
 
 const EGRESS_TIMES = sampleTimes(i => Math.floor(3 * dayShape(i)), 12);
 
-/** Where a sampled call started: chat, one of the agents, or the weekly routine. */
+/** Where a sampled call started: chat, one of the agents, or the weekly automation. */
 const EGRESS_SURFACES: Array<{ source: string; agent_name: string | null }> = [
     { source: 'agent', agent_name: 'Polisintake' },
     { source: 'direct_chat', agent_name: null },
     { source: 'agent', agent_name: 'Klachtdossier' },
-    { source: 'routine', agent_name: 'Wekelijkse schaderapportage' },
+    { source: 'automation', agent_name: 'Wekelijkse schaderapportage' },
     { source: 'direct_chat', agent_name: null },
     { source: 'agent', agent_name: 'Schadebeoordeling' },
     { source: 'direct_chat', agent_name: null },
@@ -366,7 +366,7 @@ export const EGRESS_ROWS = () => EGRESS_TIMES.map((timestamp, i) => {
         source: surface.source,
         agent_name: surface.agent_name,
         agent_id: surface.source === 'agent' ? `agent_${surface.agent_name}` : null,
-        automation_id: surface.source === 'routine' ? `routine_${surface.agent_name}` : null,
+        automation_id: surface.source === 'automation' ? `automation_${surface.agent_name}` : null,
         user_id: PEOPLE[i % PEOPLE.length].user_id,
         display_name: PEOPLE[i % PEOPLE.length].display_name,
         integration_type: INTEGRATION_OF.get(d.dest_host),

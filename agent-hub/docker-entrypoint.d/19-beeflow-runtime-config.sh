@@ -22,6 +22,11 @@
 #                                   carried, so a deployment can point the
 #                                   beacon at its own collector.
 #   BEEFLOW_TELEMETRY_SITE          optional; same idea for the host.
+#   LEARN_MEDIA_BASE_URL            optional; where browsers load Learning
+#                                   Center videos from (a CDN). Only an
+#                                   absolute https:// URL is written; anything
+#                                   else leaves the default, the server's own
+#                                   /learn-media. See server/learning/learnMedia.js.
 #
 # `.sh` (not `.envsh`): this one writes a file, it does not need to export
 # anything into the later entrypoint scripts. Numbered 19 so it lands after
@@ -59,6 +64,20 @@ bf_json_str() {
 bf_token="$(bf_json_str "${BEEFLOW_TELEMETRY_CLIENT_TOKEN:-}")"
 bf_site="$(bf_json_str "${BEEFLOW_TELEMETRY_SITE:-}")"
 
+# Same "safe by default" rule for the media base: an https URL without
+# whitespace or quotes, or nothing. The client re-checks it anyway.
+bf_media=""
+case "${LEARN_MEDIA_BASE_URL:-}" in
+    https://*)
+        case "${LEARN_MEDIA_BASE_URL}" in
+            *[[:space:]\"\'\<\>]*) bf_log "LEARN_MEDIA_BASE_URL ignored: contains whitespace or quotes" ;;
+            *) bf_media="$(bf_json_str "${LEARN_MEDIA_BASE_URL}")" ;;
+        esac
+        ;;
+    "") ;;
+    *) bf_log "LEARN_MEDIA_BASE_URL ignored: must start with https://" ;;
+esac
+
 if [ ! -d "$(dirname "$bf_out")" ]; then
     bf_log "$(dirname "$bf_out") does not exist — skipping runtime config"
     exit 0
@@ -72,6 +91,9 @@ window.__BEEFLOW_RUNTIME__ = Object.freeze({
     enabled: $bf_enabled,
     clientToken: "$bf_token",
     site: "$bf_site"
+  }),
+  learnMedia: Object.freeze({
+    baseUrl: "$bf_media"
   })
 });
 EOF
@@ -82,5 +104,5 @@ else
     bf_log "telemetry off (set BEEFLOW_TELEMETRY_ENABLED=true to enable)"
 fi
 
-unset bf_out bf_enabled bf_token bf_site
+unset bf_out bf_enabled bf_token bf_site bf_media
 unset -f bf_log bf_json_str 2>/dev/null || true

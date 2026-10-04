@@ -3,7 +3,7 @@
  * los van hoe ze getekend worden.
  *
  * Alles hier is puur: in gaat de opgeslagen `agents.persona` plus de rauwe
- * routinelijst, eruit komen FEITEN — nooit zinnen. De zinnen staan in de
+ * automatiseringslijst, eruit komen FEITEN — nooit zinnen. De zinnen staan in de
  * kaarten, want daar staan ook de letterlijke `t()`-sleutels die de i18n-guard
  * leest. Een reden om iets NIET te mogen is daarom een CODE
  * (`'not_owner'`), geen tekst.
@@ -35,9 +35,9 @@
  * Een `persona` die we niet konden lezen is niet "een agent zonder rol": de
  * kolom wordt op de lijstroute juist GESTRIPT (`agentCrud.parseConfig`), en
  * `GET /agents/:id` geeft hem alleen mét `?draft=1` én bewerkrecht. Vandaar
- * `readable`, en vandaar dat de routinelijst een eigen `READ`-toestand draagt:
+ * `readable`, en vandaar dat de automatiseringslijst een eigen `READ`-toestand draagt:
  * een mislukte lezing van `/api/automation` is niet "deze gebruiker heeft geen
- * routines".
+ * automations".
  */
 import { isAgentCallable } from '../../../admin/Studio/SkillsStudio/skillModel';
 import { READ } from '../canUse/canUseFacts';
@@ -310,15 +310,15 @@ export function removeBullet(bullets, index) {
     return next;
 }
 
-// ── De hand-off-routine ─────────────────────────────────────────────
+// ── De hand-off-automation ─────────────────────────────────────────────
 
 /**
- * Mag deze bewerker een hand-off-routine kiezen?
+ * Mag deze bewerker een hand-off-automation kiezen?
  *
- * `verifyHandoffAutomation` (routes/agents/crud.js) toetst de routine tegen
- * `agent.owner_id`, terwijl `GET /api/automation` de routines van de INGELOGDE
+ * `verifyHandoffAutomation` (routes/agents/crud.js) toetst de automatisering tegen
+ * `agent.owner_id`, terwijl `GET /api/automation` de automatiseringen van de INGELOGDE
  * gebruiker teruggeeft. Bewerkt een org-admin andermans agent, dan toont de
- * kiezer dus routines die de server gegarandeerd weigert — en een keuze
+ * kiezer dus automatiseringen die de server gegarandeerd weigert — en een keuze
  * aanbieden die zeker sneuvelt is de stille vorm van niets doen.
  *
  * Onbekend versmalt: zonder allebei de ids weten we niet of dit dezelfde
@@ -334,18 +334,18 @@ export function handoffBlockedBecause({ agentOwnerId, userId }) {
 }
 
 /**
- * De routines die als hand-off in aanmerking komen.
+ * De automatiseringen die als hand-off in aanmerking komen.
  *
  * De poort is `trigger.kind === 'agent_call'` — dezelfde die
  * `automationToTool` (server/automation/agentCallableTools.js) hanteert, want
  * dat is de enige soort die de runtime als actie aanbiedt. Uitgeschakelde
- * routines worden NIET weggefilterd maar gemarkeerd (`active: false`): ze
+ * automatiseringen worden NIET weggefilterd maar gemarkeerd (`active: false`): ze
  * staan in de lijst van de gebruiker, de server weigert ze, en verzwijgen
- * levert alleen "waar is mijn routine gebleven".
+ * levert alleen "waar is mijn automation gebleven".
  *
  * `state` reist mee — met één correctie. Een `READ.OK` met iets dat GEEN lijst
  * is, is geen lege lijst maar een ONLEESBAAR antwoord, en dat wordt hier
- * `READ.ERROR`. Zonder die versmalling zei de kaart "No routine can be started
+ * `READ.ERROR`. Zonder die versmalling zei de kaart "No automatisering can be started
  * by an agent yet" op precies de invoer die de standaardwaarden opleveren
  * (`automations = null, automationsState = READ.OK`) — terwijl `selectedHandoff`
  * hiernaast en `toolGrants.automationRows` hiernaast dezelfde invoer wél als
@@ -370,9 +370,9 @@ export function handoffChoices({ automations, state = READ.OK }) {
 }
 
 /**
- * De gekozen routine, zoals de kaart hem moet tekenen.
+ * De gekozen automatisering, zoals de kaart hem moet tekenen.
  *
- * Nooit `null` bij een gezet id: een routine die we niet kunnen benoemen is
+ * Nooit `null` bij een gezet id: een automatisering die we niet kunnen benoemen is
  * `readable: false` en blijft staan mét zijn id. Hem weglaten zou beweren dat
  * er geen hand-off is, terwijl de server hem wel degelijk kan verifiëren.
  *

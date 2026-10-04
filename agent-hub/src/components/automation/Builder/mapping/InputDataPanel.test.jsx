@@ -147,9 +147,9 @@ describe('InputDataPanel — every word on it comes from the dictionary', () => 
 
     it('translates the search box and its clear button', async () => {
         transOverride.current = {
-            'routines.mapping.search_open': 'Velden zoeken',
-            'routines.mapping.search_fields': 'Zoek invoervelden',
-            'routines.mapping.clear_search': 'Zoekopdracht wissen',
+            'automations.mapping.search_open': 'Velden zoeken',
+            'automations.mapping.search_fields': 'Zoek invoervelden',
+            'automations.mapping.clear_search': 'Zoekopdracht wissen',
         };
         renderPanel();
         await openSearch('Velden zoeken');
@@ -159,7 +159,7 @@ describe('InputDataPanel — every word on it comes from the dictionary', () => 
     });
 
     it('translates the empty-result line', async () => {
-        transOverride.current = { 'routines.mapping.no_matches': 'Geen treffers.' };
+        transOverride.current = { 'automations.mapping.no_matches': 'Geen treffers.' };
         renderPanel();
         await openSearch();
         fireEvent.change(screen.getByLabelText('Search input fields'), { target: { value: 'zzzz' } });
@@ -167,15 +167,15 @@ describe('InputDataPanel — every word on it comes from the dictionary', () => 
     });
 
     it('interpolates the base path into the drag tooltip instead of gluing it on', () => {
-        transOverride.current = { 'routines.mapping.drag_whole_output': 'Sleep de hele uitvoer ({path})' };
+        transOverride.current = { 'automations.mapping.drag_whole_output': 'Sleep de hele uitvoer ({path})' };
         renderPanel();
         expect(screen.getByTitle(/Sleep de hele uitvoer \(steps\.s1\.output\)/)).toBeTruthy();
     });
 
     it('interpolates the step name into the Table button, title and label alike', () => {
         transOverride.current = {
-            'routines.mapping.open_table': 'Open {label} als tabel',
-            'routines.mapping.open_table_title': 'Open {label} als tabel — een hele kolom of één cel',
+            'automations.mapping.open_table': 'Open {label} als tabel',
+            'automations.mapping.open_table_title': 'Open {label} als tabel — een hele kolom of één cel',
         };
         renderPanel();
         expect(screen.getByLabelText('Open Gmail search als tabel')).toBeTruthy();
@@ -187,8 +187,8 @@ describe('InputDataPanel — every word on it comes from the dictionary', () => 
         // styling. Assembled from fragments the sentence cannot be reordered,
         // so it is one key with the button's own name interpolated.
         transOverride.current = {
-            'routines.mapping.no_named_fields': 'Geen velden met een naam — open {table} om uit de ruwe uitvoer te mappen.',
-            'routines.mapping.table': 'Tabel',
+            'automations.mapping.no_named_fields': 'Geen velden met een naam — open {table} om uit de ruwe uitvoer te mappen.',
+            'automations.mapping.table': 'Tabel',
         };
         render(<InputDataPanel
             groups={[{ id: 'raw', label: 'Raw step', kind: 'code', basePath: 'steps.raw.output', sample: [1, 2], fields: [] }]}

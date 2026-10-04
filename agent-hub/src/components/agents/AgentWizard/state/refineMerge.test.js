@@ -198,7 +198,7 @@ describe('mergeRefinedPlan — persona (A1c)', () => {
         // dat antwoord bouwde deze functie een verse persona in VRIJE modus over
         // een agent die in de kolom `{mode:'fields', unknown:{mode:'handoff',
         // automationId:'auto-1'}, language:'nl'}` kan hebben staan: de
-        // doorgeef-routine en de taalregel stil weg, en de vijf rolkaarten
+        // doorgeef-automation en de taalregel stil weg, en de vijf rolkaarten
         // alleen-lezen. `undefined` laat de PUT het veld weg.
         const merged = mergeRefinedPlan(currentState(), { systemPrompt: 'Be warm.' }, {}, opts);
         expect(merged.persona).toBeUndefined();

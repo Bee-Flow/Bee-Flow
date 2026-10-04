@@ -1,5 +1,5 @@
 /**
- * A file the routine made, handed over: `download` saves or shares it (the
+ * A file the automation made, handed over: `download` saves or shares it (the
  * share sheet is where "open with", "save to Drive" and "send" live on a
  * phone), `notebook` copies it into a new notebook and opens that.
  *

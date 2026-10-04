@@ -9,9 +9,9 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { shortMessage, bundleMessage, talkText, composeDigest, routineName, MESSAGE_TEXT } = require('./notificationMessages');
+const { shortMessage, bundleMessage, talkText, composeDigest, automationName, MESSAGE_TEXT } = require('./notificationMessages');
 
-test('the short line is the routine name and the event, from a code', () => {
+test('the short line is the automation name and the event, from a code', () => {
     assert.deepEqual(shortMessage({ event: 'onError', title: 'Invoices' }), {
         code: 'automation.notify.run_failed', params: { name: 'Invoices' }, text: 'Invoices stopped with an error',
     });
@@ -21,10 +21,10 @@ test('the short line is the routine name and the event, from a code', () => {
     assert.equal(shortMessage({ event: 'onError', code: 'made.up', title: 'X' }).code, 'automation.notify.run_failed');
 });
 
-test('routine names are one tidy line', () => {
-    assert.equal(routineName('  Monthly\n\nreport  '), 'Monthly report');
-    assert.equal(routineName(''), 'A routine');
-    assert.equal(routineName('x'.repeat(200)).length, 120);
+test('automation names are one tidy line', () => {
+    assert.equal(automationName('  Monthly\n\nreport  '), 'Monthly report');
+    assert.equal(automationName(''), 'An automation');
+    assert.equal(automationName('x'.repeat(200)).length, 120);
 });
 
 test('no English template uses a dash as punctuation', () => {
@@ -41,7 +41,7 @@ test('a Talk message is the line and the link', () => {
     assert.equal(talkText('Invoices finished', null), 'Invoices finished');
 });
 
-test('the summary: totals, per-routine lines, busiest problems first', () => {
+test('the summary: totals, per-automation lines, busiest problems first', () => {
     const d = composeDigest({
         items: [
             { automationId: 'a', title: 'Quiet', runs: 0, failures: 0, waiting: 0 },
@@ -51,15 +51,15 @@ test('the summary: totals, per-routine lines, busiest problems first', () => {
         link: '/app/studio/automations',
     });
     assert.equal(d.code, 'automation.notify.digest');
-    assert.deepEqual(d.params, { runs: 16, failures: 2, waiting: 1, routines: 2 });
-    assert.equal(d.shortText, 'Your routines today: 16 runs, 2 failed, 1 still waiting');
+    assert.deepEqual(d.params, { runs: 16, failures: 2, waiting: 1, automations: 2 });
+    assert.equal(d.shortText, 'Your automations today: 16 runs, 2 failed, 1 still waiting');
     assert.deepEqual(d.text.split('\n'), [
         '16 runs, 2 failed, 1 still waiting',
         '',
         'Files: 4 runs, 2 failed',
         'Invoices: 12 runs, 1 waiting',
     ]);
-    assert.deepEqual(d.items.map(i => i.automationId), ['c', 'b'], 'the quiet routine is left out');
+    assert.deepEqual(d.items.map(i => i.automationId), ['c', 'b'], 'the quiet automation is left out');
 });
 
 test('no summary when nothing happened and nothing waits', () => {
@@ -70,5 +70,5 @@ test('no summary when nothing happened and nothing waits', () => {
 test('held notifications alone still make a summary', () => {
     const d = composeDigest({ items: [{ title: 'X', runs: 0, failures: 0, waiting: 0, held: 2 }] });
     assert.ok(d);
-    assert.equal(d.shortText, 'Your routines today: 0 runs, none failed');
+    assert.equal(d.shortText, 'Your automations today: 0 runs, none failed');
 });

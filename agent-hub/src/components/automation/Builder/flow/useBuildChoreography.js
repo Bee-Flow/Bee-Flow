@@ -618,7 +618,7 @@ export function useBuildChoreography({
         const was = prevPhaseRef.current;
         prevPhaseRef.current = phase;
         if (was === phase || !blocked || reducedMotion) return;
-        // Summarise and finalize close a chapter with the whole routine in
+        // Summarise and finalize close a chapter with the whole automation in
         // frame. A dry run keeps the camera still: the run vocabulary owns
         // the canvas then, and its own banner says where the run is.
         const reason = phase === 'reviewing' ? 'summarise' : phase === 'finishing' ? 'finalize' : null;
@@ -642,7 +642,7 @@ export function useBuildChoreography({
             lastMoveAtRef.current = null;
             runShot('wide');
         } else {
-            // The closing shot: the whole routine, once, unless the camera is
+            // The closing shot: the whole automation, once, unless the camera is
             // theirs. Nothing moves after this.
             runShot('wide');
         }
@@ -795,7 +795,7 @@ export function useBuildChoreography({
         // renewed: the card shows where the next one would go.
         if (fx.ghostHidden && draft?.kind !== 'step') return null;
         // Before anything has been added the slot follows the last card in
-        // run order (the trigger on a fresh routine), so it is on screen
+        // run order (the trigger on a fresh automation), so it is on screen
         // through the very first think.
         const anchorId = fx.frontierId || lastInFlow(definition);
         const anchorRect = rectOf(computedNodes, anchorId);

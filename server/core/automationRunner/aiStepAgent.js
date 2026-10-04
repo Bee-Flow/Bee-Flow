@@ -1,7 +1,7 @@
 /**
  * Een AI-stap die door een AGENT wordt gedraaid (R2, deel B).
  *
- * `ai_step.agentId` zet een agent achter één stap van een routine. Wat die
+ * `ai_step.agentId` zet een agent achter één stap van een automation. Wat die
  * agent daar meebrengt — zijn rol, zijn kennisbanken, zijn skills, zijn tools
  * — wordt HIER samengesteld; `execAi.js` roept dit aan en bouwt de stap met
  * het antwoord.
@@ -19,17 +19,17 @@
  * hier uitsluitend draaien als hij ook echt een gepubliceerde VERSIE serveert —
  * `automation/agentCatalog.js: servesPublishedConfig`. `is_published` is de
  * deel-schakelaar, `published_version > 0` beslist welke config draait, en die
- * twee staan los van elkaar; zonder deze regel draait de onbewaakte routine van
+ * twee staan los van elkaar; zonder deze regel draait de onbewaakte automatisering van
  * de één op het levende klad van de ander.
  *
- * ── WIE IS DE VRAGER: DE ROUTINE-EIGENAAR ───────────────────────────
+ * ── WIE IS DE VRAGER: DE AUTOMATION-EIGENAAR ───────────────────────────
  * `ctx.userId`, altijd. De agent kan van iemand anders zijn; zijn kennisbanken,
- * zijn routines en zijn tools worden daarom gemeten aan wat de ROUTINE-EIGENAAR
+ * zijn automatiseringen en zijn tools worden daarom gemeten aan wat de AUTOMATION-EIGENAAR
  * zelf mag. De agent kan alleen versmallen, nooit verbreden — dat is precies de
  * doorsnede die `getIntegrationTools` en `filterKbIdsForUser` al maken.
  *
  * ── DE TOOLS: PER-ACTIE-GRANTS MINUS ALLES WAT `ask` IS ─────────────
- * Een routine draait ONBEWAAKT. Er is niemand om een bevestiging aan te vragen,
+ * Een automatisering draait ONBEWAAKT. Er is niemand om een bevestiging aan te vragen,
  * dus een tool die een mens zou moeten goedkeuren mag hier niet automatisch
  * lopen. De aftrek gebeurt met `buildToolPolicy` — dezelfde functie waarmee de
  * chat `ask` bepaalt (`core/agentRuntime/toolPolicy.js`, gebruikt door
@@ -46,7 +46,7 @@
  *      een `require` die gooide een volledige toolbelt oplevert.
  *   1. NIET `droppedForUnattended`. Die lijst hangt aan `hasStoredGrants`
  *      (`toolPolicy.js`: `gated = confirm === 'ask' && (hasStoredGrants ||
- *      hasOverride)`), bewust, zodat een bestaande mailende routine niet stilvalt.
+ *      hasOverride)`), bewust, zodat een bestaande mailende automatisering niet stilvalt.
  *      Op DIT oppervlak bestaat die geschiedenis niet: een agent die niemand
  *      cureerde zou dan élke verzendende tool meekrijgen, ongevraagd en
  *      onbevestigd. Daarom is de bewaarregel `confirmByTool === 'direct'` —
@@ -56,19 +56,19 @@
  *      geen "er is geen app". Voor een gecureerde agent weigert `isToolAllowed`
  *      die namen al; voor een agent die niemand cureerde zou het antwoord
  *      "dan maar alles" zijn. Onbekend versmalt: alleen tools die hun eigen
- *      identiteit dragen (een routine, een MCP-server, een custom integratie)
+ *      identiteit dragen (een automatisering, een MCP-server, een custom integratie)
  *      overleven, want die worden niet door het registry geattribueerd.
  *   3. EEN POLICY DIE NIET GEBOUWD KAN WORDEN IS GEEN GRANT. Gooit
  *      `buildToolPolicy`, dan krijgt de stap geen tools — hij draait door als
  *      een gewone tekststap.
  *
- * Wat een routine tóch onbewaakt moet kunnen doen, hoort achter een expliciete
- * goedkeuringsstap (`approval`) in de routine zelf; de weggehouden namen komen
+ * Wat een automatisering tóch onbewaakt moet kunnen doen, hoort achter een expliciete
+ * goedkeuringsstap (`approval`) in de automatisering zelf; de weggehouden namen komen
  * daarom mee terug (`withheld`) in plaats van stil te verdwijnen.
  *
  * ── STARTAUTOMATIONS ────────────────────────────────────────────────
  * `getIntegrationTools` krijgt de `agentConfig` mee en doet de doorsnede voor
- * AGENT-AANROEPBARE routines al (routines van de VRAGER ∩ ids die de
+ * AGENT-AANROEPBARE automatiseringen al (automatiseringen van de VRAGER ∩ ids die de
  * agent-eigenaar heeft gegrant — `core/integrations/integrationTools.js`).
  * Staat de permissie uit, dan worden die tools NA de assemblage weggehaald op
  * hun eigen marker; de `agentConfig` weglaten zou ook de per-actie-grants op
@@ -76,28 +76,28 @@
  *
  * De HERBRUIKBARE STEPS (`__step`) gaan daar níét doorheen: die worden in
  * `getIntegrationTools` rechtstreeks op de lijst geduwd, buiten `addTools` en
- * buiten de automations-curatie om. Ze tellen hier wél als "start een routine",
+ * buiten de automations-curatie om. Ze tellen hier wél als "start een automation",
  * dus de doorsnede wordt voor hen HIER gemaakt (`_automationIdOf` +
  * `_curatedAutomations`) — anders hangt een tool aan een schakelaar waarvan de
  * belofte niet voor hem geldt.
  *
- * Hij staat NAAST `useTools`, niet eronder: "mag deze stap andere routines
+ * Hij staat NAAST `useTools`, niet eronder: "mag deze stap andere automatiseringen
  * starten" en "mag hij integratietools aanroepen" zijn twee vragen met twee
  * schakelaars, en alleen de eerste aanzetten is een geldige stand. Eén
  * catalogus, elke tool langs de schakelaar die over hem gaat — `extraTools`
  * (bv. `activate_skill`) inbegrepen.
  *
  * ── WAT DE AGENT-KIEZER NOOIT KON TONEN, KRIJGT HIJ HIER NIET ───────
- * `routine-evolution` en `kb-ingest` staan in het registry als
- * `availableTo: ['routine_step']`. De beschikbaarheidsprobe van de agent-kiezer
- * (`routes/agents/toolCatalog.js`) vraagt de catalogus ZONDER `routineStep`, dus
+ * `automation-evolution` en `kb-ingest` staan in het registry als
+ * `availableTo: ['automation_step']`. De beschikbaarheidsprobe van de agent-kiezer
+ * (`routes/agents/toolCatalog.js`) vraagt de catalogus ZONDER `automationStep`, dus
  * geen enkele agent-eigenaar heeft die apps ooit gezien en niemand kan er een
  * grant-entry voor schrijven. Ze dragen ook geen `grantsRequireEntry`, dus
  * `toolPolicy` leest dat zwijgen als de geen-migratieregel en geeft ze
  * `direct`. Op een onbewaakt oppervlak levert dat een agent die tot één
- * leesactie is gecureerd het gereedschap om de routine zelf te herschrijven
- * (`routine_apply_evolution` accepteert status 'proposed', dus zonder mens
- * ertussen). Daarom vraagt dit pad de catalogus ZONDER `routineStep`, en
+ * leesactie is gecureerd het gereedschap om de automatisering zelf te herschrijven
+ * (`automation_apply_evolution` accepteert status 'proposed', dus zonder mens
+ * ertussen). Daarom vraagt dit pad de catalogus ZONDER `automationStep`, en
  * weigert het bovendien elke tool waarvan het registry zegt dat hij niet in een
  * agent-context hoort — twee sloten, want het ene is een argument dat iemand
  * terugdraait en het andere leest de declaratie zelf.
@@ -111,12 +111,12 @@ const log = require('../../telemetry/log');
 
 /**
  * De organisatie waaraan de agent-poort meet: het LIDMAATSCHAP van de
- * routine-eigenaar, niet de stempel op de routine-rij.
+ * automation-eigenaar, niet de stempel op de automation-rij.
  *
  * `ctx.orgId` is `runOrgFor(automation, session)` — de kolom
  * `automations.organization_id`, met de sessie als terugval. Die stempel loopt
  * NIET mee als een beheerder de eigenaar naar een andere organisatie
- * verplaatst, dus een routine van een verhuisde medewerker bleef de
+ * verplaatst, dus een automatisering van een verhuisde medewerker bleef de
  * gepubliceerde agents van zijn OUDE organisatie oplossen — met hun rol, hun
  * toolgrants en hun kennisbanken. `ctx.userHomeOrgId` is vers uit `users`
  * gelezen (execution.js, dezelfde try als `orgRole` en `identityError`), en de
@@ -159,10 +159,10 @@ function _fail(message, errorClass) {
 }
 
 /**
- * Mag de ROUTINE-EIGENAAR deze agent inzetten?
+ * Mag de AUTOMATION-EIGENAAR deze agent inzetten?
  *
  * Dezelfde regels als `routes/agents/chat.js: userCanAccessPublishedAgent`,
- * maar gesteld aan de run-context in plaats van aan een request: een routine
+ * maar gesteld aan de run-context in plaats van aan een request: een automatisering
  * heeft geen sessie om een org uit te halen en moet het met `ctx` doen.
  *
  *   eigenaar                → ja, ook ongepubliceerd
@@ -175,9 +175,9 @@ function _fail(message, errorClass) {
  * Alle drie de nee's krijgen buiten dezelfde weigering — zie `resolveStepAgent`.
  *
  * `owner_id`-gelijkheid alleen (wat `aiTaskRunner` voor gekoppelde agents doet)
- * is hier te streng — een routine mag een gedeelde org-agent inzetten — en
+ * is hier te streng — een automatisering mag een gedeelde org-agent inzetten — en
  * `organization_id`-gelijkheid alleen is te ruim: een ongedeelde agent van een
- * collega hoort niet in de routine van een ander te draaien.
+ * collega hoort niet in de automatisering van een ander te draaien.
  */
 function _mayUseAgent(agent, ctx) {
     if (!agent) return false;
@@ -186,7 +186,7 @@ function _mayUseAgent(agent, ctx) {
     if (!agent.is_published) return false;
     // Gedeeld is nog niet gepubliceerd: zonder een gepubliceerde VERSIE
     // serveert `getForRuntime` het levende klad van de eigenaar, en daar mag de
-    // onbewaakte routine van een ander niet op draaien.
+    // onbewaakte automatisering van een ander niet op draaien.
     if (!servesPublishedConfig(agent)) return false;
     // Een identiteitslezing die niet lukte is geen antwoord. `userHomeOrgId`,
     // `orgRole` en `userGroupIds` komen uit dezelfde lezing (execution.js), dus
@@ -234,14 +234,14 @@ async function resolveStepAgent(step, ctx, { agentStore = null } = {}) {
         throw _fail(`Could not load the agent for this step (${e.message}).`, 'agent_unavailable');
     }
     // ÉÉN weigering voor alle drie de gevallen — verwijderd, nooit gepubliceerd,
-    // of niet gedeeld met de routine-eigenaar. Dezelfde regel die de save-time
+    // of niet gedeeld met de automation-eigenaar. Dezelfde regel die de save-time
     // check aanhoudt (`ai_step.agent_unavailable`, automation/validate/
-    // stepRules.js): drie verschillende antwoorden maken van een routine een
+    // stepRules.js): drie verschillende antwoorden maken van een automatisering een
     // manier om te ontdekken wélke agents er elders bestaan. Het echte verschil
     // gaat naar het serverlog, waar alleen een beheerder het leest.
     if (!agent || !_mayUseAgent(agent, ctx)) {
-        log.warn(`[AutomationRunner] ai_step agent refused (${agentId}): ${agent ? 'not visible to the routine owner' : 'no such agent'}`);
-        throw _fail(`There is no agent "${agentId}" this routine can use. Pick an agent in the step, or remove it so the step answers on its own prompt.`, 'agent_unavailable');
+        log.warn(`[AutomationRunner] ai_step agent refused (${agentId}): ${agent ? 'not visible to the automation owner' : 'no such agent'}`);
+        throw _fail(`There is no agent "${agentId}" this automation can use. Pick an agent in the step, or remove it so the step answers on its own prompt.`, 'agent_unavailable');
     }
 
     const config = (agent.config && typeof agent.config === 'object' && !Array.isArray(agent.config)) ? agent.config : {};
@@ -264,8 +264,8 @@ async function resolveStepAgent(step, ctx, { agentStore = null } = {}) {
  *
  * De stap staat VOORAAN zodat zijn eigen keuze de cap (`MAX_AI_STEP_KB_IDS`)
  * overleeft. Autorisatie gebeurt niet hier maar in `execAi`s
- * `resolveAllowedKnowledgeBaseIds`, met de routine-eigenaar als vrager — de
- * hele unie gaat door die ene filter, anders leest een routine-eigenaar via de
+ * `resolveAllowedKnowledgeBaseIds`, met de automation-eigenaar als vrager — de
+ * hele unie gaat door die ene filter, anders leest een automation-eigenaar via de
  * agent van een collega mee in banken die hij zelf niet mag zien.
  */
 function knowledgeBaseIdsForStep(step, binding) {
@@ -318,15 +318,15 @@ function _carriesOwnIdentity(tool) {
     return false;
 }
 
-/** Start deze tool een routine (een agent-callable routine of een Step)? */
+/** Start deze tool een automatisering (een agent-callable automatisering of een Step)? */
 function _startsAutomation(tool) {
     return !!_automationIdOf(tool);
 }
 
 /**
- * De routine-id achter deze tool, of null.
+ * De automation-id achter deze tool, of null.
  *
- * Twee vormen, één antwoord: een agent-aanroepbare routine draagt
+ * Twee vormen, één antwoord: een agent-aanroepbare automatisering draagt
  * `__automation.id`, een herbruikbare Step `__step.id`. Allebei zijn het rijen
  * uit `automations`, dus allebei kunnen ze tegen de `tools.automations`-grants
  * van de agent-eigenaar worden gehouden — en dat is precies wat
@@ -358,7 +358,7 @@ function _toolName(tool) {
  * Gememoiseerd omdat de declaratie per proces vastligt. Een registry die niet
  * te lezen is levert een LEGE set en dus geen weigering — maar dat kost niets:
  * met de attributie stuk weigert stap 1 van de aftrek élke registry-tool al, en
- * deze tools worden bovendien niet eens gebouwd (`routineStep` staat uit).
+ * deze tools worden bovendien niet eens gebouwd (`automationStep` staat uit).
  */
 let _nonAgentApps = null;
 function _appsOutsideAgentContext() {
@@ -430,11 +430,11 @@ function _storedConfirmAsk(tool, toolsConfig) {
 }
 
 /**
- * Heeft de eigenaar van deze agent de routine-lijst aangeraakt?
+ * Heeft de eigenaar van deze agent de automation-lijst aangeraakt?
  *
  * De AANWEZIGHEID van de sleutel is de keuze, niet de inhoud — dezelfde lezing
  * als `_curatedAutomations` in `core/integrations/integrationTools.js`. Een
- * lege sectie betekent "ik heb alle routines uitgevinkt".
+ * lege sectie betekent "ik heb alle automations uitgevinkt".
  */
 function _curatedAutomations(toolsConfig) {
     return !!(toolsConfig && Object.prototype.hasOwnProperty.call(toolsConfig, 'automations'));
@@ -521,17 +521,17 @@ function withholdConfirmTools(tools, agentConfig) {
             try { grants = toolPolicy.automationGrantsOf(toolsConfig); } catch (_) { grants = null; }
             // Onleesbare grants naast een sectie die er WEL is: de eigenaar
             // heeft gekozen en wij kunnen zijn keuze niet lezen. Dan geen
-            // routines — dezelfde afslag die integrationTools maakt.
+            // automatiseringen — dezelfde afslag die integrationTools maakt.
             if (!grants) grants = {};
         }
         for (const t of candidates) {
             let ok = false;
             try { ok = toolPolicy.isToolAllowed(t, toolsConfig) === true; } catch (_) { ok = false; }
-            // De routine-doorsnede, ook voor herbruikbare Steps. `addTools` —
+            // De automation-doorsnede, ook voor herbruikbare Steps. `addTools` —
             // en daarmee `isToolAllowed` — raakt die tools nooit: ze worden in
             // `getIntegrationTools` rechtstreeks op de lijst geduwd. Zonder dit
-            // levert "alle routines uitgevinkt" alsnog elke gepubliceerde Step
-            // van de routine-eigenaar op.
+            // levert "alle automatiseringen uitgevinkt" alsnog elke gepubliceerde Step
+            // van de automation-eigenaar op.
             if (ok && curated) {
                 const autoId = _automationIdOf(t);
                 if (autoId && !Object.prototype.hasOwnProperty.call(grants, autoId)) ok = false;
@@ -591,9 +591,9 @@ function withholdConfirmTools(tools, agentConfig) {
  *   `activate_skill`) — die gaan door dezelfde aftrek EN langs de schakelaar
  *   die over hen gaat, zodat er geen tweede deur naast de poort ligt
  * @param {boolean}  [opts.extraToolsStartAutomations] `extraTools` kunnen een
- *   routine starten (een skill met een `automationId` draait
+ *   automatisering starten (een skill met een `automationId` draait
  *   `executeAutomation` zodra het model `activate_skill` aanroept). Dan hangen
- *   ze aan `startAutomations`, net als elke andere routine-starter.
+ *   ze aan `startAutomations`, net als elke andere automation-starter.
  * @param {string[]|null} [opts.allowList] `step.tools`, als de auteur die
  *   expliciet heeft gezet; kan alleen versmallen
  * @returns {Promise<{tools: Array, withheld: string[], reasons: Object,
@@ -604,8 +604,8 @@ async function agentToolsForStep({ binding, ctx, extraTools = [], extraToolsStar
     if (!binding) return out;
     // Handoff 5: what the step's skills grant, already filtered by the step's
     // switches in execAi (aiStepSkills.grantsUnderPermissions). Apps widen the
-    // catalog the way a skill does in chat (`extraEnabledApps`); routines join
-    // a CURATED agent's routine grants. Both still pass every narrowing below.
+    // catalog the way a skill does in chat (`extraEnabledApps`); automations join
+    // a CURATED agent's automation grants. Both still pass every narrowing below.
     const { configWithSkillAutomations } = require('./aiStepSkills');
     const agentConfig = configWithSkillAutomations(binding.config, skillAutomationIds);
     const gatedBinding = agentConfig === binding.config ? binding : { ...binding, config: agentConfig };
@@ -616,8 +616,8 @@ async function agentToolsForStep({ binding, ctx, extraTools = [], extraToolsStar
     };
 
     // Eén catalogus, twee onafhankelijke schakelaars. `startAutomations` gaat
-    // over de routines die de agent mag starten en `useTools` over de rest, dus
-    // "alleen routines" is een geldige stand en mag niet stilletjes op nul
+    // over de automatiseringen die de agent mag starten en `useTools` over de rest, dus
+    // "alleen automations" is een geldige stand en mag niet stilletjes op nul
     // uitkomen. Zonder allebei wordt er niets opgebouwd — dat scheelt de hele
     // catalogusopbouw op de stap die toch niets krijgt.
     let catalogTools = [];
@@ -628,21 +628,21 @@ async function agentToolsForStep({ binding, ctx, extraTools = [], extraToolsStar
             // execIntegrationAction, zodat de twee catalogi van één run niet
             // uit elkaar lopen.
             const lendPolicy = (ctx.resourceOwnerUserId && ctx.resourceOwnerUserId !== ctx.userId)
-                ? { ownerUserId: ctx.resourceOwnerUserId, resourceType: 'routine', resourceId: ctx.automationId || null }
+                ? { ownerUserId: ctx.resourceOwnerUserId, resourceType: 'automation', resourceId: ctx.automationId || null }
                 : null;
             const catalog = await getIntegrationTools({
-                userId: ctx.userId,                       // de ROUTINE-EIGENAAR
+                userId: ctx.userId,                       // de AUTOMATION-EIGENAAR
                 session: ctx.session,
                 isAdmin: !!ctx.session?.isAdmin || ctx.session?.user?.role === 'admin',
-                // BEWUST UIT — zie de kop. `routineStep` schakelt precies twee
-                // dingen aan (`routine-evolution` en `kb-ingest`), en dat zijn
+                // BEWUST UIT — zie de kop. `automationStep` schakelt precies twee
+                // dingen aan (`automation-evolution` en `kb-ingest`), en dat zijn
                 // de twee apps die de agent-kiezer nooit heeft kunnen tonen. Een
                 // agent krijgt hier dus dezelfde apps als in een gesprek, plus
                 // niets wat zijn eigenaar nooit heeft kunnen weigeren.
-                routineStep: false,
+                automationStep: false,
                 connectionPolicy: lendPolicy,
                 // De per-actie-grants van de agent. Ook het pad waarlangs
-                // `tools.automations` de routineset van de vrager versmalt.
+                // `tools.automations` de automatiseringsset van de vrager versmalt.
                 //
                 // `useKnowledge` beslist mee over de KENNIS-helft ervan:
                 // `getIntegrationTools` biedt `kb_search` aan op de enkele
@@ -670,7 +670,7 @@ async function agentToolsForStep({ binding, ctx, extraTools = [], extraToolsStar
 
     // Elke tool langs de schakelaar die over hem gaat — `extraTools` erbij, want
     // een tool die buiten de catalogus om binnenkomt is geen tool die buiten de
-    // schakelaars om binnenkomt. De routine-tools worden op hun eigen marker
+    // schakelaars om binnenkomt. De automation-tools worden op hun eigen marker
     // herkend en niet door `agentConfig` weg te laten: dat zou óók de
     // per-actie-grants op alle andere tools uitzetten, en dat is een verbreding.
     const extras = [];
@@ -690,7 +690,7 @@ async function agentToolsForStep({ binding, ctx, extraTools = [], extraToolsStar
     for (const t of extras) {
         // Skills horen bij wat de agent IS — die gaan niet achter `useTools`.
         // `activate_skill` is de uitzondering zodra een van de ingespoten skills
-        // een routine achter zich heeft: `executeActivateSkill` draait dan
+        // een automatisering achter zich heeft: `executeActivateSkill` draait dan
         // `executeAutomation(..., mode: 'live')`, en dat is precies waar
         // `startAutomations` over gaat.
         if (extraToolsStartAutomations && !binding.permissions.startAutomations) {
@@ -736,7 +736,7 @@ async function agentToolsForStep({ binding, ctx, extraTools = [], extraToolsStar
  *
  * De kennis van de agent bereikt deze stap langs het pad dat er wél voor is:
  * `knowledgeBaseIdsForStep` zet de banken in de unie en `execAi` doorzoekt ze
- * één keer per run, met de routine-eigenaar als vrager. Een tool aanbieden die
+ * één keer per run, met de automation-eigenaar als vrager. Een tool aanbieden die
  * niet kan werken is een belofte aan het model die nergens heen kan, dus hij
  * wordt niet aangeboden. (Wil je hem later wél: geef `agentId` mee in de
  * dispatch-context van execAi — maar dan zet dat ook `datatable_query` aan, en

@@ -10,7 +10,7 @@ import { EditorChromeContext } from '../editor/EditorChromeContext';
  *
  * The server types every reference field as a plain `string`, so the spec-driven
  * panel rendered five of the six as free text: "Add a row" asked for a table id,
- * "Open a dialog" for a node id, "Run routine" for a uuid. Only `screenId` had
+ * "Open a dialog" for a node id, "Run automation" for a uuid. Only `screenId` had
  * been special-cased. These pin that each one is a picker sourced from the app
  * itself — and that a reference whose target is GONE keeps its id and says so
  * rather than quietly blanking.
@@ -129,9 +129,9 @@ describe('StepSettings — a reference is picked, never typed', () => {
         expect(optionsOf(control)).toEqual(expect.arrayContaining(['Confirm delete', 'nd_modal2']));
     });
 
-    it('names the routine rather than showing its id', async () => {
+    it('names the automation rather than showing its id', async () => {
         renderStep({ kind: 'run_automation', automationId: 'auto-2' });
-        const control = await screen.findByLabelText('Routine');
+        const control = await screen.findByLabelText('Automation');
         await waitFor(() => expect(control.textContent).toContain('Chase the payment'));
         // Not a text box: the id is never something to type.
         expect(control.tagName).toBe('BUTTON');
@@ -276,7 +276,7 @@ describe('StepSettings — emptying a required map keeps the app saveable', () =
  * Only `recordValues` takes a full binding. `inputMapping` accepts
  * static|field (INPUT_MAPPING_KINDS) and `navParams` accepts static|formula —
  * anything else is a hard validation error. All three used the full
- * BindingField, which offers a table, a saved view, a connector, a routine's
+ * BindingField, which offers a table, a saved view, a connector, an automation's
  * result and an aggregate, so picking one made every later autosave 422 about a
  * mapping kind chosen from a list that offered it.
  */

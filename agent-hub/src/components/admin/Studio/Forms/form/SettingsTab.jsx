@@ -11,7 +11,7 @@ const LINK_BTN = 'inline-flex items-center gap-1.5 text-xs underline-offset-2 ho
 
 /**
  * Settings: live or not, collect the answers in a table or not, where the
- * answers' retention lives, and the danger zone (the routine goes, the
+ * answers' retention lives, and the danger zone (the automation goes, the
  * answers table stays as an ordinary table).
  */
 export default function SettingsTab({ detail, save, reload, onNavigate, onBack }) {
@@ -127,7 +127,7 @@ export default function SettingsTab({ detail, save, reload, onNavigate, onBack }
                 kindLabel={t('forms.settings.kind_word', 'form')}
                 openLabel={t('forms.settings.delete_open', 'Delete this form')}
                 requireName
-                notice={t('forms.settings.delete_notice', 'Deleting the form deletes the routine behind it. The answers table is not deleted — remove it under Datatables if the answers are no longer needed.')}
+                notice={t('forms.settings.delete_notice', 'Deleting the form deletes the automation behind it. The answers table is not deleted — remove it under Datatables if the answers are no longer needed.')}
                 onDelete={async () => { await api.deleteAutomation(detail.automationId); if (onBack) onBack(); }}
             />
             {confirmDialog}

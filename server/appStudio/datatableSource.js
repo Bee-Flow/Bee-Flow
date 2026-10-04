@@ -7,7 +7,7 @@
  * eigenaar, en wie er iets uit mag zien bepaalt de app helemaal zelf
  * (rlsGateway + het `access`-blok van de tabel). Een Studio-datatabel is van
  * niemand in het bijzonder: hij staat in de organisatie, wordt gedeeld met
- * routines en met andere apps, en draagt zijn eigen rechtenladder
+ * automatiseringen en met andere apps, en draagt zijn eigen rechtenladder
  * (auth/datatableAccess — viewer < editor < owner).
  *
  * Een app die zo'n tabel leest is dus een TWEEDE DEUR naar gegevens die al een

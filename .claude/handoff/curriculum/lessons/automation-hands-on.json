@@ -3,18 +3,18 @@
   "icon": "🚀",
   "estMinutes": 13,
   "title": "Build it for real",
-  "desc": "Your own routine: drafted, dry-run, activated, and watched on its first run.",
+  "desc": "Your own automation: drafted, dry-run, activated, and watched on its first run.",
   "gate": {
     "feature": "automations"
   },
-  "learningGoal": "After this lesson you have one routine of your own that is active and has completed a live run — and you can read the dry-run panel, the activation refusal and the run log well enough to fix the next one yourself.",
+  "learningGoal": "After this lesson you have one automation of your own that is active and has completed a live run — and you can read the dry-run panel, the activation refusal and the run log well enough to fix the next one yourself.",
   "steps": [
     {
       "type": "slide",
       "id": "pick",
       "icon": "🎯",
       "title": "Pick something small enough to finish today",
-      "bodyMd": "Most first routines are never switched on: the one people pick is too big to finish, so it stays a draft nobody trusts.\n\nNadia runs operations at **Van Dijk Groep**, a 60-person Dutch installation firm. Three jobs annoy her every week; she is building **one** of them today.\n\nA first routine you can finish has three properties:\n\n- **One trigger** — every routine has exactly one primary trigger, so the job needs one clear starting moment.\n- **Data you already have** — a table, an inbox, a form you control.\n- **One destination** — one notification, one row, one document. Not \"and it also updates four systems\".\n\nHer pick: *every Monday at 08:00, read the open quotes from the `offertes` table, have AI write five bullets, notify the sales lead.* A trigger and three steps. Nothing irreversible."
+      "bodyMd": "Most first automations are never switched on: the one people pick is too big to finish, so it stays a draft nobody trusts.\n\nNadia runs operations at **Van Dijk Groep**, a 60-person Dutch installation firm. Three jobs annoy her every week; she is building **one** of them today.\n\nA first automation you can finish has three properties:\n\n- **One trigger** — every automation has exactly one primary trigger, so the job needs one clear starting moment.\n- **Data you already have** — a table, an inbox, a form you control.\n- **One destination** — one notification, one row, one document. Not \"and it also updates four systems\".\n\nHer pick: *every Monday at 08:00, read the open quotes from the `offertes` table, have AI write five bullets, notify the sales lead.* A trigger and three steps. Nothing irreversible."
     },
     {
       "type": "quiz",
@@ -31,19 +31,19 @@
           "id": "b",
           "label": "Every invoice mail with a PDF: scan it for personal data, extract six fields, ask the purchasing manager to approve anything over 2500 euro, then write a table row.",
           "correct": false,
-          "feedback": "A fine routine — for next month. It needs an app-event trigger with a working filter, an extraction step, a branch and a second person to press Approve before you ever see it finish. Too many things that can be wrong at once for a first build."
+          "feedback": "A fine automation — for next month. It needs an app-event trigger with a working filter, an extraction step, a branch and a second person to press Approve before you ever see it finish. Too many things that can be wrong at once for a first build."
         },
         {
           "id": "c",
           "label": "\"Make the Monday admin less annoying.\"",
           "correct": false,
-          "feedback": "That is a complaint, not a job. A routine needs a starting moment, an input and a destination. Without those three there is nothing to put on the canvas."
+          "feedback": "That is a complaint, not a job. An automation needs a starting moment, an input and a destination. Without those three there is nothing to put on the canvas."
         },
         {
           "id": "d",
           "label": "Replace the whole quoting process end to end, so nobody has to touch it again.",
           "correct": false,
-          "feedback": "A routine that replaces a process has to be right the first time or people lose trust in it. Start with something whose worst failure is a missing notification."
+          "feedback": "An automation that replaces a process has to be right the first time or people lose trust in it. Start with something whose worst failure is a missing notification."
         }
       ],
       "explanation": "One trigger, data that already exists, one destination. Option A is four steps over a table she already keeps — small enough to dry-run, activate and check inside one morning."
@@ -53,7 +53,7 @@
       "id": "two-roads",
       "icon": "🛤️",
       "title": "Two ways in — and they end in the same place",
-      "bodyMd": "**By hand.** Open **Studio → Automations**, start a new routine, and the canvas asks *\"What does this routine start with?\"* — the seven trigger cards. Pick **Schedule**, then add steps from the ribbon. Every change autosaves: *\"Changes save automatically.\"*\n\n**With the assistant.** Start a new routine the same way, then press **Assistant** on the empty canvas, where it says *\"Or describe the routine:\"*. A chat opens beside the canvas. Describe the trigger and what should happen; the canvas narrates itself while it works (*\"Building · 0:07 · Placing Gmail…\"*) and editing is paused until it finishes.\n\nBoth roads end at the same door. **A routine the assistant just finished is still a draft.** Nothing fires until a person presses **Activate** — the builder tooling cannot switch a routine on, by design."
+      "bodyMd": "**By hand.** Open **Studio → Automations**, start a new automation, and the canvas asks *\"What does this automation start with?\"* — the seven trigger cards. Pick **Schedule**, then add steps from the ribbon. Every change autosaves: *\"Changes save automatically.\"*\n\n**With the assistant.** Start a new automation the same way, then press **Assistant** on the empty canvas, where it says *\"Or describe the automation:\"*. A chat opens beside the canvas. Describe the trigger and what should happen; the canvas narrates itself while it works (*\"Building · 0:07 · Placing Gmail…\"*) and editing is paused until it finishes.\n\nBoth roads end at the same door. **An automation the assistant just finished is still a draft.** Nothing fires until a person presses **Activate** — the builder tooling cannot switch an automation on, by design."
     },
     {
       "type": "action",
@@ -61,9 +61,9 @@
       "icon": "🏗️",
       "checkId": "automation-first",
       "title": "Build it — we'll verify it",
-      "instruction": "Open Automations and build your routine: pick a trigger, add the steps, fill the fields. Every change autosaves, so there is nothing to press to keep it. Then press Dry-run (the left half of the Run split-button) and let it finish. Come back here when it has — this step checks again.",
+      "instruction": "Open Automations and build your automation: pick a trigger, add the steps, fill the fields. Every change autosaves, so there is nothing to press to keep it. Then press Test (the visible half of the run split button, a dry-run) and let it finish. Come back here when it has — this step checks again.",
       "launch": {
-        "navigateTo": "studio/routines",
+        "navigateTo": "studio/automations",
         "label": "Open Automations"
       }
     },
@@ -72,7 +72,7 @@
       "id": "dryrun-read",
       "icon": "🔍",
       "title": "Reading the dry-run panel",
-      "bodyMd": "A dry-run is a full pass over your graph with **no real actions**. When it finishes, a drawer opens headed **Dry-run preview (success)** — or with whatever status it reached — and every node on the canvas now carries the input it received and the output it produced. Click a node and read both.\n\nWhen a field is wrong, the node panel says so in two strengths:\n\n- **\"Fix this before the routine can run:\"** — blocking. Activation will refuse.\n- **\"Worth checking:\"** — a warning. It will run; it may not do what you meant.\n\nNadia's first dry-run stopped at the AI step: the summary prompt still pointed at the table step's whole output instead of its rows."
+      "bodyMd": "A dry-run is a full pass over your graph with **no real actions**. When it finishes, a drawer opens headed **Dry-run preview (success)** — or with whatever status it reached — and every node on the canvas now carries the input it received and the output it produced. Click a node and read both.\n\nWhen a field is wrong, the node panel says so in two strengths:\n\n- **\"Fix this before the automation can run:\"** — blocking. Activation will refuse.\n- **\"Worth checking:\"** — a warning. It will run; it may not do what you meant.\n\nNadia's first dry-run stopped at the AI step: the summary prompt still pointed at the table step's whole output instead of its rows."
     },
     {
       "type": "sim",
@@ -85,9 +85,9 @@
         "pairs": [
           {
             "id": "blocking",
-            "left": "A step listed under \"Fix this before the routine can run:\"",
+            "left": "A step listed under \"Fix this before the automation can run:\"",
             "right": "Clear it now — Activate will refuse",
-            "note": "The blocking list is the one that decides whether you get to switch the routine on at all. Work through it before you read anything else."
+            "note": "The blocking list is the one that decides whether you get to switch the automation on at all. Work through it before you read anything else."
           },
           {
             "id": "warning",
@@ -128,9 +128,9 @@
       "id": "ex-report",
       "icon": "📋",
       "exerciseId": "ex-automation-hands-on-dryrun",
-      "title": "Your turn: the handover note for your routine",
-      "instruction": "Write the note you would leave a colleague who has to keep your routine running, in three parts. One: what it does — the trigger, the steps in order, and where the result lands. Two: what the dry-run showed — the status, anything listed under \"Fix this before the routine can run:\" or \"Worth checking:\", and what you changed. Three: your Monday checklist — for each step the dry-run could not really execute, the one place you will look to confirm it worked, named exactly (which screen, which filter, what you expect to see).",
-      "placeholder": "e.g. Weekly on Monday 08:00 it reads open rows from the offertes table, has an AI step write five bullets and notifies the sales lead. The dry-run first said \"Fix this before the routine can run:\" on the AI step — the prompt bound the whole table output instead of the rows field; I re-bound it and it went green. Monday checklist: (1) Runs & log, mode Live runs, expect one row Outcome Succeeded, Started by On a schedule; (2) the sales lead's notification actually arrived — I will ask her.",
+      "title": "Your turn: the handover note for your automation",
+      "instruction": "Write the note you would leave a colleague who has to keep your automation running, in three parts. One: what it does — the trigger, the steps in order, and where the result lands. Two: what the dry-run showed — the status, anything listed under \"Fix this before the automation can run:\" or \"Worth checking:\", and what you changed. Three: your Monday checklist — for each step the dry-run could not really execute, the one place you will look to confirm it worked, named exactly (which screen, which filter, what you expect to see).",
+      "placeholder": "e.g. Weekly on Monday 08:00 it reads open rows from the offertes table, has an AI step write five bullets and notifies the sales lead. The dry-run first said \"Fix this before the automation can run:\" on the AI step — the prompt bound the whole table output instead of the rows field; I re-bound it and it went green. Monday checklist: (1) Runs & log, mode Live runs, expect one row Outcome Succeeded, Started by On a schedule; (2) the sales lead's notification actually arrived — I will ask her.",
       "passScore": 70,
       "maxAttempts": 4
     },
@@ -147,7 +147,7 @@
         },
         {
           "id": "b",
-          "label": "The routine has no description.",
+          "label": "The automation has no description.",
           "correct": false,
           "feedback": "Description is optional — it is only \"Shown to admins reviewing this automation.\" Nothing about activation requires it."
         },
@@ -164,14 +164,14 @@
           "feedback": "An unused output is untidy, not invalid. The pass reads the definition itself: unknown or unpermitted tools, empty required inputs, an unauthorised knowledge base, and a schedule with no upcoming run time."
         }
       ],
-      "explanation": "Saving a draft only checks that the routine holds together; **Activate** is the strict pass. It refuses an unknown or unpermitted tool, an empty required input, a knowledge base you may not use, or a schedule with no upcoming run time. One thing it lets through with a warning: a step **pinned** to saved sample data. That routine goes live serving the sample instead of running the step — so read the warning rather than clicking past it."
+      "explanation": "Saving a draft only checks that the automation holds together; **Activate** is the strict pass. It refuses an unknown or unpermitted tool, an empty required input, a knowledge base you may not use, or a schedule with no upcoming run time. One thing it lets through with a warning: a step **pinned** to saved sample data. That automation goes live serving the sample instead of running the step — so read the warning rather than clicking past it."
     },
     {
       "type": "slide",
       "id": "watch-run",
       "icon": "📺",
       "title": "The first live run, watched",
-      "bodyMd": "**Studio → Runs & log** — *\"Every time a routine fired: what started it, what it did, and what went wrong.\"*\n\nTwo things surprise people here:\n\n- The **mode** filter defaults to **Live runs**, so the dry-runs you just did are hidden. Switch it to **Tests only** or **Live runs and tests** to see them.\n- The **Now running** strip covers a fixed **last 24 hours**, whatever range chip the table is on.\n\nThe table has six labelled columns — **Outcome**, **What ran**, **What happened**, **Started**, **Took**, **Started by** — plus a hover menu on the rows you own. *Started by* reads **On a schedule** for a scheduled run and **Test run** for a dry-run. Open a run and the **Steps** rail replays it step by step, against the version of the routine that ran, not today's."
+      "bodyMd": "**Studio → Runs & log** — *\"Every time an automation fired: what started it, what it did, and what went wrong.\"*\n\nTwo things surprise people here:\n\n- The **Live or test** filter defaults to **Live runs**, so the dry-runs you just did are hidden. Switch it to **Tests only** or **Live runs and tests** to see them.\n- The **Now running** strip covers a fixed **last 24 hours**, whatever period the table is on.\n\nThe table has seven labelled columns — **Outcome**, **What ran**, **What happened**, **Steps**, **Started**, **Took**, **Started by** (on a narrow screen the last few fold away) — plus a hover menu on the rows you own. *Started by* reads **On a schedule** for a scheduled run and **Test run** for a dry-run. Open a run and the **Steps** rail replays it step by step, against the version of the automation that ran, not today's."
     },
     {
       "type": "sim",
@@ -184,7 +184,7 @@
         "items": [
           {
             "id": "failures",
-            "label": "Open Runs & log and click the Failures chip"
+            "label": "Open Runs & log and click the Failed chip"
           },
           {
             "id": "step",
@@ -210,7 +210,7 @@
           "dry",
           "again"
         ],
-        "feedback": "Diagnose before you touch anything. The run tells you which step stopped it and on what data — the rail even marks it: \"This is where it stopped. Nothing ran after this point.\" Fix, prove it with a dry-run, then retry; \"Run it again\" uses the routine as it is now, so it picks up your fix."
+        "feedback": "Diagnose before you touch anything. The run tells you which step stopped it and on what data — the rail even marks it: \"This is where it stopped. Nothing ran after this point.\" Fix, prove it with a dry-run, then retry; \"Run it again\" uses the automation as it is now, so it picks up your fix."
       }
     },
     {
@@ -232,13 +232,13 @@
         },
         {
           "id": "c",
-          "label": "The step is skipped and the rest of the routine carries on.",
+          "label": "The step is skipped and the rest of the automation carries on.",
           "correct": false,
           "feedback": "Nothing downstream runs. The Steps rail says it plainly: \"This is where it stopped. Nothing ran after this point.\""
         },
         {
           "id": "d",
-          "label": "The schedule notices the failure and fires the routine again shortly after.",
+          "label": "The schedule notices the failure and fires the automation again shortly after.",
           "correct": false,
           "feedback": "A schedule only fires at its next slot — next Monday, in this case. It has no idea the last run failed."
         }
@@ -251,9 +251,9 @@
       "icon": "✅",
       "checkId": "automation-active",
       "title": "Switch it on and let it run once",
-      "instruction": "Press Activate in the builder header. If your routine is on a schedule and you do not want to wait for its slot, open the Run menu next to Dry-run and choose Run live. Then open Runs & log and confirm one live run finished.",
+      "instruction": "Press Activate in the builder header. If your automation is on a schedule and you do not want to wait for its slot, open the chevron beside Test (\"More ways to run\") and choose Run live. Then open Runs & log and confirm one live run finished.",
       "launch": {
-        "navigateTo": "studio/routines",
+        "navigateTo": "studio/automations",
         "label": "Open Automations"
       }
     },
@@ -262,62 +262,62 @@
       "id": "keep",
       "icon": "🗂️",
       "title": "Findable again in three months",
-      "bodyMd": "The routine works. Now make it workable for the version of you who has forgotten all this.\n\n- **Name it like a sentence** — \"Monday pipeline briefing to sales\" beats \"Weekly digest v2\". The name is what the run log shows under *What ran*.\n- **Use a folder.** Folders are organisation-wide labels; removing one leaves the routines alone (*\"Remove this folder — the automations in it stay\"*) and returns them to the top level.\n- **Check Settings → Notifications.** *On error* is on by default, *On success* is off. Turn success on for the first few weeks if you want the receipt.\n- **Saved versions** keeps earlier designs with *View diff* and *Restore this version* — so edit without fear.\n- Run history is kept **90 days**: the log answers \"did it run in August?\", not forever."
+      "bodyMd": "The automation works. Now make it workable for the version of you who has forgotten all this.\n\n- **Name it like a sentence** — \"Monday pipeline briefing to sales\" beats \"Weekly digest v2\". The name is what the run log shows under *What ran*.\n- **Use a folder.** Folders are organisation-wide labels; removing one leaves the automations alone (*\"Remove this folder — the automations in it stay\"*) and returns them to the top level.\n- **Check Settings → Notifications.** By default you hear only when *Something goes wrong* or *Someone must approve*; *It worked* is off. Turn it on for the first few weeks if you want the receipt.\n- **Versions** keeps earlier designs — open one read-only, compare it with today's, or *Restore to v…* — so edit without fear.\n- Run history is kept **90 days**: the log answers \"did it run in August?\", not forever."
     },
     {
       "type": "slide",
       "id": "now",
       "icon": "🎓",
       "title": "What you can do now",
-      "bodyMd": "You have a routine that exists, is switched on, and has run.\n\n- **Build and prove.** Draft on the canvas or with the assistant, dry-run it, clear everything under *\"Fix this before the routine can run:\"*, and leave the panel with a written checklist of what only a live run can confirm.\n- **Ship deliberately.** Activation is a human decision — nothing the assistant builds fires by itself — and it re-validates the whole definition before it lets anything go live.\n- **Watch and repair.** Runs & log tells you what started it, what happened and where it stopped — then *Open in editor*, dry-run, *Run it again*.\n\nNext chapter: writing the brief that makes all of this go faster."
+      "bodyMd": "You have an automation that exists, is switched on, and has run.\n\n- **Build and prove.** Draft on the canvas or with the assistant, dry-run it, clear everything under *\"Fix this before the automation can run:\"*, and leave the panel with a written checklist of what only a live run can confirm.\n- **Ship deliberately.** Activation is a human decision — nothing the assistant builds fires by itself — and it re-validates the whole definition before it lets anything go live.\n- **Watch and repair.** Runs & log tells you what started it, what happened and where it stopped — then *Open in editor*, dry-run, *Run it again*.\n\nNext chapter: writing the brief that makes all of this go faster."
     }
   ],
   "rubrics": {
     "ex-automation-hands-on-dryrun": {
       "title": "Handover note and Monday checklist",
-      "task": "The learner built a routine and dry-ran it, then wrote a handover note: what it does (trigger, steps, destination), what the dry-run showed (status, anything blocking or worth checking, what they changed), and a checklist for the first live run naming, per untested step, the exact place they will look to confirm it worked.",
+      "task": "The learner built an automation and dry-ran it, then wrote a handover note: what it does (trigger, steps, destination), what the dry-run showed (status, anything blocking or worth checking, what they changed), and a checklist for the first live run naming, per untested step, the exact place they will look to confirm it worked.",
       "criteria": [
-        "Names a concrete trigger and a concrete destination for a specific routine — not a goal or a wish.",
+        "Names a concrete trigger and a concrete destination for a specific automation — not a goal or a wish.",
         "Reports a real dry-run outcome: the status, and either something that was flagged and how it was fixed, or an honest 'nothing was flagged'.",
-        "The checklist is tied to steps of THIS routine that a dry-run could not really execute — a synthesised action, a code step's recorded outside calls, a credentialled call, a 'would block' annotation.",
+        "The checklist is tied to steps of THIS automation that a dry-run could not really execute — a synthesised action, a code step's recorded outside calls, a credentialled call, a 'would block' annotation.",
         "Each checklist line names where they will look and what they expect to see — a screen, a filter or chip, an outcome, or the destination itself — specific enough for a colleague to follow."
       ],
       "passScore": 70,
-      "guidance": "Pass work that is clearly about the learner's own routine, with named steps or fields, and whose part three someone else could actually carry out. Do not pass a generic essay about dry-running with no routine in it; do not pass an answer missing the trigger or the destination; do not pass a checklist of intentions ('check it worked', 'see if the mail arrived') with no screen, filter or destination named. Treating a synthesised green tick as proof the mail was sent fails criterion three. A dry-run that genuinely passed clean is fine, as long as the checklist is specific."
+      "guidance": "Pass work that is clearly about the learner's own automation, with named steps or fields, and whose part three someone else could actually carry out. Do not pass a generic essay about dry-running with no automation in it; do not pass an answer missing the trigger or the destination; do not pass a checklist of intentions ('check it worked', 'see if the mail arrived') with no screen, filter or destination named. Treating a synthesised green tick as proof the mail was sent fails criterion three. A dry-run that genuinely passed clean is fine, as long as the checklist is specific."
     }
   },
   "practiceTopic": {
-    "title": "Shipping a routine: dry-run, activate, watch",
-    "summary": "How a routine goes from draft to live in Bee Flow, and how to read the dry-run panel, the activation refusal and the run log.",
+    "title": "Shipping an automation: dry-run, activate, watch",
+    "summary": "How an automation goes from draft to live in Bee Flow, and how to read the dry-run panel, the activation refusal and the run log.",
     "facts": [
       "A dry-run executes the graph with no real actions: side-effecting actions are synthesised, code steps run with their outside calls only recorded, and a Privacy Shield block becomes a 'would block' annotation instead of a failure.",
-      "A routine the AI builder finished is still a draft and inactive; only a person pressing Activate makes it live.",
+      "An automation the AI builder finished is still a draft and inactive; only a person pressing Activate makes it live.",
       "Activation runs a strict pass and refuses on unknown or unpermitted tools, empty required inputs, an unauthorised knowledge base, and a schedule with no upcoming run time; a step pinned to saved sample data is only warned about, and then serves that sample on every live run.",
-      "The node panel separates blocking problems under 'Fix this before the routine can run:' from warnings under 'Worth checking:'.",
-      "In Studio → Runs & log the mode filter defaults to 'Live runs', so dry-runs are hidden until you switch to 'Tests only' or 'Live runs and tests'.",
+      "The node panel separates blocking problems under 'Fix this before the automation can run:' from warnings under 'Worth checking:'.",
+      "In Studio → Runs & log the Live or test filter defaults to 'Live runs', so dry-runs are hidden until you switch to 'Tests only' or 'Live runs and tests'.",
       "There is no automatic retry — retry is opt-in per step; otherwise a failed step stops the run and the Steps rail marks it 'This is where it stopped. Nothing ran after this point.'",
-      "Run notifications default to On error on and On success off, and run history is kept for 90 days.",
-      "Folders are organisation-wide labels; removing a folder leaves its routines in place and returns them to the top level."
+      "Run notifications default to 'Something goes wrong' and 'Someone must approve' only, with 'It worked' off, and run history is kept for 90 days.",
+      "Folders are organisation-wide labels; removing a folder leaves its automations in place and returns them to the top level."
     ]
   },
   "actionChecks": [
     {
       "checkId": "automation-active",
       "existing": false,
-      "label": "Activate a routine and complete one live run",
+      "label": "Activate an automation and complete one live run",
       "hint": "In Studio → Automations, press Activate in the builder header, then run it live (or wait for its trigger) and confirm the run in Runs & log.",
       "endpoints": [
         {
           "method": "GET",
           "path": "/api/automation/",
-          "returns": "{ automations: [...] } — the caller's own routines, each with id, title, isActive, isDraft, triggerType, lastStatus"
+          "returns": "{ automations: [...] } — the caller's own automations, each with id, title, isActive, isDraft, triggerType, lastStatus"
         }
       ],
       "criteria": [
         {
           "id": "active",
-          "label": "A routine of yours is switched on",
-          "hint": "Open the routine and press Activate in the builder header — the toggle then reads Pause.",
+          "label": "An automation of yours is switched on",
+          "hint": "Open the automation and press Activate in the builder header — the toggle then reads Pause.",
           "rule": "GET /api/automation/ has at least one row with isActive === true and isDraft === false"
         }
       ]

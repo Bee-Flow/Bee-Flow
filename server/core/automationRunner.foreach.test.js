@@ -38,7 +38,7 @@ mock('../stores/userStore', { getUser: async () => null, getOrganization: async 
 mock('../db', { pool: { query: async () => ({ rows: [] }) } });
 mock('./aiAgent', { getProviderForModel: async () => null });
 mock('./providers', { getAdapter: () => ({}) });
-mock('../auth/routineAuth', { buildUserAuth: async () => null });
+mock('../auth/automationAuth', { buildUserAuth: async () => null });
 mock('../auth/audience', { resolveUserGroups: async () => [] });
 mock('../automation/codeSandbox', { run: async () => ({}) });
 
@@ -404,7 +404,7 @@ test('validate: non-object forEach is rejected', () => {
 // Integration tools report failure by RETURNING `{ error }` rather than
 // throwing. Inside a fan-out that used to count as success: a step whose
 // `path` input was missing reported "succeeded: 4, failed: 0" with
-// {error:"path is required"} tucked inside every item, and the routine builder
+// {error:"path is required"} tucked inside every item, and the automation builder
 // read the green count and built on top of it (2026-09-12).
 
 test('a leaf that RETURNS { error } counts as a failed iteration, not a success', async () => {

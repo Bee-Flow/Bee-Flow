@@ -1,11 +1,11 @@
 /**
  * The last screen of a journey — the web's FormEndingView: a single-page
  * form's thank-you, or a closing page the server rendered against the
- * finished run, whose text can be what the routine actually produced.
+ * finished run, whose text can be what the automation actually produced.
  *
  * A long closing (a summary, a draft, an analysis) is a document, and it is
  * gone once the screen closes — so it gets the export bar: share it as a
- * .txt, copy it, or save it into a new notebook. Files the routine made are
+ * .txt, copy it, or save it into a new notebook. Files the automation made are
  * handed over below it.
  */
 

@@ -4,7 +4,7 @@
  *
  * Same drift risk promptCatalogSync.test.js guards for the FULL schema's
  * prose: a trigger the model is told about that cannot fire, or a filter key
- * that silently matches nothing, produces a routine that activates, reports
+ * that silently matches nothing, produces an automation that activates, reports
  * healthy and never runs. The lean band reads THIS block instead of that
  * prose, so it gets the same checks, in both directions.
  *

@@ -35,7 +35,7 @@ export interface BuilderHeaderProps {
     onBack?: Fn;
     /** Where back goes when the builder is hosted elsewhere ("Back to playbook"). */
     backLabel?: string | null;
-    /** Opens the routines / Steps list as a slide-over (BFSF-404). */
+    /** Opens the automations / Steps list as a slide-over (BFSF-404). */
     onOpenList?: Fn;
     onActivate?: Fn;
     onDeactivate?: Fn;
@@ -102,7 +102,7 @@ const ICON_BTN = 'w-[30px] h-[30px] rounded-lg grid place-items-center text-[var
  *
  * Step mode (kind='block') keeps its icon picker, category and Publish
  * cluster. A flowlet scope turns the name into a breadcrumb; the status and
- * the actions stay whole-routine.
+ * the actions stay whole-automation.
  */
 export default function BuilderHeader(props: BuilderHeaderProps) {
     const {
@@ -124,11 +124,11 @@ export default function BuilderHeader(props: BuilderHeaderProps) {
     const live = liveStateOf(row, counts?.pendingChanges ?? null);
 
     const TriggerIcon = scope ? Layers : pickTriggerIcon(triggerKind);
-    const back = backLabel || t('routines.header.back', 'Back to Routines');
+    const back = backLabel || t('automations.header.back', 'Back to Automations');
     const menuHidden = useStudioMenuHidden();
-    const hideMenu = t('routines.header.hide_menu', 'Hide the Studio menu');
-    const showMenu = t('routines.header.show_menu', 'Show the Studio menu');
-    const browse = isStepMode ? t('routines.header.browse_steps', 'Browse Steps') : t('routines.header.browse', 'Browse automations');
+    const hideMenu = t('automations.header.hide_menu', 'Hide the Studio menu');
+    const showMenu = t('automations.header.show_menu', 'Show the Studio menu');
+    const browse = isStepMode ? t('automations.header.browse_steps', 'Browse Steps') : t('automations.header.browse', 'Browse automations');
 
     return (
         <div>
@@ -158,7 +158,7 @@ export default function BuilderHeader(props: BuilderHeaderProps) {
                         <IconPicker
                             value={step?.icon || ''}
                             onChange={(name: string) => onSetStepIcon?.(name)}
-                            title={t('routines.header.step_icon_title', 'Choose a symbol for this Step')}
+                            title={t('automations.header.step_icon_title', 'Choose a symbol for this Step')}
                             buttonClassName="w-7 h-7 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] grid place-items-center flex-shrink-0 text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition"
                             placeholder={<Box size={14} className="text-[var(--text-primary)]" />}
                         />
@@ -172,7 +172,7 @@ export default function BuilderHeader(props: BuilderHeaderProps) {
                         <>
                             <CategoryField value={step?.category || ''} onCommit={onSetStepCategory} />
                             <span className="text-[11px] uppercase tracking-wide font-medium px-2 py-0.5 rounded-full flex-shrink-0 bg-[var(--bg-secondary)] text-[var(--text-secondary)]">
-                                {step?.publishedVersion != null ? t('routines.header.step_published', 'Published') : t('routines.header.step_draft', 'Draft')}
+                                {step?.publishedVersion != null ? t('automations.header.step_published', 'Published') : t('automations.header.step_draft', 'Draft')}
                             </span>
                         </>
                     ) : (
@@ -191,24 +191,24 @@ export default function BuilderHeader(props: BuilderHeaderProps) {
                     {tab === 'build' && onUndo && (
                         <div className="flex items-center gap-0.5">
                             <button type="button" onClick={() => onUndo()} disabled={!canUndo} className={ICON_BTN}
-                                aria-label={t('routines.header.undo', 'Undo')}
+                                aria-label={t('automations.header.undo', 'Undo')}
                                 // The canvas undo, not a saved version.
-                                title={t('routines.header.undo_title', 'Undo your last canvas change (⌘Z). This is not a saved version.')}>
+                                title={t('automations.header.undo_title', 'Undo your last canvas change (⌘Z). This is not a saved version.')}>
                                 <Undo2 size={15} />
                             </button>
                             <button type="button" onClick={() => onRedo?.()} disabled={!canRedo} className={ICON_BTN}
-                                aria-label={t('routines.header.redo', 'Redo')}
-                                title={t('routines.header.redo_title', 'Redo your last undone canvas change (⌘⇧Z)')}>
+                                aria-label={t('automations.header.redo', 'Redo')}
+                                title={t('automations.header.redo_title', 'Redo your last undone canvas change (⌘⇧Z)')}>
                                 <Redo2 size={15} />
                             </button>
                         </div>
                     )}
                     {!isStepMode && onAssistant && <button type="button" onClick={() => onAssistant()} aria-pressed={assistantOpen}
-                        title={t('routines.assistant.open', 'Ask the assistant (⌘J)')} aria-label={t('routines.assistant.open', 'Ask the assistant (⌘J)')}
+                        title={t('automations.assistant.open', 'Ask the assistant (⌘J)')} aria-label={t('automations.assistant.open', 'Ask the assistant (⌘J)')}
                         className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border-default)] px-2.5 py-1.5 text-[var(--type-ai)] hover:bg-[var(--bg-secondary)]">
-                        <Sparkles size={13} /><span className="@max-[1400px]/bar:hidden">{t('routines.assistant.title', 'Assistant')}</span><kbd className="@max-[1600px]/bar:hidden text-[10px]">⌘ J</kbd>
+                        <Sparkles size={13} /><span className="@max-[1400px]/bar:hidden">{t('automations.assistant.title', 'Assistant')}</span><kbd className="@max-[1600px]/bar:hidden text-[10px]">⌘ J</kbd>
                     </button>}
-                    <SavingPill state={savingState} settled={tab === 'settings'} />
+                    <SavingPill state={savingState} settled={tab === 'settings'} readOnly={live.managed} />
                     {isStepMode ? (
                         <StepActionCluster
                             busy={busy}
@@ -226,8 +226,8 @@ export default function BuilderHeader(props: BuilderHeaderProps) {
                                     type="button"
                                     onClick={() => onDiagnose?.()}
                                     disabled={busy}
-                                    aria-label={t('routines.header.diagnose', 'Diagnose')}
-                                    title={t('routines.header.diagnose_title', 'Probe the trigger pipeline (subscription, credentials, Gmail, filter)')}
+                                    aria-label={t('automations.header.diagnose', 'Diagnose')}
+                                    title={t('automations.header.diagnose_title', 'Probe the trigger pipeline (subscription, credentials, Gmail, filter)')}
                                     className={ICON_BTN}
                                 >
                                     <Stethoscope size={15} />

@@ -312,7 +312,7 @@ test('a test chat loads the CONCEPT and says so on the wire', async () => {
     assert.deepStrictEqual(S.runtimeLoads, [{ useDraft: true }],
         'testing what you are making means loading the draft, not the published blob');
     const [info] = eventsOfType('test_chat');
-    assert.ok(info, 'the difference with a routine (R2 runs PUBLISHED) has to be on screen');
+    assert.ok(info, 'the difference with an automation (R2 runs PUBLISHED) has to be on screen');
     assert.strictEqual(info.active, true);
     assert.strictEqual(info.source, 'draft');
     assert.strictEqual(info.runsDraft, true);

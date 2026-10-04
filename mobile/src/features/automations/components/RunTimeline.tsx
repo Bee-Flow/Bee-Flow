@@ -7,7 +7,7 @@
  * which is why this is not a shrunken canvas.
  *
  * Three details come straight from the server and are worth naming:
- *   - The step list is the whole JOURNEY (getRunStepsForChain), so a routine
+ *   - The step list is the whole JOURNEY (getRunStepsForChain), so an automation
  *     that paused on a form and continued in a child run reads as one
  *     timeline rather than two with holes.
  *   - `definition` is the snapshot AS IT WAS at run time, so a step's label

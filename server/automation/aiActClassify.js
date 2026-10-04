@@ -54,7 +54,7 @@ const PROMPT_FIELDS = ['prompt', 'systemPrompt', 'system_prompt', 'instructions'
 /**
  * The text the model reads, and its hash (the cache key and the fingerprint
  * the stored assessment keeps). `definitions` are extra definitions to read
- * along (the reusable Steps the routine calls).
+ * along (the reusable Steps the automation calls).
  *
  * @param {{ title?: string, description?: string, definition: object, definitions?: object[] }} input
  * @returns {{ text: string, hash: string }}

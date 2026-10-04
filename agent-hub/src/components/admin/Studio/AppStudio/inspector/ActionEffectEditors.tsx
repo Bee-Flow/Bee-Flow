@@ -193,10 +193,10 @@ export function NavigateParamsEditor({ params, onChange, disabled }: NavigatePar
  * that the middle one is handled for them rather than wondering where it went.
  *
  * READ-ONLY on purpose. The editable half is one disclosure below; and the
- * fourth row this eventually wants — what the routine hands BACK to the app,
+ * fourth row this eventually wants — what the automation hands BACK to the app,
  * via a `return_to_app` step — does not exist yet (that step is a later
  * stage). Rather than draw an empty row for it and imply it is coming, this
- * says what is true now: the routine decides, and the app is told nothing
+ * says what is true now: the automation decides, and the app is told nothing
  * beyond success or failure.
  */
 export interface ReturnedEchoProps {
@@ -251,7 +251,7 @@ export function ReturnedEcho({ action, screens }: ReturnedEchoProps) {
                     <dd className="min-w-0 flex-1 text-[var(--text-secondary)]">
                         {row.value || (
                             <span className="text-[var(--text-muted)]">
-                                {t('app_studio.inspector.echo_nothing', 'nothing extra — the routine decides')}
+                                {t('app_studio.inspector.echo_nothing', 'nothing extra — the automation decides')}
                             </span>
                         )}
                     </dd>

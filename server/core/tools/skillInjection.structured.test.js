@@ -149,7 +149,7 @@ test('skillGrantsOf: automations from the grant column, tables from step refs, K
     });
     assert.deepStrictEqual(g.kbIds, ['kb1', 'kb2'], 'column ∪ refs, deduped');
     assert.deepStrictEqual(g.tableRefs, [{ id: 'tbl1', scope: 'own', readOnly: true }], 'read-only, own scope, deduped');
-    assert.deepStrictEqual(g.automationIds, ['au1'], 'a step REFERENCE to a routine is presentation; "may use" is the grant');
+    assert.deepStrictEqual(g.automationIds, ['au1'], 'a step REFERENCE to an automation is presentation; "may use" is the grant');
     const empty = skillGrantsOf({});
     assert.deepStrictEqual(empty, { automationIds: [], tableRefs: [], kbIds: [] });
 });

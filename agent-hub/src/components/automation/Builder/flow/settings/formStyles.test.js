@@ -77,8 +77,9 @@ describe('form style vocabulary', () => {
         expect(cardClass()).toContain('border');
     });
 
-    it('the band and rail use tokens nothing else in the panel claims', () => {
-        expect(bandClass()).toContain('bg-[var(--bg-tertiary)]');
+    it('the band is a hairline under the title (no filled bar), the rail a hairline beside the group', () => {
+        expect(bandClass()).toContain('border-b');
+        expect(bandClass()).not.toContain('bg-[');
         expect(railClass()).toContain('border-l');
     });
 

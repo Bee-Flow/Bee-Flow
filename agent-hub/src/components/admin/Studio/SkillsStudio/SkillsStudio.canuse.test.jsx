@@ -7,7 +7,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
  *
  * The failure this file exists for is the one that looks like success: a read
  * that fell over resolving to an empty array, and a picker then telling
- * somebody their organisation has no routines, no knowledge bases, no apps.
+ * somebody their organisation has no automations, no knowledge bases, no apps.
  * Every claim on this card is either about a list that ARRIVED or it is not
  * made, and the three answers — not read yet / could not read / read and
  * empty — get three different sentences.
@@ -75,7 +75,7 @@ beforeEach(() => {
 });
 
 describe('the picker lists', () => {
-    it('names a routines list it could not read instead of reporting an empty one', async () => {
+    it('names a automations list it could not read instead of reporting an empty one', async () => {
         routeFetch({ '/api/automation': dead(500) });
         const { result } = renderHook(() => useSkillPickerData(true));
 
@@ -114,10 +114,10 @@ describe('the picker lists', () => {
 
     /**
      * Two contracts in one read: the knowledge bases are asked for in the
-     * AGENT context, and only an `agent_call` routine is offered — "may use"
+     * AGENT context, and only an `agent_call` automation is offered — "may use"
      * means "offered as a tool", and the runtime dispatches nothing else.
      */
-    it('asks the knowledge bases for the agent context and offers only agent_call routines', async () => {
+    it('asks the knowledge bases for the agent context and offers only agent_call automations', async () => {
         routeFetch({
             '/api/automation': ok({
                 automations: [
@@ -144,7 +144,7 @@ describe('"may use" — a list that could not be read', () => {
 
         expect(screen.queryByTestId('skill-grant-none')).toBeNull();
         expect(screen.getByTestId('skill-grant-menu-gap')).toBeTruthy();
-        expect(screen.getByTestId('skill-grant-gap').textContent).toContain('routines');
+        expect(screen.getByTestId('skill-grant-gap').textContent).toContain('automations');
     });
 
     it('claims nothing at all before the lists arrive', () => {
@@ -158,7 +158,7 @@ describe('"may use" — a list that could not be read', () => {
 
     /**
      * The other half of the pair. Over-correcting into "we could not read
-     * this" for an org that genuinely has no agent-callable routine would
+     * this" for an org that genuinely has no agent-callable automation would
      * hide the one sentence that tells the author how to get one.
      */
     it('still says “nothing to link”, with the reason, when the lists arrived empty', () => {
@@ -220,13 +220,13 @@ describe('"may use" — the apps half', () => {
         expect(screen.getByRole('button', { name: /Browse Web/ })).toBeTruthy();
     });
 
-    it('names both gaps in one sentence when neither the apps nor the routines came back', () => {
+    it('names both gaps in one sentence when neither the apps nor the automations came back', () => {
         appStatus.unavailable = true;
         card({ listStatus: { loaded: true, unavailable: ['automations', 'kbs'] } });
 
         const note = screen.getByTestId('skill-grant-gap').textContent;
         expect(note).toContain('apps');
-        expect(note).toContain('routines');
+        expect(note).toContain('automations');
         expect(note).toContain('knowledge bases');
     });
 
@@ -260,7 +260,7 @@ describe('"may use" — the apps half', () => {
  * a `listStatus` by hand, the hook is read on its own. The one line that
  * connects them lives in SkillDetail, and deleting it (measured) left all
  * thirteen card tests and all five hook tests green while the product went back
- * to saying "nothing else to link" about a routines list that 500'd. So the
+ * to saying "nothing else to link" about a automations list that 500'd. So the
  * wiring is exercised end to end, from a failing endpoint to the sentence.
  */
 describe('the detail wires the hook to the screens that make the claims', () => {
@@ -275,17 +275,17 @@ describe('the detail wires the hook to the screens that make the claims', () => 
 
     const detail = () => render(<SkillDetail skill={SKILL} canManage onBack={() => {}} />);
 
-    it('carries a failed routines read into BOTH the may-use card and the step reference menu', async () => {
+    it('carries a failed automations read into BOTH the may-use card and the step reference menu', async () => {
         routeFetch({ '/api/automation': dead(500) });
         detail();
 
         // The card's own note, off the hook rather than off a hand-made prop.
-        await waitFor(() => expect(screen.getByTestId('skill-grant-gap').textContent).toContain('routines'));
+        await waitFor(() => expect(screen.getByTestId('skill-grant-gap').textContent).toContain('automations'));
 
         // …and the step editor's menu, which used to say "Nothing to reference
         // yet." over the very same failed read.
         fireEvent.click(screen.getByTestId('skill-step-ref-add'));
-        expect(screen.getByTestId('skill-ref-unread').textContent).toMatch(/Routines/);
+        expect(screen.getByTestId('skill-ref-unread').textContent).toMatch(/Automations/);
         expect(screen.queryByTestId('skill-ref-none')).toBeNull();
     });
 

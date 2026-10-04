@@ -9,6 +9,7 @@ import { API_BASE, authFetch } from '../../utils/helpers';
 import scopedStorage from '../../utils/scopedStorage';
 import MeetingNotesSection from './MeetingNotesSection';
 import GoogleMeetNotesSection from './GoogleMeetNotesSection';
+import TeamsMeetingNotesSection from './TeamsMeetingNotesSection';
 import SummaryTemplatesSection from './SummaryTemplatesSection';
 import VoiceprintSection from './VoiceprintSection';
 import EditorPreferencesSection from './EditorPreferencesSection';
@@ -339,6 +340,9 @@ const PreferencesSection = ({
 
             {/* ── Google Meet Meeting Notes (self-hides when not licensed/connected) ── */}
             <GoogleMeetNotesSection />
+
+            {/* ── Microsoft Teams Meeting Notes (self-hides when not licensed/connected) ── */}
+            <TeamsMeetingNotesSection />
 
             {/* ── My summary templates (self-hides when Meeting Notes not licensed) ── */}
             <SummaryTemplatesSection />

@@ -39,6 +39,8 @@ const notebook = (over: Partial<Notebook> = {}): Notebook => ({
     organizationId: null,
     version: 3,
     sourceCount: 0,
+    folderId: null,
+    categories: [],
     lastEditedBy: null,
     lastEditedAt: null,
     createdAt: null,

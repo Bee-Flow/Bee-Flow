@@ -1,5 +1,5 @@
 /**
- * A scheduled run (routine or cowork) bills what the provider really reported,
+ * A scheduled run (automation or cowork) bills what the provider really reported,
  * cache included. executeTask read `response.usage.prompt_tokens` /
  * `completion_tokens` only, and the non-streaming Claude and Gemini adapters
  * returned the raw provider block, so a Claude or Gemini run logged 0 tokens at
@@ -23,7 +23,7 @@ const fakeStore = {
 };
 
 const restore = installResolveStub({
-    '../stores/aiTaskStore': {
+    '../stores/coworkStore': {
         markRunning: async () => {}, markCompleted: async () => {},
         markError: async () => {}, getDueTasks: async () => [],
         updateTask: async () => {}, advanceSchedule: async () => {},
@@ -58,7 +58,7 @@ const TASK = { id: 't1', userId: 'u1', modelTier: 'fast', title: 'T', prompt: 'D
 test('a Claude run logs real tokens, cache read/write and the 5m/1h split', async () => {
     logged.length = 0;
     adapter = realClaudeAdapter([{ text: 'Done.' }]);
-    await executeTask(TASK, { store: fakeStore, surface: 'cowork' });
+    await executeTask(TASK, { store: fakeStore });
     await flush();
     assert.strictEqual(logged.length, 1, 'one usage row per run');
     assertClaudeEntry(logged[0]);

@@ -10,7 +10,7 @@ import scopedStorage from '../../../../utils/scopedStorage';
 
 /**
  * The "Edit data" (set) editor — two modes derived from `arrayRef` presence.
- * Single mode must stay byte-compatible with every saved routine; list mode
+ * Single mode must stay byte-compatible with every saved automation; list mode
  * adds the per-row fields (Current row scope) and the Table tools.
  */
 
@@ -169,6 +169,8 @@ describe('SettingsForm — Edit data (set)', () => {
 
     it('“Adjust it” turns a picked value into a formula without anyone typing one', async () => {
         const { onPatch } = renderForm(LIST_STEP);
+        // The field's own options sit under "More": a plain drag never needs them.
+        fireEvent.click(screen.getAllByRole('button', { name: 'More ways to use this value' })[0]);
         fireEvent.change(screen.getByLabelText('Adjust the value'), { target: { value: 'lower' } });
         save();
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
@@ -186,6 +188,7 @@ describe('SettingsForm — Edit data (set)', () => {
         // select) and never the raw binding box's mode toggle.
         renderForm(LIST_STEP);
         expect(screen.getAllByText(/Use data from a step|Add data/).length).toBeGreaterThan(0);
+        fireEvent.click(screen.getAllByRole('button', { name: 'More ways to use this value' })[0]);
         expect(screen.getByLabelText('Adjust the value')).toBeTruthy();
         expect(screen.queryByRole('group', { name: 'Value mode' })).toBeNull();
 
@@ -197,6 +200,7 @@ describe('SettingsForm — Edit data (set)', () => {
 
     it('the raw formula editor is offered in the full view only', () => {
         renderForm(LIST_STEP);
+        fireEvent.click(screen.getAllByRole('button', { name: 'More ways to use this value' })[0]);
         expect(screen.getAllByLabelText('Write this value as a formula').length).toBe(1);
     });
 

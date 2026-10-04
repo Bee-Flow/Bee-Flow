@@ -5,6 +5,7 @@ import { useTranslation } from '../../../../hooks/useTranslation';
 import { deepEqual as deepEqualJs } from '../../../../utils/deepEqual';
 import { statusLabel, tokenForStep } from '../../../shared/statusTokens';
 import { summariseData as summariseDataJs } from '../flow/dataSummary';
+import { stepPayload } from '../flow/stepPayload';
 import type { FlowDefinition, FlowStep } from '../flow/types';
 import type { ErrorFix, StepErrorInfo } from '../output/ErrorCard';
 import type { NextSuggestion } from '../output/UsedBy';
@@ -121,14 +122,14 @@ function RunTabContainer({
                 {/* Deliberately does NOT name ▶ Execute alone: on a trigger, and
                     on any node whose upstream cannot be replayed yet, running
                     is the option you do not have (BFSF-408). */}
-                <div>{t('routines.output.no_data_yet', 'No data yet. Run this step to capture its output, or write it yourself with Edit.')}</div>
+                <div>{t('automations.output.no_data_yet', 'No data yet. Run this step to capture its output, or write it yourself with Edit.')}</div>
             </div>
         );
     }
 
     return (
         <div className="flex flex-col h-full min-h-0">
-            {!compact && <StatusStrip runStep={effectiveRun} />}
+            {!compact && <StatusStrip runStep={effectiveRun} stepType={step?.type} />}
             {/* MUST stay a flex COLUMN: as a plain block the subtree's
                 percentage heights fell back to `auto` and the table had no
                 scrollbars inside the quick dialog (BFSF-386). */}
@@ -149,7 +150,7 @@ function formatWhen(iso: string | null | undefined): string | null {
  * table (components/shared/statusTokens.ts). A failed step says what went
  * on: nothing (artboard 4a).
  */
-function StatusStrip({ runStep }: { runStep: RunStepRecord }) {
+function StatusStrip({ runStep, stepType }: { runStep: RunStepRecord; stepType?: string | null }) {
     const { t } = useTranslation();
     // A failed step: the column header already says "Nothing, the step
     // stopped" and the error card says why, so the strip only says when.
@@ -158,7 +159,7 @@ function StatusStrip({ runStep }: { runStep: RunStepRecord }) {
         if (!when) return null;
         return (
             <div className="px-3 py-1.5 border-b border-[var(--border-default)] flex items-center gap-2 text-[11px] text-[var(--text-tertiary)]" data-testid="output-status-strip">
-                {t('routines.output.stopped_at', 'Stopped {when}', { when })}
+                {t('automations.output.stopped_at', 'Stopped {when}', { when })}
             </div>
         );
     }
@@ -166,7 +167,7 @@ function StatusStrip({ runStep }: { runStep: RunStepRecord }) {
     const Icon = token.icon;
     const duration = runStep.durationMs != null ? formatDuration(runStep.durationMs) : null;
     // How much came out, in the same words the connection chip uses.
-    const summary = summariseData(runStep.output);
+    const summary = summariseData(stepPayload(stepType, runStep.output));
     // In a narrow column (NdvSideColumn's @container/ndvside) the column head
     // already says how much and how long, and the header pill that it worked:
     // the strip would be the third copy, in the height the table needs.
@@ -177,7 +178,7 @@ function StatusStrip({ runStep }: { runStep: RunStepRecord }) {
             {summary && <span className="text-[var(--text-primary)] font-medium">· {summary.label}</span>}
             {duration && <span className="text-[var(--text-tertiary)]">· {duration}</span>}
             {runStep.attempts != null && runStep.attempts > 1 && (
-                <span className="text-[var(--text-tertiary)]">· {t('routines.output.attempts', '{count} attempts', { count: runStep.attempts })}</span>
+                <span className="text-[var(--text-tertiary)]">· {t('automations.output.attempts', '{count} attempts', { count: runStep.attempts })}</span>
             )}
         </div>
     );

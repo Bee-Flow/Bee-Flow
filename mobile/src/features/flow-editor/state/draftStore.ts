@@ -1,8 +1,8 @@
 /**
- * The draft store: ONE open routine's definition as the editor holds it,
+ * The draft store: ONE open automation's definition as the editor holds it,
  * with its undo history, its save pipeline and its findings.
  *
- * A vanilla zustand store rather than a hook, one instance per open routine
+ * A vanilla zustand store rather than a hook, one instance per open automation
  * (registry.ts hands them out by id), because the build screen and the step
  * editor pushed over it edit the SAME draft: a second copy would be a second
  * truth, and two autosaves racing each other.
@@ -11,9 +11,9 @@
  *     recorded in model/history.ts's undo stack: 600 ms coalescing, 50 deep.
  *   - Every edit, undo and redo schedules a save (scheduler.ts): debounced
  *     900 ms, single-flight, retried on a transient failure.
- *   - A new routine is created by its first save. A create that failed
+ *   - A new automation is created by its first save. A create that failed
  *     without an answer is never sent again on its own: it may have landed.
- *   - While the AI builder streams into the routine, edits are refused
+ *   - While the AI builder streams into the automation, edits are refused
  *     (`setLocked`) and its drafts arrive through `replaceDefinition`.
  */
 

@@ -104,46 +104,66 @@ async function getBuilderSession(automationId, userId) {
  *
  * `trimBlock` is the head-eviction granularity for an oversized conversation
  * (see trimSnapshot); the builder passes its prompt window's block.
+ *
+ * An automation of a Solution stage has no AI builder session: it is changed in
+ * Dev and deployed, so the write throws 409 managed_part (stores/lib/managedParts.js)
+ * unless `managedWrite` names an active deployment of that stage.
  */
-async function setBuilderSession(automationId, userId, snapshot, { expectedVersion = null, trimBlock = 1 } = {}) {
+async function setBuilderSession(automationId, userId, snapshot, { expectedVersion = null, trimBlock = 1, managedWrite = null } = {}) {
     await initDB();
-    const trimmed = trimSnapshot(snapshot, { block: trimBlock }) || {};
     const client = await getClient();
     try {
         await client.query('BEGIN');
-        const cur = await client.query(
-            'SELECT user_id, builder_session FROM automations WHERE id = $1 FOR UPDATE',
-            [automationId],
-        );
-        if (cur.rows.length === 0) {
-            await client.query('ROLLBACK');
-            return { ok: false, notFound: true };
-        }
-        if (userId && cur.rows[0].user_id !== userId) {
-            await client.query('ROLLBACK');
-            return { ok: false, forbidden: true };
-        }
-        const currentSnap = (typeof cur.rows[0].builder_session === 'string'
-            ? safeParse(cur.rows[0].builder_session, null)
-            : (cur.rows[0].builder_session ?? null)) || {};
-        const currentVersion = Number.isFinite(currentSnap.version) ? currentSnap.version : 0;
-        if (expectedVersion != null && currentVersion !== expectedVersion) {
-            await client.query('ROLLBACK');
-            return { ok: false, conflict: true, current: currentSnap };
-        }
-        const next = { ...trimmed, version: currentVersion + 1 };
-        await client.query(
-            `UPDATE automations SET builder_session = $1::jsonb, updated_at = NOW() WHERE id = $2`,
-            [JSON.stringify(next), automationId],
-        );
-        await client.query('COMMIT');
-        return { ok: true, snapshot: next };
+        const out = await setBuilderSessionWith(client, automationId, userId, snapshot, { expectedVersion, trimBlock, managedWrite });
+        await client.query(out.ok ? 'COMMIT' : 'ROLLBACK');
+        return out;
     } catch (e) {
         await client.query('ROLLBACK').catch(() => {});
         throw e;
     } finally {
         client.release();
     }
+}
+
+/**
+ * setBuilderSession on a transaction the caller owns (BEGIN/COMMIT/ROLLBACK
+ * are theirs; a refusal writes nothing). `managedParts` is the guard, a
+ * test's own instance or the app's default.
+ *
+ * @param {{ query: (sql: string, params?: any[]) => Promise<{ rows: any[] }> }} client
+ * @param {string} automationId
+ * @param {string|null} userId
+ * @param {any} snapshot
+ * @param {{ expectedVersion?: number|null, trimBlock?: number,
+ *           managedWrite?: { deploymentId?: string }|null, managedParts?: any }} [opts]
+ */
+async function setBuilderSessionWith(client, automationId, userId, snapshot, {
+    expectedVersion = null, trimBlock = 1, managedWrite = null, managedParts = null,
+} = {}) {
+    const trimmed = trimSnapshot(snapshot, { block: trimBlock }) || {};
+    const cur = await client.query(
+        'SELECT user_id, builder_session, project_id FROM automations WHERE id = $1 FOR UPDATE',
+        [automationId],
+    );
+    if (cur.rows.length === 0) return { ok: false, notFound: true };
+    if (userId && cur.rows[0].user_id !== userId) return { ok: false, forbidden: true };
+    await (managedParts || require('../lib/managedParts')).assertManagedWrite({
+        kind: 'automation', projectId: cur.rows[0].project_id ?? null, changedKeys: ['builderSession'],
+        managedWrite, client,
+    });
+    const currentSnap = (typeof cur.rows[0].builder_session === 'string'
+        ? safeParse(cur.rows[0].builder_session, null)
+        : (cur.rows[0].builder_session ?? null)) || {};
+    const currentVersion = Number.isFinite(currentSnap.version) ? currentSnap.version : 0;
+    if (expectedVersion != null && currentVersion !== expectedVersion) {
+        return { ok: false, conflict: true, current: currentSnap };
+    }
+    const next = { ...trimmed, version: currentVersion + 1 };
+    await client.query(
+        `UPDATE automations SET builder_session = $1::jsonb, updated_at = NOW() WHERE id = $2`,
+        [JSON.stringify(next), automationId],
+    );
+    return { ok: true, snapshot: next };
 }
 
 async function clearBuilderSession(automationId, userId) {
@@ -158,4 +178,4 @@ async function clearBuilderSession(automationId, userId) {
     }
 }
 
-module.exports = { getBuilderSession, setBuilderSession, clearBuilderSession, trimSnapshot, SNAPSHOT_MAX_BYTES };
+module.exports = { getBuilderSession, setBuilderSession, setBuilderSessionWith, clearBuilderSession, trimSnapshot, SNAPSHOT_MAX_BYTES };

@@ -93,7 +93,7 @@ export function actionRows(app: RibbonApp): RowSpec[] {
 /** What an app is for: the integration catalog's sentence, else "Actions from X." */
 export function appDescription(app: RibbonApp, t: Translate): string {
     const known = (getIntegrationById(app.integrationId) || getIntegrationById(app.id)) as { description?: string } | null;
-    return known?.description || t('routines.ribbon.app_actions_from', 'Actions from {app}.', { app: app.label });
+    return known?.description || t('automations.ribbon.app_actions_from', 'Actions from {app}.', { app: app.label });
 }
 
 /**

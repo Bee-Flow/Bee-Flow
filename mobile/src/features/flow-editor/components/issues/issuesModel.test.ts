@@ -30,7 +30,7 @@ describe('issueRows', () => {
 });
 
 describe('pillSummary', () => {
-    it('is absent for a healthy routine', () => {
+    it('is absent for a healthy automation', () => {
         expect(pillSummary([], t)).toBeNull();
     });
 

@@ -39,7 +39,7 @@ export const CREATABLE_KINDS = Object.freeze(['text', 'upload', 'webpage', 'meet
 /**
  * The seven buttons of the "Bron toevoegen" card, in the artboard's own
  * order (2-column grid; `automation` spans both columns and is a HINT, not
- * a form — an automation source appears when a routine writes to this KB).
+ * a form — an automation source appears when an automation writes to this KB).
  */
 export const ADD_SOURCE_KINDS = Object.freeze([
     'nextcloud_folder', 'upload', 'datatable', 'meeting_tag', 'webpage', 'text', 'automation',
@@ -97,8 +97,8 @@ export function isCreatable(kind) {
  * Kinds whose button opens an EXPLANATION rather than a form.
  *
  * `automation` is not creatable and never will be: a source of that kind
- * appears because a routine writes to this base, which is a thing you do in
- * the routine, not here. But it is not "coming soon" either — it works, as of
+ * appears because an automation writes to this base, which is a thing you do in
+ * the automation, not here. But it is not "coming soon" either — it works, as of
  * K10 — so the button has to be reachable and say where to go. A third state,
  * because the other two would both be lies.
  */

@@ -240,7 +240,7 @@
           "id": "c",
           "label": "Memories older than 30 days are swept away automatically.",
           "correct": false,
-          "feedback": "That 30-day clock belongs to the coverage notes a routine writes. A memory learned in a chat stays until someone deletes it."
+          "feedback": "That 30-day clock belongs to the coverage notes an automation writes. A memory learned in a chat stays until someone deletes it."
         },
         {
           "id": "d",

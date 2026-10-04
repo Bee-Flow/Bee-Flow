@@ -41,7 +41,7 @@ const MOCKS = {
         authenticateToken: async (header) => (header === 'Bearer good' ? 'u1' : null),
     },
     '../appStudio/mcpBuilder': builder('studio'),
-    '../automation/mcpBuilder': builder('routines'),
+    '../automation/mcpBuilder': builder('automations'),
     '../core/entitlements/entitlements': { hasCapability: async () => true },
     '../core/entitlements/betaFeatures': { userHasBetaFeature: async () => true },
     '../stores/userStore': { getUser: async () => ({ organizationId: 'org1' }) },
@@ -64,10 +64,10 @@ Module._resolveFilename = function (request, parent, ...rest) {
 
 const mcp = require('./mcpServer');
 const studio = require('./mcpStudio');
-const routines = require('./mcpAutomations');
+const automations = require('./mcpAutomations');
 test.after(() => { Module._resolveFilename = originalResolve; });
 
-const SURFACES = [['/mcp', mcp], ['/mcp/studio', studio], ['/mcp/automations', routines]];
+const SURFACES = [['/mcp', mcp], ['/mcp/studio', studio], ['/mcp/automations', automations]];
 
 function post(router, body, authorization = 'Bearer good') {
     return new Promise((resolve, reject) => {
@@ -143,7 +143,7 @@ for (const [where, surface] of SURFACES) {
 }
 
 test('params stay open beyond name and arguments: _meta rides along to the builder', async () => {
-    for (const surface of [studio, routines]) {
+    for (const surface of [studio, automations]) {
         const out = await surface.handleRpc({
             jsonrpc: '2.0', id: 7, method: 'tools/call',
             params: { name: 'x_list', arguments: { q: 1 }, _meta: { progressToken: 'pt-1' } },

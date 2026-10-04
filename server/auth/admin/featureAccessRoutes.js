@@ -581,7 +581,17 @@ async function writeOrgAccessGrants(orgId, granted, actorId) {
         if (!bound[cap.kind] || !bound[cap.kind].includes(capId)) continue; // server-side clamp
         buckets[cap.kind].push(capId);
     }
-    await userStore.setOrgEnabledIntegrations(orgId, buckets.integration); // NC bypasses; MCP included
+    // Org-scoped custom integrations ('custom:<uuid>': AI-builder rows and the
+    // MCP library's remote servers) are never rows of this matrix
+    // (capabilityRegistry keeps them out of listCapabilities), so a save cannot
+    // have decided them. Replacing the list wholesale used to revoke every one
+    // of them for "All members" on any unrelated toggle; keep them as stored.
+    // Their own surfaces (the MCP library) grant and revoke them.
+    let storedIntegrations = [];
+    try { storedIntegrations = await userStore.getOrgEnabledIntegrations(orgId); } catch (_) { /* nothing to keep */ }
+    const keptCustom = (Array.isArray(storedIntegrations) ? storedIntegrations : [])
+        .filter(id => typeof id === 'string' && id.startsWith('custom:') && !buckets.integration.includes(id));
+    await userStore.setOrgEnabledIntegrations(orgId, [...buckets.integration, ...keptCustom]); // NC bypasses; MCP included
     if (snap.mode !== 'cloud') await userStore.setOrgEnabledBetaFeatures(orgId, buckets.beta); // cloud betas governed
     // Group-scoped betas: the everyone-choice is stored in BOTH modes (on cloud
     // the subscription stays the ceiling, it just no longer decides who inside
@@ -744,6 +754,11 @@ router.put('/groups/:id/access', requireAuth, validate({ body: GrantedBody }), a
         return cap && cap.groupTogglable && boundSet.has(capId);
     })));
     const prev = Array.isArray(group.granted_capabilities) ? group.granted_capabilities : [];
+    // Org-scoped custom integrations are not matrix rows, so this save did not
+    // decide them (see writeOrgAccessGrants): carry them over as stored.
+    for (const capId of prev) {
+        if (typeof capId === 'string' && capId.startsWith('custom:') && !clean.includes(capId)) clean.push(capId);
+    }
     if (!(await userStore.updateGroup(id, { grantedCapabilities: clean }))) {
         return res.status(404).json({ error: 'Group not found' });
     }

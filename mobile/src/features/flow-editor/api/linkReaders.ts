@@ -1,5 +1,5 @@
 /**
- * Contract readers for what hangs off a routine without being part of its
+ * Contract readers for what hangs off an automation without being part of its
  * flow: webhook URLs, public form links (routes/automation/webhooksAndRunOps.js
  * over stores/automationStore/{webhooks,forms}.js) and the sidebar folders
  * (stores/automationStore/folders.js).
@@ -88,7 +88,7 @@ export function readFolderResponse(raw: unknown): FlowFolder | null {
     return nullable(readFolder)(pick(raw, 'folder'));
 }
 
-/** DELETE /folders/:id: how many routines were moved back to the top level. */
+/** DELETE /folders/:id: how many automations were moved back to the top level. */
 export function readFolderDeleted(raw: unknown): number {
     return field.num(0)(pick(raw, 'detached'));
 }

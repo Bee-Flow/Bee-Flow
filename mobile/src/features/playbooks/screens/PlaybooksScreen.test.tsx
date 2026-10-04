@@ -33,7 +33,7 @@ const RECIPE = {
     description: 'Contracts into a table, then an app',
     table: { fields: [{ key: 'supplier', name: 'Supplier', type: 'text' }] },
     inputs: [{ key: 'folderPath', label: 'Contracts folder', kind: 'folder', default: '/Contracts' }],
-    phases: [{ key: 'table', label: 'Table' }, { key: 'routine', label: 'Automation' }],
+    phases: [{ key: 'table', label: 'Table' }, { key: 'automation', label: 'Automation' }],
 };
 
 beforeEach(() => {

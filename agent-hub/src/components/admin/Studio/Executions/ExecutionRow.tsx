@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import type { ComponentType } from 'react';
 import { MoreHorizontal, RotateCcw, Ban, Check, X, ExternalLink, Copy, Eye, Link2, Loader2 } from 'lucide-react';
 import { statusLabel, tokenFor } from '../../../shared/statusTokens';
-import { RunStatusIcon, DryRunBadge } from '../RoutinesStudio/RunStatusBits';
-import ContextMenuJs from '../RoutinesStudio/ContextMenu';
-import { formatRelative, formatDuration, absoluteTime } from '../RoutinesStudio/historyUtils';
+import { RunStatusIcon, DryRunBadge } from '../AutomationsStudio/RunStatusBits';
+import ContextMenuJs from '../AutomationsStudio/ContextMenu';
+import { formatRelative, formatDuration, absoluteTime } from '../AutomationsStudio/historyUtils';
 import type useAutomationApi from '../../../../hooks/useAutomationApi';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import type { TranslateFn } from '../../../../hooks/useTranslation';
@@ -227,7 +227,7 @@ function ExecutionRowImpl(props: ExecutionRowProps) {
                 {when.took}
             </span>
 
-            {/* Started by, and for a routine with several triggers WHICH entry point. */}
+            {/* Started by, and for an automation with several triggers WHICH entry point. */}
             <span className={`${FROM_WIDEST} text-xs text-[var(--text-tertiary)] truncate`} title={[startedByText(t, run), entered || ''].filter(Boolean).join(' · ')}>
                 {startedByText(t, run)}
                 {entered && <span className="text-[var(--text-secondary)]"> · {entered}</span>}

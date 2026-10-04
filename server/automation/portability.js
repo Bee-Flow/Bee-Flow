@@ -153,7 +153,7 @@ function stripPinnedOutputs(def, warnings) {
  *
  * Read-only (the caller's definition is never touched); the activation path in
  * routes/automation/crud.js uses it to say which nodes will hand out a saved
- * sample once the routine is live, and to refuse outright when one of those
+ * sample once the automation is live, and to refuse outright when one of those
  * samples was typed by hand rather than captured from a real run.
  *
  * `pinnedSource` defaults to 'captured' for the pins that predate the field:
@@ -206,7 +206,7 @@ function stripEnvironmentRefs(def, warnings) {
     // Credentials and people are swept by the shared rules, so this path, the
     // App Studio capture path and Blueprint packaging cannot drift about what
     // must never leave an installation. Approver seats in particular were NOT
-    // being removed here before: an exported routine carried the user and group
+    // being removed here before: an exported automation carried the user and group
     // ids of whoever it asked to approve, straight into the importer's install.
     const { scrubAutomationDefinition, RULES } = require('../projects/packaging/scrub');
     const where = (layerKey) => (layerKey ? ` (layer "${layerKey}")` : '');
@@ -236,7 +236,7 @@ function stripEnvironmentRefs(def, warnings) {
         if (entry.rule === RULES.AUTOMATION_KNOWLEDGE_BASE_REFERENCE && entry.field === 'knowledgeBaseId') {
             // The WRITE side. Worth its own sentence: the recipient has to know
             // this step puts documents somewhere before they choose where, and
-            // a routine that says nothing until it is activated says it too late.
+            // an automation that says nothing until it is activated says it too late.
             warnings.push(`Cleared the knowledge base this step WRITES to on step "${entry.stepId || '(no id)'}"${where(entry.layerKey)} — a knowledge base belongs to one organisation. Pick one you manage after importing; until you do, the step stores nothing.`);
             continue;
         }
@@ -274,12 +274,12 @@ function stripEnvironmentRefs(def, warnings) {
  *          non-blocking removals (today: stripped pinned outputs).
  */
 /**
- * De back-pointer naar de knop waar de routine vandaan komt, eraf.
+ * De back-pointer naar de knop waar de automatisering vandaan komt, eraf.
  *
  * `trigger.appRef` (contract in automation/appTriggerContract.js) noemt een app,
  * een scherm en een component van ÉÉN installatie. Overgedragen wijst hij
  * nergens naar — en de triggerkaart is gebouwd om dat hardop te zeggen ("App is
- * gone"), dus een geïmporteerde routine zou aankomen met de melding van een
+ * gone"), dus een geïmporteerde automatisering zou aankomen met de melding van een
  * verwijdering die nooit heeft plaatsgevonden. Niet in de gedeelde scrub-regels:
  * dit is geen sleutel en geen persoon, alleen een label dat ophoudt waar te zijn
  * zodra het vertrekt.
@@ -407,7 +407,7 @@ function sanitizeImport(envelope) {
  * organisation) and keeps `datatableKey`. Without this the importer got a step
  * that cannot run and does not say what it wanted — and because
  * `datatable.table_missing` blocks at the import route's activate-stage
- * validation, a routine with a datatable step could not be imported at all.
+ * validation, an automation with a datatable step could not be imported at all.
  *
  * Three rules, each of them the reason this is not just a lookup:
  *
@@ -468,7 +468,7 @@ function rebindDatatables(definition, tables) {
                 datatableId: matches[0].id, matches: 1,
                 // Named, never silent: the key travelled with the file, so the
                 // table it lands on is the importer's, chosen by a slug the
-                // author picked. Worth a look before the routine goes live.
+                // author picked. Worth a look before the automation goes live.
                 message: `Step "${stepId}"${where} was linked to your table "${matches[0].name || key}" (key "${key}"). Check it is the right one before activating.`,
             });
             return;
@@ -517,7 +517,7 @@ const REF_STRING_FIELDS = {
     aggregate: ['arrayRef'],
     summarize: ['arrayRef'],
     // `arrayRef` is the list-mode source (BFSF-375); without it a duplicated
-    // routine's Date & time step still points at the ORIGINAL step's list.
+    // automation's Date & time step still points at the ORIGINAL step's list.
     datetime: ['input', 'input2', 'arrayRef'],
 };
 const EXPR_STRING_FIELDS = {
@@ -529,14 +529,14 @@ const TEMPLATE_STRING_FIELDS = {
     notification: ['title', 'body'],
     stop_error: ['message'],
     // The approver's question is interpolated at run time (engine's
-    // renderApprovalPrompt), so a duplicated routine whose prompt quotes an
+    // renderApprovalPrompt), so a duplicated automation whose prompt quotes an
     // upstream value must be re-pointed at the COPY's step ids — otherwise the
     // approver is asked to approve a blank, which is exactly the decision you
     // least want made on missing information.
     approval: ['prompt'],
     // All three are {{…}} templates, and `content` is essentially always a
     // reference to an upstream step. Without them a duplicated or imported
-    // routine keeps pointing at the ORIGINAL step ids and renders an empty
+    // automation keeps pointing at the ORIGINAL step ids and renders an empty
     // document — silently, because a missing template path resolves to ''.
     generate_document: ['content', 'title', 'fileName'],
     // fill_document's two names. Its `values` are templates too, but they live
@@ -687,7 +687,7 @@ function rekeyStep(step, map) {
     }
     // A fill_document's VALUES are templates in a map keyed by placeholder
     // name, so the flat field list above cannot reach them. Left alone, a
-    // duplicated or imported routine fills the invoice from the ORIGINAL
+    // duplicated or imported automation fills the invoice from the ORIGINAL
     // step ids — which resolve to nothing, so every line prints blank and the
     // PDF still renders. Silent, and on paper.
     if (step.type === 'fill_document' && isObject(step.values)) {
@@ -721,7 +721,7 @@ function rekeyStep(step, map) {
     }
     // `return_to_app`'s two templates are nested one level down, like the form
     // page's, so the flat map above cannot reach them. Left alone, a duplicated
-    // or imported routine would show the visitor an empty toast and open a
+    // or imported automation would show the visitor an empty toast and open a
     // record screen with no record — both silently, because a missed template
     // path renders as ''.
     if (step.type === 'return_to_app') {
@@ -761,7 +761,7 @@ function rekeyGraph(graph) {
     const oldIds = [];
     // Every node the graph addresses by id: the primary trigger, each ADDITIONAL
     // trigger, and every step (nested ones included). The `triggers[]` array was
-    // missing here — an imported routine kept its extra entry points' original
+    // missing here — an imported automation kept its extra entry points' original
     // ids, which is precisely the collision re-keying exists to prevent, and the
     // edges out of them were rewritten while the trigger they left was not.
     walkTriggers(graph, null, (t) => {

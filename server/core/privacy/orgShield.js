@@ -178,7 +178,7 @@ async function resolveOrgShield(orgId) {
         webSearchGuardEnabled: !!shield.webSearchGuardEnabled,
         disableSearchOnUpload: !!shield.disableSearchOnUpload,
         monitorIntegrations: !!shield.monitorIntegrations,
-        // Whether the shield also guards automation/routine runs. Default true
+        // Whether the shield also guards automation runs. Default true
         // (older saves have no field) — an org must explicitly opt out.
         applyToAutomations: shield.applyToAutomations !== false,
         // Transparency: when true, the chat stream emits the tokenised outbound
@@ -342,6 +342,7 @@ function synthesizeToolPiiPolicy(shield) {
  * Pure + side-effect-free (lazy-requires the map to avoid a circular import).
  */
 function classifyToolClass(toolName, toolArgs = {}) {
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- an anchored alternation of literals, no repeat: linear
     if (/^(agent_search|web_search|search|brave_search|browse_web)$/i.test(toolName || '')) return 'external';
     // Custom integrations (cint_<slug>_<tool>, the AI Integration Builder) can
     // only reach a public HTTPS host: the runner and the custom MCP client both
@@ -349,6 +350,7 @@ function classifyToolClass(toolName, toolArgs = {}) {
     // So they always leave the org. resolveIntegration answers null for them
     // without the stored definition, which used to make every custom
     // integration 'internal': the org's "Outside tools" rules never applied.
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- an anchored literal prefix: constant time
     if (/^cint_/.test(toolName || '')) return 'external';
     let meta = null;
     try { meta = require('../integrations/integrationToolMap').resolveIntegration(toolName, toolArgs || {}); } catch (_) { /* treat as internal */ }

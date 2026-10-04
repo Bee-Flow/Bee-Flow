@@ -2,7 +2,7 @@
 
 /**
  * POST /code/analyze and POST /code/test, through a real Express app with the
- * real analyser and the real sandbox; the routine store and the access check
+ * real analyser and the real sandbox; the automation store and the access check
  * are injected (no database).
  *
  * Run: node --test routes/automation/codeTools.test.js
@@ -13,7 +13,7 @@ const assert = require('node:assert');
 const express = require('express');
 const { makeCodeToolsRouter } = require('./codeTools');
 
-const routines = { r1: { id: 'r1', userId: 'owner', organizationId: 'org1' } };
+const automations = { r1: { id: 'r1', userId: 'owner', organizationId: 'org1' } };
 const roles = { owner: 'owner', viewer: 'view' };
 const access = {
     guard: async (req, res, a, need) => {
@@ -29,7 +29,7 @@ function appFor(userId) {
     app.use(express.json());
     app.use((req, _res, next) => { req.session = { user: { id: userId, organizationId: 'org1' } }; next(); });
     app.use(makeCodeToolsRouter({
-        store: { getAutomation: async (id) => routines[id] || null },
+        store: { getAutomation: async (id) => automations[id] || null },
         access,
         limiter: (_req, _res, next) => next(),
     }));
@@ -105,7 +105,7 @@ test('try it: code that throws is an answer, not a server error', async () => {
     assert.match(r.body.error, /nope/);
 });
 
-test('a named routine needs edit to test and view to analyze', async () => {
+test('a named automation needs edit to test and view to analyze', async () => {
     assert.strictEqual((await post('viewer', '/code/analyze', { code: 'return 1;', automationId: 'r1' })).status, 200);
     assert.strictEqual((await post('viewer', '/code/test', { code: 'return 1;', automationId: 'r1' })).status, 403);
     assert.strictEqual((await post('stranger', '/code/analyze', { code: 'return 1;', automationId: 'r1' })).status, 403);

@@ -22,7 +22,7 @@ export default function SmartCell({ value, col }: { value: unknown; col: OutputC
     case 'group':
         return (
             <span className="inline-flex items-center gap-[5px] px-2 py-0.5 rounded-md bg-[var(--bg-secondary)] max-w-full min-w-0" data-cell="group">
-                <span className="truncate">{s.text || t('routines.output.cell_group', 'group')}</span>
+                <span className="truncate">{s.text || t('automations.output.cell_group', 'group')}</span>
                 {s.more > 0 && <span className="text-[var(--text-tertiary)] shrink-0">+{s.more}</span>}
             </span>
         );
@@ -31,8 +31,8 @@ export default function SmartCell({ value, col }: { value: unknown; col: OutputC
             <span className="inline-flex items-center gap-[5px] px-2 py-0.5 rounded-md bg-[var(--bg-secondary)] whitespace-nowrap" data-cell="table">
                 <Table size={12} aria-hidden />
                 {s.count === 1
-                    ? t('routines.output.cell_lines_one', '1 line')
-                    : t('routines.output.cell_lines', '{count} lines', { count: s.count })}
+                    ? t('automations.output.cell_lines_one', '1 line')
+                    : t('automations.output.cell_lines', '{count} lines', { count: s.count })}
             </span>
         );
     case 'list':

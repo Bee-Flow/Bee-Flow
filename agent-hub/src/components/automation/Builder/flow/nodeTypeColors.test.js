@@ -171,7 +171,7 @@ describe('nodeTypeColors — status beats type', () => {
     it('badges exist for every visible status and carry an i18n key', () => {
         for (const s of Object.keys(STATUS_VAR).filter(s => STATUS_VAR[s])) {
             expect(STATUS_BADGE[s], `no badge for ${s}`).toBeTruthy();
-            expect(STATUS_BADGE[s].key).toMatch(/^routines\.card\.badge_/);
+            expect(STATUS_BADGE[s].key).toMatch(/^automations\.card\.badge_/);
         }
     });
 

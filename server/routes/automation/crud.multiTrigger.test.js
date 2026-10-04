@@ -247,7 +247,7 @@ test('activate: every additional schedule trigger gets a re-armed automation_sch
     assert.strictEqual(subscriptionCalls.length, 1, 'the app_event secondary still gets its subscription');
 });
 
-test('PUT /:id on an active routine re-syncs schedules only when a secondary cron changed', async () => {
+test('PUT /:id on an active automation re-syncs schedules only when a secondary cron changed', async () => {
     scheduleCalls = []; scheduleDeletes = [];
     const existingDef = {
         trigger: { id: 'trg1', kind: 'manual' },

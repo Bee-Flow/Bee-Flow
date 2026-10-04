@@ -185,7 +185,7 @@ describe('BuilderWaitingCard', () => {
         expect(fill.style.width).toBe('87%');                 // 24 400 / 28 000
         expect(fill.style.transition).toBe('width 600ms linear');
         // The accent goes through --bf-accent so the App Studio editor (whose
-        // --accent-primary is grey) can hand the card its own; the routine canvas
+        // --accent-primary is grey) can hand the card its own; the automation canvas
         // sets none and falls back to --accent as before.
         expect(fill.style.background).toBe('var(--bf-accent, var(--accent))');
     });
@@ -277,11 +277,11 @@ describe('BuilderWaitingCard', () => {
         keyedT = true;
         render(<BuilderWaitingCard turn={readingTurn({ ...PROGRESS, processed: 26_000 })} modelKey="qwen3.6-35b-a3b" />);
         const text = screen.getByTestId('builder-waiting-card').textContent;
-        expect(text).toContain('⟦routines.builder.wait.progress⟧');
-        expect(text).toContain('⟦routines.builder.wait.remembered⟧');
-        expect(text).toContain('⟦routines.builder.wait.writing⟧');
-        expect(text).not.toContain('⟦routines.builder.wait.prompt_size⟧');
-        expect(text).not.toContain('⟦routines.builder.wait.heartbeats⟧');
+        expect(text).toContain('⟦automations.builder.wait.progress⟧');
+        expect(text).toContain('⟦automations.builder.wait.remembered⟧');
+        expect(text).toContain('⟦automations.builder.wait.writing⟧');
+        expect(text).not.toContain('⟦automations.builder.wait.prompt_size⟧');
+        expect(text).not.toContain('⟦automations.builder.wait.heartbeats⟧');
         const rest = text
             .replace(/\d+\s*[hms](?![a-z])/g, '')
             .replace(/⟦[^⟧]*⟧/g, '')
@@ -294,9 +294,9 @@ describe('BuilderWaitingCard', () => {
         for (const ms of [40_000]) recordTtft('tier:fast', ms);
         render(<BuilderWaitingCard turn={turn({ sessionAt: NOW - 64_000, pings: 3, promptChars: 20_000 })} modelKey="tier:fast" />);
         const text = screen.getByTestId('builder-waiting-card').textContent;
-        expect(text).toContain('⟦routines.builder.wait.title⟧');
-        expect(text).toContain('⟦routines.builder.wait.longer⟧');
-        expect(text).toContain('⟦routines.builder.wait.prompt_size⟧');
+        expect(text).toContain('⟦automations.builder.wait.title⟧');
+        expect(text).toContain('⟦automations.builder.wait.longer⟧');
+        expect(text).toContain('⟦automations.builder.wait.prompt_size⟧');
         // Strip the clock first (digits + h/m/s, while the keyed tokens still
         // separate it from the badge numbers), then the tokens, then digits
         // and punctuation. Whatever is left is English that bypassed t().

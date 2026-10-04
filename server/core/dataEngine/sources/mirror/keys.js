@@ -1,7 +1,7 @@
 /**
  * Naming a mirrored column, the same way for every kind.
  *
- * A source column becomes a datatable field with a KEY (what routines, apps
+ * A source column becomes a datatable field with a KEY (what automations, apps
  * and pages name it by — derived once from the title, then kept) and an ID
  * (what the migration planner diffs by — derived, never minted, and carrying
  * the type code so a retype at the source arrives as a NEW id). The id

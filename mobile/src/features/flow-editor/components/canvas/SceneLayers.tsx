@@ -2,7 +2,7 @@
  * Everything inside the world view, in paint order: the lines, the nodes
  * (an open loop's box before its body), the buttons over them, and a drag in
  * flight — only what lies in the patch of world the camera says is worth
- * mounting (the screen plus half a screen around it), so a 150-step routine
+ * mounting (the screen plus half a screen around it), so a 150-step automation
  * mounts the thirty-odd nodes near the screen, not all of them. The node
  * being dragged always stays mounted: its gesture lives on it.
  */

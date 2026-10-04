@@ -2,17 +2,22 @@
 // channels it goes out on.
 import ChannelPills from '../../../ChannelPills';
 import TemplateField from '../../../mapping/TemplateField';
+import useForEachRequest from '../../../mapping/useForEachRequest';
 import { normalizeChannels, stepChannelsToUi } from '../../../notificationDefaults';
 import AccordionSection from '../../AccordionSection';
 import { ForEachSection, RetrySection, retryIsSet } from '../collectionEditors';
 import { FormRow } from '../formPrimitives';
 
 function NotificationFields({ draft, set, groups = [], onFocusField, previewSample, errorSections = new Set() }) {
+    // A separate run per item (under a field's More) sets this step's forEach.
+    const forEach = useForEachRequest(draft, set);
     return (
         <>
         <AccordionSection stepType="notification" sectionKey="message" title="Message" defaultOpen forceOpen={errorSections.has('message')}>
             <FormRow label="Title">
                 <TemplateField
+                    onRequestForEach={forEach.request}
+                    canForEach={forEach.allowed}
                     value={draft.title || ''}
                     onChange={(next) => set('title', next)}
                     rows={1}
@@ -23,12 +28,14 @@ function NotificationFields({ draft, set, groups = [], onFocusField, previewSamp
             </FormRow>
             <FormRow label="Body" required hint="Click a value in the right panel to insert it.">
                 <TemplateField
+                    onRequestForEach={forEach.request}
+                    canForEach={forEach.allowed}
                     value={draft.body || ''}
                     onChange={(next) => set('body', next)}
                     rows={4}
                     onFocusField={onFocusField}
                     previewSample={previewSample}
-                    placeholder="From: {{trigger.output.from}}\nSubject: {{trigger.output.subject}}"
+                    placeholder="What should the notification say?"
                 />
             </FormRow>
             {/* Where it goes. The runner has honoured `channels` all along but
@@ -49,7 +56,7 @@ function NotificationFields({ draft, set, groups = [], onFocusField, previewSamp
                     even go?" was the whole of the report. */}
                 <div className="mt-1 text-[11px] text-[var(--text-tertiary)]">
                     In-app lands in the Bee Flow notification centre — the bell in the top bar.
-                    Email goes to the person this routine belongs to.
+                    Email goes to the person this automation belongs to.
                 </div>
             </FormRow>
             </AccordionSection>

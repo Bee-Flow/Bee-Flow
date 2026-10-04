@@ -15,7 +15,7 @@
 
 export type PhaseStatus = 'pending' | 'ready' | 'running' | 'awaiting' | 'done' | 'failed' | 'skipped' | 'locked';
 
-export type PhaseKind = 'table' | 'routine' | 'fill' | 'design' | 'app' | 'app_turn' | 'access' | 'compliance';
+export type PhaseKind = 'table' | 'automation' | 'fill' | 'design' | 'app' | 'app_turn' | 'access' | 'compliance';
 
 export type Artifacts = Record<string, unknown>;
 

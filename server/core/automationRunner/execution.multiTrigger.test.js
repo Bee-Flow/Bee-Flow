@@ -1,7 +1,7 @@
 /**
  * Multi-trigger runs: the root a run entered through survives on the run row,
  * an approval under a SECONDARY trigger resumes on that same root, a step can
- * read `trigger.kind` / `trigger.event`, and an event that finds the routine
+ * read `trigger.kind` / `trigger.event`, and an event that finds the automation
  * busy WAITS for the marker instead of being dropped.
  *
  * Same in-memory store stub idiom as execution.resumeSlept.test.js.
@@ -93,7 +93,7 @@ stub('../aiAgent', { getProviderForModel: async () => null });
 stub('../providers', { getAdapter: () => ({}) });
 stub('../../automation/codeSandbox', { run: async () => ({}) });
 
-process.env.ROUTINE_AUTH_LEGACY = '0';
+process.env.AUTOMATION_AUTH_LEGACY = '0';
 process.env.NODE_ENV = 'test';
 
 // Approvals are gated on the Enterprise `approvals` capability; the gate
@@ -195,7 +195,7 @@ test('an approval under a secondary trigger resumes on that root — the tail st
     assert.deepStrictEqual(stepOutput(resumed.id, 'tail'), { decided: true }, 'the step after the approval ran on the secondary root');
 });
 
-test('an event run waits for a busy routine and then runs; a manual run never waits', async () => {
+test('an event run waits for a busy automation and then runs; a manual run never waits', async () => {
     const automation = twoRootAutomation();
     AUTOMATION = automation;
     markRunningAnswers = [false, false, false, true];
@@ -208,7 +208,7 @@ test('an event run waits for a busy routine and then runs; a manual run never wa
     markRunningCalls = 0;
     markRunningAnswers = [false, true];
     const manual = await runner.executeAutomation(automation, { triggerKind: 'manual' });
-    assert.strictEqual(manual.status, 'cancelled', 'a manual click on a busy routine is still refused on the spot');
+    assert.strictEqual(manual.status, 'cancelled', 'a manual click on a busy automation is still refused on the spot');
     assert.strictEqual(markRunningCalls, 1);
 });
 
@@ -277,7 +277,7 @@ test('a single-step ▶ under a secondary root carries that root\'s trigger meta
 
 // ── Handoff 5: live/working split and the run policy ──────────────────────
 
-/** A routine the way the store hands it out: working v3, live v2 (non-enumerable). */
+/** An automation the way the store hands it out: working v3, live v2 (non-enumerable). */
 function splitAutomation({ runPolicy = undefined } = {}) {
     const working = {
         trigger: { id: 'trg', type: 'trigger', kind: 'manual' },
@@ -351,7 +351,7 @@ test('handoff 5: a resumed run finishes on the version it started on, even after
     }
 });
 
-test('handoff 5: runPolicy.concurrency parallel runs alongside a busy routine instead of being refused', async () => {
+test('handoff 5: runPolicy.concurrency parallel runs alongside a busy automation instead of being refused', async () => {
     const automation = splitAutomation({ runPolicy: { concurrency: 'parallel' } });
     AUTOMATION = automation;
     markRunningAnswers = [false];
@@ -386,11 +386,11 @@ test('handoff 5: runPolicy.retry — the default retry count, then continue past
     const run = await runner.executeAutomation(automation, { triggerKind: 'manual' });
     assert.strictEqual(run.status, 'success', `${run.status}: ${run.error}`);
     const attempts = stepsOf(run.id).filter(s => s.stepId === 'boom').map(s => s.attempts).sort();
-    assert.deepStrictEqual(attempts, [1, 2, 3], 'one try plus the routine\'s two retries');
+    assert.deepStrictEqual(attempts, [1, 2, 3], 'one try plus the automation\'s two retries');
     assert.strictEqual(stepsOf(run.id).find(s => s.stepId === 'boom' && s.attempts === 3).status, 'handled_error');
     assert.deepStrictEqual(stepOutput(run.id, 'after'), { reached: true }, 'the run carried on down the normal path');
 
-    // Same routine, default 'stop_notify': the run fails at the step.
+    // Same automation, default 'stop_notify': the run fails at the step.
     automation.definition = { ...def, runPolicy: { retry: { max: 1 } } };
     const stopped = await runner.executeAutomation(automation, { triggerKind: 'manual' });
     assert.strictEqual(stopped.status, 'error');

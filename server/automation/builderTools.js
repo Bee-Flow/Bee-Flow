@@ -363,7 +363,7 @@ function failingLabel(name, args, result) {
  *
  * It carries no `error`, so the ladder below used to read it as a success:
  * it did not count, and worse, it CLEARED the memory of the rejection before
- * it. Measured 2026-09-16 on a live routine build: three builder_update_steps
+ * it. Measured 2026-09-16 on a live automation build: three builder_update_steps
  * in a row, each answered "Nothing changed … re-sending the same patch will
  * not help", each resetting the ladder — the exact loop the ladder exists to
  * stop. A no-op is not progress, so it must not clear the memory, and an

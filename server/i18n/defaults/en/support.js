@@ -48,7 +48,7 @@ module.exports = {
     'support.kb_ingest.none': 'Choose a knowledge base…',
     'support.kb_ingest.create_new': 'Create new KB',
     'support.kb_ingest.new_kb_placeholder': 'New knowledge base name',
-    'support.kb_ingest.routine_active': 'Automation active — resolved tickets are distilled into this knowledge base.',
+    'support.kb_ingest.automation_active': 'Automation active — resolved tickets are distilled into this knowledge base.',
     'support.kb_ingest.kb_required': 'Pick or create a knowledge base first.',
     'support.kb_ingest.saved': 'Knowledge ingestion saved.',
     'support.kb_ingest.save_failed': 'Could not save knowledge ingestion',

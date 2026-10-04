@@ -55,7 +55,7 @@ function rewriteTempRefs(value, idMap, onMissing, onBareTempId) {
  * it: in a real call that is the model's mistake to fix, and rewriting it
  * silently would teach the wrong syntax. A `resendAs` suggestion is the
  * opposite case — it is the SERVER saying "send exactly this" — so it has to
- * be correct as written. It was not: measured 2026-09-16 on a live routine
+ * be correct as written. It was not: measured 2026-09-16 on a live automation
  * build, the batch was refused for a bare `steps.find_invoice` and the
  * suggestion handed back carried that same bare handle plus a tempId anchor,
  * so obeying it failed for exactly the same reason and the model looped.

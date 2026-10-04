@@ -77,7 +77,7 @@ function withGrounding(agents) {
  * over the indexed `agent_conversations.agent_id`.
  *
  * ── THE USED-BY COUNTERS ARE OPT-IN ─────────────────────────────────
- * They are a pass over the routine, app and page documents, and this list is
+ * They are a pass over the automation, app and page documents, and this list is
  * fetched on load by the sidebar's recents, Cowork and three settings screens
  * that show none of it. `?usage=1` asks for them; without it the field is
  * ABSENT rather than empty, so nothing renders "used by 0" off a number

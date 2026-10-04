@@ -135,7 +135,7 @@ test('attributen lezen werkt zowel van een DOM-element als van een gewoon object
     assert.deepStrictEqual(bf.readAttributes('bf-button', { run: 'auto_9' }), { run: 'auto_9' });
 });
 
-test('elke binding wijst een tabel, een routine of een agent aan — met zijn poort erbij', () => {
+test('elke binding wijst een tabel, een automatisering of een agent aan — met zijn poort erbij', () => {
     const table = bf.bindingFor('bf-table', { source: 'tbl_1' });
     assert.deepStrictEqual(table, {
         kind: 'datatable', id: 'tbl_1', from: 'source',

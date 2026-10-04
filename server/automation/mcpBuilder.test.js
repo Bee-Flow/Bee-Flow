@@ -1,11 +1,11 @@
 /**
- * Routines over MCP — the tool surface and the call envelope.
+ * Automations over MCP — the tool surface and the call envelope.
  *
  * What is worth pinning here is not that the builder tools work (builderTools's
  * own suites cover that) but the things this layer alone is responsible for:
  * the gate is really a gate, the shared TOOL_SCHEMAS constant is not mutated
  * while automationId is spliced in, a call cannot reach a builder tool without
- * a routine to act on, and the tools whose other half lives in the SSE route
+ * an automation to act on, and the tools whose other half lives in the SSE route
  * are not advertised.
  */
 
@@ -53,7 +53,7 @@ test('every builder_* tool requires an automationId; the entry points do not', (
 
     for (const tool of tools) {
         const required = tool.inputSchema.required || [];
-        if (mcpBuilder.ROUTINELESS_TOOLS.has(tool.name)) {
+        if (mcpBuilder.AUTOMATIONLESS_TOOLS.has(tool.name)) {
             assert.ok(!required.includes('automationId'), `${tool.name} should not demand an automationId`);
             assert.ok(!tool.inputSchema.properties.automationId, `${tool.name} should not offer an automationId`);
         } else {
@@ -81,7 +81,7 @@ test('read-only hints match what the dispatcher actually persists on', () => {
     for (const tool of mcpBuilder.buildToolList()) {
         const writes = MUTATING_TOOLS.has(tool.name)
             || tool.name === 'builder_finalize'
-            || tool.name === 'routines_create';
+            || tool.name === 'automations_create';
         assert.equal(
             tool.annotations.readOnlyHint, !writes,
             `${tool.name}: readOnlyHint disagrees with whether the call writes`,
@@ -93,7 +93,7 @@ test('a builder call without an automationId is refused before it reaches a tool
     const { result } = await mcpBuilder.callTool('builder_add_ai_step', { prompt: 'hi' }, { userId: 'u1' });
     assert.match(result.error, /needs an automationId/);
     // And it names the way out rather than just complaining.
-    assert.match(result.error, /routines_list|routines_create/);
+    assert.match(result.error, /automations_list|automations_create/);
 });
 
 test('an unknown tool is a described error, not a throw', async () => {
@@ -103,12 +103,12 @@ test('an unknown tool is a described error, not a throw', async () => {
     assert.match(result.error, /Unknown tool/);
 });
 
-test('routines_create refuses an empty title instead of minting "Untitled"', async () => {
-    const { result } = await mcpBuilder.callTool('routines_create', { title: '   ' }, { userId: 'u1' });
+test('automations_create refuses an empty title instead of minting "Untitled"', async () => {
+    const { result } = await mcpBuilder.callTool('automations_create', { title: '   ' }, { userId: 'u1' });
     assert.match(result.error, /title is required/i);
 });
 
-test('routines_list.stepCount excludes notes — a canvas annotation is not a step (BFSF-411)', async () => {
+test('automations_list.stepCount excludes notes — a canvas annotation is not a step (BFSF-411)', async () => {
     const automationStore = require('../stores/automationStore');
     const original = automationStore.getAutomationsForUser;
     automationStore.getAutomationsForUser = async () => [{
@@ -125,15 +125,15 @@ test('routines_list.stepCount excludes notes — a canvas annotation is not a st
         },
     }];
     try {
-        const { result } = await mcpBuilder.callTool('routines_list', {}, { userId: 'u1' });
-        assert.equal(result.routines.length, 1);
-        assert.equal(result.routines[0].stepCount, 2, 'the two notes are not counted as steps');
+        const { result } = await mcpBuilder.callTool('automations_list', {}, { userId: 'u1' });
+        assert.equal(result.automations.length, 1);
+        assert.equal(result.automations[0].stepCount, 2, 'the two notes are not counted as steps');
     } finally {
         automationStore.getAutomationsForUser = original;
     }
 });
 
-test('routines_get_guide ships the "This turn" note the guide refers to — with the timezone — since MCP has no turn to send it in', async () => {
+test('automations_get_guide ships the "This turn" note the guide refers to — with the timezone — since MCP has no turn to send it in', async () => {
     // buildFullSystemPrompt says the timezone and the other per-turn
     // preferences "arrive in a This turn note right before the user's
     // message"; the chat route sends that per turn, this surface has none.
@@ -144,7 +144,7 @@ test('routines_get_guide ships the "This turn" note the guide refers to — with
     builderCatalog.buildCatalogForUser = async () => ({ apps: [], triggers: [] });
     triggerBus.loadSession = async () => null;
     try {
-        const { result, text } = await mcpBuilder.callTool('routines_get_guide', {}, { userId: 'u1' });
+        const { result, text } = await mcpBuilder.callTool('automations_get_guide', {}, { userId: 'u1' });
         assert.equal(text, result.guide);
         assert.match(result.guide, /arrive in a "This turn" note/);
         assert.match(result.guide, /\n\n## This turn\n\n- All times use the user's timezone: Europe\/Amsterdam\.$/);

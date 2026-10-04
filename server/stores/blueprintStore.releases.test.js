@@ -383,7 +383,7 @@ test('listReleases bouwt een ALLOW-LIST, geen doorgegeven rij', async () => {
     await reset();
     state.poolRows = [{
         id: 'rel_1', project_id: 'p1', blueprint_id: 'bp_1', version: 3,
-        notes: { summary: 'Twee routines erbij' },
+        notes: { summary: 'Twee automations erbij' },
         published_at: '2026-09-08T10:00:00.000Z', published_by: 'alice',
         // Twee kolommen die er vandaag niet zijn: een manifest van 16 MB en een
         // kolom die volgend jaar wordt toegevoegd. Geen van beide mag meereizen.
@@ -406,10 +406,27 @@ test('listReleases leest ALLEEN de rijen van het meegegeven project', async () =
     await reset();
     await store.listReleases('p1');
     const call = calls.getAll.at(-1);
-    assert.match(flat(call.sql), /FROM project_releases WHERE project_id = \$1 ORDER BY/,
+    assert.match(flat(call.sql), /FROM project_releases WHERE project_id = \$1 AND channel = \$3 ORDER BY/,
         'de scoping zit in de query, niet alleen in de parameterlijst');
     assert.ok(!/OR\s+TRUE/i.test(flat(call.sql)), 'geen verbreding naast de scoping');
     assert.strictEqual(call.params[0], 'p1');
+    // The channel is part of the scope: the Versions tab and the installs
+    // counter must never see a pipeline release.
+    assert.strictEqual(call.params[2], 'gallery', 'the gallery channel by default');
+    await store.listReleases('p1', { channel: 'pipeline' });
+    assert.strictEqual(calls.getAll.at(-1).params[2], 'pipeline');
+    await assert.rejects(() => store.listReleases('p1', { channel: 'nope' }), /Unknown release channel/);
+});
+
+test('a gallery publication prunes the gallery channel only', async () => {
+    // A pipeline row has no blueprint_id, so both NOT EXISTS guards are true
+    // for it: without the channel predicate one gallery publish would prune the
+    // releases a UAT or PRD stage runs on.
+    await reset();
+    await store.publishRelease(publishArgs());
+    const sql = flat(callMatching(/^SELECT id FROM project_releases/).sql);
+    assert.match(sql, /AND r\.channel = 'gallery' ORDER BY/);
+    assert.strictEqual(callMatching(/to_regclass/), undefined, 'the pipeline prune does not run on a gallery publish');
 });
 
 test('listReleases is nieuwste-eerst met dezelfde tiebreaker, en begrensd', async () => {

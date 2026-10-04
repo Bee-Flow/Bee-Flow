@@ -40,7 +40,7 @@ vi.mock('./datatablesApi', () => {
 });
 
 /**
- * The section that manages data OTHER routines depend on.
+ * The section that manages data OTHER automations depend on.
  *
  * Two things it must never do, and both are about telling the truth:
  *   - it must not describe a table's sharing more calmly than the server

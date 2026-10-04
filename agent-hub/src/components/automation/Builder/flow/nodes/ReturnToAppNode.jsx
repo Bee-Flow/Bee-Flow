@@ -19,7 +19,7 @@ import StepNodeBase from './StepNodeBase';
  * geweigerd, precies zoals bij Stop-and-Error.
  *
  * Geen `tone`: StepNodeBase kent er precies één (`error`, de rode eindkaart van
- * Stop-and-Error) en dit is juist de goede afloop van een routine die door een
+ * Stop-and-Error) en dit is juist de goede afloop van een automatisering die door een
  * knop werd gestart. De kaart draagt dus de gewone kleur van zijn familie
  * (`end`) — hem 'success' meegeven zou een prop zijn die nergens gelezen wordt.
  */
@@ -36,12 +36,12 @@ export default function ReturnToAppNode({ id, data }) {
     if (nav && nav.screenId) parts.push(`→ ${nav.screenId}`);
     if (step.refresh) {
         parts.push(step.refresh === 'resetForm'
-            ? t('routines.node.return_to_app.card_resets_form', 'clears the form')
-            : t('routines.node.return_to_app.card_reloads_data', 'reloads the data'));
+            ? t('automations.node.return_to_app.card_resets_form', 'clears the form')
+            : t('automations.node.return_to_app.card_reloads_data', 'reloads the data'));
     }
     const sub = parts.length
         ? parts.join(' · ')
-        : { muted: t('routines.node.return_to_app.card_empty', 'tells the app nothing yet') };
+        : { muted: t('automations.node.return_to_app.card_empty', 'tells the app nothing yet') };
 
     return (
         <StepNodeBase

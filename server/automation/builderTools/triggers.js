@@ -1,7 +1,7 @@
 /**
  * Builder tools — ADDITIONAL triggers (`definition.triggers[]`).
  *
- * A routine has one PRIMARY trigger (`definition.trigger`, minted by
+ * An automation has one PRIMARY trigger (`definition.trigger`, minted by
  * builder_propose_trigger with the fixed id 'trg') and may declare extra
  * entry points. Each extra trigger is its own DAG root: the dispatcher seeds
  * the run from the node that fired (`rootStepId`), and the steps wired out of
@@ -69,7 +69,7 @@ function kindArgsError(kind, args) {
 /** builder_add_trigger */
 function applyAddTrigger(draft, args = {}) {
     if (draft?.trigger?.kind === 'layer_input') {
-        return { error: 'A flowlet (or reusable Step) cannot have additional triggers — only the routine root can. Drop the scope and add the trigger to the main flow.' };
+        return { error: 'A flowlet (or reusable Step) cannot have additional triggers — only the automation root can. Drop the scope and add the trigger to the main flow.' };
     }
     if (!draft?.trigger) {
         return { error: 'Set the primary trigger first with builder_propose_trigger; additional triggers come after it.' };

@@ -5,7 +5,7 @@
  *  1. logEgress DETACHES: it resolves before the insert lands (monitoring is
  *     off the critical path of every automation step), and flushEgressLogs()
  *     drains the stragglers.
- *  2. Routine rows carry agent_id = NULL + automation_id (the automation id
+ *  2. Automation rows carry agent_id = NULL + automation_id (the automation id
  *     used to be stuffed into agent_id, polluting every 'agent' breakdown).
  *  3. Failed/blocked calls produce rows with status 'error'/'blocked'.
  *  4. monitorIntegrations OFF still writes the metadata row (owner decision:
@@ -63,7 +63,7 @@ const auditBase = {
     automation_id: 'auto-1',
     run_id: 'run-9',
     step_id: 's3',
-    source: 'routine',
+    source: 'automation',
     model: null,
     nextcloudUrl: null,
 };
@@ -90,13 +90,13 @@ test('logEgress detaches — resolves before the insert lands; flush drains it',
     assert.strictEqual(inserted.length, 1, 'flushEgressLogs must drain the pending row');
 });
 
-test('routine rows: agent_id NULL, automation attribution intact, duration carried', async () => {
+test('automation rows: agent_id NULL, automation attribution intact, duration carried', async () => {
     const row = inserted[0];
-    assert.strictEqual(row.agent_id, null, 'routines are not agents');
+    assert.strictEqual(row.agent_id, null, 'automations are not agents');
     assert.strictEqual(row.automation_id, 'auto-1');
     assert.strictEqual(row.run_id, 'run-9');
     assert.strictEqual(row.step_id, 's3');
-    assert.strictEqual(row.source, 'routine');
+    assert.strictEqual(row.source, 'automation');
     assert.strictEqual(row.status, 'success');
     assert.strictEqual(row.duration_ms, 42);
     assert.strictEqual(row.pii_scan_level, 'basic', 'monitor on + no GLiNER = basic sniff');

@@ -561,6 +561,21 @@ router.post('/', requireAuth, upload.single('audio'), validate({ body: UploadBod
         });
         log.info(`[Transcriptions] Async note ${transcriptionId} completed — ${merged.length} segments, ${speakers.length} speakers, provider ${provider}`);
 
+        // A browser recording or an uploaded file is a finished note like any
+        // ingest, so `meeting.processed` subscribers (knowledge sources keyed on
+        // a tag, automations) hear about it too. The one emission point lives in
+        // ingestRecordingCore and never throws.
+        try {
+            require('../../core/meetingNotes/ingestRecordingCore').emitMeetingProcessed({
+                transcriptionId,
+                tags: usable ? artifacts.tags : [],
+                userId,
+                orgId: userOrgId,
+            });
+        } catch (e) {
+            log.warn('[Transcriptions] meeting.processed unavailable:', e.message);
+        }
+
     } catch (err) {
         log.error('[Transcriptions] Transcribe error:', err.message);
         try { if (req.file?.path && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path); } catch (_) {}

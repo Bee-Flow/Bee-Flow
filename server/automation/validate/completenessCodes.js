@@ -16,7 +16,7 @@
 //
 // These codes are COMPLETENESS problems: a half-built flow legitimately has
 // them, and none of them can corrupt data or crash the runner while the
-// routine sits inactive. At `stage: 'draft'` they are downgraded to warnings
+// automation sits inactive. At `stage: 'draft'` they are downgraded to warnings
 // (tagged `blockedAt: 'activate'`) so the user keeps building; at the default
 // `stage: 'activate'` they block exactly as before, so nothing broken goes live.
 //
@@ -56,7 +56,7 @@ const COMPLETENESS_CODES = new Set([
     'knowledge_write.kb_required',
     'knowledge_write.content_required',
     'ai_step.prompt_missing',
-    // Stored routines carry ai_steps without an outputSchema whose fields a
+    // Stored automations carry ai_steps without an outputSchema whose fields a
     // fan-out reads — the builder agent often forgot it (execAi.js's
     // inferred-schema safety net exists for that) and they validated green
     // until the rule landed. Same reasoning as `approval.nested_forbidden`:
@@ -65,16 +65,16 @@ const COMPLETENESS_CODES = new Set([
     // block activation.
     'ai_step.output_schema_missing',
     // R2 — an ai_step whose agent this install cannot serve. Completeness,
-    // not integrity, and for two reasons at once: an IMPORTED routine arrives
+    // not integrity, and for two reasons at once: an IMPORTED automation arrives
     // carrying an agent id from wherever it was built, and an agent that was
-    // deleted or unpublished after the routine was saved turns a routine
+    // deleted or unpublished after the automation was saved turns an automation
     // somebody is still editing un-saveable. Both must stay openable and
     // fixable in the builder; neither may go live. The run-time check
     // (aiStepAgent's resolveStepAgent) is what actually stops a step running
     // without the agent it names — see the R2 block in stepRules.js.
     'ai_step.agent_unavailable',
     // Only a raw PUT or an import can store an unreadable permissions object
-    // (the builders rebuild it from three known booleans), so such a routine
+    // (the builders rebuild it from three known booleans), so such an automation
     // must stay saveable rather than stranded. It cannot activate: an
     // unreadable permission is read as OFF everywhere, and going live with
     // silently-off permissions is exactly the surprise this warns about.
@@ -85,7 +85,7 @@ const COMPLETENESS_CODES = new Set([
     'switch.expr_parse',
     'switch.case_expr_parse',
     'switch.cases_missing',
-    // "is about" rules (stepRules/topicRules.js). A routine that uses them on
+    // "is about" rules (stepRules/topicRules.js). An automation that uses them on
     // an install without a topic classifier is unfinished, not broken: it can
     // be saved while the admin installs classify-service, and cannot go live
     // until then. Too many topics is an author still adding outputs.
@@ -150,7 +150,7 @@ const COMPLETENESS_CODES = new Set([
     'call_block.blockId_missing',
     'call_block.param_missing',
     // Bindings pointing at a step that isn't in place yet, or is no longer —
-    // routine while reordering or rebuilding part of a flow.
+    // automation while reordering or rebuilding part of a flow.
     'ref.unknown_step',
     'ref.forward',
     // A loop.<var> read by a step that does not (yet) iterate as <var> — the
@@ -158,7 +158,7 @@ const COMPLETENESS_CODES = new Set([
     'ref.loop_unbound',
     // Collection ops: the source list / field being blank is the normal state
     // while the user is (re)picking it — blocking here 400'd every save of
-    // the whole routine the moment a "Source list" input was cleared (C1/C2).
+    // the whole automation the moment a "Source list" input was cleared (C1/C2).
     'filter.arrayRef_missing',
     'switch.arrayRef_missing',
     'limit.arrayRef_missing',
@@ -193,25 +193,25 @@ const COMPLETENESS_CODES = new Set([
     // that). The cron itself is typed a character at a time, so a half-typed
     // "0 0 * *" is the normal state mid-keystroke — both are completeness, not
     // integrity. Activation blocks: a schedule trigger with no usable cron is
-    // how a routine goes live with a null schedule_cron and a past
+    // how an automation goes live with a null schedule_cron and a past
     // next_run_at, which claimDueAutomations then re-fires every tick forever.
     'trigger.schedule_missing',
     'trigger.schedule_cron_invalid',
     'trigger.schedule_never_fires',
     // Same treatment for a timezone Intl does not know ("Amsterdam" rather than
-    // "Europe/Amsterdam" is a plausible AI-authored value): the routine must
+    // "Europe/Amsterdam" is a plausible AI-authored value): the automation must
     // stay openable and fixable in the builder, it just cannot go live.
     'trigger.schedule_tz_invalid',
     // An approval nested in a loop/parallel body pauses at run time and can
-    // never be approved. Existing stored routines may already carry one (this
+    // never be approved. Existing stored automations may already carry one (this
     // validated green until now), so blocking at draft would strand them —
     // warn at draft, block activation. (form_page.nested_forbidden is
     // deliberately NOT listed: it has always blocked at both stages.)
     'approval.nested_forbidden',
     // `return_to_app.nested_forbidden` staat hier BEWUST NIET, en dat is een
     // ander geval dan de approval erboven: die stapsoort bestond al voordat de
-    // regel er was, dus er lagen routines die groen waren opgeslagen. De
-    // eindstap is met P4 zelf geïntroduceerd — er is geen opgeslagen routine
+    // regel er was, dus er lagen automatiseringen die groen waren opgeslagen. De
+    // eindstap is met P4 zelf geïntroduceerd — er is geen opgeslagen automatisering
     // van vóór de regel — en hij krijgt dezelfde behandeling als zijn eigen
     // tweelingregel `layer.return_to_app_forbidden`: blokkeren op draft én op
     // activate. Zo hoort de auteur het bij de eerste autosave in plaats van
@@ -240,7 +240,7 @@ const COMPLETENESS_CODES = new Set([
     // port (B5).
     'edge.branch_unlabelled',
     // Nested step ids clobber runState.steps on collision. Blocking at draft
-    // would strand existing routines that already carry a collision — warn
+    // would strand existing automations that already carry a collision — warn
     // at draft, block activation (C3/C4).
     'loop.body_item_id_duplicate',
     // datetime with an unresolvable input now fails loudly at run time; the

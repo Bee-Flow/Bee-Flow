@@ -222,7 +222,7 @@ describe('a run', () => {
         fireEvent.change(screen.getByLabelText('Question'), { target: { value: 'q' } });
         fireEvent.click(screen.getByTestId('skill-test-run'));
         fireEvent.click(await screen.findByTestId('skill-test-advice-link'));
-        expect(onNavigate).toHaveBeenCalledWith('studio/routines/a1');
+        expect(onNavigate).toHaveBeenCalledWith('studio/automations/a1');
     });
 
     it('offers no link when the flagged step points at nothing', async () => {

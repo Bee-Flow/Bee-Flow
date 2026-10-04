@@ -89,7 +89,7 @@ export function SolutionList({
             noMatch={{
                 title: t('mobile.projects.no_match', 'No Solution matches that'),
                 message: t('mobile.projects.no_match_hint', 'Try another word.'),
-                clearLabel: t('routines.mapping.clear_search', 'Clear search'),
+                clearLabel: t('automations.mapping.clear_search', 'Clear search'),
             }}
         />
     );

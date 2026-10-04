@@ -139,7 +139,7 @@ export function automationHits(rows: AutomationSearchRow[], q: string): SearchHi
         .map<SearchHit>((row) => ({
             key: `automation:${row.id}`,
             group: 'automations',
-            title: row.title || 'Untitled routine',
+            title: row.title || 'Untitled automation',
             subtitle: row.description ?? (row.isActive ? 'Active' : 'Paused'),
             meta: timeAgo(row.lastRunAt ?? row.updatedAt),
             href: `/automations/${row.id}`,

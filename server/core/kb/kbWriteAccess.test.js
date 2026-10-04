@@ -1,12 +1,12 @@
 /**
- * "May this routine WRITE into this knowledge base?"
+ * "May this automation WRITE into this knowledge base?"
  *
  * ── THE HOLE ────────────────────────────────────────────────────────
  * `executeKbIngestTool` checked one thing: that the base belonged to the same
- * organisation as the run. So any author of any routine in an organisation
+ * organisation as the run. So any author of any automation in an organisation
  * could write documents into ANY of that organisation's knowledge bases —
  * including one shared with a group they are not in, and one they have no
- * `manage_knowledge` right over. A routine is a program somebody else may run;
+ * `manage_knowledge` right over. An automation is a program somebody else may run;
  * that was a write nobody reviewed reaching a base nobody agreed to.
  *
  * Reading is a different, weaker question (core/kb/kbVisibility). Being able
@@ -179,7 +179,7 @@ function withModules(mods, fn) {
 }
 
 test('the ingest tool checks it at RUN time — a refusal creates nothing', async () => {
-    // A routine is saved once and runs for months: rights are taken away,
+    // An automation is saved once and runs for months: rights are taken away,
     // sharing narrows, and the definition itself is data an import or an MCP
     // patch can put an id into.
     const calls = { ensuredSource: 0, ingested: 0 };

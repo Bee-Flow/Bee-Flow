@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { summariseData } from './flow/dataSummary';
 import { stepNumbers } from './flow/flowOrder';
+import { stepPayload } from './flow/stepPayload';
 import { isInlineId, parseInlineId } from './flow/inlineFlowlets';
 import { matchValidationToStep } from './flow/matchValidationToStep';
 import type { DataSummary, FlowDefinition, FlowEdge, FlowStep, RunStepRow } from './flow/types';
@@ -216,8 +217,10 @@ export default function useNodeDetailData({
     );
     const outSummary = useMemo(() => {
         const out = runStep?.output ?? (step?.pinnedOutput ?? null);
-        return summarise(out);
-    }, [runStep?.output, step?.pinnedOutput]);
+        // A Code step's output is `{ result, logs, httpCalls }`: count the
+        // result, not the console lines next to it.
+        return summarise(stepPayload(step?.type, out));
+    }, [runStep?.output, step?.pinnedOutput, step?.type]);
     return {
         catalog,
         isSecondaryTrigger,

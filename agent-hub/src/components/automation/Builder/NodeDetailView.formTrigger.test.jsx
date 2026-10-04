@@ -211,7 +211,7 @@ describe('NodeDetailView — form trigger', () => {
         it('the live preview is submittable, and sends the typed answers as the run payload', async () => {
             // BFSF-408(a) — an inline test, with no public-route change.
             // Deliberately NOT "copy the test link": formPublic.js 404s the
-            // hosted page unless the routine is active and non-draft, i.e. it
+            // hosted page unless the automation is active and non-draft, i.e. it
             // fails precisely while you are building, and a real submission
             // there fires every downstream step for real. mode 'only' does not.
             const onExecuteStep = vi.fn().mockResolvedValue({});
@@ -263,8 +263,8 @@ describe('NodeDetailView — the empty-answers shortcut speaks the dictionary', 
         // tests never reach it — and it sits on OutputEditorPanel, which had
         // no useTranslation hook at all.
         transOverride.current = {
-            'routines.ndv.use_empty_answers': 'Lege antwoorden gebruiken',
-            'routines.ndv.empty_answers_title': 'Elke vraag met een leeg antwoord invullen',
+            'automations.ndv.use_empty_answers': 'Lege antwoorden gebruiken',
+            'automations.ndv.empty_answers_title': 'Elke vraag met een leeg antwoord invullen',
         };
         render(<NodeDetailView {...props(formTrigger(FIELDS))} />);
         fireEvent.click(screen.getByTestId('ndv-edit-output'));

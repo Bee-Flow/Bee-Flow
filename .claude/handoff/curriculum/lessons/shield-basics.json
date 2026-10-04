@@ -123,8 +123,8 @@
       "type": "slide",
       "id": "under-message",
       "icon": "🔍",
-      "title": "What the lock badge under your message tells you",
-      "bodyMd": "Once the reminder is sent, a small lock badge appears under Sanne's own message: **2 items redacted**. Hover it and it says *\"This message contained sensitive data — only placeholders were sent to the AI.\"*\n\nExpand the badge and you get the **Privacy protection** panel: **Detected** — which kinds of personal data were found — and **Sent to**, the provider that answered.\n\nIf an admin switched on **Let people see what was sent to the AI** — off unless someone turns it on — that panel also shows the original message, the version that went to the AI, the reply, and a **Token mapping** list behind **Click to reveal**: which placeholder stood for which value. Anyone who can open the conversation can reveal those values.\n\nIf part of a large attachment could not be checked, an amber **Scan incomplete** badge appears instead: that part went to the AI unredacted."
+      "title": "What the line under your message tells you",
+      "bodyMd": "Once the reminder is sent, a small line with a lock icon appears under Sanne's own message. When the screen can show which placeholders were used, it names them: *2 values replaced with `[person_1]`, `[email_1]` — the real values stayed here*. When it cannot, it says that honestly: *2 values were replaced before this went to the AI — this screen cannot show which placeholders took their place*.\n\nFor the details, open **How I got this answer** under the reply and expand **Privacy protection**: what was done, **Sent to** — the provider that answered — and **Detected:**, the kinds of personal data found.\n\nIf an admin switched on **Let people see what was sent to the AI** — off unless someone turns it on — that panel also shows the original message, the version that went to the AI, the reply, and a **Token mapping** list behind **Click to reveal**: which placeholder stood for which value. Anyone who can open the conversation can reveal those values.\n\nIf part of a large attachment could not be checked, an amber **Scan incomplete** badge appears beside the line: that part went to the AI unredacted."
     },
     {
       "type": "quiz",
@@ -175,7 +175,7 @@
       "icon": "🏗️",
       "checkId": "shield-seen",
       "title": "Do it once, on a made-up customer",
-      "instruction": "Open a chat and send a short message containing an obviously invented name and e-mail address, such as: Draft a payment reminder for Jan de Vries, j.devries@vandijkgroep.nl, invoice 2026-118. When the answer arrives, find the lock badge under your own message and expand it to see the Privacy protection panel.",
+      "instruction": "Open a chat and send a short message containing an obviously invented name and e-mail address, such as: Draft a payment reminder for Jan de Vries, j.devries@vandijkgroep.nl, invoice 2026-118. When the answer arrives, read the lock line under your own message, then open How I got this answer under the reply and expand Privacy protection.",
       "launch": {
         "navigateTo": "agents",
         "label": "Open a chat"
@@ -186,7 +186,7 @@
       "id": "now",
       "icon": "✅",
       "title": "What you can do now",
-      "bodyMd": "- **Read the line at the bottom of the message box** and know which of the five things will happen to your next message — including the amber one, which means the check is not running.\n- **Explain the mechanism** to a colleague or a manager: the scan runs on your own installation before sending, real values are swapped for placeholders like `[person_1]`, and they are put back in the answer before you read it.\n- **Expand the lock badge** under a message you sent to open **Privacy protection**, and see what was detected and which provider it went to.\n\nNext chapter: the one moment where the decision is yours — Block, Send anyway, or Redact and send."
+      "bodyMd": "- **Read the line at the bottom of the message box** and know which of the five things will happen to your next message — including the amber one, which means the check is not running.\n- **Explain the mechanism** to a colleague or a manager: the scan runs on your own installation before sending, real values are swapped for placeholders like `[person_1]`, and they are put back in the answer before you read it.\n- **Read the lock line** under a message you sent, and open **Privacy protection** under How I got this answer to see what was detected and which provider it went to.\n\nNext chapter: the one moment where the decision is yours — Block, Send anyway, or Redact and send."
     }
   ],
   "rubrics": {
@@ -212,8 +212,8 @@
       "Bee Flow puts the real values back into the answer before the reader sees it, so the reader sees the real name even though the model only saw placeholders.",
       "The composer shield line says one of five things, including the amber \"Privacy Shield is on, but personal data cannot be checked right now\"; when the status is unknown or the shield is off, no line is shown at all.",
       "The green shield line is shown only when the shield is enabled AND the detection service is reachable — being switched on is not enough.",
-      "Under a sent message a lock badge reads \"{n} items redacted\", with the tooltip \"This message contained sensitive data — only placeholders were sent to the AI.\"",
-      "Expanding that badge opens the Privacy protection panel with what was detected and the provider it went to; the original message, the version sent to the AI and a Token mapping list behind Click to reveal appear only when the organisation switched on \"Let people see what was sent to the AI\".",
+      "Under a sent message a lock line counts the replaced values and, where the screen can show them, names the placeholders: \"2 values replaced with [person_1], [email_1] — the real values stayed here\".",
+      "How I got this answer under the reply holds the Privacy protection panel: what was detected and where it was sent. The original, the version sent to the AI and a Token mapping list behind Click to reveal appear only when the organisation switched on \"Let people see what was sent to the AI\".",
       "An amber Scan incomplete badge means part of a large upload could not be checked and that part was sent unredacted."
     ]
   },
@@ -222,7 +222,7 @@
       "checkId": "shield-seen",
       "existing": false,
       "label": "Send one message the shield acts on",
-      "hint": "In a chat, send a message containing an invented name and e-mail address, then look at the line under your own message.",
+      "hint": "In a chat, send a message containing an invented name and e-mail address, then look at the lock line under your own message.",
       "endpoints": [
         {
           "method": "GET",

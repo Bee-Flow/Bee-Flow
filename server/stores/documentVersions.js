@@ -7,7 +7,7 @@
  *
  * WHAT A ROW IS. The document as it was after one save: its body, its
  * stylesheet and a snapshot of the whole document (settings included), so a
- * routine that pinned the id prints exactly that revision forever. A row is
+ * automation that pinned the id prints exactly that revision forever. A row is
  * therefore never changed in content and never deleted by a save.
  *
  * AUTOSAVE SESSIONS. The editor saves a second and a half after typing stops,

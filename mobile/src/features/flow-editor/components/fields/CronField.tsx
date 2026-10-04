@@ -107,7 +107,7 @@ function ModeFields({ preset, set, disabled }: PartProps) {
         case 'monthly':
             return (
                 <>
-                    <NumberField label={t('routines.settings.day_of_month', 'Day of the month')} value={preset.day ?? 1} min={1} max={31} integer onChange={(n) => set({ day: n })} disabled={disabled} />
+                    <NumberField label={t('automations.settings.day_of_month', 'Day of the month')} value={preset.day ?? 1} min={1} max={31} integer onChange={(n) => set({ day: n })} disabled={disabled} />
                     <TimeRow preset={preset} set={set} disabled={disabled} />
                 </>
             );

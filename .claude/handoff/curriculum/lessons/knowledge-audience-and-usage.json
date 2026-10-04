@@ -17,7 +17,7 @@
       "id": "two-dials",
       "icon": "🎛️",
       "title": "Two dials, and they answer different questions",
-      "bodyMd": "A knowledge base has two settings that look alike and do completely different jobs. Mix them up and you either hand the salary scheme to the whole company, or wonder all afternoon why your base never appears in a picker.\n\nOpen a base and go to **Settings**.\n\n**Where it can be used** — three switches: **Agents**, **Chat**, **Routines**. The hint says it plainly: *\"This decides which pickers offer this knowledge base. It does not change who may read what is in it — that is below.\"*\n\n**Who may see and use it** — **Personal**, **Entire organisation** or **Groups**. This is the access rule, and the server checks it on every question anyone asks.\n\nAt Van Dijk Groep, Mark's base **Personeelshandboek** is offered to agents and chat but not to routines — while the whole organisation may read it.\n\nOne limit: you cannot turn all three surfaces off. Bee Flow refuses with *\"A knowledge base has to be usable somewhere. Pick another place first.\"*"
+      "bodyMd": "A knowledge base has two settings that look alike and do completely different jobs. Mix them up and you either hand the salary scheme to the whole company, or wonder all afternoon why your base never appears in a picker.\n\nOpen a base and go to **Settings**.\n\n**Where it can be used** — three switches: **Agents**, **Chat**, **Automations**. The hint says it plainly: *\"This decides which pickers offer this knowledge base. It does not change who may read what is in it — that is below.\"*\n\n**Who may see and use it** — **Personal**, **Entire organisation** or **Groups**. This is the access rule, and the server checks it on every question anyone asks.\n\nAt Van Dijk Groep, Mark's base **Personeelshandboek** is offered to agents and chat but not to automations — while the whole organisation may read it.\n\nOne limit: you cannot turn all three surfaces off. Bee Flow refuses with *\"A knowledge base has to be usable somewhere. Pick another place first.\"*"
     },
     {
       "type": "quiz",
@@ -124,7 +124,7 @@
       "id": "used-by",
       "icon": "📇",
       "title": "Used by is the tab you read before you change anything",
-      "bodyMd": "The base's fourth tab, **Used by**, carries a count and lists what references it — agents, skills, routines, apps, webpages, projects and notebooks — under the columns **Where**, **Does**, **Last time** and **Open**. Empty reads: *\"No agent, skill or automation uses this knowledge base yet.\"*\n\nTwo readings to get right:\n\n- A row you are not allowed to see keeps its kind and loses its name — **Someone else's agent**. It still counts.\n- If a kind could not be checked, the **Delete this knowledge base** card in Settings says *\"This list may be incomplete — … could not be checked.\"* That is not the same sentence as \"nothing depends on this\", and it should stop your hand."
+      "bodyMd": "The base's fourth tab, **Used by**, carries a count and lists what references it — agents, skills, automations, apps, webpages, projects and notebooks — under the columns **Where**, **Does**, **Last time** and **Open**. Empty reads: *\"No agent, skill or automation uses this knowledge base yet.\"*\n\nTwo readings to get right:\n\n- A row you are not allowed to see keeps its kind and loses its name — **Someone else's agent**. It still counts.\n- If a kind could not be checked, the **Delete this knowledge base** card in Settings says *\"This list may be incomplete — … could not be checked.\"* That is not the same sentence as \"nothing depends on this\", and it should stop your hand."
     },
     {
       "type": "quiz",
@@ -196,14 +196,14 @@
     "title": "Knowledge base audience and dependencies",
     "summary": "How a knowledge base decides who may read it, where it is offered, and what the Used by tab reveals before you change anything.",
     "facts": [
-      "The Settings tab has two separate blocks: \"Where it can be used\" (Agents, Chat, Routines) and \"Who may see and use it\" (Personal, Entire organisation, Groups).",
+      "The Settings tab has two separate blocks: \"Where it can be used\" (Agents, Chat, Automations) and \"Who may see and use it\" (Personal, Entire organisation, Groups).",
       "The hint under Where it can be used says it decides which pickers offer the base and does not change who may read what is in it.",
       "Turning off the last surface is refused with \"A knowledge base has to be usable somewhere. Pick another place first.\"",
       "Widening an audience asks \"Share more widely?\" with the buttons Share and Keep as is; narrowing does not ask.",
       "A base with no organisation shows \"Personal — only you can see this\" and Move to my organisation, which cannot be undone and gives administrators management rights.",
       "The Meeting notes source warns that everyone who can see the knowledge base can read those summaries, including people who cannot open the meetings, and that transcripts never go in.",
       "Deleting a source shows \"Its {count} documents leave this knowledge base. The original files stay where they are.\"",
-      "The Used by tab lists what references the base — agents, skills, routines, apps, webpages, projects and notebooks — under Where, Does, Last time and Open; rows you may not see keep their kind but lose their name (\"Someone else's {kind}\")."
+      "The Used by tab lists what references the base — agents, skills, automations, apps, webpages, projects and notebooks — under Where, Does, Last time and Open; rows you may not see keep their kind but lose their name (\"Someone else's {kind}\")."
     ]
   },
   "actionChecks": [

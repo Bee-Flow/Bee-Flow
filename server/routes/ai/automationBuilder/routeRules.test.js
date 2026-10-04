@@ -117,7 +117,7 @@ test('a good suggestion survives whole', () => {
 
 test('A RULE OVER A FIELD THAT DOES NOT EXIST IS DROPPED — the whole point', () => {
     // It parses perfectly. It would sit on the canvas looking correct and
-    // match nothing for the rest of the routine's life. That silent empty
+    // match nothing for the rest of the automation's life. That silent empty
     // branch is the failure this feature exists to remove, so the fallback
     // may not re-introduce it.
     const rules = verifyRouteRules([

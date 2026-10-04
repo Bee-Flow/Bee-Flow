@@ -25,7 +25,7 @@ describe('the sections match the server registry', () => {
     const declared = [...MEMBERSHIP.matchAll(/kind: '([a-z_]+)',\s*\n\s*section: '([a-zA-Z]+)',\s*\n\s*containers: ([A-Z_]+)/g)];
     const kinds = declared.filter((m) => m[3] !== 'WORKSPACE_ONLY').map((m) => [m[1], m[2]]);
 
-    // The ORDER is the web's (its project page lists apps before routines);
+    // The ORDER is the web's (its project page lists apps before automations);
     // the set, and the kind each section files as, is the server's.
     it('section for section, each filed as its kind', () => {
         expect(declared.length).toBe([...MEMBERSHIP.matchAll(/kind: '[a-z_]+',\s*\n\s*section: '/g)].length);

@@ -1,7 +1,7 @@
 /**
  * What the assistant offers before the first message — the web's
  * AssistantWelcome.jsx: up to four suggestions that FILL the composer (never
- * send), fitting what the routine already is. A selected step comes first
+ * send), fitting what the automation already is. A selected step comes first
  * (the phone has no selection, so it passes none); a flow with steps gets
  * ways to extend it; an empty one gets a start that fits its trigger, or
  * three general ones. Same keys as the web. Pinned by ai.lockstep.test.ts.
@@ -19,7 +19,7 @@ export interface WelcomeContext {
 export function welcomeSuggestions(triggerKind: string | null | undefined, t: Translate, context: WelcomeContext = { steps: 0 }): string[] {
     const { steps, selectedStep = null } = context;
     const chips: string[] = [];
-    const suggest = (key: string, fallback: string) => chips.push(t(`routines.assistant.suggest.${key}`, fallback));
+    const suggest = (key: string, fallback: string) => chips.push(t(`automations.assistant.suggest.${key}`, fallback));
     if (selectedStep?.type === 'code') suggest('code', 'Write the code for the selected step');
     if (selectedStep?.type === 'ai_step') suggest('prompt', 'Improve the instruction for this AI step');
     if (selectedStep && steps) suggest('mapping', 'Check the field mappings of this step');

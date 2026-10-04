@@ -1,8 +1,8 @@
 /**
- * The writes a form has of its own, and the routine writes the Form page uses
+ * The writes a form has of its own, and the automation writes the Form page uses
  * — each refreshing the forms list and the open Form page when it lands.
  *
- * A form's link and going live are the routine's own (the flow editor's form
+ * A form's link and going live are the automation's own (the flow editor's form
  * links and activation); they are wrapped here only to add that refresh.
  */
 
@@ -68,7 +68,7 @@ export function useDraftFormWithAi(handlers: MutationHandlers<AiFormDraft, Recor
 
 /**
  * The form's link: made, replaced (the old address stops working at once —
- * the token IS the credential) or taken down. Through the routine's own link
+ * the token IS the credential) or taken down. Through the automation's own link
  * calls, which save any open draft first.
  */
 export function useFormLinkActions(automationId: string) {
@@ -90,9 +90,9 @@ export function useFormLinkActions(automationId: string) {
 }
 
 /**
- * Live or not — which is arming the routine: activation validates the whole
+ * Live or not — which is arming the automation: activation validates the whole
  * flow (a 400 names what stops it) and a form is reachable only while its
- * routine is active and not a draft.
+ * automation is active and not a draft.
  */
 export function useSetFormLive(automationId: string, handlers: MutationHandlers<boolean, boolean> = {}) {
     const queryClient = useQueryClient();
@@ -106,7 +106,7 @@ export function useSetFormLive(automationId: string, handlers: MutationHandlers<
 }
 
 /**
- * A new form: a routine whose trigger is a form (the default questions),
+ * A new form: an automation whose trigger is a form (the default questions),
  * created as a draft. `collect` makes the answers table on that same create.
  */
 export function useCreateForm(handlers: MutationHandlers<string, { title: string; collect: boolean }> = {}) {

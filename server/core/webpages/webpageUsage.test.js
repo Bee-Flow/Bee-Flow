@@ -35,7 +35,7 @@ const PAGE = Object.freeze({
  * Een nep-pg-client.
  *   tables      — welke tabellen bestaan (de rest antwoordt to_regclass NULL)
  *   project     — de rij die de Oplossing-scan terugkrijgt (null = geen rij)
- *   automations — de rijen die de routine-scan terugkrijgt
+ *   automations — de rijen die de automation-scan terugkrijgt
  *   failOn      — scans waarvan de query gooit ('solution' | 'automation')
  *   probeFails  — de to_regclass-probe zelf valt om. Iets ANDERS dan een tabel
  *                 die er niet is, en dat verschil is een eigen test waard:
@@ -136,11 +136,11 @@ test('solution: een wijzer naar een verwijderde Oplossing is gecontroleerd leeg,
     assert.deepStrictEqual(out.sources.solution, { status: 'checked', found: 0 });
 });
 
-// ── de routines ─────────────────────────────────────────────────────
+// ── de automatiseringen ─────────────────────────────────────────────────────
 //
 // De soort die er eerst helemaal niet was — niet als scan en ook niet als
 // onbeantwoorde soort, dus er was geen enkel veld waarin het antwoord "ik heb
-// niet gekeken" terechtkwam. Een routine bindt een pagina DUURZAAM (het
+// niet gekeken" terechtkwam. Een automatisering bindt een pagina DUURZAAM (het
 // meegeleverde sjabloon in automation/templates.js draagt een
 // `webpage_db_exec`-stap met een literal `webpageId`), en zonder deze scan
 // verdween zij uit élk scherm dat de vraag stelt om daarna stil te falen.
@@ -149,7 +149,7 @@ const AUTOMATION_ROW = {
     id: 'auto-1', title: 'Facturen verwerken', owner_id: 'owner-1', last_at: '2026-09-02T00:00:00Z',
 };
 
-test('automation: een routine die de pagina bij naam noemt komt terug in het rijcontract', async () => {
+test('automation: een automatisering die de pagina bij naam noemt komt terug in het rijcontract', async () => {
     const d = db({ automations: [AUTOMATION_ROW] });
     const out = await usageForWebpage({ ...PAGE, projectId: null }, { db: d });
 
@@ -164,7 +164,7 @@ test('automation: een routine die de pagina bij naam noemt komt terug in het rij
     assert.deepStrictEqual(out.sources.automation, { status: 'checked', found: 1 });
 });
 
-test('automation: geen routine is GECONTROLEERD leeg', async () => {
+test('automation: geen automation is GECONTROLEERD leeg', async () => {
     const d = db({ automations: [] });
     const out = await usageForWebpage({ ...PAGE, projectId: null }, { db: d });
 

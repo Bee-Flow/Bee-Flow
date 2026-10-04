@@ -6,7 +6,7 @@
  *   - the one-line status: reading, typing a tool call, a flowlet being built
  *     by a delegated agent, the narrator's gloss of the reasoning;
  *   - the activity rows of the turn so far, with a live "Testing the
- *     routine…" row at the foot while its dry run goes (the web's
+ *     automation…" row at the foot while its dry run goes (the web's
  *     BuilderActivity liveRun row);
  *   - the plan checklist: the turn's, else the session's last one;
  *   - what happened to the draft: how many drafts arrived, and the findings.
@@ -22,7 +22,7 @@ function buildingStatus(turn: BuilderTurn, t: Translate): string {
     const tool = turn.toolDraft?.name ? humanizeToolName(turn.toolDraft.name.replace(/^builder_(add_)?/, '')) : null;
     const count = turn.toolDraft?.count ?? 0;
     if (tool && count > 0) return t('mobile.flow.ai.building_n', 'Building: {tool} · {n}', { tool, n: count });
-    return tool ? t('mobile.flow.ai.building_tool', 'Building: {tool}', { tool }) : t('routines.builder.act.building', 'Building');
+    return tool ? t('mobile.flow.ai.building_tool', 'Building: {tool}', { tool }) : t('automations.builder.act.building', 'Building');
 }
 
 export function turnStatus(turn: BuilderTurn, t: Translate): string | null {
@@ -30,8 +30,8 @@ export function turnStatus(turn: BuilderTurn, t: Translate): string | null {
     if (turn.layerAgent) return t('mobile.flow.ai.building_layer', 'Building the flowlet “{name}”…', { name: turn.layerAgent });
     if (turn.phase === 'building') return buildingStatus(turn, t);
     if (turn.thinkingSummary?.text) return turn.thinkingSummary.text;
-    if (turn.phase === 'reading') return t('mobile.flow.ai.reading', 'Reading the routine…');
-    if (turn.thinkingActive) return t('routines.builder.thinking', 'Thinking…');
+    if (turn.phase === 'reading') return t('mobile.flow.ai.reading', 'Reading the automation…');
+    if (turn.thinkingActive) return t('automations.builder.thinking', 'Thinking…');
     return turn.text ? null : t('mobile.flow.ai.working', 'Working…');
 }
 
@@ -67,7 +67,7 @@ export function turnOutcome(turn: BuilderTurn): TurnOutcome {
 export function turnProblem(turn: BuilderTurn, t: Translate): { text: string; retry: boolean } | null {
     if (turn.error) {
         return turn.transient
-            ? { text: t('mobile.flow.ai.transient', '{error} Your routine is safe — send the message again.', { error: turn.error }), retry: true }
+            ? { text: t('mobile.flow.ai.transient', '{error} Your automation is safe — send the message again.', { error: turn.error }), retry: true }
             : { text: turn.error, retry: false };
     }
     if (turn.aborted) {

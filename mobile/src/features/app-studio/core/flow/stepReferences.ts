@@ -34,7 +34,7 @@ export const REFERENCE_PLACEHOLDERS: Readonly<Record<ReferenceKind, Msg>> = {
     modal: m('pick_modal', 'Pick a dialog…'),
     table: m('pick_table', 'Pick a table…'),
     dataset: m('pick_dataset', 'Pick a saved view…'),
-    automation: m('pick_automation', 'Pick a routine…'),
+    automation: m('pick_automation', 'Pick an automation…'),
     connector: m('pick_connector', 'Pick a connection…'),
     document: m('pick_document', 'Pick a document…'),
 };
@@ -45,7 +45,7 @@ export const REFERENCE_EMPTY_HINTS: Readonly<Record<ReferenceKind, Msg>> = {
     modal: m('empty_modal', 'This app has no dialogs yet — add a Dialog component to a screen first.'),
     table: m('empty_table', 'This app has no tables yet — make one under Data first.'),
     dataset: m('empty_dataset', 'No saved views yet — save one from the query builder first.'),
-    automation: m('empty_automation', 'No routines yet.'),
+    automation: m('empty_automation', 'No automations yet.'),
     connector: m('empty_connector', 'No connections yet — add one under Data · Connections first.'),
     document: m(
         'empty_document',
@@ -126,7 +126,7 @@ export function datasetOptions(datasets: unknown): RefOption[] {
         .map((d) => ({ id: d.id, label: firstText(d.name, d.title, d.id) }));
 }
 
-/** Routines as { id, label }. */
+/** Automations as { id, label }. */
 export function automationOptions(automations: unknown): RefOption[] {
     return rows(automations)
         .filter(hasId)

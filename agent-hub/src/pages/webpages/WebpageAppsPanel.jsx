@@ -14,7 +14,7 @@ import { API_BASE, authFetch } from '../../utils/helpers';
  * routes/webpagesGrants.js) visible and manageable WITHOUT going through the
  * AI chat — previously the only way to grant/revoke. Two jobs:
  *
- *   1. Show which integrations + routines this page may call (with a live
+ *   1. Show which integrations + automations this page may call (with a live
  *      status: connected / needs reconnect / unknown), and revoke them.
  *   2. Add new ones from the apps the author ALREADY has access to — the same
  *      strict catalog the automations builder uses (GET /api/automation/
@@ -258,9 +258,9 @@ function AddAppForm({ webpageId, catalog, onGranted, onError }) {
     );
 }
 
-// ─── Add-a-routine form ─────────────────────────────────────────────
+// ─── Add-a-automation form ─────────────────────────────────────────────
 
-function AddRoutineForm({ webpageId, automations, onGranted, onError }) {
+function AddAutomationForm({ webpageId, automations, onGranted, onError }) {
     const { t } = useTranslation();
     const [automationId, setAutomationId] = useState('');
     const [submitting, setSubmitting] = useState(false);
@@ -274,7 +274,7 @@ function AddRoutineForm({ webpageId, automations, onGranted, onError }) {
                 body: JSON.stringify({ automationId }),
             });
             const body = await readJson(res);
-            if (!res.ok) { onError(body?.error || t('webpages.apps.err_add_routine', 'Could not add the routine ({status})', { status: res.status })); return; }
+            if (!res.ok) { onError(body?.error || t('webpages.apps.err_add_automation', 'Could not add the automation ({status})', { status: res.status })); return; }
             setAutomationId('');
             onGranted();
         } catch (e) {
@@ -287,15 +287,15 @@ function AddRoutineForm({ webpageId, automations, onGranted, onError }) {
     return (
         <div className="flex items-end gap-2">
             <label className="flex flex-col gap-1 flex-1">
-                <span className="text-[11px]" style={{ color: 'var(--vsc-fg-muted)' }}>{t('webpages.apps.field_routine', 'Routine')}</span>
+                <span className="text-[11px]" style={{ color: 'var(--vsc-fg-muted)' }}>{t('webpages.apps.field_automation', 'Automation')}</span>
                 <select
                     className="w-full px-2 py-1.5 rounded text-[12px] border outline-none"
                     style={{ background: 'var(--vsc-editor-bg)', borderColor: 'var(--vsc-border)', color: 'var(--vsc-fg)' }}
                     value={automationId}
-                    aria-label={t('webpages.apps.field_routine', 'Routine')}
+                    aria-label={t('webpages.apps.field_automation', 'Automation')}
                     onChange={(e) => setAutomationId(e.target.value)}
                 >
-                    <option value="">{t('webpages.apps.choose_routine', 'Choose a routine…')}</option>
+                    <option value="">{t('webpages.apps.choose_automation', 'Choose an automation…')}</option>
                     {automations.map(a => (
                         <option key={a.automationId || a.id} value={a.automationId || a.id}>
                             {a.title || a.automationId || a.id}
@@ -338,7 +338,7 @@ export default function WebpageAppsPanel({ webpageId, readOnly = false }) {
     const [automations, setAutomations] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [adding, setAdding] = useState(null); // null | 'app' | 'routine'
+    const [adding, setAdding] = useState(null); // null | 'app' | 'automation'
     const lastFetchRef = React.useRef(0);
 
     const load = useCallback(async () => {
@@ -353,7 +353,7 @@ export default function WebpageAppsPanel({ webpageId, readOnly = false }) {
         } catch (e) {
             setError(e.message);
         }
-        // Catalog + routines are best-effort: grants stay manageable without them.
+        // Catalog + automations are best-effort: grants stay manageable without them.
         try {
             const c = await apiRef.current.getCatalog();
             setCatalog(c);
@@ -398,7 +398,7 @@ export default function WebpageAppsPanel({ webpageId, readOnly = false }) {
     if (readOnly) {
         return (
             <div className="p-3 text-[12px]" style={{ color: 'var(--vsc-fg-muted)' }}>
-                {t('webpages.apps.owner_only', 'Only the page owner can manage the apps and routines this page may use.')}
+                {t('webpages.apps.owner_only', 'Only the page owner can manage the apps and automations this page may use.')}
             </div>
         );
     }
@@ -532,13 +532,13 @@ export default function WebpageAppsPanel({ webpageId, readOnly = false }) {
                         ) : null}
                     </section>
 
-                    {/* Granted routines */}
+                    {/* Granted automations */}
                     <section className="flex flex-col gap-1">
-                        <span className="text-[11px] font-medium" style={{ color: 'var(--vsc-fg-muted)' }}>{t('webpages.apps.section_routines', 'Routines')}</span>
+                        <span className="text-[11px] font-medium" style={{ color: 'var(--vsc-fg-muted)' }}>{t('webpages.apps.section_automations', 'Automations')}</span>
                         {grantedAutomations.length === 0 ? (
-                            <p className="text-[11px]" style={{ color: grants ? 'var(--vsc-fg-muted)' : '#d97706' }} data-testid="routines-empty">
+                            <p className="text-[11px]" style={{ color: grants ? 'var(--vsc-fg-muted)' : '#d97706' }} data-testid="automations-empty">
                                 {grants
-                                    ? t('webpages.apps.no_routines', 'No routines yet. Let the page trigger one of your routines and use its result.')
+                                    ? t('webpages.apps.no_automations', 'No automations yet. Let the page trigger one of your automations and use its result.')
                                     : t('webpages.apps.grants_unreadable', 'The apps on this page could not be read, so this is not “no apps”. Try again before you add one.')}
                             </p>
                         ) : grantedAutomations.map(g => (
@@ -562,7 +562,7 @@ export default function WebpageAppsPanel({ webpageId, readOnly = false }) {
                                 </button>
                             </div>
                         ))}
-                        {adding === 'routine' ? (
+                        {adding === 'automation' ? (
                             <div className="relative">
                                 <button
                                     type="button"
@@ -573,7 +573,7 @@ export default function WebpageAppsPanel({ webpageId, readOnly = false }) {
                                 >
                                     <X size={12} />
                                 </button>
-                                <AddRoutineForm
+                                <AddAutomationForm
                                     webpageId={webpageId}
                                     automations={automations}
                                     onGranted={() => { setAdding(null); load(); }}
@@ -583,11 +583,11 @@ export default function WebpageAppsPanel({ webpageId, readOnly = false }) {
                         ) : (
                             <button
                                 type="button"
-                                onClick={() => setAdding('routine')}
+                                onClick={() => setAdding('automation')}
                                 className="self-start inline-flex items-center gap-1.5 px-2 py-1.5 rounded border border-dashed text-[11px]"
                                 style={{ borderColor: 'var(--vsc-border)', color: 'var(--vsc-fg-muted)' }}
                             >
-                                <Workflow size={12} /> {t('webpages.apps.add_routine', 'Add a routine')}
+                                <Workflow size={12} /> {t('webpages.apps.add_automation', 'Add an automation')}
                             </button>
                         )}
                     </section>

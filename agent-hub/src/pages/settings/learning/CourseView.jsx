@@ -7,6 +7,7 @@ import { Card, StepKindIcon, stepKindLabel, PrimaryButton, SecondaryButton, shor
 import CourseIcon from './courseIcons';
 import { lessonStepKinds, lessonPlays, nextLessonIn, lessonsMinutes } from './curriculum';
 import LearningHeader, { HeaderTile } from './LearningHeader';
+import { filterAvailableSteps, hasVideoSteps, useLearnManifest } from '../../../components/onboarding/learnMedia';
 import { STEP_TYPES } from '../../../components/onboarding/stepTypes';
 
 /**
@@ -123,7 +124,6 @@ function completionStamp(t, locale, entry, { isMastered, isComplete }) {
  * wants to be played.
  */
 function LessonRow({ t, locale, lesson, entry, isComplete, isMastered, isNext, locked, open, onToggle, practiceable, reviewBuilding, onStart, onPractice }) {
-    const kinds = lessonStepKinds(lesson);
     const docked = lessonPlays(lesson) === 'docked';
     const stripe = stripeColor({ isMastered, isComplete, isNext });
     const rowBg = isNext ? 'var(--bg-secondary)' : undefined;
@@ -151,7 +151,7 @@ function LessonRow({ t, locale, lesson, entry, isComplete, isMastered, isNext, l
                 </div>
             </div>
             {open && (
-                <LessonSteps t={t} lesson={lesson} kinds={kinds} stripe={stripe}
+                <LessonSteps t={t} lesson={lesson} stripe={stripe}
                     showPractice={isComplete && practiceable} reviewBuilding={reviewBuilding} onPractice={onPractice} />
             )}
         </>
@@ -203,11 +203,19 @@ function RowAction({ t, isComplete, isNext, docked, locked, onStart }) {
  * lesson already finished, and a button that is usually absent should not hold
  * width in every row.
  */
-function LessonSteps({ t, lesson, kinds, stripe, showPractice, reviewBuilding, onPractice }) {
+function LessonSteps({ t, lesson, stripe, showPractice, reviewBuilding, onPractice }) {
+    // An optional video step is listed only when this deployment's media pack
+    // has its clip: the same filter the player applies (learnMedia.ts), so the
+    // list never promises a step the lesson will not show. A lesson without
+    // video steps fetches nothing.
+    const all = lesson.steps || [];
+    const media = useLearnManifest(hasVideoSteps(all));
+    const steps = filterAvailableSteps(all, media.status === 'ready' ? media.manifest : null);
+    const kinds = lessonStepKinds({ steps });
     return (
         <div className="flex flex-col gap-[7px] leading-4" data-testid="lesson-steps"
             style={{ padding: '2px 14px 16px 44px', background: 'var(--bg-secondary)', boxShadow: `inset 3px 0 0 ${stripe}`, color: 'var(--text-secondary)', maxWidth: 760 }}>
-            {(lesson.steps || []).map((s, i) => (
+            {steps.map((s, i) => (
                 <div key={s.id || i} className="grid items-center gap-2" style={{ gridTemplateColumns: '14px 14px minmax(0,1fr)' }}>
                     <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{i + 1}</span>
                     <StepKindIcon kind={kinds[i]} />

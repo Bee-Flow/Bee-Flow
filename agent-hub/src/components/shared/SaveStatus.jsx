@@ -4,7 +4,7 @@ import { AlertCircle, Loader2, Check } from 'lucide-react';
 /**
  * Shared save-status chip — the one answer to "is my work saved?".
  *
- * Used by the webpage IDE (StatusBar + editor top bar) and by the routines
+ * Used by the webpage IDE (StatusBar + editor top bar) and by the automations
  * builder's node-config modal. Announces changes to assistive tech via
  * role="status" aria-live; on 'error' it becomes a button that re-runs the
  * save (onRetry).

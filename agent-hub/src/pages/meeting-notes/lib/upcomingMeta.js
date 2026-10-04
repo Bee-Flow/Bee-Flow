@@ -224,8 +224,17 @@ export const NOTICE_MEET_AUTORECORD = Object.freeze({
     en: 'Google Meet: switching a meeting you organise on also turns on Meet’s own auto-recording, and Meet announces a running recording to everyone in the call.',
 });
 
+export const NOTICE_TEAMS_SHARE = Object.freeze({
+    key: 'meetings.upcoming_notice_teams_share',
+    en: 'Microsoft Teams: colleagues in your organisation who were invited can read the note afterwards. Bee Flow does not notify them.',
+});
+export const NOTICE_TEAMS_AUTORECORD = Object.freeze({
+    key: 'meetings.upcoming_notice_teams_autorecord',
+    en: 'Microsoft Teams: switching a meeting you organise on also turns on Teams’ own automatic recording, and Teams shows everyone in the call that it is being recorded.',
+});
+
 /** De statussen waarin er werkelijk een notitie uit deze rij gaat komen. */
-const PRODUCES_NOTE = new Set(['will_record', 'recording_now', 'will_import', 'manual_record']);
+const PRODUCES_NOTE = new Set(['will_record', 'recording_now', 'will_import', 'manual_record', 'manual_record_teams']);
 
 export function producesNote(row) {
     return PRODUCES_NOTE.has(row?.status);
@@ -239,8 +248,10 @@ export function producesNote(row) {
  * @param {boolean} p.meetAutoRecordArmed  Meets eigen auto-opname kan door deze
  *                                  knop worden aangezet (autoRecordConfig aan,
  *                                  settings-scope aanwezig)
+ * @param {boolean} [p.teamsAutoRecordArmed]  same for Teams' "record automatically"
+ *                                  (autoRecordConfig on, OnlineMeetings.ReadWrite granted)
  */
-export function attendeeNotices({ rows = [], postSummaryBack, meetAutoRecordArmed = false } = {}) {
+export function attendeeNotices({ rows = [], postSummaryBack, meetAutoRecordArmed = false, teamsAutoRecordArmed = false } = {}) {
     const on = (provider) => rows.some(r => r && r.provider === provider && producesNote(r));
     const notices = [];
     if (on('talk')) {
@@ -254,6 +265,12 @@ export function attendeeNotices({ rows = [], postSummaryBack, meetAutoRecordArme
         // wordt uitsluitend gezet voor een vergadering die de lezer ORGANISEERT.
         const organises = rows.some(r => r && r.provider === 'gmeet' && producesNote(r) && r.m?.organizerSelf === true);
         if (meetAutoRecordArmed && organises) notices.push(NOTICE_MEET_AUTORECORD);
+    }
+    // Teams rows only produce a note for meetings the reader organises, so the
+    // auto-record line needs no extra organiser check.
+    if (on('teams')) {
+        notices.push(NOTICE_TEAMS_SHARE);
+        if (teamsAutoRecordArmed) notices.push(NOTICE_TEAMS_AUTORECORD);
     }
     return notices;
 }

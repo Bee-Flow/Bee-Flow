@@ -26,6 +26,7 @@ import { useViewport } from './hooks/useViewport';
 import { lazy } from './utils/lazyWithReload';
 import scopedStorage from './utils/scopedStorage';
 import { rememberStudioItem } from './utils/studioRecents';
+import { documentRefOf } from './pages/documents/notebookRef';
 
 // ── Chat-critical (eager) ────────────────────────────────────────────
 // These components are on the main chat path; deferring them costs more
@@ -40,9 +41,7 @@ const MemoryPanel = lazy(() => import('./components/knowledge/memory/MemoryPanel
 const AdvancedSettings = lazy(() => import('./pages/AdvancedSettings'));
 const AgentStudio = lazy(() => import('./components/agents/AgentStudio/index'));
 const Studio = lazy(() => import('./components/admin/Studio'));
-const AITasksDesigner = lazy(() => import('./components/automation/index'));
 const SkillsPanel = lazy(() => import('./components/skills/SkillsPanel'));
-const NotebooksPage = lazy(() => import('./pages/NotebooksPage'));
 const CoworkPage = lazy(() => import('./components/cowork/CoworkPage'));
 // The two published directories. They render in this inline slot rather than
 // as standalone routes so the app sidebar stays put — arriving at either used
@@ -83,7 +82,6 @@ const AgentHub = ({
     showAgentDesigner = false, onCloseAgentDesigner, initialDesignerAgentId = null,
     showAgentWizard = false, onCloseAgentWizard,
     showStudio = false, studioRoute = { section: 'agents', id: null }, onCloseStudio,
-    showAITasks = false, onCloseAITasks, initialAITaskId = null,
     initialCoworkId = null,
     // Which published form /app/forms/:token is showing (page key 'formView').
     formViewToken = null,
@@ -94,8 +92,6 @@ const AgentHub = ({
     // instead of the list only appearing once the detail view is closed.
     showProjects = false, initialProjectRoute = null, onProjectRouteChange, onCloseProjects,
     showSkillsPanel = false, onCloseSkillsPanel,
-    // Notebooks rendered inline (previously a standalone page at App level).
-    showNotebooks = false, onCloseNotebooks, initialNotebookId = null, onNotebookChange,
 }) => {
     // Share/collaboration copy is user-facing and Dutch-translated, so it goes
     // through the same dictionary as the rest of the UI rather than being
@@ -402,7 +398,7 @@ const AgentHub = ({
         loadDirectConversations, loadModelTiers,
     } = useAgentHubData({
         user, initialAgentId, initialConversationId, initialDirectConvId,
-        showSettings, showAgentDesigner, showAgentWizard, showStudio, showSkillsPanel, showAITasks,
+        showSettings, showAgentDesigner, showAgentWizard, showStudio, showSkillsPanel,
         coworkMode, setCoworkMode,
         selectedAgent, setSelectedAgent,
         directChatMode, setDirectChatMode,
@@ -495,9 +491,7 @@ const AgentHub = ({
         if (onCloseAgentDesigner) onCloseAgentDesigner();
         if (onCloseAgentWizard) onCloseAgentWizard();
         if (onCloseStudio) onCloseStudio();
-        if (onCloseAITasks) onCloseAITasks();
         if (onCloseSkillsPanel) onCloseSkillsPanel();
-        if (onCloseNotebooks) onCloseNotebooks();
         // Same trap one level up: Cowork is a top-level PAGE, and it is matched
         // ABOVE the overlay branches in the main ternary. Closing the overlays
         // is not enough — while `currentPage` is still 'cowork' the page keeps
@@ -710,7 +704,6 @@ const AgentHub = ({
                 studioRoute={studioRoute}
                 showSettings={showSettings}
                 showAgentDesigner={showAgentDesigner}
-                showAITasks={showAITasks}
                 showSkillsPanel={showSkillsPanel}
                 showMarketplace={showMarketplace}
                 onDirectChat={handleDirectChat}
@@ -809,20 +802,7 @@ const AgentHub = ({
 
             {/* Main Content Area */}
             <div className="flex-1 flex flex-col min-w-0 relative">
-                {showNotebooks ? (
-                    /* Notebooks rendered inline in conversation area (same slot as
-                       Settings / Agent Designer) so the app sidebar stays visible.
-                       NotebooksPage self-gates on the `notebooks` licence feature:
-                       when the org's plan/tier doesn't grant it, the page renders
-                       nothing and redirects back via onBack (onCloseNotebooks)
-                       rather than showing an upgrade panel. */
-                    <NotebooksPage
-                        user={user}
-                        onBack={onCloseNotebooks}
-                        initialNotebookId={initialNotebookId}
-                        onNotebookChange={onNotebookChange}
-                    />
-                ) : showSettings ? (
+                {showSettings ? (
                     /* Settings rendered inline in conversation area — Open WebUI style */
                     <AdvancedSettings onBack={null} onNavigate={onNavigate} onLogout={onLogout} user={user} onUpdateUser={onUpdateUser} onClose={onCloseSettings} />
                 ) : showStudio ? (
@@ -835,11 +815,11 @@ const AgentHub = ({
                         initialKbId={studioRoute.section === 'knowledge' ? studioRoute.id : null}
                         initialKbTab={studioRoute.section === 'knowledge' ? (studioRoute.sub || null) : null}
                         initialSourceId={studioRoute.section === 'knowledge' ? (studioRoute.subId || null) : null}
-                        initialTaskId={studioRoute.section === 'aiTasks' && studioRoute.routineKind !== 'step' ? studioRoute.id : null}
-                        initialStepId={studioRoute.section === 'aiTasks' && studioRoute.routineKind === 'step' ? studioRoute.id : null}
+                        initialTaskId={studioRoute.section === 'aiTasks' && studioRoute.automationKind !== 'step' ? studioRoute.id : null}
+                        initialStepId={studioRoute.section === 'aiTasks' && studioRoute.automationKind === 'step' ? studioRoute.id : null}
                         initialFlowletKey={studioRoute.section === 'aiTasks' ? (studioRoute.sub || null) : null}
                         initialWebpageId={studioRoute.section === 'webpages' ? studioRoute.id : null}
-                        initialDocumentId={studioRoute.section === 'documents' ? studioRoute.id : null}
+                        initialDocumentId={studioRoute.section === 'documents' ? documentRefOf(studioRoute) : null}
                         initialStudioAppId={studioRoute.section === 'apps' ? studioRoute.id : null}
                         // Meeting Notes accepts a deep link too, so the sidebar's
                         // "recently edited" rows can land on the transcript itself
@@ -849,7 +829,7 @@ const AgentHub = ({
                         initialSolutionId={studioRoute.section === 'solutions' ? studioRoute.id : null}
                         initialDatatableId={studioRoute.section === 'datatables' ? studioRoute.id : null}
                         initialDatatableTab={studioRoute.section === 'datatables' ? (studioRoute.sub || null) : null}
-                        // A form is addressed by its ROUTINE id (never the page
+                        // A form is addressed by its AUTOMATION id (never the page
                         // token) — Studio → Forms → one form, with its tab.
                         initialFormId={studioRoute.section === 'forms' ? studioRoute.id : null}
                         initialFormTab={studioRoute.section === 'forms' ? (studioRoute.sub || null) : null}
@@ -965,9 +945,6 @@ const AgentHub = ({
                             <PublicFormPage token={formViewToken} authenticated={!!user} />
                         </div>
                     </div>
-                ) : showAITasks ? (
-                    /* AI Tasks designer rendered inline in conversation area */
-                    <AITasksDesigner initialTaskId={initialAITaskId} onClose={onCloseAITasks} onNavigate={onNavigate} modelTiers={modelTiers} />
                 ) : showSkillsPanel ? (
                     /* Skills panel rendered inline in conversation area */
                     <SkillsPanel
@@ -1137,7 +1114,7 @@ const AgentHub = ({
                             Select an agent from the marketplace to start chatting, or create your own custom AI assistant.
                         </p>
                         <button
-                            onClick={() => { if (onCloseSettings) onCloseSettings(); if (onCloseAgentDesigner) onCloseAgentDesigner(); if (onCloseAITasks) onCloseAITasks(); setShowMarketplace(true); }}
+                            onClick={() => { if (onCloseSettings) onCloseSettings(); if (onCloseAgentDesigner) onCloseAgentDesigner(); setShowMarketplace(true); }}
                             className="flex items-center gap-2 px-6 py-3 bg-[var(--accent-primary)] hover:bg-[var(--accent-primary-hover)] text-white rounded-xl font-medium shadow-lg transition-all hover:scale-105"
                         >
                             Browse Agents

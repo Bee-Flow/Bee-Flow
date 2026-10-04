@@ -24,7 +24,7 @@
       "id": "pipeline",
       "icon": "🧱",
       "title": "Four words, one pipeline",
-      "bodyMd": "Four words cover the journey from a file on a laptop to a line in an answer.\n\n- **Base** — a named collection, with an owner, an audience and a purpose.\n- **Source** — *where content comes from*: uploaded files, a pasted snippet, a web page, a table, a meeting tag, or a routine that writes into it.\n- **Document** — one item a source produced: one file, one page, one meeting, a block of table rows.\n- **Chunk** — a slice of a document (about 800 tokens) that a question is matched against, so an answer can point at a passage rather than a whole file.\n\nYou create the first two. The other two are made for you — so this chapter stops at sources."
+      "bodyMd": "Four words cover the journey from a file on a laptop to a line in an answer.\n\n- **Base** — a named collection, with an owner, an audience and a purpose.\n- **Source** — *where content comes from*: uploaded files, a pasted snippet, a web page, a table, a meeting tag, or an automation that writes into it.\n- **Document** — one item a source produced: one file, one page, one meeting, a block of table rows.\n- **Chunk** — a slice of a document (about 800 tokens) that a question is matched against, so an answer can point at a passage rather than a whole file.\n\nYou create the first two. The other two are made for you — so this chapter stops at sources."
     },
     {
       "type": "tour",
@@ -86,10 +86,10 @@
             "note": "A name and a body, up to 500,000 characters. Longer than that and you are told to split it."
           },
           {
-            "id": "routine",
-            "left": "A written summary that a routine should file after every purchase review",
+            "id": "automation",
+            "left": "A written summary that an automation should file after every purchase review",
             "right": "Let an automation fill it",
-            "note": "Not a form: it explains that a routine with the \"To knowledge base\" step appears here by itself once saved."
+            "note": "Not a form: it explains that an automation with the \"To knowledge base\" step appears here by itself once saved."
           }
         ]
       }
@@ -244,7 +244,7 @@
       "choices": [
         {
           "id": "a",
-          "label": "An agent, chat or routine already points at this base while there is nothing in it to quote — so those answers come back without it.",
+          "label": "An agent, chat or automation already points at this base while there is nothing in it to quote — so those answers come back without it.",
           "correct": true
         },
         {
@@ -379,7 +379,7 @@
       "id": "recap",
       "icon": "✅",
       "title": "What you can do now",
-      "bodyMd": "- **Create a base and describe it.** In **Studio → Knowledge** (the page headed *Knowledge bases*): a name people recognise, and one sentence in **What is in it** saying what this base covers and, just as usefully, what it does not.\n- **Fill it from the right kind of source.** Files you hold go in **Upload files** (20 at a time, 20 MB each, all in one bucket); a table, a page, a pasted list and a routine each have their own kind.\n- **Read the status column instead of hoping.** Processed, shielded, skipped, failed — plus *duplicate* inside a source and *\"· overlaps another source\"* between two.\n- **Read the verdict on the list.** A problem beats a promise beats a green \"updated {when}\".\n- **Know what deleting costs.** A source takes its documents and their citations; a base takes the lot. The originals stay where they were — and a system-managed base you may read but never touch.\n\nNext chapter: sources that keep themselves current, because every one you just made starts on \"Only when I ask\"."
+      "bodyMd": "- **Create a base and describe it.** In **Studio → Knowledge** (the page headed *Knowledge bases*): a name people recognise, and one sentence in **What is in it** saying what this base covers and, just as usefully, what it does not.\n- **Fill it from the right kind of source.** Files you hold go in **Upload files** (20 at a time, 20 MB each, all in one bucket); a table, a page, a pasted list and an automation each have their own kind.\n- **Read the status column instead of hoping.** Processed, shielded, skipped, failed — plus *duplicate* inside a source and *\"· overlaps another source\"* between two.\n- **Read the verdict on the list.** A problem beats a promise beats a green \"updated {when}\".\n- **Know what deleting costs.** A source takes its documents and their citations; a base takes the lot. The originals stay where they were — and a system-managed base you may read but never touch.\n\nNext chapter: sources that keep themselves current, because every one you just made starts on \"Only when I ask\"."
     }
   ],
   "rubrics": {
@@ -407,7 +407,7 @@
       "\"Shielded\" means personal data was replaced before the text entered the base — the redacted text is the stored text, and the original is not kept.",
       "Identical content inside one source gets the status \"duplicate\" and is not indexed twice; near-identical content in another source is ingested anyway and annotated \"· overlaps another source\".",
       "A base with no organisation shows \"Personal — only you can see this\" and can only be shared after \"Move to my organisation\", which cannot be undone.",
-      "\"Where it can be used\" (Agents, Chat, Routines) decides which pickers offer the base; it is not access control, which lives under \"Who may see and use it\"."
+      "\"Where it can be used\" (Agents, Chat, Automations) decides which pickers offer the base; it is not access control, which lives under \"Who may see and use it\"."
     ]
   },
   "actionChecks": []

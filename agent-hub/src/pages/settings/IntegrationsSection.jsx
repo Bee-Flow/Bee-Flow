@@ -10,6 +10,7 @@ import useUserSettingSave from '../../hooks/useUserSettingSave';
 import { openGoogleOAuthPopup } from '../../lib/googleOAuthPopup';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import NcScopeSection from '../../components/integrations/nextcloud/NcScopeSection';
+import OrgMcpConnections from './OrgMcpConnections';
 
 // Named connections + lending UI — re-enabled for reusable HTTP credentials
 // (the http_request step's Authentication settings reference these).
@@ -1088,6 +1089,9 @@ const IntegrationsSection = ({ statuses, onSaved, isOrgAdmin, user, showOrgInteg
                     </div>
                 </div>
             )}
+
+            {/* Keys for the MCP servers the organisation added (MCP library) */}
+            <OrgMcpConnections />
 
             {/* Organisation Integrations — merged for consumer accounts */}
             {showOrgIntegrations && (

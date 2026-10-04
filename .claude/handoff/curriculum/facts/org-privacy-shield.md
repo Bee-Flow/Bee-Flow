@@ -16,6 +16,21 @@ Source of truth read for this sheet (absolute paths):
 
 ---
 
+## 0. UI update (re-verified 2026-10-03) — read this first
+
+The editor was redesigned ("round 3"). Where sections 2–8 below name older labels or layout, **this section wins**. English strings: `server/i18n/defaults/en/shield_*.js`, `admin.js`, `dlp.js`, `privacy.js`; components under `agent-hub/src/components/admin/security/guardrails/orgShield/`.
+
+- **Path strip instead of a tab bar** (`orgShieldTabs.ts`): `Overview` · numbered steps **1 `What we look for`** · **2 `Your own data`** · **3 `When we find something`** · **4 `Leaving your org`** · `What happened`. Steps 1–4 are disabled while the master switch is off. Steps 3 and 4 render ONE combined pane with two cards: **`On every message`** (action choice "When we find personal data": `Replace with placeholders` / `Do not send the message`; `Let people see what was sent to the AI` only when placeholders; `Also check knowledge bases when documents are added`; `Also protect automations`) and **`Before it leaves your organisation`** (`One last check before an outside AI` with modes Ask / Hide it / Do not send + `Always show this check, even when nothing is found`; `Use only AI hosted in the EU` when EU models exist; `Protect web searches` and `No web search while a file is attached` only when web search is configured; `Check connected-app traffic for personal data`). A flow card above them: "Tool calls skip ① and ②. They follow the tool columns in the matrix."
+- **Header**: "Organization Privacy Shield", a detection pill (`Detection running · checked …`, or red `Detection service not installed` / `Detection service not responding`), and a `How this works` button. The page DOES now report the detection service; `Diagnose` (on the Overview review card) opens `/app/admin/security/guardrails` where it is fixed.
+- **Save bar** (bottom): **`Save changes`** (was "Save All Changes"), `Discard`, "Unsaved changes on N steps:" with chips; "No unsaved changes" when clean. Toasts: "Saved successfully!" / "Saved, with notes — see the message below."; bar message "Saved." or "Saved, with notes. N of your own types were refused and are not in force. They are marked under Your own data." (row: "Not saved: {error}").
+- **Overview**: master switch `Protect personal data` ("Applies to every chat and every agent in this organisation. Off means nothing is checked, at all."); off note "…the other steps stay inactive until you turn it on."; review card **"{n} thing(s) to review"** (count depends on settings — never hardcode; an optional last check that is off counts); **`How things stand`** ("in the order a message passes through") = four step cards with rows `Kinds of data` (n of 21), `How strict`, `Never hidden` | `Your own types` | `Action`, `Show what was sent`, `Automations`, `Knowledge bases` (Covered / Not covered) | `Held back from tools` ("x of 21 outside · y of 21 own server"), `Last check`, `EU-hosted AI only`, `Web search protection`; rule line "Agents can be stricter, never looser."; right column `Last 30 days`, `What your people see`, `Linked to Compliance`. Zero kinds → review item "No kinds of data are selected" (runtime still scans all 21).
+- **What we look for (step 1)**: intro card, **`How strict`** segmented `Low` · `Balanced` (recommended) · `High` (85/70/45%), scale "← misses more, fewer interruptions" / "hides more, also ordinary words →", `Advanced: exact percentage` slider ("finds more" … "finds less", 10–100% step 5), `Custom · NN%` badge. **Matrix** "Kinds of personal data" (21 kinds, one row each, grouped) with columns `Hide from AI` ("look for it · n of 21", `All`/`None`), `Hold back · outside tools` (Enterprise), `Hold back · own server`. Two link cards to Your own data: "Your own words and patterns" and "Never hidden". The old "Hold personal data back from tools" section on Leaving your org is gone — it is these matrix columns.
+- **Your own data (step 2, Enterprise)**: replaces "Your own words and exceptions" / "Always hide these". Landing "Hide things only your organisation uses", `Start from an example`, `Or describe it` + `Create type`; list with `Add a type`. Wizard `Describe` → `Test and tune` → `Where it applies`, methods `A list of words` / `A fixed format` / `Recognised by AI`, commit `Add to the list` ("Added. Press Save to switch it on."). Stored as `customDataTypes` (server still mirrors words/patterns into `customSensitiveTerms`). Beside it the **`Never hidden`** panel: `Well-known companies` switch (221, company names only), `Your own exceptions`, add box "Add a name that should stay visible", warning "These reach the AI as written…".
+- **What happened**: periods `7 days` / `30 days` / `90 days` (default 30); subtitle "Each time the shield acted on a message, and every call your organisation made to an outside service."; **`In short`** (sentence + outcome pills) beside **`Worth a look`** (several findings, each `Show these`; tool finding links "Hold kinds back from tools"); cards **`Shield stepped in`** (replaced + stopped), **`Personal data found`**, **`Left with a tool, unchanged`**, **`Stayed in Europe`** (a PERCENTAGE: (own server + EEA) / placed calls; via-network and unknown calls excluded and shown as "n not placed"; dash when nothing placed — `shieldTotals.stayedInEurope`); `Day by day`; `Where it went` map; `Kinds of data found` / `Where it started` / `People`; **`Log`** (Time · Person · Started in · What we found · What happened · Went to; 15 rows per `Show N more`; ≤200 per ledger). The old "Times the shield stepped in / Calls to outside services / NN/100 / Look at these / The details" UI no longer exists.
+- **Chat side**: the blue "N items redacted" pill under a user message was replaced by a lock line ("2 values replaced with [person_1], [email_1] — the real values stayed here", or the honest "…this screen cannot show which placeholders took their place"); the `Privacy protection` panel lives inside `How I got this answer` under the reply. The DLP review decision now expires after **10 minutes of silence**, and the open dialog heartbeats every minute, so an open dialog does not expire.
+
+---
+
 ## 1. What the feature is for
 
 The Privacy Shield is the organisation-wide policy that decides **what counts as personal data, what Bee Flow does with it before a message reaches an AI model, and what may cross the boundary out of the organisation** — and then shows the evidence that it happened.
@@ -72,7 +87,7 @@ Page title `Guardrail configs` / subtitle “Reusable security configuration for
 | `How strict` | `Low sensitivity` / `Balanced` / `High sensitivity` / “Custom ({pct}%)” |
 | `When we find something` | “Replace with placeholders” or “Do not send the message”. Warn hint: “Your plan does not include placeholders, so these messages are stopped instead.” |
 | `Show what was sent` | On / Off |
-| `Also covers routines` | On / Off |
+| `Also covers automations` | On / Off |
 | `One last check before an outside AI` | Off / “On — ask the person” / “On — hide automatically” / “On — do not send” |
 | `Held back from tools` | “outside tools {external}/{total}, own server {internal}/{total}” |
 | `Web search protection` | On / Off — row only exists when a search provider is configured |
@@ -105,7 +120,7 @@ Page title `Guardrail configs` / subtitle “Reusable security configuration for
   - Unlicensed-but-stored tokenize note: “Placeholders are saved for this organisation, but your plan does not include them — messages are stopped instead, until you upgrade or choose “Do not send the message”.”
 - **“Let people see what was sent to the AI”** (only when the action is `Replace with placeholders`) — “Adds a section to the "How I got this answer" panel: the original message, the version that went to the AI, the AI's reply, and which placeholder stood for which value. Real values only appear on click, and anyone who can open the conversation can see them.”
 - **“Also check knowledge bases when documents are added”** — “…Checking at the moment a document is added means personal data is replaced BEFORE it is stored… It cannot be undone afterwards: the stored text is the checked text.” (stored as `privacy_scan_knowledge_bases`, **default ON**)
-- **“Also protect routines”** — “Routines run on their own, with nobody watching. Check their data and their AI steps the same way as chat. (Activity logging keeps running either way.)” (`applyToAutomations`, **default ON**)
+- **“Also protect automations”** — “Automations run on their own, with nobody watching. Check their data and their AI steps the same way as chat. (Activity logging keeps running either way.)” (`applyToAutomations`, **default ON**)
 
 ### 2.6 Tab “Leaving your org” (outbound)
 
@@ -132,7 +147,7 @@ Header line: “What the shield caught, and where your data went.” plus a rang
   3. “The shield is catching a lot of personal data” — fires when personal-data catches > **10**.
 - Four KPI cards: **`Times the shield stepped in`**, **`Personal data caught`**, **`Calls to outside services`**, **`Stayed in Europe`** (`NN/100`, tooltip: “Out of 100. Calls that stayed in Europe or on your own servers score full marks; personal data leaving Europe counts double against the score.”).
 - Chart **“Activity over time”** with legend `Unsafe content`, `Personal data`, `Your custom rules`, `Checks before an outside AI`.
-- Section **“What to look at”**, up to four top-5 cards: `Where it happened` (Direct chat / Agent / Routine / Notebook), `People with the most catches`, `What we caught most`, `Where data left Europe`.
+- Section **“What to look at”**, up to four top-5 cards: `Where it happened` (Direct chat / Agent / Automation / Notebook), `People with the most catches`, `What we caught most`, `Where data left Europe`.
 - Fold **“The details”** with filter chips `Shield events` / `Data that left your org`:
   - Shield-events columns: `Time` · `Person` · `Where it happened` · `What we found` · `What we did`. Action words: Stopped, Hidden, Sent anyway, Placeholders, Search stopped, Noted only, Sent unchecked, Check failed.
   - Egress columns: `Time` · `Person` · `Where it happened` · `Service` · `Where it went` (`Your own server` for local calls).
@@ -150,7 +165,7 @@ Header line: “What the shield caught, and where your data went.” plus a rang
 
 ## 3. Concepts a learner must understand
 
-- **Privacy Shield** — one policy document per organisation (`org_privacy_shield_<orgId>`) that governs every chat, agent and (optionally) routine in that organisation. One master switch; when it is off nothing is checked.
+- **Privacy Shield** — one policy document per organisation (`org_privacy_shield_<orgId>`) that governs every chat, agent and (optionally) automation in that organisation. One master switch; when it is off nothing is checked.
 - **PII Guard / detection service** — the on-premise sidecar (`guard-service`) that does the actual scanning with a GLiNER model. If it is not installed or not answering, *every* PII control on the page is decoration. Installed/uninstalled by a platform admin via `POST /api/admin/guard/install`.
 - **Category** — one of the 21 kinds of personal data the detector is asked about. A category that is not ticked is never asked of the model, so it can never be found.
 - **Sensitivity / confidence threshold** — how sure the detector must be before a finding counts. Stored as a float. **The dial runs backwards**: a *lower* number finds *more*. 0.70 is the calibrated anchor, i.e. the configuration every published quality number was measured at.
@@ -163,7 +178,7 @@ Header line: “What the shield caught, and where your data went.” plus a rang
 - **Never-hide allowlist (“Never hide these”)** — the mirror image: values that must never be treated as personal data. Matching is **exact on the normalised form** (lowercase, punctuation and whitespace stripped) and never a substring. Plus a shipped list of **221 public organisations** (Microsoft, PostNL, Belastingdienst…), on by default, which applies **only** to the `Organization` category.
 - **Tool-call blocking** — per tool class (`external` = leaves your org, `internal` = stays on your server), refuse the tool when a listed category is involved, and strip that data out of the result.
 - **Sovereignty score** — 0–100 over the period; calls that stayed in the EU or on your own servers score full marks, personal data leaving Europe counts double against it. Computed server-side over full aggregates.
-- **Surface** — where an event came from: `Direct chat`, `Agent`, `Routine`, `Notebook`.
+- **Surface** — where an event came from: `Direct chat`, `Agent`, `Automation`, `Notebook`.
 - **Clamped field** — a setting the licence does not allow, which the server silently forces to the allowed value and reports back in `clamped_fields`, so the UI can say why what you see differs from what you picked.
 - **Staleness warning** — a regex collection or rule the shield still references but which no longer exists, so that part of the guard silently stops firing.
 
@@ -179,7 +194,7 @@ Header line: “What the shield caught, and where your data went.” plus a rang
 5. Under “How strict should we be?”, pick **`Balanced`** (the Recommended card, 0.70).
 6. Under **“Kinds of personal data”**, click `All`, or tick the categories that matter (e.g. Person Names, Email Addresses, Phone Numbers, Home and street addresses, Bank Account Numbers, IBAN Numbers, National ID numbers (BSN and equivalents)).
 7. Go to tab **`What happens`** and choose **`Replace with placeholders`** (Enterprise) or **`Do not send the message`**.
-8. Leave **“Also protect routines”** and **“Also check knowledge bases when documents are added”** on.
+8. Leave **“Also protect automations”** and **“Also check knowledge bases when documents are added”** on.
 9. Click **`Save All Changes`**. Expect the toast “Saved successfully!”.
 10. Return to **`Overview`** and read the posture table: `Kinds of data we look for` must not say “0 of 21”.
 
@@ -252,7 +267,7 @@ Header line: “What the shield caught, and where your data went.” plus a rang
 - Sensitivity presets: **0.85 / 0.70 / 0.45**; slider range **0.10–1.00**, step **0.05**; preset snap window **±0.024**.
 - Custom term: label ≤ **120** chars, pattern ≤ **500** chars. Allow term: ≤ **120** chars, max **500** entries. DLP allowlisted hosts: max **50**. Tool-class block list: max **40** ids per class.
 - Manual marks in one DLP review: max **200**; only `offset`/`length` are sent, the text is re-sliced server-side.
-- DLP decision timeout: **60 s** (`decisionQueue.DEFAULT_TIMEOUT_MS`). Decisions are in-memory only — a server restart invalidates every pending one.
+- DLP decision timeout: **10 minutes of silence** (`decisionQueue.DEFAULT_TIMEOUT_MS`); the open review dialog heartbeats every 60 s (`useDlpDecision.ts`), so an open dialog does not expire. Decisions are in-memory only — a server restart invalidates every pending one.
 - PII scan window: **8 000** chars (`PII_GUARD_WINDOW_CHARS`), overlap **256** chars, max **40** windows; scan deadline **300 000 ms** (`PII_GUARD_SCAN_DEADLINE_MS`); per-request guard timeout **90 000 ms** (`PII_GUARD_TIMEOUT_MS`).
 - Circuit breaker: **3** consecutive guard failures → short-circuit for **10 000 ms**.
 - Guard health probe memo in `shield-status`: **15 s**.
@@ -269,12 +284,12 @@ Header line: “What the shield caught, and where your data went.” plus a rang
 - **Guard not installed at all** → the admin console shows “PII Guard is not installed”; PII settings have no effect at all, while regex patterns and custom sensitive terms keep working.
 - **Scan deadline hit on a huge paste** → a partial, fail-closed result; marker `scan_timeout` (“Check ran out of time”).
 - **Attachment past the page cap or the budget** → with `attachmentLargeInputPolicy: fail_open` the unscanned remainder is passed through but *visibly*: the badge “Scan incomplete” with “Some uploaded content could not be scanned and was sent to the AI unredacted.”, plus markers `scan_overflow` / `scan_timeout` / `scan_degraded`. With `fail_closed` the attachment is held: “Attachment held: {filename} is too large to fully scan for sensitive data. Split it or reduce the page count, then re-upload.”
-- **DLP review not answered within 60 s** → the promise rejects and the message is treated as blocked: “Blocked: DLP decision timed out.”
+- **DLP review not heard from for 10 minutes** (tab closed, connection lost) → the promise rejects and the message is treated as blocked: “Blocked: DLP decision timed out.”
 - **Someone else's decision id** → `POST /api/chat/dlp-decision` returns **404** “Decision not found, expired, or not owned by this user.”
 - **Shield config cannot be loaded** → the editor renders the red “Could not load these settings” box, no form, no Save. (This is deliberate: a blank form with a live Save button once overwrote a real configuration with constructor defaults.)
 - **Invalid regex in a custom term** → the valid terms and the rest of the shield are still saved; the server returns `termErrors` and the UI flags the row and shows “Saved, with notes — see the message below.”
 - **Licence does not cover a chosen setting** → the server clamps it, persists the clamped value, and returns `clamped_fields` + `clamped_tier`. The UI shows an amber “Saved. Note: …” (a warning, not an error). If tier resolution itself fails, the server **fails closed to community clamps**.
-- **Placeholder ceiling hit in a long routine** → oldest placeholders are evicted and can no longer be turned back into real values; marker `token_evicted` (“Some placeholders were dropped”).
+- **Placeholder ceiling hit in a long automation** → oldest placeholders are evicted and can no longer be turned back into real values; marker `token_evicted` (“Some placeholders were dropped”).
 - **Monitoring endpoints on a plan without `advanced_usage_monitoring`** → the whole `/api/usage/guardrails/*` and `/api/usage/integrations/*` prefixes are refused by the capability gate; the tab shows the lock card. A **404** from those endpoints is deliberately treated as *empty*, not as an error.
 
 ---
@@ -308,7 +323,7 @@ There is **no** `requireLicenseFeature(...)` on the `/api/org-privacy-shield` mo
 ## 8. How it connects to the rest of the product
 
 - **Chat & agents** — the shield runs before every message; the header pill, composer line and privacy panel in chat all derive from `GET /api/privacy/shield-status`, which answers `enabled / source / action / failMode / guardReachable / euMode / coworkEnabled`. The product rule is: **claim only when `enabled && guardReachable`**, and only `action === 'redact'` may be worded as “replaced”.
-- **Routines / automations** — covered when `applyToAutomations` is on (default). Routine events appear in the activity table as `Routine — <title>` and carry `automation_id` / `run_id` / `step_id`. Dry runs are excluded from every dashboard.
+- **Automations / automations** — covered when `applyToAutomations` is on (default). Automation events appear in the activity table as `Automation — <title>` and carry `automation_id` / `run_id` / `step_id`. Dry runs are excluded from every dashboard.
 - **Knowledge bases** — “Also check knowledge bases when documents are added” redacts at ingest. Irreversible: the stored text is the checked text.
 - **Cowork** — has its own per-org opt-in flag on top of the shield (`coworkEnabled` in the status route).
 - **AI Config → Chat Models** — where the EU-hosted models are defined; the “Use only AI hosted in the EU” card only appears once at least one EU tier has a model id. The web-search cards only appear once a search provider is configured.
@@ -349,12 +364,12 @@ Van Dijk Groep's inkoop team pastes supplier quotations, contract numbers and IB
 **Teaching point:** the allowlist is what makes a redacted procurement comparison still readable — and the exactness rule means `Signify Nederland B.V.` needs its own entry.
 
 ### S2 — HR: sick-leave and re-integration files
-HR uses a routine that summarises re-integration dossiers. Those contain names, BSN, addresses and medical conditions — special-category data.
+HR uses an automation that summarises re-integration dossiers. Those contain names, BSN, addresses and medical conditions — special-category data.
 1. On **`What we look for`**: Person Names, Home and street addresses, Date of Birth, National ID numbers (BSN and equivalents), Health Insurance Numbers, Medical Conditions, Medications. Sensitivity **`High sensitivity`** (0.45) — HR would rather over-hide.
-2. On **`What happens`**: `Do not send the message`, and **“Also protect routines”** stays on, because the HR routine runs unattended at night.
+2. On **`What happens`**: `Do not send the message`, and **“Also protect automations”** stays on, because the HR automation runs unattended at night.
 3. On **`Leaving your org`**: under “Tools that send data outside your organisation” tick Medical Conditions, Medications, National ID numbers and Person Names, so a connector can never carry them out; switch on **“No web search while a file is attached”**.
 4. Because the dossiers arrive as scanned PDFs, the admin also asks the platform admin about the **50-page** attachment cap and the `fail_open` default for the unscanned tail — for HR, `fail_closed` is the right choice, so a too-large dossier is held rather than partially sent.
-**Teaching point:** unattended routines are exactly where a fail-open default is dangerous, and where the activity tab's `Routine — <title>` rows are the only evidence anyone will ever look at.
+**Teaching point:** unattended automations are exactly where a fail-open default is dangerous, and where the activity tab's `Automation — <title>` rows are the only evidence anyone will ever look at.
 
 ### S3 — Sales: a CRM export and an outside model
 Sales wants a strong external model to draft proposals from a CRM export full of contact details.

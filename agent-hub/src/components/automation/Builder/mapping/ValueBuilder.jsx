@@ -1,13 +1,14 @@
-import { Eye, FunctionSquare, List, Plus, Repeat, Tag, Workflow, X, Zap } from 'lucide-react';
+import { ChevronDown, ChevronRight, Eye, FunctionSquare, List, Plus, Repeat, Tag, Workflow, X, Zap } from 'lucide-react';
 import React, { useMemo, useRef, useState } from 'react';
 import { onBindingDragOver, getBindingDropPath } from './bindingDnd';
 import BindingField from './BindingField';
 import previewBinding from './bindingPreview';
 import { isEmptyValue } from './boundPaths';
 import { EmptySlotNote, FieldLabelRow } from './fieldChrome';
+import { useFormRowLabel } from './FormRowLabelContext';
 import ListPickChooser from './ListPickChooser';
 import { pathListShape } from './listShape';
-import { detectMismatch, kindAtPath, remediesFor } from './mismatch';
+import { detectMismatch, kindAtPath, quietDefaultId, remediesFor } from './mismatch';
 import MismatchResolver from './MismatchResolver';
 import { pillTint, PILL_TINT_CLASS } from './refEditorDom';
 import RefTokenInput from './RefTokenInput';
@@ -63,6 +64,10 @@ export default function ValueBuilder({
     // (forEach|null) => void — offered as "run this step once per row".
     // Absent (or the step is in list mode): the choice is simply not shown.
     onRequestForEach = null,
+    // May a pick START a forEach here? Defaults to "there is a callback";
+    // false while the step already runs per item (useForEachRequest), when
+    // the callback stays only so Undo can clear what a pick just set.
+    canForEach = null,
     // Slot chrome (mapping/fieldChrome.jsx) — the same label row and
     // empty-required note BindingField draws, so a schema-declared parameter
     // reads identically whichever editor renders it. `label` alone still only
@@ -74,6 +79,7 @@ export default function ValueBuilder({
     autoMapped = false,
     multiline = false, // honoured by the raw escape; the visual editor grows on its own
 }) {
+    const rowLabel = useFormRowLabel();
     const { t } = useTranslation();
     const pickerCtx = useVariablePickerContext();
     const picker = useVariablePicker();
@@ -90,10 +96,15 @@ export default function ValueBuilder({
     // What to restore if the user presses Undo after a foreach choice.
     const undoRef = useRef(null);
     const [foreachNote, setForeachNote] = useState(null); // { runs } | null
+    // "More": how a picked list/table/group is used, the transform menu and
+    // the formula escape (the field's own advanced options). Closed by default — a drop already chose the
+    // sensible answer (quietDefaultId), so most authors never need it.
+    const [advancedOpen, setAdvancedOpen] = useState(false);
 
     // One placeholder string for every branch below (the raw escape gets it
     // too), so switching editors never changes what the empty box says.
-    const ph = placeholder ?? t('routines.builder.type_a_value', 'Type a value…');
+    const ph = placeholder ?? t('automations.builder.type_a_value', 'Type a value…');
+    const allowForEach = canForEach ?? !!onRequestForEach;
     const parsed = useMemo(() => parseValue(value), [value]);
     const sampleRoot = previewSample ?? pickerCtx.previewSample;
     const example = previewBinding(value, sampleRoot, { raw: false });
@@ -158,24 +169,30 @@ export default function ValueBuilder({
             // (tree click, drag, the picker) answers INLINE, as buttons in the
             // warning box under the field. Re-picking an existing chip keeps
             // the popover beside that chip: the question is about the chip.
+            // No question, also not on a re-pick onto a chip: the quiet
+            // default goes in and the other answers wait under "More".
             const shape = pathListShape(clean, sampleRoot);
-            if (shape && index >= 0) { setListPick({ path: clean, shape, anchorEl: anchorEl || null, index }); return; }
             if (shape && openResolver(clean, actualKind, expectedKind)) return;
             insertPath(clean, index, opts.at);
             return;
         }
         if (!openResolver(clean, actualKind, expectedKind)) insertPath(clean, index, opts.at);
     };
-    // Write mismatch.js's own default remedy and open the box that asks
-    // whether it was the right one. False when there is no remedy at all — the
-    // caller then inserts the path verbatim rather than swallowing the pick.
+    // Write the quiet default (mismatch.quietDefaultId) without asking; the
+    // other answers stay one click away under "Advanced". False when there is
+    // no remedy at all — the caller then inserts the path verbatim rather than
+    // swallowing the pick.
     const openResolver = (path, actualKind, expectedKind) => {
-        const remedies = remediesFor(path, sampleRoot, { allowForEach: !!onRequestForEach, actualKind });
-        const first = [...remedies.primary, ...remedies.more].find(r => r.id === remedies.defaultId)
+        const remedies = remediesFor(path, sampleRoot, { allowForEach, actualKind });
+        const all = [...remedies.primary, ...remedies.more];
+        const chosen = all.find(r => r.id === quietDefaultId(remedies, { path, actualKind, expectedKind }))
+            || all.find(r => r.id === remedies.defaultId)
             || remedies.primary[0];
-        if (!first) return false;
-        applyRemedy(first);
-        setResolver({ path, actualKind, expectedKind, selectedId: first.id });
+        if (!chosen) return false;
+        applyRemedy(chosen);
+        // The one default that changes how the step RUNS says so, with Undo.
+        if (chosen.id === 'foreach') setForeachNote({ runs: remedies.shape?.rows ?? remedies.count ?? null });
+        setResolver({ path, actualKind, expectedKind, selectedId: chosen.id });
         return true;
     };
     // Write one remedy's binding. A remedy is the WHOLE value (it is an
@@ -184,7 +201,9 @@ export default function ValueBuilder({
     const applyRemedy = (r) => {
         if (!r) return;
         if (r.id === 'foreach' && onRequestForEach) {
-            undoRef.current = { value, forEach: null };
+            // Keep the callback that set it: once the step runs per item the
+            // editor may stop offering one, and Undo must still clear it.
+            undoRef.current = { value, forEach: null, request: onRequestForEach };
             onRequestForEach(r.forEach);
         }
         onChange?.(r.binding);
@@ -225,7 +244,7 @@ export default function ValueBuilder({
         setListPick(null);
         if (!pick || !choice) return;
         if (choice.mode === 'foreach' && onRequestForEach) {
-            undoRef.current = { value, forEach: null };
+            undoRef.current = { value, forEach: null, request: onRequestForEach };
             onRequestForEach(choice.forEach);
             onChange?.(choice.binding);
             const runs = pick.shape.rows ?? pick.shape.count;
@@ -240,7 +259,7 @@ export default function ValueBuilder({
         undoRef.current = null;
         setForeachNote(null);
         if (!undo) return;
-        onRequestForEach?.(null);
+        (undo.request || onRequestForEach)?.(null);
         onChange?.(undo.value ?? { kind: 'literal', value: '' });
     };
 
@@ -266,7 +285,7 @@ export default function ValueBuilder({
     // list chooser ({ raw: true }).
     const broadcast = () => onFocusField?.({
         id: label || 'value',
-        label: label || 'value',
+        label: label || rowLabel || '',
         insert: (path, opts) => { pickTarget.current = -1; proposePick(path, null, opts); },
     });
     const onDrop = (e) => {
@@ -285,10 +304,10 @@ export default function ValueBuilder({
                 onPick={onPick}
                 onClose={() => { pillTarget.current = null; picker.closePicker(); }}
                 title={label
-                    ? t('routines.builder.pick_data_for', 'Pick data for {field}', { field: label })
-                    : t('routines.builder.pick_data', 'Pick data from a step')}
+                    ? t('automations.builder.pick_data_for', 'Pick data for {field}', { field: label })
+                    : t('automations.builder.pick_data', 'Pick data from a step')}
             />
-            {resolver && (
+            {resolver && advancedOpen && (
                 <MismatchResolver
                     path={resolver.path}
                     sampleRoot={sampleRoot}
@@ -296,7 +315,7 @@ export default function ValueBuilder({
                     actualKind={resolver.actualKind}
                     expectedKind={resolver.expectedKind}
                     selectedId={resolver.selectedId}
-                    allowForEach={!!onRequestForEach}
+                    allowForEach={allowForEach}
                     onChoose={onResolverChoose}
                     onClose={() => setResolver(null)}
                 />
@@ -309,7 +328,7 @@ export default function ValueBuilder({
                 sampleRoot={sampleRoot}
                 stepLabelById={pickerCtx.stepLabelById}
                 expectShape={expectShape}
-                allowForEach={!!onRequestForEach}
+                allowForEach={allowForEach}
                 fieldLabel={label}
                 onChoose={onListChoice}
                 onCancel={() => setListPick(null)}
@@ -342,14 +361,14 @@ export default function ValueBuilder({
                     hint={hint}
                     multiline={multiline}
                     expectShape={expectShape}
-                    onRequestForEach={onRequestForEach}
+                    onRequestForEach={allowForEach ? onRequestForEach : null}
                 />
                 <button
                     type="button"
                     onClick={() => setRawOpen(false)}
                     className={`text-[10px] ${INLINE_LINK}`}
                 >
-                    {t('routines.builder.back_to_simple', 'Back to the simple editor')}
+                    {t('automations.builder.back_to_simple', 'Back to the simple editor')}
                 </button>
             </div>
         );
@@ -360,20 +379,20 @@ export default function ValueBuilder({
             <div className="space-y-1">
                 {chrome}
                 <div className="rounded border border-[var(--border-default)] bg-[var(--bg-secondary)]/50 px-2 py-1.5">
-                    <div className="text-[10px] uppercase tracking-wide text-[var(--text-tertiary)] mb-0.5">{t('routines.builder.custom_formula', 'Custom formula')}</div>
+                    <div className="text-[10px] uppercase tracking-wide text-[var(--text-tertiary)] mb-0.5">{t('automations.builder.custom_formula', 'Custom formula')}</div>
                     <FormulaChips text={parsed.text} stepLabelById={pickerCtx.stepLabelById} stepTypeById={pickerCtx.stepTypeById} />
                 </div>
                 {example != null && <ExampleLine value={example} />}
                 <div className="flex items-center gap-3 text-[10px]">
                     <button type="button" onClick={() => setRawOpen(true)} className={INLINE_LINK}>
-                        {t('routines.builder.edit_formula', 'Edit the formula')}
+                        {t('automations.builder.edit_formula', 'Edit the formula')}
                     </button>
                     <button
                         type="button"
                         onClick={() => onChange?.({ kind: 'literal', value: '' })}
                         className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
                     >
-                        {t('routines.builder.replace_it', 'Replace it')}
+                        {t('automations.builder.replace_it', 'Replace it')}
                     </button>
                 </div>
                 {pickerNode}
@@ -410,8 +429,8 @@ export default function ValueBuilder({
                     // it "<label> value" would make a screen reader announce a
                     // second, different control. Matches BindingField.
                     ariaLabel={label
-                        ? (showChrome ? label : t('routines.builder.value_of', '{field} value', { field: label }))
-                        : t('routines.builder.value_word', 'Value')}
+                        ? (showChrome ? label : t('automations.builder.value_of', '{field} value', { field: label }))
+                        : t('automations.builder.value_word', 'Value')}
                     stepLabelById={pickerCtx.stepLabelById}
                     stepTypeById={pickerCtx.stepTypeById}
                     onPillClick={({ el, path }) => { pillTarget.current = el; pickTarget.current = -1; picker.openPicker(el, { focusPath: path }); }}
@@ -450,8 +469,8 @@ export default function ValueBuilder({
                         {/* The first pick is the headline action; once something
                             is bound, picking again APPENDS — so it reads as an add. */}
                         <Workflow size={11} /> {dataParts.length
-                            ? t('routines.builder.add_data', 'Add data')
-                            : t('routines.builder.use_data_from_step', 'Use data from a step')}
+                            ? t('automations.builder.add_data', 'Add data')
+                            : t('automations.builder.use_data_from_step', 'Use data from a step')}
                     </button>
                 )}
                 {!inline && dataParts.length > 0 && (
@@ -460,16 +479,28 @@ export default function ValueBuilder({
                         onClick={() => setComposing(true)}
                         className="flex items-center gap-1 text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                     >
-                        <Plus size={11} /> {t('routines.builder.add_text', 'Add text')}
+                        <Plus size={11} /> {t('automations.builder.add_text', 'Add text')}
                     </button>
                 )}
-                {allowRaw && (
+                {(allowRaw || showTransform || resolver) && (
+                    <button
+                        type="button"
+                        onClick={() => setAdvancedOpen(o => !o)}
+                        aria-expanded={advancedOpen}
+                        aria-label={t('automations.builder.value_more_aria', 'More ways to use this value')}
+                        className="ml-auto flex items-center gap-1 text-[10px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
+                    >
+                        {advancedOpen ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
+                        {t('automations.builder.value_more', 'More')}
+                    </button>
+                )}
+                {allowRaw && advancedOpen && (
                     <button
                         type="button"
                         onClick={() => setRawOpen(true)}
-                        title={t('routines.builder.write_as_formula', 'Write this value as a formula')}
-                        aria-label={t('routines.builder.write_as_formula', 'Write this value as a formula')}
-                        className="ml-auto flex items-center gap-1 text-[10px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
+                        title={t('automations.builder.write_as_formula', 'Write this value as a formula')}
+                        aria-label={t('automations.builder.write_as_formula', 'Write this value as a formula')}
+                        className="flex items-center gap-1 text-[10px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
                     >
                         {/* The visible word, not just the tooltip: this button
                             had its title and aria-label translated while the
@@ -478,12 +509,12 @@ export default function ValueBuilder({
                             `mode_formula_word` is the same word BindingField's
                             mode toggle already uses (conventions §1.3.1: the
                             key exists, so use it). */}
-                        <FunctionSquare size={11} /> {t('routines.builder.mode_formula_word', 'Formula')}
+                        <FunctionSquare size={11} /> {t('automations.builder.mode_formula_word', 'Formula')}
                     </button>
                 )}
             </div>
 
-            {showTransform && (() => {
+            {showTransform && advancedOpen && (() => {
                 // A list-resolving pick reads "Use it as:" and sorts the
                 // choices for the KIND the pick actually has first — a number
                 // leads with "as an amount", a table with "as a table"
@@ -498,10 +529,10 @@ export default function ValueBuilder({
                 return (
                     <label className="flex items-center gap-1.5 text-[11px] text-[var(--text-tertiary)] flex-wrap">
                         {pickedShape
-                            ? t('routines.builder.use_it_as', 'Use it as:')
-                            : t('routines.builder.adjust_it', 'Adjust it:')}
+                            ? t('automations.builder.use_it_as', 'Use it as:')
+                            : t('automations.builder.adjust_it', 'Adjust it:')}
                         <select
-                            aria-label={t('routines.builder.adjust_aria', 'Adjust the value')}
+                            aria-label={t('automations.builder.adjust_aria', 'Adjust the value')}
                             value={parsed.transform || ''}
                             onChange={(e) => {
                                 // A fresh transform starts from ITS OWN default
@@ -513,7 +544,7 @@ export default function ValueBuilder({
                             }}
                             className={controlSurfaceClass('px-1.5 py-0.5 text-[11px]')}
                         >
-                            <option value="">{t('routines.builder.use_as_is', 'use it as it is')}</option>
+                            <option value="">{t('automations.builder.use_as_is', 'use it as it is')}</option>
                             {ordered.map(tr => (
                                 <option key={tr.id} value={tr.id} title={tr.hint}>{tr.label}</option>
                             ))}
@@ -526,7 +557,7 @@ export default function ValueBuilder({
                         />
                         {pickedShape && !parsed.transform && (
                             <span className={listBadgeClass()} title={pickedShape.explainEn}>
-                                {pickedShape.count != null ? `${t('routines.builder.list_word', 'list')} · ${pickedShape.count}` : t('routines.builder.list_word', 'list')}
+                                {pickedShape.count != null ? `${t('automations.builder.list_word', 'list')} · ${pickedShape.count}` : t('automations.builder.list_word', 'list')}
                             </span>
                         )}
                     </label>
@@ -535,9 +566,9 @@ export default function ValueBuilder({
 
             {foreachNote && (
                 <div className={`${AMBER_NOTE} flex items-center gap-2`}>
-                    {t('routines.builder.foreach_set_note', 'This step now runs once per row — {n} runs.', { n: foreachNote.runs ?? '?' })}
+                    {t('automations.builder.foreach_set_note', 'This step now runs once per row — {n} runs.', { n: foreachNote.runs ?? '?' })}
                     <button type="button" onClick={undoForeach} className="underline hover:no-underline">
-                        {t('routines.builder.undo', 'Undo')}
+                        {t('automations.builder.undo', 'Undo')}
                     </button>
                 </div>
             )}
@@ -571,9 +602,9 @@ function TransformArg({ transform, arg, arg2, onChange }) {
         const known = JOIN_SEPARATORS.some(s => s.value === current);
         return (
             <span className="flex items-center gap-1">
-                {t('routines.builder.separated_by', 'Separated by')}
+                {t('automations.builder.separated_by', 'Separated by')}
                 <select
-                    aria-label={t('routines.builder.separated_by', 'Separated by')}
+                    aria-label={t('automations.builder.separated_by', 'Separated by')}
                     value={known ? current : '__other__'}
                     onChange={(e) => { if (e.target.value !== '__other__') onChange(e.target.value, null); }}
                     className={controlSurfaceClass('px-1.5 py-0.5 text-[11px]')}
@@ -590,8 +621,8 @@ function TransformArg({ transform, arg, arg2, onChange }) {
         const current = arg ?? options[0].value;
         const known = options.some(o => o.value === current);
         const label = isDate
-            ? t('routines.builder.date_notation', 'Written as')
-            : t('routines.builder.number_style', 'Shown as');
+            ? t('automations.builder.date_notation', 'Written as')
+            : t('automations.builder.number_style', 'Shown as');
         return (
             <span className="flex items-center gap-1">
                 {label}
@@ -612,19 +643,19 @@ function TransformArg({ transform, arg, arg2, onChange }) {
     if (transform === 'yesNoText') {
         return (
             <span className="flex items-center gap-1">
-                {t('routines.builder.yes_says', 'Yes says')}
+                {t('automations.builder.yes_says', 'Yes says')}
                 <input
                     type="text"
                     value={arg ?? 'yes'}
-                    aria-label={t('routines.builder.yes_says', 'Yes says')}
+                    aria-label={t('automations.builder.yes_says', 'Yes says')}
                     onChange={(e) => onChange(e.target.value, arg2 ?? 'no')}
                     className={denseInputClass('w-20')}
                 />
-                {t('routines.builder.no_says', 'no says')}
+                {t('automations.builder.no_says', 'no says')}
                 <input
                     type="text"
                     value={arg2 ?? 'no'}
-                    aria-label={t('routines.builder.no_says', 'no says')}
+                    aria-label={t('automations.builder.no_says', 'no says')}
                     onChange={(e) => onChange(arg ?? 'yes', e.target.value)}
                     className={denseInputClass('w-20')}
                 />
@@ -639,7 +670,7 @@ function ExampleLine({ value }) {
     return (
         <div className="text-[10px] text-[var(--text-tertiary)] flex items-center gap-1.5 min-w-0">
             <Eye size={11} className="shrink-0" />
-            <span className="shrink-0">{t('routines.builder.how_it_looks', "Here's how it looks:")}</span>
+            <span className="shrink-0">{t('automations.builder.how_it_looks', "Here's how it looks:")}</span>
             <span className="text-[var(--text-secondary)] truncate">{value}</span>
         </div>
     );
@@ -661,7 +692,7 @@ function TextPart({ text, placeholder, onChange, onFocus, onRemove = null }) {
                 <button
                     type="button"
                     onClick={onRemove}
-                    aria-label={t('routines.builder.remove_text', 'Remove this text')}
+                    aria-label={t('automations.builder.remove_text', 'Remove this text')}
                     className="shrink-0 p-1 rounded text-[var(--text-tertiary)] hover:text-red-500 hover:bg-[var(--bg-secondary)]"
                 >
                     <X size={12} />
@@ -729,7 +760,7 @@ function DataPart({ path, stepLabelById, stepTypeById = null, onChange, onRemove
                 )}
                 {jsonPath != null && (
                     <span className="opacity-70 truncate">
-                        {t('routines.builder.from_the_json', '· from the JSON')}{jsonPath ? `: ${jsonPath}` : ''}
+                        {t('automations.builder.from_the_json', '· from the JSON')}{jsonPath ? `: ${jsonPath}` : ''}
                     </span>
                 )}
             </span>
@@ -739,13 +770,13 @@ function DataPart({ path, stepLabelById, stepTypeById = null, onChange, onRemove
                     onClick={onChange}
                     className="shrink-0 text-[10px] text-[var(--text-secondary)] underline hover:text-[var(--text-primary)]"
                 >
-                    {t('routines.builder.change_word', 'change')}
+                    {t('automations.builder.change_word', 'change')}
                 </button>
             )}
             <button
                 type="button"
                 onClick={onRemove}
-                aria-label={t('routines.builder.remove_value', 'Remove this value')}
+                aria-label={t('automations.builder.remove_value', 'Remove this value')}
                 className="shrink-0 p-1 rounded text-[var(--text-tertiary)] hover:text-red-500 hover:bg-[var(--bg-secondary)]"
             >
                 <X size={12} />

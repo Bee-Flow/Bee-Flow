@@ -174,7 +174,7 @@ const ACTION_STEP_PROPS = {
     form: { type: 'string', description: 'reset_form: the form\'s props.name.' },
     modalId: { type: 'string', description: 'open_modal / close_modal: the modal cmp_… id.' },
     resultVar: { type: 'string', description: 'Server steps: variable name the result is written to.' },
-    automationId: { type: 'string', description: 'run_automation: the routine id.' },
+    automationId: { type: 'string', description: 'run_automation: the automation id.' },
     inputMapping: { type: 'object', description: 'run_automation: { <param>: {kind:"static",value} | {kind:"field",name,formId?} }.' },
 };
 const ACTION_OBJECT_PROPS = {
@@ -185,9 +185,9 @@ const ACTION_OBJECT_PROPS = {
         items: { type: 'object', properties: ACTION_STEP_PROPS, required: ['kind'] },
     },
     // nullable, like actionId: the prompt says "automationId:null" for a
-    // routine the user connects later, and a template that renders nullable
+    // automation the user connects later, and a template that renders nullable
     // (Gemma) should show it beside a string type, not contradict the prose.
-    automationId: { type: 'string', nullable: true, description: 'run_automation: the routine id (null until the user connects one).' },
+    automationId: { type: 'string', nullable: true, description: 'run_automation: the automation id (null until the user connects one).' },
     inputMapping: { type: 'object', description: 'run_automation: { <param>: {kind:"static",value} | {kind:"field",name,formId?} }.' },
     screenId: { type: 'string', description: 'navigate: scr_… id.' },
     params: { type: 'object', description: 'navigate: { <key>: {kind:"static",value}|{kind:"formula",expr} } → screen.params.<key>.' },
@@ -572,7 +572,7 @@ const TOOL_SCHEMAS = [
         type: 'function',
         function: {
             name: 'app_link_datatable',
-            description: 'Link an EXISTING Studio table — a Nextcloud Tables mirror the owner set up in Studio > Datatables, or any organisation table — into this app by name, key or id. Its rows stay where they are and the app reads them LIVE; the result carries the tbl_ id and the exact field keys to bind ("Excl. btw" is stored as excl_btw). Prefer this over app_upsert_table whenever the ask names a table that already exists (for example one a routine fills). Never seed a linked table. Calling it again for the same table refreshes its field copy — it never makes a second table.',
+            description: 'Link an EXISTING Studio table — a Nextcloud Tables mirror the owner set up in Studio > Datatables, or any organisation table — into this app by name, key or id. Its rows stay where they are and the app reads them LIVE; the result carries the tbl_ id and the exact field keys to bind ("Excl. btw" is stored as excl_btw). Prefer this over app_upsert_table whenever the ask names a table that already exists (for example one an automation fills). Never seed a linked table. Calling it again for the same table refreshes its field copy — it never makes a second table.',
             parameters: {
                 type: 'object',
                 properties: {
@@ -864,7 +864,7 @@ const TOOL_SCHEMAS = [
         type: 'function',
         function: {
             name: 'app_list_connectors',
-            description: "List the app's external connectors — owner-authored data sources (a platform tool, a routine, or an allow-listed REST endpoint) that a viewer can run to pull live rows. Read-only, NO arguments. Returns each connector's id (conn_…), kind, name and declared viewer params — never its pinned args, url or credentials. Wire one into a component's data prop with a { kind:\"connector\", connectorId, params? } binding (params values are literals or { kind:\"formula\", expr }). You can only WIRE connectors that already exist — you never author connectors or credentials (the app owner sets those up in the Connectors tab).",
+            description: "List the app's external connectors — owner-authored data sources (a platform tool, an automation, or an allow-listed REST endpoint) that a viewer can run to pull live rows. Read-only, NO arguments. Returns each connector's id (conn_…), kind, name and declared viewer params — never its pinned args, url or credentials. Wire one into a component's data prop with a { kind:\"connector\", connectorId, params? } binding (params values are literals or { kind:\"formula\", expr }). You can only WIRE connectors that already exist — you never author connectors or credentials (the app owner sets those up in the Connectors tab).",
             parameters: { type: 'object', properties: {} },
         },
     },
@@ -940,7 +940,7 @@ const TOOL_SCHEMAS = [
         type: 'function',
         function: {
             name: 'app_list_automations',
-            description: 'List the routines (automations) the app owner can wire into run_automation actions: id, title, description, active state, trigger kind, and — for agent_call routines — the input parameter names to map via inputMapping.',
+            description: 'List the automations (automations) the app owner can wire into run_automation actions: id, title, description, active state, trigger kind, and — for agent_call automations — the input parameter names to map via inputMapping.',
             parameters: { type: 'object', properties: {} },
         },
     },
@@ -948,7 +948,7 @@ const TOOL_SCHEMAS = [
         type: 'function',
         function: {
             name: 'app_inspect_automation',
-            description: 'Inspect ONE routine in detail: its trigger and, for agent_call routines, the full input parameter schema — so the inputMapping you write matches the routine\'s real parameter names.',
+            description: 'Inspect ONE automation in detail: its trigger and, for agent_call automations, the full input parameter schema — so the inputMapping you write matches the automation\'s real parameter names.',
             parameters: {
                 type: 'object',
                 properties: { automationId: { type: 'string' } },
@@ -1033,7 +1033,7 @@ const TOOL_SCHEMAS = [
                     },
                     actions: {
                         type: 'array',
-                        description: 'The behaviours (create/update records, run routines, navigate, …).',
+                        description: 'The behaviours (create/update records, run automations, navigate, …).',
                         items: {
                             type: 'object',
                             properties: {
@@ -1104,7 +1104,7 @@ const TOOL_SCHEMAS = [
         type: 'function',
         function: {
             name: 'app_save_as_template',
-            description: 'Save THIS app as a reusable template that anyone in the organisation can start a new app from (the inverse of app_apply_template). Captures the screens, actions and data model. Routine ids are cleared and file values, system columns and relations to rows that were not captured are stripped, so the template installs clean elsewhere. Refused while the app still has validation errors. Pass the same templateId again later to save a NEW VERSION over an existing template.',
+            description: 'Save THIS app as a reusable template that anyone in the organisation can start a new app from (the inverse of app_apply_template). Captures the screens, actions and data model. Automation ids are cleared and file values, system columns and relations to rows that were not captured are stripped, so the template installs clean elsewhere. Refused while the app still has validation errors. Pass the same templateId again later to save a NEW VERSION over an existing template.',
             parameters: {
                 type: 'object',
                 properties: {

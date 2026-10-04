@@ -16,7 +16,7 @@ export function useForms() {
     });
 }
 
-/** One form for its Form page, by the routine's id. */
+/** One form for its Form page, by the automation's id. */
 export function useFormDetail(automationId: string) {
     return useQuery({
         queryKey: formKeys.detail(automationId),
@@ -26,9 +26,9 @@ export function useFormDetail(automationId: string) {
 }
 
 /**
- * The routine a Form page route means (model/formPage.ts resolveFormRef). A
- * routine id answers at once; an old link that carries a page token waits for
- * the forms list, then answers that form's routine with `redirect` set.
+ * The automation a Form page route means (model/formPage.ts resolveFormRef). A
+ * automation id answers at once; an old link that carries a page token waits for
+ * the forms list, then answers that form's automation with `redirect` set.
  */
 export function useResolvedFormRef(ref: string) {
     const needsList = resolveFormRef(ref, undefined) === null;

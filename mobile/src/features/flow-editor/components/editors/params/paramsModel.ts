@@ -5,7 +5,7 @@
  *
  * A declared field's `name` is a BINDING (`trigger.output.<name>`), so it is
  * only ever COMMITTED on purpose, validated first (a name the server accepts,
- * not a sibling's), carried through the routine when the host can, and the
+ * not a sibling's), carried through the automation when the host can, and the
  * author is told what moved — or that nothing could be carried.
  * Pinned by params.lockstep.test.ts.
  */
@@ -65,7 +65,7 @@ export interface RenameResult {
 /**
  * THE rename path: validates, refuses, carries, and words the outcome. Never
  * writes: the caller stores `name` only when `ok`. `carry` rewrites the whole
- * routine and answers how many bindings moved; absent where the editor cannot
+ * automation and answers how many bindings moved; absent where the editor cannot
  * see the steps that bind the name.
  */
 export function applyBindingRename({
@@ -97,8 +97,8 @@ function renameNote(moved: number | undefined, from: string, orphanNote: boolean
     if (typeof moved === 'number') {
         if (moved === 0) return msg('mobile.flow.params.renamed_none', 'Renamed. Nothing was pointing at it yet.');
         return moved === 1
-            ? msg('mobile.flow.params.renamed_one', 'Renamed — 1 binding in this routine now points at it.')
-            : msg('mobile.flow.params.renamed_many', 'Renamed — {n} bindings in this routine now point at it.', { n: moved });
+            ? msg('mobile.flow.params.renamed_one', 'Renamed — 1 binding in this automation now points at it.')
+            : msg('mobile.flow.params.renamed_many', 'Renamed — {n} bindings in this automation now point at it.', { n: moved });
     }
     return orphanNote ? msg('mobile.flow.params.renamed_here_only', 'Renamed here only — steps that bind “{name}” still point at the old name.', { name: from }) : null;
 }

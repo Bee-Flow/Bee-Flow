@@ -51,7 +51,7 @@ const VALUE: Record<PostureId, Describe> = {
             ? t('dlp.action_tokenize_label', 'Replace with placeholders')
             : t('dlp.action_block_label', 'Do not send the message'),
     transparency: onOff,
-    routines: onOff,
+    automations: onOff,
     eu: onOff,
     websearch: onOff,
     dlp,
@@ -72,7 +72,7 @@ export function postureLabel(id: PostureId, t: TranslateFn): string {
         case 'sensitivity': return t('admin.shield_posture_sensitivity', 'How strict');
         case 'action': return t('admin.shield_posture_action', 'When we find something');
         case 'transparency': return t('admin.shield_posture_transparency', 'Show what was sent');
-        case 'routines': return t('admin.shield_posture_routines', 'Also covers routines');
+        case 'automations': return t('admin.shield_posture_automations', 'Also covers automations');
         case 'dlp': return t('admin.shield_posture_dlp', 'One last check before an outside AI');
         case 'toolcalls': return t('admin.shield_posture_toolcalls', 'Held back from tools');
         case 'websearch': return t('admin.shield_posture_websearch', 'Web search protection');

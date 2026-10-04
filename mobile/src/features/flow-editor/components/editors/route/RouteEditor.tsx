@@ -37,7 +37,7 @@ function useRouteScope(editor: StepEditorProps, route: Route) {
     const items = route.mode === 'items';
     const element = items ? resolveElementSample(route.source, ctx.sampleRoot) : null;
     const scope = items ? itemScope(element, ctx, t('mobile.flow.route.current_item', 'Current item')) : null;
-    const options = items ? itemFieldOptions(element, t('routines.builder.fields_of_items', 'Fields of each item')) : upstreamFieldOptions(ctx.groups);
+    const options = items ? itemFieldOptions(element, t('automations.builder.fields_of_items', 'Fields of each item')) : upstreamFieldOptions(ctx.groups);
     return { scope, options };
 }
 
@@ -103,7 +103,7 @@ export function RouteEditor(editor: StepEditorProps) {
                     disabled={ctx.disabled}
                 />
             ) : null}
-            <Band editor={editor} sectionKey="rules" title={several ? t('mobile.flow.route.outputs', 'Outputs') : t('routines.ndv.output', 'Output')} defaultOpen>
+            <Band editor={editor} sectionKey="rules" title={several ? t('mobile.flow.route.outputs', 'Outputs') : t('automations.ndv.output', 'Output')} defaultOpen>
                 <OutputsChooser route={route} wired={wired} setRoute={setRoute} disabled={ctx.disabled} />
                 {route.style !== 'value' ? (
                     <RouteAssist

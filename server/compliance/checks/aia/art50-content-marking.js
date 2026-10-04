@@ -2,7 +2,7 @@
  * EU AI Act Art. 50(2) — AI-generated content is marked in a machine-readable
  * format and detectable as artificially generated.
  *
- * Per-source: one subject per routine whose document step (generate_document,
+ * Per-source: one subject per automation whose document step (generate_document,
  * fill_document or presentation) draws on a model (an ai_step /
  * data_extraction / ai_tool upstream — summarize is an aggregate, not AI).
  * The graph reading is automation/automationGraph.js, the same one the AI-Act
@@ -10,7 +10,7 @@
  * what execDocument / execPresentation mark.
  *
  * The verdict is the org's switch: compliance_settings.ai_content_marking_enabled.
- * When it is on, every listed routine passes — documentRenderer prints the
+ * When it is on, every listed automation passes — documentRenderer prints the
  * footer and writes the PDF/DOCX metadata for all of them. When it is off the
  * status follows the calendar: Art. 50 applies since 2 Aug 2026, but content
  * from systems that predate it enjoys a transition until 2 Dec 2026
@@ -100,7 +100,7 @@ module.exports = {
             return {
                 status: 'pass',
                 evidence,
-                details: `AI content marking is on: documents this routine generates carry the visible line and the machine-readable metadata (EU AI Act Art. 50(2)).`,
+                details: `AI content marking is on: documents this automation generates carry the visible line and the machine-readable metadata (EU AI Act Art. 50(2)).`,
             };
         }
         if (days > 0) {
@@ -113,7 +113,7 @@ module.exports = {
         return {
             status: 'fail',
             evidence,
-            details: `AI content marking is off and required since ${formatDeadline(due)}: documents this routine generates from model output are not marked as AI-generated. Switch it on under Compliance → Settings.`,
+            details: `AI content marking is off and required since ${formatDeadline(due)}: documents this automation generates from model output are not marked as AI-generated. Switch it on under Compliance → Settings.`,
         };
     },
 

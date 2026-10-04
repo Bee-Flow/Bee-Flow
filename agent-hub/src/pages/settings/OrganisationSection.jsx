@@ -8,10 +8,12 @@ import GitHubSyncPanel from '../../components/integrations/github/GitHubSyncPane
 import NextcloudSyncPanel from '../../components/integrations/nextcloud/NextcloudSyncPanel';
 import MeetingNotesAdminPanel from '../../components/meetings/MeetingNotesAdminPanel';
 import GoogleMeetAdminPanel from '../../components/meetings/GoogleMeetAdminPanel';
+import TeamsAdminPanel from '../../components/meetings/TeamsAdminPanel';
 import SummaryTemplatesAdminPanel from '../../components/meetings/SummaryTemplatesAdminPanel';
 import OrgNcIntegrationsPanel from '../../components/integrations/nextcloud/OrgNcIntegrationsPanel';
 import OrgNcPairingPanel from '../../components/integrations/nextcloud/OrgNcPairingPanel';
 import GroupAccessMatrix from '../../components/admin/org/GroupAccessMatrix';
+import McpLibraryPage from '../../components/mcpLibrary/McpLibraryPage';
 import Tabs from '../../components/shared/Tabs';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -266,6 +268,11 @@ const OrganisationSection = ({ user, activeSection = 'license', usageInitialRepo
                 </div>
             )}
 
+            {/* MCP library — the organisation's remote MCP servers */}
+            {activeSection === 'mcp' && isOrgAdmin && (
+                <McpLibraryPage isServerAdmin={!!user?.isAdmin || user?.role === 'admin' || perms.includes('all')} />
+            )}
+
             {/* GitHub Sync */}
             {activeSection === 'github_sync' && isOrgAdmin && (
                 <GitHubSyncPanel user={user} />
@@ -278,6 +285,7 @@ const OrganisationSection = ({ user, activeSection = 'license', usageInitialRepo
                     <NextcloudSyncPanel user={user} />
                     <MeetingNotesAdminPanel user={user} />
                     <GoogleMeetAdminPanel user={user} />
+                    <TeamsAdminPanel user={user} />
                 </>
             )}
 

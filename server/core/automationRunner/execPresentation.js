@@ -78,7 +78,7 @@ function resolveSlidesInput(raw, runState, depth = 0) {
 async function execSlide(step, ctx, runState) {
     const title = interpolateTemplate(step.title || '', runState).trim();
     // A list bound into the content becomes bullets rather than JSON — the
-    // one place a routine author would otherwise have to write a loop.
+    // one place an automation author would otherwise have to write a loop.
     const content = interpolateTemplate(step.content || '', runState, { listAsMarkdown: true });
     const notes = interpolateTemplate(step.notes || '', runState).trim();
     const image = interpolateTemplate(step.image || '', runState).trim();
@@ -175,7 +175,7 @@ async function execPresentation(step, ctx, runState, mode) {
     const marking = await resolveDocumentMarking(step, ctx, runState, 'presentation');
 
     // The look the author chose on the node, each field only when set; the
-    // colours, the logo and the footer are templates so a routine can take
+    // colours, the logo and the footer are templates so an automation can take
     // them from a record ("the client's brand").
     const theme = {};
     for (const k of LOOK_CHOICE_FIELDS) if (typeof step[k] === 'string' && step[k]) theme[k] = step[k];
@@ -215,14 +215,14 @@ async function execPresentation(step, ctx, runState, mode) {
 
     // Optionally keep the deck in Studio → Documents as a presentation, so a
     // person can open it in Bee Flow, fix a slide and rebuild it. Off by
-    // default — a nightly routine would otherwise mint a document a day — and
+    // default — a nightly automation would otherwise mint a document a day — and
     // a failure never fails the step: the file already exists.
     let savedCopy = null;
     if (step.saveCopy === true) {
         const copyName = interpolateTemplate(step.copyName || '', runState).trim() || `${title || deck.title || 'Presentation'} — ${new Date().toISOString().slice(0, 10)}`;
         savedCopy = await require('../documents/deckDocument').keepDeckInLibrary({
             userId: ctx.userId, deck: rendered.deck || deck, title: copyName, theme: Object.keys(theme).length ? theme : null,
-            houseStyle: step.houseStyle !== false, source: 'routine', description: `Built by the routine on ${new Date().toISOString().slice(0, 10)}.`,
+            houseStyle: step.houseStyle !== false, source: 'automation', description: `Built by the automation on ${new Date().toISOString().slice(0, 10)}.`,
         });
     }
 

@@ -114,7 +114,7 @@ const GRANTEE_TEXT = 'Invalid granteeType';
 const RESOURCE_TEXT = 'Invalid resourceType';
 const MINE_TEXT = 'mine must be "outgoing" or "incoming"';
 
-const resourceType = () => z.enum(['agent', 'webpage', 'skill', 'routine', 'studio_app'], {
+const resourceType = () => z.enum(['agent', 'webpage', 'skill', 'automation', 'studio_app'], {
     errorMap: () => ({ message: RESOURCE_TEXT }),
 });
 
@@ -514,7 +514,7 @@ router.patch('/:id', requireAuth, writeLimit, validate({ body: PatchBody }), asy
 // Delete — blocked if it backs an active grant unless ?force=1.
 //
 // For an OAuth provider the row is only METADATA: the live tokens sit in
-// routine_credentials. Dropping the row alone left the user connected (and
+// automation_credentials. Dropping the row alone left the user connected (and
 // /status still reporting so), i.e. a delete that deleted nothing. So an owner
 // deleting their own OAuth row also revokes the credential provider-side and
 // clears the live session, exactly like POST /api/integrations/<p>/disconnect.
@@ -533,7 +533,7 @@ router.delete('/:id', requireAuth, writeLimit, validate({ query: DeleteQuery }),
 
         const isOwner = conn.ownerUserId === req.session.user.id;
         const isOAuthRow = conn.kind === 'oauth'
-            && !!store._internals?.OAUTH_ROUTINE_PROVIDERS?.has?.(conn.provider);
+            && !!store._internals?.OAUTH_AUTOMATION_PROVIDERS?.has?.(conn.provider);
         let revoked = false;
         if (isOwner && isOAuthRow) {
             try {

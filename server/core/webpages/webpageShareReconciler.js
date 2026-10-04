@@ -16,7 +16,7 @@
  *
  *   - de retentiesweep verwijdert een rij die te oud is;
  *   - iemand oefent zijn recht op verwijdering uit (DSR) en zijn rij gaat weg;
- *   - een routine wist een rij.
+ *   - een automatisering wist een rij.
  *
  * In alle drie de gevallen is de rij uit de tabel verdwenen en staat hij nog
  * gewoon op de openbare pagina, voor iedereen met het adres, tot de eigenaar

@@ -1,7 +1,7 @@
 /**
  * The last page: what the three steps add up to, before anything is
  * recorded — the web's OutcomeBox, with what Art. 50 still misses, when the
- * routine was last declared, and why a save did not go through.
+ * automation was last declared, and why a save did not go through.
  */
 
 import React from 'react';

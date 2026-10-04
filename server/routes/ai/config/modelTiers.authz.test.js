@@ -2,7 +2,7 @@
  * Who may rewrite the chat model tiers (routes/ai/config/modelTiers.js).
  *
  * `chat_model_tiers` and `chat_model_tiers_eu` are instance-wide: every chat,
- * agent and routine on the install resolves "tier:fast", "tier:thinking" … to
+ * agent and automation on the install resolves "tier:fast", "tier:thinking" … to
  * the model named there, and the EU set is what an org with "EU only" switched
  * on is routed to. Every other write in this file checked isAdminUser; these
  * two only checked requireAuth, so any signed-in member could point the whole

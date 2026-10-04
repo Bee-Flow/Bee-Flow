@@ -97,7 +97,7 @@ test('a Talk bundle goes into its conversation with the line and a link, no run 
     assert.equal(rec.talk[0].message, 'Invoices: 4 more errors in the last hour\nhttps://bee.example/app/studio/automations/a1?view=runs');
 });
 
-test('bundles of a trashed routine are dropped, not sent', async () => {
+test('bundles of a trashed automation are dropped, not sent', async () => {
     const { deps, rec } = env({
         bundles: [{ automationId: 'gone', event: 'onError', recipient: 'owner', channels: ['bell'], count: 1, ids: ['x1'] }],
     });
@@ -117,7 +117,7 @@ test('with a daily summary for that person the bundle waits for it', async () =>
     assert.deepEqual(rec.reported, []);
 });
 
-const DIGEST_ROUTINES = [
+const DIGEST_AUTOMATIONS = [
     { id: 'a1', userId: 'owner', organizationId: 'org1', title: 'Invoices', scheduleTz: 'Europe/Amsterdam',
         notificationSettings: { digest: { enabled: true, time: '17:00' }, onError: { enabled: true, urgency: 'urgent', recipients: [{ type: 'owner' }, { type: 'user', id: 'ann' }] } } },
     { id: 'a2', userId: 'owner', organizationId: 'org1', title: 'Files', scheduleTz: 'Europe/Amsterdam',
@@ -125,9 +125,9 @@ const DIGEST_ROUTINES = [
 ];
 const USERS = [{ id: 'owner', organizationId: 'org1' }, { id: 'ann', organizationId: 'org1' }];
 
-test('the summary: one message per person over their routines, at the local time', async () => {
+test('the summary: one message per person over their automations, at the local time', async () => {
     const { deps, rec } = env({
-        digestAutomations: DIGEST_ROUTINES,
+        digestAutomations: DIGEST_AUTOMATIONS,
         users: USERS,
         stats: { a1: { runs: 12, failures: 1, waiting: 1 }, a2: { runs: 3, failures: 0, waiting: 0 } },
         held: [
@@ -138,15 +138,15 @@ test('the summary: one message per person over their routines, at the local time
     const out = await digestPass(deps, AT_1705);
     assert.equal(out.digests, 2, 'owner and ann');
     const ownerBell = rec.bells.find(b => b.userId === 'owner');
-    assert.equal(ownerBell.title, 'Your routines today: 15 runs, 1 failed, 1 still waiting');
+    assert.equal(ownerBell.title, 'Your automations today: 15 runs, 1 failed, 1 still waiting');
     assert.equal(ownerBell.short, ownerBell.title, 'Nextcloud gets the totals only');
     assert.match(ownerBell.message, /Invoices: 12 runs, 1 failed, 1 waiting/);
     assert.match(ownerBell.message, /Files: 3 runs/);
     const annBell = rec.bells.find(b => b.userId === 'ann');
-    assert.equal(annBell.title, 'Your routines today: 12 runs, 1 failed, 1 still waiting', 'ann only follows Invoices');
+    assert.equal(annBell.title, 'Your automations today: 12 runs, 1 failed, 1 still waiting', 'ann only follows Invoices');
     const mails = rec.mails.filter(m => m.kind === 'digest');
     assert.deepEqual(mails.map(m => m.userId).sort(), ['ann', 'owner']);
-    assert.equal(mails[0].subject, 'Your routines today');
+    assert.equal(mails[0].subject, 'Your automations today');
     assert.match(mails[0].text, /https:\/\/bee\.example\/app\/studio\/automations/);
     assert.ok(rec.rows.every(r => r.event === 'digest'));
     assert.ok(rec.reported.includes('h1') && rec.reported.includes('h2'), 'held rows are reported with the summary');
@@ -154,19 +154,19 @@ test('the summary: one message per person over their routines, at the local time
 });
 
 test('the summary is not sent twice for one slot, nor before its time, nor hours late', async () => {
-    const sent = env({ digestAutomations: DIGEST_ROUTINES, users: USERS, stats: { a1: { runs: 1, failures: 0, waiting: 0 } }, lastDigestAt: '2026-09-28T15:00:30.000Z' });
+    const sent = env({ digestAutomations: DIGEST_AUTOMATIONS, users: USERS, stats: { a1: { runs: 1, failures: 0, waiting: 0 } }, lastDigestAt: '2026-09-28T15:00:30.000Z' });
     assert.equal((await digestPass(sent.deps, AT_1705)).digests, 0);
 
-    const early = env({ digestAutomations: DIGEST_ROUTINES, users: USERS, stats: { a1: { runs: 1, failures: 0, waiting: 0 } } });
+    const early = env({ digestAutomations: DIGEST_AUTOMATIONS, users: USERS, stats: { a1: { runs: 1, failures: 0, waiting: 0 } } });
     const before = await digestPass(early.deps, Date.parse('2026-09-28T14:55:00Z'));
     assert.equal(before.digests, 0, 'yesterday\'s slot is more than the grace ago');
 
-    const late = env({ digestAutomations: DIGEST_ROUTINES, users: USERS, stats: { a1: { runs: 1, failures: 0, waiting: 0 } } });
+    const late = env({ digestAutomations: DIGEST_AUTOMATIONS, users: USERS, stats: { a1: { runs: 1, failures: 0, waiting: 0 } } });
     assert.equal((await digestPass(late.deps, Date.parse('2026-09-28T15:00:00Z') + DIGEST_GRACE_MS + 60_000)).digests, 0);
 });
 
 test('nothing happened: no message, but the slot is marked handled', async () => {
-    const { deps, rec } = env({ digestAutomations: [DIGEST_ROUTINES[1]], users: USERS });
+    const { deps, rec } = env({ digestAutomations: [DIGEST_AUTOMATIONS[1]], users: USERS });
     const out = await digestPass(deps, AT_1705);
     assert.equal(out.digests, 0);
     assert.equal(rec.bells.length + rec.mails.length, 0);
@@ -174,13 +174,13 @@ test('nothing happened: no message, but the slot is marked handled', async () =>
 });
 
 test('a summary is personal: it never goes to Talk', async () => {
-    const { deps, rec } = env({ digestAutomations: DIGEST_ROUTINES, users: USERS, stats: { a1: { runs: 5, failures: 2, waiting: 0 } } });
+    const { deps, rec } = env({ digestAutomations: DIGEST_AUTOMATIONS, users: USERS, stats: { a1: { runs: 5, failures: 2, waiting: 0 } } });
     await digestPass(deps, AT_1705);
     assert.equal(rec.talk.length, 0);
 });
 
 test('one failing part never ends the pass', async () => {
-    const { deps, rec } = env({ digestAutomations: DIGEST_ROUTINES, users: USERS, stats: { a1: { runs: 5, failures: 0, waiting: 0 } } });
+    const { deps, rec } = env({ digestAutomations: DIGEST_AUTOMATIONS, users: USERS, stats: { a1: { runs: 5, failures: 0, waiting: 0 } } });
     deps.events.listPendingBundles = async () => { throw new Error('db down'); };
     const out = await digestPass(deps, AT_1705);
     assert.equal(out.bundles, 0);

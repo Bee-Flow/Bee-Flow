@@ -86,7 +86,7 @@ test('every call is checked again as it runs: role, container, organisation, not
 test('any other tool name is refused, whatever the model says', async () => {
     const { tools, calls } = kit();
     const run = tools.forAnswer(ask);
-    for (const name of ['send_email', 'create_routine', 'web_search', 'memory_remember', 'document_write', '__proto__', '']) {
+    for (const name of ['send_email', 'create_automation', 'web_search', 'memory_remember', 'document_write', '__proto__', '']) {
         const out = JSON.parse(await run.execute(name, { name: 'x' }));
         assert.strictEqual(out.ok, false, name);
         assert.match(out.error, /not available in a team chat/);

@@ -20,6 +20,7 @@ import {
 } from './upstream';
 import { getLayerContract } from '../flow/flowletScope';
 import { reconcileRouteEdges } from '../flow/routeEdges';
+import { isDiagnosticOutputKey } from '../flow/stepPayload';
 
 // ── small pure helpers (exported for tests) ───────────────────────────────
 
@@ -104,13 +105,36 @@ function bestCandidate(key, propType, candidates, used) {
 
 const ARRAY_NAME_RE = /items|results|rows|records|data|list|messages|emails|events|files|entries/i;
 
+/**
+ * The fields of one group that may serve as a list source.
+ *
+ * A Code step's output is `{ result, logs, httpCalls }`: `logs` and
+ * `httpCalls` are diagnostics, so they are never a candidate (a lone `logs`
+ * array used to be picked, binding "Fields added to each row" to an empty
+ * list). What the code RETURNED is: `result` itself when it is an array, or an
+ * array one level inside it (`result.lines`) when it is an object.
+ */
+function listCandidateFields(group) {
+    // A per-iteration column is an array only because it has one entry per
+    // iteration — "loop over the counts an earlier loop produced" is never
+    // what the author meant, so it is not a candidate source (BFSF-369).
+    const fields = (group.fields || []).filter(f => !f.perIteration);
+    if (group.kind !== 'code') return fields;
+    const out = [];
+    for (const f of fields) {
+        if (isDiagnosticOutputKey(group.kind, f.key)) continue;
+        out.push(f);
+        if (f.key === 'result' && !Array.isArray(f.sample)) {
+            for (const c of (f.children || [])) out.push(c);
+        }
+    }
+    return out;
+}
+
 /** Nearest upstream array-typed field path (for loop/filter overRef/arrayRef). */
 export function nearestArrayRef(groups) {
     for (let gi = (groups || []).length - 1; gi >= 0; gi--) {
-        // A per-iteration column is an array only because it has one entry per
-        // iteration — "loop over the counts an earlier loop produced" is never
-        // what the author meant, so it is not a candidate source (BFSF-369).
-        const fields = (groups[gi].fields || []).filter(f => !f.perIteration);
+        const fields = listCandidateFields(groups[gi]);
         const preferred = fields.find(f => sampleType(f.sample) === 'array' && ARRAY_NAME_RE.test(f.key));
         if (preferred) return preferred.path;
         const anyArr = fields.find(f => sampleType(f.sample) === 'array');

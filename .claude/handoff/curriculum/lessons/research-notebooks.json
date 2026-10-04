@@ -154,8 +154,8 @@
           {
             "id": "members",
             "left": "Give a colleague their own way in to this material",
-            "right": "File it into a Project, then Members → Invite",
-            "note": "A notebook has no Members tab of its own. The project Owner invites a User or Group as Viewer or Editor; Activity logs it, and Danger deletes the project, not your notebook."
+            "right": "File it into a Project, then invite on Members",
+            "note": "A notebook has no members of its own. The project owner invites a person or a group as Viewer or Editor; Activity logs it, and deleting the project leaves your notebook with you."
           }
         ]
       }
@@ -165,14 +165,14 @@
       "id": "private",
       "icon": "🔒",
       "title": "Who else can read this notebook?",
-      "bodyMd": "On its own, a notebook is a room with one door and you hold the key. The Notebooks page lists **your own notebooks only**, and every notebook route checks the owner — hand a colleague the link and they get **\"Notebook not found\"**, not a permission prompt. There is nothing to request, because a notebook has no **Members** tab of its own.\n\nThere is exactly one way to widen that door: **file the notebook into a Project**. A project's **Content** tab (*\"In this project\"*) has a **Notebooks** section with **Add existing**. Filing in and taking back out is the notebook owner's act alone — nobody can pull your notebook into their project. Take it out again and it is yours alone again.\n\nSo Bart keeps the Staal BV quote to himself until he deliberately files it into the **Inkoop Van Dijk Groep** project."
+      "bodyMd": "On its own, a notebook is a room with one door and you hold the key. The Notebooks page lists **your own notebooks only**, and every notebook route checks the owner — hand a colleague the link and they get **\"Notebook not found\"**, not a permission prompt. There is nothing to request, because a notebook has no **Members** tab of its own.\n\nThere is exactly one way to widen that door: **file the notebook into a Project**. A project's **Notebooks** section has **Add existing**, which picks *from your own notebooks* — nobody can pull your notebook into their project, and you need to be an editor there to file it in. **Remove from project** takes it back out (you or the project owner can): it stays with you, and members no longer see it.\n\nSo Bart keeps the Staal BV quote to himself until he deliberately files it into the **Inkoop Van Dijk Groep** project."
     },
     {
       "type": "slide",
       "id": "project-tabs",
       "icon": "👥",
-      "title": "Members, Activity, Danger — the three tabs that decide the rest",
-      "bodyMd": "Once the notebook is filed, the project's own tabs govern it. A project opens on **General**, **Chats**, **Content**, **Knowledge**, **Members**, **Activity**, **Memory** and **Danger** — and the tab is part of the address, so \"look at Members\" is a link, not instructions.\n\n- **Members** — only the project **Owner** sees **Invite Member**: pick **User** or **Group**, then **Viewer** or **Editor**. The line under it is the rule: *\"Editors can update project settings and KBs. Viewers can read and chat in the project.\"* For the filed notebook that means a Viewer reads it and an Editor may also write in its document.\n- **Activity** — the ledger: *\"Bart invited Nadia as editor\"*, *\"changed Joost's role from viewer to editor\"*, *\"left the project\"*. Empty, it says **\"No activity yet.\"**\n- **Danger** — Owner-only, and it holds one button: **Delete Project**, warning *\"Conversations will be unassigned but not deleted. Members and activity history will be removed.\"* Your filed notebook is handed back detached, not deleted."
+      "title": "Members, Activity, Settings — the three sections that decide the rest",
+      "bodyMd": "Once the notebook is filed, the project governs who reads it. A project has a rail down its left side — Overview, Chats, Tasks, Meetings, Documents, Notebooks, Knowledge, Members, Activity, Settings — and the section is part of the address, so \"look at Members\" is a link, not instructions.\n\n- **Members** — only the project **Owner** sees **Invite people**: choose **Person** or **Group**, then **Editor** or **Viewer**. For the filed notebook the rule is short: *\"Everyone in the project can read it; editors can write in it.\"*\n- **Activity** — the ledger: *\"Bart invited Nadia as editor\"*, *\"Bart changed the role of Joost to editor\"*, *\"Joost left the project\"*.\n- **Settings** — at the bottom, the owner's **Delete this project**, which warns: *\"Documents, notebooks, meetings and private chats stay with the people who made them.\"* Your filed notebook comes back to you, not deleted."
     },
     {
       "type": "sim",
@@ -186,19 +186,19 @@
           {
             "id": "viewer",
             "left": "Nadia must be able to read the briefing while Bart is away, but change nothing",
-            "right": "Members → Invite Member → Viewer",
-            "note": "\"Viewers can read and chat in the project.\" An Editor could also write in the notebook's document; a Viewer cannot."
+            "right": "Members → Invite people → Viewer",
+            "note": "A Viewer \"reads everything in the project, changes nothing.\" An Editor could also write in the notebook; a Viewer cannot."
           },
           {
             "id": "audit",
             "left": "Find out who gave Joost editor rights last month, and when",
-            "right": "The Activity tab",
+            "right": "Activity, in the project's rail",
             "note": "Every membership change is logged there — invited, removed, and \"changed Joost's role from viewer to editor\"."
           },
           {
             "id": "winddown",
             "left": "Wind the project up now that the supplier is chosen, but keep the notebook",
-            "right": "Danger → Delete Project",
+            "right": "Settings → Delete this project",
             "note": "Owner-only. Conversations are unassigned, members and activity history are removed, and filed items like your notebook are handed back detached."
           },
           {
@@ -232,7 +232,7 @@
           "id": "c",
           "label": "A request-access prompt she can send to Bart.",
           "correct": false,
-          "feedback": "There is nothing to approve: a notebook has no Members tab of its own, so there is no role to grant. Granting access means filing it into a project and inviting her there."
+          "feedback": "There is nothing to approve: a notebook has no members of its own, so there is no role to grant. Granting access means filing it into a project and inviting her there."
         },
         {
           "id": "d",
@@ -241,7 +241,7 @@
           "feedback": "Access is not partial. It is your notebook or it is \"Notebook not found\" — the sources are not separately shareable either."
         }
       ],
-      "explanation": "A standalone notebook has one owner and no Members, Activity or Danger tab. Access is granted by filing it into a Project: the project's Owner invites a User or Group as Viewer or Editor on the Members tab, Activity records that change, and the owner-only Danger tab deletes the project without deleting the notebook."
+      "explanation": "A standalone notebook has one owner and no members of its own. Access is granted by filing it into a Project: the project's Owner invites a person or a group as Viewer or Editor on Members, Activity records that change, and deleting the project, which only its owner can do, leaves the notebook with you."
     },
     {
       "type": "slide",
@@ -311,7 +311,7 @@
       "id": "done",
       "icon": "✅",
       "title": "What you can do now",
-      "bodyMd": "- **Build a notebook from mixed material** — File, URL, Text and meeting Notes side by side, and read the row stages instead of guessing when they are usable.\n- **Ask across your sources and keep the evidence** — wait for \"All {n} sources ready\", ask one sharp question, check the citation chips, then **Insert** the answer and name its source in the sentence you keep.\n- **Let the sources do the typing** — `{{parameters}}` plus **AI fill** in the notebook, or a .docx **Template** with **Fill with AI** when the layout must stay the same every time. And **Command palette (⌘K)** when you cannot find the button.\n- **Decide who can read it** — a standalone notebook is yours alone (\"Notebook not found\" for anyone else). File it into a **Project** and its **Members** tab grants a User or Group **Viewer** (read) or **Editor** (read and write the document), **Activity** logs every change, and the owner-only **Danger** tab deletes the project while handing your notebook back.\n- **Hand it over safely** — **Download as PDF** or **Word**, restore from the newest 200 versions when a rewrite goes wrong, and remember that deleting a notebook takes its sources, its history and its chat with it.\n\nNext chapter: what to do when one assistant is not enough."
+      "bodyMd": "- **Build a notebook from mixed material** — File, URL, Text and meeting Notes side by side, and read the row stages instead of guessing when they are usable.\n- **Ask across your sources and keep the evidence** — wait for \"All {n} sources ready\", ask one sharp question, check the citation chips, then **Insert** the answer and name its source in the sentence you keep.\n- **Let the sources do the typing** — `{{parameters}}` plus **AI fill** in the notebook, or a .docx **Template** with **Fill with AI** when the layout must stay the same every time. And **Command palette (⌘K)** when you cannot find the button.\n- **Decide who can read it** — a standalone notebook is yours alone (\"Notebook not found\" for anyone else). File it into a **Project** and its **Members** section grants a person or a group **Viewer** (read) or **Editor** (read and write), **Activity** logs every change, and the owner's **Delete this project** under **Settings** hands your notebook back.\n- **Hand it over safely** — **Download as PDF** or **Word**, restore from the newest 200 versions when a rewrite goes wrong, and remember that deleting a notebook takes its sources, its history and its chat with it.\n\nNext chapter: what to do when one assistant is not enough."
     }
   ],
   "rubrics": {
@@ -338,8 +338,8 @@
       "Each assistant answer in AI Chat has an Insert button (\"Insert into document\"); the citation chips stay in the chat panel and open the cited passage when clicked. Selecting text offers Ask AI, Rewrite, Shorten and Expand.",
       "AI fill fills every {{parameter}} in the document from the notebook's sources, answering \"No {{parameters}} found in the document to fill.\" or \"AI Fill returned no content. Please try again.\"; Templates hold .docx layouts with {{parameters}}, filled via Fill with AI and Generate Document.",
       "Export offers Download as PDF and Download as Word, plus Send for signing and Save to Nextcloud once configured; version history keeps the newest 200 auto-snapshots; deleting a notebook also deletes its sources, its version history and its chat.",
-      "A standalone notebook is owner-only — the list returns only your own and a stranger's link answers \"Notebook not found\". Filing it into a Project widens it: Content → Notebooks → Add existing, the notebook owner's act alone.",
-      "Project tabs are General, Chats, Content, Knowledge, Members, Activity, Memory and Danger. Only the Owner sees Invite Member (User or Group; Viewer or Editor) and the Danger tab, whose Delete Project unassigns conversations, removes members and activity history, and detaches filed notebooks."
+      "A standalone notebook is owner-only — the list returns only your own and a stranger's link answers \"Notebook not found\". Filing it into a Project widens it: Notebooks → Add existing, which picks only from your own notebooks.",
+      "A project's rail runs Overview, Chats, Tasks, Meetings, Documents, Notebooks, Knowledge, Members, Activity and Settings. Only the Owner invites people (a person or a group, as Editor or Viewer) and deletes the project; deleting it leaves filed notebooks with their owners."
     ]
   },
   "actionChecks": [

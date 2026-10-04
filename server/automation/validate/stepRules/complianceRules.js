@@ -2,9 +2,9 @@
  * The compliance findings a DEFINITION can justify on its own, said on the
  * step that causes them — on the canvas, while the author is still building.
  *
- * Until now every compliance finding about a routine lived in an admin report
+ * Until now every compliance finding about an automation lived in an admin report
  * produced by a six-hourly sweep. The person who creates the problem is the
- * person building the routine, and they never saw it. These two rules move the
+ * person building the automation, and they never saw it. These two rules move the
  * subset that needs no database into the builder, where it is still cheap to
  * fix.
  *
@@ -34,7 +34,7 @@
  *     one that writes to a table with none are the same six lines of JSON.
  *   - A FORM PAGE'S OWN FIELDS. `form_page.form` has its own declaration
  *     contract (automation/formTriggerContract.js) and is where a visitor's
- *     name and e-mail enter the routine, but nothing downstream is named by it
+ *     name and e-mail enter the automation, but nothing downstream is named by it
  *     until it is bound — and a binding IS caught, by its path.
  *
  * VOCABULARY, IMPORTED RATHER THAN RESTATED — the lesson of the snake_case
@@ -48,11 +48,11 @@
  *     answers `role` ('exit' | 'shield' | 'model' | 'store' | 'step') and, for
  *     an exit, the DESTINATION as a word a person recognises. It is the
  *     product's one reading of "does personal data leave through this
- *     routine", built for the compliance review and the GDPR checks, and it
+ *     automation", built for the compliance review and the GDPR checks, and it
  *     already hangs on `sideEffectMap.effectOf` underneath — so a step type or
  *     a tool added there reaches the canvas with it. A private outbound list
  *     here would mean the builder and the compliance report could disagree
- *     about whether a routine sends anything, which is the split `dataFlow`
+ *     about whether an automation sends anything, which is the split `dataFlow`
  *     was written to close.
  *   - WHICH STEPS HAND WORK TO A MODEL — `automation/automationGraph.AI_STEP_TYPES`,
  *     and NOT `dataFlow.MODEL_TYPES`, which is the one place the two readings
@@ -65,7 +65,7 @@
  *     using it here would put "this step hands data to a model" on a step that
  *     counts rows. Worth fixing there; not from inside the validator.
  *
- * WARNINGS, NEVER ERRORS, at every stage. A half-built routine has to stay
+ * WARNINGS, NEVER ERRORS, at every stage. A half-built automation has to stay
  * saveable: the canvas holds a node the stored definition does not the moment a
  * save 400s, and the next action fails with `runPartial: step … not found in
  * definition`. Neither code is a completeness code either, so neither gates
@@ -86,7 +86,7 @@ const AI_TYPES = new Set(AI_STEP_TYPES);
  * added there is either taken or consciously rejected here.
  *
  * `untokenize` is the one shape dropped: a reveal puts the real values BACK,
- * so counting it would silence this warning on precisely the routine that
+ * so counting it would silence this warning on precisely the automation that
  * re-personalises its data before handing it to a model. The reverse case — a
  * reveal with nothing that ever hid — already has its own rule
  * (`untokenize.no_hide_step`, validate/definition.js).
@@ -132,7 +132,7 @@ const MAX_NAMED = 4;
  *
  * `kindFromName`'s patterns are word-anchored (`\b(name|naam|…)\b`), which is
  * right for a datatable column ("Full name", `email`) and wrong for the two
- * spellings a routine's own fields actually use: in `customer_name` the
+ * spellings an automation's own fields actually use: in `customer_name` the
  * underscore is a word character and in `customerName` the camel hump is one,
  * so neither has the boundary `\bname\b` needs and BOTH came back clean. The
  * detector stays the only judge of what a name means; this only hands it the
@@ -269,11 +269,11 @@ function exitDestination(step) {
  * Is there a Privacy Shield IN FRONT OF this step?
  *
  * In front of, not merely present. A shield placed after the model guards
- * nothing that came before it, and "any shield anywhere" is how a routine
+ * nothing that came before it, and "any shield anywhere" is how an automation
  * could silence the review's own finding by moving the shield to the end
  * (`dataFlow`'s header names that bug). Position is read from the written
  * order of the steps, in pre-order through loop bodies and parallel branches —
- * the order a linear routine runs in, and the authoring order otherwise, which
+ * the order a linear automation runs in, and the authoring order otherwise, which
  * is the most the definition honestly says. It is therefore read
  * CONSERVATIVELY: only a shield that is definitely earlier counts against the
  * warning, never one that is definitely later counted for it.
@@ -284,14 +284,14 @@ function shieldPrecedes(graph, target) {
     // Everything after the target is irrelevant — a shield found there can only
     // be LATER, which never satisfies "in front of". Stopping there is what
     // keeps this off the hot path: without it the walk is the whole graph for
-    // every model step, and a routine that is half model steps pays for it on
+    // every model step, and an automation that is half model steps pays for it on
     // every keystroke.
     const walk = (steps) => {
         for (const s of (Array.isArray(steps) ? steps : [])) {
             if (reachedTarget) return;
             if (!isObject(s)) continue;
             if (s === target) { reachedTarget = true; return; }
-            // A Step or a flowlet this routine only CALLS may carry the shield
+            // A Step or a flowlet this automation only CALLS may carry the shield
             // inside it, and a step-level rule cannot look in. Count it as one
             // rather than tell an author their guard does not exist — the same
             // call `untokenize.no_hide_step`'s docblock makes.

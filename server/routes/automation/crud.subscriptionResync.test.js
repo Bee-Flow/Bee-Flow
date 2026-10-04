@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * A12 — definition saves on an ACTIVE app_event routine must not reset the
+ * A12 — definition saves on an ACTIVE app_event automation must not reset the
  * subscription cursor.
  *
  * Two layers under test:
@@ -156,7 +156,7 @@ test('legacy prior rows (triggerStepId null) still match by provider+event', asy
     assert.strictEqual(subscriptionCalls[0].lastCursor, 'history-12345');
 });
 
-test('handoff 5: on a routine with a LIVE version a save changes only the working copy', async () => {
+test('handoff 5: on an automation with a LIVE version a save changes only the working copy', async () => {
     // The live definition keeps the triggers: no re-sync, no column moves,
     // however much the working copy's trigger config changed.
     seed(gmailDef(null));

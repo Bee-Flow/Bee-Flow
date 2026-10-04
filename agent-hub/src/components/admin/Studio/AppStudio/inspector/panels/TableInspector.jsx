@@ -36,7 +36,7 @@ export default function TableInspector({ node, definition, onCommit, disabled = 
                 value={props.source}
                 onChange={(v) => patch({ source: v })}
                 definition={definition}
-                hint="An array of objects — usually a routine result."
+                hint="An array of objects — usually an automation result."
                 placeholder='[{"title":"…"}]'
                 disabled={disabled}
             />

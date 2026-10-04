@@ -1,7 +1,7 @@
 /**
  * "Which button, in which screen, of which app" — resolved FOR ONE VIEWER.
  *
- * A routine made from a button in App Studio stores a back-pointer on its
+ * An automation made from a button in App Studio stores a back-pointer on its
  * trigger (`trigger.appRef`, shape in automation/appTriggerContract.js). The
  * builder wants to show it as a breadcrumb — App › Screen › button — and the
  * trigger card wants to name the app and the screen.
@@ -16,7 +16,7 @@
  *                 lands on 403 is worse than no link — so the id is shown
  *                 instead, which is honest and useless to anyone else.
  *   *_missing     the app, the screen or the button is gone. This is NOT "no
- *                 trigger": the routine still fires from an app action that no
+ *                 trigger": the automation still fires from an app action that no
  *                 longer has a button, and the card has to say so rather than
  *                 quietly rendering a bare "Studio App trigger".
  *
@@ -132,14 +132,14 @@ function describeAppRef({ app = null, ref = null, viewerUserId = null } = {}) {
 }
 
 /**
- * ── WHO a routine made from a button belongs to ────────────────────────────
+ * ── WHO an automation made from a button belongs to ────────────────────────────
  *
- * "New one from this button" mints a routine whose whole reason to exist is
+ * "New one from this button" mints an automation whose whole reason to exist is
  * that ONE app action runs it. The app action runs it ACTS-AS-OWNER: the
  * bridge (actionExecutor/automationBridge.js) refuses outright when the
- * routine's owner is not the app's owner, and a webpage bridge does the same.
- * So the owner of the new routine is not a detail — it decides whose
- * permissions the routine will run with.
+ * automation's owner is not the app's owner, and a webpage bridge does the same.
+ * So the owner of the new automation is not a detail — it decides whose
+ * permissions the automation will run with.
  *
  * Two ways to get that wrong, and both have to be refused:
  *
@@ -148,11 +148,11 @@ function describeAppRef({ app = null, ref = null, viewerUserId = null } = {}) {
  *   says so until somebody presses it.
  *
  *   under the APP OWNER while somebody else is clicking — worse: the clicker
- *   has just authored a routine that runs with the owner's permissions. That
+ *   has just authored an automation that runs with the owner's permissions. That
  *   is the leak this programme already found at O3 and A2.
  *
  * So the only case that may proceed is the one where those two are the SAME
- * person, and the routine is stamped with the app owner's id — the same value
+ * person, and the automation is stamped with the app owner's id — the same value
  * either way, written from the app row so the rule is visible in the code
  * rather than assumed.
  *
@@ -165,10 +165,10 @@ function describeAppRef({ app = null, ref = null, viewerUserId = null } = {}) {
  */
 
 const OWNER_REFUSALS = Object.freeze({
-    actor_unknown: 'It is not clear who is asking, so no routine was made.',
-    app_unknown: 'The app this button belongs to could not be read, so there is no owner to make the routine under. Try again, or make the routine from the Routines screen.',
-    owner_unknown: 'The app this button belongs to names no owner, so there is nobody to make the routine under.',
-    owner_mismatch: 'This app belongs to somebody else. A routine made here would run with the app owner\'s permissions, so only the owner can make one from this button.',
+    actor_unknown: 'It is not clear who is asking, so no automation was made.',
+    app_unknown: 'The app this button belongs to could not be read, so there is no owner to make the automation under. Try again, or make the automation from the Automations screen.',
+    owner_unknown: 'The app this button belongs to names no owner, so there is nobody to make the automation under.',
+    owner_mismatch: 'This app belongs to somebody else. An automation made here would run with the app owner\'s permissions, so only the owner can make one from this button.',
 });
 
 /**

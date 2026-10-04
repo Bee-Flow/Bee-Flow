@@ -28,7 +28,7 @@ import type { LucideIcon } from 'lucide-react';
  * visual treatment.
  *
  * That sentence was aspirational until 2026-09-06: RunTabContainer (the node
- * inspector's Run tab) and RoutinesStudio/RoutineRow (the sidebar status dot)
+ * inspector's Run tab) and AutomationsStudio/AutomationRow (the sidebar status dot)
  * each kept a private emerald/amber/red ladder, and the node inspector printed
  * a raw `awaiting_approval` at the user.
  *
@@ -250,7 +250,7 @@ export const STATUS_TOKENS: Record<StatusKey, StatusToken> = {
         labelEn: 'Waiting for a form',
     },
     // A step that did not run because it is switched off — a configuration
-    // fact, and never a reason to colour a routine. Also the landing place
+    // fact, and never a reason to colour an automation. Also the landing place
     // for a skip whose reason cannot be recovered: grey claims less.
     skipped: {
         solid: NEUTRAL_SOLID,
@@ -412,13 +412,13 @@ export function statusLabel(
  *
  *   configured  the step never ran because someone switched it off. A
  *               configuration fact. Grey, always: colouring it would put
- *               every routine that has one disabled node permanently on
+ *               every automation that has one disabled node permanently on
  *               amber, and a warning that is always on is not a warning.
  *   no_work     the step ran and had nothing to do — an empty summary, a
  *               source list that did not resolve, a column that is not
  *               there. An OUTCOME, and the one the run view should show in
  *               amber: it used to pass as a green success with an empty
- *               result, which is how a routine could report "done" for
+ *               result, which is how an automation could report "done" for
  *               weeks while writing nothing.
  *   pinned      not a skip at all in the UI — the step was replaced by
  *               frozen data and gets its own status. Listed so this table

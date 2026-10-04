@@ -4,11 +4,11 @@ import { isAgentCallable } from './skillModel';
 
 /**
  * The four lists every picker in the skill editor needs, fetched ONCE per
- * open detail: the org's groups (for the visibility capsule), the routines
+ * open detail: the org's groups (for the visibility capsule), the automations
  * an agent can call, the knowledge bases and the datatables.
  *
  * ── THREE ANSWERS PER LIST, NOT TWO ─────────────────────────────────
- * Each read stays independent: a routines list that falls over must not take
+ * Each read stays independent: a automations list that falls over must not take
  * the whole editor down while somebody is writing a step. But "it fell over"
  * is not the same answer as "there are none", and this used to return `[]`
  * for both — so a picker said "nothing else to link" about a list it had
@@ -26,9 +26,9 @@ import { isAgentCallable } from './skillModel';
  * 500 on /api/automation left "could not be read" standing until the skill was
  * closed and reopened, which is a poor answer to a blip.
  *
- * The routines list is filtered to `agent_call` triggers on the way in
+ * The automations list is filtered to `agent_call` triggers on the way in
  * (`skillModel.isAgentCallable`): "may use" means "offered as a tool", and
- * the runtime dispatches nothing else. A routine with no trigger info is
+ * the runtime dispatches nothing else. An automation with no trigger info is
  * NOT offered — failing closed here costs one entry in a picker; failing
  * open costs a promise the runtime cannot keep.
  */

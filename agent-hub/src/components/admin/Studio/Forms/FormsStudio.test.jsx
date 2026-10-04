@@ -13,7 +13,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
  *      shape is a failed read);
  *   2. the header count is only ever rendered from a list that arrived;
  *   3. `mine` is checked for TRUE — an absent field is not permission to open
- *      somebody else's routine;
+ *      somebody else's automation;
  *   4. an absent `live` gets its own pill instead of "Live" or "Not live".
  */
 
@@ -50,7 +50,7 @@ vi.mock('../../../automation/Builder/flow/settings/FormBuilderFields', () => ({
     defaultFormDeclaration: () => ({ title: 'New form', fields: [{ name: 'q1' }] }),
 }));
 
-import FormsStudio, { canOpenRoutine, formLiveness, publicFormPath, readFormsPayload } from './FormsStudio';
+import FormsStudio, { canOpenAutomation, formLiveness, publicFormPath, readFormsPayload } from './FormsStudio';
 import { takeSeed } from '../studioAi/handoff';
 
 const TOKEN = 'a'.repeat(48);
@@ -109,18 +109,18 @@ describe('publicFormPath — the token is a credential, so the path is checked',
     });
 });
 
-describe('canOpenRoutine — TRUE, never "not false"', () => {
-    it('opens only for the owner of the routine behind the form', () => {
-        expect(canOpenRoutine(form({ mine: true }))).toBe(true);
-        expect(canOpenRoutine(form({ mine: false }))).toBe(false);
+describe('canOpenAutomation — TRUE, never "not false"', () => {
+    it('opens only for the owner of the automation behind the form', () => {
+        expect(canOpenAutomation(form({ mine: true }))).toBe(true);
+        expect(canOpenAutomation(form({ mine: false }))).toBe(false);
         // The failure this pins: /api/automation/:id is still per-user, so an
-        // absent or stringly-typed `mine` must not open a colleague's routine.
-        expect(canOpenRoutine(form({ mine: undefined }))).toBe(false);
-        expect(canOpenRoutine(form({ mine: 'yes' }))).toBe(false);
-        expect(canOpenRoutine(form({ mine: 1 }))).toBe(false);
-        expect(canOpenRoutine({})).toBe(false);
+        // absent or stringly-typed `mine` must not open a colleague's automation.
+        expect(canOpenAutomation(form({ mine: undefined }))).toBe(false);
+        expect(canOpenAutomation(form({ mine: 'yes' }))).toBe(false);
+        expect(canOpenAutomation(form({ mine: 1 }))).toBe(false);
+        expect(canOpenAutomation({})).toBe(false);
         // Mine, but nothing to open.
-        expect(canOpenRoutine(form({ mine: true, automationId: null }))).toBe(false);
+        expect(canOpenAutomation(form({ mine: true, automationId: null }))).toBe(false);
     });
 });
 
@@ -174,7 +174,7 @@ describe('<FormsStudio>', () => {
         expect(pill.textContent).toBe('Status unknown');
     });
 
-    it('offers "open the routine" only to the owner, and says so on the others', async () => {
+    it('offers "open the automation" only to the owner, and says so on the others', async () => {
         listOrgForms.mockResolvedValue({
             forms: [
                 form({ id: '1'.repeat(48), title: 'Mine', mine: true }),
@@ -187,9 +187,9 @@ describe('<FormsStudio>', () => {
         await screen.findByTestId('forms-list');
         // One button for three rows: the owner's. `mine: undefined` is NOT a
         // door — the automation endpoints would 403 it.
-        expect(screen.getAllByTestId('form-open-routine')).toHaveLength(1);
+        expect(screen.getAllByTestId('form-open-automation')).toHaveLength(1);
         expect(screen.getAllByTestId('form-not-mine')).toHaveLength(2);
-        fireEvent.click(screen.getByTestId('form-open-routine'));
+        fireEvent.click(screen.getByTestId('form-open-automation'));
         // An AUTOMATION id in the URL, never the page token.
         expect(onNavigate).toHaveBeenCalledWith('studio/automations/au1');
         expect(onNavigate.mock.calls.flat().join(' ')).not.toContain('1'.repeat(48));
@@ -263,7 +263,7 @@ describe('<FormsStudio> — an empty list and a failed read are different screen
         expect(screen.queryByTestId('forms-error')).toBeNull();
     });
 
-    it('"New form" opens the dialog; "Collect answers in a table" creates a collecting form routine and lands on the Form page', async () => {
+    it('"New form" opens the dialog; "Collect answers in a table" creates a collecting form automation and lands on the Form page', async () => {
         listOrgForms.mockResolvedValue({ forms: [] });
         fetchMock.mockResolvedValue({ ok: true, json: async () => ({ automation: { id: 'au-form' }, answers: { datatableId: 'tbl_a', created: true } }) });
         const onNavigate = vi.fn();
@@ -310,7 +310,7 @@ describe('<FormsStudio> — an empty list and a failed read are different screen
         expect(takeSeed('form:au-form')).toBe(null);
     });
 
-    it('"Form that starts a routine" creates the routine without a table and opens the builder', async () => {
+    it('"Form that starts an automation" creates the automation without a table and opens the builder', async () => {
         listOrgForms.mockResolvedValue({ forms: [] });
         fetchMock.mockResolvedValue({ ok: true, json: async () => ({ automation: { id: 'au-form' } }) });
         const onNavigate = vi.fn();
@@ -378,12 +378,12 @@ describe('the copy matches what the server actually allows', () => {
 //
 // A row opens the Form page for its owner and for a colleague the answers
 // TABLE is shared with (`answers.grade`), never for anyone else. The page is
-// addressed by the ROUTINE id — the token never travels.
+// addressed by the AUTOMATION id — the token never travels.
 vi.mock('./FormPage', () => ({
     default: ({ form, tab }) => <div data-testid="form-page-stub" data-form={form.automationId} data-tab={tab || ''} />,
 }));
 
-describe('<FormsStudio> — rows open the Form page by the routine id, by grade', () => {
+describe('<FormsStudio> — rows open the Form page by the automation id, by grade', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         cleanup();

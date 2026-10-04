@@ -15,7 +15,7 @@ function parseProposal(doc, raw, mode) {
     if (mode !== 'applicability') {
         if (mode !== 'design' && typeof raw.bodyHtml === 'string') patch.bodyHtml = raw.bodyHtml;
         // A presentation has no stylesheet; its look is the deck overrides
-        // (validated like a routine's), layered on the house style.
+        // (validated like an automation's), layered on the house style.
         if (typeof raw.css === 'string' && !isDeck(doc)) patch.css = raw.css;
         patch.settings = { ...doc.settings };
         if (raw.design && typeof raw.design === 'object') {

@@ -37,7 +37,7 @@
  *                    step poller), the same way a manual run is followed
  *   dryrun        — { run, steps } — the finished dry run, every step row
  *   finalized     — { automationId }
- *   metadata      — { automationId, title, description } — the routine's name
+ *   metadata      — { automationId, title, description } — the automation's name
  *                    changed: after every accepted builder_set_metadata, and
  *                    after the server named an untitled draft itself
  *                    (builderTools/deriveTitle.js, at finalize / auto-finalize
@@ -114,7 +114,7 @@ const text = (message) => worded(message).max(200, message);
 const TurnBody = bodyOf({
     message: worded('message is the text of your turn.').nullish(),
     builderSessionId: text('builderSessionId is the id the previous turn handed back.').nullish(),
-    automationId: text('automationId is the id of the routine being built.').nullish(),
+    automationId: text('automationId is the id of the automation being built.').nullish(),
     modelTier: text('modelTier is the name of a model tier.').nullish(),
     alwaysPlanLarge: flag('alwaysPlanLarge is true or false.').optional(),
     pauseAfterStep: flag('pauseAfterStep is true or false.').optional(),
@@ -194,12 +194,12 @@ function stopSentence(stop, def) {
 
 // Catalog ORDERING for profiles that ask for it — see
 // automation/builderPrompt/rankApps.js. It used to be a catalog FILTER, and
-// that is what put `nextcloud_calendar_list` into an invoice routine:
+// that is what put `nextcloud_calendar_list` into an invoice automation:
 //
 //   - the substring matcher returned true for all 17 apps (every app id
 //     contains "nextcloud"; stop words like "the" match some description
 //     everywhere), so `.slice(0, 8)` kept the first eight in REGISTRY order —
-//     memory, routine-evolution, kb-ingest, nextcloud, calendar, contacts,
+//     memory, automation-evolution, kb-ingest, nextcloud, calendar, contacts,
 //     deck, talk. `nextcloud-notifications` and `nextcloud-tables` were cut
 //     even when the brief named them, and stayed cut when the user replied
 //     "use Nextcloud Notifications, not the calendar";
@@ -237,6 +237,18 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
     // re-emitted before the new message is processed. Additive: the regular
     // SSE flow continues exactly as before once the resume event lands.
     const wantsResume = req.query?.resume === '1' || req.query?.resume === 'true';
+
+    // An automation a Solution stage manages is changed in Dev and deployed, so a
+    // builder turn on it would be billed and then refused at every write. Said
+    // up front, before the stream opens: a clean 409 managed_part.
+    if (automationId) {
+        const managedParts = require('../../../stores/lib/managedParts');
+        const target = await automationStore.getAutomation(automationId);
+        if (target && target.userId === userId && target.projectId) {
+            const info = await managedParts.managedInfo(target.projectId);
+            if (info) throw managedParts.managedPartError(info);
+        }
+    }
 
     res.writeHead(200, {
         'Content-Type': 'text/event-stream',
@@ -374,7 +386,7 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
             }
         }
         // The authorisation set, and deliberately NOT derived from `apps`: the
-        // resolved set also carries MCP, org-custom, agent-callable-routine and
+        // resolved set also carries MCP, org-custom, agent-callable-automation and
         // Step tools, which own no TOOL_REGISTRY entry and so never appear in
         // `apps`. Gating on `apps` would refuse tools the user really has.
         // Nor is `_inputSchemasByTool` the authority — it is keyed on tools
@@ -689,7 +701,7 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
         // list, toolBytes= the serialised schemas the model reads.
         log.info(`[AutomationBuilder] prefix sys=${systemPrefixFingerprint(sys)} tools=${toolSetFingerprint(tools)} toolBytes=${toolBytesFingerprint(tools)} fewShots=${systemPrefixFingerprint(JSON.stringify(fewShotMessages))} n=${fewShotMessages.length} history=${windowedHistory.length}`);
 
-        // What the routine is about, for the deterministic title fallback
+        // What the automation is about, for the deterministic title fallback
         // (deriveTitle.js): the FIRST user message of the session — the brief
         // — when there is history, else this message.
         const firstUserTurn = Array.isArray(history) ? history.find(m => m && m.role === 'user' && typeof m.content === 'string' && m.content.trim()) : null;
@@ -1176,7 +1188,7 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
                     // Tick the plan from what the call DID (planProgress.js). The
                     // model is told to markDone with every build call; the small
                     // local ones never do, and the owner watched a fully built
-                    // routine sit at 0/9. Additive only — the model's own
+                    // automation sit at 0/9. Additive only — the model's own
                     // markDone keeps working. `_plan` rides on the tool result
                     // so the model reads its progress instead of re-deriving it.
                     //
@@ -1461,7 +1473,7 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
         // try to auto-finalize when the draft is structurally complete.
         // Small models sometimes run out of conversational turns AFTER
         // they've already produced a valid graph — abandoning the work
-        // would force the user to start over, even though the routine
+        // would force the user to start over, even though the automation
         // is ready. We only fall back when:
         //   - the draft passes validateDefinition,
         //   - it has a trigger and at least one step (non-empty), and
@@ -1486,12 +1498,12 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
             const def = draftWrap.def;
             const hasTrigger = !!def?.trigger;
             // A note (BFSF-411) is a canvas annotation, not a step the
-            // routine runs — a draft the model only ever left a sticky note
+            // automation runs — a draft the model only ever left a sticky note
             // on (never adding real work) must not read as "has a step" and
-            // get auto-finalized as if it were a working routine.
+            // get auto-finalized as if it were a working automation.
             const hasStep = Array.isArray(def?.steps) && def.steps.some((s) => s?.type !== 'note');
             if (finalCheck.ok && hasTrigger && hasStep) {
-                // Same rule as the model's own finalize: a routine never
+                // Same rule as the model's own finalize: an automation never
                 // ships as "Untitled automation".
                 const titleBefore = draftWrap.title;
                 const titled = ensureDraftTitle(draftWrap, { brief });

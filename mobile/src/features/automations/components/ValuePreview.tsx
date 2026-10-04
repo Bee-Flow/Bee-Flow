@@ -3,7 +3,7 @@
  *
  * The run screens used to hand every non-string output to `previewValue`,
  * which pretty-prints JSON and clips it at 1200 characters. That is honest and
- * unreadable: the commonest thing a routine step produces is a LIST OF ROWS —
+ * unreadable: the commonest thing an automation step produces is a LIST OF ROWS —
  * search results, datatable rows, the files in a folder — so someone reading a
  * run on their phone got two braces and a wall of quoted keys, where the web
  * builder shows them a table. Web's OutputView has offered Fields / Table /
@@ -71,11 +71,11 @@ function RawBlock({ text }: { text: string }) {
 
 function rowsCount(shape: Extract<ValueShape, { kind: 'rows' }>, t: TranslateFn): string {
     // The count is the honest part. A clipped table that presents itself as
-    // the whole answer is how someone concludes a routine dropped their rows.
+    // the whole answer is how someone concludes an automation dropped their rows.
     if (shape.total > shape.rows.length) {
         return t('mobile.automations.value.rows_clipped', 'Showing {shown} of {total} rows', { shown: shape.rows.length, total: shape.total });
     }
-    return shape.total === 1 ? t('mobile.automations.value.one_row', '1 row') : t('routines.canvas.result.rows', '{n} rows', { n: shape.total });
+    return shape.total === 1 ? t('mobile.automations.value.one_row', '1 row') : t('automations.canvas.result.rows', '{n} rows', { n: shape.total });
 }
 
 /**

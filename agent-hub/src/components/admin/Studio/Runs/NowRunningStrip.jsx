@@ -10,7 +10,7 @@ import { nOf } from '../KnowledgeStudio/plural';
  * "Now running · last 24 hours" — the strip at the top of Studio → Runs & log
  * (Studio.dc.html 1a).
  *
- * One line per routine that ran in the window: a coloured dot, the name, one
+ * One line per automation that ran in the window: a coloured dot, the name, one
  * phrase, and how long ago. The model is in nowRunning.js and tested there;
  * this file is the drawing plus the three states the drawing has to keep
  * apart.
@@ -39,7 +39,7 @@ const TONE = Object.freeze({
     done: { dot: 'var(--success)', ink: 'var(--text-tertiary)' },
 });
 
-/** The phrase after the routine's name. */
+/** The phrase after the automation's name. */
 function lineText(line, t) {
     if (line.tone === 'error') {
         // The CLASS, in plain words — never the free-text message, which can
@@ -63,7 +63,7 @@ function StripLine({ line, onOpen }) {
     const { t } = useTranslation();
     const rel = useRelativeTime();
     const tone = TONE[line.tone] || TONE.done;
-    const title = line.title || t('runs.now.untitled', 'A routine without a name');
+    const title = line.title || t('runs.now.untitled', 'An automation without a name');
     return (
         <li className="flex items-center gap-2 text-xs" data-testid="now-running-line" data-tone={line.tone}>
             <span
@@ -127,7 +127,7 @@ export default function NowRunningStrip({ facets = null, loading = false, failed
                     <span>
                         {failed
                             ? t('runs.now.unreadable', 'Could not read what is running — this is not “nothing is running”.')
-                            : t('runs.now.unsupported', 'This server did not report per-routine activity, so this strip has nothing to show. The runs below are unaffected.')}
+                            : t('runs.now.unsupported', 'This server did not report per-automation activity, so this strip has nothing to show. The runs below are unaffected.')}
                     </span>
                 </div>
             ) : model.lines.length === 0 ? (
@@ -143,7 +143,7 @@ export default function NowRunningStrip({ facets = null, loading = false, failed
                     </ul>
                     {model.hidden > 0 && (
                         <div className="text-[11px]" style={{ color: 'var(--text-tertiary)' }} data-testid="now-running-more">
-                            {nOf(t, 'runs.now.more', model.hidden, 'and {count} more routine', 'and {count} more routines')}
+                            {nOf(t, 'runs.now.more', model.hidden, 'and {count} more automation', 'and {count} more automations')}
                         </div>
                     )}
                 </>

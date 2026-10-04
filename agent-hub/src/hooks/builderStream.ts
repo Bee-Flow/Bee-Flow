@@ -206,7 +206,7 @@ export interface BuilderStreamData {
     index?: number;
     todos?: BuilderTodo[];
 
-    // runs (the routine builder's dry runs)
+    // runs (the automation builder's dry runs)
     run?: DryRun;
     runId?: string;
     steps?: Array<Record<string, unknown>>;

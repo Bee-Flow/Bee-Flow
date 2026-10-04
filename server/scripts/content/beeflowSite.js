@@ -164,7 +164,7 @@ const header = {
                         heading: 'Build',
                         items: [
                             { id: 'navi_platform', label: 'Platform overview', link: pageLink('platform'), description: 'Workflows, internal apps and agents — built three ways', icon: 'LayoutGrid' },
-                            { id: 'navi_routines', label: 'Routines & automations', link: pageLink('routines'), description: 'Describe it, drag it, or let it suggest itself \u2014 playable here', icon: 'Workflow' },
+                            { id: 'navi_automations', label: 'Automations & automations', link: pageLink('automations'), description: 'Describe it, drag it, or let it suggest itself \u2014 playable here', icon: 'Workflow' },
                             { id: 'navi_assistants', label: 'Assistants', link: pageLink('assistants'), description: 'Build one by describing it \u2014 try the editor', icon: 'Bot' },
                             { id: 'navi_skills', label: 'Skills', link: pageLink('skills'), description: 'Write the guidance once, not in every assistant', icon: 'Sparkles' },
                             { id: 'navi_appstudio', label: 'App Studio', link: pageLink('app-studio'), description: 'Internal apps over their own database — try the editor', icon: 'AppWindow' },
@@ -313,7 +313,7 @@ const footer = {
             heading: 'Build',
             links: [
                 { label: 'Platform', link: pageLink('platform') },
-                { label: 'Routines & automations', link: pageLink('routines') },
+                { label: 'Automations & automations', link: pageLink('automations') },
                 { label: 'Assistants', link: pageLink('assistants') },
                 { label: 'Skills', link: pageLink('skills') },
                 { label: 'App Studio', link: pageLink('app-studio') },
@@ -677,7 +677,7 @@ const platform = {
                 { icon: 'Bot', span: 1, title: 'Agents', body: 'No-code assistants with instructions, tools, knowledge and memory. Share them per group.', techTag: '', media: media('', '') },
                 { icon: 'Sparkles', span: 1, title: 'Skills', body: 'Reusable instruction packs an assistant pulls in when the task calls for it.', techTag: '', media: media('', '') },
                 { icon: 'Library', span: 2, title: 'Knowledge', body: 'Hybrid retrieval over your own documents — vector search and keyword search fused, then reranked by a cross-encoder. Local Postgres or a dedicated search service.', techTag: 'pgvector · BM25 · RRF', media: media('', '') },
-                { icon: 'Workflow', span: 2, title: 'Routines & automations', body: 'Scheduled agent runs and full workflows: conditions, loops, parallel branches, sandboxed code, HTTP calls, approval gates and dry runs. Import an existing n8n workflow and convert it.', techTag: '27 step types', media: media('', '') },
+                { icon: 'Workflow', span: 2, title: 'Automations & automations', body: 'Scheduled agent runs and full workflows: conditions, loops, parallel branches, sandboxed code, HTTP calls, approval gates and dry runs. Import an existing n8n workflow and convert it.', techTag: '27 step types', media: media('', '') },
                 { icon: 'Mic', span: 1, title: 'Meeting notes', body: 'Transcription, speaker diarisation, summaries, decisions and action items.', techTag: '', media: media('', '') },
                 { icon: 'AppWindow', span: 1, title: 'App Studio', body: 'Internal apps with forms, data and permissions — built by describing them.', techTag: '', media: media('', '') },
                 { icon: 'Globe', span: 1, title: 'Webpages', body: 'Full-stack pages with their own database, published from the workspace.', techTag: '', media: media('', '') },
@@ -715,9 +715,9 @@ const platform = {
         }),
         b('media-text', {
             heading: 'Automation with a brake pedal',
-            subheading: 'Routines & automations',
+            subheading: 'Automations & automations',
             body: 'Workflows trigger on a schedule, an inbound webhook, a manual run, or one of thirteen events in your connected apps — new mail, a changed file, an upcoming meeting. Steps include conditions, loops, parallel branches, filters, aggregation, HTTP requests and code that runs in an isolated sandbox behind an SSRF guard. Approval steps pause the run for a human, dry runs show you what would happen, and every run keeps a step-by-step log with sensitive values redacted.',
-            cta: { label: 'Try the builder', link: pageLink('routines') },
+            cta: { label: 'Try the builder', link: pageLink('automations') },
             media: { kind: 'image', src: shot('automation-canvas'), alt: 'The automation builder', srcDark: '', frame: 'browser' },
             mediaPosition: 'right',
             mediaSize: 'half',
@@ -1619,9 +1619,9 @@ const about = {
 // network access. The copy around the frame therefore has to be precise about
 // what the visitor is touching — it is the real interface, on sample data.
 
-const routines = {
-    slug: 'routines',
-    title: 'Routines & automations',
+const automations = {
+    slug: 'automations',
+    title: 'Automations & automations',
     isHomepage: false, hideHeader: false, hideFooter: false, isNotFound: false, noAnalytics: false,
     seo: {
         metaTitle: 'AI workflow automation you can describe by chat | Bee Flow',
@@ -1631,13 +1631,13 @@ const routines = {
     },
     blocks: [
         b('hero', {
-            eyebrow: 'Routines & automations',
+            eyebrow: 'Automations & automations',
             badge: { enabled: true, text: 'Playable below — no signup', icon: 'MousePointerClick' },
             titleParts: [
                 { text: 'Work that runs ', gradient: false },
                 { text: 'without you in the loop', gradient: true },
             ],
-            lead: 'Scheduled routines for the recurring questions, full workflows for the recurring work — and three ways to build either. Describe it in a sentence, drag it together on the canvas, or let Bee Flow point at the work it can already see you repeating. The real builder is open further down this page.',
+            lead: 'Scheduled automations for the recurring questions, full workflows for the recurring work — and three ways to build either. Describe it in a sentence, drag it together on the canvas, or let Bee Flow point at the work it can already see you repeating. The real builder is open further down this page.',
             primaryCta: { enabled: true, label: 'Try the builder', style: 'primary', link: { kind: 'anchor', anchor: 'feature-demo' } },
             secondaryCta: { enabled: true, label: 'See the platform', style: 'secondary', link: pageLink('platform') },
             mockup: { enabled: false, chatBubbles: [] },
@@ -1648,7 +1648,7 @@ const routines = {
             eyebrow: 'Live demo',
             title: 'The actual builder, in your browser',
             lead: 'Open a workflow, click a node, change a prompt, drag a step. This is the same interface the product ships — it is running on sample data instead of your mailbox.',
-            feature: 'routines',
+            feature: 'automations',
             height: 760,
             theme: 'light',
             note: 'Sample data only. The demo has no network access, so nothing you do here is saved, sent or billed — reload and it is back as it was.',
@@ -1702,7 +1702,7 @@ const routines = {
             title: 'Pick the one that fits the job',
             variant: 'chapters',
             items: [
-                { number: '1', title: 'A routine, when you want an answer', example: 'Every Monday at 07:30: what changed with our competitors?', body: 'A scheduled agent run with your instructions, your knowledge and your tools. The result lands as a message you can read, forward or feed into something else.', media: media('', '') },
+                { number: '1', title: 'An automation, when you want an answer', example: 'Every Monday at 07:30: what changed with our competitors?', body: 'A scheduled agent run with your instructions, your knowledge and your tools. The result lands as a message you can read, forward or feed into something else.', media: media('', '') },
                 { number: '2', title: 'An automation, when you want work done', example: 'On a new file in /Clients: classify it, ask for approval, file it.', body: 'A graph of steps with real control flow. It reads and writes in your connected systems, and stops for a human whenever you tell it to.', media: media(shot('automation-canvas'), 'The automation builder', 'browser') },
                 { number: '3', title: 'A Step, when you want to reuse it', example: 'Vendor lookup → used by four automations and exposed to chat.', body: 'Package a fragment once, publish it, and call it from anywhere — including as a tool your assistants can use in conversation.', media: media('', '') },
             ],
@@ -1714,7 +1714,7 @@ const routines = {
                 { question: 'Can an automation touch production systems?', answer: 'Only the ones you connect, only with the tools you enable, and only within the permissions of the account you connected. Read-only connectors stay read-only — the AFAS and NMBRS integrations, for example, cannot write back.' },
                 { question: 'What stops a runaway loop?', answer: 'Loops carry a maximum iteration count, runs have timeouts, code steps execute in an isolated sandbox behind an SSRF guard, and concurrency is bounded per automation. A run that misbehaves fails rather than spreading.' },
                 { question: 'Does the AI see everything in the workflow?', answer: 'Only what a step passes to it, and that still goes through Privacy Shield on the way out. If a step needs no model, do not use an AI step — most of the 27 step types are ordinary logic.' },
-                { question: 'Is this available on the free tier?', answer: 'Yes. Automations and scheduled routines are Community features, with no cap on how many you run.' },
+                { question: 'Is this available on the free tier?', answer: 'Yes. Automations and scheduled automations are Community features, with no cap on how many you run.' },
             ],
         }),
         b('cta', {
@@ -1936,7 +1936,7 @@ const agentsPage = demoPage({
         b('feature-demo', {
             eyebrow: 'Live demo',
             title: 'And this is what a skill actually is',
-            lead: 'An assistant pulls in skills on demand — reusable instructions, rules and worked examples that stop you rewriting the same guidance into every assistant. Open one and read it: the house writing style, a tender triage routine, a contract-review checklist. Sample skills, nothing is saved.',
+            lead: 'An assistant pulls in skills on demand — reusable instructions, rules and worked examples that stop you rewriting the same guidance into every assistant. Open one and read it: the house writing style, a tender triage automation, a contract-review checklist. Sample skills, nothing is saved.',
             feature: 'skills',
             height: 720,
             theme: 'light',
@@ -2655,7 +2655,7 @@ const editionsPage = {
                 { aspect: 'Assistants, messages, knowledge bases', left: 'No limit on any of them.', right: 'No limit on any of them.' },
                 { aspect: 'Built-in integrations', left: 'All of them, including Google Workspace and Microsoft 365.', right: 'All of them.' },
                 { aspect: 'MCP servers', left: 'Connect any MCP server by hand.', right: 'Same, plus the in-app catalogue for installing them.' },
-                { aspect: 'Automations and routines', left: 'The full builder, scheduling and execution.', right: 'The same builder.' },
+                { aspect: 'Automations', left: 'The full builder, scheduling and execution.', right: 'The same builder.' },
                 { aspect: 'Skills and knowledge bases', left: 'Included, with cited answers.', right: 'Included.' },
                 { aspect: 'Privacy Shield', left: 'Detection on your own hardware across all 21 categories, with block or redact.', right: 'Adds tokenise-and-restore, the web-search guard, and holding personal data back from outbound tools.' },
                 { aspect: 'Single sign-on', left: 'Nextcloud.', right: 'Google and Microsoft Entra ID, with automatic group sync.' },
@@ -3083,7 +3083,7 @@ const n8nAlternative = {
             badge: { enabled: true, text: 'Also self-hostable, also source-available', icon: 'Scale' },
             titleParts: [{ text: 'The closest comparison on this site', gradient: false }],
             lead: 'Not a hosting argument — you already run your own infrastructure. It is about what arrives beside the workflow engine: assistants, cited retrieval, meeting notes and a PII layer, on one permission model and one audit trail. And n8n is very good; we integrate with it, which should tell you we do not think you have to choose.',
-            primaryCta: { enabled: true, label: 'Try the builder', style: 'primary', link: pageLink('routines') },
+            primaryCta: { enabled: true, label: 'Try the builder', style: 'primary', link: pageLink('automations') },
             secondaryCta: { enabled: true, label: 'All comparisons', style: 'secondary', link: pageLink('compare') },
             mockup: { enabled: false, chatBubbles: [] },
             variant: 'classic',
@@ -3192,7 +3192,7 @@ const n8nAlternative = {
         b('cta', {
             title: 'Open the builder and judge it yourself',
             lead: 'The real automation builder runs in your browser on this site, with sample data and nothing saved. Ten minutes with it will tell you more than this page can.',
-            button: { label: 'Try the builder', link: pageLink('routines') },
+            button: { label: 'Try the builder', link: pageLink('automations') },
             secondaryCta: { label: 'Run the whole stack', link: pageLink('self-hosting') },
             showMotif: true,
             backgroundVariant: 'dark',
@@ -3217,7 +3217,7 @@ const zapierAlternative = {
             badge: { enabled: true, text: 'For teams that outgrew "it just works"', icon: 'Scale' },
             titleParts: [{ text: 'The same automations, on servers you actually control', gradient: false }],
             lead: 'Run the same automations on hardware you own, with personal data stripped before any model sees it and a log that names the country each call reached. Zapier is the fastest way to connect two SaaS products and for a great many teams it is genuinely the right tool — it is also a hosted service, so your data crosses infrastructure you do not run to get from one app to the next. This page is for the point where that stops being acceptable, which is usually when the data becomes personal, regulated, or someone else’s.',
-            primaryCta: { enabled: true, label: 'Try the builder', style: 'primary', link: pageLink('routines') },
+            primaryCta: { enabled: true, label: 'Try the builder', style: 'primary', link: pageLink('automations') },
             secondaryCta: { enabled: true, label: 'All comparisons', style: 'secondary', link: pageLink('compare') },
             mockup: { enabled: false, chatBubbles: [] },
             variant: 'classic',
@@ -3301,7 +3301,7 @@ const zapierAlternative = {
             subheading: 'Take the one that touches personal data. That is where the difference shows up.',
             layout: 'centered',
             backgroundVariant: 'primary',
-            primaryCta: { label: 'Try the builder', link: pageLink('routines') },
+            primaryCta: { label: 'Try the builder', link: pageLink('automations') },
             secondaryCta: { label: 'What it takes to run', link: pageLink('self-hosting') },
         }),
     ],
@@ -3324,7 +3324,7 @@ const makeAlternative = {
             badge: { enabled: true, text: 'Visual building, your infrastructure', icon: 'Scale' },
             titleParts: [{ text: 'Keep the canvas. Move where it runs', gradient: false }],
             lead: 'Keep the visual canvas — conditions, loops, parallel branches, and an approval gate in front of the irreversible step — and move it onto hardware you own, with a privacy layer the scenario never has to remember to apply. Make is one of the nicest visual builders anyone has shipped, and people who use it enjoy using it, which is rarer in this category than it should be. What it is not is something you can run yourself. This page is about what changes when that starts to matter, and what it costs you.',
-            primaryCta: { enabled: true, label: 'Try the builder', style: 'primary', link: pageLink('routines') },
+            primaryCta: { enabled: true, label: 'Try the builder', style: 'primary', link: pageLink('automations') },
             secondaryCta: { enabled: true, label: 'All comparisons', style: 'secondary', link: pageLink('compare') },
             mockup: { enabled: false, chatBubbles: [] },
             variant: 'classic',
@@ -3415,7 +3415,7 @@ const makeAlternative = {
         b('cta', {
             title: 'Rebuild the scenario you are least comfortable with',
             lead: 'The one handling data you would rather not explain in an audit. Build it here, then read where every call went.',
-            button: { label: 'Try the builder', link: pageLink('routines') },
+            button: { label: 'Try the builder', link: pageLink('automations') },
             secondaryCta: { label: 'How sovereignty works', link: pageLink('sovereignty') },
             showMotif: true,
             backgroundVariant: 'dark',
@@ -3806,7 +3806,7 @@ const claudeAlternative = {
 
 
 // ── Demo-led feature pages ─────────────────────────────────
-// Same factory as /assistants and /routines. Block sequences differ per page
+// Same factory as /assistants and /automations. Block sequences differ per page
 // because two pages sharing one is a test failure - and because the questions
 // a visitor brings to "skills" and to "monitoring" are not the same shape.
 
@@ -4177,7 +4177,7 @@ const appStudioPage = demoPage({
                 },
                 {
                     number: '3', title: 'It wires screens, bindings and actions', example: '',
-                    body: 'Components are bound to tables and queries, clicks are bound to actions: navigate to a detail screen, update the record a card was dropped on, run one of your Routines, show a toast. Twelve templates ship as starting points, and every one of them can be remixed into your own app.',
+                    body: 'Components are bound to tables and queries, clicks are bound to actions: navigate to a detail screen, update the record a card was dropped on, run one of your Automations, show a toast. Twelve templates ship as starting points, and every one of them can be remixed into your own app.',
                     media: media('', ''),
                 },
                 {
@@ -4811,7 +4811,7 @@ const openWebuiAlternative = {
                 {
                     icon: 'Workflow', span: 1,
                     title: 'Automations, not just conversations',
-                    body: '27 step types, six trigger kinds — schedules, webhooks, forms, app events, manual, or an agent calling a routine as a tool — with approval gates, dry runs and per-step history. Built by describing what you want, or by hand on a canvas.',
+                    body: '27 step types, six trigger kinds — schedules, webhooks, forms, app events, manual, or an agent calling an automation as a tool — with approval gates, dry runs and per-step history. Built by describing what you want, or by hand on a canvas.',
                     techTag: '', media: media('', ''),
                 },
                 {
@@ -4973,7 +4973,7 @@ const changelogPage = {
 };
 
 const PAGES = [
-    home, platform, agentsPage, routines, notebooksPage, meetingNotes,
+    home, platform, agentsPage, automations, notebooksPage, meetingNotes,
     privacyShieldPage, security, identityAccess, integrations, selfHosting,
     pricing, editionsPage, cloud, roadmapPage, sovereignty,
     skillsPage, knowledgePage, monitoringPage, supportPage, compliancePage,

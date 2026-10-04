@@ -177,7 +177,7 @@ describe('AddStepMenu — a step the graph cannot accept', () => {
         expect(onAdd).toHaveBeenCalledWith(expect.objectContaining({ kind: 'form_page', mode: 'input' }));
     });
 
-    it('adds normally once the routine has a form trigger', () => {
+    it('adds normally once the automation has a form trigger', () => {
         const onAdd = renderFlow({ hasFormTrigger: true });
         const row = formRow();
         expect(row.getAttribute('aria-disabled')).toBeNull();

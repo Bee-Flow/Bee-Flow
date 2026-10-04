@@ -29,9 +29,9 @@ export default function FormModeToggle({
         const toAdvanced = mode !== 'advanced';
         const label = toAdvanced
             ? (hiddenCount > 0
-                ? t('routines.builder.show_all_options_n', 'Show all options ({count})', { count: hiddenCount })
-                : t('routines.builder.show_all_options', 'Show all options'))
-            : t('routines.builder.show_fewer_options', 'Show fewer options');
+                ? t('automations.builder.show_all_options_n', 'Show all options ({count})', { count: hiddenCount })
+                : t('automations.builder.show_all_options', 'Show all options'))
+            : t('automations.builder.show_fewer_options', 'Show fewer options');
         return (
             <button
                 type="button"
@@ -48,10 +48,10 @@ export default function FormModeToggle({
             value={mode}
             onChange={(next) => onChange?.(next)}
             size={size}
-            ariaLabel={t('routines.builder.mode_toggle_label', 'How much of this step to show')}
+            ariaLabel={t('automations.builder.mode_toggle_label', 'How much of this step to show')}
             options={[
-                { value: 'simple', label: t('routines.builder.mode_simple', 'Simple') },
-                { value: 'advanced', label: t('routines.builder.mode_all_options', 'All options') },
+                { value: 'simple', label: t('automations.builder.mode_simple', 'Simple') },
+                { value: 'advanced', label: t('automations.builder.mode_all_options', 'All options') },
             ]}
         />
     );

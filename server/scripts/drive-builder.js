@@ -17,7 +17,7 @@
  *
  * A brief file can carry an `expect` block; the finished draft is walked
  * from the trigger and compared row by row (matchExpectation below), so a
- * run answers "did the model build THIS routine" instead of "did it finish".
+ * run answers "did the model build THIS automation" instead of "did it finish".
  * scripts/builder-live-run.sh at the repo root copies this file and a brief
  * into the container and runs it.
  *
@@ -232,7 +232,7 @@ function compareRow(n, row, step, chainIds, aliases = new Map()) {
 }
 
 /**
- * The routine's name as the transcript last reported it: the last `metadata`
+ * The automation's name as the transcript last reported it: the last `metadata`
  * event (sent after every builder_set_metadata and after the server named an
  * untitled draft itself), else the finalize echo, else the last
  * builder_set_metadata echo. Null when nothing named it.
@@ -289,7 +289,7 @@ function matchExpectation(def, events, expect) {
         const got = !!(done && done.data && done.data.finalized);
         if (got !== !!expect.finalized) failures.push(`finalized: expected ${!!expect.finalized}, got ${got}`);
     }
-    // The Playbook fill phase runs the routine by hand: an event trigger
+    // The Playbook fill phase runs the automation by hand: an event trigger
     // would make that run "skipped" (2026-09-13).
     if (expect.triggerKind !== undefined) {
         const got = def && def.trigger ? def.trigger.kind : null;
@@ -307,13 +307,13 @@ function matchExpectation(def, events, expect) {
             : evs.filter((e) => e.event === 'usage').length;
         if (rounds > expect.maxRounds) failures.push(`rounds: expected at most ${expect.maxRounds}, got ${rounds}`);
     }
-    // The routine has a real name: not the default, at most 60 chars. The
+    // The automation has a real name: not the default, at most 60 chars. The
     // model's builder_set_metadata or the server's fallback — either counts,
     // because either is what the person sees.
     if (expect.titled) {
         const title = finalTitle(evs);
-        if (!title || !title.trim()) failures.push('titled: nothing named the routine (no metadata event, no set_metadata, no finalize title)');
-        else if (title.trim() === 'Untitled automation') failures.push('titled: the routine is still "Untitled automation"');
+        if (!title || !title.trim()) failures.push('titled: nothing named the automation (no metadata event, no set_metadata, no finalize title)');
+        else if (title.trim() === 'Untitled automation') failures.push('titled: the automation is still "Untitled automation"');
         else if (title.length > 60) failures.push(`titled: the title is ${title.length} chars, expected at most 60 — "${title}"`);
     }
     // The first-round prefill, as the model reported it: the measure of the

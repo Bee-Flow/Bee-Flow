@@ -62,11 +62,11 @@ describe('MessageBubble', () => {
         const { container: streaming } = render(
             <MessageBubble msg={{ role: 'assistant', content: '', toolCalls, isStreaming: true }} liveRun={liveRun} />,
         );
-        expect(streaming.textContent).toContain('Testing the routine…');
+        expect(streaming.textContent).toContain('Testing the automation…');
         // The turn is over: the run under it is the canvas's story now.
         const { container: settled } = render(
             <MessageBubble msg={{ role: 'assistant', content: '', toolCalls, isStreaming: false }} liveRun={liveRun} />,
         );
-        expect(settled.textContent).not.toContain('Testing the routine…');
+        expect(settled.textContent).not.toContain('Testing the automation…');
     });
 });

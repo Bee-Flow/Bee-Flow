@@ -70,6 +70,14 @@ const OUTLOOK_TOOLS = [
                     unreadOnly: {
                         type: 'boolean',
                         description: 'If true, only return unread emails (default: false)'
+                    },
+                    since: {
+                        type: 'string',
+                        description: 'Optional ISO date/time: only emails received (sent, for sentitems) at or after this moment, e.g. "2026-01-01T00:00:00Z"'
+                    },
+                    maxPages: {
+                        type: 'integer',
+                        description: 'Optional: follow Graph paging for up to this many pages (1-10, default 1). Above 1, maxResults may go up to 200.'
                     }
                 },
                 required: []
@@ -134,6 +142,94 @@ function stripHtml(html) {
         .trim();
 }
 
+const LIST_RECENT_SELECT = 'id,subject,from,toRecipients,receivedDateTime,sentDateTime,bodyPreview,hasAttachments,isRead';
+const LIST_RECENT_MAX_PAGES = 10;
+const LIST_RECENT_PAGED_CAP = 200;
+const LIST_RECENT_PAGE_SIZE = 50;
+const GRAPH_NEXT_LINK_PREFIX = 'https://graph.microsoft.com/';
+
+/** The lower bound that lets unreadOnly lead with the date field without narrowing anything. */
+const OPEN_LOWER_BOUND = '1900-01-01T00:00:00Z';
+
+/**
+ * outlook_list_recent. One page of at most 20 by default, as it always was.
+ * With maxPages > 1 it follows @odata.nextLink (Graph's own continuation URL,
+ * so the filter and order carry over) until maxResults (cap 200) or the page
+ * cap is reached. `since` becomes a `ge` filter on the folder's date field;
+ * Graph wants the $orderby property first in $filter, so it leads.
+ *
+ * @param {object} args - tool arguments
+ * @param {(path: string) => Promise<any>} fetchPage - Graph GET (path or absolute nextLink URL)
+ */
+async function listRecentMessages(args, fetchPage) {
+    const { maxResults = 10, folder = 'inbox', unreadOnly = false, since } = args || {};
+    const maxPages = Math.min(Math.max(parseInt(args?.maxPages) || 1, 1), LIST_RECENT_MAX_PAGES);
+    const want = maxPages > 1
+        ? Math.min(Math.max(parseInt(maxResults) || 10, 1), LIST_RECENT_PAGED_CAP)
+        : Math.min(Math.max(parseInt(maxResults) || 10, 1), 20);
+    const top = Math.min(want, LIST_RECENT_PAGE_SIZE);
+
+    assertGraphId(folder, FOLDER_TEXT);
+    const isSentFolder = String(folder).toLowerCase() === 'sentitems';
+    const orderField = isSentFolder ? 'sentDateTime' : 'receivedDateTime';
+
+    let sinceIso = null;
+    if (since !== undefined && since !== null && since !== '') {
+        const ms = Date.parse(String(since));
+        if (!Number.isFinite(ms)) throw new Error('since must be an ISO date/time');
+        sinceIso = new Date(ms).toISOString();
+    }
+
+    // Graph refuses a $filter that sorts by a field it does not filter on first
+    // ("InefficientFilter"), so the date field always leads once there is a
+    // filter: the caller's `since`, or for unreadOnly alone an open lower bound.
+    const filters = [];
+    if (sinceIso) filters.push(`${orderField} ge ${sinceIso}`);
+    else if (unreadOnly) filters.push(`${orderField} ge ${OPEN_LOWER_BOUND}`);
+    if (unreadOnly) filters.push('isRead eq false');
+
+    let path = `/me/mailFolders/${folder}/messages?$top=${top}&$orderby=${orderField} desc&$select=${LIST_RECENT_SELECT}`;
+    if (filters.length) {
+        path += `&$filter=${filters.join(' and ')}`;
+    }
+
+    const raw = [];
+    let next = path;
+    let pages = 0;
+    let hasMore = false;
+    while (next && pages < maxPages && raw.length < want) {
+        const data = await fetchPage(next);
+        pages++;
+        for (const msg of (data?.value || [])) raw.push(msg);
+        const link = data?.['@odata.nextLink'];
+        // Only Graph's own host gets the bearer token on the next request.
+        next = typeof link === 'string' && link.startsWith(GRAPH_NEXT_LINK_PREFIX) ? link : null;
+    }
+    if (next || raw.length > want) hasMore = true;
+
+    const messages = raw.slice(0, want).map(msg => ({
+        id: msg.id,
+        from: msg.from?.emailAddress ? `${msg.from.emailAddress.name || ''} <${msg.from.emailAddress.address}>` : '',
+        to: (msg.toRecipients || []).map(r => r.emailAddress?.address).filter(Boolean).join(', '),
+        subject: msg.subject || '(no subject)',
+        date: (isSentFolder ? msg.sentDateTime : msg.receivedDateTime) || msg.receivedDateTime || msg.sentDateTime || '',
+        snippet: msg.bodyPreview || '',
+        isRead: msg.isRead ?? true,
+        hasAttachments: msg.hasAttachments || false,
+    }));
+
+    const result = {
+        results: messages,
+        total: messages.length,
+        folder,
+    };
+    if (maxPages > 1 || sinceIso) {
+        result.pages = pages;
+        result.hasMore = hasMore;
+    }
+    return result;
+}
+
 /**
  * Execute an Outlook tool call.
  *
@@ -180,36 +276,7 @@ async function executeOutlookTool(toolName, args, session, opts = {}) {
         };
 
     } else if (toolName === 'outlook_list_recent') {
-        const { maxResults = 10, folder = 'inbox', unreadOnly = false } = args;
-        const top = Math.min(Math.max(parseInt(maxResults) || 10, 1), 20);
-
-        assertGraphId(folder, FOLDER_TEXT);
-        const isSentFolder = String(folder).toLowerCase() === 'sentitems';
-        const orderField = isSentFolder ? 'sentDateTime' : 'receivedDateTime';
-
-        let path = `/me/mailFolders/${folder}/messages?$top=${top}&$orderby=${orderField} desc&$select=id,subject,from,toRecipients,receivedDateTime,sentDateTime,bodyPreview,hasAttachments,isRead`;
-        if (unreadOnly) {
-            path += `&$filter=isRead eq false`;
-        }
-
-        const data = await graphFetch(path, session);
-
-        const messages = (data.value || []).map(msg => ({
-            id: msg.id,
-            from: msg.from?.emailAddress ? `${msg.from.emailAddress.name || ''} <${msg.from.emailAddress.address}>` : '',
-            to: (msg.toRecipients || []).map(r => r.emailAddress?.address).filter(Boolean).join(', '),
-            subject: msg.subject || '(no subject)',
-            date: (isSentFolder ? msg.sentDateTime : msg.receivedDateTime) || msg.receivedDateTime || msg.sentDateTime || '',
-            snippet: msg.bodyPreview || '',
-            isRead: msg.isRead ?? true,
-            hasAttachments: msg.hasAttachments || false,
-        }));
-
-        return {
-            results: messages,
-            total: messages.length,
-            folder,
-        };
+        return listRecentMessages(args, (path) => graphFetch(path, session));
 
     } else if (toolName === 'outlook_read') {
         const { messageId } = args;
@@ -444,4 +511,5 @@ module.exports = {
     isOutlookTool,
     // exposed for tests
     buildOutlookMessage,
+    listRecentMessages,
 };

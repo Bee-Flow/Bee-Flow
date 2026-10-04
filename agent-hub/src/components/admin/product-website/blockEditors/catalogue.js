@@ -391,7 +391,7 @@ export const BLOCK_DEFAULTS = {
         eyebrow: 'Live demo',
         title: 'Try it right here',
         lead: '',
-        feature: 'routines',
+        feature: 'automations',
         height: 720,
         theme: 'light',
         note: 'This is the real interface running on sample data. Nothing you do here is saved, and nothing leaves your browser.',

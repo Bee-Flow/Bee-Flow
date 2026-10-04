@@ -191,23 +191,23 @@ const COURSES = [
         ],
         "prereqCourseIds": [],
         "badge": {
-            "id": "badge-routine-master",
-            "title": "Routine Master"
+            "id": "badge-automation-master",
+            "title": "Automation Master"
         }
     },
     {
-        "id": "course-routines-production",
+        "id": "course-automations-production",
         "track": "power",
-        "title": "Routines in Production",
+        "title": "Automations in Production",
         "lessonIds": [
-            "routine-triggers-and-data",
-            "routine-steps-that-persist",
-            "routine-runs-and-failures",
+            "automation-triggers-and-data",
+            "automation-steps-that-persist",
+            "automation-runs-and-failures",
             "approvals-decide",
             "approvals-design",
-            "routine-reusable-steps",
-            "routine-extra-triggers",
-            "routine-shield-step"
+            "automation-reusable-steps",
+            "automation-extra-triggers",
+            "automation-shield-step"
         ],
         "prereqCourseIds": [
             "course-automations-mastery"
@@ -243,7 +243,7 @@ const COURSES = [
         "lessonIds": [
             "apps-first-build",
             "apps-data-and-screens",
-            "apps-actions-and-routines",
+            "apps-actions-and-automations",
             "apps-roles-and-publish",
             "webpages-build-and-bind",
             "webpages-publish-and-public",
@@ -477,17 +477,17 @@ const LESSON_GATES = {
     "automation-practice": {
         "feature": "automations"
     },
-    "routine-triggers-and-data": {
+    "automation-triggers-and-data": {
         "feature": "automations"
     },
-    "routine-steps-that-persist": {
+    "automation-steps-that-persist": {
         "permission": [
             "use_datatables",
             "manage_datatables"
         ],
         "feature": "automations"
     },
-    "routine-runs-and-failures": {
+    "automation-runs-and-failures": {
         "feature": "automations"
     },
     "approvals-decide": {
@@ -499,13 +499,13 @@ const LESSON_GATES = {
             "automations"
         ]
     },
-    "routine-reusable-steps": {
+    "automation-reusable-steps": {
         "feature": "automations"
     },
-    "routine-extra-triggers": {
+    "automation-extra-triggers": {
         "feature": "automations"
     },
-    "routine-shield-step": {
+    "automation-shield-step": {
         "feature": "automations"
     },
     "datatables-create": {
@@ -541,7 +541,7 @@ const LESSON_GATES = {
         "permission": "manage_apps",
         "feature": "app_studio"
     },
-    "apps-actions-and-routines": {
+    "apps-actions-and-automations": {
         "permission": "manage_apps",
         "feature": "app_studio"
     },
@@ -745,14 +745,14 @@ const LESSON_IDS = [
     "automation-build-sim",
     "automation-hands-on",
     "automation-practice",
-    "routine-triggers-and-data",
-    "routine-steps-that-persist",
-    "routine-runs-and-failures",
+    "automation-triggers-and-data",
+    "automation-steps-that-persist",
+    "automation-runs-and-failures",
     "approvals-decide",
     "approvals-design",
-    "routine-reusable-steps",
-    "routine-extra-triggers",
-    "routine-shield-step",
+    "automation-reusable-steps",
+    "automation-extra-triggers",
+    "automation-shield-step",
     "datatables-create",
     "datatables-columns-safely",
     "datatables-share-and-retain",
@@ -762,7 +762,7 @@ const LESSON_IDS = [
     "forms-appearance-and-stopping",
     "apps-first-build",
     "apps-data-and-screens",
-    "apps-actions-and-routines",
+    "apps-actions-and-automations",
     "apps-roles-and-publish",
     "webpages-build-and-bind",
     "webpages-publish-and-public",
@@ -849,13 +849,13 @@ const EXERCISE_LESSONS = {
     "ex-automation-build-sim-dryrun": "automation-build-sim",
     "ex-automation-hands-on-dryrun": "automation-hands-on",
     "ex-automation-brief": "automation-practice",
-    "ex-routine-data-bindings": "routine-triggers-and-data",
-    "ex-routine-steps-persist-write-plan": "routine-steps-that-persist",
-    "ex-routine-runs-failures-note": "routine-runs-and-failures",
+    "ex-automation-data-bindings": "automation-triggers-and-data",
+    "ex-automation-steps-persist-write-plan": "automation-steps-that-persist",
+    "ex-automation-runs-failures-note": "automation-runs-and-failures",
     "ex-approvals-decide-reject-reason": "approvals-decide",
     "ex-approvals-design-po": "approvals-design",
-    "ex-routine-reusable-steps-inventory": "routine-reusable-steps",
-    "ex-routine-extra-triggers-plan": "routine-extra-triggers",
+    "ex-automation-reusable-steps-inventory": "automation-reusable-steps",
+    "ex-automation-extra-triggers-plan": "automation-extra-triggers",
     "ex-datatables-create-purpose": "datatables-create",
     "ex-datatables-columns-safely-plan": "datatables-columns-safely",
     "ex-datatables-share-and-retain-plan": "datatables-share-and-retain",
@@ -864,7 +864,7 @@ const EXERCISE_LESSONS = {
     "ex-forms-appearance-stop": "forms-appearance-and-stopping",
     "ex-apps-first-build-brief": "apps-first-build",
     "ex-apps-data-and-screens-model": "apps-data-and-screens",
-    "ex-apps-actions-mapping": "apps-actions-and-routines",
+    "ex-apps-actions-mapping": "apps-actions-and-automations",
     "ex-apps-roles-plan": "apps-roles-and-publish",
     "ex-webpages-build-and-bind-brief": "webpages-build-and-bind",
     "ex-webpages-column-gate": "webpages-publish-and-public",
@@ -1115,8 +1115,8 @@ const RUBRICS = {
         "guidance": "Pass a plan that is specific and mechanically correct even if briefly written. Do NOT pass: vague intentions ('I will study more', 'I will repeat the lessons'); a plan claiming review resurfaces every finished lesson, or every lesson weekly; a claim that the tutor hands over the answer, that an unpassed exercise blocks the lesson or the badge, or that an admin must unlock something. One-sentence answers, and answers that only restate the question, do not pass."
     },
     "ex-projects-shared-workspace-instructions": {
-        "title": "Custom Instructions for a shared project",
-        "task": "Write three to five sentences of Custom Instructions for a tender project at Van Dijk Groep — standing rules added to the system prompt of every chat in the project, with no personal or customer data in them.",
+        "title": "Instructions for the AI in a shared project",
+        "task": "Write three to five sentences of Instructions for the AI for a tender project at Van Dijk Groep — standing rules added to every AI chat in the project, with no personal or customer data in them.",
         "criteria": [
             "Reads as standing rules that apply to every chat in the project (language, tone, units, format, what to always include or never do), not as a one-off task or a question.",
             "At least two concrete, checkable rules rather than vague ambition — for example a language, a currency or VAT convention, a required element in every quotation, or a source requirement.",
@@ -1250,7 +1250,7 @@ const RUBRICS = {
         "title": "Tag and audience for one note",
         "task": "Choose the tag or tags for a finished sales meeting note and the visibility to give it, with one sentence on what was checked before widening it.",
         "criteria": [
-            "Names a tag and says what should pick the note up because of it — a library filter chip, a knowledge base source, or a routine on \"Meeting note ready\" — rather than a label invented for this one note.",
+            "Names a tag and says what should pick the note up because of it — a library filter chip, a knowledge base source, or an automation on \"Meeting note ready\" — rather than a label invented for this one note.",
             "Chooses one of the three real visibility settings (Personal, Entire organisation, or named groups) and justifies it by who needs to read this note.",
             "Shows that the tag reaches further than the note: the trigger is organisation-wide, or a knowledge base has its own audience.",
             "Says what was looked at before widening — for example that the summary itself is readable by everyone the note is shared with."
@@ -1407,7 +1407,7 @@ const RUBRICS = {
         "task": "Write a six or seven line plan for putting one specific skill into production: which door, why that door, which audience it is published to, static or dynamic with its cost, and one check performed before attaching.",
         "criteria": [
             "Names one specific door and a real screen or control: Can use → Skills → Link, Skills for this step on an AI step, or Skills in the chat composer's tools menu.",
-            "Justifies the door by how often the method must apply — every turn, one routine step, or one conversation.",
+            "Justifies the door by how often the method must apply — every turn, one automation step, or one conversation.",
             "Chooses an audience in the Publish to… capsule — Personal, Entire organisation or specific groups — and says who that lets attach the skill.",
             "Makes a static or dynamic choice and states its cost, in particular that a dynamic skill grants nothing from May use until it is activated.",
             "Shows one concrete check before attaching: the five-skills-per-turn cap, which skill leads, or which Delivers fields the step inherits."
@@ -1417,10 +1417,10 @@ const RUBRICS = {
     },
     "ex-skills-audience-decision": {
         "title": "An audience decision with a reason",
-        "task": "The learner picks one skill of their own and writes three or four sentences: which audience setting they choose and why that circle of people is the right one, which concrete colleague, agent or routine would silently lose the method while the skill stays Personal, and one thing sharing does not hand over.",
+        "task": "The learner picks one skill of their own and writes three or four sentences: which audience setting they choose and why that circle of people is the right one, which concrete colleague, agent or automation would silently lose the method while the skill stays Personal, and one thing sharing does not hand over.",
         "criteria": [
             "Names one of the three real settings — Personal, Entire organisation, or Or specific groups (with the group named) — and ties the choice to who actually needs the method.",
-            "Shows they understand that a skill is resolved for the person asking: names a specific colleague, agent or routine that would get a thinner answer while the skill stays Personal.",
+            "Shows they understand that a skill is resolved for the person asking: names a specific colleague, agent or automation that would get a thinner answer while the skill stays Personal.",
             "States that sharing grants seeing and using but not editing, which stays with the manage_skills permission and the skill's owner.",
             "Is concrete about a real skill of theirs — a named method and a real team — not a generic sentence about sharing."
         ],
@@ -1429,12 +1429,12 @@ const RUBRICS = {
     },
     "ex-automations-one-sentence": {
         "title": "One sentence, three facts",
-        "task": "The learner described a job from their own week as one sentence naming when it starts, what happens to the data, and where the result lands — plus a short line justifying why it is a routine rather than a Cowork item.",
+        "task": "The learner described a job from their own week as one sentence naming when it starts, what happens to the data, and where the result lands — plus a short line justifying why it is an automation rather than a Cowork item.",
         "criteria": [
             "Names a concrete starting moment or event (a time and a repeat, an inbound mail or app event, a form submission) rather than 'regularly' or 'when needed'.",
             "Says what happens to the data in between — reading, extracting, summarising, deciding — specifically enough that someone else could recognise the steps.",
             "Names a destination: a table, a mailbox, a notification, a document, a knowledge base, a colleague.",
-            "Justifies the routine with at least one of: a condition or branch, a pause for a person, or a result that must outlive the run."
+            "Justifies the automation with at least one of: a condition or branch, a pause for a person, or a result that must outlive the run."
         ],
         "passScore": 70,
         "guidance": "Pass a plain, specific sentence even if it is clumsy; the skill being graded is precision, not style. Do not pass 'automate my invoices' or 'send me reports every week' — no destination and no reason it is not Cowork. Do not pass a job that is plainly interactive ('help me write X while I read it'), and do not pass a justification that only says 'because it repeats' — repetition alone is Cowork's job. A brief that names a branch, an approval or a table it writes to should pass even if the wording is informal or partly in Dutch."
@@ -1453,68 +1453,68 @@ const RUBRICS = {
     },
     "ex-automation-builder-tour-diagnose": {
         "title": "Diagnose a stale briefing",
-        "task": "The learner was asked to write, in order, which builder surfaces they would open to explain why their own routine produced last week's numbers, and what evidence each surface gives them before they change anything.",
+        "task": "The learner was asked to write, in order, which builder surfaces they would open to explain why their own automation produced last week's numbers, and what evidence each surface gives them before they change anything.",
         "criteria": [
             "Starts with evidence rather than an edit — opens the Runs view (or the run's step timeline) before touching the canvas.",
-            "Names at least three distinct real surfaces, for example Runs, a step's recorded input/output, the pin on a node, Saved versions, or a dry-run to confirm the fix.",
+            "Names at least three distinct real surfaces, for example Runs, a step's recorded input/output, the pin on a node, Versions, or a dry-run to confirm the fix.",
             "Says what each surface would actually tell them, not just that they would look at it.",
-            "Keeps the search inside their own work — their own Friday edits, a pinned step, a saved version — rather than blaming a colleague who cannot open the routine at all.",
+            "Keeps the search inside their own work — their own Friday edits, a pinned step, a saved version — rather than blaming a colleague who cannot open the automation at all.",
             "Shows awareness of at least one of the lesson's traps: a pinned step serving a saved sample, or the run timeline showing the version that ran rather than today's canvas."
         ],
         "passScore": 70,
-        "guidance": "Pass a concise answer that sequences evidence before edits and names real surfaces with real labels. Do not pass an answer that only says \"I would check the logs\" or \"I would ask the assistant to fix it\"; do not pass an answer that jumps straight to editing or re-activating; do not pass invented controls (a \"debug mode\", a \"refresh data\" button); do not pass an answer whose explanation is that somebody else changed the routine. A learner who names only two surfaces but explains the pinned-output or snapshot trap precisely may still pass."
+        "guidance": "Pass a concise answer that sequences evidence before edits and names real surfaces with real labels. Do not pass an answer that only says \"I would check the logs\" or \"I would ask the assistant to fix it\"; do not pass an answer that jumps straight to editing or re-activating; do not pass invented controls (a \"debug mode\", a \"refresh data\" button); do not pass an answer whose explanation is that somebody else changed the automation. A learner who names only two surfaces but explains the pinned-output or snapshot trap precisely may still pass."
     },
     "ex-automation-build-sim-dryrun": {
         "title": "Reading a dry-run honestly",
         "task": "Name two things a green dry-run of the Van Dijk briefing has not proved, and the first two things to check after the first live run.",
         "criteria": [
             "Names at least two concrete limits of a dry-run for THIS graph — e.g. the notification was synthesised so nobody actually received it, or the data was a stand-in so the real table's shape is untested.",
-            "Distinguishes the graph being correct (wiring, bindings, branches) from the routine working end to end in the real world.",
+            "Distinguishes the graph being correct (wiring, bindings, branches) from the automation working end to end in the real world.",
             "Gives at least two specific things to inspect after the live run — the run's step timeline and which step errored, whether the sales lead really got the message, whether the empty-week branch behaved.",
-            "Stays with the actual routine (offertes table, AI step, notification) instead of generic advice about testing."
+            "Stays with the actual automation (offertes table, AI step, notification) instead of generic advice about testing."
         ],
         "passScore": 70,
-        "guidance": "Pass a learner who separates 'the graph is sound' from 'the work really happened' and points at something checkable. Do not pass an answer that only repeats 'a dry-run is safe' or 'always test first', one that claims the dry-run proved delivery, or one that is entirely generic with no reference to this routine's steps. Sloppy grammar is fine; vagueness is not."
+        "guidance": "Pass a learner who separates 'the graph is sound' from 'the work really happened' and points at something checkable. Do not pass an answer that only repeats 'a dry-run is safe' or 'always test first', one that claims the dry-run proved delivery, or one that is entirely generic with no reference to this automation's steps. Sloppy grammar is fine; vagueness is not."
     },
     "ex-automation-hands-on-dryrun": {
         "title": "Handover note and Monday checklist",
-        "task": "The learner built a routine and dry-ran it, then wrote a handover note: what it does (trigger, steps, destination), what the dry-run showed (status, anything blocking or worth checking, what they changed), and a checklist for the first live run naming, per untested step, the exact place they will look to confirm it worked.",
+        "task": "The learner built an automation and dry-ran it, then wrote a handover note: what it does (trigger, steps, destination), what the dry-run showed (status, anything blocking or worth checking, what they changed), and a checklist for the first live run naming, per untested step, the exact place they will look to confirm it worked.",
         "criteria": [
-            "Names a concrete trigger and a concrete destination for a specific routine — not a goal or a wish.",
+            "Names a concrete trigger and a concrete destination for a specific automation — not a goal or a wish.",
             "Reports a real dry-run outcome: the status, and either something that was flagged and how it was fixed, or an honest 'nothing was flagged'.",
-            "The checklist is tied to steps of THIS routine that a dry-run could not really execute — a synthesised action, a code step's recorded outside calls, a credentialled call, a 'would block' annotation.",
+            "The checklist is tied to steps of THIS automation that a dry-run could not really execute — a synthesised action, a code step's recorded outside calls, a credentialled call, a 'would block' annotation.",
             "Each checklist line names where they will look and what they expect to see — a screen, a filter or chip, an outcome, or the destination itself — specific enough for a colleague to follow."
         ],
         "passScore": 70,
-        "guidance": "Pass work that is clearly about the learner's own routine, with named steps or fields, and whose part three someone else could actually carry out. Do not pass a generic essay about dry-running with no routine in it; do not pass an answer missing the trigger or the destination; do not pass a checklist of intentions ('check it worked', 'see if the mail arrived') with no screen, filter or destination named. Treating a synthesised green tick as proof the mail was sent fails criterion three. A dry-run that genuinely passed clean is fine, as long as the checklist is specific."
+        "guidance": "Pass work that is clearly about the learner's own automation, with named steps or fields, and whose part three someone else could actually carry out. Do not pass a generic essay about dry-running with no automation in it; do not pass an answer missing the trigger or the destination; do not pass a checklist of intentions ('check it worked', 'see if the mail arrived') with no screen, filter or destination named. Treating a synthesised green tick as proof the mail was sent fails criterion three. A dry-run that genuinely passed clean is fine, as long as the checklist is specific."
     },
     "ex-automation-brief": {
         "title": "Brief an automation",
         "task": "Describe an automation you would actually use, in plain English: when it should run, what data it reads, what should happen with it including any rule, and where the result lands and who is told.",
         "criteria": [
             "Names a concrete trigger — a clock time, an inbound event, a form submission or a button, not just \"automatically\"",
-            "Names the source specifically: the app, table, mailbox or form the routine reads, ideally by its real name",
+            "Names the source specifically: the app, table, mailbox or form the automation reads, ideally by its real name",
             "Describes the work specifically enough to act on — the steps, a condition with an actual threshold, or what the AI should produce",
             "States where the result lands and who is told, by name or by role"
         ],
         "passScore": 70,
         "guidance": "Reward a brief a builder could implement without follow-up questions. \"Automate my reports\" and any brief missing the trigger, the source or the destination must score below pass. A condition stated without a number (\"the big ones\") loses the third criterion but is not an automatic fail. Handling for the empty case is a plus, not a requirement. Do not reward canvas jargon or step counts in place of facts."
     },
-    "ex-routine-data-bindings": {
+    "ex-automation-data-bindings": {
         "title": "Three bindings, correctly rooted",
-        "task": "Write the Text-mode binding for a form answer, the condition expression comparing an extracted total with 2500, and one sentence on what an unresolved Text binding renders as.",
+        "task": "Write the {{ }} binding for a form answer in a notification title, the condition expression comparing an extracted total with 2500, and one sentence on what an unresolved binding in a text field renders as.",
         "criteria": [
             "Uses {{trigger.output.factuurnummer}} — a form trigger's answers live on trigger.output, keyed by the question name.",
             "Writes the condition as a bare expression on steps.ex_c41d.output.totaal compared with 2500, with no braces around it, because a condition is evaluated rather than interpolated.",
-            "States that an unresolved Text binding renders as an empty string and the run carries on, rather than failing.",
+            "States that an unresolved binding in a text field renders as an empty string and the run carries on, rather than failing.",
             "Names a single field rather than binding the whole steps.ex_c41d.output object."
         ],
         "passScore": 70,
         "guidance": "Do not pass an answer that wraps the condition expression in {{ }}, that puts the form answer under trigger.headers or trigger.output.body, that binds the entire step output, or that claims a missing value makes the step error. Dutch or English field names are both fine; exact step ids matter less than the correct root and the correct mode."
     },
-    "ex-routine-steps-persist-write-plan": {
-        "title": "The write-plan for the invoice routine",
-        "task": "The learner was asked to plan the persisting steps of a 07:00 invoice routine: the Datatable operation and its Match on column, the Source reference for the knowledge write, and one guard or setting they would deliberately leave alone.",
+    "ex-automation-steps-persist-write-plan": {
+        "title": "The write-plan for the invoice automation",
+        "task": "The learner was asked to plan the persisting steps of a 07:00 invoice automation: the Datatable operation and its Match on column, the Source reference for the knowledge write, and one guard or setting they would deliberately leave alone.",
         "criteria": [
             "Chooses Add or update a row (or save_row) for the invoice table and names the invoice number as the Match on column, with a re-run reason attached.",
             "Gives a Source reference that is stable and unique per invoice — an invoice number or record id — and not the run date or a timestamp.",
@@ -1524,11 +1524,11 @@ const RUBRICS = {
         "passScore": 70,
         "guidance": "Pass a concrete plan that names real operations and real settings in the product's own words, even if it is brief. Do not pass a Source reference that changes each run (the date, \"today\", a timestamp) — that is the ninety-documents failure. Do not pass Add a row for the invoice table unless the learner argues for keeping every version and says how duplicates are handled. Do not pass invented controls, such as a \"deduplicate rows\" option on the Datatable step or an \"overwrite\" toggle on the knowledge write."
     },
-    "ex-routine-runs-failures-note": {
+    "ex-automation-runs-failures-note": {
         "title": "A failure note someone can act on",
-        "task": "Write a three-or-four-sentence message to the colleague who was waiting for a routine's output, explaining a failed run: which routine and when, which step stopped it and why, what did and did not happen afterwards, and what was done about it.",
+        "task": "Write a three-or-four-sentence message to the colleague who was waiting for an automation's output, explaining a failed run: which automation and when, which step stopped it and why, what did and did not happen afterwards, and what was done about it.",
         "criteria": [
-            "Names the routine and the moment it should have delivered, and the step where it stopped.",
+            "Names the automation and the moment it should have delivered, and the step where it stopped.",
             "Gives the reason in plain language a non-builder understands, rather than a raw error blob or a step id.",
             "States the consequence — that nothing ran after the failing step, so the reader knows what did and did not go out.",
             "Ends with the action taken: what was fixed and what the re-run did, or when it will be checked.",
@@ -1561,26 +1561,26 @@ const RUBRICS = {
         "passScore": 70,
         "guidance": "Do not pass an answer that only lists field names without content ('question, assignee, deadline'), or whose question is a bare 'Approve?' with no value pulled in. Do not pass a reminder or escalation set at or after the stated deadline — that clock never fires; say so. Do not pass an escalation set alongside a panel of approvers: escalation is offered on a single approver only, and the two together are refused on save. Do not pass 'No deadline' offered as the safe option. A short answer is fine if all four elements are present and concrete; fluent prose with no rule or no deadline is not."
     },
-    "ex-routine-reusable-steps-inventory": {
+    "ex-automation-reusable-steps-inventory": {
         "title": "Three candidates for reuse",
-        "task": "The learner named three pieces of repeated logic from their own routines, and for each gave its inputs, its outputs, and whether it belongs in a flowlet, a published Step or a skill — with a reason.",
+        "task": "The learner named three pieces of repeated logic from their own automations, and for each gave its inputs, its outputs, and whether it belongs in a flowlet, a published building block or a skill — with a reason.",
         "criteria": [
             "Three distinct pieces of logic, each recognisably a concrete job (a lookup, a validation, a formatting pass) rather than a vague area like 'the email part'.",
             "Each candidate names what goes in and what comes back, ideally as named fields — this is the input contract and the output the caller binds to.",
-            "Each candidate is placed in a flowlet, a published Step or a skill, and the reason matches the rule: inside one routine, across routines, or inside AI instructions.",
-            "At least one choice is justified by reuse across more than one routine, or explicitly defended as flowlet-only because nothing else needs it."
+            "Each candidate is placed in a flowlet, a published building block or a skill, and the reason matches the rule: inside one automation, across automations, or inside AI instructions.",
+            "At least one choice is justified by reuse across more than one automation, or explicitly defended as flowlet-only because nothing else needs it."
         ],
         "passScore": 70,
-        "guidance": "Do not pass a list of three topics with no inputs or outputs, or three answers that all say 'Step' with no reasoning. Do not pass an answer that puts an approval or a form page inside the Step or flowlet — that is blocked by the product and should be flagged in feedback. A learner who has built only one routine may reasonably describe intended future reuse; accept that if the contracts are concrete. Naming a skill for something that is wiring (an API call, a datatable write) is a miss, not a pass."
+        "guidance": "Do not pass a list of three topics with no inputs or outputs, or three answers that all say 'building block' with no reasoning. Do not pass an answer that puts an approval or a form page inside the building block or flowlet — that is blocked by the product and should be flagged in feedback. A learner who has built only one automation may reasonably describe intended future reuse; accept that if the contracts are concrete. Naming a skill for something that is wiring (an API call, a datatable write) is a miss, not a pass."
     },
-    "ex-routine-extra-triggers-plan": {
+    "ex-automation-extra-triggers-plan": {
         "title": "Plan a second entry point",
-        "task": "Plan an extra entry point for a routine that already runs on a Gmail app event: which kind is added and why it is allowed, what it connects to and the cost of forgetting, and how it is tested before going live.",
+        "task": "Plan an extra entry point for an automation that already runs on a Gmail app event: which kind is added and why it is allowed, what it connects to and the cost of forgetting, and how it is tested before going live.",
         "criteria": [
             "Names an entry point that is genuinely allowed as an extra — a schedule (or a webhook or app event) — and says the existing Gmail trigger stays as the primary one.",
             "States that the new trigger arrives unconnected and must be wired into the step that should run first, because a run only walks what it can reach from the trigger that fired.",
             "Describes testing it before it counts: picking the new trigger under Start from and taking a dry-run rather than a live run.",
-            "Mentions that activation is what makes the routine usable, or that a dry-run takes no real action."
+            "Mentions that activation is what makes the automation usable, or that a dry-run takes no real action."
         ],
         "passScore": 70,
         "guidance": "Do not pass an answer that adds a form, manual, agent-call or Studio App trigger as an extra entry point — those replace the primary trigger. Do not pass an answer that assumes the new trigger automatically runs the existing steps, or that treats a live run as the way to test it. An answer that only names the trigger kind, with nothing about wiring or testing, is below the bar."
@@ -1590,24 +1590,24 @@ const RUBRICS = {
         "task": "Write the sentence for \"What is it for?\" on Van Dijk Groep's supplier-invoice datatable: what one row is, where the rows come from, and what the organisation does with them.",
         "criteria": [
             "Says what a single row represents (one supplier invoice), not just a vague topic.",
-            "Names where the rows come from (a routine reading the purchasing mailbox, or invoices arriving by e-mail).",
+            "Names where the rows come from (an automation reading the purchasing mailbox, or invoices arriving by e-mail).",
             "States what the data is used for (approving invoices, the payment run, chasing unapproved ones) — that is the processing purpose.",
             "Reads as one or two plain sentences a colleague or an auditor could understand a year later, without jargon or placeholders."
         ],
         "passScore": 70,
-        "guidance": "Pass a concrete, readable sentence that covers the row, the source and the use. Do not pass a label such as \"invoices\" or \"table for invoices\", a restatement of the table name, an empty placeholder, or a sentence about how the table is built (columns, types, routines steps) rather than what it is for. Do not require legal wording — a plain business sentence is exactly right. Length alone is never a reason to pass."
+        "guidance": "Pass a concrete, readable sentence that covers the row, the source and the use. Do not pass a label such as \"invoices\" or \"table for invoices\", a restatement of the table name, an empty placeholder, or a sentence about how the table is built (columns, types, automations steps) rather than what it is for. Do not require legal wording — a plain business sentence is exactly right. Length alone is never a reason to pass."
     },
     "ex-datatables-columns-safely-plan": {
         "title": "Plan a destructive column change",
-        "task": "Plan dropping `opmerking` and retyping `btw_pct` from Text to Number on a table two routines already use — what to check first, which change is more dangerous, what the dialog says, and what happens to the colleague's routine.",
+        "task": "Plan dropping `opmerking` and retyping `btw_pct` from Text to Number on a table two automations already use — what to check first, which change is more dangerous, what the dialog says, and what happens to the colleague's automation.",
         "criteria": [
-            "Starts at the \"Used by\" tab (or the per-column markers) and works out which routine depends on which column before saving anything",
+            "Starts at the \"Used by\" tab (or the per-column markers) and works out which automation depends on which column before saving anything",
             "Treats both changes as destructive and explains that the retype is the quieter danger: every value is rewritten and anything that does not fit Number is lost",
-            "Expects the \"This throws away data\" dialog, and understands that confirming is required before a drop that a routine depends on is accepted",
-            "Says the colleague's routine must be fixed where it lives, and that the colleague is told before the save rather than after"
+            "Expects the \"This throws away data\" dialog, and understands that confirming is required before a drop that an automation depends on is accepted",
+            "Says the colleague's automation must be fixed where it lives, and that the colleague is told before the save rather than after"
         ],
         "passScore": 70,
-        "guidance": "Pass an answer that makes \"Used by\" the first move and treats the dialog as a confirmation rather than a block. Do not pass an answer that only says \"take a backup\", that assumes the routine repairs itself or is updated automatically, that proposes renaming the column as a safe substitute for dropping it (a rename keeps the key and changes nothing for the routine), or that treats a retype as harmless because no column disappears."
+        "guidance": "Pass an answer that makes \"Used by\" the first move and treats the dialog as a confirmation rather than a block. Do not pass an answer that only says \"take a backup\", that assumes the automation repairs itself or is updated automatically, that proposes renaming the column as a safe substitute for dropping it (a rename keeps the key and changes nothing for the automation), or that treats a retype as harmless because no column disappears."
     },
     "ex-datatables-share-and-retain-plan": {
         "title": "Access and retention note for verzuimmeldingen",
@@ -1616,32 +1616,32 @@ const RUBRICS = {
             "Picks an audience narrower than Entire organisation — Private, or Specific groups with the HR group named — and gives a reason tied to how sensitive sick-leave answers are.",
             "Keeps reading and writing separate: the coordinators write because they are invited with the read-and-write grade (or because the write switch was deliberately turned on), not because they can read.",
             "States a concrete number of days within 1 to 3650 and names the date column the age is counted from — on a form-answers table that column is fixed by the platform (the date the answer arrived), which is a correct answer too.",
-            "Names a copy the sweep does not reach — the rows a routine kept in its run history, which ages out on the run-history window instead."
+            "Names a copy the sweep does not reach — the rows an automation kept in its run history, which ages out on the run-history window instead."
         ],
         "passScore": 70,
         "guidance": "Do not pass an answer that treats sharing as granting write access, that gives a number of days without naming a date column, or that claims retention removes every copy in the workspace. A confident summary of the Sharing tab with no retention decision in it fails. Wording may be informal; the four decisions must each be identifiable."
     },
     "ex-forms-create-brief": {
         "title": "A brief the AI can draft from",
-        "task": "Write the brief for Van Dijk Groep's supplier intake as it would be pasted into \"Describe it (optional)\", plus a sentence choosing between \"Collect answers in a table\" and \"Form that starts a routine\" with a reason, and a sentence on how it should look.",
+        "task": "Write the brief for Van Dijk Groep's supplier intake as it would be pasted into \"Describe it (optional)\", plus a sentence choosing between \"Collect answers in a table\" and \"Form that starts an automation\" with a reason, and a sentence on how it should look.",
         "criteria": [
             "Lists several concrete things to ask for — at least a company or contact identity, an e-mail, and one non-text item such as a file upload, a number or a yes/no.",
             "Is specific enough to draft from: it names the details rather than saying \"the usual supplier information\".",
-            "Names one of the two real modes (\"Collect answers in a table\" or \"Form that starts a routine\") and gives a reason tied to what must happen with the answers.",
+            "Names one of the two real modes (\"Collect answers in a table\" or \"Form that starts an automation\") and gives a reason tied to what must happen with the answers.",
             "Says something about the look using a real control — a preset (Clean, Corporate, Friendly, Night, Match visitor), the accent colour, or one of the knobs Corners, Spacing, Text size, Appearance.",
             "Shows awareness that the draft is reviewed before it is saved, or that question types and Required are set by the author."
         ],
         "passScore": 70,
-        "guidance": "Pass a plainly written brief in English or Dutch that a drafter could turn into questions. Do not pass: a one-line restatement of the task (\"a supplier form\"), a mode choice with no reason, or an answer that invents product behaviour — for example claiming the brief is saved with the form, that the AI publishes or activates the form, that the AI picks the styling, or that the link can be sent to the supplier. A learner who picks the routine mode with a sound reason passes just as well."
+        "guidance": "Pass a plainly written brief in English or Dutch that a drafter could turn into questions. Do not pass: a one-line restatement of the task (\"a supplier form\"), a mode choice with no reason, or an answer that invents product behaviour — for example claiming the brief is saved with the form, that the AI publishes or activates the form, that the AI picks the styling, or that the link can be sent to the supplier. A learner who picks the automation mode with a sound reason passes just as well."
     },
     "ex-datatables-rows-and-repair-note": {
         "title": "The note before a table is deleted",
         "task": "Write the note Anna sends colleagues before deleting the supplier-invoice table: which tab told her who depends on it and what it said, what the delete dialog demands, what is lost for good, and one precaution she takes before confirming.",
         "criteria": [
-            "Names the \"Used by\" tab as the place that lists the dependants, and names concrete dependants (the routine that writes rows, the Monday reminder) that must be dealt with first",
-            "States that the delete dialog requires typing the table's name and lists the routines that break — it is not a one-click action",
-            "Is honest that the rows are gone for good and that any routine holding a row id simply stops finding it; nothing here restores them",
-            "Names a real precaution taken before confirming, such as an Export CSV copy, or switching the routines off first"
+            "Names the \"Used by\" tab as the place that lists the dependants, and names concrete dependants (the automation that writes rows, the Monday reminder) that must be dealt with first",
+            "States that the delete dialog requires typing the table's name and lists the automations that break — it is not a one-click action",
+            "Is honest that the rows are gone for good and that any automation holding a row id simply stops finding it; nothing here restores them",
+            "Names a real precaution taken before confirming, such as an Export CSV copy, or switching the automations off first"
         ],
         "passScore": 70,
         "guidance": "Pass a note that shows the learner checked dependants before touching the menu and understands the delete is irreversible and name-confirmed. Do not pass a note that only says \"I will delete the table on Friday\", that claims the data can be recovered or restored from a backup in the product, that confuses deleting rows with deleting the table, or that invents a control that does not exist (an archive button, a trash bin, an undo). A note that says renaming or unlinking is equally destructive is also wrong: renaming is only a label, and unlinking a mirror leaves the source file untouched."
@@ -1652,7 +1652,7 @@ const RUBRICS = {
         "criteria": [
             "Says that only NEW submissions stop landing in the table, starting from the next submission",
             "Says the answers table itself, the rows already in it and the people it is shared with all stay exactly as they are",
-            "Makes clear the form keeps working — it still opens, still accepts submissions and still starts the routine, because taking it off the air is the separate \"Form is live\" switch",
+            "Makes clear the form keeps working — it still opens, still accepts submissions and still starts the automation, because taking it off the air is the separate \"Form is live\" switch",
             "Notes that switching collecting back on does not import the submissions made in the meantime"
         ],
         "passScore": 70,
@@ -1683,8 +1683,8 @@ const RUBRICS = {
         "guidance": "Do not pass an answer that types everything as Text, that invents field types the picker does not offer, or that adds its own 'submitted by' / 'created on' field without noticing created_by and created_at. An answer that lists fields well but says nothing about linking or about system columns is incomplete — both of those sentences were asked for. Dutch or English field names are equally fine, and extra sensible fields are a plus, not a fault."
     },
     "ex-apps-actions-mapping": {
-        "title": "Wiring five inputs of a purchase-request routine",
-        "task": "Map five declared routine inputs (supplier, amount, urgent, quote, source) onto the four fields of a form component on an app screen, choosing field or static for each and identifying which input depends on the Studio App trigger.",
+        "title": "Wiring five inputs of a purchase-request automation",
+        "task": "Map five declared automation inputs (supplier, amount, urgent, quote, source) onto the four fields of a form component on an app screen, choosing field or static for each and identifying which input depends on the Studio App trigger.",
         "criteria": [
             "Maps supplier, amount and urgent as field mappings onto leverancier, bedrag and spoed",
             "Chooses static for source, because it is a fixed value the form does not hold",
@@ -1692,7 +1692,7 @@ const RUBRICS = {
             "Shows awareness that supplier and amount are required, so an empty one stops the run with an error naming the missing inputs"
         ],
         "passScore": 70,
-        "guidance": "Do not pass an answer that maps every input as a field without noticing that source has no matching form field, nor one that claims a file can reach a routine that has no Studio App trigger declaring a file input. A file input IS wired as an ordinary field mapping onto the upload field — that part is correct and should not be marked wrong. A learner may mention that a file is skipped by Test with what is on screen — that is a bonus, not a requirement. Wrong direction of mapping (form field named as the input) is acceptable if the pairing itself is right."
+        "guidance": "Do not pass an answer that maps every input as a field without noticing that source has no matching form field, nor one that claims a file can reach an automation that has no Studio App trigger declaring a file input. A file input IS wired as an ordinary field mapping onto the upload field — that part is correct and should not be marked wrong. A learner may mention that a file is skipped by Test with what is on screen — that is a bonus, not a requirement. Wrong direction of mapping (form field named as the input) is acceptable if the pairing itself is right."
     },
     "ex-apps-roles-plan": {
         "title": "Access plan for Inkoopaanvragen",
@@ -1718,7 +1718,7 @@ const RUBRICS = {
             "Keeps the scope to one page the AI can actually build, not a multi-screen application."
         ],
         "passScore": 70,
-        "guidance": "Pass a brief that a builder could hand over without a follow-up question. Do not pass a one-liner like 'make a nice status page' or 'build a page for our quotes' with no table, no columns and no interaction. Do not pass a brief that asks for things outside a page's reach, such as changing permissions, creating the datatable's columns, or emailing without naming a routine. A brief that lists columns to show but never says what has to stay off the page misses the exclusion criterion; grade it below the pass mark unless everything else is unusually strong."
+        "guidance": "Pass a brief that a builder could hand over without a follow-up question. Do not pass a one-liner like 'make a nice status page' or 'build a page for our quotes' with no table, no columns and no interaction. Do not pass a brief that asks for things outside a page's reach, such as changing permissions, creating the datatable's columns, or emailing without naming an automation. A brief that lists columns to show but never says what has to stay off the page misses the exclusion criterion; grade it below the pass mark unless everything else is unusually strong."
     },
     "ex-webpages-column-gate": {
         "title": "Filling in the column gate",
@@ -1757,13 +1757,13 @@ const RUBRICS = {
         "guidance": "Do not pass an answer that only lists buttons without reasons, that sends a password in the same mail as the URL, that claims changing the mode later closes the old link, or that treats Re-snapshot or a second link as a way to cut off access. Password-protected instead of Email-gated may pass when the answer defends the choice and handles the secret on a separate channel."
     },
     "ex-playbooks-run-a-recipe-brief": {
-        "title": "Steering the Routine brief",
-        "task": "Write the line or lines Anne adds to the Routine brief on the handoff card, after the table Invoices has landed with the columns Date, Supplier, Invoice number, Excl. VAT, VAT, Total, Status and File, before she presses Continue.",
+        "title": "Steering the Automation brief",
+        "task": "Write the line or lines Anne adds to the Automation brief on the handoff card, after the table Invoices has landed with the columns Date, Supplier, Invoice number, Excl. VAT, VAT, Total, Status and File, before she presses Continue.",
         "criteria": [
             "Names the source concretely: the PDF invoices in the Nextcloud folder /Inkoop/Facturen-Q3, read through the Nextcloud connection.",
-            "Says which columns of Invoices the routine must fill, using the real column names rather than 'the fields'.",
-            "Asks for a manual trigger, or at least does not contradict it, so the First rows phase can run the routine once.",
-            "Stays inside the next phase only — it briefs the routine, it does not describe the app, the design or the approval flow."
+            "Says which columns of Invoices the automation must fill, using the real column names rather than 'the fields'.",
+            "Asks for a manual trigger, or at least does not contradict it, so the First rows phase can run the automation once.",
+            "Stays inside the next phase only — it briefs the automation, it does not describe the app, the design or the approval flow."
         ],
         "passScore": 70,
         "guidance": "Pass a concrete, phase-scoped brief even if it is short. Do not pass: a generic 'read the invoices and fill the table' with no folder and no columns; a brief that describes the whole build including the app screens; anything that asks for a schedule or a file trigger, since that breaks the First rows phase; or an answer that invents product behaviour, such as sending invoice data to an outside system."
@@ -1774,7 +1774,7 @@ const RUBRICS = {
         "criteria": [
             "Names a concrete source: a Nextcloud folder with a path, an existing table, a mailbox — not \"our data\".",
             "Names where the rows go and lists real column names, so a table phase with typed columns can be composed.",
-            "Names what the app shows or lets someone do, so the plan gets a routine or an app phase rather than a table alone.",
+            "Names what the app shows or lets someone do, so the plan gets an automation or an app phase rather than a table alone.",
             "Stays inside what the workspace can reach (Nextcloud files, e-mail, HTTP, AI steps), and asks for an approval decision rather than an approve button inside the app."
         ],
         "passScore": 70,
@@ -1786,7 +1786,7 @@ const RUBRICS = {
         "criteria": [
             "States that data does not travel: the invoice table arrives as a shape with no rows, and no supplier or customer records are in the file.",
             "Names at least two concrete requirements the installer must supply — a table for the \"inkoopfacturen\" key, a credential for the mailbox connection, and/or someone to approve the over-€2 500 step.",
-            "Warns that everything arrives as a draft: the routine is inactive, any page is unpublished, and nothing runs until the installer activates it.",
+            "Warns that everything arrives as a draft: the automation is inactive, any page is unpublished, and nothing runs until the installer activates it.",
             "Mentions that credentials, approver seats or people do not travel — the installing team supplies their own."
         ],
         "passScore": 70,
@@ -1798,7 +1798,7 @@ const RUBRICS = {
         "criteria": [
             "Names at least one concrete resolution supplied in step 2 — a table (existing or Create an empty table), a credential, or an approver — rather than saying 'I filled it in'.",
             "States that a page's tool grants run as the installer's own account, and that one was deliberately refused or left for later.",
-            "Says the Solution arrived as a draft and names something that must be activated by hand (an inactive routine, an unpublished page).",
+            "Says the Solution arrived as a draft and names something that must be activated by hand (an inactive automation, an unpublished page).",
             "Reports the Not installed line in its own terms: the App Studio screen was never created because that kind is outside this plan, and nothing will say so again.",
             "Reads as a note to a named colleague about this install — concrete, 4–6 sentences — rather than a summary of how installs work in general."
         ],
@@ -1856,28 +1856,28 @@ const RUBRICS = {
     },
     "ex-shield-org-outbound-policy": {
         "title": "An outbound policy for the sales team",
-        "task": "Write the Leaving your org settings for Van Dijk Groep's sales team: which pre-flight mode for the first month and which afterwards, whether to tick \"Always show this check, even when nothing is found\", and at least one tool or search control to switch on — with a reason for each choice.",
+        "task": "Write the outbound settings for Van Dijk Groep's sales team: which mode for \"One last check before an outside AI\" for the first month and which afterwards, whether to tick \"Always show this check, even when nothing is found\", and at least one tool or search control to switch on — with a reason for each choice.",
         "criteria": [
             "Names Ask (with a human in the loop) for the first month and a less interruptive mode — Hide it, or a reasoned case for staying on Ask — afterwards, with a stated reason for the change.",
             "Decides explicitly on \"Always show this check, even when nothing is found\" and explains what it buys: clean messages are also shown, so a value the detector missed can still be marked.",
-            "Adds at least one real control from the same tab — holding categories back from tools that send data outside the organisation, Protect web searches, No web search while a file is attached, or Use only AI hosted in the EU — correctly described.",
-            "Shows awareness that the pre-flight only fires for models outside the organisation, or that the always-on action on the What happens tab still applies underneath."
+            "Adds at least one real control — the Hold back · outside tools column on What we look for, Protect web searches, No web search while a file is attached, or Use only AI hosted in the EU — correctly described.",
+            "Shows awareness that the last check only fires for models outside the organisation, or that the always-on action under When we find something still applies underneath."
         ],
         "passScore": 70,
-        "guidance": "Do not pass an answer that only repeats the three mode names without choosing, that invents settings which do not exist (per-team or per-user pre-flight modes, a per-message approval queue), that claims the pre-flight also covers a self-hosted model, or that confuses the pre-flight with the What happens action. A short answer is fine if it makes the three decisions concretely and gives a reason for each."
+        "guidance": "Do not pass an answer that only repeats the three mode names without choosing, that invents settings which do not exist (per-team or per-user modes, a per-message approval queue), that claims the last check also covers a self-hosted model, or that confuses the last check with the action under When we find something. A short answer is fine if it makes the three decisions concretely and gives a reason for each."
     },
     "ex-shield-org-evidence-board-note": {
         "title": "A defensible month in one paragraph",
-        "task": "Write the paragraph you would send Van Dijk Groep's board about last month's shield activity, based on the 30d view of the What happened tab: the period and range, at least two figures with what they count, one concrete finding from a detail row, the change made plus a recheck date, and one sentence on what the tab does not prove.",
+        "task": "Write the paragraph you would send Van Dijk Groep's board about last month's shield activity, based on the 30-day view of the What happened tab: the period, at least two figures with what they count, one concrete finding from a log row, the change made plus a recheck date, and one sentence on what the tab does not prove.",
         "criteria": [
-            "Names the period and the range read (7d, 30d or 90d), so the figures can be reproduced by someone else.",
-            "Uses at least two of the four figures correctly: shield events as every event, personal data caught as the subset, calls to outside services, or the score out of 100 in which personal data leaving Europe counts double.",
-            "Cites one concrete detail-row finding — a destination or country, an operator, a kind of personal data, or the surface (direct chat, agent, routine, notebook).",
+            "Names the period read (7, 30 or 90 days), so the figures can be reproduced by someone else.",
+            "Uses at least two of the four figures correctly: Shield stepped in as replaced plus stopped, Personal data found, Left with a tool, unchanged, or Stayed in Europe as a percentage of placed calls.",
+            "Cites one concrete log-row finding — a destination or country, an operator, a kind of personal data, or the surface (direct chat, agent, automation, notebook).",
             "States one specific change made or planned, and says when the figures will be read again.",
             "Adds an honest limit: the tab reports what was recorded, so it cannot prove that nothing was missed."
         ],
         "passScore": 70,
-        "guidance": "Pass a paragraph a non-technical board could act on and an auditor could reproduce. Do not pass an answer that treats a low count or an empty tab as proof that no personal data was processed; that confuses shield events with calls that left; that quotes a figure without saying what it counts; that invents fields the tab does not show, such as message content or exported spreadsheets; or that ends without a change and a recheck. Invented numbers must stay consistent: personal data caught can never exceed the total number of shield events."
+        "guidance": "Pass a paragraph a non-technical board could act on and an auditor could reproduce. Do not pass an answer that treats a low count or an empty tab as proof that no personal data was processed; that confuses messages the shield acted on with tool calls that left; that quotes a figure without saying what it counts; that invents fields the tab does not show, such as message content or exported spreadsheets; or that ends without a change and a recheck. Invented numbers must stay consistent: the replaced and stopped counts must add up to Shield stepped in."
     },
     "ex-encryption-tiers-questionnaire": {
         "title": "An honest Managed answer",
@@ -1886,7 +1886,7 @@ const RUBRICS = {
             "Names the Managed tier and states that conversation content is stored as AES-256-GCM envelopes, so a stolen database, backup or replica is unreadable.",
             "States plainly that the key is escrowed and chains back to a master key held by the operator of the server, so the operator can technically reach the content.",
             "Avoids any claim of zero-knowledge, 'nobody can read it', or 'encrypted at rest, therefore inaccessible to the provider'.",
-            "Gives a reason for the choice rather than an apology: admin password reset without data loss, and background routines that read threads with no user session.",
+            "Gives a reason for the choice rather than an apology: admin password reset without data loss, and background automations that read threads with no user session.",
             "Bonus accuracy: notes that the switch protected new writes and history needed a backfill, or that transcripts and project-shared conversations are keyed to the organisation on every tier."
         ],
         "passScore": 70,
@@ -1986,7 +1986,7 @@ const RUBRICS = {
         "criteria": [
             "Names three distinct drivers, each pinned to something concrete — an app area, a model or tier, and/or a person or agent — rather than a vague 'chat is expensive'.",
             "Attributes each finding to the panel that produced it (By app area, By Model or By tier, Top Users, Models per Agent, Model Usage by User) and states the range used.",
-            "Proposes a specific, proportionate action per driver (change a routine's tier, split a large attachment, fix an agent's instructions, discuss with a person, revisit the plan) instead of jumping straight to lowering the cap.",
+            "Proposes a specific, proportionate action per driver (change an automation's tier, split a large attachment, fix an agent's instructions, discuss with a person, revisit the plan) instead of jumping straight to lowering the cap.",
             "Shows awareness of which of the two views they were reading: in the customer view, acknowledges that tokens and call counts are redacted and reasons from cost share or tier instead."
         ],
         "passScore": 70,
@@ -1994,13 +1994,13 @@ const RUBRICS = {
     },
     "ex-usage-caps-note": {
         "title": "A note that turns a percentage into a decision",
-        "task": "Write a short collegial message from Marieke, the organisation admin, to Sanne in sales — the heaviest AI user at Van Dijk Groep — after the cap gauge hit 86% with eleven days left in the billing period, the usage report attributed about a third of the spend to her, almost all of it on a Deep Thinking tier, from the proposal routine.",
+        "task": "Write a short collegial message from Marieke, the organisation admin, to Sanne in sales — the heaviest AI user at Van Dijk Groep — after the cap gauge hit 86% with eleven days left in the billing period, the usage report attributed about a third of the spend to her, almost all of it on a Deep Thinking tier, from the proposal automation.",
         "criteria": [
             "Names the evidence and where it came from: the cap gauge percentage plus at least one of Top users by cost, By tier or By app area — not a vague 'you are using a lot'.",
             "States the consequence correctly: at 100% of the cap AI calls are blocked until the next billing period, and in pooled mode that hits the whole team, not just her.",
-            "Proposes one concrete, specific change to the routine — for example moving that step off the Deep Thinking tier, or sending less input per proposal — rather than 'use it less'.",
+            "Proposes one concrete, specific change to the automation — for example moving that step off the Deep Thinking tier, or sending less input per proposal — rather than 'use it less'.",
             "Mentions the per-user split (AI usage sharing on License & Usage) as a fallback, and frames it as splitting the same cap rather than as a punishment or a saving.",
-            "Stays collegial and factual: the routine's configuration is the problem, not the person's work."
+            "Stays collegial and factual: the automation's configuration is the problem, not the person's work."
         ],
         "passScore": 70,
         "guidance": "Do not pass a note that only says 'please cut back' with no evidence and no proposed change. Do not pass a note claiming the per-user split lowers the bill, that the cap controls answer length, or that usage was inspected in a place that does not exist (there is no export or download on this report). Do not pass a note that threatens to remove her access, or that reports token or call counts — a cloud organisation admin never sees those. Partial credit is fine when the tone and the evidence are right but the fallback is missing."
@@ -2013,7 +2013,7 @@ const RUBRICS = {
             "States what that choice costs: the ticket answers are written to the database, and a run may act on data as old as the window.",
             "Notes that the org setting alone changes nothing until the step's author ticks Ask this app only once per run and, under it, keeping the answer for later runs.",
             "Case 2 resists the reflex: summarising is lossy and the folded detail is gone for that conversation, so the defensible lever is the mode choice or the Safety limit, argued against the model's context window.",
-            "Keeps the two switches apart — no claim that either of them governs both chats and routines."
+            "Keeps the two switches apart — no claim that either of them governs both chats and automations."
         ],
         "passScore": 65,
         "guidance": "Reward a decision that is made, not hedged. Full marks do not require a particular answer: storing ticket look-ups for a short window is defensible, and so is refusing because ticket contents are customer data. Withhold marks when the price is left unnamed, when the step-level tick is forgotten, or when the learner treats Conversation Memory as a cost dial without mentioning the detail it destroys."
@@ -2060,7 +2060,7 @@ const RUBRICS = {
         "criteria": [
             "Names three concrete artifacts of the learner's own — a schedule-triggered automation that has run, a cowork item, and an agent or a knowledge base with a document — and says in one line what each actually does.",
             "Maps each artifact to the requirement it satisfies, correctly (schedule automation, cowork, builder artifact).",
-            "Names one real admin decision the build depends on and where it is taken: \"Also protect routines\" on the Privacy Shield, the encryption tier an unattended routine needs, the role or group grant that permits building, or the processing register a published agent lands in — or, for a non-admin, the decision to be confirmed, its screen and who confirms it.",
+            "Names one real admin decision the build depends on and where it is taken: \"Also protect automations\" on the Privacy Shield, the encryption tier an unattended automation needs, the role or group grant that permits building, or the processing register a published agent lands in — or, for a non-admin, the decision to be confirmed, its screen and who confirms it.",
             "Names one further repeating task and picks a trigger for it from the real palette (schedule, form, webhook, app event, agent call, Studio App).",
             "Justifies the trigger choice by what starts the work — a clock, a submission, an event in a connected app — not by preference."
         ],
@@ -2245,8 +2245,8 @@ const PRACTICE_TOPICS = {
             "Bee Flow puts the real values back into the answer before the reader sees it, so the reader sees the real name even though the model only saw placeholders.",
             "The composer shield line says one of five things, including the amber \"Privacy Shield is on, but personal data cannot be checked right now\"; when the status is unknown or the shield is off, no line is shown at all.",
             "The green shield line is shown only when the shield is enabled AND the detection service is reachable — being switched on is not enough.",
-            "Under a sent message a lock badge reads \"{n} items redacted\", with the tooltip \"This message contained sensitive data — only placeholders were sent to the AI.\"",
-            "Expanding that badge opens the Privacy protection panel with what was detected and the provider it went to; the original message, the version sent to the AI and a Token mapping list behind Click to reveal appear only when the organisation switched on \"Let people see what was sent to the AI\".",
+            "Under a sent message a lock line counts the replaced values and, where the screen can show them, names the placeholders: \"2 values replaced with [person_1], [email_1] — the real values stayed here\".",
+            "How I got this answer under the reply holds the Privacy protection panel: what was detected and where it was sent. The original, the version sent to the AI and a Token mapping list behind Click to reveal appear only when the organisation switched on \"Let people see what was sent to the AI\".",
             "An amber Scan incomplete badge means part of a large upload could not be checked and that part was sent unredacted."
         ]
     },
@@ -2258,7 +2258,7 @@ const PRACTICE_TOPICS = {
             "Its three buttons are Block, Send anyway and Redact and send; the last one reads simply Send when nothing at all is highlighted or marked.",
             "Each highlight carries a word, never a percentage: High confidence, Possible match, Low confidence, Custom rule, or Marked by you for spans you marked yourself.",
             "Selecting text offers \"Mark as personal data\", and clicking one of your own marks offers \"Unmark\"; your marks are only acted on by Redact and send.",
-            "The pending decision expires after sixty seconds, and the message is then refused with \"Blocked: DLP decision timed out.\" Pressing Block shows \"Prompt blocked by you.\"",
+            "While the dialog is open, the decision is kept alive; a decision nothing is heard from for ten minutes expires and the message is refused with \"Blocked: DLP decision timed out.\" Pressing Block shows \"Prompt blocked by you.\"",
             "The checkbox \"Remember my choice for this conversation\" applies Send anyway or Redact and send to every later message in that conversation; a Block choice is never remembered.",
             "Attachments raise the same dialog, titled \"Check this attachment before it goes to the AI\", one pause per flagged file, with the file shown as a document card.",
             "When a large file could not be read to the end, the sent message carries the badge \"Scan incomplete\"; clicking it lists the file with a \"Scanned 12 of 40 pages\" line."
@@ -2272,8 +2272,8 @@ const PRACTICE_TOPICS = {
             "When the check cannot run, the default is to refuse the whole message, not only messages holding personal data: \"Privacy protection is temporarily unavailable, so your message was not sent. Please try again in a moment.\"",
             "A message too big to check is refused with \"This message is too large to scan for personal data, so it was not sent. Please split it into smaller parts.\"; an amber \"Scan incomplete\" badge instead means uploaded content went to the AI unredacted (\"Scanned 50 of 180 pages\").",
             "The review dialog \"Check this before it goes to the AI\" offers three buttons: Block, Send anyway, and Redact and send.",
-            "Memories are stored with their real values and are only scrubbed to labels such as [IBAN] on the way to a model, so a customer's bank number or address should never be saved under Settings → Memory → Manage memories → Add Memory.",
-            "The Token mapping section appears in the Privacy protection panel under a message only when the organisation switched on \"Let people see what was sent to the AI\"; it sits behind \"Click to reveal\" and anyone who can open the conversation can reveal the real values."
+            "Memories are stored with their real values and are only scrubbed to labels such as [IBAN] on the way to a model, so a customer's bank number or address should never be saved under Settings → Memory → Manage memories → Add memory.",
+            "The Token mapping section appears in the Privacy protection panel under How I got this answer only when the organisation switched on \"Let people see what was sent to the AI\"; it sits behind \"Click to reveal\" and anyone who can open the conversation can reveal the real values."
         ]
     },
     "settings-preferences": {
@@ -2334,16 +2334,16 @@ const PRACTICE_TOPICS = {
     },
     "projects-shared-workspace": {
         "title": "Projects: the shared workspace",
-        "summary": "How a project's eight tabs, three roles, shared memory pool and re-keyed conversations fit together for a team working on one job.",
+        "summary": "How a project's rail, three roles, team and shared AI chats, project memory and delete fit together for a team working on one job.",
         "facts": [
-            "A project's tabs are General, Chats, Content, Knowledge, Members, Activity, Memory and Danger; the Danger tab is only rendered for the owner.",
-            "Custom Instructions on the General tab are added to the system prompt of every chat in the project; the same tab holds the Extract Project Memories checkbox, which is off by default.",
-            "The Invite Member panel offers two permissions, Viewer and Editor: editors can update project settings and KBs, viewers can read and chat in the project. Only the owner invites or changes roles.",
-            "Share with project re-encrypts a conversation's messages under the project's key so every member and background jobs can read them; Stop sharing re-keys them back, and only the conversation's owner can do either.",
-            "Project memory is a shared pool on the Memory tab with types Instruction, Project, Fact and Context; each card names who added it, and a view-only member is told project memory is read-only.",
-            "Inside a project, up to fifteen of your own global Instructions and Preferences are merged on top of the project pool; your other personal memories stay out.",
-            "Content lists notebooks, apps, routines, webpages, tables, agents, knowledge bases and approvals under the heading In this project; an owner or editor files in items they own with Add existing and takes them out again with Remove from project, while approvals can never be removed.",
-            "Delete Project unassigns the conversations rather than deleting them, but removes the members, the activity history and the project's memory pool."
+            "A project's rail has three groups: Collaborate (Overview, Chats, Tasks, Meetings), Content (Documents, Notebooks, Knowledge) and Manage (Members, Activity, Settings); Notebooks is left out for anyone whose plan or role does not include notebooks.",
+            "Settings holds About this project (name, description, icon, colour) and AI in this project: Instructions for the AI, added to every AI chat in the project, and the toggle Remember useful facts from chats, which is off by default.",
+            "The Invite people form on Members offers two roles, Editor and Viewer, with Viewer preselected. Only the owner invites, changes roles or removes members; a Viewer reads everything in the project and changes nothing.",
+            "New chat on the Chats tab starts a team chat every member can read; the AI answers when someone mentions @AI, and viewers can read but not post.",
+            "An AI chat filed in a project stays private until its owner clicks Share with members (Share with project in the sidebar menu): it is re-encrypted with the project key, every member can read it and editors can continue it; Stop sharing re-keys it back.",
+            "Project memory sits on the Knowledge tab next to Files and Knowledge bases; every member sees it, editors add, change and remove entries, and each entry names who added it.",
+            "Remove from project on Documents, Notebooks and Meetings takes an item out without deleting it: it stays with its owner. It is offered to the item's owner and the project owner.",
+            "Delete this project (owner only, at the bottom of Settings) deletes team chats, members, activity and project memory, keeps documents, notebooks, meetings and private chats with their makers, and is refused while chats are still shared with the project."
         ]
     },
     "settings-account-security": {
@@ -2412,7 +2412,7 @@ const PRACTICE_TOPICS = {
             "The Apps picker puts an item in one of three states: no list of its own (it follows the workspace-wide list), its own list, or an empty list meaning it may use nothing; 'Follow my workspace list' returns it to the first state.",
             "When the workspace app list cannot be read the composer shows 'App list unavailable — this run follows your workspace list' and the edit form shows 'Your app list could not be loaded' — the item is never given a list that could not be verified.",
             "The Run as chip only appears when there are agents to pick from; the list behind it needs the permission that lets someone manage agents, which a Member does not have.",
-            "An item may only run as an agent you own; other attempts are refused with 'Agent not found or not owned by you', and an account without the agent-routines feature gets 'Agent routines beta is not enabled for this account'.",
+            "An item may only run as an agent you own; other attempts are refused with 'Agent not found or not owned by you', and an account without the agent-automations feature gets 'Agent automations beta is not enabled for this account'.",
             "If the linked agent has Memory switched on, each run is given the items earlier runs of the same cowork already covered, with dates, and is told to skip them unless something material changed."
         ]
     },
@@ -2454,8 +2454,8 @@ const PRACTICE_TOPICS = {
             "Each assistant answer in AI Chat has an Insert button (\"Insert into document\"); the citation chips stay in the chat panel and open the cited passage when clicked. Selecting text offers Ask AI, Rewrite, Shorten and Expand.",
             "AI fill fills every {{parameter}} in the document from the notebook's sources, answering \"No {{parameters}} found in the document to fill.\" or \"AI Fill returned no content. Please try again.\"; Templates hold .docx layouts with {{parameters}}, filled via Fill with AI and Generate Document.",
             "Export offers Download as PDF and Download as Word, plus Send for signing and Save to Nextcloud once configured; version history keeps the newest 200 auto-snapshots; deleting a notebook also deletes its sources, its version history and its chat.",
-            "A standalone notebook is owner-only — the list returns only your own and a stranger's link answers \"Notebook not found\". Filing it into a Project widens it: Content → Notebooks → Add existing, the notebook owner's act alone.",
-            "Project tabs are General, Chats, Content, Knowledge, Members, Activity, Memory and Danger. Only the Owner sees Invite Member (User or Group; Viewer or Editor) and the Danger tab, whose Delete Project unassigns conversations, removes members and activity history, and detaches filed notebooks."
+            "A standalone notebook is owner-only — the list returns only your own and a stranger's link answers \"Notebook not found\". Filing it into a Project widens it: Notebooks → Add existing, which picks only from your own notebooks.",
+            "A project's rail runs Overview, Chats, Tasks, Meetings, Documents, Notebooks, Knowledge, Members, Activity and Settings. Only the Owner invites people (a person or a group, as Editor or Viewer) and deletes the project; deleting it leaves filed notebooks with their owners."
         ]
     },
     "research-swarm": {
@@ -2524,8 +2524,8 @@ const PRACTICE_TOPICS = {
             "The note records only a reference to where an action went — the kind, the container, the label that was on screen, the moment, and (when the write returned one) the id of the row, run or source it created — never a copy of what that thing holds.",
             "A note carries at most 50 tags of 80 characters each, and the library shows at most five tag chips before folding the rest behind \"+{n} tags\".",
             "The visibility capsule offers Personal, Entire organisation or specific groups; sharing grants reading only, while rename, edit speakers, regenerate, re-transcribe and delete stay with the owner.",
-            "A routine can start by itself on the trigger \"Meeting note ready\" filtered on tags, and that trigger passes only the note id, the tags, the organisation and a reprocessed flag — never the summary or the attendees.",
-            "Deleting a note that a knowledge base, routine or notebook still uses is refused the first time and shows that list; only a confirmed second press goes through."
+            "An automation can start by itself on the trigger \"Meeting note ready\" filtered on tags, and that trigger passes only the note id, the tags, the organisation and a reprocessed flag — never the summary or the attendees.",
+            "Deleting a note that a knowledge base, automation or notebook still uses is refused the first time and shows that list; only a confirmed second press goes through."
         ]
     },
     "meetings-insights-and-transcript": {
@@ -2562,7 +2562,7 @@ const PRACTICE_TOPICS = {
         "facts": [
             "An agent's standing instructions live in the Instructions block on the Role tab of the agent editor; there is no save button, the header shows Saving… and then Saved.",
             "A line under 'what it never does' goes into the instructions and the model follows it — nothing there blocks an action. What an agent truly cannot do is what it was never given.",
-            "To really stop an action, take the app, table or routine away on the Can use tab or set it to Confirm first; anything that sends is locked to Confirm first.",
+            "To really stop an action, take the app, table or automation away on the Can use tab or set it to Confirm first; anything that sends is locked to Confirm first.",
             "The Role tab carries the switch 'Only answer from these documents': it makes the agent refuse questions the linked documents do not cover, so it only makes sense once a knowledge base is linked.",
             "A role can be held as fields (who, tone, what it does, what it never does) or as one free text; fields are rendered into the instruction text on save, and reading a hand-written text back into fields is a separate AI step.",
             "A fixed reply language renders as 'Always write your replies in Dutch, whatever language the question is in', which overrules the tone word 'Dutch, unless asked otherwise' — keep one of the two.",
@@ -2590,7 +2590,7 @@ const PRACTICE_TOPICS = {
         "facts": [
             "The Test tab holds a card called \"Test set\", subtitled \"Questions this agent should keep answering well\"; empty it reads \"No questions yet — turn an answer you liked into the first one.\"",
             "\"Must get across\" is judged by an AI and a paraphrase counts; \"Must never say\" is matched word for word, and nothing is ever proposed for it because a prohibition is a rule you write.",
-            "A test run withholds every action that sends, every routine, and every action set to \"Confirm first\"; write actions still run, and the conversation is never kept.",
+            "A test run withholds every action that sends, every automation, and every action set to \"Confirm first\"; write actions still run, and the conversation is never kept.",
             "A test whose expected tool was withheld comes back as blocked, not failed: \"A test run never uses {names}, so this could not be checked.\"",
             "Once a version is published, a run exercises the published agent, not the draft (\"This answer came from the published agent, not from your draft.\") — and it reads the linked knowledge bases as they stand now, because a version fixes which bases are linked, not a copy of their documents.",
             "Only the last 20 runs are kept per agent, and a run that did not finish is not stored at all.",
@@ -2630,10 +2630,10 @@ const PRACTICE_TOPICS = {
         "summary": "The screen Studio opens with: what needs a person, what you last touched, and how the building blocks connect.",
         "facts": [
             "Studio's front door is the section \"Start\" — \"Everything you build, in one place\"; Studio with no section chosen opens it, and an unknown section falls back to Agents.",
-            "\"Needs attention\" draws on six sources: app validation problems, a published agent with no knowledge base, an empty knowledge base something reads, a routine that failed several times in a row, a Solution with blocking findings, and a knowledge source that could not refresh.",
+            "\"Needs attention\" draws on six sources: app validation problems, a published agent with no knowledge base, an empty knowledge base something reads, an automation that failed several times in a row, a Solution with blocking findings, and a knowledge source that could not refresh.",
             "Rows are ordered by severity — errors, then warnings, then advice — and never grouped by source; a row whose target can be named carries a \"Show me\" link.",
             "\"Nothing needs attention.\" is printed only when every source answered; otherwise the screen says \"Not checked: {sections}.\", or that a check covered only the busiest part, or that some checks only run for the people who can act on them.",
-            "The map at the bottom is titled \"How the pieces fit together\" and is a legend of kinds — form, web page, app, routine, table, meeting, knowledge base, agent, skill, playbook, solution — never your own objects; \"Pick a building block to see what it connects to.\"",
+            "The map at the bottom is titled \"How the pieces fit together\" and is a legend of kinds — form, web page, app, automation, table, meeting, knowledge base, agent, skill, playbook, solution — never your own objects; \"Pick a building block to see what it connects to.\"",
             "Approval is drawn on the map but never counted: \"An approval is not something you make, so there is nothing to count.\"; the connection \"An app uses a table\" carries the note that nothing records it yet.",
             "\"Agent has no knowledge base\" comes from the same grounding check as the agent card's \"Answers from memory — connect a knowledge base\", so the two screens cannot disagree."
         ]
@@ -2649,7 +2649,7 @@ const PRACTICE_TOPICS = {
             "\"Shielded\" means personal data was replaced before the text entered the base — the redacted text is the stored text, and the original is not kept.",
             "Identical content inside one source gets the status \"duplicate\" and is not indexed twice; near-identical content in another source is ingested anyway and annotated \"· overlaps another source\".",
             "A base with no organisation shows \"Personal — only you can see this\" and can only be shared after \"Move to my organisation\", which cannot be undone.",
-            "\"Where it can be used\" (Agents, Chat, Routines) decides which pickers offer the base; it is not access control, which lives under \"Who may see and use it\"."
+            "\"Where it can be used\" (Agents, Chat, Automations) decides which pickers offer the base; it is not access control, which lives under \"Who may see and use it\"."
         ]
     },
     "knowledge-sources-and-refresh": {
@@ -2683,14 +2683,14 @@ const PRACTICE_TOPICS = {
         "title": "Knowledge base audience and dependencies",
         "summary": "How a knowledge base decides who may read it, where it is offered, and what the Used by tab reveals before you change anything.",
         "facts": [
-            "The Settings tab has two separate blocks: \"Where it can be used\" (Agents, Chat, Routines) and \"Who may see and use it\" (Personal, Entire organisation, Groups).",
+            "The Settings tab has two separate blocks: \"Where it can be used\" (Agents, Chat, Automations) and \"Who may see and use it\" (Personal, Entire organisation, Groups).",
             "The hint under Where it can be used says it decides which pickers offer the base and does not change who may read what is in it.",
             "Turning off the last surface is refused with \"A knowledge base has to be usable somewhere. Pick another place first.\"",
             "Widening an audience asks \"Share more widely?\" with the buttons Share and Keep as is; narrowing does not ask.",
             "A base with no organisation shows \"Personal — only you can see this\" and Move to my organisation, which cannot be undone and gives administrators management rights.",
             "The Meeting notes source warns that everyone who can see the knowledge base can read those summaries, including people who cannot open the meetings, and that transcripts never go in.",
             "Deleting a source shows \"Its {count} documents leave this knowledge base. The original files stay where they are.\"",
-            "The Used by tab lists what references the base — agents, skills, routines, apps, webpages, projects and notebooks — under Where, Does, Last time and Open; rows you may not see keep their kind but lose their name (\"Someone else's {kind}\")."
+            "The Used by tab lists what references the base — agents, skills, automations, apps, webpages, projects and notebooks — under Where, Does, Last time and Open; rows you may not see keep their kind but lose their name (\"Someone else's {kind}\")."
         ]
     },
     "creating-skills": {
@@ -2699,10 +2699,10 @@ const PRACTICE_TOPICS = {
         "facts": [
             "The Method tab holds What this skill does and When to use it on top, the Steps card on the left, and Rules, Delivers and May use in the right rail beside it.",
             "A rule is one sentence with a polarity button beside it reading Always or Never, and it holds for every answer the skill gives.",
-            "A skill never runs on its own: it is attached to an agent, applied by a routine's AI step, or switched on for one chat from the composer.",
-            "May use holds three lists only — apps, routines and knowledge bases; a routine qualifies only when its trigger is “an agent calls it”, a step that merely references a routine grants nothing, and a table is granted by a reference pill on a step.",
+            "A skill never runs on its own: it is attached to an agent, applied by an automation's AI step, or switched on for one chat from the composer.",
+            "May use holds three lists only — apps, automations and knowledge bases; an automation qualifies only when its trigger is “an agent calls it”, a step that merely references an automation grants nothing, and a table is granted by a reference pill on a step.",
             "On an empty skill the card “Start from one sentence” offers “Let AI fill it in”, and the toast afterwards reads “Filled in with AI. Read it through before you rely on it.”",
-            "The Delivers card lists typed fields — text, number, yes-no, date, one of a list, table — and a routine's AI step inherits the leading skill's fields.",
+            "The Delivers card lists typed fields — text, number, yes-no, date, one of a list, table — and an automation's AI step inherits the leading skill's fields.",
             "When to use it accepts up to 4,000 characters, and edits save by themselves 350 milliseconds after the last keystroke."
         ]
     },
@@ -2722,15 +2722,15 @@ const PRACTICE_TOPICS = {
     },
     "skills-attach-and-apply": {
         "title": "Putting a skill to work",
-        "summary": "How a skill reaches a model turn — agent, routine AI step or chat — who may see it at all, and what silently stops it.",
+        "summary": "How a skill reaches a model turn — agent, automation AI step or chat — who may see it at all, and what silently stops it.",
         "facts": [
-            "A skill reaches a turn in three ways only: attached to an agent (Can use tab → card Skills → Link), applied by a routine AI step, or toggled as a session skill in one chat.",
-            "A routine AI step's first ticked skill wears the Leading pill: its instructions come first and the step inherits its Delivers fields.",
+            "A skill reaches a turn in three ways only: attached to an agent (Can use tab → card Skills → Link), applied by an automation AI step, or toggled as a session skill in one chat.",
+            "An automation AI step's first ticked skill wears the Leading pill: its instructions come first and the step inherits its Delivers fields.",
             "At most five skills reach any one turn: attached skills go in first, then session skills, deduped and truncated — the sixth never arrives.",
             "A skill's header capsule Publish to… sets its reach: Personal (\"Only you can access\"), Entire organisation (\"All members can access\") or specific groups; a new skill starts Personal.",
             "Widening a skill's audience asks \"Share more widely?\" with Share or Keep as is, and sharing never grants editing: people who may not edit see a read-only banner.",
             "Dynamic activation puts only a one-line manifest entry in the prompt, and the skill's May use grants stay out until the model activates it.",
-            "A skill with a linked routine runs that routine instead of its own steps; steps, rules and examples are ignored while it is set.",
+            "A skill with a linked automation runs that automation instead of its own steps; steps, rules and examples are ignored while it is set.",
             "Delete skill lives at the bottom of the Used by tab, requires typing the skill's name, and warns that agents lose the behaviour immediately; a blank usage count means not counted, not zero."
         ]
     },
@@ -2742,60 +2742,60 @@ const PRACTICE_TOPICS = {
             "The visibility capsule in the skill header is titled \"Publish to…\" and offers Personal, Entire organisation and Or specific groups.",
             "Leaving Personal, or going from groups to the whole organisation, asks \"Share more widely?\" with the buttons \"Share\" and \"Keep as is\"; narrowing is one click and asks nothing.",
             "Sharing switched on with no groups ticked means the whole organisation, so the capsule refuses to untick the last group and hints \"Choose Personal to stop sharing\".",
-            "A skill is looked up for the person asking — whoever is typing in chat, or the routine's owner when a routine runs — and one they may not see is left out of that turn with no warning.",
+            "A skill is looked up for the person asking — whoever is typing in chat, or the automation's owner when an automation runs — and one they may not see is left out of that turn with no warning.",
             "Seeing is not editing: changing a skill needs the manage_skills permission, carried by Organisation Admin, Agent Admin and Agent Editor; others get the read-only banner and no test history.",
             "When the group list cannot be read the capsule says so rather than dropping the section, because a failed read must not look like an organisation without groups."
         ]
     },
     "automations": {
-        "title": "Routines: what they are and where they live",
-        "summary": "The anatomy of a routine, the draft-versus-active gate, what a run records, why a routine is owner-private while a reusable Step is not, and the boundary between a chat, a Cowork item and a routine.",
+        "title": "Automations: what they are and where they live",
+        "summary": "The anatomy of an automation, the draft-versus-active gate, what a run records, why an automation is owner-private while a building block is not, and the boundary between a chat, a Cowork item and an automation.",
         "facts": [
-            "Routines live in Studio under the section Automations, whose subtitle reads \"Multi-step routines that run for you\".",
-            "An empty canvas asks \"What does this routine start with?\" and states that every routine has exactly one trigger; the seven cards are Manual, Form, Schedule, Webhook, App event, Agent call and Studio App.",
-            "The start screen has four tabs: All automations, Find repeating work, Templates and Runs. Building blocks (reusable Steps) sit in the automations list itself, and the arrow next to + makes one.",
-            "A new routine is a draft and inactive; Activate is a human decision, and the Build with AI assistant cannot switch a routine on.",
+            "Automations live in Studio under the section Automations, whose subtitle reads \"Multi-step automations that run for you\".",
+            "An empty canvas asks \"What does this automation start with?\" and states that every automation has exactly one trigger; the seven cards are Manual, Form, Schedule, Webhook, App event, Agent call and Studio App.",
+            "The start screen has four tabs: All automations, Find repeating work, Templates and Runs. Building blocks (a step you build once and reuse in any automation) sit in the automations list itself, and the arrow next to + makes one.",
+            "A new automation is a draft and inactive; Activate is a human decision, and the Build with AI assistant cannot switch an automation on.",
             "The Run button's visible half is Dry-run, described as \"no real actions, a safe preview\"; Run live sits behind the chevron and executes every step for real.",
             "Studio → Runs & log records every firing: what started it, each step's input, output, error and duration, and the flow as it looked at run time; history is kept for 90 days.",
-            "A routine is owner-private on every licence tier and has no share switch; an organisation admin can list the organisation's runs, but only the person who started a run can open it. A reusable **Step** is the shareable object: its share menu offers personal, the whole organisation, or chosen groups.",
+            "An automation is owner-private on every licence tier and has no share switch; an organisation admin can list the organisation's runs, but only the person who started a run can open it. A building block is the shareable object: its share menu offers personal, the whole organisation, or chosen groups.",
             "Run status words include Finished, Failed, Running, Waiting for approval, Waiting for a form, Skipped, Nothing to do, Recovered and Frozen data, with a small dry-run pill beside the outcome when it was a preview."
         ]
     },
     "automation-anatomy": {
         "title": "Triggers and the step palette",
-        "summary": "How a routine starts, what the palette offers, and how one step reads another.",
+        "summary": "How an automation starts, what the palette offers, and how one step reads another.",
         "facts": [
-            "A routine has exactly one primary trigger; the empty canvas reads \"Every routine has exactly one trigger. Pick one, or let the assistant write the routine.\"",
+            "An automation has exactly one primary trigger; the empty canvas reads \"Every automation has exactly one trigger. Pick one, or let the assistant write the automation.\"",
             "The seven triggers are labelled Trigger manually, On form submission, On a schedule, On webhook call, On app event, When an agent calls it and From a Studio App; the empty canvas shows the same seven as short cards — Manual, Form, Schedule, Webhook, App event, Agent call, Studio App.",
-            "Only Webhook, App event and Schedule may be added as additional entry points in definition.triggers[]; the other four kinds replace the primary trigger instead, after a confirmation. A multi-trigger routine lists every way in under Start from in the run menu.",
+            "Only Webhook, App event and Schedule may be added as additional entry points in definition.triggers[]; the other four kinds replace the primary trigger instead, after a confirmation. A multi-trigger automation lists every way in under Start from in the run menu.",
             "The schedule editor offers Every N minutes, Hourly, Daily, Weekly, Monthly and Advanced — custom pattern, with the time zone defaulting to Europe/Amsterdam; a loop's Max iterations is a safety cap of 1–1000 starting at 100.",
-            "The step ribbon groups steps as Trigger, AI, Action, Flow (Flow control, People & waiting, Data & lists, Integrations), Flowlets and Steps.",
+            "The ribbon above the canvas has the tabs AI, Logic, People, Data & documents, Other apps (with Web & code) and My building blocks, plus Nextcloud apps when the organisation has one; it adds steps only, and triggers come from the + on a step or a connection.",
             "Datatable keeps rows that outlast the run and To knowledge base saves text an agent can find later; the other Data & lists steps — Edit data, Shorten list, Remove duplicates, Collect one field, Add up or count — only reshape values inside the run.",
-            "A field in Text mode interpolates {{ }} bindings, while Formula mode evaluates an expression such as steps.s1.output.total > 100.",
+            "Text fields interpolate {{ }} bindings, written for you by the { } Insert data button; a Formula evaluates an expression such as steps.s1.output.total > 100, and the Text / Formula switch on value fields only shows with All options on.",
             "Ask someone to approve, the two form-page steps and Back to the app are filtered out inside a loop body or a flowlet; form steps are shown but disabled without a form trigger."
         ]
     },
     "automation-builder-tour": {
-        "title": "Finding your way around the routine builder",
+        "title": "Finding your way around the automation builder",
         "summary": "Where each control lives in Studio → Automations, and what the node inspector, a pin and an activation really do.",
         "facts": [
-            "The builder header switches between four views: Editor (\"Design the routine on the canvas\"), Settings, Runs and Saved versions.",
-            "The run control is a split button: the visible half is Dry-run (\"no real actions, a safe preview\"); Run live sits behind the chevron.",
-            "A reusable Step can be Published so colleagues pick it up, but routines themselves are owner-private on every licence tier — there is no sharing column on a routine.",
-            "The node inspector opens compact on a single click; a double-click gives the three columns — Incoming, Settings and Continues on — with Simple and All options densities, and each field can be Text or Formula.",
+            "The builder header switches between four views: Editor (\"Design the automation on the canvas\"), Settings, Runs and Versions (\"Earlier versions you can open or make live\").",
+            "The run control is a split button: the visible half is Test, a dry-run (\"no real actions, a safe preview\"); Dry-run (preview) and Run live sit behind the chevron, \"More ways to run\".",
+            "A building block can be Published so colleagues pick it up, but automations themselves are owner-private on every licence tier — there is no sharing column on an automation.",
+            "The node inspector reopens at the size you last left it, compact at first; a double-click gives the three columns — Incoming, Settings and Continues on — with Simple and All options densities, and with All options value fields can be Text or Formula.",
             "There is no save button in the canvas: the panel reads \"Changes save automatically\", and Undo (⌘Z) is explicitly not a saved version.",
             "A pinned step skips execution and serves its saved sample in live runs too; activation warns about a captured sample but refuses a hand-typed one.",
-            "A routine the assistant finalises is still a draft — Activate is a human decision, and only that press runs the strict validation that a draft save skips.",
+            "An automation the assistant finalises is still a draft — Activate is a human decision, and only that press runs the strict validation that a draft save skips.",
             "A run's timeline renders the flow snapshot as it was at run time, not today's canvas, and run history is kept 90 days by default."
         ]
     },
     "automation-build-sim": {
-        "title": "Assembling a routine on the canvas",
+        "title": "Assembling an automation on the canvas",
         "summary": "Choosing a trigger from a brief, ordering steps, binding one step's output into the next, and knowing the limits of a dry-run.",
         "facts": [
-            "The canvas empty state asks \"What does this routine start with?\" and states that every routine has exactly one trigger; the trigger cards are Manual, Form, Schedule, Webhook, App event, Agent call and Studio App.",
+            "The canvas empty state asks \"What does this automation start with?\" and states that every automation has exactly one trigger; the trigger cards are Manual, Form, Schedule, Webhook, App event, Agent call and Studio App.",
             "Bindings are written as {{steps.<id>.output.<field>}} for a step's result and {{trigger.output.<field>}} for what started the run; incoming webhook headers land under trigger.headers, never inside trigger.output.",
-            "Every value field has a Text mode ({{ }} interpolates) and a Formula mode (steps.s1.output.total > 100); the field helpers are \"Insert data from a previous step\", \"Fields of {step}\" and \"Syntax help\", and the step list offers only steps above the current one.",
+            "Text fields interpolate {{ }}; a Formula (steps.s1.output.total > 100) computes the value, its switch showing only with All options on. Helpers: \"Insert data from a previous step\", \"Fields of {step}\" and \"Syntax help\"; the step list offers only steps above this one.",
             "The AI step is described as \"Reason and call tools with AI\" and its model tier sits under Advanced, defaulting to auto; Extract data has no model picker and its field names are its output shape.",
             "The Condition step is one node described as \"Keep, split or branch — one rule or many\", and belongs immediately after the step whose output it judges; Shorten list keeps only the first — or last — few items and does no sorting, so the sort order and row limit are set on the Datatable read.",
             "In a dry-run, side-effecting actions are synthesised instead of executed — a Notification step returns what it would have sent rather than sending it, and a Privacy Shield block becomes a \"would block\" annotation instead of failing the run — so green never proves a message was delivered.",
@@ -2804,49 +2804,49 @@ const PRACTICE_TOPICS = {
         ]
     },
     "automation-hands-on": {
-        "title": "Shipping a routine: dry-run, activate, watch",
-        "summary": "How a routine goes from draft to live in Bee Flow, and how to read the dry-run panel, the activation refusal and the run log.",
+        "title": "Shipping an automation: dry-run, activate, watch",
+        "summary": "How an automation goes from draft to live in Bee Flow, and how to read the dry-run panel, the activation refusal and the run log.",
         "facts": [
             "A dry-run executes the graph with no real actions: side-effecting actions are synthesised, code steps run with their outside calls only recorded, and a Privacy Shield block becomes a 'would block' annotation instead of a failure.",
-            "A routine the AI builder finished is still a draft and inactive; only a person pressing Activate makes it live.",
+            "An automation the AI builder finished is still a draft and inactive; only a person pressing Activate makes it live.",
             "Activation runs a strict pass and refuses on unknown or unpermitted tools, empty required inputs, an unauthorised knowledge base, and a schedule with no upcoming run time; a step pinned to saved sample data is only warned about, and then serves that sample on every live run.",
-            "The node panel separates blocking problems under 'Fix this before the routine can run:' from warnings under 'Worth checking:'.",
-            "In Studio → Runs & log the mode filter defaults to 'Live runs', so dry-runs are hidden until you switch to 'Tests only' or 'Live runs and tests'.",
+            "The node panel separates blocking problems under 'Fix this before the automation can run:' from warnings under 'Worth checking:'.",
+            "In Studio → Runs & log the Live or test filter defaults to 'Live runs', so dry-runs are hidden until you switch to 'Tests only' or 'Live runs and tests'.",
             "There is no automatic retry — retry is opt-in per step; otherwise a failed step stops the run and the Steps rail marks it 'This is where it stopped. Nothing ran after this point.'",
-            "Run notifications default to On error on and On success off, and run history is kept for 90 days.",
-            "Folders are organisation-wide labels; removing a folder leaves its routines in place and returns them to the top level."
+            "Run notifications default to 'Something goes wrong' and 'Someone must approve' only, with 'It worked' off, and run history is kept for 90 days.",
+            "Folders are organisation-wide labels; removing a folder leaves its automations in place and returns them to the top level."
         ]
     },
     "automation-practice": {
         "title": "Briefing an automation",
-        "summary": "How to describe a routine precisely enough that an AI builder or a colleague can build it without asking a single follow-up question.",
+        "summary": "How to describe an automation precisely enough that an AI builder or a colleague can build it without asking a single follow-up question.",
         "facts": [
             "A buildable brief answers four questions: when it starts, what it reads, what it decides, and what it produces and for whom.",
-            "The + in Studio → Automations opens a new draft; its empty canvas reads \"Or describe the routine:\" with an Assistant button that opens the builder's chat beside the canvas, where an empty chat offers a few suggested prompts that fill the chat box.",
-            "While the assistant builds, editing is paused: \"The AI is building this routine — editing is paused until it finishes.\"",
-            "A routine the assistant has finished is still a draft; a person presses Activate before anything fires.",
+            "The + in Studio → Automations opens a new draft; its empty canvas reads \"Or describe the automation:\" with an Assistant button that opens the builder's chat beside the canvas, where an empty chat offers a few suggested prompts that fill the chat box.",
+            "While the assistant builds, editing is paused: \"The AI is building this automation — editing is paused until it finishes.\"",
+            "An automation the assistant has finished is still a draft; a person presses Activate before anything fires.",
             "The Schedule trigger defaults to the Europe/Amsterdam timezone and previews the next run times before you save.",
             "An AI step's model tier sits under Advanced and defaults to auto; Extract data has no model picker and uses the one extraction model an admin configured.",
             "Limits worth naming in a brief: a Datatable read is capped at 1,000 rows, list steps refuse more than 10,000 items, and Extract data takes at most 30 fields.",
             "A Datatable \"Add or update a row\" step only updates when its match column is mapped; leave it unmapped and every run appends a new row instead."
         ]
     },
-    "routine-triggers-and-data": {
-        "title": "Bindings and trigger data in routines",
-        "summary": "How a routine moves data from its trigger and its earlier steps into the fields of the next step, and where that quietly goes wrong.",
+    "automation-triggers-and-data": {
+        "title": "Bindings and trigger data in automations",
+        "summary": "How an automation moves data from its trigger and its earlier steps into the fields of the next step, and where that quietly goes wrong.",
         "facts": [
-            "A mapped value in a routine step carries a two-segment switch labelled Text and Formula; Text interpolates {{ }} into the surrounding text, Formula evaluates the whole field as one expression. The step editor has two density modes, Simple and All options, under How much of this step to show.",
-            "A Text-mode path that resolves to nothing renders as an empty string and the run continues — it is collected as a run warning, not recorded as a step error.",
+            "Text fields such as a Notification's title and body interpolate {{ }}, written for you by Insert data from a previous step. With All options on (the other view is Simple), value fields add a Text / Formula switch; a Condition's Write raw expression takes a bare expression.",
+            "A {{ }} path in a text field that resolves to nothing renders as an empty string and the run continues — it is collected as a run warning, not recorded as a step error.",
             "For a webhook trigger, trigger.output is the raw JSON body that was posted; request headers live at trigger.headers.<name>, outside output, and the signature and nonce headers are dropped.",
             "A form trigger puts the answers on trigger.output keyed by question name; the facts about the submission itself sit on trigger.headers.",
-            "Running an app-event routine by hand leaves its trigger bindings empty, except for Gmail and Nextcloud triggers, where the server synthesises a payload from the most recent matching item; trigger.kind stays what the routine declares, while trigger.source records how the run was actually started.",
+            "Running an app-event automation by hand leaves its trigger bindings empty, except for Gmail and Nextcloud triggers, where the server builds a payload from the latest matching item; trigger.kind stays what the automation declares, while trigger.source records how the run was actually started.",
             "A pinned step serves its saved sample instead of running; the run history calls that Frozen data, and Activate warns about a pin without blocking it.",
             "Repeat for each exposes the current item under the name that step gives it, usually loop.item, and allows 1 to 1000 iterations.",
             "Binding a whole step output into a notification body inserts the entire object as JSON, and with the email channel on that text is recorded in the egress log."
         ]
     },
-    "routine-steps-that-persist": {
-        "title": "Routine steps that persist",
+    "automation-steps-that-persist": {
+        "title": "Automation steps that persist",
         "summary": "How the Datatable, To knowledge base, Make a document, Call a web service and Code steps leave something behind, and the guards each one applies.",
         "facts": [
             "The Datatable step's operations are Find rows, Count rows, Add a row, Add or update a row, Update rows that match and Delete rows that match; the last two need at least one condition.",
@@ -2859,15 +2859,15 @@ const PRACTICE_TOPICS = {
             "An answer is only kept between runs when the organisation's Answer Reuse setting allows it; the window used is the shorter of the organisation's (1 to 60 minutes, 5 by default) and the step's own (capped at 15 minutes)."
         ]
     },
-    "routine-runs-and-failures": {
+    "automation-runs-and-failures": {
         "title": "Runs & log: finding and fixing a failed run",
         "summary": "How the runs list filters, what a run's step timeline records, how to re-run, and what is kept.",
         "facts": [
-            "Studio → Runs & log opens on My runs, the 24h range chip and the Live runs mode, so a test run or a run from last week is hidden until you widen the range or change the mode.",
-            "The Now running strip covers a fixed 24 hours, shows at most six routines with failures first, and prints the error class rather than the free-text message, which can quote a customer.",
-            "A run's step timeline renders the saved version of the routine that actually ran — shown as a version chip in the run bar — not today's definition.",
+            "Studio → Runs & log opens on My runs, the 24h range and Live runs in the Live or test filter, so a test run or a run from last week is hidden until you widen the range or change that filter. Its status chips read All, Finished, Failed, Running, Waiting for someone and Stopped.",
+            "The Now running strip covers a fixed 24 hours, shows at most six automations with failures first, and prints the error class rather than the free-text message, which can quote a customer.",
+            "A run's step timeline renders the saved version of the automation that actually ran — shown as a version chip in the run bar — not today's definition.",
             "After the failing step the Steps rail prints: This is where it stopped. Nothing ran after this point.",
-            "Run it again re-runs the routine as it is now; pressed from the run's own bar the new run opens immediately, and its bar carries the note that it was a retry of an earlier run.",
+            "Run it again re-runs the automation as it is now; pressed from the run's own bar the new run opens immediately, and its bar carries the note that it was a retry of an earlier run.",
             "Nothing retries itself: a step only tries again if it carries a retry setting, which is off by default; otherwise wire the step's failure into its own on error path.",
             "Finished, failed and stopped runs are removed after 90 days; runs still going or waiting for a person are never removed.",
             "The Organisation scope needs an org-admin role and shows outcome and error for everyone's runs, but those rows cannot be opened because every run page belongs to its owner."
@@ -2881,7 +2881,7 @@ const PRACTICE_TOPICS = {
             "The status tabs are Waiting, Approved, Declined, Expired and Closed; a request addressed to you by name carries an amber You marker.",
             "The question, details, extra questions and documents shown on an approval are frozen at the moment the run paused.",
             "The Reject button stays disabled until a reason is typed; a reason is optional when approving.",
-            "On a panel only the seat holders vote — the routine's owner and an organisation admin may watch and withdraw, but not vote; with a single approver the owner may decide too.",
+            "On a panel only the seat holders vote — the automation's owner and an organisation admin may watch and withdraw, but not vote; with a single approver the owner may decide too.",
             "Withdraw this request is limited to the owner or an organisation admin, and it also closes the paused run.",
             "The default deadline is 7 days; if nobody decides, the request becomes Expired and the run fails with an expiry message.",
             "In Runs & log a rejected run shows the sentence Rejected — followed by the reason, not the word Failed, in the What happened column."
@@ -2901,37 +2901,37 @@ const PRACTICE_TOPICS = {
             "After the decision the step's output carries approved, by, reason, decidedAt and answers (plus votes for a panel), and the resumed run continues under the owner's identity, not the decider's."
         ]
     },
-    "routine-reusable-steps": {
-        "title": "Flowlets, Steps and where shared logic lives",
-        "summary": "How a routine's repeated logic is factored out: a flowlet inside one routine, a published Step across many, and a skill for repeated AI instructions.",
+    "automation-reusable-steps": {
+        "title": "Flowlets, building blocks and where shared logic lives",
+        "summary": "How an automation's repeated logic is factored out: a flowlet inside one automation, a published building block across many, and a skill for repeated AI instructions.",
         "facts": [
             "A flowlet is created from the add-step menu entry \"Create flowlet\" — \"Group steps into a reusable sub-flow\" — and ends with a \"Flowlet output\" step that returns data to its caller.",
-            "A reusable Step is a building block: it lives in the Automations list, in the \"Building blocks\" group below the automations and folders, and is made with the arrow next to + under \"New building block\" (\"A reusable step you can drop into any automation\").",
-            "Approval steps, form pages and \"Back to the app\" are removed from the palette inside a flowlet or a Step, because a pause has to resume at an address in the parent flow.",
-            "A Step's trigger is an input contract: named inputs with a type of string, number, boolean, object or array and an optional required tick, read inside as trigger.output.<name>.",
-            "The Publish button says \"automations and chats using this Step pick up the change\"; beside it an audience menu offers Personal, Entire organisation or specific groups, and each building block in the list says Personal, Organisation or Groups.",
-            "The \"In chat\" toggle makes a published Step callable as a tool in direct or agent chat for its owner (chat exposure is owner-only for now); its description is what the assistant reads to decide when to call it.",
-            "Publishing is refused for a Step that serves pinned data, and a Step may not contain another Step — compose them at the automation level instead.",
-            "Routines themselves have no sharing control — they are owner-private on every licence tier and every per-routine route answers 403 to anyone else; a Step is the shareable object, it runs under the identity of whoever calls it, and flowlets and Steps together may nest up to eight levels deep."
+            "Building blocks sit in the \"Building blocks\" group of the Automations list and are made with the arrow next to + → \"New building block\"; a published one is added to an automation from the ribbon's \"My building blocks\" tab and shows on the canvas as a Step node.",
+            "Approval steps, form pages and \"Back to the app\" are removed from the palette inside a flowlet or a building block, because a pause has to resume at an address in the parent flow.",
+            "A building block's trigger is an input contract: named inputs with a type of string, number, boolean, object or array and an optional required tick, read inside as trigger.output.<name>.",
+            "A building block's Publish button says \"automations and chats using this Step pick up the change\"; beside it an audience menu offers Personal, Entire organisation or specific groups, and each building block in the list says Personal, Organisation or Groups.",
+            "The \"In chat\" toggle makes a published building block callable as a tool in direct or agent chat for its owner (chat exposure is owner-only for now); its description is what the assistant reads to decide when to call it.",
+            "Publishing is refused for a building block that serves pinned data, and a building block may not contain another one (\"a Step cannot contain another Step\") — compose them at the automation level instead.",
+            "Automations have no sharing control — they are owner-private on every licence tier and every per-automation route answers 403 to anyone else; a building block is the shareable object, runs under its caller's identity, and flowlets and blocks nest up to eight levels deep."
         ]
     },
-    "routine-extra-triggers": {
-        "title": "Extra entry points on a routine",
-        "summary": "How a routine gains more than one way to start, which trigger kinds may be added beside the primary one, and how each entry point is tested.",
+    "automation-extra-triggers": {
+        "title": "Extra entry points on an automation",
+        "summary": "How an automation gains more than one way to start, which trigger kinds may be added beside the primary one, and how each entry point is tested.",
         "facts": [
             "Only three trigger kinds can be added as extra entry points: On a schedule, On webhook call and On app event.",
-            "Trigger manually, On form submission, When an agent calls it and From a Studio App can only ever be a routine's one primary trigger.",
-            "In the ribbon's Trigger menu an addable kind reads \"Adds another way to start this routine\" and the rest read \"Replaces the current trigger\".",
-            "Picking a replacing kind asks first: \"A routine can only have one trigger of these kinds, so the current one and its settings are replaced.\"",
+            "Trigger manually, On form submission, When an agent calls it and From a Studio App can only ever be an automation's one primary trigger.",
+            "The ribbon above the canvas adds steps only; an extra trigger is added from the + on a step or a connection, whose \"Add a step here\" panel has a Trigger group where an addable kind reads \"Adds another way to start this automation\" and the rest read \"Replaces the current trigger\".",
+            "Picking a replacing kind asks first: \"An automation can only have one trigger of these kinds, so the current one and its settings are replaced.\"",
             "On an extra trigger the Trigger kind list offers only Schedule, Webhook and App event; a value that is not allowed shows as \"(unsupported here)\" and is disabled.",
-            "The run menu grows a Start from group once a routine has more than one entry point, listing the primary trigger and every additional one so a run can be started from the one you want to test.",
+            "The run control is a split button whose visible half is Test (a dry-run); its chevron, \"More ways to run\", holds Dry-run (preview) and Run live, and grows a Start from group once an automation has more than one entry point, listing the primary trigger and every additional one.",
             "A run only walks the steps reachable from the trigger that fired, so a new trigger with no connection out of it does nothing.",
-            "A webhook call to a paused or draft routine is refused with \"Automation is not active\"; extra triggers are not offered inside a flowlet or a reusable Step."
+            "A webhook call to a paused or draft automation is refused with \"Automation is not active\"; extra triggers are not offered inside a flowlet or a building block."
         ]
     },
-    "routine-shield-step": {
-        "title": "The Privacy Shield step in routines",
-        "summary": "One palette entry with four modes that scans, branches, hides or restores personal data inside a routine.",
+    "automation-shield-step": {
+        "title": "The Privacy Shield step in automations",
+        "summary": "One palette entry with four modes that scans, branches, hides or restores personal data inside an automation.",
         "facts": [
             "The Privacy Shield entry sits in the Flow control group of the step palette and reads \"Check for personal data, hide it, or show the real values again\".",
             "The four modes are Check for personal data, Check and hide, Hide personal data and Show real values again; a fresh drop starts on the check, because it changes no data.",
@@ -2950,7 +2950,7 @@ const PRACTICE_TOPICS = {
             "The \"New datatable\" dialog asks Name, Technical name (under \"All options\"), \"What is it for?\", Columns and \"Who is it for?\"; \"What is it for?\" is required because the sentence goes into the organisation's processing record.",
             "The technical name is lowercase letters, numbers and underscores, must start with a lowercase letter, is at most 63 characters, and can never be changed afterwards.",
             "\"This account only\" makes a personal table nobody else can read, colleagues and administrators included, and it can never be shared; an organisation table starts Private, and creating or changing one needs the manage-datatables permission.",
-            "Rows arrive via \"Add a row\", via \"Import\" (\"Paste from a spreadsheet\", up to 5,000 rows per paste), or from a routine's Datatable step; \"Export CSV\" takes them out; \"Duplicate\" is \"columns only, no rows\".",
+            "Rows arrive via \"Add a row\", via \"Import\" (\"Paste from a spreadsheet\", up to 5,000 rows per paste), or from an automation's Datatable step; \"Export CSV\" takes them out; \"Duplicate\" is \"columns only, no rows\".",
             "The Rows toolbar has a search box, \"Search the text columns…\", shown only when the table has a text-ish column; with no hit the grid says \"No rows match that search.\" and \"Clear\" resets it.",
             "The filter builder opens on \"Show rows that match\" with \"all conditions\" or \"any condition\", then \"Add a condition\" and \"Apply {n} conditions\"; at most 20 conditions, and conditions cannot be nested.",
             "A table's tabs are Columns, Rows, Retention, Sharing and \"Used by\", with \"Dashboard\" only on a form's answers table; ⋯ → \"Check & repair\" adds back columns missing from the storage and never drops a column or touches a row.",
@@ -2959,11 +2959,11 @@ const PRACTICE_TOPICS = {
     },
     "datatables-columns-safely": {
         "title": "Changing a live table's columns",
-        "summary": "How Bee Flow guards a datatable's shape when routines, apps and pages already read it.",
+        "summary": "How Bee Flow guards a datatable's shape when automations, apps and pages already read it.",
         "facts": [
-            "The table detail carries the tabs Columns, Rows, Retention, Sharing and Used by; Used by shows a count and lists every routine, app, web page or knowledge base that touches the table, under the headings Where, Does and Last time; Does says \"reads\", \"writes\" or \"reads and writes\".",
+            "The table detail carries the tabs Columns, Rows, Retention, Sharing and Used by; Used by shows a count and lists every automation, app, web page or knowledge base that touches the table, under the headings Where, Does and Last time; Does says \"reads\", \"writes\" or \"reads and writes\".",
             "Removing or retyping a column opens the dialog \"This throws away data\" with the buttons \"Save anyway\" and \"Keep them\"; adding, renaming or reordering a column opens nothing.",
-            "A save that drops a column a routine still names is refused until it is confirmed, because the usage index is consulted before the change is carried out.",
+            "A save that drops a column an automation still names is refused until it is confirmed, because the usage index is consulted before the change is carried out.",
             "A concurrent column edit is refused with \"Someone else changed these columns while you were editing. Their version is now shown — please make your change again.\"",
             "Row visibility can be narrowed to \"only the person who added it\" but never widened back, because that would disclose every existing row retroactively; the answer tells you to make a new table.",
             "Every table already carries id, created_at, updated_at, created_by and org_id and a new column may not take one of those names; the Technical name can never be changed after creation, while a saved column's display name can, because its underlying key stays the same.",
@@ -2981,7 +2981,7 @@ const PRACTICE_TOPICS = {
             "Choosing Specific groups sends nothing until the first group is ticked, and the panel says: Nothing has changed yet — picking a group is what shares the table.",
             "Rows are deleted after offers Never, 7, 30, 90 days and Other… (1 to 3650); Counted from is mandatory and lists the table's own date columns, greyed out on a platform-filled table. A row with an empty date column is never swept.",
             "Changing the sharing settings (the audience or the write switch) or inviting someone needs the Enterprise sharing feature, while removing a grant, reading rows and the hourly retention sweep are never gated.",
-            "A routine's copy of the rows in its run history is not removed by the retention sweep; it ages out on the run-history window instead; the About to expire card shows how many rows go in the next seven days and says so in a standing line.",
+            "An automation's copy of the rows in its run history is not removed by the retention sweep; it ages out on the run-history window instead; the About to expire card shows how many rows go in the next seven days and says so in a standing line.",
             "A table mirrored from Nextcloud Tables or from a spreadsheet file has no Retention tab: its rows stay as long as they are in the source."
         ]
     },
@@ -2989,11 +2989,11 @@ const PRACTICE_TOPICS = {
         "title": "Creating a form and drafting its questions",
         "summary": "How a form is created in Studio, what the AI draft does and does not touch, and what a save means for the answers table.",
         "facts": [
-            "The New form dialog asks \"What happens with the answers?\" and offers \"Collect answers in a table\" (badge Recommended, landing on the Questions tab) or \"Form that starts a routine\" (landing in the routine builder).",
+            "The New form dialog asks \"What happens with the answers?\" and offers \"Collect answers in a table\" (badge Recommended, landing on the Questions tab) or \"Form that starts an automation\" (landing in the automation builder).",
             "The \"Build it with AI\" card reports \"{count} questions drafted — review them below, then Save.\" and offers an Undo; the draft is not stored anywhere.",
             "Nothing is written until Save: the sticky bar offers Discard changes and Save, and leaving warns \"Unsaved changes\".",
             "Question types are Short text, Long text, Email, Number, Date, Dropdown, Checkbox, File upload, Download button and Open in Notebooks.",
-            "A page holds at most 40 questions; saving a page with more is refused, and the way past it is a later form page in the same routine.",
+            "A page holds at most 40 questions; saving a page with more is refused, and the way past it is a later form page in the same automation.",
             "On a collecting form, renaming a question renames its column, removing one retires the column as \"no longer on the form\", and changing its type adds a new column beside the retired one.",
             "Styling offers the presets Clean, Corporate, Friendly, Night and Match visitor, an Accent colour (twelve swatches plus a custom one) and the knobs Corners, Spacing, Text size and Appearance; a new form starts on Clean.",
             "A Form is filled in by signed-in colleagues only — its audience is the people and groups you list, or everyone in the organisation. The anonymous /p/ page is an App Studio screen, a different object."
@@ -3003,19 +3003,19 @@ const PRACTICE_TOPICS = {
         "title": "Publishing a form: live, audience, answers, link",
         "summary": "How a Bee Flow form goes on the air, who may open it, where the answers land, and what rotating or deleting it really does.",
         "facts": [
-            "A new routine is a draft, so its form row shows \"Not live\" until \"Form is live\" is switched on; the page is also restricted with nobody on it (\"Only you — not shared yet\"), and everyone else gets a \"not found\".",
+            "A new automation is a draft, so its form row shows \"Not live\" until \"Form is live\" is switched on; the page is also restricted with nobody on it (\"Only you — not shared yet\"), and everyone else gets a \"not found\".",
             "A Form is signed-in and organisation-only: both audience options state that no one outside the organisation can ever fill it in. An App Studio app screen published at a /p/ address is the other object — that one opens without an account.",
             "The form itself asks only for the automations feature plus ownership; the answers table follows the datatable rules, where changing an organisation table needs the Manage datatables permission and inviting a person or group is an Enterprise feature.",
             "\"Who can fill it in\" is the audience; \"Who can see the answers\" is reading access on the answers table, given under \"People and teams\" with \"can read rows\"; a colleague who has only that sees the Answers tab alone.",
             "Switching \"Collect answers in a table\" on does not import earlier submissions: collecting starts with the next one.",
             "The answers table has two fixed columns, Run and Completed, plus one per question; a removed question keeps its column under \"No longer on the form\".",
             "\"New link\" on the Share tab mints a new token, kills the old address immediately, and carries the audience over to the new link.",
-            "Deleting a form deletes the routine behind it but not the answers table, which stays under Datatables until you remove it there."
+            "Deleting a form deletes the automation behind it but not the answers table, which stays under Datatables until you remove it there."
         ]
     },
     "datatables-rows-and-repair": {
         "title": "Rows in daily use, and the end of a table",
-        "summary": "Editing and deleting rows on a table other people's routines read, paging, exporting, the answers Dashboard, Check & repair, and the delete dialog.",
+        "summary": "Editing and deleting rows on a table other people's automations read, paging, exporting, the answers Dashboard, Check & repair, and the delete dialog.",
         "facts": [
             "Each row in the Rows grid has \"Edit this row\", \"Save this row\", \"Stop editing this row\" and \"Delete this row\"; the confirmation reads \"Delete this row?\" — \"It is gone for good, and any automation that reads it by id stops finding it.\"",
             "A save is refused when the row changed while you had it open: you are told someone else changed this row and are given the current row to redo your change on.",
@@ -3024,7 +3024,7 @@ const PRACTICE_TOPICS = {
             "\"Export CSV\" streams up to 100,000 rows as UTF-8 with a byte-order mark, and prefixes any value starting with =, +, - or @ with an apostrophe so a spreadsheet cannot run it as a formula.",
             "A form's answers table opens on \"Dashboard\": \"Period\" (Today / 7 days / 30 days by default / 90 days / All / Custom), the tiles \"Responses in this period\", \"All time\", \"Today\" and then either \"Completed all pages\" (a percentage, multi-page forms) or \"Last response\".",
             "⋯ → \"Check & repair\" answers \"Everything matches…\", \"{n} column(s) are in the model but not in the storage: {keys}.\" or \"The storage for this table has not been made yet.\", and \"Repair it\" only ever adds — it cannot drop a column or touch a row.",
-            "\"Delete this table…\" requires typing the table's name and lists the routines that break; on a mirror the item is \"Unlink this table…\", which removes the copy and leaves the source untouched."
+            "\"Delete this table…\" requires typing the table's name and lists the automations that break; on a mirror the item is \"Unlink this table…\", which removes the copy and leaves the source untouched."
         ]
     },
     "forms-appearance-and-stopping": {
@@ -3069,18 +3069,18 @@ const PRACTICE_TOPICS = {
             "A component's Logic block holds Visible ('Hide this component from the running app'), Only show when and Enabled when — formulas whose effect the canvas repeats as the badges Hidden in the running app, Only shown when {expr} and Only usable when {expr}."
         ]
     },
-    "apps-actions-and-routines": {
-        "title": "App actions and routines",
+    "apps-actions-and-automations": {
+        "title": "App actions and automations",
         "summary": "How a control in an app is wired to do work, and what travels with it.",
         "facts": [
-            "A form component on an app screen is not a Form in Studio → Forms: a published app screen can be opened at /p/<token> by someone without an account, while a Studio Form is a routine filled in by signed-in members of the organisation only.",
-            "Under When clicked four kinds are offered as cards — Run routine, Go to screen, Add a row, Show a message — and the All options disclosure lists all twelve kinds, Several steps (a flow) among them.",
-            "Client steps such as Go to screen and Show a message run in the browser; data-mutating steps such as Run a routine, Add a row and Send an email are executed on the API side, as the app's owner.",
+            "A form component on an app screen is not a Form in Studio → Forms: a published app screen can be opened at /p/<token> by someone without an account, while a Studio Form is an automation filled in by signed-in members of the organisation only.",
+            "Under When clicked four kinds are offered as cards — Run automation, Go to screen, Add a row, Show a message — and the All options disclosure lists all twelve kinds, Several steps (a flow) among them.",
+            "Client steps such as Go to screen and Show a message run in the browser; data-mutating steps such as Run an automation, Add a row and Send an email are executed on the API side, as the app's owner.",
             "An input mapping is either field (a value from a named form field) or static (a fixed value); with no mapping, a Studio App trigger takes the form field of the same name.",
-            "Make a routine for this app creates a routine that already carries a Studio App trigger, seeded with inputs matching the form the button sits in.",
-            "Publish refuses an app whose action points at a routine the app owner does not own or that is not active; draft saves still go through.",
+            "Make an automation for this app creates an automation that already carries a Studio App trigger, seeded with inputs matching the form the button sits in.",
+            "Publish refuses an app whose action points at an automation the app owner does not own or that is not active; draft saves still go through.",
             "One action sequence may hold 60 steps counted recursively, nest six levels deep, and a For each step tops out at 200 iterations; an app may hold 60 actions in total.",
-            "Test with what is on screen makes a real run with the values standing in the form and opens it in the routine builder; file inputs are skipped in that test."
+            "Test with what is on screen makes a real run with the values standing in the form and opens it in the automation builder; file inputs are skipped in that test."
         ]
     },
     "apps-roles-and-publish": {
@@ -3099,15 +3099,15 @@ const PRACTICE_TOPICS = {
     },
     "webpages-build-and-bind": {
         "title": "Building and binding a webpage",
-        "summary": "Creating a webpage in Studio, briefing it in its chat, binding datatables and routines to it, and undoing edits at the right size.",
+        "summary": "Creating a webpage in Studio, briefing it in its chat, binding datatables and automations to it, and undoing edits at the right size.",
         "facts": [
             "A webpage is created by name under \"All options\" on the Webpages overview; the describe-to-build bar's \"Build\" button is disabled in this build.",
             "The chat mode selector is \"How the assistant edits\", with \"Edit automatically\" (the default) and \"Propose first\"; each AI turn gets a card with \"How I did this\", \"Keep\", \"Undo\" and \"Change in code\".",
             "Every new page is a React + Material UI project with its code under src/; asking the chat for plain HTML, CSS and JavaScript switches it to vanilla, where index.html, style.css and script.js are the page.",
             "The five Studio elements are bf-table, bf-stat, bf-button, bf-form and bf-agent; bf-table shows at most 100 rows, bf-stat aggregates at most 500, and bf-agent is for signed-in readers only.",
-            "Granted routines and apps run as the page's owner (\"What this page may call, running as you. Visitors never need their own accounts.\"), while table reads run as the signed-in reader with that reader's own access.",
+            "Granted automations and apps run as the page's owner (\"What this page may call, running as you. Visitors never need their own accounts.\"), while table reads run as the signed-in reader with that reader's own access.",
             "Only an app grant has \"Pinned arguments (optional JSON)\"; pinned values always win over what the page sends, which is how a recipient, channel or sheet id is kept out of a visitor's hands.",
-            "Data & links → Overview shows each bound table with \"Read only\" or \"Read and write\", an approximate row count, a dashed \"Not used on this page\" chip when no code names the table, and a warning when a routine writes straight into a bound table.",
+            "Data & links → Overview shows each bound table with \"Read only\" or \"Read and write\", an approximate row count, a dashed \"Not used on this page\" chip when no code names the table, and a warning when an automation writes straight into a bound table.",
             "History auto-snapshots about every five minutes while you edit, keeps 200 versions per page, labels each row Manual, AI, Publish or Restore point, and covers only index.html, style.css, script.js and the page database."
         ]
     },
@@ -3156,11 +3156,11 @@ const PRACTICE_TOPICS = {
         "title": "Running a playbook",
         "summary": "How a phased playbook build runs, pauses for consent and recovers from a failed phase.",
         "facts": [
-            "Playbooks sits in the Bundle group of the Studio rail: \"Watch the AI build a table, a routine and an app — one phase at a time\". Reading needs only a login; starting, continuing, skipping, retrying or deleting one needs the manage apps permission.",
-            "The built-in Invoice tracker recipe runs six phases — Table, Routine, First rows, Design, App, Approval flow; Table, First rows and Design run on the server, while Routine, App and Approval flow mount the real routine builder and the real App Studio editor inside the playbook.",
+            "Playbooks sits in the Bundle group of the Studio rail: \"Watch the AI build a table, an automation and an app — one phase at a time\". Reading needs only a login; starting, continuing, skipping, retrying or deleting one needs the manage apps permission.",
+            "The built-in Invoice tracker recipe runs six phases — Table, Automation, First rows, Design, App, Approval flow; Table, First rows and Design run on the server, while Automation, App and Approval flow mount the real automation builder and the real App Studio editor inside the playbook.",
             "After every phase a handoff card reads \"Phase {n} of {total} landed\" and offers Continue, Skip {next phase} and Stop; on the last phase Continue reads Finish, and the next phase's brief is editable there up to 3000 characters until that phase starts.",
             "Autopilot is a per-user browser preference: a toast at the bottom right reads \"Autopilot continues in {n} s\" with a \"Continue now\" link, and Continue is pressed after 8 seconds on First rows, 6 on Table and Design, 3 elsewhere.",
-            "The Table phase can never be skipped, the First rows phase can only run a routine whose trigger is manual, and a table without a status column makes the Approval flow phase be skipped.",
+            "The Table phase can never be skipped, the First rows phase can only run an automation whose trigger is manual, and a table without a status column makes the Approval flow phase be skipped.",
             "The Language control in the New playbook dialog (English or Nederlands) decides the table's columns, the briefs the AI works from and the app's labels, and the playbook keeps that language after Start.",
             "In the same dialog: Model offers Fast (the default) or Auto, which \"adds a classification step per turn\"; \"Nextcloud folder with the invoices\" must be an absolute path such as /Inkoop/Facturen-Q3; \"Approver group (optional)\" defaults to \"Me (the owner)\".",
             "Choosing \"An existing table\" but leaving the select on \"Pick a table…\" makes Start fail with \"Pick the existing table.\" or \"Check the options.\"; Shift+P on a builder canvas turns on presenter mode — a \"Presenter\" pill, bigger type, the Phases rail at 280 pixels."
@@ -3173,20 +3173,20 @@ const PRACTICE_TOPICS = {
             "The second choice card in New playbook is \"Describe it\" — \"Say what should be read, stored and built — the AI writes the phases.\"",
             "The description field is labelled \"What should this playbook build?\" and takes up to 2,000 characters.",
             "The button reads \"Let the AI write the phases\", spins with \"Writing the playbook…\" beside it while it runs, and becomes \"Write it again\" once a plan has been composed.",
-            "A composed plan with no routine and no app phase is refused: a playbook needs a builder phase, because a table alone builds nothing.",
+            "A composed plan with no automation and no app phase is refused: a playbook needs a builder phase, because a table alone builds nothing.",
             "The preview card shows the title, the phases as chips with arrows, and \"Columns:\" listing each column as name (type).",
             "The Language control (English or Nederlands) decides the table's columns, the briefs the AI works from and the app's labels — not the language the description was typed in.",
             "Reads need only a session, but every write — create, compose, run, skip, retry — needs manage_apps (Organisation Admin, Agent Admin, Agent Editor); the table phase separately checks manage_datatables.",
-            "Composing creates nothing: the table, routine and app appear only after Start, phase by phase."
+            "Composing creates nothing: the table, automation and app appear only after Start, phase by phase."
         ]
     },
     "solutions-bundle-and-check": {
         "title": "Bundling and checking a Solution",
         "summary": "How a Solution is assembled on the Content tab, gated by the Check, and packaged as a Blueprint.",
         "facts": [
-            "The Content tab groups a Solution's members in three bands: \"People use\" (apps, webpages), \"Work happens\" (routines, approvals) and \"Knowledge & data\" (tables, agents, knowledge bases, notebooks).",
-            "Filing in or out through \"Add existing\" needs editor rights on the Solution plus ownership of the item (\"Nothing of yours left to add here.\"). Filing is not sharing: routines stay owner-private, so members see the row, not the routine.",
-            "The Check aggregates four validators (App Studio, routines, project graph, knowledge bases) into one list split into \"Has to be fixed first\" and \"Worth a look\"; a row's \"Show me\" opens the object holding the fault, in Studio → Apps, Automations, Agents or Knowledge bases.",
+            "The Content tab groups a Solution's members in three bands: \"People use\" (apps, webpages), \"Work happens\" (automations, approvals) and \"Knowledge & data\" (tables, agents, knowledge bases, notebooks).",
+            "Filing in or out through \"Add existing\" needs editor rights on the Solution plus ownership of the item (\"Nothing of yours left to add here.\"). Filing is not sharing: automations stay owner-private, so members see the row, not the automation.",
+            "The Check aggregates four validators (App Studio, automations, project graph, knowledge bases) into one list split into \"Has to be fixed first\" and \"Worth a look\"; a row's \"Show me\" opens the object holding the fault, in Studio → Apps, Automations, Agents or Knowledge bases.",
             "Publish is disabled both when findings block and when the Check could not run at all: a Solution that could not be fully read is treated as blocked, and its card reads \"Could not be fully read\" or \"Not checked\" rather than \"Complete\".",
             "Export produces a Blueprint file; Publish is the same packaging with \"Also keep it on this instance, so colleagues can install it without a file\" forced on, putting the Blueprint in the Catalogue — this organisation's Blueprints on this instance only.",
             "Export, Publish, Versions, Installs and upgrades are owner-only (\"Only the project owner can package it\"); there is no organisation-level Solutions permission, so access is the licence plus your per-project role of viewer, editor or owner.",
@@ -3200,7 +3200,7 @@ const PRACTICE_TOPICS = {
         "facts": [
             "The install wizard has three steps — What is in it, Connect it up, Who can reach it — and every step carries the footer 'Everything arrives as a draft.'; you reach it from the Catalogue tab (your own organisation's Blueprints) or from Install a Blueprint with a .json file.",
             "Step 2 collects resolutions: 'A table for \"{key}\"' (Choose a table… or Create an empty table), 'A credential for this request' (or Leave it unset), 'Who approves here' (or Leave it to the Solution's owner) — and a resolution only fills a hole, it never overwrites a step that is already wired.",
-            "Everything arrives inert: routines as inactive drafts, webpages unpublished, anonymous AI spend off, and the pages' integration grants empty — a page's tools run as whoever installed it, so the wizard lists those grants unticked for the installer to hand over by hand.",
+            "Everything arrives inert: automations as inactive drafts, webpages unpublished, anonymous AI spend off, and the pages' integration grants empty — a page's tools run as whoever installed it, so the wizard lists those grants unticked for the installer to hand over by hand.",
             "The provenance line 'This file says it was published by …' is a claim inside the file; the wizard warns that anyone who can edit the file can change it.",
             "An upgrade replaces untouched entities, keeps ones you edited, adds new ones, never rewrites a table or knowledge base, and never deletes anything.",
             "If a kind of entity is outside the installing organisation's plan it is skipped rather than refused, and reported as 'Not installed: … — App Studio is not part of this plan.'"
@@ -3268,10 +3268,10 @@ const PRACTICE_TOPICS = {
         "facts": [
             "The Privacy Shield only checks messages sent after it is saved, and 'Also check knowledge bases when documents are added' redacts at the moment a document is added — neither is retroactive, so policy belongs at the start of a rollout.",
             "Saving the Zero-knowledge encryption level signs out everyone in the organisation, including the admin who saves it; existing messages are left exactly as they are and stay readable, and the level itself can still be changed back later even though the sign-out cannot.",
-            "The Privacy Shield Overview posture table shows a row 'Kinds of data we look for'; reading '0 of 21' means protection is on but nothing will ever be found.",
+            "Privacy Shield → Overview shows How things stand, where the row 'Kinds of data' counts the ticked kinds; at '0 of 21' the review card lists 'No kinds of data are selected' and warns that nothing will ever be found.",
             "A group's Allowed tiers pills restrict only that group, an empty selection means no restriction at all, and a Clear restrictions link puts it back.",
             "Demoting yourself while you are the only active Organisation Admin is refused: that change would leave the organisation without an administrator, so promote someone else first.",
-            "Usage & Monitoring is read-only and opens on the last 30 days; the plan cap and the toggle 'Share AI usage across the organisation' live higher up the same Organisation menu, on License & Usage.",
+            "Usage & Monitoring is read-only and opens on the last 30 days; on Bee Flow Cloud the plan cap and the toggle 'Share AI usage across the organisation' live higher up the same Organisation menu, on License & Usage.",
             "In the Organisation menu the Data Protection Officer and ISMS Internal Auditor roles open the Compliance Center and nothing else — they carry compliance and monitoring, not user management.",
             "Compliance → Access log records sign-ins, changes to who can reach what, and app publications, newest first, with server-side filters on event kind, date range and account, and an export capped at 50 000 rows per file and twenty exports an hour. It has no field for why a change was made."
         ]
@@ -3280,54 +3280,54 @@ const PRACTICE_TOPICS = {
         "title": "Switching on the Organisation Privacy Shield",
         "summary": "How an org admin enables the Privacy Shield, and the two configurations that look finished but catch nothing.",
         "facts": [
-            "The Privacy Shield lives under Settings → Organisation → Privacy Shield, with the tabs Overview, What we look for, What happens, Leaving your org and What happened; the server-operator console Admin → Security → Guardrails is a separate area with a separate owner.",
-            "The master toggle is called Protect personal data; it is off for a new organisation, and the three policy tabs stay inactive until it is on.",
-            "The catalogue holds 21 kinds of personal data, and the Overview row Kinds of data we look for shows how many of them are ticked, as \"n of 21\".",
-            "An empty category list is read as \"no narrowing\", so the detector is asked about every kind it knows, while Overview still flags the row Kinds of data we look for in amber at \"0 of 21\".",
+            "The Privacy Shield lives under Settings → Organisation → Privacy Shield: Overview, the numbered steps What we look for, Your own data, When we find something and Leaving your org, then What happened; Admin → Security → Guardrails is a separate area with a separate owner.",
+            "The master switch is called Protect personal data; it is off for a new organisation, and the four numbered steps stay inactive until it is on.",
+            "The catalogue holds 21 kinds of personal data, and Overview's What we look for card shows how many are ticked in the row Kinds of data, as \"n of 21\".",
+            "An empty category list is read as \"no narrowing\", so the detector is asked about every kind it knows, while Overview still lists \"No kinds of data are selected\" on its review card and shows Kinds of data at \"0 of 21\" in amber.",
             "The three strictness presets are Low sensitivity, Balanced and High sensitivity; Balanced carries the Recommended badge and is the level every quality number was measured at.",
-            "Detection runs on a service on your own server; the text is not sent elsewhere to be checked, and whether that service is installed and answering shows only in Admin → Security → Guardrails, never on the Privacy Shield page.",
-            "Changes only take effect after pressing Save All Changes, which confirms with the toast Saved successfully!",
-            "Overview’s footer states that org rules run before any agent’s own rules: an agent can be stricter, never looser."
+            "Detection runs on a service on your own server; the text is not sent elsewhere to be checked. The page header shows Detection running, or a red Detection service not installed / not responding, and the fix happens in Admin → Security → Guardrails.",
+            "Changes only take effect after pressing Save changes in the save bar, which confirms with the toast Saved successfully!",
+            "Overview states that org rules run before any agent's own rules: agents can be stricter, never looser."
         ]
     },
     "shield-org-detection": {
         "title": "Privacy Shield detection settings",
-        "summary": "How an organisation admin chooses categories, sensitivity and exception lists on the What we look for tab.",
+        "summary": "How an organisation admin chooses categories, sensitivity and exception lists on the What we look for and Your own data steps.",
         "facts": [
-            "The Kinds of personal data grid holds 21 checkboxes in two columns with All and None buttons and a live count in its heading, for example 'Kinds of personal data (7/21)'.",
-            "Sensitivity cards map to confidence thresholds that run backwards: Low sensitivity 85%, Balanced 70% (badged Recommended), High sensitivity 45%; lower finds more.",
-            "Balanced is the calibrated anchor — every per-category level is tuned and measured at that position — and the advanced slider runs 10% to 100% in steps of 5.",
-            "Always hide these takes a name plus either Exact text or Pattern (advanced), with a Case sensitive toggle, and redacts on top of whatever the detector finds.",
-            "Never hide these matches exactly on the normalised value (case, spaces and punctuation ignored), applies in every category and never expires; Always allow well-known companies covers 221 shipped names in the Company names category only.",
-            "The Overview tab shows the row 'Kinds of data we look for' as '{n} of 21' and warns in amber at zero: 'Protection is on, but nothing is ticked — so nothing will ever be found.'",
-            "Saving is one button, Save All Changes; success toasts 'Saved successfully!', while a rejected pattern still saves everything else and reports 'Saved, with notes' plus 'Saved, but N custom term(s) were rejected and are not in force.'"
+            "The Kinds of personal data table holds 21 kinds, one row each, in groups; its Hide from AI column has All and None buttons and a live count in its heading, for example 'look for it · 7 of 21'.",
+            "The How strict levels map to confidence thresholds that run backwards: Low sensitivity 85%, Balanced 70% (marked recommended), High sensitivity 45%; lower finds more.",
+            "Balanced is the calibrated anchor — every per-category level is tuned and measured at that position — and the advanced slider runs 10% to 100% in steps of 5, from 'finds more' to 'finds less'.",
+            "Your own data (Enterprise) adds types through a wizard — Describe, Test and tune, Where it applies — recognised as A list of words, A fixed format or Recognised by AI; types are hidden on top of whatever the detector finds.",
+            "Never hidden matches exactly on the normalised value (case, spaces and punctuation ignored); Your own exceptions apply in every category and never expire, while the Well-known companies list of 221 names covers company names only.",
+            "Overview shows the row Kinds of data as '{n} of 21' and, at zero, lists 'No kinds of data are selected': 'Protection is on, but nothing is ticked — so nothing will ever be found.'",
+            "Saving is one button, Save changes; success toasts 'Saved successfully!', while a refused type still saves everything else and reports 'Saved, with notes' in the save bar."
         ]
     },
     "shield-org-outbound": {
         "title": "Shield: the action and the outbound rules",
         "summary": "How an organisation decides what happens to personal data it finds, and what may cross its boundary.",
         "facts": [
-            "The What happens tab offers two actions: \"Replace with placeholders\" (labels such as [email_1], restored in the answer, an Enterprise feature) and \"Do not send the message\".",
-            "\"One last check before an outside AI\" on the Leaving your org tab is a second, interactive check with three modes: Ask, Hide it, and Do not send.",
-            "The pre-flight only fires for providers outside the organisation; a self-hosted model on a private network is treated as internal and skipped, while an unrecognised provider is treated as external.",
+            "Step 3, When we find something, offers two actions on the card On every message: \"Replace with placeholders\" (labels such as [email_1], restored in the answer, an Enterprise feature) and \"Do not send the message\".",
+            "\"One last check before an outside AI\", on the card Before it leaves your organisation (step 4, Leaving your org), is a second, interactive check with three modes: Ask, Hide it, and Do not send.",
+            "The last check only fires for providers outside the organisation; a self-hosted model on a private network is treated as internal and skipped, while an unrecognised provider is treated as external.",
             "\"Always show this check, even when nothing is found\" also pauses on clean messages, so a person can mark something the detector missed.",
-            "In Ask mode the person sees the dialog \"Check this before it goes to the AI\" with the buttons Block, Send anyway and Redact and send; an unanswered decision is treated as blocked after a minute.",
-            "\"Hold personal data back from tools\" has two grids — tools that send data outside your organisation (Enterprise) and tools that stay on your own server — and refuses the tool call before it is made.",
-            "\"No web search while a file is attached\" and \"Use only AI hosted in the EU\" are separate switches on the same tab; the EU card only appears once EU chat models are configured.",
-            "\"Also protect routines\" and \"Also check knowledge bases when documents are added\" are both on by default, and the knowledge-base check applies at the moment a document is stored and cannot be undone."
+            "In Ask mode the person sees the dialog \"Check this before it goes to the AI\" with Block, Send anyway and Redact and send; an open dialog waits, and a decision left unanswered for ten minutes is treated as blocked.",
+            "Tools are governed by the Hold back · outside tools (Enterprise) and Hold back · own server columns on What we look for; a tool call carrying a held-back kind is refused before it is made.",
+            "\"No web search while a file is attached\" and \"Use only AI hosted in the EU\" are separate switches on the same card; the EU switch only appears once EU chat models are configured.",
+            "\"Also protect automations\" and \"Also check knowledge bases when documents are added\" are both on by default, and the knowledge-base check applies before a document is stored and cannot be undone."
         ]
     },
     "shield-org-evidence": {
         "title": "Reading the Privacy Shield's What happened tab",
         "summary": "How an org admin turns the shield's evidence tab into a defensible statement about what left the organisation.",
         "facts": [
-            "The evidence tab is called \"What happened\" and sits on Settings → Organisation → Privacy Shield, with range presets 7d, 30d and 90d and 30d selected by default.",
-            "The four KPI cards are \"Times the shield stepped in\", \"Personal data caught\", \"Calls to outside services\" and \"Stayed in Europe\", which is a score out of 100 rather than a count.",
-            "In the sovereignty score, calls that stayed in Europe or on your own servers score full marks, and personal data leaving Europe counts double against the score.",
-            "At most one alert banner is shown, worst first: \"Personal data left Europe\", then \"A lot of your data is leaving Europe\" below a score of 40, then \"The shield is catching a lot of personal data\" above 10 catches.",
-            "Every banner carries the button \"Look at these\", which opens The details on the ledger the banner is about; from the Europe banners it opens \"Data that left your org\" pre-filtered to destinations outside Europe.",
-            "The details fold has two filters: \"Shield events\" with the columns Time, Person, Where it happened, What we found, What we did; and \"Data that left your org\" with Time, Person, Where it happened, Service, Where it went.",
-            "Show more adds fifty detail rows at a time and stops at two hundred, and expanding an egress row shows the country, the operator, the server address, the result, how long the call took and the kinds of personal data involved.",
+            "The evidence tab is called \"What happened\" and sits on Settings → Organisation → Privacy Shield, with the periods 7 days, 30 days and 90 days and 30 days selected by default.",
+            "The tab opens with In short (the period in one sentence plus outcome pills) and Worth a look (the findings), then four cards: Shield stepped in, Personal data found, Left with a tool, unchanged, and Stayed in Europe.",
+            "Shield stepped in is replaced plus stopped; Stayed in Europe is a percentage: the share of calls with a known location that stayed on your own server or inside Europe (EEA); calls not placed are left out.",
+            "Worth a look lists every finding that applies: tool calls that carried personal data out unchanged, a lot of data leaving Europe (below 40%), a lot of personal data caught (more than 10 messages), calls that could not be placed, and good news last.",
+            "Every finding has Show these, which filters the whole tab to its rows; the tool finding also links to Hold kinds back from tools on What we look for.",
+            "The Log has the columns Time, Person, Started in, What we found, What happened and Went to; clicking a row shows everything recorded, such as the tool, the country, the operator and the server address.",
+            "Show more adds fifteen log rows at a time, and the log loads at most two hundred rows of each kind, so it is for reading examples, not exporting a month.",
             "The tab is offered only on the organisation settings page, never in the platform console, because the monitoring figures are scoped to the signed-in user's own organisation."
         ]
     },
@@ -3472,7 +3472,7 @@ const PRACTICE_TOPICS = {
     },
     "org-context-and-reuse": {
         "title": "Conversation Memory and Answer Reuse",
-        "summary": "The two organisation switches that govern how much of a chat the assistant sees and whether a routine's answers are stored between runs.",
+        "summary": "The two organisation switches that govern how much of a chat the assistant sees and whether an automation's answers are stored between runs.",
         "facts": [
             "Conversation Memory defaults to Keep the full conversation (recommended); summarising is opt-in per organisation and is lossy, because detail folded into the summary is gone for the rest of that conversation.",
             "The Safety limit defaults to 75% of the model's context window and can be set between 25% and 95%; it fires in both modes and is the only protection for providers other than Claude.",
@@ -3530,12 +3530,12 @@ const PRACTICE_TOPICS = {
         "title": "Plan, billing and the licence tier",
         "summary": "The License & Usage screen: what the plan sets, what the tier sets, and what each lifecycle button does to the bill and when.",
         "facts": [
-            "License & Usage is the first row of the Organisation group in settings; its subtitle is \"Your current plan and usage for this billing period\", and a consumer cloud account sees the same screen as Subscription & Usage.",
+            "On Bee Flow Cloud, License & Usage is the first row of the Organisation group in settings; its subtitle is \"Your current plan and usage for this billing period\", and a consumer cloud account sees the same screen as Subscription & Usage.",
             "Plan limits shows only concrete caps — Users, Agents and Knowledge Sources; unlimited values draw no tile, the whole card disappears when a plan sets none of the three and has no notes, and the Users tile carries an Add user button.",
             "An upgrade takes effect immediately and its dialog shows Prorated charge today and Then; a downgrade's dialog shows Takes effect, Charge today 0,00 and Then, is scheduled to the end of the billing period, and is released with Keep current plan.",
             "Cancel subscription schedules the end of the current billing period, keeps full access until that date, takes no further payment, and is reversed with Keep subscription.",
             "With no plan the card reads \"No license assigned\" and offers Choose a Plan with a Subscribe button per plan, or \"No plans are available right now.\"",
-            "On a self-hosted install the License & Usage row is removed entirely and the subscriptions API answers not_available_in_self_hosted; where a server-wide licence covers the installation the cards are replaced by the note \"Tier is managed server-wide\"."
+            "On a self-hosted install the License & Usage row is removed entirely and the subscriptions API answers not_available_in_self_hosted; the tier comes from one server-wide licence that installation-wide administrators manage in the Admin Dashboard on the Server licence tab."
         ]
     },
     "hive-master": {
@@ -3543,12 +3543,12 @@ const PRACTICE_TOPICS = {
         "summary": "What the capstone checklist asks for, what counts as proof, why a row can be missing, and the admin decisions the three things depend on.",
         "facts": [
             "The capstone asks for three things: a schedule-triggered automation that has run, a cowork item of your own, and an agent of your own or a knowledge base with at least one document.",
-            "Only a routine whose trigger is \"On a schedule\" satisfies the automation requirement; manual, form and webhook routines do not.",
-            "A dry-run counts as a run — \"Dry-run (preview)\" is described in the app as \"No real actions — safe preview\" — and how a run ended is not part of the criterion, so a failed run still shows the routine has fired.",
+            "Only an automation whose trigger is \"On a schedule\" satisfies the automation requirement; manual, form and webhook automations do not.",
+            "A dry-run counts as a run — \"Dry-run (preview)\" is described in the app as \"No real actions, a safe preview\" — and how a run ended is not part of the criterion, so a failed run still shows the automation has fired.",
             "For the builder requirement an agent counts as soon as it exists and belongs to you (publishing decides who else may use it and is not required), and a knowledge base counts once it holds at least one document; system-seeded agents and system-managed knowledge bases do not count.",
             "The checklist re-runs by itself every few seconds while the step is open, and work done before the lesson started counts immediately.",
             "A criterion your permission or licence makes impossible is hidden from the checklist instead of failing, so nobody is blocked by a gate they cannot open.",
-            "\"Also protect routines\" on the Privacy Shield's \"What happens\" tab (default on) checks a routine's data and AI steps the same way as chat; the evidence appears on \"What happened\" as \"Routine — <title>\" rows.",
+            "\"Also protect automations\" under the Privacy Shield's step When we find something (default on) checks an automation's data and AI steps the same way as chat; the evidence appears in the What happened log, where Started in reads \"Automation · <title>\".",
             "On the Managed encryption tier background jobs such as automations can still read message bodies; on Zero-knowledge the server holds no key for them. Published agents are what the processing register (ROPA) records as processing activities."
         ]
     }

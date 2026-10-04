@@ -19,7 +19,7 @@
  *   1. NAME NOT OFFERED — checked first, before anything reads the arguments.
  *      A name the model was never handed is not a call, it is drift or an
  *      injection, and letting it through reaches the dispatcher's dynamic-name
- *      fallback, which runs the ASKER's own routines outside every agent
+ *      fallback, which runs the ASKER's own automations outside every agent
  *      policy. Nothing is dispatched, nothing is logged as egress.
  *
  *   2. NEEDS CONFIRMATION — checked LAST, immediately before dispatch, so a
@@ -41,7 +41,7 @@
  * Gate 1 shipped global for one stage, and that was a behaviour change with no
  * field behind it: before the grants layer a name outside the stack went on to
  * `executeTool`, where the dispatcher resolves it against the caller's own
- * agent-callable routines and Steps, answers a progressive-disclosure name
+ * agent-callable automations and Steps, answers a progressive-disclosure name
  * with a "load that group first" hint, and otherwise tries a component tool.
  * Refusing all of that for every agent in the product — to close a hole that
  * only a curated agent had asked to have closed — is the opposite of shipping
@@ -242,7 +242,7 @@ async function executeToolRound({
                         // dispatcher exactly as it did before the grants layer
                         // (its own dynamic-name lookup may still claim it).
                         // Logged all the same: this is the shape of drift and
-                        // of an injected routine name, and it should be
+                        // of an injected automation name, and it should be
                         // visible without changing what a legacy agent does.
                         log.warn(`[AgentRuntime] Tool '${toolName}' was not offered this round — ` +
                             'passing it to the dispatcher: this agent has no stored tool grants, so the ' +
@@ -616,7 +616,7 @@ async function executeToolRound({
                                         testAs: messageMetadata.testAs || null,
                                         session: userAuth?.session,
                                         userAuth,
-                                        // Routine/cowork runs set this: there is no one
+                                        // Automation/cowork runs set this: there is no one
                                         // present to approve an email draft, so a
                                         // composed mail must actually go out instead of
                                         // parking forever. Absent (normal chat) it stays

@@ -15,7 +15,7 @@ import type { RibbonApp, StepPayload } from './ribbonCategories';
  * flow/ribbonOrigin.js), and every addable one is a drag source.
  */
 
-export const DRAG_HINT_KEY = 'routines.ribbon.drag_hint';
+export const DRAG_HINT_KEY = 'automations.ribbon.drag_hint';
 export const DRAG_HINT = 'Click to add, or drag it onto the canvas.';
 
 type AddFn = (payload: StepPayload) => void;
@@ -63,7 +63,7 @@ export function AppCommand({ app, category = null, pooled = false, openKey, setO
             label={label}
             tipTitle={tipTitle}
             desc={desc}
-            tipFooter={t('routines.ribbon.app_pick_action', '{n} actions. Pick one.', { n: actions.length })}
+            tipFooter={t('automations.ribbon.app_pick_action', '{n} actions. Pick one.', { n: actions.length })}
             width={320}
             open={openKey === key}
             onToggle={() => setOpenKey(k => (k === key ? null : key))}
@@ -90,11 +90,11 @@ export function CategoryPill({ category, apps, glyph, onAdd, openKey, setOpenKey
             label={category}
             glyph={glyph}
             desc={`${apps.map(a => a.shortLabel || a.label).join(', ')}.`}
-            tipFooter={t('routines.ribbon.n_apps_pick', '{n} apps. Pick one.', { n: apps.length })}
+            tipFooter={t('automations.ribbon.n_apps_pick', '{n} apps. Pick one.', { n: apps.length })}
             origin={`cat:${category}`}
             title={category}
             sections={[{ key: category, title: category, rows: apps.map(app => appRow(app, t)) }]}
-            filterLabel={(n) => t('routines.ribbon.filter_apps', 'Filter {n} apps…', { n })}
+            filterLabel={(n) => t('automations.ribbon.filter_apps', 'Filter {n} apps…', { n })}
             onAdd={onAdd}
             openKey={openKey}
             setOpenKey={setOpenKey}

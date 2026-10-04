@@ -7,6 +7,7 @@ import ShareTab from './form/ShareTab';
 import useFormDetail from './form/useFormDetail';
 import { formLiveness, publicFormPath } from './FormsStudio';
 import { useTranslation } from '../../../../hooks/useTranslation';
+import ManagedPartBanner from '../../../shared/ManagedPartBanner';
 import StudioSectionHeader, { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
 import Tabs from '../../../shared/Tabs';
 import { toast } from '../../../shared/Toast';
@@ -15,10 +16,10 @@ import useConfirm from '../../../shared/useConfirm';
 /**
  * Studio → Forms → one form. Tabs: Questions · Share · Answers · Settings for
  * the owner; Answers only for a colleague the answers TABLE is shared with.
- * The routine builder stays one click away ("Open the routine") for the
+ * The automation builder stays one click away ("Open the automation") for the
  * work this page does not do — pages after page one, the steps.
  *
- * Addressed by the ROUTINE id (`form.automationId`) — the page token is a
+ * Addressed by the AUTOMATION id (`form.automationId`) — the page token is a
  * credential and never travels in a URL. `tab` is the path's sub segment
  * (`/app/studio/forms/<id>/<tab>`), adopted the way KnowledgeStudio adopts
  * its tab.
@@ -99,7 +100,7 @@ export default function FormPage({ form, tab = null, onTab, onBack, onNavigate, 
         }
     }, [origin, path, t]);
 
-    const rename = mine && detail?.definition ? async (next) => {
+    const rename = mine && detail?.definition && !detailState.readOnly ? async (next) => {
         const name = String(next || '').trim();
         if (!name) return;
         try {
@@ -133,8 +134,8 @@ export default function FormPage({ form, tab = null, onTab, onBack, onNavigate, 
                             </a>
                         )}
                         {mine && (
-                            <button type="button" onClick={() => onNavigate && onNavigate(`studio/automations/${form.automationId}`)} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs border hover:bg-[var(--bg-tertiary)]" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }} data-testid="form-page-open-routine">
-                                <Workflow className="w-3.5 h-3.5" aria-hidden="true" />{t('forms.studio.open_routine', 'Open the routine')}
+                            <button type="button" onClick={() => onNavigate && onNavigate(`studio/automations/${form.automationId}`)} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs border hover:bg-[var(--bg-tertiary)]" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }} data-testid="form-page-open-automation">
+                                <Workflow className="w-3.5 h-3.5" aria-hidden="true" />{t('forms.studio.open_automation', 'Open the automation')}
                             </button>
                         )}
                         {!mine && (
@@ -147,6 +148,7 @@ export default function FormPage({ form, tab = null, onTab, onBack, onNavigate, 
             />
             <div className="flex-1 overflow-y-auto">
                 <div className="mx-auto px-6 py-6" style={{ maxWidth: 900 }}>
+                    {detailState.managed && <ManagedPartBanner managed={detailState.managed} onNavigate={onNavigate} className="mb-5" />}
                     <Tabs value={active} onChange={switchTab} items={tabs} size="sm" ariaLabel={t('forms.page.tabs_label', 'This form')} className="mb-5" />
                     {loading && !detail && (
                         <div className="flex items-center gap-2 py-8 text-xs" style={{ color: 'var(--text-tertiary)' }} role="status">
@@ -167,6 +169,7 @@ export default function FormPage({ form, tab = null, onTab, onBack, onNavigate, 
                             saving={detailState.saving}
                             saveError={detailState.saveError}
                             onNavigate={onNavigate}
+                            readOnly={detailState.readOnly}
                         />
                     )}
                     {active === 'share' && detail && (
@@ -186,7 +189,7 @@ export default function FormPage({ form, tab = null, onTab, onBack, onNavigate, 
                         ) : (
                             <div className="rounded-xl border p-6 text-center" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card)' }} data-testid="form-answers-none">
                                 <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{t('forms.answers.no_table_title', 'No answers table')}</p>
-                                <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>{t('forms.answers.no_table_body', 'This form starts a routine and does not collect answers in a table.')}</p>
+                                <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>{t('forms.answers.no_table_body', 'This form starts an automation and does not collect answers in a table.')}</p>
                             </div>
                         )
                     )}

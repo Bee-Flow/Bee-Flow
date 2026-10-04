@@ -31,6 +31,16 @@
  * organisation (`managerOrgId`). The route proves the permission; the store
  * only ever widens to the CALLER'S organisation, so a manager of org A can
  * never touch org B's skill through this path.
+ *
+ * ── PROJECTS AND SOLUTION STAGES ──
+ * `project_id` files a skill into a project (soft reference, like agents).
+ * A skill filed into a Solution STAGE project (UAT / PRD) is MANAGED: it is
+ * changed in Dev and deployed. `updateSkill` and `deleteSkill` refuse it with
+ * 409 `managed_part` unless only sharing changes or the caller holds a
+ * deployment's capability (`opts.managedWrite`, stores/lib/managedParts.js);
+ * filing into or out of a stage needs the capability too. The deploy writes
+ * through `writeManagedSkill` on its own transaction. A stage skill is never
+ * pushed to GitHub sync: Dev is its source.
  */
 
 const crypto = require('crypto');
@@ -39,6 +49,7 @@ const { makeStoreInit } = require('./lib/storeInit');
 const { runDdl } = require('./lib/_ddl');
 const { buildUpdate } = require('./lib/sqlBuilder');
 const userStore = require('./userStore');
+const managedParts = require('./lib/managedParts');
 const {
     resolveBodyWrite,
     validateOutputSchema,
@@ -47,9 +58,12 @@ const {
 const log = require('../telemetry/log');
 
 // ── GitHub Sync hook (fire-and-forget) ───────────────────────────
-async function _notifySkillSync(orgId, skillId, action = 'pending') {
+// A skill in a Solution stage project is a deployed copy of a Dev skill: Dev
+// is what syncs, so the stage copy never becomes a pending GitHub change.
+async function _notifySkillSync(orgId, skillId, action = 'pending', projectId = null) {
     if (!orgId) return;
     try {
+        if (projectId && await managedParts.managedInfo(projectId)) return;
         const syncStore = require('./githubSyncStore');
         const config = await syncStore.getOrgSyncConfig(orgId);
         if (!config) return;
@@ -106,10 +120,14 @@ async function _initDB() {
         ALTER TABLE skills ADD COLUMN IF NOT EXISTS allowed_automation_ids JSONB NOT NULL DEFAULT '[]'::jsonb;
         ALTER TABLE skills ADD COLUMN IF NOT EXISTS last_used_at TIMESTAMPTZ DEFAULT NULL;
         ALTER TABLE skills ADD COLUMN IF NOT EXISTS output_schema JSONB DEFAULT NULL;
+        -- The project a skill is filed into (soft reference; a Solution stage
+        -- project makes it a managed part).
+        ALTER TABLE skills ADD COLUMN IF NOT EXISTS project_id TEXT DEFAULT NULL;
 
         CREATE INDEX IF NOT EXISTS idx_skills_org ON skills(org_id);
         CREATE INDEX IF NOT EXISTS idx_skills_user ON skills(user_id);
         CREATE INDEX IF NOT EXISTS idx_skills_created ON skills(created_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_skills_project ON skills(project_id) WHERE project_id IS NOT NULL;
 
         -- Test-tab results (S3 writes, S1 owns): the last ${TEST_RUNS_KEEP} per skill.
         CREATE TABLE IF NOT EXISTS skill_test_runs (
@@ -190,7 +208,7 @@ async function createSkill({
         enabledIntegrations: Array.isArray(enabledIntegrations) ? enabledIntegrations : [],
         steps: cleanSteps, rulesV2: cleanRules, examplesV2: cleanExamples,
         outputSchema: cleanSchema, knowledgeBaseIds: kbIds, allowedAutomationIds: autoIds,
-        version: 1, lastUsedAt: null,
+        projectId: null, version: 1, lastUsedAt: null,
         createdAt: now, updatedAt: now,
     };
 }
@@ -355,8 +373,20 @@ async function getSkillsByIds(ids, orgId, userId) {
 // Fields whose change bumps `version`.
 const CONTENT_TEXT_FIELDS = ['name', 'description', 'instructions', 'workflow', 'rules', 'examples'];
 
+/** JSON with object keys sorted: Postgres JSONB reorders keys on the way back. */
+function _stableJson(v) {
+    if (v === undefined || v === null) return 'null';
+    if (Array.isArray(v)) return `[${v.map(_stableJson).join(',')}]`;
+    if (typeof v === 'object' && !(v instanceof Date)) {
+        return `{${Object.keys(v).filter((k) => v[k] !== undefined).sort()
+            .map((k) => `${JSON.stringify(k)}:${_stableJson(v[k])}`).join(',')}}`;
+    }
+    return JSON.stringify(v);
+}
+
+/** Same JSON value, independent of object key order. */
 function _sameJson(a, b) {
-    return JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+    return _stableJson(a) === _stableJson(b);
 }
 
 /**
@@ -386,19 +416,39 @@ const SKILL_COLUMNS = {
 };
 
 /**
+ * The managed-part allow-list names a skill's on/off-for-others switch
+ * `visibility` (stores/lib/managedParts.js ALLOWED.skill); here it is
+ * `isShared`. `sharedGroups` is the same word on both sides.
+ */
+const SKILL_GUARD_KEYS = Object.freeze({ isShared: 'visibility' });
+
+/** null, undefined and '' are one value for the managed-write diff. */
+const _blankToNull = (v) => (v === undefined || v === null || v === '' ? null : v);
+
+/** The keys of `write` whose value differs from the stored (mapped) skill. */
+function _changedSkillKeys(cur, write) {
+    return Object.keys(write).filter((k) => {
+        if (k === 'isShared' || k === 'dynamicActivation') return (cur[k] === true) !== (write[k] === true);
+        return !_sameJson(_blankToNull(cur[k]), _blankToNull(write[k]));
+    });
+}
+
+/**
  * Update a skill.
  *
  * @param {string} id
  * @param {string} userId  the caller
  * @param {Object} updates camelCase fields; `undefined` = leave as-is. Text
  *        facets and structured facets follow the precedence rule.
- * @param {{ managerOrgId?: string|null }} [opts]
+ * @param {{ managerOrgId?: string|null, managedWrite?: { deploymentId?: string }|null }} [opts]
  *        `managerOrgId`: the CALLER'S organisation, passed only when the
  *        route has verified `manage_skills`. Widens the WHERE from "owner"
  *        to "owner OR a skill of that organisation". Cross-org is refused
  *        by construction: a skill of another org never matches.
+ *        `managedWrite`: a deployment's capability, for a skill in a stage.
  * @returns {Promise<boolean>} true when a row was updated
  * @throws SkillStructureError (status 400) on a malformed structured field
+ * @throws 409 managed_part when a stage skill would change more than its sharing
  */
 async function updateSkill(id, userId, updates, opts = {}) {
     await initDB();
@@ -471,6 +521,19 @@ async function updateSkill(id, userId, updates, opts = {}) {
     }
     if (updates.enabledIntegrations !== undefined) write.enabledIntegrations = updates.enabledIntegrations;
 
+    // A skill in a Solution stage: only its sharing may change without a
+    // deploy. Judged on what actually CHANGES, because mobile and the Studio
+    // send the whole skill back on every save.
+    if (cur.projectId) {
+        const changed = _changedSkillKeys(cur, write);
+        if (changed.length > 0) {
+            await managedParts.assertManagedWrite({
+                kind: 'skill', projectId: cur.projectId, managedWrite: opts.managedWrite || null,
+                changedKeys: changed.map(k => SKILL_GUARD_KEYS[k] || k),
+            });
+        }
+    }
+
     const built = buildUpdate({
         table: 'skills',
         updates: write,
@@ -492,17 +555,29 @@ async function updateSkill(id, userId, updates, opts = {}) {
         params.push(id, userId);
     }
     const { rowCount } = await run(`${built.sql} ${where}`, params);
-    if (rowCount > 0 && cur.orgId) _notifySkillSync(cur.orgId, id);
+    if (rowCount > 0 && cur.orgId) _notifySkillSync(cur.orgId, id, 'pending', cur.projectId);
     return rowCount > 0;
 }
 
 /**
  * Delete a skill (owner only, or admin via isAdmin flag).
+ *
+ * A skill in a Solution stage is deleted only by a deployment (its
+ * capability in `opts.managedWrite`): 409 managed_part otherwise. Checked
+ * only for a caller who could delete it at all, so a stranger still reads
+ * "not found" rather than learning which Solution holds the skill.
+ *
+ * @param {{ managedWrite?: { deploymentId?: string }|null }} [opts]
  */
-async function deleteSkill(id, userId, isAdmin = false) {
+async function deleteSkill(id, userId, isAdmin = false, opts = {}) {
     await initDB();
     // Grab org_id before deleting for sync notification
-    const skill = await getOne('SELECT org_id FROM skills WHERE id = $1', [id]);
+    const skill = await getOne('SELECT org_id, user_id, project_id FROM skills WHERE id = $1', [id]);
+    if (skill?.project_id && (isAdmin || skill.user_id === userId)) {
+        await managedParts.assertManagedWrite({
+            kind: 'skill', projectId: skill.project_id, changedKeys: ['delete'], managedWrite: opts.managedWrite || null,
+        });
+    }
     let result;
     if (isAdmin) {
         result = await run('DELETE FROM skills WHERE id = $1', [id]);
@@ -513,8 +588,186 @@ async function deleteSkill(id, userId, isAdmin = false) {
         try { await run('DELETE FROM skill_test_runs WHERE skill_id = $1', [id]); } catch (_) { /* non-fatal */ }
         try { await run('DELETE FROM skill_activations WHERE skill_id = $1', [id]); } catch (_) { /* table may not exist yet */ }
     }
-    if (result.rowCount > 0 && skill?.org_id) _notifySkillSync(skill.org_id, id, 'deleted');
+    if (result.rowCount > 0 && skill?.org_id) _notifySkillSync(skill.org_id, id, 'deleted', skill.project_id || null);
     return result.rowCount > 0;
+}
+
+// ── Projects ─────────────────────────────────────────────────────
+
+/**
+ * Refuse filing into or out of a Solution stage project without a
+ * deployment's capability. `projectIds` are the source and the target; a
+ * null (no project) is skipped.
+ */
+async function _assertStageFiling(projectIds, managedWrite) {
+    for (const projectId of new Set(projectIds.filter(Boolean))) {
+        await managedParts.assertManagedWrite({ kind: 'skill', projectId, changedKeys: ['projectId'], managedWrite: managedWrite || null });
+    }
+}
+
+/**
+ * The skills filed into one project, in a narrow projection: a project member
+ * sees WHICH skills the project holds; the instructions and grants stay behind
+ * the skills routes and their own checks.
+ */
+async function listProjectSkills(projectId) {
+    await initDB();
+    if (!projectId) return [];
+    const rows = await getAll(
+        `SELECT id, name, description, icon, user_id, project_id, updated_at
+           FROM skills WHERE project_id = $1 ORDER BY updated_at DESC`,
+        [projectId],
+    );
+    return (rows || []).map(r => ({
+        id: r.id,
+        name: r.name,
+        description: r.description || '',
+        icon: r.icon || '⚡',
+        ownerId: r.user_id,
+        projectId: r.project_id || null,
+        updatedAt: r.updated_at,
+    }));
+}
+
+/** How many skills each of these projects holds: ONE query, Map(projectId → n). */
+async function countProjectSkills(projectIds) {
+    await initDB();
+    const ids = (Array.isArray(projectIds) ? projectIds : []).filter(id => typeof id === 'string' && id);
+    if (!ids.length) return new Map();
+    const rows = await getAll(
+        `SELECT project_id, COUNT(*)::int AS n FROM skills
+          WHERE project_id = ANY($1) GROUP BY project_id`,
+        [ids],
+    );
+    return new Map((rows || []).map(r => [r.project_id, Number(r.n) || 0]));
+}
+
+/**
+ * File a skill into a project, or take it out (`projectId = null`). Owner
+ * only, matched in the WHERE clause. Moving into or out of a Solution stage
+ * project needs a deployment's capability (`opts.managedWrite`): 409
+ * managed_part otherwise. `version` is not bumped: filing changes no content.
+ *
+ * @param {string} id
+ * @param {string} userId
+ * @param {string|null} projectId
+ * @param {{ managedWrite?: { deploymentId?: string }|null }} [opts]
+ * @returns {Promise<boolean>}
+ */
+async function setSkillProject(id, userId, projectId, opts = {}) {
+    await initDB();
+    if (!id || !userId) return false;
+    const row = await getOne('SELECT project_id FROM skills WHERE id = $1 AND user_id = $2', [id, userId]);
+    if (!row) return false;
+    const target = projectId || null;
+    if ((row.project_id || null) === target) return true;
+    await _assertStageFiling([row.project_id, target], opts.managedWrite);
+    const { rowCount } = await run(
+        'UPDATE skills SET project_id = $1, updated_at = NOW() WHERE id = $2 AND user_id = $3',
+        [target, id, userId],
+    );
+    return rowCount > 0;
+}
+
+/**
+ * Detach every skill from a deleted project (soft reference: the skills
+ * survive their project). A stage project's skills are detached only with a
+ * deployment's capability (a `remove` deployment's teardown).
+ *
+ * @param {string} projectId
+ * @param {{ managedWrite?: { deploymentId?: string }|null }} [opts]
+ * @returns {Promise<number>}
+ */
+async function clearProjectFromSkills(projectId, opts = {}) {
+    await initDB();
+    if (!projectId) return 0;
+    await _assertStageFiling([projectId], opts.managedWrite);
+    const { rowCount } = await run('UPDATE skills SET project_id = NULL WHERE project_id = $1', [projectId]);
+    return rowCount;
+}
+
+/**
+ * The deploy's writer of a skill in a Solution stage: insert or update one
+ * row on the caller's transaction (`client`), owned by `ownerId` (the stage's
+ * run-as user) in `orgId`, filed into the stage project. Requires the
+ * capability of a deployment that is active for exactly that stage project,
+ * read on the same client, so a deployment row of the same transaction counts.
+ *
+ * `fields` follows the precedence rule of the module header; on an update a
+ * key left out keeps its value. Sharing is never carried: a new stage skill
+ * starts unshared, an existing one keeps its sharing. No GitHub sync: Dev is
+ * the source.
+ *
+ * @param {{ query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number }> }} client
+ * @param {{ id?: string|null, ownerId: string, orgId: string|null, projectId: string,
+ *           fields?: Record<string, any>, managedWrite: { deploymentId?: string }|null }} args
+ * @returns {Promise<ReturnType<typeof mapRow>>}
+ */
+async function writeManagedSkill(client, { id = null, ownerId, orgId, projectId, fields = {}, managedWrite }) {
+    await initDB();
+    if (!client || typeof client.query !== 'function') throw new TypeError('writeManagedSkill: a transaction client is required.');
+    if (typeof projectId !== 'string' || !projectId) throw new TypeError('writeManagedSkill: projectId is required.');
+    if (typeof ownerId !== 'string' || !ownerId) throw new TypeError('writeManagedSkill: ownerId is required.');
+    if (!(await managedParts.hasCapability({ managedWrite, projectId, client }))) {
+        throw managedParts.managedPartError(await managedParts.managedInfo(projectId));
+    }
+
+    const f = fields || {};
+    const body = resolveBodyWrite({
+        workflow: f.workflow, rules: f.rules, examples: f.examples, steps: f.steps, rulesV2: f.rulesV2, examplesV2: f.examplesV2,
+    });
+    const write = {};
+    for (const k of ['name', 'description', 'instructions', 'icon', 'dynamicActivation', 'automationId', 'enabledIntegrations']) {
+        if (f[k] !== undefined) write[k] = f[k];
+    }
+    for (const k of ['workflow', 'steps', 'rules', 'rulesV2', 'examples', 'examplesV2']) {
+        if (body[k] !== undefined) write[k] = body[k];
+    }
+    if (f.outputSchema !== undefined) write.outputSchema = validateOutputSchema(f.outputSchema);
+    if (f.knowledgeBaseIds !== undefined) write.knowledgeBaseIds = validateIdList(f.knowledgeBaseIds, 'knowledgeBaseIds');
+    if (f.allowedAutomationIds !== undefined) write.allowedAutomationIds = validateIdList(f.allowedAutomationIds, 'allowedAutomationIds');
+
+    const existing = id
+        ? (await client.query('SELECT id, project_id FROM skills WHERE id = $1 FOR UPDATE', [id])).rows[0]
+        : null;
+    if (existing && existing.project_id !== projectId) {
+        throw managedParts.storeError(409, 'skill_not_in_stage', 'This skill belongs to another project.', { skillId: id });
+    }
+
+    let row;
+    if (existing) {
+        const built = buildUpdate({
+            table: 'skills',
+            updates: { ...write, userId: ownerId, orgId: orgId || null },
+            columnMap: { ...SKILL_COLUMNS, userId: 'user_id', orgId: 'org_id' },
+            extraSet: ['version = version + 1', 'updated_at = NOW()'],
+            where: [{ col: 'id', value: id }],
+            returning: '*',
+        });
+        // Never null: owner and organisation are always written.
+        row = (await client.query(/** @type {{sql: string}} */ (built).sql, /** @type {{params: any[]}} */ (built).params)).rows[0];
+    } else {
+        const newId = id || crypto.randomUUID();
+        const v = (k, dflt) => (write[k] !== undefined ? write[k] : dflt);
+        const kbIds = v('knowledgeBaseIds', []);
+        const autoIds = v('allowedAutomationIds', []);
+        const schema = v('outputSchema', null);
+        row = (await client.query(
+            `INSERT INTO skills (id, org_id, user_id, project_id, name, description, instructions, workflow, rules, examples, icon,
+                                 is_shared, dynamic_activation, shared_groups, automation_id, enabled_integrations,
+                                 steps, rules_v2, examples_v2, output_schema, knowledge_base_ids, allowed_automation_ids, version)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, false, $12, '[]', $13, $14,
+                     $15::jsonb, $16::jsonb, $17::jsonb, $18::jsonb, $19::jsonb, $20::jsonb, 1)
+             RETURNING *`,
+            [newId, orgId || null, ownerId, projectId, v('name', 'Skill'), v('description', ''), v('instructions', ''),
+                v('workflow', ''), v('rules', ''), v('examples', ''), v('icon', '⚡'), v('dynamicActivation', false) === true,
+                v('automationId', null) || null, JSON.stringify(Array.isArray(v('enabledIntegrations', [])) ? v('enabledIntegrations', []) : []),
+                JSON.stringify(v('steps', [])), JSON.stringify(v('rulesV2', [])), JSON.stringify(v('examplesV2', [])),
+                schema === null ? null : JSON.stringify(schema), JSON.stringify(kbIds), JSON.stringify(autoIds)],
+        )).rows[0];
+    }
+    log.info(`[SkillStore] Deployed skill ${row.id} into stage project ${projectId}`);
+    return mapRow(row);
 }
 
 // ── Usage ("Gebruikt door") ──────────────────────────────────────
@@ -582,7 +835,7 @@ async function _agentsUsingSkill(skillId, orgId) {
 }
 
 /**
- * Which routine AI steps apply this skill (`ai_step.skillIds`, Track R2):
+ * Which automation AI steps apply this skill (`ai_step.skillIds`, Track R2):
  * root steps and steps inside `definition_json.layers.<key>.steps`.
  */
 async function _automationStepsUsingSkill(skillId, orgId) {
@@ -619,7 +872,7 @@ async function _automationStepsUsingSkill(skillId, orgId) {
  *   unchecked  the kinds this scan could NOT look at, by name.
  *
  * ── WHY THE PAIR, AND NOT JUST THE ROWS ─────────────────────────────
- * The automations half is allowed to be absent: an install with no routines
+ * The automations half is allowed to be absent: an install with no automations
  * has no `automations` table, and that is a supported shape rather than an
  * error. But swallowing it into `[]` made "no automation uses this skill" and
  * "I never looked at automations" the same answer, and the two callers of this
@@ -637,7 +890,7 @@ async function listSkillUsage(skillId, orgId) {
     const [agents, steps] = await Promise.all([
         _agentsUsingSkill(skillId, orgId),
         _automationStepsUsingSkill(skillId, orgId).catch(err => {
-            // automations may not exist on an install without routines. Not an
+            // automations may not exist on an install without automations. Not an
             // error — but not a count either, so it is named rather than zeroed.
             if (/relation .*automations.* does not exist/i.test(err.message)) {
                 unchecked.push('automation');
@@ -727,7 +980,7 @@ async function getUsageSummary(orgId, skillIds) {
         for (const r of autoCounts || []) if (out[r.skill_id]) out[r.skill_id].automations = Number(r.n) || 0;
     } catch (err) {
         if (!/relation .*automations.* does not exist/i.test(err.message)) throw err;
-        // No routines table on this install: the automations column of every
+        // No automations table on this install: the automations column of every
         // row in this summary is UNKNOWN, not zero. Say so per row rather than
         // letting the list print "not linked yet" off a count nobody made.
         for (const id of ids) out[id].automationsUnchecked = true;
@@ -870,6 +1123,7 @@ function mapRow(r) {
         outputSchema: _jsonObjectOrNull(r.output_schema),
         knowledgeBaseIds: _jsonArray(r.knowledge_base_ids),
         allowedAutomationIds: _jsonArray(r.allowed_automation_ids),
+        projectId: r.project_id || null,
         version: Number.isFinite(Number(r.version)) && Number(r.version) > 0 ? Number(r.version) : 1,
         lastUsedAt: r.last_used_at ? new Date(r.last_used_at).toISOString() : null,
         createdAt: r.created_at ? new Date(r.created_at).toISOString() : null,
@@ -886,6 +1140,12 @@ module.exports = {
     updateSkill,
     deleteSkill,
     canEditSkill,
+    listProjectSkills,
+    countProjectSkills,
+    setSkillProject,
+    clearProjectFromSkills,
+    writeManagedSkill,
+    _notifySkillSync,
     listSkillUsage,
     getUsageSummary,
     recordTestRun,

@@ -202,7 +202,7 @@ function buildAdjacency(def) {
  *
  * The back-compat carve-out for 'on_success' means existing automations
  * (which never set edge.label) keep working without migration. New
- * routines can opt into explicit success/error/complete branches and
+ * automations can opt into explicit success/error/complete branches and
  * have them routed by §19's edge semantics.
  */
 /**
@@ -253,7 +253,7 @@ const BRANCHER_TYPES = new Set(['condition', 'guard', 'switch']);
  * is the runner pulling in a literals file — the cheap direction.
  *
  * And the sharing is the whole point. A terminal step that the validator
- * treats as terminal and the runner walks past would let a routine carry on
+ * treats as terminal and the runner walks past would let an automation carry on
  * after it had already told the app it was finished. See the header on
  * TERMINAL_STEP_TYPES in automation/validate/constants.js for the full list of
  * places that have to agree.

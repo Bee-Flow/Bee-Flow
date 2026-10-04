@@ -2,7 +2,7 @@
  * The addresses the build screen sends people to.
  *
  * The node editor is app/automations/[id]/steps/[stepId].tsx: `id` is the
- * routine's id — or, before a new routine has been created, its draft key
+ * automation's id — or, before a new automation has been created, its draft key
  * (FlowDraft.key), which the editor's useFlowDraft resolves to the same open
  * store — and `stepId` is the step's address (nested.ts: a held step's
  * container path, `loop_1/ai_2`), which expo-router URI-encodes as one
@@ -23,12 +23,12 @@ export function stepEditorPath(flowId: string, address: string, section?: string
     return { pathname: '/automations/[id]/steps/[stepId]', params };
 }
 
-/** One flowlet of a routine, built on its own screen (definition.layers[key]). */
+/** One flowlet of an automation, built on its own screen (definition.layers[key]). */
 export function flowletPath(flowId: string, key: string): Href {
     return { pathname: '/automations/[id]/flowlets/[layerKey]', params: { id: flowId, layerKey: key } };
 }
 
-/** A routine's build screen. */
+/** An automation's build screen. */
 export function buildPath(automationId: string): Href {
     return { pathname: '/automations/[id]/build', params: { id: automationId } };
 }

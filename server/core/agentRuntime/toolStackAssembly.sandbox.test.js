@@ -111,14 +111,14 @@ test.beforeEach(() => {
     fx.sandboxThrows = false;
 });
 
-test('a test run loses the sending tool and the routine, and says which', async () => {
+test('a test run loses the sending tool and the automation, and says which', async () => {
     const out = await assemble({ testSandbox: true });
     assert.ok(names(out.tools).includes('gmail_search'));
     assert.ok(!names(out.tools).includes('gmail_compose'), 'a test run must never be handed a send');
     assert.ok(!names(out.tools).includes('file_the_ticket'));
     const byName = Object.fromEntries(out.sandboxWithheld.map(w => [w.name, w.reason]));
     assert.strictEqual(byName.gmail_compose, 'sends');
-    assert.strictEqual(byName.file_the_ticket, 'routine');
+    assert.strictEqual(byName.file_the_ticket, 'automation');
 });
 
 test('without the flag nothing is withheld — ordinary chat is untouched', async () => {

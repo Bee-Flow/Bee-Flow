@@ -20,7 +20,7 @@ import toast from '../../../../shared/Toast';
 vi.mock('../../../../../hooks/useAutomationApi', () => ({
     default: () => ({
         listAutomations: vi.fn(async () => ({ automations: AUTOMATIONS })),
-        createAutomation: vi.fn(async () => ({ automation: { id: 'aut_new', title: 'New routine for this app' } })),
+        createAutomation: vi.fn(async () => ({ automation: { id: 'aut_new', title: 'New automation for this app' } })),
     }),
     safeText: vi.fn(async () => ''),
 }));
@@ -30,7 +30,7 @@ vi.mock('../studioAppsApi', () => ({
 
 /**
  * Two things a multi-step action could not survive before: it displayed as
- * "Run routine" (the select fell back when the kind was not in its list), and
+ * "Run automation" (the select fell back when the kind was not in its list), and
  * the first change to that select replaced the whole action with a fresh
  * default — silently discarding every step.
  */
@@ -105,7 +105,7 @@ describe('stepCount', () => {
 });
 
 describe('ActionsSection — a multi-step action is no longer invisible', () => {
-    it('says what it is instead of claiming to be a routine', () => {
+    it('says what it is instead of claiming to be an automation', () => {
         renderSection(SEQUENCE);
         expect(screen.getByRole('combobox', { name: 'Action kind' }).value).toBe('sequence');
         expect(screen.getByText(/3 steps, run in order/i)).toBeTruthy();
@@ -147,15 +147,15 @@ describe('ActionsSection — turning one action into a flow', () => {
     });
 });
 
-describe('ActionsSection — the routine contract, when it drifts', () => {
+describe('ActionsSection — the automation contract, when it drifts', () => {
     const wired = { kind: 'run_automation', automationId: 'aut_1', inputMapping: { email: { kind: 'static', value: 'a@b.c' }, gone: { kind: 'static', value: 'x' } } };
 
-    it('names an input the routine expects and this action does not send', async () => {
+    it('names an input the automation expects and this action does not send', async () => {
         renderSection(wired);
         expect(await screen.findByRole('button', { name: /\+ amount/ })).toBeTruthy();
     });
 
-    it('names an input the routine no longer takes', async () => {
+    it('names an input the automation no longer takes', async () => {
         renderSection(wired);
         expect(await screen.findByRole('button', { name: /gone/ })).toBeTruthy();
     });
@@ -170,14 +170,14 @@ describe('ActionsSection — the routine contract, when it drifts', () => {
         renderSection({ kind: 'run_automation', automationId: 'aut_1', inputMapping: { email: { kind: 'static', value: 'x' }, amount: { kind: 'static', value: 1 } } });
         openDisclosures();
         await screen.findByRole('combobox', { name: 'Action kind' });
-        expect(screen.queryByText(/the routine also expects/i)).toBeNull();
+        expect(screen.queryByText(/the automation also expects/i)).toBeNull();
         expect(screen.queryByText(/no longer takes/i)).toBeNull();
     });
 });
 
 /**
  * Effects are an ACTION-level shape: no step kind carries onSuccess/onError,
- * and canonicalize drops the keys on the next save. Converting a "Run routine"
+ * and canonicalize drops the keys on the next save. Converting a "Run automation"
  * with "on success: say Saved, then go to Thank you" therefore looked like
  * nothing happened, and then quietly lost both.
  */

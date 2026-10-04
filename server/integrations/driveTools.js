@@ -56,6 +56,27 @@ const DRIVE_TOOLS = [
     {
         type: 'function',
         function: {
+            name: 'drive_list_recent',
+            description: 'List files in Google Drive modified since a date, newest first. Returns name, parent folder id, modified and created time (no file content).',
+            parameters: {
+                type: 'object',
+                properties: {
+                    since: {
+                        type: 'string',
+                        description: 'ISO date/time: only files modified at or after this moment (default: 30 days ago)'
+                    },
+                    maxResults: {
+                        type: 'integer',
+                        description: 'Maximum number of files to return (1-200, default 50)'
+                    }
+                },
+                required: []
+            }
+        }
+    },
+    {
+        type: 'function',
+        function: {
             name: 'drive_get_file',
             description: 'Get detailed metadata for a specific file including sharing permissions, size, and history.',
             parameters: {
@@ -138,7 +159,7 @@ const DRIVE_TOOLS = [
                     },
                     sourceHandle: {
                         type: 'object',
-                        description: 'Server-side reference to bytes from another tool. Supported: { kind: "gmail_attachment", messageId, attachmentId, filename?, mimeType?, size? }, and inside a routine { kind: "generated_file", fileId } — the file a generate_document / fill_document / presentation step kept; bind the whole handle: sourceHandle:{kind:"ref",path:"steps.<id>.output.sourceHandle"}.',
+                        description: 'Server-side reference to bytes from another tool. Supported: { kind: "gmail_attachment", messageId, attachmentId, filename?, mimeType?, size? }, and inside an automation { kind: "generated_file", fileId } — the file a generate_document / fill_document / presentation step kept; bind the whole handle: sourceHandle:{kind:"ref",path:"steps.<id>.output.sourceHandle"}.',
                         properties: {
                             kind:         { type: 'string', enum: ['gmail_attachment', 'generated_file'] },
                             messageId:    { type: 'string' },
@@ -240,6 +261,66 @@ function formatFile(file) {
     };
 }
 
+// ─── Recent files ──────────────────────────────────────────────
+
+const RECENT_DEFAULT_DAYS = 30;
+const RECENT_MAX_RESULTS = 200;
+const RECENT_PAGE_SIZE = 100;
+const RECENT_MAX_PAGES = 4;
+
+/**
+ * drive_list_recent: files (never folders, never content) modified since a
+ * date, newest first, capped at 200. `modifiedByMe` comes from Drive's own
+ * lastModifyingUser.me flag, so a caller can keep only the user's own edits
+ * without any name or address passing through.
+ *
+ * @param {object} drive - a googleapis drive v3 client (injected in tests)
+ * @param {object} args - { since?, maxResults? }
+ */
+async function listRecentDriveFiles(drive, args, { now = Date.now() } = {}) {
+    let sinceIso;
+    if (args?.since === undefined || args?.since === null || args?.since === '') {
+        sinceIso = new Date(now - RECENT_DEFAULT_DAYS * 86400000).toISOString();
+    } else {
+        const ms = Date.parse(String(args.since));
+        if (!Number.isFinite(ms)) throw new Error('since must be an ISO date/time');
+        sinceIso = new Date(ms).toISOString();
+    }
+    const want = Math.min(Math.max(parseInt(args?.maxResults) || 50, 1), RECENT_MAX_RESULTS);
+
+    const files = [];
+    let pageToken;
+    let pages = 0;
+    do {
+        const res = await drive.files.list({
+            q: `modifiedTime >= '${sinceIso}' and trashed = false and mimeType != 'application/vnd.google-apps.folder'`,
+            pageSize: Math.min(want - files.length, RECENT_PAGE_SIZE),
+            pageToken,
+            fields: 'nextPageToken, files(id, name, mimeType, modifiedTime, createdTime, parents, ownedByMe, lastModifyingUser(me))',
+            orderBy: 'modifiedTime desc',
+        });
+        pages++;
+        for (const f of (res.data.files || [])) files.push(f);
+        pageToken = res.data.nextPageToken;
+    } while (pageToken && files.length < want && pages < RECENT_MAX_PAGES);
+
+    return {
+        since: sinceIso,
+        resultCount: Math.min(files.length, want),
+        hasMore: !!pageToken || files.length > want,
+        results: files.slice(0, want).map(f => ({
+            id: f.id,
+            name: f.name,
+            mimeType: f.mimeType,
+            parentId: Array.isArray(f.parents) && f.parents.length ? f.parents[0] : null,
+            modifiedTime: f.modifiedTime,
+            createdTime: f.createdTime,
+            ownedByMe: f.ownedByMe === true,
+            modifiedByMe: f.lastModifyingUser?.me === true,
+        })),
+    };
+}
+
 // ─── Tool Execution ────────────────────────────────────────────
 
 async function executeDriveTool(toolName, args, session, extra = {}) {
@@ -290,6 +371,9 @@ async function executeDriveTool(toolName, args, session, extra = {}) {
                 results: (res.data.files || []).map(formatFile),
             };
         }
+
+        case 'drive_list_recent':
+            return listRecentDriveFiles(drive, args);
 
         case 'drive_get_file': {
             const res = await drive.files.get({
@@ -387,7 +471,7 @@ async function executeDriveTool(toolName, args, session, extra = {}) {
                     } catch (e) {
                         return { error: e.message };
                     }
-                    if (!file) return { error: 'That fileId is not a live file of this run (expired, or produced by another routine).' };
+                    if (!file) return { error: 'That fileId is not a live file of this run (expired, or produced by another automation).' };
                     buffer = file.buffer;
                     handleMime = args.sourceHandle.mimeType || file.mimeType;
                 } else {
@@ -562,7 +646,7 @@ async function executeDriveTool(toolName, args, session, extra = {}) {
 }
 
 function isDriveTool(toolName) {
-    return ['drive_search', 'drive_list_files', 'drive_get_file', 'drive_get_content', 'drive_move_file', 'drive_create_folder', 'drive_upload_file'].includes(toolName);
+    return ['drive_search', 'drive_list_files', 'drive_list_recent', 'drive_get_file', 'drive_get_content', 'drive_move_file', 'drive_create_folder', 'drive_upload_file'].includes(toolName);
 }
 
 module.exports = {
@@ -570,4 +654,6 @@ module.exports = {
     executeDriveTool,
     isDriveTool,
     createDriveClient,
+    // exposed for tests
+    listRecentDriveFiles,
 };

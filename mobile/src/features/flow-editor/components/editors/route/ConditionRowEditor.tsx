@@ -39,7 +39,7 @@ function TypedValue({ type, value, onChange, onVariable, disabled }: { type: Val
     const v = literalOf(value);
     let control: React.ReactNode;
     if (type === 'number') {
-        control = <NumberField value={v === '' || v == null ? '' : v} allowBlank onChange={(n) => onChange({ kind: 'literal', value: n })} prompt={t('routines.kind.number', 'number')} disabled={disabled} />;
+        control = <NumberField value={v === '' || v == null ? '' : v} allowBlank onChange={(n) => onChange({ kind: 'literal', value: n })} prompt={t('automations.kind.number', 'number')} disabled={disabled} />;
     } else if (type === 'boolean') {
         control = (
             <SelectField
@@ -69,7 +69,7 @@ function ValueSlot({ row, type, onChange, disabled }: { row: ConditionRow; type:
     const [variable, setVariable] = useState(false);
     const typed = !variable && isLiteral(row.value) && (type === 'number' || type === 'boolean' || type === 'date');
     if (typed) return <TypedValue type={type} value={row.value} onChange={onChange} onVariable={() => setVariable(true)} disabled={disabled} />;
-    return <BindingInput value={row.value} onChange={onChange} label={t('routines.builder.value_word', 'Value')} prompt={t('mobile.flow.condition.value', 'value')} disabled={disabled} />;
+    return <BindingInput value={row.value} onChange={onChange} label={t('automations.builder.value_word', 'Value')} prompt={t('mobile.flow.condition.value', 'value')} disabled={disabled} />;
 }
 
 export function ConditionRowEditor({ row, index, type, onChange, onRemove, fieldOptions, fieldBase, disabled = false }: ConditionRowEditorProps) {

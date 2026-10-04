@@ -33,6 +33,6 @@ title: Fireflies
 
 Transcripts contain people's names and verbatim utterances. The Privacy Shield runs over them before reaching the model — Strict mode is recommended for transcripts.
 
-## Bee Flow's own meeting bot
+## Bee Flow's own Meeting Notes
 
-Bee Flow also has a built-in meeting bot ([`/api/meet-bot`](../api/rest.md#meeting-notes-and-transcriptions-enterprise), Enterprise). The Fireflies integration complements rather than replaces it — use whichever matches your existing workflow.
+Bee Flow has no meeting bot of its own. Its Meeting Notes (Enterprise) imports the recordings of Nextcloud Talk, Google Meet and Microsoft Teams meetings and transcribes them itself ([API](../api/rest.md#meeting-notes-and-transcriptions-enterprise)). The Fireflies integration complements rather than replaces it — use whichever matches your existing workflow.

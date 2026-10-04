@@ -671,4 +671,23 @@ if (ssrfGuardPresent) {
     assert.deepStrictEqual(deriveOpenAiTools({}, 'acme'), []);
 }
 
+// ── meta.source: the MCP library's marker is reserved ───────────────────
+// It decides which gate and licence govern a row (mcpLibrary/gate.js), so a
+// definition from anywhere else may not carry it, and the library's own
+// install path must carry exactly 'mcp_library'.
+{
+    const mcpDef = (meta) => ({ specVersion: 1, meta, mcp: { url: 'https://mcp.example.com/mcp', authStyle: 'none' } });
+    const claimed = validateCustomIntegration(mcpDef({ source: 'mcp_library' }), { kind: 'mcp_remote', strict: true, slug: 'abcd1234' });
+    assert.strictEqual(claimed.ok, false, 'a builder definition cannot claim the library marker');
+    assert.ok(hasError(claimed, 'meta.source_reserved'));
+    const other = validateCustomIntegration(mcpDef({ source: 'anything' }), { kind: 'mcp_remote', slug: 'abcd1234' });
+    assert.ok(hasError(other, 'meta.source_reserved'), 'any meta.source is reserved, even in a draft check');
+    const library = validateCustomIntegration(mcpDef({ source: 'mcp_library' }), { kind: 'mcp_remote', strict: true, slug: 'abcd1234', librarySource: true });
+    assert.strictEqual(library.ok, true, 'the library path accepts its own marker');
+    const missing = validateCustomIntegration(mcpDef({}), { kind: 'mcp_remote', strict: true, slug: 'abcd1234', librarySource: true });
+    assert.ok(hasError(missing, 'meta.source_reserved'), 'the library path must carry the marker');
+    const plain = validateCustomIntegration(mcpDef({ docsUrl: 'https://example.com' }), { kind: 'mcp_remote', strict: true, slug: 'abcd1234' });
+    assert.strictEqual(plain.ok, true, 'a builder definition without the marker is unaffected');
+}
+
 console.log('validateCustomIntegration.test.js — all checks passed' + (ssrfGuardPresent ? '' : ' (ssrfGuard absent: forbidden-host assertions skipped)'));

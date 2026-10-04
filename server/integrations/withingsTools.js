@@ -25,7 +25,7 @@
  * refetching the user's whole history every hour.
  */
 
-const routineAuth = require('../auth/routineAuth');
+const automationAuth = require('../auth/automationAuth');
 const { OAUTH_PROVIDERS } = require('../auth/permissions');
 const log = require('../telemetry/log');
 
@@ -138,11 +138,11 @@ function clampLimit(limit) {
 /**
  * Call one Withings action. Every Withings endpoint is a POST with an `action`
  * field and form-encoded params; success and failure share HTTP 200, so the
- * envelope check lives in routineAuth.readWithingsBody (shared with the token
+ * envelope check lives in automationAuth.readWithingsBody (shared with the token
  * refresher, which faces the same shape).
  */
 async function withingsCall(userId, path, action, params) {
-    const auth = await routineAuth.getProviderAuth(userId, 'withings');
+    const auth = await automationAuth.getProviderAuth(userId, 'withings');
     if (!auth?.accessToken) {
         throw new Error('Withings is not connected. Connect it in Settings → Integrations.');
     }
@@ -178,7 +178,7 @@ async function withingsCall(userId, path, action, params) {
     }
     const data = await res.json().catch(() => null);
     if (!data) throw new Error('Withings returned a non-JSON body');
-    return routineAuth.readWithingsBody(data, action);
+    return automationAuth.readWithingsBody(data, action);
 }
 
 // ── Normalisers ─────────────────────────────────────────────────────

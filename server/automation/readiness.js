@@ -10,11 +10,11 @@
  *                  both. The database-backed checks activation adds on top
  *                  (the owner's tool, agent and knowledge-base catalogs) are
  *                  not run here: this is a checklist, activation stays the gate.
- *   lastTest       the newest finished test run of the routine (the Test button
+ *   lastTest       the newest finished test run of the automation (the Test button
  *                  or a dry run), or null. Advice, not a gate.
  *   aiAct          the AI Act check (automation/aiActCheck.js). Gates only when
  *                  the organisation has the compliance hub licence.
- *   description    the routine has a description. Recommended, not a gate.
+ *   description    the automation has a description. Recommended, not a gate.
  *   canActivate    what the server would let through: the steps and the AI Act
  *                  check. The test run and the description do not block.
  *
@@ -31,7 +31,7 @@ const UNFINISHED = new Set(['running', 'queued', 'pending', 'awaiting_approval',
 
 function isObject(v) { return !!v && typeof v === 'object' && !Array.isArray(v); }
 
-/** A run the builder started to try the routine: the Test button (isTest) or a dry run. */
+/** A run the builder started to try the automation: the Test button (isTest) or a dry run. */
 function isTestRun(run) {
     return !!run && (run.isTest === true || run.mode === 'dry_run');
 }

@@ -10,7 +10,7 @@ import { typeColorVar, typeTint } from './nodeTypeColors';
  */
 export function LegendToggle({ open, onToggle }) {
     const { t } = useTranslation();
-    const label = t('routines.canvas.legend_toggle', 'What the marks on the canvas mean');
+    const label = t('automations.canvas.legend_toggle', 'What the marks on the canvas mean');
     return (
         <button
             type="button"
@@ -39,23 +39,23 @@ export default function CanvasLegend() {
             data-testid="canvas-legend"
         >
             <div className="text-[10px] font-semibold uppercase tracking-[.08em] text-[var(--text-tertiary)]">
-                {t('routines.canvas.legend_title', 'Legend')}
+                {t('automations.canvas.legend_title', 'Legend')}
             </div>
             <div className={row}>
                 <span className="px-1.5 rounded-full border border-[var(--border-default)] bg-[var(--bg-secondary)] font-semibold text-[var(--text-primary)] whitespace-nowrap">1 record</span>
-                <span>{t('routines.canvas.legend_data', 'data that travels down the line')}</span>
+                <span>{t('automations.canvas.legend_data', 'data that travels down the line')}</span>
             </div>
             <div className={row}>
                 <span className="px-1.5 rounded-full font-semibold whitespace-nowrap" style={{ background: typeTint('branch', 16), color: typeColorVar('branch') }}>match</span>
-                <span>{t('routines.canvas.legend_branch', 'a branch label — the run follows labels only')}</span>
+                <span>{t('automations.canvas.legend_branch', 'a branch label — the run follows labels only')}</span>
             </div>
             <div className={row}>
                 <span className="w-5 shrink-0 border-t-2 border-dashed border-[var(--text-tertiary)]" aria-hidden="true" />
-                <span>{t('routines.canvas.legend_wrap', 'the line back to the start of the next row')}</span>
+                <span>{t('automations.canvas.legend_wrap', 'the line back to the start of the next row')}</span>
             </div>
             <div className={row}>
                 <span className="w-5 shrink-0 border-t-2" style={{ borderColor: 'var(--error)' }} aria-hidden="true" />
-                <span>{t('routines.canvas.legend_pii', 'a line carrying personal data')}</span>
+                <span>{t('automations.canvas.legend_pii', 'a line carrying personal data')}</span>
             </div>
             <div className={row}>
                 <span
@@ -63,7 +63,7 @@ export default function CanvasLegend() {
                     style={{ borderRadius: '0 0 8px 8px', background: typeTint('ai', 30), border: `1px solid ${typeColorVar('ai')}`, borderTop: 0 }}
                     aria-hidden="true"
                 />
-                <span>{t('routines.canvas.legend_tool', "an AI step's tool port")}</span>
+                <span>{t('automations.canvas.legend_tool', "an AI step's tool port")}</span>
             </div>
         </div>
     );

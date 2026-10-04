@@ -275,7 +275,7 @@ for (const [n, example] of examples().entries()) {
             assert.deepEqual(withoutRouteKeys(call.echo), withoutRouteKeys(withRealIds(real, recordedIds)), `${label}: the recorded echo is not what the builders return`);
         }
         // Every example ends named and finalized, in the user's language.
-        assert.ok(wrap.title && wrap.title !== 'Untitled automation', 'the example named the routine');
+        assert.ok(wrap.title && wrap.title !== 'Untitled automation', 'the example named the automation');
         const last = example[example.length - 1];
         assert.equal(last.role, 'assistant');
         assert.ok(typeof last.content === 'string' && last.content.length > 0 && !last.tool_calls, 'ends with one sentence for the user');
@@ -306,7 +306,7 @@ test('builder_set_metadata is called in reply 1 of every example, beside the tri
     for (const ex of examples()) {
         const firstReply = ex.find(m => m.role === 'assistant');
         const names = firstReply.tool_calls.map(tc => tc.function.name);
-        assert.ok(names.includes('builder_set_metadata'), `reply 1 names the routine: ${names.join(', ')}`);
+        assert.ok(names.includes('builder_set_metadata'), `reply 1 names the automation: ${names.join(', ')}`);
         assert.ok(names.includes('builder_propose_trigger'), 'beside the trigger');
         const args = JSON.parse(firstReply.tool_calls.find(tc => tc.function.name === 'builder_set_metadata').function.arguments);
         assert.ok(args.title.length <= 60, `title ≤ 60 chars: ${args.title}`);

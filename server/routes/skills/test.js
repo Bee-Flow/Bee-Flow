@@ -156,7 +156,7 @@ async function listAgents(req, res) {
  * that says "the AI said it". The retrieval check pins `isOrgAdmin` to false,
  * coerces `null` to an empty set, and asks the SURFACE question
  * (`usage_contexts`) the management check does not, so a base its owner
- * limited to one routine does not answer here either.
+ * limited to one automation does not answer here either.
  *
  * The surface is the one being rehearsed: a run "as agent X" is an agent
  * turn, a run without one is a chat turn.

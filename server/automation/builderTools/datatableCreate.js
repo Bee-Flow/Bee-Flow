@@ -1,6 +1,6 @@
 /**
  * Builder tool — `builder_create_datatable`: create a Studio datatable at
- * DESIGN time, so a routine can be built onto a table that did not exist
+ * DESIGN time, so an automation can be built onto a table that did not exist
  * yet ("extract the invoices into a new table called invoice"). Before this
  * the builder could only write into tables that already existed, and a
  * model asked for a new one invented a create-table STEP (measured
@@ -8,7 +8,7 @@
  *
  * The table is made the way the Datatables section and the Playbook table
  * phase make one (core/dataEngine/createStudioDatatable), owned by the
- * routine's owner, in their default scope; the draft's datatable catalog
+ * automation's owner, in their default scope; the draft's datatable catalog
  * is refreshed in place so the very next builder_add_datatable can target
  * the new id. It is a side effect outside the draft: a second call with the
  * same name answers with the table that exists, never a second table.
@@ -75,12 +75,12 @@ async function applyCreateDatatable(draftWrap, args, deps = defaultDeps()) {
     if (!name) return { error: 'name is required — the table\'s title as the person will see it in Studio > Datatables.', _fixHint: 'Pass name:"<title>" and fields:[{name, type}].' };
     const notes = [];
     const fields = normaliseFieldArgs(a.fields || a.columns, notes);
-    if (!fields.length) return { error: 'fields must list at least one column: [{name, type}] with type text | number | date | datetime | bool | select (with options) | multiselect | file.', _fixHint: 'Name the columns the routine will write.' };
+    if (!fields.length) return { error: 'fields must list at least one column: [{name, type}] with type text | number | date | datetime | bool | select (with options) | multiselect | file.', _fixHint: 'Name the columns the automation will write.' };
     const ownerId = draftWrap && draftWrap.userId;
     // The owner is the person building the draft (draftWrap.userId, set by
     // loadOrCreateDraft) — it is never something a tool call can supply, so
     // the hint must not send the model to builder_set_metadata for it.
-    if (!ownerId) return { error: 'The routine has no owner yet — save the draft first.', _fixHint: 'Save the draft first (any mutation) — the owner is the person building it; no tool argument sets it.' };
+    if (!ownerId) return { error: 'The automation has no owner yet — save the draft first.', _fixHint: 'Save the draft first (any mutation) — the owner is the person building it; no tool argument sets it.' };
 
     // Idempotent on the name: the catalog already lists it → that is the table.
     const catalog = Array.isArray(draftWrap._datatables) ? draftWrap._datatables : [];
@@ -100,7 +100,7 @@ async function applyCreateDatatable(draftWrap, args, deps = defaultDeps()) {
     const hasManage = await deps.hasManageDatatables(ownerId);
     const result = await deps.createStudioDatatable({
         ownerUserId: ownerId, principal, name, key: typeof a.key === 'string' ? a.key : null,
-        description: typeof a.description === 'string' ? a.description : `Aangemaakt door de routinebouwer voor "${name}"`,
+        description: typeof a.description === 'string' ? a.description : `Aangemaakt door de automatiseringsbouwer voor "${name}"`,
         fields, hasManageDatatables: hasManage,
     });
     if (!result.ok) {
@@ -127,7 +127,7 @@ async function applyCreateDatatable(draftWrap, args, deps = defaultDeps()) {
         fields: table.fields.map((f) => ({ key: f.key, type: f.type, ...(f.options ? { options: f.options } : {}) })),
         created: true,
         ...(notes.length ? { _hints: notes } : {}),
-        _next: `Write into it with builder_add_datatable {op:"add_row", datatableId:"${table.id}", datatableKey:"${table.key}", values:{<columnKey>: <binding>}} — keys: ${table.fields.map((f) => f.key).join(', ')}. The table is empty; the routine fills it.`,
+        _next: `Write into it with builder_add_datatable {op:"add_row", datatableId:"${table.id}", datatableKey:"${table.key}", values:{<columnKey>: <binding>}} — keys: ${table.fields.map((f) => f.key).join(', ')}. The table is empty; the automation fills it.`,
     };
 }
 

@@ -14,7 +14,7 @@
  *     code,         stable snake_case code ('nextcloud_no_access', 'rate_limited', ...)
  *     title,        English title, params filled in
  *     cause,        English sentence, params filled in
- *     titleKey,     i18n key for the title ('routines.step_error.<code>.title')
+ *     titleKey,     i18n key for the title ('automations.step_error.<code>.title')
  *     causeKey,     i18n key for the cause ('...cause' or '...cause_generic')
  *     params,       the values the texts interpolate ({ service, target, folder, field, app })
  *     settingKey,   the step setting that fixes it: 'connection', 'inputs.<name>',
@@ -161,13 +161,13 @@ const STEP_ERROR_CODES = Object.freeze(Object.keys(TEXTS));
 
 // The fix buttons. Keys match the ones agent-hub's ErrorCard already uses.
 const FIX_LABELS = {
-    share_folder: { label: 'Share the folder', labelKey: 'routines.output.fix_share' },
-    share_folder_with: { label: 'Share the folder with {account}', labelKey: 'routines.output.fix_share_with' },
-    switch_account: { label: 'Other account', labelKey: 'routines.output.fix_switch_account' },
-    reconnect: { label: 'Reconnect', labelKey: 'routines.output.fix_reconnect' },
-    pick_other: { label: 'Pick another', labelKey: 'routines.output.fix_pick_other' },
-    open_settings: { label: 'Open the setting', labelKey: 'routines.output.fix_open_settings' },
-    retry: { label: 'Try again', labelKey: 'routines.output.fix_retry' },
+    share_folder: { label: 'Share the folder', labelKey: 'automations.output.fix_share' },
+    share_folder_with: { label: 'Share the folder with {account}', labelKey: 'automations.output.fix_share_with' },
+    switch_account: { label: 'Other account', labelKey: 'automations.output.fix_switch_account' },
+    reconnect: { label: 'Reconnect', labelKey: 'automations.output.fix_reconnect' },
+    pick_other: { label: 'Pick another', labelKey: 'automations.output.fix_pick_other' },
+    open_settings: { label: 'Open the setting', labelKey: 'automations.output.fix_open_settings' },
+    retry: { label: 'Try again', labelKey: 'automations.output.fix_retry' },
 };
 
 // ── Helpers ──────────────────────────────────────────────────────────────
@@ -505,8 +505,8 @@ function describeStepError(err, opts = {}) {
         code,
         title: fill(texts.title, params),
         cause: fill(generic ? texts.causeGeneric : texts.cause, params),
-        titleKey: `routines.step_error.${code}.title`,
-        causeKey: `routines.step_error.${code}.${generic ? 'cause_generic' : 'cause'}`,
+        titleKey: `automations.step_error.${code}.title`,
+        causeKey: `automations.step_error.${code}.${generic ? 'cause_generic' : 'cause'}`,
         params,
         settingKey,
         fixes,
@@ -538,9 +538,9 @@ function legacyStepErrorInfo(message, stepType, inputs) {
 function stepErrorI18nDefaults() {
     const out = {};
     for (const [code, t] of Object.entries(TEXTS)) {
-        out[`routines.step_error.${code}.title`] = t.title;
-        out[`routines.step_error.${code}.cause`] = t.cause;
-        if (t.causeGeneric) out[`routines.step_error.${code}.cause_generic`] = t.causeGeneric;
+        out[`automations.step_error.${code}.title`] = t.title;
+        out[`automations.step_error.${code}.cause`] = t.cause;
+        if (t.causeGeneric) out[`automations.step_error.${code}.cause_generic`] = t.causeGeneric;
     }
     return out;
 }

@@ -47,7 +47,7 @@ export function familyOf(step: FlowStep | null): string | null {
 export function familyWord(step: FlowStep | null, t: TranslateFn): string {
     if (step?.type === 'trigger') return stepTypeLabel(step, t);
     const fam = familyOf(step);
-    if (fam && FAMILY_WORD[fam]) return t(`routines.ndv.family.${fam}`, FAMILY_WORD[fam]);
+    if (fam && FAMILY_WORD[fam]) return t(`automations.ndv.family.${fam}`, FAMILY_WORD[fam]);
     return stepTypeLabel(step, t);
 }
 
@@ -71,20 +71,20 @@ export function lastRunPill(
 ): StatusPill | null {
     const status = String(runStep?.status || '');
     if (status === 'error' || status === 'failed') {
-        return { tone: 'error', label: t('routines.ndv.pill_failed', 'Failed on last run') };
+        return { tone: 'error', label: t('automations.ndv.pill_failed', 'Failed on last run') };
     }
     if (status === 'success' || status === 'completed') {
         return outSummary?.label
-            ? { tone: 'success', label: t('routines.ndv.pill_worked_n', 'Worked · {summary}', { summary: outSummary.label }) }
-            : { tone: 'success', label: t('routines.ndv.pill_worked', 'Worked on last run') };
+            ? { tone: 'success', label: t('automations.ndv.pill_worked_n', 'Worked · {summary}', { summary: outSummary.label }) }
+            : { tone: 'success', label: t('automations.ndv.pill_worked', 'Worked on last run') };
     }
-    if (status === 'running') return { tone: 'running', label: t('routines.ndv.pill_running', 'Running…') };
-    if (status === 'awaiting_approval') return { tone: 'warning', label: t('routines.ndv.pill_waiting', 'Waiting for approval') };
-    if (status === 'skipped') return { tone: 'muted', label: t('routines.ndv.pill_skipped', 'Skipped on last run') };
+    if (status === 'running') return { tone: 'running', label: t('automations.ndv.pill_running', 'Running…') };
+    if (status === 'awaiting_approval') return { tone: 'warning', label: t('automations.ndv.pill_waiting', 'Waiting for approval') };
+    if (status === 'skipped') return { tone: 'muted', label: t('automations.ndv.pill_skipped', 'Skipped on last run') };
     if (!runStep && pinned.pinned) {
         return pinned.edited
-            ? { tone: 'pinned', label: t('routines.ndv.pill_edited', 'Output written by hand') }
-            : { tone: 'pinned', label: t('routines.ndv.pill_pinned', 'Output pinned') };
+            ? { tone: 'pinned', label: t('automations.ndv.pill_edited', 'Output written by hand') }
+            : { tone: 'pinned', label: t('automations.ndv.pill_pinned', 'Output pinned') };
     }
     return null;
 }
@@ -134,7 +134,7 @@ export function whatItDoes(step: FlowStep | null, catalog: Catalog, t: Translate
             if (action?.description) return firstSentence(action.description);
         }
     }
-    if (step.type === 'trigger') return t('routines.ndv.col_trigger_does', 'Starts the automation');
+    if (step.type === 'trigger') return t('automations.ndv.col_trigger_does', 'Starts the automation');
     return firstSentence((nodeDesc as (type: unknown, t: unknown) => string)(step.type, t));
 }
 
@@ -146,11 +146,11 @@ export function continuesSummary(
     t: TranslateFn,
 ): string {
     const status = String(runStep?.status || '');
-    if (status === 'error' || status === 'failed') return t('routines.ndv.col_out_stopped', 'Nothing, the step stopped');
+    if (status === 'error' || status === 'failed') return t('automations.ndv.col_out_stopped', 'Nothing, the step stopped');
     if (!outSummary?.label) {
         return isTrigger
-            ? t('routines.ndv.col_out_trigger_none', 'What the start passes on')
-            : t('routines.ndv.col_out_not_run', 'Not run yet, this is what it will give');
+            ? t('automations.ndv.col_out_trigger_none', 'What the start passes on')
+            : t('automations.ndv.col_out_not_run', 'Not run yet, this is what it will give');
     }
     const dur = stepDuration(runStep);
     return dur ? `${outSummary.label} · ${dur}` : outSummary.label;
@@ -170,7 +170,7 @@ export function incomingSummary(
     walk: (path: string, root: unknown) => unknown,
     t: TranslateFn,
 ): string {
-    if (!groups.length) return t('routines.ndv.col_in_nothing', 'Nothing yet, this step comes first');
+    if (!groups.length) return t('automations.ndv.col_in_nothing', 'Nothing yet, this step comes first');
     const nearest = groups[groups.length - 1];
     let data = previewSample ? walk(nearest.basePath, previewSample) : undefined;
     if (data === undefined) data = nearest.sample;

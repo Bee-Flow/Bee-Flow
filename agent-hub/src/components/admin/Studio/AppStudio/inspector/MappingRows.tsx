@@ -14,16 +14,16 @@ const MAPPING_MODES = [
 
 
 /**
- * What the routine expects now, versus what this action sends.
+ * What the automation expects now, versus what this action sends.
  *
- * A routine's inputs change after it is wired: a param gets added, renamed or
+ * An automation's inputs change after it is wired: a param gets added, renamed or
  * dropped. Nothing said so — a missing input arrived as undefined and the
- * routine ran with a hole in it, while an input the routine no longer has was
- * posted and ignored. Both are silent, and both look like the routine is
+ * automation ran with a hole in it, while an input the automation no longer has was
+ * posted and ignored. Both are silent, and both look like the automation is
  * broken.
  *
  * Only rendered when the target declares a contract at all (app_trigger's typed
- * params, or agent_call's schema); a routine with no contract can take anything.
+ * params, or agent_call's schema); an automation with no contract can take anything.
  */
 export interface ContractDriftProps {
     /** Null when the target declares no contract — it can then take anything. */
@@ -47,7 +47,7 @@ export function ContractDrift({ paramMeta, mapped, onAdd, onRemove, disabled }: 
             {missing.length ? (
                 <div className="flex flex-wrap items-center gap-1.5">
                     <span className="text-[11px] text-[var(--text-primary)]">
-                        The routine also expects:
+                        The automation also expects:
                     </span>
                     {missing.map((name) => (
                         <button
@@ -56,7 +56,7 @@ export function ContractDrift({ paramMeta, mapped, onAdd, onRemove, disabled }: 
                             onClick={() => onAdd(name)}
                             disabled={disabled}
                             className="px-1.5 py-0.5 rounded text-[11px] font-mono border border-[var(--border-default)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)]"
-                            title={paramMeta[name].required ? 'Required by the routine' : 'Optional'}
+                            title={paramMeta[name].required ? 'Required by the automation' : 'Optional'}
                         >
                             + {name}{paramMeta[name].required ? ' *' : ''}
                         </button>
@@ -66,7 +66,7 @@ export function ContractDrift({ paramMeta, mapped, onAdd, onRemove, disabled }: 
             {extra.length ? (
                 <div className="flex flex-wrap items-center gap-1.5">
                     <span className="text-[11px] text-[var(--text-primary)]">
-                        The routine no longer takes:
+                        The automation no longer takes:
                     </span>
                     {extra.map((name) => (
                         <button
@@ -88,7 +88,7 @@ export function ContractDrift({ paramMeta, mapped, onAdd, onRemove, disabled }: 
 
 /**
  * One inputMapping row. `paramMeta` ({ type, required, description? } | null)
- * comes from the target routine's DECLARED contract (app_trigger trigger.params
+ * comes from the target automation's DECLARED contract (app_trigger trigger.params
  * or agent_call schema): it renders a type badge, and a `file` param locks the
  * row to form-field mode filtered to file-upload inputs (a static string can
  * never become a file).
@@ -217,7 +217,7 @@ export function MappingRow({
                 />
             )}
             {isFile && selectedField?.multiple ? (
-                <p className="text-xs text-amber-600">This routine expects a single file — a multi-file input sends only the first.</p>
+                <p className="text-xs text-amber-600">This automation expects a single file — a multi-file input sends only the first.</p>
             ) : null}
         </div>
     );

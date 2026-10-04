@@ -184,7 +184,7 @@ describe('kindColors — kindOf, tiles and radii', () => {
         expect(kindOf('kb')).toBe('kb');
         expect(kindOf('knowledge_base')).toBe('kb');
         expect(kindOf('Automations')).toBe('automation');
-        expect(kindOf('routine')).toBe('automation');
+        expect(kindOf('automation')).toBe('automation');
         expect(kindOf('tables')).toBe('datatable');
         expect(kindOf('meeting_note')).toBe('meeting');
         expect(kindOf('compliance')).toBe('compliance');

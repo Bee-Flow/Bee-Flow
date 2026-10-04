@@ -36,7 +36,7 @@ import { rewriteComplianceNav, rewriteAdminEscape } from './settings/complianceN
 import { NAV_ITEMS, MOBILE_VISIBLE_TOP_TABS, MOBILE_EXTRA_TABS } from './settings/settingsNavItems';
 import useComplianceCounts from '../components/admin/compliance/data/useComplianceCounts';
 import NavCountBadge from '../components/shared/NavCountBadge';
-import { Users, Link2, BarChart2, Cloud, CreditCard, Shield, FolderGit2, Sparkles, GraduationCap, ArrowLeft, FileText, Scale } from 'lucide-react';
+import { Users, Link2, BarChart2, Cloud, CreditCard, Shield, FolderGit2, Sparkles, GraduationCap, ArrowLeft, FileText, Scale, Plug } from 'lucide-react';
 
 /* ── Org sub-items (use labelKey for i18n) ────────────────────────────────── */
 const BASE_ORG_SUB_ITEMS = [
@@ -50,6 +50,10 @@ const BASE_ORG_SUB_ITEMS = [
     { id: 'org_users', labelKey: 'settings.users_groups', icon: Users, color: '#3b82f6' },
     { id: 'org_academy', labelKey: 'settings.academy', icon: GraduationCap, color: '#059669' },
     { id: 'org_integrations', labelKey: 'settings.integrations', icon: Link2, color: '#0ea5e9' },
+    // Remote MCP servers for this organisation, and who uses the server-wide
+    // ones (pages/settings → components/mcpLibrary). Licence-gated on the
+    // server (mcp_marketplace); the page explains a plan without it.
+    { id: 'org_mcp', labelKey: 'mcp_library.nav', icon: Plug, color: '#f59e0b' },
     { id: 'org_github_sync', labelKey: 'settings.github_sync', icon: FolderGit2, color: '#8b5cf6' },
     { id: 'org_nextcloud_sync', labelKey: 'settings.nextcloud_sync', icon: Cloud, color: '#0082C9' },
     { id: 'org_meeting_templates', labelKey: 'settings.meeting_templates', icon: FileText, color: '#a855f7' },
@@ -365,6 +369,7 @@ const AdvancedSettings = ({ onBack, onNavigate, onLogout, user, onUpdateUser, on
             // displays empty states for orgs without grants, and beta-feature
             // toggling lives here too (not just integrations).
             if (s.id === 'org_integrations') return canSeeOrg;
+            if (s.id === 'org_mcp') return canSeeOrg;
             // NC-bound orgs: auth is delegated to Nextcloud entirely. The
             // Sign-in Method panel configures username/password + OAuth
             // providers which are no-ops once identity comes from NC, so
@@ -486,7 +491,7 @@ const AdvancedSettings = ({ onBack, onNavigate, onLogout, user, onUpdateUser, on
 
     // Map org sub-tab ids to the activeSection prop OrganisationSection expects
     const orgActiveSection = isOrgSubTab
-        ? (activeTab === 'org_users' ? 'users' : activeTab === 'org_academy' ? 'academy' : activeTab === 'org_integrations' ? 'integrations' : activeTab === 'org_usage' ? 'usage' : activeTab === 'org_azure' ? 'azure' : activeTab === 'org_github_sync' ? 'github_sync' : activeTab === 'org_nextcloud_sync' ? 'nextcloud_sync' : activeTab === 'org_meeting_templates' ? 'meeting_templates' : activeTab)
+        ? (activeTab === 'org_users' ? 'users' : activeTab === 'org_academy' ? 'academy' : activeTab === 'org_integrations' ? 'integrations' : activeTab === 'org_mcp' ? 'mcp' : activeTab === 'org_usage' ? 'usage' : activeTab === 'org_azure' ? 'azure' : activeTab === 'org_github_sync' ? 'github_sync' : activeTab === 'org_nextcloud_sync' ? 'nextcloud_sync' : activeTab === 'org_meeting_templates' ? 'meeting_templates' : activeTab)
         : 'license';
 
     // Admin-dashboard destinations that have an organisation-settings

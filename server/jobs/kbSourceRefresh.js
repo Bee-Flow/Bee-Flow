@@ -159,7 +159,7 @@ function start() {
 /**
  * A datatable's rows moved — arm the `live` sources watching it (K8).
  *
- * Called from `datatableStore`'s write path, debounced there so a routine
+ * Called from `datatableStore`'s write path, debounced there so an automation
  * looping over 400 rows produces one pass rather than 400. Arms only; the tick
  * does the work under the lock and the time budget it already has.
  */

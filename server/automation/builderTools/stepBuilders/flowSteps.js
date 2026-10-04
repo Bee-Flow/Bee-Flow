@@ -223,7 +223,7 @@ function applyAddWait(draft, args) {
 }
 
 /**
- * A further page of the routine's public form. Clamps mirror validate.js
+ * A further page of the automation's public form. Clamps mirror validate.js
  * (FORM_PAGE_MIN/MAX_WAIT_S) and the builder UI's formState.js, so an
  * AI-built page and a hand-built one are the same object.
  */

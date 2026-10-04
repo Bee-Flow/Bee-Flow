@@ -251,7 +251,7 @@ describe('NodeDetailView — the 64 KB cap still stands in front of the PUT', ()
     it('refuses an oversized value typed into a FIELD, before any save', () => {
         // Load-bearing, and the reason the cap is not a style choice: the
         // inspector PUTs the WHOLE definition on every save, so one oversized
-        // pin 400s every later, unrelated edit to this routine and the
+        // pin 400s every later, unrelated edit to this automation and the
         // failed-patch retry walks straight back into it. A friendlier input
         // method must not become a way around it.
         const onSaveStep = openOn({ body: 'x' });

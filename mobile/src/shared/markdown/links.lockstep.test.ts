@@ -38,7 +38,7 @@ const SERVED = [
 /** Addresses the web sends a phone away from. */
 const BOUNCED = [
     '/app/studio', '/app/studio/automations/a1', '/app/studio/webpages/w1', '/app/admin', '/app/admin/security/users',
-    '/app/org-settings/users', '/app/billing', '/app/routines/r1', '/app/notebooks/n1', '/app/webpages/w1',
+    '/app/org-settings/users', '/app/billing', '/app/automations/r1', '/app/notebooks/n1', '/app/webpages/w1',
     '/app/meeting-notes', '/app/templates', '/app/agent-designer/a1',
 ];
 

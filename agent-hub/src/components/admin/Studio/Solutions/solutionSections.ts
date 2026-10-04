@@ -1,16 +1,18 @@
-import { AppWindow, BookOpen, Bot, Globe, Library, ShieldCheck, Table2, Workflow } from 'lucide-react';
+import { AppWindow, BookOpen, Bot, FileText, Globe, Library, ShieldCheck, Sparkles, Table2, Workflow } from 'lucide-react';
 import type { ComponentType, SVGProps } from 'react';
 
 /**
- * What a Solution can hold, section by section: notebooks, apps, routines,
- * webpages, tables, agents and knowledge bases, plus the approvals raised
- * inside it.
+ * What a Solution can hold, section by section: notebooks, apps, automations,
+ * webpages, tables, agents, skills, document templates and knowledge bases,
+ * plus the approvals raised inside it.
  *
  * This list MIRRORS server/projects/membership.js for a container of kind
  * `solution`. The server decides what a Solution can hold; this file decides
  * how it looks. A section here with no kind there renders an "unavailable" box
  * for ever, because the payload will never carry that key. Documents and
- * meeting notes are workspace-only kinds, so they are deliberately absent.
+ * meeting notes are workspace-only kinds, so they are deliberately absent. A
+ * document TEMPLATE is a different kind (`document_template`, filed through its
+ * own column, so it is never project content) and is a section of its own.
  *
  * `movable` is what separates a resource from a record. Everything but
  * approvals is a resource: filed in and out at will, and handed back untouched
@@ -28,7 +30,8 @@ import type { ComponentType, SVGProps } from 'react';
  * which is exactly what the server allows.
  *
  * The labels borrow keys from the namespaces that own those subjects
- * (`datatables.*`, `agent_studio.*`, `knowledge.*`, `projects.*`).
+ * (`datatables.*`, `agent_studio.*`, `knowledge.*`, `projects.*`, `skills.*`,
+ * `documents.*`).
  */
 
 export type SolutionItem = Record<string, unknown> & { id: string };
@@ -47,10 +50,12 @@ export interface SolutionSection {
 export const SECTIONS: SolutionSection[] = [
     { key: 'notebooks', icon: BookOpen, labelKey: 'projects.notebooks', kind: 'notebook', movable: true, ownerFields: ['userId', 'ownerId'] },
     { key: 'apps', icon: AppWindow, labelKey: 'projects.apps', kind: 'app', movable: true, ownerFields: ['userId', 'ownerId'] },
-    { key: 'automations', icon: Workflow, labelKey: 'projects.routines', kind: 'automation', movable: true, ownerFields: ['userId', 'ownerId'] },
+    { key: 'automations', icon: Workflow, labelKey: 'projects.automations', kind: 'automation', movable: true, ownerFields: ['userId', 'ownerId'] },
     { key: 'webpages', icon: Globe, labelKey: 'projects.webpages', kind: 'webpage', movable: true, ownerFields: ['userId', 'ownerId'] },
     { key: 'datatables', icon: Table2, labelKey: 'datatables.heading', kind: 'datatable', movable: true, ownerFields: ['ownerUserId'] },
     { key: 'agents', icon: Bot, labelKey: 'agent_studio.title', kind: 'agent', movable: true, ownerFields: ['ownerId'] },
+    { key: 'skills', icon: Sparkles, labelKey: 'skills.title', kind: 'skill', movable: true, ownerFields: ['ownerId'] },
+    { key: 'documentTemplates', icon: FileText, labelKey: 'documents.library.templates', kind: 'document_template', movable: true, ownerFields: ['userId'] },
     { key: 'knowledgeBases', icon: Library, labelKey: 'knowledge.title', kind: 'knowledge_base', movable: true, ownerFields: null },
     { key: 'approvals', icon: ShieldCheck, labelKey: 'projects.approvals', kind: 'approval', movable: false, ownerFields: null },
 ];

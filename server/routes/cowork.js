@@ -10,8 +10,8 @@
  * GET    /:id/runs      → execution history, newest first
  * GET    /:id/stats     → the aggregate behind the figure cards
  *
- * Validation mirrors routes/aiTasks.js — same schedule vocabulary, same
- * limits — because the Work composer posts the same payload shape to both.
+ * Validation keeps the schedule vocabulary of the old /api/ai-tasks (same
+ * limits), so a payload built for that route is valid here too.
  *
  * ── What a caller may send ──────────────────────────────────────────
  *
@@ -188,7 +188,7 @@ async function resolveAgentId(agentId, userId, session) {
     if (agentId === null || agentId === '') return null;
     const allowed = await userHasBetaFeature(userId, 'agent_routines', session).catch(() => false);
     if (!allowed) {
-        const err = new Error('Agent routines beta is not enabled for this account');
+        const err = new Error('Running Cowork items as an agent is not enabled for this account');
         err.statusCode = 403;
         throw err;
     }

@@ -17,7 +17,7 @@
    "id": "where",
    "icon": "🧭",
    "title": "Put it before the irreversible bit",
-   "bodyMd": "A routine does not hesitate. At 07:00 it will send a €40 000 order to a supplier as readily as a €40 one.\n\nAt Van Dijk Groep the site managers order materials by e-mail, and finance wants anything above €5 000 seen by a person before it leaves the building. In a routine that is one step: **Ask someone to approve**.\n\nThe run stops there. Approve and it continues from the next step. Reject and the run ends — nothing after that step runs.\n\nSo the step belongs *before* the thing you cannot take back: before the order is sent, before the payment file is written, before the customer e-mail goes out. An approval placed after the send is a receipt, not a control."
+   "bodyMd": "An automation does not hesitate. At 07:00 it will send a €40 000 order to a supplier as readily as a €40 one.\n\nAt Van Dijk Groep the site managers order materials by e-mail, and finance wants anything above €5 000 seen by a person before it leaves the building. In an automation that is one step: **Ask someone to approve**.\n\nThe run stops there. Approve and it continues from the next step. Reject and the run ends — nothing after that step runs.\n\nSo the step belongs *before* the thing you cannot take back: before the order is sent, before the payment file is written, before the customer e-mail goes out. An approval placed after the send is a receipt, not a control."
   },
   {
    "type": "slide",
@@ -104,7 +104,7 @@
   {
    "type": "quiz",
    "id": "q-stages",
-   "question": "A colleague hands you a routine whose approval carries both a panel of three (Everyone must approve) and a two-stage chain. You press Save. What happens?",
+   "question": "A colleague hands you an automation whose approval carries both a panel of three (Everyone must approve) and a two-stage chain. You press Save. What happens?",
    "multi": false,
    "choices": [
     {
@@ -165,9 +165,9 @@
     },
     {
      "id": "d",
-     "label": "Nowhere — the routine refuses to save until you lower the reminder.",
+     "label": "Nowhere — the automation refuses to save until you lower the reminder.",
      "correct": false,
-     "feedback": "It is not an error: the routine saves with a warning on that field. Nothing stops you shipping a step that will never remind anybody."
+     "feedback": "It is not an error: the automation saves with a warning on that field. Nothing stops you shipping a step that will never remind anybody."
     }
    ],
    "explanation": "Both opt-in clocks — the reminder and the escalation — are checked against the deadline twice: the builder shows a warning like \"the reminder fires at or after the 72h deadline, so it will never be sent\", and at pause time the run computes no reminder at all. Keep the reminder comfortably inside the window: 1 day inside a 3-day deadline gives the approver two more days to act."
@@ -185,7 +185,7 @@
    "icon": "🎯",
    "exerciseId": "ex-approvals-design-po",
    "title": "Your turn: design the purchase-order approval",
-   "instruction": "Van Dijk Groep: a form starts the routine, a step extracts the supplier and the total, and a condition sends anything over €5 000 to an approval. Design that approval in a few lines: the question the approver reads (with at least one `{{ }}` value, so the amount is on the screen they decide on); who decides, and under which decision rule if that is a panel; the deadline — and why that one, not just which one; the reminder; and what should happen if nobody ever decides.",
+   "instruction": "Van Dijk Groep: a form starts the automation, a step extracts the supplier and the total, and a condition sends anything over €5 000 to an approval. Design that approval in a few lines: the question the approver reads (with at least one `{{ }}` value, so the amount is on the screen they decide on); who decides, and under which decision rule if that is a panel; the deadline — and why that one, not just which one; the reminder; and what should happen if nobody ever decides.",
    "placeholder": "e.g. for a different case, an expense claim over €500: Question: \"Declaratie van €{{steps.extract.output.bedrag}} van {{trigger.output.medewerker}} goedkeuren?\" · Who decides: the Finance group, one seat — whoever is in first · Decide within: 3 days, because the payment run is on Friday · Remind after: 1 day · If nobody decides, the claim expires unpaid. Now write yours, for the purchase order.",
    "passScore": 70,
    "maxAttempts": 4
@@ -193,7 +193,7 @@
   {
    "type": "quiz",
    "id": "q-outsider",
-   "question": "The colleague named under Who decides has left Van Dijk Groep's organisation since you built the routine. A run reaches the approval. Who is asked?",
+   "question": "The colleague named under Who decides has left Van Dijk Groep's organisation since you built the automation. A run reaches the approval. Who is asked?",
    "multi": false,
    "choices": [
     {
@@ -233,11 +233,11 @@
    "type": "action",
    "id": "build",
    "icon": "🏗️",
-   "checkId": "routine-has-approval",
+   "checkId": "automation-has-approval",
    "title": "Build one — we will verify it",
-   "instruction": "Open a routine of your own and add an \"Ask someone to approve\" step in front of its final action. Give it a question containing a {{ }} value from an earlier step, set Who decides and Decide within, save, then press Dry-run. A dry-run does not wait for a person — it previews the wiring end to end without asking anyone anything.",
+   "instruction": "Open an automation of your own and add an \"Ask someone to approve\" step in front of its final action. Give it a question containing a {{ }} value from an earlier step, set Who decides and Decide within (the automation saves itself), then press Test for a dry-run. A dry-run does not wait for a person — it previews the wiring end to end without asking anyone anything.",
    "launch": {
-    "navigateTo": "studio/routines",
+    "navigateTo": "studio/automations",
     "label": "Open Automations"
    }
   },
@@ -279,22 +279,22 @@
  },
  "actionChecks": [
   {
-   "checkId": "routine-has-approval",
+   "checkId": "automation-has-approval",
    "existing": false,
-   "label": "Add an approval step to a routine and test it",
-   "hint": "In Studio → Automations, open or create a routine of your own, add an 'Ask someone to approve' step, save it, and press Dry-run.",
+   "label": "Add an approval step to an automation and test it",
+   "hint": "In Studio → Automations, open or create an automation of your own, add an 'Ask someone to approve' step, and press Test (a dry-run).",
    "endpoints": [
     {
      "method": "GET",
      "path": "/api/automation/",
-     "returns": "{ automations: [...] } — every routine owned by the caller, each row carrying id, title and the full definition (with its steps array)"
+     "returns": "{ automations: [...] } — every automation owned by the caller, each row carrying id, title and the full definition (with its steps array)"
     }
    ],
    "criteria": [
     {
      "id": "has-approval",
-     "label": "One of your routines contains an approval step",
-     "hint": "Add the step 'Ask someone to approve' from the canvas ribbon and save the routine.",
+     "label": "One of your automations contains an approval step",
+     "hint": "Add the step 'Ask someone to approve' from the People tab of the canvas ribbon; the automation saves automatically.",
      "rule": "some row from GET /api/automation/ has definition.steps containing a step whose type is 'approval'"
     }
    ]

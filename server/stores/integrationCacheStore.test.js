@@ -282,7 +282,7 @@ test('an org at its row cap has further writes REFUSED, not evicted', async () =
     for (let i = 0; i < store.MAX_ROWS_PER_ORG; i++) rows.push(fakeRow(i));
     assert.strictEqual(await seed(), false);
     assert.strictEqual(rows.length, store.MAX_ROWS_PER_ORG,
-        'evicting would drop an answer a running routine is about to read');
+        'evicting would drop an answer a running automation is about to read');
 });
 
 test('an org at its byte cap has further writes refused', async () => {

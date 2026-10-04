@@ -545,7 +545,7 @@
     display: grid;
     grid-auto-flow: column;
     /* 180px was too narrow: after the 22px icon and its 10px gap the text
-       had ~148px, so nearly every label wrapped ("Routines & / automations",
+       had ~148px, so nearly every label wrapped ("Automations & / automations",
        "Integrations & / MCP") and the columns read as one ragged block.
        260px keeps two-word labels on one line; 3 columns still fit inside
        the 920px clamp. */
@@ -1504,7 +1504,7 @@
     grid-column: 1;
     grid-row: 2;
     margin-bottom: 0;
-    /* Balanced wrapping stops "A routine, when you want an / answer"
+    /* Balanced wrapping stops "An automation, when you want an / answer"
        dropping a single orphan word onto the second line. */
     text-wrap: balance;
 }
@@ -2594,7 +2594,7 @@
     .marketing-root .lang-switcher-btn { padding: 6px 8px; }
 }
 @media (max-width: 420px) {
-    /* "Routines & automations" and "Data processing agreement" both wrap to
+    /* "Automations & automations" and "Data processing agreement" both wrap to
        three lines in a half-width column on a 360px phone, which turns the
        pair of columns into a ragged block. One column below that. */
     .marketing-root .footer-grid { grid-template-columns: 1fr; row-gap: 28px; }

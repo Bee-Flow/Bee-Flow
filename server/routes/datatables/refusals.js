@@ -110,7 +110,7 @@ function bad(message, code) {
 }
 
 /**
- * Which routine steps name a column this save is dropping.
+ * Which automation steps name a column this save is dropping.
  *
  * Diffed BY ID, like the migration planner: a renamed column keeps its id and
  * is not a drop, and matching on key would refuse a rename while letting a real

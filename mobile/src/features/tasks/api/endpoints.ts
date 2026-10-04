@@ -1,54 +1,28 @@
 /**
- * The AI task and reminder endpoints. Paths are the full client-visible ones:
- * /api/ai-tasks → routes/aiTasks.js, /api/reminders → routes/reminders.js.
- * Neither is licence-gated.
+ * The scheduled-task and reminder endpoints. Paths are the full client-visible
+ * ones: tasks are Cowork schedules (/api/cowork → routes/cowork.js; the old
+ * /api/ai-tasks is gone and its rows moved there with their ids), reminders
+ * are /api/reminders → routes/reminders.js. Neither is licence-gated.
  */
 
 import { api } from '@/core/api/client';
 import { field, nullable, pick } from '@/core/api/contract';
-import { listSchedules } from '@/features/cowork';
 import { withId } from '@/shared/lib/withId';
 
 import { readReminder, readReminderRows, readTask } from './readers';
 import type { AiTask, AiTaskList, Reminder, RepeatInterval } from '../model/types';
 
-const taskPath = (id: string) => `/api/ai-tasks/${encodeURIComponent(id)}`;
+const taskPath = (id: string) => `/api/cowork/${encodeURIComponent(id)}`;
 const reminderPath = (id: string) => `/api/reminders/${encodeURIComponent(id)}`;
 
-// ── AI tasks ────────────────────────────────────────────────────────
+// ── Scheduled tasks (Cowork) ────────────────────────────────────────
 
-/**
- * AI tasks, minus the copies left behind by the move to Cowork.
- *
- * server/migrations/prompt-tasks-to-cowork-2026-08 copied every plain
- * (agent-less) task into cowork_schedules UNDER THE SAME ID and left the
- * original here, paused, as a rollback copy. Listing it showed a paused
- * duplicate of something already running under Cowork — with a toggle that
- * would run it twice. The web drops every plain row (usePromptTasks.ts keeps
- * only `agentId`); the phone cannot, because its New task sheet still creates
- * plain tasks, and the migration runs once (the boot/bootMigrations.js
- * ledger): a task made since has no twin and is the only copy there is. So the
- * test is the twin itself — a plain task whose id is also a Cowork schedule's.
- *
- * Only a PAUSED twin is dropped. One that was switched back on runs in both
- * loops (two LLM calls, two notifications, per the migration's header), and
- * this list is the only place on the phone that can pause it again.
- *
- * Cowork can be withheld by a licence, or fail; then nothing is dropped,
- * which is what this list showed before.
- */
+/** Every Cowork schedule of the caller, as the task list this feature renders. */
 export async function listTasks(signal?: AbortSignal): Promise<AiTaskList> {
-    const [res, moved] = await Promise.all([
-        api.get<unknown>('/api/ai-tasks', { signal }),
-        listSchedules(signal).then(
-            (schedules) => new Set(schedules.map((s) => s.id)),
-            () => new Set<string>(),
-        ),
-    ]);
-    const tasks = withId(field.list(readTask)(pick(res, 'tasks')));
+    const res = await api.get<unknown>('/api/cowork', { signal });
     return {
-        tasks: tasks.filter((task) => Boolean(task.agentId) || task.isActive || !moved.has(task.id)),
-        maxTasks: field.num(10)(pick(res, 'maxTasks')),
+        tasks: withId(field.list(readTask)(pick(res, 'schedules'))),
+        maxTasks: field.num(10)(pick(res, 'maxSchedules')),
     };
 }
 
@@ -65,7 +39,7 @@ export interface CreateTaskInput {
 }
 
 export async function createTask(input: CreateTaskInput): Promise<AiTask | null> {
-    return nullable(readTask)(await api.post<unknown>('/api/ai-tasks', input, { retry: false }));
+    return nullable(readTask)(await api.post<unknown>('/api/cowork', input, { retry: false }));
 }
 
 export async function toggleTask(id: string): Promise<boolean | null> {

@@ -73,8 +73,8 @@ const NL_TRANSLATIONS = {
     'datatables.nc_link_submit': '{n} tabellen koppelen',
     'datatables.nc_link_submit_one': 'De tabel koppelen',
     'datatables.nc_linked_title': 'De tabellen staan klaar',
-    'datatables.nc_linked_body': '{n} tabellen worden nu uit Nextcloud gevuld. Routines en apps kunnen ze gebruiken als elke andere tabel.',
-    'datatables.nc_linked_body_one': 'De tabel wordt nu uit Nextcloud gevuld. Routines en apps kunnen hem gebruiken als elke andere tabel.',
+    'datatables.nc_linked_body': '{n} tabellen worden nu uit Nextcloud gevuld. Automatiseringen en apps kunnen ze gebruiken als elke andere tabel.',
+    'datatables.nc_linked_body_one': 'De tabel wordt nu uit Nextcloud gevuld. Automatiseringen en apps kunnen hem gebruiken als elke andere tabel.',
 
     // ── De lijst en het Nextcloud-tabblad ───────────────────────────────────
     'datatables.nc_chip_error': 'verversen mislukt',
@@ -117,7 +117,7 @@ const NL_TRANSLATIONS = {
     'datatables.nc_unlink_open': 'Deze tabel ontkoppelen',
     'datatables.nc_unlink_question': '“{name}” ontkoppelen van deze werkruimte?',
     'datatables.nc_unlink_confirm': 'Ontkoppelen',
-    'datatables.nc_unlink_notice': 'Ontkoppelen verwijdert de kopie die hier staat. De tabel in Nextcloud, en elke rij erin, blijft precies zoals hij is. Routines en apps die deze tabel gebruiken, vinden hem niet meer.',
+    'datatables.nc_unlink_notice': 'Ontkoppelen verwijdert de kopie die hier staat. De tabel in Nextcloud, en elke rij erin, blijft precies zoals hij is. Automatiseringen en apps die deze tabel gebruiken, vinden hem niet meer.',
 
     // ── Weigeringen ─────────────────────────────────────────────────────────
     'datatables.err_nextcloud_forbidden': 'Nextcloud weigert deze wijziging: het account dat deze tabel gekoppeld heeft, mag hem daar niet wijzigen.',

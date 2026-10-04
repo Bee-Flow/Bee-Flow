@@ -61,7 +61,7 @@ async function execWait(step, ctx, runState, mode) {
     // REAPER_BUFFER_MS) — at most ~61 minutes — while `seconds` goes to 24
     // hours. A wait past that window got the row reaped mid-sleep, which
     // cleared the concurrency marker and let the scheduler start a SECOND run
-    // of the same routine while this one was still sleeping. Granting the
+    // of the same automation while this one was still sleeping. Granting the
     // extension now also refreshes that marker (executeAutomation hangs the
     // refresh off extendRunDeadline + the run heartbeat), so both clocks are
     // driven by the same fact — this runner is still alive — instead of by two

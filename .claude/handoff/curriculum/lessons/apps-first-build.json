@@ -74,7 +74,7 @@
             "id": "p3",
             "left": "The Goedkeuren button has to pass the request on to the office",
             "right": "An action",
-            "note": "An action is what a control does when something happens — run a routine, add a row, go to a screen, show a message."
+            "note": "An action is what a control does when something happens — run an automation, add a row, go to a screen, show a message."
           },
           {
             "id": "p4",

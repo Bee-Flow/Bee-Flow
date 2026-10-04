@@ -2,7 +2,7 @@
  * R2 — een AI-stap die door een AGENT wordt gedraaid.
  *
  * Wat hier bewaakt wordt is niet "komt de rol in de prompt", maar de AFTREK op
- * de tools. Een routine draait onbewaakt: er is niemand om een bevestiging aan
+ * de tools. Een automatisering draait onbewaakt: er is niemand om een bevestiging aan
  * te vragen, dus alles wat een mens zou moeten goedkeuren mag hier niet
  * automatisch lopen. Die aftrek loopt over `core/agentRuntime/toolPolicy` —
  * dezelfde functie waarmee de chat `ask` bepaalt — en dat is precies waarom de
@@ -11,7 +11,7 @@
  *
  * De vier gevallen die het plan noemt staan er allemaal in: per permissie
  * aan/uit, een agent die verzendende tools heeft, een degraded registry, en een
- * routine-eigenaar die minder mag dan de eigenaar van de agent.
+ * automation-eigenaar die minder mag dan de eigenaar van de agent.
  *
  * Draaien: node --test --test-reporter=tap core/automationRunner/execAi.agent.test.js
  */
@@ -31,12 +31,12 @@ const { installResolveStub } = require('../../testUtils/stubRequire');
 const APP_TOOLS = {
     gmail: ['gmail_search', 'gmail_compose'],
     drive: ['drive_upload_file', 'drive_search'],
-    // `availableTo: ['routine_step']` — een app die de AGENT-kiezer nooit heeft
+    // `availableTo: ['automation_step']` — een app die de AGENT-kiezer nooit heeft
     // kunnen tonen, dus een app waarover geen eigenaar ooit iets kon
     // opschrijven. Echte namen uit het registry, want de aftrek attribueert ze.
-    'routine-evolution': ['routine_propose_evolution', 'routine_apply_evolution'],
+    'automation-evolution': ['automation_propose_evolution', 'automation_apply_evolution'],
 };
-const APP_CONTEXTS = { 'routine-evolution': ['routine_step'] };
+const APP_CONTEXTS = { 'automation-evolution': ['automation_step'] };
 let registryDegraded = false;
 
 function toolDef(name, extra = {}) {
@@ -56,7 +56,7 @@ const TIERS = { fast: { modelId: 'model-fast', maxTokens: 4096 } };
 
 const KB_ROWS = {
     kb_step: { id: 'kb_step', tenant_id: 'u1', organization_id: 'org1', is_published: true },
-    // Van de EIGENAAR van de agent, niet van de routine-eigenaar.
+    // Van de EIGENAAR van de agent, niet van de automation-eigenaar.
     kb_agent_private: { id: 'kb_agent_private', tenant_id: 'agent-owner', organization_id: 'org1', is_published: false },
     kb_agent_shared: { id: 'kb_agent_shared', tenant_id: 'agent-owner', organization_id: 'org1', is_published: true },
     kb_skill: { id: 'kb_skill', tenant_id: 'u1', organization_id: 'org1', is_published: true },
@@ -106,7 +106,7 @@ const TOOL_REGISTRY_STUB = {
     ALL_TOOL_APPS: Object.keys(APP_TOOLS).map((app) => (
         APP_CONTEXTS[app] ? { app, availableTo: APP_CONTEXTS[app] } : { app }
     )),
-    availabilityFor: (entry) => (Array.isArray(entry.availableTo) ? entry.availableTo : ['agent', 'routine_step']),
+    availabilityFor: (entry) => (Array.isArray(entry.availableTo) ? entry.availableTo : ['agent', 'automation_step']),
     loadToolsResult(entry) {
         if (registryDegraded) return { tools: [], ok: false };
         return { tools: (APP_TOOLS[entry.app] || []).map((n) => toolDef(n)), ok: true };
@@ -279,12 +279,12 @@ test("the runner's own unpublished agent still runs", async () => {
     assert.match(systemMessage().content, /You are Bea/);
 });
 
-test('an agent shared with a group the routine owner IS in runs', async () => {
+test('an agent shared with a group the automation owner IS in runs', async () => {
     await execAiStep(step({ agentId: 'agt_group' }), { ...CTX, userGroupIds: ['g9'] }, {}, 'live');
     assert.match(systemMessage().content, /You are Bea/);
 });
 
-// ── 3. Kennisbanken — permissie aan/uit, en de vrager is de routine-eigenaar ─
+// ── 3. Kennisbanken — permissie aan/uit, en de vrager is de automation-eigenaar ─
 
 test('useKnowledge off: only the step\'s own knowledge bases are consulted', async () => {
     agentConfig = { knowledge_base_ids: ['kb_agent_shared'] };
@@ -297,10 +297,10 @@ test('useKnowledge on: the union is searched, the step\'s own base first', async
     agentConfig = { knowledge_base_ids: ['kb_agent_shared'] };
     await execAiStep(agentStep({ useKnowledge: true }, { knowledgeBaseIds: ['kb_step'] }), CTX, {}, 'live');
     assert.deepStrictEqual(quickKBSearchCalls[0].kbIds, ['kb_step', 'kb_agent_shared']);
-    assert.strictEqual(quickKBSearchCalls[0].userId, 'u1', 'keyed off the routine owner');
+    assert.strictEqual(quickKBSearchCalls[0].userId, 'u1', 'keyed off the automation owner');
 });
 
-test("a base only the AGENT's owner may read is dropped for a routine owner who may less", async () => {
+test("a base only the AGENT's owner may read is dropped for an automation owner who may less", async () => {
     agentConfig = { knowledge_base_ids: ['kb_agent_private', 'kb_agent_shared'] };
     await execAiStep(agentStep({ useKnowledge: true }, { knowledgeBaseIds: ['kb_step'] }), CTX, {}, 'live');
     assert.ok(kbGetCalls.includes('kb_agent_private'), 'it is checked');
@@ -321,15 +321,15 @@ test('the step skill leads: step skills go in as attached, the agent\'s as sessi
     assert.deepStrictEqual(skillCalls[0].attachedSkillIds, ['skill_step']);
     assert.deepStrictEqual(skillCalls[0].sessionSkillIds, ['skill_agent']);
     assert.strictEqual(skillCalls[0].orgId, 'org1');
-    assert.strictEqual(skillCalls[0].userId, 'u1', 'the asker is the routine owner');
+    assert.strictEqual(skillCalls[0].userId, 'u1', 'the asker is the automation owner');
     assert.match(systemMessage().content, /\[ACTIVE SKILLS\]/);
 });
 
 test('a skill step without an agent still gets its injection and the activate_skill tool', async () => {
     skillResult = {
         systemPromptAddendum: '\n\n[AVAILABLE SKILLS — ON DEMAND]\n- s1',
-        // A plain skill: it loads text and starts no routine (handoff 5 gates
-        // the routine-starting kind behind startAutomations, see below).
+        // A plain skill: it loads text and starts no automation (handoff 5 gates
+        // the automation-starting kind behind startAutomations, see below).
         tools: [toolDef('activate_skill')], dynamicSkillIds: ['s1'], automationSkillIds: [], staticCount: 0,
     };
     await execAiStep(step({ skillIds: ['skill_step'] }), CTX, {}, 'live');
@@ -346,35 +346,35 @@ test('useTools off: no integration catalog is built at all', async () => {
     assert.strictEqual(chatCalls.at(-1).options.tools, undefined);
 });
 
-test('useTools on: the catalog is asked for the ROUTINE OWNER with the agent\'s published config', async () => {
+test('useTools on: the catalog is asked for the AUTOMATION OWNER with the agent\'s published config', async () => {
     agentConfig = { tools: { gmail: { actions: ['gmail_search'] } } };
     catalogTools = [toolDef('gmail_search')];
     await execAiStep(agentStep({ useTools: true }), CTX, {}, 'live');
 
     assert.strictEqual(catalogCalls.length, 1);
-    assert.strictEqual(catalogCalls[0].userId, 'u1', 'the asker is the routine owner, never the agent owner');
-    // NIET `routineStep` — die vlag schakelt precies twee apps aan
-    // (`routine-evolution` en `kb-ingest`) en dat zijn de twee die de
+    assert.strictEqual(catalogCalls[0].userId, 'u1', 'the asker is the automation owner, never the agent owner');
+    // NIET `automationStep` — die vlag schakelt precies twee apps aan
+    // (`automation-evolution` en `kb-ingest`) en dat zijn de twee die de
     // agent-kiezer nooit heeft kunnen tonen. Een agent krijgt hier de apps van
     // een gesprek, plus niets wat zijn eigenaar nooit heeft kunnen weigeren.
-    assert.strictEqual(catalogCalls[0].routineStep, false, 'an agent gets no app its own picker could never show');
+    assert.strictEqual(catalogCalls[0].automationStep, false, 'an agent gets no app its own picker could never show');
     assert.deepStrictEqual(catalogCalls[0].agentConfig, agentConfig);
     assert.deepStrictEqual(offeredToolNames(), ['gmail_search']);
 });
 
-test('a routine-only app is refused even when a catalog hands it over', async () => {
-    // Twee sloten: de catalogus wordt zonder `routineStep` gevraagd, EN de
+test('an automation-only app is refused even when a catalog hands it over', async () => {
+    // Twee sloten: de catalogus wordt zonder `automationStep` gevraagd, EN de
     // aftrek weigert wat het registry buiten de agent-context plaatst. Dit is
     // het tweede — het eerste is een argument dat iemand kan terugdraaien.
-    // `routine_apply_evolution` accepteert status 'proposed', dus zonder deze
+    // `automation_apply_evolution` accepteert status 'proposed', dus zonder deze
     // regel kan een agent die tot één leesactie is gecureerd binnen dezelfde
-    // toollus zijn eigen routine herschrijven (en zijn eigen permissies
+    // toollus zijn eigen automatisering herschrijven (en zijn eigen permissies
     // aanzetten).
     agentConfig = { tools: { gmail: { actions: ['gmail_search'] } } };
-    catalogTools = [toolDef('gmail_search'), toolDef('routine_propose_evolution'), toolDef('routine_apply_evolution')];
+    catalogTools = [toolDef('gmail_search'), toolDef('automation_propose_evolution'), toolDef('automation_apply_evolution')];
     const out = await execAiStep(agentStep({ useTools: true }), CTX, {}, 'live');
     assert.deepStrictEqual(offeredToolNames(), ['gmail_search']);
-    assert.deepStrictEqual(out.toolsWithheld.sort(), ['routine_apply_evolution', 'routine_propose_evolution']);
+    assert.deepStrictEqual(out.toolsWithheld.sort(), ['automation_apply_evolution', 'automation_propose_evolution']);
 });
 
 test('the catalog never sees the agent\'s knowledge bases — with either switch', async () => {
@@ -383,7 +383,7 @@ test('the catalog never sees the agent\'s knowledge bases — with either switch
     // was uitgezet; met useKnowledge AAN was het een tool die altijd faalt (de
     // dispatch-context van execAi draagt geen `agentId`). De kennis van de
     // agent bereikt de stap langs `knowledgeBaseIdsForStep` — één zoekopdracht
-    // per run, met de routine-eigenaar als vrager.
+    // per run, met de automation-eigenaar als vrager.
     agentConfig = { knowledge_base_ids: ['kb_agent_shared'], tools: { gmail: { actions: ['gmail_search'] } } };
     for (const useKnowledge of [false, true]) {
         catalogCalls.length = 0;
@@ -450,7 +450,7 @@ test('a catalog that cannot be built leaves the step without tools rather than w
 
 // ── 7. startAutomations ───────────────────────────────────────────────────
 
-test('startAutomations off: routine and Step tools are dropped, the rest survives', async () => {
+test('startAutomations off: automation and Step tools are dropped, the rest survives', async () => {
     agentConfig = {};
     catalogTools = [
         toolDef('gmail_search'),
@@ -464,8 +464,8 @@ test('startAutomations off: routine and Step tools are dropped, the rest survive
         'the agent config still goes in — dropping it would switch off the per-action grants too');
 });
 
-test('startAutomations without useTools: the routines come, the integration tools do not', async () => {
-    // Twee schakelaars, twee vragen. "Alleen andere routines starten" is een
+test('startAutomations without useTools: the automations come, the integration tools do not', async () => {
+    // Twee schakelaars, twee vragen. "Alleen andere automations starten" is een
     // geldige stand en mag niet stilletjes op nul uitkomen.
     agentConfig = {};
     catalogTools = [
@@ -477,7 +477,7 @@ test('startAutomations without useTools: the routines come, the integration tool
     assert.deepStrictEqual(out.toolsWithheld, ['gmail_search']);
 });
 
-test('startAutomations on: a granted routine survives, one the owner put on "ask" does not', async () => {
+test('startAutomations on: a granted automation survives, one the owner put on "ask" does not', async () => {
     agentConfig = { tools: { automations: { r1: { confirm: 'direct' }, r2: { confirm: 'ask' } } } };
     catalogTools = [
         toolDef('automation_r1', { __automation: { id: 'r1', userId: 'u1' } }),
@@ -563,10 +563,10 @@ test('an org custom integration on "ask" is withheld the same way', async () => 
     assert.deepStrictEqual(out.toolsWithheld, ['ci1_post']);
 });
 
-test('an unticked routine list also empties the reusable STEPS', async () => {
+test('an unticked automation list also empties the reusable STEPS', async () => {
     // `getIntegrationTools` duwt herbruikbare Steps rechtstreeks op de lijst —
     // buiten `addTools` (dus buiten `isToolAllowed`) én buiten de
-    // automations-curatie. `_startsAutomation` telt ze wél als routine-starter,
+    // automations-curatie. `_startsAutomation` telt ze wél als automation-starter,
     // dus zonder deze doorsnede hangen ze aan een schakelaar waarvan de belofte
     // ("alleen wat de agent-eigenaar heeft gegrant") voor hen niet geldt.
     // Een LEGE sectie is een keuze: alles uitgevinkt.
@@ -583,11 +583,11 @@ test('an unticked routine list also empties the reusable STEPS', async () => {
 
 // ── 10. `activate_skill` gaat door dezelfde poort ─────────────────────────
 
-test('a skill that RUNS A ROUTINE hangs on startAutomations, not on nothing at all', async () => {
+test('a skill that RUNS A AUTOMATION hangs on startAutomations, not on nothing at all', async () => {
     // Een skill met een `automationId` heeft geen tekstbody: `activate_skill`
     // draait `executeAutomation(..., mode: 'live')`. Zonder deze poort kreeg een
     // stap met alle drie de permissies UIT een tool waarmee het model een
-    // routine live start — en `effectOf('activate_skill')` is 'writes', dus de
+    // automatisering live start — en `effectOf('activate_skill')` is 'writes', dus de
     // bevestigingsaftrek houdt hem niet tegen.
     skillResult = {
         systemPromptAddendum: '\n\n[AVAILABLE SKILLS — ON DEMAND]\n- s1',
@@ -602,7 +602,7 @@ test('a skill that RUNS A ROUTINE hangs on startAutomations, not on nothing at a
 });
 
 test('a plain skill keeps its activate_skill without any permission at all', async () => {
-    // Skills horen bij wat de agent IS. Alleen de routine-startende variant
+    // Skills horen bij wat de agent IS. Alleen de automation-startende variant
     // hangt aan een schakelaar; de rest zou anders achter `useTools` verdwijnen
     // en dat is een andere belofte dan de sectie doet.
     skillResult = {
@@ -613,10 +613,10 @@ test('a plain skill keeps its activate_skill without any permission at all', asy
     assert.deepStrictEqual(offeredToolNames(), ['activate_skill']);
 });
 
-test('an injection that cannot say whether a skill runs a routine is read as "it might"', async () => {
+test('an injection that cannot say whether a skill runs an automation is read as "it might"', async () => {
     // Een oudere (of gestubde) `buildSkillInjection` levert geen
     // `automationSkillIds`. Onbekend versmalt: de tool telt dan als
-    // routine-starter en hangt aan `startAutomations`.
+    // automation-starter en hangt aan `startAutomations`.
     skillResult = {
         systemPromptAddendum: '\n\n[AVAILABLE SKILLS — ON DEMAND]\n- s3',
         tools: [toolDef('activate_skill')], dynamicSkillIds: ['s3'], staticCount: 0,
@@ -672,7 +672,7 @@ test('in NONE of the six shapes does a tool that needs approval survive', async 
         'curated, reads only': { tools: { gmail: { actions: ['gmail_search'] }, drive: { actions: [] } } },
         'curated, with a send': { tools: { gmail: { actions: ['gmail_search', 'gmail_compose'] } } },
         'MCP and custom on ask': { tools: { 'mcp:srv1': { actions: '*', confirm: 'ask' }, 'custom:ci1': { actions: '*', confirm: 'ask' } } },
-        'routines all unticked': { tools: { automations: {} } },
+        'automations all unticked': { tools: { automations: {} } },
     };
     for (const degraded of [false, true]) {
         registryDegraded = degraded;
@@ -792,7 +792,7 @@ test('a skill\'s apps reach the catalog only when useTools is on', async () => {
     assert.strictEqual(catalogCalls[0].extraEnabledApps, null);
 });
 
-test('a skill\'s routines join a curated agent\'s grants only under startAutomations', async () => {
+test('a skill\'s automations join a curated agent\'s grants only under startAutomations', async () => {
     SKILL_ROWS = { s1: skillRow('s1', { allowedAutomationIds: ['r2'] }) };
     agentConfig = { tools: { automations: { r1: {} } } };
     catalogTools = [
@@ -832,7 +832,7 @@ test('the legacy tool path (no agent) withholds what a person would have to conf
     assert.deepStrictEqual(out.toolsWithheldReasons, { gmail_compose: 'confirm' });
 });
 
-test('without an agent, a skill that runs a routine hangs on startAutomations too', async () => {
+test('without an agent, a skill that runs an automation hangs on startAutomations too', async () => {
     skillResult = {
         systemPromptAddendum: '\n\n[AVAILABLE SKILLS — ON DEMAND]\n- s1',
         tools: [toolDef('activate_skill')], dynamicSkillIds: ['s1'], automationSkillIds: ['s1'], staticCount: 0,

@@ -215,7 +215,7 @@ export default function MachineryPage(props) {
                 empty={(
                     <EmptyState
                         title={t('compliance.mach_empty_title', 'No machine integrations found')}
-                        description={t('compliance.mach_empty_desc', 'The scan found no OPC-UA, Modbus, MQTT, S7 or comparable signal in your integrations, routines or connections.')}
+                        description={t('compliance.mach_empty_desc', 'The scan found no OPC-UA, Modbus, MQTT, S7 or comparable signal in your integrations, automations or connections.')}
                     />
                 )}
                 renderCard={(row) => {

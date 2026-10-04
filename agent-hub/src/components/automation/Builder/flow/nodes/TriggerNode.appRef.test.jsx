@@ -20,7 +20,7 @@ import { NodeRuntimeContext } from '../NodeRuntimeContext';
  * only renders the happy path:
  *   · a name shown for an app the viewer was never allowed to read;
  *   · a back-pointer that resolves to nothing rendering as an ordinary,
- *     nameless trigger, as if the routine simply had no origin;
+ *     nameless trigger, as if the automation simply had no origin;
  *   · the signed-in user disappearing from the card because no input happens
  *     to be declared — it travels on every run either way.
  */
@@ -64,7 +64,7 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 
-describe('the kicker names what starts the routine', () => {
+describe('the kicker names what starts the automation', () => {
     it('reads "Button in an app" instead of the generic trigger word', async () => {
         answer({ status: 'ok', ...REF, appName: 'Expenses', screenName: 'Dashboard', nodeLabel: 'Submit', canOpen: true });
         renderTrigger(appTrigger());

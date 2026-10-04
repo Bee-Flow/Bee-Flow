@@ -52,8 +52,8 @@ export function SourceSummary({ hint, source, maxItems, onSource, onMaxItems, gr
     const summary = describeSourceList(source, groups, sampleRoot);
     const line = summary
         ? [
-              `${summary.stepLabel ?? t('routines.ndv.prev_step', 'Previous step')} · ${summary.fieldLabel}`,
-              summary.count != null ? t('routines.canvas.result.items', '{n} items', { n: summary.count }) : '',
+              `${summary.stepLabel ?? t('automations.ndv.prev_step', 'Previous step')} · ${summary.fieldLabel}`,
+              summary.count != null ? t('automations.canvas.result.items', '{n} items', { n: summary.count }) : '',
           ]
               .filter(Boolean)
               .join(' — ')
@@ -67,7 +67,7 @@ export function SourceSummary({ hint, source, maxItems, onSource, onMaxItems, gr
                 <Button
                     size="sm"
                     variant="ghost"
-                    label={open ? t('mobile.flow.list.done', 'done') : t('routines.builder.change_word', 'change')}
+                    label={open ? t('mobile.flow.list.done', 'done') : t('automations.builder.change_word', 'change')}
                     onPress={() => setOpen((v) => !v)}
                     accessibilityHint={open ? t('mobile.flow.list.done_hint', 'Done changing the source list') : t('mobile.flow.list.change_hint', 'Change the source list')}
                 />

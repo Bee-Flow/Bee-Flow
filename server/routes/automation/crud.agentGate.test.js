@@ -13,9 +13,9 @@
  * database eronder is een double.
  *
  * Tweede ding dat hier wordt vastgelegd: WELKE identiteit de vraag stelt. De
- * route las de STEMPEL op de routine-rij (`a.organizationId`) met de org van
+ * route las de STEMPEL op de automation-rij (`a.organizationId`) met de org van
  * degene die op Activeren drukte als terugval; de run meet het huidige
- * lidmaatschap van de EIGENAAR. Voor een org-loos opgeslagen routine geven die
+ * lidmaatschap van de EIGENAAR. Voor een org-loos opgeslagen automatisering geven die
  * twee een ander antwoord, en het verschil is onzichtbaar: scherm en activatie
  * zeggen ja, elke geplande run zegt `agent_unavailable`.
  *
@@ -133,7 +133,7 @@ function reset() {
 
 const codes = (res) => (res.body && res.body.details || []).map((d) => d.code);
 
-test('activation REFUSES a routine whose ai_step names an agent its owner may not use', async () => {
+test('activation REFUSES an automation whose ai_step names an agent its owner may not use', async () => {
     reset();
     AGENTS.agt_1 = agentRow({ organization_id: 'org2' });   // een andere organisatie
     AUTOMATIONS.a1 = { id: 'a1', userId: 'u1', organizationId: 'org1', isActive: false, isDraft: true, definition: DEF('agt_1') };
@@ -141,7 +141,7 @@ test('activation REFUSES a routine whose ai_step names an agent its owner may no
     const res = makeRes();
     await activate({ params: { id: 'a1' }, session: { user: { id: 'u1' } }, body: {} }, res);
 
-    assert.strictEqual(res.statusCode, 400, 'a routine that cannot run must not go live');
+    assert.strictEqual(res.statusCode, 400, 'an automation that cannot run must not go live');
     assert.ok(codes(res).includes('ai_step.agent_unavailable'), `expected the agent rule, got ${JSON.stringify(codes(res))}`);
     assert.strictEqual(AUTOMATIONS.a1.isActive, false, 'and nothing was armed');
 });
@@ -158,10 +158,10 @@ test('activation lets a published, shared agent of the owner\'s own org through'
     assert.strictEqual(AUTOMATIONS.a2.isActive, true);
 });
 
-test('a STALE organisation stamp on the routine row does not decide', async () => {
+test('a STALE organisation stamp on the automation row does not decide', async () => {
     // The old rule was `a.organizationId || orgOf(req)` — the column on the
     // automations row first. That column does not move when an admin transfers
-    // the owner to another organisation, so a routine stamped org2 kept being
+    // the owner to another organisation, so an automation stamped org2 kept being
     // judged against org2 while its runs (which resolve the owner's current
     // membership) had long since moved to org1. Read the OWNER, like the run
     // does, and the two answers are one answer.
@@ -173,12 +173,12 @@ test('a STALE organisation stamp on the routine row does not decide', async () =
     await activate({ params: { id: 'a3' }, session: { user: { id: 'u1' } }, body: {} }, res);
 
     assert.strictEqual(res.statusCode, 200, res.body && JSON.stringify(res.body));
-    assert.ok(userLookups.includes('u1'), 'the identity read is the routine owner\'s, not a column');
+    assert.ok(userLookups.includes('u1'), 'the identity read is the automation owner\'s, not a column');
 });
 
-test('a routine stored WITHOUT an organisation is judged on the owner\'s membership', async () => {
+test('an automation stored WITHOUT an organisation is judged on the owner\'s membership', async () => {
     // The old rule was `a.organizationId || orgOf(req)`: for an org-less
-    // routine that fell back to the presser's org and said yes, while the run
+    // automation that fell back to the presser's org and said yes, while the run
     // (which has no session on a schedule) said no. Fail-closed is not the
     // point — agreeing with the run is.
     reset();
@@ -200,14 +200,14 @@ test('a lookup outage skips the rule rather than refusing what it could not chec
     try {
         const res = makeRes();
         await activate({ params: { id: 'a5' }, session: { user: { id: 'u1' } }, body: {} }, res);
-        assert.strictEqual(res.statusCode, 200, 'an outage must not make every routine unactivatable');
+        assert.strictEqual(res.statusCode, 200, 'an outage must not make every automation unactivatable');
     } finally { store.getForRuntime = real; }
 });
 
 test('a draft save WARNS about an unusable agent instead of blocking the build', async () => {
     // `ai_step.agent_unavailable` is a completeness code, so the draft stage
     // downgrades it. It has to be REPORTED, though: without availableAgents on
-    // the PUT the editor never sees it, and rewriting an already-active routine
+    // the PUT the editor never sees it, and rewriting an already-active automation
     // was the one path that could re-point a step at an unchecked agent.
     reset();
     AGENTS.agt_1 = agentRow({ organization_id: 'org2' });
@@ -221,7 +221,7 @@ test('a draft save WARNS about an unusable agent instead of blocking the build',
     assert.ok(warned.includes('ai_step.agent_unavailable'), `expected a warning, got ${JSON.stringify(warned)}`);
 });
 
-test('a routine with no agent step asks nothing of the agent store at all', async () => {
+test('an automation with no agent step asks nothing of the agent store at all', async () => {
     reset();
     AUTOMATIONS.a7 = {
         id: 'a7', userId: 'u1', organizationId: 'org1', isActive: false, isDraft: true,

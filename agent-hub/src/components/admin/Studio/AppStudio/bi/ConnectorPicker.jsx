@@ -26,7 +26,7 @@ export default function ConnectorPicker({ connectors = [], onApply, onClose }) {
     const { apps, loading, failed, refresh } = useIntegrationCatalog();
 
     // What is already wired, as action names. Only integration_tool connectors
-    // participate — a routine or REST connector has no action to tick.
+    // participate — an automation or REST connector has no action to tick.
     const initial = useMemo(
         () => (connectors || []).filter((c) => c?.kind === 'integration_tool' && c.tool).map((c) => c.tool),
         [connectors],

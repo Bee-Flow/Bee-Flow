@@ -44,7 +44,7 @@ async function _resolveAgentWriteContext(conversationId, callerUserId, encryptio
     if (!row) return null;
 
     const isShared = row.shared_scope === 'project' && !!row.project_id;
-    // A null caller is a background job (compaction, a routine) acting on behalf
+    // A null caller is a background job (compaction, an automation) acting on behalf
     // of the conversation itself — it has no identity to check, and the key it
     // gets is the row's either way.
     if (callerUserId && row.user_id !== callerUserId) {
@@ -306,7 +306,7 @@ async function updateConversation(conversationId, messages, encryptionKey = null
     // ── Legacy blob ───────────────────────────────────────────────────────────
     // Rollback path for the Phase-4 migration, and a leak once encryption is on:
     // encryptMessages() passes the value straight through when the key is null,
-    // so every escrow-only writer (routines, compaction — they hold no session
+    // so every escrow-only writer (automations, compaction — they hold no session
     // DEK) laid down a full PLAINTEXT copy of the conversation next to the
     // encrypted table.
     //

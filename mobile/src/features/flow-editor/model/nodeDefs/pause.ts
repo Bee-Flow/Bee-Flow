@@ -5,7 +5,7 @@
  * Data copied from the web builder's flow/nodeDefs.js; nodeDefs.lockstep.test.ts
  * requires the web module and compares every record, so a changed word fails.
  * The palette wording is `labelFallback` here (the English under the
- * `routines.node.<type>.label` key; ./index.ts serves it as `label`), and a
+ * `automations.node.<type>.label` key; ./index.ts serves it as `label`), and a
  * quoted issue-map key is a validation path segment, not copy.
  */
 
@@ -48,7 +48,7 @@ export const PAUSE_DEFS: Record<string, NodeDefSource> = {
         family: 'pause',
         typeLabel: 'Form page',
         defaultLabel: 'Ask for more info',
-        help: 'Pauses the run and shows another page on the routine’s own form link, then continues with the answers.',
+        help: 'Pauses the run and shows another page on the automation’s own form link, then continues with the answers.',
         sectionKeys: ['config', 'waiting'],
         simpleSections: ['config', 'waiting'],
         issueSections: {

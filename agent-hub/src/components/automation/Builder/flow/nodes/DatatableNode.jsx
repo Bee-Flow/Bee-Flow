@@ -21,7 +21,7 @@ export default function DatatableNode({ id, data }) {
     const writes = step.op && step.op !== 'find_rows';
     const shared = table?.scope && table.scope !== 'personal';
 
-    // A write outlives the run and other routines read it; shared means
+    // A write outlives the run and other automations read it; shared means
     // somebody else can read what this writes. Both worth saying on the card.
     const badges = (writes || shared) ? (
         <>

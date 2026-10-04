@@ -221,7 +221,7 @@ function PresentationFields({ draft, set, onFocusField, previewSample, errorSect
                         </FormRow>
                     </div>
                 </details>
-                <FormRow label="Also keep it in Documents" hint="Keeps the deck in Studio → Documents as a presentation you can open in Bee Flow, edit and rebuild. Leave it off for a routine that runs often — it makes a document every run.">
+                <FormRow label="Also keep it in Documents" hint="Keeps the deck in Studio → Documents as a presentation you can open in Bee Flow, edit and rebuild. Leave it off for an automation that runs often — it makes a document every run.">
                     <label className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
                         <input type="checkbox" checked={draft.saveCopy === true} onChange={(e) => set('saveCopy', e.target.checked)} data-testid="presentation-save-copy" />
                         Keep a copy

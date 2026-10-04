@@ -339,7 +339,7 @@ async function attestationFindings(orgId, d, nowMs) {
         .filter(r => toMs(r.expires_at) != null && toMs(r.expires_at) < nowMs)
         .map(r => registerItem({
             id: `ai_act:${r.target_kind}:${r.target_id}`, code: 'ai_act_attestation_expired', severity: 'medium', status: 'warn',
-            title: `AI Act self-assessment expired (${r.target_kind === 'agent' ? 'agent' : 'routine'})`,
+            title: `AI Act self-assessment expired (${r.target_kind === 'agent' ? 'agent' : 'automation'})`,
             detail: `Recorded outcome "${r.outcome || 'unknown'}" expired ${new Date(r.expires_at).toISOString().slice(0, 10)} — reassess.`,
             section: 'frameworks', target: `${complianceSectionPath('frameworks')}?tab=per_automation`,
             regulation: 'AIA', ref: 'Art. 53', at: toMs(r.expires_at),

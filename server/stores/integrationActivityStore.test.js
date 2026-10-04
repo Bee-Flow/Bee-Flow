@@ -157,6 +157,18 @@ test('buildFilters: excludeDryRun, userId, and EXACT pii-category match', () => 
     assert.deepStrictEqual(params, ['org1', 'u1', 'Email'], 'pii param is trimmed');
 });
 
+test('buildFilters: manualOnly keeps the chat sources only, never automations or pattern_scan reads', () => {
+    const { where, params } = store.buildFilters({ userId: 'u1', manualOnly: true });
+    const w = flatSql(where);
+    assert.match(w, /user_id = \$1/);
+    assert.match(w, /source = ANY\(\$2::text\[\]\)/);
+    assert.match(w, /automation_id IS NULL/);
+    assert.deepStrictEqual(params, ['u1', ['agent_chat', 'agent_stream', 'direct_chat']]);
+    assert.ok(!params[1].includes('pattern_scan') && !params[1].includes('automation'));
+    // Without the flag nothing changes for the dashboards.
+    assert.ok(!/source = ANY/.test(flatSql(store.buildFilters({ userId: 'u1' }).where)));
+});
+
 test('getRecentIntegrationActivity scopes by userId (consumer leak regression)', async () => {
     dbCalls.getAll.length = 0;
     await store.getRecentIntegrationActivity(25, { userId: 'consumer-1' });

@@ -1,0 +1,382 @@
+{
+ "id": "automation-steps-that-persist",
+ "icon": "🗃️",
+ "estMinutes": 16,
+ "title": "Steps that leave something behind",
+ "desc": "Datatable writes, knowledge writes, documents, web services and code — the families with the sharpest traps.",
+ "gate": {
+  "permission": [
+   "use_datatables",
+   "manage_datatables"
+  ],
+  "feature": "automations"
+ },
+ "learningGoal": "After this lesson you can write data and call outside services from an automation without sprawl, leaks or unbounded updates.",
+ "steps": [
+  {
+   "type": "slide",
+   "id": "outlive",
+   "icon": "🧭",
+   "title": "Most steps forget. A few do not.",
+   "bodyMd": "Van Dijk Groep has an automation that runs at 07:00 and files yesterday's supplier invoices. Most of its steps compute something and hand it on: the value stays in the run record as part of the audit trail, but nothing in the workspace changed.\n\nFour families are different, and they are the ones worth slowing down for:\n\n- **Datatable** — \"Keep rows that outlast the run — and share them with other automations.\"\n- **To knowledge base** — \"Save text where an agent can find it later.\"\n- **Make a document** — a real PDF or Word file.\n- **Call a web service** and **Code** — these leave nothing here, but they change things *outside* your workspace.\n\nThis chapter is about the moment a run stops being a calculation and becomes a consequence."
+  },
+  {
+   "type": "slide",
+   "id": "table-step",
+   "icon": "🗄️",
+   "title": "One invoice, filed twice?",
+   "bodyMd": "Last night the 07:00 automation filed invoice `2026-0419`. This morning somebody corrects the supplier's name and re-runs it. Should the table now hold one row, or two?\n\nThat is the question the **Datatable** step makes you answer. Add the step, pick the table, then pick one of six operations:\n\n- **Find rows** and **Count rows** — reads; nothing changes.\n- **Add a row** — always adds one, even if a matching row already exists.\n- **Add or update a row** — updates the row that matches (you pick the column under **Match on**), or adds it if there is none yet.\n- **Update rows that match** and **Delete rows that match** — change or remove every matching row.\n\nChoose as though the automation will be re-run, because one day it is."
+  },
+  {
+   "type": "quiz",
+   "id": "q-operation",
+   "icon": "🗂️",
+   "question": "A supplier re-sends the same PDF, so the 07:00 automation processes invoice 2026-0419 a second time. Which choice leaves exactly one row for that invoice?",
+   "multi": false,
+   "choices": [
+    {
+     "id": "a",
+     "label": "Add or update a row, with Match on set to the invoice-number column",
+     "correct": true
+    },
+    {
+     "id": "b",
+     "label": "Add a row — the table refuses the second one because that invoice number is already in it",
+     "correct": false,
+     "feedback": "Add a row always adds a new row, even if a matching one already exists. Nothing in the step compares it with what is there, so you would end the morning with two rows for one invoice."
+    },
+    {
+     "id": "c",
+     "label": "Update rows that match on the invoice number",
+     "correct": false,
+     "feedback": "That corrects an invoice already in the table, but writes nothing the first time one appears — no row matches, so nothing is updated and the invoice is never filed. Add or update a row covers both passes."
+    },
+    {
+     "id": "d",
+     "label": "Find rows, then Delete rows that match, then Add a row",
+     "correct": false,
+     "feedback": "Three steps, one of them destructive, for what one operation does. And if the run fails between the delete and the add, the invoice is simply gone."
+    }
+   ],
+   "explanation": "Add or update a row is the re-run-safe operation: it updates the row that matches the column you set under Match on, and adds one when there is no match. Keep Add a row for things where a repeat is real — a reading, an event, a log line — and the two reads, Find rows and Count rows, for when nothing should change at all."
+  },
+  {
+   "type": "slide",
+   "id": "conditions",
+   "icon": "🎯",
+   "title": "A condition is not optional on the destructive two",
+   "bodyMd": "**Update rows that match** and **Delete rows that match** refuse to run with no condition. That is a rule in the step, not a warning you can click past.\n\nThe numbers around it:\n\n- up to **20** conditions on one step, joined as **all** or **any**;\n- a read limit capped at **1000** rows;\n- a delete that would hit more than 1000 rows in one step is refused outright — *\"Narrow the conditions, or delete in batches\"* — rather than half-done and reported green;\n- an update that hits more than the cap says so, so \"there were more\" is a fact rather than a guess.\n\nThe reason for the delete refusal is blunt: nobody re-runs a delete that came back green, so the rows it never reached would sit there believed gone."
+  },
+  {
+   "type": "quiz",
+   "id": "q-unresolved",
+   "icon": "❓",
+   "question": "The 07:00 automation runs Update rows that match, where invoice number = the value an earlier extraction step produced. Last night that extraction came back empty. What does the Datatable step do?",
+   "multi": false,
+   "choices": [
+    {
+     "id": "a",
+     "label": "It skips the operation, records why, and the run carries on",
+     "correct": true
+    },
+    {
+     "id": "b",
+     "label": "It drops the condition it could not resolve and updates every row in the table",
+     "correct": false,
+     "feedback": "That is precisely what the step is built to refuse. A condition that binds to nothing is never widened to \"all rows\" — on an update or a delete that would rewrite the whole table."
+    },
+    {
+     "id": "c",
+     "label": "It treats the empty value as a match on rows whose invoice number is blank",
+     "correct": false,
+     "feedback": "An empty binding is not read as \"match the empties\". The step cannot tell a deliberate blank from an upstream that produced nothing, so it refuses to guess and skips."
+    },
+    {
+     "id": "d",
+     "label": "It fails the run with an error, so nothing downstream executes",
+     "correct": false,
+     "feedback": "It is a skip, not a failure: the step hands downstream a zero-effect result and the run continues. You see it as a skipped step in the run, with the reason attached."
+    }
+   ],
+   "explanation": "Any operation whose condition binds to nothing is skipped — reads included. A find that lost its filter would quietly return the first rows in the table, and those rows would flow on into the next AI step or notification as if they were the match. On an update there is a second guard too: a value that resolved to nothing is dropped rather than written, so it cannot blank a column nobody asked to change."
+  },
+  {
+   "type": "slide",
+   "id": "kb-write",
+   "icon": "📚",
+   "title": "To knowledge base: one field stops the sprawl",
+   "bodyMd": "**To knowledge base** saves text where an agent can find it later. The step has two everyday sections — **Where it goes** (which base) and **What to save** (Text, Title, **Source reference**).\n\n**Source reference** decides whether you end up with one document or hundreds. Its hint says it plainly: *\"Something stable and unique for this subject — a ticket link, a record id. The next run with the same reference REPLACES this document instead of adding another.\"*\n\nSo Van Dijk Groep writes `factuur:{{steps.extract.output.invoice_number}}`, not the date.\n\nWeigh one thing before you write anything at all: whatever lands in a base is quoted back to people as fact, with a citation."
+  },
+  {
+   "type": "quiz",
+   "id": "q-ninety",
+   "icon": "🔁",
+   "question": "Van Dijk Groep's daily automation has been writing its summary To knowledge base for three months. The base now holds about ninety near-identical documents. What was missing?",
+   "multi": false,
+   "choices": [
+    {
+     "id": "a",
+     "label": "A stable Source reference, so each run replaces its own document instead of adding one",
+     "correct": true
+    },
+    {
+     "id": "b",
+     "label": "A refresh schedule on the source the automation created",
+     "correct": false,
+     "feedback": "Refresh settings belong to sources that go and fetch something — a web page or a table. A source filled by an automation offers only \"Only when I ask\": it is written each time the automation runs, and no refresh setting would have merged those documents."
+    },
+    {
+     "id": "c",
+     "label": "The near-duplicate strategy was left on \"Add it anyway\"",
+     "correct": false,
+     "feedback": "That setting only decides what happens when new text is near-identical to an existing document. A daily summary differs every day, so even \"Keep what is there\" would have kept adding. The Source reference is what ties a run to the document it owns."
+    },
+    {
+     "id": "d",
+     "label": "The Title was a fixed string instead of a template",
+     "correct": false,
+     "feedback": "The Title is what a person sees when browsing the base. It identifies nothing for the step — two documents may share a title and remain two documents."
+    }
+   ],
+   "explanation": "Without a Source reference every run stores a new document. With one, the run replaces the entry it wrote last time. Pick something stable per subject — a ticket id, a record id, an invoice number — and never the run date, which is different on every pass."
+  },
+  {
+   "type": "slide",
+   "id": "doc-step",
+   "icon": "📄",
+   "title": "A file that expires while you watch",
+   "bodyMd": "**Make a document** turns text from an earlier step into a real PDF or Word file — up to **25 MB**, kept **7 days** by default and anywhere from 1 to 90 days.\n\nIt is the only one of these families that expires on its own. A datatable keeps its rows until somebody sets a retention window on the table; a document quietly reaches the end of its window.\n\nSo hand the file over in the same run. Van Dijk Groep's onboarding automation renders the welcome letter and then puts a **Form: closing page** after it, which offers the PDF as a download while the new hire is still on the page."
+  },
+  {
+   "type": "slide",
+   "id": "shaping",
+   "icon": "🧹",
+   "title": "The quiet steps that keep a write clean",
+   "bodyMd": "Three families change nothing themselves, and they are what keeps the writing steps tidy:\n\n- **Edit data** — \"Add, rename and organise fields — for one record or a whole table\", up to **20** table operations in one step.\n- **Date & time** — today's date, reformat one, add days, compare two.\n- **Shorten list**, **Remove duplicates**, **Collect one field**, **Add up or count** — list work with a hard ceiling of **10 000** items.\n\nOrder is the whole lesson here: deduplicate *before* the Datatable step, not after. Cleaning a table is much more work than not dirtying it."
+  },
+  {
+   "type": "sim",
+   "id": "match-steps",
+   "icon": "🧩",
+   "title": "Pick the step that fits the need",
+   "instruction": "Five things Van Dijk Groep needs from its automations. Match each one to the step that does it.",
+   "sim": {
+    "kind": "match",
+    "pairs": [
+     {
+      "id": "rows",
+      "left": "Tonight's run must be able to read back what last night's run filed",
+      "right": "Datatable",
+      "note": "Rows outlast the run, and other automations can use the same table."
+     },
+     {
+      "id": "kb",
+      "left": "Tomorrow an agent should answer questions from last night's summary",
+      "right": "To knowledge base",
+      "note": "Save the text where an agent can find it — with a stable Source reference so it replaces rather than multiplies."
+     },
+     {
+      "id": "doc",
+      "left": "The new hire must be handed a welcome letter as a PDF",
+      "right": "Make a document",
+      "note": "Renders earlier text as a real file — offer it for download before its retention window is up."
+     },
+     {
+      "id": "dates",
+      "left": "The kit must be ordered five days before a start date that arrived in a form",
+      "right": "Date & time",
+      "note": "Today's date, reformat one, add days, compare two — no write, no side effect."
+     },
+     {
+      "id": "dedupe",
+      "left": "The same supplier arrived twice in one list before anything is filed",
+      "right": "Remove duplicates",
+      "note": "Clean the list before the write, not the table afterwards."
+     }
+    ]
+   }
+  },
+  {
+   "type": "slide",
+   "id": "webservice",
+   "icon": "🌐",
+   "title": "Call a web service, with the guard rail left on",
+   "bodyMd": "**Call a web service** sends a request to a system that has no ready-made action here. In its **Request** section, under **Security**, sits a tick that is **on by default**: *\"Block requests to private/internal network addresses.\"*\n\nThe help underneath is explicit — turning it off lets the step reach localhost, private IP ranges and cloud metadata endpoints — and its own advice is *\"Recommended: on.\"*\n\nVan Dijk Groep's supplier portal sits on the public internet, so the tick stays on and nobody has to think about it again. Untick it only when this step genuinely has to reach a service on your own network."
+  },
+  {
+   "type": "slide",
+   "id": "reuse-answers",
+   "icon": "♻️",
+   "title": "Asking the same service twice",
+   "bodyMd": "Van Dijk Groep's automation checks a supplier's VAT status at a public service. Forty invoices a night, a dozen of them the same supplier.\n\nUnder **Advanced** sits the tick that fixes that: **Ask this service only once per run**. Inside one run, a repeat of the same call reuses the first answer. Nothing is stored anywhere; the answer dies with the run, so this tick is yours alone to set.\n\nTick it and a second tick appears underneath: **…and keep the answer for later runs too** — the answer is stored, encrypted, so tomorrow's 07:00 run uses it instead of asking again.\n\nThat nested one is not yours alone. Its own help says so: *\"Your administrator decides whether that is allowed, and for how long; until they turn it on, this step asks every run.\"*"
+  },
+  {
+   "type": "slide",
+   "id": "reuse-window",
+   "icon": "⏱️",
+   "title": "Two windows, and the shorter one wins",
+   "bodyMd": "So how long is \"later\"? Two numbers meet, and neither is the one you might expect.\n\n- **The organisation's.** An administrator opens **Settings → Organisation → Answer Reuse** and picks **Keep answers for a short while**. Until they do, the default is **Ask every run** and nothing is kept at all. Their slider, *\"How long an answer may be reused\"*, runs from 1 to 60 minutes and starts at **5**.\n- **The step's own.** A step can carry its own reuse window — the AI builder writes one when it builds the step, and ticking or unticking preserves it. It is capped at **15 minutes**.\n\nThe answer is kept for whichever of the two is **shorter**: a step can ask for less than the organisation allows, never more. Save an automation with the nested tick on and the builder says the rest out loud: *\"answers are only kept between runs if your organisation allows it.\"*"
+  },
+  {
+   "type": "quiz",
+   "id": "q-reuse-window",
+   "icon": "♻️",
+   "question": "Van Dijk Groep's VAT look-up has both ticks on and the step carries a 15-minute reuse window. Their administrator has Answer Reuse on, with \"How long an answer may be reused\" left at 5 minutes. How long is one answer actually reused between runs?",
+   "multi": false,
+   "choices": [
+    {
+     "id": "a",
+     "label": "Five minutes — the answer is kept for whichever of the two windows is shorter",
+     "correct": true
+    },
+    {
+     "id": "b",
+     "label": "Fifteen minutes — the step is the more specific setting, so its own window wins",
+     "correct": false,
+     "feedback": "The organisation's window is a ceiling, not a suggestion. A step may ask to keep an answer for less time than the administrator allows; it can never keep one for longer."
+    },
+    {
+     "id": "c",
+     "label": "Twenty minutes — the step window and the organisation window add up",
+     "correct": false,
+     "feedback": "They are never added. One window governs a stored answer, and it is the shorter of the two; after it the answer is deleted and the next run asks again."
+    },
+    {
+     "id": "d",
+     "label": "Not at all — two windows that disagree cancel out, so the step asks every run",
+     "correct": false,
+     "feedback": "Disagreement is not a refusal. A step asks every run only when the administrator has not allowed reuse at all — then the tick stands but does nothing, which is exactly what the builder warns you about."
+    }
+   ],
+   "explanation": "The stored window is the shorter of the administrator's (1 to 60 minutes, 5 by default) and the step's own (capped at 15 minutes). Two other things follow from it: shortening the organisation's window also shortens answers already stored, so a stale-data scare is fixed in one save; and the plain \"Ask this service only once per run\" tick keeps working throughout, because reuse inside a single run stores nothing and needs nobody's permission."
+  },
+  {
+   "type": "slide",
+   "id": "reuse-table",
+   "icon": "♻️",
+   "title": "The other kind of remembering",
+   "bodyMd": "Beside those two sits a third tick that is not nested under them: **Remember answers in a table**. *\"Each answer is written to a table as an ordinary row, so a later run — days or weeks on — uses it instead of asking again.\"* You choose the table and **Reuse an answer for** so many **days** (30 by default), and you can open the table, check the answers and correct them.\n\nThe trade is in the small print under the tick: these rows are plain text, so everyone with access to that table can read and export them — unlike the encrypted store, which nobody browses.\n\nTwo catches. The table must exist first — *\"Studio → Datatables → New table → 'Web service answers'\"* — and every one of these ticks greys out while the step may reach private addresses: *\"Nothing is kept while private targets are allowed.\"*"
+  },
+  {
+   "type": "quiz",
+   "id": "q-code",
+   "icon": "🧱",
+   "question": "Van Dijk Groep imports an automation that already contains a Code step. Before anyone switches it on, they do a test run. What does that test run tell them about the Code step?",
+   "multi": false,
+   "choices": [
+    {
+     "id": "a",
+     "label": "The code really runs, but every call it makes to the outside is only recorded as \"would have called\" and nothing is sent",
+     "correct": true
+    },
+    {
+     "id": "b",
+     "label": "Nothing: test runs skip Code steps",
+     "correct": false,
+     "feedback": "Not any more. A test run executes the code itself, so a typo or a crash shows up straight away. Only the calls to the outside world are stubbed."
+    },
+    {
+     "id": "c",
+     "label": "Everything is sent for real, because Code steps have no test mode",
+     "correct": false,
+     "feedback": "A test run never sends anything out of a Code step: every web call and every app call is recorded and answered with a placeholder."
+    },
+    {
+     "id": "d",
+     "label": "Nothing yet: an administrator first has to switch Code steps on",
+     "correct": false,
+     "feedback": "Code steps work out of the box. There is no switch to turn on, for the organisation or for the platform."
+    }
+   ],
+   "explanation": "Code steps work out of the box. A test run executes the code in its sandbox with every outside call stubbed, so you see crashes and results without sending anything, and the list of calls it would have made shows up next to the result. Before reaching for code at all, check whether Edit data plus the list steps already do the job: they are easier for the next person to read."
+  },
+  {
+   "type": "exercise",
+   "id": "ex-plan",
+   "icon": "🎯",
+   "exerciseId": "ex-automation-steps-persist-write-plan",
+   "title": "Your turn: the write-plan for 07:00",
+   "instruction": "Van Dijk Groep's 07:00 automation reads yesterday's invoice e-mails and extracts supplier, invoice number and total. It must keep exactly one row per invoice in the inkoopfacturen table, leave a short summary the sales agent can answer from, and look up each supplier's VAT status at a public web service. In five to eight sentences, write the plan: which Datatable operation and what you set Match on, what you would use as the Source reference on the knowledge write, and one guard or setting you would deliberately leave alone.",
+   "placeholder": "e.g. Datatable — Add or update a row on inkoopfacturen, Match on factuurnummer, because a re-run after a correction should…",
+   "passScore": 70,
+   "maxAttempts": 4
+  },
+  {
+   "type": "slide",
+   "id": "shield",
+   "icon": "🛡️",
+   "title": "Nobody is watching an automation at 07:00",
+   "bodyMd": "Your organisation's Privacy Shield covers automations as well as chat. The setting is **\"Also protect automations\"**, default **on**, and its copy says why: *\"Automations run on their own with nobody watching.\"* What the shield did inside an automation appears in the Log on **What happened**, with Started in reading `Automation · <title>` and the row carrying the automation, the run and the step — usually the only evidence anyone will ever look at.\n\nOne thing to settle before your first write: rows you put in a datatable are stored as you give them — they are your own structured data, not a log to be redacted. Decide what belongs in the table before the step writes it."
+  },
+  {
+   "type": "action",
+   "id": "do-write",
+   "icon": "🏗️",
+   "checkId": "automation-writes-table",
+   "title": "Write a row from an automation — we will verify it",
+   "instruction": "In Automations, open or create an automation and add a Datatable step. Point it at a table you own, choose Add or update a row (then set Match on to a column the step also writes) or Add a row, fill in one or two columns, then run the automation once. Open the table's \"Used by\" tab: your automation should be listed there.",
+   "launch": {
+    "navigateTo": "studio/automations",
+    "label": "Open Automations"
+   }
+  },
+  {
+   "type": "slide",
+   "id": "recap",
+   "icon": "✅",
+   "title": "What you can do now",
+   "bodyMd": "- **Write rows on purpose.** Add or update a row, matched on something stable, for anything a re-run should correct; a condition on every update and delete. A condition that binds to nothing makes the step skip rather than widen, and an over-cap delete is refused rather than half-done.\n- **Write text once, not ninety times.** To knowledge base needs a stable Source reference per subject, or every run adds another document an agent will quote back as fact.\n- **Reach outside without opening a door.** Leave \"Block requests to private/internal network addresses\" on, stop a repeated call with \"Ask this service only once per run\" — and remember that keeping an answer *between* runs needs your administrator's Answer Reuse setting, for the shorter of their window and the step's, and check whether Edit data and the list steps make a Code step unnecessary.\n\nNext chapter: what to do when one of these fails at 07:00 and you read about it at nine."
+  }
+ ],
+ "practiceTopic": {
+  "title": "Automation steps that persist",
+  "summary": "How the Datatable, To knowledge base, Make a document, Call a web service and Code steps leave something behind, and the guards each one applies.",
+  "facts": [
+   "The Datatable step's operations are Find rows, Count rows, Add a row, Add or update a row, Update rows that match and Delete rows that match; the last two need at least one condition.",
+   "A Datatable step allows up to 20 conditions joined as all or any, caps a read at 1000 rows, refuses a delete that would hit more than that, and skips any operation whose condition binds to nothing rather than widening it to all rows.",
+   "The To knowledge base step's Source reference makes the next run with that same reference replace the document instead of adding another one.",
+   "The near-duplicate choices on To knowledge base are Keep what is there, Merge into one, Replace it and Add it anyway.",
+   "Make a document renders earlier text as a PDF or Word file up to 25 MB, kept 7 days by default and between 1 and 90 days.",
+   "Call a web service ticks Block requests to private/internal network addresses by default; while that tick is off, neither Ask this service only once per run nor Remember answers in a table is available.",
+   "Code steps work out of the box, with no switch; a test run executes the code and only records the calls it would have made to the outside.",
+   "An answer is only kept between runs when the organisation's Answer Reuse setting allows it; the window used is the shorter of the organisation's (1 to 60 minutes, 5 by default) and the step's own (capped at 15 minutes)."
+  ]
+ },
+ "actionChecks": [
+  {
+   "checkId": "automation-writes-table",
+   "existing": false,
+   "label": "Write to a datatable from an automation",
+   "hint": "In Automations, add a Datatable step to an automation, point it at a table you can write to, and run it once. The table's \"Used by\" tab then lists the automation.",
+   "endpoints": [
+    {
+     "method": "GET",
+     "path": "/api/datatables",
+     "returns": "{ datatables: [ { id, name, key, rowCount, ownerUserId, grade, usageCount, ... } ], scope }"
+    }
+   ],
+   "criteria": [
+    {
+     "id": "table",
+     "label": "A datatable the learner can write to exists",
+     "hint": "Studio → Datatables → New table, or any table shared with you as editor.",
+     "rule": "GET /api/datatables returns at least one row whose grade is 'owner' or 'editor'"
+    }
+   ]
+  }
+ ],
+ "rubrics": {
+  "ex-automation-steps-persist-write-plan": {
+   "title": "The write-plan for the invoice automation",
+   "task": "The learner was asked to plan the persisting steps of a 07:00 invoice automation: the Datatable operation and its Match on column, the Source reference for the knowledge write, and one guard or setting they would deliberately leave alone.",
+   "criteria": [
+    "Chooses Add or update a row (or save_row) for the invoice table and names the invoice number as the Match on column, with a re-run reason attached.",
+    "Gives a Source reference that is stable and unique per invoice — an invoice number or record id — and not the run date or a timestamp.",
+    "Names at least one real guard or limit and why it stays: the condition required on Update/Delete rows that match, the 1000-row read cap, or the default Block requests to private/internal network addresses tick on the web-service call.",
+    "Treats the three needs as separate steps rather than expecting one step to file the row, write the summary and call the service."
+   ],
+   "passScore": 70,
+   "guidance": "Pass a concrete plan that names real operations and real settings in the product's own words, even if it is brief. Do not pass a Source reference that changes each run (the date, \"today\", a timestamp) — that is the ninety-documents failure. Do not pass Add a row for the invoice table unless the learner argues for keeping every version and says how duplicates are handled. Do not pass invented controls, such as a \"deduplicate rows\" option on the Datatable step or an \"overwrite\" toggle on the knowledge write."
+  }
+ }
+}

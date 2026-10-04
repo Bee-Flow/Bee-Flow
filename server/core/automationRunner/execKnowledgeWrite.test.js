@@ -11,9 +11,9 @@
  *      permission gate, which is a configuration problem the author must see
  *      and fix — not a run that fails at 3am and pages somebody.
  *   3. NOTHING TO SAY IS NOT A FAILURE. An upstream step that found nothing
- *      this run is the normal case, and a routine that turns amber every time
- *      is a routine somebody switches off.
- *   4. The identity is the routine's OWNER, so a trigger anyone can fire
+ *      this run is the normal case, and an automation that turns amber every time
+ *      is an automation somebody switches off.
+ *   4. The identity is the automation's OWNER, so a trigger anyone can fire
  *      cannot become a way to write as somebody else.
  *
  * Run: cd server && node --test --test-force-exit core/automationRunner/execKnowledgeWrite.test.js
@@ -79,7 +79,7 @@ test('a live run interpolates the templates and reports what landed', async () =
         assert.strictEqual(res.output.written, true);
         assert.strictEqual(res.output.documentId, 'doc1');
         assert.strictEqual(res.output.chunks, 3);
-        assert.strictEqual(res.output.refreshed, true, 'so a routine can branch on "was this new"');
+        assert.strictEqual(res.output.refreshed, true, 'so an automation can branch on "was this new"');
     });
 });
 
@@ -124,7 +124,7 @@ test('an over-long title is trimmed by CODE POINT, never mid-character', async (
     });
 });
 
-test('the write runs as the routine OWNER, with the routine named', async () => {
+test('the write runs as the automation OWNER, with the automation named', async () => {
     // A trigger anyone can fire must not become a way to write as somebody
     // with rights the person firing it does not have.
     await withIngest({ ok: true }, async (calls) => {
@@ -132,19 +132,19 @@ test('the write runs as the routine OWNER, with the routine named', async () => 
         assert.strictEqual(calls[0].context.userId, 'owner1');
         assert.strictEqual(calls[0].context.orgId, 'org1');
         assert.strictEqual(calls[0].context.automationId, 'a1');
-        assert.strictEqual(calls[0].context.origin, 'routine',
-            'filed as a routine write, not as a support ticket');
+        assert.strictEqual(calls[0].context.origin, 'automation',
+            'filed as an automation write, not as a support ticket');
         assert.strictEqual(calls[0].context.automationTitle, 'Tickets → KB');
     });
 });
 
 test('a REFUSAL is a skip with the reason, not a thrown error', async () => {
-    await withIngest({ error: 'That knowledge base is not available to this routine.' }, async () => {
+    await withIngest({ error: 'That knowledge base is not available to this automation.' }, async () => {
         const res = await execKnowledgeWrite(step(), CTX, STATE, 'live');
         // The CODE goes top-level (runDag paints the row amber from it) and the
         // SENTENCE goes on output.skipped, which is where the run view reads it.
         assert.strictEqual(res.skippedReason, 'knowledge_write_refused');
-        assert.match(res.output.skipped, /not available to this routine/);
+        assert.match(res.output.skipped, /not available to this automation/);
         assert.strictEqual(res.output.written, false, 'so a downstream branch can see it did not land');
     });
 });
@@ -163,7 +163,7 @@ test('nothing to write this run is a SKIP, not a failure', async () => {
 });
 
 test('every skip leaves a bindable output, so a branch on it keeps working', async () => {
-    // A routine that reacts to "did this land" must not crash on the run where
+    // An automation that reacts to "did this land" must not crash on the run where
     // it did not — which is the only run that branch exists for.
     await withIngest({ error: 'nope' }, async () => {
         for (const over of [{ knowledgeBaseId: '' }, { content: '' }, { content: 'x'.repeat(MAX_CONTENT_CHARS + 1) }, {}]) {

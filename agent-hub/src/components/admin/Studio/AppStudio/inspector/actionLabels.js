@@ -10,14 +10,14 @@
  *
  * `titleFor` resolves an automation id to its title; callers without the
  * automations list (the ones outside ActionsSection) pass nothing and get
- * "Run routine" unqualified, which still beats an opaque id.
+ * "Run automation" unqualified, which still beats an opaque id.
  */
 
 export function describeAction(id, action, definition, titleFor = null) {
     switch (action?.kind) {
         case 'run_automation': {
             const title = typeof titleFor === 'function' ? titleFor(action.automationId) : null;
-            return title ? `Run routine — ${title}` : 'Run routine';
+            return title ? `Run automation — ${title}` : 'Run automation';
         }
         case 'navigate': {
             const screen = (definition?.screens || []).find((s) => s.id === action.screenId);

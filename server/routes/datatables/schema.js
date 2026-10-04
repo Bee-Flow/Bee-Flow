@@ -2,7 +2,7 @@
  * The column list: reading it, and saving it against an optimistic lock.
  *
  * A save is the one edit that can drop a column out from under somebody else's
- * routine, so it asks first; and the model write and the ALTERs are one
+ * automation, so it asks first; and the model write and the ALTERs are one
  * transaction, because two left the model claiming a column Postgres does not
  * have — permanently.
  */
@@ -119,7 +119,7 @@ function register(router) {
                 // retype. Everything else about it is an ordinary table — extra
                 // columns are welcome, the rows are editable, the table is
                 // deletable — but the writer names these by key on a schedule, so a
-                // drop is a 500 inside somebody's nightly routine and a retype is
+                // drop is a 500 inside somebody's nightly automation and a retype is
                 // worse: it lands as a value the column cannot hold. Checked HERE,
                 // not only in the designer, because the designer is not the only
                 // caller of this route.
@@ -129,13 +129,13 @@ function register(router) {
                 }
 
                 // A column drop is the one schema edit that breaks somebody else's
-                // routine, and it breaks it silently at 3am. listUsageForColumn is
+                // automation, and it breaks it silently at 3am. listUsageForColumn is
                 // the index written for exactly this; ask it before the DDL runs,
                 // not after.
                 const breaking = await breakingColumnUsage(req.datatable.id, storedFields, norm.fields);
                 if (breaking.length && !confirmedBreaking(req)) {
                     return res.status(409).json({
-                        error: 'Routines still use the columns you are removing',
+                        error: 'Automations still use the columns you are removing',
                         code: 'breaking_change',
                         breaking,
                     });

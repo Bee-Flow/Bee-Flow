@@ -15,7 +15,7 @@
  * it does.
  *
  * Only agent-scoped lending is in scope: `core/automationRunner/execAi.js`
- * lends for `resourceType: 'routine'`, where the grant is the routine's own
+ * lends for `resourceType: 'automation'`, where the grant is the automation's own
  * and there is no agent config carrying an `actAs` to honour.
  *
  * Run: cd server && node --test --test-force-exit core/agentRuntime/lending.callSites.test.js

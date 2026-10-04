@@ -42,7 +42,7 @@ export function PlaceholderValues({ editor, placeholders }: { editor: StepEditor
     const { draft, set, ctx } = editor;
     const values = recordOf(draft.values);
     return (
-        <Band editor={editor} sectionKey="values" title={t('routines.versions.setting.values', 'Values')} defaultOpen hasContent={Object.keys(values).length > 0}>
+        <Band editor={editor} sectionKey="values" title={t('automations.versions.setting.values', 'Values')} defaultOpen hasContent={Object.keys(values).length > 0}>
             {!draft.documentId ? <Note>{t('mobile.flow.fill.pick_first', 'Pick a document first — its placeholders appear here.')}</Note> : null}
             {placeholders.map((p) => (
                 <View key={p.key} style={styles.row}>

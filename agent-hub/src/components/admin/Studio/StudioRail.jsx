@@ -137,7 +137,7 @@ export default function StudioRail({
        WHICH one is the part that took a second pass. Taking the chord
        unconditionally made the builder's quick switcher unreachable on
        /app/studio/automations, and Studio's search does not list what is
-       inside an open routine — so the chord stopped answering the question
+       inside an open automation — so the chord stopped answering the question
        of the person standing there. A surface that owns the chord for its
        own content says so with `data-quick-open-owner`; while one is on
        screen the rail keeps its hands off entirely (no preventDefault, no

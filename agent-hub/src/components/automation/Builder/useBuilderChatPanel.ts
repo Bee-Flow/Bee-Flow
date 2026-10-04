@@ -49,22 +49,22 @@ export default function useBuilderChatPanel({
     // The AI assistant is a summonable, right-docked panel — the canvas is
     // full-width by default (assistant closed). Persisted so the choice
     // survives reload.
-    const [assistantOpen, setAssistantOpen] = useState(() => forceAssistantOpen || scopedStorage.getItem('routinesAssistantOpen') === '1');
+    const [assistantOpen, setAssistantOpen] = useState(() => forceAssistantOpen || scopedStorage.getItem('automationsAssistantOpen') === '1');
     useEffect(() => {
         if (forceAssistantOpen) return;   // a hosted mount is not the user's choice
-        scopedStorage.setItem('routinesAssistantOpen', assistantOpen ? '1' : '0');
+        scopedStorage.setItem('automationsAssistantOpen', assistantOpen ? '1' : '0');
     }, [assistantOpen, forceAssistantOpen]);
 
     // Resizable chat column — drag the gutter between chat and diagram.
     // Persisted so the user's chosen width survives reloads. Bounds match
     // AgentWizard/BuilderSplit's resize handle (240–600px).
     const [chatWidth, setChatWidth] = useState(() => {
-        const raw = parseInt(scopedStorage.getItem('routinesChatWidth') || '', 10);
+        const raw = parseInt(scopedStorage.getItem('automationsChatWidth') || '', 10);
         // 320 by default (design 1c) — a width the user chose is kept as is.
         return Number.isFinite(raw) && raw >= 240 && raw <= 600 ? raw : 360;
     });
     useEffect(() => {
-        scopedStorage.setItem('routinesChatWidth', String(chatWidth));
+        scopedStorage.setItem('automationsChatWidth', String(chatWidth));
     }, [chatWidth]);
     const dragStartX = useRef(0);
     const dragStartW = useRef(0);

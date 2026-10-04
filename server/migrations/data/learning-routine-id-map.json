@@ -1,0 +1,23 @@
+{
+ "apps-actions-and-routines": "apps-actions-and-automations",
+ "badge-routine-master": "badge-automation-master",
+ "course-routines-production": "course-automations-production",
+ "ex-routine-data-bindings": "ex-automation-data-bindings",
+ "ex-routine-extra-triggers-plan": "ex-automation-extra-triggers-plan",
+ "ex-routine-reusable-steps-inventory": "ex-automation-reusable-steps-inventory",
+ "ex-routine-runs-failures-note": "ex-automation-runs-failures-note",
+ "ex-routine-steps-persist-write-plan": "ex-automation-steps-persist-write-plan",
+ "has-routine": "has-automation",
+ "pick-routine": "pick-automation",
+ "routine-dry-run": "automation-dry-run",
+ "routine-extra-trigger": "automation-extra-trigger",
+ "routine-extra-triggers": "automation-extra-triggers",
+ "routine-has-approval": "automation-has-approval",
+ "routine-reusable-steps": "automation-reusable-steps",
+ "routine-runs-and-failures": "automation-runs-and-failures",
+ "routine-shield-step": "automation-shield-step",
+ "routine-steps-that-persist": "automation-steps-that-persist",
+ "routine-triggers-and-data": "automation-triggers-and-data",
+ "routine-writes-table": "automation-writes-table",
+ "routines-kb": "automations-kb"
+}

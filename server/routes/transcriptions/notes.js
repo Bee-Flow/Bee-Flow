@@ -50,7 +50,7 @@ router.get('/', requireAuth, validate({ query: ListQuery }), async (req, res) =>
 // Static GET routes below (e.g. /nextcloud-talk-recordings, /talk-meetings) are
 // registered after this param route, so let their literal names fall through
 // instead of being captured as an :id and 404'ing.
-const RESERVED_GET_PATHS = new Set(['nextcloud-audio-files', 'nextcloud-talk-recordings', 'talk-meetings', 'gmeet-meetings', 'gmeet-imports', 'gmeet-recordings']);
+const RESERVED_GET_PATHS = new Set(['nextcloud-audio-files', 'nextcloud-talk-recordings', 'talk-meetings', 'gmeet-meetings', 'gmeet-imports', 'gmeet-recordings', 'teams-meetings', 'teams-imports', 'teams-recordings']);
 
 // The fall-through check comes BEFORE the query schema, and it has to.
 // `/nextcloud-talk-recordings?folder=/Custom` is captured by THIS route first

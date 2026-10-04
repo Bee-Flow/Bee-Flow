@@ -232,7 +232,7 @@ async function applyApplyTemplate(draftWrap, args) {
  *
  * The inverse of app_apply_template, and deliberately its mirror: what comes
  * out installs through the same templateInstall path a built-in starter does.
- * See templateCapture.js for what is scrubbed (routine ids, file values,
+ * See templateCapture.js for what is scrubbed (automation ids, file values,
  * system columns, relations to rows that did not travel) and why.
  *
  * It reads the app and writes a row in a DIFFERENT table, so it is NOT in
@@ -316,7 +316,7 @@ async function applySaveAsTemplate(draftWrap, args) {
     }
     for (const req of report.requires) {
         if (req.kind === 'connector') hints.push(`Whoever installs this must create connector(s): ${req.ids.join(', ')}.`);
-        if (req.kind === 'automation') hints.push(`${req.count} run_automation step(s) were cleared — the installer wires their own routine.`);
+        if (req.kind === 'automation') hints.push(`${req.count} run_automation step(s) were cleared — the installer wires their own automation.`);
         if (req.kind === 'knowledge_base') hints.push(`References ${req.ids.length} knowledge base(s) that will not exist after install.`);
     }
 

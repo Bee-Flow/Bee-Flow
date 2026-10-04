@@ -209,7 +209,7 @@ function requireTier(requiredTier) {
  *
  * Extracted from requireFeature so a caller that must ASK rather than be gated
  * — a Blueprint install decides per entity kind, because a Blueprint carrying
- * apps still installs its routines on a plan without App Studio — resolves it
+ * apps still installs its automations on a plan without App Studio — resolves it
  * by exactly the same rule the middleware enforces. Two implementations of
  * "does this org have X" would eventually disagree, and the disagreement would
  * be a paid feature quietly available (or a paid-for one quietly missing).

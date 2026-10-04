@@ -55,7 +55,7 @@ describe('applyRunEvent', () => {
         expect(out[0]).toMatchObject({ status: 'error', durationMs: 42, error: 'boom', errorClass: 'timeout' });
     });
 
-    it('ignores step frames, other routines and unknown rows', () => {
+    it('ignores step frames, other automations and unknown rows', () => {
         const rows = [row('r1')];
         expect(applyRunEvent(rows, ev({ type: 'step.started', runId: 'r1' }), DEFAULT_FILTERS)).toBe(rows);
         expect(applyRunEvent(rows, ev({ automationId: 'a2' }), { ...DEFAULT_FILTERS, automationId: 'a1' })).toBe(rows);

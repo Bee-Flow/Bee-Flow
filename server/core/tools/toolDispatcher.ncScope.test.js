@@ -121,7 +121,7 @@ const run = async () => {
     assert.equal(await executeNextcloudFamilyTool('gmail_list_messages', {}, USER, {}), undefined);
     console.log('✓ non-NC names fall through the family helper');
 
-    // 7. the run scope a routine hands the dispatcher reaches the Files
+    // 7. the run scope an automation hands the dispatcher reaches the Files
     //    family: nextcloud_upload_file resolves a generated_file handle
     //    against THAT journey. The resolver is a double; what is pinned is
     //    that `runScope` survives executeTool → family → executeNextcloudTool.

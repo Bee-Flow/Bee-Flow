@@ -18,7 +18,7 @@
  *      at every privilege level including super-admin.
  *   3. It is encrypted at rest with `orgVault` (per-org key derived from
  *      MASTER_ENCRYPTION_KEY), NOT with the SESSION_SECRET-based secretBox:
- *      a session-secret rotation is a routine security action and would
+ *      a session-secret rotation is an automation security action and would
  *      silently destroy every enrollment, and a single global key gives no
  *      per-org blast-radius isolation for Art. 9 data.
  *

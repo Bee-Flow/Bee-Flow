@@ -115,7 +115,7 @@ function validateTriggerSource(decl, { existingIds = [] } = {}) {
         }
         if (!ev.sample || typeof ev.sample !== 'object' || Array.isArray(ev.sample)) {
             err('event.sample_missing', `${at}.sample`, 'Event must declare a realistic `sample` object.',
-                'The builder shows sample values so an author can bind fields without running the routine first.');
+                'The builder shows sample values so an author can bind fields without running the automation first.');
         } else if (fieldsOk) {
             for (const f of ev.fields) {
                 if (!(f in ev.sample)) {
@@ -217,7 +217,7 @@ function validatePollDiff(src, at) {
     }
     if (src.firstRun != null && src.firstRun !== 'anchor') {
         err('poll.first_run_invalid', `${at}.firstRun`, 'The only supported firstRun mode is "anchor".',
-            'Anchoring records the current state and emits nothing, so activating a routine does not fire once per pre-existing item.');
+            'Anchoring records the current state and emits nothing, so activating an automation does not fire once per pre-existing item.');
     }
     if (!src.emit || typeof src.emit !== 'object') {
         err('poll.emit_missing', `${at}.emit`, 'A poll_diff source must declare how it emits.');

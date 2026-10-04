@@ -226,11 +226,11 @@ async function _relevantFrameworkIds(d, orgId) {
 
 /**
  * Per-org "affects" counts from the calendar — an EXPLICIT allow-list of count
- * fields (BFSF-441): a number of routines/agents/pages, never a name, an
+ * fields (BFSF-441): a number of automations/agents/pages, never a name, an
  * address or a title. A null count is "unknown", so it stays out entirely.
  */
 const AFFECTS_FIELDS = Object.freeze([
-    ['automations', 'routine', 'routines'],
+    ['automations', 'automation', 'automations'],
     ['agents', 'agent', 'agents'],
     ['webpages', 'webpage', 'webpages'],
     ['forms', 'public form', 'public forms'],
@@ -328,7 +328,7 @@ async function _sweepAttestations(d, orgId, nowMs) {
         await _notifyAdmins(d,
             orgId,
             overdue ? 'AI Act self-assessment expired' : 'AI Act self-assessment expires within 30 days',
-            `The ${r.target_kind === 'agent' ? 'agent' : 'routine'} ${r.target_id} ${overdue ? 'has an expired' : 'has an expiring'} AI Act self-assessment (${shortDate(exp)}). Re-run the "Does the AI Act apply?" ladder to re-attest.`,
+            `The ${r.target_kind === 'agent' ? 'agent' : 'automation'} ${r.target_id} ${overdue ? 'has an expired' : 'has an expiring'} AI Act self-assessment (${shortDate(exp)}). Re-run the "Does the AI Act apply?" ladder to re-attest.`,
             `${complianceSectionPath('frameworks')}?tab=per_automation`,
         );
     }

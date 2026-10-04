@@ -7,11 +7,11 @@
  * ("the", "use") match something in almost every action description, so the
  * filter matched ALL 17 apps and the `.slice(0, 8)` then kept whichever eight
  * came first in registry order. Measured on the demo org, that was
- * memory / routine-evolution / kb-ingest / nextcloud / calendar / contacts /
+ * memory / automation-evolution / kb-ingest / nextcloud / calendar / contacts /
  * deck / talk — and `nextcloud-notifications` was dropped even when the brief
  * said "send a notification in Nextcloud". The prompt presents that list as
  * "the ONLY tools you may propose", so the model dutifully built invoice
- * routines out of Calendar. It was obeying us, not hallucinating.
+ * automations out of Calendar. It was obeying us, not hallucinating.
  *
  * THE RULE THIS MODULE EXISTS TO ENFORCE: ranking ORDERS, it never GATES.
  * Everything the user is permitted to run stays in the catalogue; relevance
@@ -84,7 +84,7 @@ function isPinned(app, toolNames, triggerProvider) {
  *
  * @param {object} catalog      from buildCatalogForUser
  * @param {string} userMessage  this turn's message
- * @param {object} draft        the routine being built (its apps get pinned)
+ * @param {object} draft        the automation being built (its apps get pinned)
  * @returns {Promise<object>}   the catalogue with `apps` reordered (never filtered
  *                              by relevance), unavailable apps removed
  */

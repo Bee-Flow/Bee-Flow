@@ -1,5 +1,5 @@
 /**
- * AI tasks ("routines") and reminders, from the server's own row mappers:
+ * AI tasks ("automations") and reminders, from the server's own row mappers:
  * server/stores/aiTaskStore.js rowToTask() and server/stores/reminderStore.js
  * getReminders(). Both answer camelCase.
  */
@@ -36,7 +36,7 @@ export interface AiTask {
     conversationId: string | null;
     daysOfWeek: string[] | null;
     timeOfDay: string | null;
-    /** Joined in by routes/aiTasks.js for agent-scoped routines only. */
+    /** Joined in by routes/aiTasks.js for agent-scoped automations only. */
     agentName?: string;
     agentAvatar?: string;
 }

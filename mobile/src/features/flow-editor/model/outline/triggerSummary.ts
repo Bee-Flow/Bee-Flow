@@ -46,7 +46,7 @@ function agentCallSummary(node: AnyNode): Summary {
 function inputsSummary(node: AnyNode, t: Translate): Summary {
     const params = (Array.isArray(node.params) ? (node.params as Param[]) : []).filter((p) => p && p.name);
     if (node.kind === 'app_trigger') {
-        return [...paramWords(params, 3), t('routines.trigger.viewer_chip', 'Signed-in user')].join(' · ');
+        return [...paramWords(params, 3), t('automations.trigger.viewer_chip', 'Signed-in user')].join(' · ');
     }
     return params.length ? paramWords(params, 4).join(' · ') : { muted: 'no inputs' };
 }

@@ -18,6 +18,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
+import { insertVideoStep, videoStepToJs } from './videoStep.mjs';
 
 const DIR = path.dirname(new URL(import.meta.url).pathname);
 // This file lives in <repo>/.claude/handoff/curriculum; BEEFLOW_REPO overrides
@@ -33,7 +34,15 @@ const curriculum = JSON.parse(fs.readFileSync(path.join(DIR, 'curriculum.json'),
 const lessonFiles = fs.readdirSync(path.join(DIR, 'lessons')).filter((f) => f.endsWith('.json')).sort();
 const lessonsById = new Map();
 const problems = [];
+// A lesson file no course lists is a draft (or one parked between courses):
+// it is skipped with a warning, not validated, so a half-authored draft in
+// lessons/ cannot block regenerating the lessons that ship.
+const referenced = new Set((curriculum.courses || []).flatMap((c) => (c.lessons || []).map((l) => l.id)));
 for (const f of lessonFiles) {
+    if (!referenced.has(f.replace(/\.json$/, ''))) {
+        console.warn(`WARNING: lessons/${f} is in no course; skipped`);
+        continue;
+    }
     const p = path.join(DIR, 'lessons', f);
     try { execFileSync('node', [path.join(DIR, 'validate-lesson.mjs'), p], { stdio: 'pipe' }); }
     catch (e) { problems.push(`${f}: ${String(e.stdout || e.message).trim().split('\n').slice(0, 3).join(' | ')}`); continue; }
@@ -130,6 +139,10 @@ function stepToJs(lessonId, s) {
             put(lk, s.launch.label);
             return `{ type: STEP_TYPES.ACTION, id: ${js(s.id)}, checkId: ${js(s.checkId)}, ${icon}titleKey: ${js(K('title'))}, titleFallback: ${js(s.title)}, instructionKey: ${js(K('instruction'))}, instructionFallback: ${js(s.instruction)}, launch: { navigateTo: ${js(s.launch.navigateTo)}, labelKey: ${js(lk)}, labelFallback: ${js(s.launch.label)} } }`;
         }
+        case 'video':
+            // Inserted from curriculum.json's `video` field (videoStep.mjs);
+            // optional, never gated, dropped by the player without a media pack.
+            return videoStepToJs(s, K, put, js);
         case 'tour':
             put(K('title'), s.title); put(K('body'), s.body);
             return `{ id: ${js(s.id)}, target: ${js(s.target)}${s.navigateTo ? `, navigateTo: ${js(s.navigateTo)}` : ''}, placement: ${js(s.placement || 'bottom')}, optional: true, timeoutMs: ${s.timeoutMs}, ${icon}titleKey: ${js(K('title'))}, titleFallback: ${js(s.title)}, bodyKey: ${js(K('body'))}, bodyFallback: ${js(s.body)} }`;
@@ -147,9 +160,15 @@ const lessonGates = {};
 const newChecks = new Map();
 for (const c of courses) {
     for (const l of c.lessons) {
-        if (HANDWRITTEN.has(l.id)) continue;
+        if (HANDWRITTEN.has(l.id)) {
+            if (l.video !== undefined) problems.push(`lesson ${l.id}: video is not supported on a hand-written lesson`);
+            continue;
+        }
         const doc = lessonsById.get(l.id);
         if (!doc) continue;
+        const withVideo = insertVideoStep(l.id, doc.steps, l.video);
+        problems.push(...withVideo.problems);
+        const lessonSteps = withVideo.steps;
         put(key(l.id, 'title'), doc.title); put(key(l.id, 'desc'), doc.desc);
         const gate = doc.gate && Object.keys(doc.gate).length ? doc.gate : {};
         // Every gate key the runtime understands has to be listed here: a gate
@@ -157,7 +176,7 @@ for (const c of courses) {
         // the lesson is visible to everyone, and completion.js then demands a
         // lesson the learner cannot open before it will mint a certificate.
         if (gate.permission || gate.permissionsAll || gate.feature) lessonGates[l.id] = gate;
-        lessonBlocks.push(`    {\n        id: ${js(l.id)}, group: ${js(GROUP[c.pathId] || 'basics')}, icon: ${js(doc.icon)}, estMinutes: ${doc.estMinutes},\n        titleKey: ${js(key(l.id, 'title'))}, titleFallback: ${js(doc.title)},\n        descKey: ${js(key(l.id, 'desc'))}, descFallback: ${js(doc.desc)},\n        gate: ${js(gate)},\n        steps: [\n${doc.steps.map((s) => '            ' + stepToJs(l.id, s) + ',').join('\n')}\n        ],\n    },`);
+        lessonBlocks.push(`    {\n        id: ${js(l.id)}, group: ${js(GROUP[c.pathId] || 'basics')}, icon: ${js(doc.icon)}, estMinutes: ${doc.estMinutes},\n        titleKey: ${js(key(l.id, 'title'))}, titleFallback: ${js(doc.title)},\n        descKey: ${js(key(l.id, 'desc'))}, descFallback: ${js(doc.desc)},\n        gate: ${js(gate)},\n        steps: [\n${lessonSteps.map((s) => '            ' + stepToJs(l.id, s) + ',').join('\n')}\n        ],\n    },`);
         for (const [exId, r] of Object.entries(doc.rubrics || {})) { rubrics[exId] = r; exerciseLessons[exId] = l.id; }
         if (doc.practiceTopic) practiceTopics[l.id] = doc.practiceTopic;
         for (const ck of doc.actionChecks || []) newChecks.set(ck.checkId, ck);

@@ -1,8 +1,8 @@
 /**
  * "Auto-map step inputs when connecting" — the web builder's editor
  * preference (SettingsTab's `autoMapOnConnect`, per browser, on unless
- * switched off), kept per device here. It is not part of any routine: it says
- * how THIS person's editor behaves on every routine they build. Held in
+ * switched off), kept per device here. It is not part of any automation: it says
+ * how THIS person's editor behaves on every automation they build. Held in
  * memory once read, so an insert asks it synchronously.
  */
 

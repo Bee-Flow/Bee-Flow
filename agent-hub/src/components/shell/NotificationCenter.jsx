@@ -8,9 +8,9 @@ const CATEGORY_CONFIG = {
     info: { icon: Info, color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.08)', label: 'Info' },
     heads_up: { icon: AlertTriangle, color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.08)', label: 'Heads Up' },
     urgent: { icon: AlertCircle, color: '#ef4444', bg: 'rgba(239, 68, 68, 0.08)', label: 'Urgent' },
-    ai_task: { icon: Bot, color: '#0f172a', bg: 'rgba(15, 23, 42, 0.06)', label: 'Routine' },
+    ai_task: { icon: Bot, color: '#0f172a', bg: 'rgba(15, 23, 42, 0.06)', label: 'Automation' },
     // Cowork results used to arrive under the 'ai_task' category and were
-    // therefore labelled "Routine" — the name of a different feature, in a
+    // therefore labelled "Automation" — the name of a different feature, in a
     // different part of the app, that the user had never opened.
     cowork: { icon: Handshake, color: '#0f172a', bg: 'rgba(15, 23, 42, 0.06)', label: 'Cowork' },
     // Learning Center nudges (v2) — the review reminder navigates via `link`,
@@ -96,9 +96,10 @@ export default function NotificationCenter({ variant = 'row' } = {}) {
     const resolveChatTarget = useCallback(async (n) => {
         const taskId = n?.task_id || n?.taskId || null;
         if (!taskId) return { agentId: null, conversationId: null };
-        const base = n?.category === 'cowork' ? '/api/cowork' : '/api/ai-tasks';
+        // Every scheduled item is a Cowork schedule now (the old ai_tasks rows
+        // moved there with their ids), whatever category an older notification carries.
         try {
-            const res = await authFetch(`${API_BASE}${base}/${taskId}`);
+            const res = await authFetch(`${API_BASE}/api/cowork/${taskId}`);
             if (!res.ok) return { agentId: null, conversationId: null };
             const item = await res.json();
             return {
@@ -115,7 +116,7 @@ export default function NotificationCenter({ variant = 'row' } = {}) {
         const n = notifId ? notifications.find(x => x.id === notifId) : null;
         const { agentId, conversationId } = await resolveChatTarget(n);
         window.dispatchEvent(new CustomEvent('openDirectChatWithContext', {
-            detail: { title, content, agentId, conversationId, surface: n?.category === 'cowork' ? 'cowork' : 'routine' },
+            detail: { title, content, agentId, conversationId, surface: n?.category === 'cowork' ? 'cowork' : 'automation' },
         }));
     }, [notifications, resolveChatTarget]);
 
@@ -125,17 +126,17 @@ export default function NotificationCenter({ variant = 'row' } = {}) {
         setOpen(false);
         const { agentId, conversationId } = await resolveChatTarget(n);
         window.dispatchEvent(new CustomEvent('openDirectChatWithContext', {
-            detail: { title: n.title, content: body, agentId, conversationId, surface: n.category === 'cowork' ? 'cowork' : 'routine' },
+            detail: { title: n.title, content: body, agentId, conversationId, surface: n.category === 'cowork' ? 'cowork' : 'automation' },
         }));
     }, [resolveChatTarget]);
 
-    // Routine credentials expired/revoked notifications carry a deep-link
-    // token at the start of the body: `routine_reauth:<provider>\n\n…`. Parse
+    // Automation credentials expired/revoked notifications carry a deep-link
+    // token at the start of the body: `automation_reauth:<provider>\n\n…`. Parse
     // it once so we can hide the token from the rendered message and surface
     // a one-click Reconnect button instead.
     const parseReauthToken = (msg) => {
         if (!msg || typeof msg !== 'string') return { provider: null, body: msg || '' };
-        const m = msg.match(/^routine_reauth:([a-z0-9_-]+)\n\n?([\s\S]*)$/i);
+        const m = msg.match(/^automation_reauth:([a-z0-9_-]+)\n\n?([\s\S]*)$/i);
         if (!m) return { provider: null, body: msg };
         return { provider: m[1].toLowerCase(), body: m[2] };
     };
@@ -666,7 +667,7 @@ export default function NotificationCenter({ variant = 'row' } = {}) {
                                                                     }}>
                                                                         {n.category === 'cowork'
                                                                             ? 'This ran, but produced no text to show. Open it to see the run.'
-                                                                            : 'This routine ran, but no text result was saved. Open the chat to see the run.'}
+                                                                            : 'This automation ran, but no text result was saved. Open the chat to see the run.'}
                                                                     </p>
                                                                     <button
                                                                         onClick={(e) => {
@@ -786,7 +787,7 @@ export default function NotificationCenter({ variant = 'row' } = {}) {
                                     {resultModal.title}
                                 </div>
                                 <div style={{ fontSize: 11, color: 'var(--text-muted, #94a3b8)', fontWeight: 500, marginTop: 2 }}>
-                                    {resultModal.category === 'cowork' ? 'Cowork result' : 'Routine result'}
+                                    {resultModal.category === 'cowork' ? 'Cowork result' : 'Automation result'}
                                 </div>
                             </div>
                             <button

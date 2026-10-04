@@ -1459,8 +1459,8 @@ const SCREEN_REVIEWS = {
                     id: 'cmp_rvnote',
                     type: 'callout',
                     props: {
-                        title: 'The reminder button needs one of your own routines',
-                        text: 'Chasing reviewers is a mail job, not a register job, so this button runs a routine you own. Nothing is wired to it yet: open the app in the builder, pick the routine that should send the reminder, and the button starts working. Everything else here works with no routine, no connector and no Nextcloud.',
+                        title: 'The reminder button needs one of your own automations',
+                        text: 'Chasing reviewers is a mail job, not a register job, so this button runs an automation you own. Nothing is wired to it yet: open the app in the builder, pick the automation that should send the reminder, and the button starts working. Everything else here works with no automation, no connector and no Nextcloud.',
                         tone: 'info',
                     },
                     style: { span: 12 },
@@ -2870,7 +2870,7 @@ const actions = {
         kind: 'sequence',
         steps: [
             { kind: 'run_automation', automationId: null },
-            { kind: 'toast', message: 'Reminder routine started. If nothing happened, no routine is wired to this button yet — see the note above.', tone: 'info' },
+            { kind: 'toast', message: 'Reminder automation started. If nothing happened, no automation is wired to this button yet — see the note above.', tone: 'info' },
         ],
     },
 
@@ -3084,7 +3084,7 @@ const seed = {
         { key: 'consent', name: 'Consent', article_ref: 'Art. 6(1)(a) GDPR', description: 'Freely given, specific, informed and unambiguous — and withdrawable at any time.', needs_balancing: false, position: 1 },
         { key: 'contract', name: 'Performance of a contract', article_ref: 'Art. 6(1)(b) GDPR', description: 'Necessary to perform a contract with the data subject, or to take steps before entering one.', needs_balancing: false, position: 2 },
         { key: 'legal_obligation', name: 'Legal obligation', article_ref: 'Art. 6(1)(c) GDPR', description: 'Required by Union or Member State law — name the law in the retention basis.', needs_balancing: false, position: 3 },
-        { key: 'vital_interests', name: 'Vital interests', article_ref: 'Art. 6(1)(d) GDPR', description: 'Necessary to protect someone’s life. Narrow, and rarely the right answer for routine processing.', needs_balancing: false, position: 4 },
+        { key: 'vital_interests', name: 'Vital interests', article_ref: 'Art. 6(1)(d) GDPR', description: 'Necessary to protect someone’s life. Narrow, and rarely the right answer for automation processing.', needs_balancing: false, position: 4 },
         { key: 'public_task', name: 'Public task', article_ref: 'Art. 6(1)(e) GDPR', description: 'Carried out in the public interest or in the exercise of official authority.', needs_balancing: false, position: 5 },
         // The only basis in the seeded vocabulary that demands a written
         // weighing — and the reason `lia_status` exists at all.
@@ -3289,7 +3289,7 @@ const seed = {
         { activity_id: { $ref: 'ac_analy' }, activity_name: 'Website statistics', recipient: 'Northwind Analytics Inc.', country: 'United States', safeguard: 'sccs', safeguard_reference: 'SCC module 2, annex to the draft agreement', tia_done: false, notes: 'Clauses are drafted, but no transfer impact assessment has been done.' },
         { activity_id: { $ref: 'ac_portal' }, activity_name: 'Access logging in the client portal', recipient: 'Cascade Storage LLC', country: 'United States', safeguard: 'sccs', safeguard_reference: 'SCC module 3 via Kestrel, annex 4', tia_done: true, assessed_on: '2026-01-22', notes: 'Assessment concluded: logs are pseudonymised before export.' },
         { activity_id: { $ref: 'ac_ecd' }, activity_name: 'Electronic client records', recipient: 'Lumen Care Systems support desk', country: 'United Kingdom', safeguard: 'adequacy', safeguard_reference: 'UK adequacy decision', tia_done: true, assessed_on: '2025-11-30', notes: 'Support access is read-only and time-boxed per ticket.' },
-        { activity_id: { $ref: 'ac_news' }, activity_name: 'Newsletter subscriptions', recipient: 'Sendrail SMTP Ltd (Singapore relay)', country: 'Singapore', safeguard: 'derogation', safeguard_reference: 'Art. 49(1)(b) — necessary to send the mail the subscriber asked for', tia_done: false, notes: 'A derogation is not a routine solution. Move the relay into the EEA or sign clauses.' },
+        { activity_id: { $ref: 'ac_news' }, activity_name: 'Newsletter subscriptions', recipient: 'Sendrail SMTP Ltd (Singapore relay)', country: 'Singapore', safeguard: 'derogation', safeguard_reference: 'Art. 49(1)(b) — necessary to send the mail the subscriber asked for', tia_done: false, notes: 'A derogation is not an automation solution. Move the relay into the EEA or sign clauses.' },
         { activity_id: { $ref: 'ac_recr' }, activity_name: 'Recruitment and applications', recipient: 'Talentbaan Assessments Pty Ltd', country: 'Australia', safeguard: 'sccs', safeguard_reference: 'SCC module 2, signed 2026-01-30', tia_done: true, assessed_on: '2026-02-05', notes: 'Only used for the two management vacancies in 2026.' },
     ],
 

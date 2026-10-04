@@ -695,3 +695,76 @@ test('Claude 5.5 participation uses native JSON without unsupported forced tool_
         assert.deepEqual(out.structured, { should_reply: true });
     } finally { s.restore(); }
 });
+
+// ─── models that refuse a forced tool_choice (Claude Sonnet 5.5 / Opus 5.5) ──
+// The adapter runs those calls under `auto` plus an instruction (see
+// providers/claude.forcedToolFallback.test.js). `auto` does not guarantee a
+// call, so chatForcedTool retries ONCE when the answer came back in prose —
+// and only there: providers that can force keep their single round.
+
+const LOOSE_TOOL = {
+    type: 'function',
+    function: { name: 'emit_columns', parameters: { type: 'object', properties: { columns: { type: 'array' } } } },
+};
+
+test('Claude 5.5 with a loose schema: a prose answer under auto gets one retry that asks for the tool', async () => {
+    const s = stubResolve(claudeAdapter, (n) => (n === 1
+        ? { content: 'Here are some columns: name, price.', toolCalls: null, stopReason: 'end_turn', usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 } }
+        : { content: null, toolCalls: [toolCall('emit_columns', '{"columns":["name","price"]}')], stopReason: 'tool_use', usage: { prompt_tokens: 20, completion_tokens: 7, total_tokens: 27 } }));
+    try {
+        const out = await llmClient.chatForcedTool('claude-sonnet-5-5', [{ role: 'user', content: 'Draft the columns' }], LOOSE_TOOL);
+        assert.strictEqual(s.calls.length, 2);
+        assert.deepStrictEqual(s.calls[0].options.toolChoice, { type: 'function', function: { name: 'emit_columns' } });
+        const retryMsgs = s.calls[1].messages;
+        assert.strictEqual(retryMsgs.at(-2).role, 'assistant');
+        assert.strictEqual(retryMsgs.at(-2).content, 'Here are some columns: name, price.');
+        assert.strictEqual(retryMsgs.at(-1).role, 'user');
+        assert.match(retryMsgs.at(-1).content, /`emit_columns` tool/);
+        assert.deepStrictEqual(out.structured, { columns: ['name', 'price'] });
+        assert.strictEqual(out.usage.prompt_tokens, 30, 'both billed rounds are reported');
+        assert.strictEqual(out.usage.completion_tokens, 12);
+    } finally { s.restore(); }
+});
+
+test('Claude 5.5: a direct tool call needs no retry', async () => {
+    const s = stubResolve(claudeAdapter, { content: null, toolCalls: [toolCall('emit_columns', '{"columns":[]}')], stopReason: 'tool_use' });
+    try {
+        const out = await llmClient.chatForcedTool('claude-sonnet-5-5', [{ role: 'user', content: 'go' }], LOOSE_TOOL);
+        assert.strictEqual(s.calls.length, 1);
+        assert.deepStrictEqual(out.structured, { columns: [] });
+    } finally { s.restore(); }
+});
+
+test('Claude 5.5: a refusal or a length stop is not retried', async () => {
+    for (const stopReason of ['refusal', 'max_tokens']) {
+        const s = stubResolve(claudeAdapter, { content: 'The model declined to answer this request.', toolCalls: null, stopReason });
+        try {
+            const out = await llmClient.chatForcedTool('claude-sonnet-5-5', [{ role: 'user', content: 'go' }], LOOSE_TOOL);
+            assert.strictEqual(s.calls.length, 1, stopReason);
+            assert.strictEqual(out.structured, null);
+        } finally { s.restore(); }
+    }
+});
+
+test('Claude 5.5: when the retry also answers in prose, the first result is returned (null structured, no throw)', async () => {
+    const s = stubResolve(claudeAdapter, { content: 'no tool for you', toolCalls: null, stopReason: 'end_turn' });
+    try {
+        const out = await llmClient.chatForcedTool('claude-sonnet-5-5', [{ role: 'user', content: 'go' }], LOOSE_TOOL);
+        assert.strictEqual(s.calls.length, 2);
+        assert.strictEqual(out.structured, null);
+        assert.strictEqual(out.content, 'no tool for you');
+    } finally { s.restore(); }
+});
+
+test('providers that CAN force keep a single round on a prose answer (Claude Haiku 4.5, OpenAI)', async () => {
+    const claude = stubResolve(claudeAdapter, { content: 'prose', toolCalls: null, stopReason: 'end_turn' });
+    try {
+        await llmClient.chatForcedTool('claude-haiku-4-5', [{ role: 'user', content: 'go' }], LOOSE_TOOL);
+        assert.strictEqual(claude.calls.length, 1);
+    } finally { claude.restore(); }
+    const openai = stubResolve(openaiAdapter, { content: 'prose', toolCalls: [] });
+    try {
+        await llmClient.chatForcedTool('gpt-x', [{ role: 'user', content: 'go' }], LOOSE_TOOL);
+        assert.strictEqual(openai.calls.length, 1);
+    } finally { openai.restore(); }
+});

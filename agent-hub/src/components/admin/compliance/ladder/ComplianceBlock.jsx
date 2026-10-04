@@ -1,5 +1,5 @@
 /**
- * ComplianceBlock — the "Compliance" block in a routine's Settings tab and an
+ * ComplianceBlock — the "Compliance" block in an automation's Settings tab and an
  * agent's Advanced drawer (Compliance Center redesign, Sep 2026; FE-8). One
  * signals line, one saved-outcome chip, one "Assess…" button that opens the
  * AI Act ladder. It owns the data hook and hands it to the modal so the chip

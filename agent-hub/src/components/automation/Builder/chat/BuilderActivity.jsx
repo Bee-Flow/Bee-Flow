@@ -35,10 +35,10 @@ import { StepIcon } from '../flow/stepIcons';
  * ONE ROW THE STREAM DOES NOT CARRY. A test run (`builder_request_dry_run`)
  * only arrives as a call once it has FINISHED, so while it ran — minutes on a
  * file fan-out — the spinner sat on the call before it, "Reviewed the
- * routine", which was long done. `liveRun` is the run the server announced
+ * automation", which was long done. `liveRun` is the run the server announced
  * when its row was created (`dryrun_started`), read the way the canvas banner
  * reads it (flow/runFocus.js): it becomes the live row at the foot of the
- * list, "Testing the routine… · Read file content · 1/4", and the row before
+ * list, "Testing the automation… · Read file content · 1/4", and the row before
  * it gets its tick. The real call replaces it when the run lands.
  */
 export default function BuilderActivity({ toolCalls, running = false, liveRun = null, t = null, onFocusStep = null }) {
@@ -65,8 +65,8 @@ export default function BuilderActivity({ toolCalls, running = false, liveRun = 
                     : <Hammer size={13} className="flex-shrink-0" />}
                 <span className="font-medium">
                     {running
-                        ? (t ? t('routines.builder.act.building', 'Building') : 'Building')
-                        : (t ? t('routines.builder.act.built', 'Built') : 'Built')}
+                        ? (t ? t('automations.builder.act.building', 'Building') : 'Building')
+                        : (t ? t('automations.builder.act.built', 'Built') : 'Built')}
                 </span>
                 <span className="text-[10px] text-[var(--text-tertiary)]">{rows.length}</span>
                 {failed > 0 && (
@@ -180,7 +180,7 @@ function ActivityRow({ n, row, tc, active, live = false, onFocusStep = null, t =
             </summary>
 
             <div className="px-1 pb-1.5 pl-9">
-                {(tc?.result?.added?.id || tc?.arguments?.stepId) && onFocusStep && <button type="button" onClick={() => onFocusStep(tc?.result?.added?.id || tc?.arguments?.stepId)} className="mb-2 rounded-lg px-2 py-1 text-[var(--type-ai)] hover:bg-[var(--bg-secondary)]">{t ? t('routines.assistant.show_step', 'Show step') : 'Show step'}</button>}
+                {(tc?.result?.added?.id || tc?.arguments?.stepId) && onFocusStep && <button type="button" onClick={() => onFocusStep(tc?.result?.added?.id || tc?.arguments?.stepId)} className="mb-2 rounded-lg px-2 py-1 text-[var(--type-ai)] hover:bg-[var(--bg-secondary)]">{t ? t('automations.assistant.show_step', 'Show step') : 'Show step'}</button>}
                 {/* A refusal says what is wrong in words; the payload is for
                     when the words are not enough. Showing the reason without a
                     click is the whole point of surfacing failures at all. */}

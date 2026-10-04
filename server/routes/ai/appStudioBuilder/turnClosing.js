@@ -46,7 +46,7 @@ async function runAutoFinalizeNet(turn, { draftWrap, iterationBudget, approvedPl
     //    token so the client resumes the next phase on the SAME tier.
     //    Otherwise + the draft validates → finalize it.
     //  • the MODEL closed the turn on a final message after building
-    //    something this turn (the same hole the routine builder's net had:
+    //    something this turn (the same hole the automation builder's net had:
     //    "I have built the app!" with no app_finalize left the playbook
     //    phase running, the handoff card asking a question, and the
     //    presenter pressing Mark as done live). Built is the condition:
@@ -56,7 +56,7 @@ async function runAutoFinalizeNet(turn, { draftWrap, iterationBudget, approvedPl
     // truncated or empty reply, a provider error, a closed tab: the draft
     // is one the model could not finish, the user has just read a sentence
     // saying so, and "the app validates — saved" would contradict it (the
-    // routine builder's `!stopReason`, for the same reason). Never mid-plan
+    // automation builder's `!stopReason`, for the same reason). Never mid-plan
     // on a prose exit either: a half-built plan is not finalized, and the
     // continuation wording belongs to the budget case.
     // The gate is app_dry_run's STATIC pass: the same data-aware
@@ -151,7 +151,7 @@ async function persistTurnSnapshot(turn, {
             }
             // Uncapped here; the store evicts from the HEAD in whole
             // blocks when the snapshot is over size, so the prefix the
-            // model saw survives between evictions (the routine builder's
+            // model saw survives between evictions (the automation builder's
             // builderSessions pattern).
             await studioAppStore.setBuilderSession(draftWrap.appId, userId, snapshotBody, { trimBlock: HISTORY_EVICT_BLOCK });
         } catch (_) { /* non-fatal */ }

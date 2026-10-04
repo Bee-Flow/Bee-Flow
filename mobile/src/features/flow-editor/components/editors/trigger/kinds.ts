@@ -76,7 +76,7 @@ export function kindTitle(kind: string): Msg {
     }
 }
 
-/** Is this node one of the routine's ADDITIONAL triggers (definition.triggers[])? */
+/** Is this node one of the automation's ADDITIONAL triggers (definition.triggers[])? */
 export function isSecondaryTrigger(definition: Pick<FlowDefinition, 'trigger' | 'triggers'> | null | undefined, stepId: unknown): boolean {
     if (!definition || !stepId || definition.trigger?.id === stepId) return false;
     return (definition.triggers || []).some((t) => t?.id === stepId);

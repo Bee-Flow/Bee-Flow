@@ -1,9 +1,9 @@
 /**
  * Settings (the web's SettingsTab): live or not, collecting the answers in a
  * table or not, where the answers' retention lives, and the danger zone —
- * the routine goes, the answers table stays as an ordinary table.
+ * the automation goes, the answers table stays as an ordinary table.
  *
- * Going live IS arming the routine (activation validates the whole flow and
+ * Going live IS arming the automation (activation validates the whole flow and
  * says what stops it). Collecting is a yes/no on the trigger's form, saved
  * like the questions are, and the table follows on that save.
  */
@@ -15,7 +15,7 @@ import { ScrollView, View, type ViewStyle } from 'react-native';
 import { describeError } from '@/core/api/errors';
 import { useTranslation } from '@/core/i18n';
 import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
-import { DeleteRoutineSheet } from '@/features/automations';
+import { DeleteAutomationSheet } from '@/features/automations';
 import { useSetFormLive } from '@/features/forms/hooks/mutations';
 import type { QuestionsDraft } from '@/features/forms/hooks/useQuestionsDraft';
 import { answersTablePath } from '@/features/forms/model/tableLink';
@@ -69,13 +69,13 @@ function DangerZone({ form }: { form: FormDetail }) {
                     <Text variant="caption" tone="secondary">
                         {t(
                             'forms.settings.delete_notice',
-                            'Deleting the form deletes the routine behind it. The answers table is not deleted — remove it under Datatables if the answers are no longer needed.',
+                            'Deleting the form deletes the automation behind it. The answers table is not deleted — remove it under Datatables if the answers are no longer needed.',
                         )}
                     </Text>
                     <Button variant="danger" iconName="Trash2" label={t('forms.settings.delete_open', 'Delete this form')} onPress={() => setDeleting(true)} testID="form-delete" />
                 </View>
             </Card>
-            <DeleteRoutineSheet
+            <DeleteAutomationSheet
                 automation={deleting ? { id: form.automationId, title: form.title } : null}
                 requireName
                 onClose={() => setDeleting(false)}

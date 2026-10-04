@@ -45,7 +45,7 @@ export default function CitationOverlay({ source, onClose }) {
                     </div>
                     <button
                         onClick={onClose}
-                        aria-label={t('notebooks.close', 'Close')}
+                        aria-label={t('notebooks.close_panel', 'Close')}
                         className="p-1.5 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors"
                     >
                         <X className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
@@ -69,7 +69,7 @@ export default function CitationOverlay({ source, onClose }) {
                         className="px-3 py-1 text-xs font-medium rounded-lg transition-colors hover:bg-[var(--bg-tertiary)]"
                         style={{ color: 'var(--text-secondary)' }}
                     >
-                        {t('notebooks.close', 'Close')}
+                        {t('notebooks.close_panel', 'Close')}
                     </button>
                 </div>
             </div>

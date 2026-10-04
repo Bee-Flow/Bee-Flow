@@ -7,13 +7,13 @@
  *   - GET: view and up read the list (names, member counts, runsAs = owner);
  *     run-only and strangers get 403;
  *   - PUT: owner or org admin only (an editor gets 403); every principal is
- *     checked against the routine's organisation; duplicates and the owner
+ *     checked against the automation's organisation; duplicates and the owner
  *     are refused by name;
  *   - licence: adding or widening a share goes through the automation_sharing
  *     gate (403 feature_locked without it); removing or lowering one does not;
  *   - transfer: owner only; the target must already be an editor or an org
  *     admin; the answer names the new owner, runs follow them, and an active
- *     app-event routine is re-subscribed under the new owner.
+ *     app-event automation is re-subscribed under the new owner.
  *
  * Run: cd server && node --test routes/automation/sharing.test.js
  */
@@ -218,20 +218,20 @@ test('transfer: owner only, to an editor or an org admin', async () => {
     assert.strictEqual(ok.body.automation.userId, 'ed');
     assert.strictEqual(ok.body.automation.myRole, 'edit', 'the old owner keeps edit');
     assert.deepStrictEqual(ok.body.warnings, []);
-    assert.deepStrictEqual(calls.subs, [], 'a paused routine has nothing to re-subscribe');
+    assert.deepStrictEqual(calls.subs, [], 'a paused automation has nothing to re-subscribe');
 
     const toAdmin = await call('POST', '/a1/transfer-owner', { as: 'ed', body: { userId: 'adm' } });
     assert.strictEqual(toAdmin.status, 200);
     assert.strictEqual(toAdmin.body.owner.userId, 'adm');
 });
 
-test('transfer of an active app-event routine re-subscribes it under the new owner', async () => {
+test('transfer of an active app-event automation re-subscribes it under the new owner', async () => {
     const res = await call('POST', '/a2/transfer-owner', { body: { userId: 'ed' } });
     assert.strictEqual(res.status, 200, JSON.stringify(res.body));
     assert.deepStrictEqual(calls.subs, [['revoke', 'a2', 'owner'], ['delete', 'a2'], ['sync', 'a2', 'ed']]);
 });
 
-test('GET /:id/principals: the routine organisation\'s people and groups, names only, for anyone who may view', async () => {
+test('GET /:id/principals: the automation organisation\'s people and groups, names only, for anyone who may view', async () => {
     const res = await call('GET', '/a1/principals', { as: 'vic' });
     assert.strictEqual(res.status, 200, JSON.stringify(res.body));
     assert.deepStrictEqual(res.body.groups, [{ id: 'g-fin', name: 'Finance', memberCount: 7 }]);

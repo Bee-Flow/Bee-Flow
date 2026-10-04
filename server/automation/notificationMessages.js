@@ -1,9 +1,9 @@
 /**
- * The words of a routine notification that leaves Bee Flow's own bell.
+ * The words of an automation notification that leaves Bee Flow's own bell.
  *
  * Personal data leaves Bee Flow by e-mail only (BFSF-441). A Nextcloud
  * notification and a Talk message therefore say three things and nothing
- * else: the routine's name, what happened, and a link. No step output, no
+ * else: the automation's name, what happened, and a link. No step output, no
  * error text (an upstream error quotes the payload it choked on), no approval
  * prompt, no names of the people a run was about. The Bee Flow bell and the
  * e-mail keep the detailed message the runner writes.
@@ -14,7 +14,7 @@
 
 'use strict';
 
-/** code → English template. `{name}` is the routine, `{count}` a number. */
+/** code → English template. `{name}` is the automation, `{count}` a number. */
 const MESSAGE_TEXT = Object.freeze({
     'automation.notify.run_failed': '{name} stopped with an error',
     'automation.notify.run_succeeded': '{name} finished',
@@ -25,7 +25,7 @@ const MESSAGE_TEXT = Object.freeze({
     'automation.notify.bundle.onError': '{name}: {count} more errors in the last hour',
     'automation.notify.bundle.onSuccess': '{name}: {count} more finished runs in the last hour',
     'automation.notify.bundle.onApproval': '{name}: {count} more approvals waiting',
-    'automation.notify.digest.subject': 'Your routines today',
+    'automation.notify.digest.subject': 'Your automations today',
 });
 
 /** The code an event uses when the caller names none. */
@@ -35,10 +35,10 @@ const DEFAULT_CODE = Object.freeze({
     onApproval: 'automation.notify.approval_needed',
 });
 
-/** A routine name fit for one line: trimmed, no line breaks, capped. */
-function routineName(title) {
+/** An automation name fit for one line: trimmed, no line breaks, capped. */
+function automationName(title) {
     const clean = String(title || '').replace(/\s+/g, ' ').trim();
-    if (!clean) return 'A routine';
+    if (!clean) return 'An automation';
     return clean.length > 120 ? `${clean.slice(0, 119)}…` : clean;
 }
 
@@ -54,14 +54,14 @@ function fill(template, params) {
  */
 function shortMessage({ event, code = null, title = '', count = null }) {
     const chosen = code && MESSAGE_TEXT[code] ? code : (DEFAULT_CODE[event] || 'automation.notify.run_failed');
-    const params = { name: routineName(title), ...(count != null ? { count } : {}) };
+    const params = { name: automationName(title), ...(count != null ? { count } : {}) };
     return { code: chosen, params, text: fill(MESSAGE_TEXT[chosen], params) };
 }
 
 /** The "n more" message for held-back notifications of one event. */
 function bundleMessage({ event, title = '', count }) {
     const code = MESSAGE_TEXT[`automation.notify.bundle.${event}`] ? `automation.notify.bundle.${event}` : 'automation.notify.bundle.onError';
-    const params = { name: routineName(title), count: Number(count) || 0 };
+    const params = { name: automationName(title), count: Number(count) || 0 };
     return { code, params, text: fill(MESSAGE_TEXT[code], params) };
 }
 
@@ -75,13 +75,13 @@ const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 /**
  * The daily summary for one person.
  *
- * `items`: one per routine, { title, runs, failures, waiting, held }, where
+ * `items`: one per automation, { title, runs, failures, waiting, held }, where
  * `held` counts notifications that waited for this summary (success runs in
- * summary mode, throttled messages). Routines where nothing happened and
+ * summary mode, throttled messages). Automations where nothing happened and
  * nothing waits are left out; when that leaves nothing, there is no summary
  * (returns null) rather than a message that says nothing.
  *
- * The bell/Nextcloud line keeps to totals; the per-routine lines (routine
+ * The bell/Nextcloud line keeps to totals; the per-automation lines (automation
  * names and counts, no run data) are for the Bee Flow bell and the e-mail.
  *
  * @param {{ items: Array<{ automationId?: string, title: string, runs: number, failures: number, waiting: number, held?: number }>, link?: string|null }} p
@@ -90,7 +90,7 @@ function composeDigest({ items, link = null }) {
     const rows = (Array.isArray(items) ? items : [])
         .map(i => ({
             automationId: i.automationId || null,
-            title: routineName(i.title),
+            title: automationName(i.title),
             runs: Number(i.runs) || 0,
             failures: Number(i.failures) || 0,
             waiting: Number(i.waiting) || 0,
@@ -104,7 +104,7 @@ function composeDigest({ items, link = null }) {
         runs: t.runs + r.runs, failures: t.failures + r.failures, waiting: t.waiting + r.waiting,
     }), { runs: 0, failures: 0, waiting: 0 });
 
-    const params = { ...totals, routines: rows.length };
+    const params = { ...totals, automations: rows.length };
     const summaryParts = [plural(totals.runs, 'run', 'runs')];
     summaryParts.push(totals.failures ? `${totals.failures} failed` : 'none failed');
     if (totals.waiting) summaryParts.push(`${totals.waiting} still waiting`);
@@ -128,4 +128,4 @@ function composeDigest({ items, link = null }) {
     };
 }
 
-module.exports = { MESSAGE_TEXT, DEFAULT_CODE, routineName, shortMessage, bundleMessage, talkText, composeDigest };
+module.exports = { MESSAGE_TEXT, DEFAULT_CODE, automationName, shortMessage, bundleMessage, talkText, composeDigest };

@@ -125,14 +125,15 @@ const EXPECTED = [
     // Typing is transient, but every open stream of the project receives it:
     // a per-member limiter keeps a loop from flooding them.
     'POST /:id/typing [requireProjectRoleMw,rateLimiter,validateRequest]',
-    // Notebooks / apps / routines / webpages filed into the project, and the
+    // Notebooks / apps / automations / webpages filed into the project, and the
     // approvals raised inside it. Listing is viewer+; moving one in or out is
     // editor+ AND owner-of-the-resource (the stores match on user_id, so a
     // member cannot move a colleague's work). Approvals are not movable at all.
     'GET /:id/resources [requireProjectRoleMw]',
     'PUT /:id/resources [requireProjectRoleMw,validateRequest]',
-    // How the Solution is wired to itself — which app runs which routine, which
-    // routine asks whom to approve. Viewer+, because it draws lines between
+    'POST /:id/resources/related [requireProjectRoleMw,validateRequest]',
+    // How the Solution is wired to itself — which app runs which automation, which
+    // automation asks whom to approve. Viewer+, because it draws lines between
     // entries the Content listing already shows and adds nothing to them.
     'GET /:id/graph [requireProjectRoleMw]',
     // "Te controleren": the aggregated findings and the one verdict the publish
@@ -172,6 +173,7 @@ const EXPECTED = [
     // de inhoudsopgave van élke versie die er ooit is geweest, ook van
     // entiteiten die er nu niet meer in zitten. Dezelfde rol als exporteren.
     'GET /:id/package/releases [featureGate,requireProjectRoleMw,requireSolutionProject]',
+    'GET /:id/package/releases/:releaseId [featureGate,requireProjectRoleMw,validateRequest,requireSolutionProject]',
     // Hoe vaak deze Oplossing is geïnstalleerd: twee getallen, in de eigen
     // organisatie en elders op deze instantie. De ENIGE plek waar een
     // Blueprint-antwoord over de org-grens heen kijkt, en daarom op de
@@ -311,6 +313,33 @@ const EXPECTED = [
     'GET /:id/compliance-hints [requireProjectRoleMw]',
     'POST /:id/compliance-hints/:key/dismiss [requireProjectRoleMw,validateRequest]',
     'POST /:id/compliance-hints/:key/snooze [requireProjectRoleMw,validateRequest]',
+    // Solution stages, releases and deployments (routes/projects/stages): gated
+    // by the stage feature flag and stageAuthMw instead of the shared role gate.
+    'GET /:id/pipeline [stageFeatureGate,stageAuthMw]',
+    'POST /:id/stages [stageFeatureGate,stageAuthMw,validateRequest]',
+    'DELETE /:id/stages/:stage [stageAuthMw,validateRequest,stageFeatureGate]',
+    'GET /:id/stages/:stage [stageFeatureGate,stageAuthMw]',
+    'PATCH /:id/stages/:stage [stageAuthMw,validateRequest,stageFeatureGate,stageFeatureGate]',
+    'GET /:id/stages/:stage/requirements [stageFeatureGate,stageAuthMw,validateRequest]',
+    'PUT /:id/stages/:stage/bindings [stageFeatureGate,stageAuthMw,validateRequest]',
+    'GET /:id/variables [stageFeatureGate,stageAuthMw]',
+    'PUT /:id/variables [stageFeatureGate,stageAuthMw,validateRequest]',
+    'GET /:id/stages/:stage/variables [stageFeatureGate,stageAuthMw]',
+    'PUT /:id/stages/:stage/variables [stageFeatureGate,stageAuthMw,validateRequest]',
+    'PATCH /:id/stages/:stage/parts/:ref [stageFeatureGate,stageAuthMw,validateRequest]',
+    'POST /:id/stages/:stage/pause [stageFeatureGate,stageAuthMw,validateRequest]',
+    'POST /:id/stages/:stage/resume [stageFeatureGate,stageAuthMw,validateRequest]',
+    'PATCH /:id/parts/:ref/options [stageFeatureGate,stageAuthMw,validateRequest]',
+    'POST /:id/releases [stageFeatureGate,stageAuthMw,validateRequest]',
+    'GET /:id/releases [stageFeatureGate,stageAuthMw]',
+    'GET /:id/releases/:releaseId [stageFeatureGate,stageAuthMw]',
+    'POST /:id/stages/:stage/plan [stageFeatureGate,stageAuthMw,validateRequest]',
+    'POST /:id/release-and-deploy [stageFeatureGate,stageAuthMw,validateRequest]',
+    'POST /:id/stages/:stage/deployments [stageFeatureGate,stageAuthMw,validateRequest]',
+    'GET /:id/deployments [stageFeatureGate,stageAuthMw,validateRequest]',
+    'GET /:id/deployments/:depId [stageFeatureGate,stageAuthMw]',
+    'POST /:id/deployments/:depId/cancel [stageFeatureGate,stageAuthMw,validateRequest]',
+    'POST /:id/deployments/:depId/retry [stageFeatureGate,stageAuthMw,validateRequest]',
 ];
 
 test('projects route table and per-route role gates match the frozen baseline', () => {
@@ -329,7 +358,7 @@ test('the self-detach route is ordered ABOVE the /:id family', () => {
 
 test('every /:id route carries the shared role gate', () => {
     const ungated = flatten(router.stack).filter(r =>
-        / \/:id/.test(r) && !r.includes('requireProjectRoleMw')
+        / \/:id/.test(r) && !r.includes('requireProjectRoleMw') && !r.includes('stageAuthMw')
     );
     // The two deliberate exceptions, each authorized by who the caller is
     // rather than by their project role:

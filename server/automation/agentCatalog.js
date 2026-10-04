@@ -1,12 +1,12 @@
 /**
- * "Deze routine noemt een agent — mag die hier draaien?" — de SAVE-kant van R2.
+ * "Deze automatisering noemt een agent — mag die hier draaien?" — de SAVE-kant van R2.
  *
  * ── WAAROM DIT NIET IN validate/stepRules.js ZIT ────────────────────
  * De regel staat daar wél; het ANTWOORD kan daar niet vandaan komen. Bestaat
  * de agent, zit hij in dezelfde organisatie, is hij gepubliceerd: dat zijn drie
  * databasevragen, en `validate/` is bewust de pure pass (hij draait in de
  * builder, bij import, en in tests zonder database erachter). Dus levert deze
- * module de catalogus — een Set met de ids die deze routine mág gebruiken — en
+ * module de catalogus — een Set met de ids die deze automatisering mág gebruiken — en
  * geeft de route die door als `availableAgents`. Precies de constructie die
  * `availableTools` al gebruikt, en dezelfde splitsing als
  * `core/kb/automationKbCheck.js` voor kennisbanken.
@@ -17,12 +17,12 @@
  * agent van een andere organisatie, een agent die niet met de eigenaar gedeeld
  * is en een agent die nooit gepubliceerd is vallen alle vier op dezelfde manier
  * uit de Set, en `stepRules.js` maakt er één melding van. Zou het onderscheid
- * hier of daar overleven, dan is de routine-editor een bestaans-orakel voor
+ * hier of daar overleven, dan is de automation-editor een bestaans-orakel voor
  * elke andere workspace op deze installatie: typ een id, lees aan de
  * foutmelding af of hij ergens bestaat.
  *
  * ── DEZELFDE VRAAG ALS DE RUN, MAAR EEN DAG EERDER ──────────────────
- * `mayRoutineUseAgent` hieronder stelt exact de vraag die
+ * `mayAutomationUseAgent` hieronder stelt exact de vraag die
  * `core/automationRunner/aiStepAgent.js` (`_mayUseAgent`) bij ELKE run opnieuw
  * stelt. Dat die twee gelijk blijven is niet vanzelfsprekend, dus het is een
  * test (automation/validate.agentStep.test.js) en geen belofte: de test draait
@@ -80,12 +80,12 @@ function collectAgentIds(definition) {
 }
 
 /**
- * Mag deze routine deze agent inzetten?
+ * Mag deze automatisering deze agent inzetten?
  *
  * De vier regels, in de volgorde waarin ze beslissen:
  *
  *   eigenaar                → ja, ook ongepubliceerd. Je eigen agent in je
- *                             eigen routine is geen deel-vraag.
+ *                             eigen automation is geen deel-vraag.
  *   niet gepubliceerd       → nee. Publiceren is wat een agent van een concept
  *                             tot iets maakt waar een ander op kan bouwen — en
  *                             dat geldt voor de VERSIE net zo goed als voor de
@@ -97,12 +97,12 @@ function collectAgentIds(definition) {
  * Een groepenlijst die niet te lezen was is leeg, en leeg betekent hier "in geen
  * enkele groep": onbekend versmalt, ook hier.
  *
- * `owner_id`-gelijkheid alléén zou te streng zijn (een routine mag een gedeelde
+ * `owner_id`-gelijkheid alléén zou te streng zijn (een automatisering mag een gedeelde
  * org-agent inzetten) en `organization_id`-gelijkheid alléén te ruim (de
- * ongedeelde agent van een collega hoort niet in de routine van een ander).
+ * ongedeelde agent van een collega hoort niet in de automatisering van een ander).
  *
  * @param {object} agent   een rij zoals `agentStore.getForRuntime` hem geeft
- * @param {object} p       { userId, orgId, groups } van de ROUTINE-EIGENAAR
+ * @param {object} p       { userId, orgId, groups } van de AUTOMATION-EIGENAAR
  */
 /**
  * Draait deze rij op zijn GEPUBLICEERDE config?
@@ -118,7 +118,7 @@ function collectAgentIds(definition) {
  * serveert `getForRuntime` de LIVE conceptconfig (`runtimeSource: 'live'`).
  *
  * Voor de EIGENAAR is dat prima — die kent zijn eigen klad. Voor een ander
- * niet: dan draait een onbewaakte routine op de nog-in-bewerking `config.tools`
+ * niet: dan draait een onbewaakte automatisering op de nog-in-bewerking `config.tools`
  * van een collega (precies de per-actie-grants waarop de hele aftrek in
  * `core/automationRunner/aiStepAgent.js` rust), zijn concept-kennisbanken en
  * zijn conceptprompt — en verandert élke autosave in de agent-editor per direct
@@ -137,7 +137,7 @@ function servesPublishedConfig(agent) {
     return Number(agent.published_version) > 0;
 }
 
-function mayRoutineUseAgent(agent, { userId = null, orgId = null, groups = [] } = {}) {
+function mayAutomationUseAgent(agent, { userId = null, orgId = null, groups = [] } = {}) {
     if (!agent) return false;
     if (agent.owner_id && userId && agent.owner_id === userId) return true;
     if (!agent.is_published) return false;
@@ -155,10 +155,10 @@ function mayRoutineUseAgent(agent, { userId = null, orgId = null, groups = [] } 
 }
 
 /**
- * De catalogus voor één definitie: de agent-ids die deze routine mag gebruiken.
+ * De catalogus voor één definitie: de agent-ids die deze automatisering mag gebruiken.
  *
  * Alleen de ids die de definitie NOEMT worden opgezocht — niet de hele
- * bibliotheek. Een routine noemt er hooguit een handvol, en de vraag "welke
+ * bibliotheek. Een automatisering noemt er hooguit een handvol, en de vraag "welke
  * agents bestaan er nog meer" hoeft nergens beantwoord te worden om deze te
  * beantwoorden.
  *
@@ -176,7 +176,7 @@ async function agentCatalogFor(definition, { userId = null, orgId = null, groups
         const usable = new Set();
         for (const id of ids) {
             const agent = await store.getForRuntime(id);
-            if (mayRoutineUseAgent(agent, { userId, orgId, groups })) usable.add(id);
+            if (mayAutomationUseAgent(agent, { userId, orgId, groups })) usable.add(id);
         }
         return usable;
     } catch (e) {
@@ -194,24 +194,24 @@ async function agentCatalogFor(definition, { userId = null, orgId = null, groups
  * ── WAAROM DIT NAAST agentCatalogFor STAAT ──────────────────────────
  * `agentCatalogFor` krijgt `{userId, orgId, groups}` aangereikt, en dat is
  * precies het stuk dat elke aanroeper anders deed: de activatie-route pakte de
- * STEMPEL op de routine-rij (`a.organizationId`) met de sessie als terugval, de
+ * STEMPEL op de automation-rij (`a.organizationId`) met de sessie als terugval, de
  * run leest het LIDMAATSCHAP van de eigenaar vers uit `users`
  * (`ctx.userHomeOrgId`, execution.js), en de kiezer weer iets anders. Drie
- * antwoorden op één vraag betekent dat een van de drie een routine goedkeurt
+ * antwoorden op één vraag betekent dat een van de drie een automatisering goedkeurt
  * die de run weigert — groen op het scherm, elke nacht `agent_unavailable`.
  *
  * Dus staat de vraag hier één keer, en stellen alle save- en activatiepaden hem
- * zo: de EIGENAAR van de routine, zijn huidige organisatie, zijn huidige
+ * zo: de EIGENAAR van de automatisering, zijn huidige organisatie, zijn huidige
  * groepen. Een beheerder die iemand naar een andere organisatie verplaatst
- * verandert daarmee wat zijn routines mogen — dat is het antwoord dat klopt,
+ * verandert daarmee wat zijn automatiseringen mogen — dat is het antwoord dat klopt,
  * want het is ook wat de run doet.
  *
  * Fail-open in zijn GEHEEL, net als `agentCatalogFor`: een identiteitslezing
  * die niet lukt levert `null` (geen catalogus, dus geen regel), nooit een halve
  * Set waarin een agent ten onrechte als "mag niet" wordt gerapporteerd.
  *
- * @param {object} definition  de routine-definitie
- * @param {string} ownerId     de EIGENAAR van de routine (niet de drukker)
+ * @param {object} definition  de automation-definitie
+ * @param {string} ownerId     de EIGENAAR van de automatisering (niet de drukker)
  * @returns {Promise<Set<string>|null>}
  */
 async function agentCatalogForOwner(definition, ownerId, { deps = {} } = {}) {
@@ -234,4 +234,4 @@ async function agentCatalogForOwner(definition, ownerId, { deps = {} } = {}) {
     return agentCatalogFor(definition, { userId: ownerId, orgId, groups, deps });
 }
 
-module.exports = { collectAgentIds, mayRoutineUseAgent, agentCatalogFor, agentCatalogForOwner, servesPublishedConfig };
+module.exports = { collectAgentIds, mayAutomationUseAgent, agentCatalogFor, agentCatalogForOwner, servesPublishedConfig };

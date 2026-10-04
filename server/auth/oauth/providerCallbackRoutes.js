@@ -729,7 +729,7 @@ router.get('/callback/:provider', async (req, res) => {
         // silently downgrades the grant (see microsoftRefreshScope).
         if (tokenData.scope) req.session.oauthScope = tokenData.scope;
 
-        // Long-lived encrypted vault copy for unattended work (routines, App
+        // Long-lived encrypted vault copy for unattended work (automations, App
         // Studio mailbox syncs). The vault key is org-scoped, so an account
         // without an organisation needs the same per-user scope the connector
         // routes already use — skipping the write there meant those users' work

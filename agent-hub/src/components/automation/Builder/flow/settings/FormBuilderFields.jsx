@@ -36,7 +36,7 @@ import { walkPath, previewValue } from '../../../../../utils/bindingHelpers';
  *   variant     — 'input' (a page with questions) or 'ending' (a closing page:
  *                 text only, no questions, no submit button)
  *   allowVariables — offer the {} picker on every text slot, so the page can
- *                 greet the visitor by name or summarise what the routine did.
+ *                 greet the visitor by name or summarise what the automation did.
  *                 OFF for the trigger: page one is rendered before anything has
  *                 run, and the server passes it no interpolator, so a `{{…}}`
  *                 there would reach the visitor verbatim.
@@ -221,7 +221,7 @@ export default function FormBuilderFields({
     onTestSubmit = null,
     // (from, to) => number|undefined. Renames a question's BINDING NAME and
     // rewrites every step that points at it, in one edit — see
-    // BindingNameField. Supplied only where the whole routine is in scope (the
+    // BindingNameField. Supplied only where the whole automation is in scope (the
     // builder); null in the standalone Forms editor, which can see the form but
     // not the steps that bind it, and where the name is therefore read-only.
     onRenameField = null,
@@ -350,7 +350,7 @@ export default function FormBuilderFields({
                 <div className="text-[11px] text-[var(--text-secondary)] leading-snug">
                     <span className="font-semibold text-[var(--text-primary)]">Test this form.</span>{' '}
                     Fill it in below and press its Submit button to send a real test through this
-                    routine — nothing goes live, and no visitor sees it.
+                    automation — nothing goes live, and no visitor sees it.
                 </div>
             )}
             <button
@@ -390,7 +390,7 @@ export default function FormBuilderFields({
             <FormRow
                 label={isEnding ? 'Message' : 'Intro text'}
                 hint={isEnding
-                    ? `Tell the visitor what happened.${varsHint || ' Use {{steps.…}} to show what the routine did — it is filled in when the page is shown.'}`
+                    ? `Tell the visitor what happened.${varsHint || ' Use {{steps.…}} to show what the automation did — it is filled in when the page is shown.'}`
                     : `Shown under the title. Optional.${varsHint}`}
             >
                 {textSlot({ slot: 'description', rows: isEnding ? 4 : 2 })}
@@ -444,7 +444,7 @@ export default function FormBuilderFields({
             )}
 
             {/* A closing page asks nothing, so it has no Questions block — but
-                it IS where a document the routine just made should land. Only
+                it IS where a document the automation just made should land. Only
                 display fields are offered here; anything that collected input
                 would have no way to be submitted. */}
             {isEnding && (
@@ -452,7 +452,7 @@ export default function FormBuilderFields({
                     <div className={subLabelClass()}>Downloads</div>
                     {displayFields.length === 0 && (
                         <div className="text-[11px] text-[var(--text-tertiary)] italic">
-                            Nothing to hand over — offer a file the routine made, to save or to open in Notebooks.
+                            Nothing to hand over — offer a file the automation made, to save or to open in Notebooks.
                         </div>
                     )}
                     {displayFields.map(({ field, index }) => (
@@ -688,7 +688,7 @@ function FieldCard({ field, index, count, bindingBase, onChange, onRemove, onMov
 function AppPickEditor({ field, index, onChange }) {
     const sources = usePickSources();
     const chosen = sources.find(s => s.id === field.source) || null;
-    // A source that is set but unknown to this install — an imported routine,
+    // A source that is set but unknown to this install — an imported automation,
     // or an app that has since been removed. Said out loud rather than quietly
     // reset, because resetting would change what the form asks for.
     const unknown = !!field.source && sources.length > 0 && !chosen;
@@ -755,7 +755,7 @@ function AppPickEditor({ field, index, onChange }) {
                     checked={field.withText !== false}
                     onChange={(e) => onChange({ withText: e.target.checked })}
                 />
-                Bring the content into the routine
+                Bring the content into the automation
             </label>
             <p className="text-[10px] text-[var(--text-tertiary)]">
                 {field.withText !== false

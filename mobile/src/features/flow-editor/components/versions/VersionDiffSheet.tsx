@@ -1,6 +1,6 @@
 /**
  * One saved version, compared — the web panel's DiffModal as a tall sheet.
- * By default against the routine as it is saved now; "Compare with" picks
+ * By default against the automation as it is saved now; "Compare with" picks
  * another saved version instead (then the server's diff route answers, with
  * its list of steps by name). The plain-language summary comes first; "Raw
  * JSON" swaps it for the changed lines. Restore is offered unless this IS
@@ -72,7 +72,7 @@ export interface VersionDiffSheetProps {
     version: FlowVersionSummary;
     versions: readonly FlowVersionSummary[];
     currentVersion: number | null;
-    /** The routine as the server holds it now. */
+    /** The automation as the server holds it now. */
     currentDefinition: FlowDefinition | null;
     restoring: boolean;
     onRestore: (version: FlowVersionSummary) => void;

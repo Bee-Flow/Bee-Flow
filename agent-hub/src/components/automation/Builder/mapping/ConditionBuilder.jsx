@@ -69,7 +69,7 @@ export default function ConditionBuilder({
     value = '', onChange, onFocusField, previewSample = null, context = 'condition',
     fieldOptions = null, fieldBase = 'item', showSerialized = true,
     // Example paths for the two free-text boxes. App Studio has no 
-    // root, so the routines-shaped defaults below sent a Studio author off
+    // root, so the automations-shaped defaults below sent a Studio author off
     // writing an expression that could never resolve.
     placeholders = null,
     topics,

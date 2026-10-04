@@ -444,9 +444,9 @@ describe('ExecutionView — retry, cancel and the run-level confirm', () => {
 
     it('DECLINES a run-level first-run confirm — approveRun gets "reject", not an approval', async () => {
         // Reject reaches the server as a reject: the run is closed and the
-        // routine's confirm gate stays on. The branch used to drop the word
+        // automation's confirm gate stays on. The branch used to drop the word
         // and call approveRun bare, which the server read as an approval —
-        // the one button whose job is to say "no" ran the routine and took
+        // the one button whose job is to say "no" ran the automation and took
         // the gate off for good.
         apiMock.getRun.mockResolvedValue({ ...RUN, status: 'awaiting_confirm' });
         await loaded();

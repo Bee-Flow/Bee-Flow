@@ -261,8 +261,8 @@ describe('NodeDetailView', () => {
         it('refuses an oversized payload client-side, before the PUT', () => {
             // The inspector PUTs the WHOLE definition on every save. One
             // oversized pin would 400 every later, unrelated edit to this
-            // routine, and failedPatchRef would retry into the same 400 — so
-            // the cap is what keeps the routine editable, not a nicety.
+            // automation, and failedPatchRef would retry into the same 400 — so
+            // the cap is what keeps the automation editable, not a nicety.
             const onSaveStep = vi.fn().mockResolvedValue(undefined);
             render(<NodeDetailView {...baseProps({ onSaveStep })} />);
 
@@ -365,8 +365,8 @@ describe('NodeDetailView — nothing on the drawer is hardcoded English', () => 
         // `hiddenCount > 0 ? `More options (${n})` : 'More options'` handed the
         // dictionary two half-sentences and built the rest in JavaScript.
         dutch({
-            'routines.ndv.more_options': 'Meer opties',
-            'routines.ndv.more_options_n': 'Nog {n} opties',
+            'automations.ndv.more_options': 'Meer opties',
+            'automations.ndv.more_options_n': 'Nog {n} opties',
         });
         render(<NodeDetailView {...baseProps({ density: 'quick', onDensityChange: vi.fn() })} />);
         expect(screen.getByText(/Nog 2 opties/)).toBeTruthy();
@@ -375,8 +375,8 @@ describe('NodeDetailView — nothing on the drawer is hardcoded English', () => 
 
     it('falls back to the plain form when nothing is hidden', () => {
         dutch({
-            'routines.ndv.more_options': 'Meer opties',
-            'routines.ndv.more_options_n': 'Nog {n} opties',
+            'automations.ndv.more_options': 'Meer opties',
+            'automations.ndv.more_options_n': 'Nog {n} opties',
         });
         // mode 'advanced' hides nothing, so hiddenCount is 0.
         render(<NodeDetailView {...baseProps({ density: 'quick', mode: 'advanced', onDensityChange: vi.fn() })} />);
@@ -387,11 +387,11 @@ describe('NodeDetailView — nothing on the drawer is hardcoded English', () => 
     it('translates the header chrome a screen reader reads out', () => {
         dutch({
             'common.close': 'Sluiten',
-            'routines.ndv.test_step': 'Uitvoeren',
-            'routines.ndv.test_step_title': 'Alleen deze stap uitvoeren',
-            'routines.ndv.drawer_columns': 'Kolommen',
-            'routines.ndv.resize_editor': 'Hoogte aanpassen',
-            'routines.ndv.resize_column': 'Kolombreedte aanpassen',
+            'automations.ndv.test_step': 'Uitvoeren',
+            'automations.ndv.test_step_title': 'Alleen deze stap uitvoeren',
+            'automations.ndv.drawer_columns': 'Kolommen',
+            'automations.ndv.resize_editor': 'Hoogte aanpassen',
+            'automations.ndv.resize_column': 'Kolombreedte aanpassen',
         });
         render(<NodeDetailView {...baseProps()} />);
         expect(screen.getByLabelText('Sluiten')).toBeTruthy();
@@ -405,7 +405,7 @@ describe('NodeDetailView — nothing on the drawer is hardcoded English', () => 
     it('names the dialog after the step, interpolating instead of concatenating', () => {
         // `Edit ${headerTitle(...)}` cannot be reordered; a language that says
         // the name first has to be able to.
-        dutch({ 'routines.ndv.edit_step': '{name} bewerken' });
+        dutch({ 'automations.ndv.edit_step': '{name} bewerken' });
         render(<NodeDetailView {...baseProps()} />);
         expect(screen.getByLabelText('My AI bewerken')).toBeTruthy();
     });
@@ -414,10 +414,10 @@ describe('NodeDetailView — nothing on the drawer is hardcoded English', () => 
         const second = { id: 's2', type: 'ai_step', label: 'Second', inputs: {} };
         const def = { ...definition, steps: [step, second], edges: [{ from: 's1', to: 's2' }] };
         dutch({
-            'routines.ndv.prev_step': 'Vorige stap',
-            'routines.ndv.prev_step_title': 'Vorige stap in de flow (Alt+←)',
-            'routines.ndv.next_step': 'Volgende stap',
-            'routines.ndv.next_step_title': 'Volgende stap in de flow (Alt+→)',
+            'automations.ndv.prev_step': 'Vorige stap',
+            'automations.ndv.prev_step_title': 'Vorige stap in de flow (Alt+←)',
+            'automations.ndv.next_step': 'Volgende stap',
+            'automations.ndv.next_step_title': 'Volgende stap in de flow (Alt+→)',
         });
         render(<NodeDetailView {...baseProps({ definition: def, rootDefinition: def, onNavigate: vi.fn() })} />);
         expect(screen.getByLabelText('Vorige stap')).toBeTruthy();
@@ -428,12 +428,12 @@ describe('NodeDetailView — nothing on the drawer is hardcoded English', () => 
 
     it('translates the plumbing row — duplicate, delete, retry', async () => {
         dutch({
-            'routines.ndv.duplicate': 'Dupliceren',
-            'routines.ndv.duplicate_title': 'Deze stap dupliceren',
+            'automations.ndv.duplicate': 'Dupliceren',
+            'automations.ndv.duplicate_title': 'Deze stap dupliceren',
             'common.delete': 'Verwijderen',
-            'routines.ndv.delete_title': 'Deze stap verwijderen',
-            'routines.ndv.retry': 'Opnieuw',
-            'routines.ndv.retry_title': 'Opnieuw vanaf hier',
+            'automations.ndv.delete_title': 'Deze stap verwijderen',
+            'automations.ndv.retry': 'Opnieuw',
+            'automations.ndv.retry_title': 'Opnieuw vanaf hier',
         });
         render(<NodeDetailView {...baseProps({
             onDuplicateStep: vi.fn(),
@@ -453,9 +453,9 @@ describe('NodeDetailView — nothing on the drawer is hardcoded English', () => 
 
     it('translates the density controls both ways', () => {
         dutch({
-            'routines.ndv.expand_full': 'Volledig weergeven',
-            'routines.ndv.expand_full_title': 'Invoer en uitvoer naast elkaar',
-            'routines.ndv.shrink_quick': 'Terug naar het kleine venster',
+            'automations.ndv.expand_full': 'Volledig weergeven',
+            'automations.ndv.expand_full_title': 'Invoer en uitvoer naast elkaar',
+            'automations.ndv.shrink_quick': 'Terug naar het kleine venster',
         });
         render(<NodeDetailView {...baseProps({ density: 'quick', onDensityChange: vi.fn() })} />);
         expect(screen.getByLabelText('Volledig weergeven')).toBeTruthy();
@@ -467,8 +467,8 @@ describe('NodeDetailView — nothing on the drawer is hardcoded English', () => 
 
     it('translates the quick dialog\'s Output header and its Edit hint', () => {
         dutch({
-            'routines.ndv.output': 'Uitvoer',
-            'routines.ndv.edit_output_hint': 'Schrijf de uitvoer van deze stap met de hand',
+            'automations.ndv.output': 'Uitvoer',
+            'automations.ndv.edit_output_hint': 'Schrijf de uitvoer van deze stap met de hand',
         });
         render(<NodeDetailView {...baseProps({ density: 'quick', onDensityChange: vi.fn() })} />);
         const panel = screen.getByTestId('ndv-quick-output');
@@ -480,10 +480,10 @@ describe('NodeDetailView — nothing on the drawer is hardcoded English', () => 
         // OutputEditorPanel is a component in this file with no useTranslation
         // hook at all — every one of its eight strings was hardcoded.
         dutch({
-            'routines.ndv.output_editor_hint': 'Wat de stappen hierna moeten zien.',
-            'routines.ndv.output_json': 'Uitvoer-JSON',
+            'automations.ndv.output_editor_hint': 'Wat de stappen hierna moeten zien.',
+            'automations.ndv.output_json': 'Uitvoer-JSON',
             'common.cancel': 'Annuleren',
-            'routines.ndv.save_output': 'Uitvoer opslaan',
+            'automations.ndv.save_output': 'Uitvoer opslaan',
         });
         render(<NodeDetailView {...baseProps()} />);
         fireEvent.click(screen.getByTestId('ndv-edit-output'));

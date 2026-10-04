@@ -201,7 +201,7 @@ function compactSample(value, { maxArray = 1, maxDepth = 4, maxString = 120, max
  *   - a successful step that produced NOTHING (`empty: true` — an empty
  *     list, `count: 0`, a forEach over zero items) is flagged, and so is an
  *     extraction or AI step whose top-level fields came back `null`
- *     (`nullKeys`): a routine that runs clean and does nothing is the quiet
+ *     (`nullKeys`): an automation that runs clean and does nothing is the quiet
  *     failure a person cannot see either;
  *   - `ok` + `note` say in one line whether there is anything to fix.
  */

@@ -11,16 +11,16 @@
  *   GET /:id/readiness          the checklist                             (view)
  *
  * The automatic check is automation/aiActAuto.js; the same check runs inside
- * activate and publish (routes/automation/crud.js), so a routine Bee can
+ * activate and publish (routes/automation/crud.js), so an automation Bee can
  * assess by itself goes live without anyone opening this page.
  *
  * The hub's register (routes/compliance/aiAct.js) is admin_compliance only and
- * sits behind the `compliance_hub_gdpr` mount. These paths are the routine's
+ * sits behind the `compliance_hub_gdpr` mount. These paths are the automation's
  * own: its owner and the people who may edit it record the check here, into
  * the same register row, evidence chain and event (compliance/aiAct/attest.js).
  * An org admin with manage_automations counts as owner (automation/access.js).
  *
- * Without `compliance_hub_gdpr` in the routine's organisation there is no
+ * Without `compliance_hub_gdpr` in the automation's organisation there is no
  * check to do: every answer says `required: false` (status 'not_required'),
  * the settings page hides the card, activation is not gated, and a PUT is
  * refused with 403 `ai_act_not_available`.
@@ -150,7 +150,7 @@ function makeAiActRouter(overrides = {}) {
         res.json(describe(state, loaded.acc));
     });
 
-    // Bee checks by itself. Only somebody who may edit the routine makes Bee
+    // Bee checks by itself. Only somebody who may edit the automation makes Bee
     // record the result; a viewer sees the same answer without a write.
     router.get('/:id/ai-act/check', async (req, res) => {
         const loaded = await load(req, res, 'view');

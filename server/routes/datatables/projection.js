@@ -27,7 +27,7 @@ function publicTable(t, grade) {
         subjectColumn: t.subjectColumn, projectId: t.projectId,
         // NULL for an ordinary table. Non-null names the column contract the
         // platform fills in — the Studio needs it to explain why the column
-        // designer refuses, and the routine editor to filter its picker.
+        // designer refuses, and the automation editor to filter its picker.
         managedKind: t.managedKind,
         // A source mirror's two blocks, in their PUBLIC projection: where
         // the rows come from and how the last refresh went. The column map

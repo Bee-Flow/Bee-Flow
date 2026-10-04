@@ -41,10 +41,10 @@ function AiStepFields({ draft, set, modelTiers, catalog = null, groups = [], onF
                 renderTask={({ withAgentOrSkill }) => (
                     <ProblemRing problem={promptProblem}>
                     <FormRow
-                        label={withAgentOrSkill ? t('routines.agent_step.task_label', 'Task for this step') : 'Prompt'}
+                        label={withAgentOrSkill ? t('automations.agent_step.task_label', 'Task for this step') : 'Prompt'}
                         required
                         hint={withAgentOrSkill
-                            ? t('routines.agent_step.task_hint', 'Short: the skill already knows how. Drop in fields from earlier steps with the {} button.')
+                            ? t('automations.agent_step.task_hint', 'Short: the skill already knows how. Drop in fields from earlier steps with the {} button.')
                             : 'What the AI should do. Drag data from the Input panel (or use the {} button) to drop in a value from a previous step — it\'s filled in with the real value when the step runs.'}
                     >
                         <TemplateField
@@ -54,6 +54,7 @@ function AiStepFields({ draft, set, modelTiers, catalog = null, groups = [], onF
                             onFocusField={onFocusField}
                             previewSample={previewSample}
                             placeholder="Summarise this email and decide if it needs an urgent reply."
+                            listAs="json"
                         />
                     </FormRow>
                     </ProblemRing>
@@ -287,7 +288,7 @@ function AiStepToolSelect({ draft, set, catalog }) {
  * over GET /api/kb, same data source and interaction as App Studio's
  * KbMultiSelect (AiActionEditors.jsx), reimplemented locally rather than
  * imported: that one is styled with App Studio's FormField/INPUT_CLS, and the
- * routine Builder has its own FormRow/formPrimitives chrome the rest of this
+ * automation Builder has its own FormRow/formPrimitives chrome the rest of this
  * file already uses — a straight import would mix two design systems on one
  * node. The runtime authority is server-side (execAiStep re-checks every id
  * against the running user/org before ever searching it); this list is
@@ -295,7 +296,7 @@ function AiStepToolSelect({ draft, set, catalog }) {
  * signed-in user, same as every other KB picker in the product.
  *
  * `?context=ai_step` (K5) narrows it further, to the bases whose owner made
- * them available to ROUTINES. Without it the picker offers bases that
+ * them available to AUTOMATIONS. Without it the picker offers bases that
  * activation will refuse — and the refusal arrives days later, on the step
  * that was supposed to go live, rather than here where the choice was made.
  * A base that never expressed a context still appears: a missing value means

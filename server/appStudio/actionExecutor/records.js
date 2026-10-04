@@ -292,6 +292,19 @@ function sourceRefusal(e) {
 }
 
 /**
+ * A row write to a Solution stage's reference table (queryCompiler
+ * RowsLockedError): the rows are the release's. Answered as a step failure
+ * that keeps its code, so the app can say "change it in Dev and deploy"
+ * instead of the dispatcher's generic "Step failed". The record API and the
+ * other choke-point callers get the error itself (status 409, code
+ * `managed_part`) and answer it as their own 409.
+ */
+function managedRefusal(e) {
+    if (!(e instanceof queryCompiler.RowsLockedError)) return null;
+    return { ok: false, error: e.message, code: 'managed_part' };
+}
+
+/**
  * De context waarin `datatableSource` een kijker verwacht — dezelfde vorm die
  * dataReadRunner meegeeft, zodat lezen en schrijven één beslissing delen.
  * `writeViewer` vult de rol aan wanneer de route alleen `{id}` stuurde.
@@ -324,12 +337,15 @@ function resolveWrite(app, table, viewer, action) {
  *
  * De quota is die van de TENANT (`assertDatatableQuota`), niet de per-app quota:
  * de rijen tellen mee in de organisatie waar ze staan. Dat is dezelfde controle
- * die routes/datatables.js en de routine-runner draaien, zodat een app niet het
+ * die routes/datatables.js en de automation-runner draaien, zodat een app niet het
  * ene pad is waarlangs een volle organisatie toch verder groeit.
  */
 async function datatableInsert(bound, rows) {
     const list = Array.isArray(rows) ? rows : [];
     if (!list.length) return [];
+    // A locked reference table refuses before the quota is read: "the rows
+    // are the release's" is the answer, not "the table is full".
+    queryCompiler.assertRowsWritable(bound.tableMeta);
     const { assertDatatableQuota } = require('../../core/dataEngine/datatableLimits');
     await assertDatatableQuota(bound.scope, { table: bound.datatable, addRows: list.length });
 
@@ -448,7 +464,10 @@ async function createDatatableRecord(app, table, step, ctx) {
 
     const scope = buildServerScope(ctx);
     const values = resolveValues(step.values, ctx, scope);
-    const [id] = await datatableInsert(bound, [values]);
+    let id;
+    try {
+        [id] = await datatableInsert(bound, [values]);
+    } catch (e) { const r = managedRefusal(e); if (r) return r; throw e; }
     return { ok: true, result: { id, created: true } };
 }
 
@@ -469,7 +488,10 @@ async function updateDatatableRecord(app, table, step, ctx) {
         : null;
     const expectedUpdatedAt = typeof expectedRaw === 'string' && expectedRaw ? expectedRaw : null;
 
-    const changes = await datatableUpdate(bound, recordId, values, expectedUpdatedAt);
+    let changes;
+    try {
+        changes = await datatableUpdate(bound, recordId, values, expectedUpdatedAt);
+    } catch (e) { const r = managedRefusal(e); if (r) return r; throw e; }
     if (!changes) {
         if (expectedUpdatedAt) {
             return { ok: false, error: 'This record was changed by someone else — refresh and try again.', code: 'record_conflict' };
@@ -491,7 +513,10 @@ async function deleteDatatableRecord(app, table, step, ctx) {
         bound = await datatableSource.resolveDatatableWrite(sourceCtx(app, ctx), table, 'delete');
     } catch (e) { const r = sourceRefusal(e); if (r) return r; throw e; }
 
-    const changes = await datatableDelete(bound, recordId);
+    let changes;
+    try {
+        changes = await datatableDelete(bound, recordId);
+    } catch (e) { const r = managedRefusal(e); if (r) return r; throw e; }
     if (!changes) return { ok: false, error: 'Record not found' };
     return { ok: true, result: { id: recordId, deleted: true, changes } };
 }

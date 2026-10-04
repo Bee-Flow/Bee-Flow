@@ -1,11 +1,11 @@
 /**
- * A routine's "used by" answer (GET /api/automation/:id/usage) as the shared
- * delete guard reads one, so deleting a routine asks the same question, in
+ * An automation's "used by" answer (GET /api/automation/:id/usage) as the shared
+ * delete guard reads one, so deleting an automation asks the same question, in
  * the same sheet (ui/GuardedDeleteSheet), as deleting a webpage or a skill:
  * what starts failing, and whether the list is complete.
  *
- * The routine's DELETE does not refuse on its own, so the phone asks first
- * and always shows the answer: an app button that calls a deleted routine
+ * The automation's DELETE does not refuse on its own, so the phone asks first
+ * and always shows the answer: an app button that calls a deleted automation
  * breaks silently. `complete: false` (the index has not seen every app yet)
  * and a failed read both say "not everything could be checked" — never
  * "nothing uses this".

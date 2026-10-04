@@ -1,10 +1,11 @@
 import { ChevronDown } from 'lucide-react';
-import { onBindingDragOver, getBindingDropPath } from './bindingDnd';
 import React, { useCallback, useRef, useState } from 'react';
-import { previewValue } from '../../../../utils/bindingHelpers';
+import { onBindingDragOver, getBindingDropPath } from './bindingDnd';
+import { useFormRowLabel } from './FormRowLabelContext';
 import { useTranslation } from '../../../../hooks/useTranslation';
-import { denseInputClass } from '../flow/settings/formStyles';
+import { previewValue } from '../../../../utils/bindingHelpers';
 import AnchoredMenu from '../../../shared/AnchoredMenu';
+import { denseInputClass } from '../flow/settings/formStyles';
 
 /**
  * FieldKeyCombobox — a field-NAME picker for the collection ops (Dedupe
@@ -29,6 +30,7 @@ export default function FieldKeyCombobox({
     label,
     onFocusField,
 }) {
+    const rowLabel = useFormRowLabel();
     const { t } = useTranslation();
     const [open, setOpen] = useState(false);
     const inputRef = useRef(null);
@@ -47,7 +49,7 @@ export default function FieldKeyCombobox({
         setOpen(true);
         onFocusField?.({
             id: label || placeholder || 'field',
-            label: label || placeholder || 'field',
+            label: label || rowLabel || '',
             insert: (path) => emit(lastSegment(path)),
         });
     };
@@ -67,9 +69,9 @@ export default function FieldKeyCombobox({
     const trimmed = String(value || '').trim();
     let warning = null;
     if (/\./.test(trimmed)) {
-        warning = t('routines.builder.field_key_dot', "Nested paths aren't supported here — pick a top-level field of each item.");
+        warning = t('automations.builder.field_key_dot', "Nested paths aren't supported here — pick a top-level field of each item.");
     } else if (trimmed && options.length > 0 && !options.some(o => o.key === trimmed)) {
-        warning = t('routines.builder.field_key_unknown', 'Not seen in the sample items — double-check the spelling.');
+        warning = t('automations.builder.field_key_unknown', 'Not seen in the sample items — double-check the spelling.');
     }
 
     return (
@@ -103,7 +105,7 @@ export default function FieldKeyCombobox({
                     className="divide-y divide-[var(--border-default)]"
                 >
                     <div className="px-2 py-1 text-[10px] uppercase tracking-wide font-semibold text-[var(--text-tertiary)] bg-[var(--bg-secondary)]/60 sticky top-0">
-                        {t('routines.builder.fields_of_items', 'Fields of each item')}
+                        {t('automations.builder.fields_of_items', 'Fields of each item')}
                     </div>
                     {options.map(o => (
                         <button

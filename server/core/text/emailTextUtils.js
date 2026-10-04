@@ -3,7 +3,7 @@
  * KB-article merge prompt.
  *
  * Extracted so the Support Studio inbox (services/supportTranscript.js) and the
- * KB-ingest routine tools (integrations/kbIngestTools.js) share ONE
+ * KB-ingest automation tools (integrations/kbIngestTools.js) share ONE
  * implementation. Pure functions: same input → same output, no I/O.
  *
  * NOTE: guard-service/app/services/pii_regex.py and pii_bsn.py are Python ports

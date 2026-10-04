@@ -99,6 +99,18 @@ const DeleteQuery = orEmpty(z.object({
 }).strict());
 
 /**
+ * The Solution-stage lock of a base, through the store that enforces it
+ * (stores/knowledgeBases.js `managedPayload`, `assertKbWrite`).
+ *
+ * The route tests that predate stages hand this router a store double
+ * without these two functions (detail.k5 / detail.validation); such a double
+ * holds no managed base, so it reports none and refuses nothing. The real
+ * store always has both.
+ */
+const managedOf = (kbId) => (typeof kbStore.managedPayload === 'function' ? kbStore.managedPayload(kbId) : null);
+const assertKbDeletable = (kbId) => (typeof kbStore.assertKbWrite === 'function' ? kbStore.assertKbWrite(kbId, ['delete']) : null);
+
+/**
  * Get a single KB with documents
  */
 router.get('/:id', requireAuth, validate({ query: NoQuery }), async (req, res) => {
@@ -136,6 +148,7 @@ router.get('/:id', requireAuth, validate({ query: NoQuery }), async (req, res) =
         totalChunks: counts.totalChunks,
         sourceCount,
         lastContentAt: kb.last_content_at || null,
+        managed: await managedOf(kb.id),
         documents,
     });
 });
@@ -279,6 +292,11 @@ router.delete('/:id', requireAuth, requirePermission('manage_knowledge'), valida
      * reach is not a consumer that is absent, and this is the one moment
      * where guessing wrong is unrecoverable.
      */
+    // A base a Solution stage manages is removed by a deploy, never here.
+    // Asked BEFORE the chunk purge below, which cannot be undone: the store's
+    // own refusal in deleteKB would come after the embeddings were gone.
+    await assertKbDeletable(kb.id);
+
     const confirmed = req.query.confirm === '1' || req.query.confirm === 'true';
     if (!confirmed) {
         const { usageForKb } = require('../../core/kb/kbUsage');

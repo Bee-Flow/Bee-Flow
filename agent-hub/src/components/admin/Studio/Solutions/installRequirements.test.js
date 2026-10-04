@@ -11,7 +11,7 @@ import { readBlueprint, buildResolutions, addressOf, CREATE_EMPTY } from './inst
  *   1. A HOLE IS RECOGNISED BY ITS EXACT SHAPE. `auth: null` is what the scrub
  *      leaves behind; a step that never had a credential has no `auth` key.
  *      Asking about the second would send somebody hunting for a credential
- *      the routine does not want.
+ *      the automation does not want.
  *   2. WHAT THE FILE ASKS FOR IS SHOWN, NEVER PRE-TICKED. The wizard's Connect
  *      step lists the tools a page asked for; the installer grants them, and a
  *      file cannot grant them by arriving.
@@ -20,8 +20,8 @@ import { readBlueprint, buildResolutions, addressOf, CREATE_EMPTY } from './inst
  *      out cannot ride along with the next one.
  */
 
-const routine = (ref, steps, over = {}) => ({
-    ref, kind: 'automation', title: `Routine ${ref}`,
+const automation = (ref, steps, over = {}) => ({
+    ref, kind: 'automation', title: `Automation ${ref}`,
     definition: { schemaVersion: 2, trigger: { id: 't', type: 'trigger' }, steps, ...over },
 });
 
@@ -38,7 +38,7 @@ describe('what is in the file', () => {
     it('counts the entities themselves, not what the report claims', () => {
         // The report is the exporter's claim; the entity arrays are the file.
         const read = readBlueprint(blueprint(
-            { automations: [routine('aut_1', []), routine('aut_2', [])] },
+            { automations: [automation('aut_1', []), automation('aut_2', [])] },
             { report: { counts: { automations: 99 }, warnings: [] } },
         ));
         expect(read.counts.automations).toBe(2);
@@ -70,7 +70,7 @@ describe('what the installer has to supply', () => {
             { id: 's2', type: 'datatable', datatableId: '', datatableKey: 'contacts' },
         ];
         const read = readBlueprint(blueprint({
-            automations: [routine('aut_1', steps)],
+            automations: [automation('aut_1', steps)],
             datatables: [{ ref: 'dt_1', key: 'invoices', name: 'Invoices' }],
         }));
         expect(read.requires.tables.map(t => t.key)).toEqual(['contacts']);
@@ -78,7 +78,7 @@ describe('what the installer has to supply', () => {
 
     it('never asks about a step that already names a table', () => {
         const read = readBlueprint(blueprint({
-            automations: [routine('aut_1', [
+            automations: [automation('aut_1', [
                 { id: 's1', type: 'datatable', datatableId: 'tbl_live', datatableKey: 'invoices' },
             ])],
         }));
@@ -89,7 +89,7 @@ describe('what the installer has to supply', () => {
         // "Pick a table" with nothing to say which one is not a question. The
         // install report names that step instead.
         const read = readBlueprint(blueprint({
-            automations: [routine('aut_1', [{ id: 's1', type: 'datatable', datatableId: '' }])],
+            automations: [automation('aut_1', [{ id: 's1', type: 'datatable', datatableId: '' }])],
         }));
         expect(read.requires.tables).toEqual([]);
     });
@@ -97,8 +97,8 @@ describe('what the installer has to supply', () => {
     it('one key asked for by two steps is ONE row, naming both', () => {
         const read = readBlueprint(blueprint({
             automations: [
-                routine('aut_1', [{ id: 's1', type: 'datatable', datatableId: '', datatableKey: 'invoices' }]),
-                routine('aut_2', [{ id: 's9', type: 'datatable', datatableId: '', datatableKey: 'invoices' }]),
+                automation('aut_1', [{ id: 's1', type: 'datatable', datatableId: '', datatableKey: 'invoices' }]),
+                automation('aut_2', [{ id: 's9', type: 'datatable', datatableId: '', datatableKey: 'invoices' }]),
             ],
         }));
         expect(read.requires.tables).toHaveLength(1);
@@ -108,9 +108,9 @@ describe('what the installer has to supply', () => {
     it('A CONNECTION IS ASKED ABOUT ONLY WHERE THE SCRUB REMOVED ONE', () => {
         // `auth: null` is the scrub's fingerprint. A step that never had a
         // credential has no `auth` key, and asking about it would send somebody
-        // looking for something the routine does not want.
+        // looking for something the automation does not want.
         const read = readBlueprint(blueprint({
-            automations: [routine('aut_1', [
+            automations: [automation('aut_1', [
                 { id: 's1', type: 'http_request', auth: null },
                 { id: 's2', type: 'http_request' },
                 { id: 's3', type: 'http_request', auth: { connectionId: 'conn_theirs' } },
@@ -123,7 +123,7 @@ describe('what the installer has to supply', () => {
         for (const field of ['assignee', 'approvers', 'escalateTo', 'finalApprover']) {
             const seated = field === 'approvers' ? [{ userId: 'u1' }] : { userId: 'u1' };
             const read = readBlueprint(blueprint({
-                automations: [routine('aut_1', [
+                automations: [automation('aut_1', [
                     { id: 'open', type: 'approval', approval: { details: 'Sign off?' } },
                     { id: 'taken', type: 'approval', approval: { [field]: seated } },
                 ])],
@@ -134,7 +134,7 @@ describe('what the installer has to supply', () => {
 
     it('reaches a step inside a flowlet, a loop body and a branch', () => {
         const read = readBlueprint(blueprint({
-            automations: [routine('aut_1',
+            automations: [automation('aut_1',
                 [
                     { id: 'loop', type: 'loop', body: [{ id: 'inLoop', type: 'http_request', auth: null }] },
                     { id: 'split', type: 'parallel', branches: [[{ id: 'inBranch', type: 'http_request', auth: null }]] },
@@ -174,9 +174,9 @@ describe('what the file ASKS to be allowed to do', () => {
         expect(read.grants).toEqual([]);
     });
 
-    it('a routine grant pointing INSIDE the bundle is not something to re-assign', () => {
+    it('an automation grant pointing INSIDE the bundle is not something to re-assign', () => {
         const read = readBlueprint(blueprint({
-            automations: [routine('aut_1', [])],
+            automations: [automation('aut_1', [])],
             webpages: [
                 page({ automations: [{ automationId: { $ref: 'aut_1' } }] }),
                 { ref: 'web_2', name: 'Other', bridgeGrants: { automations: [{ automationId: 'aut_elsewhere' }] } },
@@ -296,9 +296,9 @@ describe('wat het bestand over zijn eigen herkomst beweert', () => {
     it('de bewering verandert niets aan wat er geïnstalleerd wordt', () => {
         // Het herkomstblok is geen entiteit en geen vereiste: het staat naast
         // de inhoud en mag er niets aan toevoegen of van afhalen.
-        const plain = readBlueprint(blueprint({ automations: [routine('aut_1', [])] }));
+        const plain = readBlueprint(blueprint({ automations: [automation('aut_1', [])] }));
         const claimed = readBlueprint({
-            ...blueprint({ automations: [routine('aut_1', [])] }),
+            ...blueprint({ automations: [automation('aut_1', [])] }),
             source: { blueprintId: 'bp_van_iemand_anders', orgId: 'org_anders', orgName: 'Niet Wij' },
         });
         expect(claimed.counts).toEqual(plain.counts);

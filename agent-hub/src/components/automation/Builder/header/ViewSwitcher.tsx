@@ -14,10 +14,10 @@ interface ViewDef { id: BuilderTab; label: string; desc: string }
 // BFSF-343); only the words change.
 function views(t: TranslateFn): ViewDef[] {
     return [
-        { id: 'build', label: t('routines.header.view_editor', 'Editor'), desc: t('routines.header.view_editor_desc', 'Design the routine on the canvas') },
-        { id: 'settings', label: t('routines.header.view_settings', 'Settings'), desc: t('routines.header.view_settings_desc', 'Name, sharing and behaviour') },
-        { id: 'history', label: t('routines.header.view_runs', 'Runs'), desc: t('routines.header.view_runs_desc', 'What happened each time this routine ran') },
-        { id: 'versions', label: t('routines.header.view_versions', 'Versions'), desc: t('routines.header.view_versions_desc', 'Earlier versions you can open or make live') },
+        { id: 'build', label: t('automations.header.view_editor', 'Editor'), desc: t('automations.header.view_editor_desc', 'Design the automation on the canvas') },
+        { id: 'settings', label: t('automations.header.view_settings', 'Settings'), desc: t('automations.header.view_settings_desc', 'Name, sharing and behaviour') },
+        { id: 'history', label: t('automations.header.view_runs', 'Runs'), desc: t('automations.header.view_runs_desc', 'What happened each time this automation ran') },
+        { id: 'versions', label: t('automations.header.view_versions', 'Versions'), desc: t('automations.header.view_versions_desc', 'Earlier versions you can open or make live') },
     ];
 }
 
@@ -41,7 +41,7 @@ export default function ViewSwitcher({ tab, onTabChange, counts }: Props) {
             <div className="@max-[1080px]/bar:hidden">
                 <SegmentedControl
                     size="sm"
-                    ariaLabel={t('routines.header.views_label', 'Builder views')}
+                    ariaLabel={t('automations.header.views_label', 'Builder views')}
                     value={tab}
                     onChange={onTabChange}
                     options={defs.map(v => ({ value: v.id, label: v.label, badge: countFor(v.id, counts) }))}

@@ -81,17 +81,17 @@ export default function SmartTable({ rows, cols, onExpand = null }: SmartTablePr
                 <div className="flex items-center gap-2 px-3 py-[7px] border-t border-[var(--border-default)] text-[var(--text-tertiary)]">
                     {more > 0 && (
                         onExpand
-                            ? <button type="button" onClick={() => onExpand()} className="hover:text-[var(--text-primary)] hover:underline">{t('routines.output.more_rows', '+ {count} more', { count: more })}</button>
-                            : <span>{t('routines.output.more_rows', '+ {count} more', { count: more })}</span>
+                            ? <button type="button" onClick={() => onExpand()} className="hover:text-[var(--text-primary)] hover:underline">{t('automations.output.more_rows', '+ {count} more', { count: more })}</button>
+                            : <span>{t('automations.output.more_rows', '+ {count} more', { count: more })}</span>
                     )}
                     {technical.length > 0 && (
                         <span className="ml-auto text-right">
                             {showTech
-                                ? t('routines.output.tech_shown', '{count} technical columns shown', { count: technical.length })
-                                : t('routines.output.tech_hidden', '{count} technical columns hidden ({names}…)', { count: technical.length, names: techNames })}
+                                ? t('automations.output.tech_shown', '{count} technical columns shown', { count: technical.length })
+                                : t('automations.output.tech_hidden', '{count} technical columns hidden ({names}…)', { count: technical.length, names: techNames })}
                             {' · '}
                             <button type="button" onClick={() => setShowTech(v => !v)} className="underline hover:text-[var(--text-primary)]">
-                                {showTech ? t('routines.output.hide', 'hide') : t('routines.output.show', 'show')}
+                                {showTech ? t('automations.output.hide', 'hide') : t('automations.output.show', 'show')}
                             </button>
                         </span>
                     )}

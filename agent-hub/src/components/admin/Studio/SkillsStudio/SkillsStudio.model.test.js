@@ -146,7 +146,7 @@ describe('skillModel — the save payload', () => {
 });
 
 describe('skillModel — what may be offered as a callable tool', () => {
-    it('accepts an agent_call routine however the row spells its trigger', () => {
+    it('accepts an agent_call automation however the row spells its trigger', () => {
         expect(isAgentCallable({ triggerKind: 'agent_call' })).toBe(true);
         expect(isAgentCallable({ triggerType: 'agent_call' })).toBe(true);
         expect(isAgentCallable({ definition: { trigger: { kind: 'agent_call' } } })).toBe(true);
@@ -160,7 +160,7 @@ describe('skillModel — what may be offered as a callable tool', () => {
      * Met de kolom vooraan was de derde spelling — de enige die de runtime
      * zelf leest (agentCallableTools: `definition.trigger.kind`) — op dat
      * endpoint onbereikbaar. Die drift is geen theorie: POST leidt de kolom
-     * niet af uit de definitie (PUT wel, sinds BFSF-318), dus een routine die
+     * niet af uit de definitie (PUT wel, sinds BFSF-318), dus een automatisering die
      * compleet in één POST aankomt houdt trigger_type='manual' tot iemand hem
      * opnieuw opslaat.
      */
@@ -188,7 +188,7 @@ describe('skillModel — what may be offered as a callable tool', () => {
         expect(usageSubline(skill, { agents: 2, automations: 0, automationsUnchecked: true }, t)).toBe('2 agents');
     });
 
-    it('fails CLOSED: a routine with no trigger information is not offered', () => {
+    it('fails CLOSED: an automation with no trigger information is not offered', () => {
         expect(isAgentCallable({ id: 'a1', title: 'Nightly sync' })).toBe(false);
         expect(isAgentCallable({ triggerType: 'schedule' })).toBe(false);
         expect(isAgentCallable(null)).toBe(false);

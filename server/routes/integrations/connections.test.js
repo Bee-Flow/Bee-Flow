@@ -108,7 +108,7 @@ mock('../../stores/integrationConnectionStore', {
     updateConnectionMeta: async (id, secretMeta) => { state.lastMetaUpdate = { id, secretMeta }; if (state.connections[id]) state.connections[id].secretMeta = secretMeta; return true; },
     listAccessibleConnections: async (args) => { state.lastAccessibleArgs = args; return state.accessible; },
     resolveConnectionForRun: async ({ provider }) => ({ ...state.resolveResult, provider, connectionLabel: state.resolveResult.connectionLabel }),
-    _internals: { OAUTH_ROUTINE_PROVIDERS: new Set(['google', 'microsoft', 'nextcloud']) },
+    _internals: { OAUTH_AUTOMATION_PROVIDERS: new Set(['google', 'microsoft', 'nextcloud']) },
 });
 
 const router = require('./connections');

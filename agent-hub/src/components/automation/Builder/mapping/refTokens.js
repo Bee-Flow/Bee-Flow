@@ -21,6 +21,10 @@ import { TEMPLATE_RE } from '../../../../utils/bindingHelpers';
 
 // Identifier (step id / itemVar) and a dotted/bracketed field path tail.
 const IDENT = '[A-Za-z_$][A-Za-z0-9_$]*';
+// A step id. Inside an expanded flowlet a sub-step's id is namespaced
+// `<callId>/<subId>` (flow/inlineFlowlets.js INLINE_SEP, nested: `a/b/c`); the
+// prefix is stripped again on save, but while it is on screen it is one id.
+const STEP_ID = `${IDENT}(?:/${IDENT})*`;
 // Field path: first segment then any number of `.seg` or `[idx]` / `[*]` parts.
 const FIELD = '[A-Za-z0-9_$]+(?:\\.[A-Za-z0-9_$]+|\\[[^\\]]*\\])*';
 
@@ -29,14 +33,14 @@ const FIELD = '[A-Za-z0-9_$]+(?:\\.[A-Za-z0-9_$]+|\\[[^\\]]*\\])*';
 // without consuming a prefix char, so the gaps between matches are exactly
 // the literal spans — which is what keeps the round-trip byte-faithful.
 const SCAN_RE = new RegExp(
-    `(?<![A-Za-z0-9_$.])steps\\.(${IDENT})\\.output(?:\\.(${FIELD}))?` +
+    `(?<![A-Za-z0-9_$.])steps\\.(${STEP_ID})\\.output(?:\\.(${FIELD}))?` +
     `|(?<![A-Za-z0-9_$.])trigger(?:\\.output)?(?:\\.(${FIELD}))?` +
     `|(?<![A-Za-z0-9_$.])loop\\.(${IDENT})(?:\\.(${FIELD}))?`,
     'g',
 );
 
 // Anchored variants used to classify the inside of a `{{ … }}` interpolation.
-const STEPS_ANCHOR = new RegExp(`^steps\\.(${IDENT})\\.output(?:\\.(${FIELD}))?$`);
+const STEPS_ANCHOR = new RegExp(`^steps\\.(${STEP_ID})\\.output(?:\\.(${FIELD}))?$`);
 const TRIGGER_ANCHOR = new RegExp(`^trigger(?:\\.output)?(?:\\.(${FIELD}))?$`);
 const LOOP_ANCHOR = new RegExp(`^loop\\.(${IDENT})(?:\\.(${FIELD}))?$`);
 

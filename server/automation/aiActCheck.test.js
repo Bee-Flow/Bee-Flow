@@ -40,7 +40,7 @@ test('Q1: AI inside a loop body and a layer is found', () => {
     assert.deepStrictEqual(c.detectAiUse(def).steps.map(s => s.stepId).sort(), ['in', 'x']);
 });
 
-test('Q1: a routine without AI suggests "no" and "not applicable"', () => {
+test('Q1: an automation without AI suggests "no" and "not applicable"', () => {
     const s = c.suggestWizard({ definition: manual([{ id: 's1', type: 'wait', seconds: 1 }]) });
     const [q1, q2, q3] = s.questions;
     assert.strictEqual(q1.suggested, 'no');

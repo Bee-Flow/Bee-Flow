@@ -1,6 +1,6 @@
 /**
  * Step 3 — Annex III: ten questions, one per high-risk domain, the ones the
- * routine's own wording mentions first. "No" needs all ten; any "yes" makes
+ * automation's own wording mentions first. "No" needs all ten; any "yes" makes
  * it high-risk and says under which point of the annex.
  */
 

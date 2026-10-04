@@ -23,11 +23,11 @@ import { FormRow, inputClass } from './formPrimitives';
  * used to be three palette entries with two editors between them, and nothing
  * told you that a reveal only means something after a hide. They are one node
  * now; flow/privacyModel.js maps the mode onto the runtime type the engine
- * already speaks, so stored routines open here unchanged.
+ * already speaks, so stored automations open here unchanged.
  *
  * Deliberately short beyond the mode: the org's Privacy Shield already decides
  * what counts as personal data, how sure the detector has to be, and what an
- * allowlist lets through. Re-asking all of that per step would let one routine
+ * allowlist lets through. Re-asking all of that per step would let one automation
  * quietly hold itself to a weaker standard than the organisation — so the only
  * knobs here NARROW that policy, and the copy says which parts are inherited.
  */

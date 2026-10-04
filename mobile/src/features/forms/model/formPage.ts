@@ -4,9 +4,9 @@
  *
  *   - the OWNER sees Questions · Share · Answers · Settings; a colleague the
  *     answers table is shared with sees Answers only;
- *   - the page is keyed by the ROUTINE's id. The page token is the form's
+ *   - the page is keyed by the AUTOMATION's id. The page token is the form's
  *     whole credential and never travels in a route — an old link that still
- *     carries one is resolved to its routine through the forms list.
+ *     carries one is resolved to its automation through the forms list.
  */
 
 import { TOKEN_RE } from './fillValues';
@@ -14,7 +14,7 @@ import type { FormAudience, FormSummary } from './types';
 
 export type FormTab = 'questions' | 'share' | 'answers' | 'settings';
 
-/** A form's page: by its routine's id. */
+/** A form's page: by its automation's id. */
 export const formPagePath = (automationId: string): string => `/forms/${encodeURIComponent(automationId)}`;
 /** Filling a form in: by its page token — the one route the token may travel in. */
 export const formFillPath = (token: string): string => `/forms/fill/${encodeURIComponent(token)}`;
@@ -30,14 +30,14 @@ export function initialTab(mine: boolean, asked: string | null | undefined): For
     return allowed.includes(asked as FormTab) ? (asked as FormTab) : (allowed[0] as FormTab);
 }
 
-/** Whether THIS caller can open the routine behind a form. True, never "not false". */
-export function canOpenRoutine(form: Pick<FormSummary, 'mine' | 'automationId'> | null | undefined): boolean {
+/** Whether THIS caller can open the automation behind a form. True, never "not false". */
+export function canOpenAutomation(form: Pick<FormSummary, 'mine' | 'automationId'> | null | undefined): boolean {
     return form?.mine === true && typeof form?.automationId === 'string' && !!form.automationId;
 }
 
 /** Whether THIS caller may open the Form page: the owner, or a reader of its answers table. */
 export function canOpenForm(form: Pick<FormSummary, 'mine' | 'automationId' | 'answers'> | null | undefined): boolean {
-    return canOpenRoutine(form) || (!!form?.answers?.grade && typeof form?.automationId === 'string' && !!form.automationId);
+    return canOpenAutomation(form) || (!!form?.answers?.grade && typeof form?.automationId === 'string' && !!form.automationId);
 }
 
 export type Liveness = 'live' | 'off' | 'unknown';
@@ -64,9 +64,9 @@ export function audienceGist(audience: FormAudience | null | undefined): Audienc
 }
 
 /**
- * The routine a Form page route means. `ref` is a routine id — or, from an
+ * The automation a Form page route means. `ref` is an automation id — or, from an
  * older link, a page token: that one is looked up in the forms list and
- * answered with its routine (`redirect`), so the screen can swap its route
+ * answered with its automation (`redirect`), so the screen can swap its route
  * for one that does not carry the credential. Null while the answer depends
  * on a list that has not arrived.
  */

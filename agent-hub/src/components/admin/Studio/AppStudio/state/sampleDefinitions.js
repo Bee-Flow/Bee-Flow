@@ -65,7 +65,7 @@ export const KITCHEN_SINK = deepFreeze({
                         },
                         {
                             id: 'cmp_intro1', type: 'text', visible: true,
-                            props: { text: 'Live overview of **open requests**, refreshed by a routine.', muted: true },
+                            props: { text: 'Live overview of **open requests**, refreshed by an automation.', muted: true },
                             style: { span: 12, align: 'start', color: null, weight: 'regular' },
                         },
                         {

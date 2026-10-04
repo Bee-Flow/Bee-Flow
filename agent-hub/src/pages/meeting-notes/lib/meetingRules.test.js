@@ -194,7 +194,7 @@ describe('runCountOf', () => {
     it('scheidt ONLEESBAAR van een echte nul', () => {
         expect(runCountOf({ automationId: { 'a-1': 3 } }, 'a-1')).toBe(3);
         expect(runCountOf({ automationId: { 'a-1': 0 } }, 'a-1')).toBe(0);
-        // De map is er en deze routine staat er niet in: een echte nul.
+        // De map is er en deze automatisering staat er niet in: een echte nul.
         expect(runCountOf({ automationId: {} }, 'a-1')).toBe(0);
         // Geen map: dan heeft NIEMAND geteld. Dat was hetzelfde antwoord als
         // hierboven, en de kaart maakte er "no runs of yours" van — een

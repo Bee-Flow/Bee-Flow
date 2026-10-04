@@ -42,11 +42,11 @@
  * ── EN DE ELEMENTEN FALEN HIER ZICHTBAAR ────────────────────────────
  *
  * Op een react-share draait wél JS, maar de tabelbrug bestaat er niet en de
- * routine-brug is een no-op. Een element dat daarvan afhangt kan hier dus niets,
+ * automation-brug is een no-op. Een element dat daarvan afhangt kan hier dus niets,
  * en zonder hulp is dat ONZICHTBAAR: een niet-gedefinieerd custom element is
  * `display:inline` zonder kinderen — een leeg vak. Een lezer ziet dan een lege
  * tabel (die leest als "er zijn geen rijen") of een knop die niets doet zonder
- * te zeggen waarom. Bij de routine-brug is het nog een graadje erger: die
+ * te zeggen waarom. Bij de automation-brug is het nog een graadje erger: die
  * RESOLVET, dus een zelfgebouwde knop meldt succes zonder dat er iets gebeurde.
  *
  * Daarom definieert deze brug voor elk GEWEIGERD element een custom element dat
@@ -153,7 +153,7 @@ function buildPublicBridgeScript({ token, apiBase }) {
   // run() WEIGERT, net als beeflowTables hieronder en om dezelfde reden. Een
   // no-op die resolvet is hier het gevaarlijkst van allemaal: een zelfgebouwde
   // knop meldt dan "Verzonden!" terwijl er niets is gedraaid. list() mag wel
-  // leeg antwoorden — "je mag hier geen routines opsommen" en "er zijn er geen"
+  // leeg antwoorden — "je mag hier geen automatiseringen opsommen" en "er zijn er geen"
   // komen daar op hetzelfde neer, en paginacode die erover itereert breekt niet.
   function noRun(){ return Promise.reject(new Error("beeflowAutomations.run is not available on shared links")); }
   window.beeflowAutomations = { run:noRun, list:function(){return Promise.resolve([]);} };

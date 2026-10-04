@@ -5,6 +5,7 @@
  * because a non-technical author should read "Subject", never `item.subject`.
  */
 import { parseExprToRows, labelFor, isUnaryOp } from '../utils/conditionModel';
+import { parseRefTokens, resolveChipLabel } from '../mapping/refTokens';
 
 // Hand-curated proper-noun casing so 'gmail' renders as 'Gmail' instead
 // of 'Gmail' is fine but 'github' should render as 'GitHub', 'youtrack'
@@ -164,6 +165,42 @@ export function humanizeExpression(expr, stepLabelById = null) {
             /\btrigger(?:\.([A-Za-z0-9_.[\]]+))?/g,
             (_, path) => (path ? `‹Trigger›.${path}` : '‹Trigger›'),
         );
+}
+
+/**
+ * A TEMPLATE string (`Hello {{steps.code_1.output.result.text}}`) as the card
+ * subtitle shows it: each reference the way the panel's chip names it, "Code ▸
+ * Text", and nothing else rewritten. References that sit back to back (an old
+ * drop that glued them) are separated with " · " so they read as a list
+ * instead of one word. `humanizeExpression` is for bare expressions: run over
+ * a template it left `{{‹Code›.result.text}}{{‹Code›.result.number}}` behind.
+ *
+ * Display-only; the stored string is never touched.
+ *
+ * @param {string|null|undefined} text
+ * @param {Map<string, string>|null} [stepLabelById]
+ * @returns {string}
+ */
+export function humanizeTemplate(text, stepLabelById = null) {
+    if (!text || typeof text !== 'string') return '';
+    const tokens = parseRefTokens(text, { mode: 'fixed' });
+    if (!tokens.some(t => t.type === 'ref')) return text;
+    let out = '';
+    let prevRef = false;
+    tokens.forEach((tok, i) => {
+        if (tok.type === 'literal') {
+            // Only whitespace between two references is a separator, not prose.
+            const between = prevRef && tokens[i + 1]?.type === 'ref' && !tok.text.trim();
+            out += between ? ' · ' : tok.text;
+            prevRef = false;
+            return;
+        }
+        const { name, suffix } = resolveChipLabel(tok, stepLabelById);
+        const tail = suffix ? humanizeFieldTail(suffix) : '';
+        out += `${prevRef ? ' · ' : ''}${tail ? `${name} ▸ ${tail}` : name}`;
+        prevRef = true;
+    });
+    return out;
 }
 
 /**

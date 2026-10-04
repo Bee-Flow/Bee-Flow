@@ -62,11 +62,11 @@ export interface SurfaceRow {
     agentName: string | null;
 }
 
-/** Was this chat, an agent, or a routine? (activityLabels.js surfaceLabel.) */
+/** Was this chat, an agent, or an automation? (activityLabels.js surfaceLabel.) */
 export function surfaceLabel(row: SurfaceRow, t: TranslateFn): string {
     const src = (row.source ?? '').toLowerCase();
     const named = (base: string) => (row.agentName ? `${base} — ${row.agentName}` : base);
-    if (row.automationId || src === 'routine') return named(t('admin.shield_activity_src_routine', 'Routine'));
+    if (row.automationId || src === 'automation') return named(t('admin.shield_activity_src_automation', 'Automation'));
     if (src.startsWith('agent') || (row.agentId && !src.startsWith('direct'))) {
         return named(t('admin.shield_activity_src_agent', 'Agent'));
     }

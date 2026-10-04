@@ -15,7 +15,7 @@ import BuilderConfigPanel from './builderSplit/BuilderConfigPanel';
 import { createCategoryActions, createFieldUpdaters, createPublishActions } from './builderSplit/builderSplitActions';
 import EnableEmbedConfirmModal from './builderSplit/EnableEmbedConfirmModal';
 import { createHandleRefine } from './builderSplit/refineActions';
-import RoutineDeleteModal from './builderSplit/RoutineDeleteModal';
+import ScheduleDeleteModal from './builderSplit/ScheduleDeleteModal';
 import { uploadDocCountOf, uploadKbIdOf } from './builderSplit/uploadKb';
 import useAgentConceptFacts from './builderSplit/useAgentConceptFacts';
 import useBehaviorToggles from './builderSplit/useBehaviorToggles';
@@ -32,7 +32,7 @@ import useCanUseSources from './canUse/useCanUseSources';
 import useToolCatalog from './canUse/useToolCatalog';
 import AdvancedDrawer from './pickers/AdvancedDrawer';
 import FilesUploadModal from './pickers/FilesUploadModal';
-import { RoutineModal } from './pickers/RoutinePickers';
+import { ScheduleModal } from './pickers/SchedulePickers';
 import { adoptedPromptAfterSave, saveAgent } from './state/agentSaveApi';
 import TestSetCard from './tests/TestSetCard';
 import useAgentTests from './tests/useAgentTests';
@@ -41,6 +41,7 @@ import useRelativeTime from '../../../hooks/useRelativeTime';
 import useTranslation from '../../../hooks/useTranslation';
 import { pickAgentAvatar, DEFAULT_AGENT_EMOJI } from '../../../utils/agentAvatar';
 import { useCan } from '../../licensing/Gate';
+import { managedOf } from '../../shared/managedPart';
 
 export default function BuilderSplit({ agent: initialAgent, plan, history, tier, locale, onBack, onPublished, onDirtyChange, rightHeaderExtras = null, user = null, initialRefinement = null, readOnly = false, onNavigate = null }) {
     const { t } = useTranslation();
@@ -54,7 +55,12 @@ export default function BuilderSplit({ agent: initialAgent, plan, history, tier,
     // can_edit verdict; `forcedReadOnly` flips on when a save is rejected with
     // code 'agent_not_editable' (stale client) so we never retry-loop a 403.
     const [forcedReadOnly, setForcedReadOnly] = useState(false);
-    const ro = readOnly || forcedReadOnly;
+    // An agent a Solution stage manages: the whole builder is read-only and the AI
+    // refine rail is gone, except the audience (the header's capsule), which is the
+    // one thing a stage leaves to its owner. The header reads `managed` itself.
+    const managed = managedOf(agent);
+    const ro = readOnly || forcedReadOnly || !!managed;
+    const headerRo = readOnly || forcedReadOnly;
     const roRef = useRef(ro);
     roRef.current = ro;
     const [name, setName] = useState(initialAgent?.name || plan?.name || t('agent_wizard.builder.name_placeholder'));
@@ -175,11 +181,11 @@ export default function BuilderSplit({ agent: initialAgent, plan, history, tier,
     const [toolChooserOpen, setToolChooserOpen] = useState(false);
     const [toolChooserAppId, setToolChooserAppId] = useState(null);
     const [knowledgeOpen, setKnowledgeOpen] = useState(false);
-    const [routinesPickerOpen, setRoutinesPickerOpen] = useState(false);
-    const [routineModal, setRoutineModal] = useState(null); // null | { mode: 'create' } | { mode: 'edit', routine }
-    const [agentRoutines, setAgentRoutines] = useState([]);
-    const [routineDeleteTarget, setRoutineDeleteTarget] = useState(null);
-    const [routineDeleting, setRoutineDeleting] = useState(false);
+    const [schedulesPickerOpen, setSchedulesPickerOpen] = useState(false);
+    const [scheduleModal, setScheduleModal] = useState(null); // null | { mode: 'create' } | { mode: 'edit', schedule }
+    const [agentSchedules, setAgentSchedules] = useState([]);
+    const [scheduleDeleteTarget, setScheduleDeleteTarget] = useState(null);
+    const [scheduleDeleting, setScheduleDeleting] = useState(false);
     const [publishPickerOpen, setPublishPickerOpen] = useState(false);
     const [advancedOpen, setAdvancedOpen] = useState(false);
     const [skillSearch, setSkillSearch] = useState('');
@@ -221,20 +227,22 @@ export default function BuilderSplit({ agent: initialAgent, plan, history, tier,
     const updateBubbleIcon = (v) => { setBubbleIcon(v); patchConfig({ bubbleIcon: v }); };
 
     // Unified entitlements check (false while the snapshot loads — the
-    // routines panel pops in once it resolves; refreshAgentRoutines re-fires
+    // schedules panel pops in once it resolves; refreshAgentSchedules re-fires
     // via its dependency when the flag flips true).
-    const routinesAllowed = useCan('agent_routines');
-    const refreshAgentRoutines = useCallback(async () => {
-        if (!routinesAllowed || !agent?.id) return;
+    const schedulesAllowed = useCan('agent_routines');
+    const refreshAgentSchedules = useCallback(async () => {
+        if (!schedulesAllowed || !agent?.id) return;
         try {
-            const res = await authFetch(`${API_BASE}/api/ai-tasks?agentId=${encodeURIComponent(agent.id)}`);
+            // The Cowork list is per user; this panel shows the items that run as this agent.
+            const res = await authFetch(`${API_BASE}/api/cowork`);
             if (res.ok) {
                 const data = await res.json();
-                setAgentRoutines(Array.isArray(data?.tasks) ? data.tasks : []);
+                const all = Array.isArray(data?.schedules) ? data.schedules : [];
+                setAgentSchedules(all.filter(s => s.agentId === agent.id));
             }
         } catch (_) { /* non-fatal */ }
-    }, [routinesAllowed, agent?.id]);
-    useEffect(() => { refreshAgentRoutines(); }, [refreshAgentRoutines]);
+    }, [schedulesAllowed, agent?.id]);
+    useEffect(() => { refreshAgentSchedules(); }, [refreshAgentSchedules]);
     const handleVersionRestore = async () => {
         if (!agent?.id) return;
         try {
@@ -1005,7 +1013,7 @@ export default function BuilderSplit({ agent: initialAgent, plan, history, tier,
         dirtyRef, flush, attachedSkillIds, setAttachedSkillIds, skillNamesById, name, setName, description,
         setDescription, avatar, setAvatar, setInstructions, setModel, setSelectedTier, setEnabledIntegrations,
         setKnowledgeBaseIds, stateRef, plan, chatTier, tier, locale, t, allSkills, setAllSkills,
-        availableIntegrations, tiers, queueSave, routinesAllowed, agent, refreshAgentRoutines,
+        availableIntegrations, tiers, queueSave, schedulesAllowed, agent, refreshAgentSchedules,
         // De persona zoals hij in de kolom staat. Onbekend blijft undefined:
         // de merge leest dat als "laat staan", niet als "er is er geen".
         currentPersona: agent?.persona ?? conceptFacts.persona ?? undefined,
@@ -1121,7 +1129,7 @@ export default function BuilderSplit({ agent: initialAgent, plan, history, tier,
                 agent alleen mag bekijken (BFSF-271). */}
             <AgentEditorHeader
                 t={t}
-                ro={ro}
+                ro={headerRo}
                 agent={agent}
                 name={name}
                 avatar={avatar}
@@ -1188,10 +1196,10 @@ export default function BuilderSplit({ agent: initialAgent, plan, history, tier,
                             uploadDocCount={uploadDocCount} setKnowledgeOpen={setKnowledgeOpen}
                             strictKnowledge={strictKnowledge} onStrictKnowledgeChange={onStrictKnowledgeChange}
                             attachedSkillIds={attachedSkillIds} skillPickerOpen={skillPickerOpen} setSkillPickerOpen={setSkillPickerOpen}
-                            routinesAllowed={routinesAllowed} agentRoutines={agentRoutines}
-                            routinesPickerOpen={routinesPickerOpen} setRoutinesPickerOpen={setRoutinesPickerOpen}
+                            schedulesAllowed={schedulesAllowed} agentSchedules={agentSchedules}
+                            schedulesPickerOpen={schedulesPickerOpen} setSchedulesPickerOpen={setSchedulesPickerOpen}
                             advancedOpen={advancedOpen} setAdvancedOpen={setAdvancedOpen} memoryEnabled={memoryEnabled} embedEnabled={embedEnabled}
-                            refreshAgentRoutines={refreshAgentRoutines} setRoutineModal={setRoutineModal} setRoutineDeleteTarget={setRoutineDeleteTarget}
+                            refreshAgentSchedules={refreshAgentSchedules} setScheduleModal={setScheduleModal} setScheduleDeleteTarget={setScheduleDeleteTarget}
                             allSkills={allSkills} setAllSkills={setAllSkills} automations={automations}
                             skillSearch={skillSearch} setSkillSearch={setSkillSearch} toggleSkill={toggleSkill}
                             setAttachedSkillIds={setAttachedSkillIds} patchConfig={patchConfig}
@@ -1388,15 +1396,15 @@ export default function BuilderSplit({ agent: initialAgent, plan, history, tier,
                     onClose={() => { setToolChooserOpen(false); setToolChooserAppId(null); }}
                 />
             )}
-            {routineModal && agent?.id && routinesAllowed && (
-                <RoutineModal
+            {scheduleModal && agent?.id && schedulesAllowed && (
+                <ScheduleModal
                     t={t}
                     agent={agent}
-                    initialRoutine={routineModal.mode === 'edit' ? routineModal.routine : null}
-                    onClose={() => setRoutineModal(null)}
+                    initialSchedule={scheduleModal.mode === 'edit' ? scheduleModal.schedule : null}
+                    onClose={() => setScheduleModal(null)}
                     onSaved={async () => {
-                        setRoutineModal(null);
-                        await refreshAgentRoutines();
+                        setScheduleModal(null);
+                        await refreshAgentSchedules();
                     }}
                 />
             )}
@@ -1417,14 +1425,14 @@ export default function BuilderSplit({ agent: initialAgent, plan, history, tier,
                     onDismiss={handleConflictDismiss}
                 />
             )}
-            {routineDeleteTarget && (
-                <RoutineDeleteModal
+            {scheduleDeleteTarget && (
+                <ScheduleDeleteModal
                     t={t}
-                    routineDeleteTarget={routineDeleteTarget}
-                    routineDeleting={routineDeleting}
-                    setRoutineDeleteTarget={setRoutineDeleteTarget}
-                    setRoutineDeleting={setRoutineDeleting}
-                    refreshAgentRoutines={refreshAgentRoutines}
+                    scheduleDeleteTarget={scheduleDeleteTarget}
+                    scheduleDeleting={scheduleDeleting}
+                    setScheduleDeleteTarget={setScheduleDeleteTarget}
+                    setScheduleDeleting={setScheduleDeleting}
+                    refreshAgentSchedules={refreshAgentSchedules}
                     mountedRef={mountedRef}
                 />
             )}
@@ -1456,7 +1464,7 @@ export default function BuilderSplit({ agent: initialAgent, plan, history, tier,
 }
 
 // The former in-file helper components (InstructionsEditor,
-// EnableEmbedConfirmModal, SaveStateIndicator, ActionPill, the routine
+// EnableEmbedConfirmModal, SaveStateIndicator, ActionPill, the schedule
 // delete modal) and the extracted handler factories/hooks live in
-// ./builderSplit/. Routine-picker constants and components moved to
-// ./pickers/RoutinePickers.jsx.
+// ./builderSplit/. Schedule-picker constants and components moved to
+// ./pickers/SchedulePickers.jsx.

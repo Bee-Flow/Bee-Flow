@@ -33,7 +33,7 @@ export const STEP_ROWS: readonly StepRow[] = [
     ['create_record', 'Data', 'Database', 'Add a row', 'Write a new row into one of this app’s tables.', 'server'],
     ['update_record', 'Data', 'Pencil', 'Change a row', 'Update an existing row.', 'server'],
     ['delete_record', 'Data', 'Trash2', 'Delete a row', 'Remove a row for good.', 'server'],
-    ['run_automation', 'Data', 'Workflow', 'Run a routine', 'Hand the work to one of your routines.', 'server'],
+    ['run_automation', 'Data', 'Workflow', 'Run an automation', 'Hand the work to one of your automations.', 'server'],
     [
         'request_approval', 'Data', 'BadgeCheck', 'Ask for approval',
         'Put a question in someone’s Approvals inbox; a record can flip when they decide.', 'server',

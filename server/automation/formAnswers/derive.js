@@ -1,12 +1,12 @@
 /**
- * FORM ANSWERS — the pure half: from a routine's definition to the columns
+ * FORM ANSWERS — the pure half: from an automation's definition to the columns
  * of its answers table, and from a submission to a row.
  *
  * ── WHAT THE TABLE IS ──────────────────────────────────────────────
  * A datatable of `managed_kind = 'form_answers'` whose columns are the form's
  * QUESTIONS: two fixed columns (`run_id`, `completed_at`, managedTables.js)
  * plus one per input field of the trigger's form and of every input
- * `form_page` step. The routine's definition is the only editor of those
+ * `form_page` step. The automation's definition is the only editor of those
  * columns; this module derives them on every save (provision.js) and the
  * column map it writes into `source.columnMap` is what write.js and the
  * dashboard read.

@@ -2,14 +2,14 @@
  * React Query keys for the flow editor.
  *
  * Under the 'automate' prefix the tab has always used, so an invalidation of
- * everything automations still reaches the editor. One routine's editor data
- * sits under `['automate', 'flow', id]`, so leaving or deleting a routine can
+ * everything automations still reaches the editor. One automation's editor data
+ * sits under `['automate', 'flow', id]`, so leaving or deleting an automation can
  * drop all of it with one prefix. The catalog and the templates belong to the
- * caller, not to a routine.
+ * caller, not to an automation.
  */
 
 export const flowKeys = {
-    /** Everything the editor caches about one routine. */
+    /** Everything the editor caches about one automation. */
     all: (id: string) => ['automate', 'flow', id] as const,
     definition: (id: string) => ['automate', 'flow', id, 'definition'] as const,
     versions: (id: string) => ['automate', 'flow', id, 'versions'] as const,

@@ -84,7 +84,7 @@ describe('AddStepRibbon (design 5a)', () => {
         expect(screen.queryByTestId('ribbon-people')).toBeNull();
         await user.click(tab('People'));
         expect(screen.getByTestId('ribbon-people')).toBeInTheDocument();
-        expect(scopedStorage.getItem('routinesRibbonCategory')).toBe('people');
+        expect(scopedStorage.getItem('automationsRibbonCategory')).toBe('people');
         await user.click(tab('People'));
         expect(screen.queryByTestId('ribbon-panel')).toBeNull();
         await user.click(screen.getByRole('button', { name: 'Show this category' }));
@@ -351,7 +351,7 @@ describe('AddStepRibbon (design 5a)', () => {
 
     describe('presenting (the build film)', () => {
         it('opens the apps tab without a click, inert but not dimmed, and returns to the author tab after', () => {
-            scopedStorage.setItem('routinesRibbonCategory', 'logic');
+            scopedStorage.setItem('automationsRibbonCategory', 'logic');
             const { rerender } = renderRibbon({ presenting: true });
             const root = screen.getByTestId('add-step-ribbon');
             expect(root.className).toContain('pointer-events-none');
@@ -359,7 +359,7 @@ describe('AddStepRibbon (design 5a)', () => {
             expect(screen.getByTestId('ribbon-panel')).toHaveAttribute('data-category', 'nextcloud');
             rerender(<AddStepRibbon scope={scope} onAddNode={vi.fn()} presenting={false} />);
             expect(tab('Logic')).toHaveAttribute('aria-selected', 'true');
-            expect(scopedStorage.getItem('routinesRibbonExpanded')).toBe('0');
+            expect(scopedStorage.getItem('automationsRibbonExpanded')).toBe('0');
         });
 
         it('stamps the root, the tab strip, the category tabs and every app command', () => {

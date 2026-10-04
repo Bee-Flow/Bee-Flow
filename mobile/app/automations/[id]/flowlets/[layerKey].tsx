@@ -1,6 +1,6 @@
 /**
- * One flowlet of a routine (definition.layers[layerKey]), built as if it were
- * the routine — its own outline and canvas, over the routine's draft. See
+ * One flowlet of an automation (definition.layers[layerKey]), built as if it were
+ * the automation — its own outline and canvas, over the automation's draft. See
  * features/flow-editor FlowletScreen.
  */
 

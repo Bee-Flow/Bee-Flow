@@ -2,7 +2,7 @@
  * buildResults, group by group: what each wire row becomes, the limits, and
  * the rules that are easy to break — a passage joined back to its base, a
  * passage that cannot be joined shown without a dead tap, the two document
- * directions deduplicated, Steps kept out of routines, and each group's error
+ * directions deduplicated, Steps kept out of automations, and each group's error
  * travelling with it instead of emptying the list.
  */
 
@@ -92,7 +92,7 @@ describe('buildResults', () => {
         ]);
     });
 
-    it('filters knowledge bases, routines and meeting notes on the phone', () => {
+    it('filters knowledge bases, automations and meeting notes on the phone', () => {
         const corpus: SearchCorpus = {
             ...EMPTY_CORPUS,
             knowledgeBases: [

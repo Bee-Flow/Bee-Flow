@@ -3,7 +3,7 @@
  * or presentation from tool arguments and PUT it into the user's Nextcloud.
  *
  * `nextcloud_create_spreadsheet` can also APPEND to a spreadsheet that already
- * exists (ifExists: "append"), so a routine can keep a running ledger — an
+ * exists (ifExists: "append"), so an automation can keep a running ledger — an
  * invoice list, a log — that grows run over run instead of being replaced.
  *
  * `nextcloud_create_presentation` renders through services/presentationRenderer
@@ -167,7 +167,7 @@ async function executeOfficeDocumentTool(toolName, args, ctx) {
             }
             const up = await uploadBinaryFile(ncFetch, root, path, gen.buffer, gen.contentType, authError);
             // Only the append path reports `appended`; the overwrite result is
-            // the same object it always was, so existing routines see no change.
+            // the same object it always was, so existing automations see no change.
             return ifExists === 'append' && !up.error ? { ...up, appended: 0 } : up;
         }
 

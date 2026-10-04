@@ -15,7 +15,7 @@
  * "Nextcloud · Upload file", a long prompt is cut at 140 characters. An id is
  * turned into a name when the caller hands one in (`opts.names`).
  *
- * LAYOUT is what moves on the canvas without changing what the routine does:
+ * LAYOUT is what moves on the canvas without changing what the automation does:
  * node positions and sizes, colours and icons, edge colours and the PII line
  * colours. Those never show up in the diff, and a save that changes nothing
  * else is "layout only": it does not create a version (stores/automationStore/
@@ -424,16 +424,16 @@ function fieldDiff(prevDef, nextDef, opts = {}) {
         changes.push({ ...base(p), change: 'removed', setting: null, settingLabel: null, path: null, before: kindLabel(p.node, p.isTrigger), after: null });
     }
 
-    // Routine-level settings (outside the graph), then each flowlet's own.
-    const routineDiffs = [];
+    // Automation-level settings (outside the graph), then each flowlet's own.
+    const automationDiffs = [];
     for (const k of new Set([...Object.keys(prev), ...Object.keys(next)])) {
         if (GRAPH_KEYS.has(k)) continue;
-        diffSettings(prev[k], next[k], [k], routineDiffs, 0);
+        diffSettings(prev[k], next[k], [k], automationDiffs, 0);
     }
-    for (const d of routineDiffs) {
+    for (const d of automationDiffs) {
         const last = d.parts[d.parts.length - 1];
         changes.push({
-            stepId: null, stepNumber: null, stepLabel: 'Routine', change: 'changed', ...settingOf(d.parts),
+            stepId: null, stepNumber: null, stepLabel: 'Automation', change: 'changed', ...settingOf(d.parts),
             before: before.render(d.before, last), after: after.render(d.after, last),
         });
     }
@@ -514,10 +514,10 @@ function describeText(entries) {
  */
 function describeChange(changes, { reordered = false } = {}) {
     const byStep = new Map();
-    const routine = [];
+    const automation = [];
     let moved = false;
     for (const c of asArray(changes)) {
-        if (c.stepId === null) { routine.push(c); continue; }
+        if (c.stepId === null) { automation.push(c); continue; }
         const k = `${c.layer || ''}::${c.stepId}`;
         if (!byStep.has(k)) byStep.set(k, []);
         byStep.get(k).push(c);
@@ -546,7 +546,7 @@ function describeChange(changes, { reordered = false } = {}) {
     if (moved) entries.push({ code: 'connections_changed', params: {} });
     const seen = new Set();
     let description = false;
-    for (const c of routine) {
+    for (const c of automation) {
         const top = (c.path || c.setting || '').split('.')[0];
         if (top === 'description') { description = true; continue; }
         if (seen.has(top)) continue;
@@ -567,7 +567,7 @@ function describeVersion(prevDef, nextDef, opts = {}) {
     if (layoutOnly) return { layoutOnly: true, changes: [], entries: [], text: null };
     const changes = fieldDiff(prevDef, nextDef, opts);
     // Nothing a person can point at, yet not layout: the order of steps[] or
-    // edges[] moved. The routine works the same.
+    // edges[] moved. The automation works the same.
     const reordered = changes.length === 0;
     const { entries, text } = describeChange(changes, { reordered });
     return { layoutOnly: false, changes, entries, text };

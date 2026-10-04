@@ -122,8 +122,8 @@ const LEGACY_COURSES = [
         ],
         prereqCourseIds: [],
         badge: {
-            id: 'badge-routine-master', icon: '⏰',
-            titleKey: 'learn.badge.routine_master', titleFallback: 'Routine Master',
+            id: 'badge-automation-master', icon: '⏰',
+            titleKey: 'learn.badge.automation_master', titleFallback: 'Automation Master',
             descFallback: 'Designed, built and verified real automations.',
         },
     },

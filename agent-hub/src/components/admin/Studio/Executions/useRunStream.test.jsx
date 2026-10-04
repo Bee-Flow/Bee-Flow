@@ -267,13 +267,13 @@ describe('useRunStream — the polling fallback', () => {
         runs([{ id: 'r1', status: 'success' }]);
         const { onEvent } = await intoPolling();
         apiMock.listRecentRuns.mockResolvedValue({
-            runs: [{ id: 'r2', status: 'running', automationId: 'a1', automationTitle: 'Digest', automationKind: 'routine', triggerKind: 'schedule', startedAt: '2026-09-01T00:00:00.000Z' },
+            runs: [{ id: 'r2', status: 'running', automationId: 'a1', automationTitle: 'Digest', automationKind: 'automation', triggerKind: 'schedule', startedAt: '2026-09-01T00:00:00.000Z' },
                 { id: 'r1', status: 'success' }],
         });
         await tick(5000);
         expect(onEvent).toHaveBeenCalledWith('run.started', {
             runId: 'r2', automationId: 'a1', status: 'running',
-            triggerKind: 'schedule', title: 'Digest', kind: 'routine', at: '2026-09-01T00:00:00.000Z',
+            triggerKind: 'schedule', title: 'Digest', kind: 'automation', at: '2026-09-01T00:00:00.000Z',
         });
     });
 

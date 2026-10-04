@@ -25,13 +25,13 @@
  *      en toont daar bewust niets zolang `integrationStatus === null`
  *      (BuilderSplit.jsx). Die beschikbaarheid zit niet in de lijstrespons, en
  *      hem hier verzinnen zou een gemeten getal suggereren. Wat de kaart wél
- *      weet is een feit over de AGENT: hoeveel apps, routines en tabellen zijn
+ *      weet is een feit over de AGENT: hoeveel apps, automatiseringen en tabellen zijn
  *      hem gegund.
  *   3. …en dat getal is voor de meeste agents een ONDERGRENS, niet een totaal.
- *      `core/integrations/integrationTools.js` cureert de routines alleen als
+ *      `core/integrations/integrationTools.js` cureert de automatiseringen alleen als
  *      `config.tools` de sleutel `automations` DRAAGT; ontbreekt die, dan krijgt
- *      de agent élke agent-callable routine van wie er praat, plus elke in de
- *      chat gepubliceerde Step. Nul routines tellen voor zo'n agent is het
+ *      de agent élke agent-callable automatisering van wie er praat, plus elke in de
+ *      chat gepubliceerde Step. Nul automatiseringen tellen voor zo'n agent is het
  *      omgekeerde van de waarheid, en het is precies de val die
  *      `canUse/toolGrants.js` bij naam documenteert. Vandaar `toolsAtLeast`:
  *      het getal blijft wat de config NOEMT, en de kaart zegt erbij dat er
@@ -133,7 +133,7 @@ export function countsOf(agent) {
     const toolsConfig = isPlainObject(rawTools) ? rawTools : null;
     const toolsUnreadable = !toolsMissing && !toolsConfig;
 
-    // De apps staan als vlakke lijst in `enabledIntegrations`; de routines en
+    // De apps staan als vlakke lijst in `enabledIntegrations`; de automatiseringen en
     // tabellen als grants onder `config.tools`. Alle drie zijn "een ding dat
     // deze agent mag aanroepen", dus alle drie tellen mee in dezelfde pil —
     // dezelfde optelling die de tab "Kan gebruiken" op zijn teller zet.
@@ -144,7 +144,7 @@ export function countsOf(agent) {
     // De AANWEZIGHEID van de sleutel is de curatie — spiegel van
     // `_curatedAutomations` in core/integrations/integrationTools.js, dat op
     // `hasOwnProperty('automations')` kijkt en niet op de inhoud. Ontbreekt hij,
-    // dan rijden de routines van de VRAGER mee en is dit getal een ondergrens.
+    // dan rijden de automatiseringen van de VRAGER mee en is dit getal een ondergrens.
     const curatedAutomations = !!toolsConfig
         && Object.prototype.hasOwnProperty.call(toolsConfig, 'automations');
 

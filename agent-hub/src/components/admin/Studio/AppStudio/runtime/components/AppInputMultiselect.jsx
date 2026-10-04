@@ -39,7 +39,7 @@ export default function AppInputMultiselect({ node }) {
     const opts = Array.isArray(options) ? options : [];
     const selected = toValueList(value);
     // Normalise the FORM's copy too, so an untouched submit sends the array the
-    // routine expects rather than the scalar that was pushed in.
+    // automation expects rather than the scalar that was pushed in.
     useEffect(() => {
         if (value != null && value !== '' && !Array.isArray(value)) setValue(toValueList(value));
     }, [value, setValue]);

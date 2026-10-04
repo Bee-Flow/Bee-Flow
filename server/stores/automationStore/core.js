@@ -52,7 +52,7 @@ const MIGRATIONS = [
     'approvals-stages-2026-08',                 // sequential approval stages (up to 5, named + described) + participant index
     'approvals-deliveries-2026-08',             // automation_approval_deliveries: (channel, external id) → approvalId, so a Nextcloud reaction is routable
     'approvals-project-id-2026-09',             // project_id/project_title on approvals (Solution membership; INSERT-only, never detached)
-    // Stamp every routine with its owner's organisation. The column existed
+    // Stamp every automation with its owner's organisation. The column existed
     // and was never written, so the runner derived it per run instead; a
     // shared datatable needs it to be a stored fact. Freezes today's
     // behaviour rather than changing it — see the migration's header.
@@ -87,12 +87,12 @@ const MIGRATIONS = [
     'datatable-spreadsheet-source-2026-09',
     'datatable-form-answers-2026-09',
     'automation-form-audience-2026-09',         // automation_form_pages.audience / shared_groups / shared_user_ids
-    // Multi-trigger routines, second slice: `automation_runs.root_step_id`
+    // Multi-trigger automations, second slice: `automation_runs.root_step_id`
     // (which trigger a run entered through — what lets an approval under a
     // secondary trigger resume on the right root) and `automation_schedules`
     // (additional schedule triggers; the primary stays on the automations row).
     'automation-multi-trigger-2026-09',
-    // automation_evolutions: a routine's proposals to change its own definition,
+    // automation_evolutions: an automation's proposals to change its own definition,
     // applied after approval as a new version, watched by a canary, rolled back
     // on regression. See automation/evolution.js.
     'automation-evolution-2026-09',
@@ -108,6 +108,15 @@ const MIGRATIONS = [
     // columns, structured step errors, shares, notification events and org
     // templates. One migration for every package of that work.
     'automation-handoff5-2026-09',
+    // Solution stages: a PRD deployment asks through this table with
+    // source='deployment' and the sentinel step_id 'stage.prd', so
+    // approvals_source_shape is untouched. Adds `deployment_id` + a partial
+    // index; IF NOT EXISTS only.
+    'approvals-deployment-source-2026-10',
+    // input_json / output_json from JSONB to JSON: JSONB sorts an object's
+    // keys, so a replayed or resumed run rebuilt runState with the author's
+    // key order lost. Probe-only once converted.
+    'automation-run-step-json-order-2026-10',
 ];
 
 const initDB = makeStoreInit('AutomationStore', _initDB);

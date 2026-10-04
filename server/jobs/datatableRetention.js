@@ -1,7 +1,7 @@
 /**
  * Datatable row retention — the sweep that makes "deleted after N days" true.
  *
- * A datatable is where a routine parks the personal data it collects: form
+ * A datatable is where an automation parks the personal data it collects: form
  * answers, e-mail addresses, order lines, whatever the org's own process
  * produces. `datatables.retention_days` and `retention_field` have existed
  * since the feature shipped, `publicTable` already sent the window to the
@@ -29,7 +29,7 @@
  *      during the incident it exists for.
  *
  * ── AND ONE THING IT DOES NOT REACH ─────────────────────────────────
- * A routine's `find_rows` step copies what it read into
+ * An automation's `find_rows` step copies what it read into
  * `automation_run_steps.output`, which is reaped only by age under
  * AUTOMATION_RUN_RETENTION_DAYS (default 90). Deleting a row here does NOT
  * remove those copies. The control in the Studio says so; making an Art. 17
@@ -69,7 +69,7 @@ const DELETE_CHUNK = 500;
  *
  * Not a convenience: a viewer-grade filter would scope the sweep to rows
  * created by whoever the "viewer" happened to be, so a table whose rows were
- * written by four different routines would age out a quarter of itself and
+ * written by four different automations would age out a quarter of itself and
  * report success. There is no viewer here — the org set a policy about the
  * whole table.
  */

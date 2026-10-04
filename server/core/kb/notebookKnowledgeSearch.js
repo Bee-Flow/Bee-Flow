@@ -63,6 +63,43 @@ async function getAzureSearchParams() {
     };
 }
 
+// ── Chunk → source mapping ─────────────────────────────────────────
+
+/**
+ * The notebook source a retrieved chunk belongs to.
+ *
+ * Chunks are ingested with source_type 'notebook_source' and
+ * source_uri = notebook_sources.id, so the id is an exact key. The name/title
+ * substring match is only a fallback for chunks that carry no id we know (older
+ * data, or a hit from a base the notebook attached by hand): matching by
+ * substring first would attach "Report" to "Annual Report 2024".
+ *
+ * @param {{source_uri?: string, title?: string}} chunk
+ * @param {Array<{id: string, name: string}>} sources
+ * @returns {{id: string, name: string}|null}
+ */
+function findSourceForChunk(chunk, sources) {
+    if (!chunk || !Array.isArray(sources) || sources.length === 0) return null;
+    const uri = chunk.source_uri;
+    if (uri) {
+        const byId = sources.find(s => s.id === uri);
+        if (byId) return byId;
+        const byName = sources.find(s => s.name && s.name === uri);
+        if (byName) return byName;
+    }
+    const raw = chunk.title || uri;
+    if (!raw) return null;
+    const byRawId = sources.find(s => s.id === raw);
+    if (byRawId) return byRawId;
+    const basename = String(raw).split('/').pop();
+    const exact = sources.find(s => s.name && (s.name === raw || s.name === basename));
+    if (exact) return exact;
+    // Several names can be substrings of one title ("Report" in "Annual Report
+    // 2024"): the most specific (longest) name is the likeliest.
+    const fuzzy = sources.filter(s => s.name && (String(raw).includes(s.name) || s.name.includes(raw)));
+    return fuzzy.sort((a, b) => b.name.length - a.name.length)[0] || null;
+}
+
 // ── Core Search Function ───────────────────────────────────────────
 
 /**
@@ -79,9 +116,12 @@ async function getAzureSearchParams() {
  * @param {number}   [params.options.maxChunkChars=1500] - truncate chunks
  * @param {boolean}  [params.options.preprocessQuery=true] - clean query
  * @param {number}   [params.options.timeoutMs=12000]   - request timeout
+ * @param {Array<{id: string, name: string}>} [params.sources] - the notebook's sources;
+ *        when given, chunks are labelled with the source NAME (not its id) in the
+ *        prompt and the citations
  * @returns {Promise<{chunks: Array, contextPrompt: string, citations: Array}>}
  */
-async function searchNotebookKB({ userId, kbIds, query, options = {} }) {
+async function searchNotebookKB({ userId, kbIds, query, options = {}, sources = null }) {
     const {
         topK = 10,
         rerank = true,
@@ -139,12 +179,17 @@ async function searchNotebookKB({ userId, kbIds, query, options = {} }) {
     }
 
     // Truncate chunk content
-    const truncatedChunks = chunks.slice(0, topK).map(c => ({
-        ...c,
-        content: c.content && c.content.length > maxChunkChars
-            ? c.content.slice(0, maxChunkChars) + '…'
-            : c.content || '',
-    }));
+    const truncatedChunks = chunks.slice(0, topK).map(c => {
+        const src = findSourceForChunk(c, sources);
+        return {
+            ...c,
+            // source_uri is the source id; show the person (and the model) its name.
+            ...(src ? { source_id: src.id, source_uri: src.name } : {}),
+            content: c.content && c.content.length > maxChunkChars
+                ? c.content.slice(0, maxChunkChars) + '…'
+                : c.content || '',
+        };
+    });
 
     // Build citations for frontend
     const citations = truncatedChunks.map((c, i) => ({
@@ -182,7 +227,7 @@ async function searchNotebookKB({ userId, kbIds, query, options = {} }) {
     const kbText = fenceChunks(truncatedChunks, { maxChars: Infinity });
 
     const contextPrompt = `\n\n[NOTEBOOK KNOWLEDGE BASE — RETRIEVED SOURCE PASSAGES]
-${DATA_NOT_INSTRUCTIONS} Ground your answer in these passages and cite them as [Source N].
+${DATA_NOT_INSTRUCTIONS} Ground your answer in these passages and refer to a passage by the name of its source (the name attribute); never use numeric references such as [1] or [Source N].
 
 ${kbText}`;
 
@@ -258,10 +303,7 @@ async function gatherNotebookContent({ userId, kbIds, sources, documentContent, 
             if (seenChunks.has(key)) continue;
             seenChunks.add(key);
 
-            const sourceName = sources.find(s =>
-                s.id === chunk.source_uri || s.name === chunk.source_uri ||
-                chunk.title?.includes(s.name) || s.name?.includes(chunk.title)
-            )?.name || chunk.source_uri || 'Source';
+            const sourceName = findSourceForChunk(chunk, sources)?.name || chunk.source_uri || 'Source';
 
             allContent += `\n\n[${sourceName}]\n${chunk.content || ''}`;
             chunkCount++;
@@ -345,9 +387,10 @@ async function gatherNotebookContent({ userId, kbIds, sources, documentContent, 
  * @param {object} args        — { query, top_k }
  * @param {string} userId
  * @param {string[]} kbIds
+ * @param {Array<{id: string, name: string}>} [sources] — notebook sources, to show names instead of ids
  * @returns {Promise<object>}  — tool result for the AI
  */
-async function executeNotebookKBSearchTool(args, userId, kbIds) {
+async function executeNotebookKBSearchTool(args, userId, kbIds, sources = null) {
     const { query, top_k } = args;
     if (!query) return { error: 'query is required' };
 
@@ -362,7 +405,7 @@ async function executeNotebookKBSearchTool(args, userId, kbIds) {
     log.info(`[NotebookKBSearch] Tool search: "${query}" (top_k=${topK})`);
 
     const result = await searchNotebookKB({
-        userId, kbIds, query,
+        userId, kbIds, query, sources,
         options: { topK, rerank: true, minScore: 0.25, maxChunkChars: 1200, preprocessQuery: false },
     });
 
@@ -423,6 +466,7 @@ module.exports = {
     executeNotebookKBSearchTool,
     NOTEBOOK_KB_SEARCH_TOOL,
     preprocessQuery,
+    findSourceForChunk,
     // Exposed for tests only — the injection fence is security-relevant enough
     // to pin directly rather than infer from a full search round-trip.
     __test: { neutraliseInjectionMarkers },

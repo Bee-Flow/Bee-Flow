@@ -61,7 +61,7 @@ function useVersionMenu(pageId: string, version: WebpageVersion | null): ActionM
                       'This snapshot is removed from the history for good.',
                   ),
             confirmLabel: restoring
-                ? t('routine_editor.version_restore', 'Restore')
+                ? t('automation_editor.version_restore', 'Restore')
                 : t('common.delete', 'Delete'),
             tone: restoring ? 'primary' : 'destructive',
         });
@@ -71,7 +71,7 @@ function useVersionMenu(pageId: string, version: WebpageVersion | null): ActionM
     return [
         {
             id: 'restore',
-            label: t('routine_editor.version_restore', 'Restore'),
+            label: t('automation_editor.version_restore', 'Restore'),
             icon: 'RotateCcw',
             onPress: () => void ask(true),
         },

@@ -82,7 +82,7 @@ describe('getAutocompleteToken — expression mode', () => {
     });
 });
 
-// App Studio's expression scope shares none of the routine roots but item/vars,
+// App Studio's expression scope shares none of the automation roots but item/vars,
 // so the caller supplies its own list (from the server catalog). Without this
 // the picker never opened on `currentUser.` / `form.` — the two roots a Studio
 // author reaches for first.

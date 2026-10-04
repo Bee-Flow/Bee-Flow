@@ -117,7 +117,7 @@ describe('studioApps registry shape', () => {
 });
 
 // The two sections that are not things you MAKE. Approvals is a decision and
-// Runs is what a routine already did — neither is one of the ten kinds in
+// Runs is what an automation already did — neither is one of the ten kinds in
 // shared/kindColors.js, so neither gets a kind colour and neither has anything
 // to create. The list is closed on purpose: a section joins it by being added
 // here, with a reason, not by omitting a field.
@@ -255,7 +255,7 @@ describe('gates — legacy canSee* truth tables', () => {
     it('aiTasks: automations only — the agent_routines leg is gone with the segment', () => {
         // The tab used to hold two lists behind a segmented control, so it was
         // visible on either licence. It is now just the Automations builder;
-        // agent routines are managed from the agent that owns them, and an
+        // scheduled agent runs are managed from the agent that owns them, and an
         // agent_routines-only org would have landed on a segment that no
         // longer exists.
         const gate = app('aiTasks').gate;
@@ -291,10 +291,10 @@ describe('gates — legacy canSee* truth tables', () => {
         expect(gate(ctx({ perms: p }))).toBe(false);
     });
 
-    it('playbooks: BOTH the routine pair and the app pair — a playbook owns a routine and an app', () => {
+    it('playbooks: BOTH the automation pair and the app pair — a playbook owns an automation and an app', () => {
         // Community has automations; app_studio is the ceiling. Either half
         // missing (licence OR canUse) closes the door, so a member who may
-        // build routines but not apps never sees a playbook start and fail
+        // build automations but not apps never sees a playbook start and fail
         // at phase four.
         const gate = app('playbooks').gate;
         const both = { features: ['automations', 'app_studio'], canUseIds: ['automations', 'app_studio'] };
@@ -310,7 +310,7 @@ describe('gates — legacy canSee* truth tables', () => {
     });
 
     it('approvals: its own Enterprise licence key, and the LICENCE only', () => {
-        // The paid boundary is the collaboration layer: building a routine is
+        // The paid boundary is the collaboration layer: building an automation is
         // free (`automations` is Community), routing its decision past a
         // colleague is not. An org with the free builder and nothing else must
         // NOT see the Approvals tab.
@@ -490,7 +490,7 @@ describe('create — the universal "New" menu contract', () => {
             expect(typeof a.create.onCreate).toBe('function');
         }
         expect(app('approvals').create).toBeUndefined();
-        // You cannot make a run; you make a routine and it runs. NewMenu skips
+        // You cannot make a run; you make an automation and it runs. NewMenu skips
         // a section without a create entry, which is what Approvals already
         // relies on.
         expect(app('runs').create).toBeUndefined();

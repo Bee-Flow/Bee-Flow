@@ -7,7 +7,7 @@
  *   1. Which skill LEADS. The step's own skills come first (in the author's
  *      order), then the agent's skills minus the ones the step switched off
  *      (`disabledAgentSkillIds`). The leading skill is the first of those that
- *      the routine owner can actually read: the one whose instructions come
+ *      the automation owner can actually read: the one whose instructions come
  *      first, and whose output fields the step hands on.
  *   2. What the step hands on (its OUTPUT CONTRACT). A step with its own
  *      `outputSchema` keeps it. Without one, the leading skill's
@@ -16,12 +16,12 @@
  *      never resolves to nothing. A skill with no schema (null) leaves the
  *      step on the fields inferred from downstream refs, as before.
  *   3. What the active skills GRANT beyond their text: knowledge bases, apps
- *      and routines (`skillInjection.skillGrantsOf`). Each grant only counts
+ *      and automations (`skillInjection.skillGrantsOf`). Each grant only counts
  *      under the step's switch that is about it: knowledge under
- *      `useKnowledge`, apps under `useTools`, routines under
+ *      `useKnowledge`, apps under `useTools`, automations under
  *      `startAutomations`. A switch that is off keeps its promise whatever a
  *      skill says. Same static/dynamic partition as the prompt and as chat: a
- *      dynamic skill grants nothing until it is loaded, and a routine step has
+ *      dynamic skill grants nothing until it is loaded, and an automation step has
  *      no second turn in which to load it.
  *   4. How an agent (or a skill written for chat) is told it is a STEP: it
  *      never asks anything back and never waits for a confirmation, because
@@ -57,7 +57,7 @@ function sanitizeDisabledAgentSkillIds(v) {
 /**
  * The skill rows in RUN order: the order of `orderedIds` (the capped merged
  * list the injection uses), keeping only rows the store returned. A skill the
- * routine owner cannot read is simply not there, exactly as in the prompt.
+ * automation owner cannot read is simply not there, exactly as in the prompt.
  */
 function orderSkills(skills, orderedIds) {
     const byId = new Map();
@@ -194,11 +194,11 @@ function grantsUnderPermissions(grants, permissions) {
 }
 
 /**
- * An agent config whose routine grants also hold the routines a skill grants.
+ * An agent config whose automation grants also hold the automations a skill grants.
  *
- * Only for an agent whose owner CURATED its routines (the `automations` key is
- * present): an uncurated agent is already offered every routine the routine
- * owner may call, so there is nothing to add. The ids stay inside the routine
+ * Only for an agent whose owner CURATED its automations (the `automations` key is
+ * present): an uncurated agent is already offered every automation the automation
+ * owner may call, so there is nothing to add. The ids stay inside the automation
  * owner's own set either way, because the catalog is built for them. A
  * shallow copy: the runtime projection of the agent is shared.
  */
@@ -208,7 +208,7 @@ function configWithSkillAutomations(config, automationIds) {
     if (!Object.prototype.hasOwnProperty.call(config.tools, 'automations')) return config;
     const current = _plainObject(config.tools.automations) ? config.tools.automations : null;
     // An unreadable section is a decision nobody can read; widening it would
-    // turn that into "these routines, at least", which is not ours to say.
+    // turn that into "these automations, at least", which is not ours to say.
     if (!current) return config;
     const automations = { ...current };
     for (const id of ids) if (!Object.prototype.hasOwnProperty.call(automations, id)) automations[id] = {};

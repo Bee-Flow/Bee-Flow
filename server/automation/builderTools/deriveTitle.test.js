@@ -26,7 +26,7 @@ const loadBriefFixture = (name) => BRIEF_FIXTURES[name];
 test('the six briefs derive the titles a person would pick', () => {
     const expected = {
         // (a) the playbook briefs state their title
-        'playbook-invoice-routine': 'Facturen inlezen',
+        'playbook-invoice-automation': 'Facturen inlezen',
         'playbook-invoice-approvals': 'Facturen goedkeuren',
         'playbook-invoice-app': 'Facturen',
         // (c) the first sentence that says what it does, boilerplate skipped
@@ -50,11 +50,11 @@ test('a stated title wins over every other rule, in four spellings and three quo
     assert.equal(deriveTitle({ brief: "Title: 'It's a test of the naming'" }), "It's a test of the naming");
     assert.equal(deriveTitle({ brief: 'Titel: ‘’s Ochtends de post’' }), '’s Ochtends de post');
     // The same pattern the playbook stage mirrors client-side.
-    assert.equal(TITLE_IN_BRIEF_RE.exec(loadBriefFixture('playbook-invoice-routine'))[1], 'Facturen inlezen');
+    assert.equal(TITLE_IN_BRIEF_RE.exec(loadBriefFixture('playbook-invoice-automation'))[1], 'Facturen inlezen');
     assert.equal(TITLE_IN_BRIEF_RE.exec(loadBriefFixture('playbook-invoice-app'))[1], 'Facturen');
 });
 
-test('"name" mid-sentence is a field, not a title statement — the sentence rule names the routine instead', () => {
+test('"name" mid-sentence is a field, not a title statement — the sentence rule names the automation instead', () => {
     // Each of these passed the ≤60 / not-default checks as "From",
     // "Leverancier" and "It" before the statement form, and nothing
     // downstream repairs a wrong title.
@@ -70,18 +70,18 @@ test('"name" mid-sentence is a field, not a title statement — the sentence rul
 });
 
 test('the playbook stage mirrors the pattern byte for byte', () => {
-    // agent-hub seeds the routine's title from the brief before the first
+    // agent-hub seeds the automation's title from the brief before the first
     // build turn with the SAME regex; the two are in different packages, so
-    // the pin reads the source — a drift here is a routine named two ways.
-    const stage = path.join(__dirname, '..', '..', '..', 'agent-hub', 'src', 'components', 'admin', 'Studio', 'Playbooks', 'stages', 'RoutineStage.jsx');
+    // the pin reads the source — a drift here is an automation named two ways.
+    const stage = path.join(__dirname, '..', '..', '..', 'agent-hub', 'src', 'components', 'admin', 'Studio', 'Playbooks', 'stages', 'AutomationStage.jsx');
     const src = fs.readFileSync(stage, 'utf8');
     const m = /export const TITLE_IN_BRIEF_RE = \/(.*)\/([a-z]*);/.exec(src);
-    assert.ok(m, 'RoutineStage.jsx exports TITLE_IN_BRIEF_RE as a literal');
+    assert.ok(m, 'AutomationStage.jsx exports TITLE_IN_BRIEF_RE as a literal');
     assert.equal(m[1], TITLE_IN_BRIEF_RE.source);
     assert.equal(m[2], TITLE_IN_BRIEF_RE.flags);
 });
 
-test('a heading names the routine, its quoted part first, and a generic heading is skipped', () => {
+test('a heading names the automation, its quoted part first, and a generic heading is skipped', () => {
     assert.equal(deriveTitle({ brief: '## Build an automation "Facturen goedkeuren"\nI start it by hand.' }), 'Facturen goedkeuren');
     assert.equal(deriveTitle({ brief: '## Weekly invoice digest\nEvery Monday, search Gmail and email me.' }), 'Weekly invoice digest');
     assert.equal(deriveTitle({ brief: '## Build an automation\nI start it by hand: manual trigger.\n1. Read every PDF invoice in the folder and extract the fields.' }),
@@ -89,8 +89,8 @@ test('a heading names the routine, its quoted part first, and a generic heading 
 });
 
 test('the first sentence: boilerplate skipped, the imperative stripped, cut on a word boundary with an ellipsis', () => {
-    assert.equal(deriveTitle({ brief: 'Maak een routine die ik met de hand start. Lees elke factuur en zet hem in de tabel.' }), 'Lees elke factuur en zet hem in de tabel');
-    assert.equal(deriveTitle({ brief: 'Create a routine that searches my Gmail for unread invoices every morning.' }), 'Searches my Gmail for unread invoices every morning');
+    assert.equal(deriveTitle({ brief: 'Maak een automatisering die ik met de hand start. Lees elke factuur en zet hem in de tabel.' }), 'Lees elke factuur en zet hem in de tabel');
+    assert.equal(deriveTitle({ brief: 'Create an automation that searches my Gmail for unread invoices every morning.' }), 'Searches my Gmail for unread invoices every morning');
     const long = deriveTitle({ brief: 'Every weekday at 8am, search my Gmail for unread invoices and email me a summary of them.' });
     assert.ok(long.length <= MAX_TITLE && long.endsWith('…'), long);
     assert.ok(!/\s…$/.test(long), 'no space before the ellipsis');
@@ -101,9 +101,9 @@ test('with nothing usable in the brief the definition names it, and with nothing
     assert.equal(deriveTitle({ brief: 'ok', def }), 'Manual: nextcloud_list_files → Append row to Facturen');
     const ev = { trigger: { kind: 'app_event', appEvent: { provider: 'gmail', event: 'mail.new' } }, steps: [{ type: 'ai_step', label: 'Draft reply' }] };
     assert.equal(deriveTitle({ brief: '', def: ev }), 'gmail mail.new: Draft reply');
-    assert.equal(deriveTitle({ brief: 'ok', def: { trigger: { kind: 'manual' }, steps: [{ type: 'note', text: 'todo' }] } }), 'New routine', 'a note is not a step');
-    assert.equal(deriveTitle({}), 'New routine');
-    assert.equal(deriveTitle({ brief: `Title "${UNTITLED_AUTOMATION}"` }), 'New routine', 'never the default, even when the brief says so');
+    assert.equal(deriveTitle({ brief: 'ok', def: { trigger: { kind: 'manual' }, steps: [{ type: 'note', text: 'todo' }] } }), 'New automation', 'a note is not a step');
+    assert.equal(deriveTitle({}), 'New automation');
+    assert.equal(deriveTitle({ brief: `Title "${UNTITLED_AUTOMATION}"` }), 'New automation', 'never the default, even when the brief says so');
 });
 
 test('every derived title is ≤ 60 chars, whatever the brief', () => {
@@ -118,11 +118,11 @@ test('every derived title is ≤ 60 chars, whatever the brief', () => {
 
 test('ensureDraftTitle names an untitled draft once and leaves a chosen title alone', () => {
     const wrap = { title: UNTITLED_AUTOMATION, def: { trigger: { kind: 'manual' }, steps: [] } };
-    assert.deepEqual(ensureDraftTitle(wrap, { brief: loadBriefFixture('playbook-invoice-routine') }), { derived: true, title: 'Facturen inlezen' });
+    assert.deepEqual(ensureDraftTitle(wrap, { brief: loadBriefFixture('playbook-invoice-automation') }), { derived: true, title: 'Facturen inlezen' });
     assert.equal(wrap.title, 'Facturen inlezen');
     assert.deepEqual(ensureDraftTitle(wrap, { brief: 'Title "Other"' }), { derived: false, title: 'Facturen inlezen' }, 'a named draft keeps its name');
     const empty = { title: '', def: {} };
-    assert.deepEqual(ensureDraftTitle(empty, { brief: '' }), { derived: true, title: 'New routine' });
+    assert.deepEqual(ensureDraftTitle(empty, { brief: '' }), { derived: true, title: 'New automation' });
     const chosen = { title: 'Mine', def: {} };
     assert.deepEqual(ensureDraftTitle(chosen, { brief: 'Title "Theirs"' }), { derived: false, title: 'Mine' });
 });

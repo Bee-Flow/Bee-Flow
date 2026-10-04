@@ -5,6 +5,10 @@
  * CSV, delete one, delete a selection. Every statement is compiled by
  * core/dataEngine/queryCompiler with the access filter ANDed in; a table that
  * mirrors an external source writes to the source first and copies back.
+ *
+ * A Solution stage's reference table (descriptor `rowsLocked`) refuses every
+ * write in the compiler with 409 `managed_part`; answerDatatableError answers
+ * it like any other refusal, and the bulk import lets it through whole.
  */
 
 'use strict';
@@ -171,6 +175,10 @@ function register(router) {
         try {
             const meta = await metaFor(req);
             accessFilter.assertCanWrite(meta, req.datatableGrade, 'create');
+            // A locked reference table refuses before the quota is read: "the
+            // rows are the release's" is the answer, not "the table is full".
+            // Also covers a mirror, which never reaches compileInsert below.
+            queryCompiler.assertRowsWritable(meta);
             await assertQuota(req, { addRows: 1 });
             // A mirror's row goes to the source first; the copy is written from
             // what the source answered (core/dataEngine/sources).
@@ -204,7 +212,7 @@ function register(router) {
      *
      * There was no way to change one anywhere in the product, so fixing a typo
      * meant delete-and-retype: a new id, a new created_at, a lost created_by, and
-     * every routine keyed on the row id pointing at nothing.
+     * every automation keyed on the row id pointing at nothing.
      *
      * `expectedUpdatedAt` is REQUIRED, not optional. compileUpdate has carried the
      * token from the start and every read returns `updated_at`, so a client cannot
@@ -283,6 +291,8 @@ function register(router) {
         try {
             const meta = await metaFor(req);
             accessFilter.assertCanWrite(meta, req.datatableGrade, 'create');
+            // Refused whole, before the size cap and the quota (see the single insert).
+            queryCompiler.assertRowsWritable(meta);
 
             const { rows } = req.body;
             if (!rows.length) return res.json({ inserted: 0, errors: [] });
@@ -310,6 +320,10 @@ function register(router) {
                         dialect: 'pg',
                     }));
                 } catch (e) {
+                    // A Solution stage's reference table refuses EVERY row
+                    // (queryCompiler RowsLockedError): that is the request's
+                    // answer, a 409 managed_part, not a bad line per row.
+                    if (e && e.code === 'managed_part') throw e;
                     // +1 because a person counts the first row as row 1, and a
                     // header line is the caller's to account for.
                     errors.push({ line: i + 1, error: e.message });

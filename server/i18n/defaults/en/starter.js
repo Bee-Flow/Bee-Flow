@@ -37,7 +37,7 @@ module.exports = {
     'starter.prompt_20': 'Write a formal apology letter for a missed meeting',
     'starter.prompt_21': 'Explain the theory of relativity to a teenager',
     'starter.prompt_22': 'What are some high-protein snacks for gym goers?',
-    'starter.prompt_23': 'Create a workout routine focusing on core strength',
+    'starter.prompt_23': 'Create a workout automation focusing on core strength',
     'starter.prompt_24': 'Write a blog post intro about sustainable fashion',
     'starter.prompt_25': 'How does the stock market work for beginners?',
     'starter.prompt_26': 'Give me 5 gift ideas for a 30th birthday',

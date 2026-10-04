@@ -527,7 +527,7 @@ function matchMeetingProcessedFilter(payload, filter) {
     // "elke afgeronde vergadernotitie": leeg-is-alles plus genegeerde
     // sleutels is samen fail-open. Vóór deze matcher deed de ondiepe
     // `matchFilter` het omgekeerde (zulke filters vuurden nooit), dus zonder
-    // dit klapt een al opgeslagen routine stil van "nooit" naar "altijd".
+    // dit klapt een al opgeslagen automatisering stil van "nooit" naar "altijd".
     // Ook de spiegelkant telt: in `none: [{ tagIncludes: 'geheim' }]` moet de
     // submatcher NEE kunnen zeggen, anders sluit die clausule alles uit.
     const rest = {};

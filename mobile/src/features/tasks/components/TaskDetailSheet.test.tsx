@@ -67,7 +67,7 @@ describe('TaskDetailSheet', () => {
         // The sheet's own Delete renders first; the confirmation's is the last.
         const buttons = screen.getAllByLabelText('Delete');
         await fireEvent.press(buttons[buttons.length - 1]!);
-        await waitFor(() => expect(api.delete).toHaveBeenCalledWith('/api/ai-tasks/t1'));
+        await waitFor(() => expect(api.delete).toHaveBeenCalledWith('/api/cowork/t1'));
         await waitFor(() => expect(onClose).toHaveBeenCalled());
     });
 });

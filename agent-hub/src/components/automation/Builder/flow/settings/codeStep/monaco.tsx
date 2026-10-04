@@ -30,9 +30,23 @@ function MonacoUnavailable({ onUnavailable }: { onUnavailable?: () => void }) {
  * failure resolves to a real component (not null, which is an invalid element
  * type) so the render that reveals it succeeds and reports itself.
  */
+/**
+ * Where the editor runtime comes from: this app, never the CDN default of
+ * @monaco-editor/react (cdn.jsdelivr.net). vite.config.js (monacoSelfHost)
+ * puts `monaco-editor/min/vs` at `<base>monaco/vs`, so an offline self-host
+ * gets the editor and no author's IP address reaches a third party. An
+ * absolute URL, because the AMD loader resolves `vs` against its own script.
+ */
+export function monacoVsUrl(base: string = import.meta.env.BASE_URL || '/', origin: string = window.location.origin): string {
+    return new URL(`${base.endsWith('/') ? base : `${base}/`}monaco/vs`, origin).href;
+}
+
+type MonacoModule = { default?: unknown; loader?: { config: (c: { paths: { vs: string } }) => void } };
+
 export const MonacoEditor = lazy(() => import('@monaco-editor/react')
-    .then((m: { default?: unknown }) => {
+    .then((m: MonacoModule) => {
         if (!m.default) throw new Error('Monaco default export missing');
+        m.loader?.config({ paths: { vs: monacoVsUrl() } });
         return { default: m.default };
     })
     .catch((err: unknown) => {
@@ -46,12 +60,11 @@ export const EDITOR_PREF_KEY = 'automation.codeStep.editor';
 /**
  * How long we wait for Monaco to actually appear before handing the author a
  * textarea anyway. `@monaco-editor/react` resolves as soon as its wrapper
- * chunk arrives; the editor RUNTIME is fetched afterwards from
- * cdn.jsdelivr.net (nothing here calls loader.config()). On an offline,
- * air-gapped or proxied self-host that fetch never completes: the import
- * succeeds and onMount never fires, so only a deadline notices. Generous on
- * purpose: a cold CDN fetch over a slow link is a normal five seconds, and
- * nothing is lost when it fires late because the code lives in the draft.
+ * chunk arrives; the editor RUNTIME is fetched afterwards from this app
+ * (monacoVsUrl). When that fetch never completes (a proxy that drops it, a
+ * build without the copied files) the import succeeds and onMount never fires,
+ * so only a deadline notices. Generous on purpose: nothing is lost when it
+ * fires late because the code lives in the draft.
  */
 export const MONACO_MOUNT_DEADLINE_MS = 8000;
 

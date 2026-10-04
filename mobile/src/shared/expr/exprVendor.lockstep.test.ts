@@ -1,7 +1,7 @@
 /**
  * The vendored expression engine is the web's, byte for byte.
  *
- * agent-hub/src/shared/expr and server/shared/expr are the same three files;
+ * agent-hub/src/shared/expr and server/shared/expr are the same engine files;
  * the server runs automations with them and the web builder checks conditions
  * with them. The phone's copy in vendor/ has to be a third identical copy, or
  * a condition the phone accepts is one the server rejects (or evaluates
@@ -16,7 +16,7 @@ import path from 'node:path';
 
 const REPO = path.resolve(__dirname, '../../../..');
 const VENDOR = path.join(__dirname, 'vendor');
-const ENGINE_FILES = ['engine.mjs', 'functions.mjs', 'index.mjs', 'topics.mjs'];
+const ENGINE_FILES = ['engine.mjs', 'functions.mjs', 'index.mjs', 'templateText.mjs', 'topics.mjs'];
 const ORIGINALS = ['agent-hub/src/shared/expr', 'server/shared/expr'];
 
 const bytes = (file: string) => fs.readFileSync(file);

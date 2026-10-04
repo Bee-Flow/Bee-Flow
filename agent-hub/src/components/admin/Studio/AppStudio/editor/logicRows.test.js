@@ -6,8 +6,8 @@ import logicRows, {
     countWiredLogic,
     eventsForType,
     noticesForRow,
-    routineRows,
-    routineTouchesTables,
+    derivedAutomationRows,
+    automationTouchesTables,
 } from './logicRows';
 
 /**
@@ -72,13 +72,13 @@ describe('een event dat aan geen actie hangt blijft staan', () => {
         expect(row.what).toMatch(/no longer exists/);
     });
 
-    it('draagt de routinenaam door wanneer de aanroeper er een kan geven', () => {
+    it('draagt de automatiseringsnaam door wanneer de aanroeper er een kan geven', () => {
         const rows = logicRows(
             defOf([{ id: 'nd_b', type: 'button', onClick: 'act_run' }]),
             { titleFor: (id) => (id === 'aut_7' ? 'Offerte berekenen' : null) },
         );
         const [row] = rows.filter((r) => r.nodeId === 'nd_b');
-        expect(row.what).toBe('Run routine — Offerte berekenen');
+        expect(row.what).toBe('Run automation — Offerte berekenen');
         expect(row.automationId).toBe('aut_7');
     });
 });
@@ -204,33 +204,33 @@ describe('eventsForType spiegelt de componentcatalogus', () => {
     });
 });
 
-describe('routineTouchesTables', () => {
+describe('automationTouchesTables', () => {
     const tables = new Set(['tbl_a']);
 
     it('ziet een datatable-stap', () => {
-        expect(routineTouchesTables({ definition: { steps: [{ type: 'datatable', datatableId: 'tbl_a' }] } }, tables)).toBe(true);
+        expect(automationTouchesTables({ definition: { steps: [{ type: 'datatable', datatableId: 'tbl_a' }] } }, tables)).toBe(true);
     });
 
     it('ziet een stap die in een lus of een tak zit', () => {
-        expect(routineTouchesTables({
+        expect(automationTouchesTables({
             definition: { steps: [{ type: 'loop', steps: [{ datatableId: 'tbl_a' }] }] },
         }, tables)).toBe(true);
-        expect(routineTouchesTables({
+        expect(automationTouchesTables({
             definition: { steps: [{ type: 'switch', cases: [{ steps: [{ datatableId: 'tbl_a' }] }] }] },
         }, tables)).toBe(true);
     });
 
     it('ziet een tabeltrigger', () => {
-        expect(routineTouchesTables({ definition: { trigger: { filter: { tableId: 'tbl_a' } } } }, tables)).toBe(true);
+        expect(automationTouchesTables({ definition: { trigger: { filter: { tableId: 'tbl_a' } } } }, tables)).toBe(true);
     });
 
     it('is onwaar voor een andere tabel en voor een lege verzameling', () => {
-        expect(routineTouchesTables({ definition: { steps: [{ datatableId: 'tbl_z' }] } }, tables)).toBe(false);
-        expect(routineTouchesTables({ definition: { steps: [{ datatableId: 'tbl_a' }] } }, new Set())).toBe(false);
+        expect(automationTouchesTables({ definition: { steps: [{ datatableId: 'tbl_z' }] } }, tables)).toBe(false);
+        expect(automationTouchesTables({ definition: { steps: [{ datatableId: 'tbl_a' }] } }, new Set())).toBe(false);
     });
 });
 
-describe('routineRows — afgeleid, en versmallend bij twijfel', () => {
+describe('derivedAutomationRows — afgeleid, en versmallend bij twijfel', () => {
     const rowsById = {
         aut_1: { id: 'aut_1', title: 'Nachtelijke herinnering', projectId: 'prj_1', definition: { trigger: { kind: 'schedule' }, steps: [{ datatableId: 'tbl_a' }] } },
         aut_2: { id: 'aut_2', title: 'Andere oplossing', projectId: 'prj_2', definition: { steps: [{ datatableId: 'tbl_a' }] } },
@@ -238,24 +238,24 @@ describe('routineRows — afgeleid, en versmallend bij twijfel', () => {
     };
     const boundTableIds = new Set(['tbl_a']);
 
-    it('houdt alleen routines uit dezelfde oplossing die de gebonden tabel raken', () => {
-        const rows = routineRows({ app: { projectId: 'prj_1' }, automationRows: rowsById, boundTableIds });
+    it('houdt alleen automatiseringen uit dezelfde oplossing die de gebonden tabel raken', () => {
+        const rows = derivedAutomationRows({ app: { projectId: 'prj_1' }, automationRows: rowsById, boundTableIds });
         expect(rows.map((r) => r.automationId)).toEqual(['aut_1']);
         expect(rows[0].when).toBe('On a schedule');
         expect(rows[0].what).toBe('Nachtelijke herinnering');
-        expect(rows[0].kind).toBe('routine');
+        expect(rows[0].kind).toBe('automation');
     });
 
-    it('geeft niets terug voor een app zonder oplossing — "alle routines" is een andere vraag', () => {
-        expect(routineRows({ app: { projectId: null }, automationRows: rowsById, boundTableIds })).toEqual([]);
+    it('geeft niets terug voor een app zonder oplossing — "alle automations" is een andere vraag', () => {
+        expect(derivedAutomationRows({ app: { projectId: null }, automationRows: rowsById, boundTableIds })).toEqual([]);
     });
 
     it('geeft niets terug als de app aan geen enkele tabel gebonden is', () => {
-        expect(routineRows({ app: { projectId: 'prj_1' }, automationRows: rowsById, boundTableIds: new Set() })).toEqual([]);
+        expect(derivedAutomationRows({ app: { projectId: 'prj_1' }, automationRows: rowsById, boundTableIds: new Set() })).toEqual([]);
     });
 
-    it('laat een routine weg die hierboven al aan een knop hangt', () => {
-        const rows = routineRows({
+    it('laat een automation weg die hierboven al aan een knop hangt', () => {
+        const rows = derivedAutomationRows({
             app: { projectId: 'prj_1' }, automationRows: rowsById, boundTableIds,
             wiredAutomationIds: new Set(['aut_1']),
         });

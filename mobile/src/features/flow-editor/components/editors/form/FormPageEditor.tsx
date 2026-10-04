@@ -36,7 +36,7 @@ export interface FormPageEditorProps {
     /** Template slots: only where the server has a run to fill them in against (not page one). */
     allowVariables?: boolean;
     pickSources?: readonly CatalogPickSource[];
-    /** Carry a question's rename through the routine; absent where the routine is out of sight. */
+    /** Carry a question's rename through the automation; absent where the automation is out of sight. */
     rename?: ((from: string, to: string) => number | undefined) | null;
     disabled?: boolean;
 }
@@ -97,7 +97,7 @@ export function FormPageEditor(props: FormPageEditorProps) {
             {ending ? (
                 <>
                     {fields.some(isDisplayField) ? null : (
-                        <Note>{t('mobile.flow.form.no_downloads', 'Nothing to hand over — offer a file the routine made, to save or to open in Notebooks.')}</Note>
+                        <Note>{t('mobile.flow.form.no_downloads', 'Nothing to hand over — offer a file the automation made, to save or to open in Notebooks.')}</Note>
                     )}
                     {fields.map((f, i) => (isDisplayField(f) ? card(f, i) : null))}
                     <AddButton label={t('mobile.flow.form.add_download', 'Add a download')} onPress={() => setFields(addDisplayField(fields, 'download', NEW_DOWNLOAD))} disabled={disabled} />

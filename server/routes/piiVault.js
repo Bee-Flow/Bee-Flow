@@ -10,7 +10,7 @@
  * ever made for them, which would make the feature theatre. If support needs
  * to help someone with their vault, they walk them through this screen.
  *
- * Reads are audited. Listing your own PII is legitimate and routine, but it is
+ * Reads are audited. Listing your own PII is legitimate and automation, but it is
  * still the one endpoint that returns raw PII in bulk, so it leaves a trail.
  *
  * ── What a caller may send ───────────────────────────────────────────────────

@@ -17,7 +17,7 @@
    "id": "bundle",
    "icon": "📦",
    "title": "A Solution is the bundle, not a new thing to build",
-   "bodyMd": "Marieke, finance lead at Van Dijk Groep, has four things that only work together: **Factuurintake**, a routine on the purchasing mailbox; a table of invoices; an approval step for anything over €2 500; and a small app for the controller.\n\nNow the subsidiary, Van Dijk Techniek, wants the same setup. Screenshots and a long e-mail will not do it.\n\nA **Solution** is those four filed into one project and read as one bundle. It is not a new kind of object — it is the same project the team chats in, seen from the builder's side. **Studio → Solutions** is that builder view; the project page stays where the people who *use* it live.\n\nAssemble it, run the Check, publish it as a **Blueprint**, and Techniek installs it as a Solution of their own.\n\nTwo licence gates guard this lesson: Solutions itself, and packaging (Export/Publish) on top of it — both Enterprise. What there is *no* gate for is an organisation permission: unlike App Studio work, which an admin unlocks with **manage_apps**, nothing at organisation level decides who may do what inside a Solution. That is your role on that one project — viewer, editor, owner."
+   "bodyMd": "Marieke, finance lead at Van Dijk Groep, has four things that only work together: **Factuurintake**, an automation on the purchasing mailbox; a table of invoices; an approval step for anything over €2 500; and a small app for the controller.\n\nNow the subsidiary, Van Dijk Techniek, wants the same setup. Screenshots and a long e-mail will not do it.\n\nA **Solution** is those four filed into one project and read as one bundle. It is not a new kind of object — it is the same project the team chats in, seen from the builder's side. **Studio → Solutions** is that builder view; the project page stays where the people who *use* it live.\n\nAssemble it, run the Check, publish it as a **Blueprint**, and Techniek installs it as a Solution of their own.\n\nTwo licence gates guard this lesson: Solutions itself, and packaging (Export/Publish) on top of it — both Enterprise. What there is *no* gate for is an organisation permission: unlike App Studio work, which an admin unlocks with **manage_apps**, nothing at organisation level decides who may do what inside a Solution. That is your role on that one project — viewer, editor, owner."
   },
   {
    "type": "tour",
@@ -35,13 +35,13 @@
    "id": "file-in",
    "icon": "🗂️",
    "title": "Filing in what you already built",
-   "bodyMd": "Type a name in the \"Name the Solution…\" box, press **New Solution**, and it opens on the **Content** tab. Nothing gets built here. You file in things that already exist.\n\nThe three bands say who each piece is for:\n\n- **People use** — apps, webpages\n- **Work happens** — routines, approvals\n- **Knowledge & data** — tables, agents, knowledge bases, notebooks\n\n\"Add existing\" asks \"Choose a kind…\" and then lists what you may file in — and that list is short on purpose. You need **editor** rights on the Solution, and you can only file in items **you own**. The server enforces both. When a kind reads \"Nothing of yours left to add here.\", that is your answer: somebody else's routine has to be filed in by that somebody.\n\nAnd filing hands nothing over. A routine stays owner-private on every tier — there is no share switch, and nobody else can open, edit or run it. Inside a Solution its members see the row: name, live/paused/draft badge, and whether the Check flagged it. Reading a row is not holding the routine. Its owner is still the only person who can open it in Automations and the only person who can repair what the Check raises against it."
+   "bodyMd": "Type a name in the \"Name the Solution…\" box, press **New Solution**, and it opens on the **Content** tab. Nothing gets built here. You file in things that already exist.\n\nThe three bands say who each piece is for:\n\n- **People use** — apps, webpages\n- **Work happens** — automations, approvals\n- **Knowledge & data** — tables, agents, knowledge bases, notebooks\n\n\"Add existing\" asks \"Choose a kind…\" and then lists what you may file in — and that list is short on purpose. You need **editor** rights on the Solution, and you can only file in items **you own**. The server enforces both. When a kind reads \"Nothing of yours left to add here.\", that is your answer: somebody else's automation has to be filed in by that somebody.\n\nAnd filing hands nothing over. An automation stays owner-private on every tier — there is no share switch, and nobody else can open, edit or run it. Inside a Solution its members see the row: name, live/paused/draft badge, and whether the Check flagged it. Reading a row is not holding the automation. Its owner is still the only person who can open it in Automations and the only person who can repair what the Check raises against it."
   },
   {
    "type": "quiz",
    "id": "q-private",
    "icon": "🔐",
-   "question": "Joost files his routine **Factuurcontrole** into Marieke's Solution. Marieke is the Solution's owner. What can she now do with that routine?",
+   "question": "Joost files his automation **Factuurcontrole** into Marieke's Solution. Marieke is the Solution's owner. What can she now do with that automation?",
    "multi": false,
    "choices": [
     {
@@ -53,29 +53,29 @@
      "id": "b",
      "label": "Open and edit it in Automations, because filing it in shares it with the Solution's members.",
      "correct": false,
-     "feedback": "Filing is not sharing. Routines are owner-private on every licence tier — there is no sharing column and no share switch. A Solution lists the row; it does not hand over the routine."
+     "feedback": "Filing is not sharing. Automations are owner-private on every licence tier — there is no sharing column and no share switch. A Solution lists the row; it does not hand over the automation."
     },
     {
      "id": "c",
      "label": "Run it herself, since she owns the Solution it now belongs to.",
      "correct": false,
-     "feedback": "Owning the Solution is not owning its members. She can package the bundle, but running Joost's routine stays his alone."
+     "feedback": "Owning the Solution is not owning its members. She can package the bundle, but running Joost's automation stays his alone."
     },
     {
      "id": "d",
-     "label": "Nothing at all — someone else's routine is invisible inside a Solution.",
+     "label": "Nothing at all — someone else's automation is invisible inside a Solution.",
      "correct": false,
      "feedback": "Too far the other way. The Content tab shows the row so the bundle can be read as one thing, and the Check reports findings against it. Visible, not operable."
     }
    ],
-   "explanation": "Two ownerships, never mixed up. The **item** has an owner, and that never changes: a routine is owner-private, so filing it into a Solution only lists it — a colleague still cannot open, edit or run it, and a Check finding against it has to be repaired by the person who owns it. The **Solution** has its own ladder — viewer, editor, owner — which decides who reads the bundle, who files things in and out, and who may package it."
+   "explanation": "Two ownerships, never mixed up. The **item** has an owner, and that never changes: an automation is owner-private, so filing it into a Solution only lists it — a colleague still cannot open, edit or run it, and a Check finding against it has to be repaired by the person who owns it. The **Solution** has its own ladder — viewer, editor, owner — which decides who reads the bundle, who files things in and out, and who may package it."
   },
   {
    "type": "slide",
    "id": "the-check",
    "icon": "🔎",
    "title": "The Check: four validators, one verdict",
-   "bodyMd": "The **Check** tab is not a fifth opinion. Four validators already knew what was wrong and none of them talked to each other: App Studio, the routine validator, the project graph, and the knowledge-base rule. The Check runs all four over the members of your Solution and returns one list.\n\nIt splits into **Has to be fixed first** and **Worth a look**. Each row carries the validator's own message, plus a **Show me** link when the server could name the actual row to open — straight to the builder screen that repairs it.\n\nWhen it is clean it says so out loud: *\"Nothing needs your attention. Everything here is wired up and owned consistently.\"*\n\nThat list is the publish gate: **Publish** stays greyed out while anything blocks."
+   "bodyMd": "The **Check** tab is not a fifth opinion. Four validators already knew what was wrong and none of them talked to each other: App Studio, the automation validator, the project graph, and the knowledge-base rule. The Check runs all four over the members of your Solution and returns one list.\n\nIt splits into **Has to be fixed first** and **Worth a look**. Each row carries the validator's own message, plus a **Show me** link when the server could name the actual row to open — straight to the builder screen that repairs it.\n\nWhen it is clean it says so out loud: *\"Nothing needs your attention. Everything here is wired up and owned consistently.\"*\n\nThat list is the publish gate: **Publish** stays greyed out while anything blocks."
   },
   {
    "type": "quiz",
@@ -114,7 +114,7 @@
    "id": "publish-export",
    "icon": "🚀",
    "title": "Publish, Export, and what stays behind",
-   "bodyMd": "Two buttons, one mechanism. **Export** packages the Solution and hands you a file. **Publish** is the same packaging with \"Also keep it on this instance, so colleagues can install it without a file\" ticked and locked, so the Blueprint also lands in the **Catalogue** — this organisation's Blueprints on this instance, not a store shared across the world.\n\nBoth open the same dialog, and its most important section is **\"What this Blueprint does not carry\"**. A Blueprint is the Solution written down: the routines, apps, webpages and the links between them. Tables travel as shapes with no rows. Knowledge bases travel as empty shells. A webpage's own database never travels at all.\n\nDecisions, credentials and people stay home."
+   "bodyMd": "Two buttons, one mechanism. **Export** packages the Solution and hands you a file. **Publish** is the same packaging with \"Also keep it on this instance, so colleagues can install it without a file\" ticked and locked, so the Blueprint also lands in the **Catalogue** — this organisation's Blueprints on this instance, not a store shared across the world.\n\nBoth open the same dialog, and its most important section is **\"What this Blueprint does not carry\"**. A Blueprint is the Solution written down: the automations, apps, webpages and the links between them. Tables travel as shapes with no rows. Knowledge bases travel as empty shells. A webpage's own database never travels at all.\n\nDecisions, credentials and people stay home."
   },
   {
    "type": "slide",
@@ -140,9 +140,9 @@
      },
      {
       "id": "p2",
-      "left": "\"Step 6: pick which datatable to use.\" Listed under Worth a look, because the routine is still a draft.",
+      "left": "\"Step 6: pick which datatable to use.\" Listed under Worth a look, because the automation is still a draft.",
       "right": "Studio → Automations",
-      "note": "The draft/activate ladder is kept: the same finding is advice on a draft and a blocker once the routine is active."
+      "note": "The draft/activate ladder is kept: the same finding is advice on a draft and a blocker once the automation is active."
      },
      {
       "id": "p3",
@@ -162,7 +162,7 @@
   {
    "type": "quiz",
    "id": "q-export-role",
-   "question": "Marieke owns the Inkoopfacturen Solution. Joost is an editor on it, and two of the routines in it are his own — he built them in his own Automations and filed them in. He opens the Solution and goes looking for Export. What does he find?",
+   "question": "Marieke owns the Inkoopfacturen Solution. Joost is an editor on it, and two of the automations in it are his own — he built them in his own Automations and filed them in. He opens the Solution and goes looking for Export. What does he find?",
    "multi": false,
    "choices": [
     {
@@ -189,7 +189,7 @@
      "feedback": "There is no such organisation permission. Playbooks and apps have one — an admin grants **manage_apps** — but Solutions has none: it is the licence (Solutions, plus packaging on top) and your role on that one project, viewer, editor or owner. Nothing at organisation level overrides it."
     }
    ],
-   "explanation": "The ladder is viewer, editor, owner. Viewers read the Solution and its Check; editors rename it and file things in and out; owners export, publish, see Versions and Installs, and apply upgrades. Packaging reads every member of the bundle server-side, including routines that belong to other people — work nobody can open one by one. Joost is not left guessing: **Publish** is greyed out for him, and packaging is refused in plain words — *\"Only the project owner can package it.\"*"
+   "explanation": "The ladder is viewer, editor, owner. Viewers read the Solution and its Check; editors rename it and file things in and out; owners export, publish, see Versions and Installs, and apply upgrades. Packaging reads every member of the bundle server-side, including automations that belong to other people — work nobody can open one by one. Joost is not left guessing: **Publish** is greyed out for him, and packaging is refused in plain words — *\"Only the project owner can package it.\"*"
   },
   {
    "type": "sim",
@@ -246,8 +246,8 @@
    "icon": "✍️",
    "exerciseId": "ex-solutions-bundle-handover",
    "title": "Your turn: write the hand-over note",
-   "instruction": "Van Dijk Techniek is about to install the Inkoopfacturen Blueprint: a mailbox routine, a table keyed \"inkoopfacturen\", an approval step for amounts over €2 500, and a controller's app. In 4–6 sentences, write the note you would send with it. Say what the Blueprint does NOT carry, name at least two specific things the installer will have to supply during the \"Connect it up\" step, and warn them what state everything arrives in.",
-   "placeholder": "e.g. This Blueprint carries the routine, the app and the shape of the invoice table — no supplier rows, no mail credential and no approver. When you install it you will be asked for…",
+   "instruction": "Van Dijk Techniek is about to install the Inkoopfacturen Blueprint: a mailbox automation, a table keyed \"inkoopfacturen\", an approval step for amounts over €2 500, and a controller's app. In 4–6 sentences, write the note you would send with it. Say what the Blueprint does NOT carry, name at least two specific things the installer will have to supply during the \"Connect it up\" step, and warn them what state everything arrives in.",
+   "placeholder": "e.g. This Blueprint carries the automation, the app and the shape of the invoice table — no supplier rows, no mail credential and no approver. When you install it you will be asked for…",
    "passScore": 70,
    "maxAttempts": 4
   },
@@ -257,7 +257,7 @@
    "icon": "🏗️",
    "checkId": "solution-created",
    "title": "Build one — we'll verify it",
-   "instruction": "Open Solutions, name one in the \"Name the Solution…\" box and press New Solution. On the Content tab use \"Add existing\" to file in at least one routine, app or table you own, then open the Check tab and read the verdict. We'll confirm the Solution exists and that the Check returned an answer for it.",
+   "instruction": "Open Solutions, name one in the \"Name the Solution…\" box and press New Solution. On the Content tab use \"Add existing\" to file in at least one automation, app or table you own, then open the Check tab and read the verdict. We'll confirm the Solution exists and that the Check returned an answer for it.",
    "launch": {
     "navigateTo": "studio/solutions",
     "label": "Open Solutions"
@@ -268,7 +268,7 @@
    "id": "summary",
    "icon": "✅",
    "title": "What you can do now",
-   "bodyMd": "- **File a bundle.** Create a Solution, add existing routines, apps, webpages, tables, agents and knowledge bases you own, and read them in the three bands on the Content tab.\n- **Clear the Check.** Work through \"Has to be fixed first\" using Show me, and remember that a Check which could not run blocks publishing just as firmly as a broken one.\n- **Publish a Blueprint you would hand over.** Nothing secret travels: packaging strips saved connections, approver seats and a page's fixed arguments on the way out, and a page's tool grants arrive as something to re-authorise rather than switched on. Export for a file, Publish to put it in this instance's Catalogue — and read \"What this Blueprint does not carry\" and \"Whoever installs it has to supply\" before you send it, because those two lists are the hand-over note.\n\nNext chapter: what happens on the receiving end, and how you ship version two."
+   "bodyMd": "- **File a bundle.** Create a Solution, add existing automations, apps, webpages, tables, agents and knowledge bases you own, and read them in the three bands on the Content tab.\n- **Clear the Check.** Work through \"Has to be fixed first\" using Show me, and remember that a Check which could not run blocks publishing just as firmly as a broken one.\n- **Publish a Blueprint you would hand over.** Nothing secret travels: packaging strips saved connections, approver seats and a page's fixed arguments on the way out, and a page's tool grants arrive as something to re-authorise rather than switched on. Export for a file, Publish to put it in this instance's Catalogue — and read \"What this Blueprint does not carry\" and \"Whoever installs it has to supply\" before you send it, because those two lists are the hand-over note.\n\nNext chapter: what happens on the receiving end, and how you ship version two."
   }
  ],
  "rubrics": {
@@ -278,7 +278,7 @@
    "criteria": [
     "States that data does not travel: the invoice table arrives as a shape with no rows, and no supplier or customer records are in the file.",
     "Names at least two concrete requirements the installer must supply — a table for the \"inkoopfacturen\" key, a credential for the mailbox connection, and/or someone to approve the over-€2 500 step.",
-    "Warns that everything arrives as a draft: the routine is inactive, any page is unpublished, and nothing runs until the installer activates it.",
+    "Warns that everything arrives as a draft: the automation is inactive, any page is unpublished, and nothing runs until the installer activates it.",
     "Mentions that credentials, approver seats or people do not travel — the installing team supplies their own."
    ],
    "passScore": 70,
@@ -289,9 +289,9 @@
   "title": "Bundling and checking a Solution",
   "summary": "How a Solution is assembled on the Content tab, gated by the Check, and packaged as a Blueprint.",
   "facts": [
-   "The Content tab groups a Solution's members in three bands: \"People use\" (apps, webpages), \"Work happens\" (routines, approvals) and \"Knowledge & data\" (tables, agents, knowledge bases, notebooks).",
-   "Filing in or out through \"Add existing\" needs editor rights on the Solution plus ownership of the item (\"Nothing of yours left to add here.\"). Filing is not sharing: routines stay owner-private, so members see the row, not the routine.",
-   "The Check aggregates four validators (App Studio, routines, project graph, knowledge bases) into one list split into \"Has to be fixed first\" and \"Worth a look\"; a row's \"Show me\" opens the object holding the fault, in Studio → Apps, Automations, Agents or Knowledge bases.",
+   "The Content tab groups a Solution's members in three bands: \"People use\" (apps, webpages), \"Work happens\" (automations, approvals) and \"Knowledge & data\" (tables, agents, knowledge bases, notebooks).",
+   "Filing in or out through \"Add existing\" needs editor rights on the Solution plus ownership of the item (\"Nothing of yours left to add here.\"). Filing is not sharing: automations stay owner-private, so members see the row, not the automation.",
+   "The Check aggregates four validators (App Studio, automations, project graph, knowledge bases) into one list split into \"Has to be fixed first\" and \"Worth a look\"; a row's \"Show me\" opens the object holding the fault, in Studio → Apps, Automations, Agents or Knowledge bases.",
    "Publish is disabled both when findings block and when the Check could not run at all: a Solution that could not be fully read is treated as blocked, and its card reads \"Could not be fully read\" or \"Not checked\" rather than \"Complete\".",
    "Export produces a Blueprint file; Publish is the same packaging with \"Also keep it on this instance, so colleagues can install it without a file\" forced on, putting the Blueprint in the Catalogue — this organisation's Blueprints on this instance only.",
    "Export, Publish, Versions, Installs and upgrades are owner-only (\"Only the project owner can package it\"); there is no organisation-level Solutions permission, so access is the licence plus your per-project role of viewer, editor or owner.",

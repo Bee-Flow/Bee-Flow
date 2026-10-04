@@ -315,7 +315,7 @@ test('a table that could not be resolved is a REFUSAL, never "no rows found"', a
     // and "I could not find out" are different answers and the model relays
     // whichever it is given.
     const { result } = await run({ datatable_id: 'tbl-1' }, {
-        resolve: () => { const e = new Error('This routine may not read the datatable "Producten".'); e.errorClass = 'datatable_forbidden'; throw e; },
+        resolve: () => { const e = new Error('This automation may not read the datatable "Producten".'); e.errorClass = 'datatable_forbidden'; throw e; },
     });
     assert.ok(result.error, 'an error, not an empty result set');
     assert.ok(!('results' in result));

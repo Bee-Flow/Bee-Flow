@@ -58,7 +58,7 @@ export default function CallStepNode({ id, data }) {
  * `bedrag`), and the card printed them raw, so the only group in the builder
  * whose contents are authored in-house was also the only one that read like a
  * payload. Humanised they say the same thing to the colleague who inherits
- * the routine.
+ * the automation.
  *
  * The raw keys move into the card's `title`, IN FULL and uncut: they are what
  * the mapping is actually written in, the tooltip has room the 240px card

@@ -261,7 +261,7 @@ describe('CoworkRunHistory — a failure as the server actually records it', () 
 });
 
 describe('CoworkRunHistory — a run that stopped on an expired sign-in', () => {
-    // routineAuth switches the schedule off with last_status 'needs_reauth'
+    // automationAuth switches the schedule off with last_status 'needs_reauth'
     // and markError records the same word on the run row. The shared token
     // table has no such row, so this used to fall through to the neutral
     // `idle` one: the grey dot and the word "Idle" on the screen whose job is

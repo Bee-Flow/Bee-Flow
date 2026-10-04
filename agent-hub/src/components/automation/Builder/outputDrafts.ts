@@ -11,7 +11,7 @@
  *
  * Not a style choice. The inspector PUTs the ENTIRE definition on every save,
  * so an oversized pin does not fail once — it 400s every later, unrelated edit
- * to the same routine, and failedPatchRef retries straight back into it. 64 KB
+ * to the same automation, and failedPatchRef retries straight back into it. 64 KB
  * is generous for a shape (a hundred-odd fields, or a couple of sample records)
  * and nowhere near the definition limits.
  */

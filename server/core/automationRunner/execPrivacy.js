@@ -8,7 +8,7 @@
 /**
  * GUARD — "does this contain personal data, and what should happen if it does".
  *
- * The Privacy Shield already scans everything a routine SENDS, but that runs
+ * The Privacy Shield already scans everything an automation SENDS, but that runs
  * underneath the author: org-wide, invisible, and only ever about egress. This
  * is the same detector placed where the author can see it and react — the
  * headline case being a document landing in Drive that turns out to hold
@@ -28,7 +28,7 @@
  * ── TIGHTEN, NEVER LOOSEN ───────────────────────────────────────────
  * `step.categories` may narrow the org's category list and `step.confidence`
  * may only raise its threshold. Same rule `definition.safety` already follows:
- * a routine may hold itself to a higher standard than the org, never a lower one.
+ * an automation may hold itself to a higher standard than the org, never a lower one.
  */
 async function execGuard(step, ctx, runState, mode) {
     const safety = require('./safety');
@@ -56,11 +56,11 @@ async function execGuard(step, ctx, runState, mode) {
     // failure mode still decides the branch. The three reasons are genuinely
     // different problems and only one of them is a setting anyone chose:
     //
-    //   no_organisation — this routine belongs to no organisation, so there is
+    //   no_organisation — this automation belongs to no organisation, so there is
     //       no org Privacy Shield to resolve AT ALL. Not something the author
     //       turned off, and not something they can fix from this panel — which
     //       is exactly why it must not be reported as "disabled".
-    //   shield_disabled — the org excluded routines from the shield.
+    //   shield_disabled — the org excluded automations from the shield.
     //   pii_detection_off — the org has no PII detection enabled.
     const noPolicyReason = !scanPolicy.orgId ? 'no_organisation'
         : scanPolicy.disabledForAutomations ? 'shield_disabled'
@@ -163,13 +163,13 @@ async function execGuard(step, ctx, runState, mode) {
  * ── WHY THERE IS NO "RESTORE" NODE ──────────────────────────────────
  * There is nothing to wire. The vault is run-scoped, and the runner ALREADY
  * restores from the whole vault at every point where a value comes back into
- * the routine — `restoreForRunState` on an AI reply and on every tool result,
+ * the automation — `restoreForRunState` on an AI reply and on every tool result,
  * `prepareForEgress` on the way out. So the round trip is the chat one:
  *
  *     Tokenize → AI step        the model sees [email_1]
  *     AI reply → run state      the real address is back, automatically
  *
- * Adding a restore step would mean a second place that decides, and a routine
+ * Adding a restore step would mean a second place that decides, and an automation
  * where someone forgot to add it would leak placeholders into a document.
  *
  * ── WHAT IT IS NOT ──────────────────────────────────────────────────
@@ -205,9 +205,9 @@ async function execTokenize(step, ctx, runState, mode) {
         // step must never have — the next node would send real personal data
         // believing it was hidden. Fail instead.
         const err = new Error(`Cannot hide personal data — ${noPolicyReason === 'no_organisation'
-            ? 'this routine belongs to no organisation, so there is no Privacy Shield to read'
+            ? 'this automation belongs to no organisation, so there is no Privacy Shield to read'
             : noPolicyReason === 'shield_disabled'
-                ? 'this organisation excluded routines from the Privacy Shield'
+                ? 'this organisation excluded automations from the Privacy Shield'
                 : 'this organisation has PII detection switched off'}.`);
         err.errorClass = 'tokenize_no_policy';
         throw err;
@@ -244,8 +244,8 @@ async function execTokenize(step, ctx, runState, mode) {
  * UNTOKENIZE — put the real values back, here, on purpose.
  *
  * The runner already restores automatically wherever a value comes BACK into
- * the routine — an AI reply, a tool result, an HTTP response all pass through
- * `restoreForRunState`. That covers the round trip, and most routines need
+ * the automation — an AI reply, a tool result, an HTTP response all pass through
+ * `restoreForRunState`. That covers the round trip, and most automations need
  * nothing else.
  *
  * It does not cover the rest: a tokenized value carried forward by a `set`

@@ -30,27 +30,27 @@ import { typeGroupOf } from '../flow/nodeTypeColors';
  * the product's, not the model's.
  */
 const VERBS = {
-    builder_ask_questions: { key: 'routines.assistant.act.questions', en: 'Asked questions before continuing' },
-    builder_inspect_step: { key: 'routines.assistant.act.read_step', en: 'Read the step' },
-    builder_inspect_mapping: { key: 'routines.assistant.act.read_mapping', en: 'Checked bindings and available fields' },
-    builder_inspect_run: { key: 'routines.assistant.act.read_run', en: 'Checked values from the latest run' },
-    builder_write_plan: { key: 'routines.assistant.act.write_plan', en: 'Wrote the plan for review' },
-    builder_propose_trigger: { key: 'routines.builder.act.trigger', en: 'Set the trigger' },
-    builder_remove_step: { key: 'routines.builder.act.remove', en: 'Removed a step' },
-    builder_update_step: { key: 'routines.builder.act.update', en: 'Adjusted a step' },
-    builder_update_steps: { key: 'routines.builder.act.update', en: 'Adjusted a step' },
-    builder_replace_step: { key: 'routines.builder.act.replace', en: 'Replaced a step' },
-    builder_move_step: { key: 'routines.builder.act.move', en: 'Moved a step' },
-    builder_wire_error_branch: { key: 'routines.builder.act.error_branch', en: 'Added a fallback for failures' },
-    builder_set_metadata: { key: 'routines.builder.act.metadata', en: 'Named the routine' },
-    builder_inspect_tool: { key: 'routines.builder.act.inspect', en: 'Looked up how an app works' },
-    builder_summarise: { key: 'routines.builder.act.summarise', en: 'Reviewed the routine' },
-    builder_request_dry_run: { key: 'routines.builder.act.dry_run', en: 'Tested the routine' },
-    builder_finalize: { key: 'routines.builder.act.finalize', en: 'Finished and saved' },
-    builder_set_plan: { key: 'routines.builder.act.plan', en: 'Updated the plan' },
+    builder_ask_questions: { key: 'automations.assistant.act.questions', en: 'Asked questions before continuing' },
+    builder_inspect_step: { key: 'automations.assistant.act.read_step', en: 'Read the step' },
+    builder_inspect_mapping: { key: 'automations.assistant.act.read_mapping', en: 'Checked bindings and available fields' },
+    builder_inspect_run: { key: 'automations.assistant.act.read_run', en: 'Checked values from the latest run' },
+    builder_write_plan: { key: 'automations.assistant.act.write_plan', en: 'Wrote the plan for review' },
+    builder_propose_trigger: { key: 'automations.builder.act.trigger', en: 'Set the trigger' },
+    builder_remove_step: { key: 'automations.builder.act.remove', en: 'Removed a step' },
+    builder_update_step: { key: 'automations.builder.act.update', en: 'Adjusted a step' },
+    builder_update_steps: { key: 'automations.builder.act.update', en: 'Adjusted a step' },
+    builder_replace_step: { key: 'automations.builder.act.replace', en: 'Replaced a step' },
+    builder_move_step: { key: 'automations.builder.act.move', en: 'Moved a step' },
+    builder_wire_error_branch: { key: 'automations.builder.act.error_branch', en: 'Added a fallback for failures' },
+    builder_set_metadata: { key: 'automations.builder.act.metadata', en: 'Named the automation' },
+    builder_inspect_tool: { key: 'automations.builder.act.inspect', en: 'Looked up how an app works' },
+    builder_summarise: { key: 'automations.builder.act.summarise', en: 'Reviewed the automation' },
+    builder_request_dry_run: { key: 'automations.builder.act.dry_run', en: 'Tested the automation' },
+    builder_finalize: { key: 'automations.builder.act.finalize', en: 'Finished and saved' },
+    builder_set_plan: { key: 'automations.builder.act.plan', en: 'Updated the plan' },
     // A table made at design time — a side effect outside the draft, no step.
-    builder_create_datatable: { key: 'routines.builder.act.create_datatable', en: 'Created a table' },
-    builder_propose_plan: { key: 'routines.builder.act.plan', en: 'Updated the plan' },
+    builder_create_datatable: { key: 'automations.builder.act.create_datatable', en: 'Created a table' },
+    builder_propose_plan: { key: 'automations.builder.act.plan', en: 'Updated the plan' },
 };
 
 /** Model-facing echoes of the whole draft — noise in a per-call detail view. */
@@ -141,8 +141,8 @@ function titleFor(name, type, t) {
 }
 
 function batchTitle(n, t) {
-    if (n === 1) return t ? t('routines.builder.act.add_step_one', 'Added 1 step') : 'Added 1 step';
-    return t ? t('routines.builder.act.add_steps', 'Added {n} steps', { n }) : `Added ${n} steps`;
+    if (n === 1) return t ? t('automations.builder.act.add_step_one', 'Added 1 step') : 'Added 1 step';
+    return t ? t('automations.builder.act.add_steps', 'Added {n} steps', { n }) : `Added ${n} steps`;
 }
 
 /**
@@ -202,7 +202,7 @@ export function describeToolCall(tc, t = null) {
  * run has finished — the server executes the tool and then reports it — so
  * for as long as the run takes (a file fan-out is minutes) the list had no
  * row for it and the spinner sat on whatever call came before, "Reviewed the
- * routine" most often, which was already done. The server now announces the
+ * automation" most often, which was already done. The server now announces the
  * run the moment its row exists (`dryrun_started`), and this is the row that
  * announcement puts at the foot of the list until the real call lands.
  *
@@ -214,7 +214,7 @@ export function describeToolCall(tc, t = null) {
  *            status: 'running', error: null, hint: null, steps: []}}
  */
 export function describeLiveRun(focus, t = null) {
-    const title = t ? t('routines.builder.act.dry_run_live', 'Testing the routine…') : 'Testing the routine…';
+    const title = t ? t('automations.builder.act.dry_run_live', 'Testing the automation…') : 'Testing the automation…';
     const total = Math.max(0, Number(focus?.total) || 0);
     const done = Math.min(total, Math.max(0, Number(focus?.done) || 0));
     const label = str(focus?.label);

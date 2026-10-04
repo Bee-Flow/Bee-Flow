@@ -523,7 +523,7 @@ test('action sequence: kinds, refs, loop bounds, depth, count, partition', () =>
     let deep = [{ kind: 'toast', message: 'leaf' }];
     for (let i = 0; i < LIMITS.MAX_ACTION_DEPTH + 1; i++) deep = [{ kind: 'condition', expr: 'form.x', then: deep, else: [] }];
     assert.ok(has(brokenV2(steps(deep)).errors, 'action.step_too_deep'));
-    // a run_automation step with an unset routine warns (mirrors the top-level)
+    // a run_automation step with an unset automation warns (mirrors the top-level)
     assert.ok(has(brokenV2(steps([{ kind: 'run_automation', automationId: null }])).warnings, 'action.automation_unset'));
 });
 

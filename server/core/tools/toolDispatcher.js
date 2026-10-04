@@ -124,7 +124,7 @@ async function dispatchTool(toolName, toolArgs, context = {}) {
         req,
         attachments,
         onImageGenerated,
-        // { runId, rootRunId } inside a routine run; null in a chat. Lets the
+        // { runId, rootRunId } inside an automation run; null in a chat. Lets the
         // upload tools resolve a `generated_file` handle against that journey.
         runScope,
     } = context;
@@ -142,7 +142,7 @@ async function dispatchTool(toolName, toolArgs, context = {}) {
     // method gate and secret scrub all live there. Dispatched BEFORE the
     // per-integration chain so no prefix collision can shadow it.
     // `unattended`: context.autoSend is the dispatch-side headless marker —
-    // the automation runner sets it on LIVE routine runs and webpageApiRuntime
+    // the automation runner sets it on LIVE automation runs and webpageApiRuntime
     // sets it on backend handler calls. The custom-integration runner refuses
     // unattended===true outright for now, and the capability backstop still
     // gates every call regardless of path.
@@ -150,7 +150,7 @@ async function dispatchTool(toolName, toolArgs, context = {}) {
     // The task/cowork runner needs the two halves apart. It must auto-send
     // email (nobody is there to approve a draft — see the aiTaskRunner call
     // site), but flipping its custom-integration calls to unattended would
-    // turn working routines into refusals, which is a policy change and not
+    // turn working automations into refusals, which is a policy change and not
     // this fix's business. So `unattended` can be set explicitly and only
     // falls back to autoSend when it wasn't.
     const customRunner = require('../../integrations/customIntegrationRunner');
@@ -174,7 +174,7 @@ async function dispatchTool(toolName, toolArgs, context = {}) {
             onSkillsActivated: context.onSkillsActivated,
             agentId: context.agentId || null,
             conversationId: context.conversationId || null,
-            // Who starts a routine-linked skill (handoff 5 caller trace).
+            // Who starts an automation-linked skill (handoff 5 caller trace).
             callerAgentId: context.callerAgentId || context.agentId || null,
             runScope: runScope || null,
         });
@@ -325,7 +325,7 @@ async function dispatchTool(toolName, toolArgs, context = {}) {
         return await executeVplanTool(toolName, toolArgs, userId);
     }
     {
-        // Lazily required: withingsTools pulls in routineAuth (and through it the
+        // Lazily required: withingsTools pulls in automationAuth (and through it the
         // credential vault), which nothing else on this hot path needs.
         const { isWithingsTool, executeWithingsTool } = require('../../integrations/withingsTools');
         if (isWithingsTool(toolName)) {
@@ -508,9 +508,9 @@ async function dispatchTool(toolName, toolArgs, context = {}) {
     if (require('../../integrations/memoryTools').isMemoryTool(toolName)) {
         return await require('../../integrations/memoryTools').executeMemoryTool(toolName, toolArgs, { userId, orgId, agentId, session });
     }
-    if (require('../../integrations/routineEvolutionTools').isRoutineEvolutionTool(toolName)) {
+    if (require('../../integrations/automationEvolutionTools').isAutomationEvolutionTool(toolName)) {
         // Self-scoped: context.automationId is set by the automation runner only.
-        return await require('../../integrations/routineEvolutionTools').executeRoutineEvolutionTool(toolName, toolArgs, { userId, orgId, automationId: context.automationId || null, autoSend: context.autoSend === true });
+        return await require('../../integrations/automationEvolutionTools').executeAutomationEvolutionTool(toolName, toolArgs, { userId, orgId, automationId: context.automationId || null, autoSend: context.autoSend === true });
     }
     if (isKbSearchTool(toolName)) {
         // `testAs` HAS to be forwarded, and this line is the whole reason the
@@ -549,7 +549,7 @@ async function dispatchTool(toolName, toolArgs, context = {}) {
         });
     }
 
-    // ─── KB Ingest Tool (routine-only WRITE; Support Studio template) ───
+    // ─── KB Ingest Tool (automation-only WRITE; Support Studio template) ───
     if (isKbIngestTool(toolName)) {
         return await executeKbIngestTool(toolName, toolArgs, { orgId, userId });
     }
@@ -621,14 +621,14 @@ async function dispatchTool(toolName, toolArgs, context = {}) {
         return await executeTranscriptionTool(toolName, toolArgs, { userId, session, attachments, req });
     }
 
-    // ─── Agent-Callable Routines (trigger.kind === 'agent_call') ─
+    // ─── Agent-Callable Automations (trigger.kind === 'agent_call') ─
     // These tools are per-user and named dynamically (toolName or
     // automation_<id>), so they can't be matched by a static isXxxTool guard.
-    // Look the caller's active routines up by name and dispatch to the runner.
+    // Look the caller's active automations up by name and dispatch to the runner.
     //
     // Handoff 5: the call carries who is calling (the agent, the
-    // conversation, and the run when an AI step inside a routine calls it),
-    // and a routine that is already three agent starts deep is refused
+    // conversation, and the run when an AI step inside an automation calls it),
+    // and an automation that is already three agent starts deep is refused
     // (automation/automationCallDepth.js). A failure of the START comes back
     // as `{ error, code }` for the model to read; only a failed LOOKUP falls
     // through to the next matcher, as before.
@@ -647,13 +647,13 @@ async function dispatchTool(toolName, toolArgs, context = {}) {
             const agentTools = await tools.getAgentCallableToolsForUser(userId);
             match = agentTools.find(t => t?.function?.name === toolName) || null;
         } catch (e) {
-            log.warn('[ToolDispatcher] agent-callable routine lookup failed:', e.message);
+            log.warn('[ToolDispatcher] agent-callable automation lookup failed:', e.message);
         }
         if (match) {
             try {
                 return await tools.dispatchAgentCallableTool(match.__automation, toolArgs, automationCallCtx);
             } catch (e) {
-                log.warn(`[ToolDispatcher] agent-callable routine ${match.__automation?.id} not started: ${e.message}`);
+                log.warn(`[ToolDispatcher] agent-callable automation ${match.__automation?.id} not started: ${e.message}`);
                 return require('../../automation/automationCallDepth').toolErrorFor(e);
             }
         }
@@ -661,7 +661,7 @@ async function dispatchTool(toolName, toolArgs, context = {}) {
 
     // ─── Reusable Steps (kind='block') exposed as chat tools ────
     // Named step_<title>; matched the same dynamic way as agent-callable
-    // routines and dispatched to runStepAsTool (owner-only, runs as caller).
+    // automations and dispatched to runStepAsTool (owner-only, runs as caller).
     if (userId) {
         let match = null;
         let tools = null;

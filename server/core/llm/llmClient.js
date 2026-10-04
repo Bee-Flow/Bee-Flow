@@ -140,6 +140,26 @@ function readStopReason(result) {
 }
 
 /**
+ * Whether a forced-tool answer without the tool deserves one more round: only
+ * on an adapter that could not force the call for this model (it ran under
+ * `auto`), and not when the model declined on policy or ran out of room —
+ * a retry repeats both.
+ */
+function shouldRetryUnforced(adapter, modelId, read) {
+    if (typeof adapter?.supportsForcedToolChoice !== 'function') return false;
+    if (adapter.supportsForcedToolChoice(modelId)) return false;
+    return !['refusal', 'max_tokens', 'length', 'model_context_window_exceeded'].includes(read.stopReason);
+}
+
+/** Usage of two rounds as one, in the normalised shape. */
+function sumUsage(a, b) {
+    const acc = createUsageAccumulator();
+    acc.add(a);
+    acc.add(b);
+    return acc.hasUsage ? acc.total() : (b ?? a);
+}
+
+/**
  * Read a forced tool call's answer out of a chat result, wherever the model
  * put it. The ladder, most to least precise:
  *   1. the tool call whose name matches `toolName` — a model with several
@@ -360,7 +380,28 @@ class LLMClient {
         // has been seen to use is read by extractForcedResult; returning
         // `structured: null` for an answer that was sitting in `content` all
         // along made every caller report "the model answered nothing".
-        return extractForcedResult(result, toolName, { modelId });
+        const read = extractForcedResult(result, toolName, { modelId });
+        if (read.structured || !shouldRetryUnforced(adapter, modelId, read)) return read;
+
+        // A model that refuses a forced tool_choice (Claude Sonnet 5.5 /
+        // Opus 5.5 / Fable 5.1) ran this call with `auto` plus an instruction,
+        // and `auto` does not guarantee a call. One retry that quotes the
+        // prose answer back and asks for the tool is the documented remedy.
+        log.warn(`[LLMClient] forced tool ${toolName} on ${modelId}: answered without the tool under auto (stop=${read.stopReason}); retrying once`);
+        const retryMessages = [...messages];
+        if (typeof result?.content === 'string' && result.content.trim()) {
+            retryMessages.push({ role: 'assistant', content: result.content });
+        }
+        retryMessages.push({
+            role: 'user',
+            content: toolName
+                ? `Call the \`${toolName}\` tool now with your answer. Do not reply in plain text.`
+                : 'Call one of the provided tools now with your answer. Do not reply in plain text.',
+        });
+        const retried = await adapter.chat(apiKey, baseUrl, modelId, retryMessages, forcedOpts);
+        const second = extractForcedResult(retried, toolName, { modelId });
+        // Both rounds were billed; a caller that books usage must see both.
+        return second.structured ? { ...second, usage: sumUsage(result?.usage, retried?.usage) } : read;
     }
 
     /**

@@ -22,7 +22,7 @@ Source of truth read for this sheet (all paths relative to the repo root):
 
 A **Webpage** is an AI-built, self-contained little web app that lives inside Bee Flow. The builder
 describes what they want in a chat; the AI writes the code; the page can read and write the org's
-datatables, run the owner's routines, call the owner's connected apps, keep its own little SQLite
+datatables, run the owner's automations, call the owner's connected apps, keep its own little SQLite
 database, and talk to an agent. It can then be shown to colleagues inside Bee Flow (organisation /
 groups) or put on a public address for people who have no Bee Flow account at all.
 
@@ -62,7 +62,7 @@ URL `/app/studio/webpages`, create action **"New → Webpage"** → `studio/webp
   top-right (**"Public"**, **"Personal"**, **"Entire organisation"**, or *"N groups" / "1 group"*),
   hover actions top-left **"Edit in IDE"**, **"Duplicate"**, **"Delete"**, then name (double-click to
   rename — tooltip **"Double-click to rename"**), relative time, tagline, and link pills for bound
-  tables/routines (max 3 + "+N").
+  tables/automations (max 3 + "+N").
 * Last cell is dashed: **"Start from an example"** with four clickable presets —
   **"Status page on a table"**, **"Intake form → automation"**, **"Dashboard on an automation run"**,
   **"Chat with an agent"** (they fill the build bar; they are prompt presets, not templates).
@@ -107,18 +107,18 @@ Segmented sub-nav (aria-label **"Data surfaces"**): **Overview** · **Actions** 
 * **Overview** (`WebpageDataCards.jsx`, fed by `GET /:id/data-cards`): one card per bound table with
   **"Read only"** / **"Read and write"**, row count (*"{count} rows (approximate)"*), column chips with
   public ones marked *"column · Public"*, and a dashed **"Not used on this page"** when the code never
-  names the table. Then one card per routine that feeds a bound table (**"Writes"**/**"Reads"**,
+  names the table. Then one card per automation that feeds a bound table (**"Writes"**/**"Reads"**,
   *"Feeds {table} · last run {when}"* or *"never ran"*), a **"Knowledge sources"** card, and warning
-  cards: *"{routine} writes straight into table {table}."* / *"Changes made there show up on this page
+  cards: *"{automation} writes straight into table {table}."* / *"Changes made there show up on this page
   without anyone editing it."* + **"Set up"**.
   Empty: **"No table is linked to this page yet."**; failure: **"Could not load what is linked to this
   page."** + **"Try again"**.
 * **Actions** (`WebpageActionsPanel.jsx`, fed by `GET /:id/bindings`): **"Through Studio"** vs
   **"Does something in its own code"**, **"Forms and buttons"** (*"used {count}x on this page"*),
   **"Agent on this page"** (**"Signed-in readers only"** / *"No chat block on this page."*), and
-  **"Turn it into a routine"** for an outgoing call found in the page's own code. Plus the grants panel
+  **"Turn it into an automation"** for an outgoing call found in the page's own code. Plus the grants panel
   **"Apps & data"** — *"What this page may call, running as you. Visitors never need their own
-  accounts."*, sections **"Apps"** and routines, fields **"App"**, **"Action"**, **"Label (optional)"**,
+  accounts."*, sections **"Apps"** and automations, fields **"App"**, **"Action"**, **"Label (optional)"**,
   **"Pinned arguments (optional JSON)"** with hint *"Pinned values always win over what the page sends
   — pin anything a visitor must not choose (recipient, channel, sheet id)."*, button **"Add to page"**.
   Not-connected app: **"Connect it in Settings → Integrations"**.
@@ -150,7 +150,7 @@ empty state *"No extra files yet. Use the buttons above to add a file, folder, o
 the AI."*, drop hint **"Drop images to upload"**. Monaco editor tabs carry an **"Unsaved changes"** dot.
 The three primary slots are always called **`index.html`**, **`style.css`**, **`script.js`**.
 The code strip marks lines that link to Studio: legend **"Highlighted = Studio link"**, families
-**"Data table"**, **"Routine"**, **"Agent"**, **"Not linked yet"**, **"Not recognised"**; when nothing
+**"Data table"**, **"Automation"**, **"Agent"**, **"Not linked yet"**, **"Not recognised"**; when nothing
 is found: *"Nothing in this code links to Studio yet."*
 Right pane is the chat: **"AI Chat"**, **"New chat"**, mode selector **"How the assistant edits"** with
 **"Edit automatically"** (`auto`) and **"Propose first"** (`ask`), placeholder *"Describe the webpage you
@@ -222,12 +222,12 @@ this page is unknown…"*, plus *"Could not be checked: {kinds}. Treat this list
 ### W2 — Bind a datatable and show its rows
 1. Open the page → **Data & links** → **Actions** → **"Apps & data"**.
 2. Confirm the table is reachable (tables are bound via the AI's bridge tools / the build-bar source
-   picker; routines and apps are added here by hand).
+   picker; automations and apps are added here by hand).
 3. Go back to **Code** → chat: *"Show the rows of table Suppliers in a table on this page, newest first."*
    The AI inserts `<bf-table source="…">`.
 4. **Data & links → Overview**: the table now has a card with its row count and column chips. A dashed
    **"Not used on this page"** chip means the binding exists but the code never names it.
-5. If a routine writes into that table you get a warning card — click **"Set up"** to open the table's
+5. If an automation writes into that table you get a warning card — click **"Set up"** to open the table's
    sharing screen.
 
 ### W3 — Publish to colleagues (inside Bee Flow)
@@ -361,7 +361,7 @@ this page is unknown…"*, plus *"Could not be checked: {kinds}. Treat this list
   the signed-in viewer** with that viewer's own grade; the public page reads only `publicColumns`. Saves
   reconcile the dependents index (`automation_datatable_usage`, `consumer_kind='webpage'`), which is what
   makes a page appear in a table's "used by" list and what can block a table's deletion.
-* **Routines / automations** — `bridge_grants.automations` + `bf-button` / `bf-form`; run **as the owner**
+* **Automations / automations** — `bridge_grants.automations` + `bf-button` / `bf-form`; run **as the owner**
   via the preview bridge. The build-bar source picker turns a picked automation into a real grant.
 * **Integrations (apps)** — granted per tool, optionally with **pinned arguments** that always beat what the
   page sends.
@@ -396,7 +396,7 @@ this page is unknown…"*, plus *"Could not be checked: {kinds}. Treat this list
    pages; use the search box, or the deep link `/app/studio/webpages/<id>` (which loads by id).
 9. **Expecting the build bar to work.** Today it is inert in the shipped shell — create by name, then brief
    the page in its chat.
-10. **Leaving a routine writing straight into a bound table** without noticing the warning card — the page's
+10. **Leaving an automation writing straight into a bound table** without noticing the warning card — the page's
     content then changes without anyone editing the page.
 11. **Assuming `+ New webpage` pre-fills anything.** It opens the name form; the AI never sees a brief you
     did not type into the chat.
@@ -417,7 +417,7 @@ entropy".
 
 ### HR — internal onboarding checklist
 The HR manager builds **"Onboarding nieuwe collega's"**: a form with name, start date and department that
-starts the routine *"Onboarding starten"* (a `bf-form` bound to a granted automation), plus a `bf-stat`
+starts the automation *"Onboarding starten"* (a `bf-form` bound to a granted automation), plus a `bf-stat`
 counting open onboardings in the table `Onboarding`. She publishes to **groups** (HR + Office) rather than
 the whole organisation, and confirms **"Share more widely?"**. Because the page runs as *her*, the new
 colleague's manager never needs access to the connected apps. Teaching points: groups vs entire
@@ -425,12 +425,12 @@ organisation, acts-as-author, pinned arguments (the HR mailbox is pinned so no o
 and the GDPR rule that personal data must not travel to an external system.
 
 ### Sales — quarterly pipeline dashboard for the MT
-The sales lead builds **"Pipeline Q3"** on top of the routine *"Pipeline samenvatten"* (which writes into
+The sales lead builds **"Pipeline Q3"** on top of the automation *"Pipeline samenvatten"* (which writes into
 the table `Pipeline`): headline `bf-stat` cards (count, sum of `waarde`), a `bf-table` with the top deals,
 and the last-run timestamp. The Overview cards show the warning *"Pipeline samenvatten writes straight into
 table Pipeline"* — exactly the behaviour he wants, and now visible. He publishes to **Entire organisation**,
 then presses **"Republish"** every quarter after restyling. When a chart turns out wrong he uses **History**
-to restore the previous **AI** snapshot. Teaching points: routines feeding a page, republish discipline, and
+to restore the previous **AI** snapshot. Teaching points: automations feeding a page, republish discipline, and
 per-turn **Undo** vs version **Restore**.
 
 ---

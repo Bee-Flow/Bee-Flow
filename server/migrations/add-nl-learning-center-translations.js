@@ -246,7 +246,7 @@ const NL_TRANSLATIONS = {
     'learn.training_area.agents': 'Agents maken en wijzigen',
     'learn.training_area.knowledge': 'Kennisbanken maken en wijzigen',
     'learn.training_area.skills': 'Skills maken en wijzigen',
-    'learn.training_area.automations': 'Routines maken en wijzigen',
+    'learn.training_area.automations': 'Automatiseringen maken en wijzigen',
     'learn.training_area.datatables': 'Datatables maken en wijzigen',
     'learn.training_area.apps': 'Apps bouwen in App Studio',
     'learn.training_area.webpages': 'Webpagina’s publiceren',

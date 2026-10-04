@@ -9,7 +9,7 @@
  * postures: a code step's tool calls and fetches go through the shield and
  * land in the outbound ledger, and a webpage handler's did neither — at 2-4x
  * the limits, acting as the page's AUTHOR rather than its visitor, and with a
- * `db` bridge no routine gets.
+ * `db` bridge no automation gets.
  *
  * That is not a small gap in a product sold on "personal data does not leave
  * Bee Flow" (CLAUDE.md, BFSF-441). A handler could read the page's SQLite and
@@ -25,15 +25,15 @@
  * core/automationRunner/execOutbound.js are welded to a run: a `step`, a run
  * id, a run vault for tokenize/untokenize, a dry-run `mode`. A webpage request
  * has none of those. Extracting that factory would mean editing the egress
- * path of every routine in the product to serve a caller that shares none of
+ * path of every automation in the product to serve a caller that shares none of
  * its context — so the SEQUENCE is reproduced here and the DECISIONS are not:
  * policy, scanning, masking and the ledger all come from the one
  * core/automationRunner/safety.js. A drift test pins that.
  *
- * TWO DELIBERATE DIFFERENCES FROM A ROUTINE, both the safe direction:
+ * TWO DELIBERATE DIFFERENCES FROM A AUTOMATION, both the safe direction:
  *
  *   1. The shield stays ON even when an org has switched off "Apply to
- *      routines". A webpage handler is not a routine, and that switch's label
+ *      automations". A webpage handler is not an automation, and that switch's label
  *      is exactly what it says. Inheriting it would silently widen an opt-out
  *      the admin never gave.
  *   2. Values are never restored from a run vault. `restoreForRunState` puts
@@ -70,7 +70,7 @@ async function resolveWebpagePolicy({ webpageId, authorUserId, authorOrgId, page
     const ctx = {
         orgId: authorOrgId || null,
         userId: authorUserId || null,
-        // Grouped per page in the ledger the way a routine's rows group per
+        // Grouped per page in the ledger the way an automation's rows group per
         // automation, so "what did this page send" is one query.
         automationId: webpageId || null,
         automationTitle: pageTitle,

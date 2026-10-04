@@ -2,7 +2,7 @@
  * The things a step POINTS AT, by name rather than by id.
  *
  * Half the fields on a step are a reference: `create_record` names a table,
- * `open_modal` names a dialog, `run_automation` names a routine, `refresh`
+ * `open_modal` names a dialog, `run_automation` names an automation, `refresh`
  * names a table or a saved view. The server types every one of them as a plain
  * `string` (componentSpecs.js STEP_SPECS) because that is what goes over the
  * wire — but a builder is not supposed to know that a table is called
@@ -15,7 +15,7 @@
  *     a node reads "Add a row · Invoices" rather than "Add a row · tbl_9f3a2c".
  *
  * Lists the editor cannot reach (no appId outside the editor shell, a plan
- * without routines) resolve to an empty array — every helper here degrades to
+ * without automations) resolve to an empty array — every helper here degrades to
  * the raw id rather than to a blank, so a value is never hidden from the person
  * who has to fix it.
  */
@@ -37,7 +37,7 @@ export const REFERENCE_PLACEHOLDERS = {
     modal: 'Pick a dialog…',
     table: 'Pick a table…',
     dataset: 'Pick a saved view…',
-    automation: 'Pick a routine…',
+    automation: 'Pick an automation…',
     connector: 'Pick a connection…',
     document: 'Pick a document…',
 };
@@ -51,7 +51,7 @@ export const REFERENCE_EMPTY_HINTS = {
     modal: 'This app has no dialogs yet — add a Dialog component to a screen first.',
     table: 'This app has no tables yet — make one under Data first.',
     dataset: 'No saved views yet — save one from the query builder first.',
-    automation: 'No routines yet.',
+    automation: 'No automations yet.',
     connector: 'No connections yet — add one under Data · Connections first.',
     document: 'No designed documents yet — make the invoice, quote or letter in Studio → Documents first.',
 };
@@ -114,7 +114,7 @@ export function datasetOptions(datasets) {
         .map((d) => ({ id: d.id, label: d.name || d.title || d.id }));
 }
 
-/** Routines as { id, label }. */
+/** Automations as { id, label }. */
 export function automationOptions(automations) {
     return (Array.isArray(automations) ? automations : [])
         .filter((a) => a && typeof a.id === 'string')

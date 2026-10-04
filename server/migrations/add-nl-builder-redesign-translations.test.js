@@ -18,7 +18,7 @@ const { GUI_DEFAULTS } = require('../i18n/defaults/en');
 
 // The namespaces the builder redesign owns.
 //
-// `routines.builder.*` is NOT one of them, and the reason written here used to
+// `automations.builder.*` is NOT one of them, and the reason written here used to
 // be wrong: it said the prefix was "translated elsewhere". Nothing had
 // translated it — 77 of its 115 keys carried no Dutch at all, including every
 // word of the list chooser. The prefix is excluded here because it is seeded
@@ -28,9 +28,9 @@ const { GUI_DEFAULTS } = require('../i18n/defaults/en');
 // which asserts it over the UNION of every catalogue — a test that can go red,
 // where this comment could not.
 const OWNED_PREFIXES = [
-    'routines.picker.', 'routines.kind.', 'routines.mapping.', 'routines.mismatch.',
-    'routines.card.', 'routines.canvas.', 'routines.ndv.', 'routines.ribbon.',
-    'routines.node.group.',
+    'automations.picker.', 'automations.kind.', 'automations.mapping.', 'automations.mismatch.',
+    'automations.card.', 'automations.canvas.', 'automations.ndv.', 'automations.ribbon.',
+    'automations.node.group.',
 ];
 // `choice` arrived with the datatables track and its Dutch ships there — one
 // key, one owner, so boot order cannot decide the wording.
@@ -38,7 +38,7 @@ const OWNED_PREFIXES = [
 // add-nl-builder-handoff5-translations, for the same reason.
 const handoff5 = require('./add-nl-builder-handoff5-translations');
 const OWNED_ELSEWHERE = new Set([
-    'routines.kind.choice',
+    'automations.kind.choice',
     ...Object.keys(handoff5.NL_TRANSLATIONS),
     ...handoff5.SAME_AS_ENGLISH,
 ]);
@@ -85,7 +85,7 @@ test('the plain-language kinds never say string, array or object', () => {
     // The whole point of artboard 2c. A Dutch translation that reuses the
     // technical word undoes it silently.
     for (const [k, v] of Object.entries(NL_TRANSLATIONS)) {
-        if (!k.startsWith('routines.kind.') && !k.startsWith('routines.mismatch.')) continue;
+        if (!k.startsWith('automations.kind.') && !k.startsWith('automations.mismatch.')) continue;
         assert.doesNotMatch(v, /\b(string|array|object|boolean)\b/i, `${k} leaks a technical type word`);
     }
 });
@@ -94,21 +94,21 @@ test('the artboard words are used literally where the design has them', () => {
     // The design for this round was written in Dutch; these are its exact
     // phrases. If one changes, it changes in the artboard first.
     const expected = {
-        'routines.ndv.incoming': 'Komt binnen',
-        'routines.ndv.settings': 'Instellingen',
-        'routines.ndv.continues': 'Gaat verder',
-        'routines.mapping.use_whole_group': 'hele groep gebruiken',
-        'routines.mismatch.choice_lines': 'Alles achter elkaar, elk op een nieuwe regel',
-        'routines.mismatch.choice_first': 'Alleen de eerste',
-        'routines.canvas.row_label': 'Rij {n}',
-        'routines.canvas.wrap_chip': '→ rij {row} · stap {step}',
-        'routines.canvas.open_form': 'Formulier openen',
-        'routines.builder.one_field_empty': '1 veld nog leeg',
-        'routines.ndv.runs_n_times_per': 'draait {n}× · één per {list}',
-        'routines.mapping.iteration_of': '{n} van {total}',
-        'routines.mapping.per_step': 'Per stap',
-        'routines.mapping.all': 'Alles',
-        'routines.kind.list_of_n_kind': 'van {n} · {kind}',
+        'automations.ndv.incoming': 'Komt binnen',
+        'automations.ndv.settings': 'Instellingen',
+        'automations.ndv.continues': 'Gaat verder',
+        'automations.mapping.use_whole_group': 'hele groep gebruiken',
+        'automations.mismatch.choice_lines': 'Alles achter elkaar, elk op een nieuwe regel',
+        'automations.mismatch.choice_first': 'Alleen de eerste',
+        'automations.canvas.row_label': 'Rij {n}',
+        'automations.canvas.wrap_chip': '→ rij {row} · stap {step}',
+        'automations.canvas.open_form': 'Formulier openen',
+        'automations.builder.one_field_empty': '1 veld nog leeg',
+        'automations.ndv.runs_n_times_per': 'draait {n}× · één per {list}',
+        'automations.mapping.iteration_of': '{n} van {total}',
+        'automations.mapping.per_step': 'Per stap',
+        'automations.mapping.all': 'Alles',
+        'automations.kind.list_of_n_kind': 'van {n} · {kind}',
     };
     for (const [k, v] of Object.entries(expected)) {
         assert.strictEqual(NL_TRANSLATIONS[k], v, `${k} drifted from the artboard wording`);

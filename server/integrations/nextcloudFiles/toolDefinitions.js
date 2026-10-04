@@ -66,7 +66,7 @@ const NEXTCLOUD_TOOLS = [
                     isBase64: { type: 'boolean', description: 'Treat `content` as base64. Use sourceHandle instead where possible.' },
                     sourceHandle: {
                         type: 'object',
-                        description: 'Opaque handle from another tool. Mutually exclusive with content. { kind: "gmail_attachment", messageId, attachmentId } for a mail attachment; inside a routine { kind: "generated_file", fileId } for the file a generate_document / fill_document / presentation step kept — bind the whole handle: sourceHandle:{kind:"ref",path:"steps.<id>.output.sourceHandle"}. A `path` ending in "/" takes the file\'s own name.',
+                        description: 'Opaque handle from another tool. Mutually exclusive with content. { kind: "gmail_attachment", messageId, attachmentId } for a mail attachment; inside an automation { kind: "generated_file", fileId } for the file a generate_document / fill_document / presentation step kept — bind the whole handle: sourceHandle:{kind:"ref",path:"steps.<id>.output.sourceHandle"}. A `path` ending in "/" takes the file\'s own name.',
                         properties: {
                             kind: { type: 'string', description: 'Handle kind: "gmail_attachment" or "generated_file".' },
                             messageId: { type: 'string' },

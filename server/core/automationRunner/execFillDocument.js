@@ -17,7 +17,7 @@
  * meant teaching all of them a second one.
  *
  * WHOSE DOCUMENT. documentStore.getDocument is owner-scoped, and the owner
- * here is the routine's owner (`ctx.userId`) — the same identity the rest of
+ * here is the automation's owner (`ctx.userId`) — the same identity the rest of
  * the run acts as. A template id belonging to somebody else is simply not
  * found, which is the behaviour every other owner-scoped read in this codebase
  * has: a 404, never a 403 that confirms the id exists.
@@ -222,7 +222,7 @@ async function execFillDocument(step, ctx, runState, mode) {
 
     // Optionally keep the FILLED document in the library as its own document,
     // so a person can correct a line by hand before it goes out. Off by
-    // default: a routine that runs nightly would otherwise mint a document a
+    // default: an automation that runs nightly would otherwise mint a document a
     // day forever. A failure here never fails the step — the PDF, which is
     // what the rest of the run uses, already exists.
     let savedCopy = null;
@@ -234,7 +234,7 @@ async function execFillDocument(step, ctx, runState, mode) {
                 userId: ctx.userId,
                 name: copyName.slice(0, 200),
                 docType: doc.docType,
-                description: `Filled in by the routine on ${new Date().toISOString().slice(0, 10)}.`,
+                description: `Filled in by the automation on ${new Date().toISOString().slice(0, 10)}.`,
                 // For a presentation the filled OUTLINE is what is kept, so the
                 // copy opens as slides and can still be edited.
                 bodyHtml: fill.bodyHtml,

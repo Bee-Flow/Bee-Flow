@@ -23,7 +23,7 @@
  * knowledge-base tables are snake_case. Normalising it here would hide the seam
  * and the next person to add a field would guess wrong.
  *
- * Chats and notebooks are read here (api/readers.ts). The knowledge, routine
+ * Chats and notebooks are read here (api/readers.ts). The knowledge, automation
  * and meeting-note rows below are the fields search uses of the rows their own
  * features read, so each route has one reader.
  */
@@ -72,7 +72,7 @@ export const GROUP_LABELS: Record<SearchGroupKey, string> = {
     notebooks: 'Notebooks',
     documents: 'Documents',
     knowledge: 'Knowledge bases',
-    automations: 'Routines',
+    automations: 'Automations',
     transcripts: 'Meeting notes',
 };
 

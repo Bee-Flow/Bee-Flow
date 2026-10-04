@@ -86,3 +86,9 @@ export declare function makeTopicHost(
     scoresByText: Map<string, Record<string, number>>,
     opts?: { defaultThreshold?: number },
 ): ExprHostTable;
+
+/** True for an array of plain values (text, number, yes/no, or nothing). */
+export declare function isScalarList(v: unknown): boolean;
+
+/** How a value reads inside human text: '' for nothing, a joined list, else compact JSON. */
+export declare function templateText(v: unknown, opts?: { lists?: 'join' | 'json' }): string;

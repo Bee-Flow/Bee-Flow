@@ -72,10 +72,11 @@ describe('the datatable step writes values through the visual editor', () => {
         expect(screen.getByLabelText('Tags')).toBeTruthy();
     });
 
-    it('asks what a list means when it lands in a TEXT column', () => {
+    it('answers a list in a TEXT column without asking, and keeps the other answers under More', () => {
         const { insertInto } = renderFields(writeDraft());
         insertInto('Name', 'steps.s1.output.addresses');
-        // Answered inline under the field since round 4 (artboard 2a), not in a popover.
+        expect(screen.queryByTestId('mismatch-resolver')).toBeNull();
+        fireEvent.click(screen.getAllByRole('button', { name: 'More ways to use this value' })[0]);
         expect(screen.getByTestId('mismatch-resolver')).toBeTruthy();
     });
 
@@ -98,9 +99,11 @@ describe('the datatable step writes values through the visual editor', () => {
 describe('the datatable filter asks per OPERATOR, not per slot', () => {
     beforeEach(cleanup);
 
-    it('asks about a list on "is" — that comparison takes one value', () => {
+    it('treats a list on "is" as a mismatch — that comparison takes one value — and answers it quietly', () => {
         const { insertInto } = renderFields(whereDraft('eq'));
         insertInto('Value', 'steps.s1.output.addresses');
+        expect(screen.queryByTestId('mismatch-resolver')).toBeNull();
+        fireEvent.click(screen.getAllByRole('button', { name: 'More ways to use this value' })[0]);
         expect(screen.getByTestId('mismatch-resolver')).toBeTruthy();
     });
 

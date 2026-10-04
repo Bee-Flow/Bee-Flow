@@ -66,7 +66,7 @@ describe('MeetingOutputsBar', () => {
         expect(screen.getAllByTestId('meeting-output-chip')).toHaveLength(1);
     });
 
-    it('a routine with no filter says it runs on every meeting', () => {
+    it('an automation with no filter says it runs on every meeting', () => {
         render(<MeetingOutputsBar rows={[autoRow({ unfiltered: true })]} currentUserId="me" />);
         expect(screen.getByTestId('meeting-output-chip').textContent).toMatch(/on every meeting/i);
     });

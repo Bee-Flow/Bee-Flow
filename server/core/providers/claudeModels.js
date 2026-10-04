@@ -393,9 +393,12 @@ function _guessProfile(id) {
         temperature: (haiku || legacy3x) ? true : !(modern || fableLike),
         vision: true,
         tools: true,
-        // Forced tool choice was removed from Fable 5.1 on. Assume a future
-        // Fable/Mythos keeps it removed; assume opus/sonnet keep it.
-        forcedToolChoice: !(fableLike && generation >= 5.1),
+        // Forced tool choice was removed from Fable 5.1 on, and from Opus 5.5
+        // and Sonnet 5.5 on (`tool_choice: type "tool" and "any" are not
+        // supported for this model.`). Assume every later generation keeps it
+        // removed: a wrongly-unforced call still answers through the adapter's
+        // `auto` fallback, a wrongly-forced one is a hard 400.
+        forcedToolChoice: !((fableLike && generation >= 5.1) || generation >= 5.5),
         midConvSystem: fableLike || (family === 'opus' && generation >= 4.8),
         contextEditing: generation >= 4,
         refusalStop: fableLike || gen5,

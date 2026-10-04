@@ -55,7 +55,7 @@ describe('the builder turn', () => {
         expect(sink.onUnhandled).not.toHaveBeenCalled();
     });
 
-    it('hands the routine’s frames to the callbacks as they arrive', () => {
+    it('hands the automation’s frames to the callbacks as they arrive', () => {
         const callbacks = {
             onSession: jest.fn(),
             onDraft: jest.fn(),

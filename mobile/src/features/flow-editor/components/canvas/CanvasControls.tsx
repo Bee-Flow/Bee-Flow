@@ -99,10 +99,10 @@ function menuItems(props: CanvasControlsProps, t: ReturnType<typeof useTranslati
     const { locked, onArrange, onFit, onZoomTo, onZoom } = props;
     return [
         ...ARRANGE_CHOICES.map((c) => ({ id: c.mode, label: t(c.key, c.fallback), icon: 'LayoutGrid' as IconName, disabled: locked, onPress: () => onArrange(c.mode) })),
-        { id: 'fit', label: t('routines.canvas.zoom_fit', 'Fit the whole flow on screen'), icon: 'Crosshair', onPress: onFit },
-        { id: 'actual', label: t('routines.canvas.zoom_reset', 'Zoom to 100%'), icon: 'Search', onPress: () => onZoomTo(1) },
-        { id: 'in', label: t('routines.canvas.zoom_in', 'Zoom in'), icon: 'Plus', onPress: () => onZoom(ZOOM_STEP) },
-        { id: 'out', label: t('routines.canvas.zoom_out', 'Zoom out'), icon: 'Minus', onPress: () => onZoom(1 / ZOOM_STEP) },
+        { id: 'fit', label: t('automations.canvas.zoom_fit', 'Fit the whole flow on screen'), icon: 'Crosshair', onPress: onFit },
+        { id: 'actual', label: t('automations.canvas.zoom_reset', 'Zoom to 100%'), icon: 'Search', onPress: () => onZoomTo(1) },
+        { id: 'in', label: t('automations.canvas.zoom_in', 'Zoom in'), icon: 'Plus', onPress: () => onZoom(ZOOM_STEP) },
+        { id: 'out', label: t('automations.canvas.zoom_out', 'Zoom out'), icon: 'Minus', onPress: () => onZoom(1 / ZOOM_STEP) },
     ];
 }
 
@@ -122,7 +122,7 @@ export function CanvasControls(props: CanvasControlsProps) {
                     <IconButton
                         style={styles.tool}
                         icon={<Icon name="Plus" size={20} color={colour} />}
-                        accessibilityLabel={t('routines.ribbon.search_label', 'Add a step')}
+                        accessibilityLabel={t('automations.ribbon.search_label', 'Add a step')}
                         onPress={onAdd}
                         disabled={locked}
                         testID="canvas-add"

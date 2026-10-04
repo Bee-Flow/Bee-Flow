@@ -22,12 +22,16 @@ finish, rather than being left with rows nobody can ever resolve.
 Two places, one record. Whatever asked for it, the row looks the same, lands in the
 same inbox, and is answered the same way.
 
-- **Routines** — add an **Approval** step. The run *pauses* at that step and
+- **Automations** — add an **Approval** step. The run *pauses* at that step and
   resumes the moment someone approves. On reject the run ends.
 - **Apps** — add a **Request approval** step to any action. There is no run behind
   it: the decision *is* the outcome. The app reacts through the `onDecided` hook
   (which writes straight back to a record) and through the `approval.decided`
   event.
+
+- **Solution stages** — when a Production stage requires approval, every deployment to
+  it waits as a *deployment* request (see [Deployment requests](#deployment-requests)).
+  There is no run behind it either: the decision releases the deployment.
 
 An app can also show its own inbox: drop an **Approval list** component on a screen
 and the people who can decide see their pending requests there, and decide in place.
@@ -55,7 +59,7 @@ your actual process.
 ### One approver
 
 Name a person or a group. With a group, any member may decide and the first
-decision wins. Leave it empty and the routine's owner decides.
+decision wins. Leave it empty and the automation's owner decides.
 
 ### A panel
 
@@ -137,10 +141,33 @@ someone about an approval that already expired is worse than saying nothing.
   is frozen at creation. If the owner later moves organisations, historical
   approvals stay where they were decided — that is what an audit means.
 
+## Deployment requests
+
+A Solution's Production stage can require a second person before anything changes in it
+(see [Solutions → Stages and deployments](solutions.md#stages-and-deployments)). With that
+gate on, a deploy, a redeploy, a removal, a rollback (when the stage says so) and a change
+to the gate itself arrive in the approvers' inbox as a request of type **deployment**,
+titled *Deploy release 7 of Orders to Production*.
+
+- **The card shows counts and names, never content**: how many parts are created, replaced
+  or retired, which columns are retired, which acknowledgements the requester gave, and for
+  a removal whether the data is deleted too. The release's own details stay in the pipeline.
+- **Four-eyes.** The person who asked for the deployment can never decide it, whatever seat,
+  ownership or admin right they also hold, in a single seat, a panel or a chain. A seat the
+  requester holds does not count towards "everyone" or a quorum. The stage's approval chain
+  is checked when it is saved: every stage of it needs an approver other than the Solution
+  owner, or the gate could never open.
+- **The decision releases the deployment.** *Approve* queues it, *Reject* closes it, and an
+  expiry (7 days) or a withdrawal cancels it. Before it runs, the plan is computed again; if
+  it no longer matches what was approved the deployment fails with *the plan changed after
+  it was approved* instead of running something nobody saw.
+- The requester can **cancel** a request that is still waiting, which withdraws it here.
+- Deciding and withdrawing stay available if the licence lapses, like every approval.
+
 ## Reacting to a decision
 
-- **`approval.requested` / `approval.decided`** trigger events, for any routine that
-  should react — post to a channel, email the customer, start the next routine. The
+- **`approval.requested` / `approval.decided`** trigger events, for any automation that
+  should react — post to a channel, email the customer, start the next automation. The
   decided event carries the final status (`approved`, `rejected`, `expired`,
   `cancelled`), the reason, the answers, every vote, and — for a chain — the stages
   with their names and which ones were skipped.

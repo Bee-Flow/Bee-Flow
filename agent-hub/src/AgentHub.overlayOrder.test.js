@@ -28,7 +28,7 @@ const SRC = fs.readFileSync(
 
 // The first overlay-flag branch in the ternary. Everything before it outranks
 // every overlay.
-const FIRST_OVERLAY_BRANCH = /\)\s*:\s*showAITasks\s*\?\s*\(/;
+const FIRST_OVERLAY_BRANCH = /\)\s*:\s*showSkillsPanel\s*\?\s*\(/;
 
 function declaredPages() {
     const m = SRC.match(/const PAGES_ABOVE_OVERLAYS = \[([^\]]*)\]/);

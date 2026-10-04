@@ -127,7 +127,7 @@ test('a disabled approval policy sends no card (the bell is the caller’s own c
     assert.equal(rec.bells.length, 1, 'expiry and escalation bells are never optional');
 });
 
-test('an app-sourced approval with no routine behind it stays bell-only', async () => {
+test('an app-sourced approval with no automation behind it stays bell-only', async () => {
     reset();
     await notifyApproval({ approval: { id: 'apr_2', ownerId: 'owner' }, recipientIds: ['lead'], title: 'x' });
     assert.equal(rec.bells.length, 1);
@@ -170,7 +170,7 @@ test('nothing at all happens without an approval or a title', async () => {
     assert.equal(rec.bells.length, 0);
 });
 
-test('the sweep paths can recover the routine from the approval row', async () => {
+test('the sweep paths can recover the automation from the approval row', async () => {
     assert.equal((await automationForApproval(APPROVAL)).title, 'Invoices');
     assert.equal(await automationForApproval({ id: 'apr_3' }), null);
     assert.equal(await automationForApproval(null), null);

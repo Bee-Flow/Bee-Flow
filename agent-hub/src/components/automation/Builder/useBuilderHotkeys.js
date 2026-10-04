@@ -14,7 +14,7 @@ import { useEffect } from 'react';
  *   Escape                → onEscape (close inspector / modal / panel)
  *
  * Intentionally intercept inside text inputs too: builder undo is the
- * coalesced, draft-level history (see useRoutineDraftHistory), and one
+ * coalesced, draft-level history (see useAutomationDraftHistory), and one
  * consistent meaning for Cmd+Z beats two competing systems. Users who
  * type "hello" then Cmd+Z get the word reverted in one shot — same
  * model as Figma, Miro, n8n. Escape is the one exception we let the

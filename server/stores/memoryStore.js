@@ -67,12 +67,27 @@ async function _initDB() {
     await exec(`ALTER TABLE user_memories ADD COLUMN IF NOT EXISTS embedding JSONB`);
     // Add project_id column if not present from older migrations
     await exec(`ALTER TABLE user_memories ADD COLUMN IF NOT EXISTS project_id TEXT`);
-    // R3: tag memories that came out of an agent routine so the routine
-    // system-prompt addendum can list "previously covered" topics for the
-    // SAME routine and we can prune them on a schedule.
-    await exec(`ALTER TABLE user_memories ADD COLUMN IF NOT EXISTS source_routine_id TEXT`);
+    // R3: tag memories that came out of a Cowork schedule run as an agent, so
+    // the system-prompt addendum can list "previously covered" topics for the
+    // SAME schedule and we can prune them on a schedule.
+    //
+    // These were "routine" coverage memories before agent routines moved into
+    // Cowork (2026-10): the column, its index and the type value are renamed in
+    // place, once, before anything reads them under the new names.
+    await exec(`
+        DO $$ BEGIN
+            IF EXISTS (SELECT 1 FROM information_schema.columns
+                        WHERE table_schema = current_schema() AND table_name = 'user_memories' AND column_name = 'source_routine_id')
+               AND NOT EXISTS (SELECT 1 FROM information_schema.columns
+                        WHERE table_schema = current_schema() AND table_name = 'user_memories' AND column_name = 'source_schedule_id') THEN
+                ALTER TABLE user_memories RENAME COLUMN source_routine_id TO source_schedule_id;
+                UPDATE user_memories SET type = 'schedule_coverage' WHERE type = 'routine_coverage';
+            END IF;
+            ALTER INDEX IF EXISTS idx_memories_routine RENAME TO idx_memories_schedule;
+        END $$`);
+    await exec(`ALTER TABLE user_memories ADD COLUMN IF NOT EXISTS source_schedule_id TEXT`);
     await exec(`ALTER TABLE user_memories ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ`);
-    await exec(`CREATE INDEX IF NOT EXISTS idx_memories_routine ON user_memories(source_routine_id) WHERE source_routine_id IS NOT NULL`);
+    await exec(`CREATE INDEX IF NOT EXISTS idx_memories_schedule ON user_memories(source_schedule_id) WHERE source_schedule_id IS NOT NULL`);
     await exec(`
         CREATE TABLE IF NOT EXISTS memory_sources (
             id TEXT PRIMARY KEY,
@@ -776,33 +791,33 @@ async function countActiveMemoriesForUser(userId) {
     return Number(row?.count) || 0;
 }
 
-// ============ R3: Routine Coverage Memories ============
-// A "routine_coverage" memory tracks one topic the agent has surfaced in a
-// past run of a specific routine. Used to de-dupe daily/weekly digests
-// (e.g. AI-news routine: don't re-cover "openai-gpt-5" unless there's an
-// update). Indexed by `(user_id, source_routine_id, subject)` so each topic
-// has exactly one row per routine and updating a topic supersedes the prior
+// ============ R3: Schedule Coverage Memories ============
+// A "schedule_coverage" memory tracks one topic the agent has surfaced in a
+// past run of a specific Cowork schedule. Used to de-dupe daily/weekly digests
+// (e.g. an AI-news schedule: don't re-cover "openai-gpt-5" unless there's an
+// update). Indexed by `(user_id, source_schedule_id, subject)` so each topic
+// has exactly one row per schedule and updating a topic supersedes the prior
 // value rather than duplicating.
 
-const ROUTINE_COVERAGE_TYPE = 'routine_coverage';
-const ROUTINE_COVERAGE_TTL_DAYS = 30;
+const SCHEDULE_COVERAGE_TYPE = 'schedule_coverage';
+const SCHEDULE_COVERAGE_TTL_DAYS = 30;
 
 /**
- * Insert-or-update a coverage memory for one topic of one routine.
+ * Insert-or-update a coverage memory for one topic of one schedule.
  * - subject: stable topic key (e.g. "openai-gpt-5")
  * - title: human-readable title used in the addendum (e.g. "OpenAI GPT-5 launch")
  * - summary: short one-line description ("Released …")
  */
-async function upsertRoutineCoverage({ userId, agentId, routineId, subject, title, summary }) {
-    if (!userId || !routineId || !subject) return null;
+async function upsertScheduleCoverage({ userId, agentId, scheduleId, subject, title, summary }) {
+    if (!userId || !scheduleId || !subject) return null;
     await initDB();
-    const expiresAt = new Date(Date.now() + ROUTINE_COVERAGE_TTL_DAYS * 24 * 3600 * 1000).toISOString();
+    const expiresAt = new Date(Date.now() + SCHEDULE_COVERAGE_TTL_DAYS * 24 * 3600 * 1000).toISOString();
     const content = title ? `${title}${summary ? ' — ' + summary : ''}` : (summary || subject);
     const existing = await getOne(
         `SELECT id FROM user_memories
-         WHERE user_id = $1 AND source_routine_id = $2 AND subject = $3 AND status = 'active'
+         WHERE user_id = $1 AND source_schedule_id = $2 AND subject = $3 AND status = 'active'
          LIMIT 1`,
-        [userId, routineId, subject]
+        [userId, scheduleId, subject]
     );
     if (existing) {
         await run(
@@ -818,26 +833,26 @@ async function upsertRoutineCoverage({ userId, agentId, routineId, subject, titl
     await run(
         `INSERT INTO user_memories
             (id, user_id, agent_id, type, content, subject, value, summary, importance,
-             last_confirmed_at, status, source_routine_id, expires_at)
+             last_confirmed_at, status, source_schedule_id, expires_at)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), 'active', $10, $11)`,
-        [id, userId, agentId || null, ROUTINE_COVERAGE_TYPE, content, subject,
-         title || null, summary || null, 0.5, routineId, expiresAt]
+        [id, userId, agentId || null, SCHEDULE_COVERAGE_TYPE, content, subject,
+         title || null, summary || null, 0.5, scheduleId, expiresAt]
     );
     embedAndStore(id, content);
     return id;
 }
 
-/** List active coverage memories for a routine, newest-first. */
-async function getRoutineCoverage(routineId, { limit = 50 } = {}) {
-    if (!routineId) return [];
+/** List active coverage memories for a schedule, newest-first. */
+async function getScheduleCoverage(scheduleId, { limit = 50 } = {}) {
+    if (!scheduleId) return [];
     await initDB();
     return getAll(
         `SELECT id, subject, summary, value, last_confirmed_at
          FROM user_memories
-         WHERE source_routine_id = $1 AND status = 'active'
+         WHERE source_schedule_id = $1 AND status = 'active'
            AND (expires_at IS NULL OR expires_at > NOW())
          ORDER BY last_confirmed_at DESC LIMIT $2`,
-        [routineId, limit]
+        [scheduleId, limit]
     );
 }
 
@@ -847,7 +862,7 @@ async function pruneExpiredCoverage() {
     const { rowCount } = await run(
         `UPDATE user_memories SET status = 'expired', updated_at = NOW()
          WHERE type = $1 AND status = 'active' AND expires_at IS NOT NULL AND expires_at < NOW()`,
-        [ROUTINE_COVERAGE_TYPE]
+        [SCHEDULE_COVERAGE_TYPE]
     );
     return rowCount || 0;
 }
@@ -858,8 +873,8 @@ module.exports = {
     addMemorySource, findSimilarMemory, findRelevantMemories, selectWithinBudget,
     formatMemoriesForPrompt, getMemoryStats, countActiveMemoriesForUser,
     findByKey, updateMemoryValue, confirmMemory,
-    upsertRoutineCoverage, getRoutineCoverage, pruneExpiredCoverage,
-    ROUTINE_COVERAGE_TYPE,
+    upsertScheduleCoverage, getScheduleCoverage, pruneExpiredCoverage,
+    SCHEDULE_COVERAGE_TYPE,
     getEmbedding,
 };
 

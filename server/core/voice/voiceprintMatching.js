@@ -239,7 +239,7 @@ function resolveVoiceprintMapping(diarTurns, identifyOutput, labelToName, opts =
     // passes for BOTH, putting Tom's name on a person who never enrolled.
     //
     // On overlap alone that is indistinguishable from the diarize job
-    // splitting Tom himself in two, which is routine and must keep working.
+    // splitting Tom himself in two, which is automation and must keep working.
     // So a name stays on several ids unless something proves they are
     // different people:
     //   - the diarize job was given the exact speaker count, so it kept people

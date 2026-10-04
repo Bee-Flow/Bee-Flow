@@ -7,7 +7,7 @@
  * The old loop called the BROAD dispatchEvent once per gmail trigger, which
  * fans out to EVERY gmail/mail.new subscription of the user — N triggers on
  * one automation produced N² catchup runs of the same email, plus a spurious
- * run of every unrelated active gmail routine.
+ * run of every unrelated active gmail automation.
  *
  * Run: node --test routes/automation/crud.activateCatchup.test.js
  */
@@ -114,7 +114,7 @@ test('two gmail triggers → exactly two targeted dispatches, zero broad fan-out
         ['trg1', 'trg2'],
         'each dispatch seeds its OWN trigger node',
     );
-    assert.strictEqual(broadDispatches.length, 0, 'the broad dispatchEvent (fans out to unrelated routines) must not be used');
+    assert.strictEqual(broadDispatches.length, 0, 'the broad dispatchEvent (fans out to unrelated automations) must not be used');
     // The fetch uses each subscription's own normalized filter.
     assert.deepStrictEqual(fetchCalls.sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b))), [{ from: 'a@x' }, { from: 'b@y' }]);
 });
@@ -178,7 +178,7 @@ test('a CAPTURED pin activates, with a warning naming the node', async () => {
     assert.strictEqual(warn.path, 'steps[s1]');
 });
 
-test('an EDITED pin refuses activation with 400 and the routine stays off', async () => {
+test('an EDITED pin refuses activation with 400 and the automation stays off', async () => {
     subscriptionCalls = []; broadDispatches = []; targetedDispatches = []; fetchCalls = [];
     const req = pinnedAutomation('autoPinEdited', {
         step: { pinnedOutput: { total: 999999 }, pinnedSource: 'edited' },
@@ -190,7 +190,7 @@ test('an EDITED pin refuses activation with 400 and the routine stays off', asyn
     assert.strictEqual(res.statusCode, 400, JSON.stringify(res.body));
     assert.strictEqual(res.body.code, 'pinned_edited_sample');
     assert.match(res.body.error, /Step "s1"/);
-    assert.strictEqual(AUTOMATIONS.autoPinEdited.isActive, false, 'the routine is NOT switched on');
+    assert.strictEqual(AUTOMATIONS.autoPinEdited.isActive, false, 'the automation is NOT switched on');
     assert.strictEqual(targetedDispatches.length, 0, 'and no catchup work ran');
 });
 

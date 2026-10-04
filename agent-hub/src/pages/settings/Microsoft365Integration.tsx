@@ -28,12 +28,12 @@ function describe(status: Microsoft365Status | null, t: T): string {
     if (status.connected) {
         return status.email
             ? t('integ.microsoft_connected_as', { email: status.email })
-            : t('integ.microsoft_connected', 'Connected — Outlook works in chat and routines');
+            : t('integ.microsoft_connected', 'Connected — Outlook works in chat and automations');
     }
     if (status.needsReauth) {
-        return t('integ.microsoft_needs_reauth', 'Your Microsoft connection expired — reconnect to keep tools and routines working');
+        return t('integ.microsoft_needs_reauth', 'Your Microsoft connection expired — reconnect to keep tools and automations working');
     }
-    return t('integ.microsoft_desc', 'Connect Outlook so AI tools and routines can read and send your Microsoft 365 mail');
+    return t('integ.microsoft_desc', 'Connect Outlook so AI tools and automations can read and send your Microsoft 365 mail');
 }
 
 interface TileBodyProps {
@@ -65,7 +65,7 @@ function TileBody({ status, connecting, disconnecting, onConnect, onDisconnect, 
         return (
             <div className="space-y-2">
                 <p className="text-[11px] text-[var(--text-muted)]">
-                    {t('integ.microsoft_disconnect_note', 'Disconnecting pauses routines that use Outlook until you reconnect. You stay signed in.')}
+                    {t('integ.microsoft_disconnect_note', 'Disconnecting pauses automations that use Outlook until you reconnect. You stay signed in.')}
                 </p>
                 <DisconnectButton onDisconnect={onDisconnect} disconnecting={disconnecting} t={t} />
             </div>
@@ -91,7 +91,7 @@ function TileBody({ status, connecting, disconnecting, onConnect, onDisconnect, 
  * Settings → Integrations → Microsoft 365: connect Outlook through
  * /api/integrations/microsoft (the vault connector), for users who did not log
  * in with Microsoft. That is how a Google-SSO or password user gets Outlook
- * into chat and agent routines: the server lifts the Outlook tools off the
+ * into chat and scheduled agent runs: the server lifts the Outlook tools off the
  * vault credential next to whatever session they have. Microsoft-SSO users see
  * it connected already. Mirrors the Google Workspace tile.
  */

@@ -3,7 +3,7 @@
  * `Builder/notificationDefaults.js` (which mirrors
  * server/automation/notificationDefaults.js). Two surfaces use it:
  *
- *   - the routine's notification policy (`definition.notificationSettings`,
+ *   - the automation's notification policy (`definition.notificationSettings`,
  *     the handoff-5 shape: per event its channels bell/email/talk, recipients,
  *     urgency, throttle and delivery, plus the daily digest), read and edited
  *     through components/settings/notificationsModel.ts;

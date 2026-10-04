@@ -147,6 +147,8 @@ jobs:
               - 'server/stores/{coworkStore,notificationStore,projectStore,skillStore,transcriptionStore}.js'
               - 'server/stores/agent/{agentTools,directConversations,initSchema}.js'
               - 'server/stores/automationStore/rowMappers.js'
+              - 'server/stores/document/rowMappers.js'
+              - 'server/automation/goLive.js'
               - 'server/stores/webpage/shared.js'
               # read as text by src/core/i18n/dictionaryText.ts
               - 'server/i18n/defaults/en/**'
@@ -157,6 +159,7 @@ jobs:
               # and what that file requires in turn
               - 'server/automation/{diffSummary,fieldDiff}.js'
               - 'server/core/automationRunner/definitionForRun.js'
+              - 'server/core/http/errors.js'
               # The mobile parity series (flow editor, access, compliance,
               # Studio, billing): lockstep tests and serverContract.test.ts
               # read these as text or require() them.
@@ -225,7 +228,7 @@ jobs:
               - 'agent-hub/src/components/automation/Builder/notificationDefaults.js'
               - 'agent-hub/src/components/admin/Studio/Solutions/solutionCounts.js'
               - 'agent-hub/src/components/admin/Studio/AppStudio/tables/TablesManager.jsx'
-              - 'agent-hub/src/components/admin/Studio/Playbooks/stages/RoutineStage.jsx'
+              - 'agent-hub/src/components/admin/Studio/Playbooks/stages/AutomationStage.jsx'
               - 'agent-hub/src/components/admin/Studio/Solutions/{SolutionCard,SolutionsOverview}.jsx'
               - 'nextcloud-connector/src/{appApiClient,config,taskProcessing}.js'
               - '.github/workflows/ci.yml'
@@ -273,6 +276,8 @@ jobs:
               - 'mobile/**'
               - '.nvmrc'
               - 'agent-hub/src/components/shared/statusTokens.ts'
+              # required by agent-hub/src/hooks/useAutomationApi.ts (managed parts of a Solution stage)
+              - 'agent-hub/src/components/shared/managedPart.ts'
               - 'agent-hub/src/i18n/en-defaults.js'
               - 'scripts/gen-i18n-defaults.mjs'
               - 'agent-hub/src/index.css'

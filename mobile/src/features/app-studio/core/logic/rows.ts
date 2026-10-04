@@ -21,7 +21,7 @@ export type TitleFor = ((automationId: unknown) => string | null | undefined) | 
 
 export interface LogicRow {
     key: string;
-    kind: 'event' | 'screen_open' | 'orphan_action' | 'routine';
+    kind: 'event' | 'screen_open' | 'orphan_action' | 'automation';
     wired: boolean;
     screenId: string | null;
     screenName: string;

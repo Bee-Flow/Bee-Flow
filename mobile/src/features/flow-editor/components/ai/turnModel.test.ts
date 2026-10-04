@@ -15,7 +15,7 @@ const turn = (patch: Partial<BuilderTurn>): BuilderTurn => ({ ...emptyBuilderTur
 
 it('says what the builder is doing', () => {
     expect(turnStatus(turn({}), t)).toBe('Working…');
-    expect(turnStatus(turn({ phase: 'reading' }), t)).toBe('Reading the routine…');
+    expect(turnStatus(turn({ phase: 'reading' }), t)).toBe('Reading the automation…');
     expect(turnStatus(turn({ phase: 'building', toolDraft: { name: 'builder_add_steps', count: 3 } }), t)).toBe('Building: Steps · 3');
     expect(turnStatus(turn({ phase: 'building', toolDraft: { name: null, count: 0 } }), t)).toBe('Building');
     expect(turnStatus(turn({ thinkingSummary: { text: 'Planning the trigger', seq: 1 } }), t)).toBe('Planning the trigger');
@@ -27,7 +27,7 @@ it('says what the builder is doing', () => {
 
 it('lists what the turn did, with a live row while its test run goes', () => {
     const going = turn({ toolCalls: [{ name: 'builder_add_step', error: null, added: [{ id: 's', type: 'wait', tool: null, label: 'Pause' }] }], dryRun: { run: null, steps: [], running: true } });
-    expect(turnActivity(going, t).map((r) => `${r.title}|${r.detail}|${r.status}`)).toEqual(['Wait|Pause|done', 'Testing the routine…||running']);
+    expect(turnActivity(going, t).map((r) => `${r.title}|${r.detail}|${r.status}`)).toEqual(['Wait|Pause|done', 'Testing the automation…||running']);
     expect(turnActivity({ ...going, done: true }, t)).toHaveLength(1);
     expect(messageActivity({ role: 'user', content: 'x', toolCalls: [] }, t)).toEqual([]);
 });
@@ -47,7 +47,7 @@ it('counts what happened to the draft', () => {
 
 it('says how a turn failed, and whether sending again is safe', () => {
     expect(turnProblem(turn({}), t)).toBeNull();
-    expect(turnProblem(turn({ error: 'Model overloaded.', transient: true }), t)).toEqual({ text: 'Model overloaded. Your routine is safe — send the message again.', retry: true });
+    expect(turnProblem(turn({ error: 'Model overloaded.', transient: true }), t)).toEqual({ text: 'Model overloaded. Your automation is safe — send the message again.', retry: true });
     expect(turnProblem(turn({ error: 'Not allowed' }), t)).toEqual({ text: 'Not allowed', retry: false });
     expect(turnProblem(turn({ aborted: { reason: 'round budget', iterations: 12 } }), t)?.retry).toBe(true);
 });

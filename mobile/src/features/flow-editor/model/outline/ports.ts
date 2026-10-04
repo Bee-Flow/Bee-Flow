@@ -113,12 +113,12 @@ export function identityOf(e: FlowEdge): EdgeIdentity {
     return out;
 }
 
-/** The error path as a lane — the loop port's own words, `routines.canvas.loop_port_on_error`. */
+/** The error path as a lane — the loop port's own words, `automations.canvas.loop_port_on_error`. */
 export function errorLane(edges: FlowEdge[]): Lane {
     return {
         handle: PORT.onError,
         identity: { label: PORT.onError },
-        text: { key: 'routines.canvas.loop_port_on_error', fallback: 'On error' },
+        text: { key: 'automations.canvas.loop_port_on_error', fallback: 'On error' },
         tone: 'error',
         edges,
     };

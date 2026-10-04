@@ -1,4 +1,4 @@
-import { FileText, ListChecks, PenLine, Puzzle, Footprints, MousePointerClick, PanelRight, AppWindow } from 'lucide-react';
+import { FileText, ListChecks, PenLine, Puzzle, Footprints, MousePointerClick, PanelRight, AppWindow, Clapperboard } from 'lucide-react';
 import React from 'react';
 import { STEP_TYPES } from '../../../components/onboarding/stepTypes';
 import { PRIMARY_ACTION_STYLE } from '../../../components/shared/StudioSectionHeader';
@@ -21,6 +21,7 @@ export const STEP_KIND_ICON = Object.freeze({
     [STEP_TYPES.SIM]: Puzzle,
     [STEP_TYPES.TOUR]: Footprints,
     [STEP_TYPES.ACTION]: MousePointerClick,
+    [STEP_TYPES.VIDEO]: Clapperboard,
 });
 
 export function StepKindIcon({ kind, size = 13, style }) {
@@ -37,6 +38,7 @@ export function stepKindLabel(t, kind, count = 1) {
         case STEP_TYPES.SIM: return one ? t('learn.kind.sim', 'simulation') : t('learn.kind.sim_plural', 'simulations');
         case STEP_TYPES.TOUR: return one ? t('learn.kind.tour', 'tour') : t('learn.kind.tour_plural', 'tours');
         case STEP_TYPES.ACTION: return one ? t('learn.kind.action', 'action') : t('learn.kind.action_plural', 'actions');
+        case STEP_TYPES.VIDEO: return one ? t('learn.kind.video', 'video') : t('learn.kind.video_plural', 'videos');
         default: return one ? t('learn.kind.slide', 'card') : t('learn.kind.slide_plural', 'cards');
     }
 }

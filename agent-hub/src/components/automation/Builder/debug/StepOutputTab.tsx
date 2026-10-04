@@ -83,14 +83,14 @@ export default function StepOutputTab({
                             columnsKey={columnsKey}
                             usedFields={usedFields}
                             stepLabel={stepLabel}
-                            emptyMessage={t('routines.output.none_recorded', 'No output recorded yet. Run or dry-run this step to capture one.')}
+                            emptyMessage={t('automations.output.none_recorded', 'No output recorded yet. Run or dry-run this step to capture one.')}
                         />
                     </div>
                 )}
                 {showExpected && <ExpectedFields sample={describedSample} />}
                 {!hasOutput && !showExpected && !failed && (
                     <div className="text-[11px] text-[var(--text-tertiary)] italic px-1">
-                        {t('routines.output.none_recorded', 'No output recorded yet. Run or dry-run this step to capture one.')}
+                        {t('automations.output.none_recorded', 'No output recorded yet. Run or dry-run this step to capture one.')}
                     </div>
                 )}
                 <WithheldTools tools={withheld} />
@@ -105,10 +105,10 @@ export default function StepOutputTab({
             {!compact && hasOutput && (
                 <footer
                     className="shrink-0 px-3 py-1.5 border-t border-[var(--border-default)] text-[10px] text-[var(--text-tertiary)] flex items-center gap-1.5 min-w-0 @max-[560px]/ndvside:hidden"
-                    title={t('routines.output.footer_hint', 'Fields is the glance. Switch to Table for a record set, or to JSON to search the whole structure and copy a field’s path.')}
+                    title={t('automations.output.footer_hint', 'Fields is the glance. Switch to Table for a record set, or to JSON to search the whole structure and copy a field’s path.')}
                 >
                     <CopyIcon size={10} className="shrink-0" />
-                    <span className="truncate">{t('routines.output.footer_hint', 'Fields is the glance. Switch to Table for a record set, or to JSON to search the whole structure and copy a field’s path.')}</span>
+                    <span className="truncate">{t('automations.output.footer_hint', 'Fields is the glance. Switch to Table for a record set, or to JSON to search the whole structure and copy a field’s path.')}</span>
                 </footer>
             )}
         </div>

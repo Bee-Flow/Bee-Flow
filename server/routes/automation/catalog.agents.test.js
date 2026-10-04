@@ -251,7 +251,7 @@ test('dezelfde naam twee keer weggehouden levert één regel', async () => {
     assert.deepStrictEqual(res.body.withheld, [{ name: 'gmail_compose', reason: 'confirm' }]);
 });
 
-test('een agent die deze routine niet mag gebruiken krijgt één ongedifferentieerd antwoord', async () => {
+test('een agent die deze automatisering niet mag gebruiken krijgt één ongedifferentieerd antwoord', async () => {
     reset();
     RUNTIME_AGENT = null;      // resolveStepAgent gooit
     const res = await getAgentPreview('agt_someone_elses', { useTools: '1' });
@@ -294,7 +294,7 @@ test('een degraded registry en een catalogusfout komen mee terug in plaats van a
 test('een tool die op een SCHAKELAAR sneuvelde krijgt niet het bevestigingsadvies', async () => {
     // `permission` en `confirm` zijn twee zinnen met twee verschillende
     // handelingen. In de stand "startAutomations aan, useTools uit" wordt de
-    // catalogus wél gebouwd en valt elke niet-routine-tool op de schakelaar —
+    // catalogus wél gebouwd en valt elke niet-automation-tool op de schakelaar —
     // waarna "zet er een goedkeuringsstap achter" advies is dat niet kan werken.
     reset();
     RUNTIME_AGENT = { agent: { name: 'A' }, agentId: 'agt_1', config: {}, runtimeSource: 'published' };
@@ -322,7 +322,7 @@ test('de expliciete toollijst van de STAP gaat mee, zodat de capsule telt wat de
 test('een identiteitslezing die faalde is geen agent van een andere organisatie', async () => {
     // Met `orgId` null omdat de gebruikersrij niet te lezen was, kreeg élke
     // gedeelde org-agent `reason: 'other_org'` ("Belongs to another
-    // workspace") en haalde de auteur een prima agent uit zijn routine op grond
+    // workspace") en haalde de auteur een prima agent uit zijn automatisering op grond
     // van een databasehik. `agentsError` bestaat precies voor die zin.
     reset();
     PRINCIPAL_ERROR = 'the user row could not be read';
@@ -362,7 +362,7 @@ test('de HOME-org beslist, niet de groepsafgeleide terugval', async () => {
 
 test('gedeeld zonder ooit een VERSIE te publiceren is niet kiesbaar, met de juiste raad', async () => {
     // De publiceer-schakelaar staat aan, maar `getForRuntime` serveert nog het
-    // levende klad van de eigenaar. Een onbewaakte routine van een ander mag
+    // levende klad van de eigenaar. Een onbewaakte automatisering van een ander mag
     // daar niet op draaien; de zin die de kiezer toont is "publiceer hem", en
     // dat is precies de handeling die het oplost.
     reset();

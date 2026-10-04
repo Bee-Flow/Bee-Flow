@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { listTemplates, documentRequest } from '../../../../../../pages/documents/documentsApi';
 import TemplateField from '../../../mapping/TemplateField';
+import useForEachRequest from '../../../mapping/useForEachRequest';
 import AccordionSection from '../../AccordionSection';
 import { AMBER_NOTE, cardClass, FormRow, hintTextClass, inputClass } from '../formPrimitives';
 
@@ -15,6 +16,8 @@ import { AMBER_NOTE, cardClass, FormRow, hintTextClass, inputClass } from '../fo
  * one click away from producing something.
  */
 function GenerateDocumentFields({ draft, set, onFocusField, previewSample, errorSections = new Set() }) {
+    // A separate run per item (under a field's More) sets this step's forEach.
+    const forEach = useForEachRequest(draft, set);
     const format = draft.format === 'docx' ? 'docx' : 'pdf';
     const days = Number.isFinite(Number(draft.expiresInDays)) ? Number(draft.expiresInDays) : 7;
 
@@ -23,6 +26,8 @@ function GenerateDocumentFields({ draft, set, onFocusField, previewSample, error
             <AccordionSection stepType="generate_document" sectionKey="content" title="Content" defaultOpen forceOpen={errorSections.has('content')}>
                 <FormRow label="Text" required hint="Click a value in the right panel to insert it — usually the step that wrote the text.">
                     <TemplateField
+                        onRequestForEach={forEach.request}
+                        canForEach={forEach.allowed}
                         value={draft.content || ''}
                         onChange={(next) => set('content', next)}
                         rows={3}
@@ -48,6 +53,8 @@ function GenerateDocumentFields({ draft, set, onFocusField, previewSample, error
                 </FormRow>
                 <FormRow label="Title" hint="Shown as the heading on the first page, and used as the filename when you leave that blank.">
                     <TemplateField
+                        onRequestForEach={forEach.request}
+                        canForEach={forEach.allowed}
                         value={draft.title || ''}
                         onChange={(next) => set('title', next)}
                         rows={1}
@@ -58,6 +65,8 @@ function GenerateDocumentFields({ draft, set, onFocusField, previewSample, error
                 </FormRow>
                 <FormRow label="Filename" hint="Without the extension — that follows from the format.">
                     <TemplateField
+                        onRequestForEach={forEach.request}
+                        canForEach={forEach.allowed}
                         value={draft.fileName || ''}
                         onChange={(next) => set('fileName', next)}
                         rows={1}
@@ -106,6 +115,8 @@ function GenerateDocumentFields({ draft, set, onFocusField, previewSample, error
  * in documentation nobody opens.
  */
 function FillDocumentFields({ draft, set, onFocusField, previewSample, errorSections = new Set() }) {
+    // A separate run per item (under a field's More) sets this step's forEach.
+    const forEach = useForEachRequest(draft, set);
     const [templates, setTemplates] = useState(null);   // null = still loading
     const [loadError, setLoadError] = useState(null);
     const [query,setQuery] = useState('');
@@ -195,6 +206,8 @@ function FillDocumentFields({ draft, set, onFocusField, previewSample, errorSect
                             : (p.kind === 'condition' ? 'Decides whether its block is printed at all.' : undefined))}
                     >
                         <TemplateField
+                            onRequestForEach={forEach.request}
+                            canForEach={forEach.allowed}
                             value={String((draft.values || {})[p.key] ?? '')}
                             onChange={(next) => setValue(p.key, p.type === 'number' && next.trim() && Number.isFinite(Number(next)) ? Number(next) : p.type === 'boolean' && ['true','false'].includes(next) ? next === 'true' : next)}
                             rows={1}
@@ -218,6 +231,8 @@ function FillDocumentFields({ draft, set, onFocusField, previewSample, errorSect
                 )}
                 <FormRow label="Filename" hint={(picked?.docType === 'presentation' || contract?.docType === 'presentation') ? "Without the extension — that is added. Leave it blank to use the presentation's own name." : "Without the .pdf — that is added. Leave it blank to use the document's own name."}>
                     <TemplateField
+                        onRequestForEach={forEach.request}
+                        canForEach={forEach.allowed}
                         value={draft.fileName || ''}
                         onChange={(next) => set('fileName', next)}
                         rows={1}
@@ -226,7 +241,7 @@ function FillDocumentFields({ draft, set, onFocusField, previewSample, errorSect
                         placeholder="factuur-{{steps.extract.output.nummer}}"
                     />
                 </FormRow>
-                <FormRow label="Also keep it in Documents" hint="Keeps the FILLED document in Studio → Documents so you can correct a line by hand before it goes out. Leave it off for a routine that runs often — it makes a document every run.">
+                <FormRow label="Also keep it in Documents" hint="Keeps the FILLED document in Studio → Documents so you can correct a line by hand before it goes out. Leave it off for an automation that runs often — it makes a document every run.">
                     <label className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
                         <input type="checkbox" checked={draft.saveCopy === true} onChange={(e) => set('saveCopy', e.target.checked)} />
                         Keep a copy
@@ -235,6 +250,8 @@ function FillDocumentFields({ draft, set, onFocusField, previewSample, errorSect
                 {draft.saveCopy === true && (
                     <FormRow label="Name of the copy" hint="Defaults to the document's name plus today's date.">
                         <TemplateField
+                            onRequestForEach={forEach.request}
+                            canForEach={forEach.allowed}
                             value={draft.copyName || ''}
                             onChange={(next) => set('copyName', next)}
                             rows={1}

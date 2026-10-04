@@ -38,8 +38,8 @@ export default function ExpectedFields({ sample }: { sample: unknown }) {
     return (
         <div className="flex flex-col gap-1.5 text-xs" data-testid="output-expected-fields">
             <div className="flex items-baseline gap-1.5">
-                <span className="font-semibold">{t('routines.output.will_return', 'This step will return')}</span>
-                <span className="text-[var(--text-tertiary)]">{t('routines.output.once_it_succeeds', 'once it succeeds')}</span>
+                <span className="font-semibold">{t('automations.output.will_return', 'This step will return')}</span>
+                <span className="text-[var(--text-tertiary)]">{t('automations.output.once_it_succeeds', 'once it succeeds')}</span>
             </div>
             {shown.map(([k, v]) => {
                 const kind = expectedKind(v);
@@ -49,12 +49,12 @@ export default function ExpectedFields({ sample }: { sample: unknown }) {
                         <FieldKindIcon kind={kind} size={13} className="shrink-0 text-[var(--text-secondary)]" />
                         <span className="font-medium truncate">{humanizeFieldKey(k) || k}</span>
                         {word && kind !== 'unknown' && <span className="text-[var(--text-tertiary)] shrink-0">{t(word.key, word.en)}</span>}
-                        <span className="ml-auto text-[var(--text-tertiary)] italic shrink-0">{t('routines.output.no_value_yet', 'no value yet')}</span>
+                        <span className="ml-auto text-[var(--text-tertiary)] italic shrink-0">{t('automations.output.no_value_yet', 'no value yet')}</span>
                     </div>
                 );
             })}
             {rest > 0 && (
-                <div className="text-[var(--text-tertiary)] px-0.5">{t('routines.output.more_fields', '+ {count} more fields', { count: rest })}</div>
+                <div className="text-[var(--text-tertiary)] px-0.5">{t('automations.output.more_fields', '+ {count} more fields', { count: rest })}</div>
             )}
         </div>
     );

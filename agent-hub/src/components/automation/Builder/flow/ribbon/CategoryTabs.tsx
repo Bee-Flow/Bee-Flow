@@ -22,7 +22,7 @@ export default function CategoryTabs({ categories, active, expanded, onSelect }:
         // step whose own command is not on screen.
         <div
             role="tablist"
-            aria-label={t('routines.ribbon.categories', 'Step categories')}
+            aria-label={t('automations.ribbon.categories', 'Step categories')}
             className="flex items-center gap-1 min-w-0 overflow-x-clip"
             data-ribbon-origin="tabs"
         >
@@ -64,9 +64,9 @@ export default function CategoryTabs({ categories, active, expanded, onSelect }:
  */
 export function AddsAfterPill({ anchor }: { anchor: RibbonAnchor }) {
     const { t } = useTranslation();
-    const caption = t('routines.ribbon.adds_after', 'Adds after');
+    const caption = t('automations.ribbon.adds_after', 'Adds after');
     const full = anchor.number != null
-        ? t('routines.ribbon.anchor_pill', 'step {n} · {label}', { n: anchor.number, label: anchor.label })
+        ? t('automations.ribbon.anchor_pill', 'step {n} · {label}', { n: anchor.number, label: anchor.label })
         : anchor.label;
     return (
         <span className="flex items-center gap-1.5 min-w-0 @max-[820px]/ribbon:hidden" data-testid="ribbon-adds-after" title={`${caption} ${full}`}>
@@ -75,7 +75,7 @@ export function AddsAfterPill({ anchor }: { anchor: RibbonAnchor }) {
                 {anchor.number != null ? (
                     <>
                         <span className="@max-[1440px]/ribbon:hidden">{full}</span>
-                        <span className="hidden @max-[1440px]/ribbon:inline">{t('routines.canvas.row_step', 'step {n}', { n: anchor.number })}</span>
+                        <span className="hidden @max-[1440px]/ribbon:inline">{t('automations.canvas.row_step', 'step {n}', { n: anchor.number })}</span>
                     </>
                 ) : full}
             </span>

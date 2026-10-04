@@ -65,11 +65,11 @@ const crypto = require('crypto');
         await store.upsertSchedule({ automationId: id, triggerStepId: 'trig_y', cron: '* * * * *', tz: 'UTC', nextRunAt: past });
         const [a, b] = await Promise.all([store.claimDueSchedules('w-A', 10), store.claimDueSchedules('w-B', 10)]);
         const mine = [...a, ...b].filter(c => c.automation.id === id);
-        assert.strictEqual(mine.length, 1, 'two due rows of one routine yield ONE claim');
+        assert.strictEqual(mine.length, 1, 'two due rows of one automation yield ONE claim');
         assert.strictEqual(mine[0].automation.lastStatus, 'running');
         assert.strictEqual(mine[0].schedule.triggerStepId, 'trig_x', 'the earliest (first upserted, equal slot → trig id order) wins');
         const again = await store.claimDueSchedules('w-C', 10);
-        assert.ok(!again.some(c => c.automation.id === id), 'a running routine is not claimed again');
+        assert.ok(!again.some(c => c.automation.id === id), 'a running automation is not claimed again');
 
         await store.advanceSchedule(row.id, { nextRunAt: future, lastRunAt: new Date(), lastStatus: 'success' });
         await store.releaseAutomation(id);
@@ -84,7 +84,7 @@ const crypto = require('crypto');
         assert.strictEqual(x.runningInstanceId, null, 'advance clears the claim marker');
     });
 
-    // ── an inactive routine's rows are never claimed ─────────────────────
+    // ── an inactive automation's rows are never claimed ─────────────────────
     await withAutomation(async ({ id }) => {
         await store.upsertSchedule({ automationId: id, triggerStepId: 'trig_z', cron: '* * * * *', tz: 'UTC', nextRunAt: past });
         await pool.query(`UPDATE automations SET is_active = FALSE WHERE id = $1`, [id]);

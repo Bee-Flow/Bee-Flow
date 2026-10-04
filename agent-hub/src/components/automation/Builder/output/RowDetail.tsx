@@ -42,12 +42,12 @@ export default function RowDetail({ row, title, index, total, canPrev, canNext, 
     return (
         <aside className="border-l border-[var(--border-default)] bg-[var(--bg-primary)] flex flex-col min-h-0 min-w-0" data-testid="output-row-detail">
             <div className="px-3.5 py-2.5 border-b border-[var(--border-default)] flex items-center gap-2">
-                <div className="font-semibold text-[13px] truncate">{title || t('routines.output.row_n', 'Row {n}', { n: index + 1 })}</div>
-                <span className="text-[var(--text-tertiary)] shrink-0">{t('routines.output.row_of', 'row {n} of {total}', { n: index + 1, total })}</span>
+                <div className="font-semibold text-[13px] truncate">{title || t('automations.output.row_n', 'Row {n}', { n: index + 1 })}</div>
+                <span className="text-[var(--text-tertiary)] shrink-0">{t('automations.output.row_of', 'row {n} of {total}', { n: index + 1, total })}</span>
                 <div className="ml-auto flex gap-0.5 shrink-0">
-                    <button type="button" onClick={onPrev} disabled={!canPrev} className={navBtn} aria-label={t('routines.output.prev_row', 'Previous row')}><ChevronUp size={13} /></button>
-                    <button type="button" onClick={onNext} disabled={!canNext} className={navBtn} aria-label={t('routines.output.next_row', 'Next row')}><ChevronDown size={13} /></button>
-                    <button type="button" onClick={onClose} className="w-6 h-6 grid place-items-center text-[var(--text-secondary)] hover:text-[var(--text-primary)]" aria-label={t('routines.output.close_detail', 'Close row details')}><X size={13} /></button>
+                    <button type="button" onClick={onPrev} disabled={!canPrev} className={navBtn} aria-label={t('automations.output.prev_row', 'Previous row')}><ChevronUp size={13} /></button>
+                    <button type="button" onClick={onNext} disabled={!canNext} className={navBtn} aria-label={t('automations.output.next_row', 'Next row')}><ChevronDown size={13} /></button>
+                    <button type="button" onClick={onClose} className="w-6 h-6 grid place-items-center text-[var(--text-secondary)] hover:text-[var(--text-primary)]" aria-label={t('automations.output.close_detail', 'Close row details')}><X size={13} /></button>
                 </div>
             </div>
             <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-3.5 py-2.5 flex flex-col gap-1.5">
@@ -55,8 +55,8 @@ export default function RowDetail({ row, title, index, total, canPrev, canNext, 
                 {technical.length > 0 && (
                     <button type="button" onClick={() => setShowTech(s => !s)} className="self-start text-[var(--text-tertiary)] hover:text-[var(--text-primary)] px-0.5 pt-0.5">
                         {showTech
-                            ? t('routines.output.hide_technical', 'Hide technical fields')
-                            : t('routines.output.n_technical', '+ {count} technical', { count: technical.length })}
+                            ? t('automations.output.hide_technical', 'Hide technical fields')
+                            : t('automations.output.n_technical', '+ {count} technical', { count: technical.length })}
                     </button>
                 )}
                 {showTech && technical.map(([k, v]) => <FieldNode key={k} name={k} value={v} depth={0} path={k} />)}
@@ -84,7 +84,7 @@ function FieldNode({ name, value, depth, path }: { name: string; value: unknown;
                     <Chevron size={13} aria-hidden className="shrink-0" />
                     <FieldKindIcon kind="group" size={13} className="shrink-0 text-[var(--text-secondary)]" />
                     <span className="font-semibold truncate">{label}</span>
-                    <span className="text-[var(--text-tertiary)] shrink-0">{t('routines.output.group_fields', 'group · {count} fields', { count: fields.length })}</span>
+                    <span className="text-[var(--text-tertiary)] shrink-0">{t('automations.output.group_fields', 'group · {count} fields', { count: fields.length })}</span>
                 </button>
                 {open && (
                     <div className="pl-5 py-0.5">
@@ -105,7 +105,7 @@ function FieldNode({ name, value, depth, path }: { name: string; value: unknown;
             <FieldKindIcon kind={kind} size={13} className="shrink-0 text-[var(--text-secondary)]" />
             <span className={`${depth === 0 ? 'font-medium' : ''} shrink-0`}>{label}</span>
             {kind === 'list' && Array.isArray(value) && (
-                <span className="text-[var(--text-tertiary)] shrink-0">{t('routines.output.list_of', 'list of {count}', { count: value.length })}</span>
+                <span className="text-[var(--text-tertiary)] shrink-0">{t('automations.output.list_of', 'list of {count}', { count: value.length })}</span>
             )}
             <span className="ml-auto text-[var(--text-tertiary)] truncate max-w-[200px]" title={text}>{text || '—'}</span>
         </div>
@@ -126,7 +126,7 @@ function NestedTable({ label, rows, open, onToggle, framed }: { label: string; r
                 {open ? <ChevronDown size={13} aria-hidden /> : <ChevronRight size={13} aria-hidden />}
                 <FieldKindIcon kind="table" size={13} className="shrink-0 text-[var(--text-secondary)]" />
                 <span className="font-semibold truncate">{label}</span>
-                <span className="text-[var(--text-tertiary)] shrink-0">{t('routines.output.rows_cols', '{rows} rows · {cols} columns', { rows: rows.length, cols: keys.length })}</span>
+                <span className="text-[var(--text-tertiary)] shrink-0">{t('automations.output.rows_cols', '{rows} rows · {cols} columns', { rows: rows.length, cols: keys.length })}</span>
             </button>
             {open && (
                 <table className="w-full border-collapse">
@@ -150,7 +150,7 @@ function NestedTable({ label, rows, open, onToggle, framed }: { label: string; r
             )}
             {open && rows.length > NESTED_ROWS && (
                 <div className="pl-8 pr-2.5 pt-[5px] pb-[7px] text-[var(--text-tertiary)]">
-                    {t('routines.output.more_lines', '+ {count} lines', { count: rows.length - NESTED_ROWS })}
+                    {t('automations.output.more_lines', '+ {count} lines', { count: rows.length - NESTED_ROWS })}
                 </div>
             )}
         </div>

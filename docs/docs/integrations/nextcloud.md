@@ -20,7 +20,7 @@ The umbrella Nextcloud integration. Backs all file operations the assistant perf
 | `nextcloud_list_files` | List files in a folder. |
 | `nextcloud_search_files` | Full-text search. |
 | `nextcloud_read_file` | Fetch the contents of a file — PDF, DOCX, PPTX (slide text + speaker notes, one section per slide), XLSX/CSV and plain text go through the same extraction pipeline chat uploads use. |
-| `nextcloud_upload_file` | Upload a new file or overwrite. Inside a routine, `sourceHandle: {kind: "generated_file", fileId}` pushes the file a `generate_document`, `fill_document` or `presentation` step kept — bind the whole handle from that step's `output.sourceHandle`. |
+| `nextcloud_upload_file` | Upload a new file or overwrite. Inside an automation, `sourceHandle: {kind: "generated_file", fileId}` pushes the file a `generate_document`, `fill_document` or `presentation` step kept — bind the whole handle from that step's `output.sourceHandle`. |
 | `nextcloud_create_spreadsheet` | Build a real `.xlsx` / `.ods` from rows (or append to one) — opens in Nextcloud Office. |
 | `nextcloud_create_document` | Build a real `.docx` / `.odt` from text or markdown — opens in Nextcloud Office. |
 | `nextcloud_create_presentation` | Build a real `.pptx` in the organisation's house style from structured slides or a markdown outline; answers with the `/f/<fileId>` link that opens it in Nextcloud Office (Impress). |

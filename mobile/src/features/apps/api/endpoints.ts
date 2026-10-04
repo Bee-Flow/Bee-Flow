@@ -49,7 +49,7 @@ export async function getAppRuntime(
  * Inputs are resolved SERVER-SIDE from the action's own `inputMapping`; the
  * form values below only flow through `field` mappings, and only as
  * primitives. Answers 200 with the final output, 202 `{ runId, status:
- * 'pending' }` past the 60s wait, or `{ status: 'skipped' }` when the routine
+ * 'pending' }` past the 60s wait, or `{ status: 'skipped' }` when the automation
  * was already running.
  *
  * `draft` goes with every run made from a draft runtime (getAppRuntime's

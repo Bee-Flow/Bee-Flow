@@ -4,6 +4,7 @@ import useWebpageSave, { useWebpageChatPersistence } from './hooks/useWebpageSav
 import SaveStatus from './SaveStatus';
 import WebpageDataTab from './WebpageDataTab';
 import WebpageEditorHeader from './WebpageEditorHeader';
+import { managedOf } from '../../components/shared/managedPart';
 import WebpageHistoryTab from './WebpageHistoryTab';
 import WebpageIDE from './WebpageIDE';
 import WebpagePreview from './WebpagePreview';
@@ -79,6 +80,9 @@ export default function WebpageEditorPage({
     const pageId = loaded.webpage.id;
     const [page, setPage] = useState(loaded.webpage);
     const isOwner = page.userId === user?.id;
+    // A page a Solution stage manages is read-only for everyone: no AI builder, no
+    // code editor, no history (the header does not offer those tabs either).
+    const managed = managedOf(page);
     /* ── The five sections (plan W2) ──────────────────────────────
      * One `activeTab` replaced three booleans that used to disagree with each
      * other (`viewMode`, the IDE's own `devMode`, and the overlay flag the
@@ -95,7 +99,9 @@ export default function WebpageEditorPage({
     // A viewer never opens in the code editor: Code and History are owner-only
     // (both server surfaces behind them answer 404 to anyone else), and the
     // header does not offer them either.
-    const [activeTab, setActiveTab] = useState(initialEditMode && isOwner ? 'code' : 'preview');
+    const [tabState, setActiveTab] = useState(initialEditMode && isOwner && !managedOf(loaded.webpage) ? 'code' : 'preview');
+    // Code and History are not on offer for a managed page; fall back to Preview.
+    const activeTab = managed && (tabState === 'code' || tabState === 'history') ? 'preview' : tabState;
     const viewMode = activeTab === 'preview';
     const [publishMenuOpen, setPublishMenuOpen] = useState(false);
     const [publishBusy, setPublishBusy] = useState(false);
@@ -790,6 +796,7 @@ export default function WebpageEditorPage({
             <WebpageEditorHeader
                 page={page}
                 isOwner={isOwner}
+                managed={managed}
                 activeTab={activeTab}
                 onTab={handleTab}
                 counts={headerCounts}
@@ -931,6 +938,7 @@ export default function WebpageEditorPage({
                     onUndoTurn={handleUndoTurn}
                     onShowInCode={handleShowInCode}
                     focusFile={focusFile}
+                    managed={managed}
                 />
                 </div>
                 )}

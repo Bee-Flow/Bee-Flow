@@ -1,7 +1,7 @@
 /**
  * runState.trigger carries WHICH trigger fired, beside the payload.
  *
- * Pins the contract every multi-trigger routine relies on: `output` is the raw
+ * Pins the contract every multi-trigger automation relies on: `output` is the raw
  * payload and nothing else; the meta (kind / source / id / provider / event /
  * firedAt / schedule) sits next to it; `kind` is what the definition declares
  * for the trigger the run entered through, `source` is how the run was

@@ -16,7 +16,7 @@ import { loadWorkspaceNotebook } from '../utils/workspaceNotebook';
 // same position the block occupied.
 const useAgentHubData = ({
     user, initialAgentId, initialConversationId, initialDirectConvId,
-    showSettings, showAgentDesigner, showAgentWizard, showStudio, showSkillsPanel, showAITasks,
+    showSettings, showAgentDesigner, showAgentWizard, showStudio, showSkillsPanel,
     coworkMode, setCoworkMode,
     selectedAgent, setSelectedAgent,
     directChatMode, setDirectChatMode,
@@ -535,11 +535,11 @@ const useAgentHubData = ({
     // Close the Projects views when the user navigates to a chat (agent or direct).
     // Mirrors how the agent marketplace closes itself in handleSelectAgent etc.
     useEffect(() => {
-        if (showMarketplace || showSettings || showAgentDesigner || showAgentWizard || showStudio || showSkillsPanel || showAITasks) {
+        if (showMarketplace || showSettings || showAgentDesigner || showAgentWizard || showStudio || showSkillsPanel) {
             setShowProjectsStore(false);
             setActiveProjectId(null);
         }
-    }, [showMarketplace, showSettings, showAgentDesigner, showAgentWizard, showStudio, showSkillsPanel, showAITasks, setShowProjectsStore, setActiveProjectId]);
+    }, [showMarketplace, showSettings, showAgentDesigner, showAgentWizard, showStudio, showSkillsPanel, setShowProjectsStore, setActiveProjectId]);
 
     // Load Agents and Handle Startup Logic
     useEffect(() => {

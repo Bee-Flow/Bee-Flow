@@ -5,7 +5,7 @@ import useDraftHistory from './useDraftHistory';
 /**
  * Undo/redo stack for JSON drafts.
  *
- * The `null` baseline case is BFSF-318: a brand-new routine starts with no
+ * The `null` baseline case is BFSF-318: a brand-new automation starts with no
  * definition, so the first commit used to push `null` onto the past stack. One
  * click of Undo then applied `null` as a definition, which the save path PUT to
  * the server, which stored it as `{}` — and that truthy-but-empty object went

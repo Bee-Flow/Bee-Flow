@@ -1,7 +1,7 @@
 /**
  * The datatable step — the web's DatatableFields (datatableEditors.jsx):
  * which table, what to do with it, which rows, and what to write. Rows in a
- * datatable outlive the run, so a later run (or another routine) reads what
+ * datatable outlive the run, so a later run (or another automation) reads what
  * this one wrote. Nothing is free text but the values.
  */
 
@@ -43,8 +43,8 @@ function TableBand({ editor, writes }: { editor: StepEditorProps; writes: boolea
                 </Note>
             ) : (
                 <SelectField
-                    label={t('routines.node.datatable.typeLabel', 'Datatable')}
-                    hint={t('mobile.flow.datatable.datatable_hint', 'Rows in a datatable stay put after the run ends, so this routine can read back what an earlier run wrote — and other routines can use the same table.')}
+                    label={t('automations.node.datatable.typeLabel', 'Datatable')}
+                    hint={t('mobile.flow.datatable.datatable_hint', 'Rows in a datatable stay put after the run ends, so this automation can read back what an earlier run wrote — and other automations can use the same table.')}
                     value={typeof draft.datatableId === 'string' ? draft.datatableId : ''}
                     prompt={t('mobile.flow.datatable.pick_table', 'Pick a table…')}
                     options={tables.map((x) => {
@@ -65,7 +65,7 @@ function TableBand({ editor, writes }: { editor: StepEditorProps; writes: boolea
                 disabled={ctx.disabled}
                 testID="datatable-op"
             />
-            {table && table.scope !== 'personal' && writes ? <Warn>{t('mobile.flow.datatable.shared_warning', 'This table is shared — other people and other routines read what this step writes.')}</Warn> : null}
+            {table && table.scope !== 'personal' && writes ? <Warn>{t('mobile.flow.datatable.shared_warning', 'This table is shared — other people and other automations read what this step writes.')}</Warn> : null}
         </Band>
     );
 }
@@ -123,7 +123,7 @@ function Values({ editor, columns }: { editor: StepEditorProps; columns: readonl
                     label={c.name || c.key}
                     value={values[c.key]}
                     onChange={(v) => set('values', { ...values, [c.key]: v })}
-                    prompt={t('routines.ndv.tables_row.leave_empty', 'leave empty to skip {column}', { column: c.name || c.key })}
+                    prompt={t('automations.ndv.tables_row.leave_empty', 'leave empty to skip {column}', { column: c.name || c.key })}
                     disabled={ctx.disabled}
                     testID={`datatable-value-${c.key}`}
                 />
@@ -151,7 +151,7 @@ export function DatatableEditor(editor: StepEditorProps) {
             >
                 {needs.match ? (
                     <SuggestText
-                        label={t('routines.versions.setting.matchColumn', 'Match on')}
+                        label={t('automations.versions.setting.matchColumn', 'Match on')}
                         hint={t('mobile.flow.datatable.match_on_hint', 'The column that decides whether a row already exists. If a row has the same value here it is updated; otherwise a new row is added.')}
                         value={typeof draft.matchColumn === 'string' ? draft.matchColumn : ''}
                         onChange={(v) => set('matchColumn', v)}

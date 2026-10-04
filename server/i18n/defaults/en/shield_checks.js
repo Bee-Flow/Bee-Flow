@@ -29,7 +29,7 @@ module.exports = {
     'shield_checks.raw_payload_desc': 'Adds the original, the version the AI got and the placeholders to "How I got this answer".',
     'shield_checks.raw_payload_warn': 'Anyone who can open the conversation can reveal the real values.',
     'shield_checks.scan_kbs_desc': 'Personal data is replaced before it is stored. This can\'t be undone later: the stored text is the checked text.',
-    'shield_checks.automations_desc': 'Routines run on their own with nobody watching. Their data and AI steps are checked the same way as chat.',
+    'shield_checks.automations_desc': 'Automations run on their own with nobody watching. Their data and AI steps are checked the same way as chat.',
 
     // Card 2: before it leaves your organisation.
     'shield_checks.leaving_title': 'Before it leaves your organisation',

@@ -17,6 +17,10 @@ export const TEMPLATE_RE = /\{\{[^}]+\}\}/;
 // the `expr` kind, which the restricted grammar can't evaluate → silent
 // undefined at runtime.
 const SIMPLE_PATH_RE = /^[a-zA-Z_$][\w$.[\]*]*$/;
+// A sub-step of an expanded flowlet: `steps.<callId>/<subId>.output…` (the
+// prefix is stripped on save — flow/inlineFlowlets.js). The `/` is allowed
+// ONLY inside that step id, so `steps.a.output.total/2` stays a formula.
+export const INLINE_STEP_PATH_RE = /^steps\.[A-Za-z_$][\w$]*(?:\/[A-Za-z_$][\w$]*)+(?:\.[\w$]+|\[[^\]]*\])*$/;
 const VALID_REF_ROOTS = ['trigger', 'steps', 'vars', 'secrets', 'loop'];
 
 /**
@@ -33,7 +37,7 @@ export function detectTemplate(text) {
  */
 export function isCleanPath(text) {
     if (typeof text !== 'string') return false;
-    return SIMPLE_PATH_RE.test(text.trim());
+    return SIMPLE_PATH_RE.test(text.trim()) || INLINE_STEP_PATH_RE.test(text.trim());
 }
 
 /**
@@ -123,7 +127,7 @@ export function insertAtCursor(el, snippet) {
  *   - mode 'expression'/path: a partial rooted path (`steps.` / `trigger.` /
  *     `loop.` / `item.` / `vars.`) ending at the caret.
  * `roots` overrides which roots count — App Studio's scope shares none of the
- * routine roots but `item`/`vars` (see AUTOCOMPLETE_ROOTS).
+ * automation roots but `item`/`vars` (see AUTOCOMPLETE_ROOTS).
  * Returns `{ start, end, query }` (range in el.value) or null.
  */
 export function getAutocompleteToken(el, mode, roots = AUTOCOMPLETE_ROOTS) {
@@ -153,7 +157,7 @@ export function getAutocompleteTokenFromPrefix(before, mode, roots = AUTOCOMPLET
     if (!list.length) return null;
     // Built from `list` rather than written out, so a caller with a different
     // scope (App Studio: currentUser/form/screen/actions/…) completes ITS roots
-    // instead of the routine builder's.
+    // instead of the automation builder's.
     const rooted = new RegExp(`(?:^|[^\\w$.])((?:${list.join('|')})\\.[\\w$.[\\]*]*)$`);
     const m = rooted.exec(text);
     if (m) return { length: m[1].length, query: m[1] };

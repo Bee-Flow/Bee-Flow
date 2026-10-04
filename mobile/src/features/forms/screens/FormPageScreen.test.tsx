@@ -1,11 +1,11 @@
 /**
  * The Form page over a mocked HTTP client and the real draft store:
  *
- *   - the owner edits a question and saves it into the routine's definition
+ *   - the owner edits a question and saves it into the automation's definition
  *     (PUT /api/automation/:id), and a tab switch with unsaved questions asks;
- *   - an older link carrying the page TOKEN is swapped for the routine's id;
+ *   - an older link carrying the page TOKEN is swapped for the automation's id;
  *   - a colleague the answers are shared with sees Answers only;
- *   - Share changes who may fill it in, Settings arms the routine and turns
+ *   - Share changes who may fill it in, Settings arms the automation and turns
  *     collecting off (asking first);
  *   - the answers table opens on the phone's own table screen — never the
  *     web's Studio in a browser tab, which has no session and sends a phone
@@ -61,7 +61,7 @@ const detail = (patch: Record<string, unknown> = {}) => ({
         pages: [],
         answers: { collecting: true, datatableId: 't1', grade: 'owner', rowCount: 0, linked: true, lastWriteError: null },
         definition: DEF,
-        routineTitle: 'Intake',
+        automationTitle: 'Intake',
         ...patch,
     },
 });
@@ -120,7 +120,7 @@ afterEach(async () => {
     resetDraftRegistry();
 });
 
-it('saves an edited question into the routine’s definition', async () => {
+it('saves an edited question into the automation’s definition', async () => {
     await mount();
     const label = await screen.findByTestId('question-1-label', {}, { timeout: 5000 });
     expect(screen.getByTestId('form-save').props.accessibilityState).toMatchObject({ disabled: true });
@@ -143,7 +143,7 @@ it('asks before a tab switch throws unsaved questions away', async () => {
     expect(api.put).not.toHaveBeenCalled();
 });
 
-it('swaps an old link’s page token for the routine’s id', async () => {
+it('swaps an old link’s page token for the automation’s id', async () => {
     await mount(TOKEN);
     await waitFor(() => expect(mockRouter.replace).toHaveBeenCalledWith(`/forms/${AID}`));
 });
@@ -164,7 +164,7 @@ it('opens the form to everyone in the organisation, after asking', async () => {
     await waitFor(() => expect(api.put).toHaveBeenCalledWith(`/api/automation/forms/${AID}/audience`, { audience: 'org', sharedGroups: [], sharedUserIds: [] }, expect.anything()));
 });
 
-it('arms the routine to go live, and stops collecting only after asking', async () => {
+it('arms the automation to go live, and stops collecting only after asking', async () => {
     (api.post as jest.Mock).mockResolvedValue({ automation: { id: AID, title: 'Intake', definition: DEF, version: 2, isActive: true, isDraft: false }, warnings: [] });
     await mount(AID, 'settings');
     await fireEvent(await screen.findByTestId('form-live', {}, { timeout: 5000 }), 'valueChange', true);

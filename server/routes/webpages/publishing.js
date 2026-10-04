@@ -94,6 +94,7 @@ function register(router) {
             }
             return res.end(bytes);
         } catch (err) {
+            if (err?.status && err.status < 500) throw err;
             log.error('[Webpages] Thumbnail fetch failed:', err);
             return res.status(500).end();
         }
@@ -213,8 +214,20 @@ function register(router) {
             // UNPUBLISHING clears the pointer AFTER the flag is down, for the
             // mirror-image reason: a page that is still visible must never be
             // pointer-less, even for one statement.
+            //
+            // A MANAGED page (a Solution stage) is the exception to all of the
+            // above: the deploy commit owns its pointer and always pins the
+            // release it deployed. Publishing only flips the audience, never
+            // freezes the live row, and unpublishing leaves the pointer alone.
+            const managed = await webpageStore.managedInfoOf(wp);
             let publishedVersionId = wp.publishedVersionId || null;
-            if (isPublished && (!publishedVersionId || req.body.republish === true)) {
+            if (managed && isPublished && !publishedVersionId) {
+                return res.status(409).json({
+                    error: 'This page has not been deployed to this stage yet, so there is nothing to publish.',
+                    code: 'managed_part_not_deployed',
+                });
+            }
+            if (!managed && isPublished && (!publishedVersionId || req.body.republish === true)) {
                 try {
                     publishedVersionId = await pinPublishedVersion(req.params.id, wp.userId);
                 } catch (e) {
@@ -233,7 +246,7 @@ function register(router) {
             );
             if (!ok) return res.status(500).json({ error: 'Failed to update published status' });
 
-            if (!isPublished) {
+            if (!isPublished && !managed) {
                 // Tidy-up, not a gate: the page is already invisible, so a failure
                 // here leaves a stale pointer on an unpublished row — harmless, and
                 // overwritten by the next publish.
@@ -256,6 +269,9 @@ function register(router) {
 
             res.json({ success: true, isPublished, sharedGroups: cleanedGroups, publishedVersionId });
         } catch (err) {
+            // A refusal the store words for the caller (409 managed_part) goes
+            // to the terminal handler, which passes its code through.
+            if (err?.status && err.status < 500) throw err;
             log.error('[Webpages] Publish failed:', err);
             res.status(500).json({ error: 'Failed to update publish state' });
         }

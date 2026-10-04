@@ -1,5 +1,5 @@
 /**
- * The nesting limit on agents starting routines, and the caller trace that
+ * The nesting limit on agents starting automations, and the caller trace that
  * rides along (handoff 5, round 3). Dependencies go in as arguments; no
  * module mocking.
  *
@@ -14,7 +14,7 @@ const assert = require('node:assert');
 const depth = require('./automationCallDepth');
 const { dispatchAgentCallableTool, dispatchStepTool, callerTraceOf, runnerTraceOptions } = require('./agentCallableTools');
 
-function routine(id) {
+function automation(id) {
     return {
         id, userId: 'u1', isActive: true, title: id,
         definition: { trigger: { kind: 'agent_call', toolName: id } },
@@ -76,10 +76,10 @@ test('startedByUserId is set only when a person in a conversation started it', (
     );
 });
 
-test('an agent-called routine carries the caller and never reuses parent_run_id', async () => {
+test('an agent-called automation carries the caller and never reuses parent_run_id', async () => {
     let seenOpts = null;
     const deps = {
-        automationStore: { getAutomation: async (id) => routine(id) },
+        automationStore: { getAutomation: async (id) => automation(id) },
         automationRunner: { executeAutomation: async (_a, opts) => { seenOpts = opts; return { lastOutput: { ok: 1 } }; } },
     };
     const out = await dispatchAgentCallableTool({ id: 'r1', userId: 'u1' }, { q: 1 }, {
@@ -93,12 +93,12 @@ test('an agent-called routine carries the caller and never reuses parent_run_id'
     assert.strictEqual(seenOpts.triggerKind, 'agent_call');
 });
 
-test('routines that keep calling each other stop at the limit, with the reason', async () => {
+test('automations that keep calling each other stop at the limit, with the reason', async () => {
     let starts = 0;
     const deps = {
-        automationStore: { getAutomation: async (id) => routine(id) },
+        automationStore: { getAutomation: async (id) => automation(id) },
         automationRunner: {
-            // Each run's agent step starts the same routine again.
+            // Each run's agent step starts the same automation again.
             executeAutomation: async (a) => {
                 starts += 1;
                 return { lastOutput: await dispatchAgentCallableTool({ id: a.id, userId: 'u1' }, {}, { userId: 'u1', callerAgentId: 'agt' }, deps) };

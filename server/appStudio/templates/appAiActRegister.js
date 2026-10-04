@@ -669,7 +669,7 @@ const SCREEN_REGISTER = {
                             aggregates: [{ fn: 'count', field: '*', as: 'n' }],
                             // `today` is one of the few roots a binding filter
                             // may read, which is what makes an overdue counter
-                            // expressible without a routine.
+                            // expressible without an automation.
                             filter: [{ field: 'next_review_due', op: 'lt', value: { kind: 'formula', expr: 'today' } }],
                             limit: 1,
                         },
@@ -1793,16 +1793,16 @@ const actions = {
     },
 
     /**
-     * The one place this app wants a routine: mailing the accountable roles
+     * The one place this app wants an automation: mailing the accountable roles
      * whose review date has passed. It ships UNSET on purpose — the app cannot
-     * know which of the owner's routines does it, and inventing one would be
+     * know which of the owner's automations does it, and inventing one would be
      * worse than asking. The toast says so out loud rather than failing quietly.
      */
     act_regremind: {
         kind: 'sequence',
         steps: [
             { kind: 'run_automation', automationId: null, resultVar: 'reminderRun' },
-            { kind: 'toast', message: 'Pick the routine that sends the reminder under Automations — this button is wired to nothing until you do.', tone: 'info' },
+            { kind: 'toast', message: 'Pick the automation that sends the reminder under Automations — this button is wired to nothing until you do.', tone: 'info' },
         ],
     },
 

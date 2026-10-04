@@ -1,5 +1,5 @@
 /**
- * Knowledge Base Ingest — a ROUTINE-ONLY automation action (never exposed to
+ * Knowledge Base Ingest — a AUTOMATION-ONLY automation action (never exposed to
  * chat agents; it writes). Used by the "Resolved tickets → knowledge base"
  * template: an ai_step distils a solved ticket into an article, then this tool
  * ingests it into the chosen KB with a source-link back to the ticket.
@@ -31,7 +31,7 @@ const SOURCE_TYPE = 'support_ticket';
  *
  * This tool was built for one caller (a resolved support ticket, distilled),
  * so `support_ticket` / `provider: support` were constants. K10 gave every
- * routine a `knowledge_write` step that comes through the same door, and a
+ * automation a `knowledge_write` step that comes through the same door, and a
  * nightly system summary filed as a support ticket is wrong in the Sources
  * list, wrong in the document's metadata, and wrong to anyone later asking
  * where a paragraph came from.
@@ -40,7 +40,7 @@ const SOURCE_TYPE = 'support_ticket';
  */
 const ORIGINS = Object.freeze({
     support: { sourceType: SOURCE_TYPE, provider: 'support', defaultTitle: 'Support article' },
-    routine: { sourceType: 'routine_write', provider: 'automation', defaultTitle: 'Untitled' },
+    automation: { sourceType: 'automation_write', provider: 'automation', defaultTitle: 'Untitled' },
 });
 function originOf(context) { return ORIGINS[context && context.origin] || ORIGINS.support; }
 
@@ -79,7 +79,7 @@ function _readMetadata(doc) {
 
 /**
  * The kb_sources row this action's documents hang off: one `automation` source
- * per routine when the runner tells us which routine is running, otherwise one
+ * per automation when the runner tells us which automation is running, otherwise one
  * shared "Automation ingest" source per KB.
  *
  * Never throws — the source is bookkeeping, the article is the product.
@@ -89,13 +89,13 @@ async function _ensureAutomationSource(kbId, context = {}) {
     const automationId = context.automationId || null;
     const origin = originOf(context);
     return ensureKbSource(kbId, 'automation', {
-        // The routine's own title when the caller knows it: "Automation
+        // The automation's own title when the caller knows it: "Automation
         // 4f2c-…" in the Sources list tells a person nothing about what keeps
         // adding documents to their knowledge base.
         name: context.automationTitle || (automationId ? `Automation ${automationId}` : 'Automation ingest'),
         config: { provider: origin.provider, sourceType: origin.sourceType, ...(automationId ? { automationId } : {}) },
-        // Matched on the routine id where there is one, so re-titling a
-        // routine updates its source rather than creating a second.
+        // Matched on the automation id where there is one, so re-titling a
+        // automation updates its source rather than creating a second.
         configMatch: automationId ? { automationId } : { sourceType: origin.sourceType },
         createdBy: context.userId || null,
     });
@@ -132,7 +132,7 @@ async function _mergeArticles(priorArticle, incomingArticle, orgId) {
 /**
  * Replace a document's content in place, keeping its row and its source_uri.
  *
- * The MORE travelled of the two ingest paths, not the less: a routine with a
+ * The MORE travelled of the two ingest paths, not the less: an automation with a
  * sourceUri comes through here on every run after the first.
  *
  * It DELETES BEFORE IT INGESTS, and with `skipSnapshot`, so there is no version
@@ -150,12 +150,12 @@ async function _refreshInPlace(tenantId, kbId, existingDoc, article, title, lang
     // kb_document_versions, a table with no erasure path.
     await deleteDocumentChunks(kbId, existingDoc.id, tenantId, { skipSnapshot: true }).catch(() => {});
     const metadata = {
-        ingestedBy: 'routine',
+        ingestedBy: 'automation',
         sourceUri: canonicalUri,
         ...prevMeta,
         // AFTER prevMeta, deliberately. Spreading the old metadata over the new
         // origin put the previous run's `support_ticket` straight back, so a
-        // routine's article kept being re-filed as a support ticket on every
+        // automation's article kept being re-filed as a support ticket on every
         // refresh — which is every run after the first.
         source_type: origin.sourceType, provider: origin.provider,
         ...extraMeta, article,
@@ -211,21 +211,21 @@ async function executeKbIngestTool(toolName, args = {}, context = {}) {
         /**
          * ── WHO IS WRITING, checked at RUN TIME (K10) ────────────────
          * The organisation test above was the only gate, and it is not one: it
-         * let ANY author of ANY routine in an organisation write documents
+         * let ANY author of ANY automation in an organisation write documents
          * into ANY of that organisation's knowledge bases — including one
          * shared with a group they are not in, and one they have no
-         * `manage_knowledge` right over. A routine is a program somebody else
+         * `manage_knowledge` right over. An automation is a program somebody else
          * may run, so that was a write nobody reviewed reaching a base nobody
          * agreed to.
          *
-         * Re-checked HERE, not only where the routine was saved, and keyed on
-         * the identity this run actually has. A routine is saved once and runs
+         * Re-checked HERE, not only where the automation was saved, and keyed on
+         * the identity this run actually has. An automation is saved once and runs
          * for months: the author's rights can be taken away, the base's
          * sharing can narrow, and the definition itself is data an import or
          * an MCP patch can put an id into. A stored definition is a record of
          * what somebody asked for, never evidence that it was allowed.
          *
-         * `context.userId` is the routine's OWNER — the identity a run has
+         * `context.userId` is the automation's OWNER — the identity a run has
          * everywhere else in the product, so a trigger anyone can fire cannot
          * become a way to write as somebody else.
          */
@@ -266,7 +266,7 @@ async function executeKbIngestTool(toolName, args = {}, context = {}) {
          * went into a knowledge base unscreened. That was survivable while the
          * only caller was the support template, whose prompt spends a
          * paragraph telling the model to strip personal data. K10 opened the
-         * door to every routine: a `knowledge_write` step can be pointed
+         * door to every automation: a `knowledge_write` step can be pointed
          * straight at a raw email body, a transcript, a customer conversation.
          *
          * A prompt asking a model to remove names is not a control. This is.
@@ -325,7 +325,7 @@ async function executeKbIngestTool(toolName, args = {}, context = {}) {
         const docTitle = title || origin.defaultTitle;
         const threadId = sourceUri ? String(sourceUri).split('/').pop() : null;
         const baseMeta = {
-            ingestedBy: 'routine', source_type: origin.sourceType, provider: origin.provider,
+            ingestedBy: 'automation', source_type: origin.sourceType, provider: origin.provider,
             sourceUri: sourceUri || null, threadId, inboxId: context.inboxId || null,
             // The SCREENED text. This metadata copy is what a later merge reads
             // back, so storing the raw body here kept an un-redacted copy of

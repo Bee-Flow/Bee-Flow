@@ -216,11 +216,11 @@ test('the asker is the one excluded from othersConversationCount', async () => {
 
 // ── Counted, not named ──────────────────────────────────────────────
 
-test('a colleague\'s routine is counted but not named', async () => {
+test('a colleague\'s automation is counted but not named', async () => {
     fx.usage = {
         rows: [
-            { kind: 'task', id: 't1', title: 'Mine', role: 'routine', ownerId: 'me', lastAt: null },
-            { kind: 'task', id: 't2', title: 'Payroll export', role: 'routine', ownerId: 'someone-else', lastAt: null },
+            { kind: 'task', id: 't1', title: 'Mine', role: 'automation', ownerId: 'me', lastAt: null },
+            { kind: 'task', id: 't2', title: 'Payroll export', role: 'automation', ownerId: 'someone-else', lastAt: null },
         ],
         partial: [],
     };

@@ -288,7 +288,7 @@ function LayerInputFields({ draft, set, onRenameField = null }) {
 }
 
 /**
- * Agent trigger — the routine is exposed to the model as a function tool
+ * Agent trigger — the automation is exposed to the model as a function tool
  * (trigger.kind === 'agent_call'). The author declares the tool name, a
  * description the model reads to decide when to call it, and the input
  * parameters — rendered by the shared field designer, which is now literally
@@ -307,7 +307,7 @@ function AgentCallFields({ draft, set, onRenameField = null }) {
                     className={inputClass() + ' font-mono'}
                 />
             </FormRow>
-            <FormRow label="Description" hint="The agent reads this to decide when to call the routine.">
+            <FormRow label="Description" hint="The agent reads this to decide when to call the automation.">
                 <textarea
                     value={draft.description || ''}
                     onChange={(e) => set('description', e.target.value)}
@@ -336,7 +336,7 @@ function AgentCallFields({ draft, set, onRenameField = null }) {
 }
 
 /**
- * Studio App trigger (trigger.kind === 'app_trigger') — the routine is fired
+ * Studio App trigger (trigger.kind === 'app_trigger') — the automation is fired
  * by a Studio App action with DECLARED TYPED INPUTS. Same row editor as the
  * flowlet/agent params, plus the `file` type: a file input arrives at run
  * time as { fileId, name, mime, size, url } (bind .url into steps that fetch
@@ -375,7 +375,7 @@ const FORM_WAIT_CHOICES = [
 ];
 
 /**
- * A further page of the routine's public form.
+ * A further page of the automation's public form.
  *
  * The page editor is the same one the trigger uses (FormBuilderFields) — what
  * is specific here is the wait window, which only an 'input' page has: it is
@@ -394,7 +394,7 @@ function FormPageFields({ draft, set, stepId, onFocusField, previewSample, error
             <AccordionSection stepType="form_page" sectionKey="config" title="Page" defaultOpen forceOpen={errorSections.has('config')}>
                 <p className="text-[11px] text-[var(--text-tertiary)] mb-2">
                     {isEnding
-                        ? 'A closing page is the last thing the visitor sees. It can summarise what the routine did.'
+                        ? 'A closing page is the last thing the visitor sees. It can summarise what the automation did.'
                         : 'This asks the visitor one more thing, on the same link they are already on.'}
                 </p>
                 <button
@@ -422,12 +422,12 @@ function FormPageFields({ draft, set, stepId, onFocusField, previewSample, error
                     onRenameField={onRenameField}
                 />
             </AccordionSection>
-            {/* Its own section key, not 'options': how long the routine waits
+            {/* Its own section key, not 'options': how long the automation waits
                 for a real person is a first-class decision, so it must not
                 disappear behind the advanced-density filter. */}
             {!isEnding && (
                 <AccordionSection stepType="form_page" sectionKey="waiting" title="Waiting" defaultOpen forceOpen={errorSections.has('waiting')}>
-                    <FormRow label="Wait for an answer" hint="After this the routine gives up and the run fails.">
+                    <FormRow label="Wait for an answer" hint="After this the automation gives up and the run fails.">
                         <select
                             aria-label="Wait for an answer"
                             value={draft.waitSeconds ?? 3600}

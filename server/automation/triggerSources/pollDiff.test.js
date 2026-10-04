@@ -80,7 +80,7 @@ test('a brand-new integration produces events with no platform code', async () =
     assert.deepStrictEqual(second.events[0].current, { state: 'running' });
 });
 
-test('activating a routine never fires once per pre-existing item', async () => {
+test('activating an automation never fires once per pre-existing item', async () => {
     const many = Array.from({ length: 40 }, (_, i) => ({ sku: `W-${i}`, state: 'idle' }));
     const h = harness({ result: widgets(many) });
     const { events } = await run(h);

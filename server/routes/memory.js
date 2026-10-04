@@ -169,10 +169,10 @@ const ImportBody = orEmpty(z.object({
 }).strict());
 
 /**
- * The list's filters. `routine_coverage` is a type the product writes itself
+ * The list's filters. `schedule_coverage` is a type the product writes itself
  * (stores/memoryStore R3) and so may be listed, though no one may create one.
  */
-const LIST_TYPES = [...VALID_TYPES, 'routine_coverage'];
+const LIST_TYPES = [...VALID_TYPES, 'schedule_coverage'];
 function pageNumber(name, { min, max, fallback }) {
     const text = `${name} is a whole number.`;
     return worded(text).trim().regex(/^-?\d+$/, text)

@@ -287,7 +287,7 @@ describe('steps', () => {
         const note = screen.getByTestId('skill-ref-unread');
         expect(note.getAttribute('role')).toBe('status');
         expect(note.textContent).toMatch(/Could not be read/);
-        expect(note.textContent).toMatch(/Routines/);
+        expect(note.textContent).toMatch(/Automations/);
         expect(note.textContent).toMatch(/Knowledge bases/);
         expect(note.textContent).toMatch(/Tables/);
         expect(screen.queryByTestId('skill-ref-none')).toBeNull();
@@ -297,9 +297,9 @@ describe('steps', () => {
 
     /**
      * De stille variant: één lijst valt om, de andere twee komen binnen. De
-     * groep Routines verdween dan geruisloos (een lege groep wordt eruit
+     * groep Automatiseringen verdween dan geruisloos (een lege groep wordt eruit
      * gefilterd) terwijl Tables er nog stond — dat leest als "deze organisatie
-     * heeft geen routines".
+     * heeft geen automations".
      */
     it('keeps the lists that DID arrive and still names the one that did not', () => {
         render(<Harness
@@ -309,7 +309,7 @@ describe('steps', () => {
         />);
         fireEvent.click(screen.getByTestId('skill-step-ref-add'));
         expect(screen.getByRole('menuitem', { name: /Pricelist/ })).toBeTruthy();
-        expect(screen.getByTestId('skill-ref-unread').textContent).toMatch(/Routines/);
+        expect(screen.getByTestId('skill-ref-unread').textContent).toMatch(/Automations/);
         expect(screen.getByTestId('skill-ref-unread').textContent).not.toMatch(/Tables/);
         expect(screen.queryByTestId('skill-ref-none')).toBeNull();
     });

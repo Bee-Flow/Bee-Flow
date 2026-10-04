@@ -51,7 +51,7 @@ export function NextcloudPanel({ apps, enabled, onAdd, openKey, setOpenKey }: Ne
             testId="ribbon-nextcloud"
             enabled={enabled}
             moreOrigins={[`more:${NEXTCLOUD_CATEGORY}`]}
-            moreFilterLabel={(n) => t('routines.ribbon.filter_apps', 'Filter {n} apps…', { n })}
+            moreFilterLabel={(n) => t('automations.ribbon.filter_apps', 'Filter {n} apps…', { n })}
             onAdd={onAdd}
             {...open}
         />
@@ -75,10 +75,10 @@ interface OtherAppsPanelProps extends OpenState {
 export function OtherAppsPanel({ categories, webAndCode, enabled, onAdd, openKey, setOpenKey }: OtherAppsPanelProps) {
     const { t } = useTranslation();
     const open = { openKey, setOpenKey };
-    const webTitle = t('routines.ribbon.web_and_code', 'Web & code');
+    const webTitle = t('automations.ribbon.web_and_code', 'Web & code');
     const suites = categories.filter(c => isSuite(c) && c.apps.length > 0);
     const loose = categories.filter(c => !isSuite(c)).flatMap(c => c.apps.map(app => ({ app, category: c.category })));
-    const looseTitle = suites.length > 0 ? t('routines.ribbon.more_apps', 'More apps') : t('routines.ribbon.apps', 'Apps');
+    const looseTitle = suites.length > 0 ? t('automations.ribbon.more_apps', 'More apps') : t('automations.ribbon.apps', 'Apps');
 
     const web: RowPill[] = webAndCode.map(item => ({
         key: item.id,
@@ -98,7 +98,7 @@ export function OtherAppsPanel({ categories, webAndCode, enabled, onAdd, openKey
             segments={[web, suitePills, loosePills]}
             testId="ribbon-other-apps"
             enabled={enabled}
-            moreFilterLabel={(n) => t('routines.ribbon.filter_apps', 'Filter {n} apps…', { n })}
+            moreFilterLabel={(n) => t('automations.ribbon.filter_apps', 'Filter {n} apps…', { n })}
             onAdd={onAdd}
             {...open}
         />

@@ -41,9 +41,9 @@ test('Nextcloud no access: "Bee may not open this folder", rings the connection,
     assert.strictEqual(info.settingKey, 'connection');
     assert.deepStrictEqual(fixIds(info), ['share_folder', 'switch_account']);
     assert.deepStrictEqual(info.fixes[0].params, { folder: '/Invoices/2026' });
-    assert.strictEqual(info.fixes[0].labelKey, 'routines.output.fix_share');
-    assert.strictEqual(info.titleKey, 'routines.step_error.nextcloud_no_access.title');
-    assert.strictEqual(info.causeKey, 'routines.step_error.nextcloud_no_access.cause');
+    assert.strictEqual(info.fixes[0].labelKey, 'automations.output.fix_share');
+    assert.strictEqual(info.titleKey, 'automations.step_error.nextcloud_no_access.title');
+    assert.strictEqual(info.causeKey, 'automations.step_error.nextcloud_no_access.cause');
     assert.strictEqual(info.params.folder, '/Invoices/2026');
     assert.strictEqual(info.params.app, 'Files');
     // The raw text, not the rewritten one, is the technical message.
@@ -55,7 +55,7 @@ test('no access names the account on the share button when the caller knows it',
         step: ncStep('nextcloud_upload_file', { path: '/Shared/x.txt' }), account: 'bee-bot',
     });
     assert.strictEqual(info.fixes[0].label, 'Share the folder with bee-bot');
-    assert.strictEqual(info.fixes[0].labelKey, 'routines.output.fix_share_with');
+    assert.strictEqual(info.fixes[0].labelKey, 'automations.output.fix_share_with');
     assert.deepStrictEqual(info.fixes[0].params, { folder: '/Shared', account: 'bee-bot' });
 });
 
@@ -80,7 +80,7 @@ test('Nextcloud not found: rings the input the message quotes, pick another + re
 test('not found without a target setting falls back to the generic cause', () => {
     const info = describeStepError('File not found', { step: ncStep('nextcloud_read_file', { path: { kind: 'ref', path: 'steps.a.output.p' } }) });
     assert.strictEqual(info.settingKey, 'inputs.path');
-    assert.strictEqual(info.causeKey, 'routines.step_error.nextcloud_not_found.cause_generic');
+    assert.strictEqual(info.causeKey, 'automations.step_error.nextcloud_not_found.cause_generic');
     assert.doesNotMatch(info.cause, /\{/);
 });
 
@@ -223,12 +223,12 @@ test('legacy rows: classified from the message, the step type and the recorded i
 test('every English text is dash-free punctuation and has an i18n key', () => {
     const texts = stepErrorI18nDefaults();
     for (const code of STEP_ERROR_CODES) {
-        assert.ok(texts[`routines.step_error.${code}.title`], code);
-        assert.ok(texts[`routines.step_error.${code}.cause`], code);
+        assert.ok(texts[`automations.step_error.${code}.title`], code);
+        assert.ok(texts[`automations.step_error.${code}.cause`], code);
     }
     for (const [k, v] of Object.entries(texts)) {
         assert.doesNotMatch(v, /[–—]| - /, k);
-        assert.ok(k.startsWith('routines.step_error.'));
+        assert.ok(k.startsWith('automations.step_error.'));
     }
 });
 

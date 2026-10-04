@@ -22,22 +22,22 @@ export default function WebhookPanel({ automation }) {
     return (
         <div className="flex flex-col gap-2.5 text-[12px]">
             <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-semibold text-[var(--text-primary)]">{t('routines.settings.webhooks', 'Webhooks')}</span>
-                <span className="text-[var(--text-tertiary)]">{t('routines.settings.webhooks_hint', 'let another system start this automation')}</span>
+                <span className="font-semibold text-[var(--text-primary)]">{t('automations.settings.webhooks', 'Webhooks')}</span>
+                <span className="text-[var(--text-tertiary)]">{t('automations.settings.webhooks_hint', 'let another system start this automation')}</span>
                 <button
                     type="button"
                     onClick={wh.create}
                     disabled={wh.creating}
                     className="ml-auto inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[12px] font-medium border border-[var(--border-default)] bg-[var(--bg-card)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-60"
                 >
-                    <Plus size={12} /> {wh.creating ? t('routines.settings.webhook_creating', 'Creating…') : t('routines.settings.webhook_create', 'Create webhook')}
+                    <Plus size={12} /> {wh.creating ? t('automations.settings.webhook_creating', 'Creating…') : t('automations.settings.webhook_create', 'Create webhook')}
                 </button>
             </div>
             {wh.errorMsg && <div role="alert" className="text-[var(--error)]">{wh.errorMsg}</div>}
             {wh.loading && wh.webhooks.length === 0 ? (
                 <div className="text-[var(--text-tertiary)]">{t('common.loading', 'Loading…')}</div>
             ) : wh.webhooks.length === 0 ? (
-                <div className="text-[var(--text-tertiary)]">{t('routines.settings.webhooks_none', 'No webhooks yet.')}</div>
+                <div className="text-[var(--text-tertiary)]">{t('automations.settings.webhooks_none', 'No webhooks yet.')}</div>
             ) : (
                 <ul className="flex flex-col gap-2">
                     {wh.webhooks.map((row) => (
@@ -68,16 +68,16 @@ export function WebhookRow({ row, ctl }) {
         <li className="rounded-[10px] border border-[var(--border-default)] bg-[var(--bg-card)] p-3 flex flex-col gap-2 text-[12px]">
             <div className="flex items-center gap-2 flex-wrap">
                 <Webhook size={14} className="text-[var(--type-trigger)]" />
-                <span className="font-semibold text-[var(--text-primary)]">{row.name || t('routines.settings.webhook', 'Webhook')}</span>
+                <span className="font-semibold text-[var(--text-primary)]">{row.name || t('automations.settings.webhook', 'Webhook')}</span>
                 {hasSecret && (
                     <span className="px-1.5 rounded-full text-[11px] bg-[color-mix(in_srgb,var(--success)_14%,transparent)] text-[var(--success)]">
-                        {t('routines.settings.webhook_new', 'new · copy now')}
+                        {t('automations.settings.webhook_new', 'new · copy now')}
                     </span>
                 )}
                 <span className="ml-auto text-[var(--text-tertiary)]">
                     {row.lastSeenAt
-                        ? t('routines.settings.webhook_last_used', 'last used {when}', { when: new Date(row.lastSeenAt).toLocaleString() })
-                        : t('routines.settings.webhook_never_used', 'never used')}
+                        ? t('automations.settings.webhook_last_used', 'last used {when}', { when: new Date(row.lastSeenAt).toLocaleString() })
+                        : t('automations.settings.webhook_never_used', 'never used')}
                 </span>
             </div>
             <div className="flex items-center gap-2">
@@ -87,11 +87,11 @@ export function WebhookRow({ row, ctl }) {
                 <button
                     type="button"
                     onClick={() => ctl.copyUrl(row)}
-                    aria-label={t('routines.settings.webhook_copy_url', 'Copy webhook URL')}
+                    aria-label={t('automations.settings.webhook_copy_url', 'Copy webhook URL')}
                     className="inline-flex items-center gap-1 px-2 py-1 rounded-md border border-[var(--border-default)] hover:bg-[var(--bg-tertiary)] text-[var(--text-primary)]"
                 >
                     {ctl.copied === row.id ? <Check size={12} /> : <Copy size={12} />}
-                    {t('routines.settings.webhook_copy', 'Copy')}
+                    {t('automations.settings.webhook_copy', 'Copy')}
                 </button>
             </div>
             <div className="flex items-center gap-1 flex-wrap text-[var(--text-secondary)]">
@@ -99,16 +99,16 @@ export function WebhookRow({ row, ctl }) {
                     type="button"
                     onClick={() => ctl.copyCurl(row)}
                     disabled={!hasSecret}
-                    title={/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- an i18n key / label that names the secret, not a secret */ hasSecret ? undefined : t('routines.settings.webhook_curl_needs_secret', 'Renew the secret first: it is only shown once')}
+                    title={/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- an i18n key / label that names the secret, not a secret */ hasSecret ? undefined : t('automations.settings.webhook_curl_needs_secret', 'Renew the secret first: it is only shown once')}
                     className={ROW_ACTION}
                 >
-                    {ctl.copied === `curl-${row.id}` ? t('routines.settings.webhook_copied', 'Copied') : t('routines.settings.webhook_copy_curl', 'Copy as cURL')}
+                    {ctl.copied === `curl-${row.id}` ? t('automations.settings.webhook_copied', 'Copied') : t('automations.settings.webhook_copy_curl', 'Copy as cURL')}
                 </button>
                 <button type="button" onClick={() => ctl.rotate(row)} className={ROW_ACTION}>
-                    {t('routines.settings.webhook_renew', 'Renew secret')}
+                    {t('automations.settings.webhook_renew', 'Renew secret')}
                 </button>
                 <button type="button" onClick={() => ctl.remove(row)} className={`${ROW_ACTION} text-[var(--error)]`}>
-                    {t('routines.settings.webhook_revoke', 'Revoke')}
+                    {t('automations.settings.webhook_revoke', 'Revoke')}
                 </button>
             </div>
             {secret && (
@@ -120,7 +120,7 @@ export function WebhookRow({ row, ctl }) {
                         <button
                             type="button"
                             onClick={() => ctl.toggleReveal(row.id)}
-                            aria-label={/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- an i18n key / label that names the secret, not a secret */ revealed ? t('routines.settings.webhook_hide_secret', 'Hide secret') : t('routines.settings.webhook_show_secret', 'Show secret')}
+                            aria-label={/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- an i18n key / label that names the secret, not a secret */ revealed ? t('automations.settings.webhook_hide_secret', 'Hide secret') : t('automations.settings.webhook_show_secret', 'Show secret')}
                             className="p-1 rounded hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]"
                         >
                             {revealed ? <EyeOff size={14} /> : <Eye size={14} />}
@@ -128,7 +128,7 @@ export function WebhookRow({ row, ctl }) {
                         <button
                             type="button"
                             onClick={() => ctl.copySecret(row.id, secret)}
-                            aria-label={/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- an i18n key / label that names the secret, not a secret */ t('routines.settings.webhook_copy_secret', 'Copy secret')}
+                            aria-label={/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- an i18n key / label that names the secret, not a secret */ t('automations.settings.webhook_copy_secret', 'Copy secret')}
                             className="p-1 rounded hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]"
                         >
                             {ctl.copied === `secret-${row.id}` ? <Check size={14} /> : <Copy size={14} />}
@@ -136,7 +136,7 @@ export function WebhookRow({ row, ctl }) {
                     </div>
                     <div className="text-[var(--text-tertiary)]">
                         {/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- an i18n key that names the secret, not a secret */}
-                        {t('routines.settings.webhook_secret_once', 'You only see the secret now. Requests without a valid signature are refused.')}
+                        {t('automations.settings.webhook_secret_once', 'You only see the secret now. Requests without a valid signature are refused.')}
                     </div>
                 </div>
             )}

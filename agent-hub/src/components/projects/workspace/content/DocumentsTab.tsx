@@ -151,7 +151,7 @@ function DocumentsList({ projectId, role, currentUser, onOpenSub, intent }: Cont
                     typeLabel={t('project_content.type', 'Type')}
                     typeOptions={[
                         { value: 'page', label: t('documents.project.type_page', 'Page'), description: t('documents.project.type_page_desc', 'Write together in real time. Prints with the house style.') },
-                        { value: 'document', label: t('documents.project.type_designed', 'Designed document'), description: t('documents.project.type_designed_desc', 'A laid-out letter, report or quote, with fields a routine can fill.') },
+                        { value: 'document', label: t('documents.project.type_designed', 'Designed document'), description: t('documents.project.type_designed_desc', 'A laid-out letter, report or quote, with fields an automation can fill.') },
                         { value: 'presentation', label: t('project_content.doc_type_presentation', 'Presentation'), description: t('documents.project.type_deck_desc', 'Slides in the house style, typed as an outline.') },
                     ]}
                     busy={create.busy} error={create.error} onSubmit={create.submit}

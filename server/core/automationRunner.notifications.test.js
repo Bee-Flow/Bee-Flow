@@ -1,9 +1,9 @@
 /**
- * End-of-run notifications for a routine saved BEFORE handoff 5: its old
+ * End-of-run notifications for an automation saved BEFORE handoff 5: its old
  * `notificationSettings` ({ enabled, level, channels: inapp|email|nc_talk|
  * nc_notification }) must keep doing what it did. The new behaviour is in
  * core/automationRunner/runNotifications.test.js; this file pins the old
- * routines. Built on makeRunNotifier with injected channels, no module mocks.
+ * automations. Built on makeRunNotifier with injected channels, no module mocks.
  *
  * Run: node --test core/automationRunner.notifications.test.js
  */
@@ -22,7 +22,7 @@ function env({ emailConfigured = true, ownerEmail = 'owner@example.com' } = {}) 
         getUser: async (id) => (id === 'u1' ? { id: 'u1', email: ownerEmail, organizationId: 'org1' } : { id, organizationId: 'org1' }),
         listUsers: async () => [],
         events: {
-            countRecentMessages: async () => { throw new Error('an old routine has no throttle'); },
+            countRecentMessages: async () => { throw new Error('an old automation has no throttle'); },
             recordNotificationEvents: async (rows) => { rec.rows.push(...rows); },
         },
         createBell: async (o) => { rec.bells.push(o); },

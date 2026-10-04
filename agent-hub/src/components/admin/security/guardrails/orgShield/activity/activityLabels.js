@@ -37,7 +37,7 @@ export const MARKERS = {
     scan_timeout: { key: 'admin.shield_activity_marker_scan_timeout', en: 'Check ran out of time' },
     scan_overflow: { key: 'admin.shield_activity_marker_scan_overflow', en: 'File too large to fully check' },
     scan_degraded: { key: 'admin.shield_activity_marker_scan_degraded', en: 'Check ran reduced' },
-    // A routine hit the per-run placeholder ceiling, so the oldest placeholders
+    // An automation hit the per-run placeholder ceiling, so the oldest placeholders
     // can no longer be turned back into real values.
     token_evicted: { key: 'admin.shield_activity_marker_token_evicted', en: 'Some placeholders were dropped' },
     // The chat's pre-send check could not run and the message went out
@@ -149,15 +149,15 @@ export function useCategoryLabels(t) {
 
 /**
  * Which surface produced this row — the "was this chat, an agent, or a
- * routine?" answer, as "Agent · Sales assistant". Sources across eras: 'direct'/'direct_chat',
- * 'agent'/'agent_chat'/'agent_stream', 'routine', 'notebook'. Routines also
+ * automation?" answer, as "Agent · Sales assistant". Sources across eras: 'direct'/'direct_chat',
+ * 'agent'/'agent_chat'/'agent_stream', 'automation', 'notebook'. Automations also
  * carry automation_id (their title travels in agent_name).
  */
 export function surfaceLabel(row, t) {
     const src = String(row?.source || '').toLowerCase();
     const named = (base, name) => (name ? `${base} · ${name}` : base);
-    if (row?.automation_id || src === 'routine') {
-        return named(t('admin.shield_activity_src_routine', 'Routine'), row.agent_name);
+    if (row?.automation_id || src === 'automation') {
+        return named(t('admin.shield_activity_src_automation', 'Automation'), row.agent_name);
     }
     if (src.startsWith('agent') || (row?.agent_id && !src.startsWith('direct'))) {
         return named(t('admin.shield_activity_src_agent', 'Agent'), row.agent_name);

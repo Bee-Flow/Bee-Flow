@@ -23,7 +23,7 @@
 //               descriptor the server's compileAggregate already validates, so
 //               there is no second vocabulary to keep in sync. This is what
 //               makes "count per status" or "median first response" one binding
-//               instead of a routine.
+//               instead of an automation.
 const BINDING_KINDS = ['static', 'actionResult', 'formula', 'record', 'records', 'dataset', 'connector', 'aggregate'];
 const INPUT_MAPPING_KINDS = ['static', 'field'];
 

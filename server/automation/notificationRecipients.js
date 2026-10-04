@@ -1,22 +1,22 @@
 /**
- * Who a routine notification goes to: the recipients of one event's settings
+ * Who an automation notification goes to: the recipients of one event's settings
  * (automation/notificationDefaults.js) as Bee Flow user ids.
  *
- *   owner     the routine's owner (steps run as them; owner decision 4)
+ *   owner     the automation's owner (steps run as them; owner decision 4)
  *   approver  whoever the approval asks: the caller hands in the resolved
  *             ids (approvalLifecycle.approvalNotificationTargets). With no
  *             approval in hand (a first-run confirmation, or an error event
  *             someone configured with "the approver") it is the owner, who is
  *             the one who has to act then.
  *   user      one person, only while they are an active member of the
- *             routine's organisation
+ *             automation's organisation
  *   group     the active members of the organisation in that group
  *
- * The organisation check is the point of this module. A routine name and a
+ * The organisation check is the point of this module. An automation name and a
  * link are all a notification carries, but they must not reach someone
  * outside the organisation because a definition names their id; so a user or
  * group is resolved against the organisation's members, never taken on trust.
- * A routine without an organisation reaches its owner and approvers only.
+ * An automation without an organisation reaches its owner and approvers only.
  *
  * Pure apart from the injected `listUsers`.
  */
@@ -85,7 +85,7 @@ async function resolveRecipientIds(eventSettings, { automation, orgId = null, ap
 }
 
 /**
- * The people a routine's daily summary goes to: its owner plus every named
+ * The people an automation's daily summary goes to: its owner plus every named
  * user and group of an enabled event. "The approver" is not a standing
  * person, so it does not subscribe anyone to a summary.
  */

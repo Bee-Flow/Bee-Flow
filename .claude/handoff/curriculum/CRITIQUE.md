@@ -35,7 +35,7 @@ three pools (personal / per-agent / project).
 `{{parameters}}`, header hint *"Upload .docx templates with {{parameters}} for AI to fill"*, per
 template **Fill with AI** → **Generate Document**, failure text *"No {{parameters}} found in the
 document to fill."*, and the notebook-side **AI fill**.
-Coverage today: zero. Every "template" hit in the lessons is a routine template or a meeting summary
+Coverage today: zero. Every "template" hit in the lessons is an automation template or a meeting summary
 template. `research-notebooks` promises "export the document" and stops at PDF/Word download.
 → **course-research**, new lesson `templates-document-assembly`.
 
@@ -147,8 +147,8 @@ templates: nothing in any admin lesson.
 | 2.1 | **Media creation in chat** — composer **Create image, music, video** with tabs **Image / Music & TTS / SFX**, gated on org keys | chat-basics §2.4, search-research §2 | course-foundations · `chat-create-media` |
 | 2.2 | **Voice mode (beta) and the mic** — *"Talk with your assistant instead of typing"*, **Dictate — speak your instruction** | chat-basics §2.4 | course-foundations · `chat-voice-and-dictation` |
 | 2.3 | **Agent → Advanced settings → Behavior** — **Allow copying**, **Disable integrations & web search**, **Memory** (own private bucket) + **Also read from your general memory** | agents §3.3, memory §2.6 | course-build-agent · `agent-behavior-and-memory` |
-| 2.4 | **Secondary triggers** — `definition.triggers[]`; only `webhook`, `app_event`, `schedule` may be secondary; dropping a primary-only trigger *replaces* the existing one | routines §3 | course-routines-production · `routine-extra-triggers` |
-| 2.5 | **The Privacy Shield step inside a routine** — three modes (*Find personal data* / *Hide personal data* / *Show real values again*), placeholders minted into the run vault | routines §5, org-privacy-shield | course-routines-production · `routine-shield-step` |
+| 2.4 | **Secondary triggers** — `definition.triggers[]`; only `webhook`, `app_event`, `schedule` may be secondary; dropping a primary-only trigger *replaces* the existing one | automations §3 | course-automations-production · `automation-extra-triggers` |
+| 2.5 | **The Privacy Shield step inside an automation** — three modes (*Find personal data* / *Hide personal data* / *Show real values again*), placeholders minted into the run vault | automations §5, org-privacy-shield | course-automations-production · `automation-shield-step` |
 | 2.6 | **Form appearance** — themes *Clean, Corporate, Friendly, Night, Match visitor* + **Corners / Spacing / Text size / Appearance**; and **"Stop collecting?"** | forms §3 | course-data-and-forms · extend `forms-audience-answers-and-links` |
 | 2.7 | **Skill visibility** — a skill has the same **Publish to… Personal / Entire organisation / Or specific groups** capsule and the **"Share more widely?"** confirm | skills §3 | course-skills-automation · extend `skills-attach-and-apply` |
 | 2.8 | **Personal Settings → Security** — password change, two-factor, sessions (the admin counterpart **"Reset two-factor authentication?"** is documented) | org-users-access §2.8, memory §2.1 (tab list) | course-power · `settings-account-security` |
@@ -183,7 +183,7 @@ templates: nothing in any admin lesson.
 - **Meeting series**, **Used by** on a note, **Export as Markdown/Text**, **Copy transcript**.
 - **Usage token kinds** — cached tokens, cache-creation tokens, reasoning tokens; and the
   "no export button" fact (org-usage §3, §10).
-- **Answer Reuse at step level** — the per-step tick in the routine builder (org-ai-context §2.4) is
+- **Answer Reuse at step level** — the per-step tick in the automation builder (org-ai-context §2.4) is
   taught only as an org switch in `org-context-and-reuse`.
 - **Presenter mode** for playbooks (Shift+P), and the locale rule (a playbook follows the interface language).
 
@@ -219,6 +219,6 @@ their coverage could not be assessed here — but no lesson teaches either.
 Worth saying, because it narrows where the next authoring round should go: the **Privacy Shield**
 course (all four admin lessons plus the three user lessons) covers the sheet almost item for item,
 including the pre-flight modes, the "always show this check" checkbox, EU-only models, the What
-happened KPIs and the sovereignty score. **Routines** (10 lessons) covers the whole step palette,
+happened KPIs and the sovereignty score. **Automations** (10 lessons) covers the whole step palette,
 bindings, dry-run, journeys, approvals and failures. **Encryption**, **Solutions**, **Approvals** and
 the **prompting** course are likewise faithful to their sheets.

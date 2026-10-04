@@ -17,6 +17,7 @@ require('../../core/http/sseHelpers');
 // refusal must redact with the same function the Used-by tab does, and a
 // faked facade must not be able to switch that off. See ./usage.js.
 const { redactForeign } = require('../../stores/agent/agentUsage');
+const { assertAgentToolsWrite, managedPayloadOfAgent } = require('../../stores/agent/agentCrud');
 const log = require('../../telemetry/log');
 
 const { validate } = require('../../core/http/validate');
@@ -287,10 +288,13 @@ router.get('/:id', async (req, res) => {
     const unpublishedChanges = publishedVersion > 0
         ? Math.max(0, (Number(agent.rev) || 1) - (Number(agent.published_rev) || 0))
         : 0;
+    // The Solution stage that manages this agent, or null (design 5.3): the
+    // editor shows a managed agent read-only and says where to change it.
+    const managed = await managedPayloadOfAgent(agent);
     if (wantsDraft && canEdit) {
-        return res.json({ ...agent, can_edit: true, runtimeSource: 'draft', unpublishedChanges });
+        return res.json({ ...agent, can_edit: true, runtimeSource: 'draft', unpublishedChanges, managed });
     }
-    const body = { ...views.runtime, can_edit: canEdit };
+    const body = { ...views.runtime, can_edit: canEdit, managed };
     if (canEdit) body.unpublishedChanges = unpublishedChanges;
     res.json(body);
 });
@@ -313,7 +317,7 @@ router.delete('/:id', async (req, res) => {
      * Deleting an agent is not a local act. Scheduled tasks and Cowork
      * schedules bound to it start failing on their next run
      * ("Linked agent no longer exists"), a support inbox stops drafting
-     * replies, and — once R2/P/W3 land — a routine step, an app block
+     * replies, and — once R2/P/W3 land — an automation step, an app block
      * and a webpage bridge lose what they call. None of those failures
      * names this agent. So the first DELETE answers 409 with the list,
      * and only a second one carrying `?confirm=1` proceeds. Same shape
@@ -336,7 +340,7 @@ router.delete('/:id', async (req, res) => {
      *
      * What is NOT done here is scrubbing the references afterwards.
      * `ai_tasks.agent_id = NULL` does not disable a task — it turns an
-     * agent routine back into a legacy prompt task that runs an inline
+     * agent schedule back into a legacy prompt task that runs an inline
      * LLM loop WITHOUT the agent's knowledge, tools or guardrails. A
      * loud failure is the safer half of that pair.
      */
@@ -428,10 +432,10 @@ router.post('/', requirePermission('manage_agents'), async (req, res) => {
         }
     }
 
-    // Persona (A1c). Same resolution as PUT — the hand-off routine is checked
+    // Persona (A1c). Same resolution as PUT — the hand-off automation is checked
     // against the OWNER, which on create is the requester — so a new agent can
     // never be born with a grant or a prompt line pointing at someone else's
-    // routine.
+    // automation.
     //
     // Create does not run `validateAgentConfigReferences` (it never has), so
     // the grant a persona can add here is not clamped on the way in. It does
@@ -502,164 +506,42 @@ function rejectUnsafeConfigKeys(config) {
     return null;
 }
 
-// Validate that every cross-element ID referenced from an agent's config is
-// accessible to the AGENT'S OWNER (not the requesting user). This closes the
-// leak path where an editor in org A could attach a KB/skill that belongs to
-// a different org — once the agent is published, anyone who can see the
-// agent would receive cross-org data through it.
+// The anti-leak validation of an agent config's cross-element references, and
+// the fold of its verdict into the config that is written, live in
+// agents/publishableConfig.js (the deploy engine publishes through them too).
+// The stores are handed in from HERE, required at call time, so this router
+// and its tests resolve them exactly as they did when the code lived in this
+// file.
+const publishable = require('../../agents/publishableConfig');
 
-async function validateAgentConfigReferences(agent, config) {
-    if (!config || typeof config !== 'object') return { warnings: [], droppedSkillIds: [], tools: null };
-    const errors = [];              // hard failures → 400 (cross-org KB leak)
-    const warnings = [];            // soft: a reference we drop from the persisted config
-    const droppedSkillIds = [];     // skill ids the caller must strip before writing
-    let normalisedTools = null;     // clamped config.tools the caller must persist
-
-    const ownerId = agent.owner_id;
-    const agentOrgId = agent.organization_id || null;
-    // ── Knowledge base references ──
-    // Anti-leak invariant: a linked KB must belong to the AGENT'S organisation
-    // (org-governed content — org admins curate which org KBs an agent uses),
-    // be owned by the agent owner (their personal KB), or be a public system KB.
-    // Block ONLY cross-org KBs. We deliberately do NOT require the owner to pass
-    // the KB's publish/shared_groups gates — those govern per-user *retrieval* at
-    // query time, not whether the KB may be referenced. (The previous
-    // canUserAccessKB(owner) check rejected same-org drafts / group-restricted
-    // KBs whenever the agent owner wasn't in the KB's shared_groups, which broke
-    // KB-linking on agents owned by users outside those per-role groups.)
-    const kbIds = Array.isArray(config.knowledge_base_ids) ? config.knowledge_base_ids.filter(Boolean) : [];
-    if (kbIds.length > 0) {
-        const kbStore = require('../../stores/knowledgeBases');
-        const { kbUsableIn } = require('../../core/kb/usageContexts');
-        for (const kbId of kbIds) {
-            const kb = await kbStore.getKB(kbId).catch(() => null);
-            const sameOrg = !!(kb && kb.organization_id && agentOrgId && kb.organization_id === agentOrgId);
-            const ownedByOwner = !!(kb && kb.tenant_id === ownerId);
-            const isSystem = !!(kb && kbStore.isSystemKB(kb));
-            if (!kb || !(sameOrg || ownedByOwner || isSystem)) {
-                errors.push(`knowledge base ${kbId}`);
-                continue;
-            }
-            // The base's owner decides which SURFACES it may be attached to
-            // (Knowledge → Settings → "Waar inzetbaar"). A base marked
-            // chat-only appearing on an agent means the picker was bypassed —
-            // an older client, a copied config, or an MCP patch — and the
-            // toggle would have been a suggestion rather than a setting.
-            //
-            // A system base is exempt: it is public reference text with no
-            // owner to have expressed a preference.
-            if (!isSystem && !kbUsableIn(kb, 'agent')) {
-                errors.push(`knowledge base ${kbId} (not available for agents)`);
-            }
-        }
-    }
-
-    // ── Skill references (wizard stores them as attachedSkillIds) ──
-    // Anti-leak invariant, mirroring the KB block above: a linked skill must
-    // belong to the AGENT'S organisation. We check org-membership ONLY — NOT the
-    // per-user picker visibility (`getSkill`'s user_id/is_shared/shared_groups
-    // clause). The old code used getSkill(sid, org, owner), which wrongly
-    // rejected a same-org skill created by a *different* member (is_shared=false)
-    // — exactly what the refine flow produces when an org-admin edits another
-    // user's agent — and hard-400'd EVERY skill on an org-less agent, breaking
-    // every save after a refine that adds one.
-    //
-    // Instead of failing the whole save, a skill that can't be resolved to the
-    // agent's org is DROPPED from the persisted config (recorded as a warning).
-    // Dropping is strictly anti-leak-preserving: a cross-org/unknown id is never
-    // stored, and runtime skill injection is org-scoped regardless. (KBs stay a
-    // hard 400 — cross-org KB linking is the documented high-severity leak.)
-    const skillIds = Array.isArray(config.attachedSkillIds) ? config.attachedSkillIds.filter(Boolean) : [];
-    if (skillIds.length > 0) {
-        const skillStore = require('../../stores/skillStore');
-        for (const sid of skillIds) {
-            const scope = await skillStore.getSkillScope(sid).catch(() => null);
-            const sameOrg = !!(scope && scope.org_id && agentOrgId && scope.org_id === agentOrgId);
-            // Personal (org-less) skill owned by the agent owner — mirrors the
-            // owner-owned KB rule above, so org-less accounts can attach skills.
-            const ownedPersonal = !!(scope && !scope.org_id && scope.user_id && scope.user_id === ownerId);
-            if (!(sameOrg || ownedPersonal)) {
-                droppedSkillIds.push(sid);
-                warnings.push(`skill ${sid}`);
-            }
-        }
-    }
-
-    // ── Per-action tool grants (config.tools) ──
-    // Clamped rather than rejected: `normaliseToolsConfig` never throws and
-    // never widens, so a config that arrives with a `direct` on a tool that
-    // mails comes back with `ask` instead of bouncing the whole save. "Never
-    // widens" is load-bearing on THIS side, because what comes back is written
-    // to the row, and it has two doors. A value the clamp cannot read (a bare
-    // string where a list of actions belongs) grants nothing and says so in
-    // `warnings`, where it used to become `'*'` — the whole app, persisted, on
-    // a client's typo. An app past the size bound does the same: it is kept as
-    // `{actions: []}` rather than DROPPED, because a missing entry reads as
-    // "every action of this app" to every reader in toolPolicy, so truncating
-    // the list was the same widening with no `'*'` anywhere in sight. The
-    // runtime re-clamps on every read (agentCrud._clampRuntimeTools) — this
-    // side exists so what the editor reads back is what will actually run,
-    // and so a legacy editor that rebuilds `config` from a fixed field list
-    // cannot silently resurrect a value the runtime would refuse.
-    //
-    // Skipped entirely when there is no map: an agent from before this feature
-    // must not acquire one just by being saved.
-    if (config.tools && typeof config.tools === 'object') {
-        try {
-            const policy = require('../../core/agentRuntime/toolPolicy');
-            const lentProviders = await policy.resolveLentProviders({
-                agentId: agent.id, ownerId: agent.owner_id,
-            });
-            const norm = policy.normaliseToolsConfig(config, {
-                agentId: agent.id, ownerId: agent.owner_id, lentProviders,
-            });
-            if (norm.tools) {
-                normalisedTools = norm.tools;
-                warnings.push(...norm.warnings);
-            }
-        } catch (e) {
-            // Same posture as the store: keep what was sent rather than
-            // replacing it. Emptying the map here would silently delete a
-            // curation the user can no longer see they had, over a transient
-            // module failure — and an unclamped map is re-clamped on the next
-            // read, while the two rules that matter (a send is always asked
-            // about, a borrowed identity is re-checked at dispatch) never
-            // depended on the stored value in the first place.
-            log.warn('[Agents] Tool-grant normalisation unavailable — storing the grants as sent:', e.message);
-            warnings.push('tool grants could not be validated');
-        }
-    }
-
-    if (errors.length > 0) {
-        const err = new Error(`Agent owner cannot access: ${errors.join(', ')}`);
-        err.status = 400;
-        throw err;
-    }
-
-    return { warnings, droppedSkillIds, tools: normalisedTools };
+function validateAgentConfigReferences(agent, config) {
+    return publishable.validateAgentConfigReferences(agent, config, {
+        kbStore: () => require('../../stores/knowledgeBases'),
+        skillStore: () => require('../../stores/skillStore'),
+    });
 }
 
 // ── Structured role (A1c) ───────────────────────────────────────────
 //
 // The whole write side of `agents.persona` lives here, next to the config
-// validation it has to run BEFORE: a persona can add a routine grant to
+// validation it has to run BEFORE: a persona can add an automation grant to
 // `config.tools`, and a grant that skips `normaliseToolsConfig` is a grant
 // nothing clamped.
 
 /**
- * Is this a routine the AGENT'S OWNER may hand off to? Returns the verified
+ * Is this an automation the AGENT'S OWNER may hand off to? Returns the verified
  * `{id, label}` or null — and null is the only answer for anything we could
  * not confirm, including a lookup that threw.
  *
  * The check is against `agent.owner_id`, never the person doing the editing.
  * An org-admin may edit someone else's agent; letting them attach one of THEIR
- * OWN routines to it would mint a grant the agent's owner never made, on an
+ * OWN automations to it would mint a grant the agent's owner never made, on an
  * agent that runs under a different identity. Same rule the KB and skill blocks
  * above already apply ("accessible to the AGENT'S OWNER, not the requesting
  * user"), and the same reason.
  *
  * `automationToTool` does the rest of the narrowing: it returns null unless the
- * routine really declares `trigger.kind === 'agent_call'`, and it produces the
+ * automation really declares `trigger.kind === 'agent_call'`, and it produces the
  * EXACT tool name the runtime will offer — so the prompt line names the action
  * the model actually has instead of one it has to invent.
  */
@@ -679,7 +561,7 @@ async function verifyHandoffAutomation(agent, automationId) {
     } catch (e) {
         // "I could not check" is not "yes". No grant, no prompt line promising
         // a hand-off, and the persona keeps the mode but loses the id.
-        log.warn(`[Agents] hand-off routine ${automationId} could not be verified:`, e.message);
+        log.warn(`[Agents] hand-off automation ${automationId} could not be verified:`, e.message);
         return null;
     }
 }
@@ -742,7 +624,7 @@ async function resolvePersonaWrite(agent, rawPersona, config, opts = {}) {
             // Dropped, not kept-and-ignored: a stored id that resolves to
             // nothing is a hand-off the editor keeps drawing and the runtime
             // never performs.
-            warnings.push(`persona.unknown: routine ${persona.unknown.automationId} is not an active hand-off routine of this agent's owner — dropped`);
+            warnings.push(`persona.unknown: automation ${persona.unknown.automationId} is not an active hand-off automation of this agent's owner — dropped`);
             persona.unknown.automationId = null;
         }
     }
@@ -805,44 +687,7 @@ async function resolvePersonaWrite(agent, rawPersona, config, opts = {}) {
     return { persona, config: outConfig, systemPrompt, warnings };
 }
 
-/**
- * Fold a validation verdict back into the config that gets persisted.
- *
- * Both writers of the concept AND the publish copy go through here, so the two
- * cannot drift into applying different halves of the same verdict — dropping
- * skills on one path and clamping grants on the other is exactly the kind of
- * gap that only shows up once a grant reaches the runtime.
- */
-function applyConfigValidation(config, validation) {
-    if (!config || typeof config !== 'object' || !validation) return config;
-    let out = config;
-    const dropped = validation.droppedSkillIds || [];
-    if (dropped.length > 0 && Array.isArray(config.attachedSkillIds)) {
-        const drop = new Set(dropped);
-        out = { ...out, attachedSkillIds: config.attachedSkillIds.filter(id => !drop.has(id)) };
-    }
-    // The clamped map is written back WHOLE — including when it clamps to `{}`.
-    //
-    // This used to keep the caller's raw map whenever the clamp emptied it, for
-    // fear that a stored `{}` would read as "someone has been through the
-    // picker". It does not: `hasCuratedGrants` asks the CONTENTS, and `{}` and
-    // `{gmail:'nope'}` are the same nothing to every reader there is — grants,
-    // curation, confirm, actAs. So the guard bought nothing, and it cost the
-    // one thing the clamp is for: a REFUSED section (`datatables`, an
-    // `automations` array, an entry that is not an object) empties the map, and
-    // the raw value was then persisted verbatim — after which `GET /agents/:id`
-    // handed the editor back a limit that enforces nothing and the owner
-    // believed it. A refusal that lasts until the next read is not a refusal.
-    //
-    // `validation.tools` is null when there was no map to clamp, and also when
-    // the clamp itself was unavailable — both keep what the caller sent, which
-    // is the deliberate "do not delete a curation over a transient failure"
-    // path above.
-    if (validation.tools && typeof validation.tools === 'object') {
-        out = { ...out, tools: validation.tools };
-    }
-    return out;
-}
+const { applyConfigValidation } = publishable;
 
 // Prefetch the per-request inputs canModifyAgent needs so list endpoints can
 // compute `can_edit` for many agents without N× user/permission lookups.
@@ -998,7 +843,7 @@ router.put('/:id', requirePermission('manage_agents'), validate({ body: AgentUpd
 
     // ── Persona (A1c) — runs BEFORE the config validation below ──────────
     // The persona is the SOURCE: it renders the system prompt, and its
-    // `unknown` mode can add a routine grant to `config.tools`. That grant has
+    // `unknown` mode can add an automation grant to `config.tools`. That grant has
     // to reach `validateAgentConfigReferences` like any other, or the one path
     // that creates a grant server-side would be the one path that skips the
     // clamp.
@@ -1053,6 +898,30 @@ router.put('/:id', requirePermission('manage_agents'), validate({ body: AgentUpd
             // rather than silently moving to an unverified category.
             resolvedCategoryId = agent.category_id || null;
         }
+    }
+
+    // Transform toolParams from frontend format { param: { value, fixed } }
+    // to storage format { param: value } (only fixed params)
+    const hasTools = Array.isArray(tools);
+    const transformedParams = {};
+    if (hasTools && toolParams) {
+        for (const [componentId, params] of Object.entries(toolParams)) {
+            const fixedParams = {};
+            for (const [paramName, config] of Object.entries(params || {})) {
+                if (config && config.fixed && config.value !== undefined) {
+                    fixedParams[paramName] = config.value;
+                }
+            }
+            if (Object.keys(fixedParams).length > 0) {
+                transformedParams[componentId] = fixedParams;
+            }
+        }
+    }
+    // A managed agent's tool grants change only with a deploy (design 5.2).
+    // Refused before updateAgent, so a refused save writes nothing at all.
+    if (hasTools) {
+        await assertAgentToolsWrite(agent,
+            tools.map((componentId) => ({ componentId, params: transformedParams[componentId] || null })));
     }
 
     const result = await agentStore.updateAgent(
@@ -1118,23 +987,7 @@ router.put('/:id', requirePermission('manage_agents'), validate({ body: AgentUpd
     }
 
     // Update tools if provided (also pass toolParams)
-    if (tools && Array.isArray(tools)) {
-        // Transform toolParams from frontend format { param: { value, fixed } }
-        // to storage format { param: value } (only fixed params)
-        const transformedParams = {};
-        if (toolParams) {
-            for (const [componentId, params] of Object.entries(toolParams)) {
-                const fixedParams = {};
-                for (const [paramName, config] of Object.entries(params || {})) {
-                    if (config && config.fixed && config.value !== undefined) {
-                        fixedParams[paramName] = config.value;
-                    }
-                }
-                if (Object.keys(fixedParams).length > 0) {
-                    transformedParams[componentId] = fixedParams;
-                }
-            }
-        }
+    if (hasTools) {
         await agentStore.setAgentTools(req.params.id, tools, transformedParams);
     }
 
@@ -1178,6 +1031,10 @@ router.put('/:id/tools/:componentId/params', requirePermission('manage_agents'),
     }
 
     const { params } = req.body;
+    // The same managed-agent tools lock as PUT /:id: the list with this one
+    // component's params replaced must equal what is stored.
+    await assertAgentToolsWrite(agent, (current) => current.map((t) => (
+        t.componentId === req.params.componentId ? { componentId: t.componentId, params: params || null } : t)));
     await agentStore.updateAgentToolParams(req.params.id, req.params.componentId, params);
     res.json({ success: true });
 });

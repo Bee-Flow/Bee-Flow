@@ -81,7 +81,7 @@ test('all:true returns every milestone with a relevant flag; not_relevant → fa
     assert.equal(rows.find(m => m.id === 'dora_in_force').affects, null);
 });
 
-test('affects: marking milestones count generating routines + published agents; EAA counts webpages + forms; others null', async () => {
+test('affects: marking milestones count generating automations + published agents; EAA counts webpages + forms; others null', async () => {
     const rows = await calendar.list('org1', { all: true, deps: deps() });
     const marking = rows.find(m => m.id === 'aia_marking_transition_end');
     assert.deepEqual(marking.affects, { automations: 3, agents: 4, webpages: null, forms: null });

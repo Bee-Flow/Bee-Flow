@@ -2,14 +2,15 @@
 /**
  * Org Vault — per-org symmetric encryption for secrets at rest.
  *
- * Extracted from routineCredentialStore so multiple stores can share ONE
+ * Extracted from automationCredentialStore so multiple stores can share ONE
  * encryption scheme. AES-256-GCM with a per-org key derived from
  * `MASTER_ENCRYPTION_KEY` via HMAC-SHA256. A leaked org key only affects that
  * org's vault; rotating one org doesn't touch the others.
  *
  * Envelope tag is `routine-vault-v1` (kept verbatim from the original routine
- * credential vault) so ciphertext is interchangeable between every store that
- * uses these helpers — routine_credentials rows and integration_connections
+ * credential vault, now automation_credentials; the tag is part of every
+ * stored ciphertext, so it never follows a rename) so ciphertext is interchangeable between every store that
+ * uses these helpers — automation_credentials rows and integration_connections
  * rows decrypt with the same key + envelope.
  *
  * Do NOT derive vault keys from SESSION_SECRET (the legacy connection-store
@@ -28,7 +29,7 @@ function orgVaultKey(orgId) {
     const master = process.env.MASTER_ENCRYPTION_KEY;
     if (!master) throw new Error('MASTER_ENCRYPTION_KEY env var is required for the org vault');
     return crypto.createHmac('sha256', master)
-        .update(`beeflow:routine-vault:v1:org:${orgId}`)
+        .update(`beeflow:automation-vault:v1:org:${orgId}`)
         .digest();
 }
 

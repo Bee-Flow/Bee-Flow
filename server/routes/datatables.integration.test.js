@@ -211,7 +211,7 @@ let tableId = null;
 before(async () => {
     await pg.exec("SET TIME ZONE 'UTC'");
     await datatableStore.initDB();
-    // listUsage LEFT JOINs `automations` to name the routine in the refusal,
+    // listUsage LEFT JOINs `automations` to name the automation in the refusal,
     // and reads its definition (step position and type) and last run.
     // automationStore owns that DDL and is not in this router's require graph,
     // so the columns the join reads are created here — without them every
@@ -300,9 +300,9 @@ test('a stale expectedVersion is a 409 and changes nothing', async () => {
         'a conflict that had already written the model would be worse than no check at all');
 });
 
-test('dropping a column a routine still reads is refused until the owner confirms', async () => {
+test('dropping a column an automation still reads is refused until the owner confirms', async () => {
     // listUsageForColumn is the index written for exactly this question and had
-    // no caller for a while: a dropped column breaks somebody else's routine
+    // no caller for a while: a dropped column breaks somebody else's automation
     // silently, at 3am.
     await rawQuery(`INSERT INTO automations (id, user_id, title) VALUES ($1,$2,$3)`,
         ['auto_1', COLLEAGUE, 'Nightly sync']);
@@ -541,7 +541,7 @@ test('the list counts CONSUMERS of every kind, and the usage read names each by 
     assert.strictEqual(app.mode, 'readwrite');
     assert.strictEqual(app.stepOrdinal, null);
 
-    // An app that uses the table blocks its deletion exactly as a routine does.
+    // An app that uses the table blocks its deletion exactly as an automation does.
     const refused = await call('delete', '/:id', as(OWNER, { params: { id: tableId } }));
     assert.strictEqual(refused.statusCode, 409);
     assert.strictEqual(refused.body.code, 'in_use');
@@ -951,7 +951,7 @@ test('GET then PUT a row round-trips, bumps updated_at and keeps id/created_at',
     }));
     assert.strictEqual(put.statusCode, 200, JSON.stringify(put.body));
     assert.strictEqual(put.body.row.status, 'done');
-    assert.strictEqual(put.body.row.id, row.id, 'the id survives — routines key on it');
+    assert.strictEqual(put.body.row.id, row.id, 'the id survives — automations key on it');
     assert.strictEqual(isoOf(put.body.row.created_at), isoOf(row.created_at));
     assert.strictEqual(put.body.row.created_by, OWNER);
     assert.notStrictEqual(isoOf(put.body.row.updated_at), isoOf(row.updated_at), 'updated_at has to move');
@@ -1200,7 +1200,7 @@ test('a row write is refused when the SCOPE is over its byte ceiling, but a dele
 
 /**
  * A MANAGED table is an ordinary table with one difference: its columns are the
- * platform's, because a routine writes them by name on a schedule. Everything
+ * platform's, because an automation writes them by name on a schedule. Everything
  * asserted here is that difference — the rest of this file already covers the
  * ordinary half, and a managed table takes every bit of it.
  */
@@ -1235,7 +1235,7 @@ test('the key column is really UNIQUE in Postgres — the upsert has a conflict 
     // compileUpsertByKey checks that the MODEL says `unique`; this checks that
     // Postgres agrees. Without the index, `ON CONFLICT ("cache_key")` is not a
     // duplicate row — it is "no unique or exclusion constraint matching", a 500
-    // from inside somebody's nightly routine.
+    // from inside somebody's nightly automation.
     const idx = await rawQuery(
         `SELECT indexdef FROM pg_indexes WHERE schemaname = $1 AND tablename = 'keyword_answers'`, [schemaOf(ORG)]);
     assert.ok(idx.rows.some(r => /UNIQUE/i.test(r.indexdef) && /cache_key/.test(r.indexdef)),

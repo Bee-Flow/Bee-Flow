@@ -218,10 +218,10 @@ describe('engineSegments — hygiene', () => {
         const keyed = (key) => `⟦${key}⟧`;
         const engine = localEngine({ readTokPerSec: 1450, writeTokPerSec: 23 });
         const idle = engineSegments({ engine, turn: null, t: keyed });
-        expect(idle).toEqual(['qwen3.6-35b-a3b', '⟦routines.canvas.engine.offline⟧', '⟦routines.canvas.engine.reads⟧', '⟦routines.canvas.engine.writes⟧']);
+        expect(idle).toEqual(['qwen3.6-35b-a3b', '⟦automations.canvas.engine.offline⟧', '⟦automations.canvas.engine.reads⟧', '⟦automations.canvas.engine.writes⟧']);
         const live = engineSegments({ engine, turn: reading({ total: 10, cache: 4, processed: 6 }), t: keyed });
-        expect(live).toEqual(['qwen3.6-35b-a3b', '⟦routines.canvas.engine.offline⟧', '⟦routines.canvas.engine.reading⟧', '⟦routines.canvas.engine.remembered⟧']);
-        expect(engineSegments({ engine, turn: writing(), t: keyed })).toContain('⟦routines.canvas.engine.writing⟧');
-        expect(enginePill({ engine, t: keyed })).toBe('⟦routines.canvas.engine.local⟧');
+        expect(live).toEqual(['qwen3.6-35b-a3b', '⟦automations.canvas.engine.offline⟧', '⟦automations.canvas.engine.reading⟧', '⟦automations.canvas.engine.remembered⟧']);
+        expect(engineSegments({ engine, turn: writing(), t: keyed })).toContain('⟦automations.canvas.engine.writing⟧');
+        expect(enginePill({ engine, t: keyed })).toBe('⟦automations.canvas.engine.local⟧');
     });
 });

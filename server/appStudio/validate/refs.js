@@ -312,7 +312,7 @@ function checkFieldRef(tableId, fieldKey, path, ctx, label, { codePrefix = 'bind
 function checkAutomationRef(aid, path, ctx, label) {
     const { pushE, pushW, ownedAutomations } = ctx;
     if (aid === null || aid === undefined) {
-        pushW({ code: 'action.automation_unset', severity: 'warning', path, message: `${label} has no automation selected yet.`, hint: "Pick one of the user's routines before publishing." });
+        pushW({ code: 'action.automation_unset', severity: 'warning', path, message: `${label} has no automation selected yet.`, hint: "Pick one of the user's automations before publishing." });
         return;
     }
     if (typeof aid !== 'string') {

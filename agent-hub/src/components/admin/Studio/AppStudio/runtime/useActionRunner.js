@@ -103,9 +103,9 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const KNOWN_EFFECT_KEYS = new Set(['toast', 'navigateTo', 'refresh', 'onError']);
 
 /**
- * The effect object to apply after a run: what the ROUTINE returned
+ * The effect object to apply after a run: what the AUTOMATION returned
  * (`_appEffects` from a return_to_app step) laid over what the app AUTHOR
- * wrote on the action. Per key, so an author's toast survives a routine that
+ * wrote on the action. Per key, so an author's toast survives an automation that
  * only asked for a navigation.
  */
 function mergeAppEffects(authored, fromRun) {
@@ -121,14 +121,14 @@ function showToast(tone, message) {
 }
 
 /**
- * "De routine is klaar, maar dit lukte hier niet." Eén plek, zodat elke soort
+ * "De automatisering is klaar, maar dit lukte hier niet." Eén plek, zodat elke soort
  * mislukking dezelfde weg naar buiten neemt: `onError:'errorScreen'` zegt het
  * hardop tegen de bezoeker, `stay` (de versmallende default, en ook wat een
  * ONBEKENDE onError oplevert) laat een regel in de console achter.
  */
 function reportEffectFailures(failures, onError) {
     if (!failures.length) return;
-    const message = `The routine finished, but ${failures.join(' and ')}.`;
+    const message = `The automation finished, but ${failures.join(' and ')}.`;
     if (onError === 'errorScreen') showToast('danger', message);
     else console.warn(`[AppStudio] ${message}`);
 }
@@ -327,21 +327,21 @@ export default function useActionRunner(appId, definition, {
      * Apply an EFFECT OBJECT — "what happens when the action is done".
      *
      * Two sources, one shape. The app author writes `action.onSuccess` /
-     * `action.onError` in the inspector; a routine writes the same shape from
+     * `action.onError` in the inspector; an automation writes the same shape from
      * a `return_to_app` step and it reaches here as `_appEffects` on the run
-     * result. The routine's keys are merged OVER the author's at the call
+     * result. The automation's keys are merged OVER the author's at the call
      * sites: it knows what actually happened, the author only knew what was
      * intended.
      *
      * ── NIETS VERDWIJNT STIL ────────────────────────────────────────────────
      * Twee soorten "dit lukt niet", en allebei worden ze gemeld:
-     *   1. EEN EFFECT DAT DEZE APP NIET KENT. Een routine kan nieuwer zijn dan
+     *   1. EEN EFFECT DAT DEZE APP NIET KENT. Een automatisering kan nieuwer zijn dan
      *      het app-bundel dat hem draait. Onbekende sleutels worden overgeslagen
      *      — nooit een crash, en nooit ten koste van de sleutels die we WEL
      *      kennen — maar er gaat een regel naar de console. De serverkant heeft
      *      op dat moment al vastgelegd wat hij verstuurde (de `return_to_app`-
      *      stap schrijft `_appEffects` én `_ignored` in zijn eigen runregel), dus
-     *      "wat heeft de routine gevraagd" is altijd na te lezen in het runlog.
+     *      "wat heeft de automatisering gevraagd" is altijd na te lezen in het runlog.
      *   2. EEN EFFECT DAT HIER NIET UITVOERBAAR IS — een scherm dat deze app
      *      niet heeft, of `resetForm` terwijl er geen formulier is dat de actie
      *      startte. Dan beslist `onError`: `stay` laat de bezoeker staan waar
@@ -361,12 +361,12 @@ export default function useActionRunner(appId, definition, {
         // DE DERDE STAND VAN DE SERVER. `_appEffectsUnknown` betekent: de run
         // slaagde, maar de stappenlees waaruit `_appEffects` komt viel om
         // (server/appStudio/actionExecutor/automationBridge.js). Zonder deze
-        // regel is dat antwoord niet te onderscheiden van "deze routine had
+        // regel is dat antwoord niet te onderscheiden van "deze automatisering had
         // geen terugkeerstap": geen melding, geen navigatie, geen spoor. Dit
         // staat vóór de `!effects`-uitgang, want juist in dat geval is er
         // niets anders dat het zegt.
         if (ctx.effectsUnknown) {
-            failures.push('what the routine asked the app to do next could not be read');
+            failures.push('what the automation asked the app to do next could not be read');
         }
 
         if (!effects || typeof effects !== 'object') {
@@ -376,7 +376,7 @@ export default function useActionRunner(appId, definition, {
         const unknown = Object.keys(effects).filter((k) => !KNOWN_EFFECT_KEYS.has(k));
         if (unknown.length) {
             console.warn(
-                `[AppStudio] The routine asked for ${unknown.map((k) => `"${k}"`).join(', ')}, `
+                `[AppStudio] The automation asked for ${unknown.map((k) => `"${k}"`).join(', ')}, `
                 + 'which this version of the app cannot do — ignored. The run log records what it sent.',
             );
         }
@@ -414,7 +414,7 @@ export default function useActionRunner(appId, definition, {
         // `refresh` is een GESLOTEN vocabulaire
         // (validate/constants.js RETURN_TO_APP_REFRESH_MODES), en een gesloten
         // vocabulaire dat als DATA reist heeft een afsluitende tak nodig: deze
-        // app-bundel kan ouder zijn dan de routine die hem aanstuurt.
+        // app-bundel kan ouder zijn dan de automatisering die hem aanstuurt.
         // KNOWN_EFFECT_KEYS vangt een onbekende SLEUTEL; zonder de `else`
         // hieronder viel een onbekende WAARDE van een bekende sleutel stil weg.
         if (effects.refresh === 'tableViews') {
@@ -464,7 +464,7 @@ export default function useActionRunner(appId, definition, {
             const status = body?.status;
             if (status && !['pending', 'running', 'queued'].includes(status)) return body;
         }
-        throw new Error('The routine is taking too long — check its run history.');
+        throw new Error('The automation is taking too long — check its run history.');
     }, [appId]);
 
     // ── v1 run_automation bridge (unchanged) ───────────────────────────────
@@ -491,10 +491,10 @@ export default function useActionRunner(appId, definition, {
                 } else if (body?.status === 'pending') {
                     // Accepted, but with no run id there is nothing to poll (a
                     // GET on `undefined` would 404 and report a failure the user
-                    // never had). The routine keeps running server-side, so
+                    // never had). The automation keeps running server-side, so
                     // settle neutrally: no error state, no success/error effects.
                     setEntry(actionId, { status: 'idle', result: undefined, error: null });
-                    showToast('info', 'The routine is still running — check its run history.');
+                    showToast('info', 'The automation is still running — check its run history.');
                     return;
                 } else {
                     throw new Error(body?.error || body?.message || 'The action was accepted but never returned a result.');
@@ -506,7 +506,7 @@ export default function useActionRunner(appId, definition, {
                 throw new Error(body?.error || 'The action failed.');
             }
             if (body?.status === 'awaiting_approval') {
-                // The routine paused on an approval step — working as designed,
+                // The automation paused on an approval step — working as designed,
                 // not a success and certainly not a failure. Settle with the
                 // handle (approvalId) but hold the onSuccess effects: nothing
                 // has succeeded yet, someone still has to decide.
@@ -738,7 +738,7 @@ export default function useActionRunner(appId, definition, {
             if (SERVER_STEP_KINDS.has(step.kind)) {
                 const result = await dispatchServerStep(step, st);
                 st.lastResult = result;
-                // A run_automation STEP carries the routine's return the same
+                // A run_automation STEP carries the automation's return the same
                 // way the bare v1 action does. Held until the sequence is done
                 // rather than applied here: navigating away halfway would abort
                 // the steps that still had to run.
@@ -893,7 +893,7 @@ export default function useActionRunner(appId, definition, {
                         st.vars = carried;
                         st.lastResult = iter.lastResult;
                         // Same reason lastResult is carried back: an iteration
-                        // is a copy of the state, so a routine's return picked
+                        // is a copy of the state, so an automation's return picked
                         // up inside the body would otherwise be dropped.
                         if (iter.appEffects) st.appEffects = mergeAppEffects(st.appEffects, iter.appEffects);
                         if (iter.effectsUnknown) st.effectsUnknown = true;

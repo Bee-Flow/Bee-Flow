@@ -1,8 +1,8 @@
 /**
- * "Welke knop van deze app draait welke routine" — puur.
+ * "Welke knop van deze app draait welke automation" — puur.
  *
  * Dit is de LEESKANT van de nieuwe index `automation_usage` (P4 deel C). Hij
- * beantwoordt precies één vraag over één app-definitie: welke routines noemt
+ * beantwoordt precies één vraag over één app-definitie: welke automatiseringen noemt
  * zij, vanaf welke knop, op welk scherm. De schrijfkant staat in
  * `appStudio/automationUsageSync.js`, de tabel in
  * `stores/automationUsageStore.js`.
@@ -11,7 +11,7 @@
  *
  * Die index is per TABEL-DOEL gekeyd, en dat is een FK, geen conventie:
  * `datatable_id TEXT NOT NULL REFERENCES datatables(id) ON DELETE CASCADE`
- * (stores/datatableStore.js). Een app→routine-rij heeft geen datatable, dus er
+ * (stores/datatableStore.js). Een app→automation-rij heeft geen datatable, dus er
  * is geen waarde die daar in mag; `reconcileUsageFor` schrijft via
  * `INSERT … SELECT … FROM datatables d WHERE d.id = $6`, dus zonder tabelrij
  * schrijft hij NUL rijen en noemt zichzelf geslaagd. Dat is precies de stille
@@ -24,14 +24,14 @@
  * wat W5 verbiedt: bij elke bewerking schuift hij op, schrijft de reconcile een
  * nieuwe rij en groeit de index tot hij niets meer betekent. De ACTIE heeft wél
  * een stabiel id (`act_xxxx`, afgedwongen door validate.js' checkId), dus de
- * rij is er één per (app, actie, routine). Twee `run_automation`-stappen in
- * dezelfde sequence die dezelfde routine draaien zijn één rij; draaien ze
- * verschillende routines, dan zijn het er twee — het automation_id zit in de
+ * rij is er één per (app, actie, automation). Twee `run_automation`-stappen in
+ * dezelfde sequence die dezelfde automatisering draaien zijn één rij; draaien ze
+ * verschillende automatiseringen, dan zijn het er twee — het automation_id zit in de
  * sleutel.
  *
  * ── EEN ONBEDRAADE ACTIE TELT WEL MEE ────────────────────────────────
  *
- * Een actie die aan een routine hangt maar aan geen enkele knop
+ * Een actie die aan een automatisering hangt maar aan geen enkele knop
  * (`action.unreachable` in de validator) levert een rij MET een leeg
  * knop-adres. De verleiding is hem over te slaan — er kan immers niemand op
  * drukken — maar de index is wat een verwijdering luidruchtig maakt, en daar
@@ -73,7 +73,7 @@ function isObject(v) {
 }
 
 /**
- * De routines die één actie draait, in volgorde van eerste voorkomen.
+ * De automatiseringen die één actie draait, in volgorde van eerste voorkomen.
  *
  * Zowel de v1-vorm (`kind:'run_automation'` op de actie zelf) als de
  * sequence-stap. De recursie is exact die van `containsStepKind`
@@ -83,7 +83,7 @@ function isObject(v) {
  * twee recursies veld voor veld.
  *
  * @returns {{ids: string[], unset: number}} `unset` telt de
- *   `run_automation`-plekken zónder routine (`automationId: null`, de stand
+ *   `run_automation`-plekken zónder automatisering (`automationId: null`, de stand
  *   waarin elk sjabloon wordt uitgeleverd). Die zijn GEEN gebruik, maar ze
  *   horen wel in de logregel.
  */
@@ -117,9 +117,9 @@ function automationsInAction(action) {
             // `default` — de VIJFDE ingang, en degene die hier ontbrak. Zowel
             // de browser (runtime/useActionRunner: `execSteps(hit ? hit.steps
             // : step.default)`) als de server (appStudio/actionSequence.js)
-            // voert die tak echt uit, dus een routine die er alleen daar in
+            // voert die tak echt uit, dus een automatisering die er alleen daar in
             // staat, draaide wel en stond niet in de index — en dan zegt de
-            // capsule "No app button runs this routine yet" op het scherm
+            // capsule "No app button runs this automation yet" op het scherm
             // waarop iemand besluit hem te verwijderen.
             walkSteps(step.default, depth + 1);
         }
@@ -135,7 +135,7 @@ function automationsInAction(action) {
  * Welke KNOP elke actie aanzet: actie-id → { screenId, nodeId, label }.
  *
  * De EERSTE vindplaats in documentvolgorde wint. Twee knoppen op dezelfde
- * actie is één plek in de app die de routine draait — de rij noemt de eerste,
+ * actie is één plek in de app die de automatisering draait — de rij noemt de eerste,
  * en dat is eerlijker dan een tweede rij die net doet alsof het twee
  * verschillende koppelingen zijn.
  */
@@ -181,7 +181,7 @@ function collectActionSites(screens) {
 }
 
 /**
- * Elke (actie, routine) die deze definitie noemt.
+ * Elke (actie, automatisering) die deze definitie noemt.
  *
  * Puur en defensief: een misvormde actie wordt overgeslagen, nooit op gegooid.
  * Een definitie die geen object is levert een LEGE lijst — en de aanroeper

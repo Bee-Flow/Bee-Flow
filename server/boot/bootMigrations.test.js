@@ -145,10 +145,10 @@ const COLUMN_LADDERS = [
     // geen migratiebestand.
     { table: 'meeting_prefs', kind: 'table', into: 'stores/meetingPrefsStore.js', tag: 'meetingPrefsStore' },
 
-    // P4 deel C: "welke knop draait deze routine". De spiegel van
+    // P4 deel C: "welke knop draait deze automation". De spiegel van
     // automation_datatable_usage, en met opzet een EIGEN tabel: die index is
     // per tabel-doel gekeyd (`datatable_id … REFERENCES datatables(id)`), dus
-    // een app→routine-rij heeft er geen waarde voor en de INSERT zou nul rijen
+    // een app→automation-rij heeft er geen waarde voor en de INSERT zou nul rijen
     // schrijven en zichzelf geslaagd noemen. Eigen store, eigen ladder, geen
     // migratiebestand.
     { table: 'automation_usage', kind: 'table', into: 'stores/automationUsageStore.js', tag: 'automationUsageStore' },

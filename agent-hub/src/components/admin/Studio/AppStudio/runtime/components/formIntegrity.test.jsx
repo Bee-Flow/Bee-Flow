@@ -131,7 +131,7 @@ describe('AppInputMultiselect — a scalar pushed into a list field', () => {
         expect(screen.getByLabelText('Remove Billing')).toBeTruthy();
     });
 
-    // Submitting untouched used to send the raw string where the routine
+    // Submitting untouched used to send the raw string where the automation
     // expected an array — and adding one chip replaced the whole value.
     it('submits an array, and adding a chip keeps what was already there', async () => {
         const { runAction } = renderForm([node], <AppInputMultiselect node={node} />);

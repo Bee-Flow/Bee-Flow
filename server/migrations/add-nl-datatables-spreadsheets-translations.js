@@ -48,8 +48,8 @@ const NL_TRANSLATIONS = {
     // ── De vierde kaart in de nieuwe-tabel-dialoog ──────────────────────────
     'datatables.kind_spreadsheet': 'Een spreadsheet uit je bestanden',
     'datatables.kind_spreadsheet_blurb': 'Een kopie van een werkblad in Google Drive, OneDrive of Nextcloud, die in de pas blijft met het bestand. Rijen die je hier wijzigt, worden naar het bestand geschreven; de kolommen zijn de kopregel van het werkblad.',
-    'datatables.ss_linked_body': '{n} tabellen worden nu uit de bestanden gevuld. Routines en apps kunnen ze gebruiken als elke andere tabel.',
-    'datatables.ss_linked_body_one': 'De tabel wordt nu uit het bestand gevuld. Routines en apps kunnen hem gebruiken als elke andere tabel.',
+    'datatables.ss_linked_body': '{n} tabellen worden nu uit de bestanden gevuld. Automatiseringen en apps kunnen ze gebruiken als elke andere tabel.',
+    'datatables.ss_linked_body_one': 'De tabel wordt nu uit het bestand gevuld. Automatiseringen en apps kunnen hem gebruiken als elke andere tabel.',
     'datatables.ss_the_storage': 'de opslag',
 
     // ── Bestandsindelingen ──────────────────────────────────────────────────
@@ -88,7 +88,7 @@ const NL_TRANSLATIONS = {
     'datatables.ss_no_retention': 'Rijen worden hier niet opgeruimd — ze blijven zolang ze in het bestand staan.',
     'datatables.ss_identity_title': 'Hoe rijen herkend worden',
     'datatables.ss_identity_key': 'Elke rij wordt herkend aan zijn {column}. Een rij houdt hier zijn plaats als er in het werkblad rijen worden ingevoegd of gesorteerd; een gewijzigde {column} telt als een nieuwe rij.',
-    'datatables.ss_identity_rownum': 'Elke rij wordt herkend aan zijn rijnummer in het werkblad. Een rij erboven invoegen of verwijderen verschuift de rijen eronder — een routine die een rij-id bewaart, kan beter een sleutelkolom gebruiken.',
+    'datatables.ss_identity_rownum': 'Elke rij wordt herkend aan zijn rijnummer in het werkblad. Een rij erboven invoegen of verwijderen verschuift de rijen eronder — een automatisering die een rij-id bewaart, kan beter een sleutelkolom gebruiken.',
     'datatables.ss_strip_readonly': 'Rijen kunnen hier niet worden gewijzigd — wijzig ze in het bestand.',
 
     // ── Wat een schrijfmechanisme bewaart en kwijtraakt (wizard én paneel) ──
@@ -102,7 +102,7 @@ const NL_TRANSLATIONS = {
     'datatables.ss_column_key': 'uit {source} · de sleutelkolom waaraan een rij herkend wordt',
 
     // ── Ontkoppelen ─────────────────────────────────────────────────────────
-    'datatables.ss_unlink_notice': 'Ontkoppelen haalt de kopie weg die hier wordt bijgehouden. Het bestand in {source}, en elke rij erin, blijft precies zoals het is. Routines en apps die deze tabel gebruiken, vinden hem niet meer.',
+    'datatables.ss_unlink_notice': 'Ontkoppelen haalt de kopie weg die hier wordt bijgehouden. Het bestand in {source}, en elke rij erin, blijft precies zoals het is. Automatiseringen en apps die deze tabel gebruiken, vinden hem niet meer.',
 
     // ── Weigeringen (core/dataEngine/sources/spreadsheetFile/errors.js) ──────
     'datatables.ss_err_provider_not_connected': '{source} is niet verbonden voor dit account. Verbind het onder Instellingen → Koppelingen.',

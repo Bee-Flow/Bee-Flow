@@ -30,7 +30,7 @@ describe('safeText', () => {
      * BFSF-348 — every validator record carries a `message` (what is wrong)
      * AND a `hint` (what to do about it). The hint was fetched, parsed and
      * then thrown away, so the save toast stated a rule and offered no way
-     * out of it: "a form step needs the routine to start with a form
+     * out of it: "a form step needs the automation to start with a form
      * trigger" — and then nothing.
      */
     it('keeps the hint, which is the half of the error the user can act on', async () => {
@@ -38,11 +38,11 @@ describe('safeText', () => {
             error: 'Invalid definition',
             details: [{
                 code: 'form_page.no_form_trigger',
-                message: 'Step step_7: a form step needs the routine to start with a form trigger.',
+                message: 'Step step_7: a form step needs the automation to start with a form trigger.',
                 hint: 'Switch the trigger to "Form", or remove this step.',
             }],
         }));
-        expect(out).toContain('needs the routine to start with a form trigger');
+        expect(out).toContain('needs the automation to start with a form trigger');
         expect(out).toContain('Switch the trigger to "Form", or remove this step.');
     });
 

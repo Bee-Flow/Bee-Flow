@@ -33,7 +33,7 @@ export default function WithheldTools({ tools }: { tools: WithheldRunTool[] }) {
         <div className="shrink-0 rounded-[10px] border border-[var(--border-default)] bg-[var(--bg-card)] px-3 py-2 flex flex-col gap-1.5 text-[11px]" data-testid="output-tools-withheld">
             <div className="flex items-center gap-1.5 font-semibold text-[var(--text-primary)]">
                 <ShieldOff size={12} aria-hidden className="text-[var(--text-secondary)]" />
-                {t('routines.output.tools_withheld', 'Tools held back in this run')}
+                {t('automations.output.tools_withheld', 'Tools held back in this run')}
             </div>
             <div className="flex flex-wrap gap-1">
                 {tools.map(w => (
@@ -48,7 +48,7 @@ export default function WithheldTools({ tools }: { tools: WithheldRunTool[] }) {
             </div>
             {tools.some(w => w.reason === 'confirm') && (
                 <div className="text-[var(--text-tertiary)] leading-4">
-                    {t('routines.output.tools_withheld_confirm', 'Tools that ask someone to confirm are off in an automation. Put an approval step after this one if you need them.')}
+                    {t('automations.output.tools_withheld_confirm', 'Tools that ask someone to confirm are off in an automation. Put an approval step after this one if you need them.')}
                 </div>
             )}
         </div>

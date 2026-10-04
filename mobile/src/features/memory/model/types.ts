@@ -4,7 +4,7 @@
  * Rows come straight off `user_memories` (server/stores/memoryStore.js), so
  * the field names are the column names, snake_case and all. Only the columns
  * this screen actually reads are declared; the table also carries embeddings,
- * supersession pointers and routine-coverage bookkeeping that no phone screen
+ * supersession pointers and automation-coverage bookkeeping that no phone screen
  * has any business showing.
  */
 
@@ -62,7 +62,7 @@ export interface MemoryStats {
  * returns the same list, but it is a constant in the route file — spending a
  * request on it would buy nothing, and `memoryTypeLabel` already falls back
  * gracefully for a type this list has not heard of (the extractor and the
- * routine bookkeeping can both write ids outside the seven).
+ * automation bookkeeping can both write ids outside the seven).
  *
  * Ids only. The display name used to sit here as an English literal, which a
  * catalogue arriving after this module is evaluated can never reach — a

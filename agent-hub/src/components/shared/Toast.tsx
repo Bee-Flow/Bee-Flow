@@ -11,7 +11,7 @@ import { Check, AlertCircle, Info, X } from 'lucide-react';
  * swap this out for Sonner. The public API (toast.success / toast.error /
  * toast.info / toast.dismiss) is compatible enough to make that drop-in.
  *
- * Repeats COLLAPSE. A caller in a retry loop — the routines builder re-saves a
+ * Repeats COLLAPSE. A caller in a retry loop — the automations builder re-saves a
  * debounced draft ~every 500ms, and a definition the server rejects fails every
  * time — used to paint a fresh toast per attempt, so a single invalid step
  * buried the screen under a dozen identical 6-second errors (BFSF-348). An

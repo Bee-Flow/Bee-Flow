@@ -52,7 +52,7 @@ function Advanced(editor: StepEditorProps) {
                 lines={3}
                 disabled={ctx.disabled}
             />
-            <SelectField label={t('routines.model_tier', 'Model tier')} value={current} options={tierOptions(tiers, current, t)} onChange={(v) => set('modelTier', v)} disabled={ctx.disabled} />
+            <SelectField label={t('automations.model_tier', 'Model tier')} value={current} options={tierOptions(tiers, current, t)} onChange={(v) => set('modelTier', v)} disabled={ctx.disabled} />
             <FieldRow
                 label={t('mobile.flow.ai.tools', 'Tools')}
                 hint={t('mobile.flow.ai.tools_hint', 'Choose which tools the AI may call during this step. Only tools you have permission for are listed. Leave empty for a pure text answer.')}
@@ -89,7 +89,7 @@ export function AiStepEditor(editor: StepEditorProps) {
     const outputFields = (Array.isArray(draft.outputFields) ? draft.outputFields : []) as OutputField[];
     return (
         <>
-            <Band editor={editor} sectionKey="agent" title={t('routine_editor.agent_section_title', 'Who does the thinking')} defaultOpen={agentSet} hasContent={agentSet}>
+            <Band editor={editor} sectionKey="agent" title={t('automation_editor.agent_section_title', 'Who does the thinking')} defaultOpen={agentSet} hasContent={agentSet}>
                 <AgentFields {...editor} />
             </Band>
             <BindingInput
@@ -98,7 +98,7 @@ export function AiStepEditor(editor: StepEditorProps) {
                 required
                 value={typeof draft.prompt === 'string' ? draft.prompt : ''}
                 onChange={(v) => set('prompt', String(v ?? ''))}
-                label={t('routines.prompt', 'Prompt')}
+                label={t('automations.prompt', 'Prompt')}
                 hint={t('mobile.flow.ai.prompt_hint', "What the AI should do. Tap Insert data to drop in a value from a previous step — it's filled in with the real value when the step runs.")}
                 prompt={t('mobile.flow.ai.prompt_example', 'Summarise this email and decide if it needs an urgent reply.')}
                 disabled={ctx.disabled}

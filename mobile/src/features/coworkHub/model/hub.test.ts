@@ -1,7 +1,7 @@
 /**
  * What the Cowork hub puts first. "Needs you" is four cards at most, so the
  * rules that decide who gets a card — failed or waiting, recent, one per
- * routine — are the section; "Coming up" merges tasks and reminders by time.
+ * automation — are the section; "Coming up" merges tasks and reminders by time.
  */
 
 import type { AutomationRun } from '@/features/automations';
@@ -58,9 +58,9 @@ describe('selectNeedsYou', () => {
         expect(selectNeedsYou([run('a', { startedAt: null })], NOW)).toHaveLength(1);
     });
 
-    it('shows one card per routine, and four at most', () => {
-        const sameRoutine = [run('a'), run('b', { automationId: 'auto-a' })];
-        expect(selectNeedsYou(sameRoutine, NOW).map((r) => r.id)).toEqual(['a']);
+    it('shows one card per automation, and four at most', () => {
+        const sameAutomation = [run('a'), run('b', { automationId: 'auto-a' })];
+        expect(selectNeedsYou(sameAutomation, NOW).map((r) => r.id)).toEqual(['a']);
         const many = ['1', '2', '3', '4', '5', '6'].map((id) => run(id));
         expect(selectNeedsYou(many, NOW)).toHaveLength(4);
     });

@@ -3,8 +3,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 /**
  * Undo/redo stack for a JSON draft (automation definitions, App Studio
  * app definitions, ...). Promoted from
- * components/admin/AITasksDesigner/Builder/flow/useRoutineDraftHistory.js —
- * that path re-exports this hook, so the routines builder is untouched.
+ * components/admin/AITasksDesigner/Builder/flow/useAutomationDraftHistory.js —
+ * that path re-exports this hook, so the automations builder is untouched.
  *
  * Owns:
  *   - past[]   — snapshots predecessor states (most recent at end)
@@ -105,7 +105,7 @@ export default function useDraftHistory<T extends Draft>(
             setStacksBoth({ past: p, future: [] });
         } else if (current == null) {
             // A nullish baseline is "no draft yet" — the state before the very
-            // first edit on a fresh routine. Undoing to it would apply `null`
+            // first edit on a fresh automation. Undoing to it would apply `null`
             // as a definition, which the save path then persisted as an empty
             // object and wedged the builder (BFSF-318). There is nothing
             // meaningful to undo TO, so never push it.

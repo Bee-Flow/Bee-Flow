@@ -1,7 +1,7 @@
 /**
  * `data_extraction` — pull named, typed fields out of a piece of text.
  *
- * An `ai_step` takes its model from the chat MODEL TIER the routine author
+ * An `ai_step` takes its model from the chat MODEL TIER the automation author
  * picked. Extraction is not a chat: it wants one small, fast, deterministic
  * model regardless of the tier, thinking off, and a schema it cannot wander
  * from. This step has its own model (dataExtractionModel.js — set once in the
@@ -139,7 +139,7 @@ function truncateMiddle(text, cap = DATA_EXTRACTION_MAX_SOURCE_CHARS) {
 function resolveSourceText(source, runState) {
     if (source === null || source === undefined) return '';
     if (typeof source === 'string') {
-        if (/\{\{[^}]+\}\}/.test(source)) return sourceToText(interpolateTemplate(source, { ...runState, secrets: {} }));
+        if (/\{\{[^}]+\}\}/.test(source)) return sourceToText(interpolateTemplate(source, { ...runState, secrets: {} }, { listAs: 'json' }));
         if (/^(trigger|steps|vars|loop)\./.test(source.trim())) {
             return sourceToText(resolveValue({ kind: 'ref', path: source.trim() }, runState, { allowSecrets: false }));
         }
@@ -463,7 +463,7 @@ async function execDataExtraction(step, ctx, runState, mode) {
     const output = shapeExtractionOutput(fields, restored);
 
     // A required field the text does not contain fails the step — loudly,
-    // because the alternative is a green run with a null where the routine's
+    // because the alternative is a green run with a null where the automation's
     // next step needed a value.
     const missing = fields.filter(f => f.required && output[f.name] === null).map(f => f.name);
     if (missing.length) {
@@ -472,12 +472,12 @@ async function execDataExtraction(step, ctx, runState, mode) {
         throw err;
     }
 
-    // Usage bookkeeping (source='routine'), the same row an ai_step writes.
+    // Usage bookkeeping (source='automation'), the same row an ai_step writes.
     try {
         usageStore.logUsage({
             user_id: ctx.userId, organization_id: ctx.orgId || null,
             agent_id: ctx.automationId, agent_name: ctx.automationTitle || null,
-            agent_type: 'routine', model: modelId, source: 'routine',
+            agent_type: 'automation', model: modelId, source: 'automation',
             conversation_id: ctx.automationId,
             // Normalised by the adapter (cache read/write included).
             ...usageLogFields(response && response.usage),

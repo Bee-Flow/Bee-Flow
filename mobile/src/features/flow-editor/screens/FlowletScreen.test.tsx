@@ -1,8 +1,8 @@
 /**
- * A flowlet built on its own screen, over the routine's draft: its steps as
+ * A flowlet built on its own screen, over the automation's draft: its steps as
  * the outline, a step added through its "+" landing in the flowlet inside
- * the whole routine, its Return offered while it has none, and a flowlet
- * that is gone said so. The routine's Flowlets sheet creates one and opens it.
+ * the whole automation, its Return offered while it has none, and a flowlet
+ * that is gone said so. The automation's Flowlets sheet creates one and opens it.
  */
 
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
@@ -15,7 +15,7 @@ import { peekDraftStore } from '../state';
 import { BuildScreen } from './BuildScreen';
 import { FlowletScreen } from './FlowletScreen';
 import { NodeEditorScreen } from './NodeEditorScreen';
-import { releaseDrafts, serveRoutine } from './testing';
+import { releaseDrafts, serveAutomation } from './testing';
 import { getByShownText } from '../components/fields/testing';
 
 jest.setTimeout(30_000);
@@ -42,11 +42,11 @@ const DEF: FlowDefinition = {
 const row = { id: 'a1', title: 'Mail sorter', definition: DEF, version: 3, isActive: false };
 const root = () => peekDraftStore('a1')?.getState().definition as FlowDefinition;
 
-beforeEach(() => serveRoutine(row));
+beforeEach(() => serveAutomation(row));
 afterEach(releaseDrafts);
 
 describe('FlowletScreen', () => {
-    it('builds the flowlet: a step added here lands in it, inside the whole routine', async () => {
+    it('builds the flowlet: a step added here lands in it, inside the whole automation', async () => {
         await renderScreen(<FlowletScreen id="a1" layerKey="lookup" />);
         expect(await screen.findByText('Lookup')).toBeTruthy();
         expect(screen.getByText('Tell me')).toBeTruthy();
@@ -65,7 +65,7 @@ describe('FlowletScreen', () => {
 
     it('says so when the flowlet is gone', async () => {
         await renderScreen(<FlowletScreen id="a1" layerKey="gone" />);
-        expect(await screen.findByText('This flowlet is not in the routine any more')).toBeTruthy();
+        expect(await screen.findByText('This flowlet is not in the automation any more')).toBeTruthy();
     });
 
     it('edits a flowlet’s step in the step editor, writing into the flowlet', async () => {
@@ -76,7 +76,7 @@ describe('FlowletScreen', () => {
     });
 });
 
-describe('the routine’s flowlets', () => {
+describe('the automation’s flowlets', () => {
     it('opens a call’s flowlet from its card', async () => {
         await renderScreen(<BuildScreen id="a1" />);
         await screen.findByText('Look it up');

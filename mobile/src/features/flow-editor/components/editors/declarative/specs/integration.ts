@@ -77,13 +77,13 @@ export const INTEGRATION_ACTION: EditorSpec = {
             // The web shows the action as a card above the bands (ActionCard):
             // the setting's name as an error names it, and Switch's menu.
             key: 'basics',
-            title: msg('routines.output.setting_action', 'Action'),
+            title: msg('automations.output.setting_action', 'Action'),
             defaultOpen: true,
             fields: [
                 {
                     kind: 'select',
                     id: 'operation',
-                    label: msg('routines.ndv.action_switch_menu', 'Actions of this app'),
+                    label: msg('automations.ndv.action_switch_menu', 'Actions of this app'),
                     hint: (draft, ctx) =>
                         lookup(draft, ctx).siblings.length > 1
                             ? msg('mobile.flow.action.operation_switch', 'Switch which action this node runs. Inputs shared with the new operation are kept.')

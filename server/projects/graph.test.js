@@ -28,7 +28,7 @@ const ALICE = 'alice';
 const BOB = 'bob';
 
 const automation = (id, over = {}) => ({
-    id, title: `Routine ${id}`, userId: ALICE, kind: 'automation',
+    id, title: `Automation ${id}`, userId: ALICE, kind: 'automation',
     definition: { steps: [] }, ...over,
 });
 const app = (id, definition, over = {}) => ({ id, name: `App ${id}`, userId: ALICE, definition, ...over });
@@ -73,12 +73,12 @@ test('references are found however deep they are nested', () => {
 
 // ═══ Broken edge classes ═════════════════════════════════════════════
 
-test('UNWIRED — the "connect a routine" state every template ships in', () => {
+test('UNWIRED — the "connect an automation" state every template ships in', () => {
     const g = buildProjectGraph({
         apps: [app('app1', { actions: { go: { kind: 'run_automation', automationId: null } } })],
     });
     assert.deepStrictEqual(problemCodes(g), [PROBLEM.UNWIRED]);
-    assert.match(g.problems[0].message, /never got a routine picked/);
+    assert.match(g.problems[0].message, /never got an automation picked/);
     assert.strictEqual(g.edges[0].to, null);
 });
 
@@ -166,7 +166,7 @@ test('a block owned by someone else is fine — it runs inside the caller', () =
 
 // ═══ Approvals as policy, never as decision ══════════════════════════
 
-test('an approval step becomes a node hanging off its routine', () => {
+test('an approval step becomes a node hanging off its automation', () => {
     const g = buildProjectGraph({
         automations: [automation('a1', {
             definition: { steps: [{ id: 's1', type: 'approval', prompt: 'Ship it?' }] },
@@ -201,7 +201,7 @@ test('an app that asks for approval directly gets a node too', () => {
         apps: [app('app1', { actions: { ask: { id: 'ask', kind: 'request_approval' } } })],
     });
     const approval = g.nodes.find(n => n.type === 'approval');
-    assert.ok(approval, 'an app can raise one with no routine involved at all');
+    assert.ok(approval, 'an app can raise one with no automation involved at all');
     assert.ok(g.edges.some(e => e.from === 'app:app1' && e.kind === 'asks'));
 });
 
@@ -246,7 +246,7 @@ test('a non-string reference is treated as unwired, not as an id', () => {
 // Every edge below comes from something already on disk, and every one of them
 // is a reference a Blueprint has to either rewrite or report. The classes are
 // the same five as above — what changes is only the NOUN in the sentence, so a
-// missing table does not read as a missing routine.
+// missing table does not read as a missing automation.
 
 const datatable = (id, over = {}) => ({ id, name: `Table ${id}`, ownerUserId: ALICE, ...over });
 const agent = (id, config, over = {}) => ({ id, name: `Agent ${id}`, ownerId: ALICE, config, ...over });
@@ -256,7 +256,7 @@ const withStep = (id, step, over = {}) => automation(id, {
     ...over,
 });
 
-test('a routine that reads a table in this project draws one clean edge', () => {
+test('an automation that reads a table in this project draws one clean edge', () => {
     const g = buildProjectGraph({
         automations: [withStep('a1', { id: 's1', type: 'datatable', op: 'list', datatableId: 'tbl1' })],
         datatables: [datatable('tbl1')],
@@ -287,9 +287,9 @@ test('a table step buried in a loop still counts', () => {
     assert.strictEqual(g.edges.filter(e => e.kind === 'reads').length, 1);
 });
 
-test('a table outside this project is named as a TABLE, not as a routine', () => {
+test('a table outside this project is named as a TABLE, not as an automation', () => {
     // The prose bug this pins: before the noun was a parameter, every broken
-    // edge said "a routine", so a missing table read as a missing routine and
+    // edge said "an automation", so a missing table read as a missing automation and
     // sent whoever fixed it to the wrong screen.
     const g = buildProjectGraph({
         automations: [withStep('a1', { id: 's1', type: 'datatable', op: 'list', datatableId: 'tbl_elsewhere' })],
@@ -318,7 +318,7 @@ test('a table that is gone is MISSING, and "I could not check" is UNRESOLVED', (
 test('a table id an export already cleared raises nothing at all', () => {
     // portability empties `datatableId` to '' on export. That is a step waiting
     // to be re-pointed, not a broken reference, and it must not fill the Flow
-    // tab with problems on every imported routine.
+    // tab with problems on every imported automation.
     const g = buildProjectGraph({
         automations: [withStep('a1', { id: 's1', type: 'datatable', op: 'list', datatableId: '', datatableKey: 'invoices' })],
     });
@@ -406,7 +406,7 @@ test('a meeting source with no tag or no base is not half-drawn', () => {
     assert.strictEqual(g.nodes.filter(n => n.type === 'meeting').length, 0);
 });
 
-test('a routine triggered by a form gets a form node, and never its token', () => {
+test('an automation triggered by a form gets a form node, and never its token', () => {
     const g = buildProjectGraph({
         automations: [automation('a1', {
             definition: {
@@ -423,7 +423,7 @@ test('a routine triggered by a form gets a form node, and never its token', () =
     assert.deepStrictEqual(g.edges.map(e => [e.from, e.kind, e.to]), [['form:a1', 'triggers', 'automation:a1']]);
 });
 
-test('the form node is keyed on the ROUTINE — a page id is a credential', () => {
+test('the form node is keyed on the AUTOMATION — a page id is a credential', () => {
     // automation_form_pages.id IS the public URL and the only thing guarding
     // it. It is never read to build this graph, so it cannot leak through one.
     const g = buildProjectGraph({
@@ -435,7 +435,7 @@ test('the form node is keyed on the ROUTINE — a page id is a credential', () =
     assert.strictEqual(g.nodes.find(n => n.type === 'form').name, 'Form', 'an unnamed form still reads as one');
 });
 
-test('a manual routine gets no form node', () => {
+test('a manual automation gets no form node', () => {
     const g = buildProjectGraph({ automations: [automation('a1')] });
     assert.strictEqual(g.nodes.filter(n => n.type === 'form').length, 0);
 });

@@ -4,7 +4,7 @@
  * Not `ListRow`, and this is the one place on the tab that departs from it.
  * ListRow renders its subtitle in the muted tone, which is correct for a
  * timestamp and wrong for the sentence that explains why last night's invoice
- * routine did nothing. A failed run has to say what failed on the row itself —
+ * automation did nothing. A failed run has to say what failed on the row itself —
  * the whole reason someone opens this screen on a phone is to find out, and
  * making them tap through to learn it is the failure mode this screen exists
  * to fix. So the row is built here, to ListRow's own metrics (64dp minimum,
@@ -25,7 +25,7 @@ import { statusLabel, statusToken } from '../model/status';
 import { absoluteTime, formatDuration, runElapsedMs } from '../model/time';
 import type { AutomationRun } from '../model/types';
 
-/** What the row says out loud: which routine, how it ended, when, and why. */
+/** What the row says out loud: which automation, how it ended, when, and why. */
 function spokenLabel(run: AutomationRun, t: TranslateFn, heading: string, automationTitle?: string): string {
     const failed = statusToken(run.status).tone === 'error';
     return [
@@ -86,7 +86,7 @@ function RunDetailLine({ run, failed }: { run: AutomationRun; failed: boolean })
 
 export function RunRow({
     run,
-    /** Shown instead of the trigger when a list spans several routines. */
+    /** Shown instead of the trigger when a list spans several automations. */
     automationTitle,
     onPress,
     selected = false,

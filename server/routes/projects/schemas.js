@@ -118,6 +118,18 @@ const ResourceBody = bodyOf({
     attach: flag('attach is true (file in) or false (take out).').optional(),
 }, 'Filing a resource');
 
+// POST /:id/resources/related — the parts about to be filed; the registry
+// decides which kinds exist, the handler says so when one is not movable.
+const RELATED_TEXT = 'items is a list of { kind, id }.';
+const MAX_RELATED_ITEMS = 100;
+const RelatedBody = bodyOf({
+    items: z.array(closedObject({
+        kind: text(64, 'Every item needs a kind.').min(1, 'Every item needs a kind.'),
+        id: anId('Every item needs an id.'),
+    }, 'An item'), { invalid_type_error: RELATED_TEXT, required_error: RELATED_TEXT })
+        .min(1, RELATED_TEXT).max(MAX_RELATED_ITEMS, `At most ${MAX_RELATED_ITEMS} items at a time.`),
+}, 'Looking up related parts');
+
 const CONVERSATIONS_TEXT = 'assign and unassign are lists of { id, type }.';
 const conversationRef = closedObject({
     id: anId('Every conversation needs an id.'),
@@ -139,6 +151,10 @@ const source = {
     manifest: z.record(z.unknown(), { invalid_type_error: 'manifest is a Blueprint file, a JSON object.' }).optional(),
 };
 const UpgradeBody = bodyOf(source, 'Upgrading from a Blueprint');
+// GET /:id/package/releases/:releaseId — `download=1` sends the manifest as a file.
+const ReleaseQuery = queryOf({
+    download: choice(['0', '1'], 'download is 1 to save the release as a file.').optional(),
+}, 'A release');
 const InstallBody = bodyOf({
     ...source,
     name: text(NAME_MAX, `name is the new Solution's name, at most ${NAME_MAX} characters.`).optional(),
@@ -148,6 +164,6 @@ const InstallBody = bodyOf({
 
 module.exports = {
     CreateBody, ListQuery, KindBody, UpdateBody, ShareBody, MemberRoleBody, TypeQuery, PageQuery, SummaryQuery,
-    ShareThreadBody, TypingBody, ResourceBody, ConversationsBody,
-    ExportBody, UpgradeBody, InstallBody,
+    ShareThreadBody, TypingBody, ResourceBody, RelatedBody, ConversationsBody,
+    ExportBody, UpgradeBody, InstallBody, ReleaseQuery,
 };

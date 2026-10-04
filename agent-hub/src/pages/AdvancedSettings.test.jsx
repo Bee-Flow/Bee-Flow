@@ -292,6 +292,7 @@ describe('AdvancedSettings — organisation sub-items', () => {
             'Users & Groups',
             'Academy',
             'Integrations',
+            'MCP library',
             'GitHub Sync',
             'Nextcloud Sync',
             'Meeting templates',
@@ -305,7 +306,7 @@ describe('AdvancedSettings — organisation sub-items', () => {
             'License & Usage', 'Sign-in Method', 'Privacy Shield', 'Encryption',
             'Conversation Memory', 'Answer Reuse', 'Organisation Info',
             'Usage & Monitoring', 'Users & Groups', 'Academy', 'Integrations',
-            'Meeting templates',
+            'MCP library', 'Meeting templates',
         ]);
     });
 

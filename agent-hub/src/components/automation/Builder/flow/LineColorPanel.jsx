@@ -16,7 +16,7 @@ import { autoCaseColor, EDGE_COLOR_KEYS, PII_GROUP_COLORS, resolveEdgeColor } fr
  *   - Branches: every routing rule (each Filter & Route case) with its
  *     current colour — automatic by default, click a swatch to pin one
  *     (writes the same edge.color the hover picker writes).
- *   - PII: the group → colour legend, editable per routine
+ *   - PII: the group → colour legend, editable per automation
  *     (definition.piiLineColors, palette keys only).
  *
  * Colour editing is gated on `editable`; the lens works everywhere (it's a
@@ -140,7 +140,7 @@ export default function LineColorPanel({
                         {!hasPiiData && (
                             <p className="text-[10px] text-amber-600 dark:text-amber-400 mb-1.5">
                                 No PII data yet — run a test (▶ or a dry run) with the Privacy
-                                Shield applied to routines, and lines colour by what was detected.
+                                Shield applied to automations, and lines colour by what was detected.
                             </p>
                         )}
                         <div className="space-y-1.5">

@@ -10,7 +10,7 @@
  *     value that looks like personal data;
  *   - someone else's value is only offered once two people use it; the
  *     caller always sees their own;
- *   - the scope is the caller's organisation, so another org's routines never
+ *   - the scope is the caller's organisation, so another org's automations never
  *     show up;
  *   - a missing or malformed tool/input is a 400 invalid_request.
  *

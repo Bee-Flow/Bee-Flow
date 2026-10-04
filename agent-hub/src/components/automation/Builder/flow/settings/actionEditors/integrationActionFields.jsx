@@ -48,13 +48,11 @@ function IntegrationActionFields({ step, draft, set, catalog, groups = [], onFoc
         const patch = autoMapInputs(inputSchema, draft.inputs || {}, groups || []);
         if (Object.keys(patch).length) set('inputs', { ...(draft.inputs || {}), ...patch });
     };
-    // A list-pick chooser choice of "run this step once for each row" lands
-    // here: write the forEach and force the Advanced section (which holds its
-    // editor) open once, so the change is visible where it can be undone.
-    const [foreachJustSet, setForeachJustSet] = useState(false);
+    // "Run once per item" from a field lands here. Advanced stays closed: the
+    // field itself says the step now runs per item, with Undo, and Advanced
+    // shows "set" on its band.
     const requestForEach = React.useCallback((fe) => {
         set('forEach', fe ? { itemVar: 'item', maxIterations: 100, ...(draft.forEach || {}), ...fe } : null);
-        setForeachJustSet(!!fe);
     }, [draft.forEach, set]);
     // Same app = one node with a switchable operation (n8n-style). Keep the
     // inputs that also exist in the new operation; drop the rest.
@@ -113,7 +111,9 @@ function IntegrationActionFields({ step, draft, set, catalog, groups = [], onFoc
                     previewSample={previewSample}
                     autoMappedKeys={step.autoMapped || []}
                     onAutoMap={onAutoMap}
-                    onRequestForEach={requestForEach}
+                    // Not while the step already runs per item: a second list would orphan
+                    // every field that reads the current one.
+                    onRequestForEach={draft.forEach?.overRef ? null : requestForEach}
                     // Only let the user add ad-hoc fields when the tool can
                     // actually accept them: a fixed schema (gmail_search etc.)
                     // doesn't, so hide "Add custom field"; a tool with no
@@ -138,7 +138,7 @@ function IntegrationActionFields({ step, draft, set, catalog, groups = [], onFoc
                     />
                 )}
             </AccordionSection>
-            <AccordionSection stepType="integration_action" sectionKey="advanced" title="Advanced" defaultOpen={advancedIsSet} forceOpen={errorSections.has('advanced') || foreachJustSet} hasContent={advancedIsSet}>
+            <AccordionSection stepType="integration_action" sectionKey="advanced" title="Advanced" defaultOpen={advancedIsSet} forceOpen={errorSections.has('advanced')} hasContent={advancedIsSet}>
                 <ForEachSection draft={draft} set={set} groups={groups} onFocusField={onFocusField} />
                 <RetrySection draft={draft} set={set} />
                 <AskOnceRow draft={draft} set={set} {...askOnceAvailability(action, appLabel)} />

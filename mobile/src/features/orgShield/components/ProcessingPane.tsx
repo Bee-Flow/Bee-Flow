@@ -76,8 +76,8 @@ export function ProcessingPane({
                     testID="scan-kbs"
                 />
                 <ToggleRow
-                    label={t('admin.shield_apply_automations', 'Also protect routines')}
-                    description={t('admin.shield_apply_automations_desc', 'Routines run on their own, with nobody watching. Check their data and their AI steps the same way as chat. (Activity logging keeps running either way.)')}
+                    label={t('admin.shield_apply_automations', 'Also protect automations')}
+                    description={t('admin.shield_apply_automations_desc', 'Automations run on their own, with nobody watching. Check their data and their AI steps the same way as chat. (Activity logging keeps running either way.)')}
                     value={fields.applyToAutomations}
                     onValueChange={(applyToAutomations) => set({ applyToAutomations })}
                     testID="apply-automations"

@@ -38,6 +38,7 @@ const { buildUpdate } = require('./lib/sqlBuilder');
 const log = require('../telemetry/log');
 const { parseJSONObject: parseJSON } = require('./lib/json');
 const { makeProjectChangeFns, mapActivityRow } = require('./projectChanges');
+const { storeError } = require('./lib/managedParts');
 
 /** The two kinds a project can be. NULL (legacy) is the absence of one. */
 const PROJECT_KINDS = Object.freeze(['workspace', 'solution']);
@@ -284,6 +285,31 @@ async function applyProjectSchema({ exec, runDdl }) {
         `ALTER TABLE projects ADD COLUMN IF NOT EXISTS kind_guessed BOOLEAN NOT NULL DEFAULT FALSE`,
     ]);
 
+    // ── Solution stages (UAT / PRD) ──────────────────────────────────────────
+    //
+    // A stage is its own `projects` row (kind 'solution') with `stage` and
+    // `stage_of` (the Dev project's id, a soft reference like every other).
+    // Both are WRITE-ONCE: only `createStageProject` sets them, on a new row,
+    // and only `detachStage` clears them; `updateProject` never takes them.
+    // That is what lets `stageOfProject` cache a negative answer for good.
+    // One UAT and one PRD per Solution (the unique index). The pair CHECK is
+    // added once, guarded on pg_constraint (the idiom of
+    // migrations/approvals-v2-2026-09.js), so a later boot is a catalog lookup
+    // and not a full scan of projects.
+    await runDdl('projectStore', [
+        `ALTER TABLE projects ADD COLUMN IF NOT EXISTS stage TEXT
+            CONSTRAINT projects_stage_chk CHECK (stage IS NULL OR stage IN ('uat', 'prd'))`,
+        `ALTER TABLE projects ADD COLUMN IF NOT EXISTS stage_of TEXT`,
+        `CREATE UNIQUE INDEX IF NOT EXISTS uq_projects_stage ON projects(stage_of, stage) WHERE stage_of IS NOT NULL`,
+        `DO $$
+        BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'projects_stage_pair_chk') THEN
+                ALTER TABLE projects ADD CONSTRAINT projects_stage_pair_chk
+                    CHECK ((stage IS NULL) = (stage_of IS NULL) AND (stage IS NULL OR kind = 'solution'));
+            END IF;
+        END $$`,
+    ]);
+
     // ── What changed, and what each member has seen ─────────────────────────
     //
     // project_activity becomes the change feed as well as the audit trail
@@ -399,6 +425,10 @@ function mapProjectRow(row) {
         // ground for access (see the ladder above).
         installedFromOrgId: row.installed_from_org_id || null,
         installedVersion: Number.isInteger(row.installed_version) ? row.installed_version : null,
+        // 'uat' | 'prd' on a Solution stage, with the Dev project it is a stage
+        // of; null on every other project.
+        stage: row.stage === 'uat' || row.stage === 'prd' ? row.stage : null,
+        stageOf: row.stage_of || null,
         createdAt: row.created_at,
         updatedAt: row.updated_at,
     };
@@ -421,6 +451,18 @@ const EVENT_REPLAY_LIMIT = 500;
 // the agent schema was never created here, or predates sharing.
 const NO_SHARING_SCHEMA = new Set(['42P01', '42703']);
 
+// How long a POSITIVE stageOfProject answer is trusted. A negative one for an
+// existing row is kept for the process lifetime: a project never becomes a
+// stage later (only createStageProject sets the columns, on a new row). A
+// positive one can end through detachStage on another replica, so it expires,
+// and a refusal re-reads uncached anyway (stores/lib/managedParts.js).
+const STAGE_POSITIVE_TTL_MS = 10_000;
+// A bound on the negative entries, so a long-lived process does not keep one
+// per project it ever looked at. Overflow clears the map; it refills on demand.
+const STAGE_CACHE_MAX = 50_000;
+
+const STAGE_LABEL = Object.freeze({ uat: 'UAT', prd: 'Production' });
+
 /**
  * The store's functions over one database facade.
  *
@@ -430,10 +472,14 @@ const NO_SHARING_SCHEMA = new Set(['42P01', '42703']);
  *   getAll: (sql: string, params?: any[]) => Promise<any[]>,
  *   getClient: () => Promise<{ query: (sql: string, params?: any[]) => Promise<{ rows: any[] }>, release: () => void }>,
  * }} db  db.js, or a facade of the same shape (pglite in the store test)
- * @param {{ ready?: () => Promise<unknown> }} [opts]  the schema init every function awaits first
+ * @param {{ ready?: () => Promise<unknown>, managedParts?: { assertManagedWrite: Function } }} [opts]
+ *        `ready`: the schema init every function awaits first; `managedParts`:
+ *        the stage write guard (stores/lib/managedParts.js), default its own instance
  */
-function makeProjectStore(db, { ready = async () => {} } = {}) {
+function makeProjectStore(db, { ready = async () => {}, managedParts = null } = {}) {
     const initDB = ready;
+    // Required lazily: the default guard reads this module's default store.
+    const guard = () => managedParts || require('./lib/managedParts');
     const run = (sql, params) => db.run(sql, params);
     const getOne = (sql, params) => db.getOne(sql, params);
     const getAll = (sql, params) => db.getAll(sql, params);
@@ -486,14 +532,24 @@ function makeProjectStore(db, { ready = async () => {} } = {}) {
      *                 read a published app, and so on) rely on that; only the
      *                 two LISTINGS narrow.
      *
+     * Solution stages (UAT/PRD rows, `stage_of` set) are left out of the
+     * 'solution' listing: they show under their Solution, not as Solutions of
+     * their own. `{ kind: 'solution', onlyStages: true }` lists just the stage
+     * rows the user can reach (a stage operator who is no Dev member). With
+     * `kind` omitted they stay in: a stage member must keep reading the apps
+     * published to the stage (studioAppStore.userProjectIds).
+     *
      * @param {string} userId
      * @param {string[]} groupIds - groups the user belongs to
-     * @param {{ kind?: 'workspace'|'solution' }} [opts]
+     * @param {{ kind?: 'workspace'|'solution', onlyStages?: boolean }} [opts]
      */
-    async function listUserProjects(userId, groupIds = [], { kind } = {}) {
+    async function listUserProjects(userId, groupIds = [], { kind, onlyStages = false } = {}) {
         await initDB();
         if (kind !== undefined && kind !== null && !PROJECT_KINDS.includes(kind)) {
             throw new TypeError(`listUserProjects: kind is 'workspace' or 'solution', not ${JSON.stringify(kind)}.`);
+        }
+        if (onlyStages && kind !== 'solution') {
+            throw new TypeError(`listUserProjects: onlyStages goes with kind 'solution'.`);
         }
 
         // Build a query that gets owned projects + projects shared with user or user's groups
@@ -505,9 +561,12 @@ function makeProjectStore(db, { ready = async () => {} } = {}) {
             params.push(...groupIds);
         }
         let kindFilter = '';
-        if (kind) {
+        if (onlyStages) {
+            kindFilter = 'AND p.stage_of IS NOT NULL';
+        } else if (kind) {
             params.push(kind);
             kindFilter = `AND (p.kind = $${params.length} OR p.kind IS NULL)`;
+            if (kind === 'solution') kindFilter += ' AND p.stage_of IS NULL';
         }
 
         const rows = await getAll(`
@@ -559,6 +618,7 @@ function makeProjectStore(db, { ready = async () => {} } = {}) {
         if (!PROJECT_KINDS.includes(kind)) {
             throw new TypeError(`setProjectKind: kind is 'workspace' or 'solution', not ${JSON.stringify(kind)}.`);
         }
+        await refuseStageBound(id);
         const { rowCount } = await run(
             `UPDATE projects SET kind = $2, kind_guessed = FALSE, updated_at = NOW()
               WHERE id = $1 AND (kind IS NULL OR kind_guessed)`,
@@ -735,14 +795,26 @@ function makeProjectStore(db, { ready = async () => {} } = {}) {
      *
      * Omitting expectedVersion keeps the old last-write-wins behaviour, so existing
      * callers are unaffected.
+     * `stage` and `stage_of` are never written here (they are not in
+     * PROJECT_COLUMNS): they are write-once. On a stage project a change to
+     * `knowledgeBaseIds` is a change to a managed part and needs the deploy's
+     * capability (`opts.managedWrite`), or it throws 409 managed_part.
+     *
      * @param id
      * @param updates
-     * @param {{ expectedVersion?: number }} [opts]
+     * @param {{ expectedVersion?: number, managedWrite?: { deploymentId?: string }|null }} [opts]
      */
-    async function updateProject(id, updates, { expectedVersion } = {}) {
+    async function updateProject(id, updates, { expectedVersion, managedWrite = null } = {}) {
         await initDB();
-        const existing = await getOne('SELECT id, owner_id, version FROM projects WHERE id = $1', [id]);
+        const existing = await getOne('SELECT id, owner_id, version, stage_of, knowledge_base_ids FROM projects WHERE id = $1', [id]);
         if (!existing) return null;
+
+        if (existing.stage_of && updates && updates.knowledgeBaseIds !== undefined
+            && JSON.stringify(parseJSON(existing.knowledge_base_ids, [])) !== JSON.stringify(updates.knowledgeBaseIds || [])) {
+            await guard().assertManagedWrite({
+                kind: 'project', projectId: id, changedKeys: ['knowledgeBaseIds'], managedWrite,
+            });
+        }
 
         if (expectedVersion !== undefined && expectedVersion !== null
             && Number(existing.version) !== Number(expectedVersion)) {
@@ -847,6 +919,9 @@ function makeProjectStore(db, { ready = async () => {} } = {}) {
      */
     async function handOverProject(projectId, fromOwnerId) {
         await initDB();
+        // A stage runs as its Solution owner, so neither a stage nor a Dev
+        // project with stages changes hands this way (the stages first).
+        await refuseStageBound(projectId);
         const { rows } = await run(
             `WITH heir AS (
                  SELECT id, shared_with_id FROM project_shares
@@ -1111,6 +1186,159 @@ function makeProjectStore(db, { ready = async () => {} } = {}) {
         return rows.map(mapActivityRow);
     }
 
+    // ── Solution stages ──────────────────────────────────────────────────
+
+    // projectId → { value: null|StageOf, expiresAt: number } (Infinity for a negative).
+    const stageCache = new Map();
+
+    function mapStageOf(row) {
+        return row && row.stage_of && (row.stage === 'uat' || row.stage === 'prd')
+            ? { solutionId: row.stage_of, stage: row.stage, projectId: row.id }
+            : null;
+    }
+
+    /**
+     * The stage a project is, read uncached: null for every project that is
+     * not a stage (and for one that does not exist).
+     *
+     * @param {string} projectId
+     * @returns {Promise<{ solutionId: string, stage: 'uat'|'prd', projectId: string }|null>}
+     */
+    async function stageOfProjectFresh(projectId) {
+        await initDB();
+        if (typeof projectId !== 'string' || !projectId) return null;
+        const row = await getOne('SELECT id, stage, stage_of FROM projects WHERE id = $1', [projectId]);
+        const value = mapStageOf(row);
+        if (row) {
+            if (stageCache.size >= STAGE_CACHE_MAX) stageCache.clear();
+            stageCache.set(projectId, { value, expiresAt: value ? Date.now() + STAGE_POSITIVE_TTL_MS : Infinity });
+        } else {
+            stageCache.delete(projectId);
+        }
+        return value;
+    }
+
+    /**
+     * `stageOfProjectFresh` behind the cache (a negative for an existing row
+     * for good, a positive for 10 s). A guard that would REFUSE re-reads with
+     * the fresh variant first, so a detach elsewhere is never refused on.
+     *
+     * @param {string} projectId
+     */
+    async function stageOfProject(projectId) {
+        const hit = typeof projectId === 'string' ? stageCache.get(projectId) : undefined;
+        if (hit && hit.expiresAt > Date.now()) return hit.value;
+        return stageOfProjectFresh(projectId);
+    }
+
+    /**
+     * Refuse a whole-project change (kind, owner) on a stage project and on a
+     * Dev project that has stages: 409 stage_project / solution_has_stages.
+     * @param {string} projectId
+     */
+    async function refuseStageBound(projectId) {
+        const row = await getOne(
+            `SELECT p.stage_of,
+                    EXISTS (SELECT 1 FROM projects s WHERE s.stage_of = p.id) AS has_stages
+               FROM projects p WHERE p.id = $1`,
+            [projectId]
+        );
+        if (!row) return;
+        if (row.stage_of) {
+            throw storeError(409, 'stage_project', 'This project is a stage of a Solution. Change the Solution in Dev.',
+                { solutionId: row.stage_of });
+        }
+        let hasStages = row.has_stages === true;
+        if (!hasStages) {
+            try {
+                hasStages = !!(await getOne('SELECT 1 AS x FROM solution_stages WHERE solution_id = $1 LIMIT 1', [projectId]));
+            } catch (err) {
+                if (err?.code !== '42P01') throw err;
+            }
+        }
+        if (hasStages) {
+            throw storeError(409, 'solution_has_stages', 'This Solution has stages. Detach or remove them first.',
+                { solutionId: projectId });
+        }
+    }
+
+    /**
+     * Create the projects row of a stage: the ONLY writer of `stage` and
+     * `stage_of`. Runs on the caller's transaction (solutionStageStore.createStages).
+     * Kind 'solution', named "<Dev> (UAT)" / "<Dev> (Production)", in the Dev
+     * project's organisation, owned by `ownerId` (the run-as user).
+     *
+     * @param {{ query: (sql: string, params?: any[]) => Promise<{ rows: any[] }> }|null} client
+     * @param {{ devProject: { id: string, name: string, organizationId?: string, organization_id?: string, color?: string, icon?: string },
+     *           stage: 'uat'|'prd', ownerId: string }} args
+     */
+    async function createStageProject(client, { devProject, stage, ownerId }) {
+        await initDB();
+        if (stage !== 'uat' && stage !== 'prd') throw new TypeError(`createStageProject: stage is 'uat' or 'prd', not ${JSON.stringify(stage)}.`);
+        if (!devProject || !devProject.id) throw new TypeError('createStageProject: devProject is required.');
+        if (typeof ownerId !== 'string' || !ownerId) throw new TypeError('createStageProject: ownerId is required.');
+        const orgId = devProject.organizationId ?? devProject.organization_id ?? '';
+        const id = crypto.randomUUID();
+        const q = client ? (sql, params) => client.query(sql, params) : run;
+        const { rows } = await q(
+            `INSERT INTO projects (id, name, description, color, icon, owner_id, organization_id, kind, stage, stage_of)
+             VALUES ($1, $2, '', $3, $4, $5, $6, 'solution', $7, $8)
+             RETURNING *`,
+            [id, `${devProject.name} (${STAGE_LABEL[stage]})`, devProject.color || '#6366f1', devProject.icon || '📁',
+                ownerId, orgId || '', stage, devProject.id]
+        );
+        return mapProjectRow(rows[0]);
+    }
+
+    /**
+     * The escape hatch: make a stage project an ordinary Solution again. The
+     * only writer that clears `stage`/`stage_of`. Logs `stage_detached` on the
+     * project, on the same client, so the audit row commits with it.
+     *
+     * @param {string} projectId
+     * @param {{ client?: { query: Function }|null, actorId?: string|null }} [opts]
+     * @returns {Promise<boolean>} true when the project was a stage
+     */
+    async function detachStage(projectId, { client = null, actorId = null } = {}) {
+        await initDB();
+        const q = client ? (sql, params) => client.query(sql, params) : run;
+        const { rows } = await q(
+            `WITH old AS (
+                 SELECT id, stage, stage_of FROM projects WHERE id = $1 AND stage_of IS NOT NULL FOR UPDATE
+             )
+             UPDATE projects p SET stage = NULL, stage_of = NULL, updated_at = NOW()
+               FROM old WHERE p.id = old.id
+             RETURNING old.stage, old.stage_of`,
+            [projectId]
+        );
+        stageCache.delete(projectId);
+        if (!rows || !rows.length) return false;
+        if (actorId) {
+            await q(
+                `INSERT INTO project_activity (id, project_id, actor_id, action, target_type, target_id, details)
+                 VALUES ($1, $2, $3, 'stage_detached', 'project', $4, $5)`,
+                [crypto.randomUUID(), projectId, actorId, rows[0].stage_of,
+                    JSON.stringify({ stage: rows[0].stage, solutionId: rows[0].stage_of })]
+            );
+        }
+        return true;
+    }
+
+    /**
+     * Record the version a Solution now runs (an install or an upgrade).
+     * NULL stays "not recorded": a non-positive or non-integer version clears it.
+     *
+     * @param {string} projectId
+     * @param {number|null} version
+     * @returns {Promise<boolean>}
+     */
+    async function setInstalledVersion(projectId, version) {
+        await initDB();
+        const v = Number.isInteger(version) && version > 0 ? version : null;
+        const { rowCount } = await run('UPDATE projects SET installed_version = $2 WHERE id = $1', [projectId, v]);
+        return rowCount > 0;
+    }
+
     // The change feed: editing sessions, visits and seen marks.
     const changes = makeProjectChangeFns({ getOne, getAll, run, getClient, ready: initDB });
 
@@ -1120,6 +1348,11 @@ function makeProjectStore(db, { ready = async () => {} } = {}) {
         getProject,
         listUserProjects,
         setProjectKind,
+        stageOfProject,
+        stageOfProjectFresh,
+        createStageProject,
+        detachStage,
+        setInstalledVersion,
         countChatHoldings,
         listSharedThreads,
         getOwnConversationFiling,
@@ -1159,6 +1392,12 @@ module.exports = {
     listUserProjects: store.listUserProjects,
     // The workspace / Solution split (see the header).
     setProjectKind: store.setProjectKind,
+    // Solution stages (UAT / PRD): see the stage block of applyProjectSchema.
+    stageOfProject: store.stageOfProject,
+    stageOfProjectFresh: store.stageOfProjectFresh,
+    createStageProject: store.createStageProject,
+    detachStage: store.detachStage,
+    setInstalledVersion: store.setInstalledVersion,
     countChatHoldings: store.countChatHoldings,
     listSharedThreads: store.listSharedThreads,
     getOwnConversationFiling: store.getOwnConversationFiling,

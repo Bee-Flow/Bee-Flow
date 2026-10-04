@@ -3,7 +3,7 @@ import { errorInfoTitle } from './runLogSentence';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { buildRunStepLabelMap, runStepLabel } from '../../../automation/Builder/flow/displayHelpers';
 import { statusLabel, tokenForStep } from '../../../shared/statusTokens';
-import { formatDuration } from '../RoutinesStudio/historyUtils';
+import { formatDuration } from '../AutomationsStudio/historyUtils';
 
 /**
  * The run as a story: every step in order, named as the user named it, with

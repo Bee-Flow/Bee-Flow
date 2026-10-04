@@ -62,6 +62,8 @@ const log = require('../telemetry/log');
 const COMPLETENESS_BUDGET = 24;
 /** How many of those run at once. Each one is a fan-out of its own. */
 const COMPLETENESS_CONCURRENCY = 4;
+/** The deployment statuses that hold a stage: running, or waiting for an approval. */
+const BUSY_DEPLOYMENT_STATUSES = Object.freeze(['awaiting_approval', 'queued', 'approved', 'preparing', 'committing', 'converging', 'compensating']);
 
 /** Midnight UTC of the day `now` falls in. */
 function startOfDayUtc(now = new Date()) {
@@ -151,6 +153,80 @@ function updateStatusFor(project, readable, installedVersions) {
 }
 
 /**
+ * The stages of these Solutions, one query over solution_stages with the latest
+ * deployment of each stage joined in: `Map(solutionId → [{ stage, projectId,
+ * currentReleaseSeq, lastDeploymentStatus, pending }])`, UAT first. Counts and
+ * statuses only. `pending` = a deployment is running or waits for an approval.
+ * A Solution without stages has no entry.
+ *
+ * @param {string[]} solutionIds  ALREADY-AUTHORISED ids
+ * @param {{ query?: (sql: string, params: any[]) => Promise<any> }} [io]  replaceable for a test
+ * @returns {Promise<Map<string, Array<{ stage: string, projectId: string, currentReleaseSeq: number|null,
+ *   lastDeploymentStatus: string|null, pending: boolean }>>>}
+ */
+async function stagesForSolutions(solutionIds, io = {}) {
+    const ids = (Array.isArray(solutionIds) ? solutionIds : []).filter(id => typeof id === 'string' && id);
+    const out = new Map();
+    if (!ids.length) return out;
+    const query = io.query || ((sql, params) => require('../db').run(sql, params));
+    const res = await query(
+        `SELECT s.solution_id, s.stage, s.project_id, s.current_release_seq, d.status AS last_status
+           FROM solution_stages s
+           LEFT JOIN LATERAL (
+               SELECT status FROM solution_deployments
+                WHERE stage_project_id = s.project_id
+                ORDER BY created_at DESC, id DESC LIMIT 1
+           ) d ON TRUE
+          WHERE s.solution_id = ANY($1::text[])
+          ORDER BY s.solution_id, CASE s.stage WHEN 'uat' THEN 0 ELSE 1 END`,
+        [ids],
+    );
+    for (const row of (Array.isArray(res) ? res : (res && res.rows) || [])) {
+        const list = out.get(row.solution_id) || [];
+        list.push({
+            stage: row.stage,
+            projectId: row.project_id,
+            currentReleaseSeq: Number.isInteger(row.current_release_seq) ? row.current_release_seq : null,
+            lastDeploymentStatus: row.last_status || null,
+            pending: BUSY_DEPLOYMENT_STATUSES.includes(row.last_status),
+        });
+        out.set(row.solution_id, list);
+    }
+    return out;
+}
+
+const STAGE_NAME_SUFFIX = /\s+\((?:UAT|Production)\)$/;
+
+/**
+ * The stage rows a person can reach whose Dev Solution is NOT in `visibleIds`:
+ * a stage-only operator has no Dev role, so without this list they would have no
+ * entry point to the stage they run. `stageProjects` is the project listing
+ * (listUserProjects with `kind: 'solution', onlyStages: true`), which is the
+ * authorisation; the Solution is named after its stage (the stage project is
+ * "<Solution> (UAT)"), so no Dev row is read.
+ *
+ * @param {object[]} stageProjects
+ * @param {Set<string>|string[]} visibleIds  the Dev Solutions the person already sees
+ * @returns {Array<{ solutionId: string, solutionName: string, stage: string, projectId: string, role: string }>}
+ */
+function operatedStagesOf(stageProjects, visibleIds) {
+    const visible = visibleIds instanceof Set ? visibleIds : new Set(visibleIds || []);
+    const out = [];
+    for (const p of Array.isArray(stageProjects) ? stageProjects : []) {
+        if (!p || typeof p.id !== 'string' || !p.stageOf || (p.stage !== 'uat' && p.stage !== 'prd')) continue;
+        if (visible.has(p.stageOf)) continue;
+        out.push({
+            solutionId: p.stageOf,
+            solutionName: String(p.name || '').replace(STAGE_NAME_SUFFIX, ''),
+            stage: p.stage,
+            projectId: p.id,
+            role: p.permission || 'viewer',
+        });
+    }
+    return out;
+}
+
+/**
  * Build the overview.
  *
  * @param {object[]} projects  ALREADY-AUTHORISED rows (listUserProjects shape).
@@ -160,23 +236,29 @@ function updateStatusFor(project, readable, installedVersions) {
  *   and every installed Solution reports `available: null`.
  * @param {Function} [options.completenessFor]   `(projectId) => aggregate`, injected
  *   by the route. Absent = not checked, which is reported, not assumed clean.
+ * @param {object}   [options.io]                replaceable readers (a test's doubles): `countMembers(ids)`,
+ *   `runCounts(ids, { sinceTs })`, `blueprints({ userId, organizationId })`, `installedVersions(ids)`.
+ *   Absent = the real stores.
+ * @param {Function} [options.stagesFor]         `(solutionIds) => Map(solutionId → stages)`
+ *   (see stagesForSolutions). Absent = the cards carry no `stages` key at all;
+ *   present but failing = `stages: null` and 'stages' in `unavailable`.
  * @param {Date}     [options.now]
  * @param {Date}     [options.since]             start of "today" for the run tally.
  * @param {number}   [options.completenessBudget]
  */
 async function summarizeProjects(projects, {
     viewer = null, completenessFor = null, now = new Date(), since = null,
-    completenessBudget = COMPLETENESS_BUDGET,
+    completenessBudget = COMPLETENESS_BUDGET, stagesFor = null, io = {},
 } = {}) {
     const rows = Array.isArray(projects) ? projects.filter(p => p && typeof p.id === 'string') : [];
     const ids = rows.map(p => p.id);
     const sinceTs = since || startOfDayUtc(now);
 
-    const [members, runs, readable, installedVersions] = await Promise.all([
-        countMembers(ids),
+    const [members, runs, readable, installedVersions, stagesBySolution] = await Promise.all([
+        (io.countMembers || countMembers)(ids),
         (async () => {
             try {
-                return await require('../stores/automationStore').getRunCountsForProjects(ids, { sinceTs });
+                return await (io.runCounts || ((i, o) => require('../stores/automationStore').getRunCountsForProjects(i, o)))(ids, { sinceTs });
             } catch (err) {
                 log.warn('[Projects] summary: could not count runs:', err.message);
                 return null;      // null = unreadable, distinct from an empty Map
@@ -185,7 +267,7 @@ async function summarizeProjects(projects, {
         (async () => {
             if (!viewer?.userId) return null;
             try {
-                const list = await require('../stores/blueprintStore').listBlueprintsFor({
+                const list = await (io.blueprints || ((q) => require('../stores/blueprintStore').listBlueprintsFor(q)))({
                     userId: viewer.userId, organizationId: viewer.organizationId || null,
                 });
                 return new Map((list || []).map(b => [b.id, b]));
@@ -196,9 +278,18 @@ async function summarizeProjects(projects, {
         })(),
         (async () => {
             try {
-                return await require('../stores/blueprintStore').listInstalledVersions(ids);
+                return await (io.installedVersions || ((i) => require('../stores/blueprintStore').listInstalledVersions(i)))(ids);
             } catch (err) {
                 log.warn('[Projects] summary: could not read install stamps:', err.message);
+                return null;
+            }
+        })(),
+        (async () => {
+            if (typeof stagesFor !== 'function') return undefined;
+            try {
+                return await stagesFor(ids);
+            } catch (err) {
+                log.warn('[Projects] summary: could not read the stages:', err.message);
                 return null;
             }
         })(),
@@ -253,6 +344,9 @@ async function summarizeProjects(projects, {
         const update = updateStatusFor(project, readable, installedVersions);
         if (update && update.available === null) unavailable.push('update');
 
+        // UAT / PRD of this Solution. A failed read is null (not "no stages") and named.
+        if (stagesBySolution === null) unavailable.push('stages');
+
         return {
             id: project.id,
             name: project.name,
@@ -272,6 +366,7 @@ async function summarizeProjects(projects, {
             runs: runCount && { today: runCount.total, failed: runCount.failed },
             completeness,
             update,
+            ...(stagesBySolution === undefined ? {} : { stages: stagesBySolution ? (stagesBySolution.get(project.id) || []) : null }),
             unavailable,
             complete: unavailable.length === 0,
         };
@@ -286,6 +381,7 @@ async function summarizeProjects(projects, {
             ...(runs ? [] : ['runs']),
             ...(installedVersions ? [] : ['installedVersions']),
             ...(viewer?.userId && !readable ? ['blueprints'] : []),
+            ...(stagesBySolution === null ? ['stages'] : []),
         ],
         checkedCount: checkable.length,
         completenessBudget,
@@ -294,6 +390,8 @@ async function summarizeProjects(projects, {
 
 module.exports = {
     summarizeProjects,
+    stagesForSolutions,
+    operatedStagesOf,
     countMembers,
     updateStatusFor,
     startOfDayUtc,

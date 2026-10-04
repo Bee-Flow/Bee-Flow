@@ -197,7 +197,7 @@
       "id": "nochip",
       "icon": "🚫",
       "title": "The chip is not there. Why?",
-      "bodyMd": "**Run as** is drawn only when there is something to pick, so its absence has causes rather than being a fault.\n\n- **No agents to offer you.** Nothing to choose, so two chips instead of three.\n- **Your role may not manage agents.** The list behind the chip is read with the same permission that lets someone build agents — Organisation Admin, Agent Admin and Agent Editor have it, a Member does not. For a Member the chip is simply not drawn.\n- **The agent-routines feature is not enabled for the account.** An attempt made anyway is refused with *Agent routines beta is not enabled for this account*.\n- **It is not your agent.** An item may only run as an agent you own; anything else is refused with *Agent not found or not owned by you*.\n\nNone of this stops the item. It runs as a plain prompt, which is the default anyway."
+      "bodyMd": "**Run as** is drawn only when there is something to pick, so its absence has causes rather than being a fault.\n\n- **No agents to offer you.** Nothing to choose, so two chips instead of three.\n- **Your role may not manage agents.** The list behind the chip is read with the same permission that lets someone build agents — Organisation Admin, Agent Admin and Agent Editor have it, a Member does not. For a Member the chip is simply not drawn.\n- **The agent-automations feature is not enabled for the account.** An attempt made anyway is refused with *Agent automations beta is not enabled for this account*.\n- **It is not your agent.** An item may only run as an agent you own; anything else is refused with *Agent not found or not owned by you*.\n\nNone of this stops the item. It runs as a plain prompt, which is the default anyway."
     },
     {
       "type": "action",
@@ -216,7 +216,7 @@
       "id": "wrong",
       "icon": "⚠️",
       "title": "What breaks once an agent is in the picture",
-      "bodyMd": "A linked item has failure modes a plain-prompt one does not, and they all surface the same way — as a failed run with its reason on the top row of **What happened**.\n\n- **The agent was deleted.** Every cowork item pointing at it fails, with an error saying the linked agent no longer exists.\n- **The agent is no longer yours.** A run may only use an agent you own; ownership moving elsewhere stops it.\n- **The feature was switched off for the organisation.** Already-scheduled agent runs stop, and the failure names agent routines as the reason.\n- **A connection expired.** The status word becomes **Needs sign-in**, and every item of yours that could touch that provider is paused until you reconnect it under Settings → Integrations — with an agent linked, the broken connection may be one the agent reaches for rather than one your brief mentions.\n\nA repeating item keeps its series after any of these; only a one-off switches itself off."
+      "bodyMd": "A linked item has failure modes a plain-prompt one does not, and they all surface the same way — as a failed run with its reason on the top row of **What happened**.\n\n- **The agent was deleted.** Every cowork item pointing at it fails, with an error saying the linked agent no longer exists.\n- **The agent is no longer yours.** A run may only use an agent you own; ownership moving elsewhere stops it.\n- **The feature was switched off for the organisation.** Already-scheduled agent runs stop, and the failure names agent automations as the reason.\n- **A connection expired.** The status word becomes **Needs sign-in**, and every item of yours that could touch that provider is paused until you reconnect it under Settings → Integrations — with an agent linked, the broken connection may be one the agent reaches for rather than one your brief mentions.\n\nA repeating item keeps its series after any of these; only a one-off switches itself off."
     },
     {
       "type": "quiz",
@@ -288,7 +288,7 @@
       "The Apps picker puts an item in one of three states: no list of its own (it follows the workspace-wide list), its own list, or an empty list meaning it may use nothing; 'Follow my workspace list' returns it to the first state.",
       "When the workspace app list cannot be read the composer shows 'App list unavailable — this run follows your workspace list' and the edit form shows 'Your app list could not be loaded' — the item is never given a list that could not be verified.",
       "The Run as chip only appears when there are agents to pick from; the list behind it needs the permission that lets someone manage agents, which a Member does not have.",
-      "An item may only run as an agent you own; other attempts are refused with 'Agent not found or not owned by you', and an account without the agent-routines feature gets 'Agent routines beta is not enabled for this account'.",
+      "An item may only run as an agent you own; other attempts are refused with 'Agent not found or not owned by you', and an account without the agent-automations feature gets 'Agent automations beta is not enabled for this account'.",
       "If the linked agent has Memory switched on, each run is given the items earlier runs of the same cowork already covered, with dates, and is told to skip them unless something material changed."
     ]
   },

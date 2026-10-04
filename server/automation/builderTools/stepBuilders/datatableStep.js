@@ -62,7 +62,7 @@ function sanitizeDatatableBindings(raw, draft) {
 // The ops that change rows. The catalog row says whether THIS user may write
 // the table (canWrite = editor grade or better, builderDatatableCatalog.js);
 // a write on a table they can only read passes the builder and the validator
-// and fails at run time, once, in a routine nobody is watching.
+// and fails at run time, once, in an automation nobody is watching.
 const DATATABLE_WRITE_OPS = new Set(['add_row', 'save_row', 'update_rows', 'delete_rows']);
 
 function readOnlyTableError(table, op) {
@@ -388,7 +388,7 @@ function checkExtractionFieldRefs(draft, values, forEach, draftWrap) {
  *
  * TWO addressing fields, and they are not equals. `datatableId` is
  * AUTHORITATIVE: it is the only thing execDatatable resolves, inside the
- * routine's own scopes, so a wrong id fails closed. `datatableKey` is
+ * automation's own scopes, so a wrong id fails closed. `datatableKey` is
  * ADVISORY — the table's own slug, carried so that an export (which must blank
  * the id: it names a table in one organisation) still says which table it
  * wanted, and portability.rebindDatatables can re-link it on import. Nothing at

@@ -175,6 +175,12 @@ test('a short message with code or arithmetic is not shortcut', () => {
     assert.strictEqual(classifyPromptComplexity('what is 12 * 34?').reason === 'short plain question', false);
 });
 
+test('a short instruction is not shortcut: it can need the writer or a deep tier', () => {
+    for (const msg of ['Write a 2000-word essay on WW2', 'Write a cover letter for a nurse job', 'Schrijf een uitgebreid bedrijfsplan', 'Analyse the causes of WW1 in depth']) {
+        assert.notStrictEqual(classifyPromptComplexity(msg).reason, 'short plain question', msg);
+    }
+});
+
 test('classify-service verdict wins and the LLM is never asked', async () => {
     reset({ service: { tier: 'deep_thinking', score: 0.91, ms: 120 } });
     const out = await classifyWithLLM(AMBIGUOUS_MSG, TIERS);

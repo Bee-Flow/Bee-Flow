@@ -69,7 +69,7 @@ async function createFormPage(automationId, triggerStepId = null, { audience = '
 /**
  * Who may fill the form in. Owner-scoped by `automationId` like every other
  * write on a page row. Returns the updated page, or null when the row is
- * not this routine's.
+ * not this automation's.
  */
 async function setFormPageAudience(id, automationId, { audience, sharedGroups, sharedUserIds }) {
     await initDB();
@@ -118,7 +118,7 @@ async function deleteFormPage(id, automationId) {
  * getAutomationsForUser, which filters by user_id.
  *
  * The automation's own columns ride along because every consumer needs them:
- * the title to show, and isActive/isDraft because a page whose routine is
+ * the title to show, and isActive/isDraft because a page whose automation is
  * either of those 404s for visitors (see formPublic.js's loadForm) and has to
  * read as "not live" rather than as a working link. The definition comes too —
  * the row survives the author switching the trigger to something else, and the
@@ -126,7 +126,7 @@ async function deleteFormPage(id, automationId) {
  */
 async function listFormPagesForOrg(organizationId, userId) {
     await initDB();
-    // Scoped through COALESCE(the routine's own organisation, the OWNER's), and
+    // Scoped through COALESCE(the automation's own organisation, the OWNER's), and
     // the COALESCE is load-bearing in BOTH directions now.
     //
     // When this was written nothing ever wrote automations.organization_id, so
@@ -181,7 +181,7 @@ async function listFormPagesForOrg(organizationId, userId) {
  *
  * Used to decide whether a signed-in caller may open it now that forms are not
  * public. Same scoping rule as listFormPagesForOrg, and the same COALESCE for
- * the same reason (see the note there): the routine's own organisation when it
+ * the same reason (see the note there): the automation's own organisation when it
  * has one, the OWNER's for every row created before that column started being
  * written. Returns null for an unknown token, which the caller answers as 404.
  */
@@ -216,8 +216,8 @@ async function formPageAudience(id) {
  * effect of an author happening to open that panel, and stopped being published
  * at all once the panel was hidden.
  *
- * Minting early costs nothing: loadForm 404s while the routine is a draft or
- * inactive, so a token without a live routine opens nothing.
+ * Minting early costs nothing: loadForm 404s while the automation is a draft or
+ * inactive, so a token without a live automation opens nothing.
  */
 async function ensureFormPage(automationId, triggerStepId = null) {
     await initDB();

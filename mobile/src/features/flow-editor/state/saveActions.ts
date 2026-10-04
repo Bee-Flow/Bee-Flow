@@ -8,12 +8,12 @@
  * BuilderShell's adoptPersistedDefinition). The save's warnings replace the
  * previous save's; a 400's `details` do the same as errors.
  *
- * A routine that does not exist yet is CREATED by its first save (the web's
+ * An automation that does not exist yet is CREATED by its first save (the web's
  * ensureAutomationCreated): one create at a time, shared by every caller that
  * needs the row, so a flurry of edits cannot leave two drafts behind. A create
  * that failed without the server's answer is not retried by the scheduler, and
  * later edits do not send it either: it may have landed, and a second POST is
- * a second routine. `retry()` and `ensureCreated()` (both a person's action)
+ * a second automation. `retry()` and `ensureCreated()` (both a person's action)
  * send it again.
  */
 
@@ -34,7 +34,7 @@ export const RETRY_DELAYS_MS: readonly number[] = [1000, 3000, 8000];
 type SaveActions = Pick<DraftActions, 'flush' | 'retry' | 'ensureCreated' | 'dispose'>;
 
 function notReady(): Error {
-    return new Error(translate('mobile.flow.not_loaded', 'This routine has not finished loading.'));
+    return new Error(translate('mobile.flow.not_loaded', 'This automation has not finished loading.'));
 }
 
 function bookkeeping(set: SetDraft, get: GetDraft, ctx: DraftContext) {
@@ -84,7 +84,7 @@ function sharedCreate(set: SetDraft, ctx: DraftContext) {
             .create({ title: ctx.title, definition })
             .then((result) => {
                 const row = result.automation;
-                if (!row?.id) throw new Error(translate('mobile.flow.create_failed', 'The routine could not be created.'));
+                if (!row?.id) throw new Error(translate('mobile.flow.create_failed', 'The automation could not be created.'));
                 set({ automationId: row.id });
                 ctx.deps.onCreated?.(row);
                 return { result, sent: definition };

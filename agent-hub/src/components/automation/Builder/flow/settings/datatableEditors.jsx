@@ -11,6 +11,7 @@ import { Table2 } from 'lucide-react';
 import FieldKeyCombobox from '../../mapping/FieldKeyCombobox';
 import ValueBuilder from '../../mapping/ValueBuilder';
 import { isScalarKind } from '../../mapping/fieldKinds';
+import useForEachRequest from '../../mapping/useForEachRequest';
 import { columnTypeKind, opTakesList, opTakesNoValue } from '../../../../admin/Studio/Datatables/datatableDisplay';
 import AccordionSection from '../AccordionSection';
 import { ForEachSection, RetrySection, retryIsSet } from './collectionEditors';
@@ -58,6 +59,9 @@ export default function DatatableFields({
         [tables, draft.datatableId],
     );
     const columns = useMemo(() => table?.columns || [], [table]);
+    // Dragging a value from inside each row of a list ("Lines ▸ Sku") into a
+    // column means a row per line: the step runs once per item.
+    const forEach = useForEachRequest(draft, set);
     const columnOptions = useMemo(
         () => columns.map(c => ({ value: c.key, label: c.name || c.key })),
         [columns],
@@ -69,9 +73,19 @@ export default function DatatableFields({
     // limit: it answers how many rows match, which is exactly the number
     // find_rows cannot give (its `returned` is clamped by the page size).
     const writes = op !== 'find_rows' && op !== 'count_rows';
+    // Adding a row picks no rows: the runtime ignores `where` there
+    // (execDatatable reads it only for find/count/save/update/delete). The
+    // section stays only while an old condition is still stored, so it can go.
     const needsValues = writes && op !== 'delete_rows';
     const needsMatch = op === 'save_row';
     const needsWhere = op === 'update_rows' || op === 'delete_rows';
+    const showWhere = op !== 'add_row' || (Array.isArray(draft.where) && draft.where.length > 0);
+    // Two tables with the same name are told apart by their key and size.
+    const dupNames = useMemo(() => {
+        const seen = new Map();
+        for (const t of tables) seen.set(t.name, (seen.get(t.name) || 0) + 1);
+        return new Set([...seen].filter(([, n]) => n > 1).map(([name]) => name));
+    }, [tables]);
 
     const where = Array.isArray(draft.where) ? draft.where : [];
     const setWhere = (next) => set('where', next);
@@ -89,7 +103,7 @@ export default function DatatableFields({
             >
                 <FormRow
                     label="Datatable"
-                    hint="Rows in a datatable stay put after the run ends, so this routine can read back what an earlier run wrote — and other routines can use the same table."
+                    hint="Rows in a datatable stay put after the run ends, so this automation can read back what an earlier run wrote — and other automations can use the same table."
                 >
                     {tables.length === 0 ? (
                         // Never a bare empty dropdown. An empty state that does
@@ -114,7 +128,7 @@ export default function DatatableFields({
                         //
                         // The link opens Studio in a new tab rather than
                         // navigating away — this panel sits over a canvas whose
-                        // edits are not saved yet, and losing the routine on the
+                        // edits are not saved yet, and losing the automation on the
                         // way to fetch a table for it is the same complaint
                         // twice. HttpAuthPicker's "Manage credentials in
                         // Settings" is the same shape for the same reason.
@@ -153,6 +167,7 @@ export default function DatatableFields({
                             {tables.map(t => (
                                 <option key={t.id} value={t.id} disabled={writes && !t.canWrite}>
                                     {t.name}
+                                    {dupNames.has(t.name) ? ` (${t.key || t.id.slice(0, 6)})${Number.isFinite(t.rowCount) ? ` · ${t.rowCount} rows` : ''}` : ''}
                                     {t.managedKind === 'nextcloud_table' ? ' · from Nextcloud' : t.managedKind === 'spreadsheet_file' ? ' · from a spreadsheet' : ''}
                                     {t.scope !== 'personal' ? ' · shared' : ''}
                                     {writes && !t.canWrite ? ' — you can only read this one' : ''}
@@ -177,11 +192,12 @@ export default function DatatableFields({
 
                 {table && table.scope !== 'personal' && writes && (
                     <p className="text-[11px] text-amber-700 dark:text-amber-400 px-1">
-                        This table is shared — other people and other routines read what this step writes.
+                        This table is shared — other people and other automations read what this step writes.
                     </p>
                 )}
             </AccordionSection>
 
+            {showWhere && (
             <AccordionSection
                 stepType="datatable" sectionKey="match"
                 title={needsWhere ? 'Which rows (required)' : 'Which rows'}
@@ -352,6 +368,7 @@ export default function DatatableFields({
                     </>
                 )}
             </AccordionSection>
+            )}
 
             {needsValues && (
                 <AccordionSection
@@ -383,6 +400,8 @@ export default function DatatableFields({
                                         previewSample={previewSample}
                                         expectShape={kind === 'list' ? 'list' : (isScalarKind(kind) ? 'scalar' : 'unknown')}
                                         expectKind={kind}
+                                        onRequestForEach={forEach.request}
+                                        canForEach={forEach.allowed}
                                     />
                                 );
                             })}

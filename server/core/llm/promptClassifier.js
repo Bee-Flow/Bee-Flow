@@ -115,9 +115,11 @@ function classifyPromptComplexity(message) {
     }
 
     // ── High-confidence shortcut: a short, plain question ──
-    // "what is the capital of France?" — one line, no code/URL/math/list,
-    // at most one question. Short enough that no tier above fast applies.
-    if (len <= SHORT_PLAIN_MAX && !msg.includes('\n') && (msg.match(/\?/g) || []).length <= 1
+    // "what is the capital of France?" — one line ending in its only question
+    // mark, no code/URL/math/list. A short INSTRUCTION ("Write a 2000-word
+    // essay on WW2") is not this: it can be writer or deep work, so it goes on
+    // to the classifier.
+    if (len <= SHORT_PLAIN_MAX && !msg.includes('\n') && msg.endsWith('?') && (msg.match(/\?/g) || []).length === 1
         && !CODE_PUNCTUATION.test(msg) && !ARROW_FN.test(msg) && !CODE_FENCE.test(msg)
         && !MATH_OPERATORS.test(msg) && !MATH_ARITHMETIC.test(msg) && !/\bhttps?:\/\/|www\./i.test(msg)) {
         return { tier: 'fast', score: 0, reason: 'short plain question', confident: true };

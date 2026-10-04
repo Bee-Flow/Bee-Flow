@@ -72,7 +72,7 @@ export interface GraphNode {
     type: string;
     name: string;
     entityId: string | null;
-    /** A form node: the routine node it starts. */
+    /** A form node: the automation node it starts. */
     triggers: string | null;
 }
 

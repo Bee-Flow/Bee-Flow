@@ -1,6 +1,6 @@
 // @typecheck
 /**
- * Microsoft session hydration from the routine-credential vault.
+ * Microsoft session hydration from the automation-credential vault.
  *
  * The counterpart of auth/googleSessionHydration.js. Outlook surfaces read
  * tokens straight off the live session (routes/integrations/outlook.js) and
@@ -27,7 +27,7 @@ async function hydrateMicrosoftSessionFromVault(session) {
     if (session.oauthProvider) return false;
 
     try {
-        const { getProviderAuth } = require('./routineAuth');
+        const { getProviderAuth } = require('./automationAuth');
         const cred = await getProviderAuth(userId, 'microsoft');
         if (!cred?.accessToken) return false;
 
@@ -57,8 +57,8 @@ async function hydrateMicrosoftSessionFromVault(session) {
  * session, Outlook callers ask for this shim:
  *
  *  - a session that already IS Microsoft comes back unchanged (SSO path);
- *  - a routine session from buildUserAuth carries the Microsoft credential
- *    under `routineProviders.microsoft` when Microsoft is not the primary;
+ *  - an automation session from buildUserAuth carries the Microsoft credential
+ *    under `automationProviders.microsoft` when Microsoft is not the primary;
  *  - otherwise the user's vault credential is read (and refreshed when close
  *    to expiry) through getProviderAuth.
  *
@@ -67,7 +67,7 @@ async function hydrateMicrosoftSessionFromVault(session) {
  * `save()`: on the shim that lands in the vault, never on
  * `session.accessToken` of the caller's (Google) session.
  *
- * @param {any} session - the caller's session (Express or routine shim)
+ * @param {any} session - the caller's session (Express or automation shim)
  * @param {string|null} [userId] - who the credential belongs to; defaults to
  *   the session's user
  * @returns {Promise<any|null>} a session-shaped object, or null when the user
@@ -77,11 +77,11 @@ async function resolveMicrosoftSession(session, userId = null) {
     if (session?.oauthProvider === 'microsoft' && session?.accessToken) return session;
 
     const ownerId = userId || session?.user?.id || session?.userId || null;
-    let cred = session?.routineProviders?.microsoft || null;
+    let cred = session?.automationProviders?.microsoft || null;
     if (!cred?.accessToken) {
         if (!ownerId) return null;
         try {
-            const { getProviderAuth } = require('./routineAuth');
+            const { getProviderAuth } = require('./automationAuth');
             cred = await getProviderAuth(ownerId, 'microsoft');
         } catch (e) {
             log.warn(`[MicrosoftConnector] vault lookup failed for user ${ownerId}: ${e.message}`);
@@ -94,8 +94,8 @@ async function resolveMicrosoftSession(session, userId = null) {
 
 /**
  * The shim itself. `save` writes refreshed tokens back to the vault (and to
- * the credential object it came from, so a routine session's
- * `routineProviders.microsoft` stays current for the next call in the run).
+ * the credential object it came from, so an automation session's
+ * `automationProviders.microsoft` stays current for the next call in the run).
  * expiresAt is cleared on write: msGraphClient does not report the new
  * lifetime, and a null expiry only means the next getProviderAuth refreshes
  * once more, which is safe.
@@ -116,9 +116,9 @@ function buildMicrosoftShim(cred, { userId, user }) {
             const orgId = cred.orgId;
             const finish = () => { if (typeof done === 'function') done(); };
             if (!userId || !orgId) { finish(); return Promise.resolve(); }
-            const routineCredentialStore = require('../stores/routineCredentialStore');
+            const automationCredentialStore = require('../stores/automationCredentialStore');
             return Promise.resolve()
-                .then(() => routineCredentialStore.upsertCredential({
+                .then(() => automationCredentialStore.upsertCredential({
                     userId,
                     orgId,
                     provider: 'microsoft',

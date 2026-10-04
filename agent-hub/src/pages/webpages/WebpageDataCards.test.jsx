@@ -73,7 +73,7 @@ describe('WebpageDataCards', () => {
         expect(screen.queryByText('Not used on this page')).toBeNull();
     });
 
-    it('shows the feeding routine and the warning card with a deep link to sharing', async () => {
+    it('shows the feeding automation and the warning card with a deep link to sharing', async () => {
         authFetch.mockResolvedValue(response(clone()));
         const onNavigate = vi.fn();
         render(<WebpageDataCards webpageId="wp1" sources={[]} onNavigate={onNavigate} />);
@@ -139,7 +139,7 @@ describe('WebpageDataCards', () => {
 });
 
 describe('countDataCards', () => {
-    it('counts tables + feeding routines + the one knowledge card', () => {
+    it('counts tables + feeding automations + the one knowledge card', () => {
         expect(countDataCards(CARDS)).toBe(3);
         expect(countDataCards({ tables: [], automations: [] })).toBe(1);
     });

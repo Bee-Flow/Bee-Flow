@@ -90,9 +90,9 @@ async function seed() {
     await q(`INSERT INTO support_inboxes (id, organization_id, created_by, display_name, default_agent_id)
              VALUES ($1,'org1','u2','Helpdesk',$2)`, [INBOX, AGENT]);
 
-    // The id at an unknown depth, twice in the same routine — the recursive
-    // accessor is the whole reason for jsonb_path_query, and a routine that
-    // names the agent in two steps is ONE routine that breaks.
+    // The id at an unknown depth, twice in the same automation — the recursive
+    // accessor is the whole reason for jsonb_path_query, and an automation that
+    // names the agent in two steps is ONE automation that breaks.
     await q(`INSERT INTO automations (id, title, user_id, definition_json) VALUES ('au-1','Weekly digest','u1',$1::jsonb)`, [
         JSON.stringify({
             steps: [
@@ -101,7 +101,7 @@ async function seed() {
             ],
         }),
     ]);
-    await q(`INSERT INTO automations (id, title, user_id, definition_json) VALUES ('au-2','Unrelated routine','u2',$1::jsonb)`, [
+    await q(`INSERT INTO automations (id, title, user_id, definition_json) VALUES ('au-2','Unrelated automation','u2',$1::jsonb)`, [
         JSON.stringify({ steps: [{ type: 'ai_step', agentId: OTHER }] }),
     ]);
     // A definition that is NULL, and one whose agentId is not a string: both
@@ -155,7 +155,7 @@ test('a task carries its title, owner and last run', async () => {
     assert.strictEqual(task.id, 'task-1');
     assert.strictEqual(task.title, 'Nightly report');
     assert.strictEqual(task.ownerId, 'u1');
-    assert.strictEqual(task.role, 'routine');
+    assert.strictEqual(task.role, 'automation');
     assert.strictEqual(new Date(task.lastAt).toISOString(), '2026-09-01T06:00:00.000Z');
 });
 
@@ -168,11 +168,11 @@ test('a support inbox comes back with a TEXT id, like every other kind', async (
     assert.strictEqual(inbox.role, 'auto_reply');
 });
 
-test('a routine that names the agent in two steps is ONE routine that breaks', async () => {
+test('an automation that names the agent in two steps is ONE automation that breaks', async () => {
     const { rows } = await usageForAgent(AGENT, { db });
-    const routines = rows.filter(r => r.kind === 'automation');
-    assert.deepStrictEqual(routines.map(r => r.id), ['au-1']);
-    assert.strictEqual(routines[0].title, 'Weekly digest');
+    const automations = rows.filter(r => r.kind === 'automation');
+    assert.deepStrictEqual(automations.map(r => r.id), ['au-1']);
+    assert.strictEqual(automations[0].title, 'Weekly digest');
 });
 
 test('an app is found through its PUBLISHED definition, not only its draft', async () => {
@@ -202,7 +202,7 @@ test('the other agent gets only its own consumers', async () => {
 test('a NULL definition and a non-string agentId are walked past, not crashed on', async () => {
     // au-3 has definition_json NULL, au-4 has `agentId: 42` and `agentId:
     // null`. Either would take the whole automation scan down — and a scan
-    // that is down reports every routine as "not using this agent".
+    // that is down reports every automation as "not using this agent".
     const { rows, partial } = await usageForAgent(AGENT, { db });
     assert.ok(!partial.includes('automation'));
     assert.ok(rows.some(r => r.kind === 'automation'));

@@ -22,7 +22,7 @@ const fx = {
     clientId: 'gid',
     clientSecret: 'gsecret',
     user: { id: 'u1', organizationId: 'orgA', email: 'tom@example.com' },
-    upserts: [],            // routineCredentialStore.upsertCredential spy
+    upserts: [],            // automationCredentialStore.upsertCredential spy
     cred: null,             // getCredential fixture
     configSets: [],         // configStore.setConfig spy
     revokes: [],            // revokeProviderCredential spy
@@ -37,7 +37,7 @@ const MOCKS = {
         getConfig: async (k) => (k.startsWith('google_workspace_email_user_') ? 'stored@example.com' : null),
         deleteConfig: async () => {},
     },
-    '../../stores/routineCredentialStore': {
+    '../../stores/automationCredentialStore': {
         upsertCredential: async (row) => { fx.upserts.push(row); },
         getCredential: async () => fx.cred,
     },
@@ -204,7 +204,7 @@ test('callback: NEVER clobbers a foreign SSO session (Microsoft stays Microsoft)
     await dispatch({ url: '/callback', session, query: { code: 'c1', state: 'st1' } });
     assert.strictEqual(session.oauthProvider, 'microsoft', 'session identity untouched');
     assert.strictEqual(session.accessToken, 'ms_at', 'Microsoft token untouched');
-    assert.strictEqual(fx.upserts.length, 1, 'vault still gets the Google tokens (routines work)');
+    assert.strictEqual(fx.upserts.length, 1, 'vault still gets the Google tokens (automations work)');
 });
 
 test('callback: org-less consumers get a per-user vault scope (write never skipped)', async () => {

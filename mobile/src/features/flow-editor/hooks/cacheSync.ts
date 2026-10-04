@@ -6,7 +6,7 @@
  * unsaved edits. The automations feature's copies (the list, the detail
  * screen) are only MARKED stale while editing: an autosave every few seconds
  * must not refetch the list each time. They are refetched when the editor
- * closes (`refreshRoutineViews`).
+ * closes (`refreshAutomationViews`).
  */
 
 import type { QueryClient } from '@tanstack/react-query';
@@ -29,8 +29,8 @@ export function adoptRow(queryClient: QueryClient, row: FlowAutomation | null): 
     void queryClient.invalidateQueries({ queryKey: automationKeys.automations, refetchType: 'none' });
 }
 
-/** The routine's list row and detail screen, refetched now (the editor closed, or it was armed). */
-export function refreshRoutineViews(queryClient: QueryClient, id: string | null): void {
+/** The automation's list row and detail screen, refetched now (the editor closed, or it was armed). */
+export function refreshAutomationViews(queryClient: QueryClient, id: string | null): void {
     if (id) void queryClient.invalidateQueries({ queryKey: automationKeys.automation(id) });
     void queryClient.invalidateQueries({ queryKey: automationKeys.automations });
 }

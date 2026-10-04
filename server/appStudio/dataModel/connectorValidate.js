@@ -180,7 +180,7 @@ function validateConnectorSync(sync, tableIds, where, errors, kind = null, table
         if (!isPlainObject(sch)) {
             errors.push(`${sw} must be an object { everyMinutes } or { cron, tz? }`);
         } else if (sch.cron !== undefined && sch.cron !== null) {
-            // Validated with the SAME parser the routine scheduler uses, so a
+            // Validated with the SAME parser the automation scheduler uses, so a
             // cron the editor accepts is one the job can actually schedule.
             let next = null;
             try { next = require('../../automation/cron').nextRunAt(String(sch.cron), typeof sch.tz === 'string' ? sch.tz : undefined); } catch { next = null; }
@@ -450,7 +450,7 @@ function validateConnectors(model, errors) {
         }
 
         // Materialisation into a table — available to every kind (a REST feed or
-        // a routine's output is as worth caching as a tool's).
+        // an automation's output is as worth caching as a tool's).
         validateConnectorSync(c.sync, tableIds, where, errors, c.kind, tablesById);
 
         // A retention promise the purge cannot keep is worse than no promise: the
@@ -467,7 +467,7 @@ function validateConnectors(model, errors) {
         }
 
         // Chaining is an integration_tool concept: it binds one tool call's
-        // parameters to the previous call's rows. A routine already owns its own
+        // parameters to the previous call's rows. An automation already owns its own
         // sequencing, and a REST feed has no second call to make.
         if (c.chain !== undefined && c.kind !== 'integration_tool') {
             errors.push(`${where}.chain is only supported for app connectors (integration_tool)`);

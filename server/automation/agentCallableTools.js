@@ -1,7 +1,7 @@
 /**
  * Automations as agent tools — §28.
  *
- * When a routine declares trigger.kind === 'agent_call', it becomes
+ * When an automation declares trigger.kind === 'agent_call', it becomes
  * addressable from agents and direct chat as a function-calling tool.
  * The agent calls `automation_<id>` with structured arguments; this
  * module renders the per-tool schema from the automation's declared
@@ -21,7 +21,7 @@
  */
 
 const automationStore = require('../stores/automationStore');
-// Handoff 5: an agent sees, and runs, the LIVE definition of a routine.
+// Handoff 5: an agent sees, and runs, the LIVE definition of an automation.
 const { automationForRun } = require('../core/automationRunner/definitionForRun');
 
 /**
@@ -36,7 +36,7 @@ function automationToTool(automation) {
     const toolName = sanitizeToolName(trigger.toolName || `automation_${automation.id}`);
     const description = trigger.description
         || automation.description
-        || `Run the "${automation.title || 'Untitled automation'}" routine.`;
+        || `Run the "${automation.title || 'Untitled automation'}" automation.`;
     const parameters = normalizeParameters(trigger.parametersSchema);
 
     return {
@@ -74,12 +74,12 @@ async function getAgentCallableToolsForUser(userId) {
 }
 
 /**
- * Who is starting a routine as a tool, from the dispatch context.
+ * Who is starting an automation as a tool, from the dispatch context.
  *
  * `callerAgentId` is set by an AI step that runs on an agent (execAi passes it
  * under its own key, never as `agentId`, which would switch on agent-scoped
  * tools); a chat agent's own `agentId` counts as well. `runScope` is present
- * when the call comes from inside a routine run.
+ * when the call comes from inside an automation run.
  */
 function callerTraceOf(ctx) {
     const c = ctx || {};
@@ -93,13 +93,13 @@ function callerTraceOf(ctx) {
 }
 
 /**
- * The runner options that record who started the routine (handoff 5).
+ * The runner options that record who started the automation (handoff 5).
  *
  * The caller's RUN is deliberately not written into parent_run_id /
  * root_run_id: those mean "the run this one replays" and "the journey this
  * leg belongs to". The resume path walks parent_run_id to replay step rows,
  * and the run lists hide every row whose root_run_id is not its own id, so a
- * cross-routine link there would replay another routine's steps and hide this
+ * cross-automation link there would replay another automation's steps and hide this
  * run from its own history. The chain lives in the call frame
  * (automationCallDepth.js) until the schema has a column of its own for it.
  */
@@ -107,8 +107,8 @@ function runnerTraceOptions(trace, ctx) {
     return {
         callerAgentId: trace.callerAgentId,
         callerConversationId: trace.callerConversationId,
-        // A person chatting with an agent started it. Inside a routine run the
-        // routine owner is already the run's user, so nothing is added.
+        // A person chatting with an agent started it. Inside an automation run the
+        // automation owner is already the run's user, so nothing is added.
         ...(trace.callerConversationId && ctx && ctx.userId ? { startedByUserId: ctx.userId } : {}),
     };
 }
@@ -124,7 +124,7 @@ function runnerTraceOptions(trace, ctx) {
  * callerConversationId / conversationId, runScope): see callerTraceOf.
  *
  * Refuses with `automation_call_depth_exceeded` when agents are already
- * MAX_AUTOMATION_CALL_DEPTH routine starts deep (automationCallDepth.js).
+ * MAX_AUTOMATION_CALL_DEPTH automation starts deep (automationCallDepth.js).
  *
  * `deps` is the test seam: { automationStore, automationRunner }.
  */
@@ -224,8 +224,8 @@ async function getStepToolsForUser(userId) {
 
 /**
  * Invoke a Step tool — runs the published definition under the caller.
- * Counts as a nested routine start for the depth guard, like an agent-callable
- * routine; the caller trace rides along in the runner ctx.
+ * Counts as a nested automation start for the depth guard, like an agent-callable
+ * automation; the caller trace rides along in the runner ctx.
  */
 async function dispatchStepTool(stepMeta, args, ctx, deps = {}) {
     if (!stepMeta?.id) throw new Error('dispatchStepTool: missing Step id');
@@ -243,7 +243,7 @@ async function dispatchStepTool(stepMeta, args, ctx, deps = {}) {
 
 function normalizeParameters(schema) {
     // Builder gives us a JSON-schema-like object. Default to "any object"
-    // when the routine author hasn't declared one yet — the agent will
+    // when the automation author hasn't declared one yet — the agent will
     // still be able to call with arbitrary keys, validated downstream.
     if (schema && typeof schema === 'object' && schema.type === 'object') return schema;
     return {

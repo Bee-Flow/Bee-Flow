@@ -94,7 +94,7 @@ async function partitionAccessibleKBIds(req, ids) {
  *     administrative reach into is a leak with an audit trail that says "the
  *     AI said it". `core/kb/kbVisibility` pins isOrgAdmin to false.
  *   - it also asks the SURFACE question (`usage_contexts`), which the linker
- *     does not: a base its owner limited to one routine must not answer in a
+ *     does not: a base its owner limited to one automation must not answer in a
  *     chat window.
  *
  * Use this wherever a stored or client-supplied list is about to become

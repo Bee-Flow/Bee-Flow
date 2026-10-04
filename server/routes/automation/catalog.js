@@ -54,13 +54,13 @@ router.get('/catalog', async (req, res) => {
     // Do NOT broaden this with getUserPermittedApps(): that helper fails OPEN
     // (no explicit org list → AUTO_ENABLED_APPS lets nearly everything
     // through) and would expose the whole server catalog. See memory
-    // reference_routines_catalog_strict_gating.
+    // reference_automations_catalog_strict_gating.
     let userToolNames = new Set();
     // Kept alongside the names so app_event can auto-derive watchable
     // sources for integrations that ship no trigger declaration.
     let userToolDefs = [];
     try {
-        const result = await getIntegrationTools({ userId, session, isAdmin: !!req.session?.isAdmin, routineStep: true });
+        const result = await getIntegrationTools({ userId, session, isAdmin: !!req.session?.isAdmin, automationStep: true });
         userToolDefs = result.tools || [];
         for (const t of userToolDefs) {
             if (t?.function?.name) userToolNames.add(t.function.name);
@@ -69,7 +69,7 @@ router.get('/catalog', async (req, res) => {
 
     // Webpages availability is gated on the beta feature — the same gate
     // getIntegrationTools now uses to actually provision the tools (so the
-    // "available" flag here matches what the running agent/routine receives),
+    // "available" flag here matches what the running agent/automation receives),
     // and the same gate the direct webpage chat uses. Check it directly
     // rather than inferring from userToolNames so the flag is correct even
     // if the tool-name derivation changes.
@@ -125,7 +125,7 @@ router.get('/catalog', async (req, res) => {
         // this user (which now also happens when they have access to a
         // webpage even without the beta toggle — see getIntegrationTools).
         // ORing keeps the design-time palette flag in lockstep with what
-        // the running routine will actually receive.
+        // the running automation will actually receive.
         const available = entry.app === 'webpages'
             ? (webpagesAvailable || actions.some(a => userToolNames.has(a.name)))
             : actions.some(a => userToolNames.has(a.name));
@@ -235,7 +235,7 @@ router.get('/catalog', async (req, res) => {
 
     // Integrations with no trigger declaration still expose their read-only
     // list tools as watchable sources, so enabling an app is enough to get a
-    // trigger. Listing costs nothing — nothing polls until a routine using
+    // trigger. Listing costs nothing — nothing polls until an automation using
     // one is actually activated.
     let derivedProviders = [];
     try {
@@ -348,7 +348,7 @@ router.get('/catalog', async (req, res) => {
      * array. Datatables and knowledge bases can: an empty picker there
      * reads as "nothing linked yet", which is a normal state of a normal
      * workspace. An empty AGENT picker is not — every workspace that got
-     * as far as building a routine has agents — so an empty list on a
+     * as far as building an automation has agents — so an empty list on a
      * failed read would tell the author their agents are gone and send
      * them looking in the wrong place. `agentsError` carries the failure
      * instead, and the editor says "could not check" rather than "none".
@@ -383,7 +383,7 @@ router.get('/catalog', async (req, res) => {
         // because the user row could not be read, every shared org agent
         // would come back `reason: 'other_org'` — "Belongs to another
         // workspace" — and the author would pull a perfectly good agent out
-        // of their routine on the strength of a database hiccup. That is
+        // of their automation on the strength of a database hiccup. That is
         // exactly the sentence `agentsError` exists for.
         if (principal.identityError) throw new Error(`identity unavailable (${principal.identityError})`);
         const viewerOrgId = principal.organizationId || null;
@@ -489,7 +489,7 @@ router.get('/catalog', async (req, res) => {
  * dropdown needs, without paying for the whole builder catalog above.
  *
  * The form editor is reached from two places that have no catalog of their own
- * (the routine builder's Form panel and Studio → Forms), so it asks for this
+ * (the automation builder's Form panel and Studio → Forms), so it asks for this
  * directly. Same registry, same `available` rule as the big catalog: a hint
  * about THIS author, never a gate — the person filling the form in is usually
  * somebody else, and it is their access that decides what the picker shows.
@@ -503,7 +503,7 @@ router.get('/catalog/form-pick-sources', async (req, res) => {
             userId: req.session.user.id,
             session: req.session,
             isAdmin: !!req.session?.isAdmin,
-            routineStep: true,
+            automationStep: true,
         });
         for (const t of (result.tools || [])) if (t?.function?.name) userToolNames.add(t.function.name);
     } catch (_) {

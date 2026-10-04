@@ -375,7 +375,7 @@ router.post('/:id/ai/stream', requirePreviewToken, llmBridgeLimiter, async (req,
  * Runs a multi-round tool loop server-side using the page's granted surface
  * (integrations + automations + KB grounding). The page just awaits one
  * promise; the server orchestrates web search, integration calls, KB lookup,
- * and routine triggers across rounds.
+ * and automation triggers across rounds.
  *
  * SSE event types streamed back:
  *   text         { text }                       — assistant tokens
@@ -471,7 +471,7 @@ function buildAskToolSurface(ctx) {
 router.post('/:id/ai/ask', requirePreviewToken, llmBridgeLimiter, async (req, res) => {
     // `viewerUserId`, NOOIT `userId`: dat laatste is de EIGENAAR van de pagina
     // (auth/webpagePreviewToken.js legt uit waarom die twee claims naast elkaar
-    // bestaan). Het runverslag zei daardoor dat de auteur de routine had gestart,
+    // bestaan). Het runverslag zei daardoor dat de auteur de automatisering had gestart,
     // ook als een ingelogde lezer op een <bf-button> klikte — en dit is sinds W4
     // het pad dat zonder één regel JavaScript bereikbaar is. Geen terugval op
     // `userId`: een onbekende bezoeker is `null`, en `null` is eerlijk.
@@ -616,7 +616,7 @@ router.post('/:id/ai/ask', requirePreviewToken, llmBridgeLimiter, async (req, re
                         orgId: ctx.authorOrgId,
                         autoSend: true,
                         // Acts as the page's author; the chokepoint writes the
-                        // egress row, grouped per page like a routine's.
+                        // egress row, grouped per page like an automation's.
                         egress: {
                             source: 'webpage_ai',
                             ids: {

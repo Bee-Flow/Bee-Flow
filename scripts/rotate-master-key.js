@@ -37,8 +37,8 @@
  *     'config-v1'         configStore     — config.value, users.mfa_secret,
  *                                           webpage_public_shares.token_cipher
  *     'routine-vault-v1'  orgVault        — integration_connections.secret,
- *                                           routine_credentials.access_token,
- *                                           routine_credentials.refresh_token,
+ *                                           automation_credentials.access_token,
+ *                                           automation_credentials.refresh_token,
  *                                           organizations.org_root_key,
  *                                           voiceprints.voiceprint_enc
  *     'appcred-v1'        userStore       — users."appPassword"
@@ -105,12 +105,12 @@ function deriveKey(master, orgId = null) {
 // Must stay byte-identical to their source modules, or a rotation writes
 // ciphertext the app can't read. Pinned by rotate-master-key.test.js.
 
-// server/stores/orgVault.js — integration_connections + routine_credentials.
+// server/stores/orgVault.js — integration_connections + automation_credentials.
 const ORG_VAULT_TAG = 'routine-vault-v1';
 const DEFAULT_ORG_SENTINEL = '__default_org__';
 function deriveOrgVaultKey(master, orgId) {
     return crypto.createHmac('sha256', master)
-        .update(`beeflow:routine-vault:v1:org:${orgId}`)
+        .update(`beeflow:automation-vault:v1:org:${orgId}`)
         .digest();
 }
 
@@ -352,11 +352,11 @@ async function main() {
     }
     try {
         await rotateOrgVaultColumns({
-            table: 'routine_credentials', idCol: 'id', orgCol: 'org_id',
-            valueCols: ['access_token', 'refresh_token'], label: 'routine_credentials',
+            table: 'automation_credentials', idCol: 'id', orgCol: 'org_id',
+            valueCols: ['access_token', 'refresh_token'], label: 'automation_credentials',
         });
     } catch (e) {
-        console.error('[rotate] routine_credentials pass failed (table missing?):', e.message);
+        console.error('[rotate] automation_credentials pass failed (table missing?):', e.message);
     }
     try {
         // The org IS its own key context here, so idCol and orgCol are the same

@@ -165,7 +165,7 @@ test('a forced restore of positions only is a layout-only version, never a pendi
     assert.strictEqual(await lifecycle.countPendingChanges('rst'), 0);
 });
 
-test('a structural save on a live routine is one pending change; the live copy stays', async () => {
+test('a structural save on a live automation is one pending change; the live copy stays', async () => {
     await seed('liv', { live: 1 });
     const next = clone(DEF);
     next.steps.push({ id: 'b', type: 'code', code: 'x', label: 'More' });
@@ -178,7 +178,7 @@ test('a structural save on a live routine is one pending change; the live copy s
     assert.deepStrictEqual(rows[1].description_json, [{ code: 'step_added', params: { step: 'More' } }]);
 });
 
-test('a settings-only save on a live routine is a "Settings changed" version, never a pending change', async () => {
+test('a settings-only save on a live automation is a "Settings changed" version, never a pending change', async () => {
     await seed('set', { live: 1 });
     const next = clone(DEF);
     next.runPolicy = { retry: { max: 2 } };

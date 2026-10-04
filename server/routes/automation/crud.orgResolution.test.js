@@ -1,5 +1,5 @@
 /**
- * The organisation a routine route acts for must come from the database, and
+ * The organisation an automation route acts for must come from the database, and
  * every call site must await it.
  *
  * ── WHY THIS IS PINNED AT ALL ───────────────────────────────────────
@@ -7,7 +7,7 @@
  * freezes the seven login shapes and only two of them — the connector JWT and
  * password SIGNUP — ever write that field. So for every returning member it was
  * undefined, and four separate surfaces quietly acted as if the person had no
- * organisation: a created routine was stamped NULL, its datatable usage index
+ * organisation: a created automation was stamped NULL, its datatable usage index
  * was written against no org, its folders landed in the shared no-org bucket,
  * and the org form-pages list came back for the wrong scope.
  *
@@ -16,8 +16,8 @@
  * than the one it replaced. A forgotten `await` does not throw: the Promise is
  * passed straight into `createAutomation({ organizationId })` and
  * `listFolders(organizationId)`, where it is neither null nor an id. It reaches
- * the driver as a parameter no WHERE clause can ever match — so a routine is
- * created belonging to nothing, and every later "which routines are in this
+ * the driver as a parameter no WHERE clause can ever match — so an automation is
+ * created belonging to nothing, and every later "which automations are in this
  * org" read silently omits it. Nothing logs, and no existing test notices,
  * because each handler still answers 200.
  *

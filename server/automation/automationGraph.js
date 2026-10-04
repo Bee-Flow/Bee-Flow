@@ -1,5 +1,5 @@
 /**
- * Automation graph helpers — one reading of a routine definition shared by the
+ * Automation graph helpers — one reading of an automation definition shared by the
  * document runner (which marks a file a model wrote) and by the compliance
  * checks: the AI-Act signals (compliance/aiAct/signals.js), the Art. 50(2)
  * marking check, the calendar's "affects" counts and the Machinery detector,
@@ -182,7 +182,7 @@ function _allAiIds(all, layer) {
 /**
  * The form triggers of a definition: the primary `trigger` when its kind is
  * 'form', plus every 'form' entry point in `triggers[]` (multi-trigger
- * routines). Root graph only — layers are invoked, never triggered.
+ * automations). Root graph only — layers are invoked, never triggered.
  */
 function formTriggersOf(definition) {
     if (!isObject(definition)) return [];
@@ -194,7 +194,7 @@ function formTriggersOf(definition) {
     return out;
 }
 
-/** True when a public form page (a form trigger or a form_page step) is part of the routine — the "customer-facing" signal. */
+/** True when a public form page (a form trigger or a form_page step) is part of the automation — the "customer-facing" signal. */
 function hasFormPage(definition) {
     if (formTriggersOf(definition).length) return true;
     let found = false;

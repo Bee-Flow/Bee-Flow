@@ -1,6 +1,6 @@
 /**
- * Start a routine from a template — the server's gallery
- * (automation/templates.js). Picking one installs it as a new draft routine
+ * Start an automation from a template — the server's gallery
+ * (automation/templates.js). Picking one installs it as a new draft automation
  * (POST /templates/:id/create) and hands its id back.
  */
 

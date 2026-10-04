@@ -103,8 +103,8 @@ const PATCHABLE_FIELDS = {
     // `datatableId` is patchable ONLY onto a step that has none — see the
     // fill-only guard in applyUpdateStep. Repointing a BOUND step at a
     // different table is still not an edit (it changes which organisation's
-    // data the routine writes to) and still goes through builder_replace_step
-    // or a person; but an imported routine arrives with the id blanked on
+    // data the automation writes to) and still goes through builder_replace_step
+    // or a person; but an imported automation arrives with the id blanked on
     // purpose, and refusing the patch outright left the assistant unable to
     // repair the one thing it is best placed to repair.
     datatable: ['op', 'where', 'match', 'values', 'matchColumn', 'sort', 'limit', 'cursor', 'label', 'forEach', 'datatableId', 'datatableKey'],
@@ -454,7 +454,7 @@ function applyUpdateStep(graph, args, draftWrap) {
     // can be linked to a table here; re-pointing a bound step is a different
     // act with a different blast radius (the rows of another organisation's
     // table), and it stays where it was. The id is never trusted on its own
-    // either: execDatatable resolves it inside the routine's own scopes and
+    // either: execDatatable resolves it inside the automation's own scopes and
     // fails closed, so a patched id can name nothing outside them.
     //
     // With a catalog the patch is RESOLVED first (id, key, name — the same
@@ -492,7 +492,7 @@ function applyUpdateStep(graph, args, draftWrap) {
     // step at somebody else's agent is not an edit: it changes whose knowledge
     // is read and whose tools run, which is precisely the act those checks
     // exist to see. FILLING a blank one stays allowed, because an imported
-    // routine arrives with the id blanked and this is where it gets repaired.
+    // automation arrives with the id blanked and this is where it gets repaired.
     //
     // ── EXCEPT INSIDE A LOOP BODY, WHERE THE ADVICE WAS A DEAD END ──
     // `builder_replace_step` refuses a loop-body step outright ("patch it with

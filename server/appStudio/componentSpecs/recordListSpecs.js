@@ -11,7 +11,7 @@ const { COLOR_ROLES } = require('./styleKnobs');
 const RECORD_LIST_SPECS = {
     table: {
         label: 'Table', category: 'Data',
-        description: 'A table over an array of objects — usually a routine result. Missing keys render as “—”.',
+        description: 'A table over an array of objects — usually an automation result. Missing keys render as “—”.',
         props: {
             source: { type: 'binding', default: { kind: 'static', value: [] } },
             columns: {

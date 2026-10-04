@@ -13,7 +13,7 @@
  *     editor asks for the list now) runs in audit mode: allowed, and logged.
  *
  * Warnings never stop a run here: they are the author's to accept in the
- * editor. The analysis is cached per code text, so a routine that loops a
+ * editor. The analysis is cached per code text, so an automation that loops a
  * code step over a thousand rows parses it once.
  */
 

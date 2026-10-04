@@ -162,13 +162,13 @@ function translateDatatableVocabulary(args) {
             if (v.kind !== 'literal') {
                 return {
                     error: field === 'datatableId'
-                        ? 'datatableId must name ONE existing table (an id from the "Datatables you may use" block); it cannot be a ref or template — a routine cannot pick its table at run time.'
-                        : 'datatableKey must be the table\'s key string (copied from the "Datatables you may use" block); it cannot be a ref or template — a routine cannot pick its table at run time.',
+                        ? 'datatableId must name ONE existing table (an id from the "Datatables you may use" block); it cannot be a ref or template — an automation cannot pick its table at run time.'
+                        : 'datatableKey must be the table\'s key string (copied from the "Datatables you may use" block); it cannot be a ref or template — an automation cannot pick its table at run time.',
                     _fixHint: `Reject reason: ${field} is a binding. Replace it with the table ${field === 'datatableId' ? 'id' : 'key'} string and resend the same step.`,
                 };
             }
             out[field] = String(v.value ?? '');
-            notes.push(`${field} was sent as a binding object — the table is chosen when the routine is built, not at run time; read as "${out[field]}".`);
+            notes.push(`${field} was sent as a binding object — the table is chosen when the automation is built, not at run time; read as "${out[field]}".`);
         } else if (typeof v.id === 'string') {
             // The catalog row echoed back whole ({id, key, name, …}).
             out[field] = v.id;
@@ -265,7 +265,7 @@ function resolveDatatableRef({ id, key, datatables } = {}) {
             table = r.hits[0];
             if (r.how !== 'id') notes.push(`datatableId "${idText}" resolved to ${table.id} (key ${table.key}, "${table.name}") by its ${r.how} — use the id from the Datatables block next time.`);
         } else if (keyText) {
-            // An exported routine carries the key and a blanked (or foreign)
+            // An exported automation carries the key and a blanked (or foreign)
             // id — the key is what re-links it.
             const rk = lookupTable(keyText, datatables);
             if (rk.hits.length > 1) return ambiguous(keyText, rk.hits, 'datatableKey');

@@ -263,7 +263,7 @@ describe('http_request — palette + upstream', () => {
  * `body` is a string and always was; a string can never satisfy `arrayRef` or
  * `repeat_for_each`, both of which require a real array, so a JSON API was
  * unusable as a list. `data` is the same body already parsed, added alongside
- * rather than replacing it — every saved routine reading `body` as text keeps
+ * rather than replacing it — every saved automation reading `body` as text keeps
  * working byte for byte.
  */
 describe('http_request — the parsed response', () => {

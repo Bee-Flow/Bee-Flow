@@ -78,7 +78,7 @@ test('a tool the user DOES have still works', async () => {
 });
 
 test('the resolved set is the authority, not the schema map', async () => {
-    // An MCP / org-custom / routine / Step tool owns no TOOL_REGISTRY entry and
+    // An MCP / org-custom / automation / Step tool owns no TOOL_REGISTRY entry and
     // has no catalog schema, but the user can genuinely run it. Gating on the
     // schema map would refuse it.
     const dw = wrapWithAvailability({ _availableToolNames: new Set(['mcp:srv__do_thing']) });

@@ -13,7 +13,12 @@
  * (how many, how many points, how much of it done), read with a join.
  *
  * One sprint per project is active at a time: `startSprint` demotes the one
- * that is and activates the asked one in a single statement.
+ * that is and activates the asked one in a single statement, and a partial
+ * unique index settles two starts that race (the loser gets 23505).
+ *
+ * The status only moves forward: planned -> active -> closed (an active one
+ * that another start demotes goes back to planned). A closed sprint is history:
+ * it cannot be started again or take new tasks.
  *
  * Built by a factory over a `{ query }` handle so the pg test runs the
  * store's own SQL against PGlite; the default instance wraps the pool.
@@ -50,6 +55,18 @@ const DDL = `
     DO $$ BEGIN
         ALTER TABLE project_sprints ADD CONSTRAINT project_sprints_date_range CHECK (start_date IS NULL OR end_date IS NULL OR start_date <= end_date);
     EXCEPTION WHEN duplicate_object THEN NULL;
+    END $$;
+    -- A project that already has two active sprints (from before the index)
+    -- keeps the most recently changed one active; the rest go back to planned.
+    DO $$ BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'uq_project_sprints_one_active') THEN
+            UPDATE project_sprints s SET status = 'planned'
+             WHERE s.status = 'active' AND EXISTS (
+                 SELECT 1 FROM project_sprints o
+                  WHERE o.project_id = s.project_id AND o.status = 'active' AND o.id <> s.id
+                    AND (o.updated_at, o.id) > (s.updated_at, s.id));
+            CREATE UNIQUE INDEX uq_project_sprints_one_active ON project_sprints(project_id) WHERE status = 'active';
+        END IF;
     END $$;
     ALTER TABLE project_tasks ADD COLUMN IF NOT EXISTS sprint_id TEXT REFERENCES project_sprints(id) ON DELETE SET NULL;
     CREATE INDEX IF NOT EXISTS idx_project_tasks_sprint
@@ -204,28 +221,33 @@ function makeProjectSprintStore(db, { ready = async () => {} } = {}) {
     /**
      * Make this sprint the active one. Any other active sprint of the project goes back to
      * planned in the same statement, so a project never has two. Null when the sprint is
-     * not in this project.
+     * not in this project, or closed (then nothing is demoted either).
      */
     async function startSprint(projectId, sprintId) {
         await ready();
         const r = await db.query(
-            `WITH demoted AS (
+            `WITH target AS (
+                 SELECT id FROM project_sprints WHERE id = $2 AND project_id = $1 AND status <> 'closed'
+             ), demoted AS (
                  UPDATE project_sprints SET status = 'planned', updated_at = NOW()
-                  WHERE project_id = $1 AND status = 'active' AND id <> $2
+                  WHERE project_id = $1 AND status = 'active' AND id <> $2 AND EXISTS (SELECT 1 FROM target)
+                  RETURNING id
              )
+             -- Reading demoted makes the demotion run first; an unread CTE would run
+             -- after this UPDATE and trip the one-active index.
              UPDATE project_sprints SET status = 'active', updated_at = NOW()
-              WHERE id = $2 AND project_id = $1 RETURNING id`,
+              WHERE id IN (SELECT id FROM target) AND (SELECT COUNT(*) FROM demoted) >= 0 RETURNING id`,
             [projectId, sprintId],
         );
         if (!r.rows[0]) return null;
         return getSprint(projectId, sprintId);
     }
 
-    /** Mark the sprint closed. Null when it is not in this project. */
+    /** Close the active sprint. Null when it is not in this project, or not active. */
     async function completeSprint(projectId, sprintId) {
         await ready();
         const r = await db.query(
-            `UPDATE project_sprints SET status = 'closed', updated_at = NOW() WHERE id = $1 AND project_id = $2 RETURNING id`,
+            `UPDATE project_sprints SET status = 'closed', updated_at = NOW() WHERE id = $1 AND project_id = $2 AND status = 'active' RETURNING id`,
             [sprintId, projectId],
         );
         if (!r.rows[0]) return null;
@@ -234,14 +256,17 @@ function makeProjectSprintStore(db, { ready = async () => {} } = {}) {
 
     /**
      * Put tasks of this project into the sprint. The route checks first that every id
-     * names a task of the project; this sets the column. Returns the ids actually set.
+     * names a task of the project; this sets the column. Returns the ids actually set:
+     * none when the sprint is closed (or gone) by now.
      */
     async function assignTasks(projectId, sprintId, taskIds) {
         await ready();
         if (!taskIds.length) return [];
         const r = await db.query(
             `UPDATE project_tasks SET sprint_id = $3, updated_at = NOW()
-              WHERE project_id = $1 AND id = ANY($2::text[]) RETURNING id`,
+              WHERE project_id = $1 AND id = ANY($2::text[])
+                AND EXISTS (SELECT 1 FROM project_sprints s WHERE s.id = $3 AND s.project_id = $1 AND s.status <> 'closed')
+              RETURNING id`,
             [projectId, taskIds, sprintId],
         );
         return r.rows.map((row) => row.id);

@@ -88,3 +88,46 @@ test('owned projects: no user id, or a listing that fails, deletes nothing', asy
     }), { deleted: 0, kept: 0, failed: 1, handedOver: 0 });
     assert.strictEqual(asked, false);
 });
+
+// ── Solution stages ──────────────────────────────────────────────────
+
+const hasStages = () => Object.assign(new Error('This Solution has stages.'), { status: 409, code: 'solution_has_stages', expose: true });
+
+test('a stage project, or a Dev with stages, is kept: neither handed over nor torn down', async () => {
+    const handed = [];
+    const tornDown = [];
+    const report = await eraseOwnedProjects('u1', {
+        listOwned: async () => ['p-dev', 'p-uat', 'p-plain'],
+        countSharedThreads: async () => 0,
+        handOver: async (projectId) => { handed.push(projectId); return null; },
+        teardown: {
+            teardownRefusal: async (projectId) => (projectId === 'p-plain' ? null : hasStages()),
+            deleteProject: async (projectId) => { tornDown.push(projectId); return true; },
+        },
+    });
+    assert.deepStrictEqual(handed, ['p-plain'], 'a refused project is not even offered to an heir');
+    assert.deepStrictEqual(tornDown, ['p-plain']);
+    assert.deepStrictEqual(report, { deleted: 1, kept: 2, failed: 0, handedOver: 0 });
+});
+
+test('a remove deployment\'s capability reaches the teardown\'s check and its delete', async () => {
+    const removal = { deploymentId: 'dep-rm' };
+    const seen = [];
+    const report = await eraseOwnedProjects('u1', {
+        listOwned: async () => ['p-uat'],
+        countSharedThreads: async () => 0,
+        handOver: async () => null,
+        removal,
+        teardown: {
+            teardownRefusal: async (projectId, opts) => { seen.push(['check', projectId, opts.removal]); return opts.removal ? null : hasStages(); },
+            deleteProject: async (projectId, opts) => { seen.push(['delete', projectId, opts.removal]); return true; },
+        },
+    });
+    assert.deepStrictEqual(seen, [['check', 'p-uat', removal], ['delete', 'p-uat', removal]]);
+    assert.deepStrictEqual(report, { deleted: 1, kept: 0, failed: 0, handedOver: 0 });
+});
+
+test('the default teardown asks the stage question first', () => {
+    const { makeProjectTeardown } = require('../../projects/projectTeardown');
+    assert.strictEqual(typeof makeProjectTeardown().teardownRefusal, 'function');
+});

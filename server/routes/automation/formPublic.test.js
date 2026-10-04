@@ -443,7 +443,7 @@ test('submitting is gated too, not just rendering', async () => {
     assert.strictEqual(state.executions.length, 0, 'no run started');
 });
 
-test('an unknown token, a paused routine and a non-form trigger are all the SAME 404', async () => {
+test('an unknown token, a paused automation and a non-form trigger are all the SAME 404', async () => {
     // Distinguishing them would turn the endpoint into an oracle for "does this
     // token exist".
     const unknown = makeRes();
@@ -668,7 +668,7 @@ test('a clean upload is stored and ledgered, and returns a fileId', async () => 
     assert.ok(res.body.fileId);
     assert.strictEqual(res.body.filename, 'note.pdf');
     assert.strictEqual(state.uploaded.length, 1);
-    // Owner-prefixed so anonymous bytes are attributed to the routine's owner.
+    // Owner-prefixed so anonymous bytes are attributed to the automation's owner.
     assert.match(state.uploaded[0], /^automation-forms\/owner1\/auto1\//);
 });
 
@@ -1096,7 +1096,7 @@ test('a resume that LOST a cross-pod race leaves the parent paused for the retry
 // lands, the session still points at the parent — still `awaiting_form` on the
 // step just answered — so the poll handed the same page straight back. The
 // visitor answered it again, and every resubmission started ANOTHER child from
-// the same parent: a two-question routine re-ran question one, and everything
+// the same parent: a two-question automation re-ran question one, and everything
 // between the two questions, once per impatient click. On a slow step that
 // window is tens of seconds wide, which is exactly when someone tries again.
 
@@ -1207,7 +1207,7 @@ test('while working, the poll names the step — flowlet first, then the node in
         'the trail is the flowlet the run stepped into, then the node it is on');
 });
 
-// A step's NAME says where the routine is; the flowlet's DESCRIPTION says what
+// A step's NAME says where the automation is; the flowlet's DESCRIPTION says what
 // it is doing. That is the difference between a wait that reads as work and one
 // that reads as a hang, so it rides along with the trail.
 
@@ -1290,7 +1290,7 @@ test('an unnamed step reports no progress rather than leaking what it is', async
 
 test('a paused or queued run reports no step at all', async () => {
     // awaiting_approval is a gate the visitor cannot act on; naming the step
-    // would tell them the routine is waiting on someone. Queued has not
+    // would tell them the automation is waiting on someone. Queued has not
     // started. Neither should describe itself.
     const sid = await startSession();
     state.definitionOverride = PROGRESS_DEF;
@@ -1332,7 +1332,7 @@ test('the trail comes from the leg that is running, not the parent the session n
     await getSession(makeReq({ sid }), res);
     assert.strictEqual(res.body.state, 'working');
     assert.deepStrictEqual(res.body.progress, ['7. Wat scoort er al', 'Google-resultaten ophalen'],
-        'the visitor sees where the routine actually is');
+        'the visitor sees where the automation actually is');
 });
 
 test('the next page is served from the leg that paused, not from the stale parent', async () => {
@@ -1354,7 +1354,7 @@ test('the next page is served from the leg that paused, not from the stale paren
 test('a journey continued outside the form does not report done early', async () => {
     // An owner approving a paused step from the run history spawns a child and
     // finalises the parent to 'success'. The session never hears about it, so
-    // reading its own run would end the visitor's journey mid-routine.
+    // reading its own run would end the visitor's journey mid-automation.
     const sid = await startSession();
     state.definitionOverride = PROGRESS_DEF;
     putRun('parentJ3', 'success', { steps: [] });
@@ -1430,12 +1430,12 @@ test('puts the document IN the notebook, as its content', async () => {
     assert.strictEqual(res.statusCode, 200);
     assert.strictEqual(res.body.notebookId, 'nb1');
     // Named after the document, without its extension, and owned by the caller
-    // — not by the routine's author.
+    // — not by the automation's author.
     assert.strictEqual(state.notebooks[0].name, 'offerte');
     assert.strictEqual(state.notebooks[0].userId, 'colleague1');
     // The text is the notebook's own content. It is NOT an attached source:
     // a source is something you ask questions about, and this is the thing the
-    // routine just wrote, sent here to be worked on.
+    // automation just wrote, sent here to be worked on.
     assert.strictEqual(state.notebookWrites.length, 1);
     assert.strictEqual(state.notebookWrites[0].id, 'nb1');
     assert.strictEqual(
@@ -1468,7 +1468,7 @@ test('keeps HTML a Word document already carries, rather than escaping it', asyn
 });
 
 test('escapes plain text so a generated document cannot inject markup', async () => {
-    // This text came out of a document a routine wrote, which routinely carries
+    // This text came out of a document an automation wrote, which routinely carries
     // model output, and the notebook editor renders what it is given.
     state.parsedText = 'Hallo <script>alert(1)</script>';
     const sid = await startSession();
@@ -1661,7 +1661,7 @@ test('saves the closing page\'s own text into a new notebook', async () => {
     assert.strictEqual(res.statusCode, 200);
     assert.strictEqual(res.body.notebookId, 'nb1');
     // Named after the closing page, and owned by the caller — not by the
-    // routine's author.
+    // automation's author.
     assert.strictEqual(state.notebooks[0].name, 'Mijn SEO-blog');
     assert.strictEqual(state.notebooks[0].userId, 'colleague1');
     // Raw markdown, not stripped — same "ship it as-is" choice the .txt

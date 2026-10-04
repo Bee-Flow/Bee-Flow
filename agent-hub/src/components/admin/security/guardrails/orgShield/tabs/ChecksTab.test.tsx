@@ -185,7 +185,7 @@ describe('ChecksTab — the two cards', () => {
     it('names every switch and writes through the setter', async () => {
         const { user, f } = setup({ f: { dlpEnabled: true } });
         for (const box of screen.getAllByRole('checkbox')) expect(box).toHaveAccessibleName();
-        await user.click(screen.getByRole('checkbox', { name: 'Also protect routines' }));
+        await user.click(screen.getByRole('checkbox', { name: 'Also protect automations' }));
         expect(f.setApplyToAutomations).toHaveBeenCalledWith(false);
     });
 });

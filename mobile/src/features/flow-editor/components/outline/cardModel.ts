@@ -52,8 +52,8 @@ export interface CardModel {
 
 function kickerFor(node: AnyNode, number: number | string | undefined, t: Translate): string {
     const kind = node.type === 'trigger' && node.kind === 'app_trigger'
-        ? t('routines.trigger.app_button', 'Button in an app')
-        : nodeTypeLabel(node.type, t) || t('routines.builder.node_generic', 'Step');
+        ? t('automations.trigger.app_button', 'Button in an app')
+        : nodeTypeLabel(node.type, t) || t('automations.builder.node_generic', 'Step');
     return number != null ? `${kind} · ${number}` : kind;
 }
 

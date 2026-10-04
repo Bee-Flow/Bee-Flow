@@ -104,12 +104,12 @@ export const PLAN_TEMPLATES = [
             title: 'Bee Flow Team',
             subtitle: 'Per-seat SMB tier with Fast + Thinking model tiers and automations.',
             priceLabel: '€15 / seat / month',
-            highlights: ['1,000 messages per seat / month', 'Up to 25 users · 10 agents', 'Fast + Thinking tiers', 'Automations & agent routines'],
+            highlights: ['1,000 messages per seat / month', 'Up to 25 users · 10 agents', 'Fast + Thinking tiers', 'Automations & scheduled agent runs'],
             badge: 'PER SEAT',
         },
         plan: {
             name: 'Bee Flow Team',
-            description: 'Per-seat tier for growing teams. €15 / active user / month. Each seat includes 1,000 messages/month (org cap scales with seat count). Adds Thinking model tier, automations, agent routines, Google Workspace + Microsoft 365 + full Nextcloud suite.',
+            description: 'Per-seat tier for growing teams. €15 / active user / month. Each seat includes 1,000 messages/month (org cap scales with seat count). Adds Thinking model tier, automations, scheduled agent runs, Google Workspace + Microsoft 365 + full Nextcloud suite.',
             tagline: 'For growing teams that need more horsepower',
             plan_type: 'organization',
             tier: 'pro',
@@ -331,7 +331,7 @@ export const PLAN_TEMPLATES = [
         },
         plan: {
             name: 'Bee Flow Pro',
-            description: 'Per-account tier for power users. Unlocks Deep Thinking, voice chat, meeting notes, automations, agent routines, and personal webpages. 800 msgs / month delivers ~77% margin on average users.',
+            description: 'Per-account tier for power users. Unlocks Deep Thinking, voice chat, meeting notes, automations, scheduled agent runs, and personal webpages. 800 msgs / month delivers ~77% margin on average users.',
             tagline: 'For power users',
             plan_type: 'consumer',
             tier: 'pro',

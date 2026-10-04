@@ -133,7 +133,7 @@ function sanitizeParseJsonFieldRows(raw) {
 
 // parse_json is RETIRED from authoring (its ability moved into the set step:
 // the parseJson() expression + list mode). The runtime, validator and
-// update-path stay — existing routines keep opening and running — but no new
+// update-path stay — existing automations keep opening and running — but no new
 // parse_json step can be created, and the guidance error tells the model the
 // replacement instead of a bare "unknown type".
 const PARSE_JSON_RETIRED_MSG = 'parse_json can no longer be added — use a set (Edit data) step instead: read JSON text with an expr binding like {kind:"expr",value:"parseJson(steps.<id>.output.body, \\"order.total\\")"}, or point the set\'s arrayRef at the parsed list for one row per entry.';

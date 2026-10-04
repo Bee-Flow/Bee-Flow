@@ -66,8 +66,8 @@ export default function InputNodeSection({
     // A search already narrowed the list: show every match, fold nothing.
     const plan = planIncomingFields(fields, isUsed, showAll || searching);
     const meta = [
-        fields.length === 1 ? t('routines.mapping.one_field', '1 field') : t('routines.mapping.n_fields', '{n} fields', { n: fields.length }),
-        ...(used > 0 ? [t('routines.mapping.in_use', '{n} in use', { n: used })] : []),
+        fields.length === 1 ? t('automations.mapping.one_field', '1 field') : t('automations.mapping.n_fields', '{n} fields', { n: fields.length }),
+        ...(used > 0 ? [t('automations.mapping.in_use', '{n} in use', { n: used })] : []),
     ].join(' · ');
     const capped = !!(iteration?.truncated && (iteration.skipped || 0) > 0);
     const row = (f: Field) => (
@@ -89,14 +89,14 @@ export default function InputNodeSection({
                     role="button"
                     tabIndex={0}
                     onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(o => !o); } }}
-                    title={[summary?.label, t('routines.mapping.drag_whole_output', 'Drag to use the whole output ({path})', { path: group.basePath })].filter(Boolean).join(' · ')}
+                    title={[summary?.label, t('automations.mapping.drag_whole_output', 'Drag to use the whole output ({path})', { path: group.basePath })].filter(Boolean).join(' · ')}
                     className="flex-1 min-w-0 flex items-center gap-2 px-2.5 py-[9px] text-xs cursor-grab active:cursor-grabbing select-none"
                 >
                     {open ? <ChevronDown size={14} className="shrink-0 text-[var(--text-tertiary)]" /> : <ChevronRight size={14} className="shrink-0 text-[var(--text-tertiary)]" />}
                     <Icon size={14} className="shrink-0 text-[var(--fam)]" />
-                    {number != null && <span className="text-[var(--text-primary)] font-semibold whitespace-nowrap">{t('routines.mapping.step_n', 'Step {n}', { n: number })} ·</span>}
+                    {number != null && <span className="text-[var(--text-primary)] font-semibold whitespace-nowrap">{t('automations.mapping.step_n', 'Step {n}', { n: number })} ·</span>}
                     <span className="text-[var(--text-primary)] font-semibold truncate">{group.label}</span>
-                    {isItem && <span className="text-[var(--text-tertiary)] truncate">{t('routines.mapping.current_item', 'current item of the loop')}</span>}
+                    {isItem && <span className="text-[var(--text-tertiary)] truncate">{t('automations.mapping.current_item', 'current item of the loop')}</span>}
                     <span className="ml-auto text-[11px] text-[var(--text-tertiary)] whitespace-nowrap" data-testid="input-group-meta">{meta}</span>
                     {/* "1 of 4" (artboard 2b): the last run's loop row. When the
                         run hit its ceiling, the dropped tail is said in the same
@@ -109,16 +109,16 @@ export default function InputNodeSection({
                             data-testid="input-loop-iteration"
                         >
                             {capped
-                                ? t('routines.mapping.iteration_of_capped', '{n} of {total} · {skipped} not processed', { n: iteration.index, total: iteration.total, skipped: iteration.skipped })
-                                : t('routines.mapping.iteration_of', '{n} of {total}', { n: iteration.index, total: iteration.total })}
+                                ? t('automations.mapping.iteration_of_capped', '{n} of {total} · {skipped} not processed', { n: iteration.index, total: iteration.total, skipped: iteration.skipped })
+                                : t('automations.mapping.iteration_of', '{n} of {total}', { n: iteration.index, total: iteration.total })}
                         </span>
                     )}
                 </div>
                 <button
                     type="button"
                     onClick={onOpenTable}
-                    title={t('routines.mapping.open_table_title', 'Open {label} as a table — map a whole column or a single cell', { label: group.label })}
-                    aria-label={t('routines.mapping.open_table', 'Open {label} as a table', { label: group.label })}
+                    title={t('automations.mapping.open_table_title', 'Open {label} as a table — map a whole column or a single cell', { label: group.label })}
+                    aria-label={t('automations.mapping.open_table', 'Open {label} as a table', { label: group.label })}
                     className="shrink-0 mr-1 p-1 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] opacity-0 group-hover/sec:opacity-100 focus:opacity-100 transition"
                 >
                     <Table2 size={12} />
@@ -134,7 +134,7 @@ export default function InputNodeSection({
                             className="w-full text-left pl-8 pr-2 py-1 text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                             data-testid="input-more-fields"
                         >
-                            {t('routines.mapping.n_more', '{n} more', { n: plan.more })}
+                            {t('automations.mapping.n_more', '{n} more', { n: plan.more })}
                         </button>
                     )}
                     {plan.technical.length > 0 && (
@@ -147,9 +147,9 @@ export default function InputNodeSection({
                                 data-testid="input-technical"
                             >
                                 {techOpen || searching ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
-                                {t('routines.mapping.technical_details', 'Technical details')}
+                                {t('automations.mapping.technical_details', 'Technical details')}
                                 <span className="ml-auto truncate">
-                                    {t('routines.mapping.technical_meta', '{n} fields · {names}', { n: plan.technical.length, names: technicalPreview(plan.technical) })}
+                                    {t('automations.mapping.technical_meta', '{n} fields · {names}', { n: plan.technical.length, names: technicalPreview(plan.technical) })}
                                 </span>
                             </button>
                             {(techOpen || searching) && plan.technical.map(row)}
@@ -158,7 +158,7 @@ export default function InputNodeSection({
                     {fields.length === 0 && (
                         <div className="px-4 py-1 text-[11px] text-[var(--text-tertiary)] italic">
                             {/* One key for the whole sentence, so any language can reorder it. */}
-                            {t('routines.mapping.no_named_fields', 'No named fields — open {table} to map from the raw output.', { table: t('routines.mapping.table', 'Table') })}
+                            {t('automations.mapping.no_named_fields', 'No named fields — open {table} to map from the raw output.', { table: t('automations.mapping.table', 'Table') })}
                         </div>
                     )}
                 </div>

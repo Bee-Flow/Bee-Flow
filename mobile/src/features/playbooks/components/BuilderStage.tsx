@@ -2,7 +2,7 @@
  * A builder phase (the automation, the app, a further app turn). On the web
  * the builder itself is the stage: its chat streams a model turn in the
  * browser tab while the person watches, and hears the end of every turn to
- * land the phase. The phone has no such stage — its routine builder takes no
+ * land the phase. The phone has no such stage — its automation builder takes no
  * brief and reports nothing back to a playbook — so it does not start one (a
  * phase nobody drives would sit `running` for ever) and says plainly that this
  * phase is built on a computer. It does not offer the web page: on a phone the
@@ -45,7 +45,7 @@ export function BuilderStage({ phase, dispatch }: Props) {
     const automationId = artStr(phase.artifacts, 'automationId');
     const appId = artStr(phase.artifacts, 'appId');
     const fact = phaseFact(phase, t);
-    const isApp = kindOf(phase) !== 'routine';
+    const isApp = kindOf(phase) !== 'automation';
     const skip = () => {
         setSkipping(true);
         void dispatch({ type: 'skip', key: phase.key }).finally(() => setSkipping(false));

@@ -1,5 +1,5 @@
 /**
- * BFSF-354 — the tool loop of a cowork / routine run without an agent
+ * BFSF-354 — the tool loop of a cowork / automation run without an agent
  * (executeTask) honours the Privacy Shield's tool block lists when the shield
  * applies to that path, i.e. when the org opted in through the cowork-shield
  * flag (core/entitlements/coworkShieldFlag.js, default OFF). A refused call is
@@ -44,7 +44,7 @@ const aiAgentStub = {
 
 const restore = installResolveStub({
     // — the runner —
-    '../stores/aiTaskStore': fakeStore,
+    '../stores/coworkStore': fakeStore,
     '../db': { pool: { query: async () => ({ rows: [] }) } },
     '../stores/terminationStore': { logTermination: async () => {} },
     './llm/modelResolver': {
@@ -97,7 +97,7 @@ async function run({ flag = true, shield = OWN_SERVER_EMAIL, toolCall, dispatchR
         dispatched: [], guardrailRows: [], toolMessages: [], errors: [],
     });
     await executeTask({ id: 'cw-1', userId: 'u1', modelTier: 'fast', title: 'Weekly', prompt: 'look it up' },
-        { store: fakeStore, surface: 'cowork' });
+        { store: fakeStore });
     assert.deepStrictEqual(fx.errors, [], 'the run itself must not fail');
 }
 

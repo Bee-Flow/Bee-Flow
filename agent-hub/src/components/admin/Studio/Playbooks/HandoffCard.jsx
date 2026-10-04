@@ -14,7 +14,7 @@ import { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
  *    Finish.
  *  - failed: the error + Retry / Skip / Stop.
  *  - needs_input (a builder asked a question mid-phase): answer in its chat,
- *    or mark the phase done when the routine already exists.
+ *    or mark the phase done when the automation already exists.
  * The card floats over the stage's lower third; the stage stays visible.
  * The parent keys it per (phase, next) so the textarea resets with the phase.
  */
@@ -34,7 +34,7 @@ function nextWords(next, t) {
         case 'table': return t('playbooks.handoff.next_table', 'Next: {phase} — the table is created.', { phase: name });
         case 'access': return t('playbooks.handoff.next_access', 'Next: {phase} — you decide who may open the app. Nothing is applied until you approve it.', { phase: name });
         case 'compliance': return t('playbooks.handoff.next_compliance', 'Next: {phase} — what was built is read against the frameworks your organisation has switched on.', { phase: name });
-        case 'routine': return t('playbooks.handoff.next_routine', 'Next: {phase} — the automation builder gets a brief and builds it while you watch.', { phase: name });
+        case 'automation': return t('playbooks.handoff.next_automation', 'Next: {phase} — the automation builder gets a brief and builds it while you watch.', { phase: name });
         case 'app':
         case 'app_turn': return t('playbooks.handoff.next_app', 'Next: {phase} — the app builder gets a brief and builds it while you watch.', { phase: name });
         default: return t('playbooks.handoff.next_plain', 'Next: {phase} — its brief is composed when you continue.', { phase: name });

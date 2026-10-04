@@ -1,6 +1,8 @@
 import { Activity, Loader2, PlayCircle } from 'lucide-react';
 import React from 'react';
+import { kindBarClass, kindInkClass } from './kindBar';
 import { SECTIONS } from './solutionSections';
+import { ROW, TabCard, TabNote, TabSpinner } from './TabParts';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
 /**
@@ -31,6 +33,9 @@ import { useTranslation } from '../../../../hooks/useTranslation';
 
 const COMPACT_ACTIVITY = 8;
 
+const ICON = 'w-4 h-4 flex-shrink-0 ';
+const TILE = 'flex flex-col gap-1 px-3 py-3 min-h-[44px] text-left bg-[var(--bg-card)] border border-[var(--border-subtle)] border-l-[3px] rounded-[var(--radius-md)] transition-colors duration-150 hover:bg-[var(--bg-card-hover)] hover:border-[var(--border-default)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]';
+
 /** null = the store could not be reached, and must not render as 0. */
 function countOf(items) {
     return (items === null || items === undefined) ? null : items.length;
@@ -53,14 +58,13 @@ function CountTiles({ resources, onOpenTab }) {
                     <button
                         key={key}
                         onClick={() => onOpenTab?.('resources')}
-                        className="flex flex-col gap-1 px-3 py-3 rounded-lg text-left"
-                        style={{ background: 'var(--bg-secondary)' }}
+                        className={`${TILE} ${kindBarClass(kind)}`}
                     >
-                        <span className="flex items-center gap-1.5 text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
-                            <Icon className="w-3.5 h-3.5" />
+                        <span className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">
+                            <Icon className={ICON + kindInkClass(kind)} aria-hidden="true" />
                             {t(labelKey)}
                         </span>
-                        <span className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>
+                        <span className="text-xl font-semibold tabular-nums text-[var(--text-primary)]">
                             {count === null ? '—' : count}
                         </span>
                     </button>
@@ -74,54 +78,42 @@ function RunningNow({ runs }) {
     const { t } = useTranslation();
     if (runs.length === 0) return null;
     return (
-        <div>
-            <h3 className="flex items-center gap-2 text-sm font-medium mb-2" style={{ color: 'var(--text-primary)' }}>
-                <PlayCircle className="w-4 h-4" style={{ color: 'var(--text-tertiary)' }} />
-                {t('projects.running_now', 'Running now')}
-            </h3>
+        <TabCard title={t('projects.running_now', 'Running now')} icon={PlayCircle}>
             <div className="space-y-1.5">
                 {runs.map(run => (
-                    <div key={run.runId} className="flex items-center gap-3 px-3 py-2 rounded-lg"
-                         style={{ background: 'var(--bg-secondary)' }}>
-                        <Loader2 className="w-3.5 h-3.5 animate-spin flex-shrink-0" style={{ color: 'var(--text-tertiary)' }} />
-                        <span className="flex-1 min-w-0 text-sm truncate" style={{ color: 'var(--text-primary)' }}>
+                    <div key={run.runId} className={`flex items-center gap-3 px-3 py-2.5 ${ROW}`}>
+                        <Loader2 className="w-4 h-4 animate-spin motion-reduce:animate-none flex-shrink-0 text-[var(--accent-primary)]" aria-hidden="true" />
+                        <span className="flex-1 min-w-0 text-sm truncate text-[var(--text-primary)]">
                             {run.automationTitle || t('projects.untitled_automation', 'Untitled automation')}
                         </span>
                     </div>
                 ))}
             </div>
-        </div>
+        </TabCard>
     );
 }
 
 function Recent({ activity, formatActivity, formatRelative }) {
     const { t } = useTranslation();
     return (
-        <div>
-            <h3 className="flex items-center gap-2 text-sm font-medium mb-2" style={{ color: 'var(--text-primary)' }}>
-                <Activity className="w-4 h-4" style={{ color: 'var(--text-tertiary)' }} />
-                {t('projects.recent_activity', 'Recent activity')}
-            </h3>
+        <TabCard title={t('projects.recent_activity', 'Recent activity')} icon={Activity}>
             {activity.length === 0 ? (
-                <p className="px-3 py-2.5 rounded-lg text-xs"
-                   style={{ background: 'var(--bg-secondary)', color: 'var(--text-tertiary)' }}>
-                    {t('projects.section_empty', 'Nothing here yet.')}
-                </p>
+                <TabNote>{t('projects.section_empty', 'Nothing here yet.')}</TabNote>
             ) : (
                 <ul className="space-y-1.5">
                     {activity.slice(0, COMPACT_ACTIVITY).map(item => (
-                        <li key={item.id} className="px-3 py-2 rounded-lg" style={{ background: 'var(--bg-secondary)' }}>
-                            <p className="text-sm truncate" style={{ color: 'var(--text-primary)' }}>
+                        <li key={item.id} className={`px-3 py-2 ${ROW}`}>
+                            <p className="text-sm truncate text-[var(--text-primary)]">
                                 {formatActivity ? formatActivity(item) : item.action}
                             </p>
-                            <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                            <p className="text-[11px] text-[var(--text-muted)]">
                                 {formatRelative ? formatRelative(item.createdAt) : ''}
                             </p>
                         </li>
                     ))}
                 </ul>
             )}
-        </div>
+        </TabCard>
     );
 }
 
@@ -130,11 +122,7 @@ export default function ProjectOverviewTab({
     onOpenTab, formatActivity, formatRelative,
 }) {
     if (loading && !resources) {
-        return (
-            <div className="flex items-center justify-center py-16" style={{ color: 'var(--text-tertiary)' }}>
-                <Loader2 className="w-5 h-5 animate-spin" />
-            </div>
-        );
+        return <TabSpinner />;
     }
     return (
         <div className="space-y-6">

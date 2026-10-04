@@ -9,7 +9,7 @@ import { filterPrincipals, usePeopleDirectory, type Principal } from '../../../.
  * notification recipients. `exclude` holds `type:id` keys already chosen.
  */
 export default function PrincipalPicker({ automationId, onPick, exclude, groupsOnly = false, autoFocus = false }: {
-    /** The routine whose organisation's people are listed. */
+    /** The automation whose organisation's people are listed. */
     automationId: string | null | undefined;
     onPick: (p: Principal) => void;
     exclude?: Set<string>;
@@ -43,8 +43,8 @@ export default function PrincipalPicker({ automationId, onPick, exclude, groupsO
                     role="combobox"
                     aria-expanded={open}
                     aria-controls={listId}
-                    aria-label={groupsOnly ? t('routines.people.add_group', 'Add a group') : t('routines.people.add', 'Add a person or group')}
-                    placeholder={groupsOnly ? t('routines.people.add_group_placeholder', 'Add a group…') : t('routines.people.add_placeholder', 'Add a person or group…')}
+                    aria-label={groupsOnly ? t('automations.people.add_group', 'Add a group') : t('automations.people.add', 'Add a person or group')}
+                    placeholder={groupsOnly ? t('automations.people.add_group_placeholder', 'Add a group…') : t('automations.people.add_placeholder', 'Add a person or group…')}
                     onFocus={() => setOpen(true)}
                     onBlur={() => setTimeout(() => setOpen(false), 150)}
                     onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
@@ -58,10 +58,10 @@ export default function PrincipalPicker({ automationId, onPick, exclude, groupsO
                     className="absolute left-0 right-0 top-full mt-1 z-20 max-h-64 overflow-y-auto rounded-lg border border-[var(--border-default)] bg-[var(--bg-card)] shadow-lg py-1"
                 >
                     {directory.isLoading && (
-                        <li className="px-3 py-2 text-xs text-[var(--text-tertiary)]">{t('routines.people.loading', 'Loading people…')}</li>
+                        <li className="px-3 py-2 text-xs text-[var(--text-tertiary)]">{t('automations.people.loading', 'Loading people…')}</li>
                     )}
                     {!directory.isLoading && hits.length === 0 && (
-                        <li className="px-3 py-2 text-xs text-[var(--text-tertiary)]">{t('routines.people.no_match', 'Nobody found')}</li>
+                        <li className="px-3 py-2 text-xs text-[var(--text-tertiary)]">{t('automations.people.no_match', 'Nobody found')}</li>
                     )}
                     {hits.map(p => (
                         <li key={`${p.type}:${p.id}`} role="option" aria-selected={false}>
@@ -90,8 +90,8 @@ type T = ReturnType<typeof useTranslation>['t'];
 export function principalDetail(p: { type: string; detail?: string | null; memberCount?: number | null }, t: T): string {
     if (p.type === 'group') {
         return p.memberCount != null
-            ? t('routines.people.group_members', 'group · {n} people', { n: p.memberCount })
-            : t('routines.people.group', 'group');
+            ? t('automations.people.group_members', 'group · {n} people', { n: p.memberCount })
+            : t('automations.people.group', 'group');
     }
     return p.detail || '';
 }

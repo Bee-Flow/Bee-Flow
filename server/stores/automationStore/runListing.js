@@ -8,7 +8,7 @@
  *   buildRunSearch             the `q` filter as SQL (parameterised, bounded)
  *   getJourneyStepStatuses     the step rows of every leg of N journeys, as
  *                              status-only projections (no input/output JSON)
- *   getVersionDefinitions      the definition each (routine, version) ran
+ *   getVersionDefinitions      the definition each (automation, version) ran
  *   getPendingApprovalIdsForRuns   the open approval a waiting leg waits on
  */
 
@@ -62,7 +62,7 @@ function buildRunSearch(q, startIdx, { payload = true } = {}) {
     if (payload) {
         parts.push(`(r.trigger_payload IS NOT NULL
                      AND octet_length(r.trigger_payload::text) <= ${SEARCH_PAYLOAD_MAX_BYTES}
-                     AND EXISTS (SELECT 1 FROM jsonb_path_query(r.trigger_payload, 'lax $.**') pv
+                     AND EXISTS (SELECT 1 FROM jsonb_path_query(r.trigger_payload::jsonb, 'lax $.**') pv
                                   WHERE jsonb_typeof(pv) = 'string' AND (pv #>> '{}') ILIKE ${p}))`);
     }
     return { clause: `(${parts.join(' OR ')})`, params: [likeTerm(term)] };
@@ -101,7 +101,7 @@ async function getJourneyStepStatuses(rootIds, { query = null } = {}) {
 }
 
 /**
- * The saved definition of each (routine, version) pair, keyed `${id}@${version}`.
+ * The saved definition of each (automation, version) pair, keyed `${id}@${version}`.
  * Pairs whose snapshot is missing are simply absent.
  *
  * @param {Array<{ automationId: string, version: number }>} pairs

@@ -36,12 +36,12 @@ function modelTierGateError(modelTier, draftWrap) {
 // exactly like `knowledgeBaseIds`: the runner then never has to tell "not set"
 // from "cleared", and no reader can invent a meaning for an absent key.
 //
-// The identity questions — does this agent exist, is it in the routine
+// The identity questions — does this agent exist, is it in the automation
 // owner's organisation, is it published — are DATABASE questions and are not
 // answered here. validate/stepRules.js asks them against the catalog its
 // caller injects (automation/agentCatalog.js builds it), and
 // core/automationRunner/aiStepAgent.js asks them AGAIN at run time, which is
-// the only one that can see the world as it is when the routine fires.
+// the only one that can see the world as it is when the automation fires.
 
 /** An agent/skill id as it is stored: a trimmed string, or null. */
 function sanitizeAgentId(v) {
@@ -107,7 +107,7 @@ function sanitizeAgentPermissions(v) {
  * the block anyway put an `{all false}` object on every plain AI step the
  * builder made — which the validator then flagged, correctly and forever, as
  * `ai_step.agent_permissions_orphan`: "sets agent permissions but names no
- * agent, so nothing reads them". Every AI-built routine carried that warning,
+ * agent, so nothing reads them". Every AI-built automation carried that warning,
  * and no user action cleared it, because the user never set the field.
  *
  * Absent means all three false (validate/constants.js R2), so omitting the
@@ -122,7 +122,7 @@ function agentPermissionsBlock(rawPermissions, agentId, { hasSkills = false } = 
     const granted = AI_STEP_AGENT_PERMISSION_KEYS.filter(k => rawPermissions
         && typeof rawPermissions === 'object' && rawPermissions[k] === true);
     // Handoff 5: a step that applies skills WITHOUT an agent reads the same
-    // switches (a skill can bring knowledge bases, and can run a routine), so
+    // switches (a skill can bring knowledge bases, and can run an automation), so
     // there the block is kept as soon as anything is granted.
     if (hasSkills && granted.length) return { permissions: sanitizeAgentPermissions(rawPermissions) };
     // Turning a permission ON without naming an agent is a real mistake, not
@@ -185,7 +185,7 @@ function applyAddAi(draft, args, draftWrap) {
             ? args.knowledgeBaseIds.filter(id => typeof id === 'string' && id).slice(0, 10)
             : [],
         // Personal memory grounding (2026-09-04): when on, the runner searches
-        // the ROUTINE OWNER's user_memories with this step's prompt and adds
+        // the AUTOMATION OWNER's user_memories with this step's prompt and adds
         // the hits to the system prompt — the same block chat agents get.
         // Off by default: most steps transform data and must not drift with
         // whatever the owner said in chat last week.

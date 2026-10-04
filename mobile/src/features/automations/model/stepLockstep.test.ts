@@ -5,7 +5,7 @@
  * mirror that nothing checks drifts. The run timeline printed `step.stepType`
  * raw, so a phone read "integration_action · 1.2s" and "knowledge_write"
  * where the browser, on the very same run, said "Action" and "To knowledge
- * base". One run must not read as two different routines depending on the
+ * base". One run must not read as two different automations depending on the
  * screen.
  *
  * This does NOT demand a pretty name for everything. It demands a DECISION:

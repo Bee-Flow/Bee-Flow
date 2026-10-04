@@ -257,7 +257,7 @@ test('every authorable trigger kind is listed, including the hosted form', () =>
         );
         const form = body.triggers.find(t => t.kind === 'form');
         assert.match(form.label, /form/i);
-        // The form's own fields are author-declared per routine, so the shared
+        // The form's own fields are author-declared per automation, so the shared
         // catalog entry carries no fields — only the binding note.
         assert.deepStrictEqual(body.triggerOutputs.__form.fields, []);
         assert.match(body.triggerOutputs.__form.note, /trigger\.output\.<fieldName>/);
@@ -312,7 +312,7 @@ test('een kapotte capability-lookup laat meeting-notes weg (faalt dicht)', async
 });
 
 test('de meeting-notes-velden zitten in triggerOutputs, ook zonder de capability', async () => {
-    // Het uitvoercontract is NIET gegate: een routine die al op deze trigger
+    // Het uitvoercontract is NIET gegate: een automatisering die al op deze trigger
     // staat moet zijn trigger.output.*-bindingen blijven kunnen tonen, ook als
     // de licentie inmiddels weg is. Alleen het KIEZEN is gegate.
     resetState();

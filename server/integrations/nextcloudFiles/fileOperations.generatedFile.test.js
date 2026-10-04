@@ -1,6 +1,6 @@
 /**
  * nextcloud_upload_file with sourceHandle { kind: 'generated_file' } — the
- * bridge that lets a routine push the deck (or PDF) a document step kept
+ * bridge that lets an automation push the deck (or PDF) a document step kept
  * into Nextcloud Files. The handle resolver is a double; what is pinned is
  * the wiring: the run scope reaches the tool, the bytes and MIME come from
  * the ledger, a folder path takes the file's own name, and the two refusals.
@@ -64,8 +64,8 @@ test('refusals: not a live file of this run; used outside a run', async () => {
     const gone = await executeFileOperationTool('nextcloud_upload_file', { path: '/Decks/', sourceHandle: { kind: 'generated_file', fileId: 'old' } }, ctx);
     assert.match(gone.error, /not a live file of this run/);
 
-    resolver.throwWith = Object.assign(new Error('A generated_file handle can only be used inside a routine run — the file belongs to that run.'), { errorClass: 'handle_scope_missing' });
+    resolver.throwWith = Object.assign(new Error('A generated_file handle can only be used inside an automation run — the file belongs to that run.'), { errorClass: 'handle_scope_missing' });
     const chat = await executeFileOperationTool('nextcloud_upload_file', { path: '/Decks/', sourceHandle: { kind: 'generated_file', fileId: 'f1' } }, makeCtx(null).ctx);
-    assert.match(chat.error, /inside a routine run/);
+    assert.match(chat.error, /inside an automation run/);
     resolver.throwWith = null;
 });

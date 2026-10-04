@@ -37,7 +37,7 @@
 //
 // ── Live while you look ──────────────────────────────────────────────────
 // Every 30 seconds while the browser tab is visible the four requests run
-// again, so a call a routine just made shows up on the map without a reload.
+// again, so a call an automation just made shows up on the map without a reload.
 // Hidden tab: no polling; back to visible: one refresh straight away. A
 // refresh keeps the data on screen until the new data is in (`loading` is
 // only true before the first load), and a failed refresh keeps the old data

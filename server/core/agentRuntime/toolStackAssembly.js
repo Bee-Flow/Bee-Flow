@@ -16,9 +16,9 @@
  * rebuilds the policy each round because `tools` keeps growing.
  *
  * After it, one narrower drop: `messageMetadata.testSandbox` (a test-set run,
- * routes/agents/tests.js) also removes everything that SENDS and every routine,
+ * routes/agents/tests.js) also removes everything that SENDS and every automation,
  * and it does so for uncurated agents too. The withheld list is returned so the
- * run can say what it took away — a test that expects a routine must read as
+ * run can say what it took away — a test that expects an automation must read as
  * "a test run never offers this", not as "the agent refused".
  */
 const { getAgentTools } = require('./agentTools');
@@ -208,12 +208,12 @@ function narrowToolsForTurn({ tools, agent, agentId, messageMetadata }) {
 
     // ── Headless: withhold the tools that would need approval ────
     // Inert for an agent without a stored `config.tools` map — buildToolPolicy
-    // gates nothing there, so a routine that has always mailed keeps its mail
+    // gates nothing there, so an automation that has always mailed keeps its mail
     // tool and its autoSend.
     if (isUnattended(messageMetadata)) {
         try {
-            // A granted routine's own `confirm` is part of the question: a
-            // routine its owner put on "ask" has nobody to ask here either, so
+            // A granted automation's own `confirm` is part of the question: a
+            // automation its owner put on "ask" has nobody to ask here either, so
             // it is withheld like any other confirming tool. Empty — and
             // therefore free — for an agent that grants no automations.
             const { droppedForUnattended } = buildToolPolicy({
@@ -236,11 +236,11 @@ function narrowToolsForTurn({ tools, agent, agentId, messageMetadata }) {
     // ── Test run: the narrower drop ──────────────────────────────────
     // A test set replays somebody's questions through the REAL runtime, so it
     // gets the real stack minus the things that must not happen when nobody is
-    // watching: anything that SENDS, any routine (whose behaviour lives in a
+    // watching: anything that SENDS, any automation (whose behaviour lives in a
     // definition, so nothing here can prove it does not send), and anything
     // that would ask for confirmation. Unlike the headless drop above this
     // does NOT wait for the agent to have a curated `tools` map — that opt-in
-    // exists so a mailing routine keeps working unattended, and a test run is
+    // exists so a mailing automation keeps working unattended, and a test run is
     // the opposite case: it may lose capability, never gain permission.
     // Rules and reasons live in ./testSandbox; this is only where they land.
     let sandboxWithheld = [];

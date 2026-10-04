@@ -14,7 +14,7 @@ import { knowledgeWriteSummary } from '../nodeSummaries';
  *              it goes further: an agent will later state this text as fact,
  *              with a citation.
  *   repeats  — there is no source reference, so every run leaves ANOTHER
- *              document rather than replacing its own. On a nightly routine
+ *              document rather than replacing its own. On a nightly automation
  *              that is a knowledge base nobody can explain the size of six
  *              months later, and the validator's warning is easy to dismiss
  *              once. On the card it stays visible.

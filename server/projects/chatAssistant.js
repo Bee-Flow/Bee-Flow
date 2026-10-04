@@ -52,7 +52,7 @@
  *     author's display name (never an e-mail address);
  *   - the project's name and custom instructions;
  *   - the chat's agent as a persona, ONLY when the asking member may use that
- *     agent (the rule a routine applies to its owner: owner, or published and
+ *     agent (the rule an automation applies to its owner: owner, or published and
  *     shared with them — core/automationRunner/aiStepAgent.resolveStepAgent);
  *   - passages from the project's knowledge bases that the ASKING member may
  *     read (testAs.visibleKbIdsFor, context 'project_kb', plus the project's
@@ -163,7 +163,7 @@ function displayNameOf(user) {
  * Owner: always. Anyone else: only a published agent of their organisation
  * that is shared with them (or with everyone there) and that serves a
  * published version — the rule core/automationRunner/aiStepAgent applies to a
- * routine's owner, reused rather than restated.
+ * automation's owner, reused rather than restated.
  *
  * @param {{ agentId: string, userId: string }} p
  * @param {{ getUser?: Function, resolveUserGroups?: Function, agentStore?: object }} [deps]

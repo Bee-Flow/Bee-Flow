@@ -12,7 +12,7 @@ import { API_BASE, authFetch } from '../../utils/helpers';
  * "Laat gebeuren" — de kolom naast de datakaarten: wat zet deze pagina in gang?
  *
  * Zolang `bf-*` niet bestaat (W4) heeft die vraag maar twee eerlijke bronnen:
- * de brug-grants (welke routines en apps de pagina mág aanroepen — dat is
+ * de brug-grants (welke automatiseringen en apps de pagina mág aanroepen — dat is
  * WebpageAppsPanel, hier gepromoveerd van IDE-zijpaneel naar de onderkant van
  * deze kolom) en de statische scan op wat de pagina BUITEN die grants om doet.
  *
@@ -33,10 +33,10 @@ import { API_BASE, authFetch } from '../../utils/helpers';
  *    De kaart zegt dat erbij — en de Openbaar-rij in "Wie ziet de pagina" hoort
  *    dat te herhalen zodra die rij bestaat.
  *
- * 4. "DEZE ROUTINE IS AF." Wat "Maak er een automation van" scaffoldt is een
+ * 4. "DEZE AUTOMATION IS AF." Wat "Maak er een automation van" scaffoldt is een
  *    CONCEPT met één `http_request`-stap: het vaste deel van de URL, de methode
  *    als we die kenden, en `blockPrivateTargets` aan. Bouwde de pagina de rest
- *    van het adres ter plekke, dan zegt de beschrijving van de routine dat.
+ *    van het adres ter plekke, dan zegt de beschrijving van de automatisering dat.
  */
 
 const BINDINGS_URL = (id) => `${API_BASE}/api/webpages/${encodeURIComponent(id)}/bindings`;
@@ -45,8 +45,8 @@ async function readJson(res) {
     try { return await res.json(); } catch { return null; }
 }
 
-/** Waar de gescaffolde routine te vinden is. */
-export function routineDeepLink(automationId) {
+/** Waar de gescaffolde automatisering te vinden is. */
+export function automationDeepLink(automationId) {
     return `studio/automations/${encodeURIComponent(automationId)}`;
 }
 
@@ -56,10 +56,10 @@ export function routineDeepLink(automationId) {
  * Puur, en apart getest: dit is de enige plek waar een gescande oproep in een
  * opgeslagen definitie verandert. Twee regels staan er hard in — het adres komt
  * uit `urlPrefix` (nooit uit de weergavetekst met het beletselteken erin), en
- * `blockPrivateTargets` blijft aan, zodat een gescaffolde routine niet stilletjes
+ * `blockPrivateTargets` blijft aan, zodat een gescaffolde automatisering niet stilletjes
  * ruimer is dan wat de builder zelf zou maken.
  */
-export function scaffoldHttpRoutine(call) {
+export function scaffoldHttpAutomation(call) {
     const host = call.host || 'a web service';
     const url = call.urlPrefix || call.url || '';
     const label = `Call ${host}`;
@@ -101,14 +101,14 @@ function OwnCodeCard({ t, call, onNavigate }) {
         setBusy(true);
         setError(null);
         try {
-            const { automation } = await api.createAutomation(scaffoldHttpRoutine(call));
+            const { automation } = await api.createAutomation(scaffoldHttpAutomation(call));
             setCreatedId(automation.id);
-            if (typeof onNavigate === 'function') onNavigate(routineDeepLink(automation.id));
+            if (typeof onNavigate === 'function') onNavigate(automationDeepLink(automation.id));
         } catch (e) {
             const message = String(e?.message || e);
             setError(/403|forbidden|licen/i.test(message)
-                ? t('webpages.actions.routine_not_licensed',
-                    'Routines are not part of this plan, so one cannot be made here.')
+                ? t('webpages.actions.automation_not_licensed',
+                    'Automations are not part of this plan, so one cannot be made here.')
                 : message);
         } finally {
             setBusy(false);
@@ -156,17 +156,17 @@ function OwnCodeCard({ t, call, onNavigate }) {
                 >
                     <Workflow size={13} aria-hidden="true" />
                     {busy
-                        ? t('webpages.actions.making_routine', 'Making it…')
-                        : t('webpages.actions.make_routine', 'Turn it into a routine')}
+                        ? t('webpages.actions.making_automation', 'Making it…')
+                        : t('webpages.actions.make_automation', 'Turn it into an automation')}
                 </button>
                 {/* Zonder in-app navigator alsnog een echte link: een knop die
                     nergens heen gaat is erger dan een volledige paginalading. */}
                 {createdId && typeof onNavigate !== 'function' && (
                     <a
                         className="text-[11px] underline inline-flex items-center gap-1"
-                        href={`/app/${routineDeepLink(createdId)}`}
+                        href={`/app/${automationDeepLink(createdId)}`}
                     >
-                        <ExternalLink size={11} /> {t('webpages.actions.open_routine', 'Open the routine')}
+                        <ExternalLink size={11} /> {t('webpages.actions.open_automation', 'Open the automation')}
                     </a>
                 )}
             </div>
@@ -242,7 +242,7 @@ function OwnCodeSection({ t, code, onNavigate, onRetry }) {
 }
 
 /**
- * De routines die dit paneel LAAT GEBEUREN — uit de elementen op de pagina.
+ * De automatiseringen die dit paneel LAAT GEBEUREN — uit de elementen op de pagina.
  *
  * Deze kaart zei letterlijk "form blocks are not part of this page's building
  * blocks yet, so none can be listed here", terwijl de server al
@@ -276,7 +276,7 @@ function FormsCard({ t, forms, uses, elements, onNavigate }) {
             ) : !marks.length ? (
                 <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
                     {t('webpages.actions.forms_none',
-                        'This page has no blocks that start a routine.')}
+                        'This page has no blocks that start an automation.')}
                 </p>
             ) : (
                 <>
@@ -287,7 +287,7 @@ function FormsCard({ t, forms, uses, elements, onNavigate }) {
                                     <button
                                         type="button"
                                         className="underline"
-                                        onClick={() => onNavigate(routineDeepLink(target.id))}
+                                        onClick={() => onNavigate(automationDeepLink(target.id))}
                                     >
                                         {target.id}
                                     </button>

@@ -15,7 +15,7 @@ import type { AgentPreviewQuery } from '../api/types';
 import { diffVersions, getVersion, listVersions } from '../api/versions';
 import { setPickSources } from '../bindings/flowDeps/pickSources';
 
-/** The routine row with the editor's definition. The draft store hydrates from this. */
+/** The automation row with the editor's definition. The draft store hydrates from this. */
 export function useFlowDefinition(id: string | null) {
     return useQuery({
         queryKey: flowKeys.definition(id ?? ''),
@@ -27,10 +27,10 @@ export function useFlowDefinition(id: string | null) {
 export interface CatalogOptions {
     /**
      * Read it anew when this screen mounts, even with a copy cached. The
-     * routine's own screens (Build, Flowlet) pass it: a step's empty state
+     * automation's own screens (Build, Flowlet) pass it: a step's empty state
      * sends the author to Studio → Datatables or Knowledge, which unmounts the
      * editor, and coming back must offer what they made there. A step editor
-     * reads the copy its routine's screen fetched, so opening a step (or
+     * reads the copy its automation's screen fetched, so opening a step (or
      * typing in one) never rebuilds it.
      */
     freshOnMount?: boolean;
@@ -40,8 +40,8 @@ export interface CatalogOptions {
  * What the builder may offer: apps, agents, datatables, knowledge bases.
  * Computed per caller from their grants and slow to build, so it is not
  * re-read on focus, on reconnect or while someone edits a flow (`staleTime:
- * Infinity`); it is re-read once per visit to a routine (`freshOnMount` on the
- * routine's screens) and on coming back to a step (useCatalogOnReturn). Its
+ * Infinity`); it is re-read once per visit to an automation (`freshOnMount` on the
+ * automation's screens) and on coming back to a step (useCatalogOnReturn). Its
  * `app_pick` sources are handed to the bindings layer as they arrive.
  */
 export function useCatalog({ freshOnMount = false }: CatalogOptions = {}) {
@@ -150,7 +150,7 @@ export function useFolders() {
 }
 
 /**
- * The persisted AI conversation of a routine, read once when the chat opens;
+ * The persisted AI conversation of an automation, read once when the chat opens;
  * after that the chat keeps its own transcript and the server its own copy.
  */
 export function useBuilderSession(automationId: string | null) {

@@ -270,7 +270,7 @@ router.post('/config', requireAuth, validate({ body: ConfigBody }), async (req, 
         await configStore.setSecret('linkedin_client_secret', req.body.linkedinClientSecret || '');
     }
     // Withings health connector — one developer app per deployment, the same
-    // admin-global shape LinkedIn uses. Per-user tokens live in the routine
+    // admin-global shape LinkedIn uses. Per-user tokens live in the automation
     // vault, never here.
     if (req.body.withingsClientId !== undefined) {
         await configStore.setSecret('withings_client_id', req.body.withingsClientId || '');

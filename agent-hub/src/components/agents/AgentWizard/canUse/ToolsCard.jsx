@@ -342,7 +342,7 @@ function ToolRow({ t, ro, row, app, onChangeConfirm, onChangeActAs, onOpenChoose
 }
 
 /**
- * De band "Automations als tool" — routines die de agent zelf mag starten.
+ * De band "Automations als tool" — automatiseringen die de agent zelf mag starten.
  *
  * De parampillen komen uit `trigger.parametersSchema`, hetzelfde schema
  * waaruit `automationToTool` de tool-signatuur rendert. Wat hier staat is dus
@@ -356,7 +356,7 @@ function AutomationRow({ t, row }) {
             </span>
             <div className="min-w-0 flex-1">
                 <div className={`text-[13px] truncate ${row.readable ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] italic'}`}>
-                    {row.name || t('agent_studio.can_use.automation_unnamed', 'Routine')}
+                    {row.name || t('agent_studio.can_use.automation_unnamed', 'Automation')}
                 </div>
                 <div className="text-[12px] text-[var(--text-tertiary)] flex items-center gap-1.5 flex-wrap mt-0.5">
                     <span>
@@ -390,12 +390,12 @@ function AutomationRow({ t, row }) {
                 </div>
                 {row.readable === false && (
                     <RowWarning>
-                        {t('agent_studio.can_use.automation_row_unreadable', 'Granted, but this routine could not be read — so what it does is unknown.')}
+                        {t('agent_studio.can_use.automation_row_unreadable', 'Granted, but this automation could not be read — so what it does is unknown.')}
                     </RowWarning>
                 )}
                 {row.callable === false && (
                     <RowWarning>
-                        {t('agent_studio.can_use.automation_not_callable', 'This routine has no agent trigger, so the agent is never offered it.')}
+                        {t('agent_studio.can_use.automation_not_callable', 'This automation has no agent trigger, so the agent is never offered it.')}
                     </RowWarning>
                 )}
             </div>
@@ -495,7 +495,7 @@ export default function ToolsCard({
             {automationsState === READ.ERROR && autoRows.length > 0 && (
                 <UnreadableNotice
                     testId="agent-automations-unreadable"
-                    message={t('agent_studio.can_use.automations_unreadable', 'Could not load the routines, so their names and inputs are missing here.')}
+                    message={t('agent_studio.can_use.automations_unreadable', 'Could not load the automations, so their names and inputs are missing here.')}
                 />
             )}
             {autoRows.map(row => <AutomationRow key={row.id} t={t} row={row} />)}

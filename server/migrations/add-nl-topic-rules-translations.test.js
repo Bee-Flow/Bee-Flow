@@ -13,7 +13,7 @@ const { NL_TRANSLATIONS } = require('./add-nl-topic-rules-translations');
 const { GUI_DEFAULTS } = require('../i18n/defaults/en');
 const { NL_TRANSLATIONS: BOOT_LIST } = require('../boot/bootMigrations');
 
-const PREFIX = 'routines.builder.topics.';
+const PREFIX = 'automations.builder.topics.';
 
 test('every Dutch key has an English key', () => {
     const orphans = Object.keys(NL_TRANSLATIONS).filter((k) => !(k in GUI_DEFAULTS));

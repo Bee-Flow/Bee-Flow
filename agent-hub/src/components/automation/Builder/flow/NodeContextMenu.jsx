@@ -50,7 +50,7 @@ export default function NodeContextMenu({ x, y, canDelete, canDuplicate, canDeta
             className="fixed z-[1000] min-w-[200px] py-1 rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)] shadow-lg"
             onContextMenu={(e) => e.preventDefault()}
         >
-            {onAskAssistant && <button type="button" role="menuitem" className={`${item} text-[var(--type-ai)] hover:bg-[var(--bg-tertiary)]`} onClick={() => { onClose(); onAskAssistant(); }}><Sparkles size={12} />{t('routines.assistant.ask_step', 'Ask the assistant…')}<span className="ml-auto text-[10px]">⌘ J</span></button>}
+            {onAskAssistant && <button type="button" role="menuitem" className={`${item} text-[var(--type-ai)] hover:bg-[var(--bg-tertiary)]`} onClick={() => { onClose(); onAskAssistant(); }}><Sparkles size={12} />{t('automations.assistant.ask_step', 'Ask the assistant…')}<span className="ml-auto text-[10px]">⌘ J</span></button>}
             {onExecute && (
                 <button
                     type="button" role="menuitem" className={`${item} text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]`}

@@ -11,8 +11,11 @@
  * DELETE /:id/sprints/:sprintId                editor   the sprint goes; its tasks keep existing with no sprint
  * POST   /:id/sprints/:sprintId/items          editor   put tasks of the project into the sprint
  * DELETE /:id/sprints/:sprintId/items/:taskId  editor   take one task out
- * POST   /:id/sprints/:sprintId/start          editor   make it the active sprint (the one that was goes back to planned)
- * POST   /:id/sprints/:sprintId/complete       editor   close it
+ * POST   /:id/sprints/:sprintId/start          editor   make it the active sprint (the one that was goes back to planned); a closed one is 409
+ * POST   /:id/sprints/:sprintId/complete       editor   close the active sprint; a planned or closed one is 409
+ *
+ * A closed sprint is history: it is not started again and takes no new tasks
+ * (409 sprint_closed).
  *
  * Names and goals are sealed with the project key (projects/chatCrypto.js,
  * the sprint id in the place of the chat id) and opened on the way out; a key
@@ -75,6 +78,9 @@ function makeProjectSprintsRouter(deps = {}) {
         if (!sprint) throw notFound('sprint_not_found', 'This sprint does not exist in this project.');
         return sprint;
     }
+
+    const closedError = () => conflict('sprint_closed', 'This sprint is completed. Plan a new sprint instead.');
+    const notActiveError = () => conflict('sprint_not_active', 'Only the active sprint can be completed. Start it first.');
 
     const sprintEvent = (kind, actorId, sprintId, payload = {}) => ({
         kind, actorId, targetType: 'project_sprint', targetId: sprintId, payload: { sprintId, ...payload },
@@ -191,6 +197,7 @@ function makeProjectSprintsRouter(deps = {}) {
         const userId = userIdOf(req);
         const project = await loadProject(req);
         const sprint = await loadSprint(project, req.params.sprintId);
+        if (sprint.status === 'closed') throw closedError();
         const taskIds = [...new Set(req.body.taskIds)];
         for (const taskId of taskIds) {
             if (!(await taskStore().getTask(project.id, taskId))) {
@@ -198,6 +205,8 @@ function makeProjectSprintsRouter(deps = {}) {
             }
         }
         const assigned = await store().assignTasks(project.id, sprint.id, taskIds);
+        // Closed between the look-up and the write: nothing was assigned.
+        if (assigned.length === 0) throw closedError();
         await emit(project.id, sprintEvent('sprint.updated', userId, sprint.id, { taskIds: assigned }));
         const box = await chatCrypto().forProject(project, { what: 'Sprints' });
         res.json({ sprint: presentSprint(box, await store().getSprint(project.id, sprint.id)) });
@@ -218,7 +227,9 @@ function makeProjectSprintsRouter(deps = {}) {
         const userId = userIdOf(req);
         const project = await loadProject(req);
         const sprint = await loadSprint(project, req.params.sprintId);
+        if (sprint.status === 'closed') throw closedError();
         const started = await store().startSprint(project.id, sprint.id);
+        if (!started) throw closedError();
         await emit(project.id, sprintEvent('sprint.updated', userId, sprint.id));
         const box = await chatCrypto().forProject(project, { what: 'Sprints' });
         res.json({ sprint: presentSprint(box, started) });
@@ -228,7 +239,10 @@ function makeProjectSprintsRouter(deps = {}) {
         const userId = userIdOf(req);
         const project = await loadProject(req);
         const sprint = await loadSprint(project, req.params.sprintId);
+        if (sprint.status === 'closed') throw closedError();
+        if (sprint.status !== 'active') throw notActiveError();
         const closed = await store().completeSprint(project.id, sprint.id);
+        if (!closed) throw notActiveError();
         await emit(project.id, sprintEvent('sprint.updated', userId, sprint.id));
         const box = await chatCrypto().forProject(project, { what: 'Sprints' });
         res.json({ sprint: presentSprint(box, closed) });
@@ -237,6 +251,8 @@ function makeProjectSprintsRouter(deps = {}) {
     // The database also checks the range when two editors change different endpoints.
     router.use((err, req, res, next) => {
         if (err.code === '23514' && err.constraint === 'project_sprints_date_range') return next(badRequest('invalid_date_range', 'The start date must be on or before the end date.'));
+        // Two sprints started at the same moment: the index lets one win.
+        if (err.code === '23505' && err.constraint === 'uq_project_sprints_one_active') return next(conflict('sprint_start_conflict', 'Another sprint was started at the same moment. Reload and try again.'));
         return next(err);
     });
     return router;

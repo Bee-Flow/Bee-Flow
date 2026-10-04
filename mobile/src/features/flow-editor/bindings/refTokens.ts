@@ -144,7 +144,7 @@ export function resolveChipLabel(
     if (!token) return { name: '', suffix: '', missing: false };
     const suffix = token.fieldPath || '';
     if (token.source === 'steps') return stepChip(token.stepId as string, suffix, stepLabelById);
-    if (token.source === 'trigger') return { name: t('routines.node.trigger.defaultLabel', 'Trigger'), suffix, missing: false };
+    if (token.source === 'trigger') return { name: t('automations.node.trigger.defaultLabel', 'Trigger'), suffix, missing: false };
     if (token.source === 'loop') return { name: loopChipName(token.itemVar), suffix, missing: false };
     return { name: token.path || '', suffix: '', missing: false };
 }

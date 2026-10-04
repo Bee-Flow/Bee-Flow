@@ -17,6 +17,8 @@ const {
     guessMimeTypeFromName,
     resolveLabelIds,
     buildRawMessage,
+    summarizeSearchMessage,
+    SEARCH_METADATA_HEADERS,
 } = require('./gmailTools');
 
 (async () => {
@@ -190,6 +192,35 @@ const {
         assert.strictEqual(maxResults.type, 'integer');
         // The prose must not contradict the declared value.
         assert.ok(/default 10/.test(maxResults.description), 'description still names the same default');
+    }
+
+    // ── gmail_search marks bulk mail from its headers, never leaks them ──
+    {
+        assert.ok(SEARCH_METADATA_HEADERS.includes('List-Unsubscribe'), 'asks Gmail for List-Unsubscribe');
+        assert.ok(SEARCH_METADATA_HEADERS.includes('Precedence'), 'asks Gmail for Precedence');
+        const h = (pairs) => ({ id: 'm1', snippet: 's', payload: { headers: pairs.map(([name, value]) => ({ name, value })) } });
+
+        const news = summarizeSearchMessage(h([
+            ['From', 'News <news@example.com>'], ['Subject', 'Weekly'],
+            ['list-unsubscribe', '<mailto:unsub@example.com>, <https://example.com/u?x=1>'],
+        ]));
+        assert.strictEqual(news.hasListUnsubscribe, true, 'header match is case-insensitive');
+        assert.strictEqual(news.isBulk, true);
+        assert.strictEqual(news.precedence, null);
+        assert.ok(!JSON.stringify(news).includes('unsub@example.com'), 'the raw List-Unsubscribe value is not passed on');
+
+        const bulk = summarizeSearchMessage(h([['Precedence', ' Bulk ']]));
+        assert.strictEqual(bulk.precedence, 'bulk');
+        assert.strictEqual(bulk.isBulk, true);
+        assert.strictEqual(bulk.subject, '(no subject)');
+
+        const personal = summarizeSearchMessage(h([['From', 'a@b.nl'], ['Subject', 'Hi'], ['Date', 'Mon, 1 Jan 2026']]));
+        assert.deepStrictEqual(
+            { hasListUnsubscribe: personal.hasListUnsubscribe, precedence: personal.precedence, isBulk: personal.isBulk },
+            { hasListUnsubscribe: false, precedence: null, isBulk: false },
+        );
+        assert.strictEqual(personal.id, 'm1');
+        assert.strictEqual(personal.date, 'Mon, 1 Jan 2026');
     }
 
     console.log('integrations/gmailTools.test.js — all checks passed');

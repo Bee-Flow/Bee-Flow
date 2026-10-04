@@ -10,7 +10,7 @@ import NotificationsSection from './NotificationsSection';
 import ReadinessRail from './ReadinessRail';
 import SharingSection from './SharingSection';
 import StartSection from './StartSection';
-import { ReadOnlyFieldset, canEditRoutine, useQueuedSave } from './settingsUi';
+import { ReadOnlyFieldset, canEditAutomation, useQueuedSave } from './settingsUi';
 import type { SaveFn, SettingsAutomation } from './settingsUi';
 
 export type SettingsSectionId = 'general' | 'start' | 'notifications' | 'sharing' | 'ai-act' | 'advanced' | 'assistant';
@@ -25,7 +25,7 @@ export interface SettingsPageProps {
     initialSection?: SettingsSectionId | string | null;
     /** Switch the builder to another tab ('build', 'runs', 'versions'). */
     onOpenTab?: (tab: string) => void;
-    /** The routine row changed outside `onSave` (trash, restore). */
+    /** The automation row changed outside `onSave` (trash, restore). */
     onAutomationChange?: (next: SettingsAutomation) => void;
 }
 
@@ -60,7 +60,7 @@ const RAIL_EXTRAS = 'hidden @[1400px]/settings:contents';
 const CONTENT = 'min-w-0 row-start-2 px-4 py-6 @[900px]/settings:row-start-1 @[900px]/settings:col-start-2 @[900px]/settings:px-10';
 
 /**
- * The routine's Settings page (Studio → Automations handoff 5, artboard 5b):
+ * The automation's Settings page (Studio → Automations handoff 5, artboard 5b):
  * a table of contents (260), the sections split by 1px rules, and the
  * readiness rail (340). The page folds by its OWN width (PAGE_GRID above):
  * on a laptop the checklist moves under the contents, on a narrow page the
@@ -80,16 +80,16 @@ export default function SettingsPage({ automation, onSave: saveRow, initialSecti
     const readiness = useReadiness(automation?.id || null, readinessStamp(automation));
     const showAiAct = aiActVisible(readiness.data);
     const aiActLinkReady = initialSection === 'ai-act' && showAiAct;
-    const readOnly = !!automation && !canEditRoutine(automation);
+    const readOnly = !!automation && !canEditAutomation(automation);
 
     const labels: Record<SettingsSectionId, string> = {
-        general: t('routines.settings.general', 'General'),
-        start: t('routines.settings.start_section', 'Start'),
-        notifications: t('routines.settings.notifications', 'Notifications'),
-        sharing: t('routines.settings.sharing', 'Who can do what'),
-        'ai-act': t('routines.settings.ai_act', 'AI Act check'),
-        assistant: t('routines.assistant.title', 'Assistant'),
-        advanced: t('routines.settings.advanced', 'Advanced'),
+        general: t('automations.settings.general', 'General'),
+        start: t('automations.settings.start_section', 'Start'),
+        notifications: t('automations.settings.notifications', 'Notifications'),
+        sharing: t('automations.settings.sharing', 'Who can do what'),
+        'ai-act': t('automations.settings.ai_act', 'AI Act check'),
+        assistant: t('automations.assistant.title', 'Assistant'),
+        advanced: t('automations.settings.advanced', 'Advanced'),
     };
     const visible = SETTINGS_SECTIONS.filter((s) => (s !== 'ai-act' || showAiAct) && (s !== 'assistant' || !!onWorkModeChange));
 
@@ -152,7 +152,7 @@ export default function SettingsPage({ automation, onSave: saveRow, initialSecti
                 <div className={SIDE}>
                     <div className={SIDE_STICKY}>
                         <div className={TOC_CELL}>
-                            <nav aria-label={t('routines.settings.toc', 'Settings sections')} className={TOC_NAV}>
+                            <nav aria-label={t('automations.settings.toc', 'Settings sections')} className={TOC_NAV}>
                                 {visible.map((id) => {
                                     const current = active === id;
                                     return (
@@ -170,7 +170,7 @@ export default function SettingsPage({ automation, onSave: saveRow, initialSecti
                                                 <span
                                                     className="ml-auto w-[7px] h-[7px] rounded-full bg-[var(--warning)]"
                                                     role="img"
-                                                    aria-label={t('routines.settings.ai_act_missing', 'Not done yet')}
+                                                    aria-label={t('automations.settings.ai_act_missing', 'Not done yet')}
                                                 />
                                             )}
                                         </button>
@@ -179,7 +179,7 @@ export default function SettingsPage({ automation, onSave: saveRow, initialSecti
                             </nav>
                         </div>
                         <div className={RAIL_CELL}>
-                            <aside className={RAIL_ASIDE} aria-label={t('routines.settings.readiness', 'Ready to activate?')}>
+                            <aside className={RAIL_ASIDE} aria-label={t('automations.settings.readiness', 'Ready to activate?')}>
                                 <ReadinessRail
                                     automation={automation}
                                     onOpenSection={(id: string) => { if (isSection(id)) scrollTo(id); }}
@@ -192,7 +192,7 @@ export default function SettingsPage({ automation, onSave: saveRow, initialSecti
                 <div className={CONTENT}>
                     {readOnly && (
                         <p role="note" className="mb-4 px-3 py-2 rounded-lg bg-[var(--bg-secondary)] text-[var(--text-secondary)]">
-                            {t('routines.settings.read_only', 'You can look at these settings. Only the owner and people who can edit may change them.')}
+                            {t('automations.settings.read_only', 'You can look at these settings. Only the owner and people who can edit may change them.')}
                         </p>
                     )}
                     {section('general', <GeneralSection automation={automation} onSave={onSave} onAutomationChange={onAutomationChange} readOnly={readOnly} />)}

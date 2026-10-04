@@ -54,15 +54,15 @@ export default function MismatchResolver({
     // the list" enters on `each`), so look in both lists.
     const selected = [...remedies.primary, ...remedies.more].find(r => r.id === selectedId) || null;
     const optionsLabel = {
-        list: t('routines.mismatch.options_list', 'List options'),
-        table: t('routines.mismatch.options_table', 'Table options'),
-        group: t('routines.mismatch.options_group', 'Field options'),
-    }[actualKind] || t('routines.mismatch.options_generic', 'Options');
+        list: t('automations.mismatch.options_list', 'List options'),
+        table: t('automations.mismatch.options_table', 'Table options'),
+        group: t('automations.mismatch.options_group', 'Field options'),
+    }[actualKind] || t('automations.mismatch.options_generic', 'Options');
 
     return (
         <div
             role="group"
-            aria-label={t('routines.mismatch.title', 'This field and the value you picked do not fit one-to-one')}
+            aria-label={t('automations.mismatch.title', 'This field and the value you picked do not fit one-to-one')}
             data-testid="mismatch-resolver"
             className="flex flex-col gap-2 px-2.5 py-2 rounded-lg text-[12px] border border-[var(--warning)] bg-[color-mix(in_srgb,var(--warning)_6%,transparent)]"
         >
@@ -73,7 +73,7 @@ export default function MismatchResolver({
                 </span>
                 <span className="text-[var(--text-secondary)] min-w-0">{sentence}</span>
                 {onClose && (
-                    <button type="button" onClick={onClose} aria-label={t('routines.builder.cancel', 'Cancel')} className="ml-auto shrink-0 p-0.5 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)]">
+                    <button type="button" onClick={onClose} aria-label={t('automations.builder.cancel', 'Cancel')} className="ml-auto shrink-0 p-0.5 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)]">
                         <X size={12} />
                     </button>
                 )}
@@ -153,7 +153,7 @@ function OptionsPanel({ remedies, selectedId, onChoose, onCollapse }) {
                     className="inline-flex items-center gap-1 px-2 py-[5px] rounded-lg text-[12px] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                 >
                     {moreOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-                    {t('routines.mismatch.more', 'more')}
+                    {t('automations.mismatch.more', 'more')}
                 </button>
                 <button
                     type="button"
@@ -162,7 +162,7 @@ function OptionsPanel({ remedies, selectedId, onChoose, onCollapse }) {
                     className="inline-flex items-center gap-1 px-2 py-[5px] rounded-lg text-[12px] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                 >
                     <ChevronDown size={12} />
-                    {t('routines.mismatch.fewer', 'fewer')}
+                    {t('automations.mismatch.fewer', 'fewer')}
                 </button>
             </div>
             {moreOpen && (
@@ -171,7 +171,7 @@ function OptionsPanel({ remedies, selectedId, onChoose, onCollapse }) {
                 </div>
             )}
             <div className="text-[10px] text-[var(--text-tertiary)]">
-                {t('routines.builder.alt_bypass_tip', 'Tip: hold Alt while you click or drag to skip this and insert the list as it is.')}
+                {t('automations.builder.alt_bypass_tip', 'Tip: hold Alt while you click or drag to skip this and insert the list as it is.')}
             </div>
         </>
     );

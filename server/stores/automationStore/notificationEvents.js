@@ -1,6 +1,6 @@
 // @typecheck
 /**
- * automation_notification_events — every notification a routine sent, or
+ * automation_notification_events — every notification an automation sent, or
  * held back (Studio → Automations handoff 5). The table comes from
  * migrations/automation-handoff5-2026-09.js; the rules live in
  * core/automationRunner/runNotifications.js (direct delivery and throttle) and
@@ -91,7 +91,7 @@ function makeNotificationEventsStore(db, { ready = async () => {} } = {}) {
     }
 
     /**
-     * How many messages (not rows) this routine sent this recipient for this
+     * How many messages (not rows) this automation sent this recipient for this
      * event since `since`. Held-back rows do not count; failed ones do (an
      * attempt still counts toward the cap, or a broken channel would never be
      * throttled).
@@ -111,7 +111,7 @@ function makeNotificationEventsStore(db, { ready = async () => {} } = {}) {
     }
 
     /**
-     * Throttled rows waiting for their "n more" message, grouped per routine,
+     * Throttled rows waiting for their "n more" message, grouped per automation,
      * event and recipient. Rows held for the digest (channel 'digest') are
      * not bundles and are left alone.
      *
@@ -162,7 +162,7 @@ function makeNotificationEventsStore(db, { ready = async () => {} } = {}) {
 
     /**
      * Held rows a digest should report and then mark: every unreported
-     * held row (throttled or digest-only) of these routines for this
+     * held row (throttled or digest-only) of these automations for this
      * recipient.
      *
      * @param {{ recipient: string, automationIds: string[] }} p
@@ -182,7 +182,7 @@ function makeNotificationEventsStore(db, { ready = async () => {} } = {}) {
 
     /**
      * When this recipient last got (or was checked for) a daily summary
-     * covering any of these routines, or null.
+     * covering any of these automations, or null.
      *
      * @param {string} recipient
      * @param {string[]} automationIds
@@ -199,7 +199,7 @@ function makeNotificationEventsStore(db, { ready = async () => {} } = {}) {
     }
 
     /**
-     * Routines with the daily summary switched on (working copy; notification
+     * Automations with the daily summary switched on (working copy; notification
      * settings are not part of what a run executes). Trash excluded.
      */
     async function listDigestAutomations({ limit = 2000 } = {}) {
@@ -230,9 +230,9 @@ function makeNotificationEventsStore(db, { ready = async () => {} } = {}) {
     }
 
     /**
-     * Per routine: finished runs since `since` and how many of them failed
+     * Per automation: finished runs since `since` and how many of them failed
      * (live, not tests, journey heads only), plus the runs waiting for
-     * someone right now. Routines without runs are absent from the Map.
+     * someone right now. Automations without runs are absent from the Map.
      *
      * @param {{ automationIds: string[], since: Date|string }} p
      * @returns {Promise<Map<string, { runs: number, failures: number, waiting: number }>>}
@@ -266,7 +266,7 @@ function makeNotificationEventsStore(db, { ready = async () => {} } = {}) {
         return out;
     }
 
-    /** The routine's most recent notification attempts, newest first. */
+    /** The automation's most recent notification attempts, newest first. */
     async function listRecentNotificationEvents(automationId, { limit = 20 } = {}) {
         await ready();
         const r = await db.query(

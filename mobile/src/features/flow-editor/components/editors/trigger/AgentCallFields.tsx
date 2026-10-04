@@ -35,7 +35,7 @@ export function AgentCallFields(editor: StepEditorProps) {
             />
             <MultilineField
                 label={t('common.description', 'Description')}
-                hint={t('mobile.flow.trigger.tool_description_hint', 'The agent reads this to decide when to call the routine.')}
+                hint={t('mobile.flow.trigger.tool_description_hint', 'The agent reads this to decide when to call the automation.')}
                 value={draft.description}
                 onChange={(v) => set('description', v)}
                 prompt={t('mobile.flow.trigger.tool_description_example', "Summarise the user's unread email and return the highlights.")}

@@ -7,7 +7,7 @@
  * derivation from live session / vault credential).
  *
  * Deps are stubbed via the Module resolve hook (configStore in-memory,
- * routineCredentialStore + auth fixtures for the router).
+ * automationCredentialStore + auth fixtures for the router).
  *
  * Run: cd server && node --test core/meetingNotes/gmeetNotesSettings.test.js
  */
@@ -19,7 +19,7 @@ const Module = require('module');
 // ── Mutable fixtures ─────────────────────────────────────────────────
 const fx = {
     docs: new Map(),        // configStore backing map
-    cred: null,             // routineCredentialStore.getCredential fixture
+    cred: null,             // automationCredentialStore.getCredential fixture
     orgIds: new Set(['orgA']), // resolveUserOrgIds fixture (null = all orgs)
     isOrgAdmin: false,
 };
@@ -51,7 +51,7 @@ const MOCKS = [
     },
     {
         parentRe: /routes[\\/]gmeetNotesSettings\.js$/,
-        request: '../stores/routineCredentialStore',
+        request: '../stores/automationCredentialStore',
         exports: { getCredential: async () => fx.cred },
     },
 ];

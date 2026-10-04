@@ -2,7 +2,7 @@
  * The plan checklist ticks from the tool calls, not from the model's goodwill.
  *
  * The fixture is the exact 9-item plan and step labels from the owner's build
- * on 2026-09-11, which sat at 0/9 while the routine was fully built.
+ * on 2026-09-11, which sat at 0/9 while the automation was fully built.
  *
  * Run: cd server && node --test --test-force-exit routes/ai/automationBuilder/planProgress.test.js
  */

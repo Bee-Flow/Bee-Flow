@@ -13,7 +13,7 @@
   "course": "course-research",
   "severity": "high",
   "missing": [
-   "A real sidebar surface for .docx templates with {{parameters}}: 'Upload .docx templates with {{parameters}} for AI to fill', per-template Fill with AI → Generate Document, the failure 'No {{parameters}} found in the document to fill.', and the notebook-side AI fill. Zero coverage — every 'template' hit in the lessons is a routine template or a meeting summary template."
+   "A real sidebar surface for .docx templates with {{parameters}}: 'Upload .docx templates with {{parameters}} for AI to fill', per-template Fill with AI → Generate Document, the failure 'No {{parameters}} found in the document to fill.', and the notebook-side AI fill. Zero coverage — every 'template' hit in the lessons is an automation template or a meeting summary template."
   ],
   "area": "Templates — document assembly (/app/templates)"
  },
@@ -67,7 +67,7 @@
   "course": "course-data-and-forms",
   "severity": "high",
   "missing": [
-   "Search the text columns…, the filter builder (Show rows that match / all conditions / any condition / Add a condition / Apply {n} conditions), row edit and bulk delete, paging, the Dashboard tab, Check & repair ('The storage for this table has not been made yet.' → Repair it), Rename table, and Delete this table… / Unlink this table… — the dangerous one, on tables routines and apps already read."
+   "Search the text columns…, the filter builder (Show rows that match / all conditions / any condition / Add a condition / Apply {n} conditions), row edit and bulk delete, paging, the Dashboard tab, Check & repair ('The storage for this table has not been made yet.' → Repair it), Rename table, and Delete this table… / Unlink this table… — the dangerous one, on tables automations and apps already read."
   ],
   "area": "Datatables — rows in daily use, and destroying a table"
  },
@@ -134,23 +134,23 @@
   ],
   "area": "Agent → Advanced settings → Behavior"
  },
- "routine-extra-triggers": {
+ "automation-extra-triggers": {
   "kind": "new",
-  "course": "course-routines-production",
+  "course": "course-automations-production",
   "severity": "medium",
   "missing": [
-   "definition.triggers[]: a routine can gain extra entry points; only webhook, app_event and schedule may be secondary, while manual, form, agent_call and app_trigger can only be the single primary trigger — and dropping one asks before it replaces the current trigger."
+   "definition.triggers[]: an automation can gain extra entry points; only webhook, app_event and schedule may be secondary, while manual, form, agent_call and app_trigger can only be the single primary trigger — and dropping one asks before it replaces the current trigger."
   ],
-  "area": "Routines — secondary triggers"
+  "area": "Automations — secondary triggers"
  },
- "routine-shield-step": {
+ "automation-shield-step": {
   "kind": "new",
-  "course": "course-routines-production",
+  "course": "course-automations-production",
   "severity": "medium",
   "missing": [
-   "One palette entry with three modes (Find personal data = scan + branch, Hide personal data = reversible placeholders minted into the run vault, Show real values again), and that a drop seeds check mode because it changes no data. Two passing mentions across ten routine lessons, in a privacy-first product."
+   "One palette entry with three modes (Find personal data = scan + branch, Hide personal data = reversible placeholders minted into the run vault, Show real values again), and that a drop seeds check mode because it changes no data. Two passing mentions across ten automation lessons, in a privacy-first product."
   ],
-  "area": "Routines — the Privacy Shield step"
+  "area": "Automations — the Privacy Shield step"
  },
  "forms-appearance-and-stopping": {
   "kind": "new",
@@ -326,11 +326,11 @@
   ],
   "area": "Datatable AI column drafting"
  },
- "routine-steps-that-persist": {
+ "automation-steps-that-persist": {
   "kind": "extend",
   "severity": "low",
   "missing": [
-   "The per-step reuse tick in the routine builder (with its own TTL, which must not be longer than the org TTL). Taught only as an org-wide switch."
+   "The per-step reuse tick in the automation builder (with its own TTL, which must not be longer than the org TTL). Taught only as an org-wide switch."
   ],
   "area": "Answer Reuse at step level"
  },

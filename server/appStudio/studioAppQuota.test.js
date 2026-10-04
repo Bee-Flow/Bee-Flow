@@ -131,7 +131,7 @@ test('assertAttachmentQuota: per-app count cap → 409', async () => {
 
 test('orgUsage sums db_size + attachment bytes + datatable bytes across the org', async () => {
     // The datatable half was missing, so "total storage" excluded the one
-    // surface a routine can grow unattended — `datatable_models.size_bytes` was
+    // surface an automation can grow unattended — `datatable_models.size_bytes` was
     // measured by the retention sweep and read by nobody.
     state.orgDbBytes = 1000;
     state.orgAttBytes = 250;

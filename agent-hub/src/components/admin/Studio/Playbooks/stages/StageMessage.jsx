@@ -5,7 +5,7 @@ import { TONES } from '../../../../shared/statusTone';
 /**
  * One sentence, where a stage has nothing else to show.
  *
- * There were five of these across the wrappers — the routine phase waiting for
+ * There were five of these across the wrappers — the automation phase waiting for
  * its PATCH, the app phase with no app, a load error, a load in flight, the
  * access phase with no app — and every one was a bare centred line of text: no
  * card, no tile, no `pbk-stage-enter`, no `role`, and two of them painted the

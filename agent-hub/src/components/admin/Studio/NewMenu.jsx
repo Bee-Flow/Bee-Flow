@@ -27,7 +27,7 @@ import { toast } from '../../shared/Toast';
  *      file could reason about. StudioHomeHeader.jsx is that caller today.
  *      Without an `onAi` the row still falls back to the automation builder's
  *      assistant (AI_FALLBACK_SECTION below), and is then LOCKED exactly when
- *      Routines are — an enabled item that navigates into a section the server
+ *      Automations are — an enabled item that navigates into a section the server
  *      403s is a button that leads to a refusal, and Studio/index.jsx renders
  *      a section even when its gate is false.
  *   2. per group, divider-separated: Build · AI · Bundle · Add-ons
@@ -79,7 +79,7 @@ const itemFor = (app, t) => {
  *
  * Track H4 gave the row a screen of its own, but only for callers that mount
  * it; every other caller still ends up in the automation builder's assistant,
- * so for them the row can only be offered to somebody who may open Routines.
+ * so for them the row can only be offered to somebody who may open Automations.
  * On a plan without them the section is either LOCKED in `sections` or absent
  * from it entirely, and an enabled menu item that navigates into a 403 is
  * worse than no item. The gate therefore stays exactly as it was: it describes

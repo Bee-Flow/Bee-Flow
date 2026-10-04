@@ -29,7 +29,7 @@ export const STOP_ERROR: EditorSpec = {
     ],
 };
 
-const R = 'routine_editor.return_to_app';
+const R = 'automation_editor.return_to_app';
 /** RETURN_TO_APP_TOAST_TONES and RETURN_TO_APP_REFRESH_MODES on the server. */
 const TONES = ['info', 'success', 'warning', 'danger'];
 const REFRESH_MODES = ['tableViews', 'resetForm'];
@@ -48,7 +48,7 @@ export const RETURN_TO_APP: EditorSpec = {
                     multiline: true,
                     example: 'Saved {{steps.save.output.name}}',
                     label: msg(`${R}.toast_label`, 'Message to show'),
-                    hint: msg(`${R}.toast_hint`, 'A single line the visitor reads when the routine finishes. Template-interpolated.'),
+                    hint: msg(`${R}.toast_hint`, 'A single line the visitor reads when the automation finishes. Template-interpolated.'),
                 },
                 {
                     kind: 'segmented',
@@ -68,7 +68,7 @@ export const RETURN_TO_APP: EditorSpec = {
                     key: 'navigateScreenId',
                     example: 'scr_orders',
                     label: msg(`${R}.screen_label`, 'Screen to open'),
-                    hint: msg(`${R}.screen_hint`, 'The id of a screen in the app that starts this routine. Leave empty to stay where the visitor is.'),
+                    hint: msg(`${R}.screen_hint`, 'The id of a screen in the app that starts this automation. Leave empty to stay where the visitor is.'),
                 },
                 {
                     kind: 'template',

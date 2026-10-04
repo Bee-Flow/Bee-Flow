@@ -115,7 +115,7 @@ function friendlyBuilderError(code, raw, t = null) {
 /**
  * Should a pane mounted with `autoSend` fire it? Once, at mount, on a pane
  * with no conversation yet and nothing in flight — the same rule as the
- * routine builder's canAutoSend. A host remounts the pane (React `key`) to
+ * automation builder's canAutoSend. A host remounts the pane (React `key`) to
  * fire again. Pure.
  */
 export function canAutoSendApp({ autoSend, messageCount, busy }) {
@@ -526,7 +526,7 @@ export default function BuilderChatPane({ appId, initialPrompt = '', autoSend = 
             || (tailAssistant.toolCalls && tailAssistant.toolCalls.length)));
     const waitingForFirstToken = !!running && !turn?.firstEventAt && nothingStreamedYet;
     // Its own TTFT bucket: the App Studio prompt is a different size than the
-    // routine builder's, so a shared history would mis-estimate both.
+    // automation builder's, so a shared history would mis-estimate both.
     const waitModelKey = `app:${modelKeyFor(turn, tierForSend)}`;
     const ttftFiledForRef = useRef(null);
     useEffect(() => {

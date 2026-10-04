@@ -102,7 +102,7 @@
  *
  * ── WHAT THIS TEMPLATE DELIBERATELY DOES NOT DO ────────────────────────────
  *
- * No routine (`run_automation`) for deadline reminders. It would install unwired
+ * No automation (`run_automation`) for deadline reminders. It would install unwired
  * and a button that cannot succeed until someone configures it is worse than no
  * button — the clock is on the home screen instead, where it is true the moment
  * the app is installed.

@@ -21,7 +21,7 @@
  *   GET  /form/:token/s/:sid   → poll: working | form (page N) | done | error
  *   POST /form/:token/s/:sid   → page N's answers → resume the paused run
  *
- * The last two are multi-page forms. The routine can pause at a `form_page`
+ * The last two are multi-page forms. The automation can pause at a `form_page`
  * step; the visitor stays on the SAME /f/<token> URL and their browser polls
  * this session until the next page (or the closing summary) is ready. The
  * session id is the credential — 192 bits, minted at the first submission.
@@ -104,7 +104,7 @@ const FORM_UPLOAD_RPM = parseInt(process.env.AUTOMATION_FORM_UPLOAD_RPM, 10) || 
 // between the upload bucket and the poll bucket. It is per token AND per
 // caller: one person searching hard must not lock a colleague out of the form.
 const FORM_PICK_RPM = parseInt(process.env.AUTOMATION_FORM_PICK_RPM, 10) || 40;
-// A polling browser is chatty by design (sub-second while the routine works),
+// A polling browser is chatty by design (sub-second while the automation works),
 // so its bucket is far wider than the submit buckets.
 const FORM_POLL_RPM = parseInt(process.env.AUTOMATION_FORM_POLL_RPM, 10) || 300;
 
@@ -206,7 +206,7 @@ router.get('/form/:token', ipLimiter, tokenLimiter, async (req, res) => {
         privateHeaders(res);
         const found = await loadForm(req, res);
         if (!found) return undefined;
-        // Does this routine have further pages? A single-page form shows its
+        // Does this automation have further pages? A single-page form shows its
         // thank-you the moment the submit is accepted; a multi-page one has to
         // wait for the run, because only the server knows whether it paused for
         // another page or finished with a summary. Telling the client up front
@@ -317,7 +317,7 @@ router.post('/form/:token/upload', ipLimiter, uploadLimiter, guard, async (req, 
  * browser holds the submit request open.
  *
  * Never fails the submission. A record that cannot be read arrives carrying
- * `textError`, and the routine decides what that means.
+ * `textError`, and the automation decides what that means.
  */
 async function resolvePicks(picks, values, req) {
     if (!picks.length) return;
@@ -342,7 +342,7 @@ async function resolvePicks(picks, values, req) {
 
 /**
  * Who is searching. Everything in here is the SIGNED-IN FILLER — never the
- * routine's owner. An `app_pick` question shows the person in front of the form
+ * automation's owner. An `app_pick` question shows the person in front of the form
  * the records THEY can open; building this context from the automation would
  * turn a form into a window on a colleague's mailbox.
  */
@@ -513,7 +513,7 @@ router.post('/form/:token', ipLimiter, tokenLimiter, contentLengthGuard, async (
         };
 
         // Every submission gets a session, even for a single-page form: it is
-        // how the browser learns whether the routine paused for another page,
+        // how the browser learns whether the automation paused for another page,
         // finished with a summary, or failed. Stored BEFORE the run starts so
         // the poll has something to point at while the queue drains.
         const rootStepId = found.page.triggerStepId || null;
@@ -527,7 +527,7 @@ router.post('/form/:token', ipLimiter, tokenLimiter, contentLengthGuard, async (
             triggerHeaders,
             rootStepId,
             // Point the session at the run the MOMENT it exists, not when it
-            // returns. executeAutomation resolves only once the routine has
+            // returns. executeAutomation resolves only once the automation has
             // paused or finished, so waiting for it left session.runId null for
             // the whole first stretch — and the poll has nothing to report
             // progress from without a run to read.
@@ -579,7 +579,7 @@ async function loadSession(found, sid) {
  * that run. But a journey can also be continued by something the session never
  * hears about — an owner approving a paused step from the run history spawns a
  * child and finalises the parent to 'success' — and reading the session's own
- * run then would tell the visitor "done" while the routine is still going.
+ * run then would tell the visitor "done" while the automation is still going.
  * Newest leg of the same journey, always.
  */
 async function currentRunFor(session) {
@@ -656,7 +656,7 @@ async function pendingPageFor(session, currentRun = null) {
 }
 
 /**
- * Where the routine is RIGHT NOW, as a trail of titles: the flowlet it stepped
+ * Where the automation is RIGHT NOW, as a trail of titles: the flowlet it stepped
  * into, then the node inside it. `["3. Zoekwoord zoeken", "Zoekvolume ophalen"]`.
  *
  * A visitor who has just answered a question sits on a spinner for as long as
@@ -671,11 +671,11 @@ async function pendingPageFor(session, currentRun = null) {
  *
  * Alongside the trail goes the running flowlet's own one-line DESCRIPTION when
  * it has one ("Searches Google for a given term and lets AI analyse top-ranking
- * pages…"). A step name says where the routine is; the description says what it
+ * pages…"). A step name says where the automation is; the description says what it
  * is doing, which is the thing a visitor staring at a spinner actually wants.
  *
  * LABELS AND FLOWLET DESCRIPTIONS, and only the ones on the path. The form URL
- * is public and its visitor is anonymous, so nothing else about the routine
+ * is public and its visitor is anonymous, so nothing else about the automation
  * goes out here — no ids, no step types, no tool names, no counts, no outputs.
  * An author who puts something confidential in a step's NAME, or in a flowlet's
  * description, is publishing it to whoever holds the link. Note that flowlet
@@ -718,7 +718,7 @@ function progressTrail(definition, steps) {
 }
 
 /**
- * The closing page, if the routine ran one. `form_page` steps with
+ * The closing page, if the automation ran one. `form_page` steps with
  * mode:'ending' record their rendered config; the LAST one on the final run
  * wins, because that is the screen the visitor's journey ended on.
  */
@@ -776,7 +776,7 @@ router.get('/form/:token/s/:sid', ipLimiter, sessionLimiter, async (req, res) =>
             const steps = await automationStore.getRunSteps(run.id);
             const ending = endingFrom(steps);
             // The closing page is where a download usually lives — "here is the
-            // document the routine just made".
+            // document the automation just made".
             return res.json({ state: 'done', ending: ending ? await resolveDownloadFields(ending, session) : null });
         }
         // A run that lost the per-automation race did nothing at all, and
@@ -854,7 +854,7 @@ router.get('/form/:token/s/:sid/file/:fileId', ipLimiter, sessionLimiter, async 
  * belonging to somebody else's journey is a 404 here exactly as it is there.
  *
  * The document lands as the notebook's own CONTENT, not as an attached source.
- * A source is something you ask questions ABOUT; this is the thing the routine
+ * A source is something you ask questions ABOUT; this is the thing the automation
  * just wrote, and the point of sending it here is to carry on working on it.
  * (It was a source first, and arrived as a file card you could not edit.)
  *
@@ -935,7 +935,7 @@ router.post('/form/:token/s/:sid/file/:fileId/notebook', ipLimiter, sessionLimit
  * new notebook (BFSF-419, Track 1's generic fallback).
  *
  * The route above needs a fileId because a `generate_document` step left
- * something in storage to fetch and reparse. Most routines never take that
+ * something in storage to fetch and reparse. Most automations never take that
  * step — the "result" is just the ending page's rendered markdown (a blog
  * post, a summary, an analysis) with no download/notebook field wired at
  * all, because the author never added one. That case has no generated file
@@ -1016,7 +1016,7 @@ function notebookNameFor(filename, found) {
  * file; a PDF returns prose, which becomes one paragraph per blank-line-
  * separated block so it does not land as a single wall of text.
  *
- * The escape matters: this text comes out of a document a routine generated,
+ * The escape matters: this text comes out of a document an automation generated,
  * which routinely carries model output, and the editor renders what it is
  * given.
  */
@@ -1085,7 +1085,7 @@ router.post('/form/:token/s/:sid', ipLimiter, sessionLimiter, contentLengthGuard
         // so until the child run lands the session still points at THIS run,
         // still `awaiting_form` on THIS step. The poll would serve the very
         // page just submitted, the visitor would answer it again, and each
-        // resubmission started ANOTHER child from the same parent — a routine
+        // resubmission started ANOTHER child from the same parent — an automation
         // with two questions re-ran the first one, and its research, every
         // time. On a long step the window was tens of seconds wide, which is
         // exactly when a visitor tries again.
@@ -1183,7 +1183,7 @@ const queues = new Map(); // automationId → { running: bool, items: [] }
 
 /**
  * Queue a unit of form work and ack the visitor immediately — they should never
- * wait on the routine. `sessionId` is re-pointed at whatever run the thunk
+ * wait on the automation. `sessionId` is re-pointed at whatever run the thunk
  * produces, which is how a resume's CHILD run becomes the session's current run.
  */
 function enqueue(automationId, sessionId, thunk, res, extra = {}) {

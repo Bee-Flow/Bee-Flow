@@ -61,10 +61,10 @@ function loopSummary(step: Step, ctx: SummaryContext): Summary {
     const item = str(step.itemVar) || 'item';
     const over = readablePath(step.overRef, labels(ctx), ctx.t);
     const batch = Number(step.batchSize ?? 1);
-    if (!over) return { muted: ctx.t('routines.canvas.loop_no_list', 'no list yet · as loop.{item}', { item }) };
+    if (!over) return { muted: ctx.t('automations.canvas.loop_no_list', 'no list yet · as loop.{item}', { item }) };
     return batch > 1
-        ? ctx.t('routines.canvas.loop_over_batched', 'over: {list} · as loop.{item} · ×{batch}', { list: over, item, batch })
-        : ctx.t('routines.canvas.loop_over', 'over: {list} · as loop.{item}', { list: over, item });
+        ? ctx.t('automations.canvas.loop_over_batched', 'over: {list} · as loop.{item} · ×{batch}', { list: over, item, batch })
+        : ctx.t('automations.canvas.loop_over', 'over: {list} · as loop.{item}', { list: over, item });
 }
 
 /** ParallelNode's parallelSummary: the first RUNNING step of each branch, by name. */
@@ -108,10 +108,10 @@ function returnToAppSummary(step: Step, ctx: SummaryContext): Summary {
     if (nav?.screenId) parts.push(`→ ${nav.screenId}`);
     if (step.refresh) {
         parts.push(step.refresh === 'resetForm'
-            ? ctx.t('routines.node.return_to_app.card_resets_form', 'clears the form')
-            : ctx.t('routines.node.return_to_app.card_reloads_data', 'reloads the data'));
+            ? ctx.t('automations.node.return_to_app.card_resets_form', 'clears the form')
+            : ctx.t('automations.node.return_to_app.card_reloads_data', 'reloads the data'));
     }
-    return parts.length ? parts.join(' · ') : { muted: ctx.t('routines.node.return_to_app.card_empty', 'tells the app nothing yet') };
+    return parts.length ? parts.join(' · ') : { muted: ctx.t('automations.node.return_to_app.card_empty', 'tells the app nothing yet') };
 }
 
 function callLayerSummary(step: Step): Summary {

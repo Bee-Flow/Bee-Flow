@@ -9,17 +9,17 @@ const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 const { validate } = require('../../core/http/validate');
 const { z } = require('zod');
 const { HttpError } = require('../../core/http/errors');
-// Handoff 5 sharing: what a role may do with a routine and its runs.
+// Handoff 5 sharing: what a role may do with an automation and its runs.
 const { makeAutomationAccess, mayReadRun, roleSatisfies } = require('../../automation/access');
 const { isTestRun } = require('../../core/automationRunner/definitionForRun');
 const automationAccess = makeAutomationAccess({ store: automationStore });
 
-// The caller's access to the routine behind a RUN, or null after a 403
+// The caller's access to the automation behind a RUN, or null after a 403
 // (see runGuard in automation/access.js for the 'read' / 'act' / 'edit' rules).
 const runAccess = (req, res, run, need) => automationAccess.runGuard(req, res, run, need);
 
 // Per-user throttle for the run-spawning endpoints (retry re-executes a run;
-// agent-invoke runs an agent-callable routine). Same budget as the other
+// agent-invoke runs an agent-callable automation). Same budget as the other
 // run-trigger endpoints (routes/automation/runs.js). Keyed by session user id.
 const RUN_TRIGGER_RPM = parseInt(process.env.AUTOMATION_RUN_TRIGGER_RPM, 10) || 30;
 const runTriggerLimiter = perUserRateLimit({ windowMs: 60_000, max: RUN_TRIGGER_RPM });
@@ -40,7 +40,7 @@ const worded = (message) => z.string({ required_error: message, invalid_type_err
  */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
-const STEP_ID_TEXT = 'triggerStepId is the id of a trigger on this routine.';
+const STEP_ID_TEXT = 'triggerStepId is the id of a trigger on this automation.';
 /** Omitted → the primary trigger. Which trigger it names is checked against the graph. */
 const TriggerStepBody = bodyOf({
     triggerStepId: worded(STEP_ID_TEXT).trim().min(1, STEP_ID_TEXT).nullish(),
@@ -83,8 +83,8 @@ const FormPickBody = bodyOf({
 });
 
 const AgentInvokeBody = bodyOf({
-    // Whatever this routine's agent_call trigger declares it takes.
-    args: z.record(z.unknown(), { invalid_type_error: 'args is an object of the routine\'s own inputs.' }).default({}),
+    // Whatever this automation's agent_call trigger declares it takes.
+    args: z.record(z.unknown(), { invalid_type_error: 'args is an object of the automation\'s own inputs.' }).default({}),
 });
 
 const ATTEMPTS_TEXT = 'attempts is the attempt number of the step row, a whole number from 1.';
@@ -172,7 +172,7 @@ async function resolveFormTrigger(a, requestedId) {
     const candidates = [a.definition?.trigger, ...(Array.isArray(a.definition?.triggers) ? a.definition.triggers : [])];
     if (requestedId === undefined || requestedId === null) {
         const primary = a.definition?.trigger;
-        return primary?.kind === 'form' ? { ok: true, id: null } : { ok: false, error: 'This routine does not start with a form trigger' };
+        return primary?.kind === 'form' ? { ok: true, id: null } : { ok: false, error: 'This automation does not start with a form trigger' };
     }
     const match = candidates.find(t => t?.id === requestedId);
     if (!match) return { ok: false, error: 'triggerStepId does not match any trigger on this automation' };
@@ -264,7 +264,7 @@ router.get('/runs/:id/steps', async (req, res) => {
     const run = await automationStore.getRun(req.params.id);
     if (!run) return res.status(404).json({ error: 'Not found' });
     if (!await runAccess(req, res, run, 'read')) return;
-    // The WHOLE journey, not just this leg. A routine that paused on a form
+    // The WHOLE journey, not just this leg. An automation that paused on a form
     // continues in a child run, and each leg only records the steps it
     // dispatched live — so reading one leg shows a timeline full of holes
     // where the earlier pages ran. The history lists a journey as one row;
@@ -446,13 +446,13 @@ router.post('/runs/:runId/approve-step', validate({ body: ApproveStepBody }), as
 
 // ── Testing a form journey from the builder ───────────────────────────────
 //
-// A form-triggered routine is the one kind you cannot test by pressing Run:
+// A form-triggered automation is the one kind you cannot test by pressing Run:
 // the trigger IS a page somebody fills in. Its public page is no help while you
-// are building — formPublic 404s a draft or deactivated routine on purpose — so
-// the builder shows the form itself, in an overlay, and runs the routine with
+// are building — formPublic 404s a draft or deactivated automation on purpose — so
+// the builder shows the form itself, in an overlay, and runs the automation with
 // what you typed.
 //
-// These two endpoints are the rest of that journey. A routine can pause again
+// These two endpoints are the rest of that journey. An automation can pause again
 // at a `form_page` step, and until now a run started from the builder simply
 // stopped there with nothing on screen to continue it: the only surface that
 // could answer page two was the public page the author cannot reach yet.
@@ -491,7 +491,7 @@ async function finaliseContinuedRun(parentRunId, child) {
 }
 
 /**
- * Is this run's routine paused on a form page, and if so, which one?
+ * Is this run's automation paused on a form page, and if so, which one?
  *
  * The builder's overlay polls this while a test run is in flight. It addresses
  * the JOURNEY (resolveActionableRun), because a run that already handed off to
@@ -562,10 +562,10 @@ router.post('/runs/:runId/form', runTriggerLimiter, validate({ body: RunFormBody
 });
 
 /**
- * The picker behind an `app_pick` question, while the routine is being BUILT.
+ * The picker behind an `app_pick` question, while the automation is being BUILT.
  *
  * The public page's picker (formPublic's /form/:token/pick) is unreachable
- * here: it needs a token, and 404s a draft routine on purpose. So the builder
+ * here: it needs a token, and 404s a draft automation on purpose. So the builder
  * gets its own, and the two differ in exactly one way — this one takes the
  * SOURCE directly instead of resolving it from a declared field.
  *
@@ -598,7 +598,7 @@ router.post('/:id/form-pick', runTriggerLimiter, validate({ body: FormPickBody }
     }
 });
 
-/** Who the picker searches as: the signed-in owner testing their own routine. */
+/** Who the picker searches as: the signed-in owner testing their own automation. */
 async function formPickCaller(req) {
     const user = req.session?.user;
     if (!user?.id) return null;
@@ -656,11 +656,11 @@ router.post('/runs/:runId/cancel', validate({ body: CancelRunBody }), async (req
  *
  * Body: { decision?: 'approve' | 'reject', reason?: string }
  *
- *  - approve — promote the routine to live: clear `needsFirstRunConfirm` on
+ *  - approve — promote the automation to live: clear `needsFirstRunConfirm` on
  *    the automation and execute it once, as this route has always done.
  *  - reject  — a decision about THIS run only. Nothing is executed, and the
  *    gate STAYS on the automation: a refusal is not a reconfiguration of the
- *    routine, and a gate that disappears when you say "no" is not a gate.
+ *    automation, and a gate that disappears when you say "no" is not a gate.
  *    The waiting row is closed as `cancelled` + `summary` + `finishedAt` —
  *    the same shape approvalService.withdraw() gives a paused run that a
  *    human closed without letting it continue. Deliberately NOT `error` /
@@ -708,7 +708,7 @@ router.post('/runs/:id/approve', validate({ body: ApproveRunBody }), async (req,
             status: 'cancelled',
             summary: reason
                 ? `First-run confirmation declined: ${reason}`
-                : 'First-run confirmation declined — the routine was not run live.',
+                : 'First-run confirmation declined — the automation was not run live.',
             finishedAt: new Date().toISOString(),
         });
         const fresh = await automationStore.getRun(run.id).catch(() => null);
@@ -723,7 +723,7 @@ router.post('/runs/:id/approve', validate({ body: ApproveRunBody }), async (req,
     const runner = require('../../core/automationRunner');
     setImmediate(async () => {
         // Chosen BEFORE the spread (handoff 5): the spread drops the row's
-        // non-enumerable live copy, and a live run of a routine that has one
+        // non-enumerable live copy, and a live run of an automation that has one
         // must execute it, not the working copy.
         try {
             const live = require('../../core/automationRunner/definitionForRun').automationForRun(a, { mode: 'live', triggerKind: 'manual' });
@@ -743,7 +743,7 @@ router.post('/runs/:id/approve', validate({ body: ApproveRunBody }), async (req,
  */
 router.post('/:id/agent-invoke', runTriggerLimiter, validate({ body: AgentInvokeBody }), async (req, res) => {
     const userId = req.session.user.id;
-    // The LIVE definition decides whether the routine is agent-callable, and
+    // The LIVE definition decides whether the automation is agent-callable, and
     // is what runs (handoff 5).
     const automation = require('../../core/automationRunner/definitionForRun').automationForRun(
         await automationStore.getAutomation(req.params.id), { mode: 'live' });

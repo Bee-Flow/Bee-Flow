@@ -14,7 +14,7 @@
  * WHY NOT templates/exportTemplate.js's buildExportHTML. That wrapper loads
  * mermaid from jsdelivr and carries an inline bootstrap script, which is right
  * for the notebook editor's diagrams and wrong here: it would make the server
- * fetch a CDN script every time a routine produces a document, hang on an
+ * fetch a CDN script every time an automation produces a document, hang on an
  * air-gapped self-host, and put remote script into a render whose whole input
  * is untrusted. The wrapper below has no network dependency at all. Its
  * `sanitizeContentForExport` is reused, because that part is exactly right.
@@ -23,7 +23,7 @@
  * (`PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1` in the Dockerfile); browserProvider
  * drives a separate pwt-runner container. That container is not part of every
  * deployment — a self-hoster who never set it up would otherwise find that a
- * routine which promises a PDF simply fails. So when no browser can be reached
+ * automation which promises a PDF simply fails. So when no browser can be reached
  * we fall back to pdfkit, which is pure JS and always present. The fallback is
  * plainer (no CSS, no page background, a fixed typeface) and says so in its
  * return value, but the visitor still gets a PDF.
@@ -47,7 +47,7 @@ const log = require('../telemetry/log');
  * output path gets two things: a VISIBLE footer line ("Generated with AI —
  * <org>") and machine-readable METADATA (PDF Info dictionary / DOCX core
  * properties) saying the content is AI-generated, by which provider, when and
- * from which routine. Full C2PA provenance is out of scope; this is the
+ * from which automation. Full C2PA provenance is out of scope; this is the
  * "marked in a machine-readable format and detectable as artificially
  * generated" the article asks of a deployer. The Chromium PDF gets its
  * metadata in a post-processing pass with pdf-lib; when that package cannot be

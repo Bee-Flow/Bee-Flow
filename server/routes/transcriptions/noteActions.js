@@ -426,7 +426,7 @@ router.get('/:id/export', requireAuth, validate({ query: ExportQuery }),
 /**
  * ── WHAT BREAKS, BEFORE IT BREAKS (M2) ──────────────────────────────
  * A meeting is not a local object. A knowledge base collects it by tag and
- * will answer questions from it; a routine runs on it; a notebook holds a
+ * will answer questions from it; an automation runs on it; a notebook holds a
  * copy. None of those failures name this meeting when they happen, and none
  * of them is recoverable, so the first DELETE answers 409 with the list and
  * only a second one carrying `?confirm=1` proceeds — the same two-step the

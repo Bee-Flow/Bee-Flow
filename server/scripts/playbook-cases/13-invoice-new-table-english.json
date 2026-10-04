@@ -15,7 +15,7 @@
   "status": "done",
   "phases": {
    "table": "done",
-   "routine": "done",
+   "automation": "done",
    "fill": "done",
    "app": "done",
    "approvals": [
@@ -27,7 +27,7 @@
   },
   "minRows": 30,
   "maxAttempts": 1,
-  "routine": {
+  "automation": {
    "finalized": true,
    "maxFailedCalls": 2,
    "maxRounds": 10,

@@ -1,6 +1,7 @@
-import { AlertTriangle, ArrowUpRight, CheckCircle2, Info, Loader2 } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Info, Loader2 } from 'lucide-react';
 import React from 'react';
 import { useTranslation } from '../../../../hooks/useTranslation';
+import ControlFindingGroup, { isBlocking } from './ControlFindingGroup';
 import { Strip, sectionNames } from './solutionNotices';
 
 /**
@@ -8,7 +9,7 @@ import { Strip, sectionNames } from './solutionNotices';
  * publish button is or is not available.
  *
  * The list comes from GET /:id/completeness, which runs the app validator, the
- * routine validator on its own draft/activate stage, the dependency graph and
+ * automation validator on its own draft/activate stage, the dependency graph and
  * the empty-knowledge-base rule over the same members the graph was drawn from.
  * This file renders that answer and adds nothing to it.
  *
@@ -32,94 +33,20 @@ import { Strip, sectionNames } from './solutionNotices';
  *
  * The server sorts errors first; this file draws the line where the meaning
  * changes. A finding blocks when it is an error, or when the ladder tagged it
- * `blockedAt: 'publish'`. A completeness code on a DRAFT routine is neither: it
+ * `blockedAt: 'publish'`. A completeness code on a DRAFT automation is neither: it
  * comes back as a warning tagged `blockedAt: 'activate'`, which is advice about
  * a flow somebody is still building and must not lock a release.
  */
 
-const BLOCKED_AT_LABEL = {
-    activate: ['solutions.blocks_activate', 'blocks turning it on'],
-    publish: ['solutions.blocks_publish', 'blocks publishing'],
-};
+export { isBlocking };
 
-/** Does this finding stop a release? The publish gate's own rule, in one place. */
-export function isBlocking(finding) {
-    return finding?.severity === 'error' || finding?.blockedAt === 'publish';
-}
-
-/**
- * De rij van dit paneel — bewust NIET shared/FindingRow.
- *
- * Zelfde Finding-objecten, ander recept: een <li> in een genummerde lijst, een
- * zichtbare "Laat zien"-knop in plaats van een rij die zelf klikbaar is, en de
- * blockedAt-ladder ("blokkeert publiceren") die alleen op dit scherm iets
- * betekent. De naam staat er expliciet in, want twee componenten die allebei
- * `FindingRow` heten laten een lezer denken dat een wijziging in de gedeelde
- * rij ook dit scherm raakt — en dat is niet zo.
- */
-function SolutionFindingRow({ finding, onOpen, t }) {
-    const blocking = isBlocking(finding);
-    const ladder = finding.blockedAt ? BLOCKED_AT_LABEL[finding.blockedAt] : null;
-    return (
-        <li className="flex items-start gap-2.5 px-3 py-2 rounded-lg" data-testid="solution-finding"
-            style={{ background: 'var(--bg-secondary)' }}>
-            <AlertTriangle
-                className="w-3.5 h-3.5 mt-0.5 flex-shrink-0"
-                style={{ color: blocking ? 'var(--error)' : 'var(--warning)' }}
-                aria-hidden="true"
-            />
-            <span className="flex-1 min-w-0">
-                <span className="block text-sm" style={{ color: 'var(--text-primary)' }}>
-                    {finding.message}
-                </span>
-                {(finding.remediation || ladder) && (
-                    <span className="block text-xs mt-0.5" style={{ color: 'var(--text-tertiary)' }}>
-                        {ladder && <span className="mr-1.5">{t(ladder[0], ladder[1])} ·</span>}
-                        {finding.remediation}
-                    </span>
-                )}
-            </span>
-            {/* A link only where the server could name a row to open. A
-                validator that saw only a definition has no id, and a button to
-                nowhere is worse than no button. */}
-            {finding.deepLink && (
-                <button
-                    onClick={() => onOpen?.(finding.deepLink)}
-                    className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs flex-shrink-0"
-                    style={{ color: 'var(--text-secondary)' }}
-                    data-testid="solution-finding-open"
-                >
-                    {t('solutions.show_me', 'Show me')}
-                    <ArrowUpRight className="w-3 h-3" aria-hidden="true" />
-                </button>
-            )}
-        </li>
-    );
-}
-
-function Group({ titleKey, fallback, findings, onOpen, t }) {
-    if (findings.length === 0) return null;
-    return (
-        <div>
-            <h3 className="text-sm font-medium mb-2" style={{ color: 'var(--text-primary)' }}>
-                {t(titleKey, fallback)}
-            </h3>
-            <ul className="space-y-1.5">
-                {findings.map((f, i) => (
-                    <SolutionFindingRow key={`${f.code}-${f.targetRef?.id || 'x'}-${i}`} finding={f} onOpen={onOpen} t={t} />
-                ))}
-            </ul>
-        </div>
-    );
-}
-
-export default function SolutionControlPanel({ completeness, loading, error, onOpen }) {
+export default function SolutionControlPanel({ completeness, loading, error, onOpen, readOnly = false }) {
     const { t } = useTranslation();
 
     if (loading && !completeness) {
         return (
-            <div className="flex items-center justify-center py-16" style={{ color: 'var(--text-tertiary)' }}>
-                <Loader2 className="w-5 h-5 animate-spin" />
+            <div className="flex items-center justify-center py-16 text-[var(--text-tertiary)]" aria-busy="true">
+                <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
             </div>
         );
     }
@@ -140,13 +67,34 @@ export default function SolutionControlPanel({ completeness, loading, error, onO
     const advice = findings.filter(f => !isBlocking(f));
     const gaps = sectionNames(completeness.unavailable, t);
 
+    const summary = findings.length === 0
+        ? null
+        : blocking.length > 0
+            ? { tone: 'bg-[color-mix(in_srgb,var(--error)_12%,transparent)] text-[var(--error)]', text: t('solutions.control_summary_blocking', '{n} to fix before publishing').replace('{n}', String(blocking.length)) }
+            : { tone: 'bg-[color-mix(in_srgb,var(--warning)_14%,transparent)] text-[var(--warning)]', text: t('solutions.control_summary_advice', '{n} to look at').replace('{n}', String(advice.length)) };
+
     return (
         <div className="space-y-5">
+            {summary && (
+                <div className="flex flex-wrap items-center gap-2" data-testid="solution-control-summary">
+                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium tabular-nums ${summary.tone}`}>{summary.text}</span>
+                    <span className="text-xs text-[var(--text-tertiary)] tabular-nums">
+                        {t('solutions.control_total', '{n} issues in total').replace('{n}', String(findings.length))}
+                    </span>
+                </div>
+            )}
+            {/* On a stage the findings are read-only: the part they point at is
+                managed, and the way to fix it is in Dev. */}
+            {readOnly && (
+                <Strip tone="var(--text-tertiary)" icon={Info} testId="solution-control-readonly">
+                    {t('solution_stages.control_readonly', 'This stage is read-only. Fix these in Dev and deploy a new release.')}
+                </Strip>
+            )}
             {completeness.complete === false && (
                 <Strip tone="var(--error)" icon={AlertTriangle} testId="solution-control-incomplete">
                     {t('solutions.control_incomplete',
                         'Part of this Solution could not be read, so this list is not the whole story and publishing stays unavailable.')}
-                    {gaps.length > 0 && <span className="block text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>{gaps.join(', ')}</span>}
+                    {gaps.length > 0 && <span className="block text-xs mt-1 text-[var(--text-tertiary)]">{gaps.join(', ')}</span>}
                 </Strip>
             )}
 
@@ -158,10 +106,10 @@ export default function SolutionControlPanel({ completeness, loading, error, onO
                 </Strip>
             )}
 
-            <Group titleKey="solutions.control_blocking" fallback="Has to be fixed first"
-                   findings={blocking} onOpen={onOpen} t={t} />
-            <Group titleKey="solutions.control_advice" fallback="Worth a look"
-                   findings={advice} onOpen={onOpen} t={t} />
+            <ControlFindingGroup title={t('solutions.control_blocking', 'Has to be fixed first')}
+                   findings={blocking} onOpen={onOpen} readOnly={readOnly} t={t} />
+            <ControlFindingGroup title={t('solutions.control_advice', 'Worth a look')}
+                   findings={advice} onOpen={onOpen} readOnly={readOnly} t={t} />
 
             {completeness.complete === true && blocking.length === 0 && advice.length > 0 && (
                 <Strip tone="var(--text-tertiary)" icon={Info} testId="solution-control-releasable">

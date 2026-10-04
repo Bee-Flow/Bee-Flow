@@ -1,7 +1,7 @@
 /**
- * A routine's settings over a mocked HTTP client and device: the name goes
+ * An automation's settings over a mocked HTTP client and device: the name goes
  * through its own call, a notification switch is a draft edit, webhook URLs
- * are listed and made for the webhook trigger, the routine exports as a
+ * are listed and made for the webhook trigger, the automation exports as a
  * shared file and imports from a picked one, and deleting asks what uses it
  * first and then leaves for the list.
  */
@@ -17,7 +17,7 @@ import { renderScreen } from '@/shared/testing/renderWithProviders';
 import type { FlowDefinition } from '../model';
 import { peekDraftStore } from '../state';
 import { FlowSettingsScreen } from './FlowSettingsScreen';
-import { releaseDrafts, serveRoutine, signIn } from './testing';
+import { releaseDrafts, serveAutomation, signIn } from './testing';
 
 jest.setTimeout(30_000);
 
@@ -68,7 +68,7 @@ const DEF: FlowDefinition = {
 const row = { id: 'a1', userId: 'u1', title: 'Mail sorter', description: 'Sorts mail', definition: DEF, version: 2, folderId: null };
 
 beforeEach(() => {
-    serveRoutine(row, {
+    serveAutomation(row, {
         '/api/automation/a1/webhooks': { webhooks: [{ id: 'wh1', automationId: 'a1', url: 'https://x.test/hooks/wh1' }] },
         '/api/automation/folders': { folders: [{ id: 'f1', name: 'Finance' }] },
         '/api/automation/a1/usage': { usage: [], complete: true },
@@ -107,9 +107,9 @@ it('turns a notification on as a draft edit', async () => {
     expect(peekDraftStore('a1')?.getState().canUndo).toBe(true);
 });
 
-it('names who gets an event and adds a group from the routine\'s people', async () => {
+it('names who gets an event and adds a group from the automation\'s people', async () => {
     await mount();
-    // The owner, by name from the routine's people (GET /:id/principals): errors
+    // The owner, by name from the automation's people (GET /:id/principals): errors
     // go to the owner, approvals to the approver, and success is off.
     expect(await screen.findByText('Ada Lovelace (owner)')).toBeTruthy();
     expect(screen.getByText('The approver')).toBeTruthy();
@@ -128,7 +128,7 @@ it('lists the webhook URLs and makes one for the webhook trigger', async () => {
     await waitFor(() => expect(api.post).toHaveBeenCalledWith('/api/automation/a1/webhook', {}, { retry: false }));
 });
 
-it('shares the export as a file and opens an imported routine', async () => {
+it('shares the export as a file and opens an imported automation', async () => {
     await mount();
     await fireEvent.press(await screen.findByTestId('settings-export'));
     await waitFor(() => expect(Sharing.shareAsync).toHaveBeenCalledWith(expect.stringMatching(/Mail sorter\.beeflow\.json$/), expect.objectContaining({ mimeType: 'application/json' })));
@@ -141,22 +141,22 @@ it('shares the export as a file and opens an imported routine', async () => {
     await waitFor(() => expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/automations/[id]/build', params: { id: 'a2' } }));
 });
 
-it('refuses a picked file that is not a routine, without asking the server', async () => {
+it('refuses a picked file that is not an automation, without asking the server', async () => {
     await mount();
     (DocumentPicker.getDocumentAsync as jest.Mock).mockResolvedValue({ canceled: false, assets: [{ uri: 'file:///notes.txt', name: 'notes.txt' }] });
     mockFileText.mockResolvedValue('just some notes');
     await fireEvent.press(await screen.findByTestId('settings-import'));
-    expect(await screen.findByText('That file is not an exported routine.')).toBeTruthy();
+    expect(await screen.findByText('That file is not an exported automation.')).toBeTruthy();
     expect(api.post).not.toHaveBeenCalled();
 });
 
-it('deletes after checking what uses the routine, then leaves every screen of it', async () => {
+it('deletes after checking what uses the automation, then leaves every screen of it', async () => {
     await mount();
     await fireEvent.press(await screen.findByTestId('settings-delete'));
     await fireEvent.press(await screen.findByText('Delete for good'));
     await waitFor(() => expect(api.delete).toHaveBeenCalledWith('/api/automation/a1', { retry: false }));
     expect(api.get).toHaveBeenCalledWith('/api/automation/a1/usage', expect.anything());
-    // Back to the list it was opened from, with no screen of the deleted routine left behind.
+    // Back to the list it was opened from, with no screen of the deleted automation left behind.
     await waitFor(() => expect(mockRouter.dismiss).toHaveBeenCalledWith(2));
     expect(mockRouter.replace).not.toHaveBeenCalled();
 });

@@ -94,7 +94,7 @@ test('what is stored is a definition that passes both contracts the save path ru
     assert.deepStrictEqual(def.trigger.params, [{ name: 'amount', type: 'string', required: true }]);
 });
 
-test('the caller is handed what the call step must bind, so the old routine keeps working', async () => {
+test('the caller is handed what the call step must bind, so the old automation keeps working', async () => {
     const rec = recordingCreate();
     const step = codeStep();
     const r = await createStepFromCodeStep(

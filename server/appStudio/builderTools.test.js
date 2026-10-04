@@ -1166,11 +1166,11 @@ test('app_get_draft renders an ID-bearing tree', async () => {
     assert.ok(r.draft.includes(wrap.def.screens[0].id), 'screen id appears');
 });
 
-test('app_list_automations lists the owner\'s routines with agent_call params', async () => {
+test('app_list_automations lists the owner\'s automations with agent_call params', async () => {
     const wrap = freshWrap();
     const r = await applyToolCall('app_list_automations', {}, wrap);
     assert.ok(Array.isArray(r.automations));
-    assert.strictEqual(r.automations.length, 2, 'only the owner\'s routines');
+    assert.strictEqual(r.automations.length, 2, 'only the owner\'s automations');
     const find = r.automations.find((a) => a.id === 'auto-1');
     assert.strictEqual(find.trigger, 'agent_call');
     assert.deepStrictEqual(find.params, ['query']);
@@ -1186,7 +1186,7 @@ test('app_inspect_automation is owner-scoped and returns the parametersSchema', 
     assert.deepStrictEqual(Object.keys(r.automation.parametersSchema.properties), ['query']);
 
     const notMine = await applyToolCall('app_inspect_automation', { automationId: 'auto-other' }, wrap);
-    assert.ok(notMine.error, 'someone else\'s routine is invisible');
+    assert.ok(notMine.error, 'someone else\'s automation is invisible');
     const missing = await applyToolCall('app_inspect_automation', { automationId: 'auto-zzz' }, wrap);
     assert.ok(missing.error);
 });
@@ -1314,15 +1314,15 @@ test('app_finalize names an Untitled draft from draftWrap._turnMessage and says 
     assert.ok(!(ok3._hints || []).some((h) => /was still "Untitled app"/.test(h)));
 });
 
-test('app_finalize blocks a run_automation wired to a routine the owner does not have', async () => {
+test('app_finalize blocks a run_automation wired to an automation the owner does not have', async () => {
     const wrap = freshWrap();
     await applyToolCall('app_set_action', { action: { kind: 'run_automation', automationId: 'auto-not-owned' } }, wrap);
     const blocked = await applyToolCall('app_finalize', {}, wrap);
     assert.ok(blocked.error, 'finalize rejected');
     assert.ok(blocked.validation.errors.some((e) => e.code === 'action.automation_missing'), JSON.stringify(blocked.validation.errors));
 
-    // A routine the owner DOES have — fine, even while inactive (draft-level
-    // finalize only blocks on missing routines; publish gates activity).
+    // An automation the owner DOES have — fine, even while inactive (draft-level
+    // finalize only blocks on missing automations; publish gates activity).
     const fixed = await applyToolCall('app_set_action', {
         actionId: Object.keys(wrap.def.actions)[0],
         action: { kind: 'run_automation', automationId: 'auto-2' },
@@ -2108,9 +2108,9 @@ test('app_save_as_template captures the app and reports what must be re-wired', 
     assert.strictEqual(actions.length, 1);
     assert.strictEqual(
         actions[0].automationId, null,
-        'a live routine id must never be handed to whoever installs this',
+        'a live automation id must never be handed to whoever installs this',
     );
-    assert.ok(r.requires.some((q) => q.kind === 'automation'), 'the cleared routine is reported, not hidden');
+    assert.ok(r.requires.some((q) => q.kind === 'automation'), 'the cleared automation is reported, not hidden');
     assert.strictEqual(r.seededRows, 0, 'no rows travel unless a table was named');
     assert.ok(r._hints.some((h) => /seedTables/.test(h)), 'the empty seed is explained');
 
@@ -3080,7 +3080,7 @@ test('app_set_nav_groups is a mutating tool and is on the advertised schema list
 // ── app_link_datatable + the linked-table guards ─────────────────────────
 //
 // A LINKED table keeps its rows in a Studio datatable (a Nextcloud mirror a
-// routine fills). The link tool resolves it by name and copies its fields;
+// automation fills). The link tool resolves it by name and copies its fields;
 // every other data tool must refuse to seed / evolve / dataset it — a small
 // model that can seed WILL seed a linked table, and on a readwrite link that
 // is fictional invoices in the customer's Nextcloud.
@@ -3340,7 +3340,7 @@ test('app_set_action refuses an exact duplicate and points at the existing actio
     assert.ok(!upd.error && upd.updated, JSON.stringify(upd));
 });
 
-test('app_set_action refuses a routine the owner does not have when the route attached the list', async () => {
+test('app_set_action refuses an automation the owner does not have when the route attached the list', async () => {
     const wrap = freshWrap();
     wrap._ownedAutomations = new Map([['auto-1', { isActive: true }]]);
     const bad = await applyToolCall('app_set_action', { action: { kind: 'run_automation', automationId: 'auto-guess' } }, wrap);

@@ -71,7 +71,7 @@ function makeRunComplianceReview(ctx) {
         const automations = [];
         for (const p of phases) {
             const id = p && p.artifacts && p.artifacts.automationId;
-            if (!id || kindOf(p) !== 'routine') continue;
+            if (!id || kindOf(p) !== 'automation') continue;
             try {
                 const a = await d.automationStore.getAutomation(id);
                 if (a && a.userId === pb.userId) {
@@ -88,7 +88,7 @@ function makeRunComplianceReview(ctx) {
                         // which quietly disarmed two of the review's own
                         // checks: an integration_action is only outbound
                         // depending on WHICH tool it runs (gmail_search reads,
-                        // gmail_compose sends), and "does this routine read
+                        // gmail_compose sends), and "does this automation read
                         // files" was matching tool-shaped patterns against step
                         // types, so it could never be true. Tool NAMES are not
                         // personal data — no argument values travel, only the

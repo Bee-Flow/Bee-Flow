@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import { API_BASE, authFetch } from '../utils/helpers';
 import { readEventStream } from '../utils/sseStream';
+import { fromError, type ManagedBannerInfo } from '../components/shared/managedPart';
 
 /**
  * REST helpers for the automation builder. Thin wrapper over authFetch so
@@ -30,9 +31,16 @@ export interface AutomationApiError extends Error {
     code?: string;
     retryAfter?: number;
     details?: unknown[];
+    /**
+     * Set when the stage that manages this automation refused the write (409
+     * `managed_part`) or the run (409 `managed_part_not_deployed`): what the
+     * ManagedPartBanner needs. A save that fails this way is not a conflict and
+     * not a validation problem, and must never be retried or "kept".
+     */
+    managed?: ManagedBannerInfo;
 }
 
-/** `{ triggerProvider, triggerEvent? }` — narrows to the routines wired to
+/** `{ triggerProvider, triggerEvent? }` — narrows to the automations wired to
  *  one app-event provider. Anything else is dropped rather than sent. */
 export interface AutomationListFilter {
     triggerProvider?: string;
@@ -93,17 +101,18 @@ export default function useAutomationApi() {
         });
         if (!r.ok) {
             // Status AND code travel with the error. A refusal is not always a
-            // bad request: creating a routine from an app button answers 403
+            // bad request: creating an automation from an app button answers 403
             // with a `code` saying WHOSE it would have been
             // (server/appStudio/appRefLookup.appRefOwnerVerdict), and a caller
             // that only gets a sentence has to match on prose to tell that
-            // apart from "this plan does not include routines" — which is how
+            // apart from "this plan does not include automations" — which is how
             // an ownership refusal ends up on screen as a billing problem.
-            const { message, code, details } = await errorBody(r);
+            const { message, code, details, managed } = await errorBody(r);
             const err: AutomationApiError = new Error(message || `${method} ${path} failed`);
             err.status = r.status;
             if (code) err.code = code;
             if (details) err.details = details;
+            if (managed) err.managed = managed;
             throw err;
         }
         return r.json();
@@ -129,24 +138,26 @@ export default function useAutomationApi() {
             body: body ? JSON.stringify(body) : undefined,
         });
         if (!r.ok) {
-            const { message, details } = await errorBody(r);
+            const { message, code, details, managed } = await errorBody(r);
             const err: AutomationApiError = new Error(message || `${method} ${path} failed`);
             err.status = r.status;
+            if (code) err.code = code;
             if (details) err.details = details;
+            if (managed) err.managed = managed;
             throw err;
         }
         return r.json();
     }, []);
 
     return useMemo(() => ({
-        // `filter` narrows to the routines wired to one app-event provider
+        // `filter` narrows to the automations wired to one app-event provider
         // (`{ triggerProvider, triggerEvent? }`, M2). Omitted → the caller's
         // whole list, byte for byte the call this used to be. The server
         // answers a provider id it does not know with a 400 rather than the
         // unfiltered list, so a typo can never widen a screen's claim.
         listAutomations: <T = unknown>(filter?: AutomationListFilter) => get<T>(`/${buildAutomationListQuery(filter)}`),
         getAutomation: <T = unknown>(id: string) => get<T>(`/${id}`),
-        // Which app buttons run this routine (P4 deel C). Owner-only, and the
+        // Which app buttons run this automation (P4 deel C). Owner-only, and the
         // server ANSWERS AN ERROR rather than an empty list when it cannot
         // tell — so a caller must keep "nothing uses this" and "could not be
         // checked" apart. `get` throws on a non-2xx, which is exactly that
@@ -158,7 +169,7 @@ export default function useAutomationApi() {
         activate: (id: string) => send('POST', `/${id}/activate`),
         deactivate: (id: string) => send('POST', `/${id}/deactivate`),
         // `body` is `{ triggerPayload }` — the data the run ENTERS with. Both
-        // routes have always read it; nothing ever sent one, so a routine you
+        // routes have always read it; nothing ever sent one, so an automation you
         // could not fire for real (a form the visitor has not filled in yet, an
         // app_event with no matching message) started every test run with
         // `trigger.output === {}` and every step mapping off the trigger
@@ -229,7 +240,7 @@ export default function useAutomationApi() {
         // defaults to 'approve' so a caller that passes only the id still
         // means what it always meant; `reason` is optional and only read on
         // a reject, where it lands in the run's summary. Rejecting closes
-        // THIS run and leaves the gate on the routine — it does not run it.
+        // THIS run and leaves the gate on the automation — it does not run it.
         approveRun: (runId: string, decision = 'approve', reason?: string) => send('POST', `/runs/${runId}/approve`, { decision, reason }),
         // Run cancel + retry — wire UI buttons in RunHistory to these.
         // retryRun re-fires `executeAutomation` server-side with a
@@ -286,10 +297,10 @@ export default function useAutomationApi() {
         listFormPages: (id: string) => get(`/${id}/forms`),
         // Every published form in the ORGANISATION, for the Forms menu and the
         // All-forms page. Note the singular/plural trap: `/${id}/forms` above
-        // is one routine's pages, `/forms` is the org's.
+        // is one automation's pages, `/forms` is the org's.
         listOrgForms: () => get('/forms'),
         // One form for the Form page (Studio → Forms → a form), keyed by the
-        // ROUTINE id — never the page token. The definition travels only to
+        // AUTOMATION id — never the page token. The definition travels only to
         // the owner; a colleague who may read the answers gets the rest.
         getForm: (automationId: string) => get(`/forms/${automationId}`),
         // Make (or re-make) the answers table of a form that collects.
@@ -435,6 +446,8 @@ export interface ErrorBody {
     message: string;
     code: string | null;
     details: unknown[] | null;
+    /** The managed-part refusal this body is, when it is one (409 managed_part[_not_deployed]). */
+    managed: ManagedBannerInfo | null;
 }
 
 /**
@@ -449,16 +462,19 @@ export async function errorBody(r: Response): Promise<ErrorBody> {
     try {
         const j = await r.json();
         const code = typeof j?.code === 'string' ? j.code : null;
+        // The stage's refusals carry `details` as an object ({ solutionId, stage }),
+        // which the validator-records branch below would never read.
+        const managed = fromError(j);
         // Surface validator details so the user can see WHY the definition is
         // rejected. `details` is an array of structured records
         // ({code, message, hint, ...}) — render their human messages, not the
         // raw objects (which would stringify to "[object Object]").
         if (j.error && Array.isArray(j.details) && j.details.length) {
             const msgs = j.details.map(detailText).filter(Boolean);
-            return { message: msgs.length ? `${j.error}: ${msgs.join('; ')}` : j.error, code, details: j.details };
+            return { message: msgs.length ? `${j.error}: ${msgs.join('; ')}` : j.error, code, details: j.details, managed };
         }
-        return { message: j.error || JSON.stringify(j), code, details: null };
-    } catch { return { message: r.statusText, code: null, details: null }; }
+        return { message: j.error || JSON.stringify(j), code, details: null, managed };
+    } catch { return { message: r.statusText, code: null, details: null, managed: null }; }
 }
 
 export async function safeText(r: Response): Promise<string> {
@@ -476,7 +492,7 @@ interface ValidatorDetail {
  * One validator detail as a sentence — INCLUDING its hint (BFSF-348).
  *
  * Every record the server rejects a definition with carries both a `message`
- * ("Step step_7: a form step needs the routine to start with a form trigger")
+ * ("Step step_7: a form step needs the automation to start with a form trigger")
  * and a `hint` ("Switch the trigger to Form, or remove this step") — the
  * message says what is wrong, the hint says what to do about it. We used to
  * drop the hint on the floor, which left the user staring at a rule with no

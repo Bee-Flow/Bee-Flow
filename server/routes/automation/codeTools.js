@@ -11,7 +11,7 @@
  *                       with a BLOCK finding is refused before it runs.
  *
  * Both take an optional `automationId`: when given, the caller needs that
- * routine's view (analyze) or edit (test) role. Without it, the router's own
+ * automation's view (analyze) or edit (test) role. Without it, the router's own
  * gates apply (signed in, the automations feature, an active org).
  */
 
@@ -61,8 +61,8 @@ function makeCodeToolsRouter(overrides = {}) {
     const testLimiter = overrides.limiter
         || require('../../utils/perUserRateLimit').perUserRateLimit({ windowMs: 60_000, max: 20 });
 
-    /** The routine the call is about, when it names one; `false` after a 403/404 was sent. */
-    async function routineFor(req, res, need) {
+    /** The automation the call is about, when it names one; `false` after a 403/404 was sent. */
+    async function automationFor(req, res, need) {
         const id = req.body.automationId;
         if (!id) return null;
         const a = await store().getAutomation(id);
@@ -72,14 +72,14 @@ function makeCodeToolsRouter(overrides = {}) {
     }
 
     router.post('/code/analyze', analyzeLimiter, validate({ body: AnalyzeBody }), async (req, res) => {
-        const a = await routineFor(req, res, 'view');
+        const a = await automationFor(req, res, 'view');
         if (a === false) return;
         const { code, allowedTools = [], allowedHosts = [] } = req.body;
         res.json(analyzeCode(code, { allowedTools, allowedHosts }));
     });
 
     router.post('/code/test', testLimiter, validate({ body: TestBody }), async (req, res) => {
-        const a = await routineFor(req, res, 'edit');
+        const a = await automationFor(req, res, 'edit');
         if (a === false) return;
         const { code, inputs = {}, allowedTools = [], allowedHosts = [], limits = {} } = req.body;
         const analysis = analyzeCode(code, { allowedTools, allowedHosts });

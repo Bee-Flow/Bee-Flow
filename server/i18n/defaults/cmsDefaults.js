@@ -473,7 +473,7 @@ const BLOCK_DEFAULTS = {
         eyebrow: 'Live demo',
         title: 'Try it right here',
         lead: '',
-        feature: 'routines',
+        feature: 'automations',
         height: 720,
         theme: 'light',                 // 'light' | 'dark' — passed to the demo
         note: 'This is the real interface running on sample data. Nothing you do here is saved, and nothing leaves your browser.',
@@ -637,7 +637,7 @@ const BLOCK_TYPE_IDS = BLOCK_TYPES.map(t => t.type);
 // never become an embed of a third-party origin. It just means a marketing
 // page silently carries a dead panel, hence the validator warning.
 const DEMO_FEATURE_IDS = [
-    'routines', 'meeting-notes', 'agents', 'notebooks', 'privacy-shield',
+    'automations', 'meeting-notes', 'agents', 'notebooks', 'privacy-shield',
     'support', 'skills', 'knowledge', 'legal', 'monitoring', 'compliance',
     'app-studio',
 ];

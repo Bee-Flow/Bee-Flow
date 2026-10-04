@@ -54,6 +54,8 @@ function rowToDatatable(r) {
         // in core/dataEngine/dataModel/managedTables.js, and it is what the
         // schema route refuses column drops against.
         managedKind: r.managed_kind || null,
+        logicalKey: r.logical_key || null,
+        isReference: !!r.is_reference,
         // Where the rows come from, for a table that mirrors an external one
         // (managed_kind 'nextcloud_table'), and how the last fetch went. NULL
         // on every ordinary table. Neither is reachable through PATCH — see

@@ -1,6 +1,6 @@
 /**
  * Regression test for a React error #185 ("Maximum update depth exceeded")
- * reproduced live on /app/studio/routines.
+ * reproduced live on /app/studio/automations.
  *
  * Root cause: `setEditing: (next) => reportEditing(activeApp.id, next)` was a
  * fresh arrow function every Studio render. The active app (AITasksDesigner)
@@ -46,8 +46,8 @@ vi.mock('./studioApps', () => ({
     STUDIO_APPS: [
         {
             id: 'aiTasks',
-            urlSegment: 'routines',
-            labelKey: 'x', labelFallback: 'Routines',
+            urlSegment: 'automations',
+            labelKey: 'x', labelFallback: 'Automations',
             Icon: () => <span />,
             gate: () => true,
             Component: LoopProneApp,

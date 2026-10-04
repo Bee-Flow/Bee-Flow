@@ -12,7 +12,7 @@
  *   skill_activations(id, skill_id, agent_id, conversation_id, user_id, source, at)
  *     source: 'static'        — injected into the system prompt for a turn
  *             'activate_skill'— the model called the tool
- *             'ai_step'       — a routine AI step applied it (Track R2)
+ *             'ai_step'       — an automation AI step applied it (Track R2)
  *             'test'          — a Test-tab run (Track S3)
  *
  * ── ONE ROW PER USE, NOT PER TURN ────────────────────────────────────

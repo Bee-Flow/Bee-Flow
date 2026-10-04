@@ -53,7 +53,7 @@ export function SuggestionPreview({ suggestion, counts, unit, existing, losing, 
     const labels = known instanceof Map ? known : null;
     const styles = useThemedStyles(makeStyles);
     const rules = suggestion.rules;
-    const outputs = existing === 1 ? t('routines.ndv.output_word', 'output') : t('mobile.flow.route.assist.n_outputs', '{n} outputs', { n: existing });
+    const outputs = existing === 1 ? t('automations.ndv.output_word', 'output') : t('mobile.flow.route.assist.n_outputs', '{n} outputs', { n: existing });
     return (
         <View style={styles.box} testID="route-assist-preview">
             <Note>{previewHeading(suggestion, t)}</Note>

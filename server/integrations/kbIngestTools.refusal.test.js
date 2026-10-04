@@ -6,7 +6,7 @@
  * safe while nothing in between can refuse. K10 put the privacy screen inside
  * that ingest, and the screen CAN refuse: for an org set to `block`, and for
  * any incomplete scan under the DEFAULT fail-closed mode. So a guard service
- * degraded for a minute destroyed a handbook article a routine had been
+ * degraded for a minute destroyed a handbook article an automation had been
  * maintaining for months, and left an empty `skipped` row in its place.
  *
  * These are BEHAVIOURAL, not source scans. The sibling file
@@ -48,7 +48,7 @@ function withModules(mods, fn) {
 
 const KB = { id: 'kb1', name: 'Handbook', tenant_id: 'org1', organization_id: 'org1' };
 const EXISTING = { id: 'doc-old', source_uri: 'ticket:42', source_id: 'src1', metadata: { article: 'the article somebody has been maintaining' } };
-const CTX = { orgId: 'org1', userId: 'u1', automationId: 'a1', origin: 'routine' };
+const CTX = { orgId: 'org1', userId: 'u1', automationId: 'a1', origin: 'automation' };
 const ARGS = { knowledgeBaseId: 'kb1', title: 'How to reset', content: 'fresh text', sourceUri: 'ticket:42' };
 
 /** Records every destructive call, so a test can assert none happened. */

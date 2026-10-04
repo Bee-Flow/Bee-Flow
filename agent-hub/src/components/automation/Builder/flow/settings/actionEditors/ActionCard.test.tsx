@@ -12,7 +12,8 @@ describe('ActionCard — the action as a readable card (round 4)', () => {
         const onSwitch = vi.fn();
         render(<ActionCard tool="nc_read" appLabel="Nextcloud" action={SIBLINGS[0]} siblings={SIBLINGS} onSwitch={onSwitch} />);
         expect(screen.getByText('Nextcloud · Read file')).toBeTruthy();
-        expect(screen.getByText('Choose another Nextcloud action')).toBeTruthy();
+        // The help moved into the button's tooltip: one quiet line, no second row.
+        expect(screen.getByRole('button', { name: /Switch/ }).getAttribute('title')).toBe('Choose another Nextcloud action');
         await userEvent.click(screen.getByRole('button', { name: 'Switch' }));
         expect(screen.getByRole('menuitemradio', { name: /Read file/ }).getAttribute('aria-checked')).toBe('true');
         await userEvent.click(screen.getByRole('menuitemradio', { name: /Files in folder/ }));

@@ -23,7 +23,7 @@ export interface StickToBottom {
  * thing that grows is rarely a new MESSAGE: it is a tool-call row inside the
  * assistant turn that is already on screen, a plan card, the waiting card, or
  * markdown that lands 150 ms after the state did (MarkdownRenderer throttles
- * streaming content). The routine pane scrolled on `messages.length` and so
+ * streaming content). The automation pane scrolled on `messages.length` and so
  * never followed a build step at all; the App Studio pane jumped on every
  * `messages` identity change, which fired BEFORE the content it was trying to
  * scroll past had been laid out. Watching the content box instead catches all

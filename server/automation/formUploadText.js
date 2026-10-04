@@ -1,11 +1,11 @@
 /**
- * The TEXT of a file a visitor attached to a routine's form.
+ * The TEXT of a file a visitor attached to an automation's form.
  *
  * A `file` field's submitted value is the descriptor
  * `{ kind:'form_upload', fileId, filename, mimeType, size, storageKey }`
  * (formTriggerContract). That descriptor is a RECEIPT: it says a file exists and
  * where its bytes live. For a long time it was all a run ever got — which made
- * the field close to useless. A routine could be told "the visitor attached
+ * the field close to useless. An automation could be told "the visitor attached
  * jaarrekening.xlsx" and had no step in the entire vocabulary that could open
  * it: no integration_action takes a form fileId, and an ai_step binding
  * `trigger.output.<field>` handed the model a JSON receipt to reason over
@@ -14,7 +14,7 @@
  * Every OTHER surface that receives a document already reads it the same way —
  * a Gmail attachment (gmail_read_attachment), a Nextcloud file
  * (nextcloud_read_file), an App Studio upload (appStudio/aiRuntime), a document
- * a routine generated and sent to Notebooks — all of them go through
+ * an automation generated and sent to Notebooks — all of them go through
  * core/documents/documentParser. The form upload was the one that did not.
  *
  * So the descriptor now carries `text` too: the same extraction, run once, at
@@ -27,7 +27,7 @@
  *
  *   • It NEVER fails the submission. Someone who attached a corrupt workbook
  *     still gets their run; the descriptor carries `textError` instead of
- *     `text`, and the routine can branch on it. Dropping a submission because a
+ *     `text`, and the automation can branch on it. Dropping a submission because a
  *     parser threw would be a far worse failure than an unreadable attachment,
  *     and the visitor — who is anonymous and gone — cannot be asked to retry.
  *   • It is BOUNDED TWICE, on different things. `MAX_PARSE_BYTES` is what we
@@ -70,7 +70,7 @@ const MAX_PARSE_BYTES = 12 * 1024 * 1024;
  *
  * Matches appStudio/aiRuntime's MAX_DOC_CHARS, so one document reads the same
  * whichever surface fed it to a model — a spreadsheet that fits in an App
- * Studio ai_extract must not silently mean something different in a routine.
+ * Studio ai_extract must not silently mean something different in an automation.
  */
 const MAX_TEXT_CHARS = 60_000;
 
@@ -109,7 +109,7 @@ async function readUploadText(claimed, { storageStore = null } = {}) {
     if (!claimed?.storageKey) return { textError: 'This file has no stored content.' };
 
     if (!isSupportedDocument(mimeType, filename)) {
-        // Named, not silent. A routine that branches on `textError` can tell the
+        // Named, not silent. An automation that branches on `textError` can tell the
         // visitor "send me the spreadsheet, not a photo of it".
         return { textError: `No text could be read from ${filename} — that file type is not a document (PDF, Word, Excel, CSV or text).` };
     }

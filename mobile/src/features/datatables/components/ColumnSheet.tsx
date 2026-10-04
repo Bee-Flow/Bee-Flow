@@ -4,7 +4,7 @@
  *
  * The technical name follows the name for a NEW column and is fixed for an
  * existing one: the server matches a saved column by id first and key second,
- * and the key is what every routine step names. Removing a column and
+ * and the key is what every automation step names. Removing a column and
  * changing its type are what destroy data, so they are confirmed by the caller
  * with the row count, not here.
  */

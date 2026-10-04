@@ -1,5 +1,5 @@
 /**
- * The coverage direction for `routines.builder.*` — ALL of it, not just the
+ * The coverage direction for `automations.builder.*` — ALL of it, not just the
  * keys this migration happens to carry.
  *
  * Why here and not in the sibling test: `add-nl-builder-redesign-translations`
@@ -21,11 +21,11 @@ const path = require('path');
 const { NL_TRANSLATIONS } = require('./add-nl-builder-values-translations');
 const { GUI_DEFAULTS } = require('../i18n/defaults/en');
 
-const PREFIX = 'routines.builder.';
+const PREFIX = 'automations.builder.';
 const MIGRATIONS_DIR = __dirname;
 
 /**
- * Every `routines.builder.*` key any Dutch catalogue seeds, mapped to the file
+ * Every `automations.builder.*` key any Dutch catalogue seeds, mapped to the file
  * that seeds it. Read from the SOURCE rather than by requiring each module: a
  * migration that fails to load would otherwise silently look like a migration
  * with no keys, and this test would go green on an empty union.
@@ -37,14 +37,14 @@ function dutchBuilderKeys() {
     assert.ok(files.length > 5, 'no add-nl-* catalogues found — the scan is looking in the wrong place');
     for (const f of files) {
         const src = fs.readFileSync(path.join(MIGRATIONS_DIR, f), 'utf8');
-        for (const m of src.matchAll(/^\s*'(routines\.builder\.[A-Za-z0-9_.]+)':/gm)) {
+        for (const m of src.matchAll(/^\s*'(automations\.builder\.[A-Za-z0-9_.]+)':/gm)) {
             if (!found.has(m[1])) found.set(m[1], f);
         }
     }
     return found;
 }
 
-test('every English routines.builder.* key has Dutch in some catalogue', () => {
+test('every English automations.builder.* key has Dutch in some catalogue', () => {
     // The direction that decides whether a Dutch author sees Dutch. A missing
     // key is not an error anywhere: t() falls back to English, and the screen
     // looks finished to whoever wrote it in English.
@@ -74,11 +74,11 @@ test('every Dutch key exists in the English catalog', () => {
 test('no key is seeded twice by two catalogues', () => {
     // Two migrations racing to fill the same key makes the wording depend on
     // boot order — the failure the redesign catalogue avoided by hand for
-    // routines.kind.choice. Here it is an assertion.
+    // automations.kind.choice. Here it is an assertion.
     const seen = new Map();
     for (const f of fs.readdirSync(MIGRATIONS_DIR).filter(x => /^add-nl-.*\.js$/.test(x) && !x.endsWith('.test.js'))) {
         const src = fs.readFileSync(path.join(MIGRATIONS_DIR, f), 'utf8');
-        for (const m of src.matchAll(/^\s*'(routines\.builder\.[A-Za-z0-9_.]+)':/gm)) {
+        for (const m of src.matchAll(/^\s*'(automations\.builder\.[A-Za-z0-9_.]+)':/gm)) {
             const prev = seen.get(m[1]);
             assert.ok(!prev, `${m[1]} is seeded by both ${prev} and ${f}`);
             seen.set(m[1], f);
@@ -112,16 +112,16 @@ test('the value vocabulary never says string, array or object', () => {
 });
 
 test('the two boxes that ask the same question use the same Dutch words', () => {
-    // MismatchResolver (routines.mismatch.*) and ListPickChooser
-    // (routines.builder.*) render the SAME five answers from two modules. The
+    // MismatchResolver (automations.mismatch.*) and ListPickChooser
+    // (automations.builder.*) render the SAME five answers from two modules. The
     // English drifted ("Only the first" vs "Just the first one"). If the Dutch
     // drifts too, a user learns the answer in one box and does not recognise
     // it in the other — on the control that prevents a bad binding.
     const { NL_TRANSLATIONS: REDESIGN } = require('./add-nl-builder-redesign-translations');
     const PAIRS = [
-        ['routines.builder.choice_first', 'routines.mismatch.choice_first'],
-        ['routines.builder.choice_last', 'routines.mismatch.choice_last'],
-        ['routines.builder.choice_each', 'routines.mismatch.choice_each'],
+        ['automations.builder.choice_first', 'automations.mismatch.choice_first'],
+        ['automations.builder.choice_last', 'automations.mismatch.choice_last'],
+        ['automations.builder.choice_each', 'automations.mismatch.choice_each'],
     ];
     for (const [mine, theirs] of PAIRS) {
         assert.strictEqual(NL_TRANSLATIONS[mine], REDESIGN[theirs],

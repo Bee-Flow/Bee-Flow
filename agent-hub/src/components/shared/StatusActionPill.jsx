@@ -146,6 +146,15 @@ function renderIcon(icon) {
     return <Icon size={14} aria-hidden="true" />;
 }
 
+/**
+ * @param {object} props
+ * @param {string} [props.status]
+ * @param {string | null} [props.label]
+ * @param {{ label?: string, icon?: any, onClick?: () => void, disabled?: boolean, title?: string, ariaLabel?: string, primary?: boolean } | null} [props.action]
+ * @param {string | null} [props.containerName]
+ * @param {string} [props.testId]
+ * @param {string} [props.className]
+ */
 export default function StatusActionPill({
     status: rawStatus,
     label = null,

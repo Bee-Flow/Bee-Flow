@@ -209,6 +209,8 @@ async function improve(req, res) {
             // a model failure, not the caller's malformed request.
             return unusable(res);
         }
+        // A refusal with a client status (a managed skill: 409) goes to the error handler.
+        if (Number.isInteger(err?.status) && err.status < 500) throw err;
         log.error('[Skills] POST /:id/ai/improve error:', err);
         return res.status(500).json({ error: 'Could not improve this skill' });
     }

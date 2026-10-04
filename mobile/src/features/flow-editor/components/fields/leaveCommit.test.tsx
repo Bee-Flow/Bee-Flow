@@ -73,7 +73,7 @@ describe('NumberField', () => {
 });
 
 describe('MultilineField', () => {
-    it('is read-only while the routine is locked', async () => {
+    it('is read-only while the automation is locked', async () => {
         await renderWithProviders(<MultilineField label="System prompt" value="Be brief" onChange={jest.fn()} disabled testID="m" />);
         expect(screen.getByTestId('m-input').props.editable).toBe(false);
     });

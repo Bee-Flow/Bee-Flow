@@ -10,9 +10,9 @@
  * the planner needs to see (an ADD), and schema.js pairs it with the DROP the
  * planner cannot emit by itself.
  *
- * The KEY is derived once, from the title, and then KEPT: routines, apps and
+ * The KEY is derived once, from the title, and then KEPT: automations, apps and
  * pages name a column by key, and a person renaming "Leverancier" to
- * "Supplier" in Nextcloud should not break every routine that reads it. The
+ * "Supplier" in Nextcloud should not break every automation that reads it. The
  * display `name` follows the title; the key stays with the column id.
  *
  * ── RELATIONS ───────────────────────────────────────────────────────
@@ -21,7 +21,7 @@
  *           linked in this scope. The value is the target's row id, which is
  *           the target mirror's `id`. A derived text column `<key>_label`
  *           rides beside it, filled from the target's label column, so a
- *           routine or a grid sees the name and not only the id. When the
+ *           automation or a grid sees the name and not only the id. When the
  *           target is NOT linked the column arrives as a plain number.
  *   'match' Declared in Bee Flow: "column X of this table equals column Y of
  *           that mirror". The sync resolves it into `<target key>_ref`.
@@ -98,7 +98,7 @@ function fieldsFromNcColumns(ncColumns, {
     const prior = new Map((Array.isArray(existingFields) ? existingFields : [])
         .filter(f => f && typeof f.id === 'string').map(f => [f.id, f]));
     // The same Nextcloud column under its PREVIOUS type code: a retype drops
-    // the old field and adds a new one, but the key — what routines name —
+    // the old field and adds a new one, but the key — what automations name —
     // carries over, because to a person it is still the same column.
     const priorByColumn = new Map();
     for (const f of prior.values()) {

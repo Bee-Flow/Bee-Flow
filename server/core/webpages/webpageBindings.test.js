@@ -89,7 +89,7 @@ test('a template literal keeps the host it fixes and marks the rest', () => {
     assert.strictEqual(out.calls.length, 1);
     assert.strictEqual(out.calls[0].host, 'api.vendor.com');
     assert.strictEqual(out.calls[0].url, 'https://api.vendor.com/v1/…');
-    // De routine-scaffold krijgt het deel dat vaststaat, met `dynamic` erbij —
+    // De automation-scaffold krijgt het deel dat vaststaat, met `dynamic` erbij —
     // een beletselteken hoort nooit in een echte URL terecht te komen.
     assert.strictEqual(out.calls[0].urlPrefix, 'https://api.vendor.com/v1/');
     assert.strictEqual(out.calls[0].dynamic, true);

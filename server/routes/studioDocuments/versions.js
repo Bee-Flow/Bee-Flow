@@ -60,7 +60,7 @@ const REF = /^(current|[\w-]{1,200})$/;
  * @param {object} [deps.feed]             { recordContentChange }
  * @param {Function} [deps.describePeople]
  * @param {Function} [deps.sanitize]       body HTML → safe HTML
- * @param {Function} [deps.pinnedVersionIds] () => the document revisions a routine or an app pins
+ * @param {Function} [deps.pinnedVersionIds] () => the document revisions an automation or an app pins
  */
 function makeDocumentVersionsRouter(deps = {}) {
     const router = express.Router({ mergeParams: true });
@@ -73,7 +73,7 @@ function makeDocumentVersionsRouter(deps = {}) {
     const feed = () => deps.feed || require('../../core/documents/documentFeed');
     const describePeople = (...a) => (deps.describePeople || require('../../core/documents/documentPeople').describePeople)(...a);
     const sanitize = (html) => (deps.sanitize || require('../../services/documentCompose').sanitizeDocumentBody)(html);
-    // The revisions routines and apps pin, from their definitions: the same
+    // The revisions automations and apps pin, from their definitions: the same
     // list the retention job never prunes (jobs/documentVersionRetention.js).
     const pinnedVersionIds = () => (deps.pinnedVersionIds
         || (() => require('../../jobs/documentVersionRetention').listPinnedVersionIds(require('../../db').pool)))();

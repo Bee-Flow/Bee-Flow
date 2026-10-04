@@ -338,7 +338,7 @@ function AskAiRow({ offered, asking, error, onAsk }) {
  * IT IS THE ONLY THING IN THIS BOX THAT ADDS A STEP, and it says so in those
  * words, twice — in the explanation and again on the button. Everything else
  * here rewrites the outputs of the node the author already has open; this
- * changes the shape of their routine, and an author who reads "use these 3
+ * changes the shape of their automation, and an author who reads "use these 3
  * outputs" and gets a new node on the canvas has been surprised by their own
  * click. It is also why the whole plan — the step's label, what it will be
  * asked, and every rule read back as a sentence — is on screen BEFORE the
@@ -363,7 +363,7 @@ function HandoffOffer({
             <div className="text-[10px] text-[var(--text-tertiary)]">
                 An output can only compare fields that already exist, and none of the fields here holds the answer
                 to that question. An AI step placed before this one can answer it in a single word, and the outputs
-                then check that word. This ADDS A STEP to your routine — it is the only thing in this box that does.
+                then check that word. This ADDS A STEP to your automation — it is the only thing in this box that does.
             </div>
             <input
                 type="text"

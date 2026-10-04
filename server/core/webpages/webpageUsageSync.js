@@ -2,7 +2,7 @@
  * De usage-index, geschreven vanuit een WEBPAGINA (`consumer_kind='webpage'`).
  *
  * `automation_datatable_usage` beantwoordt één vraag: WIE raakt deze tabel aan?
- * Voor routines wordt hij op elke definitie-save geschreven, voor kennisbanken
+ * Voor automatiseringen wordt hij op elke definitie-save geschreven, voor kennisbanken
  * op elke bronwijziging. De waarde `'webpage'` staat sinds W3 in
  * `datatableStore.CONSUMER_KINDS` en werd nog door niemand geschreven — dit
  * bestand is die schrijver.
@@ -61,7 +61,7 @@
  * PERSOONLIJKE scope aan — de INSERT van `reconcileUsageFor` is gegrendeld op
  * `(scope_kind, scope_id)` van de tabel, matcht niet, en schrijft nul rijen op
  * een reconcile die zichzelf geslaagd noemt. Precies dezelfde les als bij de
- * routines (`routes/automation/crud.js`: "A datatable is scoped by
+ * automations (`routes/automation/crud.js`: "A datatable is scoped by
  * organisation and needs it stored, not derived").
  *
  * De bron is daarom de EIGENAAR: `resolveDatatablePrincipalForUser(page.userId)`

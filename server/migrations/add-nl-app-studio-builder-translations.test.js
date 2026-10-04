@@ -41,12 +41,12 @@ test('placeholders survive translation', () => {
 });
 
 test('the two builders share one vocabulary where they say the same thing', () => {
-    // A presenter switching between the routine film and the app film must
+    // A presenter switching between the automation film and the app film must
     // read the same words for the same state.
-    const routine = require('./add-nl-builder-redesign-translations').NL_TRANSLATIONS;
-    assert.strictEqual(NL_TRANSLATIONS['app_studio.builder.banner.build_live'], routine['routines.canvas.build_live']);
-    assert.strictEqual(NL_TRANSLATIONS['app_studio.builder.banner.build_stopped'], routine['routines.canvas.build_stopped']);
-    assert.strictEqual(NL_TRANSLATIONS['app_studio.builder.banner.follow'], routine['routines.canvas.build_follow']);
+    const automation = require('./add-nl-builder-redesign-translations').NL_TRANSLATIONS;
+    assert.strictEqual(NL_TRANSLATIONS['app_studio.builder.banner.build_live'], automation['automations.canvas.build_live']);
+    assert.strictEqual(NL_TRANSLATIONS['app_studio.builder.banner.build_stopped'], automation['automations.canvas.build_stopped']);
+    assert.strictEqual(NL_TRANSLATIONS['app_studio.builder.banner.follow'], automation['automations.canvas.build_follow']);
 });
 
 test('the migration is registered, or it never runs', () => {

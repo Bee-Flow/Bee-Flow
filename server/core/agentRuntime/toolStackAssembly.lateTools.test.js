@@ -77,10 +77,10 @@ test('a sending tool that arrives mid-turn is still refused on a test run', () =
     assert.deepStrictEqual(out.sandboxWithheld.map(w => [w.name, w.reason]), [['gmail_compose', 'sends']]);
 });
 
-test('a routine that arrives mid-turn is refused too — its behaviour lives elsewhere', () => {
+test('an automation that arrives mid-turn is refused too — its behaviour lives elsewhere', () => {
     const out = narrow([tool('file_the_ticket', { __automation: { id: 'au-1' } })], { testSandbox: true });
     assert.deepStrictEqual(names(out.tools), []);
-    assert.strictEqual(out.sandboxWithheld[0].reason, 'routine');
+    assert.strictEqual(out.sandboxWithheld[0].reason, 'automation');
 });
 
 test('without the flag a late tool passes untouched — ordinary chat is unaffected', () => {

@@ -107,7 +107,7 @@ describeIfWeb('runLanguage matches the web', () => {
     });
 
     it('maps every web sentence key to a phone key', () => {
-        const webKeys = RUNS.map((r) => web.whatHappened(r).key).filter((k) => k.startsWith('routines.runs.'));
+        const webKeys = RUNS.map((r) => web.whatHappened(r).key).filter((k) => k.startsWith('automations.runs.'));
         expect(webKeys.filter((k) => !HAPPENED_KEYS[k])).toEqual([]);
         expect(Object.values(HAPPENED_KEYS).every((k) => /^mobile\.runs\.happened\.[a-z_]+$/.test(k))).toBe(true);
     });

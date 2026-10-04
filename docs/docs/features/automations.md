@@ -10,7 +10,7 @@ Requires a Pro or higher licence key. See [Tiers](../getting-started/tiers.md).
 
 :::
 
-Automations (also called **routines**) are trigger-based workflows. When something happens — a cron tick, an inbound webhook, a Nextcloud event, or a button press — Bee Flow runs a graph of steps end-to-end and logs every input/output along the way.
+Automations (also called **automations**) are trigger-based workflows. When something happens — a cron tick, an inbound webhook, a Nextcloud event, or a button press — Bee Flow runs a graph of steps end-to-end and logs every input/output along the way.
 
 The same toolbox the chat assistant uses is available to automations: ~30 integrations, AI steps, generated media (image / video / audio / transcription), and a set of utility nodes for shaping data without code.
 
@@ -72,7 +72,7 @@ changes.
 | `wait` | **Wait** — pauses the run for a fixed duration (up to 24h). Stored in seconds; the builder shows and accepts seconds, minutes or hours. |
 | `stop_error` | **Stop with an error** — halts the run with a templated error message. Useful in a switch's `default` case to fail loudly when an unexpected value lands. |
 | `slide` | **Slide** — one slide of a presentation as a *value*, never a file: a `title`, markdown `content` ("- " bullets with one level of nesting, a paragraph, a "\|" table, a "> " quote), optional speaker `notes`, an optional `image` (a Bee Flow storage URL or `data:` URL) and an optional `layout` (picked from the content when absent). **Visuals**: `chart` — `{type: column\|bar\|line\|area\|pie\|donut, data, labels?, values?, stacked?, unit?}` where `data` is a whole reference to rows (`{{steps.query.output.rows}}`), a "\|" table or "label: value" lines; columns are auto-detected (first text column = labels, every number column = a series) unless `labels`/`values` name them — one slide from a whole table, no loop needed. `stats` — KPI tiles, one per line `value \| label \| delta` (max 4). `layout: timeline` — the bullets become numbered steps ("Title — text", max 6). `style: accent\|dark` — paints this one slide for emphasis. Pure and cheap, so `forEach` is allowed: "one slide per row" is the shape it exists for. Output is `{slide}`. |
-| `presentation` | **Presentation** — turns slides into a real PowerPoint (`.pptx`, default) or a PDF deck in the organisation's document house style and keeps the file like `generate_document` does. `slides` is the one input and takes three shapes: (1) the markdown outline an `ai_step` wrote (`{{steps.write.output.text}}` — "# " title once, "## " per slide, "- " bullets, `<!-- notes: … -->` for speaker notes); (2) a list of whole references to `slide` steps (`["{{steps.s1.output.slide}}", …]`); (3) the results of a `slide` step with `forEach` (`{{steps.<slide>.output.results[*].output.slide}}`). Output is `{fileId, filename, mimeType, size, format, slideCount, sourceHandle}` — no URL; a `form_page` download field, an approval attachment and `nextcloud_upload_file` with `sourceHandle:{kind:"ref",path:"steps.<id>.output.sourceHandle"}` (opens in Nextcloud Office) take it unchanged. In an `ai_step` outline, visuals are a ```` ```chart ```` block (`type: bar`, `labels: Q1, Q2`, one `Name: 1, 2` line per series — or JSON rows), `<!-- chart: bar -->` above a table, a ```` ```stats ```` block (`€ 1,2M \| Omzet \| +12%` per line), `<!-- layout: timeline -->` and `<!-- style: accent -->`. The **Look** section (`preset`, `accent`, `background`, `font`, `titleFont`, `coverStyle`, `tableStyle`, `logo` — an image URL, a `data:` URL or `none` —, `logoPlacement`, `footerText`, `slideNumbers`, `template: none` to skip the house-style template deck) overrides the house style's presentation settings for this deck only; the colours, the logo and the footer are templates, so a routine can take a client's brand from a record. Charts are native, editable PowerPoint charts coloured from the deck's palette; in the PDF deck they are drawn as vector graphics. `saveCopy` (with an optional `copyName` template) also keeps the deck in **Studio → Documents** as a presentation that opens in Bee Flow. Deleted after `expiresInDays` (default 7). |
+| `presentation` | **Presentation** — turns slides into a real PowerPoint (`.pptx`, default) or a PDF deck in the organisation's document house style and keeps the file like `generate_document` does. `slides` is the one input and takes three shapes: (1) the markdown outline an `ai_step` wrote (`{{steps.write.output.text}}` — "# " title once, "## " per slide, "- " bullets, `<!-- notes: … -->` for speaker notes); (2) a list of whole references to `slide` steps (`["{{steps.s1.output.slide}}", …]`); (3) the results of a `slide` step with `forEach` (`{{steps.<slide>.output.results[*].output.slide}}`). Output is `{fileId, filename, mimeType, size, format, slideCount, sourceHandle}` — no URL; a `form_page` download field, an approval attachment and `nextcloud_upload_file` with `sourceHandle:{kind:"ref",path:"steps.<id>.output.sourceHandle"}` (opens in Nextcloud Office) take it unchanged. In an `ai_step` outline, visuals are a ```` ```chart ```` block (`type: bar`, `labels: Q1, Q2`, one `Name: 1, 2` line per series — or JSON rows), `<!-- chart: bar -->` above a table, a ```` ```stats ```` block (`€ 1,2M \| Omzet \| +12%` per line), `<!-- layout: timeline -->` and `<!-- style: accent -->`. The **Look** section (`preset`, `accent`, `background`, `font`, `titleFont`, `coverStyle`, `tableStyle`, `logo` — an image URL, a `data:` URL or `none` —, `logoPlacement`, `footerText`, `slideNumbers`, `template: none` to skip the house-style template deck) overrides the house style's presentation settings for this deck only; the colours, the logo and the footer are templates, so an automation can take a client's brand from a record. Charts are native, editable PowerPoint charts coloured from the deck's palette; in the PDF deck they are drawn as vector graphics. `saveCopy` (with an optional `copyName` template) also keeps the deck in **Studio → Documents** as a presentation that opens in Bee Flow. Deleted after `expiresInDays` (default 7). |
 | `generate_document` | **Make a document** — renders text from an earlier step into a real PDF or Word (`.docx`) file. `content` is a template, normally one reference such as `{{steps.ai_1.output.text}}`; markdown is rendered with its headings, bold, links, lists and tables intact. Output is `{fileId, filename, mimeType, size, format}` — deliberately no URL. To hand the file to a visitor, follow it with a `form_page` carrying a `download` field bound to `{{steps.<id>.output.fileId}}`; the form builds a link scoped to that visitor's session. The file is deleted after `expiresInDays` (1–90, default 7), so write it to Drive or Nextcloud as well if it has to be kept. PDFs render through the headless-browser container; without one the step falls back to a plainer built-in renderer rather than failing. |
 
 ### Utility nodes
@@ -162,10 +162,10 @@ Step rows (`automation_run_steps`) record `step_id`, `step_type`, `attempts`, `s
 
 ### Dry-run vs live
 
-Every routine has two run modes:
+Every automation has two run modes:
 
 - **Dry-run** — invoked from the builder's `Dry-run` button. Steps that have side-effects (tools that send / create / update / delete) are not actually invoked; instead the runner synthesises a sample output from each tool's declared output schema ([`server/automation/outputSchemas.js`](https://github.com/Bee-Flow/beeflow)) so the variable tree stays connected. Read-only tools and pure utility nodes execute for real.
-- **Live** — the trigger fires the routine and every step runs end-to-end. The first live run from a draft is gated behind a one-time confirmation dialog so authors don't accidentally email customers while testing.
+- **Live** — the trigger fires the automation and every step runs end-to-end. The first live run from a draft is gated behind a one-time confirmation dialog so authors don't accidentally email customers while testing.
 
 The side-effect map ([`server/automation/sideEffectMap.js`](https://github.com/Bee-Flow/beeflow)) is **fail-closed**: any tool that isn't on the read-only allow-list is treated as a write. New write integrations get conservative handling automatically.
 
@@ -188,7 +188,7 @@ The validator runs on every save and surfaces issues as red/yellow chips on the 
 
 ## The visual builder
 
-Routines are authored in a React Flow graph at **Studio → Routines** (URL: `/app/routines`).
+Automations are authored in a React Flow graph at **Studio → Automations** (URL: `/app/automations`).
 
 ### Palette
 
@@ -206,7 +206,7 @@ The inspector's variable picker shows a tree of every output produced by every p
 
 ### AI builder assistant
 
-A chat panel runs alongside the canvas. It exposes a small set of `builder_*` tools to a model: add a step, wire an edge, set an input binding, configure a switch case. Ask "wire a routine that classifies inbound mail and posts urgent ones in Talk" and it'll author the graph step-by-step. You confirm before anything saves.
+A chat panel runs alongside the canvas. It exposes a small set of `builder_*` tools to a model: add a step, wire an edge, set an input binding, configure a switch case. Ask "wire an automation that classifies inbound mail and posts urgent ones in Talk" and it'll author the graph step-by-step. You confirm before anything saves.
 
 ### Run data on the canvas
 
@@ -214,7 +214,7 @@ Executing a step (▶) or pinning its output makes that data the working truth f
 everything you do next: a node added below it auto-binds its source list from the
 real rows, the variable pickers show real values instead of placeholders, and the
 connection chips report what actually travelled ("10 records", or for a filter
-"3 of 201 records"). Pins live in the routine itself, so they survive a reload;
+"3 of 201 records"). Pins live in the automation itself, so they survive a reload;
 the last run's results are re-fetched automatically when you reopen the builder.
 
 ### Coloured connections
@@ -222,14 +222,14 @@ the last run's results are re-fetched automatically when you reopen the builder.
 Connections can carry a colour so a busy canvas reads at a glance:
 
 - **Manual** — hover a connection and pick one of eight swatches (the "auto" dot
-  clears it). The colour is saved with the routine and survives node moves,
+  clears it). The colour is saved with the automation and survives node moves,
   deletes (the bridged connection inherits it) and rule renames.
 - **Branches** (the default lens) — each case of a Filter & Route node gets a
   stable automatic colour, so "pdf" and "word" leave the node as two visibly
   different lines, each with its own record count. Parallel lines to the same
   node fan apart instead of overlapping. Semantic ports (match/otherwise/on
   error) keep their fixed meaning colours.
-- **PII** — when the org Privacy Shield applies to routines, builder test-runs
+- **PII** — when the org Privacy Shield applies to automations, builder test-runs
   scan step outputs and colour each line by the dominant PII *group* of what
   flows through it (Contact green, Financial orange, …). The chip tooltip lists
   the detected categories with counts — counts only, never values, and marked
@@ -240,7 +240,7 @@ The lens is per-user ("Lines: Off · Branches · PII" on the canvas); a manually
 picked colour shows in every lens. The arrow next to the lens opens the **rules
 panel**: every routing rule with its current colour (click to pin one — it
 applies to all of that rule's connections at once) and the editable PII
-group → colour legend, which is saved with the routine. During a run, colour
+group → colour legend, which is saved with the automation. During a run, colour
 stays the line's identity — activity shows as a moving dash, a traversed
 coloured line thickens, and only a failed step turns its line red.
 
@@ -249,7 +249,7 @@ coloured line thickens, and only a failed step turns its line red.
 With nothing open, the right pane shows **All automations** — the whole library
 in the shape you prefer, switched at the top right:
 
-- **List** — one routine per row with its trigger, Live/Paused/Draft state,
+- **List** — one automation per row with its trigger, Live/Paused/Draft state,
   last-run outcome and next run. Click a column header to sort by it.
 - **Cards** — a gallery with the description on each card, for browsing by name.
 - **Board** — lanes by **status** (Live · Paused · Draft), by **trigger** kind,
@@ -262,18 +262,114 @@ view, sort and grouping are remembered per person; every row, card and lane
 tile carries the same actions menu as the sidebar (⋮ or right-click).
 
 The sidebar groups automations into **folders** — one level, shared across the
-organisation, so everyone sees the same names. Drag a routine onto a folder to
+organisation, so everyone sees the same names. Drag an automation onto a folder to
 file it, or use **Move to folder…** in its right-click menu. Which folders are
 open is remembered per person; nothing about your own view leaks to colleagues.
 
 Removing a folder **never deletes the automations in it** — they move back to
 the top of the list. That is deliberate: a folder is org-wide, so it can easily
-hold routines belonging to people you cannot see, and "tidy up the sidebar"
+hold automations belonging to people you cannot see, and "tidy up the sidebar"
 must never be a way to destroy someone else's work.
+
+## Find repeating work
+
+The **Find repeating work** tab (next to *All automations*, *Templates* and
+*Runs*) looks at your own recent work and points out what you keep doing by
+hand, so you can turn it into an automation. It only reads, it runs only when
+you press **Scan my recent work**, and nothing is built without you.
+
+### Sources
+
+The scan reads four groups of sources over the last 90 days. Each one is a
+tile you can switch off; the choice is remembered in your browser. A group with
+nothing connected shows a **Connect** link instead.
+
+| Source | Read from | Kind |
+|--------|-----------|------|
+| **Mail** | Gmail, Outlook, Nextcloud Mail | Live: the mailbox is read at scan time |
+| **Calendar & meetings** | Teams and Google Meet imports, Nextcloud Talk recordings in Meeting Notes | History Bee Flow already keeps |
+| **Files** | Nextcloud Files, OneDrive, Google Drive | Live |
+| **Bee Flow activity** | The tools you called yourself in chat, and the documents you uploaded to a knowledge base | History Bee Flow already keeps |
+
+An optional **Focus** (for example "invoices") narrows what the scan looks for.
+
+### What is read
+
+Only metadata, and only your own:
+
+- **Mail**: the subject, the date, whether you received or sent it, whether it
+  had an attachment, and whether it looks like a newsletter. The sender's
+  domain is replaced by a pseudonym for that scan (`d1`, `d2`). Message
+  bodies, previews, addresses and names are never read into the scan. Gmail is
+  capped at 200 received and 200 sent messages, Outlook at 200 per folder
+  (Inbox and Sent Items), Nextcloud Mail at 100 per mailbox.
+- **Files**: the file name, when it appeared or changed, and a key for its
+  folder that does not reveal the folder's name. Only files you created or
+  changed count; folders and deletions are skipped.
+- **Meetings**: a key for the meeting series, the title and how long it took.
+  Meetings you chose not to import are left out.
+- **Bee Flow activity**: which tool you called and when, from chats you ran
+  yourself. Calls made by an automation, dry runs and the scan's own reads are
+  left out. Documents count only when you uploaded them, not when a connector
+  synced them.
+
+Every subject, file name and title becomes a **template** the moment it is
+read: numbers, dates, references, e-mail addresses and links turn into
+placeholders (`Invoice <n> from <domain:d1>`), and the Privacy Shield's
+detector masks names and organisations. When the detector is not installed,
+every capitalised word that could be a name is masked instead. The raw result
+is dropped right after this step. Every live read of an app goes through the
+Privacy Shield's checks and is logged in the egress ledger as `pattern_scan`.
+
+### How a pattern is found
+
+Finding the pattern is not left to the AI. Bee Flow counts what repeats: how
+often (at least 4 times, on at least 3 different days), how steadily (daily,
+on weekdays, weekly, every two weeks, monthly), which steps follow each other,
+and roughly how much time it takes you per month. Time is always a range, and
+it says whether it was measured from your own chat sessions or estimated. With
+less than two weeks of history a pattern is marked as an **early signal**.
+Patterns you already automated are left out.
+
+### What the AI sees
+
+Only de-identified patterns: the template with its placeholders, the app ids,
+the counts, the rhythm, the weekday counts, the time range and the suggested
+steps. No message text, file content, name or address reaches the model, and
+the request passes the [Privacy Shield](./privacy-shield.md) first. The AI only
+writes a title, one sentence on why, and the prompt for the builder. Any number
+it adds that the pattern does not hold is removed, and if the call fails each
+pattern gets a plain title instead.
+
+### Pattern cards
+
+Each card shows the rhythm ("Pattern · Weekly · Mon 09–10"), how often it
+happened, in how many weeks, the time it takes per month, the apps involved, a
+strip with the count per weekday, the template, and a preview of the
+automation (trigger, then up to three steps). **Why this ranks here** lists
+the reasons behind its place in the list.
+
+- **Build this** opens the builder and sends the pattern, so the assistant
+  starts building right away.
+- **Adjust first** opens the builder with the text filled in but not sent.
+- **Not now** hides the pattern for 30 days.
+- **Not repetitive** asks why: *These are not the same task* ranks that group
+  lower next time; *I prefer to do this myself*, *This is already automated*
+  and *Bee should not look at this* hide it.
+
+Hiding can be undone for a few seconds. Feedback is stored against the
+pattern itself, not against the AI's wording, so it holds on the next scan.
+
+Results and feedback are **personal**: a colleague never sees your scan, even
+in the same organisation. Only templates and numbers are stored, scans are
+removed after 30 days, and deleting a user removes theirs. When a scan finds
+nothing, **Suggest ideas instead** runs the older idea mode: the AI looks
+through your connected apps (behind the same Privacy Shield checks) and
+suggests automations. Those are marked as ideas, because nothing was measured.
 
 ## Moving an automation between installs
 
-**Export JSON** in a routine's right-click menu downloads a portable envelope:
+**Export JSON** in an automation's right-click menu downloads a portable envelope:
 
 ```json
 { "format": "beeflow.automation", "schemaVersion": 1, "exportedAt": "…",
@@ -282,7 +378,7 @@ must never be a way to destroy someone else's work.
 
 It is an allow-list copy, and what it leaves behind matters as much as what it
 carries. Never exported: the row's ids, your user and organisation, the
-**builder conversation** (the entire AI chat that produced the routine),
+**builder conversation** (the entire AI chat that produced the automation),
 pinned step outputs (captured live data), the saved manual-trigger sample
 payload, and webhook or form tokens — those are credentials, and they live in
 their own tables. Saved HTTP credentials are cleared too: the id names a row in
@@ -290,7 +386,7 @@ their own tables. Saved HTTP credentials are cleared too: the id names a row in
 Every removal is reported back to you when you export.
 
 **Import** (the ⬆ button beside `+`) always creates a **new draft** — it never
-overwrites an existing routine. Step ids are re-keyed on the way in, per graph,
+overwrites an existing automation. Step ids are re-keyed on the way in, per graph,
 so importing the same file twice gives you two independent copies rather than
 two documents fighting over one set of steps. Anything the file needs and this
 install lacks — a missing integration, a reusable Step it calls — comes back as
@@ -349,7 +445,7 @@ A webhook trigger gets its own URL and signing secret. Create them in the
 trigger's **Webhook** panel in the builder, or with
 `POST /api/automation/{automationId}/webhook` (see the
 [REST reference](../api/rest.md#automations)). The URL ends in a random slug,
-not in the routine's id, and there is no bearer token: every request is
+not in the automation's id, and there is no bearer token: every request is
 signed.
 
 ```http
@@ -418,13 +514,13 @@ What comes back:
 
 | Status | `error` | Meaning |
 |--------|---------|---------|
-| 202 | | `{ "accepted": true, "automationId": "…" }`. The signature checked out and the run starts in the background; follow it in the routine's run history. |
+| 202 | | `{ "accepted": true, "automationId": "…" }`. The signature checked out and the run starts in the background; follow it in the automation's run history. |
 | 400 | `Invalid JSON body` | The body is not valid JSON. |
 | 401 | `Missing signature or nonce` | A header is missing, or the signature does not start with `sha256=`. |
 | 401 | `Bad signature` | Wrong secret, or the signed text is not the compact body. |
 | 401 | `Replayed nonce` | This nonce was already used on this webhook. |
 | 404 | `Unknown webhook` | No webhook with this slug: never created, or deleted. |
-| 409 | `Automation is not active` | The routine is a draft or switched off. |
+| 409 | `Automation is not active` | The automation is a draft or switched off. |
 | 413 | `Request body too large` | The body is over the server's JSON size limit. |
 | 429 | `Too many requests …` | More than 120 requests a minute to one webhook, or 300 a minute from one IP address (`AUTOMATION_WEBHOOK_RPM_PER_SLUG`, `AUTOMATION_WEBHOOK_RPM_PER_IP`). A `Retry-After` header says when to try again. |
 

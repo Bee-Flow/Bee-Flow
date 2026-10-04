@@ -1,11 +1,11 @@
 /**
  * FormWaitingView — the screen between two questions of a multi-page form.
  *
- * This is where a visitor spends most of a routine's runtime, and it used to be
+ * This is where a visitor spends most of an automation's runtime, and it used to be
  * a spinner and the words "Just a moment…" on the page's bare background. Two
  * things are pinned here:
  *
- *   • it says WHERE the routine is, with the node it is on as the headline and
+ *   • it says WHERE the automation is, with the node it is on as the headline and
  *     the flowlets around it as context — one grey run-on line told the visitor
  *     nothing at a glance;
  *   • it says it in TITLES ONLY. The page is served to anonymous visitors, so
@@ -63,7 +63,7 @@ describe('FormWaitingView', () => {
 
     /**
      * A flowlet's own one-line description, when it has one. The name says
-     * where the routine is; this says what it is doing, which is what makes a
+     * where the automation is; this says what it is doing, which is what makes a
      * ninety-second wait read as work rather than as a hang.
      */
     describe('the description of the running flowlet', () => {

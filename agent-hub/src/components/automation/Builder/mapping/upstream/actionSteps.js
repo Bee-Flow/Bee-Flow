@@ -46,13 +46,19 @@ export function describeHttpRequest(node) {
 }
 
 export function describeCode(node) {
+    // The code can return ANYTHING — a string, a record, a list — so the shape
+    // is not known before a run. `null` is the codebase's "not seen yet" sample
+    // (a switch's `value` does the same): the UI says so instead of claiming a
+    // type. The real output replaces it once the step has run or is pinned
+    // (realOverlay). `logs` and `httpCalls` are diagnostics next to `result`
+    // (see flow/stepPayload) and are deliberately not offered as fields.
     return {
         id: node.id,
         label: node.label || 'Code',
         kind: 'code',
         basePath: `steps.${node.id}.output`,
-        sample: { result: '<code result>' },
-        fields: [{ key: 'result', path: `steps.${node.id}.output.result`, sample: '<code result>' }],
+        sample: { result: null },
+        fields: [{ key: 'result', path: `steps.${node.id}.output.result`, sample: null }],
     };
 }
 

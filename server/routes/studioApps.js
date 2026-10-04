@@ -4,7 +4,7 @@
  * Apps are structured JSON component trees (never code); the schema is owned
  * by ../appStudio/componentSpecs.js. Every write runs through canonicalize →
  * validate before it reaches the store, and publish additionally re-checks
- * the CURRENT stored draft (including routine ownership) so a broken app can
+ * the CURRENT stored draft (including automation ownership) so a broken app can
  * never be frozen into published_definition.
  *
  * Endpoints (mounted at /api/studio-apps behind requireCapability('app_studio')):
@@ -153,6 +153,11 @@ const publicationAudit = require('../appStudio/publicationAudit');
 // routes tell it to sync the moment the desired list changes, instead of
 // leaving the owner to wait for its poll — see appStudio/nextcloudMenuSync.js.
 const nextcloudMenuSync = require('../appStudio/nextcloudMenuSync');
+// Publish / unpublish / groups, shared with a Solution stage's on/off.
+const appAudience = require('../appStudio/appAudience');
+// `managed` on GET /:id: which Solution stage, if any, owns this app.
+const managedParts = require('../stores/lib/managedParts');
+const solutionStageStore = require('../stores/solutionStageStore');
 const { publicAppUrlForToken } = require('../automation/publicUrl');
 
 // One app, one live public URL by default. Rotating one means revoking the old
@@ -192,19 +197,35 @@ function refuseRead(res, app, orgIdArr) {
 
 // Owner's org: primary organizationId first, then the org of their first
 // org-bearing group — mirrors the entire-org publish fallback in webpages.js.
-async function resolveOwnerOrgId(userId) {
-    const owner = await userStore.getUser(userId);
-    let organizationId = owner?.organizationId || null;
-    if (!organizationId) {
-        const groups = Array.isArray(owner?.groups) ? owner.groups
-            : (() => { try { return JSON.parse(owner?.groups || '[]'); } catch { return []; } })();
-        if (groups.length > 0) {
-            const allGroups = await userStore.getAllGroups();
-            const g = allGroups.find(x => groups.includes(x.id) && x.organizationId);
-            organizationId = g?.organizationId || null;
-        }
+const resolveOwnerOrgId = (userId) => appAudience.resolveOwnerOrgId(userId, userStore);
+
+/**
+ * `managed: null | {solutionId, solutionName, stage, releaseSeq, devRef}` for
+ * an app of a Solution stage (design 5.3); the client never derives it. The
+ * cached stage lookup answers the common case (no stage) without a query. A
+ * failed read is null: it labels the builder, it decides nothing (the store
+ * refuses a managed write on its own).
+ */
+async function managedOf(app) {
+    if (!app || !app.projectId) return null;
+    try {
+        if (!await managedParts.managedInfo(app.projectId)) return null;
+        return await solutionStageStore.managedPayloadFor({ projectId: app.projectId, kind: 'app', entityId: app.id });
+    } catch (e) {
+        log.warn(`[StudioApps] managed lookup failed for ${app.id}: ${e.message}`);
+        return null;
     }
-    return organizationId;
+}
+
+/**
+ * A deliberate refusal the client may see (409 managed_part, an HttpError:
+ * `expose` is set) goes to the terminal handler with its status and code.
+ * Anything else, including a library error that merely carries a 4xx
+ * `status`, is this route's 500, so its message never reaches the client.
+ */
+function rethrowClientError(err) {
+    const status = Number(err?.status);
+    if (err?.expose === true && status >= 400 && status < 500) throw err;
 }
 
 // Ceiling on the directory category (APPS-04). Not a validation of the value —
@@ -220,7 +241,7 @@ function sanitizeAppRow(app) {
     return rest;
 }
 
-// Owner's routines in the shape validate.js expects for opts.ownedAutomations.
+// Owner's automations in the shape validate.js expects for opts.ownedAutomations.
 async function loadOwnedAutomations(ownerId) {
     const owned = await automationStore.getAutomationsForUser(ownerId);
     return (owned || []).map(a => ({ id: a.id, userId: a.userId, isActive: a.isActive }));
@@ -263,6 +284,7 @@ router.get('/templates', requireAuth, async (req, res) => {
         const { userId, orgIdArr } = await audienceFor(req);
         res.json({ templates: await listAvailableTemplates({ userId, orgIds: orgIdArr }) });
     } catch (err) {
+        rethrowClientError(err);
         log.error('[StudioApps] Template list failed:', err);
         res.status(500).json({ error: 'Failed to list templates' });
     }
@@ -275,6 +297,7 @@ router.get('/templates/:templateId', requireAuth, async (req, res) => {
         if (!template) return res.status(404).json({ error: 'Template not found' });
         res.json({ template });
     } catch (err) {
+        rethrowClientError(err);
         log.error('[StudioApps] Template read failed:', err);
         res.status(500).json({ error: 'Failed to read template' });
     }
@@ -305,6 +328,7 @@ router.delete('/templates/:templateId', requireAuth, requireManageApps, async (r
         if (out.forbidden) return res.status(403).json({ error: 'Only the template\'s creator can delete it' });
         res.json({ success: true });
     } catch (err) {
+        rethrowClientError(err);
         log.error('[StudioApps] Template delete failed:', err);
         res.status(500).json({ error: 'Failed to delete template' });
     }
@@ -456,6 +480,7 @@ router.post('/templates/import', requireAuth, requireManageApps, templateImportL
         if (/limit reached|exceeds/i.test(message)) {
             return res.status(409).json({ error: message, code: 'template_limit' });
         }
+        rethrowClientError(err);
         log.error('[StudioApps] Template import failed:', err);
         res.status(500).json({ error: 'Failed to import template' });
     }
@@ -469,6 +494,7 @@ router.get('/', requireAuth, async (req, res) => {
         const apps = await studioAppStore.getAccessibleStudioApps(userId, userGroups, orgIdArr);
         res.json({ apps: apps.map(sanitizeAppRow) });
     } catch (err) {
+        rethrowClientError(err);
         log.error('[StudioApps] List failed:', err);
         res.status(500).json({ error: 'Failed to list apps' });
     }
@@ -505,6 +531,7 @@ router.get('/mine', requireAuth, async (req, res) => {
         });
         res.json({ apps: withUpgrades });
     } catch (err) {
+        rethrowClientError(err);
         log.error('[StudioApps] List own failed:', err);
         res.status(500).json({ error: 'Failed to list apps' });
     }
@@ -534,6 +561,7 @@ router.get('/usage', requireAuth, requirePrimaryOrgAdmin(), async (req, res) => 
             },
         });
     } catch (err) {
+        rethrowClientError(err);
         log.error('[StudioApps] Usage read failed:', err);
         res.status(500).json({ error: 'Failed to load usage' });
     }
@@ -613,6 +641,7 @@ router.post('/', requireAuth, requireManageApps, validate({ body: CreateAppBody 
 
         res.json({ success: true, app: sanitizeAppRow(app), ...(dataInstall ? { dataInstall } : {}) });
     } catch (err) {
+        rethrowClientError(err);
         log.error('[StudioApps] Create failed:', err);
         res.status(500).json({ error: 'Failed to create app' });
     }
@@ -728,6 +757,7 @@ router.post('/import', requireAuth, requireManageApps, appImportLimiter, async (
         if (/limit reached|exceeds|quota/i.test(message)) {
             return res.status(409).json({ error: message, code: 'app_limit' });
         }
+        rethrowClientError(err);
         log.error('[StudioApps] App import failed:', err);
         res.status(500).json({ error: 'Failed to import app' });
     }
@@ -740,7 +770,7 @@ router.get('/:id', requireAuth, async (req, res) => {
         if (!app) return res.status(404).json({ error: 'App not found' });
 
         if (app.userId === userId) {
-            return res.json({ app: sanitizeAppRow(app), readOnly: false });
+            return res.json({ app: sanitizeAppRow(app), readOnly: false, managed: await managedOf(app) });
         }
 
         const { orgIdArr, userGroups } = await audienceFor(req);
@@ -750,8 +780,9 @@ router.get('/:id', requireAuth, async (req, res) => {
         // Non-owner reader: meta + the frozen published copy only — never the
         // owner's working draft.
         const { definition, ...meta } = sanitizeAppRow(app);
-        res.json({ app: meta, readOnly: true });
+        res.json({ app: meta, readOnly: true, managed: await managedOf(app) });
     } catch (err) {
+        rethrowClientError(err);
         log.error('[StudioApps] Get failed:', err);
         res.status(500).json({ error: 'Failed to get app' });
     }
@@ -760,10 +791,10 @@ router.get('/:id', requireAuth, async (req, res) => {
 /**
  * Resolve a back-pointer — "which button, in which screen, of this app".
  *
- * A routine made from a button in App Studio stores `trigger.appRef`
+ * An automation made from a button in App Studio stores `trigger.appRef`
  * ({ appId, screenId, nodeId }); the builder's breadcrumb and the trigger card
  * both need to turn those three ids into words. The answer depends on WHO is
- * asking and on whether the app still has that screen, so neither the routine
+ * asking and on whether the app still has that screen, so neither the automation
  * nor the URL can carry it — see appStudio/appRefLookup.js for the three
  * outcomes and why a non-owner is told nothing but the ids.
  *
@@ -782,6 +813,7 @@ router.get('/:id/ref', requireAuth, validate({ query: RefQuery }), async (req, r
         };
         res.json(describeAppRef({ app: app || null, ref, viewerUserId }));
     } catch (err) {
+        rethrowClientError(err);
         log.error('[StudioApps] Ref lookup failed:', err);
         res.status(500).json({ error: 'Failed to resolve reference' });
     }
@@ -834,6 +866,7 @@ router.put('/:id', requireAuth, requireManageApps, validate({ body: UpdateAppBod
         }
         res.json({ success: true, app: sanitizeAppRow(app) });
     } catch (err) {
+        rethrowClientError(err);
         log.error('[StudioApps] Update failed:', err);
         res.status(500).json({ error: 'Failed to update app' });
     }
@@ -892,6 +925,7 @@ router.put('/:id/definition', requireAuth, requireManageApps, validate({ body: D
         }
         res.json({ success: true, version: result.version, warnings, repairs });
     } catch (err) {
+        rethrowClientError(err);
         log.error('[StudioApps] Save definition failed:', err);
         res.status(500).json({ error: 'Failed to save definition' });
     }
@@ -905,7 +939,7 @@ router.patch('/:id/publish', requireAuth, requireManageApps, validate({ body: Pu
         const app = await studioAppStore.getStudioApp(req.params.id);
         if (!app) return res.status(404).json({ error: 'App not found' });
 
-        // Publish is owner-only (canWriteStudioApp) — app actions run routines
+        // Publish is owner-only (canWriteStudioApp) — app actions run automations
         // acts-as-author. Readers get a 403; everyone else the same 404 as GET.
         if (!studioAppStore.canWriteStudioApp(app, userId)) {
             const { orgIdArr, userGroups } = await audienceFor(req);
@@ -918,101 +952,45 @@ router.patch('/:id/publish', requireAuth, requireManageApps, validate({ body: Pu
         const { isPublished, sharedGroups } = req.body || {};
         const publishing = !!isPublished;
 
-        // The exact validated bytes to freeze — closes the publish TOCTOU by
-        // handing the setter the validated def rather than letting it re-read a
-        // column a concurrent save may have moved on.
-        let validatedDef;
-        if (publishing) {
+        // appStudio/appAudience.js: an ordinary app freezes its validated
+        // draft; an app of a Solution stage moves only its audience (its
+        // published copy is the deployed release).
+        const out = await appAudience.setAppAudience({
+            app, publishing, sharedGroups, actorId: userId,
             // Refuse to freeze a broken draft: canonicalize + validate the
-            // CURRENT stored definition, including publish-time routine checks
+            // CURRENT stored definition, including publish-time automation checks
             // against the owner's automations (dangling/foreign/inactive
             // automationIds block publish) AND data-reference checks against
             // the app's data model + datasets (a binding/step referencing a
             // nonexistent table/dataset/field blocks publish — hard errors
-            // here, warnings on draft saves).
-            const { def: canonical } = canonicalizeAppDefinition(app.definition);
-            const ownedAutomations = await loadOwnedAutomations(app.userId);
-            const dataRefs = await loadDataRefs(req.params.id, app.userId);
-            const { ok, errors, warnings } = validateAppDefinition(canonical, { ownedAutomations, ...dataRefs });
-            if (!ok) {
-                return res.status(422).json({ error: 'Fix the app\'s validation errors before publishing', errors, warnings });
-            }
-            validatedDef = canonical;
-        }
-
-        // Stamp organization_id on first publish. Group-scoped publishes derive
-        // the org from THOSE groups (owner can be in multiple orgs); entire-org
-        // publishes fall back to the owner's org — mirrors webpages.js.
-        let organizationId;
-        if (publishing && !app.organizationId) {
-            const incomingGroups = Array.isArray(sharedGroups)
-                ? sharedGroups.map(g => String(g)).filter(Boolean)
-                : [];
-            if (incomingGroups.length > 0) {
-                const allGroups = await userStore.getAllGroups();
-                const byId = new Map(allGroups.map(g => [g.id, g]));
-                const orgs = new Set();
-                for (const gid of incomingGroups) {
-                    const g = byId.get(gid);
-                    if (!g) return res.status(400).json({ error: `Unknown group: ${gid}` });
-                    if (g.organizationId) orgs.add(g.organizationId);
-                }
-                if (orgs.size === 0) {
-                    return res.status(400).json({ error: 'Cannot publish: shared groups have no organisation' });
-                }
-                if (orgs.size > 1) {
-                    return res.status(400).json({ error: 'Cannot publish to groups across multiple organisations' });
-                }
-                organizationId = [...orgs][0];
-            } else {
-                organizationId = await resolveOwnerOrgId(app.userId);
-                if (!organizationId) {
-                    return res.status(400).json({ error: 'Cannot publish: owner has no organisation' });
-                }
-            }
-        }
-
-        // Validate sharedGroups against the app's org (existing org sticks; a
-        // new org applies on first publish). undefined → preserve DB value.
-        const effectiveOrg = app.organizationId || organizationId || null;
-        let cleanedGroups;
-        try {
-            cleanedGroups = await validateSharedGroupsForOrg(effectiveOrg, sharedGroups);
-        } catch (e) {
-            return res.status(e.status || 500).json({ error: e.message });
-        }
-
-        // app.definitionVersion is the version validatedDef was read at — it
-        // travels with the def so published_version names the draft that
-        // actually went live (see setStudioAppPublished).
-        const ok = await studioAppStore.setStudioAppPublished(
-            req.params.id, publishing, app.userId, cleanedGroups, organizationId, validatedDef,
-            publishing ? app.definitionVersion : undefined
-        );
-        if (!ok) return res.status(500).json({ error: 'Failed to update published status' });
-        // After the store write, so the trail never claims a publish that did
-        // not take. Best-effort: it cannot fail the publish.
-        await publicationAudit.auditPublishChange({
-            app, actorId: userId, isPublished: publishing, sharedGroups: cleanedGroups,
-            organizationId: effectiveOrg,
-            publishedVersion: publishing ? app.definitionVersion : (app.publishedVersion ?? null),
+            // here, warnings on draft saves). The exact validated bytes are
+            // what gets frozen, which closes the publish TOCTOU.
+            validateDraft: async () => {
+                const { def: canonical } = canonicalizeAppDefinition(app.definition);
+                const ownedAutomations = await loadOwnedAutomations(app.userId);
+                const dataRefs = await loadDataRefs(req.params.id, app.userId);
+                const { ok, errors, warnings } = validateAppDefinition(canonical, { ownedAutomations, ...dataRefs });
+                return { ok, def: canonical, errors, warnings };
+            },
+            deps: {
+                store: studioAppStore,
+                userStore,
+                validateSharedGroupsForOrg,
+                // The publication audit row (appStudio/publicationAudit.js).
+                audit: { auditPublishChange: (entry) => publicationAudit.auditPublishChange(entry) },
+                notifyMenuChange: (orgId, meta) => nextcloudMenuSync.notifyMenuChange(orgId, meta),
+            },
         });
-        // The connector lists only PUBLISHED apps with the menu flag, so a
-        // publish or unpublish of a flagged app adds or removes its icon.
-        // Fire-and-forget: the answer to a publish is the publish, and the
-        // dialog's own menu toggle (below) is where the connector's verdict is
-        // waited for and shown.
-        if (app.nextcloudMenu && effectiveOrg) {
-            nextcloudMenuSync.notifyMenuChange(effectiveOrg, { reason: publishing ? 'publish' : 'unpublish', appId: app.id });
-        }
+        if (!out.ok) return res.status(out.status).json(out.body);
         res.json({
             success: true,
-            isPublished: publishing,
-            sharedGroups: cleanedGroups,
+            isPublished: out.isPublished,
+            sharedGroups: out.sharedGroups,
             // Unpublish leaves the frozen copy (and its version) untouched.
-            publishedVersion: publishing ? app.definitionVersion : (app.publishedVersion ?? null),
+            publishedVersion: out.publishedVersion,
         });
     } catch (err) {
+        rethrowClientError(err);
         log.error('[StudioApps] Publish failed:', err);
         res.status(500).json({ error: 'Failed to update publish state' });
     }
@@ -1082,6 +1060,7 @@ router.patch('/:id/nextcloud-menu', requireAuth, requireManageApps, validate({ b
             ncSync: sync.outcome,
         });
     } catch (err) {
+        rethrowClientError(err);
         log.error('[StudioApps] Nextcloud menu toggle failed:', err);
         res.status(500).json({ error: 'Failed to update Nextcloud menu setting' });
     }
@@ -1160,6 +1139,7 @@ router.get('/:id/public-pages', requireAuth, async (req, res) => {
             blockers: publicPageBlockers(app),
         });
     } catch (err) {
+        rethrowClientError(err);
         log.error('[StudioApps] list public pages failed:', err.message);
         return res.status(500).json({ error: 'Failed to load public pages' });
     }
@@ -1187,6 +1167,7 @@ router.post('/:id/public-pages', requireAuth, requireManageApps, async (req, res
             blockers: publicPageBlockers(app),
         });
     } catch (err) {
+        rethrowClientError(err);
         log.error('[StudioApps] mint public page failed:', err.message);
         return res.status(500).json({ error: 'Failed to create a public page' });
     }
@@ -1203,6 +1184,7 @@ router.delete('/:id/public-pages/:token', requireAuth, requireManageApps, async 
         });
         return res.json({ success: true });
     } catch (err) {
+        rethrowClientError(err);
         log.error('[StudioApps] revoke public page failed:', err.message);
         return res.status(500).json({ error: 'Failed to revoke the public page' });
     }
@@ -1257,22 +1239,23 @@ router.post('/:id/check', requireAuth, validate({ body: CheckBody }), async (req
         );
 
         // appDryRun's STATIC pass has no automations list, so it cannot see a
-        // dangling/inactive/foreign routine — the one class of error that
+        // dangling/inactive/foreign automation — the one class of error that
         // blocks publish and that a hand-builder is most likely to create (by
-        // deleting or deactivating a routine an action points at). Re-run the
+        // deleting or deactivating an automation an action points at). Re-run the
         // validator with them so the check and the publish gate agree.
         // …with the owner's Studio tables, exactly like the draft-save and the
         // publish gate: without that list every binding on a LINKED table came
         // back as `binding.datatable_unverified` — five warnings on an app the
         // AI builder had just linked, which the author could not act on and
         // which the publish gate itself never raises.
-        const withRoutines = validateAppDefinition(canonical, { ownedAutomations, dataModel, datasets, datatables });
+        const withAutomations = validateAppDefinition(canonical, { ownedAutomations, dataModel, datasets, datatables });
         res.json({
             ...result,
-            ok: result.ok && withRoutines.ok,
-            static: { errors: withRoutines.errors, warnings: withRoutines.warnings },
+            ok: result.ok && withAutomations.ok,
+            static: { errors: withAutomations.errors, warnings: withAutomations.warnings },
         });
     } catch (err) {
+        rethrowClientError(err);
         log.error('[StudioApps] Check failed:', err);
         res.status(500).json({ error: 'Could not check this app' });
     }
@@ -1383,6 +1366,7 @@ router.post('/:id/template-upgrade', requireAuth, requireManageApps, async (req,
             ...(dataInstall ? { dataInstall } : {}),
         });
     } catch (err) {
+        rethrowClientError(err);
         log.error('[StudioApps] Template upgrade failed:', err);
         res.status(500).json({ error: 'Failed to upgrade the app' });
     }
@@ -1401,6 +1385,7 @@ router.delete('/:id', requireAuth, requireManageApps, async (req, res) => {
         }
         res.json({ success: true });
     } catch (err) {
+        rethrowClientError(err);
         log.error('[StudioApps] Delete failed:', err);
         res.status(500).json({ error: 'Failed to delete app' });
     }
@@ -1416,6 +1401,7 @@ router.get('/:id/versions', requireAuth, async (req, res) => {
         const versions = await studioAppStore.listVersions(req.params.id, userId);
         res.json({ versions });
     } catch (err) {
+        rethrowClientError(err);
         log.error('[StudioApps] List versions failed:', err);
         res.status(500).json({ error: 'Failed to list versions' });
     }
@@ -1430,6 +1416,7 @@ router.post('/:id/versions/:versionId/restore', requireAuth, requireManageApps, 
         if (!updated) return res.status(404).json({ error: 'Version not found' });
         res.json({ success: true, version: updated.definitionVersion });
     } catch (err) {
+        rethrowClientError(err);
         log.error('[StudioApps] Restore version failed:', err);
         res.status(500).json({ error: 'Failed to restore version' });
     }
@@ -1509,6 +1496,7 @@ router.get('/:id/runtime', requireAuth, validate({ query: DraftQuery }), async (
             appVersion: app.publishedVersion ?? null,
         });
     } catch (err) {
+        rethrowClientError(err);
         log.error('[StudioApps] Runtime read failed:', err);
         res.status(500).json({ error: 'Failed to load app' });
     }

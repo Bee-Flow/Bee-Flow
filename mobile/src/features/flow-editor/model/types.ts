@@ -35,7 +35,7 @@ export const STEP_TYPES = [
 ] as const;
 export type StepType = (typeof STEP_TYPES)[number];
 
-/** How a routine can start (graph.js `trigger.kind_missing` hint, plus the flowlet entry). */
+/** How an automation can start (graph.js `trigger.kind_missing` hint, plus the flowlet entry). */
 export const TRIGGER_KINDS = [
     'manual', 'form', 'schedule', 'webhook', 'app_event', 'agent_call', 'app_trigger', 'layer_input',
 ] as const;
@@ -91,7 +91,7 @@ export interface FlowNode {
     [key: string]: unknown;
 }
 
-/** The step that starts a routine (or a flowlet). */
+/** The step that starts an automation (or a flowlet). */
 export interface FlowTrigger extends FlowNode {
     type: 'trigger';
     kind?: OpenString<TriggerKind>;

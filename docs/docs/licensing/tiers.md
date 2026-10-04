@@ -21,25 +21,25 @@ built-in integrations** (Google, Microsoft, AI image/music/video generation,
 third-party connectors and the Nextcloud module family).
 
 Community also ships the **no-code [automation builder](../features/automations.md)
-and scheduled agent routines** — for free. Building automations is free; what
-stays paid is **collaboration**: sharing an automation or routine across your
+and scheduled agent runs (Cowork)** — for free. Building automations is free; what
+stays paid is **collaboration**: sharing an automation across your
 team (`automation_sharing`), routing a step past a colleague for **Approvals**
 (`approvals`) and **Projects** (team workspaces). On Community,
-automations and routines are private to the person who creates them — the
+automations are private to the person who creates them — the
 Community tier doesn't include sharing them across a team, so only the creator
 can access them.
 
 **Enterprise** does **not** add the built-in integrations or the automation
 builder themselves — those are free in Community. What Enterprise adds is the
-**collaboration** layer on top (sharing automations/routines across a team,
+**collaboration** layer on top (sharing automations across a team,
 **Projects** team workspaces), the **MCP Server Marketplace** *(an Enterprise
-beta — a later implementation; see [Integrations → MCP](../integrations/index.md))*,
+beta — a later implementation; see the [MCP library](../integrations/mcp-library.md))*,
 **SSO beyond Nextcloud** (Google / Microsoft / SAML — Nextcloud OAuth login stays
 Community) together with the rest of the Studio-class capabilities (voice chat,
 webpage creation, meeting notes, notebooks, component designer), the
 advanced Privacy Shield modes, guardrail DLP, the compliance hub (GDPR + AI
 Act) — **the remaining beta features also require Enterprise** (the automation
-builder + agent routines are the exception: they are GA features free in
+builder + scheduled agent runs are the exception: they are GA features free in
 Community). Enterprise also unlocks the paid **admin-dashboard surfaces** (Agents,
 Monitoring, Compliance, Support, Appearance/branding, Product Website) — see
 [Admin dashboard by tier](#admin-dashboard-by-tier) below. **Full** layers
@@ -81,11 +81,12 @@ may move at any time.
 | MCP Server Marketplace *(Enterprise beta — later implementation)* | — | ✅ | ✅ |
 | **Workflow** |
 | Automation builder (no-code, personal) | ✅ | ✅ | ✅ |
-| Agent routines (scheduled, personal) | ✅ | ✅ | ✅ |
+| Scheduled agent runs in Cowork (personal) | ✅ | ✅ | ✅ |
 | [App Studio](../studio/apps.md) — full-stack AI app builder (GA) | — | ✅ | ✅ |
-| Share automations / routines across a team | — | ✅ | ✅ |
+| Share automations across a team | — | ✅ | ✅ |
 | Skills marketplace | ✅ | ✅ | ✅ |
 | Projects (team workspaces) | — | ✅ | ✅ |
+| [Solution stages](../studio/solutions.md#stages-and-deployments) — Dev / UAT / Production deployments | — | ✅ | ✅ |
 | Notebooks (per-user research) | — | ✅ | ✅ |
 | **Productivity** |
 | Meeting notes | — | ✅ | ✅ |
@@ -147,13 +148,14 @@ you'll see in 403 responses:
 | `voice_chat` | Enterprise | Realtime voice chat (Voxtral STT/TTS), `/ai/voice` |
 | `webpages` | Enterprise | AI-built static webpages, `/api/webpages` |
 | `automations` | Community | No-code automation builder, `/api/automation*`. Personal use is free; a GA beta that's Community-exempt from the beta tier floor |
-| `agent_routines` | Community | Scheduled agent runs (Studio → Routines), `/api/ai-tasks`. Free personal use; GA beta, Community |
-| `automation_sharing` | Enterprise | Sharing automations/routines across a team. **Reserve gate** — pins the paid collaboration boundary for the free builder; no route consumes it yet |
+| `agent_routines` | Community | Cowork items that run as an agent (`/api/cowork` with an `agentId`). Free personal use; GA beta, Community |
+| `automation_sharing` | Enterprise | Sharing automations across a team. **Reserve gate** — pins the paid collaboration boundary for the free builder; no route consumes it yet |
 | `approvals` | Enterprise | Approvals — the human decision surface for paused automations and App Studio apps. Gates BROWSING: `GET /api/automation/approvals`, `/approvals/facets`, `/approvals/directory`. **Deliberately does not gate** `GET /approvals/:id`, `POST /approvals/:id/decide`, `POST /approvals/:id/withdraw`, the approval's attachment download, or the legacy `POST /api/automation/runs/:runId/approve-step` — a lapsed or downgraded licence must still be able to finish approvals already pending, or the paused runs behind them would be stuck for good |
 | `meeting_notes` | Enterprise | Transcription + summarisation, `/api/transcriptions`, `/api/meet-bot`. GA (no longer beta): on for every organisation on an Enterprise install without an opt-in |
 | `component_designer` | Enterprise | Custom UI components, `/components` |
 | `notebooks` | Enterprise | Per-user research notebooks, `/api/notebooks` |
 | `projects` | Enterprise | Projects / team workspaces (sidebar accordion + `/api/projects`) |
+| `blueprint_packaging` | Enterprise | Packaging a Solution (Blueprint export, publish, upgrade) **and** the Dev / UAT / Production pipeline: `/api/projects/:id/{stages,releases,deployments,release-and-deploy,variables,parts}`. Applied per route on top of `projects`; the Production approval gate also needs `approvals` (only when it is switched on). **Deliberately not gated** (the drain exemption, `/api/solution-stages`): reading a stage, switching parts on and off, pause and resume, non-steering variable values and detach, plus deciding approvals already pending — a lapsed licence must never strand a stage that already runs in production. See [Solutions → Stages and deployments](../studio/solutions.md#stages-and-deployments) |
 | `pii_tokenize` | Enterprise | Privacy Shield "Tokenize & round-trip" PII action; community PUT clamps `piiDetectionAction` to `block` server-side |
 | `web_search_guard` | Enterprise | Privacy Shield Web Search Guard toggle + category filter; community PUT force-disables it server-side |
 | `advanced_usage_monitoring` | Enterprise | Usage & Monitoring tabs other than Overview — Safety, Integrations, Feedback, Terminations. Gates `/api/usage/{guardrails,integrations,azure-services}/*`, `/api/feedback`, `/api/terminations` |
@@ -210,8 +212,8 @@ Counters reset on the first day of each calendar month at 00:00 UTC.
 
 | Need | Suggested tier |
 |------|----------------|
-| Free self-hosted core — chat, KB, agents, skills, **all built-in integrations**, the **no-code automation builder + scheduled agent routines** (personal use), and the Nextcloud connector (incl. signing in from the NC App Store app) | Community |
-| Team that wants **collaboration** on top of the free builder (sharing automations/routines across a team, **Projects** team workspaces), the MCP Server Marketplace, the rest of Studio (voice, webpage creation, notebooks, meeting notes, component designer), the advanced Privacy Shield modes (tokenize PII, web-search guard), the paid admin tabs (Agents, Monitoring, Compliance, Support, Appearance, Product Website), the remaining beta features, or compliance (SSO, GDPR/AI-Act) | Enterprise |
+| Free self-hosted core — chat, KB, agents, skills, **all built-in integrations**, the **no-code automation builder + scheduled agent runs (Cowork)** (personal use), and the Nextcloud connector (incl. signing in from the NC App Store app) | Community |
+| Team that wants **collaboration** on top of the free builder (sharing automations across a team, **Projects** team workspaces), the MCP Server Marketplace, the rest of Studio (voice, webpage creation, notebooks, meeting notes, component designer), the advanced Privacy Shield modes (tokenize PII, web-search guard), the paid admin tabs (Agents, Monitoring, Compliance, Support, Appearance, Product Website), the remaining beta features, or compliance (SSO, GDPR/AI-Act) | Enterprise |
 | Reseller / private-label deployment | Full |
 
 Custom plans (e.g. capped seats, specific feature sets) are available —

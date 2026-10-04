@@ -269,7 +269,7 @@ export default function MeetingDetail({ id, currentUserId, currentUserName, onBa
      *    refetch, and then watch the ids change under it mid-edit.
      *
      * Answers whether the note was saved, so a caller whose OTHER write
-     * already succeeded (the routine really ran) can say that this half did
+     * already succeeded (the automation really ran) can say that this half did
      * not.
      */
     const saveActionItems = async (next) => {
@@ -308,7 +308,7 @@ export default function MeetingDetail({ id, currentUserId, currentUserName, onBa
      * Record where an action went (M3). The destination's own write has
      * already happened — DestinationPicker only calls back once the run, the
      * row or the knowledge source answered — so a failure HERE is the one case
-     * that has to be said out loud: the routine ran, and the note lost the
+     * that has to be said out loud: the automation ran, and the note lost the
      * chip that says so.
      */
     const handleSetActionDestination = async (itemId, destination) => {
@@ -673,7 +673,7 @@ export default function MeetingDetail({ id, currentUserId, currentUserName, onBa
                         onToggleActionItem={handleToggleActionItem}
                         onEditActionItem={isOwner ? handleEditActionItem : undefined}
                         // Owner-only, and the chip is not drawn at all without
-                        // it: a destination names a routine, a table or a
+                        // it: a destination names an automation, a table or a
                         // knowledge base in the owner's own workspace, which a
                         // colleague reading a published note has no business
                         // reading the name of.

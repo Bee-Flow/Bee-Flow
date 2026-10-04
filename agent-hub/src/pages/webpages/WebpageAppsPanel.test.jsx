@@ -59,7 +59,7 @@ beforeEach(() => {
 });
 
 describe('WebpageAppsPanel', () => {
-    it('lists granted apps with their live status and routines', async () => {
+    it('lists granted apps with their live status and automations', async () => {
         render(<WebpageAppsPanel webpageId="wp1" />);
         await waitFor(() => expect(screen.getByText('gmail search')).toBeTruthy());
         expect(screen.getByText('Connected')).toBeTruthy();

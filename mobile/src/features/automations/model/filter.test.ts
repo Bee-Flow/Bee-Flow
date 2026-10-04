@@ -10,7 +10,7 @@ function automation(id: string, over: Partial<Automation> = {}): Automation {
         projectId: null,
         folderId: null,
         kind: 'automation',
-        title: `Routine ${id}`,
+        title: `Automation ${id}`,
         description: null,
         definition: {},
         version: 1,
@@ -56,6 +56,6 @@ describe('filterAutomations', () => {
     });
 
     it('applies the search and the chip together', () => {
-        expect(ids(filterAutomations(ALL, 'routine', 'paused'))).toEqual(['b', 'd']);
+        expect(ids(filterAutomations(ALL, 'automation', 'paused'))).toEqual(['b', 'd']);
     });
 });

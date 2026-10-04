@@ -8,7 +8,7 @@ import { segmentForSection } from '../../admin/Studio/studioRoutes';
  * "You got here from this button" — App › Screen › button, above the builder.
  *
  * Shown when the builder was opened with `?from=app:<app>:<screen>:<node>`, or
- * when the routine's own trigger carries the same back-pointer. It is the way
+ * when the automation's own trigger carries the same back-pointer. It is the way
  * back: without it, following "Open" from an app action is a one-way trip.
  *
  * ── What it is NOT allowed to do ──────────────────────────────────────────
@@ -22,7 +22,7 @@ import { segmentForSection } from '../../admin/Studio/studioRoutes';
  *     owner-only, so a link for anyone else would land on a refusal, and a
  *     link that 403s is worse than no link at all;
  *   · "this is gone" only when the server said which level is gone. A pointer
- *     that resolves to nothing is not "no trigger" — the routine still fires
+ *     that resolves to nothing is not "no trigger" — the automation still fires
  *     from an app action — so the strip says so instead of disappearing.
  *
  * While the answer is in flight it renders NOTHING rather than a skeleton of
@@ -46,20 +46,20 @@ export default function AppRefBreadcrumb({ appRef }) {
     const crumbs = [
         {
             key: 'app',
-            text: d.gone === 'app' ? t('routine_editor.app_ref.app_gone', 'App no longer exists') : d.appText,
+            text: d.gone === 'app' ? t('automation_editor.app_ref.app_gone', 'App no longer exists') : d.appText,
             muted: d.gone === 'app',
             title: d.appId,
             href: appHref,
         },
         {
             key: 'screen',
-            text: d.gone === 'screen' ? t('routine_editor.app_ref.screen_gone', 'Screen no longer exists') : d.screenText,
+            text: d.gone === 'screen' ? t('automation_editor.app_ref.screen_gone', 'Screen no longer exists') : d.screenText,
             muted: d.gone === 'screen',
             title: d.screenId,
         },
         d.nodeId ? {
             key: 'node',
-            text: d.gone === 'node' ? t('routine_editor.app_ref.node_gone', 'Button no longer exists') : d.nodeText,
+            text: d.gone === 'node' ? t('automation_editor.app_ref.node_gone', 'Button no longer exists') : d.nodeText,
             muted: d.gone === 'node',
             title: d.nodeId,
         } : null,
@@ -69,16 +69,16 @@ export default function AppRefBreadcrumb({ appRef }) {
     const note = d.gone === 'app'
         ? null // the crumb already says it; a second sentence would repeat it
         : d.restricted
-            ? t('routine_editor.app_ref.restricted', 'This app belongs to someone else, so it cannot be named or opened from here.')
+            ? t('automation_editor.app_ref.restricted', 'This app belongs to someone else, so it cannot be named or opened from here.')
             : d.unknown
-                ? t('routine_editor.app_ref.unknown', 'This could not be checked just now.')
+                ? t('automation_editor.app_ref.unknown', 'This could not be checked just now.')
                 : null;
 
     return (
         <div className="flex items-center gap-2 px-4 py-1.5 border-b border-[var(--border-subtle)] bg-[var(--bg-secondary)]/40 text-[11px] min-w-0">
             <AppWindow className="w-3.5 h-3.5 shrink-0 text-[var(--text-tertiary)]" aria-hidden="true" />
             <nav
-                aria-label={t('routine_editor.app_ref.nav_label', 'The button this routine was opened from')}
+                aria-label={t('automation_editor.app_ref.nav_label', 'The button this automation was opened from')}
                 className="flex items-center gap-1 min-w-0 overflow-hidden"
             >
                 {crumbs.map((c, i) => (

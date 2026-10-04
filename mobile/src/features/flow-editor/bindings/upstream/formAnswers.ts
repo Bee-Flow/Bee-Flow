@@ -71,7 +71,7 @@ export function describeFormPage(node: FlowNode): VariableGroup | null {
     const base = `steps.${node.id}.output`;
     return {
         id: node.id,
-        label: node.label || node.form?.title || t('routines.node.form_page.typeLabel', 'Form page'),
+        label: node.label || node.form?.title || t('automations.node.form_page.typeLabel', 'Form page'),
         kind: 'form_page',
         basePath: base,
         sample: Object.fromEntries(fields.map((f) => [f.name, answerSample(f)])),

@@ -235,7 +235,7 @@ function tokenizeText(text, entities, existingTokenMap = null, options = {}) {
         // single literal value somebody typed, not prose that happens to
         // mention a name. Alias coalescing may then not rewrite it: rule 2
         // would fold a short person name into the LONGEST variant seen earlier
-        // in the run, and rule 1 would swap its spelling/casing. In a routine
+        // in the run, and rule 1 would swap its spelling/casing. In an automation
         // every string leaf of a step's inputs is tokenized and restored from
         // the run vault, so a Gmail search for "Ruben" left the platform as
         // "van Ruben van de Laar" and returned nothing, while a search for what

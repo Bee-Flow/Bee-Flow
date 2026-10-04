@@ -15,7 +15,7 @@ import BindingField from '../inspector/panels/BindingField';
 import { INPUT_CLS } from '../inspector/panels/kit';
 import { useCatalogStepSpecs } from '../inspector/panels/SpecPanel';
 import { mergeDrafts, splitNamed } from '../inspector/keyedRows';
-import RoutinePicker from '../inspector/RoutinePicker';
+import AutomationPicker from '../inspector/AutomationPicker';
 
 /**
  * One step's settings, rendered FROM THE SPEC rather than hand-written per kind.
@@ -36,7 +36,7 @@ import RoutinePicker from '../inspector/RoutinePicker';
  * what goes over the wire. `screenId` was special-cased into a <select> for
  * exactly that reason ("A screen reference is a pick, never a typed id") — and
  * the other five were left as text boxes. So "Add a row" asked a bookkeeper to
- * type `tbl_9f3a2c`, "Open a dialog" wanted a node id, and "Run routine" wanted
+ * type `tbl_9f3a2c`, "Open a dialog" wanted a node id, and "Run automation" wanted
  * a uuid. They are all pickers now, driven by one table (stepReferences.
  * REFERENCE_FIELDS) so a new reference field cannot land as a text box again.
  *
@@ -81,7 +81,7 @@ const IGNORED_FIELDS = new Set(['refresh.actionId']);
  * the builder knows the thing by.
  */
 const FIELD_LABELS = {
-    automationId: 'Routine',
+    automationId: 'Automation',
     modalId: 'Dialog',
     connectorId: 'Connection',
     datasetId: 'Saved view',
@@ -196,11 +196,11 @@ function StepField({
     // Every reference is a pick, never a typed id.
     const refKind = REFERENCE_FIELDS[fieldKey];
     if (refKind) {
-        // A routine is chosen from the searchable picker the inspector already
+        // An automation is chosen from the searchable picker the inspector already
         // uses for the bare `run_automation` action — same job, same affordance.
         if (refKind === 'automation') {
             return (
-                <RoutineRefField
+                <AutomationRefField
                     label={label}
                     hint={hint}
                     value={value}
@@ -402,8 +402,8 @@ function ReferenceField({ label, hint, kind, value, onChange, options, disabled 
     );
 }
 
-/** The searchable routine picker, as a field. */
-function RoutineRefField({ label, hint, value, onChange, options, formFields, disabled }) {
+/** The searchable automation picker, as a field. */
+function AutomationRefField({ label, hint, value, onChange, options, formFields, disabled }) {
     const [picking, setPicking] = useState(false);
     const name = value ? labelForRef(options, value) : '';
     const dangling = isDanglingRef(options, value);
@@ -428,10 +428,10 @@ function RoutineRefField({ label, hint, value, onChange, options, formFields, di
             {dangling ? (
                 <span className="mt-1 flex items-center gap-1 text-[11px] text-[var(--error)]" data-ref-missing="true">
                     <AlertTriangle size={11} aria-hidden="true" />
-                    This routine no longer exists. Pick another one.
+                    This automation no longer exists. Pick another one.
                 </span>
             ) : null}
-            <RoutinePicker
+            <AutomationPicker
                 open={picking}
                 onClose={() => setPicking(false)}
                 formFields={formFields}
@@ -446,11 +446,11 @@ function RoutineRefField({ label, hint, value, onChange, options, formFields, di
  * that shape.
  *
  * All three shapes used the full BindingField, which offers a table, a saved
- * view, a connector, a routine's result and an aggregate. Only `recordValues`
+ * view, a connector, an automation's result and an aggregate. Only `recordValues`
  * takes a full binding: `inputMapping` accepts static|field
  * (INPUT_MAPPING_KINDS) and `navParams` accepts static|formula, and anything
  * else is a hard validation error — so picking "A table in this app" for a
- * routine's input made every later autosave 422 with a message about a mapping
+ * automation's input made every later autosave 422 with a message about a mapping
  * kind nobody had chosen from a list that offered it.
  */
 function RowValueField({ shape, value, onChange, definition, node, formFields, disabled }) {
@@ -505,7 +505,7 @@ function RowValueField({ shape, value, onChange, definition, node, formFields, d
         );
     }
 
-    // A routine's inputs: a fixed value, or one of the enclosing form's fields.
+    // An automation's inputs: a fixed value, or one of the enclosing form's fields.
     const isField = value?.kind === 'field';
     return (
         <div className="flex flex-col gap-1.5">
@@ -603,7 +603,7 @@ function SwitchCasesField({ label, value, onChange, disabled }) {
 
 /**
  * A map of name → value, where each value is a binding. Three spec types share
- * this shape (navigate params, a record's column values, a routine's inputs);
+ * this shape (navigate params, a record's column values, an automation's inputs);
  * they differ only in what the names mean, which the label already says.
  *
  * When the names are COLUMNS of a known table (`columns`), the name box becomes

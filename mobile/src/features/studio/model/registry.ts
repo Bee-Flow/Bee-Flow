@@ -89,10 +89,10 @@ export const STUDIO_SECTIONS: readonly StudioSection[] = [
         category: 'build', icon: 'ListChecks', kind: 'automation',
         countKey: 'automations',
         labelKey: 'studio.tab.automations', labelFallback: 'Automations',
-        descKey: 'studio.tab.automations_desc', descFallback: 'Multi-step routines that run for you',
+        descKey: 'studio.tab.automations_desc', descFallback: 'Multi-step automations that run for you',
         requires: { ...AUTOMATIONS, perms: ['use_automations'] },
         gateCapability: 'automations', lockOn: 'disable',
-        // New opens the flow editor's new-routine screen: the routine is
+        // New opens the flow editor's new-automation screen: the automation is
         // created on its first edit.
         create: create('automation', 'Automation', route('/automations/new')),
         target: route('/automations', under('/automations')),
@@ -111,7 +111,7 @@ export const STUDIO_SECTIONS: readonly StudioSection[] = [
         id: 'datatables', segment: 'datatables', category: 'build', icon: 'Table2', kind: 'datatable',
         countKey: 'datatables',
         labelKey: 'studio.tab.datatables', labelFallback: 'Datatables',
-        descKey: 'studio.tab.datatables_desc', descFallback: 'Rows your routines keep between runs',
+        descKey: 'studio.tab.datatables_desc', descFallback: 'Rows your automations keep between runs',
         requires: { ...AUTOMATIONS, perms: ['use_datatables'] },
         gateCapability: 'automations', lockOn: 'disable',
         create: create('datatable', 'Table', route('/datatables?new=1')),
@@ -132,7 +132,7 @@ export const STUDIO_SECTIONS: readonly StudioSection[] = [
         countKey: 'documents',
         labelKey: 'studio.tab.documents', labelFallback: 'Documents',
         descKey: 'studio.tab.documents_desc',
-        descFallback: 'Invoices, quotes and letters — editable by hand, downloadable as PDF',
+        descFallback: 'Pages, notebooks, invoices, quotes and letters — editable by hand, downloadable as PDF',
         requires: {},
         // app/documents is Studio Documents; the knowledge-base file list
         // lives at /knowledge/documents.
@@ -160,7 +160,7 @@ export const STUDIO_SECTIONS: readonly StudioSection[] = [
         requires: { ...AUTOMATIONS, perms: ['use_automations'] },
         gateCapability: 'automations', lockOn: 'disable',
         create: create('form', 'Form', route('/forms/new')),
-        // The web's `/studio/forms/<id>` is the ROUTINE's id, and so is the
+        // The web's `/studio/forms/<id>` is the AUTOMATION's id, and so is the
         // phone's Form page (/forms/<id>); the page token never travels.
         target: route('/forms', under('/forms')),
     }),
@@ -169,7 +169,7 @@ export const STUDIO_SECTIONS: readonly StudioSection[] = [
         countKey: 'playbooks',
         labelKey: 'studio.tab.playbooks', labelFallback: 'Playbooks',
         descKey: 'studio.tab.playbooks_desc',
-        descFallback: 'Watch the AI build a table, a routine and an app — one phase at a time',
+        descFallback: 'Watch the AI build a table, an automation and an app — one phase at a time',
         requires: { license: ['automations', 'app_studio'], canUse: ['automations', 'app_studio'] },
         gateCapability: 'app_studio', lockOn: 'disable',
         create: create('playbook', 'Playbook', route('/playbooks?new=1')),
@@ -180,7 +180,7 @@ export const STUDIO_SECTIONS: readonly StudioSection[] = [
         countKey: 'solutions',
         labelKey: 'studio.tab.solutions', labelFallback: 'Solutions',
         descKey: 'studio.tab.solutions_desc',
-        descFallback: 'Bundle routines, apps and webpages into one installable Solution',
+        descFallback: 'Bundle automations, apps and webpages into one installable Solution',
         requires: { license: ['projects'], perms: ['use_solutions'] },
         gateCapability: 'projects', lockOn: 'disable',
         // A Solution is a project seen from the builder's side.
@@ -190,7 +190,7 @@ export const STUDIO_SECTIONS: readonly StudioSection[] = [
     section({
         id: 'runs', segment: 'runs', category: 'bundle', icon: 'History', kind: null, countKey: 'runs',
         labelKey: 'runs.title', labelFallback: 'Runs & log',
-        descKey: 'runs.tab_desc', descFallback: 'Every time a routine fired, and what happened',
+        descKey: 'runs.tab_desc', descFallback: 'Every time an automation fired, and what happened',
         requires: AUTOMATIONS,
         gateCapability: 'automations', lockOn: 'disable',
         // The org-wide log with its facets. A run has no page of its own: a

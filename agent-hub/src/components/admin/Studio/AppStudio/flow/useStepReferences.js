@@ -20,9 +20,9 @@ import { useEditorChrome } from '../editor/EditorChromeContext';
  * there is no appId: every network-backed list stays empty and the pickers
  * degrade to a plain text field, which is exactly what they were before.
  *
- * Nothing here throws. A missing data model, a plan without routines, a 403 on
+ * Nothing here throws. A missing data model, a plan without automations, a 403 on
  * connectors — each resolves to an empty list, because a builder editing a
- * `toast` step should never see an error about routines.
+ * `toast` step should never see an error about automations.
  */
 
 /** Saved datasets, read-only. useDatasets also brings CRUD this has no use for. */
@@ -62,7 +62,7 @@ export default function useStepReferences(definition) {
         retry: false,
     });
 
-    // Routines are a separately licensed feature: a 403 is a legitimate answer,
+    // Automations are a separately licensed feature: a 403 is a legitimate answer,
     // not a failure to report here.
     const automationApi = useAutomationApi();
     const automationQuery = useQuery({

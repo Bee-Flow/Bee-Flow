@@ -1,7 +1,7 @@
 /**
  * App Studio Builder — how one turn's request is composed:
  *
- *   [system: byte-stable per (toolset, catalog, owner's routines)]
+ *   [system: byte-stable per (toolset, catalog, owner's automations)]
  *   [few-shots: a cached block — every turn on the small profile]
  *   [history: head-anchored window, evicted in whole blocks]
  *   [ONE user message: the machine notes (draft state, approved plan, editor
@@ -16,7 +16,7 @@
  * re-reads on a follow-up turn.
  *
  * Everything before the notes is a pure function of SESSION state (profile,
- * catalog, routines, history) — never of turn state — so two consecutive
+ * catalog, automations, history) — never of turn state — so two consecutive
  * turns share their prefix byte for byte. The fingerprint the route logs
  * proves it on the box.
  */
@@ -62,7 +62,7 @@ function composeAppTurnMessages({ profile, modelId, sys, history, notes, userTur
     // cached block (dropping them on turn 2 shifts every later byte);
     // elsewhere only on a fresh session, where the prior turns are the better
     // example. Gemini 3.x rejects synthetic tool_calls without thought
-    // signatures — none there (same guard as the routine builder).
+    // signatures — none there (same guard as the automation builder).
     const fewShotCount = isGemini3Model(modelId) ? 0 : (prof.fewShots || 0);
     const wantFewShots = prof.fewShotPolicy === 'every-turn' || hist.length === 0;
     const fewShotMessages = (fewShotCount > 0 && wantFewShots)

@@ -29,7 +29,7 @@ const READ_ONLY = new Set([
     // Calendar
     'calendar_list_events', 'calendar_search_events', 'calendar_get_event',
     // Drive / Docs / Sheets / Slides
-    'drive_search', 'drive_list_files', 'drive_get_file', 'drive_get_content', 'drive_read_file',
+    'drive_search', 'drive_list_files', 'drive_list_recent', 'drive_get_file', 'drive_get_content', 'drive_read_file',
     'docs_read', 'docs_list',
     'sheets_list', 'sheets_get_values', 'sheets_list_tabs',
     'slides_list', 'slides_get', 'slides_export_pdf',
@@ -49,7 +49,7 @@ const READ_ONLY = new Set([
     // Outlook / MS
     'outlook_search', 'outlook_read', 'outlook_list_recent',
     'ms_calendar_list_events', 'ms_calendar_search_events', 'ms_calendar_get_event',
-    'onedrive_search', 'onedrive_list', 'onedrive_list_files', 'onedrive_get_file',
+    'onedrive_search', 'onedrive_list', 'onedrive_list_files', 'onedrive_list_recent', 'onedrive_get_file',
     'ms_contacts_search', 'ms_contacts_list',
     // YouTrack / GitHub / LinkedIn read-only
     'youtrack_search_issues', 'youtrack_get_issue', 'youtrack_get_issue_comments', 'youtrack_list_projects',
@@ -83,11 +83,11 @@ const READ_ONLY = new Set([
     // policy layer calls a write is a confirmation card in front of "what does
     // the XL cost?" — and, in an unattended run, the tool gone from the stack.
     'datatable_query',
-    // Personal memory (read half) and a routine's own run history — both are
+    // Personal memory (read half) and an automation's own run history — both are
     // first-party reads of the caller's own data, so a dry-run does them for
     // real: a simulated run summary is the one thing an evolution proposal
     // must never be planned against.
-    'memory_search', 'routine_runs_summary',
+    'memory_search', 'automation_runs_summary',
     // Fireflies
     'fireflies_list_transcripts', 'fireflies_get_summary', 'fireflies_get_transcript',
     // Transcription — a pure transform (audio in → text out) on our own
@@ -191,11 +191,11 @@ const SIDE_EFFECTS = new Set([
     'regex_add_rules', 'regex_add_collection',
     // KB
     'knowledge_base_ingest',
-    // Personal memory (write half) and routine self-evolution. Proposing is a
+    // Personal memory (write half) and automation self-evolution. Proposing is a
     // write too: it stores a proposal a human is then asked to approve, and a
     // dry-run that minted those would fill the approval queue with drafts.
     'memory_remember',
-    'routine_propose_evolution', 'routine_apply_evolution',
+    'automation_propose_evolution', 'automation_apply_evolution',
     // Presentations — a .pptx is written into storage (chat) or Nextcloud.
     'create_presentation', 'nextcloud_create_presentation',
     // Word documents — a .docx is written into storage or Nextcloud.

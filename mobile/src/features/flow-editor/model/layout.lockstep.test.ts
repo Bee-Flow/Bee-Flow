@@ -2,7 +2,7 @@
  * DIFFERENTIAL lockstep: auto-layout. The web's dagreLayout.js, arrange.js
  * and layout.js `seedPositions` run on the same @dagrejs/dagre as the port
  * (jest maps the web's import onto this package's copy), so every coordinate
- * must match — the phone and the browser draw one routine the same way.
+ * must match — the phone and the browser draw one automation the same way.
  * Also the card geometry and the AI-tool edits the layout reads.
  */
 

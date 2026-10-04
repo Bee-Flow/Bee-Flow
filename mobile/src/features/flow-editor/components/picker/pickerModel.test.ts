@@ -152,7 +152,7 @@ describe('the picker inside a flowlet', () => {
 });
 
 describe('flowlets and glyphs', () => {
-    it('lists the routine’s flowlets', () => {
+    it('lists the automation’s flowlets', () => {
         expect(layersOf({ steps: [], edges: [], layers: { l1: { title: 'Lookup', steps: [], edges: [], params: [{ name: 'q' }] } } })).toEqual([
             { key: 'l1', title: 'Lookup', params: [{ name: 'q' }] },
         ]);

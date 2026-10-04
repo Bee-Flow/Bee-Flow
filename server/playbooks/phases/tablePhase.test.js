@@ -109,7 +109,7 @@ test('existing: a spreadsheet-file mirror is a mirror too — flagged, and named
     assert.equal(cache.artifacts.mirrorKind, null);
 });
 
-test('existing: reader grade is refused (the routine must write); a table without the required columns is unusable; an unknown id is not found; no id asks for one', async () => {
+test('existing: reader grade is refused (the automation must write); a table without the required columns is unusable; an unknown id is not found; no id asks for one', async () => {
     const reader = await runTablePhase({ playbook: { userId: 'u1', options: { tableMode: 'existing', datatableId: 'tbl_ex' } }, principal, recipe }, deps({ grade: 'reader' }));
     assert.equal(reader.code, 'table_read_only');
     const d = deps({ grade: 'editor' });

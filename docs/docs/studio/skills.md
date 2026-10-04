@@ -41,15 +41,15 @@ A skill opens on four tabs: **Method**, **Examples**, **Test**, **Used by**.
 |-------|---------------|
 | What this skill does | A short summary |
 | When to use it | When and how the agent should reach for it (max 4000 characters) |
-| Steps | Ordered cards you can drag. Each step is a sentence plus optional **reference pills** — a routine, a knowledge base or a table it points at |
+| Steps | Ordered cards you can drag. Each step is a sentence plus optional **reference pills** — an automation, a knowledge base or a table it points at |
 | Rules | Statements that hold regardless of the question. Each rule is **must** or **never**; the mark is a button that flips it |
-| Delivers | The fields the skill hands back, in the product's own field vocabulary (text, number, yes-no, date, one of a list, table). A routine's AI step takes its outgoing fields from here |
+| Delivers | The fields the skill hands back, in the product's own field vocabulary (text, number, yes-no, date, one of a list, table). An automation's AI step takes its outgoing fields from here |
 | May use | The three grants below |
 
 **May use** is three lists, and each is a request rather than an authorisation — ownership and activity are re-checked when a tool is actually dispatched:
 
 - **Apps** — tools of these apps become available while the skill is active. An app your org has not connected is not offered.
-- **Routines** — offered to the agent as callable tools, which is why only a routine with an **agent-call** trigger can be picked. The runtime dispatches nothing else, so listing a scheduled routine here would be a promise nothing keeps.
+- **Automations** — offered to the agent as callable tools, which is why only an automation with an **agent-call** trigger can be picked. The runtime dispatches nothing else, so listing a scheduled automation here would be a promise nothing keeps.
 - **Knowledge** — joined into the agent's search allowlist while the skill is active.
 
 Under **All options** in the same block sits **dynamic activation** — see [How a skill reaches a turn](#how-a-skill-reaches-a-turn).
@@ -70,28 +70,37 @@ The tab refuses to smooth over failure: a run that could not be graded shows the
 
 ### Used by
 
-Which agents and which routine AI steps name this skill. A read that failed is named as such rather than shown as an empty list.
+Which agents and which automation AI steps name this skill. A read that failed is named as such rather than shown as an empty list.
 
 Deleting lives at the bottom of this tab in the shared **danger zone** — not in the list and not in a menu — and it confirms against the same list the tab renders, including the kinds that could not be checked. The server refuses a delete for a skill still in use.
 
 ## How a skill reaches a turn
 
-An agent carries its skills on its own configuration (`config.attachedSkillIds`), picked from the **Skills** button in the agent builder. A routine's AI step can apply a skill too (`ai_step.skillIds`).
+An agent carries its skills on its own configuration (`config.attachedSkillIds`), picked from the **Skills** button in the agent builder. An automation's AI step can apply a skill too (`ai_step.skillIds`).
 
 From there, two behaviours:
 
 - **Static** (the default) — the skill's full body goes into the system prompt on every turn.
 - **Dynamic** — only a one-line manifest entry goes in, and the agent calls `activate_skill` to pull the full body in when it is actually relevant. This saves tokens when an agent has many skills attached but only a few apply per message.
 
-The same split governs the grants: a dynamic skill contributes no apps, routines, tables or knowledge bases until it has been activated in that conversation.
+The same split governs the grants: a dynamic skill contributes no apps, automations, tables or knowledge bases until it has been activated in that conversation.
 
-A legacy per-skill `automationId` still exists and behaves completely differently — the routine **replaces** the skill body. It is explained in place rather than hidden, because a field with that much power should not be invisible just for being old.
+A legacy per-skill `automationId` still exists and behaves completely differently — the automation **replaces** the skill body. It is explained in place rather than hidden, because a field with that much power should not be invisible just for being old.
 
 ## Permissions
 
 Writes are gated by `manage_skills`, which ships with the **org admin**, **agent admin** and **agent editor** roles. The server re-checks it on every write; the interface only decides which controls are worth drawing.
 
 Reading the list is not gated by `manage_skills` — anyone who can reach the section can see what exists.
+
+## Managed by a Solution stage
+
+A skill can be part of a [Solution](solutions.md#stages-and-deployments), and then it is
+deployed to the Solution's UAT and Production stages with the rest. In a stage the skill is
+**managed**: its fields are read-only with a *Managed by a Solution stage* banner (open it in
+Dev to change it), while who may use it (sharing and groups) stays the stage's own. A skill
+that uses a file or resource outside its Solution blocks the release, because the stage
+could not follow it. Deploying a managed skill does not notify the GitHub sync.
 
 ## There is no skills marketplace
 
@@ -103,7 +112,7 @@ The only marketplaces in the product today are **Modules → Marketplace** (supe
 
 | | Skill | Agent |
 |---|-------|-------|
-| Standalone? | No — attached to an agent or applied by a routine step | Yes |
+| Standalone? | No — attached to an agent or applied by an automation step | Yes |
 | Reusable across agents? | Yes, one definition attached in many places | No |
 | Changing it | Applies everywhere it is attached, at once | Affects that agent only |
 | Use case | "Give this agent this method" | "Talk to this agent" |

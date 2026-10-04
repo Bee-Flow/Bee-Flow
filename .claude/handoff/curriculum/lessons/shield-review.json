@@ -5,7 +5,7 @@
   "title": "Block, send anyway, or redact",
   "desc": "The review dialog: reading the highlights, marking what was missed, and choosing on purpose.",
   "gate": {},
-  "learningGoal": "After this lesson you can make a defensible choice in the review dialog within the sixty-second window, and explain afterwards why you chose it.",
+  "learningGoal": "After this lesson you can make a defensible choice in the review dialog, and explain afterwards why you chose it.",
   "steps": [
     {
       "type": "slide",
@@ -92,7 +92,7 @@
             "id": "ownname",
             "left": "Pieter's only highlight is his own employer's name, \"Van Dijk Groep\". The question is about steel prices and contains no people at all.",
             "right": "Send anyway",
-            "note": "A company name is a category the detector looks for, and here it is exactly what the model needs to answer well. Worth telling your administrator: the organisation can add it under \"Never hide these\" so it stops being flagged."
+            "note": "A company name is a category the detector looks for, and here it is exactly what the model needs to answer well. Worth telling your administrator: the organisation can add it to its Never hidden list so it stops being flagged."
           },
           {
             "id": "complaint",
@@ -147,19 +147,19 @@
       "type": "quiz",
       "id": "timeout",
       "icon": "❓",
-      "question": "Sanne's dialog opens, a colleague stops by her desk, and more than a minute passes before she looks back at the screen. What has happened to her message?",
+      "question": "Sanne's dialog opens, a colleague stops by her desk, and twenty minutes pass before she looks back at the screen. The dialog is still open. What has happened to her message?",
       "multi": false,
       "choices": [
         {
           "id": "a",
-          "label": "It was refused. The chat reads \"Blocked: DLP decision timed out.\" and nothing was sent",
+          "label": "Nothing yet. While the dialog is open, Bee Flow keeps the question alive, so nothing has been sent and it is still waiting for her choice",
           "correct": true
         },
         {
           "id": "b",
           "label": "It was sent unchanged, because the check cannot hold a message forever",
           "correct": false,
-          "feedback": "The opposite: when no answer arrives the message is treated as blocked. An unanswered question never becomes permission."
+          "feedback": "The opposite: an unanswered question never becomes permission. If a decision ever does expire, it is treated as Block."
         },
         {
           "id": "c",
@@ -169,12 +169,12 @@
         },
         {
           "id": "d",
-          "label": "The dialog waits as long as it needs to; it only closes when you press something",
+          "label": "It was refused after sixty seconds, and the chat reads \"Blocked: DLP decision timed out.\"",
           "correct": false,
-          "feedback": "It expires after sixty seconds. There is a deliberate limit, so a forgotten dialog cannot leave a chat hanging open."
+          "feedback": "An open dialog does not run out after a minute: the page keeps the question alive while it is on screen. A decision only expires when nothing is heard from the dialog for ten minutes — for example because the tab was closed."
         }
       ],
-      "explanation": "The pending decision lives for sixty seconds, then expires and the message is refused — the safe direction. (DLP, in that message, is the ordinary term for this kind of outbound check: data loss prevention.) Nothing is lost: your message is still in the conversation, so you can copy it back into the box, send it again and answer the dialog this time. A restart of the server while a dialog is open ends the same way, because a pending decision is never stored."
+      "explanation": "An open dialog waits for you, so nobody is cut off mid-review. The decision only expires after ten minutes in which nothing is heard from it — the tab closed, the laptop asleep — and then the message is refused, the safe direction: \"Blocked: DLP decision timed out.\" (DLP means data loss prevention, the usual name for this check.) Nothing is lost: copy your message back into the box and send it again. A server restart while a dialog is open ends the same way."
     },
     {
       "type": "exercise",
@@ -199,7 +199,7 @@
       "id": "now",
       "icon": "✅",
       "title": "What you can do now",
-      "bodyMd": "- **Read the label before you click.** It says what was found and how sure the detector is — High confidence through Low confidence, plus Custom rule and Marked by you. Never a percentage.\n- **Correct what it missed.** Select the text and choose Mark as personal data. Marks only take effect with **Redact and send**; **Send anyway** sends everything untouched, and **Block** sends nothing at all.\n- **Decide inside the minute, and know what you are committing to.** After sixty seconds the dialog expires and the message is refused. Ticking *Remember my choice for this conversation* hands your answer to every later message in that thread — so tick it on purpose."
+      "bodyMd": "- **Read the label before you click.** It says what was found and how sure the detector is — High confidence through Low confidence, plus Custom rule and Marked by you. Never a percentage.\n- **Correct what it missed.** Select the text and choose Mark as personal data. Marks only take effect with **Redact and send**; **Send anyway** sends everything untouched, and **Block** sends nothing at all.\n- **Decide on purpose, and know what you are committing to.** An open dialog waits for you; a question left without an answer for ten minutes expires and the message is refused. Ticking *Remember my choice for this conversation* hands your answer to every later message in that thread — so tick it on purpose."
     }
   ],
   "rubrics": {
@@ -224,7 +224,7 @@
       "Its three buttons are Block, Send anyway and Redact and send; the last one reads simply Send when nothing at all is highlighted or marked.",
       "Each highlight carries a word, never a percentage: High confidence, Possible match, Low confidence, Custom rule, or Marked by you for spans you marked yourself.",
       "Selecting text offers \"Mark as personal data\", and clicking one of your own marks offers \"Unmark\"; your marks are only acted on by Redact and send.",
-      "The pending decision expires after sixty seconds, and the message is then refused with \"Blocked: DLP decision timed out.\" Pressing Block shows \"Prompt blocked by you.\"",
+      "While the dialog is open, the decision is kept alive; a decision nothing is heard from for ten minutes expires and the message is refused with \"Blocked: DLP decision timed out.\" Pressing Block shows \"Prompt blocked by you.\"",
       "The checkbox \"Remember my choice for this conversation\" applies Send anyway or Redact and send to every later message in that conversation; a Block choice is never remembered.",
       "Attachments raise the same dialog, titled \"Check this attachment before it goes to the AI\", one pause per flagged file, with the file shown as a document card.",
       "When a large file could not be read to the end, the sent message carries the badge \"Scan incomplete\"; clicking it lists the file with a \"Scanned 12 of 40 pages\" line."

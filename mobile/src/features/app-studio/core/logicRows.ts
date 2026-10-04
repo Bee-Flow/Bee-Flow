@@ -7,6 +7,6 @@
  */
 
 export { collectBoundTableIds, countWiredLogic, logicRows, type LogicRow, type TitleFor } from './logic/rows';
-export { assignNotices, noticesForRow, routineRows, routineTouchesTables, type Notice, type RoutineRowsArgs } from './logic/routines';
+export { assignNotices, noticesForRow, derivedAutomationRows, automationTouchesTables, type Notice, type AutomationRowsArgs } from './logic/automations';
 export { TYPE_EVENT_LISTS, eventSlotsOf, eventText, eventsForType, nOf } from './logic/events';
 export { actionOptions, describeAction, type DescribeOptions } from './logic/describeAction';

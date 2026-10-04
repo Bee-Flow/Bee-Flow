@@ -10,11 +10,11 @@
  * imports today; later phases switch them to query this metadata via
  * `availableForContext()`. Valid contexts:
  *   - 'agent'           — agent runtime (chat tool-use loop)
- *   - 'routine_step'    — automation step (integration_action)
- *   - 'routine_trigger' — surface as a routine trigger (currently only used
+ *   - 'automation_step'    — automation step (integration_action)
+ *   - 'automation_trigger' — surface as an automation trigger (currently only used
  *                          by the trigger bus; here for future symmetry)
  *
- * The default is `['agent', 'routine_step']` — both contexts. Apps that
+ * The default is `['agent', 'automation_step']` — both contexts. Apps that
  * are currently agent-only (kb-search, agent-search) keep their narrow
  * scope until §16 flips them.
  *
@@ -41,7 +41,7 @@
  */
 const log = require('../telemetry/log');
 
-const DEFAULT_AVAILABILITY = ['agent', 'routine_step'];
+const DEFAULT_AVAILABILITY = ['agent', 'automation_step'];
 
 const TOOL_REGISTRY = [
     { app: 'gmail',                   label: 'Gmail',                  module: '../integrations/gmailTools',                arrayName: 'GMAIL_TOOLS',                enabledKey: 'gmail' },
@@ -60,7 +60,7 @@ const TOOL_REGISTRY = [
     { app: 'afas-profit',             label: 'AFAS Profit',            module: '../integrations/afasTools',                 arrayName: 'AFAS_TOOLS',                 enabledKey: 'afas-profit' },
     { app: 'nmbrs',                   label: 'NMBRS',                  module: '../integrations/nmbrsTools',                arrayName: 'NMBRS_TOOLS',                enabledKey: 'nmbrs' },
     { app: 'vplan',                   label: 'vPlan',                  module: '../integrations/vplanTools',                arrayName: 'VPLAN_TOOLS',                enabledKey: 'vplan' },
-    { app: 'agent-search',            label: 'Web Search',             module: '../integrations/agentSearchTools',          arrayName: 'AGENT_SEARCH_TOOLS',         enabledKey: 'agent-search',         availableTo: ['agent', 'routine_step'] },
+    { app: 'agent-search',            label: 'Web Search',             module: '../integrations/agentSearchTools',          arrayName: 'AGENT_SEARCH_TOOLS',         enabledKey: 'agent-search',         availableTo: ['agent', 'automation_step'] },
     { app: 'maps',                    label: 'Google Maps',            module: '../integrations/mapsTools',                 arrayName: 'MAPS_TOOLS',                 enabledKey: 'google-maps' },
     { app: 'linkedin',                label: 'LinkedIn',               module: '../integrations/linkedinTools',             arrayName: 'LINKEDIN_TOOLS',             enabledKey: 'linkedin' },
     { app: 'withings',                label: 'Withings',               module: '../integrations/withingsTools',             arrayName: 'WITHINGS_TOOLS',             enabledKey: 'withings' },
@@ -69,16 +69,16 @@ const TOOL_REGISTRY = [
     { app: 'ms-calendar',             label: 'Microsoft Calendar',     module: '../integrations/msCalendarTools',           arrayName: 'MS_CALENDAR_TOOLS',          enabledKey: 'ms-calendar' },
     { app: 'onedrive',                label: 'OneDrive',               module: '../integrations/oneDriveTools',             arrayName: 'ONEDRIVE_TOOLS',             enabledKey: 'onedrive' },
     { app: 'ms-contacts',             label: 'Microsoft Contacts',     module: '../integrations/msContactsTools',           arrayName: 'MS_CONTACTS_TOOLS',          enabledKey: 'ms-contacts' },
-    { app: 'kb-search',               label: 'Knowledge Base',         module: '../integrations/kbSearchTools',             enabledKey: 'kb-search',          arrayName: 'KB_SEARCH_TOOLS',            availableTo: ['agent', 'routine_step'] },
-    // Personal memory (first-party, no credentials, org-exempt): a routine
+    { app: 'kb-search',               label: 'Knowledge Base',         module: '../integrations/kbSearchTools',             enabledKey: 'kb-search',          arrayName: 'KB_SEARCH_TOOLS',            availableTo: ['agent', 'automation_step'] },
+    // Personal memory (first-party, no credentials, org-exempt): an automation
     // reads what its owner told the chat assistant, and writes what it learned
     // back so chat knows it too. See integrations/memoryTools.js.
-    { app: 'memory',                  label: 'Memory',                 module: '../integrations/memoryTools',               enabledKey: 'memory',             arrayName: 'MEMORY_TOOLS',               availableTo: ['agent', 'routine_step'] },
-    // Routine evolution (routine-only, self-scoped): a routine reads its own run
+    { app: 'memory',                  label: 'Memory',                 module: '../integrations/memoryTools',               enabledKey: 'memory',             arrayName: 'MEMORY_TOOLS',               availableTo: ['agent', 'automation_step'] },
+    // Automation evolution (automation-only, self-scoped): an automation reads its own run
     // history and proposes/applies changes to its own definition after human
-    // approval. See integrations/routineEvolutionTools.js + automation/evolution.js.
-    { app: 'routine-evolution',       label: 'Routine evolution',      module: '../integrations/routineEvolutionTools',     arrayName: 'ROUTINE_EVOLUTION_TOOLS',    enabledKey: 'routine-evolution',  availableTo: ['routine_step'] },
-    { app: 'kb-ingest',               label: 'Knowledge Base Ingest',  module: '../integrations/kbIngestTools',             enabledKey: 'kb-ingest',          arrayName: 'KB_INGEST_TOOLS',            availableTo: ['routine_step'] },
+    // approval. See integrations/automationEvolutionTools.js + automation/evolution.js.
+    { app: 'automation-evolution',       label: 'Automation evolution',      module: '../integrations/automationEvolutionTools',     arrayName: 'AUTOMATION_EVOLUTION_TOOLS',    enabledKey: 'automation-evolution',  availableTo: ['automation_step'] },
+    { app: 'kb-ingest',               label: 'Knowledge Base Ingest',  module: '../integrations/kbIngestTools',             enabledKey: 'kb-ingest',          arrayName: 'KB_INGEST_TOOLS',            availableTo: ['automation_step'] },
     { app: 'nextcloud',               label: 'Nextcloud',              module: '../integrations/nextcloudTools',            arrayName: 'NEXTCLOUD_TOOLS',            enabledKey: 'nextcloud' },
     { app: 'nextcloud-calendar',      label: 'Nextcloud Calendar',     module: '../integrations/nextcloudCalendarTools',    arrayName: 'NEXTCLOUD_CALENDAR_TOOLS',   enabledKey: 'nextcloud-calendar' },
     { app: 'nextcloud-contacts',      label: 'Nextcloud Contacts',     module: '../integrations/nextcloudContactsTools',    arrayName: 'NEXTCLOUD_CONTACTS_TOOLS',   enabledKey: 'nextcloud-contacts' },
@@ -171,9 +171,9 @@ const INLINE_TOOL_APPS = [
     { app: 'regex-generator', label: 'Regex Rules',  module: '../integrations/regexGeneratorTools', arrayName: 'REGEX_GENERATOR_TOOLS', enabledKey: null,            availableTo: ['agent'], availability: 'permission',   grantsRequireEntry: true },
     // Injected for every non-simple-mode user — a first-party artefact tool
     // (like create_document), so no enabledKey and no org toggle.
-    { app: 'presentations',   label: 'Presentations', module: '../integrations/presentationTools',  arrayName: 'PRESENTATION_TOOLS',     enabledKey: null,            availableTo: ['agent', 'routine_step'], availability: 'installation', grantsRequireEntry: true },
+    { app: 'presentations',   label: 'Presentations', module: '../integrations/presentationTools',  arrayName: 'PRESENTATION_TOOLS',     enabledKey: null,            availableTo: ['agent', 'automation_step'], availability: 'installation', grantsRequireEntry: true },
     // The .docx sibling of create_presentation, injected next to it.
-    { app: 'word-documents',  label: 'Word documents', module: '../integrations/wordDocumentTools', arrayName: 'WORD_DOCUMENT_TOOLS',    enabledKey: null,            availableTo: ['agent', 'routine_step'], availability: 'installation', grantsRequireEntry: true },
+    { app: 'word-documents',  label: 'Word documents', module: '../integrations/wordDocumentTools', arrayName: 'WORD_DOCUMENT_TOOLS',    enabledKey: null,            availableTo: ['agent', 'automation_step'], availability: 'installation', grantsRequireEntry: true },
 ];
 
 /**

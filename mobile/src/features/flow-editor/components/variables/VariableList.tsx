@@ -41,11 +41,11 @@ function GroupHeader({ row, styles }: { row: GroupRow; styles: Styles }) {
                 <Pressable
                     onPress={() => onPick(row.group.basePath)}
                     accessibilityRole="button"
-                    accessibilityLabel={t('routines.mapping.use_whole_group', 'use the whole group')}
+                    accessibilityLabel={t('automations.mapping.use_whole_group', 'use the whole group')}
                     hitSlop={8}
                 >
                     <Text variant="label" tone="accent">
-                        {t('routines.mapping.use_whole_group', 'use the whole group')}
+                        {t('automations.mapping.use_whole_group', 'use the whole group')}
                     </Text>
                 </Pressable>
             ) : null}
@@ -64,7 +64,7 @@ function FieldLine({ row, styles }: { row: FieldRow; styles: Styles }) {
                 onPress={() => onPick(row.field.path)}
                 accessibilityRole="button"
                 accessibilityLabel={`${humanizeFieldKey(row.field.key) || row.field.key}, ${row.preview}`}
-                accessibilityHint={t('routines.builder.insert_from_step', 'Insert data from a previous step')}
+                accessibilityHint={t('automations.builder.insert_from_step', 'Insert data from a previous step')}
             >
                 <Text variant="caption" weight="medium" numberOfLines={1}>
                     {row.field.key}
@@ -79,7 +79,7 @@ function FieldLine({ row, styles }: { row: FieldRow; styles: Styles }) {
                     hitSlop={10}
                     accessibilityRole="button"
                     accessibilityState={{ expanded: row.expanded }}
-                    accessibilityLabel={t('routines.mapping.view_group', 'Group fields')}
+                    accessibilityLabel={t('automations.mapping.view_group', 'Group fields')}
                     style={styles.chevron}
                 >
                     <Icon name={row.expanded ? 'ChevronDown' : 'ChevronRight'} size={16} color={styles.glyph.color} />

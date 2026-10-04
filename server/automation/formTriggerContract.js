@@ -12,7 +12,7 @@
  * Three deliberate properties:
  *
  *   • The URL TOKEN is not in the definition. Exporting/importing/duplicating a
- *     routine must never clone a live public URL, so the token lives only in
+ *     automation must never clone a live public URL, so the token lives only in
  *     the automation_form_pages row (mirroring automation_webhooks).
  *   • Files never travel as bytes. A `file` field's submitted value is a
  *     descriptor `{ kind: 'form_upload', fileId }` produced by the separate
@@ -62,7 +62,7 @@ const MAX_LABEL_LEN = 120;
 const MAX_TEXT_LEN = 2000;          // title / description / successMessage, as AUTHORED
 // A description is the one text on a form page that routinely carries
 // INTERPOLATED run output — a closing page whose whole job is to show what the
-// routine produced ("here is your document, and here is the text"). The
+// automation produced ("here is your document, and here is the text"). The
 // authored template stays bounded by MAX_TEXT_LEN above (it is only a few
 // {{refs}}); what it renders TO is bounded separately and far higher, or the
 // page silently truncates the result mid-sentence at 2000 characters.
@@ -305,7 +305,7 @@ function validateFormDeclaration(form, { requireFields = true, allowDisplayField
                 push('field_pick_no_source', `${at}.source`, `"${f.name}" does not say which app to pick from.`, `Choose an app for this question, e.g. ${pickSources.SOURCE_IDS[0]}.`);
             } else if (!pickSources.getSource(f.source)) {
                 // Named, not silently reset to a default: an author who typed
-                // the wrong id (or imported a routine from an install with an
+                // the wrong id (or imported an automation from an install with an
                 // app this one does not have) must see WHICH app is missing.
                 push('field_pick_source', `${at}.source`, `"${f.source}" is not an app this form can pick from.`, `Use one of: ${pickSources.SOURCE_IDS.join(', ')}.`);
             }

@@ -73,6 +73,7 @@ function HttpRequestFields({ draft, set, groups = [], onFocusField, previewSampl
                         onFocusField={onFocusField}
                         previewSample={previewSample}
                         placeholder="https://api.example.com/endpoint"
+                        listAs="json"
                     />
                 </FormRow>
                 <FormRow label="Method" required>
@@ -118,6 +119,7 @@ function HttpRequestFields({ draft, set, groups = [], onFocusField, previewSampl
                                 onFocusField={onFocusField}
                                 previewSample={previewSample}
                                 placeholder="value"
+                                listAs="json"
                             />
                         </div>
                         <button

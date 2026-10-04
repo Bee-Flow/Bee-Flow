@@ -278,10 +278,10 @@ test('ai: forced-tool call extracts fields; extra keys dropped; missing → fall
     assert.strictEqual(safetyCalls.input.length, 1);
     assert.strictEqual(safetyCalls.output.length, 1);
 
-    // Usage logged with source='routine'.
+    // Usage logged with source='automation'.
     assert.strictEqual(usageRows.length, 1);
-    assert.strictEqual(usageRows[0].source, 'routine');
-    assert.strictEqual(usageRows[0].agent_type, 'routine');
+    assert.strictEqual(usageRows[0].source, 'automation');
+    assert.strictEqual(usageRows[0].agent_type, 'automation');
     assert.strictEqual(usageRows[0].model, 'fake-fast-model');
     assert.strictEqual(usageRows[0].prompt_tokens, 100);
     assert.strictEqual(usageRows[0].total_tokens, 120);

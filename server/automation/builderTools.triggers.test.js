@@ -1,6 +1,6 @@
 /**
  * builder_add_trigger / builder_update_trigger / builder_remove_step on a
- * trigger — the AI/MCP builder's way to give a routine several entry points.
+ * trigger — the AI/MCP builder's way to give an automation several entry points.
  *
  * Pins: a secondary trigger gets its own id and the same node shape as a
  * primary of that kind; only webhook / app_event / schedule may be secondary;

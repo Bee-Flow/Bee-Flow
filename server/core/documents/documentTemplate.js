@@ -4,7 +4,7 @@
  *
  * A document (stores/documentStore.js) is two slots: `bodyHtml` and `css`. On
  * its own that is ONE invoice. This module is what makes it a TEMPLATE: the
- * body may carry placeholders, and a routine step or an app action hands over
+ * body may carry placeholders, and an automation step or an app action hands over
  * a values object per run.
  *
  *     {{customer.name}}                     one value

@@ -1,13 +1,13 @@
 {
   "en": {
     "compliance.check_aia_art50_marking_title": "AI-generated documents are marked",
-    "compliance.check_aia_art50_marking_desc": "Documents a routine generates from model output carry a visible \"Generated with AI\" line and machine-readable metadata (PDF Info / Word properties) stating they are AI-generated, by which provider, when and from which routine — EU AI Act Art. 50(2). Required from 2 Dec 2026.",
+    "compliance.check_aia_art50_marking_desc": "Documents an automation generates from model output carry a visible \"Generated with AI\" line and machine-readable metadata (PDF Info / Word properties) stating they are AI-generated, by which provider, when and from which automation — EU AI Act Art. 50(2). Required from 2 Dec 2026.",
     "compliance.check_aia_art50_marking_fix": "Switch on AI content marking under Compliance → Settings. Every document generated downstream of an AI step then gets the visible footer and the metadata automatically; you can override the footer text per organisation. This marks the file itself — full C2PA content credentials (signed provenance manifests) are out of scope.",
     "compliance.marking_footer": "Generated with AI — {org}"
   },
   "nl": {
     "compliance.check_aia_art50_marking_title": "AI-gegenereerde documenten zijn gemarkeerd",
-    "compliance.check_aia_art50_marking_desc": "Documenten die een routine uit modeluitvoer maakt, dragen een zichtbare regel \"Gegenereerd met AI\" en machineleesbare metadata (PDF-info / Word-eigenschappen) die aangeven dat ze door AI zijn gemaakt, door welke aanbieder, wanneer en vanuit welke routine — AI-verordening art. 50(2). Verplicht vanaf 2 dec 2026.",
+    "compliance.check_aia_art50_marking_desc": "Documenten die een automatisering uit modeluitvoer maakt, dragen een zichtbare regel \"Gegenereerd met AI\" en machineleesbare metadata (PDF-info / Word-eigenschappen) die aangeven dat ze door AI zijn gemaakt, door welke aanbieder, wanneer en vanuit welke automatisering — AI-verordening art. 50(2). Verplicht vanaf 2 dec 2026.",
     "compliance.check_aia_art50_marking_fix": "Zet AI-contentmarkering aan onder Compliance → Instellingen. Elk document dat na een AI-stap wordt gegenereerd krijgt dan automatisch de zichtbare voettekst en de metadata; de voettekst is per organisatie aan te passen. Dit markeert het bestand zelf — volledige C2PA-herkomstgegevens (ondertekende provenance-manifesten) vallen buiten de scope.",
     "compliance.marking_footer": "Gegenereerd met AI — {org}"
   }

@@ -1,7 +1,7 @@
 /**
  * Every finding, errors first — the pill's expanded list. A finding about a
  * step names the step and opens it at the section that fixes it; one about
- * the routine as a whole just says so.
+ * the automation as a whole just says so.
  */
 
 import React, { createContext, useContext } from 'react';
@@ -46,7 +46,7 @@ function FindingRow({ row }: { row: IssueRow }) {
             <Icon name={error ? 'CircleAlert' : 'TriangleAlert'} size={16} color={(error ? styles.error : styles.warning).color} />
             <View style={styles.body}>
                 <Text variant="caption" weight="semibold" tone="secondary" numberOfLines={1}>
-                    {row.stepLabel ?? t('mobile.flow.issues.routine', 'This routine')}
+                    {row.stepLabel ?? t('automations.notify.this_automation', 'This automation')}
                 </Text>
                 <Text variant="body">{row.message}</Text>
                 {row.hint ? (
@@ -78,7 +78,7 @@ export function IssuesSheet({
     const t = useTranslation();
     const errors = rows.filter((r) => r.severity === 'error').length;
     const subtitle = errors
-        ? t('mobile.flow.issues.subtitle_errors', 'Fix the problems before the routine can go live')
+        ? t('mobile.flow.issues.subtitle_errors', 'Fix the problems before the automation can go live')
         : t('mobile.flow.issues.subtitle_warnings', 'Nothing blocks going live; worth a look');
     return (
         <Sheet visible={visible} onClose={onClose} title={t('mobile.flow.issues.title', 'Findings')} subtitle={subtitle} scroll={false} tall>

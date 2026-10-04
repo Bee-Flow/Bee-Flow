@@ -40,7 +40,7 @@ describe('runQuery', () => {
         });
     });
 
-    it('carries the cursor, the status set, the trigger and the routine', () => {
+    it('carries the cursor, the status set, the trigger and the automation', () => {
         expect(
             runQuery({ status: 'awaiting', range: '7d', trigger: 'form', automationId: 'a1', mode: 'dry_run' }, 'c2', NOW),
         ).toEqual({

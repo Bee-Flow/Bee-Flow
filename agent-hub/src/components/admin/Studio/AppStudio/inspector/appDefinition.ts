@@ -76,14 +76,14 @@ export interface AppAction {
     [key: string]: unknown;
 }
 
-/** One parameter of the target routine's DECLARED contract. */
+/** One parameter of the target automation's DECLARED contract. */
 export interface ParamMeta {
     type: string;
     required: boolean;
     description?: string;
 }
 
-/** That contract, by parameter name. Null when the routine declares none. */
+/** That contract, by parameter name. Null when the automation declares none. */
 export type ParamMetaByName = Record<string, ParamMeta>;
 
 /** One input field of the form an action sits in. */

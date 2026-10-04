@@ -9,8 +9,8 @@
  * agent-hub/src/hooks/useAutomationBuilderStream.ts; builderStream.lockstep
  * .test.ts holds this table to both that switch and the server's emitters.
  *
- * Frames that are about the routine rather than the turn — a new draft, new
- * findings, the id of a routine the turn created, a new name — are ALSO
+ * Frames that are about the automation rather than the turn — a new draft, new
+ * findings, the id of an automation the turn created, a new name — are ALSO
  * handed to the screen through callbacks, so the draft store can adopt them
  * as they arrive instead of after the turn.
  */
@@ -98,13 +98,13 @@ export function emptyBuilderTurn(): BuilderTurn {
 
 /** What the screen and the draft store want to know as it happens. */
 export interface BuilderFrameCallbacks {
-    /** The server now knows (or created) the routine and the builder session. */
+    /** The server now knows (or created) the automation and the builder session. */
     onSession?: (ids: { automationId: string | null; builderSessionId: string | null }) => void;
     /** A new draft, already persisted server-side. */
     onDraft?: (definition: FlowDefinition, automationId: string | null) => void;
     onValidation?: (validation: BuilderValidation) => void;
     onFinalized?: (automationId: string) => void;
-    /** The routine's name changed (builder_set_metadata, or the server's own fallback). */
+    /** The automation's name changed (builder_set_metadata, or the server's own fallback). */
     onMetadata?: (title: string) => void;
 }
 

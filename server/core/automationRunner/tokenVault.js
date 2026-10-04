@@ -4,7 +4,7 @@ const log = require('../../telemetry/log');
 /**
  * Run-scoped PII token vault.
  *
- * Routines used to mint a fresh token namespace per STEP. Two consequences,
+ * Automations used to mint a fresh token namespace per STEP. Two consequences,
  * both live bugs:
  *   1. `guardToolOutput` dropped its token map, so a tokenized tool result
  *      entered `runState` as a literal `[person_1]` that NOTHING could restore

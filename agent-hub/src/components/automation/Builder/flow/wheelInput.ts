@@ -1,7 +1,7 @@
 /**
  * Touchpad or mouse wheel? And what should a wheel event do to the canvas?
  *
- * Browsers send both devices as the same `wheel` event, so the routine canvas
+ * Browsers send both devices as the same `wheel` event, so the automation canvas
  * has to guess per gesture. The behaviour it is aiming for is the Figma/Miro
  * one:
  *

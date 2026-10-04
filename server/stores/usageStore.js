@@ -349,6 +349,26 @@ const _num = (v) => (Number.isFinite(Number(v)) ? Number(v) : null);
 const _bool = (v) => (typeof v === 'boolean' ? v : null);
 const _ident = (v) => (typeof v === 'string' && /^[a-z0-9][a-z0-9_.:-]{0,63}$/i.test(v) ? v.toLowerCase() : null);
 
+// node-postgres hands COUNT/SUM over INTEGER (bigint) and NUMERIC back as
+// STRINGS, so `group.total_tokens += row.total_tokens` on the dashboard
+// concatenated them ("Direct Chat" read 98282.7M tokens). The breakdowns
+// below are small, bounded aggregates, so they leave the store as numbers.
+const AGGREGATE_NUMERIC_COLUMNS = Object.freeze([
+    'calls', 'prompt_tokens', 'completion_tokens', 'total_tokens', 'cached_tokens',
+    'cache_creation_tokens', 'reasoning_tokens', 'avg_duration_ms', 'estimated_cost', 'total_cost',
+]);
+
+/** Breakdown rows with their aggregate columns as numbers (absent columns stay absent). */
+function numericAggregates(rows) {
+    return (rows || []).map((row) => {
+        const out = { ...row };
+        for (const k of AGGREGATE_NUMERIC_COLUMNS) {
+            if (out[k] != null) out[k] = Number(out[k]) || 0;
+        }
+        return out;
+    });
+}
+
 /**
  * The usage facts and pricing detail stored with a row (`usage_raw`). Built from
  * a whitelist, not by spreading the entry: the entry carries whatever the caller
@@ -782,7 +802,7 @@ async function getPromptCacheHitRate(filters = {}) {
 async function getUsageByModel(filters = {}) {
     await initDB();
     const { where, params } = buildFilters(filters, 1, true);
-    return getAll(`
+    return numericAggregates(await getAll(`
         SELECT
             model,
             COUNT(*) as calls,
@@ -797,13 +817,13 @@ async function getUsageByModel(filters = {}) {
         FROM ai_usage_log ${where}
         GROUP BY model
         ORDER BY total_tokens DESC
-    `, params);
+    `, params));
 }
 
 async function getUsageByAgent(filters = {}) {
     await initDB();
     const { where, params } = buildFilters(filters, 1, true);
-    return getAll(`
+    return numericAggregates(await getAll(`
         SELECT
             agent_id, agent_name, agent_type,
             COUNT(*) as calls,
@@ -815,7 +835,7 @@ async function getUsageByAgent(filters = {}) {
         FROM ai_usage_log ${where}
         GROUP BY agent_id, agent_name, agent_type
         ORDER BY total_tokens DESC
-    `, params);
+    `, params));
 }
 
 async function getUsageTimeline(filters = {}, interval = 'day') {
@@ -1071,7 +1091,7 @@ async function getUsageModels() {
 async function getUsageBySource(filters = {}) {
     await initDB();
     const { where, params } = buildFilters(filters, 1, true);
-    return getAll(`
+    return numericAggregates(await getAll(`
         SELECT source, COUNT(*) as calls,
             COALESCE(SUM(prompt_tokens), 0) as prompt_tokens,
             COALESCE(SUM(completion_tokens), 0) as completion_tokens,
@@ -1080,13 +1100,13 @@ async function getUsageBySource(filters = {}) {
         FROM ai_usage_log ${where}
         GROUP BY source
         ORDER BY total_tokens DESC
-    `, params);
+    `, params));
 }
 
 async function getUsageByUser(filters = {}) {
     await initDB();
     const { where, params } = buildFilters(filters, 1, true);
-    return getAll(`
+    return numericAggregates(await getAll(`
         SELECT user_id, COUNT(*) as calls,
             COALESCE(SUM(prompt_tokens), 0) as prompt_tokens,
             COALESCE(SUM(completion_tokens), 0) as completion_tokens,
@@ -1096,7 +1116,7 @@ async function getUsageByUser(filters = {}) {
         FROM ai_usage_log ${where}
         GROUP BY user_id
         ORDER BY total_tokens DESC
-    `, params);
+    `, params));
 }
 
 // Per-organization breakdown (the cross-org analogue of getUsageByUser). Fills
@@ -1185,7 +1205,7 @@ async function getUsageByAgentType(filters = {}) {
 async function getUsageByModelAndAgent(filters = {}) {
     await initDB();
     const { where, params } = buildFilters(filters, 1, true);
-    return getAll(`
+    return numericAggregates(await getAll(`
         SELECT
             model,
             COALESCE(agent_name, 'Direct Chat') as agent_name,
@@ -1198,13 +1218,13 @@ async function getUsageByModelAndAgent(filters = {}) {
         FROM ai_usage_log ${where}
         GROUP BY model, agent_name, agent_id
         ORDER BY total_tokens DESC
-    `, params);
+    `, params));
 }
 
 async function getUsageByModelAndUser(filters = {}) {
     await initDB();
     const { where, params } = buildFilters(filters, 1, true);
-    return getAll(`
+    return numericAggregates(await getAll(`
         SELECT
             model,
             user_id,
@@ -1216,7 +1236,7 @@ async function getUsageByModelAndUser(filters = {}) {
         FROM ai_usage_log ${where}
         GROUP BY model, user_id
         ORDER BY total_tokens DESC
-    `, params);
+    `, params));
 }
 
 // Per-swarm-run roll-up: groups orchestrator + worker rows by swarm_run_id
@@ -1273,6 +1293,7 @@ module.exports = {
     getUsageByAgentType,
     getUsageByModelAndAgent,
     getUsageByModelAndUser,
+    numericAggregates,
     getUsageBySwarmRun,
     getPromptCacheStats,
     getPromptCacheHitRate,

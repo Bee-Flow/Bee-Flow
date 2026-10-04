@@ -51,14 +51,14 @@ describe('privacyModel — which mode a stored step is', () => {
         expect([modeBranches('hide'), modeBranches('reveal')]).toEqual([false, false]);
         // Reveal is the one mode that never runs the detector.
         expect(modeScans('reveal')).toBe(false);
-        // Both hiding modes count as "this routine hides something".
+        // Both hiding modes count as "this automation hides something".
         expect([modeHides('hide'), modeHides('check_hide')]).toEqual([true, true]);
         expect(modeHides('check')).toBe(false);
     });
 });
 
 describe('privacyModel — a stored step survives the round trip', () => {
-    // THE compatibility test. If any of these change shape, opening a routine
+    // THE compatibility test. If any of these change shape, opening an automation
     // and saving it would rewrite it, which is exactly what "no migration"
     // promised would not happen.
     const stored = [

@@ -21,7 +21,7 @@
  *
  * The RUNTIME keeps its three step types (`condition`, `switch`, `filter`) —
  * they are the shapes the engine, the validator, the canvas ports and every
- * saved routine already speak. This module is the translation layer, so:
+ * saved automation already speak. This module is the translation layer, so:
  *   - existing If/Switch/Filter steps open in the unified editor untouched,
  *     with no migration and no version flag;
  *   - the editor picks the narrowest runtime type that expresses the model
@@ -78,7 +78,7 @@ function isBlankCase(c) {
  * fallback for definitions saved BEFORE this change, which carry no
  * `routeStyle` and must open exactly as they do today — with ONE exception:
  * rule cases mixed with still-blank ones read as 'rules'. That is the shape
- * the bug leaves behind, so a routine already saved in that state would still
+ * the bug leaves behind, so an automation already saved in that state would still
  * lose its expressions on the next save; every other stored shape (all rules,
  * all values, rules mixed with real values) derives exactly as before.
  */
@@ -115,7 +115,7 @@ export function readMatchMode(step) {
  * `style` distinguishes the two ways a switch can decide:
  *   'rules' — every rule carries its own condition (what this editor writes)
  *   'value' — one value is checked against each rule's expected value (the
- *             legacy switch shape; kept editable so old routines don't have
+ *             legacy switch shape; kept editable so old automations don't have
  *             to be rebuilt, convertible in one click)
  * `matchMode` is the fan-out opt-in — see readMatchMode.
  */
@@ -169,7 +169,7 @@ export function readRoute(step) {
  * A rule with a name but no predicate yet DOES become a case, on purpose: the
  * port has to exist before the author can wire it, and the server treats the
  * resulting `switch.expr_missing` / `switch.cases_missing` as COMPLETENESS
- * problems (validate.js) — warnings while the routine is a draft, blocking
+ * problems (validate.js) — warnings while the automation is a draft, blocking
  * only at activation. Dropping such a rule here would delete the canvas edge
  * the author had already drawn from it (routeEdges/switchCaseOps re-point by
  * slot and by name, and a vanished case takes its edge with it), which is the

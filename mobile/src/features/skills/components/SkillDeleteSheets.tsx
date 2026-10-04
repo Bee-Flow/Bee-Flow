@@ -1,5 +1,5 @@
 /**
- * Deleting a skill: unconfirmed first; a skill an agent or a routine step
+ * Deleting a skill: unconfirmed first; a skill an agent or an automation step
  * still uses comes back 409, and the guard sheet shows that list before it
  * confirms. The library and the detail screen share it.
  */

@@ -160,7 +160,7 @@ function RetryWaitTotal({ tries, waitMs, rowCap }) {
                 ? `Each row is tried again on its own, so waiting can add up to ${seconds}s across all ${rowCap} rows`
                 : `Waiting can add up to ${seconds}s to this run`}
             {long
-                ? ' — long enough to run the routine out of time before the tries run out.'
+                ? ' — long enough to run the automation out of time before the tries run out.'
                 : '.'}
         </p>
     );
@@ -175,7 +175,7 @@ function RetryWaitTotal({ tries, waitMs, rowCap }) {
  * like one clean failure), and stands back when a forEach already retried per
  * item (`err.foreachHandled`) so a fan-out is never re-run whole. Meanwhile a
  * timeout, a rate limit or a 503 — the three commonest ways a real
- * integration routine dies — took the whole run down, because the only way
+ * integration automation dies — took the whole run down, because the only way
  * to set the field was to hand-edit the JSON.
  *
  * The words here are the consequence, never the mechanism: "Try again", not
@@ -268,7 +268,7 @@ function RetrySection({ draft, set }) {
                     {/* The question every author asks next, answered before they
                         have to run it to find out. */}
                     <p className="text-[11px] text-[var(--text-secondary)]">
-                        If the last try fails too, the step fails and the routine stops there — exactly
+                        If the last try fails too, the step fails and the automation stops there — exactly
                         as it does now. Every attempt is kept in the run history, so you can see how
                         often it took more than one.
                     </p>

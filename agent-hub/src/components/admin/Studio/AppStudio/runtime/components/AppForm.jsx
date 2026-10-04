@@ -14,7 +14,7 @@ import { spaceSteps } from '../styleResolver';
  * author wrote into the field's `node.validations` — and renders exactly one
  * built-in submit button (+ optional reset). Submitting calls
  * runAction(onSubmit, { formValues, formId, formName }); values are NEVER cleared
- * on failure — the user's input survives a failed routine run.
+ * on failure — the user's input survives a failed automation run.
  *
  * The full values object is published upward via
  * runtime.registerFormValue(formName, values) on mount and on EVERY change

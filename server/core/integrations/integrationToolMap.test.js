@@ -1,7 +1,7 @@
 /**
  * resolveIntegration precedence + the hardened output scanner.
  *
- * The scanner half is the important one: routine rows feed the same
+ * The scanner half is the important one: automation rows feed the same
  * sovereignty dashboards as GLiNER-scanned chat rows, and the old shape-only
  * patterns reported any 9-digit number as a BSN and almost any digit run as
  * a phone number — inflating the org's "PII left the building" figures.

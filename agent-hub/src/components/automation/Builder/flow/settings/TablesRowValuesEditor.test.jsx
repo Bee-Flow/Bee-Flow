@@ -202,7 +202,7 @@ describe('TablesRowValuesEditor', () => {
     it('a tableId bound from a step shows the manual fallback and says why — no fetch is made', async () => {
         mockColumns();
         const { onChange } = renderEditor({ tableId: { kind: 'ref', path: 'steps.s0.output.tableId' }, value: {} });
-        expect(screen.getByText(/The table is chosen while the routine runs/)).toBeTruthy();
+        expect(screen.getByText(/The table is chosen while the automation runs/)).toBeTruthy();
         expect(authFetch).not.toHaveBeenCalled();
         expect(rows()).toHaveLength(0);
         // Typing titles adds untyped rows the author can bind.

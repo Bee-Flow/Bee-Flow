@@ -275,6 +275,7 @@ async function listCustomIntegrationCapabilities(orgId) {
     if (cached && (Date.now() - cached.at) < CUSTOM_INTEGRATION_TTL_MS) return cached.list;
     try {
         const rows = await customIntegrationStore().listActiveForOrg(orgKey);
+        const { isLibraryRow } = require('../../stores/lib/customIntegrationSource');
         const list = (rows || []).map(row => ({
             id: `custom:${row.id}`,
             kind: CapabilityKind.INTEGRATION,
@@ -290,6 +291,10 @@ async function listCustomIntegrationCapabilities(orgId) {
             _customOrgId: row.orgId,
             _customSlug: row.slug,
             _customKind: row.kind,
+            // Which licence admits it to the ceiling (entitlements.buildCeiling):
+            // 'mcp_library' rows need mcp_marketplace, builder rows the
+            // ai_integration_builder beta.
+            _customSource: isLibraryRow(row) ? 'mcp_library' : 'builder',
         }));
         _customByOrg.set(orgKey, { at: Date.now(), list });
         for (const c of list) _customById.set(c.id, c);

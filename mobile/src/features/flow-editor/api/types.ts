@@ -4,7 +4,7 @@
  * and the stores they read (stores/automationStore/*). The field lists are
  * pinned by src/core/api/serverContract.test.ts.
  *
- * The routine row itself is the automations feature's (rowToAutomation); here
+ * The automation row itself is the automations feature's (rowToAutomation); here
  * it only swaps its loosely typed definition for the editor's strict one.
  */
 
@@ -12,7 +12,7 @@ import type { Automation, AutomationIssue, AutomationPatch, AutomationRun, Autom
 
 import type { FlowDefinition } from '../model/types';
 
-/** A routine row with the editor's definition (normalised: steps and edges are arrays). */
+/** An automation row with the editor's definition (normalised: steps and edges are arrays). */
 export interface FlowAutomation extends Omit<Automation, 'definition'> {
     definition: FlowDefinition;
 }
@@ -196,7 +196,7 @@ export interface FlowFolder {
     color: string | null;
     createdAt: string | null;
     updatedAt: string | null;
-    /** How many of THIS user's routines sit in it; only on the list. */
+    /** How many of THIS user's automations sit in it; only on the list. */
     automationCount: number | null;
 }
 

@@ -2,7 +2,7 @@
  * UnknownCard — "Als het niet weet" (A3 deel A).
  *
  * De harde eis: een routinelijst die niet gelezen kon worden is NIET "geen
- * routines". Dat onderscheid is de reden dat de kaart een `READ`-toestand
+ * automations". Dat onderscheid is de reden dat de kaart een `READ`-toestand
  * krijgt in plaats van alleen een array.
  *
  * Run: cd agent-hub && ./node_modules/.bin/vitest run src/components/agents/AgentWizard/role/UnknownCard.test.jsx
@@ -65,7 +65,7 @@ describe('UnknownCard — de drie keuzes', () => {
         expect(onChangeMode).toHaveBeenCalledWith('handoff');
     });
 
-    it('tekent de routinekiezer alleen in handoff-modus', () => {
+    it('tekent de automatiseringskiezer alleen in handoff-modus', () => {
         const { rerender } = render(<UnknownCard t={t} persona={persona('honest')} automations={[CALLABLE]} {...mine} />);
         expect(screen.queryByTestId('agent-role-handoff-select')).toBeNull();
         rerender(<UnknownCard t={t} persona={persona('handoff')} automations={[CALLABLE]} {...mine} />);
@@ -73,7 +73,7 @@ describe('UnknownCard — de drie keuzes', () => {
     });
 });
 
-describe('UnknownCard — onleesbaar is geen "geen routines"', () => {
+describe('UnknownCard — onleesbaar is geen "geen automations"', () => {
     it('zegt bij een mislukte lezing dat het onbekend is, en niet dat er niets is', () => {
         render(<UnknownCard t={t} persona={persona('handoff')} automations={null} automationsState={READ.ERROR} {...mine} />);
         const note = screen.getByTestId('agent-role-handoff-unreadable-list');
@@ -97,8 +97,8 @@ describe('UnknownCard — onleesbaar is geen "geen routines"', () => {
 
     it('de STANDAARDWAARDEN zijn onleesbaar, niet leeg — één kaart mag zichzelf niet tegenspreken', () => {
         // Zonder automations-props (`automations = null, automationsState =
-        // READ.OK`) zei deze kaart tegelijk "No routine can be started by an
-        // agent yet" én "This routine could not be read here". Dat is de nul
+        // READ.OK`) zei deze kaart tegelijk "No automation can be started by an
+        // agent yet" én "This automation could not be read here". Dat is de nul
         // die niemand gemeten heeft, in de module die daar juist tegen bestaat
         // — en dat is precies de plek waar de bedrading vergeten kan worden.
         render(<UnknownCard t={t} persona={persona('handoff', 'a1')} {...mine} />);
@@ -126,47 +126,47 @@ describe('UnknownCard — onleesbaar is geen "geen routines"', () => {
 });
 
 describe('UnknownCard — de agent_call-poort en het eigenaarschap', () => {
-    it('biedt alleen agent_call-routines aan', () => {
+    it('biedt alleen agent_call-automations aan', () => {
         render(<UnknownCard t={t} persona={persona('handoff')} automations={[CALLABLE, SCHEDULED]} {...mine} />);
         const options = [...screen.getByTestId('agent-role-handoff-select').options].map(o => o.value);
         expect(options).toEqual(['', 'a1']);
     });
 
-    it('laat een uitgeschakelde routine weg uit de keuzes en zegt dat hij bestaat', () => {
+    it('laat een uitgeschakelde automatisering weg uit de keuzes en zegt dat hij bestaat', () => {
         render(<UnknownCard t={t} persona={persona('handoff')} automations={[CALLABLE, OFF]} {...mine} />);
         const options = [...screen.getByTestId('agent-role-handoff-select').options].map(o => o.value);
         expect(options).toEqual(['', 'a1']);
         expect(screen.getByTestId('agent-role-handoff-switched-off').textContent)
-            .toBe('1 routine is switched off and is not offered here.');
+            .toBe('1 automation is switched off and is not offered here.');
     });
 
     it('gebruikt de meervoudsleutel bij meer dan één', () => {
         render(<UnknownCard t={t} persona={persona('handoff')} automations={[CALLABLE, OFF, { ...OFF, id: 'a4' }]} {...mine} />);
         expect(screen.getByTestId('agent-role-handoff-switched-off').textContent)
-            .toBe('2 routines are switched off and are not offered here.');
+            .toBe('2 automations are switched off and are not offered here.');
     });
 
-    it('noemt de aan/uit-schakelaar, niet de trigger, als ALLE routines uit staan', () => {
+    it('noemt de aan/uit-schakelaar, niet de trigger, als ALLE automatiseringen uit staan', () => {
         // De lege tak koos op `offered.length === 0` en noemde dan de trigger
         // als reden terwijl de trigger juist klopte, met één regel lager de
-        // tegenspraak "2 routines are switched off". Twee zinnen die elkaar
+        // tegenspraak "2 automations are switched off". Twee zinnen die elkaar
         // tegenspreken, en de eerste stuurde de eigenaar naar het verkeerde
         // scherm.
         render(<UnknownCard t={t} persona={persona('handoff')} automations={[OFF, { ...OFF, id: 'a4' }]} {...mine} />);
         expect(screen.queryByTestId('agent-role-handoff-empty')).toBeNull();
         expect(screen.getByTestId('agent-role-handoff-all-off').textContent)
-            .toBe('All 2 routines an agent could start are switched off, so there is nothing to hand over to. Switch one back on first.');
+            .toBe('All 2 automations an agent could start are switched off, so there is nothing to hand over to. Switch one back on first.');
         expect(screen.queryByTestId('agent-role-handoff-switched-off')).toBeNull();
     });
 
     it('gebruikt ook daar de enkelvoudsleutel bij precies één', () => {
         render(<UnknownCard t={t} persona={persona('handoff')} automations={[OFF]} {...mine} />);
         expect(screen.getByTestId('agent-role-handoff-all-off').textContent)
-            .toBe('The one routine an agent could start is switched off, so there is nothing to hand over to. Switch it back on first.');
+            .toBe('The one automation an agent could start is switched off, so there is nothing to hand over to. Switch it back on first.');
     });
 
-    it('telt geen uitgeschakelde routines op ANDERMANS agent', () => {
-        // `GET /api/automation` geeft de routines van de INGELOGDE gebruiker.
+    it('telt geen uitgeschakelde automatiseringen op ANDERMANS agent', () => {
+        // `GET /api/automation` geeft de automatiseringen van de INGELOGDE gebruiker.
         // Die telling onder andermans agent zetten presenteert een feit over
         // jouw lijst als een feit over zijn agent.
         render(<UnknownCard t={t} persona={persona('handoff')} automations={[CALLABLE, OFF]} agentOwnerId="u2" userId="u1" />);
@@ -195,29 +195,29 @@ describe('UnknownCard — de agent_call-poort en het eigenaarschap', () => {
     });
 });
 
-describe('UnknownCard — de pil van de gekozen routine', () => {
-    it('noemt de routine bij naam', () => {
+describe('UnknownCard — de pil van de gekozen automation', () => {
+    it('noemt de automation bij naam', () => {
         render(<UnknownCard t={t} persona={persona('handoff', 'a1')} automations={[CALLABLE]} {...mine} />);
         expect(screen.getByTestId('agent-role-handoff-pill').textContent).toBe('Pass the question on');
     });
 
-    it('houdt een onleesbare routine zichtbaar in plaats van hem te ontkennen', () => {
+    it('houdt een onleesbare automatisering zichtbaar in plaats van hem te ontkennen', () => {
         render(<UnknownCard t={t} persona={persona('handoff', 'a1')} automations={null} automationsState={READ.ERROR} {...mine} />);
         expect(screen.getByTestId('agent-role-handoff-pill').textContent).toBe('a1');
         expect(screen.getByTestId('agent-role-handoff-unreadable').textContent).toMatch(/has not gone away/i);
     });
 
-    it('waarschuwt over een routine die uit staat', () => {
+    it('waarschuwt over een automatisering die uit staat', () => {
         render(<UnknownCard t={t} persona={persona('handoff', 'a3')} automations={[OFF]} {...mine} />);
         expect(screen.getByTestId('agent-role-handoff-inactive').textContent).toMatch(/says it does not know instead/i);
     });
 
-    it('waarschuwt over een routine die geen agent_call meer is', () => {
+    it('waarschuwt over een automatisering die geen agent_call meer is', () => {
         render(<UnknownCard t={t} persona={persona('handoff', 'a2')} automations={[SCHEDULED]} {...mine} />);
         expect(screen.getByTestId('agent-role-handoff-not-callable').textContent).toMatch(/never offered it/i);
     });
 
-    it('zegt dat handoff zonder routine terugvalt op eerlijk zijn', () => {
+    it('zegt dat handoff zonder automatisering terugvalt op eerlijk zijn', () => {
         render(<UnknownCard t={t} persona={persona('handoff')} automations={[CALLABLE]} {...mine} />);
         expect(screen.getByTestId('agent-role-handoff-none').textContent).toMatch(/says it does not know instead/i);
     });

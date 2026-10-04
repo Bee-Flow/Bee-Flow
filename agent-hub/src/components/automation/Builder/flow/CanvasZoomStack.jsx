@@ -53,12 +53,12 @@ export default function CanvasZoomStack({ onWrapToFit = null, onFit = null, pres
     };
     // Each control takes the separator class its place in the stack gives it.
     const zoomIn = (cls) => (
-        <button key="in" type="button" onClick={() => zoom(1)} className={`${btn} ${cls}`} title={t('routines.canvas.zoom_in', 'Zoom in')} aria-label={t('routines.canvas.zoom_in', 'Zoom in')}>
+        <button key="in" type="button" onClick={() => zoom(1)} className={`${btn} ${cls}`} title={t('automations.canvas.zoom_in', 'Zoom in')} aria-label={t('automations.canvas.zoom_in', 'Zoom in')}>
             <Plus size={14} />
         </button>
     );
     const zoomOut = (cls) => (
-        <button key="out" type="button" onClick={() => zoom(-1)} className={`${btn} ${cls}`} title={t('routines.canvas.zoom_out', 'Zoom out')} aria-label={t('routines.canvas.zoom_out', 'Zoom out')}>
+        <button key="out" type="button" onClick={() => zoom(-1)} className={`${btn} ${cls}`} title={t('automations.canvas.zoom_out', 'Zoom out')} aria-label={t('automations.canvas.zoom_out', 'Zoom out')}>
             <Minus size={14} />
         </button>
     );
@@ -68,15 +68,15 @@ export default function CanvasZoomStack({ onWrapToFit = null, onFit = null, pres
             type="button"
             onClick={() => { try { rf.zoomTo(1, { duration: 200 }); } catch { /* canvas gone */ } }}
             className={`${btn} ${cls} text-[10px] font-semibold tabular-nums !text-[var(--text-primary)]`}
-            title={t('routines.canvas.zoom_reset', 'Zoom to 100%')}
-            aria-label={t('routines.canvas.zoom_reset', 'Zoom to 100%')}
+            title={t('automations.canvas.zoom_reset', 'Zoom to 100%')}
+            aria-label={t('automations.canvas.zoom_reset', 'Zoom to 100%')}
             data-testid="canvas-zoom-pct"
         >
             {pct}%
         </button>
     );
     const fitBtn = (cls) => (
-        <button key="fit" type="button" onClick={fit} className={`${btn} ${cls}`} title={t('routines.canvas.zoom_fit', 'Fit the whole flow on screen')} aria-label={t('routines.canvas.zoom_fit', 'Fit the whole flow on screen')}>
+        <button key="fit" type="button" onClick={fit} className={`${btn} ${cls}`} title={t('automations.canvas.zoom_fit', 'Fit the whole flow on screen')} aria-label={t('automations.canvas.zoom_fit', 'Fit the whole flow on screen')}>
             <Maximize size={14} />
         </button>
     );
@@ -99,8 +99,8 @@ export default function CanvasZoomStack({ onWrapToFit = null, onFit = null, pres
             onClick={onTogglePresenter}
             aria-pressed={!!presenter}
             className={`${btn} ${cls} ${presenter ? '!text-[var(--text-primary)] bg-[var(--bg-tertiary)]' : ''}`}
-            title={t('routines.canvas.present.hint', 'Bigger cards and text for a projector — P')}
-            aria-label={presenter ? t('routines.canvas.present.off', 'Leave presenter mode') : t('routines.canvas.present.on', 'Presenter mode')}
+            title={t('automations.canvas.present.hint', 'Bigger cards and text for a projector — P')}
+            aria-label={presenter ? t('automations.canvas.present.off', 'Leave presenter mode') : t('automations.canvas.present.on', 'Presenter mode')}
             data-testid="canvas-presenter-toggle"
         >
             <Presentation size={14} />
@@ -113,8 +113,8 @@ export default function CanvasZoomStack({ onWrapToFit = null, onFit = null, pres
             onClick={toggleCanvasFullscreen}
             aria-pressed={fullscreen}
             className={`${btn} ${cls} ${fullscreen ? '!text-[var(--text-primary)] bg-[var(--bg-tertiary)]' : ''}`}
-            title={fullscreen ? t('routines.canvas.fullscreen_off', 'Leave fullscreen') : t('routines.canvas.fullscreen_on', 'Canvas fullscreen')}
-            aria-label={fullscreen ? t('routines.canvas.fullscreen_off', 'Leave fullscreen') : t('routines.canvas.fullscreen_on', 'Canvas fullscreen')}
+            title={fullscreen ? t('automations.canvas.fullscreen_off', 'Leave fullscreen') : t('automations.canvas.fullscreen_on', 'Canvas fullscreen')}
+            aria-label={fullscreen ? t('automations.canvas.fullscreen_off', 'Leave fullscreen') : t('automations.canvas.fullscreen_on', 'Canvas fullscreen')}
             data-testid="canvas-fullscreen-toggle"
         >
             {fullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}

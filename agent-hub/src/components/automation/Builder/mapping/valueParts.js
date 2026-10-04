@@ -21,7 +21,7 @@
  * utils/bindingHelpers (which owns the binding <-> input-text mapping) and
  * mapping/refTokens (which owns ref classification for chips).
  */
-import { bindingFromInput } from '../../../../utils/bindingHelpers';
+import { bindingFromInput, INLINE_STEP_PATH_RE } from '../../../../utils/bindingHelpers';
 import { humanizeFieldTail } from '../flow/displayHelpers';
 import { classifyRef, resolveChipLabel } from './refTokens';
 
@@ -29,7 +29,9 @@ import { classifyRef, resolveChipLabel } from './refTokens';
 const DATA_ROOTS = new Set(['steps', 'trigger', 'vars', 'loop', 'item', '_index']);
 
 // A clean dotted/bracketed path, the same shape isCleanPath accepts.
-const PATH_RE = /^[A-Za-z_$][A-Za-z0-9_$]*(?:\.[A-Za-z0-9_$]+|\[[^\]]*\])*$/;
+const PLAIN_PATH_RE = /^[A-Za-z_$][A-Za-z0-9_$]*(?:\.[A-Za-z0-9_$]+|\[[^\]]*\])*$/;
+// …or a sub-step of an expanded flowlet (`steps.<callId>/<subId>…`).
+const PATH_RE = { test: (s) => PLAIN_PATH_RE.test(s) || INLINE_STEP_PATH_RE.test(s) };
 
 const TEMPLATE_TOKEN = /\{\{([^}]*)\}\}/g;
 

@@ -182,6 +182,40 @@ test('starting a sprint demotes the one that was active, and complete closes it'
     assert.strictEqual((await call('POST', '/api/projects/p1/sprints/nope/complete')).status, 404);
 });
 
+test('the status only moves forward: a closed sprint is not started again or filled, a planned one is not completed', async () => {
+    const one = await makeSprint({ name: 'Forward' });
+    const other = await makeSprint({ name: 'Running' });
+    const task = await makeTask('p1');
+    const early = await call('POST', `/api/projects/p1/sprints/${one.id}/complete`);
+    assert.strictEqual(early.status, 409);
+    assert.strictEqual(early.body.code, 'sprint_not_active');
+    assert.strictEqual((await store.getSprint('p1', one.id)).status, 'planned');
+
+    await call('POST', `/api/projects/p1/sprints/${one.id}/start`);
+    assert.strictEqual((await call('POST', `/api/projects/p1/sprints/${one.id}/complete`)).body.sprint.status, 'closed');
+    assert.strictEqual((await call('POST', `/api/projects/p1/sprints/${one.id}/complete`)).body.code, 'sprint_closed');
+
+    await call('POST', `/api/projects/p1/sprints/${other.id}/start`);
+    const restart = await call('POST', `/api/projects/p1/sprints/${one.id}/start`);
+    assert.strictEqual(restart.status, 409);
+    assert.strictEqual(restart.body.code, 'sprint_closed');
+    assert.strictEqual((await store.getSprint('p1', other.id)).status, 'active', 'a refused start demotes nothing');
+
+    const fill = await call('POST', `/api/projects/p1/sprints/${one.id}/items`, { body: { taskIds: [task.id] } });
+    assert.strictEqual(fill.status, 409);
+    assert.strictEqual((await taskStore.getTask('p1', task.id)).sprintId ?? null, null);
+    assert.strictEqual(await store.startSprint('p1', one.id), null, 'the store refuses on its own too');
+    assert.deepStrictEqual(await store.assignTasks('p1', one.id, [task.id]), []);
+});
+
+test('the database keeps one active sprint per project even when the route is bypassed', async () => {
+    const a = await makeSprint({}, EDITOR, 'p2');
+    const b = await makeSprint({}, EDITOR, 'p2');
+    await pg.query(`UPDATE project_sprints SET status = 'active' WHERE id = $1`, [a.id]);
+    await assert.rejects(pg.query(`UPDATE project_sprints SET status = 'active' WHERE id = $1`, [b.id]), /uq_project_sprints_one_active|duplicate key/);
+    await pg.query(`UPDATE project_sprints SET status = 'planned' WHERE id = $1`, [a.id]);
+});
+
 test('items must be tasks of the project: an unknown one refuses the whole assignment', async () => {
     const sprint = await makeSprint();
     const a = await makeTask('p1');

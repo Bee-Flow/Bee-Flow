@@ -7,7 +7,7 @@ Primary source files
 - Frontend section: `agent-hub/src/components/admin/Studio/SkillsStudio/` (`index.jsx`, `SkillsList.jsx`, `SkillsOverview.jsx`, `SkillDetail.jsx`, `SkillStepEditor.jsx`, `RulesEditor.jsx`, `OutputFieldsCard.jsx`, `CanUseCard.jsx`, `FillInCard.jsx`, `ExamplesTab.jsx`, `TestTab.jsx`, `skillModel.js`, `skillsApi.js`, `useSkillPickerData.js`)
 - Registry / nav: `agent-hub/src/components/admin/Studio/studioApps.jsx` (lines 309–355)
 - Agent side: `agent-hub/src/components/agents/AgentWizard/canUse/SkillsCard.jsx`, `.../pickers/SkillPicker.jsx`, `.../BuilderSplit.jsx` (`openChooser`, line ~968)
-- Routine side: `agent-hub/src/components/automation/Builder/flow/settings/agentStepFields.jsx` (`SkillChooser`, lines 440–515)
+- Automation side: `agent-hub/src/components/automation/Builder/flow/settings/agentStepFields.jsx` (`SkillChooser`, lines 440–515)
 - Chat side (session skills): `agent-hub/src/components/skills/SkillsPopover.jsx`
 - Backend: `server/routes/skills.js`, `server/routes/skills/{ai,test,examples}.js`, `server/stores/skillStore.js`, `server/stores/skillActivations.js`, `server/core/skills/{skillStructure,skillDraft,skillTest,skillSandbox}.js`, `server/core/tools/skillInjection.js`
 - Product docs (mostly accurate, two corrections below): `docs/docs/studio/skills.md`
@@ -18,16 +18,16 @@ Primary source files
 
 A **skill** is a reusable *method* — a written way of working that you author once and attach in many places. It carries:
 a summary, a "when to use it" instruction, ordered **steps**, always/never **rules**, the **fields it delivers**, and the
-apps / routines / knowledge it **may use** while active.
+apps / automations / knowledge it **may use** while active.
 
 The point is separation of concerns: an agent's own instructions describe *who it is*; a skill describes *how a specific
-job is done*. Change the skill once and every agent and every routine AI step that names it changes at the same moment
+job is done*. Change the skill once and every agent and every automation AI step that names it changes at the same moment
 ("A change here applies everywhere at once" — the standing note in the editor).
 
 A skill is **not** standalone. It never runs by itself. It reaches a model turn in exactly three ways:
 
 1. attached to an agent (`agent.config.attachedSkillIds`) — picked in the agent builder;
-2. applied by a routine **AI step** (`ai_step.skillIds`) — picked in the step's "Who does the thinking" section;
+2. applied by an automation **AI step** (`ai_step.skillIds`) — picked in the step's "Who does the thinking" section;
 3. toggled on for one chat conversation from the composer Skills popover (session skills; the Flow tier also mints them).
 
 URL: **`/app/studio/skills`** and `/app/studio/skills/<skillId>`. There is **no `/app/skills`** route — a legacy
@@ -148,7 +148,7 @@ Two text cards on top, then steps beside a right rail.
   - empty: **"No steps yet. Write down what the agent should do, one step at a time."**
   - per step: label **"Step {n}"**, placeholder *"What happens in this step?"*, **"Remove step"**,
     **"Reorder step {n}"**, and a **"reference"** button that adds a **reference pill** pointing at a
-    **Routines** / **Knowledge bases** / **Tables** item (`skills_studio.ref.*`). If nothing can be referenced:
+    **Automations** / **Knowledge bases** / **Tables** item (`skills_studio.ref.*`). If nothing can be referenced:
     **"Nothing to reference yet."**
   - **"Add step"**
 - **"Rules"** (hint *"always, whatever the question"*)
@@ -164,15 +164,15 @@ Two text cards on top, then steps beside a right rail.
     **"These fields can only be edited from an AI step for now."**
 - **"May use"** (hint *"within this skill"*) — three grant lists rendered as pills, plus a **"link"** menu:
   - **Apps** (`enabled_integrations`) → **"Browse apps…"** opens the same apps picker the agent builder uses
-  - **Routines** (`allowed_automation_ids`) — only routines whose trigger is *an agent calls it*
+  - **Automations** (`allowed_automation_ids`) — only automations whose trigger is *an agent calls it*
   - **Knowledge** (`knowledge_base_ids`)
-  - nothing left to link: **"Nothing else to link. A routine appears here once its trigger is “an agent calls it”."**
+  - nothing left to link: **"Nothing else to link. An automation appears here once its trigger is “an agent calls it”."**
   - a list that failed to load: **"Some of these lists could not be read, so this is not “nothing to link”."** + **"Try again"**
-  - unlink control: **"Unlink {name}"**; missing names fall back to **"Routine {id}"** / **"Knowledge base {id}"**
+  - unlink control: **"Unlink {name}"**; missing names fall back to **"Automation {id}"** / **"Knowledge base {id}"**
   - **"All options"** disclosure holds:
     - **"Dynamic activation"** with help *"When on, the agent decides at runtime whether to apply this skill based on
       the user message."*
-    - the legacy linked-routine note: **"This skill runs routine {id} instead of its own steps. Steps, rules and
+    - the legacy linked-automation note: **"This skill runs automation {id} instead of its own steps. Steps, rules and
       examples are ignored while that is set."**
 - Standing note at the bottom of the rail:
   - **"No agent or automation uses this skill yet."**, or
@@ -217,7 +217,7 @@ Two text cards on top, then steps beside a right rail.
   - **"Could not run this test."** (generic)
 
 ### 3.8 Tab: Used by
-- Rows = agents that attach the skill, and routine **AI steps** that apply it (with `step <label>`).
+- Rows = agents that attach the skill, and automation **AI steps** that apply it (with `step <label>`).
 - Empty: **"No agent or automation uses this skill yet."**; partial:
   **"Not everything could be checked, so this list may be short. A change here applies everywhere at once."**
 - Bottom of this tab only: the shared **danger zone** → **"Delete skill"**, notice
@@ -241,8 +241,8 @@ Card **"Skills"**, subtitle **"The working methods it follows"**, action button 
   *"When the agent activates this skill, the linked automation runs and its result is returned to the agent."*
   Empty list: **"No skills yet — create one below."** A skill with a linked automation shows a small **Flow** badge.
 
-### 3.10 The routine side (AI step)
-Routine editor → an `ai_step` → section **"Who does the thinking"** → **"Skills for this step"**, hint:
+### 3.10 The automation side (AI step)
+Automation editor → an `ai_step` → section **"Who does the thinking"** → **"Skills for this step"**, hint:
 *"A skill is a written way of working. The first one leads: it is the one whose instructions come first, and whose
 output fields the step inherits. With an agent, the step's skills come before the agent's own."*
 The first-picked skill wears a **"Leading"** pill. At the cap:
@@ -262,25 +262,25 @@ Labels: **"{count}/{max} active"**, **"Maximum {count} skills active"**, **"Atta
 ## 4. Concepts a learner must understand
 
 - **Skill** — a reusable, named method (summary, when-to-use, steps, rules, delivered fields, grants) that is attached
-  to agents or applied by routine AI steps. It never runs on its own.
+  to agents or applied by automation AI steps. It never runs on its own.
 - **Method (tab)** — the body of the skill: what it does, when to use it, the steps, the rules, what it delivers, what
   it may use.
-- **Step** — one ordered sentence of the method. May carry **reference pills** to a routine, a knowledge base or a table.
+- **Step** — one ordered sentence of the method. May carry **reference pills** to an automation, a knowledge base or a table.
 - **Rule** — a statement that holds for every answer, marked **Always** or **Never** (`polarity: 'must' | 'never'`).
 - **Delivers / output fields** — the typed fields a skill hands back (`output_schema`, same shape as an AI step's
-  `outputSchema`). A routine's AI step inherits the **leading** skill's fields.
-- **May use (grants)** — three lists: **Apps** (integration tools), **Routines** (offered as callable tools; only
+  `outputSchema`). An automation's AI step inherits the **leading** skill's fields.
+- **May use (grants)** — three lists: **Apps** (integration tools), **Automations** (offered as callable tools; only
   *agent-call* triggers qualify), **Knowledge** (joined into the search allowlist). It is a *request*: ownership and
   entitlement are re-checked when a tool is actually dispatched.
 - **Static vs dynamic activation** — static (the default) puts the skill's full body in the system prompt on **every**
   turn. Dynamic puts only a one-line manifest entry in and the model calls the `activate_skill` tool when the message
-  actually matches. Grants follow the same split: a dynamic skill contributes **no** apps/routines/tables/knowledge
+  actually matches. Grants follow the same split: a dynamic skill contributes **no** apps/automations/tables/knowledge
   until it has been activated in that conversation.
-- **Leading skill** — on a routine AI step, the first skill in the list: its instructions come first and its output
+- **Leading skill** — on an automation AI step, the first skill in the list: its instructions come first and its output
   fields are merged into the step's own.
 - **Attached vs session skill** — attached lives on the agent's config and is always on; a session skill is toggled by
   the user for one conversation and can be **imported** into the library.
-- **Linked automation (legacy `automation_id`)** — a per-skill scalar that makes the routine **replace** the skill body
+- **Linked automation (legacy `automation_id`)** — a per-skill scalar that makes the automation **replace** the skill body
   entirely; steps, rules and examples are ignored while it is set. Old, powerful, and explained in the UI rather than
   hidden.
 - **Activation record** — a row in `skill_activations` written whenever a skill actually reaches a turn
@@ -301,9 +301,9 @@ Labels: **"{count}/{max} active"**, **"Maximum {count} skills active"**, **"Atta
 4. In **"What this skill does"** type a one-line summary.
 5. In **"When to use it"** describe when the agent should reach for it (max 4000 characters).
 6. In the **Steps** card click **"Add step"** and write one sentence per step; drag the handle to reorder.
-7. On a step that should use a source, click **reference** and pick a **Routine**, **Knowledge base** or **Table**.
+7. On a step that should use a source, click **reference** and pick a **Automation**, **Knowledge base** or **Table**.
 8. In **Rules** click **"Add rule"**, type the sentence, and click the polarity button to flip **Always** ↔ **Never**.
-9. In **"May use"** click **link** → add the apps (**"Browse apps…"**), routines and knowledge bases the skill needs.
+9. In **"May use"** click **link** → add the apps (**"Browse apps…"**), automations and knowledge bases the skill needs.
 10. Use the visibility capsule in the header to choose **Personal** / **Entire organisation** / specific groups.
     Everything autosaves 350 ms after the last keystroke; the header chip shows the state.
 11. Open **Test**, type a realistic question, click **Run**, read the answer, then the per-step verdicts.
@@ -343,13 +343,13 @@ Labels: **"{count}/{max} active"**, **"Maximum {count} skills active"**, **"Atta
 6. The run is stored; the overview's **Test** column now reads **ok** / **{n} advice** / **failed**.
 7. **"Earlier runs"** shows the last 20 runs for this skill (visible only to people who may edit it).
 
-### W5 — Apply a skill inside a routine
-1. Studio → **Routines** → open the routine → click an **AI step**.
+### W5 — Apply a skill inside an automation
+1. Studio → **Automations** → open the automation → click an **AI step**.
 2. Open the section **"Who does the thinking"**.
 3. Under **"Skills for this step"** tick up to **5** skills. The first one ticked wears the **Leading** pill.
 4. (Optional) also pick **"Which agent"**; the step's skills come *before* the agent's own skills.
 5. The leading skill's **Delivers** fields become the step's outgoing fields — map them in later steps.
-6. Save the routine; the skill's **Used by** tab now lists the routine and the step label.
+6. Save the automation; the skill's **Used by** tab now lists the automation and the step label.
 
 ### W6 — Retire a skill safely
 1. Open the skill → tab **Used by** and read the list (and any "could not be checked" line).
@@ -377,13 +377,13 @@ Labels: **"{count}/{max} active"**, **"Maximum {count} skills active"**, **"Atta
 | Max examples | **40** | `skillStructure.MAX_EXAMPLES` |
 | Max delivered fields | **40** stored (AI draft writes at most **12**) | `skillStructure.MAX_OUTPUT_FIELDS` / `skillDraft.MAX_OUTPUT_FIELDS` |
 | Max options in a "one of a list" field | **50** | `skillStructure.MAX_ENUM_OPTIONS` |
-| Max ids per grant list (KBs, routines) | **100** | `skillStructure.MAX_ID_LIST` |
+| Max ids per grant list (KBs, automations) | **100** | `skillStructure.MAX_ID_LIST` |
 | Max characters per text field in structure | **4000** | `skillStructure.MAX_TEXT` |
 | Max example half length | **4000 characters** | `routes/skills/examples.js` |
 | Skill name / description caps (AI draft) | 200 / 1000 characters | `skillDraft.js` |
 | "one sentence" brief for AI draft | **1000 characters** | `skillDraft.MAX_SENTENCE_CHARS` |
 | **Skills active per chat turn** | **5** (attached first, then session, deduped, truncated) | `skillInjection.SKILL_CAP` |
-| Skills per routine AI step | **5** (`MAX_AI_STEP_SKILL_IDS`); extra ones warn `ai_step.skill_ids_ignored` | `formState.js`, `automation/validate/constants.js` |
+| Skills per automation AI step | **5** (`MAX_AI_STEP_SKILL_IDS`); extra ones warn `ai_step.skill_ids_ignored` | `formState.js`, `automation/validate/constants.js` |
 | Apps per skill | **50** (`SKILL_INTEGRATIONS_CAP`) | `skillInjection.js` |
 | Test runs kept per skill | **20** (`TEST_RUNS_KEEP`) | `skillStore.js` |
 | Test question length | **2000 characters** | `skillTest.MAX_QUESTION_CHARS` |
@@ -414,7 +414,7 @@ Labels: **"{count}/{max} active"**, **"Maximum {count} skills active"**, **"Atta
   store text nothing looked at.
 - **Automations table missing on the install** → the usage scan returns `unchecked: ['automation']` and every claim
   narrows ("not counted", "this list may be short") instead of reading as zero.
-- **Grant list can't be read** → pills keep an id fallback ("Routine {id}") and a note explains the gap, so nothing
+- **Grant list can't be read** → pills keep an id fallback ("Automation {id}") and a note explains the gap, so nothing
   looks deleted.
 - **A deleted skill still referenced by an agent** → the runtime just ignores the dangling id.
 
@@ -424,8 +424,8 @@ Labels: **"{count}/{max} active"**, **"Maximum {count} skills active"**, **"Atta
 
 - **Agents** — `agent.config.attachedSkillIds`; the agent builder's "Can use" tab card **Skills**; the agent's published
   copy counts too (`COUNT(DISTINCT agent_id)` across draft + published).
-- **Routines (automations)** — `ai_step.skillIds`; the leading skill's `outputSchema` becomes the step's outgoing
-  fields. Also the other direction: a routine with an **agent-call** trigger can be granted to a skill under **May use**.
+- **Automations (automations)** — `ai_step.skillIds`; the leading skill's `outputSchema` becomes the step's outgoing
+  fields. Also the other direction: an automation with an **agent-call** trigger can be granted to a skill under **May use**.
 - **Knowledge bases** — `knowledge_base_ids` + `kb` reference pills join the agent's search allowlist while the skill is
   active; the Test tab only ever searches bases the *caller* may read.
 - **Datatables** — `table` reference pills become `{ id, scope: 'own', readOnly: true }` entries in the
@@ -463,15 +463,15 @@ Labels: **"{count}/{max} active"**, **"Maximum {count} skills active"**, **"Atta
    the anchor.
 4. **Confusing "blank" with "zero".** In the list, the overview and the Used-by tab, an em dash or a blank subline means
    *not counted*, not *nobody*. Teaching "0 agents" off a blank is teaching the one lie the section is built to avoid.
-5. **Putting a scheduled routine under "May use".** Only an *agent-call* trigger routine is dispatchable as a tool;
+5. **Putting a scheduled automation under "May use".** Only an *agent-call* trigger automation is dispatchable as a tool;
    anything else is a promise nothing keeps, and the picker hides it.
-6. **Assuming a step reference is a grant.** A step that *references* a routine is presentation only — the routine must
+6. **Assuming a step reference is a grant.** A step that *references* an automation is presentation only — the automation must
    also be in **May use** (`allowed_automation_ids`) to be callable. (KB and table references *do* grant.)
 7. **Attaching more than five skills to one agent.** The runtime caps the merged list at **5** per turn, attached first.
    The sixth silently never reaches the prompt.
 8. **Turning on Dynamic activation and expecting the grants immediately.** A dynamic skill contributes *nothing* —
-   no apps, no routines, no tables, no knowledge — until the model has called `activate_skill` in that conversation.
-9. **Leaving a legacy `automation_id` set.** The routine then *replaces* the whole skill body; steps, rules and
+   no apps, no automations, no tables, no knowledge — until the model has called `activate_skill` in that conversation.
+9. **Leaving a legacy `automation_id` set.** The automation then *replaces* the whole skill body; steps, rules and
    examples are ignored. People edit steps for an hour and wonder why nothing changes.
 10. **Assuming visible = editable.** A skill shared to a group is visible to people who may not edit it; they get the
     read-only banner and a 403, and they cannot see its test history either.
@@ -499,8 +499,8 @@ Labels: **"{count}/{max} active"**, **"Maximum {count} skills active"**, **"Atta
 - **Delivers**: `leverancier` (text), `offertenummer` (text), `totaal_excl_btw` (number), `afwijking_pct` (number),
   `advies` (one of a list: akkoord / onderhandelen / afwijzen).
 - **May use**: knowledge base *Inkoopkader & raamcontracten*; table *Prijslijst leveranciers*.
-- **Attach to**: agent *Inkoopassistent*. **And** apply it as the leading skill on the AI step of the routine
-  *Offertes uit de inkoopmailbox*, so the routine's later steps can write `advies` into a datatable.
+- **Attach to**: agent *Inkoopassistent*. **And** apply it as the leading skill on the AI step of the automation
+  *Offertes uit de inkoopmailbox*, so the automation's later steps can write `advies` into a datatable.
 
 ### S2 — HR: "Sollicitatiebrief samenvatten" (screen an application)
 - **What this skill does**: "Vat een sollicitatie samen tegen de eisen in de vacaturetekst en stelt drie vragen voor
@@ -521,16 +521,16 @@ Labels: **"{count}/{max} active"**, **"Maximum {count} skills active"**, **"Atta
 - **What this skill does**: "Beantwoordt een binnenkomende klantvraag over levertijd, prijs of garantie in onze
   huisstijl."
 - **Steps**: (1) bepaal waar de vraag over gaat; (2) zoek het antwoord in de productkennis — *reference: knowledge base
-  "Productinformatie"*; (3) controleer de actuele levertijd — *reference: routine "Levertijd opvragen" (trigger: an
+  "Productinformatie"*; (3) controleer de actuele levertijd — *reference: automation "Levertijd opvragen" (trigger: an
   agent calls it)*; (4) schrijf het antwoord in maximaal 120 woorden, met één concrete vervolgstap.
 - **Rules**: **Always** "spreek de klant aan met u"; **Always** "noem een concrete datum of termijn, nooit 'binnenkort'";
   **Never** "beloof een korting of een uitzondering".
 - **Examples**: two cards built with **"Pick from a conversation"** from real answers a colleague already gave — the
   PII scan strips names before they are stored.
-- **May use**: knowledge base *Productinformatie*; routine *Levertijd opvragen*.
+- **May use**: knowledge base *Productinformatie*; automation *Levertijd opvragen*.
 - **Dynamic activation: on** — the sales agent carries four skills and only one applies per message, so only a one-line
   manifest entry sits in each turn's prompt until the model calls `activate_skill`.
-- Teaching point: the difference between static and dynamic is visible here — with dynamic on, the routine grant does
+- Teaching point: the difference between static and dynamic is visible here — with dynamic on, the automation grant does
   not exist until the skill is activated in that conversation.
 
 ---
@@ -561,7 +561,7 @@ Usable by the Learning Center pattern in `agent-hub/src/components/onboarding/ac
 ### `GET /api/skills/usage-summary`
 - Auth: `requireAuth` + capability. No `manage_skills`.
 - Returns `{ summary: { [skillId]: { agents: n, automations: n, lastUsedAt: ISO|null, automationsUnchecked?: true } } }`.
-- Good criterion: *attached the skill to an agent* (`summary[id].agents > 0`) or *used it in a routine*
+- Good criterion: *attached the skill to an agent* (`summary[id].agents > 0`) or *used it in an automation*
   (`summary[id].automations > 0`). Beware `automationsUnchecked` — treat it as unknown, not 0.
 
 ### `GET /api/skills/:id`
@@ -572,8 +572,8 @@ Usable by the Learning Center pattern in `agent-hub/src/components/onboarding/ac
 - Auth: `requireAuth` + capability. No `manage_skills`. 404 when not visible.
 - Returns `{ usage: [...], unchecked: ['automation'?] }`. Rows:
   - agent: `{ kind: 'agent', id, title, role: 'chat', lastAt, ownerId }`
-  - routine step: `{ kind: 'automation', id, title, role: 'ai_step', siteLabel: 'step X', stepId, layerKey, lastAt, ownerId }`
-- Good criterion: *the skill is actually wired up somewhere* — and it names **which** agent/routine, so a lesson can say
+  - automation step: `{ kind: 'automation', id, title, role: 'ai_step', siteLabel: 'step X', stepId, layerKey, lastAt, ownerId }`
+- Good criterion: *the skill is actually wired up somewhere* — and it names **which** agent/automation, so a lesson can say
   "you attached it to the wrong agent".
 
 ### `GET /api/skills/:id/test-runs`

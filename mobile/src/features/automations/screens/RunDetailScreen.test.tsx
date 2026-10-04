@@ -1,7 +1,7 @@
 /**
  * Back from a run goes back, like the hardware Back.
  *
- * The header's arrow REPLACED the run with its routine's run list. Opened
+ * The header's arrow REPLACED the run with its automation's run list. Opened
  * from that list, that stacked a second list over the first; opened from a
  * Cowork card, the runs log or a form's answers, it sent the person to a list
  * they had never been on. Only a run opened cold (a link, a notification) has
@@ -48,7 +48,7 @@ describe('Back from a run', () => {
         expect(mockRouter.replace).not.toHaveBeenCalled();
     });
 
-    it('lands on the routine’s run list when nothing is behind it', async () => {
+    it('lands on the automation’s run list when nothing is behind it', async () => {
         mockRouter.canGoBack.mockReturnValue(false);
         await pressBack();
         expect(mockRouter.replace).toHaveBeenCalledWith('/automations/a1/runs');

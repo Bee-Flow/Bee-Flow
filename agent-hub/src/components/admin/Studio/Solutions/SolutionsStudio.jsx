@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { operatedStagesOf } from './pipeline/stagesApi';
 import SolutionDetail from './SolutionDetail';
 import { readSummary } from './solutionOverviewModel';
 import SolutionsOverview from './SolutionsOverview';
@@ -8,7 +9,7 @@ import { API_BASE, authFetch } from '../../../../utils/helpers';
 /**
  * Studio → Solutions: the builder's bundles.
  *
- * A Solution is the thing a builder packages: the routines, apps, webpages and
+ * A Solution is the thing a builder packages: the automations, apps, webpages and
  * approvals that work together, how they are wired (Flow), and the Blueprint
  * you package it into. It is stored in the same table as the collaborative
  * project workspaces (so ids, Blueprint keys and shares keep working), but it
@@ -45,16 +46,27 @@ const NOTHING_READ = { status: 'error', rows: [], unavailable: ['all'], hasMore:
  * The placeholder is the last resort rather than the first: a Solution nobody
  * could name still opens, and its own tabs report their own failures.
  */
-function activeProject(activeId, listed, fetched) {
+function activeProject(activeId, listed, fetched, operated) {
     if (!activeId) return null;
     return listed
         || (Array.isArray(fetched) ? fetched.find(p => p && p.id === activeId) : null)
-        || { id: activeId, name: '…' };
+        // A stage-only operator cannot read the Dev row, but the summary named it.
+        || { id: activeId, name: operated?.find(o => o.solutionId === activeId)?.solutionName || '…' };
 }
+
+/**
+ * `studio/solutions/new` is the Studio's "+ New → Solution" entry, not the id of
+ * a Solution (F16): it opens the overview with the create form ready.
+ */
+const CREATE_SEGMENT = 'new';
+const idFromRoute = (id) => (id && id !== CREATE_SEGMENT ? id : null);
 
 export default function SolutionsStudio({ user, initialSolutionId = null, onNavigate }) {
     const [summary, setSummary] = useState({ status: 'loading', rows: [], unavailable: [], hasMore: false });
-    const [activeId, setActiveId] = useState(initialSolutionId || null);
+    const [activeId, setActiveId] = useState(idFromRoute(initialSolutionId));
+    // The stage a stage-only operator asked for from the overview; a deep link
+    // carries its own `?stage=`, which SolutionDetail reads itself.
+    const [stageIntent, setStageIntent] = useState(null);
 
     const fetchSummary = useCallback(async () => {
         try {
@@ -64,7 +76,7 @@ export default function SolutionsStudio({ user, initialSolutionId = null, onNavi
             // list, so a client that ignored the status would render a clean
             // overview. The status is not ignored here.
             if (!res.ok) { setSummary(NOTHING_READ); return; }
-            setSummary({ status: 'ok', ...readSummary(body) });
+            setSummary({ status: 'ok', ...readSummary(body), operatedStages: operatedStagesOf(body?.operatedStages) });
         } catch {
             setSummary(NOTHING_READ);
         }
@@ -72,13 +84,20 @@ export default function SolutionsStudio({ user, initialSolutionId = null, onNavi
     useEffect(() => { fetchSummary(); }, [fetchSummary]);
 
     // A deep link arriving while mounted (sidebar navigation) still lands.
-    useEffect(() => { setActiveId(initialSolutionId || null); }, [initialSolutionId]);
+    useEffect(() => { setActiveId(idFromRoute(initialSolutionId)); }, [initialSolutionId]);
 
     const open = (p) => {
+        setStageIntent(null);
         setActiveId(p.id);
         onNavigate?.(`studio/solutions/${p.id}`);
     };
+    const openStage = (entry) => {
+        setStageIntent(entry.stage);
+        setActiveId(entry.solutionId);
+        onNavigate?.(`studio/solutions/${entry.solutionId}`);
+    };
     const back = () => {
+        setStageIntent(null);
         setActiveId(null);
         onNavigate?.('studio/solutions');
         fetchSummary();
@@ -97,16 +116,19 @@ export default function SolutionsStudio({ user, initialSolutionId = null, onNavi
         !!wanted,
     );
 
-    const active = activeProject(activeId, listed, byId.data?.projects);
+    const active = activeProject(activeId, listed, byId.data?.projects, summary.operatedStages);
 
     return active
-        ? <SolutionDetail project={active} onBack={back} currentUserId={user?.id || null} />
+        ? <SolutionDetail key={active.id} project={active} onBack={back} currentUserId={user?.id || null} initialStage={stageIntent} />
         : (
             <SolutionsOverview
                 summary={summary}
                 onOpen={open}
+                onOpenStage={openStage}
                 onCreated={open}
                 onInstalled={(id) => open({ id })}
+                onRetry={() => { setSummary({ status: 'loading', rows: [], unavailable: [], hasMore: false }); fetchSummary(); }}
+                focusCreate={initialSolutionId === CREATE_SEGMENT}
             />
         );
 }

@@ -7,7 +7,7 @@ import { useBuilderConfirm } from '../../BuilderConfirmContext';
 
 /**
  * The authoring surface for a hosted form trigger (`kind: 'form'`) — page one
- * of the routine's public form, plus the URL it lives at.
+ * of the automation's public form, plus the URL it lives at.
  *
  * The page editor itself is FormBuilderFields, shared with the `form_page`
  * steps that come after this one: all three declare the same `form` object, so
@@ -31,7 +31,7 @@ export default function FormTriggerFields({ draft, set, automation = null, stepI
         return (
             <div className="space-y-2">
                 <p className="text-[11px] text-[var(--text-tertiary)]">
-                    A form trigger publishes a page for the colleagues it is shared with — who that is, you set under Studio → Forms → Share. Every submission runs this routine once.
+                    A form trigger publishes a page for the colleagues it is shared with — who that is, you set under Studio → Forms → Share. Every submission runs this automation once.
                 </p>
                 <button
                     type="button"
@@ -49,7 +49,7 @@ export default function FormTriggerFields({ draft, set, automation = null, stepI
             {/* The public link used to sit here. It lives in Forms now (the
                 sidebar entry and /app/forms), because a published form is the
                 organisation's and was only findable by whoever remembered
-                which routine it hung off. Turned off rather than deleted:
+                which automation it hung off. Turned off rather than deleted:
                 FormTriggerUrlPanel is still exported and still works, and this
                 flag is the one line to flip when it comes back.
 
@@ -153,7 +153,7 @@ export function FormTriggerUrlPanel({ automation, stepId }) {
     };
 
     if (!automation?.id || !provisionable) {
-        return <div className="text-[11px] text-[var(--text-tertiary)]">Waiting for the routine to save…</div>;
+        return <div className="text-[11px] text-[var(--text-tertiary)]">Waiting for the automation to save…</div>;
     }
 
     return (
@@ -183,7 +183,7 @@ export function FormTriggerUrlPanel({ automation, stepId }) {
                         </button>
                     </div>
                     <p className="text-[11px] text-[var(--text-tertiary)]">
-                        Anyone with this link can submit the form — it only works while the routine is active.
+                        Anyone with this link can submit the form — it only works while the automation is active.
                         {typeof page.submissions === 'number' && page.submissions > 0 ? ` ${page.submissions} submission${page.submissions === 1 ? '' : 's'} so far.` : ''}
                     </p>
                 </>

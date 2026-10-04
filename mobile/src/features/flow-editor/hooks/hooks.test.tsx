@@ -2,7 +2,7 @@
  * The reads and the writes around the draft, over a mocked HTTP client: the
  * catalog is read once and hands its pick sources to the bindings layer; a
  * restore replaces the draft as one undo entry; links are created against a
- * saved draft; a template is installed as a new routine; and deactivating
+ * saved draft; a template is installed as a new automation; and deactivating
  * clears the activation findings.
  */
 
@@ -67,10 +67,10 @@ it('reads the catalog once and hands its pick sources to the bindings layer', as
     await second.unmount();
 });
 
-it('reads the catalog anew when a routine opens, but not when a step opens or re-renders', async () => {
+it('reads the catalog anew when an automation opens, but not when a step opens or re-renders', async () => {
     const { wrapper } = setup();
     const catalogReads = () => get.mock.calls.filter((c) => c[0] === '/api/automation/catalog').length;
-    // The first visit to a routine; the author then leaves for Studio → Datatables.
+    // The first visit to an automation; the author then leaves for Studio → Datatables.
     const firstVisit = await renderHook(() => useCatalog({ freshOnMount: true }), { wrapper });
     await waitFor(() => expect(firstVisit.result.current.isSuccess).toBe(true));
     await firstVisit.unmount();
@@ -79,7 +79,7 @@ it('reads the catalog anew when a routine opens, but not when a step opens or re
     get.mockImplementation(async (path: string) =>
         path === '/api/automation/catalog' ? { apps: [], datatables: [{ id: 'd1', name: 'Invoices' }], formPickSources: [] } : {},
     );
-    // Back on the routine: the table made meanwhile is offered.
+    // Back on the automation: the table made meanwhile is offered.
     const build = await renderHook(() => useCatalog({ freshOnMount: true }), { wrapper });
     await waitFor(() => expect(catalogReads()).toBe(2));
     await waitFor(() => expect(build.result.current.data?.datatables).toEqual([expect.objectContaining({ id: 'd1' })]));
@@ -132,7 +132,7 @@ it('creates a webhook against the saved draft and shows the secret from the answ
     await unmount();
 });
 
-it('installs a template as a new routine and refreshes the list', async () => {
+it('installs a template as a new automation and refreshes the list', async () => {
     const { wrapper, queryClient } = setup();
     const invalidate = jest.spyOn(queryClient, 'invalidateQueries');
     post.mockResolvedValue({ automation: { id: 'new', definition: DEF }, warnings: [] });

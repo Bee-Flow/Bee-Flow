@@ -59,7 +59,7 @@ describe('Settings › General', () => {
         expect((screen.getByLabelText(/What does this automation do/) as HTMLTextAreaElement).value).toBe('Collects the folder listing from Nextcloud.');
     });
 
-    it('files the routine in a folder and sets an icon', async () => {
+    it('files the automation in a folder and sets an icon', async () => {
         const user = userEvent.setup();
         const onSave = vi.fn().mockResolvedValue(undefined);
         render(withQueryClient(<GeneralSection automation={automation} onSave={onSave} />));
@@ -70,7 +70,7 @@ describe('Settings › General', () => {
         expect(onSave).toHaveBeenCalledWith({ icon: 'Receipt' });
     });
 
-    it('moves the routine to the trash and can undo it', async () => {
+    it('moves the automation to the trash and can undo it', async () => {
         const user = userEvent.setup();
         const onAutomationChange = vi.fn();
         render(withQueryClient(<GeneralSection automation={automation} onSave={vi.fn()} onAutomationChange={onAutomationChange} />));
@@ -84,7 +84,7 @@ describe('Settings › General', () => {
         expect(onAutomationChange).toHaveBeenLastCalledWith(expect.objectContaining({ deletedAt: null }));
     });
 
-    it('says so when a whole-routine action fails', async () => {
+    it('says so when a whole-automation action fails', async () => {
         const user = userEvent.setup();
         authFetch.mockImplementation((url: string, init?: RequestInit) => (url.endsWith('/save-as-template')
             ? json({ error: 'Templates are off for this organisation.' }, false, 403)

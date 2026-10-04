@@ -54,8 +54,8 @@ async function resolveGmeetSession(req) {
     const { deriveConnectionStatus } = require('../../core/meetingNotes/gmeetNotesSettings');
     let cred = null;
     try {
-        const routineCredentialStore = require('../../stores/routineCredentialStore');
-        cred = await routineCredentialStore.getCredential(userId, 'google');
+        const automationCredentialStore = require('../../stores/automationCredentialStore');
+        cred = await automationCredentialStore.getCredential(userId, 'google');
     } catch (_) { /* vault unavailable → session-only */ }
     const connection = deriveConnectionStatus({ session: req.session, credential: cred });
 
@@ -63,7 +63,7 @@ async function resolveGmeetSession(req) {
         return { session: req.session, source: 'live', cred, connection };
     }
     if (cred && cred.status === 'active') {
-        const { getProviderAuth } = require('../../auth/routineAuth');
+        const { getProviderAuth } = require('../../auth/automationAuth');
         const auth = await getProviderAuth(userId, 'google');
         if (auth && auth.accessToken) {
             // Session shim — createGoogleApiClient writes refreshed tokens back

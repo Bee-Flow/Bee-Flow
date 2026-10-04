@@ -92,7 +92,7 @@ export function ScheduleFields({ draft, setMany, ctx }: StepEditorProps) {
                 testID="trigger-cron"
             />
             <SelectField
-                label={t('routine_editor.trigger.timezone', 'Timezone')}
+                label={t('automation_editor.trigger.timezone', 'Timezone')}
                 value={tz}
                 options={options}
                 onChange={(next) => setMany({ scheduleCron: cron, scheduleTz: next })}

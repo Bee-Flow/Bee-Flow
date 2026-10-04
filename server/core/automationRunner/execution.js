@@ -81,27 +81,30 @@ const {
 } = require('./engine');
 const { createToolMemo } = require('./toolMemo');
 const log = require('../../telemetry/log');
-// Handoff 5: which copy a run executes (live vs working) and the routine's
+// Handoff 5: which copy a run executes (live vs working) and the automation's
 // run policy (default retry, time budget, concurrency).
 const { automationForRun, isTestRun } = require('./definitionForRun');
+// Solution stages (design 4.2, D17): the project's variable values over
+// definition.vars, and whether an automation is managed by a stage.
+const { runVarsFor, isManagedAutomation } = require('./stageVars');
 const { notifyRunEvent } = require('./runNotifications');
 const { resolveRunPolicy, stepRetryFor, runTimeoutMsFor } = require('./runPolicy');
 
 /**
- * Which organisation a run belongs to: the routine's own, else its OWNER's.
+ * Which organisation a run belongs to: the automation's own, else its OWNER's.
  *
  * `automations.organization_id` is never written — routes/automation/crud.js
- * creates with `userId` only — so this was null for every routine ever made,
+ * creates with `userId` only — so this was null for every automation ever made,
  * and everything hanging off ctx.orgId ran with no organisation. resolveOrgShield
  * bails on a falsy id, so the org Privacy Shield (including its "Also protect
- * routines" switch, which reads as ON in the settings page) applied to nothing
+ * automations" switch, which reads as ON in the settings page) applied to nothing
  * at all. The guardrail audit rows and the audience checks were equally org-less.
  *
  * The owner's org is the same answer every other surface resolves for that
  * person, and resolveUserSession had already read it for its OAuth work — it
  * simply was not being asked for.
  *
- * A fallback, never an override: a routine deliberately scoped to one
+ * A fallback, never an override: an automation deliberately scoped to one
  * organisation must not drift to another when its author's membership changes.
  */
 function runOrgFor(automation, session) {
@@ -137,7 +140,7 @@ function disabledPassThroughBranch(step) {
 /**
  * Which trigger did this run enter through?
  *
- * A routine may declare extra entry points in `definition.triggers[]`; whoever
+ * An automation may declare extra entry points in `definition.triggers[]`; whoever
  * dispatched the run names the one that fired via `rootStepId`. Everything else
  * enters at the primary `definition.trigger`.
  *
@@ -184,14 +187,14 @@ function resolveEnteredTrigger(def, rootStepId = null) {
 const TRIGGER_PIN_KINDS = new Set(['manual_step']);
 
 /**
- * A live run that finds its routine ALREADY RUNNING.
+ * A live run that finds its automation ALREADY RUNNING.
  *
- * The routine-level marker (`automations.last_status = 'running'`) allows one
+ * The automation-level marker (`automations.last_status = 'running'`) allows one
  * live run at a time, and a second one used to be cancelled on the spot —
  * "Skipped: automation already running". For a manual click that is the right
  * answer. For an EVENT it is data loss: the Gmail poller has already advanced
  * its cursor, so the mail that arrived while a briefing was running is never
- * triaged. With several triggers on one routine those collisions stop being
+ * triaged. With several triggers on one automation those collisions stop being
  * rare, so event- and webhook-started runs now WAIT for the marker — bounded,
  * polling — and only give up (cancelled, as before) when the window passes.
  *
@@ -236,7 +239,7 @@ async function acquireRunMarker(automationId, triggerKind, { wait = true } = {})
  * same local (so a sample is scanned, audited and can be stopped by a `block`
  * policy exactly like a webhook body), and the seeding of `runState` follows.
  * Seeding runState alone would have let sample data skip the one guard on the
- * one input to a routine that nobody in the org typed.
+ * one input to an automation that nobody in the org typed.
  */
 function resolveTriggerPayload({ trigger = null, triggerPayload = null, triggerKind = 'manual', mode = 'live' } = {}) {
     if (triggerPayload != null) return triggerPayload;
@@ -254,12 +257,24 @@ async function executeAutomation(automation, { triggerKind = 'manual', triggerPa
     // ── Live or working copy (handoff 5) ──────────────────────────────────
     // Test runs (dry run, partial builder runs, the Test button's `isTest`)
     // execute the WORKING copy; every other run executes the LIVE copy when
-    // the routine has one. Decided once, here, for every caller — see
+    // the automation has one. Decided once, here, for every caller — see
     // definitionForRun.js. From this line on `automation.definition` and
     // `automation.version` are the copy this run executes, so the run row
     // records the version that actually ran.
+    //
+    // An automation managed by a Solution stage (D17) runs its LIVE copy with the
+    // live settings, test runs included; with no live copy the run is refused
+    // here, before a run row exists (409 managed_part_not_deployed).
     const testRun = isTestRun({ mode, triggerKind, isTest });
-    automation = automationForRun(automation, { mode, triggerKind, isTest });
+    const managed = await isManagedAutomation(automation);
+    // A caller-built spread (resume, partial run, a route that selected
+    // unmanaged) lost the row's live copy: read it, so the run gets the LIVE
+    // settings and a pinned resume can be told apart from the working copy.
+    const storeLive = managed && automation && !Object.prototype.hasOwnProperty.call(automation, 'liveDefinition')
+        ? await Promise.resolve().then(() => automationStore.getAutomation(automation.id)).catch(() => null)
+        : null;
+    automation = automationForRun(storeLive ? { ...automation, liveVersion: storeLive.liveVersion ?? null } : automation,
+        { mode, triggerKind, isTest, managed, liveDefinition: storeLive?.liveDefinition ?? null });
     const runPolicy = resolveRunPolicy(automation.definition);
     const session = await resolveUserSession(automation.userId);
     const runOrgId = runOrgFor(automation, session);
@@ -354,7 +369,7 @@ async function executeAutomation(automation, { triggerKind = 'manual', triggerPa
     // A RESUME is not a new trigger. resumeFromStep re-enters here with the
     // ORIGINAL run's triggerKind, so an approval decision or a form submission
     // was indistinguishable from a fresh webhook — and if any other live run of
-    // the same routine happened to hold the marker at that moment, the approved
+    // the same automation happened to hold the marker at that moment, the approved
     // continuation was finalised as 'cancelled' having dispatched nothing. The
     // approve endpoint has already consumed the single-use token and stamped
     // the parent 'success' by then, and no endpoint can re-issue it, so the
@@ -366,14 +381,14 @@ async function executeAutomation(automation, { triggerKind = 'manual', triggerPa
     // exists to prevent).
     const isResume = !!skipUntilStepId;
     // runPolicy.concurrency 'parallel' (handoff 5): a live run that finds the
-    // routine busy runs ALONGSIDE it, exactly the way a resume does — it
+    // automation busy runs ALONGSIDE it, exactly the way a resume does — it
     // takes the marker when it is free and never waits for it, and when it is
     // not free it runs without owning it (so it cannot release it from under
     // the run that does). 'serial' (the default) is today's behaviour.
     const parallel = runPolicy.concurrency === 'parallel';
     let ownsMarker = effectiveMode === 'live';
     if (triggerKind !== 'schedule' && effectiveMode === 'live') {
-        // Event/webhook runs wait (bounded) for a busy routine instead of
+        // Event/webhook runs wait (bounded) for a busy automation instead of
         // being dropped — see acquireRunMarker. A resume never waits.
         const acquired = await acquireRunMarker(automation.id, triggerKind, { wait: !isResume && !parallel });
         if (acquired === false && (isResume || parallel)) {
@@ -409,7 +424,7 @@ async function executeAutomation(automation, { triggerKind = 'manual', triggerPa
     // only the IN-PROCESS deadline (ctx.extendRunDeadline) and can legitimately
     // sleep for up to 24 hours. So a long wait had the row reaped out from
     // under a perfectly healthy run: the concurrency marker went away, and the
-    // scheduler started a SECOND run of the same routine while the first was
+    // scheduler started a SECOND run of the same automation while the first was
     // still sleeping. Refreshing the marker from the same heartbeat that keeps
     // the run row alive makes both clocks derive from one fact — this runner
     // process is still here — instead of from two unrelated numbers. A crashed
@@ -445,7 +460,9 @@ async function executeAutomation(automation, { triggerKind = 'manual', triggerPa
         // original run produced. Deep-clone the replay snapshot so step
         // handlers can't mutate the persisted prior-run rows.
         steps: replayState ? (cloneRunValue(replayState) || {}) : {},
-        vars: automation.definition?.vars || {},
+        // definition.vars with the Solution variable values of the automation's
+        // project laid over them (stageVars.js; never throws).
+        vars: await runVarsFor(automation),
         secrets: {}, // populated by sandbox/secret bridges only; never echoed
         // Symbol-keyed mask needles from http_request credential injection.
         // Unreachable from {{…}} templates / exprs / code steps (string-path
@@ -499,7 +516,7 @@ async function executeAutomation(automation, { triggerKind = 'manual', triggerPa
                     automation_id: automation.id,
                     run_id: run.id,
                     step_id: null,
-                    source: 'routine',
+                    source: 'automation',
                     violation_type: 'pii',
                     violation_categories: 'token_evicted',
                     direction: 'output',
@@ -523,7 +540,7 @@ async function executeAutomation(automation, { triggerKind = 'manual', triggerPa
     // The HTTP half of this is auth/datatableAccess.resolveDatatablePrincipal.
     // Both read the same three fields fresh from `users`, and they must keep
     // agreeing: the moment one of them starts trusting a session or a run
-    // snapshot, a routine can write rows its author cannot see.
+    // snapshot, an automation can write rows its author cannot see.
     let runUserOrgRole = null;
     let runUserHomeOrgId = null;
     // A FAILURE here is recorded, not swallowed. Tolerating it is right for the
@@ -594,7 +611,7 @@ async function executeAutomation(automation, { triggerKind = 'manual', triggerPa
         // undefined, breaking integration steps with cryptic "X is required"
         // errors instead of producing useful output.
         definition: automation.definition || {},
-        // The routine's run policy (runPolicy.js). runDag reads
+        // The automation's run policy (runPolicy.js). runDag reads
         // retry.then === 'continue' to carry on past a step that failed
         // for good; shallow ctx copies (layers, loops, branches) share it.
         runPolicy,
@@ -653,7 +670,7 @@ async function executeAutomation(automation, { triggerKind = 'manual', triggerPa
 
     // ── Safety: scan the trigger payload ──────────────────────────────────
     // The raw webhook body / event payload used to land in runState completely
-    // unseen — it is the one input to a routine nobody in this org typed, and
+    // unseen — it is the one input to an automation nobody in this org typed, and
     // it was the only entry point with no guard at all. Scanning it here also
     // gives every value in it a stable placeholder for the whole run, and lets
     // a `block` policy stop the run before step 1 does anything.
@@ -762,7 +779,7 @@ async function executeAutomation(automation, { triggerKind = 'manual', triggerPa
             // from the definition.
             case 'knowledge_write':    return execKnowledgeWrite(step, ctx_, state_, mode_);
             // Named, typed fields out of a piece of text. Runs on the ONE
-            // extraction model the admin configured, never the routine's
+            // extraction model the admin configured, never the automation's
             // tier; a dry run synthesises typed samples and never calls it.
             case 'data_extraction':    return execDataExtraction(step, ctx_, state_, mode_);
             // A canvas annotation (BFSF-411) — never reachable in practice
@@ -901,7 +918,7 @@ async function executeAutomation(automation, { triggerKind = 'manual', triggerPa
             // Attempt retry per step config. §WS2.5: a forEach that already did
             // per-item retry and threw all-failed (err.foreachHandled) must NOT
             // be retried whole here — that would re-run the entire fan-out.
-            // A step's own retry wins; without one the routine's
+            // A step's own retry wins; without one the automation's
             // runPolicy.retry.max is the default (handoff 5).
             const retry = stepRetryFor(step, runPolicy);
             if (retry && retry.max && retry.max > 0 && !err.foreachHandled) {
@@ -961,7 +978,7 @@ async function executeAutomation(automation, { triggerKind = 'manual', triggerPa
     let runStatus = 'success';
     let wasCancelled = false;
 
-    // runPolicy.maxDurationMin (handoff 5) sets the budget when the routine
+    // runPolicy.maxDurationMin (handoff 5) sets the budget when the automation
     // has one; else the row's run_timeout_ms, else the platform default.
     // Waiting (Wait steps, approvals, form pages) still does not count: the
     // deadline below is extended for those.
@@ -1229,7 +1246,7 @@ async function executeAutomation(automation, { triggerKind = 'manual', triggerPa
             // (automation_schedules), never the primary's columns — and does so
             // BEFORE the marker is released, so the row cannot be re-claimed in
             // the gap. A cron with no future match clears that one schedule and
-            // says so; the routine's other entry points keep working.
+            // says so; the automation's other entry points keep working.
             if (schedule?.id && typeof automationStore.advanceSchedule === 'function') {
                 let next = null;
                 // schedule.skipHolidays (handoff 5) is read from the definition this run executed.
@@ -1241,7 +1258,7 @@ async function executeAutomation(automation, { triggerKind = 'manual', triggerPa
                         await notifyRunEvent(automation, 'onError', {
                             code: 'automation.notify.schedule_idle',
                             title: `⏸️ A schedule went idle: ${automation.title}`,
-                            message: `The extra schedule "${schedule.cron}" has no upcoming run time, so it will not fire again. Edit that trigger and save to re-arm it. The routine's other triggers are unaffected.`,
+                            message: `The extra schedule "${schedule.cron}" has no upcoming run time, so it will not fire again. Edit that trigger and save to re-arm it. The automation's other triggers are unaffected.`,
                         });
                     } catch (_) { /* notification failure is non-fatal */ }
                 }
@@ -1257,7 +1274,7 @@ async function executeAutomation(automation, { triggerKind = 'manual', triggerPa
 
     // Notifications — error path uses the sanitized message so we never
     // leak upstream API payloads or bearer tokens echoed in error bodies.
-    // Each event consults the routine's notification policy (see
+    // Each event consults the automation's notification policy (see
     // runNotifications.notifyRunEvent) so success-path noise can be silenced
     // by the user without losing failure / approval alerts.
     try {
@@ -1371,12 +1388,12 @@ async function writeRunOutcome(input) {
  *
  * `lastOutput` is NOT a column — `rowToRun` (stores/automationStore/rowMappers.js)
  * never had it, and only `runDag` produces it (automationRunner/engine.js). But
- * three callers return a routine's result to an AI agent and read it straight
+ * three callers return an automation's result to an AI agent and read it straight
  * off this object, so all three silently answered `null` for every call:
  *   - runStepAsTool (below) — a Reusable Step used as a chat tool
- *   - automation/agentCallableTools.js — an agent-callable routine
+ *   - automation/agentCallableTools.js — an agent-callable automation
  *   - routes/automation/webhooksAndRunOps.js — POST /:id/agent-invoke
- * The agent ran the routine and was told nothing came back.
+ * The agent ran the automation and was told nothing came back.
  *
  * Attached in memory, never persisted: run rows stay the audit trail, and the
  * per-step outputs are already recorded (automation_run_steps). Every exit path
@@ -1386,4 +1403,4 @@ function withLastOutput(runRow, lastOutput) {
     return runRow ? { ...runRow, lastOutput: lastOutput ?? null } : runRow;
 }
 
-module.exports = { runOrgFor, disabledPassThroughBranch, resolveEnteredTrigger, resolveTriggerPayload, buildTriggerState, acquireRunMarker, executeAutomation };
+module.exports = { runOrgFor, isManagedAutomation, disabledPassThroughBranch, resolveEnteredTrigger, resolveTriggerPayload, buildTriggerState, acquireRunMarker, executeAutomation };

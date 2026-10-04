@@ -23,7 +23,7 @@ async function setupTurn({ agentId, userId, userMessage, userAuth, onEvent, mess
     // A TESTCHAT (A4) inverts exactly that, on purpose: `useDraft` loads the
     // CONCEPT, because testing is what you do to the thing you are making.
     // R2's AI-step takes the published config for the opposite reason — a
-    // routine must keep running what was shipped. The difference is deliberate
+    // automation must keep running what was shipped. The difference is deliberate
     // and it is REPORTED (`test_chat` below), never assumed: someone who tests
     // their concept while looking at the published agent tests something other
     // than what runs.

@@ -61,8 +61,8 @@ const KIND_NOUNS = new Map<string, Noun>([
         'automation',
         (t, many) =>
             many
-                ? t('mobile.delete_guard.kind_routines', 'routines')
-                : t('mobile.delete_guard.kind_routine', 'routine'),
+                ? t('mobile.delete_guard.kind_automations', 'automations')
+                : t('mobile.delete_guard.kind_automation', 'automation'),
     ],
     [
         'kb',
@@ -111,7 +111,7 @@ const KIND_NOUNS = new Map<string, Noun>([
 
 /**
  * A kind as a noun. The server's list is open, so an unknown kind keeps its own
- * name rather than becoming "items". `automation` is a routine here, as
+ * name rather than becoming "items". `automation` is an automation here, as
  * everywhere else on the phone.
  */
 export function kindLabel(t: TranslateFn, kind: string | undefined, n = 1): string {
@@ -215,7 +215,7 @@ function Answer({ guard, t }: { guard: DeleteGuard; t: TranslateFn }) {
                 {summary(t, guard)}
             </Text>
             {shown.map((row, i) => (
-                // One row per SITE: a routine with two steps using a skill
+                // One row per SITE: an automation with two steps using a skill
                 // arrives twice under the same id. The list never reorders.
                 <UsageRow key={`${i}:${row.kind ?? ''}:${row.id ?? ''}`} row={row} t={t} />
             ))}
@@ -246,7 +246,7 @@ function Answer({ guard, t }: { guard: DeleteGuard; t: TranslateFn }) {
 /**
  * One thing that breaks. A row owned by someone else arrives without a title.
  * The site ("step 3") is the server's own words, shown as the web's Used-by
- * tab shows them: it is what separates two rows for the same routine.
+ * tab shows them: it is what separates two rows for the same automation.
  */
 function UsageRow({ row, t }: { row: DeleteGuardRow; t: TranslateFn }) {
     const theme = useTheme();

@@ -38,7 +38,7 @@ function words(t: TranslateFn, status: Dead): { icon: IconName; title: string; m
             return {
                 icon: 'History',
                 title: t('mobile.forms.fill.slow_title', 'This is taking a while'),
-                message: t('mobile.forms.fill.slow_body', 'Your answers were received — the routine is still working on them.'),
+                message: t('mobile.forms.fill.slow_body', 'Your answers were received — the automation is still working on them.'),
             };
         default:
             return {

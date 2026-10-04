@@ -6,7 +6,7 @@
  * `usage_contexts` is a jsonb array on `knowledge_bases` holding some of
  * 'agent', 'direct_chat', 'ai_step', 'webpage'. It is the owner's answer to
  * "Waar inzetbaar" in the Knowledge Studio's settings: a base of interview
- * notes belongs in one routine and nowhere else, and a base of public product
+ * notes belongs in one automation and nowhere else, and a base of public product
  * copy belongs everywhere.
  *
  * ── IT IS NOT AN ACCESS CONTROL, AND MUST NOT BE READ AS ONE ────────

@@ -61,7 +61,7 @@ async function listChatAgents(project, { userId }, deps = {}) {
     const getUser = deps.getUser || ((id) => require('../stores/userStore').getUser(id));
     const resolveUserGroups = deps.resolveUserGroups || ((id) => require('../auth/audience').resolveUserGroups(id));
     const audienceOf = deps.listAudience || ((proj) => listProjectAudience(proj));
-    const { mayRoutineUseAgent } = require('../automation/agentCatalog');
+    const { mayAutomationUseAgent } = require('../automation/agentCatalog');
     const SYSTEM_OWNERS = ['system', 'swarm'];
 
     const identityOf = async (id) => {
@@ -86,9 +86,9 @@ async function listChatAgents(project, { userId }, deps = {}) {
         }
     }
     const usable = [...byId.values()].filter((agent) => (members
-        ? members.every((m) => mayRoutineUseAgent(agent, m))
+        ? members.every((m) => mayAutomationUseAgent(agent, m))
         : agent.is_published && !(Array.isArray(agent.shared_groups) && agent.shared_groups.length)
-            && mayRoutineUseAgent(agent, me)));
+            && mayAutomationUseAgent(agent, me)));
     return usable
         .map((a) => ({ id: a.id, name: a.name || a.id, icon: a.icon }))
         .sort((a, b) => String(a.name).localeCompare(String(b.name)));

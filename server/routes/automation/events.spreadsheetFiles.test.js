@@ -134,7 +134,7 @@ test('a file.* push reaches the mirror engine, after the trigger dispatch and be
         actorUserId: 'u1',
     }], 'the Bee Flow user the ncUid mapping resolved rides along — a rename re-points the stored path');
     assert.deepStrictEqual(order, ['dispatch', 'stamp', 'onFileEvent'],
-        'the routine trigger first, the ack and its stamp next, the mirror refresh behind them');
+        'the automation trigger first, the ack and its stamp next, the mirror refresh behind them');
     assert.deepStrictEqual(dispatched.map((d) => d.event), ['file.changed'], 'the trigger dispatch is untouched');
 });
 

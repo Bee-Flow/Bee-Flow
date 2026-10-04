@@ -55,8 +55,8 @@ export function StepBasics({ form, step, locked, nameRef }: { form: StepFormStat
             </View>
             {runs ? (
                 <ToggleField
-                    label={t('routines.ndv.disabled', 'Disabled')}
-                    description={t('routines.ndv.disable_title', 'Disable this node (skipped during execution)')}
+                    label={t('automations.ndv.disabled', 'Disabled')}
+                    description={t('automations.ndv.disable_title', 'Disable this node (skipped during execution)')}
                     value={isDisabled(step)}
                     onChange={(off) => form.patchStep({ disabled: off })}
                     disabled={locked}

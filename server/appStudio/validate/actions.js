@@ -103,7 +103,7 @@ function validateAction(id, action, path, ctx) {
         const aid = action.automationId;
         if (aid === null || aid === undefined) {
             // Templates ship with automationId unset — non-blocking until publish.
-            pushW({ code: 'action.automation_unset', severity: 'warning', path: `${path}.automationId`, message: `Action "${id}" has no automation selected yet.`, hint: 'Pick one of the user\'s routines before publishing.' });
+            pushW({ code: 'action.automation_unset', severity: 'warning', path: `${path}.automationId`, message: `Action "${id}" has no automation selected yet.`, hint: 'Pick one of the user\'s automations before publishing.' });
         } else if (typeof aid !== 'string') {
             pushE({ code: 'action.automation_invalid', severity: 'error', path: `${path}.automationId`, message: 'automationId must be a string or null.', hint: 'Use the automation\'s id.' });
         } else if (ownedAutomations) {
@@ -386,7 +386,7 @@ function validateApprovalQuestions(field, value, path, ctx) {
 }
 
 // The stage chain. Caps come from the shared rulebook so the app path and the
-// routine path enforce the same numbers. Shape only — whether an approver is
+// automation path enforce the same numbers. Shape only — whether an approver is
 // actually in the org is checked at request time, by the same gate the
 // assignee has always passed through.
 const { MAX_APPROVAL_STAGES: STAGE_MAX, MAX_SEATS_PER_STAGE: STAGE_SEAT_MAX,
@@ -661,13 +661,13 @@ function validateStep(step, path, depth, counter, ctx) {
 
     // A send_email inside a loop is a spam cannon: one click over a 500-row
     // binding is 500 outbound messages from a real person's mailbox. There is no
-    // legitimate app-builder use for it that a routine cannot do better, with
+    // legitimate app-builder use for it that an automation cannot do better, with
     // its own throttling. This is the single most important guard on the step.
     if (step.kind === 'loop' && containsSendEmail(step.steps)) {
         pushE({
             code: 'action.send_email_in_loop', severity: 'error', path: `${path}.steps`,
             message: 'A "send email" step may not run inside a loop.',
-            hint: 'Sending one message per row would mail everyone at once. Send a single message, or use a routine that controls its own pacing.',
+            hint: 'Sending one message per row would mail everyone at once. Send a single message, or use an automation that controls its own pacing.',
         });
     }
 

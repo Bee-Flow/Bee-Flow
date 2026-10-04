@@ -43,8 +43,11 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 // wrapper chunk arrived, the editor RUNTIME (a CDN fetch, see
 // MONACO_MOUNT_DEADLINE_MS) never did, so onMount is simply never called and
 // the real component sits on its own "Loading..." indefinitely.
+/** Every loader.config() call the code step made: where it told Monaco to load from. */
+const loaderConfigs = [];
 function monacoStub({ mountsNothing = false, neverMounts = false } = {}) {
     return {
+        loader: { config: (c) => { loaderConfigs.push(c); } },
         default: function MonacoStub({ value, onChange, onMount, options }) {
             const mounted = useRef(false);
             useEffect(() => {
@@ -136,6 +139,10 @@ describe('there is always a box to type code into', () => {
         // exists depends on the user's choice.
         expect(stub.dataset.aria).toBe('JavaScript code');
         expect(plainBox()).toBeNull();
+        // The runtime comes from this app, never the CDN default (privacy, and
+        // an offline self-host gets an editor too).
+        expect(loaderConfigs.at(-1)?.paths?.vs).toMatch(/\/monaco\/vs$/);
+        expect(loaderConfigs.at(-1)?.paths?.vs).not.toMatch(/jsdelivr|cdn/);
 
         fireEvent.click(screen.getByRole('button', { name: 'stub-edit' }));
         expect(set).toHaveBeenCalledWith('code', 'return 42;');
@@ -402,6 +409,9 @@ describe('what was already here keeps working', () => {
         renderUI(<CodeFields draft={draftOf({ forEach: { overRef: 'trigger.output.rows', itemVar: 'item' } })} set={vi.fn()} />);
         await screen.findByTestId('monaco-stub');
 
+        // Advanced stays closed even when it holds the forEach; one click opens it.
+        expect(screen.queryByRole('checkbox', { name: /run once per item/i })).toBeNull();
+        fireEvent.click(screen.getByRole('button', { name: /^Advanced/ }));
         expect(screen.getByRole('checkbox', { name: /run once per item/i })).toBeChecked();
     });
 });

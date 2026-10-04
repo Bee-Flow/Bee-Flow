@@ -44,7 +44,7 @@
  * ── THE QUOTA REFUSES, IT DOES NOT EVICT ────────────────────────────
  * Per org: MAX_ROWS_PER_ORG rows and MAX_BYTES_PER_ORG of stored payload.
  * Over either, the write is refused and the caller counts a refusal. Evicting
- * would drop an answer a running routine is about to read; a refusal is just a
+ * would drop an answer a running automation is about to read; a refusal is just a
  * miss, and a miss makes the call for real.
  */
 
@@ -74,7 +74,7 @@ const MAX_ENTRY_BYTES = 262_144;
  * difference between a bounded table and an unbounded one.
  *
  * Over the cap the write is REFUSED, never evicted. Eviction would silently
- * drop an answer a running routine is about to read — a cache that loses the
+ * drop an answer a running automation is about to read — a cache that loses the
  * entry it just stored is indistinguishable from one that is broken — whereas
  * a refusal is a miss, and a miss makes the call for real.
  */
@@ -349,7 +349,7 @@ async function put({ key, organizationId, userId, toolName, value, ttlSeconds, m
         if (json === undefined) return false;
         // maxBytes measures the ANSWER; payload_bytes measures what lands in
         // the column (ciphertext, hex). The entry cap is about a payload a
-        // routine has to be handed back whole; the org budget is about the
+        // automation has to be handed back whole; the org budget is about the
         // size of the table.
         if (Buffer.byteLength(json, 'utf8') > maxBytes) return false;
         payload = box().encrypt(value);
@@ -436,7 +436,7 @@ async function pruneExpired() {
 /**
  * Erasure. A cached answer was fetched with this person's credentials and is
  * about the things they can see, so it goes with the account — the same reason
- * routine_credentials and the PII vault do.
+ * automation_credentials and the PII vault do.
  */
 async function purgeForUser(userId) {
     if (!userId) return 0;

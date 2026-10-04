@@ -5,10 +5,11 @@
 // CollapsibleSection — which App Studio's inspector also renders — can share
 // them without importing FieldHint. Everything is re-exported here so existing
 // importers keep working unchanged.
-import React from 'react';
+import React, { useEffect, useId, useRef } from 'react';
 import { AlertTriangle, Info } from 'lucide-react';
 import FieldHint from '../FieldHint';
 import { humanizeIssueText } from '../displayHelpers';
+import { FormRowLabelContext } from '../../mapping/FormRowLabelContext';
 import { useVariablePickerContext } from '../../mapping/VariablePickerContext';
 import {
     fieldLabelClass, hintTextClass, optionalMarkClass, requiredChipClass,
@@ -22,6 +23,9 @@ export {
     listBadgeClass, AMBER_NOTE,
 } from './formStyles';
 
+const NATIVE_CONTROL = 'select, textarea, input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="file"])';
+const CUSTOM_CONTROL = '[role="textbox"], [role="combobox"]';
+
 /**
  * Labelled field row.
  *
@@ -32,22 +36,48 @@ export {
  * reassuring about. Both render as SIBLINGS of the label span, never inside
  * it, so `getByText('URL')`-style queries keep matching the label alone.
  *
- * `htmlFor` upgrades the label span to a real <label>: clicking it focuses the
- * control and screen readers announce the association. Optional because most
- * existing rows wrap composite editors with no single focusable control.
+ * The label is always a real <label>, tied to the row's control: `htmlFor`
+ * names it explicitly; without it the first native control inside the row
+ * (select / input / textarea) gets an id and the label points at it, and a
+ * custom editable (role=textbox / combobox, which a <label> cannot name) gets
+ * `aria-labelledby`. A control that already has its own accessible name keeps
+ * it. A row of composite editors with no such control is left as it was.
+ * The label text also reaches the mapping fields through
+ * FormRowLabelContext, so the "Comes in" header can name the setting a pick
+ * will land in.
  */
 export function FormRow({ label, hint, required = false, optional = false, htmlFor = null, children }) {
-    const LabelTag = htmlFor ? 'label' : 'span';
+    const rowRef = useRef(null);
+    const labelRef = useRef(null);
+    const autoId = useId();
+    const labelId = `${autoId}-label`;
+    // Runs after every render of the row: a control that mounts later (a
+    // select that waits for its options) is picked up on the next one.
+    useEffect(() => {
+        const root = rowRef.current;
+        const labelEl = labelRef.current;
+        if (!root || !labelEl || htmlFor) return;
+        const el = root.querySelector(`${NATIVE_CONTROL}, ${CUSTOM_CONTROL}`);
+        if (!el || el.hasAttribute('aria-label') || el.hasAttribute('aria-labelledby')) return;
+        if (el.matches(NATIVE_CONTROL)) {
+            if (!el.id) el.id = `${autoId}-control`;
+            labelEl.htmlFor = el.id;
+        } else {
+            el.setAttribute('aria-labelledby', labelId);
+        }
+    });
     return (
-        <div>
-            <div className="flex items-center gap-1.5 mb-1">
-                <LabelTag htmlFor={htmlFor || undefined} className={fieldLabelClass()}>{label}</LabelTag>
-                {required && <span className={requiredChipClass()}>Required</span>}
-                {!required && optional && <span className={optionalMarkClass()}>optional</span>}
-                <FieldHint title={label}>{hint}</FieldHint>
+        <FormRowLabelContext.Provider value={typeof label === 'string' ? label : null}>
+            <div ref={rowRef}>
+                <div className="flex items-center gap-1.5 mb-1">
+                    <label ref={labelRef} id={labelId} htmlFor={htmlFor || undefined} className={fieldLabelClass()}>{label}</label>
+                    {required && <span className={requiredChipClass()}>Required</span>}
+                    {!required && optional && <span className={optionalMarkClass()}>optional</span>}
+                    <FieldHint title={label}>{hint}</FieldHint>
+                </div>
+                {children}
             </div>
-            {children}
-        </div>
+        </FormRowLabelContext.Provider>
     );
 }
 

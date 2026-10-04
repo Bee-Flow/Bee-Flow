@@ -66,7 +66,7 @@ export function SearchField({
                     onPress={() => onChangeText('')}
                     hitSlop={theme.hitSlop}
                     accessibilityRole="button"
-                    accessibilityLabel={t('routines.mapping.clear_search', 'Clear search')}
+                    accessibilityLabel={t('automations.mapping.clear_search', 'Clear search')}
                 >
                     <Icon name="X" size={16} color={theme.colors.textMuted} />
                 </Pressable>

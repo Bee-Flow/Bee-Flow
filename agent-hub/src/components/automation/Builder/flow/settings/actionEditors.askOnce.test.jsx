@@ -64,6 +64,7 @@ describe('the toggle is off unless ticked', () => {
 
     it('renders checked when the step carries askOnce', () => {
         renderFields({ draft: { askOnce: true } });
+        openAdvanced();
         expect(toggle().checked).toBe(true);
     });
 
@@ -79,14 +80,17 @@ describe('the toggle is off unless ticked', () => {
         // literal `false` would be a field the diff, the validator and the
         // summariser all have to learn to ignore.
         const { set } = renderFields({ draft: { askOnce: true } });
+        openAdvanced();
         fireEvent.click(toggle());
         expect(set).toHaveBeenCalledWith('askOnce', undefined);
     });
 });
 
-describe('the Advanced section opens itself when the toggle is already on', () => {
-    it('a step with askOnce shows the toggle without a click', () => {
+describe('the Advanced section stays closed when the toggle is already on', () => {
+    it('a step with askOnce says "set" on the closed band, and one click shows the toggle', () => {
         renderFields({ draft: { askOnce: true } });
+        expect(screen.getByText('set')).toBeTruthy();
+        openAdvanced();
         expect(toggle()).toBeTruthy();
     });
 });
@@ -148,6 +152,7 @@ describe('"keep it for later runs" is a second, narrower promise', () => {
 
     it('appears once the first tick is on', () => {
         renderFields({ draft: { askOnce: true } });
+        openAdvanced();
         expect(acrossRuns()).toBeTruthy();
         expect(acrossRuns().checked).toBe(false);
     });
@@ -157,12 +162,14 @@ describe('"keep it for later runs" is a second, narrower promise', () => {
         // separate field could be set while askOnce was off, which the runtime
         // would ignore — a definition that lies about itself.
         const { set } = renderFields({ draft: { askOnce: true } });
+        openAdvanced();
         fireEvent.click(acrossRuns());
         expect(set).toHaveBeenCalledWith('askOnce', { acrossRuns: true });
     });
 
     it('unticking it falls back to plain once-per-run, not to off', () => {
         const { set } = renderFields({ draft: { askOnce: { acrossRuns: true } } });
+        openAdvanced();
         expect(acrossRuns().checked).toBe(true);
         fireEvent.click(acrossRuns());
         expect(set).toHaveBeenCalledWith('askOnce', true);
@@ -170,6 +177,7 @@ describe('"keep it for later runs" is a second, narrower promise', () => {
 
     it('an object askOnce still reads as ON for the first tick', () => {
         renderFields({ draft: { askOnce: { acrossRuns: true } } });
+        openAdvanced();
         expect(toggle().checked).toBe(true);
     });
 
@@ -179,11 +187,13 @@ describe('"keep it for later runs" is a second, narrower promise', () => {
         // collapsing to a bare `true` would delete the author's reuse window
         // on a toggle they made about something else entirely.
         const on = renderFields({ draft: { askOnce: { ttlSeconds: 60 } } });
+        openAdvanced();
         fireEvent.click(acrossRuns());
         expect(on.set).toHaveBeenCalledWith('askOnce', { acrossRuns: true, ttlSeconds: 60 });
 
         cleanup();
         const off = renderFields({ draft: { askOnce: { acrossRuns: true, ttlSeconds: 60 } } });
+        openAdvanced();
         fireEvent.click(acrossRuns());
         expect(off.set).toHaveBeenCalledWith('askOnce', { ttlSeconds: 60 });
     });
@@ -192,6 +202,7 @@ describe('"keep it for later runs" is a second, narrower promise', () => {
         // Neither is discoverable from the runtime behaviour — a step whose
         // organisation has not allowed this just looks slow.
         renderFields({ draft: { askOnce: true } });
+        openAdvanced();
         expect(screen.getByText(/stored, encrypted/i)).toBeTruthy();
         expect(screen.getByText(/administrator decides/i)).toBeTruthy();
     });

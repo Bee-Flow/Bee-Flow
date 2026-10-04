@@ -188,7 +188,7 @@ describe('the minted id', () => {
  * Every mistake possible here is invisible on the canvas until a run goes
  * missing. An orphaned Condition still validates, still saves, still draws —
  * it simply has no path from the trigger any more and never runs, and the
- * routine goes on reporting success for the half of itself that still works.
+ * automation goes on reporting success for the half of itself that still works.
  * So this is asserted edge by edge rather than through "it looks inserted".
  */
 describe('inserting the step in front of the Condition', () => {

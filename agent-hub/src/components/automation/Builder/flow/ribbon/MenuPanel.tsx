@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import { denseInputClass, FOCUS_RING_INSET } from '../settings/formStyles';
@@ -28,10 +28,15 @@ const HEADER = 'text-[11px] font-semibold uppercase tracking-wide text-[var(--te
 
 function MenuRow({ row, onAdd, onOpenApp }: { row: RowSpec; onAdd: AddFn; onOpenApp: (app: RibbonApp) => void }) {
     const desc = row.disabled ? row.disabledReason : row.desc;
+    const descId = useId();
     const addable = !!row.payload && !row.disabled;
     return (
         <button
             type="button"
+            // Named by the step, described by its description: the button used
+            // to be announced as name + the whole two-line description.
+            aria-label={row.label}
+            aria-describedby={desc ? descId : undefined}
             disabled={!!row.disabled}
             onClick={() => {
                 if (row.payload) onAdd(row.payload);
@@ -48,7 +53,7 @@ function MenuRow({ row, onAdd, onOpenApp }: { row: RowSpec; onAdd: AddFn; onOpen
             <span className="min-w-0 flex-1">
                 <span className="block text-sm text-[var(--text-primary)] truncate">{row.label}</span>
                 {desc && (
-                    <span className={`block text-[11px] leading-snug text-[var(--text-tertiary)] line-clamp-2 ${row.disabled ? 'italic' : ''}`}>{desc}</span>
+                    <span id={descId} className={`block text-[11px] leading-snug text-[var(--text-tertiary)] line-clamp-2 ${row.disabled ? 'italic' : ''}`}>{desc}</span>
                 )}
             </span>
             {row.app && <ChevronRight size={13} className="shrink-0 mt-1 text-[var(--text-tertiary)]" aria-hidden="true" />}
@@ -87,8 +92,8 @@ function MenuPage({ title = null, hint = null, sections, filterLabel, emptyText 
         body = (
             <div className="px-3 py-2 text-[11px] text-[var(--text-tertiary)] italic">
                 {total === 0
-                    ? (emptyText || t('routines.ribbon.no_actions', 'No actions available.'))
-                    : (noMatchText ? noMatchText(q) : t('routines.ribbon.search_none', 'Nothing matches “{q}”.', { q }))}
+                    ? (emptyText || t('automations.ribbon.no_actions', 'No actions available.'))
+                    : (noMatchText ? noMatchText(q) : t('automations.ribbon.search_none', 'Nothing matches “{q}”.', { q }))}
             </div>
         );
     } else {
@@ -107,8 +112,8 @@ function MenuPage({ title = null, hint = null, sections, filterLabel, emptyText 
                         <button
                             type="button"
                             onClick={onBack}
-                            aria-label={t('routines.ribbon.back', 'Back')}
-                            title={t('routines.ribbon.back', 'Back')}
+                            aria-label={t('automations.ribbon.back', 'Back')}
+                            title={t('automations.ribbon.back', 'Back')}
                             className={`-ml-1 shrink-0 h-5 w-5 grid place-items-center rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] ${FOCUS_RING_INSET}`}
                         >
                             <ChevronLeft size={13} />
@@ -151,8 +156,8 @@ export default function MenuPanel(props: PanelProps) {
                 key={app.id}
                 title={app.label}
                 sections={appSections}
-                filterLabel={(n) => t('routines.ribbon.filter_actions', 'Filter {n} actions…', { n })}
-                noMatchText={(q) => t('routines.ribbon.no_action_match', 'No action matches “{q}”.', { q })}
+                filterLabel={(n) => t('automations.ribbon.filter_actions', 'Filter {n} actions…', { n })}
+                noMatchText={(q) => t('automations.ribbon.no_action_match', 'No action matches “{q}”.', { q })}
                 onAdd={props.onAdd}
                 onOpenApp={setApp}
                 onBack={() => setApp(null)}
@@ -170,8 +175,8 @@ export function AppActionsList({ app, onAdd }: { app: RibbonApp; onAdd: AddFn })
         <MenuPanel
             title={app.label}
             sections={sections}
-            filterLabel={(n) => t('routines.ribbon.filter_actions', 'Filter {n} actions…', { n })}
-            noMatchText={(q) => t('routines.ribbon.no_action_match', 'No action matches “{q}”.', { q })}
+            filterLabel={(n) => t('automations.ribbon.filter_actions', 'Filter {n} actions…', { n })}
+            noMatchText={(q) => t('automations.ribbon.no_action_match', 'No action matches “{q}”.', { q })}
             onAdd={onAdd}
         />
     );

@@ -207,7 +207,7 @@ async function attestationItems(orgId, d, nowMs) {
         .filter(r => r.expires_at)
         .map(r => item(
             'attestation_expiry', `${r.target_kind}:${r.target_id}`,
-            r.target_kind === 'agent' ? 'Agent' : 'Routine',
+            r.target_kind === 'agent' ? 'Agent' : 'Automation',
             r.title ? String(r.title).slice(0, 120) : `AI Act self-assessment (${r.outcome || 'recorded'})`,
             { target_kind: r.target_kind, target_id: r.target_id, outcome: r.outcome || null },
             toMs(r.attested_at || r.created_at), toMs(r.expires_at),

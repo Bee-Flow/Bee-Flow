@@ -71,7 +71,7 @@ async function _productsHint(orgId) {
         const r = await db.getOne(`
             SELECT COUNT(*)::int AS c
             FROM project_releases r JOIN projects p ON p.id = r.project_id
-            WHERE p.organization_id = $1
+            WHERE p.organization_id = $1 AND r.channel = 'gallery'
         `, [orgId]);
         hint.solution_releases = r?.c ?? 0;
     } catch (e) { if (!_isNotProvisioned(e)) throw e; }

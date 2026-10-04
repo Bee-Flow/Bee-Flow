@@ -3,7 +3,7 @@
  * templates.js — organisation templates ("Save as template", Studio →
  * Automations handoff 5). The built-in gallery is static config
  * (automation/templates.js); these rows are what an organisation saved from
- * its own routines, and the gallery lists them first (`source: 'org'`).
+ * its own automations, and the gallery lists them first (`source: 'org'`).
  *
  * Scope: a template belongs to the organisation it was saved in and every
  * member sees it. On an install without organisations (organization_id NULL)

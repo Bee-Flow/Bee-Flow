@@ -5,7 +5,7 @@
 const { run, getOne, getAll } = require('../../db');
 const { initDB } = require('./schema');
 const { dynamicUpdate, parseJSON } = require('./shared');
-const { deleteUser } = require('./users');
+const { deleteUser, assertNotStageRunAs } = require('./users');
 const { setOrgSubscription } = require('./subscriptions');
 const { getDefaultOrgPlanId } = require('./billingLifecycle');
 const log = require('../../telemetry/log');
@@ -411,6 +411,9 @@ async function deleteOrganization(orgId) {
     let step = 'users';
     try {
         const orgUsers = await getAll('SELECT id FROM users WHERE "organizationId" = $1', [orgId]);
+        // All of them first: deleteUser refuses an account that runs a Solution
+        // stage, and the org must not be left half-deleted when the last one does.
+        for (const u of orgUsers) await assertNotStageRunAs(u.id);
         for (const u of orgUsers) await deleteUser(u.id);
         if (orgUsers.length > 0) log.info(`[UserStore] Deleted ${orgUsers.length} user(s) from org '${orgId}'`);
 
@@ -428,8 +431,8 @@ async function deleteOrganization(orgId) {
         await run('DELETE FROM connection_grants WHERE org_id = $1', [orgId]);
         step = 'integration_connections';
         await run('DELETE FROM integration_connections WHERE org_id = $1', [orgId]);
-        step = 'routine_credentials';
-        await run('DELETE FROM routine_credentials WHERE org_id = $1', [orgId]);
+        step = 'automation_credentials';
+        await run('DELETE FROM automation_credentials WHERE org_id = $1', [orgId]);
 
         // Through the store, so the memoised per-org usage counters go with the rows.
         step = 'integration cache';

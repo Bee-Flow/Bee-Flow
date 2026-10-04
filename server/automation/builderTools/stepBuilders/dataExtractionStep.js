@@ -212,7 +212,7 @@ function loopItemSourceError(chk, forEach, draftWrap) {
 
 /**
  * Pull named, typed fields out of a piece of text — on the admin's extraction
- * model, never the routine's tier. The `fields` list IS the output shape, so
+ * model, never the automation's tier. The `fields` list IS the output shape, so
  * there is no outputSchema to write.
  *
  * The default label MUST stay in step with nodeDefs.js's `defaultLabel` for

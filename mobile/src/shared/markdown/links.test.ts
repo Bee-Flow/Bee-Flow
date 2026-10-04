@@ -66,7 +66,7 @@ describe('linkTarget', () => {
 
     it('opens a Studio knowledge base, agent, data table or document on its native screen', () => {
         // projects/completeness.js mints the first three; each used to open
-        // the routine list through the Studio catch-all.
+        // the automation list through the Studio catch-all.
         expect(linkTarget('/app/studio/knowledge/kb1', SERVER)).toEqual({ kind: 'route', href: '/knowledge/kb1' });
         expect(linkTarget('/app/studio/agents/ag1', SERVER)).toEqual({ kind: 'route', href: '/agents/ag1' });
         expect(linkTarget('/app/studio/datatables/d1', SERVER)).toEqual({ kind: 'route', href: '/datatables/d1' });
@@ -81,7 +81,7 @@ describe('linkTarget', () => {
         expect(linkTarget(`${SERVER}/app/studio/some-new-section`, SERVER)).toEqual({ kind: 'route', href: '/studio' });
         // An admin tab with no organisation-side twin: the organisation index.
         expect(linkTarget('/app/admin/some-tab', SERVER)).toEqual({ kind: 'route', href: '/org' });
-        // The routine list itself is not a guess.
+        // The automation list itself is not a guess.
         expect(linkTarget('/app/studio/automations', SERVER)).toEqual({ kind: 'route', href: '/automations' });
     });
 
@@ -171,7 +171,7 @@ describe('servedOnPhoneWeb', () => {
 
     it('does not count the rest of the web, nor its catch-all chat', () => {
         for (const path of ['/app/studio', '/app/studio/automations/a1', '/app/studio/approvalsx', '/app/admin/security/users', '/app/org-settings',
-            '/app/notebooks/n1', '/app/webpages/w1', '/app/billing', '/app/routines', '/app/a', '/app/some/future/screen',
+            '/app/notebooks/n1', '/app/webpages/w1', '/app/billing', '/app/automations', '/app/a', '/app/some/future/screen',
             '/app/settingsx', '/app/workbench']) {
             expect({ path, served: servedOnPhoneWeb(path) }).toEqual({ path, served: false });
         }

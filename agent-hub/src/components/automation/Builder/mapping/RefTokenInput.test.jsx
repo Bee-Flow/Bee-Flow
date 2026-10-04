@@ -76,6 +76,75 @@ describe('inserting a reference', () => {
     });
 });
 
+describe('inserting several references in a row', () => {
+    const A = '{{steps.act_f9aaff0e.output.a}}';
+    const B = '{{steps.act_f9aaff0e.output.b}}';
+    const C = '{{steps.act_f9aaff0e.output.c}}';
+
+    it('separates a reference from the reference before it with one space', () => {
+        const { ref, onChange } = setup();
+        ref.current.insertSnippet(A);
+        ref.current.insertSnippet(B);
+        ref.current.insertSnippet(C);
+        expect(onChange).toHaveBeenLastCalledWith(`${A} ${B} ${C}`);
+    });
+
+    it('separates a reference from text it lands right after', () => {
+        const { ref, onChange } = setup({ value: 'Hello' });
+        ref.current.insertSnippet(A);
+        expect(onChange).toHaveBeenLastCalledWith(`Hello ${A}`);
+    });
+
+    it('does not add a second space after a space or a newline', () => {
+        const { ref, onChange } = setup({ value: 'Hello\n' });
+        ref.current.insertSnippet(A);
+        expect(onChange).toHaveBeenLastCalledWith(`Hello\n${A}`);
+    });
+
+    it('also separates a drop from the text that follows it', () => {
+        const { ref, onChange } = setup({ value: 'world' });
+        const range = document.createRange();
+        range.setStart(ref.current.element.firstChild, 0);
+        range.collapse(true);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        fireEvent.keyUp(ref.current.element, { key: 'Home' });
+        ref.current.insertSnippet(A);
+        expect(onChange).toHaveBeenLastCalledWith(`${A} world`);
+    });
+
+    it('keeps a reference glued where a space would change the value: after "/", before "."', () => {
+        const { ref, onChange } = setup({ value: 'https://api.example.com/users/' });
+        ref.current.insertSnippet(A);
+        expect(onChange).toHaveBeenLastCalledWith(`https://api.example.com/users/${A}`);
+    });
+
+    it('puts no space before punctuation that follows the drop', () => {
+        const { ref, onChange } = setup({ value: '.' });
+        const range = document.createRange();
+        range.setStart(ref.current.element.firstChild, 0);
+        range.collapse(true);
+        window.getSelection().removeAllRanges();
+        window.getSelection().addRange(range);
+        fireEvent.keyUp(ref.current.element, { key: 'Home' });
+        ref.current.insertSnippet(A);
+        expect(onChange).toHaveBeenLastCalledWith(`${A}.`);
+    });
+
+    it('adds nothing in a data slot (spaced={false})', () => {
+        const { ref, onChange } = setup({ value: 'Hello', spaced: false });
+        ref.current.insertSnippet(A);
+        expect(onChange).toHaveBeenLastCalledWith(`Hello${A}`);
+    });
+
+    it('leaves a single-reference (binding) field alone', () => {
+        const { ref, onChange } = setup({ mode: 'binding', value: 'x' });
+        ref.current.insertSnippet('steps.act_f9aaff0e.output.a');
+        expect(onChange.mock.calls.at(-1)[0]).not.toContain(' steps');
+    });
+});
+
 describe('editing', () => {
     it('emits what was typed, verbatim', () => {
         const { el, onChange } = setup();

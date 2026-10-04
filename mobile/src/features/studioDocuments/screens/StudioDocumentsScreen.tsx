@@ -128,7 +128,7 @@ export function StudioDocumentsScreen({ startCreating }: { startCreating?: boole
                         actionLabel: t('documents.new', 'New document'),
                         onAction: () => creator.setOpen(true),
                     }}
-                    noMatch={{ title: t('mobile.studio_documents.no_match', 'No document matches that'), clearLabel: t('routines.mapping.clear_search', 'Clear search') }}
+                    noMatch={{ title: t('mobile.studio_documents.no_match', 'No document matches that'), clearLabel: t('automations.mapping.clear_search', 'Clear search') }}
                 />
             </RowContext.Provider>
             <NewDocumentSheet

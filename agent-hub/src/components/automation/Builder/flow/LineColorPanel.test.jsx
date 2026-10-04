@@ -64,7 +64,7 @@ describe('LineColorPanel', () => {
         expect(screen.getByText('word')).toBeTruthy();
         expect(screen.getAllByText('· Sort documents').length).toBe(2);
         expect(screen.getByText(/No PII data yet/)).toBeTruthy();
-        expect(screen.getByText(/Privacy\s+Shield applied to routines/)).toBeTruthy();
+        expect(screen.getByText(/Privacy\s+Shield applied to automations/)).toBeTruthy();
         // All seven PII groups are in the legend.
         for (const g of ['Personal', 'Contact', 'Financial', 'Identity', 'Digital', 'Organization', 'EU / Netherlands']) {
             expect(screen.getByText(g)).toBeTruthy();

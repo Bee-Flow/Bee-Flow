@@ -269,10 +269,26 @@ async function buildCeiling({ mode, tier, orgTier: _orgTier, orgId, orgIds, user
     // resolves get none (the if(orgId) wrapper covers cloud and self-hosted
     // alike). computeReasons needs NO change: customs never appear in
     // listCapabilities(), so they produce no reason rows.
+    //
+    // MCP-library rows (remote MCP servers an org admin installed from the
+    // MCP library, _customSource 'mcp_library') ride the same table but not
+    // the builder beta: they enter iff the org may use the MCP marketplace
+    // (mcp_marketplace by tier or plan grant — the rule requireFeature
+    // applies to the library's own routes). Asked at most once per resolve.
     if (orgId) {
         const customs = await registry.listCustomIntegrationCapabilities(orgId);
-        if (customs.length && ceil.beta.has('ai_integration_builder')) {
-            for (const c of customs) ceil.integration.add(c.id);
+        const builderBeta = ceil.beta.has('ai_integration_builder');
+        let mcpLicensed = null;
+        for (const c of customs) {
+            if (c._customSource === 'mcp_library') {
+                if (mcpLicensed === null) {
+                    mcpLicensed = tiers.tierHasFeature(tier, 'mcp_marketplace')
+                        || ((orgIds || []).length > 0 && await license.orgGrantsFeature(orgIds, 'mcp_marketplace').catch(() => false));
+                }
+                if (mcpLicensed) ceil.integration.add(c.id);
+            } else if (builderBeta) {
+                ceil.integration.add(c.id);
+            }
         }
     }
 

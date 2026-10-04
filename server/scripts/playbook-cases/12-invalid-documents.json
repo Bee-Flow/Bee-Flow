@@ -4,7 +4,7 @@
  "apiOnly": true,
  "documents": [
   {
-   "name": "fill without routine",
+   "name": "fill without automation",
    "recipe": {
     "title": "x",
     "phases": [
@@ -16,7 +16,7 @@
     ]
    },
    "expectCodes": [
-    "fill_without_routine"
+    "fill_without_automation"
    ]
   },
   {
@@ -34,7 +34,7 @@
     },
     "phases": [
      {
-      "kind": "routine",
+      "kind": "automation",
       "label": "R",
       "brief": "{{field.zzz}}"
      }
@@ -59,7 +59,7 @@
     },
     "phases": [
      {
-      "kind": "routine",
+      "kind": "automation",
       "label": "R",
       "brief": "ok {{table.name}}"
      }
@@ -85,7 +85,7 @@
     "title": "x",
     "phases": [
      {
-      "kind": "routine",
+      "kind": "automation",
       "label": "R",
       "brief": "x"
      }

@@ -4,7 +4,7 @@
  * callers.
  *
  * The HTTP API asks on behalf of a signed-in person; the automation runner asks
- * on behalf of a run. If those two ever answered differently, a routine could
+ * on behalf of a run. If those two ever answered differently, an automation could
  * write rows its author cannot see. So both go through `gradeForPrincipal`, and
  * the middleware below is a thin Express wrapper over it — not a second copy of
  * the rules.
@@ -189,7 +189,7 @@ function gradeForPrincipal(table, grants, principal) {
  *
  * The runner does its own fresh read for the same three fields — see
  * `core/automationRunner/execution.js` (runUserOrgRole / runUserHomeOrgId /
- * runUserGroupIds). The two must keep agreeing: if they drift, a routine can
+ * runUserGroupIds). The two must keep agreeing: if they drift, an automation can
  * write rows its author cannot see.
  *
  * @returns {Promise<{userId, orgId, organizationId, orgRole, groupIds, orgIds}>}
@@ -339,7 +339,7 @@ function defaultCreateScope(principal) {
  * Eén implementatie, want dit is de regel die stilletjes uit elkaar loopt. Een
  * unie zou twee graden OPTELLEN: mag de één lezen en de ander schrijven, dan
  * levert de unie schrijfrecht op dat geen van beiden alleen had — precies het
- * lek dat de moduledoc bovenaan noemt ("a routine could write rows its author
+ * lek dat de moduledoc bovenaan noemt ("an automation could write rows its author
  * cannot see").
  *
  * De null-tak is strenger dan het minimum alleen. `rank` geeft -1 voor alles wat

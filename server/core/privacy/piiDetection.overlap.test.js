@@ -12,7 +12,7 @@
  * The token map then holds a string that never existed in the user's text, and
  * the next turn's scan detects the corrupted fragment as a fresh entity.
  *
- * Overlaps are routine, not exotic: `mergeWindowResults` deduped on the exact
+ * Overlaps are automation, not exotic: `mergeWindowResults` deduped on the exact
  * triple `offset:length:category`, so an entity the 8k window boundary clipped
  * in one window and left whole in the next — SAME offset, DIFFERENT length —
  * passed as two distinct spans.

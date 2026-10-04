@@ -11,7 +11,7 @@ export function useArchiveConfirm(): (name: string) => Promise<boolean> {
             title: t('mobile.studio_documents.archive_title', 'Archive “{name}”?', { name }),
             message: t(
                 'mobile.studio_documents.archive_message',
-                'It leaves your library. Versions that a routine or an app still uses stay available to them.',
+                'It leaves your library. Versions that an automation or an app still uses stay available to them.',
             ),
             confirmLabel: t('mobile.studio_documents.archive', 'Archive'),
         });

@@ -43,10 +43,10 @@ describe('the Forms section — a directory, and the reasons it is only that', (
         expect(forms().category).toBe('build');
     });
 
-    it('deep-links by the ROUTINE id only — the page token is a credential and never travels', () => {
+    it('deep-links by the AUTOMATION id only — the page token is a credential and never travels', () => {
         // `form.id` IS the public URL token (stores/automationStore/forms.js —
         // 192 bits, no second factor). The Form page is addressed by the
-        // routine behind the form (`initialFormId` = automationId), so the
+        // automation behind the form (`initialFormId` = automationId), so the
         // token is never in the address bar or the history. Two things keep it
         // that way, asserted rather than trusted: no legacy alias, and no entry
         // in the recents registry — whose sub-panel navigates to
@@ -58,11 +58,11 @@ describe('the Forms section — a directory, and the reasons it is only that', (
         expect(props.initialFormTab).toBe('answers');
     });
 
-    it('"New form" opens the section\'s own dialog — the answers choice is made before the routine exists', () => {
+    it('"New form" opens the section\'s own dialog — the answers choice is made before the automation exists', () => {
         const calls = [];
         forms().create.onCreate({ onNavigate: (target) => calls.push(target) });
         expect(calls).toEqual(['studio/forms/new']);
-        // the old one-shot creator still exists for callers that want a form routine straight away
+        // the old one-shot creator still exists for callers that want a form automation straight away
         expect(typeof createFormAutomation).toBe('function');
     });
 });

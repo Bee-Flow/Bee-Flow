@@ -7,10 +7,10 @@ import { cardRadius, kindColorVar, kindTileStyle } from '../../../../shared/kind
 import { appRefParam, buildStudioSearch, segmentForSection } from '../../studioRoutes';
 
 /**
- * "Which routine" — the run_automation target, as a tile instead of a button.
+ * "Which automation" — the run_automation target, as a tile instead of a button.
  *
- * The old affordance was one wide button showing the routine's title. It said
- * nothing about what the routine IS, so choosing between two similarly named
+ * The old affordance was one wide button showing the automation's title. It said
+ * nothing about what the automation IS, so choosing between two similarly named
  * ones meant leaving the app editor entirely. The tile answers the three
  * questions an author actually has — how big is it, is it running, where does
  * it live — and then gets out of the way.
@@ -26,7 +26,7 @@ import { appRefParam, buildStudioSearch, segmentForSection } from '../../studioR
  *              not "today" — a calendar day is a different number, and a label
  *              that says one while counting the other is a lie the screen
  *              cannot back up. A failed or absent count shows nothing at all.
- *   • filed in — the routine row carries a projectId, not a project NAME, so
+ *   • filed in — the automation row carries a projectId, not a project NAME, so
  *              the name needs a second request. If that request fails the line
  *              is simply absent; an id would be worse than silence.
  *
@@ -35,7 +35,7 @@ import { appRefParam, buildStudioSearch, segmentForSection } from '../../studioR
  */
 
 /**
- * Steps in a routine definition, or NULL when the definition is not there.
+ * Steps in an automation definition, or NULL when the definition is not there.
  *
  * An automation definition is `{ trigger, steps, edges, layers }`: the trigger
  * is not a step (it is the reason the steps run) and needs no filtering out.
@@ -43,7 +43,7 @@ import { appRefParam, buildStudioSearch, segmentForSection } from '../../studioR
  * nested inside a loop body are part of one step from out here.
  *
  * `null` and `0` are different answers and must stay different: null is "the
- * row did not arrive with a definition", 0 is "this routine has no steps". A
+ * row did not arrive with a definition", 0 is "this automation has no steps". A
  * tile that renders "0 steps" for a definition it never loaded is a claim the
  * screen cannot back up.
  */
@@ -52,7 +52,7 @@ export function stepCountOf(row) {
     return Array.isArray(steps) ? steps.length : null;
 }
 
-/** Run count for one routine over the window, or null when it is not known. */
+/** Run count for one automation over the window, or null when it is not known. */
 function runCountOf(facets, automationId) {
     const byId = facets?.automationId;
     if (!byId || typeof byId !== 'object') return null;
@@ -71,7 +71,7 @@ async function fetchFacets(automationId) {
 }
 
 async function fetchProjects() {
-    // Only Solutions bundle routines; collaborative workspaces never hold one.
+    // Only Solutions bundle automations; collaborative workspaces never hold one.
     const res = await authFetch(`${API_BASE}/api/projects?kind=solution`);
     if (!res.ok) return [];
     try {
@@ -81,7 +81,7 @@ async function fetchProjects() {
 }
 
 /**
- * The deep link to a routine in the Automations builder.
+ * The deep link to an automation in the Automations builder.
  *
  * Built from the same segment map the router parses (`segmentForSection`), not
  * from a hand-written string: an "Open" that lands on a 404 is worse than no
@@ -121,7 +121,7 @@ export default function AutomationTile({
     const projectsQuery = useQuery({
         queryKey: ['studio-app-projects'],
         queryFn: fetchProjects,
-        // Only when there is a project to name. An app whose routine is
+        // Only when there is a project to name. An app whose automation is
         // standalone should not make this request at all.
         enabled: !!row?.projectId,
         staleTime: 60_000,
@@ -137,7 +137,7 @@ export default function AutomationTile({
                 className="w-full flex items-center gap-2 px-3 py-2 rounded-md border border-dashed border-[var(--border-default)] bg-[var(--bg-tertiary)] text-sm text-[var(--text-primary)] hover:border-[var(--accent-primary)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
                 <Workflow className="w-4 h-4 shrink-0 text-[var(--text-tertiary)]" aria-hidden="true" />
-                <span className="truncate">{t('app_studio.inspector.choose_routine', 'Choose a routine…')}</span>
+                <span className="truncate">{t('app_studio.inspector.choose_automation', 'Choose an automation…')}</span>
             </button>
         );
     }
@@ -174,7 +174,7 @@ export default function AutomationTile({
                 </span>
                 <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-[var(--text-primary)] truncate">
-                        {row?.title || t('app_studio.inspector.tile_unnamed', 'This routine')}
+                        {row?.title || t('app_studio.inspector.tile_unnamed', 'This automation')}
                     </p>
                     {facts.length ? (
                         <p className="text-[11px] text-[var(--text-secondary)] truncate">
@@ -211,7 +211,7 @@ export default function AutomationTile({
                         className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50 focus:outline-none focus-visible:ring-2"
                     >
                         <Plus className="w-3 h-3" aria-hidden="true" />
-                        {t('app_studio.inspector.tile_new_routine', 'New one from this button')}
+                        {t('app_studio.inspector.tile_new_automation', 'New one from this button')}
                     </button>
                 ) : null}
             </div>

@@ -2,7 +2,7 @@
  * What the builder's run menu offers and what a run is sent with — the web's
  * RunFlowMenu (BuilderHeader.jsx) and BuilderShell's `runBody`. Pure.
  *
- *   - "Start from" lists the routine's entry points — the primary, then each
+ *   - "Start from" lists the automation's entry points — the primary, then each
  *     additional trigger — and only when there is more than one;
  *   - every run enters with its trigger's saved sample (`pinnedOutput`: a
  *     captured run or a payload the author typed, BFSF-408), and one started
@@ -28,7 +28,7 @@ export interface RunInput {
 const secondaries = (def: FlowDefinition | null | undefined): FlowTrigger[] =>
     (Array.isArray(def?.triggers) ? def.triggers : []).filter((t): t is FlowTrigger => !!t && typeof t.id === 'string' && !!t.id);
 
-/** The entry points "Start from" offers; empty for a routine with one trigger. */
+/** The entry points "Start from" offers; empty for an automation with one trigger. */
 export function startPoints(def: FlowDefinition | null | undefined): StartPoint[] {
     const extra = secondaries(def);
     if (!extra.length) return [];
@@ -39,7 +39,7 @@ export function startPoints(def: FlowDefinition | null | undefined): StartPoint[
     ];
 }
 
-/** The chosen start, or null (the primary) when it is gone from the routine. */
+/** The chosen start, or null (the primary) when it is gone from the automation. */
 export function currentStart(def: FlowDefinition | null | undefined, from: string | null): string | null {
     return from && secondaries(def).some((t) => t.id === from) ? from : null;
 }

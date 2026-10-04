@@ -35,7 +35,7 @@ export function SaveChip({ store }: { store: DraftStore }) {
                 testID="save-state"
             >
                 <Text variant="label" tone="error" numberOfLines={2}>
-                    {reason ? `${t('routines.ndv.save_failed', 'Save failed')} · ${reason}` : t('routines.ndv.save_failed', 'Save failed')}
+                    {reason ? `${t('automations.ndv.save_failed', 'Save failed')} · ${reason}` : t('automations.ndv.save_failed', 'Save failed')}
                 </Text>
             </Pressable>
         );

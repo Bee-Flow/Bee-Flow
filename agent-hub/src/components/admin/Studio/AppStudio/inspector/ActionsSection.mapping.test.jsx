@@ -7,7 +7,7 @@ import ActionsSection from './ActionsSection';
 import { findNode } from '../state/definitionOps';
 
 /**
- * Deleting an action and renaming a routine parameter — the two places where
+ * Deleting an action and renaming an automation parameter — the two places where
  * the inspector used to leave the app in a state it could not save (a dangling
  * event reference) or silently destroy work (a mapping renamed onto another).
  */
@@ -54,7 +54,7 @@ function Harness({ initial, nodeId, onCommit }) {
 
 function renderActions(node, actions) {
     const onCommit = vi.fn();
-    // The routine tile reads its run count and its solution through
+    // The automation tile reads its run count and its solution through
     // react-query (both degrade to nothing), so the section needs a client the
     // way the real editor shell provides one.
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -111,7 +111,7 @@ describe('ActionsSection — deleting an action', () => {
     });
 });
 
-describe('ActionsSection — renaming a routine parameter', () => {
+describe('ActionsSection — renaming an automation parameter', () => {
     it('keeps focus in the field across a keystroke', () => {
         const { getAllByLabelText } = renderActions(MAPPED_FORM, MAPPED_ACTION);
         openDisclosures();

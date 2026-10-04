@@ -1,7 +1,7 @@
 /**
  * The Used-by tab — the one surface that answers "what would that break"
  * before a column is dropped or the table deleted (the web's UsedByTab over
- * DatatableDetail.adaptRow). One row per SITE: a routine with two Datatable
+ * DatatableDetail.adaptRow). One row per SITE: an automation with two Datatable
  * steps on this table appears twice. A consumer that is someone else's has no
  * title and no link; the caller's own open on the phone.
  */

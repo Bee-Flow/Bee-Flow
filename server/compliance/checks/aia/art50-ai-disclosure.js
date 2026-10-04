@@ -102,7 +102,7 @@ function _extractText(value) {
 /**
  * True when `text` carries an explicit "you are talking to an AI" phrasing
  * (EN or NL). Shared with compliance/aiAct/signals.js so the Art. 50 signal on
- * a routine's form page or generated document uses the same vocabulary as the
+ * an automation's form page or generated document uses the same vocabulary as the
  * agent-prompt check — one definition of "disclosed".
  */
 function hasDisclosure(text) {

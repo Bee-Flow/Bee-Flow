@@ -2,11 +2,11 @@
 /**
  * Datatables — the METADATA store.
  *
- * A datatable is a persistent table that routines read and write. Rows live in
+ * A datatable is a persistent table that automations read and write. Rows live in
  * Postgres, in a schema per SCOPE, and are reached only through the shared
  * engine (core/dataEngine) — see datatableDbStore.js. THIS module owns
  * everything *about* a table: who created it, who may use it, what its columns
- * are, how many rows it holds, and which routines touch it.
+ * are, how many rows it holds, and which automations touch it.
  *
  * ── FOUR TABLES, AND WHY ────────────────────────────────────────────
  *   datatables                 one row per table — identity, sharing, retention,
@@ -14,12 +14,12 @@
  *   datatable_models           one row per SCOPE — the engine's model document,
  *                              holding every table's columns
  *   datatable_grants           explicit per-principal write/read grants
- *   automation_datatable_usage which CONSUMER (a routine step, an app table
+ *   automation_datatable_usage which CONSUMER (an automation step, an app table
  *                              binding, a webpage block) reads or writes which
  *                              table — see the dependents index below
  *
  * ── THE DEPENDENTS INDEX IS GENERIC; ITS NAME IS NOT ─────────────────
- * `automation_datatable_usage` was built for routines and is now the index for
+ * `automation_datatable_usage` was built for automations and is now the index for
  * every kind of consumer: `consumer_kind` ('automation' | 'app' | 'webpage' |
  * 'kb', see CONSUMER_KINDS) says which, and `automation_id` is the GENERIC CONSUMER
  * ID — an automation id, a studio_apps id or a webpages id, depending on the
@@ -31,7 +31,7 @@
  * 2026-09 ALTERs the old name on EVERY boot, and production is a two-replica
  * rolling deploy with automatic `rollout undo`. A renamed table would let an
  * old or rolled-back replica recreate an EMPTY table under the old name — its
- * listUsage would answer [] and `DELETE /:id` would drop a table that routines
+ * listUsage would answer [] and `DELETE /:id` would drop a table that automations
  * still write to. `ADD COLUMN IF NOT EXISTS … DEFAULT 'automation'` is
  * metadata-only and reads correctly from both sides of a deploy. If a rename is
  * ever wanted: its own migration, a view under the old name for one release,
@@ -54,7 +54,7 @@
  * ── WHY row_count AND data_version ARE SCALAR COLUMNS ───────────────
  * App Studio keeps the equivalents in a JSONB blob and bumps them with a
  * `SELECT … FOR UPDATE` read-modify-write on EVERY record write
- * (studioAppDataStore.bumpDataVersion). With one row per scope and routines
+ * (studioAppDataStore.bumpDataVersion). With one row per scope and automations
  * writing on a schedule, every automation in the org would serialise on that
  * single row. Scalar columns let a write be one arithmetic UPDATE, once per
  * write STEP (per batch, never per row), with no lock.

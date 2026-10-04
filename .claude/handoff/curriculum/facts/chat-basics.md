@@ -466,7 +466,7 @@ a *statement* pill (deliberate — grounding must never be invisible), but they 
   GitHub, Gamma, MCP servers; the "Apps" row says what this chat may reach. Attachments can come
   straight from a Google Drive or Gmail picker.
 - **Agents** — the Agents store; agent chat is the same composer with the tier fixed.
-- **Cowork / Routines** — the Chat⇄Cowork switch turns the same box into a scheduler.
+- **Cowork / Automations** — the Chat⇄Cowork switch turns the same box into a scheduler.
 - **Privacy Shield / Compliance** — the shield config lives in org settings (**Privacy Shield**);
   every block, redaction and unicode-smuggling strip is recorded as a guardrail event feeding
   Monitoring and the Compliance Hub.

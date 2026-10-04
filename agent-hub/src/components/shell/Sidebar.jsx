@@ -70,7 +70,6 @@ const Sidebar = ({
     onSelectAllChatsConversation,
     showSettings = false,
     showAgentDesigner = false,
-    showAITasks = false,
     showSkillsPanel = false,
     showMarketplace = false,
 }) => {
@@ -365,9 +364,9 @@ const Sidebar = ({
     // main content. Previously it stayed bold (directChatMode/selectedAgent are
     // not reset when an overlay/page opens), so two items looked active at once
     // (BFSF-172). Gate it on the same view flags the other nav items use.
-    const _otherViewActive = showMarketplace || showSettings || showAITasks
+    const _otherViewActive = showMarketplace || showSettings
         || showSkillsPanel
-        || ['studio', 'notebooks', 'admin', 'cowork', 'apps', 'appRun', 'forms', 'formView'].includes(currentPage);
+        || ['studio', 'admin', 'cowork', 'apps', 'appRun', 'forms', 'formView'].includes(currentPage);
 
     // Studio sections for the sidebar group — the same registry + gates the
     // Studio shell renders from (built-ins first, then runtime modules).
@@ -470,7 +469,7 @@ const Sidebar = ({
         { key: 'new-chat', label: t('sidebar.new_chat', 'New Chat'), icon: PenLine, onClick: onDirectChat, active: directChatMode && !selectedAgent && !_otherViewActive },
         // Cowork sits right under New Chat on purpose: "ask" and "delegate" are
         // the two things people come here to do, and prompt automation used to
-        // be buried three levels inside Studio → Routines. Phone-friendly, so
+        // be buried three levels inside Studio → Automations. Phone-friendly, so
         // no isMobile guard.
         // Handshake, not Sparkles: Cowork is a colleague taking something off
         // your plate, not a magic-AI feature. Sparkles also already means
@@ -609,12 +608,12 @@ const Sidebar = ({
                         ...recentForms(publishedForms, 5).map(form => ({
                             key: `form-${form.id}`,
                             label: form.title || 'Untitled form',
-                            // A paused or draft routine answers 404 to its
+                            // A paused or draft automation answers 404 to its
                             // visitors, so say so here rather than letting
                             // someone hand out a link that does nothing.
                             desc: form.live
                                 ? (form.description || null)
-                                : t('sidebar.form_not_live', 'Not live — the routine is paused or still a draft'),
+                                : t('sidebar.form_not_live', 'Not live — the automation is paused or still a draft'),
                             icon: ClipboardList,
                             // In-app, in this tab: forms are signed-in only
                             // now, so /f/<token> is just a redirect here and
@@ -636,9 +635,8 @@ const Sidebar = ({
         // opt-in and permissions remain as additional org-level controls.
         // Meeting Notes lives inside Studio (Mic tab) and is reached there;
         // no top-level sidebar entry.
-        ...(!_simpleMode && !isMobile && hasLicenseFeature('notebooks') && _featureFlags.notebooks !== false && _featureFlags.notebooksMenu !== false && (_permissions.includes('all') || _permissions.includes('use_notebooks'))
-            ? [{ key: 'notebooks', label: t('sidebar.notebooks', 'Notebooks'), icon: FileText, onClick: () => onNavigate && onNavigate('notebooks'), active: currentPage === 'notebooks' }]
-            : []),
+        // Notebooks have no row of their own: a notebook is a document type, in
+        // Studio → Documents.
     ];
 
     /* ── Flyout-panel and nav rows render in sidebar/FlyoutRow and

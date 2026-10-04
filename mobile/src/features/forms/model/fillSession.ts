@@ -7,11 +7,11 @@
  * plus the dead ends a first load can hit (missing, offline) and `slow`, when
  * the poll gives up waiting and offers "Check again". A single-page form is
  * done the moment its submit is accepted; anything with a later page has to
- * wait for the run, because only the server knows whether the routine paused
+ * wait for the run, because only the server knows whether the automation paused
  * for another page, ended on a summary, or failed.
  *
  * The theme belongs to the JOURNEY, not to a screen: it is carried through
- * every transition so a light form does not go dark while the routine works.
+ * every transition so a light form does not go dark while the automation works.
  */
 
 import type { FillAck, FillForm, FillSession, FillStart } from './fillTypes';
@@ -34,7 +34,7 @@ export interface FillState {
     sessionId: string | null;
     /** The session files are fetched through — kept after `done`, which is where a download lives. */
     fileSessionId: string | null;
-    /** Whether page one said the routine may pause for another page. */
+    /** Whether page one said the automation may pause for another page. */
     multiPage: boolean;
     /** Which page this is, counting from one; a new page remounts the fields. */
     page: number;

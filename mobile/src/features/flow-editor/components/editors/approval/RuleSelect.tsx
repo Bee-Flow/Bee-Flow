@@ -15,9 +15,9 @@ export function RuleSelect({ value, onChange, label, disabled }: { value: string
             label={label}
             value={value}
             options={[
-                { value: 'all', label: t('routines.builder.approval_rule_all', 'Everyone must approve') },
-                { value: 'first', label: t('routines.builder.approval_rule_first', 'First to respond decides') },
-                { value: 'quorum', label: t('routines.builder.approval_rule_quorum', 'At least N approvals') },
+                { value: 'all', label: t('automations.builder.approval_rule_all', 'Everyone must approve') },
+                { value: 'first', label: t('automations.builder.approval_rule_first', 'First to respond decides') },
+                { value: 'quorum', label: t('automations.builder.approval_rule_quorum', 'At least N approvals') },
             ]}
             onChange={onChange}
             disabled={disabled}

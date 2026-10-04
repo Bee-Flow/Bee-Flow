@@ -43,7 +43,7 @@ export const STEPS: readonly StepDef[] = [
 const DISPLAY_ORDER = [
     'categories', 'sensitivity', 'allowlist',
     'customterms',
-    'action', 'transparency', 'routines', 'knowledge',
+    'action', 'transparency', 'automations', 'knowledge',
     'toolcalls', 'dlp', 'eu', 'websearch',
 ];
 
@@ -86,7 +86,7 @@ const LABELS: Record<string, Tr> = {
     customterms: ['shield_overview.row_own_types', 'Your own types'],
     action: ['shield_overview.row_action', 'Action'],
     transparency: ['admin.shield_posture_transparency', 'Show what was sent'],
-    routines: ['shield_overview.row_routines', 'Routines'],
+    automations: ['shield_overview.row_automations', 'Automations'],
     knowledge: ['shield_overview.row_knowledge', 'Knowledge bases'],
     toolcalls: ['admin.shield_posture_toolcalls', 'Held back from tools'],
     dlp: ['shield_overview.row_last_check', 'Last check'],
@@ -179,7 +179,7 @@ const FACTS: Record<string, FactFn> = {
             : t('dlp.action_block_label', 'Do not send the message'),
     }),
     transparency: (row, { t }) => ({ value: onOff(row.value.on, t) }),
-    routines: (row, { t }) => ({ value: covered(row.value.on, t) }),
+    automations: (row, { t }) => ({ value: covered(row.value.on, t) }),
     knowledge: (row, { t }) => ({ value: covered(row.value.on, t) }),
     toolcalls: (row, { t }) => ({
         value: t('shield_overview.held_back_value', '{external} of {total} outside · {internal} of {total} own server', {

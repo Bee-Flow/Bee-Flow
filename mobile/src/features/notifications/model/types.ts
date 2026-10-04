@@ -32,7 +32,7 @@ export interface AppNotification {
     id: string;
     user_id?: string;
     /**
-     * The routine / cowork run this is about. Set for `ai_task` and `cowork`,
+     * The automation / cowork run this is about. Set for `ai_task` and `cowork`,
      * null for everything else.
      */
     task_id: string | null;
@@ -71,9 +71,9 @@ export const CATEGORY_PRESENTATION: Record<string, CategoryPresentation> = {
     info: { label: 'Info', icon: 'Info', tone: 'accent' },
     heads_up: { label: 'Heads up', icon: 'TriangleAlert', tone: 'warning' },
     urgent: { label: 'Urgent', icon: 'CircleAlert', tone: 'error' },
-    ai_task: { label: 'Routine', icon: 'Bot', tone: 'neutral' },
+    ai_task: { label: 'Automation', icon: 'Bot', tone: 'neutral' },
     // 'cowork' is its own category rather than reusing 'ai_task' because the
-    // client labels ai_task "Routine" — a different feature, in a different
+    // client labels ai_task "Automation" — a different feature, in a different
     // part of the app — and a cowork result announced itself under someone
     // else's name. Keep the two apart.
     cowork: { label: 'Cowork', icon: 'Handshake', tone: 'neutral' },

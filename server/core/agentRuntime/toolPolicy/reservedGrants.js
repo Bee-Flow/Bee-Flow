@@ -1,6 +1,6 @@
 /**
  * The grants that are NOT keyed on an app — the `RESERVED_TOOL_KEYS`, on the
- * READ side: which routines an agent is offered and whether they ask first,
+ * READ side: which automations an agent is offered and whether they ask first,
  * and which datatables `datatable_query` may read, whose rows and which
  * columns.
  *
@@ -19,8 +19,8 @@ const {
 /**
  * The granted automations as `{ id: { confirm } }` (empty object when none).
  *
- * Read by `getIntegrationTools`, which narrows the caller-keyed routine set to
- * these ids, and by `automationConfirmsFor` for the per-routine confirm.
+ * Read by `getIntegrationTools`, which narrows the caller-keyed automation set to
+ * these ids, and by `automationConfirmsFor` for the per-automation confirm.
  */
 function automationGrantsOf(toolsConfig) {
     if (!toolsConfig || !_plainObject(toolsConfig.automations)) return {};
@@ -91,11 +91,11 @@ function _datatableColumns(raw) {
 }
 
 /**
- * `toolName → 'direct'|'ask'` for the granted routines whose grant carries a
+ * `toolName → 'direct'|'ask'` for the granted automations whose grant carries a
  * `confirm`. Empty Map when the agent curates no automations, so passing this
  * everywhere costs an uncurated agent nothing.
  *
- * A routine's tool name is per-user and built at assembly time
+ * An automation's tool name is per-user and built at assembly time
  * (`automation_<id>`, or the author's own `toolName`), so the grant — which is
  * keyed on the automation ID — can only be matched against the ASSEMBLED
  * stack. That is why this takes `tools` and not just a config: without the

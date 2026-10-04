@@ -13,16 +13,16 @@
 // `trigger_type`/`schedule_cron`/`schedule_tz` columns and `next_run_at`,
 // never by reading the JSON (automation/triggerColumns.js), and activation
 // arms whatever those columns say. The restore wrote `definition` alone, so
-// restoring a version with a different trigger left the routine firing on the
+// restoring a version with a different trigger left the automation firing on the
 // schedule of the version it replaced — or never firing on the schedule it
-// now showed — and an active routine's app-event subscription and extra
+// now showed — and an active automation's app-event subscription and extra
 // schedules kept listening for the old criteria. All under a 200.
 //
 // The FORM is part of that too. PUT provisions a form trigger's public page
 // and its answers table on every save; the restore did neither, and it
 // reconciled the dependents index without the answers table's row — the index
-// is delete-then-insert, so every restore of a form routine ERASED that row:
-// the table stopped naming the routine as a user, and deleting the table no
+// is delete-then-insert, so every restore of a form automation ERASED that row:
+// the table stopped naming the automation as a user, and deleting the table no
 // longer warned. And a table that was unlinked when collection was switched
 // off stayed unlinked after restoring a version that collects, so the form
 // said it collected while every answer was dropped (formAnswers/write.js skips
@@ -74,7 +74,7 @@ async function provisionForm(automation, definition) {
         out = await formAnswers.ensureAnswersTable(automation, definition);
     } catch (e) {
         log.warn(`[automation restore] answers table for ${automation.id}: ${e.message}`);
-        out = { table: null, error: { code: 'provision_failed', message: 'The answers table could not be updated; saving the routine again retries it.' } };
+        out = { table: null, error: { code: 'provision_failed', message: 'The answers table could not be updated; saving the automation again retries it.' } };
     }
     if (!out) return { answers: null, usage: [] };
     if (!out.table) return { answers: { datatableId: null, created: false, changed: false, error: out.error || null }, usage: [] };
@@ -164,7 +164,7 @@ router.post('/:id/versions/:versionId/restore', validate({ body: NoBody, query: 
         if (!nextRunAt) return res.status(400).json({ error: `Stored version no longer validates: its schedule "${columns.scheduleCron}" has no upcoming run time.` });
     }
 
-    // Handoff 5: on a routine with a live version a restore lands in the
+    // Handoff 5: on an automation with a live version a restore lands in the
     // WORKING copy, like any save — the schedule and triggers keep following
     // the live definition until the restored version is published.
     const hasLive = a.liveVersion != null;
@@ -191,7 +191,7 @@ router.post('/:id/versions/:versionId/restore', validate({ body: NoBody, query: 
     // PUT /:id, so a base the restored version stopped writing to would go
     // on claiming a live feed in the Knowledge Studio.
     await syncKbSources(a.id, version.definition, { userId: a.userId || userId, title: a.title });
-    // An ACTIVE routine listens on more than the row: its app-event
+    // An ACTIVE automation listens on more than the row: its app-event
     // subscription and its additional schedules. Same fingerprint gates as
     // PUT /:id, so restoring a version with the same trigger does not
     // re-anchor a poller cursor or a slot.

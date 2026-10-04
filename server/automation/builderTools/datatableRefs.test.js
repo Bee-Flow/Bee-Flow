@@ -169,17 +169,17 @@ test('a table alias is not consumed when datatableId is already set, nor when it
 test('a literal binding on datatableId is unwrapped to its string, with the build-time note', () => {
     const r = translateDatatableVocabulary({ datatableId: { kind: 'literal', value: 'Facturen' } });
     assert.strictEqual(r.args.datatableId, 'Facturen');
-    assert.deepStrictEqual(r.notes, ['datatableId was sent as a binding object — the table is chosen when the routine is built, not at run time; read as "Facturen".']);
+    assert.deepStrictEqual(r.notes, ['datatableId was sent as a binding object — the table is chosen when the automation is built, not at run time; read as "Facturen".']);
     const viaAlias = translateDatatableVocabulary({ table: { kind: 'literal', value: 'tbl_1a2b3c' } });
     assert.strictEqual(viaAlias.args.datatableId, 'tbl_1a2b3c');
     assert.strictEqual(viaAlias.notes.length, 2, 'alias read + binding unwrap are both said');
 });
 
-test('a ref/template/expr binding on the table is refused — a routine cannot pick its table at run time', () => {
+test('a ref/template/expr binding on the table is refused — an automation cannot pick its table at run time', () => {
     for (const b of [{ kind: 'ref', path: 'vars.table' }, { kind: 'template', template: '{{vars.t}}' }, { kind: 'expr', expr: 'vars.t' }]) {
         const r = translateDatatableVocabulary({ datatableId: b });
         assertRejected(r, `datatableId ${b.kind}`);
-        assert.match(r.error, /cannot be a ref or template — a routine cannot pick its table at run time/);
+        assert.match(r.error, /cannot be a ref or template — an automation cannot pick its table at run time/);
         assert.match(r._fixHint, /datatableId is a binding/);
     }
     const key = translateDatatableVocabulary({ datatableId: 'tbl_1', datatableKey: { kind: 'ref', path: 'vars.k' } });

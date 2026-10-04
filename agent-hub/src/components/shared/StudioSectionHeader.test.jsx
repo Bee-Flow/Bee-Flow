@@ -47,7 +47,7 @@ describe('StudioSectionHeader — tile, title, chip', () => {
     });
 
     it('resolves aliases and keeps the trigger shape for an automation', () => {
-        renderHeader({ kind: 'routine' });
+        renderHeader({ kind: 'automation' });
         const tile = screen.getByTestId('studio-section-kind');
         expect(tile.dataset.kind).toBe('automation');
         expect(tile.style.borderRadius).toBe('14px 8px 8px 14px');

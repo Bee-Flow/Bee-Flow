@@ -118,10 +118,10 @@ const GROUPS = () => ([
 ]);
 
 /**
- * Which agents attach each skill and which routine AI steps apply it — the
+ * Which agents attach each skill and which automation AI steps apply it — the
  * rows behind the detail's "Used by" tab, in the shared/UsedByTab contract
  * ({ kind, id, title, role, siteLabel?, stepId?, lastAt, ownerId }). The
- * agents and routines named here are invented; the demo mounts SkillsStudio
+ * agents and automations named here are invented; the demo mounts SkillsStudio
  * with `onNavigate: null`, so the tab renders them as plain text and none
  * of these ids ever needs a page behind it.
  *
@@ -142,7 +142,7 @@ const USAGE = () => ({
         { kind: 'agent', id: 'ag_demo_support', title: 'Support assistant', role: 'chat', lastAt: daysAgo(6), ownerId: null },
     ],
     skl_demo_review: [
-        // A colleague's routine: UsedByTab renders it as plain text that says
+        // A colleague's automation: UsedByTab renders it as plain text that says
         // whose it is — a real state worth showing, not a broken link.
         { kind: 'automation', id: 'auto_demo_contract_intake', title: 'Contract intake triage', role: 'ai_step', siteLabel: 'step Compare against standard positions', stepId: 'step_compare', lastAt: daysAgo(12), ownerId: 'demo-colleague' },
     ],
@@ -153,7 +153,7 @@ const USAGE = () => ({
 
 /**
  * What the step editor's pickers may point a step at (useSkillPickerData).
- * Only the `agent_call`-trigger routine is ever offered — the client
+ * Only the `agent_call`-trigger automation is ever offered — the client
  * filters (skillModel.isAgentCallable) — and the schedule-triggered one is
  * here precisely so that filter has something real to leave out.
  */

@@ -97,7 +97,7 @@ export function newStageKey(stages) {
  * A stage nobody sits in is DROPPED rather than persisted: validate.js treats
  * `approval.stages_invalid` as an integrity problem (it is not in
  * COMPLETENESS_CODES), so a half-picked stage in the payload would 400 the
- * whole routine's save. The editor says so on the row instead of letting the
+ * whole automation's save. The editor says so on the row instead of letting the
  * save fail. Author keys are preserved verbatim — only an absent or colliding
  * key is replaced.
  */

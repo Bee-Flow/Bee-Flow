@@ -1,7 +1,7 @@
 // @typecheck
 /**
  * Self-service OAuth credential management — list and revoke the long-lived
- * provider credentials the routine vault holds for the signed-in user.
+ * provider credentials the automation vault holds for the signed-in user.
  *
  * No request schema: neither route reads a body or a query. `:provider` stays
  * free text on purpose — the vault holds whatever providers the connectors
@@ -13,12 +13,12 @@ const express = require('express');
 const log = require('../../telemetry/log');
 const router = express.Router();
 
-const routineCredentialStore = require('../../stores/routineCredentialStore');
+const automationCredentialStore = require('../../stores/automationCredentialStore');
 
 // === Self-service OAuth credential management ===
 //
 // Lets a signed-in user inspect and revoke the long-lived OAuth credentials
-// the routine vault holds on their behalf. Revoking deletes the local row
+// the automation vault holds on their behalf. Revoking deletes the local row
 // AND calls the provider's revocation endpoint when one is known — so
 // background runners stop using the credential immediately, and Google /
 // Microsoft can clean up their issued tokens. Failures on the provider
@@ -36,7 +36,7 @@ function _requireAuthedUser(req, res) {
 router.get('/integrations/credentials', async (req, res) => {
     const userId = _requireAuthedUser(req, res);
     if (!userId) return;
-    const list = await routineCredentialStore.listProvidersForUser(userId);
+    const list = await automationCredentialStore.listProvidersForUser(userId);
     res.json({ credentials: list });
 });
 
@@ -45,7 +45,7 @@ router.get('/integrations/credentials', async (req, res) => {
  *
  * For Google that is the REFRESH token when the vault has one: revoking it
  * ends the whole grant, and it is the one that stays valid. The vault's access
- * token lives an hour and is only refreshed when a routine runs, so it is
+ * token lives an hour and is only refreshed when an automation runs, so it is
  * usually expired by the time somebody disconnects — and Google answers an
  * expired access token with `invalid_token` and revokes nothing, leaving the
  * grant (and the refresh token) live on the account after "disconnect".
@@ -96,7 +96,7 @@ async function _revokeAtProvider(provider, token) {
  * Returns { found, deleted, providerRevokeAttempted, providerRevokeOk }.
  */
 async function revokeProviderCredential(userId, provider) {
-    const cred = await routineCredentialStore.getCredential(userId, provider);
+    const cred = await automationCredentialStore.getCredential(userId, provider);
     if (!cred) return { found: false };
 
     // 1. Provider-side revoke (best-effort).
@@ -108,8 +108,8 @@ async function revokeProviderCredential(userId, provider) {
 
     // 2. Mark revoked first (so a partial failure leaves the row in a
     // refusable state), then delete.
-    await routineCredentialStore.markRevoked(userId, provider).catch(() => {});
-    const deleted = await routineCredentialStore.deleteCredential(userId, provider);
+    await automationCredentialStore.markRevoked(userId, provider).catch(() => {});
+    const deleted = await automationCredentialStore.deleteCredential(userId, provider);
 
     // 3. Audit. Uses the access_audit_log added in C7 — same shape as
     // credential.delete from configStore.

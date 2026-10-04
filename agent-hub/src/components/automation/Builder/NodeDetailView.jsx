@@ -194,7 +194,7 @@ export default function NodeDetailView({
         <div
             data-surface="default"
             role="dialog"
-            aria-label={t('routines.ndv.edit_step', 'Edit {name}', { name: title })}
+            aria-label={t('automations.ndv.edit_step', 'Edit {name}', { name: title })}
             data-testid="ndv-drawer"
             data-density={quick ? 'quick' : 'full'}
             ref={drawerRef}
@@ -206,7 +206,7 @@ export default function NodeDetailView({
                 <div
                     role="separator"
                     aria-orientation="horizontal"
-                    aria-label={t('routines.ndv.resize_editor', 'Resize the step editor')}
+                    aria-label={t('automations.ndv.resize_editor', 'Resize the step editor')}
                     onPointerDown={onHResizeDown}
                     onPointerMove={onHResizeMove}
                     onPointerUp={onHResizeUp}
@@ -261,7 +261,7 @@ export default function NodeDetailView({
                             <NdvColumnHeader
                                 n={1}
                                 testId="ndv-col-input"
-                                title={t('routines.ndv.col_comes_in', 'Comes in')}
+                                title={t('automations.ndv.col_comes_in', 'Comes in')}
                                 summary={incomingSummary(groups, previewSample, inSummary, walkPath, t)}
                             >
                                 {activeLabel && <span className="text-[11px] text-[var(--text-secondary)] truncate max-w-[140px]">→ {activeLabel}</span>}
@@ -291,15 +291,15 @@ export default function NodeDetailView({
                                 n={2}
                                 active
                                 testId="ndv-col-params"
-                                title={t('routines.ndv.col_does', 'What this step does')}
+                                title={t('automations.ndv.col_does', 'What this step does')}
                                 summary={whatItDoes(step, catalog, t)}
                             >
                                 {/* "runs 4× · one per bank" (artboard 2b): a step in a loop runs once per item. */}
                                 {loopContext && (
                                     <span className="shrink-0 px-[7px] rounded-full text-[11px] font-semibold leading-[18px] bg-[color-mix(in_srgb,var(--type-loop)_16%,transparent)] text-[var(--type-loop)]" data-testid="ndv-runs-pill">
                                         {loopContext.listLabel
-                                            ? t('routines.ndv.runs_n_times_per', 'runs {n}× · one per {list}', { n: loopContext.runs, list: loopContext.listLabel })
-                                            : t('routines.ndv.runs_n_times', 'runs {n}×', { n: loopContext.runs })}
+                                            ? t('automations.ndv.runs_n_times_per', 'runs {n}× · one per {list}', { n: loopContext.runs, list: loopContext.listLabel })
+                                            : t('automations.ndv.runs_n_times', 'runs {n}×', { n: loopContext.runs })}
                                     </span>
                                 )}
                                 {onModeChange && !isTrigger && <FormModeToggle mode={effectiveMode} onChange={onModeChange} size="sm" />}

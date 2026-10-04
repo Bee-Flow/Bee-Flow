@@ -12,7 +12,7 @@ vi.mock('../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
  * they hand a decision word to `approveRun`, and the route asserts it reads
  * `req.body.decision` — but only this file proves the word actually becomes a
  * request body. When it did not, Reject reached a server that reads a missing
- * decision as an approval, ran the routine, and cleared the gate for good.
+ * decision as an approval, ran the automation, and cleared the gate for good.
  */
 
 const ok = (body = {}) => ({ ok: true, status: 200, json: () => Promise.resolve(body) });

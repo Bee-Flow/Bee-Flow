@@ -11,7 +11,7 @@ import { Sparkles, Clock, BookOpen, Globe, Workflow, Brain, Zap } from 'lucide-r
 export function pickBetaIcon(idOrName) {
     const s = (idOrName || '').toLowerCase();
     if (s.includes('skill')) return <Sparkles className="w-4 h-4" />;
-    if (s.includes('routine')) return <Clock className="w-4 h-4" />;
+    if (s.includes('automation')) return <Clock className="w-4 h-4" />;
     if (s.includes('knowledge') || s.includes('kb')) return <BookOpen className="w-4 h-4" />;
     if (s.includes('webpage') || s.includes('web')) return <Globe className="w-4 h-4" />;
     if (s.includes('automation')) return <Workflow className="w-4 h-4" />;

@@ -4,7 +4,9 @@
   "estMinutes": 12,
   "title": "Connect your own tools",
   "desc": "How to connect a tool to your own account, the three rungs that must all say yes, and what changes when a colleague lends you theirs.",
-  "gate": { "feature": "integrations" },
+  "gate": {
+    "feature": "integrations"
+  },
   "learningGoal": "After this lesson you can connect a provider yourself and say which of the three rungs — plan, grant, or your own credential — is missing when a tool does not appear.",
   "steps": [
     {
@@ -24,7 +26,7 @@
       "timeoutMs": 7000,
       "icon": "🧩",
       "title": "This page is rung three",
-      "body": "Settings → Connections lists the integrations your organisation has actually granted you, grouped as Google Workspace, Productivity, Health, Social and Developer. A row expands in place: you either sign in, or you fill in the fields that tool asks for. Once it holds a credential it shows a green Connected badge."
+      "body": "Settings → Connections lists the integrations your organisation has actually granted you, under headings such as Google Workspace, Productivity, Health, Social and Developer; a heading only shows when something under it is granted to you. A row expands in place: you either sign in, or you fill in the fields that tool asks for. Once it holds a credential it shows a green Connected badge."
     },
     {
       "type": "slide",
@@ -40,10 +42,29 @@
       "question": "Anouk can see the vPlan row on her Connections page, and Marieke granted vPlan to the HR group. Her agent still cannot open the leave planning. What is missing?",
       "multi": false,
       "choices": [
-        { "id": "a", "label": "Her own credential — rung three. She has never opened that row and filled in what vPlan asks for.", "correct": true },
-        { "id": "b", "label": "The subscription does not include vPlan.", "correct": false, "feedback": "If the plan did not include it, the row would not be on her Connections page at all — that page lists only what has cleared the plan and the grant." },
-        { "id": "c", "label": "The grant went to the wrong group.", "correct": false, "feedback": "A missing grant hides the row exactly the way a missing plan does. She can see the row, so the grant reached her." },
-        { "id": "d", "label": "Nothing — an agent picks up a tool automatically once the grant is made.", "correct": false, "feedback": "A grant hands out the right to use a tool, never a credential. Somebody still has to sign in or fill in the fields in that row." }
+        {
+          "id": "a",
+          "label": "Her own credential — rung three. She has never opened that row and filled in what vPlan asks for.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "The subscription does not include vPlan.",
+          "correct": false,
+          "feedback": "If the plan did not include it, the row would not be on her Connections page at all — that page lists only what has cleared the plan and the grant."
+        },
+        {
+          "id": "c",
+          "label": "The grant went to the wrong group.",
+          "correct": false,
+          "feedback": "A missing grant hides the row exactly the way a missing plan does. She can see the row, so the grant reached her."
+        },
+        {
+          "id": "d",
+          "label": "Nothing — an agent picks up a tool automatically once the grant is made.",
+          "correct": false,
+          "feedback": "A grant hands out the right to use a tool, never a credential. Somebody still has to sign in or fill in the fields in that row."
+        }
       ],
       "explanation": "A visible but empty row is the signature of a missing credential. Plan and grant decide whether the row exists at all; you decide whether it holds anything."
     },
@@ -97,14 +118,17 @@
       "checkId": "connection-created",
       "title": "Connect one tool — we'll verify it",
       "instruction": "Open Settings → Connections and create one named connection for a tool you genuinely need. Use Add a connection at the top of the page, pick the provider, give it a name you will recognise later such as \"GitHub – Van Dijk\", fill the credential fields and press Create connection. Leave it unshared for now — the check only looks for a connection you own.",
-      "launch": { "navigateTo": "settings/integrations", "label": "Open Connections" }
+      "launch": {
+        "navigateTo": "settings/integrations",
+        "label": "Open Connections"
+      }
     },
     {
       "type": "slide",
       "id": "byo",
       "icon": "🙋",
       "title": "Bring your own is the deliberate default",
-      "bodyMd": "When somebody shares an agent, a routine or a Studio app with you, you do **not** inherit their credentials. The Connections screen says so: *\"Recipients without a lent connection bring their own.\"*\n\nThat is on purpose. Your run then uses your account: the mailbox that gets read is yours, the issue is filed under your name, and your own permissions in the other system still apply. Nobody borrows access by accident.\n\nThe order a run uses is worth remembering. It looks for **your own Default connection first**. Only when you have none does a credential somebody lent you come into play."
+      "bodyMd": "When somebody shares an agent, an automation or a Studio app with you, you do **not** inherit their credentials. The Connections screen says so: *\"Recipients without a lent connection bring their own.\"*\n\nThat is on purpose. Your run then uses your account: the mailbox that gets read is yours, the issue is filed under your name, and your own permissions in the other system still apply. Nobody borrows access by accident.\n\nThe order a run uses is worth remembering. It looks for **your own Default connection first**. Only when you have none does a credential somebody lent you come into play."
     },
     {
       "type": "slide",
@@ -120,10 +144,29 @@
       "question": "A colleague lends you her YouTrack connection for a two-week pilot. You ask your agent to file an issue, and it works. Whose account did that use?",
       "multi": false,
       "choices": [
-        { "id": "a", "label": "Hers. A lend is full delegation — your run used her credential, and YouTrack records her name.", "correct": true },
-        { "id": "b", "label": "Yours, because accepting a lend copies the credential into your own Connections.", "correct": false, "feedback": "Nothing is copied. The secret stays in her connection and never comes back out of any screen; you get the use of it, not the credential itself." },
-        { "id": "c", "label": "Yours, because you are the one who typed the request.", "correct": false, "feedback": "The request is yours, the credential is not. Everything the run does in the other system is done as her — which is why a lend is worth a conversation before it is worth a click." },
-        { "id": "d", "label": "Neither — a lend only makes the row visible, and you still have to add your own credential.", "correct": false, "feedback": "That is bring-your-own, which is what happens when nothing is lent. An active lend really does apply — although your own Default connection for that provider would win over it." }
+        {
+          "id": "a",
+          "label": "Hers. A lend is full delegation — your run used her credential, and YouTrack records her name.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Yours, because accepting a lend copies the credential into your own Connections.",
+          "correct": false,
+          "feedback": "Nothing is copied. The secret stays in her connection and never comes back out of any screen; you get the use of it, not the credential itself."
+        },
+        {
+          "id": "c",
+          "label": "Yours, because you are the one who typed the request.",
+          "correct": false,
+          "feedback": "The request is yours, the credential is not. Everything the run does in the other system is done as her — which is why a lend is worth a conversation before it is worth a click."
+        },
+        {
+          "id": "d",
+          "label": "Neither — a lend only makes the row visible, and you still have to add your own credential.",
+          "correct": false,
+          "feedback": "That is bring-your-own, which is what happens when nothing is lent. An active lend really does apply — although your own Default connection for that provider would win over it."
+        }
       ],
       "explanation": "A lend is delegation, not a copy. If you already have your own connection for that provider, the run uses yours first; if you do not, you are working on the lender's account until the share expires or is revoked."
     },

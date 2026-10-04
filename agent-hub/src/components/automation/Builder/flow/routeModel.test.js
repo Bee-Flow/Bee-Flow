@@ -107,7 +107,7 @@ describe('writeRoute picks the narrowest runtime type', () => {
     it('a named rule with no predicate yet still gets its port (a draft is a legal state)', () => {
         // Deliberate: the port has to exist before the author can wire it, and
         // the server downgrades the resulting switch.expr_missing to a warning
-        // while the routine is a draft. Dropping the rule here would delete the
+        // while the automation is a draft. Dropping the rule here would delete the
         // edge already drawn from that port.
         const out = writeRoute({
             mode: 'branch', style: 'rules',
@@ -163,7 +163,7 @@ describe('readRoute keeps the style the author chose (BFSF-356)', () => {
         expect(resaved.cases.every(c => 'expr' in c)).toBe(true);
     });
 
-    it('a routine ALREADY saved with a half-typed rule opens as rules, not value', () => {
+    it('an automation ALREADY saved with a half-typed rule opens as rules, not value', () => {
         // No routeStyle (saved by the old code), one blank case among real
         // rules — the exact wreckage the bug leaves behind. Deriving 'value'
         // here is what wiped the expressions on the next save.

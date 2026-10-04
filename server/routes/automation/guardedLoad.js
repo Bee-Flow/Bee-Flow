@@ -1,5 +1,5 @@
 /**
- * The first lines of every handler on one routine: read it, and check the
+ * The first lines of every handler on one automation: read it, and check the
  * caller's role against what the route needs (automation/access.js guard).
  *
  *   const load = makeGuardedLoad(store, access);

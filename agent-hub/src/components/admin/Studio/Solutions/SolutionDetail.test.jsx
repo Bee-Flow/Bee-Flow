@@ -1,6 +1,6 @@
 import { act, fireEvent, render, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { afterEach, describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('../../../../utils/helpers', () => ({
     API_BASE: '',
@@ -21,6 +21,11 @@ vi.mock('../../../projects/workspace/ProjectMembersPanel', () => ({
             <button type="button" data-testid="members-panel-left" onClick={() => onLeft?.()}>left</button>
         </div>
     ),
+}));
+
+// The licence context is app-wide; the settings page only asks whether approvals are licensed.
+vi.mock('../../../licensing/LicenseContext', () => ({
+    useLicenseContext: () => ({ hasFeature: () => true, entDegraded: false, entError: null }),
 }));
 
 import SolutionDetail from './SolutionDetail';
@@ -295,5 +300,199 @@ describe('who can open the Solution', () => {
         await waitFor(() => expect(globalThis.__authFetch.mock.calls.some(([u]) => String(u).includes('/resources'))).toBe(true));
         await userEvent.click(await findByTestId('solution-manage-access'));
         expect((await findByTestId('members-panel')).textContent).toBe('p1:viewer:u2');
+    });
+});
+
+describe('a Solution with stages', () => {
+    const DEV = { aheadOf: null, checks: { blocked: false, count: 0 } };
+    const UAT = {
+        stage: 'uat', projectId: 'p_uat', currentRelease: { id: 'rel_7', seq: 7 }, previousRelease: null,
+        lastDeployment: { id: 'd7', status: 'succeeded', kind: 'deploy', releaseSeq: 7, finishedAt: '2026-10-01T10:00:00Z' },
+        pending: null, bindingsPending: false, enabled: true, role: 'owner',
+    };
+    const PRD = { ...UAT, stage: 'prd', projectId: 'p_prd', currentRelease: { id: 'rel_5', seq: 5 }, lastDeployment: null };
+    const STAGE_RESOURCES = {
+        role: 'owner', notebooks: [],
+        apps: [{ id: 'a1', name: 'Desk', userId: 'u1' }],
+        automations: [{ id: 'r1', name: 'Check VAT', userId: 'u1', isActive: true }],
+        webpages: [], approvals: [],
+    };
+
+    function mockStages({ pipeline = { dev: DEV, stages: [UAT, PRD], releases: [] }, pipelineOk = true, pipelineStatus = 500 } = {}) {
+        globalThis.__authFetch = vi.fn(async (url) => {
+            const ok = (body) => ({ ok: true, status: 200, json: async () => body });
+            if (url.endsWith('/pipeline')) return pipelineOk ? ok(pipeline) : { ok: false, status: pipelineStatus, json: async () => ({}) };
+            if (url.includes('/p_uat/resources')) return ok(STAGE_RESOURCES);
+            if (url.includes('/p_uat/graph')) return ok({ nodes: [], edges: [], externals: [], problems: [], unavailable: [], complete: true });
+            if (url.includes('/p_uat/stages') || url.includes('/stages/uat')) return ok({ enabled: true, bindingsPending: false, inbound: [{ kind: 'webhook', label: 'Webhook', url: 'https://x.example/webhook/abc' }] });
+            if (url.includes('/deployments')) return ok({ deployments: [{ id: 'd7', status: 'succeeded', kind: 'deploy', releaseSeq: 7 }] });
+            if (url.includes('/resources')) return ok({ role: 'owner', notebooks: [], apps: [], automations: [], webpages: [], approvals: [] });
+            if (url.includes('/completeness')) return ok(CLEAN);
+            if (url.includes('/package/blueprints')) return ok({ blueprints: [] });
+            if (url.includes('/members')) return ok({ ownerId: 'u1', members: [] });
+            return ok({});
+        });
+    }
+    const project = { id: 'p1', name: 'Quotes', permission: 'owner', installedFromBlueprintId: null, update: null };
+    const urlStage = () => new URLSearchParams(window.location.search).get('stage');
+    afterEach(() => window.history.replaceState(null, '', '/'));
+
+    it('shows the stage rail and a Pipeline tab for Dev', async () => {
+        mockStages();
+        const { findByTestId, findByText } = render(<SolutionDetail project={project} onBack={() => {}} />);
+        expect(await findByTestId('stage-rail')).toBeTruthy();
+        expect(await findByText('Pipeline')).toBeTruthy();
+    });
+
+    it('a Solution without stages shows the rail with Set up stages, and the stages open nothing', async () => {
+        mockStages({ pipeline: { dev: DEV, stages: [], releases: [] } });
+        const { findByTestId } = render(<SolutionDetail project={project} onBack={() => {}} />);
+        expect((await findByTestId('stage-rail-action')).textContent).toBe('Set up stages');
+        expect((await findByTestId('stage-rail-uat')).tagName).toBe('DIV');
+    });
+
+    it('a pipeline that could not be read keeps Dev and the Pipeline tab, and says so there', async () => {
+        mockStages({ pipelineOk: false });
+        const user = userEvent.setup();
+        const { findByTestId, findByText, queryByTestId } = render(<SolutionDetail project={project} onBack={() => {}} />);
+        await findByTestId('solution-publish');
+        expect(queryByTestId('stage-rail')).toBeNull();
+        await user.click(await findByText('Pipeline'));
+        const problem = await findByTestId('pipeline-read-problem');
+        expect(problem.getAttribute('data-state')).toBe('unreadable');
+    });
+
+    it('a Solution that is not licensed for stages says so in the Pipeline tab', async () => {
+        mockStages({ pipelineOk: false, pipelineStatus: 402 });
+        const user = userEvent.setup();
+        const { findByText, findByTestId } = render(<SolutionDetail project={project} onBack={() => {}} />);
+        await user.click(await findByText('Pipeline'));
+        expect((await findByTestId('pipeline-read-problem')).getAttribute('data-state')).toBe('no_licence');
+    });
+
+    it('a pipeline that does not exist for this project (404) has no Pipeline tab', async () => {
+        mockStages({ pipelineOk: false, pipelineStatus: 404 });
+        const { findByTestId, queryByText } = render(<SolutionDetail project={project} onBack={() => {}} />);
+        await findByTestId('solution-publish');
+        expect(queryByText('Pipeline')).toBeNull();
+    });
+
+    it('choosing UAT opens its Status, mirrors ?stage= and hides rename, publish and adding', async () => {
+        mockStages();
+        const user = userEvent.setup();
+        const { findByTestId, queryByTestId } = render(<SolutionDetail project={project} onBack={() => {}} />);
+        // On Dev the name is a rename button.
+        expect((await findByTestId('studio-section-title')).tagName).toBe('BUTTON');
+
+        await user.click(await findByTestId('stage-rail-uat'));
+        expect(await findByTestId('stage-status')).toBeTruthy();
+        expect((await findByTestId('stage-status-release')).textContent).toBe('Release 7');
+        expect(urlStage()).toBe('uat');
+        // The stage is read from its own project id.
+        expect(globalThis.__authFetch.mock.calls.some(([u]) => String(u).includes('/api/projects/p_uat/resources'))).toBe(true);
+        expect((await findByTestId('studio-section-title')).tagName).toBe('H1');
+        expect(queryByTestId('solution-publish')).toBeNull();
+        expect(queryByTestId('solution-export')).toBeNull();
+        expect(queryByTestId('solution-manage-access')).toBeNull();
+        expect((await findByTestId('stage-addresses')).textContent).toMatch(/webhook\/abc/);
+    });
+
+    it('the stage Content has no add and no remove', async () => {
+        mockStages();
+        const user = userEvent.setup();
+        window.history.replaceState(null, '', '/?stage=uat');
+        const { findByRole, findByText, queryByTestId, container } = render(<SolutionDetail project={project} onBack={() => {}} currentUserId="u1" />);
+        await user.click(await findByRole('radio', { name: /Content/ }));
+        expect(await findByText('Check VAT')).toBeTruthy();
+        expect(queryByTestId('solution-add-resource')).toBeNull();
+        // The row would offer a remove button to its owner on Dev.
+        expect(container.querySelectorAll('[data-testid="solution-row"] button').length).toBe(2);
+    });
+
+    it('History lists the deployments of that stage', async () => {
+        mockStages();
+        window.history.replaceState(null, '', '/?stage=uat');
+        const user = userEvent.setup();
+        const { findByText, findAllByTestId } = render(<SolutionDetail project={project} onBack={() => {}} />);
+        await user.click(await findByText('History'));
+        expect((await findAllByTestId('stage-history-row'))).toHaveLength(1);
+        expect(globalThis.__authFetch.mock.calls.some(([u]) => String(u).includes('/api/projects/p1/deployments?stage=uat'))).toBe(true);
+    });
+
+    it('a stage the pipeline does not list falls back to Dev', async () => {
+        mockStages({ pipeline: { dev: DEV, stages: [UAT], releases: [] } });
+        window.history.replaceState(null, '', '/?stage=prd');
+        const { findByTestId, queryByTestId } = render(<SolutionDetail project={project} onBack={() => {}} />);
+        expect(await findByTestId('solution-publish')).toBeTruthy();
+        expect(queryByTestId('stage-status')).toBeNull();
+    });
+
+    it('a stage-only operator (no Dev role) gets the stage and no Dev option', async () => {
+        mockStages({ pipeline: { dev: null, stages: [UAT], releases: null } });
+        const { findByTestId, queryByTestId } = render(
+            <SolutionDetail project={{ id: 'p1', name: 'Quotes' }} onBack={() => {}} initialStage="uat" />,
+        );
+        expect(await findByTestId('stage-status')).toBeTruthy();
+        expect(queryByTestId('stage-rail-dev')).toBeNull();
+    });
+});
+
+describe('the Settings tab', () => {
+    const DEV = { aheadOf: null, checks: { blocked: false, count: 0 } };
+    const row = (stage, projectId) => ({
+        stage, projectId, currentRelease: { id: 'rel_7', seq: 7 }, previousRelease: null, lastDeployment: null,
+        pending: null, bindingsPending: false, enabled: true, role: 'owner',
+    });
+    const SETTINGS = {
+        stage: 'uat', projectId: 'p_uat', settingsVersion: 2, enabled: true, paused: false, newPartsActive: true,
+        runAs: { userId: 'u1', name: 'Olga' }, requiresApproval: false, approvalPolicy: null, rollbackNeedsApproval: false,
+        bindingsPending: false, currentRelease: { id: 'rel_7', seq: 7 }, role: 'owner', parts: [], inbound: [],
+    };
+    function mockSettings() {
+        globalThis.__authFetch = vi.fn(async (url) => {
+            const ok = (body) => ({ ok: true, status: 200, json: async () => body });
+            if (url.endsWith('/pipeline')) return ok({ dev: DEV, stages: [row('uat', 'p_uat'), row('prd', 'p_prd')], releases: [] });
+            if (url.endsWith('/stages/uat')) return ok(SETTINGS);
+            if (url.endsWith('/stages/uat/requirements')) return ok({ release: { id: 'rel_7', seq: 7 }, requirements: [] });
+            if (url.endsWith('/stages/uat/variables')) return ok({ variables: [], values: [] });
+            if (url.endsWith('/api/projects/p1/variables')) return ok({ variables: [] });
+            if (url.includes('/resources')) return ok({ role: 'owner', notebooks: [], apps: [], automations: [], webpages: [], approvals: [] });
+            if (url.includes('/graph')) return ok({ nodes: [], edges: [], externals: [], problems: [], unavailable: [], complete: true });
+            if (url.includes('/completeness')) return ok(CLEAN);
+            if (url.includes('/package/blueprints')) return ok({ blueprints: [] });
+            if (url.includes('/members')) return ok({ ownerId: 'u1', members: [] });
+            return ok({});
+        });
+    }
+    const project = { id: 'p1', name: 'Quotes', permission: 'owner', installedFromBlueprintId: null, update: null };
+    afterEach(() => window.history.replaceState(null, '', '/'));
+
+    it('Settings is a tab on a stage, not on Dev', async () => {
+        mockSettings();
+        const user = userEvent.setup();
+        const { findByRole, findByTestId, queryByRole } = render(<SolutionDetail project={project} onBack={() => {}} currentUserId="u1" />);
+        await findByTestId('stage-rail');
+        expect(queryByRole('radio', { name: /Settings/ })).toBeNull();
+        await user.click(await findByTestId('stage-rail-uat'));
+        await user.click(await findByRole('radio', { name: /Settings/ }));
+        expect(await findByTestId('stage-settings')).toBeTruthy();
+        // The settings of the STAGE are read, by the Dev id and the stage name.
+        expect(globalThis.__authFetch.mock.calls.some(([u]) => String(u) === '/api/projects/p1/stages/uat')).toBe(true);
+    });
+
+    it('?tab=settings opens it, which is where the managed-part banners link to', async () => {
+        mockSettings();
+        window.history.replaceState(null, '', '/?stage=uat&tab=settings');
+        const { findByTestId } = render(<SolutionDetail project={project} onBack={() => {}} currentUserId="u1" />);
+        expect(await findByTestId('stage-settings')).toBeTruthy();
+    });
+
+    it('Dev has no stage settings, and its Pipeline tab hosts the variable declarations', async () => {
+        mockSettings();
+        const user = userEvent.setup();
+        const { findByText, findByTestId, queryByTestId } = render(<SolutionDetail project={project} onBack={() => {}} currentUserId="u1" />);
+        await user.click(await findByText('Pipeline'));
+        expect(await findByTestId('variable-declarations')).toBeTruthy();
+        expect(queryByTestId('stage-settings')).toBeNull();
     });
 });

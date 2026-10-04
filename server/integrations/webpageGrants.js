@@ -113,7 +113,7 @@ async function revokeIntegration({ webpageId, userId, tool }, _deps = {}) {
 
 /**
  * Grant one of the author's OWN automations to a webpage (the bridge runs
- * acts-as-author, so lending someone else's routine would be a privilege
+ * acts-as-author, so lending someone else's automation would be a privilege
  * escalation — same check the chat tool has always done).
  */
 async function grantAutomation({ webpageId, userId, automationId, label }, _deps = {}) {

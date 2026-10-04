@@ -24,18 +24,18 @@ export default function WorkModePicker({ value = 'approve', onChange, disabled =
     return <div ref={ref} className="relative min-w-0">
         <button type="button" disabled={disabled} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(!open)}
             className="flex items-center gap-1.5 min-w-0 rounded-lg px-2 py-1.5 text-[11px] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-50">
-            <selected.Icon size={13} className="shrink-0" /><span className="truncate">{t(`routines.assistant.mode.${selected.key}`, selected.label)}</span><ChevronDown size={11} className="shrink-0" />
+            <selected.Icon size={13} className="shrink-0" /><span className="truncate">{t(`automations.assistant.mode.${selected.key}`, selected.label)}</span><ChevronDown size={11} className="shrink-0" />
         </button>
-        {open && <div role="menu" aria-label={t('routines.assistant.work_mode', 'Work mode')}
+        {open && <div role="menu" aria-label={t('automations.assistant.work_mode', 'Work mode')}
             className="absolute bottom-full left-0 mb-2 z-50 w-[min(320px,calc(100vw-48px))] max-w-[calc(100cqw-24px)] rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] p-1.5 shadow-lg">
-            <div className="flex justify-between p-2 text-[11px] text-[var(--text-tertiary)]"><span>{t('routines.assistant.work_mode', 'Work mode')}</span><span>⇧ Tab</span></div>
+            <div className="flex justify-between p-2 text-[11px] text-[var(--text-tertiary)]"><span>{t('automations.assistant.work_mode', 'Work mode')}</span><span>⇧ Tab</span></div>
             {WORK_MODES.map(m => <button key={m.id} type="button" role="menuitemradio" aria-checked={value === m.id}
                 onClick={() => { onChange(m.id); setOpen(false); }} className={`flex w-full gap-2.5 rounded-lg p-2.5 text-left ${value === m.id ? 'bg-[var(--bg-secondary)]' : 'hover:bg-[var(--bg-secondary)]'}`}>
                 <m.Icon size={15} className="mt-0.5 shrink-0 text-[var(--text-secondary)]" />
-                <span className="min-w-0 flex-1"><span className="block text-xs font-medium text-[var(--text-primary)]">{t(`routines.assistant.mode.${m.key}`, m.label)}</span><span className="block mt-0.5 text-[11px] leading-4 text-[var(--text-tertiary)]">{t(`routines.assistant.mode.${m.key}_hint`, m.description)}</span></span>
+                <span className="min-w-0 flex-1"><span className="block text-xs font-medium text-[var(--text-primary)]">{t(`automations.assistant.mode.${m.key}`, m.label)}</span><span className="block mt-0.5 text-[11px] leading-4 text-[var(--text-tertiary)]">{t(`automations.assistant.mode.${m.key}_hint`, m.description)}</span></span>
                 {value === m.id && <Check size={13} className="shrink-0 mt-0.5" />}
             </button>)}
-            {onAlwaysPlanLargeChange && <label className="flex items-center gap-2 border-t border-[var(--border-default)] mt-1 p-2 text-[11px] text-[var(--text-secondary)]"><span className="flex-1">{t('routines.assistant.large_plan', 'Always plan first for large changes (4+ steps)')}</span><input type="checkbox" checked={alwaysPlanLarge} onChange={e => onAlwaysPlanLargeChange(e.target.checked)} /></label>}
+            {onAlwaysPlanLargeChange && <label className="flex items-center gap-2 border-t border-[var(--border-default)] mt-1 p-2 text-[11px] text-[var(--text-secondary)]"><span className="flex-1">{t('automations.assistant.large_plan', 'Always plan first for large changes (4+ steps)')}</span><input type="checkbox" checked={alwaysPlanLarge} onChange={e => onAlwaysPlanLargeChange(e.target.checked)} /></label>}
         </div>}
     </div>;
 }

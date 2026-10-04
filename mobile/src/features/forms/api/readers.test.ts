@@ -36,7 +36,7 @@ describe('the directory and one form', () => {
                 questions: { title: 'Intake', collect: true, fields: [{ name: 'n', type: 'text', label: 'Name', required: true }, { type: 'text' }], theme: { primary: '#000' } },
                 pages: [{ stepId: 's2', label: 'Page two', fields: [{ name: 'more', type: 'textarea' }] }],
                 definition: { trigger: { kind: 'form' } },
-                routineTitle: 'Intake routine',
+                automationTitle: 'Intake automation',
             },
         });
         expect(detail?.questions.fields.map((f) => f.name)).toEqual(['n']);

@@ -45,7 +45,7 @@ async function applyFinalize(draftWrap) {
     const { def } = canonicalizeAppDefinition(dropped.def);
     draftWrap.def = def;
 
-    // Best-effort owned-routines check so a wired automationId the owner does
+    // Best-effort owned-automations check so a wired automationId the owner does
     // not actually have blocks finalize with a precise, fixable error.
     let ownedAutomations;
     try {
@@ -159,7 +159,7 @@ async function persistDraft(draftWrap, { finalize = false } = {}) {
         return { error: CONFLICT_ERROR };
     } catch (e) {
         if (e && e.code === 'definition_too_large') {
-            return { error: `The app definition exceeds the ${LIMITS.MAX_DEFINITION_BYTES}-byte limit — trim large static values (bind data from routines instead of inlining it).` };
+            return { error: `The app definition exceeds the ${LIMITS.MAX_DEFINITION_BYTES}-byte limit — trim large static values (bind data from automations instead of inlining it).` };
         }
         return { error: `Could not save the draft: ${e.message}` };
     }

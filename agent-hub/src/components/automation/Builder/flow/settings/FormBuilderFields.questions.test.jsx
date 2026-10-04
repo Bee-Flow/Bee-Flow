@@ -135,10 +135,10 @@ describe('FormBuilderFields — the per-type controls', () => {
         // No onRenameField here — that is the standalone Forms editor, which can
         // see the form but not the steps that bind it. The name is read-only
         // there, and says where the rename does live.
-        expect(screen.getByText(/Rename it from the routine that uses this form/)).toBeTruthy();
+        expect(screen.getByText(/Rename it from the automation that uses this form/)).toBeTruthy();
     });
 
-    it('lets the binding name be renamed where the whole routine is in scope', () => {
+    it('lets the binding name be renamed where the whole automation is in scope', () => {
         const onRenameField = vi.fn(() => 3);
         const { onChange } = renderEditor(form([text('one', 'One'), text('two', 'Two')]), { onRenameField });
         fireEvent.click(screen.getAllByText('Advanced')[0]);
@@ -147,11 +147,11 @@ describe('FormBuilderFields — the per-type controls', () => {
         fireEvent.change(box, { target: { value: 'contactpersoon' } });
         fireEvent.click(screen.getByRole('button', { name: 'Rename' }));
 
-        // The shell rewrites the routine; the panel also renames its own copy,
+        // The shell rewrites the automation; the panel also renames its own copy,
         // or the node's autosave would put the old name straight back.
         expect(onRenameField).toHaveBeenCalledWith('one', 'contactpersoon');
         expect(onChange.mock.calls.at(-1)[0].fields[0].name).toBe('contactpersoon');
-        expect(screen.getByText(/3 bindings in this routine now point at it/)).toBeTruthy();
+        expect(screen.getByText(/3 bindings in this automation now point at it/)).toBeTruthy();
     });
 
     it('refuses a name the server would reject, or one the page already uses', () => {
@@ -168,7 +168,7 @@ describe('FormBuilderFields — the per-type controls', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Rename' }));
         expect(screen.getByText(/already binds that name/)).toBeTruthy();
 
-        // Neither attempt reached the routine.
+        // Neither attempt reached the automation.
         expect(onRenameField).not.toHaveBeenCalled();
     });
 

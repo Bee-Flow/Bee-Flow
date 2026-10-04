@@ -18,7 +18,7 @@
  *      existing caller keeps its behaviour to the letter.
  *   3. READ ONLY. Filing an app into a project does not make the project's
  *      members its authors: canWriteStudioApp stays owner-only (app actions run
- *      routines acts-as-author), and no write path calls the async predicate.
+ *      automations acts-as-author), and no write path calls the async predicate.
  *
  * Modelled on stores/webpageStore.project.test.js, which pins the same three
  * rules for the webpage half of a Solution.

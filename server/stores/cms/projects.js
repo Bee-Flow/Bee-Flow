@@ -42,7 +42,7 @@ async function setProjectsIndex(index) {
 // concurrent site create/import/delete on another pod can't drop an entry
 // (which would orphan a cms_project_* doc). `mutator(index)` edits the index in
 // place. Use this — not getProjectsIndex→mutate→setProjectsIndex — whenever the
-// set of projects changes. Routine field touches (name/updatedAt via
+// set of projects changes. Automation field touches (name/updatedAt via
 // setProject) stay on the plain path: a lost update there costs only a stale
 // timestamp, never membership.
 async function mutateProjectsIndex(mutator) {

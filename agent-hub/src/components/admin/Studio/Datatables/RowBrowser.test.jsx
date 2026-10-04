@@ -5,7 +5,7 @@ import { datatablesApi } from './datatablesApi';
 import RowBrowser from './RowBrowser';
 
 /**
- * The rows tab, which is where a person actually TOUCHES the data a routine
+ * The rows tab, which is where a person actually TOUCHES the data an automation
  * writes.
  *
  * What is worth pinning here is the typing, because every failure mode it had

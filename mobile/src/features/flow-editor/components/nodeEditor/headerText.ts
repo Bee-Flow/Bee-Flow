@@ -31,5 +31,5 @@ export function headerTitle(step: FlowNode | null, catalog: CatalogLike = null):
 export function headerKicker(step: FlowNode | null, position: FlowPosition, t: TranslateFn): string {
     const kind = stepTypeLabel(step, t);
     if (position.total <= 1 || !position.index) return kind;
-    return `${kind} · ${t('routines.ndv.step_of', 'Step {n} of {total}', { n: position.index, total: position.total })}`;
+    return `${kind} · ${t('automations.ndv.step_of', 'Step {n} of {total}', { n: position.index, total: position.total })}`;
 }

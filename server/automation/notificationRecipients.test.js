@@ -1,5 +1,5 @@
 /**
- * automation/notificationRecipients: who a routine notification reaches.
+ * automation/notificationRecipients: who an automation notification reaches.
  *
  * Run: cd server && node --test automation/notificationRecipients.test.js
  */
@@ -21,7 +21,7 @@ const automation = { id: 'a1', userId: 'owner' };
 let listed = 0;
 const deps = { listUsers: async () => { listed += 1; return USERS; } };
 
-test('owner is the routine owner', async () => {
+test('owner is the automation owner', async () => {
     assert.deepEqual(await resolveRecipientIds({ recipients: [{ type: 'owner' }] }, { automation, orgId: 'org1' }, deps), ['owner']);
 });
 

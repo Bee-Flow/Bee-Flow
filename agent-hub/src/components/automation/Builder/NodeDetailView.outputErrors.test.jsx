@@ -41,7 +41,7 @@ describe('NodeDetailView — the output editor refuses in the user\'s language',
     beforeEach(reset);
 
     it('speaks the invalid-JSON refusal through a key, and keeps the parser message', () => {
-        transOverride.current = { 'routines.ndv.err_invalid_json': 'Ongeldige JSON: {message}' };
+        transOverride.current = { 'automations.ndv.err_invalid_json': 'Ongeldige JSON: {message}' };
         render(<NodeDetailView {...baseProps()} />);
         openEditor();
         type('{ "subject": ');
@@ -60,7 +60,7 @@ describe('NodeDetailView — the output editor refuses in the user\'s language',
         // it said common.remove. On a Dutch install the message pointed at a
         // button that is not on the screen.
         transOverride.current = {
-            'routines.ndv.err_nothing_to_save': 'Niets op te slaan — gebruik {remove} om de bewaarde uitvoer te wissen.',
+            'automations.ndv.err_nothing_to_save': 'Niets op te slaan — gebruik {remove} om de bewaarde uitvoer te wissen.',
             'common.remove': 'Verwijderen',
         };
         // Mounted WITH a saved output, because that is the only state in which
@@ -78,7 +78,7 @@ describe('NodeDetailView — the output editor refuses in the user\'s language',
     });
 
     it('speaks the truncation-sentinel refusal through a key', () => {
-        transOverride.current = { 'routines.ndv.err_truncated_placeholder': 'Dat is de plaatsaanduiding van de server, geen gegevens.' };
+        transOverride.current = { 'automations.ndv.err_truncated_placeholder': 'Dat is de plaatsaanduiding van de server, geen gegevens.' };
         render(<NodeDetailView {...baseProps()} />);
         openEditor();
         type('{"__truncated__":true}');
@@ -89,7 +89,7 @@ describe('NodeDetailView — the output editor refuses in the user\'s language',
     it('speaks the size refusal through a key, with BOTH numbers as parameters', () => {
         // Grammar-in-code check: the two sizes must arrive as {size}/{limit},
         // not baked into a template literal, or a translator cannot move them.
-        transOverride.current = { 'routines.ndv.err_too_big': 'Te groot: {size} KB, limiet {limit} KB.' };
+        transOverride.current = { 'automations.ndv.err_too_big': 'Te groot: {size} KB, limiet {limit} KB.' };
         const onSaveStep = vi.fn().mockResolvedValue(undefined);
         render(<NodeDetailView {...baseProps({ onSaveStep })} />);
         openEditor();
@@ -102,7 +102,7 @@ describe('NodeDetailView — the output editor refuses in the user\'s language',
     });
 
     it('leaves no refusal in this drawer that a translator cannot reach', () => {
-        // The `bytes == null` branch (routines.ndv.err_not_json) is defensive:
+        // The `bytes == null` branch (automations.ndv.err_not_json) is defensive:
         // JSON.parse cannot produce a value JSON.stringify refuses, so no click
         // path reaches it and no rendering assertion can pin it. Read the source
         // instead — every error this drawer SETS must come from t(), or from the
@@ -141,7 +141,7 @@ describe('NodeDetailView — a failed save says so in the user\'s language', () 
     beforeEach(reset);
 
     it('speaks the save-failure through ONE key shared by both failure paths', async () => {
-        transOverride.current = { 'routines.ndv.save_failed': 'Opslaan mislukt' };
+        transOverride.current = { 'automations.ndv.save_failed': 'Opslaan mislukt' };
         // A rejection WITHOUT a message: the fallback branch is what carries the
         // copy, and that is the branch that was hardcoded English.
         const onSaveStep = vi.fn().mockRejectedValue(new Error(''));
@@ -156,7 +156,7 @@ describe('NodeDetailView — a failed save says so in the user\'s language', () 
     it('leaves the server\'s own message alone when it has one', async () => {
         // The key is a FALLBACK for a silent failure, never a replacement for
         // what the server said.
-        transOverride.current = { 'routines.ndv.save_failed': 'Opslaan mislukt' };
+        transOverride.current = { 'automations.ndv.save_failed': 'Opslaan mislukt' };
         const onSaveStep = vi.fn().mockRejectedValue(new Error('definition too large'));
         render(<NodeDetailView {...baseProps({ onSaveStep })} />);
         openEditor();

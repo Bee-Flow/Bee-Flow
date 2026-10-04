@@ -1,5 +1,5 @@
 /**
- * Personal data travelling through MULTIPLE NODES of one routine.
+ * Personal data travelling through MULTIPLE NODES of one automation.
  *
  * This is the scenario the whole token vault exists for: node 1 reads a
  * contact, node 2 has an AI write about them, node 3 reshapes it, node 4 sends
@@ -146,13 +146,13 @@ mock('./integrations/integrationTools', {
 });
 mock('./http/outboundProbe', { runWithProbe: async (fn) => ({ result: await fn(), probe: null }), markLocal: () => {} });
 mock('../automation/shapeCache', { recordShape: async () => {} });
-mock('../auth/routineAuth', { buildUserAuth: async () => null });
+mock('../auth/automationAuth', { buildUserAuth: async () => null });
 mock('../auth/audience', { resolveUserGroups: async () => [] });
 mock('../utils/emailService', { getServiceEmailConfig: async () => ({ configured: false }) });
 
 const runner = require('./automationRunner');
 
-// ── the routine under test ─────────────────────────────────────────────────
+// ── the automation under test ─────────────────────────────────────────────────
 function definition() {
     return {
         trigger: { id: 'trg', type: 'trigger', kind: 'manual' },

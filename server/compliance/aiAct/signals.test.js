@@ -1,5 +1,5 @@
 /**
- * aiAct/signals — what the platform detects about a routine or agent.
+ * aiAct/signals — what the platform detects about an automation or agent.
  * Run: node --test --test-force-exit server/compliance/aiAct/signals.test.js
  */
 
@@ -29,7 +29,7 @@ const restore = installResolveStub({
 const signals = require('./signals');
 after(() => restore());
 
-const AI_ROUTINE = {
+const AI_AUTOMATION = {
     trigger: { id: 't', kind: 'webhook' },
     steps: [
         { id: 'read', type: 'integration_action', tool: 'drive_read' },
@@ -57,7 +57,7 @@ test('step-family detection: ai_step / data_extraction / ai_tool count, summariz
 });
 
 test('generates_content: template reference is the strongest signal, walk-order downstream the weaker one', () => {
-    const s = signals.signalsFromDefinition(AI_ROUTINE);
+    const s = signals.signalsFromDefinition(AI_AUTOMATION);
     assert.strictEqual(s.generates_content, true);
     assert.deepStrictEqual(s.steps.generating.map(g => [g.id, g.signal, g.aiStepIds]), [['doc', 'reference', ['ai_1']]]);
 
@@ -115,15 +115,15 @@ test('disclosure_present reuses the Art. 50(1) vocabulary on the ending page and
         ],
     });
     assert.strictEqual(withDoc.disclosure_present, true);
-    assert.strictEqual(signals.signalsFromDefinition(AI_ROUTINE).disclosure_present, false);
+    assert.strictEqual(signals.signalsFromDefinition(AI_AUTOMATION).disclosure_present, false);
 });
 
 test('annex_iii_hint fires on title, description and AI prompts in NL and EN, with the category', () => {
-    const none = signals.signalsFromDefinition(AI_ROUTINE, { title: 'Weekly digest', description: 'Nothing special' });
+    const none = signals.signalsFromDefinition(AI_AUTOMATION, { title: 'Weekly digest', description: 'Nothing special' });
     assert.strictEqual(none.annex_iii_hint, false);
     assert.deepStrictEqual(none.annex_iii_categories, []);
 
-    const title = signals.signalsFromDefinition(AI_ROUTINE, { title: 'Sollicitanten screenen' });
+    const title = signals.signalsFromDefinition(AI_AUTOMATION, { title: 'Sollicitanten screenen' });
     assert.strictEqual(title.annex_iii_hint, true);
     assert.deepStrictEqual(title.annex_iii_categories, ['employment']);
 
@@ -142,8 +142,8 @@ test('annex_iii_hint fires on title, description and AI prompts in NL and EN, wi
 });
 
 test('marking_enabled mirrors the org setting; a string definition is parsed, garbage is empty', () => {
-    assert.strictEqual(signals.signalsFromDefinition(AI_ROUTINE, { markingEnabled: true }).marking_enabled, true);
-    assert.strictEqual(signals.signalsFromDefinition(JSON.stringify(AI_ROUTINE)).contains_ai, true);
+    assert.strictEqual(signals.signalsFromDefinition(AI_AUTOMATION, { markingEnabled: true }).marking_enabled, true);
+    assert.strictEqual(signals.signalsFromDefinition(JSON.stringify(AI_AUTOMATION)).contains_ai, true);
     const empty = signals.signalsFromDefinition('not json');
     assert.deepStrictEqual([empty.contains_ai, empty.customer_facing, empty.generates_content], [false, false, false]);
 });
@@ -167,7 +167,7 @@ test('signalsForAutomation scopes through COALESCE(a.organization_id, u."organiz
 
     calls.length = 0;
     settings = { ai_content_marking_enabled: true };
-    oneResult = { id: 'auto-9', title: 'Kredietaanvraag', description: '', definition_json: JSON.stringify(AI_ROUTINE), live_form_pages: 1 };
+    oneResult = { id: 'auto-9', title: 'Kredietaanvraag', description: '', definition_json: JSON.stringify(AI_AUTOMATION), live_form_pages: 1 };
     const s = await signals.signalsForAutomation('org-1', 'auto-9');
     assert.deepStrictEqual(
         [s.contains_ai, s.generates_content, s.customer_facing, s.marking_enabled, s.annex_iii_hint],
@@ -176,7 +176,7 @@ test('signalsForAutomation scopes through COALESCE(a.organization_id, u."organiz
     assert.strictEqual(await signals.signalsForAutomation(null, 'auto-9'), null, 'no org → nothing (never a cross-org read)');
 });
 
-test('signalsForAgent scopes on agents.organization_id; listGeneratingAutomations keeps only routines with AI-fed documents', async () => {
+test('signalsForAgent scopes on agents.organization_id; listGeneratingAutomations keeps only automations with AI-fed documents', async () => {
     calls.length = 0;
     oneResult = { id: 'a1', name: 'Bot', is_published: true, system_prompt: 'I am an AI assistant.' };
     const s = await signals.signalsForAgent('org-1', 'a1');
@@ -187,7 +187,7 @@ test('signalsForAgent scopes on agents.organization_id; listGeneratingAutomation
 
     calls.length = 0;
     allResult = [
-        { id: 'a', title: 'With doc', is_active: true, is_draft: false, definition_json: AI_ROUTINE },
+        { id: 'a', title: 'With doc', is_active: true, is_draft: false, definition_json: AI_AUTOMATION },
         { id: 'b', title: 'Plain', is_active: true, is_draft: false, definition_json: { steps: [{ id: 'doc', type: 'generate_document', content: 'x' }] } },
         { id: 'c', title: 'AI no doc', is_active: false, is_draft: true, definition_json: { steps: [{ id: 'ai', type: 'ai_step' }] } },
     ];

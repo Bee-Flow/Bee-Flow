@@ -129,7 +129,7 @@ const AGENT = (over = {}) => ({
     is_published: false, shared_groups: [], config: {}, rev: 1, ...over,
 });
 const NO_CHAT = { conversationCount: 0, userCount: 0, othersConversationCount: 0, lastUsedAt: null };
-const TASK_ROW = { kind: 'task', id: 't1', title: 'Nightly report', role: 'routine', ownerId: 'owner', lastAt: null };
+const TASK_ROW = { kind: 'task', id: 't1', title: 'Nightly report', role: 'automation', ownerId: 'owner', lastAt: null };
 
 test.beforeEach(() => {
     fx.userId = 'owner';
@@ -261,7 +261,7 @@ test('a request with no query object at all is NOT a confirmation', async () => 
 // ── Permission comes first ──────────────────────────────────────────
 
 test('someone who may not edit the agent is refused BEFORE any usage is gathered', async () => {
-    // A 403 that first tells you which routines your colleague runs is a
+    // A 403 that first tells you which automations your colleague runs is a
     // disclosure the permission check was there to prevent.
     fx.userId = 'stranger';
     fx.hasManage = false;

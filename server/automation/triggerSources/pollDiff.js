@@ -11,7 +11,7 @@
  * this runtime does the polling, diffing, de-duplication and cursor keeping.
  *
  * Three properties are load-bearing and easy to get wrong:
- *   - the first poll ANCHORS and emits nothing, so activating a routine does
+ *   - the first poll ANCHORS and emits nothing, so activating an automation does
  *     not fire once per device that already existed;
  *   - the per-pass tool cache is keyed on userId, because a cache keyed on
  *     tool+args alone would serve one user's data to another's subscription;

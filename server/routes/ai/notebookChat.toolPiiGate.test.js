@@ -72,6 +72,8 @@ const restore = installResolveStub({
         }),
         executeNotebookKBSearchTool: async (args) => { fx.kbSearches.push(args); return { chunks: [{ content: `write to ${SYNTH_EMAIL}` }] }; },
         NOTEBOOK_KB_SEARCH_TOOL: toolDef('notebook_kb_search'),
+        // The notebook has no sources here, so no title maps to one.
+        findSourceForChunk: () => null,
     },
     '../../integrations/agentSearchTools': { AGENT_SEARCH_TOOLS: [toolDef('agent_search')], isAgentSearchTool: (n) => n === 'agent_search' },
     '../../integrations/agentSearchEgress': {

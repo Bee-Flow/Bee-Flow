@@ -10,8 +10,8 @@
  * Two things the rule must NOT do, both measured after it landed:
  *   - refuse a DIRECT `steps.<id>.output.<field>` read: execAi.js infers the
  *     schema from exactly those refs (collectAiStepOutputFields) and the
- *     routine runs — that shape only warns (`ai_step.output_schema_inferred`);
- *   - block a draft SAVE: stored routines carried the fan-out shape and
+ *     automation runs — that shape only warns (`ai_step.output_schema_inferred`);
+ *   - block a draft SAVE: stored automations carried the fan-out shape and
  *     validated green until now, and a label edit on any node PUTs the whole
  *     definition — so the code is completeness-listed (warn at draft, block
  *     activation), like approval.nested_forbidden.
@@ -65,7 +65,7 @@ test('declaring the schema silences it — both shapes are accepted', () => {
     assert.equal(errs(base({ outputSchema: {} })).length, 1);
 });
 
-test('a direct steps.<id>.output.<field> ref WARNS — the runner infers the schema from it and the routine runs', () => {
+test('a direct steps.<id>.output.<field> ref WARNS — the runner infers the schema from it and the automation runs', () => {
     const def = base({}, {
         tableId: { kind: 'literal', value: 4 },
         values: { Leverancier: { kind: 'ref', path: 'steps.ai1.output.leverancier' } },

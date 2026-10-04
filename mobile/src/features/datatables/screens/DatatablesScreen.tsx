@@ -91,7 +91,7 @@ export function DatatablesScreen({ startCreating }: { startCreating?: boolean })
                 }}
                 noMatch={{
                     title: t('datatables.search_empty', 'No table matches that.'),
-                    clearLabel: t('routines.mapping.clear_search', 'Clear search'),
+                    clearLabel: t('automations.mapping.clear_search', 'Clear search'),
                 }}
             />
             {/* Mounted per opening, so the form seeds from the scope as it is now. */}

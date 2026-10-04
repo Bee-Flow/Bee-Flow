@@ -35,7 +35,7 @@ describe('outcomeLabel / whatHappened', () => {
     });
 
     it('lets a status with no sentence of its own BE the sentence, key and all', () => {
-        // The old last branch read `routines.runs.status_plain` ("{status}")
+        // The old last branch read `automations.runs.status_plain` ("{status}")
         // and interpolated the English word into it — a translated sentence
         // with an untranslated word inside. These statuses take that branch.
         for (const status of ['paused', 'skipped', 'handled_error', 'weird_future_status']) {
@@ -67,7 +67,7 @@ describe('outcomeLabel / whatHappened', () => {
 
     it('a success with absorbed failures says so', () => {
         const s = whatHappened({ status: 'success', handledErrorCount: 2 });
-        expect(s.key).toBe('routines.runs.finished_handled');
+        expect(s.key).toBe('automations.runs.finished_handled');
         expect(s.en).toBe('Finished — 2 problems handled automatically');
         expect(s.params).toEqual({ n: 2 });
         expect(s.tone).toBe('warn');
@@ -79,7 +79,7 @@ describe('outcomeLabel / whatHappened', () => {
         // JavaScript one line under the ternary that had just removed it. The
         // two branches are two complete sentences now.
         const one = whatHappened({ status: 'success', handledErrorCount: 1 });
-        expect(one.key).toBe('routines.runs.finished_handled_one');
+        expect(one.key).toBe('automations.runs.finished_handled_one');
         expect(one.en).toBe('Finished — 1 problem handled automatically');
         expect(one.params).toEqual({ n: 1 });
         expect(one.tone).toBe('warn');
@@ -134,7 +134,7 @@ describe('runTitle', () => {
 
 describe('runIdFromText', () => {
     it('pulls the id out of a pasted deep link', () => {
-        expect(runIdFromText('https://x.example/app/studio/routines/a1?view=runs&run=run_12345abc&step=s1')).toBe('run_12345abc');
+        expect(runIdFromText('https://x.example/app/studio/automations/a1?view=runs&run=run_12345abc&step=s1')).toBe('run_12345abc');
     });
     it('accepts a bare id', () => {
         expect(runIdFromText('run_12345abc')).toBe('run_12345abc');
@@ -147,7 +147,7 @@ describe('runIdFromText', () => {
 });
 
 /**
- * A routine with several triggers: which entry point a run came in through.
+ * An automation with several triggers: which entry point a run came in through.
  * Primary-trigger runs (and legacy rows) carry no rootStepId and read as
  * nothing extra — the "Started by" column already says how it started.
  */

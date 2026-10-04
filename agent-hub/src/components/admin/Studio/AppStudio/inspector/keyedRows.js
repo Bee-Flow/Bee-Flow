@@ -3,7 +3,7 @@
  *
  * Three places in the schema are objects keyed by a name the author types:
  * a navigate action's carried values, a flow step's navigate params / record
- * values / routine inputs. An object cannot hold two rows with the same key,
+ * values / automation inputs. An object cannot hold two rows with the same key,
  * and it cannot hold a row with no key at all — but a person adding a row
  * necessarily has, for a moment, a row with no name.
  *

@@ -10,8 +10,8 @@
  *   - re-assessing starts from what was declared: a stored Art. 5 'no' ticks
  *     all eight, the stored domains fill the questions, and a row saved
  *     before the ten questions existed spreads its one answer over all ten;
- *   - the routine's own wording puts a domain first, never answers it;
- *   - with AI in the routine, a declaration needs steps 1 and 3 answered.
+ *   - the automation's own wording puts a domain first, never answers it;
+ *   - with AI in the automation, a declaration needs steps 1 and 3 answered.
  *
  * On the phone the ladder is asked one step at a time (LADDER_PAGES), the
  * outcome on a page of its own before anything is recorded. Pure; pinned by

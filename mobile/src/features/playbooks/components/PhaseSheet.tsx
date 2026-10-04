@@ -20,7 +20,7 @@ import type { Phase } from '../model/types';
 const LINK_ICON = { automation: 'Workflow', app: 'AppWindow', datatable: 'Table' } as const;
 
 function linkLabel(link: PhaseLink, t: ReturnType<typeof useTranslation>): string {
-    if (link.kind === 'automation') return t('playbooks.done.routine', 'Automation');
+    if (link.kind === 'automation') return t('playbooks.done.automation', 'Automation');
     if (link.kind === 'app') return t('playbooks.done.app', 'App');
     return t('playbooks.done.table', 'Table');
 }

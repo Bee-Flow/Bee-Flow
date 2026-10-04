@@ -72,7 +72,7 @@ test('a connected app exposes ONLY the actions this user can run', async () => {
 });
 
 test('toolNames is the raw resolved set, deliberately wider than any app row', async () => {
-    // MCP / org-custom / agent-callable-routine / Step tools own no
+    // MCP / org-custom / agent-callable-automation / Step tools own no
     // TOOL_REGISTRY entry, so they can never appear under `apps` — but the user
     // really can run them, and the add-time gate authorises against this set.
     const { mod, restore } = loadWithStubs({ tools: ['mcp:srv__do_thing'], permitted: null });

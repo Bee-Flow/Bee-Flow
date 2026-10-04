@@ -5,7 +5,7 @@
  * Each of them read `usage.promptTokens || usage.prompt_tokens ||
  * usage.input_tokens`, and the non-streaming Claude and Gemini adapters
  * returned the raw block (cache fields nobody read, Gemini's `usageMetadata`
- * spelled differently again), so a routine on either provider logged zero cost
+ * spelled differently again), so an automation on either provider logged zero cost
  * and dropped the cache. The adapter here is the REAL one; llmClient is real
  * too; only the SDK client and the stores are stubbed.
  *
@@ -88,7 +88,7 @@ test('ai_step on Claude: tokens, cache read/write and the 5m/1h split reach the 
     await execAiStep(aiStep, ctx(), state(), 'live');
     await flush();
     assert.strictEqual(usageRows.length, 1);
-    assert.strictEqual(usageRows[0].source, 'routine');
+    assert.strictEqual(usageRows[0].source, 'automation');
     assertClaudeEntry(usageRows[0]);
 });
 

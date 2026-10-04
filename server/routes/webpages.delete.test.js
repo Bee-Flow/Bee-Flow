@@ -41,6 +41,7 @@ const webpageDbStore = require('../stores/webpageDbStore');
 const webpageUsage = require('../core/webpages/webpageUsage');
 const webpageUsageSync = require('../core/webpages/webpageUsageSync');
 
+const { HttpError } = require('../core/http/errors');
 const webpagesRouter = require('./webpages');
 
 const OWNER = { id: 'alice', organizationId: 'org1' };
@@ -84,6 +85,7 @@ function storePatches(calls, over = {}) {
             return { ...PAGE, knowledgeBaseIds: [] };
         }],
         [webpageUsageSync, 'purgeWebpageUsage', async (id) => { calls.order.push(`purge:${id}`); }],
+        [webpageStore, 'assertWebpageWrite', async () => ({ managed: false })],
         ...Object.entries(over).map(([k, v]) => [webpageStore, k, v]),
     ];
 }
@@ -228,6 +230,21 @@ test('?confirm=1 slaat de scan over en verwijdert', async () => {
         assert.strictEqual(res.status, 200);
         assert.strictEqual(scanned, 0, 'de bevestiging is het antwoord op de scan, geen aanleiding voor een tweede');
         assert.deepStrictEqual(calls.order, ['invalidate:wp1', 'delete:wp1', 'purge:wp1']);
+    }));
+});
+
+test('409 managed_part: een beheerde pagina wordt niet verwijderd en niets wordt aangeraakt', async () => {
+    const calls = newCalls();
+    await withPatches([
+        ...storePatches(calls, {
+            assertWebpageWrite: async () => { throw new HttpError(409, 'managed_part', 'This webpage is managed by a deployment'); },
+        }),
+        [webpageUsage, 'usageForWebpage', async () => scan()],
+    ], () => withServer(test, async (base) => {
+        const res = await del(base, '?confirm=1');
+        assert.strictEqual(res.status, 409);
+        assert.ok(!calls.order.some(o => o.startsWith('invalidate:')), 'geen invalidate');
+        assert.ok(!calls.order.some(o => o.startsWith('delete:')), 'geen delete');
     }));
 });
 

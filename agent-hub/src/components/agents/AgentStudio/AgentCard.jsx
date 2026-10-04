@@ -42,7 +42,7 @@ import { publishedVersionOf } from '../AgentWizard/builderSplit/AgentEditorHeade
  *
  * ── DE TOOLS-PIL IS EEN ONDERGRENS, EN ZEGT DAT ─────────────────────
  * Een agent zonder `config.tools.automations` is NIET gecureerd, en de runtime
- * biedt hem élke agent-callable routine van de vrager aan plus elke in de chat
+ * biedt hem élke agent-callable automatisering van de vrager aan plus elke in de chat
  * gepubliceerde Step (core/integrations/integrationTools.js). "0 tools" was
  * daar het omgekeerde van de waarheid; `counts.toolsAtLeast` maakt er "at least
  * n tools" van.
@@ -224,8 +224,8 @@ function skillsLabel(tf, n) {
 
 /**
  * De tools-pil. `atLeast` betekent dat het getal een ONDERGRENS is: deze agent
- * heeft geen routine-curatie, dus de runtime legt er élke agent-callable
- * routine van de vrager bovenop plus elke gepubliceerde Step.
+ * heeft geen automation-curatie, dus de runtime legt er élke agent-callable
+ * automatisering van de vrager bovenop plus elke gepubliceerde Step.
  */
 function toolsLabel(tf, n, atLeast) {
     const count = Number(n) || 0;

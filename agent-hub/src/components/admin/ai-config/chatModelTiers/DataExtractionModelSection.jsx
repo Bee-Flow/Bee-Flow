@@ -2,9 +2,9 @@
 // MemoryExtractionModelSection: same layout, same prop contract, one config
 // key (`data_extraction_model`) behind /api/ai/config/data-extraction-model.
 //
-// Why it exists: a routine's Extract data step is not a chat. It wants one
+// Why it exists: an automation's Extract data step is not a chat. It wants one
 // small, fast, deterministic model — thinking off, temperature 0, a schema it
-// cannot wander from — whatever tier the routine around it uses. Without this
+// cannot wander from — whatever tier the automation around it uses. Without this
 // key it would inherit the Fast tier, which on a self-hosted box is often the
 // 26B chat model. Unset falls back to the Fast tier's model; the ai_step
 // override next to it is a separate lever and stays as it is.
@@ -23,7 +23,7 @@ export default function DataExtractionModelSection({
                     <div>
                         <h3 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>Data Extraction Model</h3>
                         <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                            The model every Data extraction step in a routine runs on, whatever tier the routine itself uses — one small call per document, thinking off, temperature zero, answering in a fixed set of fields. Pick a small, fast model here; a large chat model gains nothing on this job and holds the slot. Unset falls back to the Fast tier's model.
+                            The model every Data extraction step in an automation runs on, whatever tier the automation itself uses — one small call per document, thinking off, temperature zero, answering in a fixed set of fields. Pick a small, fast model here; a large chat model gains nothing on this job and holds the slot. Unset falls back to the Fast tier's model.
                         </p>
                     </div>
                 </div>

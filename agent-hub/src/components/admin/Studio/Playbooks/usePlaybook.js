@@ -109,7 +109,7 @@ export default function usePlaybook(id) {
         } catch (e) {
             if (!aliveRef.current) return null;
             // A 409 is NOT a synonym for "someone else changed this". The route
-            // answers 409 for `routine_not_finalized`, `key_taken`,
+            // answers 409 for `automation_not_finalized`, `key_taken`,
             // `artifacts_missing`, `capability_missing` and every illegal
             // transition too, and those have to reach the person in words —
             // the page used to file all of them under "changed elsewhere" and

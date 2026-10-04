@@ -78,7 +78,8 @@ function liveMatchesPin(webpage, meta) {
  * reason).
  *
  * Returns the pinned version id, or null when nothing could be pinned — and
- * the caller must then NOT report a successful publish.
+ * the caller must then NOT report a successful publish. On a managed page it
+ * pins nothing and answers the pointer the deploy set.
  */
 async function pinPublishedVersion(webpageId, ownerId) {
     try { await webpageDbStore.flush(ownerId, webpageId); } catch (e) {
@@ -86,6 +87,10 @@ async function pinPublishedVersion(webpageId, ownerId) {
     }
     const wp = await webpageStore.getWebpage(webpageId, ownerId);
     if (!wp) return null;
+    // A managed page (a Solution stage): the deploy commit owns the pointer.
+    // Freezing the live row here would publish bytes no release carried, so
+    // the answer is whatever the deploy pinned (null when nothing is).
+    if (await webpageStore.managedInfoOf(wp)) return wp.publishedVersionId || null;
     const version = await webpageStore.createVersion(
         ownerId, webpageId, 'Published', {
             htmlSha: wp.htmlSha, cssSha: wp.cssSha, jsSha: wp.jsSha,

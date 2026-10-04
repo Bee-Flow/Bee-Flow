@@ -19,19 +19,19 @@ function tableDetail(value: unknown, count: number | null, tr: Translate): strin
     const firstRow = Array.isArray(value) ? value.find((r) => r && typeof r === 'object') : undefined;
     const cols = Array.isArray(value) && value.length ? Object.keys(firstRow || {}).length : null;
     const rowsText = count === 1
-        ? tr('routines.kind.row', '{n} row', { n: 1 })
-        : tr('routines.kind.rows', '{n} rows', { n: count ?? '?' } as Params);
+        ? tr('automations.kind.row', '{n} row', { n: 1 })
+        : tr('automations.kind.rows', '{n} rows', { n: count ?? '?' } as Params);
     const colsText = cols === 1
-        ? tr('routines.kind.column', '{n} column', { n: 1 })
-        : tr('routines.kind.columns', '{n} columns', { n: cols ?? '?' } as Params);
+        ? tr('automations.kind.column', '{n} column', { n: 1 })
+        : tr('automations.kind.columns', '{n} columns', { n: cols ?? '?' } as Params);
     return `· ${rowsText} · ${colsText}`;
 }
 
 function listDetail(count: number | null, elemWord: string | null, tr: Translate): string | null {
-    if (count == null) return elemWord ? tr('routines.kind.list_of_kind', 'of {kind}', { kind: elemWord }) : null;
+    if (count == null) return elemWord ? tr('automations.kind.list_of_kind', 'of {kind}', { kind: elemWord }) : null;
     return elemWord
-        ? tr('routines.kind.list_of_n_kind', 'of {n} · {kind}', { n: count, kind: elemWord })
-        : tr('routines.kind.list_of_n', 'of {n}', { n: count });
+        ? tr('automations.kind.list_of_n_kind', 'of {n} · {kind}', { n: count, kind: elemWord })
+        : tr('automations.kind.list_of_n', 'of {n}', { n: count });
 }
 
 interface Seen {
@@ -47,7 +47,7 @@ function describeCollection(kind: 'list' | 'table', { value, field, sampleRoot }
     if (kind === 'table') return { kind, word: w, value, count, of: 'records', detail: tableDetail(value, count, tr) };
     const first = Array.isArray(value) ? value.find((x) => x !== null && x !== undefined) : undefined;
     const elemKind = first === undefined ? null : kindOfValue(first);
-    if (count === 0) return { kind, word: w, value, count, of: null, detail: tr('routines.kind.list_empty', '· empty') };
+    if (count === 0) return { kind, word: w, value, count, of: null, detail: tr('automations.kind.list_empty', '· empty') };
     return { kind, word: w, value, count, of: elemKind, detail: listDetail(count, elemKind ? word(elemKind, tr) : null, tr) };
 }
 
@@ -55,8 +55,8 @@ function longTextDetail(value: string, tr: Translate): string {
     const paragraphs = value.split(/\n\s*\n/).filter((x) => x.trim()).length;
     const words = value.trim().split(/\s+/).length;
     return paragraphs > 1
-        ? tr('routines.kind.paragraphs', '· {n} paragraphs', { n: paragraphs })
-        : tr('routines.kind.words', '· {n} words', { n: words });
+        ? tr('automations.kind.paragraphs', '· {n} paragraphs', { n: paragraphs })
+        : tr('automations.kind.words', '· {n} words', { n: words });
 }
 
 function fileDetail(value: Record<string, unknown>): string | null {
@@ -82,7 +82,7 @@ export function describeField(
     const base = { kind, word: word(kind, tr), value, count: null, of: null };
     if (kind === 'group') {
         const n = Object.keys(value as object).length;
-        return { ...base, count: n, detail: tr('routines.kind.group_fields', '· {n} fields', { n }) };
+        return { ...base, count: n, detail: tr('automations.kind.group_fields', '· {n} fields', { n }) };
     }
     if (kind === 'file') return { ...base, detail: fileDetail(value as Record<string, unknown>) };
     // "text · 2 paragraphs": a blob is not a value you read in a row.

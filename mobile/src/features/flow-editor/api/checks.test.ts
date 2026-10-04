@@ -22,7 +22,7 @@ const SERVER = path.resolve(__dirname, '../../../../../server');
 beforeEach(() => jest.clearAllMocks());
 
 describe('the trigger diagnose', () => {
-    it('posts to the routine and reads each check', async () => {
+    it('posts to the automation and reads each check', async () => {
         (api.post as jest.Mock).mockResolvedValue({
             ok: false,
             kind: 'gmail.mail.new',
@@ -81,7 +81,7 @@ describe('the AI Act assessment', () => {
         });
     });
 
-    it('reads a never-assessed routine as no answers and unknown signals', () => {
+    it('reads a never-assessed automation as no answers and unknown signals', () => {
         expect(readAssessment({ outcome: null, answers: null, signals: {} })).toEqual({
             outcome: null, attestedAt: null, expiresAt: null, current: false,
             signals: {

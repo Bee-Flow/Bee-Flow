@@ -22,8 +22,8 @@
  * What an ACTIVE skill grants, beyond its prompt text, is answered by ONE
  * adapter — `resolveSkillGrants` (per skill: `skillGrantsOf`):
  *   { automationIds, tableRefs, kbIds }
- *   - automationIds  `allowed_automation_ids` — routines the agent may call
- *                    as tools (only `agent_call`-trigger routines are meant
+ *   - automationIds  `allowed_automation_ids` — automations the agent may call
+ *                    as tools (only `agent_call`-trigger automations are meant
  *                    here; the A-chain's agent-grant path decides at
  *                    dispatch time, never a stored definition).
  *   - tableRefs      `steps[].refs` of kind `table` → `{ id, scope:'own',
@@ -170,8 +170,8 @@ function skillGrantsOf(skill) {
     for (const id of refIdsOf(steps, 'kb')) kbIds.add(id);
     const automationIds = new Set();
     for (const id of Array.isArray(skill?.allowedAutomationIds) ? skill.allowedAutomationIds : []) if (typeof id === 'string' && id) automationIds.add(id);
-    // A step that references a routine is presentation only unless the
-    // routine is also in `allowed_automation_ids` — "may use" is the grant.
+    // A step that references an automation is presentation only unless the
+    // automation is also in `allowed_automation_ids` — "may use" is the grant.
     return {
         automationIds: [...automationIds],
         tableRefs: tableRefsOf(steps),
@@ -187,7 +187,7 @@ function emptyGrants() {
  * The adapter the tool stack consumes (A1b / toolStackAssembly): everything
  * the ACTIVE skills of this conversation grant, merged and deduped.
  *
- *   automationIds      — offer these routines as agent-callable tools (via
+ *   automationIds      — offer these automations as agent-callable tools (via
  *                        the agent-grant path; ownership/activity is checked
  *                        at dispatch, this list is never trusted on its own)
  *   tableRefs          — add to the `datatable_query` allowlist, scope `own`,
@@ -373,11 +373,11 @@ async function buildSkillInjection({ sessionSkillIds = [], attachedSkillIds = []
         systemPromptAddendum: addendum,
         tools,
         dynamicSkillIds: dynamicSkills.map(s => s.id),
-        // De ids waarvan `activate_skill` een ROUTINE start: hun "body" is een
+        // De ids waarvan `activate_skill` een AUTOMATISERING start: hun "body" is een
         // automation, en `executeActivateSkill` draait die hieronder met
         // `mode: 'live'`. Meegegeven omdat de aanroeper anders niet kan weten
         // dat de ene tool die hij terugkrijgt méér doet dan tekst laden — en op
-        // een onbewaakt oppervlak (de ai_step van een routine) hangt dat aan een
+        // een onbewaakt oppervlak (de ai_step van een automatisering) hangt dat aan een
         // andere schakelaar dan gewone skills. Leeg voor elke bestaande
         // aanroeper, dus niets verandert er voor de chat.
         automationSkillIds: dynamicSkills.filter(s => s.automationId).map(s => s.id),
@@ -464,8 +464,8 @@ async function executeActivateSkill({ args, orgId, userId, onSkillsActivated, ag
                 if (!automation) {
                     return `### SKILL — "${s.name}" (id: ${s.id})\n_Linked automation ${s.automationId} not found._`;
                 }
-                // Handoff 5: a skill that runs a routine is an agent starting
-                // a routine, so it counts against the same nesting limit and
+                // Handoff 5: a skill that runs an automation is an agent starting
+                // an automation, so it counts against the same nesting limit and
                 // records who started it (automation/automationCallDepth.js).
                 const { runNestedAutomationCall } = require('../../automation/automationCallDepth');
                 const trace = {

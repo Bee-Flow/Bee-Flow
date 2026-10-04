@@ -399,7 +399,7 @@ export function seedPositions(def, dims = { width: 240, height: 96 }) {
     const allSteps = [def.trigger, ...additionalTriggers, ...(def.steps || [])]
         .filter(s => s && !isInlineId(s.id));
     if (allSteps.every(s => isFinitePos(s.position))) return def;
-    // The same row layout the canvas falls back to, so a routine built step
+    // The same row layout the canvas falls back to, so an automation built step
     // by step grows into rows — each new node lands where the wrapped layout
     // of the whole graph puts it, while nodes that already have a position
     // keep it (the apply() below never overwrites one).

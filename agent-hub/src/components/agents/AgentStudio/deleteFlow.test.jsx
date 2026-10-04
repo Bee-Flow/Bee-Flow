@@ -100,7 +100,7 @@ describe('delete → 409 → delete anyway', () => {
 
         // The refusal became a readable dialog, not an error string.
         await screen.findByTestId('delete-blocked');
-        expect(screen.getByText('Routines')).toBeTruthy();
+        expect(screen.getByText('Automations')).toBeTruthy();
         expect(screen.getByText('3')).toBeTruthy();
         expect(screen.getByText('12')).toBeTruthy();
 

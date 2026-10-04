@@ -250,7 +250,7 @@ Not covered, on purpose and documented: transcription `action_items`, `decisions
 
 Always-on regardless of tier: the per-user **tokenisation vault** `pii_vault_entries` (deliberately not
 a toggleable surface; `norm_key` is an HMAC blind index keyed from the user's DEK), `orgVault` secrets
-(integration credentials), and `routine_credentials`.
+(integration credentials), and `automation_credentials`.
 
 ---
 
@@ -473,9 +473,9 @@ a toggleable surface; `norm_key` is an HMAC blind index keyed from the user's DE
 ### Scenario 1 — Procurement (inkoop)
 Van Dijk Groep's inkoop team pastes supplier quotations and draft framework contracts into Bee Flow to
 compare terms. Prices and rebate ladders are commercially sensitive but the team must be able to hand a
-thread to a colleague, and the nightly "open tenders" routine has to summarise them. Marieke (org admin)
+thread to a colleague, and the nightly "open tenders" automation has to summarise them. Marieke (org admin)
 opens **Settings → Organisation → Encryption** and picks **Managed**. Result: the quotation text is
-AES-256-GCM in the database, a stolen backup yields nothing, the 3am routine still works because it reads
+AES-256-GCM in the database, a stolen backup yields nothing, the 3am automation still works because it reads
 the escrowed key, and when a buyer forgets their password Marieke can reset it without losing the thread.
 Afterwards she runs the backfill on the messages surface so the two years of history already in the system
 are protected too.

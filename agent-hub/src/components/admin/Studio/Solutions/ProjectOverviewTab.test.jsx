@@ -25,6 +25,8 @@ const RESOURCES = {
     webpages: [{ id: 'w1' }, { id: 'w2' }, { id: 'w3' }, { id: 'w4' }],
     datatables: Array.from({ length: 6 }, (_, i) => ({ id: `t${i}` })),
     agents: Array.from({ length: 7 }, (_, i) => ({ id: `g${i}` })),
+    skills: Array.from({ length: 9 }, (_, i) => ({ id: `s${i}` })),
+    documentTemplates: Array.from({ length: 10 }, (_, i) => ({ id: `dt${i}` })),
     knowledgeBases: Array.from({ length: 8 }, (_, i) => ({ id: `k${i}` })),
     approvals: [
         ...Array.from({ length: 5 }, (_, i) => ({ id: `p${i}`, status: 'pending' })),
@@ -54,9 +56,9 @@ describe('the shape of the project', () => {
         // there appears here without anybody remembering to add it.
         const { container } = renderTab();
         const tiles = container.querySelectorAll('button');
-        expect(tiles).toHaveLength(8);
+        expect(tiles).toHaveLength(10);
         const numbers = [...tiles].map(t => t.textContent.match(/\d+|—/)?.[0]);
-        expect(numbers).toEqual(['1', '2', '3', '4', '6', '7', '8', '5']);
+        expect(numbers).toEqual(['1', '2', '3', '4', '6', '7', '9', '10', '8', '5']);
     });
 
     it('counts only the approvals still waiting', () => {

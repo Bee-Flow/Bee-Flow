@@ -38,6 +38,7 @@ const agentStore = require('../../stores/agentStore');
 const { requireActiveOrgForMutations } = require('../../auth');
 const { getEffectiveUserId } = require('../../utils/routeHelpers');
 const { canModifyAgent, validateAgentConfigReferences, applyConfigValidation } = require('./crud');
+const publishable = require('../../agents/publishableConfig');
 const log = require('../../telemetry/log');
 const { validate } = require('../../core/http/validate');
 const { z } = require('zod');
@@ -49,12 +50,12 @@ const NoQuery = z.object({}).strict();
 const router = express.Router();
 
 /**
- * The concept as it may go live: re-validated against the OWNER, with the
- * verdict applied to a copy. Throws what validateAgentConfigReferences throws.
+ * The concept as it may go live: agents/publishableConfig.js, over the two
+ * halves this router's crud.js exports (the same functions the concept save
+ * runs). Throws what validateAgentConfigReferences throws.
  */
-async function publishableConfig(agent) {
-    const v = await validateAgentConfigReferences(agent, agent.config || {});
-    return { warnings: v?.warnings || [], config: applyConfigValidation(agent.config || {}, v) };
+function publishableConfig(agent) {
+    return publishable.publishableConfig(agent, { validateAgentConfigReferences, applyConfigValidation });
 }
 
 /** A refusal the validator wrote for the caller, or null for anything else. */

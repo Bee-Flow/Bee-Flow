@@ -82,6 +82,8 @@ function register(router, { upload }) {
                 log.error(`[Webpages] Background ingestion failed for ${fileName}:`, err.message);
             });
         } catch (err) {
+            // A refusal worded for the caller (409 managed_part) keeps its status and code.
+            if (err?.status && err.status < 500) throw err;
             log.error('[Webpages] File upload failed:', err);
             res.status(500).json({ error: 'Failed to upload file' });
         }
@@ -120,6 +122,8 @@ function register(router, { upload }) {
                 log.error(`[Webpages] URL ingestion failed for ${url}:`, err.message);
             });
         } catch (err) {
+            // A refusal worded for the caller (409 managed_part) keeps its status and code.
+            if (err?.status && err.status < 500) throw err;
             log.error('[Webpages] URL source failed:', err);
             res.status(500).json({ error: 'Failed to add URL source' });
         }
@@ -146,6 +150,8 @@ function register(router, { upload }) {
                 log.error(`[Webpages] Text ingestion failed:`, err.message);
             });
         } catch (err) {
+            // A refusal worded for the caller (409 managed_part) keeps its status and code.
+            if (err?.status && err.status < 500) throw err;
             log.error('[Webpages] Text source failed:', err);
             res.status(500).json({ error: 'Failed to add text source' });
         }
@@ -187,6 +193,8 @@ function register(router, { upload }) {
 
             res.json({ success: true, sources });
         } catch (err) {
+            // A refusal worded for the caller (409 managed_part) keeps its status and code.
+            if (err?.status && err.status < 500) throw err;
             log.error('[Webpages] Drive source failed:', err);
             res.status(500).json({ error: 'Failed to add Drive source' });
         }
@@ -204,8 +212,10 @@ function register(router, { upload }) {
                 const timedOut = await webpageStore.timeoutStuckSources(wp.id).catch(() => 0);
                 if (timedOut > 0) finalSources = await webpageStore.getSources(wp.id);
             }
-            res.json({ sources: finalSources });
+            res.json({ sources: finalSources, managed: await webpageStore.managedPayloadOf(wp) });
         } catch (err) {
+            // A refusal worded for the caller (409 managed_part) keeps its status and code.
+            if (err?.status && err.status < 500) throw err;
             log.error('[Webpages] List sources failed:', err);
             res.status(500).json({ error: 'Failed to list sources' });
         }
@@ -246,6 +256,8 @@ function register(router, { upload }) {
                 }
             })();
         } catch (err) {
+            // A refusal worded for the caller (409 managed_part) keeps its status and code.
+            if (err?.status && err.status < 500) throw err;
             log.error('[Webpages] Retry source route failed:', err);
             res.status(500).json({ error: 'Failed to retry source' });
         }
@@ -266,6 +278,8 @@ function register(router, { upload }) {
             });
             res.json({ success: true });
         } catch (err) {
+            // A refusal worded for the caller (409 managed_part) keeps its status and code.
+            if (err?.status && err.status < 500) throw err;
             log.error('[Webpages] Cancel source failed:', err);
             res.status(500).json({ error: 'Failed to cancel source' });
         }
@@ -303,6 +317,8 @@ function register(router, { upload }) {
 
             res.json({ success: true });
         } catch (err) {
+            // A refusal worded for the caller (409 managed_part) keeps its status and code.
+            if (err?.status && err.status < 500) throw err;
             log.error('[Webpages] Delete source failed:', err);
             res.status(500).json({ error: 'Failed to delete source' });
         }

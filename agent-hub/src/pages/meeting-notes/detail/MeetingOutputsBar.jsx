@@ -3,7 +3,7 @@
  * (Bee Flow Builder redesign, Sep 2026, Track M2).
  *
  * A meeting note is not an endpoint. Its summary is collected into knowledge
- * bases by tag, routines run on it the moment it is ready, and notebooks hold
+ * bases by tag, automations run on it the moment it is ready, and notebooks hold
  * copies. All of that is invisible from the note itself, which is where
  * somebody decides to add a tag, change one, or delete the whole thing.
  *
@@ -22,11 +22,11 @@
  * screen that would otherwise quietly claim a meeting is unused right before
  * somebody deletes it.
  *
- * ── WHY A ROUTINE WITH NO FILTER READS AS "EVERY MEETING" ───────────
+ * ── WHY A AUTOMATION WITH NO FILTER READS AS "EVERY MEETING" ───────────
  * `triggerBus/filters.js` has no meeting-notes matcher yet, so the only
  * meeting-notes filters that fire today are the empty one and the DSL
  * `expr` form. The server marks the first kind with `unfiltered: true` and
- * this bar says so. That is not a placeholder — it is what those routines
+ * this bar says so. That is not a placeholder — it is what those automations
  * do.
  */
 import { AlertTriangle, ArrowUpRight, Loader2 } from 'lucide-react';
@@ -38,7 +38,7 @@ import useTranslation from '../../../hooks/useTranslation';
 /**
  * The rows worth putting in a one-line bar, in a stable order so the chips do
  * not reshuffle between two loads of the same meeting. Knowledge bases first
- * (they change what colleagues can ask), then routines, then notebooks.
+ * (they change what colleagues can ask), then automations, then notebooks.
  */
 const ORDER = Object.freeze(['kb', 'automation', 'notebook']);
 
@@ -136,7 +136,7 @@ function kindVisual(kind) {
 /**
  * One chip. The navigation rule is UsedByTab's, deliberately re-used rather
  * than re-decided: a row owned by somebody else is PLAIN TEXT that says whose
- * it is, because a colleague's routine has no page this account can open and
+ * it is, because a colleague's automation has no page this account can open and
  * a link that lands on nothing is worse than no link.
  */
 function OutputChip({ row, currentUserId, onNavigate, t }) {

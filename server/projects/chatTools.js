@@ -13,7 +13,7 @@
  *                     reads the web, and makes nothing
  *
  * That is the whole list. The AI has none of the tools a normal chat carries
- * for the person's other apps (mail, calendar, routines, web, knowledge bases
+ * for the person's other apps (mail, calendar, automations, web, knowledge bases
  * outside the project, memory, ...): they are not offered, and a call to a name
  * outside the list is refused before anything runs, whatever the model says.
  *

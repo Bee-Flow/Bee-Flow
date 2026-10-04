@@ -10,5 +10,5 @@ export const skillKeys = {
     testRuns: (id: string) => ['skills', 'test-runs', id] as const,
     exampleConversations: ['skills', 'example-conversations'] as const,
     exampleMessages: (conversationId: string) => ['skills', 'example-messages', conversationId] as const,
-    picker: (list: 'routines' | 'kbs' | 'tables') => ['skills', 'picker', list] as const,
+    picker: (list: 'automations' | 'kbs' | 'tables') => ['skills', 'picker', list] as const,
 };

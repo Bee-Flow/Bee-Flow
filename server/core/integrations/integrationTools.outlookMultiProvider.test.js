@@ -43,8 +43,8 @@ try {
 
 // The vault: one Microsoft credential for u1, nothing else.
 let msCred = null;
-const routineAuth = require('../../auth/routineAuth');
-routineAuth.getProviderAuth = async (userId, provider) => (provider === 'microsoft' && userId === 'u1' ? msCred : null);
+const automationAuth = require('../../auth/automationAuth');
+automationAuth.getProviderAuth = async (userId, provider) => (provider === 'microsoft' && userId === 'u1' ? msCred : null);
 
 const ent = require('../entitlements/entitlements');
 ent.resolveEntitlements = async () => ({
@@ -128,16 +128,16 @@ test('outlook_compose: a draft in a chat, a sent mail under autoSend', async () 
     assert.strictEqual(send.auth, 'Bearer ms-at');
 });
 
-test('a routine session whose primary is Google uses routineProviders.microsoft', async () => {
-    msCred = null; // the vault is not consulted: the routine already carries it
-    const routine = {
+test('an automation session whose primary is Google uses automationProviders.microsoft', async () => {
+    msCred = null; // the vault is not consulted: the automation already carries it
+    const automation = {
         userId: 'u1', oauthProvider: 'google', accessToken: 'google-at', refreshToken: 'google-rt',
-        routineProviders: { microsoft: { userId: 'u1', orgId: 'o1', accessToken: 'routine-ms-at', refreshToken: 'r' } },
+        automationProviders: { microsoft: { userId: 'u1', orgId: 'o1', accessToken: 'automation-ms-at', refreshToken: 'r' } },
     };
-    const res = await getIntegrationTools({ userId: 'u1', session: routine, isAdmin: false });
+    const res = await getIntegrationTools({ userId: 'u1', session: automation, isAdmin: false });
     assert.ok(names(res).includes('outlook_compose'));
 
-    await executeTool('outlook_search', { query: 'x' }, { userId: 'u1', session: routine, egress: false });
+    await executeTool('outlook_search', { query: 'x' }, { userId: 'u1', session: automation, egress: false });
     const graph = graphCalls.filter(c => c.url.startsWith('https://graph.microsoft.com/'));
-    assert.strictEqual(graph[0].auth, 'Bearer routine-ms-at');
+    assert.strictEqual(graph[0].auth, 'Bearer automation-ms-at');
 });

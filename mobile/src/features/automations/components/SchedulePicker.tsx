@@ -3,7 +3,7 @@
  *
  * The builder (web, or the flow editor's schedule trigger) writes any 5-field
  * cron. This quick picker offers five shapes and refuses to touch anything else — a cron field editor at thumb size is a way
- * to break a live routine by accident, and "every 15 minutes on weekdays in
+ * to break a live automation by accident, and "every 15 minutes on weekdays in
  * Q4" is not a thing anyone should be editing on a train.
  *
  * The preview under the picker is NOT computed here. It comes from
@@ -44,7 +44,7 @@ export function SchedulePicker({
     const [replacingCustom, setReplacingCustom] = useState(false);
     const [schedule, setSchedule] = useState<SimpleSchedule>(parsed ?? DEFAULT_SIMPLE_SCHEDULE);
 
-    // A different routine's schedule can arrive while this sheet is mounted, and
+    // A different automation's schedule can arrive while this sheet is mounted, and
     // a save rewrites the one it already shows. Reset during render rather than
     // in an effect: an effect would leave the old times on screen for a frame.
     const [lastCron, setLastCron] = useState(cron);

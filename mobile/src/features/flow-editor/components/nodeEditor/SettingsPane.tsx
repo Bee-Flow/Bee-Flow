@@ -40,7 +40,7 @@ export function SettingsPane({
     return (
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.body} testID="settings-pane">
             {ctx.disabled ? (
-                <Banner tone="info">{t('routines.builder.edits_locked', 'The AI is building this routine — editing is paused until it finishes.')}</Banner>
+                <Banner tone="info">{t('automations.builder.edits_locked', 'The AI is building this automation — editing is paused until it finishes.')}</Banner>
             ) : null}
             <IssueList issues={issues} labels={ctx.stepLabelById instanceof Map ? ctx.stepLabelById : new Map()} />
             {purpose ? (
@@ -53,17 +53,17 @@ export function SettingsPane({
                     value={ctx.mode}
                     onChange={onMode}
                     fullWidth
-                    accessibilityLabel={t('routines.builder.mode_toggle_label', 'How much of this step to show')}
+                    accessibilityLabel={t('automations.builder.mode_toggle_label', 'How much of this step to show')}
                     options={[
-                        { value: 'simple', label: t('routines.builder.mode_simple', 'Simple') },
-                        { value: 'advanced', label: t('routines.builder.mode_all_options', 'All options') },
+                        { value: 'simple', label: t('automations.builder.mode_simple', 'Simple') },
+                        { value: 'advanced', label: t('automations.builder.mode_all_options', 'All options') },
                     ]}
                 />
             </View>
             <StepBasics form={form} step={step} locked={ctx.disabled} nameRef={nameRef} />
             {renderStepEditor({ step, draft: form.draft, set: form.set, setMany: form.setMany, patchStep: form.patchStep, ctx })}
             <Text variant="caption" tone="tertiary">
-                {t('routines.builder.autosave_note', 'Changes save automatically.')}
+                {t('automations.builder.autosave_note', 'Changes save automatically.')}
             </Text>
         </ScrollView>
     );

@@ -28,7 +28,7 @@
     "compliance.check_dora_contract_clauses_desc": "Contracts with financial entities must contain the DORA Art. 30 provisions (service descriptions, locations, service levels, audit rights, exit). Confirm your template yearly.",
     "compliance.check_dora_contract_clauses_fix": "Confirm your contract template covers Art. 30 and link it under Compliance → Settings → DORA.",
 
-    "compliance.pf_kind_automations": "Routines",
+    "compliance.pf_kind_automations": "Automations",
     "compliance.pf_kind_datatables": "Tables",
     "compliance.pf_kind_studio_apps": "App data",
     "compliance.pf_kind_cms_sites": "Websites (CMS)",
@@ -80,7 +80,7 @@
     "compliance.check_dora_contract_clauses_desc": "Contracten met financiële instellingen moeten de bepalingen van DORA art. 30 bevatten (dienstbeschrijving, locaties, serviceniveaus, auditrechten, exit). Bevestig je sjabloon jaarlijks.",
     "compliance.check_dora_contract_clauses_fix": "Bevestig dat je contractsjabloon art. 30 dekt en koppel het onder Compliance → Instellingen → DORA.",
 
-    "compliance.pf_kind_automations": "Routines",
+    "compliance.pf_kind_automations": "Automatiseringen",
     "compliance.pf_kind_datatables": "Tabellen",
     "compliance.pf_kind_studio_apps": "App-gegevens",
     "compliance.pf_kind_cms_sites": "Websites (CMS)",

@@ -39,8 +39,8 @@ export function readsAsMarkdown(text) {
  * @param {object} props
  * @param {object} props.msg
  * @param {React.ReactNode} [props.activity] — what to render under the bubble
- *   instead of the routine builder's BuilderActivity (the App Studio builder
- *   passes its own typed activity rows; the default child reads routine step
+ *   instead of the automation builder's BuilderActivity (the App Studio builder
+ *   passes its own typed activity rows; the default child reads automation step
  *   types and would render nothing for app tools).
  * @param {object|null} [props.liveRun] — the test run in flight under THIS
  *   message, as flow/runFocus.js reads it; BuilderActivity shows it as its

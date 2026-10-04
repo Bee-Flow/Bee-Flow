@@ -125,7 +125,7 @@ function checkCode(ctx, step, at) {
                     const b = isCodeLimitKey(key) ? CODE_LIMIT_BOUNDS[key] : null;
                     if (!b) {
                         // A warning, not an error: the sandbox simply ignores
-                        // the key, so nothing breaks and an imported routine
+                        // the key, so nothing breaks and an imported automation
                         // must not be barred from activating over it. Worth
                         // saying all the same — a model reaching for this
                         // invents `timeoutMs`, `maxRows`, `retries`, and a
@@ -139,7 +139,7 @@ function checkCode(ctx, step, at) {
                         continue;
                     }
                     if (value < b.min || value > b.max) {
-                        pushE({ code: 'code.limits_out_of_range', severity: 'error', path: `${at}.limits.${key}`, message: `Step ${step.id}: limits.${key} is ${value} — the sandbox allows ${describeCodeLimit(key)} and clamps anything outside that.`, hint: `Ask for ${value > b.max ? `${b.max} or less` : `${b.min} or more`}. Code steps run in-process, so this ceiling is what keeps one routine from starving every other run on the same host.` });
+                        pushE({ code: 'code.limits_out_of_range', severity: 'error', path: `${at}.limits.${key}`, message: `Step ${step.id}: limits.${key} is ${value} — the sandbox allows ${describeCodeLimit(key)} and clamps anything outside that.`, hint: `Ask for ${value > b.max ? `${b.max} or less` : `${b.min} or more`}. Code steps run in-process, so this ceiling is what keeps one automation from starving every other run on the same host.` });
                     }
                 }
             }
@@ -151,7 +151,7 @@ function checkCode(ctx, step, at) {
         // because no secret store is wired to code steps in this build — the
         // codeSandbox.js header has the whole shape. Refusing it here is the
         // difference between finding out while you are authoring and finding
-        // out when a scheduled routine fires at 03:00 and stops on its first
+        // out when a scheduled automation fires at 03:00 and stops on its first
         // step.
         // Read EXACTLY the two shapes execCode reads — the binding form the
         // builder writes ({kind:'literal', value:[…]}) and the bare array a
@@ -187,7 +187,7 @@ function checkCode(ctx, step, at) {
                 // intersects it with the runner's CURRENT permission set, so
                 // an unreachable name can only ever narrow what the step may
                 // do; and the catalog seen while authoring is not necessarily
-                // the catalog of whoever the routine ends up running as.
+                // the catalog of whoever the automation ends up running as.
                 for (const name of step.allowedTools) {
                     if (!availableTools.has(name)) pushW({ code: 'code.allowed_tool_unknown', severity: 'warning', path: at + '.allowedTools', message: `Step ${step.id}: allowedTools names "${name}", which is not in the catalog — ctx.integrations.${name}() will answer { error: 'tool "${name}" not allowed for this step' }.`, hint: 'Drop it, or ask for the integration that provides it to be connected.' });
                 }

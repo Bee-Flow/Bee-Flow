@@ -52,7 +52,7 @@ async function _doInit() {
         ALTER TABLE guardrail_events
             ADD COLUMN IF NOT EXISTS attachment_filename TEXT,
             ADD COLUMN IF NOT EXISTS attachment_page INT,
-            -- Automation/routine attribution — join a decision to a run/step.
+            -- Automation attribution — join a decision to a run/step.
             ADD COLUMN IF NOT EXISTS automation_id TEXT,
             ADD COLUMN IF NOT EXISTS run_id TEXT,
             ADD COLUMN IF NOT EXISTS step_id TEXT,
@@ -201,7 +201,7 @@ function buildFilters(filters, startIdx = 1) {
         conditions.push(`violation_type = $${idx++}`);
         params.push(filters.violationType);
     }
-    // Dashboards exclude dry-run routine rows (compliance checks always did).
+    // Dashboards exclude dry-run automation rows (compliance checks always did).
     if (filters?.excludeDryRun) conditions.push(`is_dry_run = false`);
     const where = conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : '';
     return { where, params, nextIdx: idx };
@@ -405,11 +405,11 @@ async function getGuardrailOverview(filters = {}, interval = 'day') {
             GROUP BY user_id ORDER BY total DESC LIMIT 10
         `, params),
         // Which SURFACE produced the events — "was this chat, an agent, or a
-        // routine?". Classified structurally (attribution columns beat the
+        // automation?". Classified structurally (attribution columns beat the
         // free-text source values, which drifted across eras).
         getAll(`
             SELECT
-                CASE WHEN automation_id IS NOT NULL THEN 'routine'
+                CASE WHEN automation_id IS NOT NULL THEN 'automation'
                      WHEN agent_id IS NOT NULL THEN 'agent'
                      WHEN source ILIKE 'notebook%' THEN 'notebook'
                      ELSE 'direct' END AS surface,

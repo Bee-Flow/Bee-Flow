@@ -230,7 +230,7 @@ test('an EMPTY map does not opt the agent into the new regime', async () => {
     // nothing as no map at all, and the policy has to agree — a map-shaped
     // nothing that counted as "someone has been through the picker" would make
     // this agent ask before every send, and would drop the send tool entirely
-    // from an unattended run: a mailing routine that silently stops mailing.
+    // from an unattended run: a mailing automation that silently stops mailing.
     seed('a-empty', { enabledIntegrations: ['gmail'], tools: {} });
 
     const agent = await store.getForRuntime('a-empty');

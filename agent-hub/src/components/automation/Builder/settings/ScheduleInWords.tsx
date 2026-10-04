@@ -59,11 +59,11 @@ export default function ScheduleInWords({ words, tz, skipHolidays, onChange }: P
     const preview = useSchedulePreviewQuery(settledCron, tz, skipHolidays);
 
     const freqOptions: { value: Frequency; label: string }[] = [
-        { value: 'weekday', label: t('routines.settings.freq_weekday', 'weekday') },
-        { value: 'day', label: t('routines.settings.freq_day', 'day') },
-        { value: 'week', label: t('routines.settings.freq_week', 'week') },
-        { value: 'month', label: t('routines.settings.freq_month', 'month') },
-        ...(words.freq === 'custom' ? [{ value: 'custom' as Frequency, label: t('routines.settings.freq_custom', 'custom schedule') }] : []),
+        { value: 'weekday', label: t('automations.settings.freq_weekday', 'weekday') },
+        { value: 'day', label: t('automations.settings.freq_day', 'day') },
+        { value: 'week', label: t('automations.settings.freq_week', 'week') },
+        { value: 'month', label: t('automations.settings.freq_month', 'month') },
+        ...(words.freq === 'custom' ? [{ value: 'custom' as Frequency, label: t('automations.settings.freq_custom', 'custom schedule') }] : []),
     ];
     const setTime = (value: string) => {
         const [h, m] = value.split(':').map((x) => Number(x));
@@ -75,9 +75,9 @@ export default function ScheduleInWords({ words, tz, skipHolidays, onChange }: P
     return (
         <div className="flex flex-col gap-3 rounded-[10px] border border-[var(--border-default)] bg-[var(--bg-secondary)] p-3.5 text-[12px]">
             <div className="flex items-center gap-2 flex-wrap">
-                <span>{t('routines.settings.every', 'Every')}</span>
+                <span>{t('automations.settings.every', 'Every')}</span>
                 <select
-                    aria-label={t('routines.settings.frequency', 'How often')}
+                    aria-label={t('automations.settings.frequency', 'How often')}
                     className={SELECT}
                     value={words.freq}
                     onChange={(e) => onChange({ words: withFrequency(words, e.target.value as Frequency) })}
@@ -86,12 +86,12 @@ export default function ScheduleInWords({ words, tz, skipHolidays, onChange }: P
                 </select>
                 {words.freq === 'month' && (
                     <>
-                        <span>{t('routines.settings.on_day', 'on day')}</span>
+                        <span>{t('automations.settings.on_day', 'on day')}</span>
                         <input
                             type="number"
                             min={1}
                             max={31}
-                            aria-label={t('routines.settings.day_of_month', 'Day of the month')}
+                            aria-label={t('automations.settings.day_of_month', 'Day of the month')}
                             className={`${SELECT} w-16`}
                             value={words.dayOfMonth}
                             onChange={(e) => {
@@ -101,20 +101,20 @@ export default function ScheduleInWords({ words, tz, skipHolidays, onChange }: P
                         />
                     </>
                 )}
-                <span>{t('routines.settings.at', 'at')}</span>
+                <span>{t('automations.settings.at', 'at')}</span>
                 <input
                     type="time"
-                    aria-label={t('routines.settings.time', 'Time')}
+                    aria-label={t('automations.settings.time', 'Time')}
                     className={SELECT}
                     value={`${pad2(words.hour)}:${pad2(words.minute)}`}
                     onChange={(e) => setTime(e.target.value)}
                 />
-                <select aria-label={t('routines.settings.timezone', 'Time zone')} className={`${SELECT} max-w-[200px]`} value={tz} onChange={(e) => onChange({ tz: e.target.value })}>
+                <select aria-label={t('automations.settings.timezone', 'Time zone')} className={`${SELECT} max-w-[200px]`} value={tz} onChange={(e) => onChange({ tz: e.target.value })}>
                     {(TIMEZONE_OPTIONS.includes(tz) ? TIMEZONE_OPTIONS : [tz, ...TIMEZONE_OPTIONS]).map((z: string) => <option key={z} value={z}>{z}</option>)}
                 </select>
             </div>
             {words.freq !== 'month' && words.freq !== 'custom' && (
-                <div className="flex gap-1" role="group" aria-label={t('routines.settings.days', 'Days')}>
+                <div className="flex gap-1" role="group" aria-label={t('automations.settings.days', 'Days')}>
                     {DAY_BUTTONS.map((d) => {
                         const on = words.days.includes(d.id);
                         return (
@@ -127,7 +127,7 @@ export default function ScheduleInWords({ words, tz, skipHolidays, onChange }: P
                                     ? 'border-[var(--accent-primary)] bg-[color-mix(in_srgb,var(--accent-primary)_12%,transparent)] text-[var(--text-primary)]'
                                     : 'border-[var(--border-default)] bg-[var(--bg-card)] text-[var(--text-tertiary)]'}`}
                             >
-                                {t(`routines.schedule.day_${d.key}`, d.label)}
+                                {t(`automations.schedule.day_${d.key}`, d.label)}
                             </button>
                         );
                     })}
@@ -137,9 +137,9 @@ export default function ScheduleInWords({ words, tz, skipHolidays, onChange }: P
                 <CalendarCheck size={13} className="mt-0.5 shrink-0" />
                 <span>
                     {preview.data?.valid === false
-                        ? t('routines.settings.schedule_invalid', 'This schedule never runs. Check the days and the time.')
+                        ? t('automations.settings.schedule_invalid', 'This schedule never runs. Check the days and the time.')
                         : preview.data?.next.length
-                            ? t('routines.settings.next_runs', 'Next runs: {list}', { list: preview.data.next.map((iso) => formatNextRun(iso, tz, dateLocale)).join(' · ') })
+                            ? t('automations.settings.next_runs', 'Next runs: {list}', { list: preview.data.next.map((iso) => formatNextRun(iso, tz, dateLocale)).join(' · ') })
                             : describeCron(cron, { t, tz })}
                 </span>
             </div>
@@ -149,17 +149,17 @@ export default function ScheduleInWords({ words, tz, skipHolidays, onChange }: P
                         size="sm"
                         checked={skipHolidays}
                         onChange={(v) => onChange({ skipHolidays: v })}
-                        ariaLabel={t('routines.settings.skip_holidays', 'Skip public holidays')}
+                        ariaLabel={t('automations.settings.skip_holidays', 'Skip public holidays')}
                     />
-                    <span aria-hidden>{t('routines.settings.skip_holidays', 'Skip public holidays')}</span>
+                    <span aria-hidden>{t('automations.settings.skip_holidays', 'Skip public holidays')}</span>
                 </span>
                 <button type="button" className={LINK_BTN} onClick={() => setShowCron((v) => !v)} aria-expanded={showCron}>
-                    {showCron ? t('routines.settings.hide_cron', 'Hide cron notation') : t('routines.settings.show_cron', 'Show cron notation')}
+                    {showCron ? t('automations.settings.hide_cron', 'Hide cron notation') : t('automations.settings.show_cron', 'Show cron notation')}
                 </button>
             </div>
             {showCron && (
                 <input
-                    aria-label={t('routines.settings.cron', 'Cron notation')}
+                    aria-label={t('automations.settings.cron', 'Cron notation')}
                     className={`${SELECT} font-mono`}
                     value={cron}
                     onChange={(e) => onChange({ words: { ...words, freq: 'custom', cron: e.target.value } })}

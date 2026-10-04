@@ -26,6 +26,8 @@ import {
     flowToScopePosition, prefixAddedStep, parseInlineId, isInlineId,
 } from './flow/inlineFlowlets';
 import { seedPositions } from './flow/layout';
+import { COL_PITCH } from './flow/buildChoreography';
+import { placeNewStep } from './flow/placeStep';
 import { applyDeleteNodes, applyDuplicateNode } from './flow/nodeOps';
 import { normalizeDefinitionShape, emptyGraph } from './flow/normalizeDefinition';
 import { renameFormField } from './flow/renameFormField';
@@ -68,16 +70,16 @@ const PLAN_PANEL_INSET_PX = 264;
  * accepting the step and surfacing a red banner two edits later.
  */
 const LOOP_BODY_REFUSALS = {
-    trigger: 'A routine starts in one place. The loop already runs once per item — you can\'t start a new flow inside it.',
+    trigger: 'An automation starts in one place. The loop already runs once per item — you can\'t start a new flow inside it.',
     form_page: 'Form steps can\'t run inside a loop: one page, one visitor, one answer. Put the form before or after the loop.',
     approval: 'Approvals can\'t run inside a loop: the run would pause on every item and could never be approved. Move the approval to the main flow, before or after the loop — approve once, then let every item through.',
     layer_output: 'Return hands data back from a flowlet. A loop keeps its results for the steps after it instead.',
     // Beëindigt de HELE run. Een lus is niet het einde daarvan: de stap zou per
     // item opnieuw draaien, geen runregel opleveren (de body wordt met
     // recordSteps:false gedraaid) en de app dus niets teruggeven, terwijl de
-    // routine na de lus gewoon doorloopt. De validator weigert hem hier ook —
+    // automatisering na de lus gewoon doorloopt. De validator weigert hem hier ook —
     // server/automation/validate/constants.js NESTED_FORBIDDEN_RULES.
-    return_to_app: 'Back to the app ends the whole routine, so it cannot sit inside a loop — the loop would just run it again for the next item. Put it after the loop, as the last step.',
+    return_to_app: 'Back to the app ends the whole automation, so it cannot sit inside a loop — the loop would just run it again for the next item. Put it after the loop, as the last step.',
 };
 
 /** Toast copy after an auto-map, noting when the step now iterates per item. */
@@ -101,6 +103,9 @@ function autoMapToastMessage(count, forEachEnabled) {
 export default function BuildTab({
     headerProps = null,
     mode = 'automation',
+    // An automation managed by a Solution stage: the canvas shows, nothing edits and
+    // there is no way into the AI builder (BuilderShell hands this down).
+    readOnly = false,
     assistantOpen, setAssistantOpen,
     alwaysPlanLarge = true, setAlwaysPlanLarge = null,
     workMode = 'approve', setWorkMode = null, assistantContext = null, onClearAssistantContext = null,
@@ -167,7 +172,7 @@ export default function BuildTab({
     // straight to it (design 1d). Resolved lazily — see useWaitingFormUrl.
     const waitingForForm = (state?.steps || []).some(row => row?.status === 'awaiting_form');
     const waitingFormUrl = useWaitingFormUrl(builderApi, automation?.id || null, waitingForForm);
-    // The step catalog's labels/descriptions are translatable (routines.node.*);
+    // The step catalog's labels/descriptions are translatable (automations.node.*);
     // stepPalette is a plain module, so the translator rides in on `scope`.
     const { t } = useTranslation();
     const [catalog, setCatalog] = useState(null);
@@ -315,7 +320,7 @@ export default function BuildTab({
     }, [inlineSidecar, onVisualEdit, onVisualEditRoot, rootDef, scopeKey]);
 
     /**
-     * Rename one form question's binding name across the WHOLE routine.
+     * Rename one form question's binding name across the WHOLE automation.
      *
      * A form field's `name` is `trigger.output.<name>` (or
      * `steps.<pageId>.output.<name>`), so renaming it is never a local edit: it
@@ -348,7 +353,7 @@ export default function BuildTab({
      * of its own, because every way of getting the rewire wrong is silent:
      * leave the incoming edges where they were and the new step dangles with
      * nothing above it; move them without the edge back and the Condition is
-     * ORPHANED, with no path from the trigger, in a routine that still
+     * ORPHANED, with no path from the trigger, in an automation that still
      * validates and still saves. What lands HERE is only what needs the
      * shell: the running lock, the flowlet the target lives in, and the
      * commit.
@@ -580,7 +585,7 @@ export default function BuildTab({
         // branch would then emit a graph with no steps/edges (BFSF-318).
         const baseDef = normalizeDefinitionShape(flatDef) || emptyGraph();
 
-        // Triggers are searchable and browsable now that a routine already has
+        // Triggers are searchable and browsable now that an automation already has
         // one (BFSF-325). Five of the seven kinds can only be the ONE primary
         // trigger — the validator rejects them in `definition.triggers[]` — so
         // picking one replaces what is there. That is a destructive answer to a
@@ -592,7 +597,7 @@ export default function BuildTab({
             const to = defaultTriggerLabel(payload.triggerKind || 'manual');
             confirmAction({
                 title: `Replace the ${from} trigger with ${to}?`,
-                description: 'A routine can only have one trigger of these kinds, so the current one and its settings are replaced.',
+                description: 'An automation can only have one trigger of these kinds, so the current one and its settings are replaced.',
                 confirmLabel: 'Replace',
                 destructive: true,
             }).then((ok) => { if (ok) addStepAt({ ...payload, __confirmedReplace: true }, opts); });
@@ -660,7 +665,7 @@ export default function BuildTab({
                 const src = [baseDef.trigger, ...(baseDef.steps || [])]
                     .find(n => n?.id === sourceId);
                 if (src?.position) {
-                    position = { x: src.position.x + 280, y: src.position.y };
+                    position = { x: src.position.x + COL_PITCH, y: src.position.y };
                 }
             }
             if (!position && payload.kind !== 'trigger') {
@@ -671,7 +676,7 @@ export default function BuildTab({
                     return (!acc || x > acc.position.x) ? n : acc;
                 }, null);
                 if (rightmost?.position) {
-                    position = { x: rightmost.position.x + 280, y: rightmost.position.y };
+                    position = { x: rightmost.position.x + COL_PITCH, y: rightmost.position.y };
                 }
             }
             if (!position) {
@@ -722,6 +727,19 @@ export default function BuildTab({
             const withoutAuto = (next.edges || []).filter(e => !(e.from === sourceId && e.to === insertedId));
             const firstPort = isRouteStep(inserted) ? routePorts(inserted)[0] : null;
             next = { ...next, edges: spliceStepIntoEdge(withoutAuto, insertedId, sourceId, targetId, identity, firstPort) };
+        }
+        // Positions are stored, so nothing re-lays-out after this: the new card
+        // gets a free column next to its source here (and a splice makes room by
+        // sliding the downstream cards right), instead of the edge midpoint or
+        // source+offset it was handed, which landed it on top of its neighbours.
+        // A drop point the author chose is kept when it is clear of every card.
+        // Inside an expanded flowlet positions live in that flowlet's own space.
+        const before = new Set((baseDef.steps || []).map(s => s.id));
+        const addedId = (next.steps || []).find(s => !before.has(s.id))?.id;
+        if (!scopePrefix && sourceId && addedId) {
+            next = placeNewStep(next, addedId, {
+                sourceId, targetId, keepIfFree: !!opts.position && !targetId,
+            });
         }
         // Auto-map the new step's inputs from its upstream source (only when
         // wired from a source node — a bare add has no upstream to map from).
@@ -854,7 +872,7 @@ export default function BuildTab({
     // persistStepPatch silently no-ops is worse than no panel at all.
     const editsLocked = !!state.running;
     const refuseWhileBuilding = useCallback(() => {
-        toast.info(t('routines.builder.edits_locked', 'The AI is building this routine — editing is paused until it finishes.'));
+        toast.info(t('automations.builder.edits_locked', 'The AI is building this automation — editing is paused until it finishes.'));
     }, [t]);
 
     const onNodeClickWrapped = useCallback((id) => {
@@ -995,7 +1013,7 @@ export default function BuildTab({
 
     // The assistant is summonable: shown only when opened, and never in step
     // mode (v1 Steps are built visually — no AI chat).
-    const showChat = assistantOpen && mode !== 'step';
+    const showChat = assistantOpen && mode !== 'step' && !readOnly;
     const [reviewOpen, setReviewOpen] = useState(false);
     const [previewOpen, setPreviewOpen] = useState(false);
     const reviewPlanId = state.reviewPlan?.id;
@@ -1025,7 +1043,7 @@ export default function BuildTab({
         isBlockRoot: mode === 'step',
         mode: paletteMode,
         frequent: frequentItems,
-        // The form steps ride on the routine's own public form URL, so the
+        // The form steps ride on the automation's own public form URL, so the
         // validator rejects them outright without a form trigger. Same test it
         // applies (`form_page.no_form_trigger`): the primary trigger or any
         // secondary one.
@@ -1086,6 +1104,7 @@ export default function BuildTab({
                 plan's own fallback, taken on first use (2026-09-03). Collapsed it
                 is one 48px row; the drawer caps itself at calc(100% - 200px) and
                 the canvas row keeps a 220px minimum, so nothing is squeezed out. */}
+            {!readOnly && (
             <AddStepRibbon
                 scope={paletteScope}
                 hasTrigger={!!scopedDef?.trigger}
@@ -1101,6 +1120,7 @@ export default function BuildTab({
                 anchor={ribbonAnchorStep}
                 usageVersion={usageTick}
             />
+            )}
             <div className="flex flex-1 min-h-0">
             {/* Chat column — collapses entirely in Focus mode. The expand
                 handle lives at the top of the diagram column when collapsed. */}
@@ -1116,13 +1136,13 @@ export default function BuildTab({
                             <span className="w-7 h-7 rounded-lg bg-[color-mix(in_srgb,var(--type-ai)_14%,transparent)] text-[var(--type-ai)] flex items-center justify-center flex-shrink-0">
                                 <Sparkles size={14} />
                             </span>
-                            <span className="text-sm font-semibold text-[var(--text-primary)] truncate">{t('routines.assistant.title', 'Assistant')}</span>
-                            {state.reviewPlan && <button type="button" onClick={() => setReviewOpen(!reviewOpen)} aria-pressed={reviewOpen} className="rounded-md px-2 py-1 text-[11px] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]">{t('routines.assistant.plan', 'Plan')} v{state.reviewPlan.version}</button>}
+                            <span className="text-sm font-semibold text-[var(--text-primary)] truncate">{t('automations.assistant.title', 'Assistant')}</span>
+                            {state.reviewPlan && <button type="button" onClick={() => setReviewOpen(!reviewOpen)} aria-pressed={reviewOpen} className="rounded-md px-2 py-1 text-[11px] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]">{t('automations.assistant.plan', 'Plan')} v{state.reviewPlan.version}</button>}
                         </div>
                         <button
                             onClick={() => setAssistantOpen(false)}
-                            title={t('routines.assistant.close', 'Close the assistant')}
-                            aria-label={t('routines.assistant.close', 'Close the assistant')}
+                            title={t('automations.assistant.close', 'Close the assistant')}
+                            aria-label={t('automations.assistant.close', 'Close the assistant')}
                             className="p-1 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
                         >
                             <X size={15} />
@@ -1166,13 +1186,13 @@ export default function BuildTab({
                             setWorkMode(WORK_MODES[(WORK_MODES.findIndex(m => m.id === workMode) + 1) % WORK_MODES.length].id);
                         }
                     }}>
-                        {assistantContext && <div className="flex items-center gap-1.5 mb-2 px-2 py-1.5 rounded-lg border border-[var(--border-default)] bg-[var(--bg-card)] text-[11px] text-[var(--type-ai)]"><Sparkles size={12} /><span className="flex-1 min-w-0 truncate">@{assistantContext.label}</span><button type="button" onClick={onClearAssistantContext} aria-label={t('routines.assistant.clear_context', 'Clear step context')}><X size={12} /></button></div>}
-                        {/(?:^|\s)@[^@\s]*$/.test(chatInput) && <div className="mb-2 max-h-44 overflow-y-auto rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] p-1" role="listbox" aria-label={t('routines.assistant.mention_step', 'Mention a step')}>
+                        {assistantContext && <div className="flex items-center gap-1.5 mb-2 px-2 py-1.5 rounded-lg border border-[var(--border-default)] bg-[var(--bg-card)] text-[11px] text-[var(--type-ai)]"><Sparkles size={12} /><span className="flex-1 min-w-0 truncate">@{assistantContext.label}</span><button type="button" onClick={onClearAssistantContext} aria-label={t('automations.assistant.clear_context', 'Clear step context')}><X size={12} /></button></div>}
+                        {/(?:^|\s)@[^@\s]*$/.test(chatInput) && <div className="mb-2 max-h-44 overflow-y-auto rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] p-1" role="listbox" aria-label={t('automations.assistant.mention_step', 'Mention a step')}>
                             {[flatDef?.trigger, ...(flatDef?.triggers || []), ...(flatDef?.steps || [])].filter(Boolean).filter(step => (step.label || step.type || step.kind || '').toLowerCase().includes(chatInput.split('@').at(-1).toLowerCase())).map(step => <button key={step.id} type="button" role="option" aria-selected={assistantContext?.id === step.id} onClick={() => { onAskAssistant?.(step.id); setChatInput(chatInput.replace(/@[^@\s]*$/, '')); }} className="block w-full rounded-lg px-2 py-2 text-left text-xs hover:bg-[var(--bg-secondary)]">@{step.label || step.type || step.kind}</button>)}
                         </div>}
                         <InputArea
                             compact
-                            placeholder={t('routines.assistant.placeholder', 'Describe what you want…')}
+                            placeholder={t('automations.assistant.placeholder', 'Describe what you want…')}
                             toolbarExtra={setWorkMode ? <WorkModePicker alwaysPlanLarge={alwaysPlanLarge} onAlwaysPlanLargeChange={setAlwaysPlanLarge} value={workMode} onChange={setWorkMode} disabled={state.running} /> : null}
                             onSendMessage={onSend}
                             onStopGenerating={onStopBuild || undefined}
@@ -1204,10 +1224,10 @@ export default function BuildTab({
                 {reviewOpen && state.reviewPlan && <PlanReview plan={state.reviewPlan} running={state.running} onReject={onRejectPlan} onApprove={pauseAfterStep => { setReviewOpen(false); onApprovePlan?.(pauseAfterStep); }} onClose={() => setReviewOpen(false)} onComment={(section, index, line) => {
                     setAssistantOpen(true);
                     setWorkMode?.('plan');
-                    setChatInput(t('routines.assistant.plan_comment_prompt', 'Comment on plan v{version}, {section} {n}: "{line}" — ', { version: state.reviewPlan.version, section, n: index + 1, line }));
+                    setChatInput(t('automations.assistant.plan_comment_prompt', 'Comment on plan v{version}, {section} {n}: "{line}" — ', { version: state.reviewPlan.version, section, n: index + 1, line }));
                 }} />}
                 {previewOpen && state.proposal && <div className="absolute inset-0 z-20 flex flex-col bg-[var(--bg-primary)]">
-                    <div className="flex flex-wrap items-center gap-2 px-4 py-2 bg-[var(--bg-card)] border-b border-[var(--border-default)] text-xs"><Sparkles size={13} /><span className="flex-1">{t('routines.assistant.proposal', 'Proposal')}</span><button type="button" disabled={state.running} onClick={() => { setPreviewOpen(false); setAssistantOpen(true); }} className="rounded-lg px-3 py-1.5 bg-[var(--text-primary)] text-[var(--bg-primary)] disabled:opacity-50">{t('routines.assistant.review_changes', 'Review changes')}</button><button type="button" onClick={() => setPreviewOpen(false)} className="p-1.5" aria-label={t('routines.assistant.show_canvas', 'Show canvas')}><X size={14} /></button></div>
+                    <div className="flex flex-wrap items-center gap-2 px-4 py-2 bg-[var(--bg-card)] border-b border-[var(--border-default)] text-xs"><Sparkles size={13} /><span className="flex-1">{t('automations.assistant.proposal', 'Proposal')}</span><button type="button" disabled={state.running} onClick={() => { setPreviewOpen(false); setAssistantOpen(true); }} className="rounded-lg px-3 py-1.5 bg-[var(--text-primary)] text-[var(--bg-primary)] disabled:opacity-50">{t('automations.assistant.review_changes', 'Review changes')}</button><button type="button" onClick={() => setPreviewOpen(false)} className="p-1.5" aria-label={t('automations.assistant.show_canvas', 'Show canvas')}><X size={14} /></button></div>
                     <div className="flex-1 min-h-0 [&_.react-flow__node>div]:!border-dashed [&_.react-flow__node]:opacity-75"><DiagramPane definition={state.proposal.definition} editable={false} /></div>
                 </div>}
                 {state.pendingExternalDraft && (
@@ -1250,7 +1270,7 @@ export default function BuildTab({
                         zoom stack below it (15 + 182 + 8 px of it, then the
                         tab's own 40px); on a short canvas the stack lies down as
                         one row and the tab keeps to the top. */}
-                    {!showChat && mode !== 'step' && (
+                    {!showChat && mode !== 'step' && !readOnly && (
                         <button
                             onClick={() => setAssistantOpen(true)}
                             title="Open the AI assistant"
@@ -1287,8 +1307,8 @@ export default function BuildTab({
                         onNodeClick={onNodeClickWrapped}
                         onNodeExpand={onNodeExpand}
                         validation={state.validation}
-                        editable
-                        structuralEditsBlocked={state.running}
+                        editable={!readOnly}
+                        structuralEditsBlocked={state.running || readOnly}
                         buildCue={buildCue}
                         cameraInsetLeft={hasPlan ? PLAN_PANEL_INSET_PX : 0}
                         ribbonRootRef={ribbonRootRef}
@@ -1298,12 +1318,12 @@ export default function BuildTab({
                         // The empty canvas's "Choose a trigger" button. With no
                         // trigger yet `paletteMode` is already 'trigger', so the
                         // picker opens on the seven trigger kinds.
-                        onRequestOpenPalette={() => setPalette({ open: true, position: null, edgeSource: null })}
+                        onRequestOpenPalette={readOnly ? null : () => setPalette({ open: true, position: null, edgeSource: null })}
                         // The empty canvas (design 1e): every trigger as a card, and the
                         // assistant one click away.
-                        onAddTrigger={handleAddNode}
-                        onOpenAssistant={mode !== 'step' ? () => (onAskAssistant ? onAskAssistant() : setAssistantOpen(true)) : null}
-                        onAskAssistant={mode !== 'step' ? onAskAssistant : null}
+                        onAddTrigger={readOnly ? null : handleAddNode}
+                        onOpenAssistant={mode !== 'step' && !readOnly ? () => (onAskAssistant ? onAskAssistant() : setAssistantOpen(true)) : null}
+                        onAskAssistant={mode !== 'step' && !readOnly ? onAskAssistant : null}
                         // Marks the edited card, its source (dashed) and what comes
                         // next (dimmed) while the drawer is open.
                         editingStepId={ndvStep?.id || null}
@@ -1351,7 +1371,7 @@ export default function BuildTab({
                     "+" / edge "+" must land it at a specific spot. The ribbon
                     handles browse/add-anywhere; this small picker handles the
                     positioned case. The new node lands at palette.position. */}
-                {palette.open && (
+                {palette.open && !readOnly && (
                     <>
                         <div className="absolute inset-0 z-30" onMouseDown={closePalette} />
                         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-40 w-[360px] max-h-[70vh] flex flex-col rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] shadow-2xl overflow-hidden">

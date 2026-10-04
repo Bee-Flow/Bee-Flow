@@ -134,7 +134,7 @@ function replaceQuestion(def: FlowDefinition, payload: StepPayload, t: Translate
         title: t('mobile.flow.replace_trigger_title', 'Replace the {from} trigger with {to}?', {
             from: defaultTriggerLabel(def.trigger?.kind || 'manual'), to: defaultTriggerLabel(payload.triggerKind || 'manual'),
         }),
-        message: t('mobile.flow.replace_trigger', 'A routine can only have one trigger of these kinds, so the current one and its settings are replaced.'),
+        message: t('mobile.flow.replace_trigger', 'An automation can only have one trigger of these kinds, so the current one and its settings are replaced.'),
         confirmLabel: t('mobile.flow.replace', 'Replace'),
     };
 }

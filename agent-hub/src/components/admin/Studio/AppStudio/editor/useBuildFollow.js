@@ -5,7 +5,7 @@ import { findScreen } from '../state/definitionOps';
 
 /**
  * The camera during an AI build — for a canvas that is a scrolling DOM grid
- * (the routine canvas moves a React Flow viewport; here the camera is the
+ * (the automation canvas moves a React Flow viewport; here the camera is the
  * surface's scroll position AND which screen the canvas shows).
  *
  * For each card of a reveal plan, shortly after it appears, the surface
@@ -13,7 +13,7 @@ import { findScreen } from '../state/definitionOps';
  * shows it; two moves never closer than MIN_MOVE_GAP_MS). A wheel or pointer
  * gesture on the surface takes the camera away and it does NOT come back on
  * its own — the banner offers "Follow the build" instead. Same rule as the
- * routine canvas: the person watching always wins.
+ * automation canvas: the person watching always wins.
  *
  * CHAPTERS (2026-09-13). The canvas renders one screen; the AI builds on
  * whichever it is typing for. The screen it is building is resolved here

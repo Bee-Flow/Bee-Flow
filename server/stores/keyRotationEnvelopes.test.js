@@ -180,7 +180,7 @@ test('every orgVault-sealed column in the tree is named in the rotation script',
         ['server/auth/orgEscrow.js', "table: 'organizations'"],
         ['server/stores/voiceprintStore.js', "table: 'voiceprints'"],
         ['server/stores/integrationConnectionStore.js', "table: 'integration_connections'"],
-        ['server/stores/routineCredentialStore.js', "table: 'routine_credentials'"],
+        ['server/stores/automationCredentialStore.js', "table: 'automation_credentials'"],
     ]);
 
     // Genuinely textual: the table/column inventory is inline object literals

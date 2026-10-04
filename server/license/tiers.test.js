@@ -48,7 +48,7 @@ const full = t.getFeaturesForTier('full');
 
 // Community is the free self-hosted core: chat + KB + Nextcloud + multi-user
 // + skills. Studio-class capabilities (voice, webpages, automations, agent
-// routines, meeting notes, ticket assistant, notebooks, component designer,
+// automations, meeting notes, ticket assistant, notebooks, component designer,
 // projects), the advanced Privacy Shield modes (tokenize PII, web-search
 // guard), and the non-overview Usage tabs were promoted to Enterprise in
 // the tier tightening — see docs/docs/licensing/tiers.md.
@@ -64,12 +64,12 @@ assert.ok(community.includes('skills'), 'community must include skills');
 // Community core (declarative markers — integration usage is ungated at
 // runtime). Guard against a future edit silently gating them behind Enterprise.
 assert.ok(community.includes('integrations'), 'community must include all built-in integrations');
-// n8n-style free builder: the Automation builder + Agent Routines are part of
+// n8n-style free builder: the Automation builder + Scheduled agent runs are part of
 // the free Community core (n8n Community Edition ships the workflow builder
 // gratis; only collaboration is paid). What stays Enterprise is org-wide
 // automation SHARING (`automation_sharing`) and team workspaces (`projects`).
 assert.ok(community.includes('automations'), 'community must include the automation builder (n8n-style free builder)');
-assert.ok(community.includes('agent_routines'), 'community must include agent routines (n8n-style free builder)');
+assert.ok(community.includes('agent_routines'), 'community must include scheduled agent runs (n8n-style free builder)');
 // MCP server marketplace is an ENTERPRISE feature (an enterprise beta) — it must
 // NOT be in community. See server/core/betaFeatures.js + the /ai/mcp-servers
 // route gates + the directChatToolStack runtime guard.
@@ -94,7 +94,7 @@ for (const f of [
 }
 
 // The paid collaboration boundary for the free builder: org-wide sharing of
-// automations/routines stays Enterprise (reserve flag — no route consumes it
+// automations stays Enterprise (reserve flag — no route consumes it
 // yet, but the boundary is pinned so a future sharing feature lands gated).
 assert.ok(!community.includes('automation_sharing'), 'community must NOT include automation sharing (collaboration is paid)');
 assert.ok(enterprise.includes('automation_sharing'), 'enterprise must include automation sharing');
@@ -192,7 +192,7 @@ assert.strictEqual(t.tierHasFeature('community', 'skills'), true);
 assert.strictEqual(t.tierHasFeature('community', 'integrations'), true, 'built-in integrations are community');
 assert.strictEqual(t.tierHasFeature('community', 'mcp_marketplace'), false, 'MCP marketplace is enterprise');
 assert.strictEqual(t.tierHasFeature('enterprise', 'mcp_marketplace'), true, 'MCP marketplace is enterprise');
-// n8n-style free builder: automations + agent routines are Community.
+// n8n-style free builder: automations + scheduled agent runs are Community.
 assert.strictEqual(t.tierHasFeature('community', 'agent_routines'), true, 'agent_routines is a Community free-builder feature');
 assert.strictEqual(t.tierHasFeature('community', 'automations'), true, 'automations is a Community free-builder feature');
 // Paid collaboration boundary: org-wide automation sharing stays Enterprise.

@@ -139,7 +139,7 @@ const INTEGRATION_TOOL_MAP = {
     // leaves the building. With `nextcloudPath` the dispatcher writes it into
     // Nextcloud instead, and then it is classed exactly like the nextcloud_
     // family (external, server = the Nextcloud URL): the egress ledger, the
-    // org's "Outside tools" PII rules and a routine's external privacy scope
+    // org's "Outside tools" PII rules and an automation's external privacy scope
     // all apply to the content that goes there.
     create_presentation: {
         integration: 'presentation_builder',
@@ -528,7 +528,7 @@ function resolveIntegration(toolName, toolArgs = {}, ctx = {}) {
  * over-reported badly — any 9-digit number was a "BSN" (order numbers, epoch
  * seconds, invoice ids) and almost any digit run was a "Phone Number". Every
  * numeric category now validates its candidates (elfproef / Luhn / octet
- * range / digit-count) before the category is reported. Routine rows fed the
+ * range / digit-count) before the category is reported. Automation rows fed the
  * same sovereignty dashboards as the GLiNER-scanned chat rows, so the
  * over-reporting skewed the org-wide "PII leaving the building" numbers.
  */

@@ -2,7 +2,7 @@
  * The groups a TRIGGER contributes: its payload (`trigger.output.*`, whatever
  * kind fired) and the non-payload facts a run knows about it (`trigger.kind`,
  * `trigger.event`, … — one "Trigger info" group for the whole graph, however
- * many triggers the routine has).
+ * many triggers the automation has).
  */
 import { walkRelativePath } from '../../../../../utils/bindingHelpers';
 import { samplePlaceholderFor } from './sampleFields';
@@ -37,18 +37,44 @@ export function describeTriggerMeta(definition, catalog) {
     const fields = Array.isArray(catalog?.triggerMeta) ? catalog.triggerMeta : null;
     if (!fields || fields.length === 0) return null;
     const sample = triggerMetaSample(definition);
+    const kinds = new Set([(definition?.trigger?.kind) || 'manual']);
+    const extra = Array.isArray(definition?.triggers) ? definition.triggers : [];
+    for (const t of extra) kinds.add(t?.kind || 'manual');
+    const shown = fields.filter(f => metaFieldApplies(f.key, kinds, definition, extra));
+    if (shown.length === 0) return null;
     return {
         id: '__trigger_meta',
         label: 'Trigger info',
         kind: 'trigger_meta',
         basePath: 'trigger',
         sample,
-        fields: fields.map(f => ({
+        fields: shown.map(f => ({
             key: f.key,
             path: f.path || `trigger.${f.key}`,
-            sample: walkRelativePath(f.key, sample) ?? f.sample ?? null,
+            // The catalog's own sample is an example from ANOTHER trigger kind
+            // ("New mail", a weekday cron): only fields the actual trigger
+            // produces are listed, and they show what that trigger has.
+            sample: walkRelativePath(f.key, sample) ?? null,
         })),
     };
+}
+
+/**
+ * Whether a trigger-info field exists for the trigger kinds this automation
+ * has. kind/source/id/firedAt are on every run; the rest belong to one kind
+ * (the catalog's `note` says so): provider + event to app events, the cron to
+ * schedules, `label` only once the trigger carries one, and `scheduledFor`
+ * only for an ADDITIONAL schedule trigger (the primary one has no slot).
+ */
+function metaFieldApplies(key, kinds, definition, extra) {
+    switch (key) {
+        case 'label': return typeof definition?.trigger?.label === 'string' && definition.trigger.label !== '';
+        case 'provider':
+        case 'event': return kinds.has('app_event');
+        case 'schedule.cron': return kinds.has('schedule');
+        case 'schedule.scheduledFor': return extra.some(t => t?.kind === 'schedule');
+        default: return true;
+    }
 }
 
 export function describeTrigger(trigger, triggerOutputs) {

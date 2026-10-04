@@ -1,7 +1,7 @@
 /**
  * The run history lists JOURNEYS, not run rows.
  *
- * A routine that pauses on a form is continued by a child run, so one visitor
+ * An automation that pauses on a form is continued by a child run, so one visitor
  * answering three questions produced four rows — three of which said nothing
  * but "Resumed from the form — see child run …". `root_run_id` names the
  * journey they belong to; the list shows its head and reads the outcome off

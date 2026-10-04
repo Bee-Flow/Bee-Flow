@@ -1,5 +1,5 @@
 /**
- * The trigger's health check (the web header's Diagnose) and the routine's
+ * The trigger's health check (the web header's Diagnose) and the automation's
  * AI Act declaration (the web Settings tab's Compliance block): its read and
  * the ladder's write.
  */

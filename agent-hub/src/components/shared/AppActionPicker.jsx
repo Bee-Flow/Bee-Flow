@@ -100,7 +100,7 @@ export const PICKER_TEXT = Object.freeze({
     badgeList: 'list',
     // BEWUST LEEG. "Wordt altijd eerst bevestigd" is een regel van de
     // AGENT-runtime (`confirmForTool` zegt bij een send altijd `ask`); een
-    // routine-stap kent die regel niet — daar staat één bevestiging vóór de
+    // automation-stap kent die regel niet — daar staat één bevestiging vóór de
     // eerste onbeheerde run. Een schil die de zin standaard toont, zou hem dus
     // op één van zijn twee oppervlakken verzinnen. Wie de regel wél heeft,
     // geeft de tekst mee.

@@ -23,13 +23,13 @@ const {
 // The 'core' toolset for small (Haiku/mini/Ministral/Gemma-class) models: an
 // 18-tool menu instead of 38, so tool selection stays reliable. Everything a
 // small model needs to assemble a working app end to end; the read/inspect
-// tools are dropped (the owner's routines list and the live draft state are
+// tools are dropped (the owner's automations list and the live draft state are
 // already in the prompt) along with the rarer structural edits
 // (update_screen / remove_screen / add_section / remove_action) and the
 // vision loop (app_screenshot — a small model can't see the image anyway).
 //
 // The five data-side entries: app_link_datatable puts a table that already
-// exists (a Nextcloud mirror a routine fills) into the app; app_upsert_table
+// exists (a Nextcloud mirror an automation fills) into the app; app_upsert_table
 // and app_seed_records create and fill the app's OWN tables — measured
 // 2026-09-13: without them a model asked for "an app with tables" invented
 // tbl_ ids and every action against them was refused for a whole turn;

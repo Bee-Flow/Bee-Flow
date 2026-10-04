@@ -15,7 +15,7 @@
  *
  * The RUNTIME keeps its three step types (`guard`, `tokenize`, `untokenize`) —
  * they are the shapes the engine, the validator, the canvas ports and every
- * saved routine already speak. This module is the translation layer, exactly as
+ * saved automation already speak. This module is the translation layer, exactly as
  * routeModel.js is for If/Switch/Filter, so:
  *   - existing guard/tokenize/untokenize steps open in the unified editor
  *     untouched, with no migration and no run-history backfill;

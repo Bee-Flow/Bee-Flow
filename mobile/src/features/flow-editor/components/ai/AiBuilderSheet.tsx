@@ -1,12 +1,12 @@
 /**
  * "Ask AI" — the web builder's assistant panel (Builder/chat/*) as a tall
- * sheet over the build screen: the conversation this routine has had with
+ * sheet over the build screen: the conversation this automation has had with
  * the builder (restored from its session), the turn streaming now, and the
  * composer. The flow changes behind the sheet as the drafts arrive; edits
  * are paused meanwhile, and one undo takes a whole turn back.
  *
  * Before the first message it offers suggestions that fill the composer
- * (never send), fitting the routine's steps or, while it has none, its trigger.
+ * (never send), fitting the automation's steps or, while it has none, its trigger.
  */
 
 import React, { createContext, useContext, useRef } from 'react';
@@ -92,7 +92,7 @@ export function AiBuilderSheet({ assistant, draft, onFindings, appLabel }: AiBui
             visible={assistant.open}
             onClose={() => assistant.setOpen(false)}
             title={t('mobile.flow.ai.title', 'Ask AI')}
-            subtitle={ai.streaming ? t('routines.builder.act.building', 'Building') : undefined}
+            subtitle={ai.streaming ? t('automations.builder.act.building', 'Building') : undefined}
             scroll={false}
             tall
             footer={

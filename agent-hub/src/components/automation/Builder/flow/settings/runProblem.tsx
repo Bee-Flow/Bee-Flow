@@ -36,7 +36,7 @@ export function runStepProblem(
     const title = info.titleKey ? t(info.titleKey, info.title || '', info.params || {}) : info.title;
     return {
         settingKey,
-        text: title || info.cause || t('routines.ndv.setting_problem', 'The last run failed on this setting'),
+        text: title || info.cause || t('automations.ndv.setting_problem', 'The last run failed on this setting'),
     };
 }
 

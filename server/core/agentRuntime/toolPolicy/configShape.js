@@ -17,7 +17,7 @@ const ACT_AS_MODES = Object.freeze(['viewer', 'owner']);
 // default for anything unreadable — see normaliseToolsConfig.
 const DATATABLE_SCOPES = Object.freeze(['own', 'all']);
 // The reserved keys that actually GATE something. Both do, now: `automations`
-// narrows which routines are offered, `datatables` narrows which tables
+// narrows which automations are offered, `datatables` narrows which tables
 // `datatable_query` will read and what it returns from them. A reserved key
 // that enforced NOTHING would have to stay off this list — counting it as a
 // curation flips the agent into the confirmation regime on the strength of a

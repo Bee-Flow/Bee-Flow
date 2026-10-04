@@ -200,7 +200,7 @@ export function useRenderedGraph({
     // or, per the "Colour lines by" mode, its branch case / the source's
     // dominant PII group. Stamped as both stroke and data.chipColor so the
     // line and its case chip agree.
-    // PII group → hex, with this routine's own overrides (Lines panel) folded
+    // PII group → hex, with this automation's own overrides (Lines panel) folded
     // over the fixed defaults.
     const piiGroupColors = useMemo(() => resolvePiiGroupColors(definition), [definition]);
 

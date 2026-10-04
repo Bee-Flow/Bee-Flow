@@ -37,12 +37,12 @@ key `cowork.list.explainer`):
 > more steps, the same brief opens in the Builder."
 
 Note: that sentence is copy only — there is **no button in the Cowork UI that hands a brief
-to the Builder**. The reverse pointer does exist: Studio → Routines shows
+to the Builder**. The reverse pointer does exist: Studio → Automations shows
 *"Looking for your prompt tasks? They live under Cowork now →"* (`components/automation/index.jsx`).
 
 Heritage: cowork replaced the old "prompt tasks" (`ai_tasks`). Those were migrated
-(`server/migrations/prompt-tasks-to-cowork-2026-08.js`). Agent-linked *routines* stayed in
-Studio → Routines. Cowork's new thing over prompt tasks is the **per-run history**.
+(`server/migrations/prompt-tasks-to-cowork-2026-08.js`). Agent-linked *automations* stayed in
+Studio → Automations. Cowork's new thing over prompt tasks is the **per-run history**.
 
 ---
 
@@ -305,7 +305,7 @@ to execute: <reason>"* and a link back to `/app/cowork/<id>`.
 
 | Thing | Value | Where |
 |---|---|---|
-| Schedules per user | **10** (config `ai_tasks_max_per_user`, shared with routines) | `routes/cowork.js` `DEFAULT_MAX_SCHEDULES` |
+| Schedules per user | **10** (config `ai_tasks_max_per_user`, shared with automations) | `routes/cowork.js` `DEFAULT_MAX_SCHEDULES` |
 | Over-quota error | `Maximum number of cowork schedules reached (10). Delete or pause one to create another.` | `routes/cowork.js` |
 | Composer title max | **60** characters | `coworkCompose.js` `MAX_TITLE`, `titleFromBrief` |
 | Composer instruction max | **4000** characters | `coworkCompose.js` `MAX_PROMPT` |
@@ -371,7 +371,7 @@ to execute: <reason>"* and a link back to `/app/cowork/<id>`.
 - **Linking an agent** is gated by the beta/entitlement **`agent_routines`**
   (`userHasBetaFeature(userId, 'agent_routines')` in `routes/cowork.js`, both on create/update
   and on `/compose`). Lifecycle GA, licence feature `agent_routines`, which sits in the
-  **Community** tier (`server/license/tiers.js`). Refusal: 403 *"Agent routines beta is not
+  **Community** tier (`server/license/tiers.js`). Refusal: 403 *"Agent automations beta is not
   enabled for this account"*. The agent must also be owned by the caller — otherwise 403
   *"Agent not found or not owned by you"*. Frontend mirror: `useCoworkComposer` only offers the
   picker when `useEntitlements().can('agent_routines')`.
@@ -399,8 +399,8 @@ to execute: <reason>"* and a link back to `/app/cowork/<id>`.
   conversation; an agent-linked cowork writes into that agent's thread.
 - **Agents** — "Run as" hands the brief to an agent with its skills, KBs and integrations.
 - **Integrations / Apps** — the run uses the user's connected apps; per-item allow-list narrows
-  them; broken OAuth pauses schedules (`auth/routineAuth.js`).
-- **Routines / Automations (Studio)** — agent routines stayed there; the Routines empty state
+  them; broken OAuth pauses schedules (`auth/automationAuth.js`).
+- **Automations / Automations (Studio)** — agent automations stayed there; the Automations empty state
   says *"plain scheduled work lives under Cowork"* and a pointer button links across.
 - **Model tiers** — `/ai/config/tiers-for-user`; tier is remembered per surface.
 - **Usage & cost** — every run logs to `ai_usage_log` with `agent_type`/`source = 'cowork'`

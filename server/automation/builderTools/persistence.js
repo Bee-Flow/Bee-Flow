@@ -63,7 +63,7 @@ async function persistDraft(draftWrap, { finalize = false } = {}) {
          * The knowledge-base gate, same shape as the assignee rule above and
          * for the same reason: `validateDefinition` is the pure pass and cannot
          * read `knowledge_bases`. Without this the AI and MCP builders were the
-         * one authoring surface that could finalize a routine writing to a base
+         * one authoring surface that could finalize an automation writing to a base
          * its owner may not touch — while `builder_add_knowledge_write`'s own
          * description promises the save refuses exactly that.
          *
@@ -126,7 +126,7 @@ async function persistDraft(draftWrap, { finalize = false } = {}) {
         });
         draftWrap.automationId = a.id;
         // The builder writes datatable steps like any other author, and this is
-        // the only save path it has — without this its routines never appear in
+        // the only save path it has — without this its automations never appear in
         // "used by", so the destructive-change guard cannot see them either.
         await syncDatatableUsage(a.id, orgId, def, { label: 'builderTools' });
         await syncKbSources(a.id, def, { userId: draftWrap.userId, title: a.title });
@@ -137,7 +137,7 @@ async function persistDraft(draftWrap, { finalize = false } = {}) {
         return a;
     }
     // Update existing row. Snapshot the stored definition FIRST: when the
-    // routine is ACTIVE the trigger config below has to be compared against
+    // automation is ACTIVE the trigger config below has to be compared against
     // what its subscriptions and schedule rows were built from.
     let prior = null;
     try { prior = await automationStore.getAutomation(draftWrap.automationId); } catch (_) { /* treated as unchanged */ }
@@ -163,7 +163,7 @@ async function persistDraft(draftWrap, { finalize = false } = {}) {
 }
 
 /**
- * The MCP builder edits a routine that may already be ACTIVE — and PUT /:id
+ * The MCP builder edits an automation that may already be ACTIVE — and PUT /:id
  * is not on its path, so the re-sync that route does on save never ran here.
  * Result: an app_event trigger whose filter was just changed kept firing on
  * the OLD subscription row, and a new or changed secondary schedule never got
@@ -176,7 +176,7 @@ async function persistDraft(draftWrap, { finalize = false } = {}) {
  */
 async function resyncLiveTriggers(draftWrap, prior, saved, def) {
     if (!saved?.isActive) return;
-    // Handoff 5: a routine with a live version runs (and is triggered by) the
+    // Handoff 5: an automation with a live version runs (and is triggered by) the
     // LIVE definition; this save changed only the working copy. Its triggers
     // are re-registered when it is published (routes/automation/activate.js).
     if (saved.liveVersion != null) return;

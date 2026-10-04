@@ -1,5 +1,5 @@
 /**
- * A run's end is what refreshes the routines list; its start and its steps
+ * A run's end is what refreshes the automations list; its start and its steps
  * are not, so a busy loop never re-reads the list.
  */
 

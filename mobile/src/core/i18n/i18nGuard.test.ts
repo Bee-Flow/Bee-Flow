@@ -303,34 +303,37 @@ const PENDING_KEYS = new Map<string, string>([
  * the same word with another job, which a translator may well render
  * differently, or a page-specific key a generic label should not lean on.
  */
-const BORROWABLE_NAMESPACES = /^(routines|routine_editor|forms|common)\./;
+const BORROWABLE_NAMESPACES = /^(automations|automation_editor|forms|common)\./;
 const PAGE_SPECIFIC_RETRY = "the web's 'Try again' keys belong to one page each (forms studio, answers, a table row); there is no generic one";
 const PAGE_SPECIFIC_REQUIRED = "the web's 'Required' is a column of the extraction and table-row editors, not a field's chip";
 const PAGE_SPECIFIC_ADVANCED = "the web's 'Advanced' key is the Return-to-app editor's own section";
 const OTHER_REMOVE = "forms.share.audience_remove takes a person off an audience; these remove a question or a row";
-const OTHER_DONE = "routines.card.badge_done is a run's status badge; this 'done' closes an edit";
+const OTHER_DONE = "automations.card.badge_done is a run's status badge; this 'done' closes an edit";
 const OTHER_TODAY = "the answers dashboard's KPI and range words; these are a date answer's shortcut";
-const OTHER_STOP = "routines.node.stop_error.typeLabel names the step that stops a run with an error; this 'Stop' is a button";
-const LOOP_PORT_DONE = "routines.canvas.loop_port_done names a loop's exit port; this 'Done' closes a sheet";
+const OTHER_STOP = "automations.node.stop_error.typeLabel names the step that stops a run with an error; this 'Stop' is a button";
+const LOOP_PORT_DONE = "automations.canvas.loop_port_done names a loop's exit port; this 'Done' closes a sheet";
 const OTHER_SETTINGS = "the web's 'Settings' keys are tabs of the form page and the step editor, not a screen's title";
 const OTHER_SHARE = "forms.page.tab_share is the form page's own tab";
-const BUILDER_WORD = 'routines.builder.*_word is a word spliced into one builder sentence';
+const BUILDER_WORD = 'automations.builder.*_word is a word spliced into one builder sentence';
 const RANGE_NOT_LIFETIME = "the answers dashboard's date ranges; these are a public link's lifetime";
-// The builder redesign's routines.versions.*, routines.ribbon.* and friends
+// The builder redesign's automations.versions.*, automations.ribbon.* and friends
 // (2026-09-28) say many short words for the first time.
-const VERSION_SETTING = "routines.versions.setting.* names a step's setting in the version compare; this is a field of something else";
-const OTHER_OPEN = "routines.agent_step.open_agent opens the agent an agent step runs; there is no generic 'Open'";
-const OTHER_RENAME = "routines.versions.rename renames a saved version; this renames something else";
-const OTHER_COPIED = "routines.settings.webhook_copied confirms a copied webhook address; there is no generic 'Copied'";
-const OTHER_MORE = "routines.ribbon.more is the step ribbon's overflow pill; this opens a screen's own menu";
-const OTHER_CHANGE = "routines.sharing.change_pill changes who a routine is shared with; this changes a trigger or a page's audience";
-const OTHER_STEPS = "routines.ribbon's 'Steps' heads the step ribbon's search results and category; this heads another list of steps";
-const OTHER_ICON = "routines.settings.icon is the routine settings' own field";
-const OTHER_SHOW_ALL = "routines.output.show_all shows every column of a step's output table";
-const OTHER_OPTIONS = "routines.mismatch.options_generic heads the mapping mismatch resolver's choices; this heads a field's own options";
-const OTHER_DISCARD = "routines.assistant.discard throws away the assistant's proposal or plan; this discards something else";
-const OTHER_DOCUMENTS = "routines.ribbon.data_documents is a row of the step ribbon, and documents.title heads Studio Documents; this is the knowledge documents";
+const VERSION_SETTING = "automations.versions.setting.* names a step's setting in the version compare; this is a field of something else";
+const OTHER_OPEN = "automations.agent_step.open_agent opens the agent an agent step runs; there is no generic 'Open'";
+const OTHER_RENAME = "automations.versions.rename renames a saved version; this renames something else";
+const OTHER_COPIED = "automations.settings.webhook_copied confirms a copied webhook address; there is no generic 'Copied'";
+const OTHER_MORE = "automations.ribbon.more is the step ribbon's overflow pill; this opens a screen's own menu";
+const OTHER_CHANGE = "automations.sharing.change_pill changes who an automation is shared with; this changes a trigger or a page's audience";
+const OTHER_STEPS = "automations.ribbon's 'Steps' heads the step ribbon's search results and category; this heads another list of steps";
+const OTHER_ICON = "automations.settings.icon is the automation settings' own field";
+const OTHER_SHOW_ALL = "automations.output.show_all shows every column of a step's output table";
+const OTHER_OPTIONS = "automations.mismatch.options_generic heads the mapping mismatch resolver's choices; this heads a field's own options";
+const OTHER_DISCARD = "automations.assistant.discard throws away the assistant's proposal or plan; this discards something else";
+const OTHER_DOCUMENTS = "automations.ribbon.data_documents is a row of the step ribbon, and documents.title heads Studio Documents; this is the knowledge documents";
+const PAGE_SPECIFIC_AUTOMATION = "the web's only bare 'Automation' is the versions list's row label, not a screen title or a block subtitle";
 const SAME_WORDS_OWN_KEY = new Map<string, string>([
+    ['mobile.automations.one', PAGE_SPECIFIC_AUTOMATION],
+    ['mobile.webpages.data.automation', PAGE_SPECIFIC_AUTOMATION],
     ['mobile.error.retry', PAGE_SPECIFIC_RETRY],
     ['mobile.flow.retry.tries', PAGE_SPECIFIC_RETRY],
     ['mobile.flow.save.retry', PAGE_SPECIFIC_RETRY],
@@ -348,33 +351,33 @@ const SAME_WORDS_OWN_KEY = new Map<string, string>([
     ['mobile.flow.run.stop', OTHER_STOP],
     ['mobile.automations.live.stop', OTHER_STOP],
     ['mobile.flow.code.code', "the Code step's section holding its source, not the step type's name"],
-    ['mobile.markdown.code', "routines.node.code.* names the Code step; this heads a code block that names no language"],
-    ['mobile.flow.datatable.table', "routines.mapping.table is the mapping panel's table view, not the table a step writes to"],
-    ['mobile.flow.datatable.value', 'routines.builder.value_word is a word spliced into one builder sentence'],
+    ['mobile.markdown.code', "automations.node.code.* names the Code step; this heads a code block that names no language"],
+    ['mobile.flow.datatable.table', "automations.mapping.table is the mapping panel's table view, not the table a step writes to"],
+    ['mobile.flow.datatable.value', 'automations.builder.value_word is a word spliced into one builder sentence'],
     ['mobile.flow.http.response', "forms.answers.drawer_title is a form's response; this is an HTTP response"],
     ['mobile.flow.http.shared_with_you', "forms.page.readonly_chip marks a read-only form; this marks a shared connection"],
     ['mobile.flow.save.pending', "forms.page.unsaved_title heads the form page's leave dialog; this is a save status"],
-    ['mobile.flow.settings.title', "the web's 'Settings' keys are tabs of other pages; the routine settings screen has none"],
-    ['mobile.flow.status_live', "forms.status.live is a form's status, not a routine's"],
-    ['mobile.automations.fact.finished', "routines.runs.finished is a run's outcome sentence; this labels the time a run finished"],
+    ['mobile.flow.settings.title', "the web's 'Settings' keys are tabs of other pages; the automation settings screen has none"],
+    ['mobile.flow.status_live', "forms.status.live is a form's status, not an automation's"],
+    ['mobile.automations.fact.finished', "automations.runs.finished is a run's outcome sentence; this labels the time a run finished"],
     ['mobile.billing.custom_plan', "forms.answers.range_custom is a custom date range; this names a subscription whose plan has no name"],
     ['mobile.datatables.done', LOOP_PORT_DONE],
     ['mobile.datatables.required', PAGE_SPECIFIC_REQUIRED],
-    ['mobile.datatables.step_n', "routines.canvas.row_step numbers a canvas row; this counts an import's steps"],
+    ['mobile.datatables.step_n', "automations.canvas.row_step numbers a canvas row; this counts an import's steps"],
     ['mobile.onboarding.share', "forms.page.tab_share is the form page's own tab; this hands a recovery key to the system share sheet"],
     ['mobile.org.preset_custom', "forms.answers.range_custom is a custom date range; this is a custom theme preset"],
-    ['mobile.org.shield_active', "routines.active is a routine's state; this is the Privacy Shield's"],
+    ['mobile.org.shield_active', "automations.active is an automation's state; this is the Privacy Shield's"],
     ['mobile.org.shield_required', PAGE_SPECIFIC_REQUIRED],
     ['mobile.playbooks.open_run', "forms.answers.drawer_open_run opens the run behind a form answer; this opens a playbook run"],
     ['mobile.projects.leave', "forms.page.unsaved_leave leaves an unsaved form page; this leaves a project"],
-    ['mobile.recording.pause', "routines.pause pauses a routine; this pauses audio playback"],
+    ['mobile.recording.pause', "automations.pause pauses an automation; this pauses audio playback"],
     ['mobile.studio_documents.block.text', BUILDER_WORD],
     ['mobile.studio_documents.done', LOOP_PORT_DONE],
     ['mobile.studio_documents.param.text', BUILDER_WORD],
     ['mobile.studio_documents.rule.value', BUILDER_WORD],
     ['mobile.studio_documents.tab.text', BUILDER_WORD],
-    ['mobile.studio_documents.type.presentation', "routines.node.presentation.* names the Presentation step; this is a document type"],
-    ['mobile.webpages.data.integration', "routines.node.integration_action.defaultLabel names a step; this is a kind of data source"],
+    ['mobile.studio_documents.type.presentation', "automations.node.presentation.* names the Presentation step; this is a document type"],
+    ['mobile.webpages.data.integration', "automations.node.integration_action.defaultLabel names a step; this is a kind of data source"],
     ['mobile.webpages.data.revoke', "forms.share.audience_remove takes a person off an audience; this revokes a page's data grant"],
     ['mobile.webpages.link.done', LOOP_PORT_DONE],
     ['mobile.webpages.link.last_viewed', "forms.studio.last_submission dates a form's last answer; this dates a link's last view"],
@@ -385,39 +388,39 @@ const SAME_WORDS_OWN_KEY = new Map<string, string>([
     ['mobile.webpages.public.expiry_30', RANGE_NOT_LIFETIME],
     ['mobile.webpages.public.expiry_7', RANGE_NOT_LIFETIME],
     ['mobile.webpages.source.add_text', BUILDER_WORD],
-    ['mobile.webpages.source.add_text_title', "routines.builder.add_text adds a text part to a binding; this adds a text source"],
-    ['mobile.webpages.source.retry', "routine_editor.run_retry and routines.ndv.retry retry a test run; this retries a source"],
+    ['mobile.webpages.source.add_text_title', "automations.builder.add_text adds a text part to a binding; this adds a text source"],
+    ['mobile.webpages.source.retry', "automation_editor.run_retry and automations.ndv.retry retry a test run; this retries a source"],
     ['mobile.webpages.source.text', BUILDER_WORD],
     ['mobile.webpages.tab.settings', OTHER_SETTINGS],
     ['mobile.webpages.tab.share', OTHER_SHARE],
     ['mobile.flow.action.open', OTHER_OPEN],
-    ['mobile.flow.approval.groups', "routines.library.blockGroups says a library step is shared with groups; this heads the groups in a directory"],
-    ['mobile.flow.condition.test', "routines.header.test is the builder's Test menu; this labels a condition's comparison"],
+    ['mobile.flow.approval.groups', "automations.library.blockGroups says a library step is shared with groups; this heads the groups in a directory"],
+    ['mobile.flow.condition.test', "automations.header.test is the builder's Test menu; this labels a condition's comparison"],
     ['mobile.flow.fill.instructions', VERSION_SETTING],
     ['mobile.flow.form.message', VERSION_SETTING],
     ['mobile.flow.form.rename', OTHER_RENAME],
-    ['mobile.flow.group.switch', "routines.ndv.action_switch switches a step's action; this names a Switch step"],
-    ['mobile.flow.loop.loop', "routines.ndv.family.loop names a family of step types; this heads a loop's own settings"],
+    ['mobile.flow.group.switch', "automations.ndv.action_switch switches a step's action; this names a Switch step"],
+    ['mobile.flow.loop.loop', "automations.ndv.family.loop names a family of step types; this heads a loop's own settings"],
     ['mobile.flow.more', OTHER_MORE],
-    ['mobile.flow.ndv.symbol_default', "routines.library.default badges the default way to create a routine; this resets a symbol"],
+    ['mobile.flow.ndv.symbol_default', "automations.library.default badges the default way to create an automation; this resets a symbol"],
     ['mobile.flow.rename', OTHER_RENAME],
-    ['mobile.flow.set.hide', "routines.output.hide folds an output table's technical columns; this hides a JSON extract"],
+    ['mobile.flow.set.hide', "automations.output.hide folds an output table's technical columns; this hides a JSON extract"],
     ['mobile.flow.set.rename', OTHER_RENAME],
-    ['mobile.flow.settings.editor', "routines.header.view_editor names the builder's canvas view; this heads the device's editor preferences"],
-    ['mobile.flow.status_draft', "routines.header.step_draft and routines.library.blockDraft are a library step's state; the web's routine state word has no key"],
+    ['mobile.flow.settings.editor', "automations.header.view_editor names the builder's canvas view; this heads the device's editor preferences"],
+    ['mobile.flow.status_draft', "automations.header.step_draft and automations.library.blockDraft are a library step's state; the web's automation state word has no key"],
     ['mobile.flow.tab_steps', OTHER_STEPS],
-    ['mobile.flow.versions.not_saved', "routines.templates.orgEmptyTitle is the template gallery's empty state; this is a routine never saved"],
-    ['mobile.flow.view', "routines.sharing.view_pill says a routine is shared read-only; this switches the editor's view"],
-    ['mobile.approvals.fact_routine',"routines.versions.routineRow heads the version compare's routine row; this names the routine an approval came from"],
+    ['mobile.flow.versions.not_saved', "automations.templates.orgEmptyTitle is the template gallery's empty state; this is an automation never saved"],
+    ['mobile.flow.view', "automations.sharing.view_pill says an automation is shared read-only; this switches the editor's view"],
+    ['mobile.approvals.fact_automation',"automations.versions.automationRow heads the version compare's automation row; this names the automation an approval came from"],
     ['mobile.automations.change', OTHER_CHANGE],
     ['mobile.automations.open', OTHER_OPEN],
     ['mobile.automations.rename', OTHER_RENAME],
     ['mobile.chat.attach_document', VERSION_SETTING],
     ['mobile.chat.copied', OTHER_COPIED],
-    ['mobile.chat.details.save_name', "routines.versions.saveName names a saved version; this names a conversation"],
-    ['mobile.chat.skill_count', "routines.*_skills_plural are the plural halves of an AI step's skill count; this counts a chat's skills"],
+    ['mobile.chat.details.save_name', "automations.versions.saveName names a saved version; this names a conversation"],
+    ['mobile.chat.skill_count', "automations.*_skills_plural are the plural halves of an AI step's skill count; this counts a chat's skills"],
     ['mobile.chat.trace_steps', OTHER_STEPS],
-    ['mobile.compliance.check_history', "routines.versions.history is a routine's version history; this is a compliance check's"],
+    ['mobile.compliance.check_history', "automations.versions.history is an automation's version history; this is a compliance check's"],
     ['mobile.forms.fill.copied', OTHER_COPIED],
     ['mobile.forms.fill.untitled', VERSION_SETTING],
     ['mobile.forms.more', OTHER_MORE],
@@ -425,41 +428,46 @@ const SAME_WORDS_OWN_KEY = new Map<string, string>([
     ['mobile.knowledge.tab_documents', OTHER_DOCUMENTS],
     ['mobile.markdown.copied', OTHER_COPIED],
     ['mobile.markdown.test_steps', OTHER_STEPS],
-    ['mobile.nav.organisation_logo', "routines.library.blockOrg says a library step is shared with the organisation; this stands in for its name"],
+    ['mobile.nav.organisation_logo', "automations.library.blockOrg says a library step is shared with the organisation; this stands in for its name"],
     ['mobile.notifications.empty_show_all', OTHER_SHOW_ALL],
-    ['mobile.onboarding.pending_title', "routines.ndv.pill_waiting is a step waiting on an approver; this is an account waiting on an administrator"],
+    ['mobile.onboarding.pending_title', "automations.ndv.pill_waiting is a step waiting on an approver; this is an account waiting on an administrator"],
     ['mobile.playbooks.more', OTHER_MORE],
     ['mobile.projects.field_icon', OTHER_ICON],
     ['mobile.projects.field_instructions', VERSION_SETTING],
-    ['mobile.recording.clear_filters', "routines.overview.clearFilters belongs to the routines overview; this clears the meeting library's"],
-    ['mobile.recording.import_skipped', "routines.repeating.logSkipped is a scan log's outcome; this is a recording import's"],
-    ['mobile.runs.filter.range', "routines.notify.when heads when a notification fires; this is a date range"],
+    ['mobile.recording.clear_filters', "automations.overview.clearFilters belongs to the automations overview; this clears the meeting library's"],
+    ['mobile.runs.filter.range', "automations.notify.when heads when a notification fires; this is a date range"],
     ['mobile.settings.address', VERSION_SETTING],
-    ['mobile.settings.connection', "routines.output.setting_connection names the connection a step failed on; this is HTTP or HTTPS"],
-    ['mobile.settings.switch_server', "routines.ndv.action_switch switches a step's action; this switches servers"],
+    ['mobile.settings.connection', "automations.output.setting_connection names the connection a step failed on; this is HTTP or HTTPS"],
+    ['mobile.settings.switch_server', "automations.ndv.action_switch switches a step's action; this switches servers"],
     ['mobile.skills.icon', OTHER_ICON],
     ['mobile.skills.open', OTHER_OPEN],
-    ['mobile.skills.save_failed', "routines.header.save_failed is the routine builder's save state; this is a skill's"],
+    ['mobile.skills.save_failed', "automations.header.save_failed is the automation builder's save state; this is a skill's"],
     ['mobile.studio.attention_show_all', OTHER_SHOW_ALL],
     ['mobile.studio_documents.open', OTHER_OPEN],
     ['mobile.studio_documents.outline.ph_title', VERSION_SETTING],
-    ['mobile.studio_documents.param.example', "routines.notify.example heads a notification's example message"],
+    ['mobile.studio_documents.param.example', "automations.notify.example heads a notification's example message"],
     ['mobile.studio_documents.rename', OTHER_RENAME],
     ['mobile.studio_documents.section.title', VERSION_SETTING],
-    ['mobile.studio_documents.tab.templates', "routines.templates.title heads the routine template gallery"],
+    ['mobile.studio_documents.tab.templates', "automations.templates.title heads the automation template gallery"],
     ['mobile.ui.stepper_more', OTHER_MORE],
-    ['mobile.usage.range_days', "routines.settings.retention_days is how long runs are kept; this is a usage range"],
+    ['mobile.usage.range_days', "automations.settings.retention_days is how long runs are kept; this is a usage range"],
     ['mobile.webpages.link.open', OTHER_OPEN],
-    ['mobile.webpages.link.revoke', "routines.settings.webhook_revoke revokes a webhook; this revokes a share link"],
+    ['mobile.webpages.link.revoke', "automations.settings.webhook_revoke revokes a webhook; this revokes a share link"],
     ['mobile.webpages.public.change', OTHER_CHANGE],
     ['mobile.webpages.settings.bases', VERSION_SETTING],
     ['mobile.webpages.settings.icon', OTHER_ICON],
     // The builder's work modes (2026-10) say 'Apply', 'Discard' and 'Options' for the first time.
     ['mobile.datatables.options', OTHER_OPTIONS],
     ['mobile.flow.section.options', OTHER_OPTIONS],
-    ['mobile.flow.json.apply', "routines.assistant.apply applies the assistant's proposal; this applies a step's hand-edited JSON"],
+    ['mobile.flow.json.apply', "automations.assistant.apply applies the assistant's proposal; this applies a step's hand-edited JSON"],
     ['mobile.ui.discard', OTHER_DISCARD],
-    ['mobile.webpages.versions.source_published', "routines' 'Published' is a library step's state; this says a publish made the version (the web's own word for that is 'Publish')"],
+    ['mobile.webpages.versions.source_published', "automations' 'Published' is a library step's state; this says a publish made the version (the web's own word for that is 'Publish')"],
+    // "Find repeating work" (2026-10) says these on the web for the first time.
+    ['mobile.flow.params.name_placeholder', "automations.repeating.phName names a masked name in a pattern's template line; this is a parameter's name field"],
+    ['mobile.knowledge.scan_not_now', "automations.repeating.notNow hides a pattern for 30 days; this closes the camera prompt"],
+    ['mobile.notifications.channel', "automations.repeating.sourceBeeflow is a scan source; this names the Android notification channel"],
+    ['mobile.onboarding.server_connect', "automations.repeating.sourceConnect links a scan source to the integrations page; this connects to a server"],
+    ['mobile.runs.filter.all_automations', "automations.tabs.overview is the automations launcher's tab; this is the runs filter's no-filter choice"],
 ]);
 
 // ---------------------------------------------------------------------------

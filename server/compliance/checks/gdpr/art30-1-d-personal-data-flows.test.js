@@ -1,11 +1,11 @@
 /**
- * Art. 30(1)(d) over what is ALREADY RUNNING: where each live routine's
+ * Art. 30(1)(d) over what is ALREADY RUNNING: where each live automation's
  * personal data goes, and whether anything stands in front of the step that
  * sends it.
  *
  * What these tests hold in place is mostly the difference between three
  * answers that read alike on a dashboard and are not: "nothing personal leaves
- * this routine", "personal data can leave it", and "nothing here could tell".
+ * this automation", "personal data can leave it", and "nothing here could tell".
  * The third one is a pass in every product that has this bug, and it is the
  * one this check refuses to give.
  *
@@ -22,7 +22,7 @@ const step = (type, over = {}) => ({ type, tool: null, datatableId: null, ...ove
 const PERSONAL = [{ key: 'email', name: 'E-mail', kind: 'email', kinds: ['email'], by: 'names' }];
 const SENDS = [step('datatable', { datatableId: 'tbl_1' }), step('integration_action', { tool: 'gmail_compose' })];
 
-test('a routine that can send personal data with nothing in front of it is a warning that names the recipient', () => {
+test('an automation that can send personal data with nothing in front of it is a warning that names the recipient', () => {
     const v = CHK._verdict('Klantmailer', flowOf(SENDS, PERSONAL));
     assert.equal(v.status, 'warn');
     assert.match(v.details, /can send email to gmail/);
@@ -33,10 +33,10 @@ test('a routine that can send personal data with nothing in front of it is a war
     assert.equal(v.evidence.exits_unshielded, 1);
 });
 
-test('a Privacy Shield is a POSITION: one at the end of the routine is not a pass', () => {
+test('a Privacy Shield is a POSITION: one at the end of the automation is not a pass', () => {
     // The playbook review's own finding is titled "no privacy check IN FRONT
     // OF IT" and was gated on "is there a privacy step anywhere in this
-    // routine". A shield dropped after the step that sends protects nothing.
+    // automation". A shield dropped after the step that sends protects nothing.
     const after = CHK._verdict('Klantmailer', flowOf([...SENDS, step('guard')], PERSONAL));
     assert.equal(after.status, 'warn');
     assert.equal(after.evidence.shields, 1, 'the shield is seen, it is just in the wrong place');
@@ -49,7 +49,7 @@ test('a Privacy Shield is a POSITION: one at the end of the routine is not a pas
 test('the egress log turns a risk into a record, and that is a failure', () => {
     // A definition says what CAN happen. The ledger says what did. Nothing in
     // a reading of a definition is as strong as a row saying an e-mail address
-    // left through this routine last Tuesday.
+    // left through this automation last Tuesday.
     const seen = dataFlow.observedEgress([{ tool_name: 'gmail_compose', pii_categories_detected: 'Email,Person', calls: 12 }]);
     const v = CHK._verdict('Klantmailer', flowOf(SENDS, PERSONAL, seen));
     assert.equal(v.status, 'fail');
@@ -60,21 +60,21 @@ test('the egress log turns a risk into a record, and that is a failure', () => {
 });
 
 test('a silent ledger never acquits a definition', () => {
-    // An empty ledger means the routine has not run — or that the PII scan was
-    // off. Reading it as "nothing personal has left" is how a routine that
+    // An empty ledger means the automation has not run — or that the PII scan was
+    // off. Reading it as "nothing personal has left" is how an automation that
     // fires once a quarter passes every sweep in between.
     const empty = CHK._verdict('Klantmailer', flowOf(SENDS, PERSONAL, dataFlow.observedEgress([])));
     assert.equal(empty.status, 'warn');
-    // And a shielded routine that really sent something is not failed for it.
+    // And a shielded automation that really sent something is not failed for it.
     const seen = dataFlow.observedEgress([{ tool_name: 'gmail_compose', pii_categories_detected: 'Email', calls: 3 }]);
     const guarded = flowOf([step('guard'), ...SENDS], PERSONAL, seen);
     assert.equal(CHK._verdict('Klantmailer', guarded).status, 'pass');
 });
 
 test('"we could not tell" is never a pass', () => {
-    // THE BUG CLASS THIS WHOLE CHECK IS ARRANGED AGAINST. A routine that sends
+    // THE BUG CLASS THIS WHOLE CHECK IS ARRANGED AGAINST. An automation that sends
     // data out of the workspace and whose source nothing here could read is
-    // not a clean routine; it is an unanswered question, and a compliance
+    // not a clean automation; it is an unanswered question, and a compliance
     // product that answers it with a green tick is worse than one that says
     // nothing.
     const blind = CHK._verdict('Onbekend', flowOf([step('integration_action', { tool: 'gmail_compose' })], null));
@@ -83,14 +83,14 @@ test('"we could not tell" is never a pass', () => {
     assert.match(blind.details, /That is a gap in what is known, not a clean bill/);
     assert.equal(blind.evidence.carries, null, 'null is not an empty list');
 
-    // Steps that could not be read at all, for a routine that is switched on.
+    // Steps that could not be read at all, for an automation that is switched on.
     const unreadable = CHK._verdict('Kapot', flowOf([], null));
     assert.equal(unreadable.status, 'warn');
     assert.match(unreadable.details, /its steps could not be read/);
 });
 
 test('the ledger can answer what the definition could not', () => {
-    // The one honest way out of the warning above: the routine really has been
+    // The one honest way out of the warning above: the automation really has been
     // sending, the PII scan was on, and nothing personal was in any of it.
     // Observed, not guessed — the same rule personalColumns applies when the
     // values can be read and the names cannot.
@@ -100,7 +100,7 @@ test('the ledger can answer what the definition could not', () => {
     assert.match(v.details, /40 call\(s\) to gmail .* and no personal data in any of them/);
 });
 
-test('a routine that sends nothing, and one whose columns hold nothing personal', () => {
+test('an automation that sends nothing, and one whose columns hold nothing personal', () => {
     const contained = CHK._verdict('Rijen bijwerken', flowOf([step('datatable', { datatableId: 'tbl_1' })], PERSONAL));
     assert.equal(contained.status, 'pass');
     assert.match(contained.details, /Nothing in "Rijen bijwerken" leaves the workspace/);
@@ -113,7 +113,7 @@ test('a routine that sends nothing, and one whose columns hold nothing personal'
 
 test('a category from the ledger is never re-spelled on the way in', () => {
     // The worst bug this side of the product has had: a private snake_case
-    // squash of the guard's category ids meant a routine mailing out telephone
+    // squash of the guard's category ids meant an automation mailing out telephone
     // numbers, IBANs or BSNs reported "no personal data". Every spelling any
     // producer has ever written goes through piiCategories.normalizeCategory.
     for (const [wire, kinds] of [
@@ -131,7 +131,7 @@ test('a category from the ledger is never re-spelled on the way in', () => {
 });
 
 test('a step is projected through an allow-list, so its configuration cannot reach the evidence', () => {
-    // BFSF-441. A step object is the routine's own configuration — a recipient
+    // BFSF-441. A step object is the automation's own configuration — a recipient
     // address, a subject line, a bound body — and everything that gets past
     // stepsOf() ends up in a compliance evidence record, which is the one
     // artifact in this product designed to be handed to an outsider.
@@ -157,7 +157,7 @@ test('a step is projected through an allow-list, so its configuration cannot rea
     assert.equal(CHK.stepsOf({ definition_json: JSON.stringify({ steps: [{ type: 'code' }] }) }).length, 1);
 });
 
-// ── the subjects, and the routines this check never opened ───────────────
+// ── the subjects, and the automations this check never opened ───────────────
 
 const ROWS = [
     { id: 'aut_1', title: 'Klantmailer', definition_json: { steps: [{ type: 'integration_action', tool: 'gmail_compose', datatableId: 'tbl_1' }] } },
@@ -176,7 +176,7 @@ const depsFor = (rows = ROWS, over = {}) => ({
     ...over,
 });
 
-test('it judges the live routines it can read, one row each', async () => {
+test('it judges the live automations it can read, one row each', async () => {
     const deps = depsFor();
     const subjects = await CHK.listSubjects('orgA', deps);
     assert.deepEqual(subjects, [
@@ -195,7 +195,7 @@ test('it judges the live routines it can read, one row each', async () => {
     assert.equal((await CHK.evaluate('orgA', null, deps)).status, 'not_applicable');
 });
 
-test('a routine whose tables cannot be opened is not thereby clean', async () => {
+test('an automation whose tables cannot be opened is not thereby clean', async () => {
     const deps = depsFor(ROWS, { getTableMeta: async () => { throw new Error('datatable store unavailable'); } });
     const v = await CHK.evaluate('orgA', { id: 'automation:aut_1' }, deps);
     assert.equal(v.status, 'warn');
@@ -204,14 +204,14 @@ test('a routine whose tables cannot be opened is not thereby clean', async () =>
 
 test('"live" is one sentence, and the SQL still says it', async () => {
     let sql = '';
-    await CHK._liveRoutines('orgA', { getAll: async (q) => { sql = q; return []; } });
+    await CHK._liveAutomations('orgA', { getAll: async (q) => { sql = q; return []; } });
     assert.match(sql, /a\.is_active = TRUE/);
     assert.match(sql, /COALESCE\(a\.is_draft, FALSE\) = FALSE/);
-    assert.match(sql, /a\.kind = 'automation'/, 'a reusable Step is not a routine');
+    assert.match(sql, /a\.kind = 'automation'/, 'a reusable Step is not an automation');
     // Rows created before organization_id was stamped resolve through the
     // owner — the filter aiAct/signals.js and the detectors already use. A
-    // plain a.organization_id = $1 loses every routine older than that column,
-    // and a check that loses routines scores the ones it happened to keep.
+    // plain a.organization_id = $1 loses every automation older than that column,
+    // and a check that loses automations scores the ones it happened to keep.
     assert.match(sql, /COALESCE\(a\.organization_id, u\."organizationId"\) = \$1/);
 });
 
@@ -222,17 +222,17 @@ test('it reports the whole live population and names the ones it could not open'
     assert.equal(cov.examined, 2);
     assert.deepEqual(cov.unexamined, [
         { id: 'aut_3', label: 'Kapotte import' },
-        // A routine with no title is still named by something clickable.
+        // An automation with no title is still named by something clickable.
         { id: 'aut_4', label: 'aut_4' },
     ]);
     assert.equal(cov.link, 'admin/compliance/ropa');
     assert.equal(cov.examined_as, 'read for where its data goes');
 });
 
-test('a routine list that cannot be read is never reported as "no routines"', async () => {
+test('an automation list that cannot be read is never reported as "no automations"', async () => {
     // listSubjects swallows a read failure and returns a short subject list,
     // which costs verdicts and is survivable. Doing that in listCoverage would
-    // claim the workspace runs no routines at all — "there is nothing we
+    // claim the workspace runs no automations at all — "there is nothing we
     // failed to look at" — which is the exact false reassurance coverage
     // exists to prevent. The error goes up and the runner records the run as
     // covering an unknown share.
@@ -248,17 +248,17 @@ test('an organisation running nothing reports an empty population, not a gap', a
     assert.deepEqual(cov.unexamined, []);
 });
 
-test('the sentence an admin actually reads names the routines and where to go', async () => {
+test('the sentence an admin actually reads names the automations and where to go', async () => {
     // The two halves composed: this check supplies the population and the
     // words for its own domain, compliance/runner.js turns them into the row.
     const { _coverageVerdict } = require('../../runner');
     const row = _coverageVerdict(CHK, await CHK.listCoverage('orgA', depsFor()));
     assert.equal(row.status, 'warn');
-    assert.match(row.details, /2 of this organisation's 4 live routines have never been read for where its data goes/);
+    assert.match(row.details, /2 of this organisation's 4 live automations have never been read for where its data goes/);
     assert.match(row.details, /the score covers only the other 2/);
     assert.match(row.details, /"Kapotte import", "aut_4"/);
 
-    // NOTHING readable while routines are running: the verdicts above are
+    // NOTHING readable while automations are running: the verdicts above are
     // about nothing at all, and that is the bug this contract was added for —
     // a workspace nobody had looked at used to score the checks that happened
     // to run, often 100.

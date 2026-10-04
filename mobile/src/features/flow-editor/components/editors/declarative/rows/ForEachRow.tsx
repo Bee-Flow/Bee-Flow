@@ -47,7 +47,7 @@ function ForEachFields({ fe, onChange, disabled }: { fe: ForEach; onChange: (nex
                 editable={!disabled}
             />
             <NumberField
-                label={t('routines.canvas.loop_max_title', 'Max iterations')}
+                label={t('automations.canvas.loop_max_title', 'Max iterations')}
                 hint={t('mobile.flow.foreach.max_hint', 'Safety cap. 1–1000.')}
                 value={fe.maxIterations ?? 100}
                 min={1}

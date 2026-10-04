@@ -42,7 +42,7 @@ const MOCKS = {
     '../accountStatusGate': { isLoginBlockedAccount: () => false, REFUSAL: { status: 403, body: {} } },
     '../../stores/userStore': { getUser: async () => null, getAppPassword: async () => null },
     '../../stores/encryptionAvailability': { isEncryptionEnabledForUser: async () => false },
-    '../../stores/routineCredentialStore': { upsertCredential: async () => {} },
+    '../../stores/automationCredentialStore': { upsertCredential: async () => {} },
 };
 
 const MOCK_IDS = {};

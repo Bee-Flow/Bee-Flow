@@ -1,4 +1,5 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { cleanup, render, screen, fireEvent, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../lib/transcriptionsApi', () => ({
@@ -6,12 +7,16 @@ vi.mock('../lib/transcriptionsApi', () => ({
     setMeetingRecord: vi.fn(),
     listGoogleMeetMeetings: vi.fn(),
     setGoogleMeetMeetingRecord: vi.fn(),
+    listTeamsMeetings: vi.fn(),
+    setTeamsMeetingRecord: vi.fn(),
 }));
+vi.mock('../../../lib/microsoftOAuthPopup', () => ({ openMicrosoftOAuthPopup: vi.fn() }));
 vi.mock('../../../lib/googleOAuthPopup', () => ({ openGoogleOAuthPopup: vi.fn() }));
 vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 
 import UpcomingMeetings from './UpcomingMeetings';
-import { listTalkMeetings, setMeetingRecord, listGoogleMeetMeetings, setGoogleMeetMeetingRecord } from '../lib/transcriptionsApi';
+import { listTalkMeetings, setMeetingRecord, listGoogleMeetMeetings, setGoogleMeetMeetingRecord, listTeamsMeetings, setTeamsMeetingRecord } from '../lib/transcriptionsApi';
+import { openMicrosoftOAuthPopup } from '../../../lib/microsoftOAuthPopup';
 import { openGoogleOAuthPopup } from '../../../lib/googleOAuthPopup';
 
 const talkMeeting = (over = {}) => ({
@@ -35,6 +40,20 @@ const gmeetPayload = (meetings = [], over = {}) => ({
     ...over,
 });
 
+const teamsMeeting = (over = {}) => ({
+    eventId: 'tev1', seriesMasterId: 'sm1', title: 'Teams review',
+    start: '2026-07-18T10:00:00Z', end: '2026-07-18T10:30:00Z',
+    organizerSelf: true, attendees: [{ email: 'a@x.nl' }, { email: 'b@x.nl' }],
+    joinUrl: 'https://teams.microsoft.com/l/x', excluded: false, recordReason: 'auto', recordDecided: true,
+    importedNoteId: null, status: 'will_import',
+    ...over,
+});
+const teamsPayload = (meetings = [], over = {}) => ({
+    connection: { microsoftConnected: true, teamsScopesGranted: true, hasMeetingWriteScope: true, hasTranscriptScope: true, needsReauth: false },
+    autoImport: true, autoRecordConfig: true, meetings,
+    ...over,
+});
+
 const toggles = (container) => container.querySelectorAll('button[aria-pressed]');
 
 describe('UpcomingMeetings', () => {
@@ -44,6 +63,43 @@ describe('UpcomingMeetings', () => {
         listGoogleMeetMeetings.mockReset().mockResolvedValue(gmeetPayload());
         setGoogleMeetMeetingRecord.mockReset().mockResolvedValue({});
         openGoogleOAuthPopup.mockReset().mockResolvedValue({ success: true });
+        listTeamsMeetings.mockReset().mockResolvedValue(teamsPayload([], { connection: { microsoftConnected: false } }));
+        setTeamsMeetingRecord.mockReset().mockResolvedValue({});
+        openMicrosoftOAuthPopup.mockReset().mockResolvedValue({ success: true });
+    });
+
+    it('lists Teams meetings: organizer rows toggle, others are "Organizer only" and locked', async () => {
+        listTeamsMeetings.mockResolvedValue(teamsPayload([
+            teamsMeeting(),
+            teamsMeeting({ eventId: 'tev2', title: 'Their meeting', organizerSelf: false, status: 'organizer_only' }),
+        ]));
+        const { container } = render(<UpcomingMeetings />);
+        await screen.findByText('Teams review');
+        expect(screen.getAllByText('Teams')).toHaveLength(2);
+        expect(screen.getByText('Will record')).toBeInTheDocument();
+        expect(screen.getByText('Organizer only')).toBeInTheDocument();
+        const [mine, theirs] = toggles(container);
+        expect(mine.disabled).toBe(false);
+        expect(theirs.disabled).toBe(true);
+        expect(screen.getByText(/Microsoft Teams: colleagues in your organisation/)).toBeInTheDocument();
+    });
+
+    it('toggles a Teams row with its series id and reconnects when the Teams permissions are missing', async () => {
+        const user = userEvent.setup();
+        listTeamsMeetings.mockResolvedValue(teamsPayload([teamsMeeting({ excluded: true, status: 'excluded' })]));
+        setTeamsMeetingRecord.mockResolvedValue({ effectiveRecord: true, overridden: false });
+        const { container } = render(<UpcomingMeetings />);
+        await screen.findByText('Teams review');
+        await user.click(toggles(container)[0]);
+        expect(setTeamsMeetingRecord).toHaveBeenCalledWith('tev1', true, { seriesMasterId: 'sm1' });
+
+        cleanup();
+        listTeamsMeetings.mockResolvedValue(teamsPayload([], {
+            connection: { microsoftConnected: true, teamsScopesGranted: false, hasMeetingWriteScope: false },
+        }));
+        render(<UpcomingMeetings />);
+        await user.click(await screen.findByRole('button', { name: 'Reconnect' }));
+        expect(openMicrosoftOAuthPopup).toHaveBeenCalled();
     });
 
     it('merges both providers sorted by start time with provider chips', async () => {

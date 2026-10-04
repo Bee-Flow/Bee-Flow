@@ -285,7 +285,7 @@ test('a legacy agent keeps its mail tool in a headless run — autoSend still me
 
     assert.deepStrictEqual(gmailOffered(), ['gmail_compose', 'gmail_search'],
         'dropping confirm-tools from an unattended run must not touch an agent with no grants — ' +
-        'that is every mailing routine in the product');
+        'that is every mailing automation in the product');
     assert.deepStrictEqual(S.dispatched.map(d => d.name), ['gmail_compose']);
 });
 
@@ -432,7 +432,7 @@ test('two different pending actions each get their own card', async () => {
 
 test('a name that was never offered is refused before anything is dispatched', async () => {
     reset({
-        // The shape of a prompt injection: a routine name the asker owns, which
+        // The shape of a prompt injection: an automation name the asker owns, which
         // the dispatcher's dynamic-name fallback would happily have run.
         drive: callThenAnswer('automation_pay_invoice'),
         // Curated: this gate is opt-in, like everything else here.
@@ -444,7 +444,7 @@ test('a name that was never offered is refused before anything is dispatched', a
     assert.strictEqual(error, null);
     assert.deepStrictEqual(S.dispatched, [],
         'an unoffered name must never reach toolDispatcher — its dynamic-name fallback runs the ' +
-        "asker's own agent_call routines outside every agent policy");
+        "asker's own agent_call automations outside every agent policy");
     assert.deepStrictEqual(eventsOfType('tool_confirm'), [], 'a refusal is not a confirmation');
 });
 
@@ -452,7 +452,7 @@ test('an UNcurated agent keeps the dispatcher path it has always had for an unof
     // The gate shipped global for one stage, which changed what every agent in
     // the product does with a name outside its stack — with no field anyone
     // could set to ask for it. The dispatcher has its own answer for such a
-    // name (the caller's routines and Steps, a progressive-disclosure hint, a
+    // name (the caller's automations and Steps, a progressive-disclosure hint, a
     // component tool), and that answer is what a legacy agent gets back.
     reset({ drive: callThenAnswer('automation_pay_invoice') });
 
@@ -510,37 +510,37 @@ test('an agent with no grants map lends exactly as it did before', async () => {
         'lending off for every agent that predates the picker');
 });
 
-// ── A granted routine's own confirm ─────────────────────────────────
+// ── A granted automation's own confirm ─────────────────────────────────
 // `automations[].confirm` is keyed on the automation id while the tool is
 // named per user at assembly time, so nothing married the two and the stored
 // value did nothing at all.
 
-const ROUTINE = {
+const AUTOMATION = {
     type: 'function',
     function: { name: 'automation_send_invoice', description: 'Send the invoice', parameters: { type: 'object', properties: {} } },
     __automation: { id: 'auto-1', userId: 'u1' },
 };
 
-test('a routine its owner put on "ask" is held back instead of run', async () => {
+test('an automation its owner put on "ask" is held back instead of run', async () => {
     reset({
         drive: callThenAnswer('automation_send_invoice'),
-        tools: [...TOOLS, ROUTINE],
+        tools: [...TOOLS, AUTOMATION],
         config: { tools: { automations: { 'auto-1': { confirm: 'ask' } } } },
     });
 
     const { error } = await runTurn();
 
     assert.strictEqual(error, null);
-    assert.deepStrictEqual(S.dispatched, [], 'the routine must not run — that is what "ask" was for');
+    assert.deepStrictEqual(S.dispatched, [], 'the automation must not run — that is what "ask" was for');
     const confirms = eventsOfType('tool_confirm');
     assert.strictEqual(confirms.length, 1);
     assert.strictEqual(confirms[0].toolName, 'automation_send_invoice');
 });
 
-test('a routine granted without a confirm runs exactly as before', async () => {
+test('an automation granted without a confirm runs exactly as before', async () => {
     reset({
         drive: callThenAnswer('automation_send_invoice'),
-        tools: [...TOOLS, ROUTINE],
+        tools: [...TOOLS, AUTOMATION],
         config: { tools: { automations: { 'auto-1': {} } } },
     });
 
@@ -551,19 +551,19 @@ test('a routine granted without a confirm runs exactly as before', async () => {
     assert.deepStrictEqual(eventsOfType('tool_confirm'), []);
 });
 
-test('nobody watching: the routine set to "ask" is withheld, and naming it anyway is refused', async () => {
+test('nobody watching: the automation set to "ask" is withheld, and naming it anyway is refused', async () => {
     reset({
         drive: callThenAnswer('automation_send_invoice'),
-        tools: [...TOOLS, ROUTINE],
+        tools: [...TOOLS, AUTOMATION],
         config: { tools: { automations: { 'auto-1': { confirm: 'ask' } } } },
     });
 
     await runTurn({ autoSend: true });
 
     assert.ok(!(S.toolsOfferedPerRound[0] || []).includes('automation_send_invoice'),
-        'with no one to answer, a routine that would ask is left out of the stack');
+        'with no one to answer, an automation that would ask is left out of the stack');
     assert.deepStrictEqual(S.dispatched, [],
-        'and the name gate holds: the withheld routine may not slip through the dispatcher\'s own lookup');
+        'and the name gate holds: the withheld automation may not slip through the dispatcher\'s own lookup');
 });
 
 test('an unticked action of a granted app is refused, not merely un-offered', async () => {

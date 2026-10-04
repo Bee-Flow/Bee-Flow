@@ -19,10 +19,10 @@
  *   cannot name is dropped, every list and string is bounded. The model output
  *   is untrusted input like any other request body.
  *
- *   It does not return a ROUTINE id. `unknown.automationId` is stripped from
+ *   It does not return a AUTOMATION id. `unknown.automationId` is stripped from
  *   whatever comes back: no model knows this installation's automation ids, so
  *   anything in that field is a guess, and a guess there is a grant request.
- *   The user picks the routine in the editor.
+ *   The user picks the automation in the editor.
  *
  * Gate: `manage_agents` on the router, then `canModifyAgent` per call — the
  * same chain as PUT /agents/:id and routes/versions.js. The endpoint reads the
@@ -186,7 +186,7 @@ router.post('/:id/persona/parse', requirePermission('manage_agents'), parseLimit
 
     // Clamp, then override the two fields the MODEL does not get to decide:
     // the mode (a parse always lands in fields mode — that is what the user
-    // pressed) and the routine id (see the header).
+    // pressed) and the automation id (see the header).
     const { persona, warnings } = personaPrompt.normalisePersona({ ...structured, mode: 'fields', freeText: '' });
     persona.unknown = { mode: persona.unknown.mode, automationId: null };
 

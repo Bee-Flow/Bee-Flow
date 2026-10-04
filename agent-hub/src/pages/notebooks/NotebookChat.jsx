@@ -27,7 +27,6 @@ export default function NotebookChat({
     const { t } = useTranslation();
     const endRef = useRef(null);
     const containerRef = useRef(null);
-    const [copied, setCopied] = useState(false);
     const [chatInput, setChatInput] = useState('');
 
     /**
@@ -59,18 +58,17 @@ export default function NotebookChat({
     }, [isLoading]);
 
     const handleCopy = (content) => {
-        navigator.clipboard.writeText(content).catch(() => {});
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+        // MessageItem shows its own "copied" feedback; a refused clipboard is not worth a banner.
+        navigator.clipboard?.writeText(content).catch(() => {});
     };
 
     return (
         <div className="flex flex-col h-full">
             {/* Chat header (Studio-aligned: icon + title + subtitle) */}
-            <div className="shrink-0 px-3 py-2 border-b flex items-center gap-2" style={{ borderColor: 'var(--border-subtle)' }}>
-                <MessageSquare className="w-3.5 h-3.5" style={{ color: 'var(--accent-primary)' }} />
-                <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{t('notebooks.ai_chat', 'AI Chat')}</span>
-                <span className="text-[10px] flex-1 min-w-0 truncate" style={{ color: 'var(--text-tertiary)' }}>
+            <div className="shrink-0 px-3 py-2 border-b flex items-center gap-2 border-[var(--border-subtle)]">
+                <MessageSquare className="w-3.5 h-3.5 text-[var(--accent-primary)]" aria-hidden="true" />
+                <h2 className="m-0 text-sm font-semibold text-[var(--text-primary)]">{t('notebooks.ai_chat', 'AI Chat')}</h2>
+                <span className="text-[11px] flex-1 min-w-0 truncate text-[var(--text-tertiary)]">
                     {t('notebooks.chat_subtitle', 'Ask questions about your sources')}
                 </span>
                 {onNewChat && messages.length > 0 && (
@@ -100,11 +98,10 @@ export default function NotebookChat({
                     server would refuse to persist over the locked envelope. */}
                 {locked && (
                     <div
-                        className="flex items-start gap-2 px-3 py-2 rounded-xl border text-xs"
-                        style={{ background: 'rgba(59,130,246,0.08)', borderColor: 'rgba(59,130,246,0.25)', color: 'var(--text-secondary)' }}
+                        className="flex items-start gap-2 px-3 py-2 rounded-xl border text-xs text-[var(--text-secondary)] bg-[color-mix(in_srgb,var(--info)_8%,transparent)] border-[color-mix(in_srgb,var(--info)_25%,transparent)]"
                         role="status"
                     >
-                        <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: '#3b82f6' }} />
+                        <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-[var(--info)]" aria-hidden="true" />
                         <span>{t('notebooks.history_locked', 'Chat history is locked — sign in again to continue this conversation.')}</span>
                     </div>
                 )}
@@ -134,12 +131,12 @@ export default function NotebookChat({
                         {/* Insert to document button for assistant messages */}
                         {msg.role === 'assistant' && msg.content && !msg.isStreaming && onInsertToDocument && (
                             <button
+                                type="button"
                                 onClick={() => onInsertToDocument(msg.content)}
-                                className="absolute -bottom-1 right-0 opacity-0 group-hover/msg:opacity-100 flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium transition-all"
-                                style={{ background: 'var(--accent-primary)', color: 'white' }}
+                                className="absolute -bottom-1 right-0 opacity-0 group-hover/msg:opacity-100 focus-visible:opacity-100 flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium transition-all bg-[var(--accent-primary)] text-[var(--accent-primary-fg)]"
                                 title={t('notebooks.insert_into_document', 'Insert into document')}
                             >
-                                <ArrowDown className="w-2.5 h-2.5" /> {t('notebooks.insert', 'Insert')}
+                                <ArrowDown className="w-2.5 h-2.5" aria-hidden="true" /> {t('notebooks.insert', 'Insert')}
                             </button>
                         )}
                     </div>
@@ -151,8 +148,7 @@ export default function NotebookChat({
                 disabled prop; pointer-events blocks the mouse, the guard in
                 onSendMessage blocks Enter from an already-focused textarea). */}
             <div
-                className="shrink-0 px-2 py-2 border-t"
-                style={{ borderColor: 'var(--border-subtle)', ...(locked ? { opacity: 0.55, pointerEvents: 'none' } : {}) }}
+                className={`shrink-0 px-2 py-2 border-t border-[var(--border-subtle)] ${locked ? 'opacity-55 pointer-events-none' : ''}`}
                 aria-disabled={locked || undefined}
             >
                 <InputArea

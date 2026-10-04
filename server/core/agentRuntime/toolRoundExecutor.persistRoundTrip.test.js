@@ -1,7 +1,7 @@
 /**
  * The reported defect, end to end across the seam that caused it.
  *
- * An agent called a Bee Flow routine exposed as a tool (`automation_<id>`).
+ * An agent called a Bee Flow automation exposed as a tool (`automation_<id>`).
  * `dispatchAgentCallableTool` returns the run's `lastOutput` — an object —
  * which `buildLLMToolContent` serializes to `'{"sent":true,…}'` and the runtime
  * persists as the `role:'tool'` message. The store then JSON-parsed everything
@@ -45,7 +45,7 @@ function assertWireLegal(messages, where) {
     });
 }
 
-// The routine's final step output, as the runner hands it back.
+// The automation's final step output, as the runner hands it back.
 const LAST_OUTPUT = { sent: true, runId: 'run_9f2c', to: '[email_1]', subject: 'Storing gemeld' };
 
 function turnOneTranscript() {
@@ -61,13 +61,13 @@ function turnOneTranscript() {
     ];
 }
 
-test('buildLLMToolContent serializes an object routine result to a string', () => {
+test('buildLLMToolContent serializes an object automation result to a string', () => {
     const content = buildLLMToolContent(LAST_OUTPUT);
     assert.strictEqual(typeof content, 'string');
     assert.ok(content.startsWith('{'), 'it is JSON text — which is exactly what used to be re-parsed');
 });
 
-test('a routine tool result survives the turn-to-turn round-trip as a string', () => {
+test('an automation tool result survives the turn-to-turn round-trip as a string', () => {
     for (const ctx of [PLAINTEXT_CONTEXT, ENCRYPTED]) {
         const back = reload(turnOneTranscript(), ctx);
         const toolMsg = back.find(m => m.role === 'tool');
@@ -90,7 +90,7 @@ test('the reloaded history is wire-legal all the way to the adapter', () => {
     assert.strictEqual(typeof layout[3].content, 'string');
 });
 
-test('a routine that returns nothing does not put null on a tool message', () => {
+test('an automation that returns nothing does not put null on a tool message', () => {
     // dispatchAgentCallableTool returns `lastOutput ?? null`.
     const content = buildLLMToolContent(null);
     const back = reload([{ role: 'tool', tool_call_id: 'call_2', content }], ENCRYPTED);
